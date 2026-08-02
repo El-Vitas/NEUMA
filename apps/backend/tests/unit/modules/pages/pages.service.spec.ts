@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { PageLifecycle } from '@company-brain/db';
-import { USER_ROLE } from '@company-brain/shared';
+import type { Prisma } from '@company-brain/db/generated';
+import { type PageContent, USER_ROLE } from '@company-brain/shared';
 import { PagesService } from '@/modules/pages/pages.service';
 import type { PageRepositoryContract } from '@/modules/pages/types/page.types';
+
+const validPageContent: PageContent = {
+  content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
+  schemaVersion: 1,
+  type: 'doc',
+};
 
 const page = {
   content: {},
@@ -38,7 +45,7 @@ describe('pages service', () => {
     const service = new PagesService(createRepository());
     const result = await service.update(
       {
-        content: {},
+        content: validPageContent,
         pageId: 'page-a',
         role: USER_ROLE.WORKER,
         title: 'Updated',
@@ -50,6 +57,157 @@ describe('pages service', () => {
     );
 
     expect(result.isOk()).toBe(true);
+  });
+
+  const invalidPageContents: { content: Prisma.InputJsonObject; name: string }[] = [
+    {
+      content: { content: [{ content: [], type: 'unknown' }], schemaVersion: 1, type: 'doc' },
+      name: 'an unknown node type',
+    },
+    {
+      content: {
+        content: [{ content: [{ marks: [{ type: 'unknown' }], text: 'Example', type: 'text' }], type: 'paragraph' }],
+        schemaVersion: 1,
+        type: 'doc',
+      },
+      name: 'an unknown mark type',
+    },
+    {
+      content: {
+        content: [
+          { content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }], type: 'bullet_list' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      },
+      name: 'invalid node nesting',
+    },
+    {
+      content: {
+        content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
+        schemaVersion: 2,
+        type: 'doc',
+      },
+      name: 'an unsupported schema version',
+    },
+  ];
+
+  it.each(invalidPageContents)('rejects update content with $name before repository mutation', async ({ content }) => {
+    let updateCalls = 0;
+    const repository = {
+      ...createRepository(),
+      update: () => {
+        updateCalls += 1;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.update(
+      {
+        content,
+        pageId: 'page-a',
+        role: USER_ROLE.WORKER,
+        title: 'Updated',
+        updatedById: 'user-a',
+        userId: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_CONTENT_INVALID');
+    expect(updateCalls).toBe(0);
+  });
+
+  it('rejects invalid create content before repository mutation', async () => {
+    let createCalls = 0;
+    const repository = {
+      ...createRepository(),
+      create: () => {
+        createCalls += 1;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.create(
+      {
+        content: { content: [], schemaVersion: 1, type: 'doc' },
+        createdById: 'user-a',
+        parentId: null,
+        role: USER_ROLE.WORKER,
+        spaceId: 'space-a',
+        title: 'Page A',
+        userId: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_CONTENT_INVALID');
+    expect(createCalls).toBe(0);
+  });
+
+  it('forwards valid create content to the repository', async () => {
+    let receivedContent: Prisma.InputJsonValue | undefined;
+    const repository = {
+      ...createRepository(),
+      create: (input: Parameters<PageRepositoryContract['create']>[0]) => {
+        receivedContent = input.content;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.create(
+      {
+        content: validPageContent,
+        createdById: 'user-a',
+        parentId: null,
+        role: USER_ROLE.WORKER,
+        spaceId: 'space-a',
+        title: 'Page A',
+        userId: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedContent).toEqual(validPageContent);
+  });
+
+  it('forwards valid update content and preserves the repository version', async () => {
+    const versionedPage = { ...page, version: 2 };
+    let receivedContent: Prisma.InputJsonValue | undefined;
+    const repository = {
+      ...createRepository(),
+      update: (input: Parameters<PageRepositoryContract['update']>[0]) => {
+        receivedContent = input.content;
+        return Promise.resolve(versionedPage);
+      },
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.update(
+      {
+        content: validPageContent,
+        pageId: 'page-a',
+        role: USER_ROLE.WORKER,
+        title: 'Updated',
+        updatedById: 'user-a',
+        userId: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedContent).toEqual(validPageContent);
+    expect(result.getValue().version).toBe(2);
   });
 
   it('defaults page listing to active pages and forwards explicit trash inclusion', async () => {
@@ -104,7 +262,7 @@ describe('pages service', () => {
     const service = new PagesService(repository);
     const result = await service.create(
       {
-        content: {},
+        content: validPageContent,
         createdById: 'user-a',
         parentId: 'page-other-space',
         role: USER_ROLE.WORKER,

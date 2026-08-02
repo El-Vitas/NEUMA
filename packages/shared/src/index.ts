@@ -13,7 +13,7 @@ export { SPACE_VISIBILITY, SPACE_VISIBILITY_VALUES } from './types/space.types.j
 export type { WorkspaceCapability } from './types/workspace.types.js';
 export { WORKSPACE_CAPABILITY_BY_ROLE } from './types/workspace.types.js';
 export { pageContentSchema } from './schemas/page-content.schema.js';
-export type { PageContent } from './schemas/page-content.schema.js';
+export type { PageContent, PageContentNode, PageContentText } from './schemas/page-content.schema.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
 export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export {

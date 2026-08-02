@@ -1,15 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { FormField } from '@/shared/components/ui/form-field';
 import { hasActionError } from '@/shared/lib/action-result';
-import { getPageText } from '../lib/pages.lib';
+import { createEmptyPageContent } from '../lib/pages.editor.lib';
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesMoveForm } from './pages.move.form';
+import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
 interface IProps {
   readonly canEdit: boolean;
@@ -21,19 +22,15 @@ interface IProps {
 export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
   const router = useRouter();
   const [title, setTitle] = useState(page?.title ?? '');
-  const [text, setText] = useState(page === null ? '' : getPageText(page));
+  const contentRef = useRef<PageContent>(page?.content ?? createEmptyPageContent());
   const [isPending, startTransition] = useTransition();
 
   const savePage = () => {
-    const content: PageContent = {
-      blocks: text.trim() === '' ? [] : [{ text: text.trim(), type: 'paragraph' }],
-      schemaVersion: 1,
-    };
     startTransition(async () => {
       const result =
         page === null
-          ? await createPageAction({ content, parentId: null, spaceId, title: title.trim() })
-          : await updatePageAction({ content, pageId: page.id, spaceId, title: title.trim() });
+          ? await createPageAction({ content: contentRef.current, parentId: null, spaceId, title: title.trim() })
+          : await updatePageAction({ content: contentRef.current, pageId: page.id, spaceId, title: title.trim() });
       if (hasActionError(result)) {
         toast.error('No se pudo guardar la página. Revisa tus permisos e inténtalo de nuevo.');
         return;
@@ -68,13 +65,12 @@ export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
           <label className="mb-2 block text-sm text-status-muted" htmlFor="page-content">
             Contenido estructurado
           </label>
-          <textarea
-            aria-describedby="page-content-help"
-            className="min-h-48 w-full resize-y border border-border bg-background p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={!canEdit}
-            id="page-content"
-            onChange={(event) => setText(event.target.value)}
-            value={text}
+          <PagesProseMirrorEditor
+            canEdit={canEdit}
+            content={page?.content ?? createEmptyPageContent()}
+            onContentChange={(content) => {
+              contentRef.current = content;
+            }}
           />
           <p className="mt-2 text-muted-foreground text-xs" id="page-content-help">
             El texto se guarda como un bloque estructurado versionado.

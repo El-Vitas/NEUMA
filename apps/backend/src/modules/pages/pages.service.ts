@@ -2,8 +2,14 @@ import { PageLifecycle } from '@company-brain/db';
 import { Result, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { PAGE_REPOSITORY } from './constants/pages.constants';
-import { hasValidPageParent, isPageMoveAllowed } from './domain/page.domain';
-import { PageAccessDeniedError, PageCycleError, PageLifecycleError, PageParentError } from './domain/page.error';
+import { hasValidPageParent, isPageMoveAllowed, validatePageContent } from './domain/page.domain';
+import {
+  PageAccessDeniedError,
+  PageContentValidationError,
+  PageCycleError,
+  PageLifecycleError,
+  PageParentError,
+} from './domain/page.error';
 import type { CreatePageInput, PageRepositoryContract, PageSummary, UpdatePageInput } from './types/page.types';
 
 @Injectable()
@@ -33,18 +39,25 @@ export class PagesService {
   async create(
     input: CreatePageInput,
     role: UserRole,
-  ): Promise<Result<PageSummary, PageAccessDeniedError | PageParentError>> {
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageContentValidationError | PageParentError>> {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const content = validatePageContent(input.content);
+    if (content.isFail()) return Result.fail(content.getError());
     if (input.parentId !== null && !(await this.pageRepository.parentBelongsToSpace(input.parentId, input.spaceId))) {
       return Result.fail(new PageParentError());
     }
-    const page = await this.pageRepository.create(input);
+    const page = await this.pageRepository.create({ ...input, content: content.getValue() });
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  async update(input: UpdatePageInput, role: UserRole): Promise<Result<PageSummary, PageAccessDeniedError>> {
+  async update(
+    input: UpdatePageInput,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageContentValidationError>> {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const page = await this.pageRepository.update(input);
+    const content = validatePageContent(input.content);
+    if (content.isFail()) return Result.fail(content.getError());
+    const page = await this.pageRepository.update({ ...input, content: content.getValue() });
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 

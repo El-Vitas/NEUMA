@@ -1,4 +1,12 @@
-import type { FlatPageTreeItem, PageLifecycle, PageSummary, PageTreeItem } from '../types/pages.types';
+import type {
+  FlatPageTreeItem,
+  PageContent,
+  PageContentNode,
+  PageContentText,
+  PageLifecycle,
+  PageSummary,
+  PageTreeItem,
+} from '../types/pages.types';
 
 export const canEditPage = (canEditRole: boolean, lifecycle: PageLifecycle | null): boolean =>
   canEditRole && lifecycle !== 'TRASHED';
@@ -19,7 +27,16 @@ export const buildPageTree = (pages: readonly PageSummary[]): readonly PageTreeI
   return buildChildren(null);
 };
 
-export const getPageText = (page: PageSummary): string => page.content.blocks.map((block) => block.text).join('\n\n');
+export const extractPageText = (content: PageContent): string =>
+  content.content
+    .flatMap((node) => extractNodeText(node))
+    .filter((text) => text.length > 0)
+    .join('\n\n');
+
+const extractNodeText = (node: PageContentNode | PageContentText): readonly string[] => {
+  if (node.type === 'text') return [node.text];
+  return node.content.flatMap((child) => extractNodeText(child));
+};
 
 export const flattenPageTree = (tree: readonly PageTreeItem[], depth = 0): readonly FlatPageTreeItem[] =>
   tree.flatMap((item) => [{ depth, page: item.page }, ...flattenPageTree(item.children, depth + 1)]);

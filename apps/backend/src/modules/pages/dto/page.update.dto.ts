@@ -1,9 +1,9 @@
-import type { Prisma } from '@company-brain/db/generated';
+import type { PageContent } from '@company-brain/shared';
 import { IsObject, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class UpdatePageDto {
   @IsObject()
-  content!: Prisma.InputJsonObject;
+  content!: PageContent;
 
   @IsString()
   @MaxLength(200)

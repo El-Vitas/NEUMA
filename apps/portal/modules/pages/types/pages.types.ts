@@ -1,6 +1,12 @@
 import type { PageContent, PageLifecycle } from '@company-brain/shared';
+import type { Command } from 'prosemirror-state';
 
-export type { PageContent, PageLifecycle } from '@company-brain/shared';
+export type { PageContent, PageContentNode, PageContentText, PageLifecycle } from '@company-brain/shared';
+
+export interface PageEditorCommand {
+  readonly label: string;
+  readonly run: Command;
+}
 
 export interface PageSummary {
   readonly content: PageContent;
