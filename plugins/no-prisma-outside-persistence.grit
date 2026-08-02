@@ -1,0 +1,9 @@
+language js(typescript)
+
+`prisma` as $ref where {
+  register_diagnostic(
+    span = $ref,
+    message = "Prisma queries belong in a `persistence/` file.",
+    severity = "warn"
+  )
+}

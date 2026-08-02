@@ -1,0 +1,204 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "plugins": [],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+    "formatWithErrors": false
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "warn",
+        "noUndeclaredDependencies": "error",
+        "noDuplicateAttributes": "error",
+        "noGlobalDirnameFilename": "error",
+        "noUndeclaredVariables": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConfusingVoidType": "error",
+        "noThenProperty": "warn",
+        "noConsole": "warn",
+        "noArrayIndexKey": "error",
+        "noCatchAssign": "error",
+        "noImportCycles": "warn"
+      },
+      "complexity": {
+        "noUselessTernary": "error",
+        "noBannedTypes": "error",
+        "noStaticOnlyClass": "off",
+        "noForEach": "warn",
+        "noExcessiveCognitiveComplexity": "warn",
+        "noUselessUndefined": "warn"
+      },
+      "performance": {
+        "noBarrelFile": "error",
+        "noDelete": "warn",
+        "noNamespaceImport": "warn",
+        "useTopLevelRegex": "warn"
+      },
+      "style": {
+        "noProcessEnv": "error",
+        "useConst": "error",
+        "useTemplate": "error",
+        "useShorthandFunctionType": "error",
+        "useNodejsImportProtocol": "warn",
+        "noInferrableTypes": "error",
+        "noNonNullAssertion": "warn",
+        "noDefaultExport": "error",
+        "noNegationElse": "warn",
+        "useExportType": "error",
+        "noNestedTernary": "warn",
+        "noUselessElse": "warn",
+        "useSelfClosingElements": "error",
+        "useThrowNewError": "error",
+        "useFragmentSyntax": "error",
+        "noCommonJs": "error",
+        "useNumberNamespace": "warn",
+        "useDefaultSwitchClause": "warn",
+        "useNumericSeparators": "warn",
+        "useSingleVarDeclarator": "warn",
+        "useNamingConvention": {
+          "level": "warn",
+          "options": {
+            "strictCase": false
+          }
+        }
+      },
+      "security": {
+        "noSecrets": "warn"
+      },
+      "nursery": {
+        "useSortedClasses": "warn",
+        "useIframeSandbox": "error",
+        "noUndeclaredClasses": "warn",
+        "noFloatingPromises": "error",
+        "useImportsFirst": "error"
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedAttributes": "on",
+        "noDuplicateClasses": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["app/**/{page,layout,loading,error,not-found,global-error}.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["next.config.ts", "vitest.config.ts", "eslint.config.mjs"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off",
+            "useNamingConvention": "off"
+          },
+          "correctness": {
+            "noUndeclaredDependencies": "off"
+          },
+          "security": {
+            "noSecrets": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["next-env.d.ts"],
+      "linter": { "enabled": false },
+      "formatter": { "enabled": false }
+    },
+    {
+      "includes": ["config/env.config.ts", "schemas/env.schema.ts"],
+      "linter": {
+        "rules": {
+          "style": { "useNamingConvention": "off", "noProcessEnv": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["tests/**"],
+      "linter": {
+        "rules": {
+          "style": { "noProcessEnv": "off", "useNamingConvention": "off" },
+          "complexity": { "noForEach": "off" },
+          "performance": { "useTopLevelRegex": "off" },
+          "security": { "noSecrets": "off" },
+          "suspicious": { "noConsole": "off" },
+          "nursery": { "noFloatingPromises": "off", "useImportsFirst": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["mocks/**", "shared/mocks/**", "shared/components/ui/**"],
+      "linter": {
+        "rules": {
+          "security": { "noSecrets": "off", "noDangerouslySetInnerHtml": "off" },
+          "suspicious": { "noArrayIndexKey": "off" },
+          "a11y": { "noSvgWithoutTitle": "off" },
+          "complexity": { "noExcessiveCognitiveComplexity": "off" },
+          "performance": { "noNamespaceImport": "off" },
+          "style": { "useNamingConvention": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/constants/**"],
+      "linter": {
+        "rules": {
+          "style": { "useNamingConvention": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["eslint-rules/**"],
+      "linter": {
+        "rules": {
+          "complexity": { "noExcessiveCognitiveComplexity": "off" },
+          "style": { "useNamingConvention": "off" },
+          "performance": { "useTopLevelRegex": "off" }
+        }
+      }
+    }
+  ]
+}

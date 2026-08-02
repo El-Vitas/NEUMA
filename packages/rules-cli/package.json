@@ -1,0 +1,16 @@
+{
+  "name": "@company-brain/rules-cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun rules-cli.mjs build",
+    "query": "bun rules-cli.mjs query",
+    "add": "bun rules-cli.mjs add",
+    "dump": "bun rules-cli.mjs dump",
+    "clean": "bun clean-history.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "^4.2.0"
+  }
+}

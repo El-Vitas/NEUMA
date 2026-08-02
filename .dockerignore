@@ -1,0 +1,78 @@
+# Also used by Podman (falls back to .dockerignore when no .containerignore).
+# Only affects the `COPY . .` in each Dockerfile's `pruner` stage. Everything the
+# build/runtime needs (package.json, lockfile, turbo/tsconfig, packages/*/src,
+# packages/db/prisma, apps/portal config+postcss+globals) is intentionally NOT listed.
+
+# Dependencies & build outputs (regenerated inside the image)
+**/node_modules
+**/dist
+**/.next
+**/.astro
+**/.turbo
+**/out
+**/*.tsbuildinfo
+packages/db/src/generated
+
+# Tests & test config (never needed at build or runtime)
+**/tests
+**/*.spec.ts
+**/*.spec.tsx
+**/*.test.ts
+**/*.test.tsx
+**/bunfig.toml
+**/coverage
+**/.eslintcache
+
+# Dev tooling & linters (not invoked by the image build — the CI gate runs these).
+# NOTE: packages/eslint-rules keeps its package.json (Bun needs it to resolve the
+# workspace graph), but its rule sources are dev-only and excluded here.
+packages/eslint-rules/index.mjs
+packages/eslint-rules/rules
+**/biome.json
+**/eslint.config.mjs
+**/.depcruise.json
+**/tsconfig.depcruise.json
+**/.swcrc
+**/.prettierignore
+**/.prettierrc
+**/.editorconfig
+**/components.json
+plugins
+scripts
+jscpd.json
+sonar-project.properties
+.scannerwork
+
+# Local env & secrets, incl. the example templates (host-side only, never in an image)
+**/.env
+**/.env.*
+
+# Runtime-generated / local data (not part of the image)
+apps/backend/uploads
+
+# Container & deploy config (not part of the image itself)
+**/Dockerfile
+**/*.Dockerfile
+.dockerignore
+.containerignore
+**/docker-compose.yml
+deploy
+
+# Version control, worktrees & CI
+.git
+.github
+**/.gitignore
+.worktrees
+
+# Docs (not needed at runtime)
+docs
+**/*.md
+!README.md
+
+# Editor / agent / OS noise
+.vscode
+.idea
+.claude
+.agents
+.DS_Store
+**/*.log

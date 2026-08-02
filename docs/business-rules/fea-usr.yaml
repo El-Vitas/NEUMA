@@ -1,0 +1,46 @@
+id: FEA-USR
+name: Users
+purpose: Define las reglas de gestión de usuarios del sistema.
+scope: users
+rules:
+  - id: BR-009
+    status: active
+    title: Email único
+    rule: No pueden existir dos usuarios con el mismo email en el sistema.
+    why: >-
+      El email es el identificador único de cada cuenta. Un email duplicado causaría conflictos de autenticación y
+      recuperación de cuenta.
+    scenarios:
+      - title: Registro con email existente
+        given: Un usuario registrado con email test@test.com
+        when: Un nuevo usuario intenta registrarse con el mismo email test@test.com
+        then: El sistema rechaza el registro indicando que el email ya está en uso y no crea la cuenta
+      - title: Registro con email nuevo
+        given: No existe ningún usuario con email nuevo@test.com
+        when: Un usuario intenta registrarse con email nuevo@test.com
+        then: El sistema crea la cuenta exitosamente y devuelve un AuthSession
+  - id: BR-010
+    status: active
+    title: Longitud del nombre
+    rule: El nombre de usuario debe tener entre 2 y 100 caracteres.
+    why: Nombre muy corto no es informativo; nombre muy largo afecta la interfaz.
+  - id: BR-011
+    status: active
+    title: Formato de email
+    rule: El email debe tener un formato válido y máximo 255 caracteres.
+    why: Validación estándar de formato de email para evitar datos inválidos.
+  - id: BR-012
+    status: active
+    title: Rol por defecto al registrarse
+    rule: Al registrarse, el usuario se crea con el rol CLIENT por defecto.
+    why: Solo administradores pueden asignar roles superiores; el registro público siempre es como cliente.
+  - id: BR-013
+    status: active
+    title: Auto-login al registrarse
+    rule: Después de registrar un usuario exitosamente, el sistema debe devolver un token de sesión.
+    why: El usuario no debe hacer login aparte inmediatamente después de registrarse; la transición debe ser inmediata.
+  - id: BR-014
+    status: active
+    title: Perfil propio
+    rule: Un usuario solo puede ver su propio perfil.
+    why: Privacidad — un usuario no debe poder acceder a los datos de otro usuario.

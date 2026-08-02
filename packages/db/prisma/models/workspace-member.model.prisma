@@ -1,0 +1,12 @@
+model WorkspaceMember {
+  id          String    @id @default(uuid(7))
+  workspaceId String
+  userId      String
+  role        UserRole
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}

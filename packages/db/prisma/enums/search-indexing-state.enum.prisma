@@ -1,0 +1,5 @@
+enum SearchIndexingState {
+  PENDING
+  INDEXED
+  FAILED
+}

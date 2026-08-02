@@ -1,0 +1,21 @@
+language js(typescript)
+
+or {
+  `interface $name { }` as $type where {
+    not $name <: r".*Props",
+    register_diagnostic(
+      span = $type,
+      message = "Types and interfaces belong in a `types/` directory. Move this interface.",
+      severity = "warn"
+    )
+  },
+  `type $name = $_` as $type where {
+    not $name <: r".*Props",
+    not $name <: r".*ErrorCode",
+    register_diagnostic(
+      span = $type,
+      message = "Types and interfaces belong in a `types/` directory. Move this type alias.",
+      severity = "warn"
+    )
+  }
+}

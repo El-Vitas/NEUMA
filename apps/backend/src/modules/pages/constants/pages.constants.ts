@@ -1,0 +1,1 @@
+export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';

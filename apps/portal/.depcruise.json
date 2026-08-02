@@ -1,0 +1,69 @@
+{
+  "$schema": "https://depcruise.github.io/dependency-cruiser/configuration.schema.json",
+  "forbidden": [
+    {
+      "name": "no-server-only-outside-server",
+      "severity": "error",
+      "comment": "\"server-only\" should only be imported in server/ directories.",
+      "from": { "pathNot": "server/" },
+      "to": { "path": "node_modules/server-only" }
+    },
+    {
+      "name": "no-inter-module-web",
+      "severity": "error",
+      "comment": "Módulos web no importan de otros módulos. Lo compartido va a shared/.",
+      "from": { "path": "^modules/([^/]+)" },
+      "to": {
+        "path": "^modules/[^/]+/",
+        "pathNot": [
+          "^node_modules/",
+          "^modules/$1/",
+          "^modules/clients/(components/client-select\\.tsx|server/queries/client\\.queries\\.ts|types/client\\.types\\.ts)$",
+          "^modules/devices/(components/device-select\\.tsx|server/queries/device\\.queries\\.ts|types/device\\.types\\.ts)$",
+          "^modules/orders/server/queries/order\\.queries\\.ts$",
+          "^modules/auth/server/lib/auth\\.server\\.ts$",
+          "^modules/notifications/types/notification\\.types\\.ts$"
+        ]
+      }
+    },
+    {
+      "name": "no-orphans",
+      "severity": "error",
+      "comment": "Este archivo no tiene dependencias entrantes ni salientes — es código muerto, seguro de eliminar.",
+      "from": {
+        "orphan": true,
+        "pathNot": [
+          "postcss\\.config\\.mjs$",
+          "globals\\.css\\.d\\.ts$",
+          "app/portal/ordenes/layout\\.tsx$",
+          "app/\\(auth\\)/layout\\.tsx$",
+          "global-error\\.tsx$",
+          "error\\.tsx$"
+        ]
+      },
+      "to": {}
+    }
+  ],
+  "required": [
+    {
+      "name": "server-files-must-import-server-only",
+      "severity": "error",
+      "comment": "Files in server/ directories must import \"server-only\".",
+      "module": { "path": "server/", "pathNot": ["node_modules/", ".next/", "^@/"] },
+      "to": { "path": "node_modules/server-only" }
+    },
+    {
+      "name": "queries-must-use-cache",
+      "severity": "error",
+      "comment": "Query files must import cacheLife and cacheTag from next/cache.",
+      "module": { "path": "server/queries/" },
+      "to": { "path": "node_modules/next/cache" }
+    }
+  ],
+  "options": {
+    "doNotFollow": "node_modules",
+    "exclude": { "path": "\\.next|dist/" },
+    "tsPreCompilationDeps": true,
+    "tsConfig": { "fileName": "./tsconfig.depcruise.json" }
+  }
+}

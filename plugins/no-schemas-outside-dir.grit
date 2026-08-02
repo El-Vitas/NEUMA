@@ -1,0 +1,10 @@
+language js(typescript)
+
+`const $name = z.$method($_)` as $schema where {
+  not $method <: `infer`,
+  register_diagnostic(
+    span = $schema,
+    message = "Zod schemas belong in a `schemas/` directory. Move this schema.",
+    severity = "warn"
+  )
+}

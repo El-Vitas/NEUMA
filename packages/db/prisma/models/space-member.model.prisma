@@ -1,0 +1,11 @@
+model SpaceMember {
+  id        String   @id @default(uuid(7))
+  spaceId   String
+  userId    String
+  createdAt DateTime @default(now())
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([userId])
+}

@@ -1,0 +1,14 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_FLAG_LANDING", "NEXT_PUBLIC_FLAG_AUTH"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.production"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

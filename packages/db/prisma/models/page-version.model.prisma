@@ -1,0 +1,13 @@
+model PageVersion {
+  id          String   @id @default(uuid(7))
+  pageId      String
+  version     Int
+  title       String
+  content     Json
+  createdById String
+  createdAt   DateTime @default(now())
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, version])
+  @@index([pageId, createdAt])
+}

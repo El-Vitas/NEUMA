@@ -1,0 +1,9 @@
+language js(typescript)
+
+`$_ as unknown as $_` as $cast where {
+  register_diagnostic(
+    span = $cast,
+    message = "Avoid `as unknown as Type`. Use a proper type narrowing or validation instead.",
+    severity = "error"
+  )
+}

@@ -1,0 +1,9 @@
+language js(typescript, jsx)
+
+`await import($_)` as $dynamic where {
+  register_diagnostic(
+    span = $dynamic,
+    message = "Usa imports estáticos en el tope del archivo en vez de `await import()`.",
+    severity = "error"
+  )
+}

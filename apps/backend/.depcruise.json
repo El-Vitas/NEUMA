@@ -1,0 +1,75 @@
+{
+  "$schema": "https://depcruise.github.io/dependency-cruiser/configuration.schema.json",
+  "forbidden": [
+    {
+      "name": "no-inter-module-backend",
+      "severity": "error",
+      "comment": "Módulos no importan de otros módulos. Solo .module.ts y auth/infrastructure/adapters/ (providers inyectables via DI) están permitidos. Cualquier otro import cross-module debe ir a src/common/ — per AGENTS.md: cross-cutting concerns van a common/ cuando los usan 2+ módulos.",
+      "from": { "path": "src/modules/([^/]+)" },
+      "to": {
+        "path": "src/modules/",
+        "pathNot": ["src/modules/$1", "\\.module\\.ts$", "src/modules/auth/infrastructure/adapters/"]
+      }
+    },
+    {
+      "name": "domain-no-infra",
+      "severity": "error",
+      "comment": "El dominio no debe depender de infraestructura (NestJS, Prisma). El dominio es lógica pura de negocio.",
+      "from": { "path": "domain/" },
+      "to": {
+        "dependencyTypes": ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-no-pkg", "npm-unknown"]
+      }
+    },
+    {
+      "name": "domain-only-same-domain",
+      "severity": "error",
+      "comment": "El dominio de un módulo solo puede importar de su propio dominio y del kernel compartido de dominio (common/domain, @company-brain/shared value objects, @company-brain/db types). No de otras capas del propio módulo (service/controller/dto/infrastructure) ni de otros módulos.",
+      "from": { "path": "src/modules/([^/]+)/domain/" },
+      "to": {
+        "pathNot": [
+          "src/modules/$1/domain/",
+          "src/common/domain/",
+          "^@company-brain/shared",
+          "^@company-brain/db"
+        ]
+      }
+    },
+    {
+      "name": "no-orphans",
+      "severity": "error",
+      "comment": "Este archivo no tiene dependencias entrantes ni salientes — es código muerto, seguro de eliminar.",
+      "from": {
+        "orphan": true,
+        "pathNot": ["tests/unit/__mocks__/"]
+      },
+      "to": {}
+    },
+    {
+      "name": "domain-error-no-infra-error",
+      "severity": "error",
+      "comment": "Errores de dominio no deben importar errores de infraestructura ni viceversa.",
+      "from": { "path": "domain/.*\\.error\\.ts$" },
+      "to": { "path": "infrastructure/errors/" }
+    },
+    {
+      "name": "infra-error-no-domain-error",
+      "severity": "error",
+      "comment": "Errores de infraestructura no deben extender DomainError ni importar errores de dominio.",
+      "from": { "path": "infrastructure/errors/" },
+      "to": { "path": "domain/.*\\.error\\.ts$" }
+    },
+    {
+      "name": "db-only-in-persistence",
+      "severity": "error",
+      "comment": "Database package @company-brain/db should only be imported from persistence/ files.",
+      "from": { "pathNot": ["persistence/", "node_modules/@company-brain/db/"] },
+      "to": { "path": "node_modules/@company-brain/db" }
+    }
+  ],
+  "options": {
+    "doNotFollow": "node_modules",
+    "exclude": { "path": "dist/" },
+    "tsPreCompilationDeps": true,
+    "tsConfig": { "fileName": "./tsconfig.depcruise.json" }
+  }
+}
