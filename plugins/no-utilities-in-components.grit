@@ -1,0 +1,28 @@
+language js(typescript, jsx)
+
+or {
+  `export function $name($_) { }` as $fn where {
+    not $name <: or { r"[A-Z]", r"use[A-Z]" },
+    register_diagnostic(
+      span = $fn,
+      message = "This does not look like a component (must start with uppercase) or a hook (must start with `use`). Move it to a `lib/` file.",
+      severity = "warn"
+    )
+  },
+  `export default function $name($_) { }` as $fn where {
+    not $name <: r"[A-Z]",
+    register_diagnostic(
+      span = $fn,
+      message = "This does not look like a component (must start with uppercase). Move it to a `lib/` file.",
+      severity = "warn"
+    )
+  },
+  `export const $name = ($_) => ` as $fn where {
+    not $name <: or { r"[A-Z]", r"use[A-Z]" },
+    register_diagnostic(
+      span = $fn,
+      message = "This does not look like a component (must start with uppercase) or a hook (must start with `use`). Move it to a `lib/` file.",
+      severity = "warn"
+    )
+  }
+}

@@ -1,0 +1,4 @@
+enum PageLifecycle {
+  ACTIVE
+  TRASHED
+}

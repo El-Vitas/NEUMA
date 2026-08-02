@@ -1,0 +1,58 @@
+id: FEA-AUT
+name: Authentication
+purpose: Define las reglas de autenticación y control de acceso
+scope: auth
+rules:
+  - id: BR-001
+    status: active
+    title: Credenciales inválidas
+    rule: El sistema debe rechazar credenciales inválidas sin revelar cuál campo (email o password) es incorrecto.
+    why: Seguridad — no dar pistas sobre qué cuentas existen.
+    context: >-
+      Aplica al endpoint de inicio de sesión. Tanto email inexistente como password incorrecto deben producir el mismo
+      error sin revelar cuál campo es incorrecto.
+    scenarios:
+      - title: Login con password incorrecto
+        given: Un usuario registrado con email test@test.com
+        when: Intenta iniciar sesión con email correcto y password incorrecto
+        then: El sistema rechaza el inicio de sesión sin indicar si el email existe
+  - id: BR-002
+    status: active
+    title: Usuario inactivo
+    rule: 'Un usuario con isActive: false no puede iniciar sesión.'
+    why: El administrador desactivó la cuenta; se debe bloquear el acceso.
+    scenarios:
+      - title: Usuario desactivado intenta login
+        given: 'Un usuario con isActive: false'
+        when: Intenta iniciar sesión con credenciales correctas
+        then: El sistema rechaza el inicio de sesión indicando que la cuenta está inactiva
+  - id: BR-003
+    status: active
+    title: Longitud de contraseña
+    rule: La contraseña debe tener entre 8 y 100 caracteres.
+    why: Mínimo de seguridad sin penalizar UX con límites excesivos.
+  - id: BR-004
+    status: active
+    title: Roles del sistema
+    rule: 'Existen tres roles de usuario: ADMIN, WORKER y CLIENT.'
+    why: Define los niveles de acceso y responsabilidad dentro del sistema.
+  - id: BR-005
+    status: active
+    title: Permisos de ADMIN
+    rule: El rol ADMIN tiene permiso total sobre el módulo User y permiso Read + Update sobre Account.
+    why: El administrador necesita control total sobre las cuentas del sistema.
+  - id: BR-006
+    status: active
+    title: Permisos de WORKER
+    rule: El rol WORKER tiene permiso Read + Update sobre Account (su propia cuenta).
+    why: Un usuario operativo gestiona su propia cuenta pero no administra a otros usuarios.
+  - id: BR-007
+    status: active
+    title: Acceso de CLIENT
+    rule: El rol CLIENT no tiene permisos administrativos; solo puede autenticarse y acceder a los recursos propios que cada proyecto defina.
+    why: Punto de extensión — cada proyecto define qué recursos posee un cliente.
+  - id: BR-008
+    status: active
+    title: Payload del JWT
+    rule: El token de sesión debe contener el id, email, nombre y rol del usuario autenticado.
+    why: La aplicación necesita estos datos del usuario sin hacer una llamada adicional al servidor.

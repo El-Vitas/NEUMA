@@ -1,0 +1,167 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "plugins": [],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+    "formatWithErrors": false
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
+    "globals": ["Bun"]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "warn",
+        "noGlobalDirnameFilename": "error",
+        "noUndeclaredVariables": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConfusingVoidType": "error",
+        "noThenProperty": "warn",
+        "noConsole": "warn",
+        "noCatchAssign": "error",
+        "noImportCycles": "warn"
+      },
+      "complexity": {
+        "noUselessTernary": "error",
+        "noBannedTypes": "error",
+        "noStaticOnlyClass": "off",
+        "noForEach": "warn",
+        "noUselessUndefined": "warn"
+      },
+      "performance": {
+        "noBarrelFile": "error",
+        "noDelete": "warn",
+        "noNamespaceImport": "warn",
+        "useTopLevelRegex": "warn"
+      },
+      "style": {
+        "noProcessEnv": "error",
+        "useConst": "error",
+        "useTemplate": "error",
+        "useShorthandFunctionType": "error",
+        "useNodejsImportProtocol": "warn",
+        "noInferrableTypes": "error",
+        "noNonNullAssertion": "warn",
+        "noDefaultExport": "error",
+        "noNegationElse": "warn",
+        "useExportType": "error",
+        "useImportType": "off",
+        "noNestedTernary": "warn",
+        "noUselessElse": "warn",
+        "useThrowNewError": "error",
+        "noCommonJs": "error",
+        "useNumberNamespace": "warn",
+        "useDefaultSwitchClause": "warn",
+        "useNumericSeparators": "warn",
+        "useSingleVarDeclarator": "warn",
+        "useNamingConvention": {
+          "level": "warn",
+          "options": {
+            "strictCase": false
+          }
+        }
+      },
+      "security": {
+        "noSecrets": "warn"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "useImportsFirst": "error"
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["dist/**"],
+      "linter": {
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
+      "includes": ["eslint.config.mjs", "vitest.config.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noDefaultExport": "off" },
+          "correctness": { "noUndeclaredDependencies": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["tests/**"],
+      "linter": {
+        "domains": {
+          "test": "all"
+        },
+        "rules": {
+          "security": { "noSecrets": "off" },
+          "style": { "useNamingConvention": "off", "noProcessEnv": "off" },
+          "complexity": { "noForEach": "off" },
+          "performance": { "useTopLevelRegex": "off" },
+          "suspicious": { "noConsole": "off" },
+          "nursery": { "useImportsFirst": "off", "noFloatingPromises": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/env.schema.ts"],
+      "linter": {
+        "rules": {
+          "style": { "useNamingConvention": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/trust-proxy.config.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noProcessEnv": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.controller.ts"],
+      "linter": {
+        "rules": {
+          "correctness": { "noUnusedFunctionParameters": "off" }
+        }
+      }
+    }
+  ]
+}

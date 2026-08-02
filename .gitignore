@@ -1,0 +1,82 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+!.env.test.example
+!.env.docker.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+
+# Skills symlinks (IDEs auto-create these in each app)
+.claude/skills
+.github/skills
+.opencode/skills
+.cursor/skills
+.windsurf/skills
+.gemini/skills
+
+# Skills CLI
+skills-lock.json
+
+# OpenCode local config (per-app, not the root .agents/skills)
+.opencode/node_modules
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/.gitignore
+
+.swc
+
+# Turborepo cache
+.turbo/
+.turbo
+# SonarQube scanner
+.scannerwork/
+
+/docs/tmp
+/docs/superpowers
+/tmp
+
+# Worktrees
+.worktrees
+node_modules/
+
+# Business rules
+docs/business-rules/rules.db*
+docs/business-rules/history/

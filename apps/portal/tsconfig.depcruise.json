@@ -1,0 +1,29 @@
+{
+  "include": [
+    "./shared/**/*.ts",
+    "./modules/**/*.ts",
+    "./app/**/*.ts",
+    "./app/**/*.tsx",
+    "./lib/**/*.ts",
+    "./config/**/*.ts",
+    "./constants/**/*.ts",
+    "./types/**/*.ts",
+    "./mocks/**/*.ts",
+    "./eslint-rules/**/*.mjs"
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/shared/*": ["./shared/*"],
+      "@/modules/*": ["./modules/*"],
+      "@/app/*": ["./app/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/mocks/*": ["./mocks/*"],
+      "@/components/*": ["./shared/components/*"],
+      "@/hooks/*": ["./shared/hooks/*"],
+      "@/config/*": ["./config/*"],
+      "@/constants/*": ["./constants/*"],
+      "@/types/*": ["./types/*"]
+    }
+  }
+}

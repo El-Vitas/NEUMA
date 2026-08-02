@@ -1,0 +1,17 @@
+model OutboxEvent {
+  id             String       @id @default(uuid(7))
+  aggregateType  String
+  aggregateId    String
+  eventType      String
+  payloadVersion Int          @default(1)
+  payload        Json
+  status         OutboxStatus @default(PENDING)
+  attemptCount   Int          @default(0)
+  nextAttemptAt  DateTime     @default(now())
+  idempotencyKey String       @unique
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+}

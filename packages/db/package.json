@@ -1,0 +1,46 @@
+{
+  "name": "@company-brain/db",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generated": {
+      "bun": "./src/prisma-exports.ts",
+      "types": "./dist/prisma-exports.d.ts",
+      "default": "./dist/prisma-exports.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "db:seed": "bun prisma/seed/main.seed.ts",
+    "format": "biome format --write . && prisma format",
+    "format:check": "biome format .",
+    "check": "bun run format:check"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7",
+    "@prisma/client": "^7",
+    "dotenv": "^16.4.7",
+    "pg": "^8.14.1",
+    "prisma": "^7"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.11",
+    "tsx": "^4.22.4",
+    "typescript": "npm:@typescript/typescript6@^6"
+  },
+  "types": "./dist/index.d.ts"
+}

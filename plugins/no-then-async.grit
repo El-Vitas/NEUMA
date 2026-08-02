@@ -1,0 +1,9 @@
+language js(typescript, jsx)
+
+`$_.then($_)` as $then where {
+  register_diagnostic(
+    span = $then,
+    message = "No mezcles `.then()` con `async/await`. Usa `await` consistentemente.",
+    severity = "error"
+  )
+}

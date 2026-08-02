@@ -1,0 +1,4 @@
+enum SpaceVisibility {
+  PUBLIC_INTERNAL
+  RESTRICTED
+}

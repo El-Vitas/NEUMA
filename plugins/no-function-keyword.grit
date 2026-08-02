@@ -1,0 +1,9 @@
+language js(typescript)
+
+`function` as $fn where {
+  register_diagnostic(
+    span = $fn,
+    message = "Use `const fn = () => {}` instead of the `function` keyword.",
+    severity = "error"
+  )
+}

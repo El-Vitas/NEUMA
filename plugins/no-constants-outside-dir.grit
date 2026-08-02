@@ -1,0 +1,10 @@
+language js(typescript)
+
+`const $name = $_` as $decl where {
+  $name <: r"[A-Z_]+",
+  register_diagnostic(
+    span = $decl,
+    message = "SCREAMING_SNAKE constants belong in a `constants/` directory. Move this constant.",
+    severity = "warn"
+  )
+}

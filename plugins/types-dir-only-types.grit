@@ -1,0 +1,10 @@
+language js(typescript)
+
+`const $name = $_` as $node where {
+  not $name <: r"^_",
+  register_diagnostic(
+    span = $node,
+    message = "Only types and interfaces are allowed in 'types/' directory. Move this constant to 'constants/'.",
+    severity = "warn"
+  )
+}

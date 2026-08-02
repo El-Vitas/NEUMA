@@ -1,0 +1,99 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "plugins": [
+    {
+      "path": "../../plugins/no-constants-outside-dir.grit",
+      "includes": ["**", "!**/constants/**"]
+    },
+    {
+      "path": "../../plugins/no-types-outside-dir.grit",
+      "includes": ["**", "!**/types/**"]
+    },
+    {
+      "path": "../../plugins/no-schemas-outside-dir.grit",
+      "includes": ["**", "!**/schemas/**"]
+    },
+    {
+      "path": "../../plugins/no-function-keyword.grit",
+      "includes": ["**"]
+    },
+    {
+      "path": "../../plugins/no-as-unknown-as.grit",
+      "includes": ["**"]
+    },
+    {
+      "path": "../../plugins/no-await-import.grit",
+      "includes": ["**"]
+    },
+    {
+      "path": "../../plugins/no-then-async.grit",
+      "includes": ["**"]
+    }
+  ],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
+      },
+      "suspicious": {
+        "noImportCycles": "warn"
+      },
+      "style": {
+        "noProcessEnv": "error",
+        "useConst": "error",
+        "useTemplate": "error",
+        "noInferrableTypes": "error",
+        "useImportType": "error",
+        "useExportType": "error",
+        "noNestedTernary": "warn",
+        "noCommonJs": "error"
+      },
+      "performance": {
+        "noBarrelFile": "error"
+      },
+      "nursery": {
+        "useImportsFirst": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["prisma/seed/**"],
+      "linter": {
+        "rules": {
+          "style": { "noProcessEnv": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["src/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": { "noBarrelFile": "off" }
+        }
+      }
+    }
+  ]
+}

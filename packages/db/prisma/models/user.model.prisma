@@ -1,0 +1,16 @@
+model User {
+  id        String   @id @default(uuid(7))
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(CLIENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaceMemberships WorkspaceMember[]
+  spaceMemberships     SpaceMember[]
+
+  @@index([email])
+  @@index([role])
+}

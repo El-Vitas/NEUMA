@@ -1,0 +1,76 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { seconds, ThrottlerModule } from '@nestjs/throttler';
+
+import { envSchema } from './common/config/env.schema';
+import { PUBLIC_STATUS_RATE_LIMIT, THROTTLER_NAMES } from './common/constants/throttler.constants';
+import { LoggerModule } from './common/infrastructure/logger.module';
+import { StorageModule } from './common/infrastructure/storage/storage.module';
+import { HealthController } from './health/health.controller';
+import { AuthModule } from './modules/auth/auth.module';
+import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
+import { McpModule } from './modules/mcp/mcp.module';
+import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
+import { PagesModule } from './modules/pages/pages.module';
+import { PagesService } from './modules/pages/pages.service';
+import { SearchModule } from './modules/search/search.module';
+import { SpacesModule } from './modules/spaces/spaces.module';
+import { SpacesService } from './modules/spaces/spaces.service';
+import { UsersModule } from './modules/users/users.module';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { WorkspacesService } from './modules/workspaces/workspaces.service';
+import { PrismaModule } from './prisma/prisma.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: (config) => envSchema.parse(config),
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: THROTTLER_NAMES.perIp,
+          ttl: seconds(PUBLIC_STATUS_RATE_LIMIT.windowSeconds),
+          limit: PUBLIC_STATUS_RATE_LIMIT.perIpLimit,
+        },
+        {
+          name: THROTTLER_NAMES.global,
+          ttl: seconds(PUBLIC_STATUS_RATE_LIMIT.windowSeconds),
+          limit: PUBLIC_STATUS_RATE_LIMIT.globalLimit,
+        },
+      ],
+      generateKey: (_context, tracker, throttlerName) =>
+        throttlerName === THROTTLER_NAMES.global ? THROTTLER_NAMES.global : `${throttlerName}:${tracker}`,
+    }),
+    LoggerModule,
+    PrismaModule,
+    StorageModule.forRoot(),
+    AuthModule,
+    UsersModule,
+    WorkspacesModule,
+    SpacesModule,
+    PagesModule,
+    McpModule,
+    SearchModule,
+  ],
+  controllers: [HealthController],
+  providers: [
+    {
+      inject: [PagesService, MCP_PRINCIPAL_RESOLVER, SpacesService, WorkspacesService],
+      provide: MCP_SERVER_DEPENDENCIES,
+      useFactory: (
+        pagesService: PagesService,
+        principalResolver: McpPrincipalResolver,
+        spacesService: SpacesService,
+        workspacesService: WorkspacesService,
+      ): McpServerDependencies => ({
+        pagesService,
+        principalResolver,
+        spacesService,
+        workspacesService,
+      }),
+    },
+  ],
+})
+export class AppModule {}
