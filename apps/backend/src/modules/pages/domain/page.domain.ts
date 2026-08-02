@@ -1,4 +1,13 @@
+import { type PageContent, pageContentSchema, Result } from '@company-brain/shared';
 import type { PageParentReference } from './page.domain.types';
+import { PageContentValidationError } from './page.error';
+
+export const validatePageContent = (content: unknown): Result<PageContent, PageContentValidationError> => {
+  const validation = pageContentSchema.safeParse(content);
+  return validation.success
+    ? Result.ok(validation.data)
+    : Result.fail(new PageContentValidationError(validation.error.issues));
+};
 
 export const isPageMoveAllowed = (
   pageId: string,

@@ -17,7 +17,11 @@ const spaces: readonly SpaceSummary[] = [
   { id: 'space-1', name: 'Engineering', slug: 'engineering', visibility: 'PUBLIC_INTERNAL' },
 ];
 const page: PageSummary = {
-  content: { blocks: [{ text: 'Run this first', type: 'paragraph' }], schemaVersion: 1 },
+  content: {
+    content: [{ content: [{ text: 'Run this first', type: 'text' }], type: 'paragraph' }],
+    schemaVersion: 1,
+    type: 'doc',
+  },
   id: '11111111-1111-4111-8111-111111111111',
   lifecycle: 'ACTIVE',
   order: 0,
@@ -167,7 +171,14 @@ describe('MCP read contract', () => {
   });
 
   test('rejects page content outside the foundation contract', async () => {
-    const invalidPage = { ...page, content: { blocks: [{ text: '<script>', type: 'unknown' }], schemaVersion: 2 } };
+    const invalidPage = {
+      ...page,
+      content: {
+        content: [{ content: [{ text: 'Still a paragraph', type: 'text' }], type: 'paragraph' }],
+        schemaVersion: 2,
+        type: 'doc',
+      },
+    };
     const client = await connectClient({
       ...createDependencies(),
       pagesService: { getAccessible: () => Promise.resolve(createPageReadResult(invalidPage)) },

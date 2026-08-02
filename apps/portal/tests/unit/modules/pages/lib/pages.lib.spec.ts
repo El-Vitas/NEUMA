@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import { PAGE_API_ROUTES } from '@/modules/pages/constants/pages.constants';
-import { buildPageTree, canEditPage } from '@/modules/pages/lib/pages.lib';
+import { buildPageTree, canEditPage, extractPageText } from '@/modules/pages/lib/pages.lib';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 const page = (id: string, parentId: string | null, order: number): PageSummary => ({
-  content: { blocks: [], schemaVersion: 1 },
+  content: {
+    content: [{ content: [{ text: id, type: 'text' }], type: 'paragraph' }],
+    schemaVersion: 1,
+    type: 'doc',
+  },
   id,
   lifecycle: 'ACTIVE',
   order,
@@ -31,5 +35,11 @@ describe('pages.lib', () => {
 
     expect(tree.map((item) => item.page.id)).toEqual(['first', 'root']);
     expect(tree[1]?.children.map((item) => item.page.id)).toEqual(['child']);
+  });
+
+  it('extracts searchable text from structured page content', () => {
+    const summary = page('page-1', null, 1);
+
+    expect(extractPageText(summary.content)).toBe('page-1');
   });
 });

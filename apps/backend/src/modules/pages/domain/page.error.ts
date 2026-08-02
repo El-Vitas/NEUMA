@@ -35,3 +35,12 @@ export class PageLifecycleError extends DomainError {
     super('Page lifecycle transition is not allowed');
   }
 }
+
+export class PageContentValidationError extends DomainError {
+  public readonly code = 'PAGE_CONTENT_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: unknown) {
+    super('Page content is invalid', details);
+  }
+}
