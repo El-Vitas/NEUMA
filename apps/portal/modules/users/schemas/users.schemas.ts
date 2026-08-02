@@ -19,15 +19,13 @@ export const createUserSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(USER_NAME_MIN_LENGTH, `El nombre debe tener al menos ${USER_NAME_MIN_LENGTH} caracteres`)
-    .max(USER_NAME_MAX_LENGTH, `El nombre no puede superar los ${USER_NAME_MAX_LENGTH} caracteres`),
-  email: z
-    .email('Ingresa un correo electrónico válido')
-    .max(EMAIL_MAX_LENGTH, `El correo no puede superar los ${EMAIL_MAX_LENGTH} caracteres`),
+    .min(USER_NAME_MIN_LENGTH, 'validation.nameTooShort')
+    .max(USER_NAME_MAX_LENGTH, 'validation.nameTooLong'),
+  email: z.email('validation.invalidEmail').max(EMAIL_MAX_LENGTH, 'validation.emailTooLong'),
   password: z
     .string()
-    .min(PASSWORD_MIN_LENGTH, `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`)
-    .max(PASSWORD_MAX_LENGTH, `La contraseña no puede superar los ${PASSWORD_MAX_LENGTH} caracteres`),
+    .min(PASSWORD_MIN_LENGTH, 'validation.passwordTooShort')
+    .max(PASSWORD_MAX_LENGTH, 'validation.passwordTooLong'),
 });
 
 export const updateUserNameSchema = z.object({
@@ -35,6 +33,6 @@ export const updateUserNameSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(USER_NAME_MIN_LENGTH, `El nombre debe tener al menos ${USER_NAME_MIN_LENGTH} caracteres`)
-    .max(USER_NAME_MAX_LENGTH, `El nombre no puede superar los ${USER_NAME_MAX_LENGTH} caracteres`),
+    .min(USER_NAME_MIN_LENGTH, 'validation.nameTooShort')
+    .max(USER_NAME_MAX_LENGTH, 'validation.nameTooLong'),
 });

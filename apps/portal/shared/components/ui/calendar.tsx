@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import type * as React from 'react';
 import { useCallback } from 'react';
 import { type DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker';
@@ -55,6 +56,7 @@ const Calendar = ({
   readonly buttonVariant?: React.ComponentProps<typeof Button>['variant'];
 }) => {
   const defaultClassNames = getDefaultClassNames();
+  const locale = useLocale();
 
   return (
     <DayPicker
@@ -136,7 +138,7 @@ const Calendar = ({
         ...components,
       }}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString('default', { month: 'short' }),
+        formatMonthDropdown: (date) => date.toLocaleString(locale, { month: 'short' }),
         ...formatters,
       }}
       showOutsideDays={showOutsideDays}
@@ -147,6 +149,7 @@ const Calendar = ({
 
 const CalendarDayButton = ({ className, day, modifiers, ...props }: React.ComponentProps<typeof DayButton>) => {
   const defaultClassNames = getDefaultClassNames();
+  const locale = useLocale();
 
   const ref = useCallback(
     (node: HTMLButtonElement | null) => {
@@ -165,7 +168,7 @@ const CalendarDayButton = ({ className, day, modifiers, ...props }: React.Compon
         defaultClassNames.day,
         className,
       )}
-      data-day={day.date.toLocaleDateString()}
+      data-day={day.date.toLocaleDateString(locale)}
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       data-range-start={modifiers.range_start}

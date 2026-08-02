@@ -1,8 +1,9 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { useRouter } from '../../../i18n/navigation';
 
 interface BackButtonProps {
   href?: string;
@@ -11,8 +12,10 @@ interface BackButtonProps {
   className?: string;
 }
 
-const BackButton = ({ href, label = 'Volver', onClick, className }: BackButtonProps) => {
+const BackButton = ({ href, label, onClick, className }: BackButtonProps) => {
   const router = useRouter();
+  const t = useTranslations('common');
+  const resolvedLabel = label ?? t('back');
 
   const handleClick = () => {
     if (onClick) {
@@ -24,7 +27,7 @@ const BackButton = ({ href, label = 'Volver', onClick, className }: BackButtonPr
 
   return (
     <button
-      aria-label={label}
+      aria-label={resolvedLabel}
       className={cn(
         'inline-flex items-center gap-2 rounded-none border border-border bg-background px-3 py-2 text-foreground text-sm transition-colors hover:bg-accent',
         className,
@@ -33,7 +36,7 @@ const BackButton = ({ href, label = 'Volver', onClick, className }: BackButtonPr
       type="button"
     >
       <ArrowLeft className="size-4" />
-      {label}
+      {resolvedLabel}
     </button>
   );
 };

@@ -8,6 +8,7 @@ import { LoggerModule } from './common/infrastructure/logger.module';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
 import { AuthModule } from './modules/auth/auth.module';
+import { DatabasesModule } from './modules/databases/databases.module';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
@@ -51,6 +52,7 @@ import { PrismaModule } from './prisma/prisma.module';
     WorkspacesModule,
     SpacesModule,
     PagesModule,
+    DatabasesModule,
     McpModule,
     SearchModule,
   ],

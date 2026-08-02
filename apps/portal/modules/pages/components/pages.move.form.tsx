@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
@@ -14,6 +15,7 @@ interface IProps {
 }
 
 export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
+  const t = useTranslations('pages');
   const [parentId, setParentId] = useState(page.parentId ?? 'root');
   const [isPending, startTransition] = useTransition();
   const possibleParents = pages.filter((candidate) => candidate.id !== page.id && candidate.lifecycle === 'ACTIVE');
@@ -26,10 +28,10 @@ export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
         spaceId,
       });
       if (hasActionError(result)) {
-        toast.error('No se pudo mover la página. Comprueba que el destino sea válido.');
+        toast.error(t('moveError'));
         return;
       }
-      toast.success('Página movida');
+      toast.success(t('moved'));
     });
   };
 
@@ -37,7 +39,7 @@ export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
     <div className="flex flex-col gap-2 border-border border-t pt-4 sm:flex-row sm:items-end">
       <div className="min-w-0 flex-1">
         <label className="mb-2 block text-sm text-status-muted" htmlFor="page-parent">
-          Ubicación
+          {t('location')}
         </label>
         <select
           className="min-h-11 w-full border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -45,7 +47,7 @@ export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
           onChange={(event) => setParentId(event.target.value)}
           value={parentId}
         >
-          <option value="root">Raíz del espacio</option>
+          <option value="root">{t('spaceRoot')}</option>
           {possibleParents.map((candidate) => (
             <option key={candidate.id} value={candidate.id}>
               {candidate.title}
@@ -59,7 +61,7 @@ export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
         type="button"
         variant="secondary"
       >
-        {isPending ? 'Moviendo...' : 'Mover página'}
+        {isPending ? t('moving') : t('move')}
       </PrimaryButton>
     </div>
   );

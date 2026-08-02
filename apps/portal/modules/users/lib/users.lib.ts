@@ -26,7 +26,4 @@ export const buildUsersApiEndpoint = ({ page, pageSize, search }: UsersListParam
 export const buildUsersInitialColumnFilters = (search: string): ColumnFiltersState =>
   search === '' ? [] : [{ id: USERS_SEARCH_COLUMN_ID, value: search }];
 
-export const formatUsersSubtitle = (total: number): string =>
-  total === 1 ? '1 usuario registrado' : `${total} usuarios registrados`;
-
 export const isCreateUserInputValid = (input: CreateUserInput): boolean => createUserSchema.safeParse(input).success;

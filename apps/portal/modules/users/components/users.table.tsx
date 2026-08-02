@@ -1,10 +1,11 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { EntityTable } from '@/shared/components/data-table/entity-table';
 import { formatDate } from '@/shared/utils/formatters';
-import { buildUsersInitialColumnFilters, buildUsersPageUrl, formatUsersSubtitle } from '../lib/users.lib';
+import { buildUsersInitialColumnFilters, buildUsersPageUrl } from '../lib/users.lib';
 import type { UserListItem } from '../types/users.types';
 import { UsersCreateDialog } from './users.create.dialog';
 import { UsersEditDialog } from './users.edit.dialog';
@@ -20,40 +21,42 @@ interface IProps {
 }
 
 export const UsersTable = ({ items, page, pageSize, total, search }: IProps) => {
+  const t = useTranslations('users');
+  const locale = useLocale();
   const columns = useMemo<ColumnDef<UserListItem>[]>(
     () => [
       {
         accessorKey: 'name',
-        header: 'Nombre',
+        header: t('name'),
         enableSorting: false,
-        meta: { label: 'Buscar', placeholder: 'Nombre o email', variant: 'text' },
+        meta: { label: t('search'), placeholder: t('searchPlaceholder'), variant: 'text' },
       },
       {
         accessorKey: 'email',
-        header: 'Email',
+        header: t('email'),
         enableColumnFilter: false,
         enableSorting: false,
       },
       {
         accessorKey: 'role',
-        header: 'Rol',
+        header: t('role'),
         enableColumnFilter: false,
         enableSorting: false,
         cell: ({ row }) => <UsersRoleBadge role={row.original.role} />,
       },
       {
         accessorKey: 'isActive',
-        header: 'Estado',
+        header: t('status'),
         enableColumnFilter: false,
         enableSorting: false,
         cell: ({ row }) => <UsersStatusBadge isActive={row.original.isActive} />,
       },
       {
         accessorKey: 'createdAt',
-        header: 'Creado',
+        header: t('created'),
         enableColumnFilter: false,
         enableSorting: false,
-        cell: ({ row }) => formatDate(row.original.createdAt),
+        cell: ({ row }) => formatDate(row.original.createdAt, { locale }),
       },
       {
         id: 'actions',
@@ -64,7 +67,7 @@ export const UsersTable = ({ items, page, pageSize, total, search }: IProps) => 
         cell: ({ row }) => <UsersEditDialog user={row.original} />,
       },
     ],
-    [],
+    [locale, t],
   );
 
   const initialState = useMemo(() => ({ columnFilters: buildUsersInitialColumnFilters(search) }), [search]);
@@ -74,13 +77,13 @@ export const UsersTable = ({ items, page, pageSize, total, search }: IProps) => 
       buildUrl={buildUsersPageUrl}
       columns={columns}
       data={items}
-      emptyMessage="No hay usuarios registrados"
+      emptyMessage={t('empty')}
       headerAction={<UsersCreateDialog />}
       initialState={initialState}
       page={page}
       pageSize={pageSize}
-      subtitle={formatUsersSubtitle}
-      title="Usuarios"
+      subtitle={(count) => t('registeredCount', { count })}
+      title={t('title')}
       total={total}
     />
   );

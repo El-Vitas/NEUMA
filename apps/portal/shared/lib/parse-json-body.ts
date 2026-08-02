@@ -2,14 +2,14 @@ import type { z } from 'zod';
 
 export class EmptyResponseBodyError extends Error {
   constructor() {
-    super('La respuesta del servidor está vacía');
+    super('The server returned an empty response.');
     this.name = 'EmptyResponseBodyError';
   }
 }
 
 export class NetworkError extends Error {
   constructor(cause: unknown) {
-    super('No se pudo conectar con el servidor. Verifica tu conexión.');
+    super('Could not connect to the server. Check your connection.');
     this.name = 'NetworkError';
     this.cause = cause;
   }

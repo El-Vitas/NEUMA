@@ -2,6 +2,7 @@
 
 import type { Column } from '@tanstack/react-table';
 import { Check, PlusCircle, XCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,7 @@ export const DataTableFacetedFilter = <TData, TValue>({
   multiple,
 }: DataTableFacetedFilterProps<TData, TValue>) => {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('common');
 
   const columnFilterValue = column?.getFilterValue();
 
@@ -93,8 +95,7 @@ export const DataTableFacetedFilter = <TData, TValue>({
               <div className="hidden items-center gap-1 lg:flex">
                 {selectedValues.size > 2 ? (
                   <Badge className="rounded-full px-1 font-normal" variant="secondary">
-                    {selectedValues.size} seleccionad
-                    {selectedValues.size === 1 ? 'o' : 'os'}
+                    {t('selectedRows', { selected: selectedValues.size, total: selectedValues.size })}
                   </Badge>
                 ) : (
                   options.reduce<React.ReactNode[]>((acc, option) => {
@@ -116,7 +117,7 @@ export const DataTableFacetedFilter = <TData, TValue>({
         <Command>
           <CommandInput placeholder={title} />
           <CommandList className="max-h-full">
-            <CommandEmpty>Sin resultados.</CommandEmpty>
+            <CommandEmpty>{t('noResults')}</CommandEmpty>
             <CommandGroup className="max-h-75 scroll-py-1 overflow-y-auto overflow-x-hidden">
               {options.map((option) => {
                 const isSelected = selectedValues.has(option.value);
@@ -147,7 +148,7 @@ export const DataTableFacetedFilter = <TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem className="justify-center text-center" onSelect={() => handleReset()}>
-                    Limpiar filtros
+                    {t('resetFilters')}
                   </CommandItem>
                 </CommandGroup>
               </>

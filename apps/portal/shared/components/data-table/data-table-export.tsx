@@ -1,6 +1,7 @@
 'use client';
 
 import { Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +23,7 @@ export const DataTableExport = ({
   onExportPdf,
   isExportingPdf,
 }: DataTableExportProps) => {
+  const t = useTranslations('common');
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -32,18 +34,18 @@ export const DataTableExport = ({
         ) : (
           <Button className="h-9 rounded-none text-foreground" size="sm" variant="outline">
             <Download className="mr-1.5 size-4" />
-            Exportar
+            {t('export')}
           </Button>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem disabled={isExportingPdf} onClick={onExportPdf}>
           <FileText className="mr-2 size-4" />
-          {isExportingPdf ? 'Generando PDF...' : 'Exportar como PDF'}
+          {isExportingPdf ? t('generatingPdf') : t('exportPdf')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onExportCsv}>
           <FileSpreadsheet className="mr-2 size-4" />
-          Exportar como Excel
+          {t('exportExcel')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

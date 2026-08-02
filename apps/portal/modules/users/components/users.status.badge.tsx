@@ -1,12 +1,11 @@
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/shared/components/ui/badge';
-import { USER_STATUS_LABELS } from '../constants/users.constants';
 
 interface IProps {
   readonly isActive: boolean;
 }
 
-export const UsersStatusBadge = ({ isActive }: IProps) => (
-  <Badge variant={isActive ? 'success' : 'outline'}>
-    {isActive ? USER_STATUS_LABELS.ACTIVE : USER_STATUS_LABELS.INACTIVE}
-  </Badge>
-);
+export const UsersStatusBadge = ({ isActive }: IProps) => {
+  const t = useTranslations('users.statusValues');
+  return <Badge variant={isActive ? 'success' : 'outline'}>{isActive ? t('active') : t('inactive')}</Badge>;
+};

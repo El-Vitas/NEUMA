@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef } from 'react';
 import { PAGE_EDITOR_COMMANDS } from '../constants/pages.editor.constants';
@@ -18,6 +19,7 @@ interface IProps {
 }
 
 export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange }: IProps) => {
+  const t = useTranslations('pages');
   const editorHostRef = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
   const contentCallbackRef = useRef(onContentChange);
@@ -49,12 +51,12 @@ export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange }: IP
   }, [canEdit, content]);
 
   return (
-    <section aria-label="Editor de contenido" className="space-y-3">
+    <section aria-label={t('editor')} className="space-y-3">
       {canEdit && (
-        <div aria-label="Herramientas de formato" className="flex flex-wrap gap-2" role="toolbar">
+        <div aria-label={t('formattingTools')} className="flex flex-wrap gap-2" role="toolbar">
           {Object.entries(PAGE_EDITOR_COMMANDS).map(([commandName, command]) => (
             <button
-              aria-label={command.label}
+              aria-label={t(`commands.${command.labelKey}`)}
               className="min-h-10 border border-border bg-background px-3 text-foreground text-xs outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               key={commandName}
               onMouseDown={(event) => {
@@ -63,7 +65,7 @@ export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange }: IP
               }}
               type="button"
             >
-              {command.label}
+              {t(`commands.${command.labelKey}`)}
             </button>
           ))}
         </div>

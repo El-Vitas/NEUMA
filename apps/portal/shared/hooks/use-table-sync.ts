@@ -1,9 +1,8 @@
 'use client';
 
 import type { ColumnFiltersState, OnChangeFn, PaginationState, SortingState } from '@tanstack/react-table';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-
+import { useRouter } from '@/i18n/navigation';
 import { useTableAction } from '@/shared/hooks/use-table-action';
 import type { UseTableSyncOptions, UseTableSyncResult } from '@/shared/types/use-table-sync.types';
 

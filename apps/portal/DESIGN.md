@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Starter
+name: Company Brain
 description: >
   Dark-first technical service platform for Chilean repair shops. The interface speaks in low-carbon
   surfaces, high-contrast warm-cream text, and a single purple accent that carries every CTA, active
@@ -229,7 +229,7 @@ components:
 
 ## 1. Overview
 
-Starter is a repair-shop management platform built for technicians who need to move fast and read
+Company Brain is a repair-shop management platform built for technicians who need to move fast and read
 without guessing. The design system is **dark-first** — the default theme is a near-black carbon
 surface with warm cream text — and borrows its surface hierarchy from IBM Carbon. The brand accent is
 a single purple (`{colors.primary}`) that does double duty as CTA color, active navigation

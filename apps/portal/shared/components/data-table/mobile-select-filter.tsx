@@ -1,6 +1,7 @@
 'use client';
 
 import type { Column } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -10,6 +11,7 @@ interface MobileSelectFilterProps<TData> {
 }
 
 export const MobileSelectFilter = <TData,>({ column, title }: MobileSelectFilterProps<TData>) => {
+  const t = useTranslations('common');
   const singleValue = (() => {
     const val = column.getFilterValue();
     if (Array.isArray(val)) return val[0];
@@ -29,7 +31,7 @@ export const MobileSelectFilter = <TData,>({ column, title }: MobileSelectFilter
           <SelectValue placeholder={title} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__all__">Todos</SelectItem>
+          <SelectItem value="__all__">{t('all')}</SelectItem>
           {(column.columnDef.meta?.options ?? []).map((option: { label: string; value: string }) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

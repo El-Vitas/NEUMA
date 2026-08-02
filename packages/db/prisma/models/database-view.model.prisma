@@ -1,0 +1,14 @@
+model DatabaseView {
+  id            String           @id @default(uuid(7))
+  databaseId    String
+  name          String
+  type          DatabaseViewType
+  configuration Json
+  isDefault     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  database      Database         @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+
+  @@unique([databaseId, name])
+  @@index([databaseId, type])
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { LogOut, Menu, Moon, Sun, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { logout } from '@/modules/auth/server/lib/auth.logout.server';
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 import { useTheme } from '@/shared/components/ui/theme-provider';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { useRouter as useLocaleRouter } from '../../../i18n/navigation';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -20,7 +21,9 @@ interface TopbarProps {
 
 export const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { isDark, toggleTheme, mounted } = useTheme();
-  const router = useRouter();
+  const localeRouter = useLocaleRouter();
+  const t = useTranslations('common');
+  const navigation = useTranslations('navigation');
 
   return (
     <header
@@ -28,7 +31,7 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
       style={{ backgroundColor: 'var(--background)' }}
     >
       <button
-        aria-label="Abrir menú"
+        aria-label={t('menu')}
         className={`flex size-11 items-center justify-center rounded-none text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden ${FOCUS_RING_CLASS}`}
         onClick={onMenuClick}
         type="button"
@@ -40,10 +43,10 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
         <div suppressHydrationWarning>
           {mounted ? (
             <button
-              aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              aria-label={isDark ? t('lightMode') : t('darkMode')}
               className={`flex size-11 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground hover:transition-colors hover:duration-200 ${FOCUS_RING_CLASS}`}
               onClick={toggleTheme}
-              title={isDark ? 'Modo claro' : 'Modo oscuro'}
+              title={isDark ? t('lightMode') : t('darkMode')}
               type="button"
             >
               {isDark ? <Sun aria-hidden="true" className="size-4" /> : <Moon aria-hidden="true" className="size-4" />}
@@ -63,22 +66,22 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
                 A
               </div>
               <div className="hidden text-left sm:block">
-                <p className="font-medium text-foreground text-sm leading-none">Admin</p>
-                <p className="mt-0.5 text-muted-foreground text-xs leading-none">admin@example.com</p>
+                <p className="font-medium text-foreground text-sm leading-none">{navigation('administrator')}</p>
+                <p className="mt-0.5 text-muted-foreground text-xs leading-none">{navigation('adminEmail')}</p>
               </div>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => router.push(ROUTES.PORTAL_ACCOUNT)}>
+            <DropdownMenuItem onClick={() => localeRouter.push(ROUTES.PORTAL_ACCOUNT)}>
               <User aria-hidden="true" className="size-4" />
-              Mi Cuenta
+              {navigation('account')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild variant="destructive">
               <form action={logout} className="w-full">
                 <button className="flex w-full items-center gap-2" type="submit">
                   <LogOut aria-hidden="true" className="size-4" />
-                  Cerrar sesión
+                  {navigation('logout')}
                 </button>
               </form>
             </DropdownMenuItem>

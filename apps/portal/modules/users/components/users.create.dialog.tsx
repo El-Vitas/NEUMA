@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
@@ -20,6 +21,7 @@ import { isCreateUserInputValid } from '../lib/users.lib';
 import { createUserAction } from '../server/actions/users.actions';
 
 export const UsersCreateDialog = () => {
+  const t = useTranslations('users');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,11 +42,11 @@ export const UsersCreateDialog = () => {
     setIsSubmitting(false);
 
     if (hasActionError(result)) {
-      toast.error(result.serverError ?? 'No se pudo crear el usuario. Intenta de nuevo.');
+      toast.error(result.serverError ?? t('createError'));
       return;
     }
 
-    toast.success('Usuario creado');
+    toast.success(t('createdSuccess'));
     resetForm();
     setOpen(false);
   };
@@ -54,26 +56,26 @@ export const UsersCreateDialog = () => {
       <DialogTrigger asChild>
         <PrimaryButton type="button">
           <Plus aria-hidden="true" className="size-4" />
-          Nuevo usuario
+          {t('newUser')}
         </PrimaryButton>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nuevo usuario</DialogTitle>
+          <DialogTitle>{t('newUserTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <FormField
             id="new-user-name"
             inputClassName={USERS_DIALOG_INPUT_CLASS}
-            label="Nombre"
+            label={t('name')}
             onChange={(event) => setName(event.target.value)}
             value={name}
           />
           <FormField
             id="new-user-email"
             inputClassName={USERS_DIALOG_INPUT_CLASS}
-            label="Email"
+            label={t('email')}
             onChange={(event) => setEmail(event.target.value)}
             type="email"
             value={email}
@@ -82,20 +84,18 @@ export const UsersCreateDialog = () => {
             autoComplete="new-password"
             id="new-user-password"
             inputClassName={USERS_DIALOG_INPUT_CLASS}
-            label="Contraseña"
+            label={t('password')}
             minLength={PASSWORD_MIN_LENGTH}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
             value={password}
           />
-          <p className="text-muted-foreground text-xs">
-            La contraseña debe tener al menos {PASSWORD_MIN_LENGTH} caracteres.
-          </p>
+          <p className="text-muted-foreground text-xs">{t('passwordRequirement', { count: PASSWORD_MIN_LENGTH })}</p>
         </div>
 
         <DialogFooter>
           <PrimaryButton disabled={!isValid || isSubmitting} onClick={handleCreate} type="button">
-            {isSubmitting ? 'Creando...' : 'Crear usuario'}
+            {isSubmitting ? t('creating') : t('create')}
           </PrimaryButton>
         </DialogFooter>
       </DialogContent>

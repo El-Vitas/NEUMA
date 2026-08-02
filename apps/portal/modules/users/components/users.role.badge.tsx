@@ -1,12 +1,13 @@
 import type { UserRole } from '@company-brain/shared';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/shared/components/ui/badge';
-import { roleLabel } from '@/shared/lib/profile.lib';
 import { USER_ROLE_BADGE_VARIANTS } from '../constants/users.constants';
 
 interface IProps {
   readonly role: UserRole;
 }
 
-export const UsersRoleBadge = ({ role }: IProps) => (
-  <Badge variant={USER_ROLE_BADGE_VARIANTS[role]}>{roleLabel(role)}</Badge>
-);
+export const UsersRoleBadge = ({ role }: IProps) => {
+  const t = useTranslations('users.roles');
+  return <Badge variant={USER_ROLE_BADGE_VARIANTS[role]}>{t(role)}</Badge>;
+};

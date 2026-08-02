@@ -1,4 +1,4 @@
-export const APP_TIME_ZONE = 'America/Santiago';
+import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
 
 export const FORMAT_WITH_TIME: Intl.DateTimeFormatOptions = {
   day: 'numeric',
@@ -14,9 +14,3 @@ export const FORMAT_DATE_ONLY: Intl.DateTimeFormatOptions = {
   year: 'numeric',
   timeZone: APP_TIME_ZONE,
 };
-
-export const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CL', {
-  currency: 'CLP',
-  minimumFractionDigits: 0,
-  style: 'currency',
-});

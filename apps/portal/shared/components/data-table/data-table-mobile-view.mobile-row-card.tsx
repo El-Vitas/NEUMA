@@ -1,5 +1,6 @@
 import type { Table as TanstackTable } from '@tanstack/react-table';
 import { flexRender } from '@tanstack/react-table';
+import { useTranslations } from 'next-intl';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { getHeaderLabel } from '@/shared/lib/data-table.lib';
@@ -9,6 +10,7 @@ interface MobileRowCardProps<TData> {
 }
 
 export const MobileRowCard = <TData,>({ row }: MobileRowCardProps<TData>) => {
+  const t = useTranslations('common');
   const visibleCells = row.getVisibleCells().filter((cell) => cell.column.id !== 'select');
 
   return (
@@ -16,7 +18,7 @@ export const MobileRowCard = <TData,>({ row }: MobileRowCardProps<TData>) => {
       <div className="flex items-start gap-3 p-4">
         <div className="flex items-center pr-2">
           <Checkbox
-            aria-label="Seleccionar fila"
+            aria-label={t('selectRow')}
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
           />

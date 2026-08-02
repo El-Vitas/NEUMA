@@ -1,13 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { SIDEBAR_HOVER_CLASS } from '@/modules/portal/constants/sidebar.constants';
 import type { PortalNavItem } from '@/modules/portal/types/portal.types';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { Link } from '../../../../i18n/navigation';
 
 interface IProps {
-  readonly item: PortalNavItem;
+  readonly item: PortalNavItem & { readonly label: string };
   readonly isActive: boolean;
   readonly collapsed: boolean;
   readonly onNavigate?: () => void;

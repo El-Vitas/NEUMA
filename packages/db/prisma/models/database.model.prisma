@@ -1,0 +1,21 @@
+model Database {
+  id          String             @id @default(uuid(7))
+  workspaceId String
+  spaceId     String
+  name        String
+  slug        String
+  template    DatabaseTemplate   @default(CUSTOM)
+  lifecycle   DatabaseLifecycle  @default(ACTIVE)
+  createdById String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  space       Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  properties  DatabaseProperty[]
+  records     DatabaseRecord[]
+  views       DatabaseView[]
+
+  @@unique([spaceId, slug])
+  @@index([workspaceId, spaceId, lifecycle])
+  @@index([spaceId, lifecycle])
+  @@index([spaceId])
+}

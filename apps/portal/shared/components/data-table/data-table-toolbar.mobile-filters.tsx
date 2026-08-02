@@ -2,6 +2,7 @@
 
 import type { Column } from '@tanstack/react-table';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ interface MobileFiltersProps<TData> {
 }
 
 export const MobileFilters = <TData,>({ columns, isFiltered, onReset }: MobileFiltersProps<TData>) => {
+  const t = useTranslations('common');
   return (
     <div className="flex flex-col gap-3 border-border border-t p-3">
       {columns.map((column) => {
@@ -57,14 +59,14 @@ export const MobileFilters = <TData,>({ columns, isFiltered, onReset }: MobileFi
       })}
       {isFiltered && (
         <Button
-          aria-label="Reset filters"
+          aria-label={t('resetFilters')}
           className="h-9 self-start rounded-none border-dashed"
           onClick={onReset}
           size="sm"
           variant="outline"
         >
           <X />
-          Reiniciar
+          {t('resetFilters')}
         </Button>
       )}
     </div>

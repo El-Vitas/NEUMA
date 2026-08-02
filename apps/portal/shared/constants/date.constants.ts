@@ -1,1 +1,1 @@
-export const CHILE_TZ = 'America/Santiago';
+export const APP_TIME_ZONE = 'America/Santiago';

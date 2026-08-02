@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
@@ -21,6 +22,7 @@ interface IProps {
 
 export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
   const router = useRouter();
+  const t = useTranslations('pages');
   const [title, setTitle] = useState(page?.title ?? '');
   const contentRef = useRef<PageContent>(page?.content ?? createEmptyPageContent());
   const [isPending, startTransition] = useTransition();
@@ -32,38 +34,36 @@ export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
           ? await createPageAction({ content: contentRef.current, parentId: null, spaceId, title: title.trim() })
           : await updatePageAction({ content: contentRef.current, pageId: page.id, spaceId, title: title.trim() });
       if (hasActionError(result)) {
-        toast.error('No se pudo guardar la página. Revisa tus permisos e inténtalo de nuevo.');
+        toast.error(t('saveError'));
         return;
       }
-      toast.success(page === null ? 'Página creada' : 'Página actualizada');
+      toast.success(page === null ? t('created') : t('updated'));
       router.refresh();
     });
   };
 
-  let saveLabel = 'Guardar cambios';
-  if (isPending) saveLabel = 'Guardando...';
-  if (!isPending && page === null) saveLabel = 'Crear página';
+  let saveLabel = t('saveChanges');
+  if (isPending) saveLabel = t('saving');
+  if (!isPending && page === null) saveLabel = t('create');
 
   return (
-    <section aria-label="Editor de página" className="border border-border bg-card p-4 sm:p-6">
+    <section aria-label={t('editor')} className="border border-border bg-card p-4 sm:p-6">
       {!canEdit && (
         <p className="mb-4 border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
-          {page?.lifecycle === 'TRASHED'
-            ? 'Esta página está en la papelera. Restáurala para editarla.'
-            : 'Solo tienes permiso de lectura en este espacio.'}
+          {page?.lifecycle === 'TRASHED' ? t('trashReadOnly') : t('readOnly')}
         </p>
       )}
       <div className="space-y-4">
         <FormField
           disabled={!canEdit}
           id="page-title"
-          label="Título"
+          label={t('titleField')}
           onChange={(event) => setTitle(event.target.value)}
           value={title}
         />
         <div>
           <label className="mb-2 block text-sm text-status-muted" htmlFor="page-content">
-            Contenido estructurado
+            {t('content')}
           </label>
           <PagesProseMirrorEditor
             canEdit={canEdit}
@@ -73,7 +73,7 @@ export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
             }}
           />
           <p className="mt-2 text-muted-foreground text-xs" id="page-content-help">
-            El texto se guarda como un bloque estructurado versionado.
+            {t('contentHelp')}
           </p>
         </div>
         {canEdit && (

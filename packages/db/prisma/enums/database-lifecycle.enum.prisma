@@ -1,0 +1,4 @@
+enum DatabaseLifecycle {
+  ACTIVE
+  ARCHIVED
+}

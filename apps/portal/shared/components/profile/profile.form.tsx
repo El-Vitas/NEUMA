@@ -2,6 +2,7 @@
 
 import { Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { updatePasswordAction, updateProfileNameAction } from '@/modules/account/server/actions/profile.actions';
@@ -15,7 +16,6 @@ import {
   DialogTrigger,
 } from '@/shared/components/ui/dialog';
 import { PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
-import { roleLabel } from '@/shared/lib/profile.lib';
 
 interface IProps {
   readonly user: { id: string; name: string; email: string; role: string };
@@ -23,6 +23,8 @@ interface IProps {
 
 export const ProfileForm = ({ user }: IProps) => {
   const router = useRouter();
+  const t = useTranslations('account');
+  const roleTranslations = useTranslations('users.roles');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(user.name);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -31,9 +33,9 @@ export const ProfileForm = ({ user }: IProps) => {
   const handleUpdateName = async () => {
     const result = await updateProfileNameAction({ userId: user.id, name });
     if (result?.serverError) {
-      toast.error('No se pudo actualizar el nombre. Intenta de nuevo.');
+      toast.error(t('nameUpdateError'));
     } else {
-      toast.success('Nombre actualizado');
+      toast.success(t('nameUpdated'));
       router.refresh();
     }
   };
@@ -43,7 +45,7 @@ export const ProfileForm = ({ user }: IProps) => {
     if (result?.serverError) {
       toast.error(result.serverError);
     } else {
-      toast.success('Contraseña actualizada');
+      toast.success(t('passwordUpdated'));
       setCurrentPassword('');
       setNewPassword('');
     }
@@ -52,7 +54,7 @@ export const ProfileForm = ({ user }: IProps) => {
   return (
     <div className="border border-border bg-card p-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Información personal</h3>
+        <h3 className="font-semibold">{t('personalInformation')}</h3>
         <Dialog onOpenChange={setOpen} open={open}>
           <DialogTrigger asChild>
             <button
@@ -60,19 +62,19 @@ export const ProfileForm = ({ user }: IProps) => {
               type="button"
             >
               <Pencil className="size-3.5" />
-              Editar cuenta
+              {t('editAccount')}
             </button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Editar cuenta</DialogTitle>
+              <DialogTitle>{t('editAccountTitle')}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="block font-medium text-foreground text-sm" htmlFor="name">
-                    Nombre
+                    {t('name')}
                   </label>
                   <input
                     className="h-9 w-full rounded-none border border-border bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20"
@@ -88,16 +90,16 @@ export const ProfileForm = ({ user }: IProps) => {
                     onClick={handleUpdateName}
                     type="button"
                   >
-                    Guardar nombre
+                    {t('saveName')}
                   </button>
                 </DialogFooter>
               </div>
 
               <div className="space-y-4 border-border border-t pt-4">
-                <h4 className="font-medium text-foreground text-sm">Cambiar contraseña</h4>
+                <h4 className="font-medium text-foreground text-sm">{t('changePassword')}</h4>
                 <div className="space-y-1.5">
                   <label className="block font-medium text-foreground text-sm" htmlFor="current-password">
-                    Contraseña actual
+                    {t('currentPassword')}
                   </label>
                   <input
                     autoComplete="current-password"
@@ -110,7 +112,7 @@ export const ProfileForm = ({ user }: IProps) => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="block font-medium text-foreground text-sm" htmlFor="new-password">
-                    Nueva contraseña
+                    {t('newPassword')}
                   </label>
                   <input
                     autoComplete="new-password"
@@ -121,7 +123,9 @@ export const ProfileForm = ({ user }: IProps) => {
                     type="password"
                     value={newPassword}
                   />
-                  <p className="text-muted-foreground text-xs">Mínimo {PASSWORD_MIN_LENGTH} caracteres.</p>
+                  <p className="text-muted-foreground text-xs">
+                    {t('passwordMinimum', { count: PASSWORD_MIN_LENGTH })}
+                  </p>
                 </div>
                 <DialogFooter>
                   <button
@@ -130,7 +134,7 @@ export const ProfileForm = ({ user }: IProps) => {
                     onClick={handleUpdatePassword}
                     type="button"
                   >
-                    Cambiar contraseña
+                    {t('changePassword')}
                   </button>
                 </DialogFooter>
               </div>
@@ -140,9 +144,9 @@ export const ProfileForm = ({ user }: IProps) => {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <DetailRow label="Nombre" value={user.name} />
-        <DetailRow label="Email" value={user.email} />
-        <DetailRow label="Rol" value={roleLabel(user.role)} />
+        <DetailRow label={t('name')} value={user.name} />
+        <DetailRow label={t('email')} value={user.email} />
+        <DetailRow label={t('role')} value={roleTranslations(user.role as 'ADMIN' | 'WORKER' | 'CLIENT')} />
       </div>
     </div>
   );

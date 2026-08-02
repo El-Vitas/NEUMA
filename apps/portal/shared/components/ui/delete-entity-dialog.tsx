@@ -1,6 +1,7 @@
 'use client';
 
 import { Loader2, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
   Dialog,
@@ -21,6 +22,7 @@ interface IProps {
 }
 
 export const DeleteEntityDialog = ({ entityLabel, description, isPending, onConfirm }: IProps) => {
+  const t = useTranslations('common');
   const [open, setOpen] = useState(false);
 
   return (
@@ -45,7 +47,7 @@ export const DeleteEntityDialog = ({ entityLabel, description, isPending, onConf
               className="inline-flex h-11 items-center gap-2 rounded-none border border-border bg-background px-4 text-muted-foreground text-sm hover:text-foreground"
               type="button"
             >
-              Cancelar
+              {t('cancel')}
             </button>
           </DialogClose>
           <button
@@ -55,7 +57,7 @@ export const DeleteEntityDialog = ({ entityLabel, description, isPending, onConf
             type="button"
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            {isPending ? 'Eliminando...' : entityLabel}
+            {isPending ? t('deleting') : entityLabel}
           </button>
         </DialogFooter>
       </DialogContent>

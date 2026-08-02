@@ -7,7 +7,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
-const EmptyState = ({ message = 'Sin resultados.', action, className }: EmptyStateProps) => {
+const EmptyState = ({ message, action, className }: EmptyStateProps) => {
   return (
     <td className={cn('px-4 py-16 text-center text-muted-foreground text-sm', className)} colSpan={999}>
       <p>{message}</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarIcon, XCircle } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { type MouseEvent, useCallback, useMemo } from 'react';
 import type { DateRange } from 'react-day-picker';
 
@@ -14,6 +15,8 @@ import { formatDate } from '@/shared/utils/formatters';
 import type { DataTableDateFilterProps, DateSelection } from './types/data-table-date-filter.types';
 
 export const DataTableDateFilter = <TData,>({ column, title, multiple }: DataTableDateFilterProps<TData>) => {
+  const t = useTranslations('common');
+  const locale = useLocale();
   const columnFilterValue = column.getFilterValue();
 
   const selectedDates = useMemo<DateSelection>(() => {
@@ -69,22 +72,25 @@ export const DataTableDateFilter = <TData,>({ column, title, multiple }: DataTab
     return selectedDates.length > 0;
   }, [multiple, selectedDates]);
 
-  const formatDateRange = useCallback((range: DateRange) => {
-    if (!range.from && !range.to) return '';
-    if (range.from && range.to) {
-      return `${formatDate(range.from)} - ${formatDate(range.to)}`;
-    }
-    if (range.from) return formatDate(range.from);
-    if (range.to) return formatDate(range.to);
-    return '';
-  }, []);
+  const formatDateRange = useCallback(
+    (range: DateRange) => {
+      if (!range.from && !range.to) return '';
+      if (range.from && range.to) {
+        return `${formatDate(range.from, { locale })} - ${formatDate(range.to, { locale })}`;
+      }
+      if (range.from) return formatDate(range.from, { locale });
+      if (range.to) return formatDate(range.to, { locale });
+      return '';
+    },
+    [locale],
+  );
 
   const label = useMemo(() => {
     if (multiple) {
       if (!getIsDateRange(selectedDates)) return null;
 
       const hasSelectedDates = selectedDates.from || selectedDates.to;
-      const dateText = hasSelectedDates ? formatDateRange(selectedDates) : 'Seleccionar rango';
+      const dateText = hasSelectedDates ? formatDateRange(selectedDates) : t('selectRange');
 
       return (
         <span className="flex items-center gap-2">
@@ -102,7 +108,7 @@ export const DataTableDateFilter = <TData,>({ column, title, multiple }: DataTab
     if (getIsDateRange(selectedDates)) return null;
 
     const hasSelectedDate = selectedDates.length > 0;
-    const dateText = hasSelectedDate ? formatDate(selectedDates[0]) : 'Seleccionar fecha';
+    const dateText = hasSelectedDate ? formatDate(selectedDates[0], { locale }) : t('selectDate');
 
     return (
       <span className="flex items-center gap-2">
@@ -115,7 +121,7 @@ export const DataTableDateFilter = <TData,>({ column, title, multiple }: DataTab
         )}
       </span>
     );
-  }, [selectedDates, multiple, formatDateRange, title]);
+  }, [selectedDates, multiple, formatDateRange, title, locale, t]);
 
   return (
     <Popover>
@@ -123,7 +129,7 @@ export const DataTableDateFilter = <TData,>({ column, title, multiple }: DataTab
         <Button className="rounded-none border-dashed font-normal text-foreground" size="sm" variant="outline">
           {hasValue ? (
             <button
-              aria-label={`Limpiar filtro ${title}`}
+              aria-label={`${t('clear')} ${title}`}
               className="rounded-none opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               onClick={onReset}
               type="button"

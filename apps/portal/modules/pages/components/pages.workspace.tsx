@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { buildPageTree, canEditPage } from '../lib/pages.lib';
@@ -15,6 +16,7 @@ interface IProps {
 }
 
 export const PagesWorkspace = ({ canEditContent, pages, spaceId }: IProps) => {
+  const t = useTranslations('pages');
   const [selectedPage, setSelectedPage] = useState<PageSummary | null>(
     pages.find((page) => page.lifecycle === 'ACTIVE') ?? null,
   );
@@ -23,12 +25,12 @@ export const PagesWorkspace = ({ canEditContent, pages, spaceId }: IProps) => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(220px,280px)_minmax(0,1fr)]">
-      <aside aria-label="Navegación del espacio" className="border border-border bg-card p-4">
+      <aside aria-label={t('spaceNavigation')} className="border border-border bg-card p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-semibold text-foreground">Páginas</h2>
+          <h2 className="font-semibold text-foreground">{t('title')}</h2>
           {canEditContent && (
             <PrimaryButton
-              aria-label="Crear una página"
+              aria-label={t('createPage')}
               className="min-h-11 min-w-11 px-2"
               onClick={() => setSelectedPage(null)}
               type="button"

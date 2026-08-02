@@ -2,6 +2,7 @@
 
 import type { Column } from '@tanstack/react-table';
 import { Check, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ export const DataTableMobileFacetedFilter = <TData, TValue>({
   options,
 }: DataTableMobileFacetedFilterProps<TData, TValue>) => {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('common');
 
   const columnFilterValue = column?.getFilterValue();
 
@@ -65,7 +67,7 @@ export const DataTableMobileFacetedFilter = <TData, TValue>({
               <div className={cn('flex size-4 items-center justify-center border')}>
                 {selectedCount === 0 && <Check className="size-3" />}
               </div>
-              Todos
+              {t('all')}
             </button>
             {options.map((option) => {
               const isSelected = selectedValues.has(option.value);

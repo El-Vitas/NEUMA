@@ -1,6 +1,7 @@
 'use client';
 
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ComponentType } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,7 @@ interface DataCardsProps<T> {
 export type { DataCardsProps };
 
 export const DataCards = <T,>({ data, CardComponent, keyExtractor, className }: DataCardsProps<T>) => {
+  const t = useTranslations('common');
   if (data.length === 0) {
     return null;
   }
@@ -24,7 +26,7 @@ export const DataCards = <T,>({ data, CardComponent, keyExtractor, className }: 
         <div className="relative rounded-none border border-border bg-card p-4" key={keyExtractor(item)}>
           <CardComponent item={item} />
           <button
-            aria-label="Acciones"
+            aria-label={t('actions')}
             className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-none text-muted-foreground hover:bg-accent hover:text-foreground"
             type="button"
           >

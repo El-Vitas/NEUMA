@@ -3,7 +3,6 @@ import {
   buildUsersApiEndpoint,
   buildUsersInitialColumnFilters,
   buildUsersPageUrl,
-  formatUsersSubtitle,
   isCreateUserInputValid,
 } from '@/modules/users/lib/users.lib';
 
@@ -23,7 +22,7 @@ describe('buildUsersPageUrl', () => {
   it('maps the name column filter to the search param', () => {
     expect(
       buildUsersPageUrl({ pageIndex: 0, pageSize: 20, sorting: [], columnFilters: [{ id: 'name', value: 'ana' }] }),
-    ).toBe('/usuarios?page=1&pageSize=20&search=ana');
+    ).toBe('/users?page=1&pageSize=20&search=ana');
   });
 });
 
@@ -34,16 +33,6 @@ describe('buildUsersInitialColumnFilters', () => {
 
   it('returns the name filter when search is present', () => {
     expect(buildUsersInitialColumnFilters('ana')).toEqual([{ id: 'name', value: 'ana' }]);
-  });
-});
-
-describe('formatUsersSubtitle', () => {
-  it('uses singular for one user', () => {
-    expect(formatUsersSubtitle(1)).toBe('1 usuario registrado');
-  });
-
-  it('uses plural otherwise', () => {
-    expect(formatUsersSubtitle(0)).toBe('0 usuarios registrados');
   });
 });
 
