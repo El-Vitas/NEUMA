@@ -1,6 +1,7 @@
 'use client';
 
 import type { UserRole } from '@company-brain/shared';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { MobileNav } from '@/shared/components/portal/mobile-nav';
 import { Sidebar } from '@/shared/components/portal/sidebar';
@@ -14,6 +15,7 @@ interface PortalLayoutProps {
 
 export const PortalLayout = ({ children, role }: PortalLayoutProps) => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const t = useTranslations('navigation');
 
   return (
     <div className="fixed inset-0 flex bg-background">
@@ -23,7 +25,7 @@ export const PortalLayout = ({ children, role }: PortalLayoutProps) => {
 
       <Sheet onOpenChange={setMobileNavOpen} open={mobileNavOpen}>
         <SheetContent className="w-72 p-0" side="left">
-          <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+          <SheetTitle className="sr-only">{t('mobileMenu')}</SheetTitle>
           <MobileNav onNavigate={() => setMobileNavOpen(false)} role={role} />
         </SheetContent>
       </Sheet>

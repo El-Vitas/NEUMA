@@ -1,5 +1,6 @@
 import type { Table } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +19,7 @@ export const DataTablePagination = <TData,>({
   className,
   ...props
 }: Readonly<DataTablePaginationProps<TData>>) => {
+  const t = useTranslations('common');
   const { pageIndex, pageSize } = table.getState().pagination;
   const rangeStart = pageIndex * pageSize + 1;
   const rangeEnd =
@@ -30,15 +32,15 @@ export const DataTablePagination = <TData,>({
     >
       <div className="flex items-center gap-3 whitespace-nowrap text-muted-foreground text-sm">
         {totalCount !== undefined && totalCount > 0 && (
-          <span>
-            {rangeStart}–{rangeEnd} de {totalCount} resultado{totalCount === 1 ? '' : 's'}
-          </span>
+          <span>{t('resultsRange', { start: rangeStart, end: rangeEnd, total: totalCount })}</span>
         )}
-        {totalCount === 0 && <span>0 resultados</span>}
+        {totalCount === 0 && <span>{t('zeroResults')}</span>}
         {table.getFilteredSelectedRowModel().rows.length > 0 && (
           <span>
-            {table.getFilteredSelectedRowModel().rows.length} de {table.getFilteredRowModel().rows.length} fila(s)
-            seleccionada(s).
+            {t('selectedRows', {
+              selected: table.getFilteredSelectedRowModel().rows.length,
+              total: table.getFilteredRowModel().rows.length,
+            })}
           </span>
         )}
       </div>
@@ -67,7 +69,7 @@ export const DataTablePagination = <TData,>({
         </div>
         <div className="flex items-center gap-1">
           <Button
-            aria-label="Ir a la primera página"
+            aria-label={t('firstPage')}
             className="hidden size-8 rounded-none text-foreground lg:flex"
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.setPageIndex(0)}
@@ -77,7 +79,7 @@ export const DataTablePagination = <TData,>({
             <ChevronsLeft />
           </Button>
           <Button
-            aria-label="Ir a la página anterior"
+            aria-label={t('previousPage')}
             className="size-8 rounded-none text-foreground"
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
@@ -87,7 +89,7 @@ export const DataTablePagination = <TData,>({
             <ChevronLeft />
           </Button>
           <Button
-            aria-label="Ir a la siguiente página"
+            aria-label={t('nextPage')}
             className="size-8 rounded-none text-foreground"
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}
@@ -97,7 +99,7 @@ export const DataTablePagination = <TData,>({
             <ChevronRight />
           </Button>
           <Button
-            aria-label="Ir a la última página"
+            aria-label={t('lastPage')}
             className="hidden size-8 rounded-none text-foreground lg:flex"
             disabled={!table.getCanNextPage()}
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}

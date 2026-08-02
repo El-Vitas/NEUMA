@@ -21,6 +21,7 @@
     "types": ["bun"],
     "paths": {
       "@/shared/*": ["./shared/*"],
+      "@/i18n/*": ["./i18n/*"],
       "@/modules/*": ["./modules/*"],
       "@/app/*": ["./app/*"],
       "@/lib/*": ["./lib/*"],

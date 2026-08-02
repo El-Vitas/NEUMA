@@ -1,8 +1,8 @@
 import { Plus } from 'lucide-react';
-import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import { Link } from '../../../i18n/navigation';
 import {
   DEFAULT_SKELETON_ROW_COUNT,
   DEFAULT_STAT_CARD_GRID_CLASS,
@@ -23,7 +23,7 @@ interface IProps {
 
 export const EntityTableSkeleton = ({
   title,
-  subtitle = 'Cargando...',
+  subtitle,
   newButtonLabel,
   newButtonHref,
   columnHeaders,

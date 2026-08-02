@@ -1,6 +1,7 @@
 import path from 'node:path';
 import withBundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 const securityHeaders = [
   {
@@ -40,5 +41,9 @@ const nextConfig: NextConfig = {
   },
 };
 
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+
 // biome-ignore lint/style/noProcessEnv: next.config.ts needs process.env for conditional bundle analyzer
-export default process.env.ANALYZE === 'true' ? withBundleAnalyzer({ enabled: true })(nextConfig) : nextConfig;
+const analyzedConfig = process.env.ANALYZE === 'true' ? withBundleAnalyzer({ enabled: true })(nextConfig) : nextConfig;
+
+export default withNextIntl(analyzedConfig);

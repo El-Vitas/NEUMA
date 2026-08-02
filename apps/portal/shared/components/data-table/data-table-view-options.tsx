@@ -2,6 +2,7 @@
 
 import type { Table } from '@tanstack/react-table';
 import { Check, Settings2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ComponentProps, useId, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -15,6 +16,7 @@ interface DataTableViewOptionsProps<TData> extends ComponentProps<typeof Popover
 
 export const DataTableViewOptions = <TData,>({ table, disabled, ...props }: DataTableViewOptionsProps<TData>) => {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('common');
   const listboxId = useId();
   const columns = useMemo(
     () => table.getAllColumns().filter((column) => column.accessorFn !== undefined && column.getCanHide()),
@@ -28,7 +30,7 @@ export const DataTableViewOptions = <TData,>({ table, disabled, ...props }: Data
           aria-controls={listboxId}
           aria-expanded={open}
           aria-haspopup="listbox"
-          aria-label="Toggle columns"
+          aria-label={t('toggleColumns')}
           className="ml-auto h-8 rounded-none border font-normal text-foreground"
           disabled={disabled}
           role="combobox"
@@ -36,14 +38,14 @@ export const DataTableViewOptions = <TData,>({ table, disabled, ...props }: Data
           variant="outline"
         >
           <Settings2 className="text-muted-foreground" />
-          Vista
+          {t('view')}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-44 p-0" {...props}>
         <Command>
-          <CommandInput placeholder="Buscar columnas..." />
+          <CommandInput placeholder={t('searchColumns')} />
           <CommandList id={listboxId}>
-            <CommandEmpty>Sin columnas.</CommandEmpty>
+            <CommandEmpty>{t('noColumns')}</CommandEmpty>
             <CommandGroup>
               {columns.map((column) => (
                 <CommandItem key={column.id} onSelect={() => column.toggleVisibility(!column.getIsVisible())}>

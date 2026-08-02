@@ -1,0 +1,10 @@
+enum DatabasePropertyType {
+  TITLE
+  RICH_TEXT
+  SELECT
+  MULTI_SELECT
+  PERSON
+  DATE
+  CHECKBOX
+  NUMBER
+}

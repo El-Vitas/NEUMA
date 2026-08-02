@@ -1,8 +1,9 @@
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { getLocale } from 'next-intl/server';
 import { config } from '@/shared/config';
 import { ACCESS_TOKEN_COOKIE, BEARER_PREFIX } from '@/shared/constants/auth.constants';
 import { API_ROUTES, ROUTES } from '@/shared/routes/constants/routes.constants';
+import { redirect } from '../../i18n/navigation';
 import { ApiError } from './api';
 import { NetworkError, parseJsonBodyStrict } from './parse-json-body';
 
@@ -50,7 +51,7 @@ const request = async <T>(endpoint: string, init: RequestInit = {}): Promise<T> 
 
   if (caughtError instanceof ApiError && caughtError.status === 401 && endpoint !== API_ROUTES.AUTH_SESSIONS) {
     cookieStore.delete(ACCESS_TOKEN_COOKIE);
-    redirect(ROUTES.LOGIN);
+    redirect({ href: ROUTES.LOGIN, locale: await getLocale() });
   }
 
   throw caughtError;

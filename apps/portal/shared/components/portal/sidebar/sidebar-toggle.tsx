@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface SidebarToggleProps {
   readonly collapsed: boolean;
@@ -8,12 +9,13 @@ interface SidebarToggleProps {
 }
 
 export const SidebarToggle = ({ collapsed, onToggle }: SidebarToggleProps) => {
+  const t = useTranslations('common');
   return (
     <button
-      aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+      aria-label={collapsed ? t('expandMenu') : t('collapseMenu')}
       className="absolute top-20 -right-4 z-20 flex size-11 items-center justify-center rounded-full border border-sidebar-border text-sidebar-foreground/70 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       onClick={onToggle}
-      title={collapsed ? 'Expandir' : 'Colapsar'}
+      title={collapsed ? t('expandMenu') : t('collapseMenu')}
       type="button"
     >
       {collapsed ? (

@@ -1,8 +1,8 @@
 import { LockKeyhole, Users } from 'lucide-react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { EmptyState } from '@/shared/components/ui/empty-state';
-import { SPACE_ROUTES } from '../constants/spaces.constants';
-import { getSpaceVisibilityLabel } from '../lib/spaces.lib';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { Link } from '../../../i18n/navigation';
 import type { SpaceSummary } from '../types/spaces.types';
 
 interface IProps {
@@ -10,17 +10,18 @@ interface IProps {
 }
 
 export const SpacesList = ({ spaces }: IProps) => {
+  const t = useTranslations('spaces');
   if (spaces.length === 0) {
-    return <EmptyState message="Todavía no hay espacios disponibles." />;
+    return <EmptyState message={t('empty')} />;
   }
 
   return (
-    <ul aria-label="Espacios disponibles" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul aria-label={t('available')} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {spaces.map((space) => (
         <li key={space.id}>
           <Link
             className="group flex min-h-32 flex-col justify-between border border-border bg-card p-5 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            href={SPACE_ROUTES.detail(space.id)}
+            href={ROUTES.PORTAL_SPACE(space.id)}
           >
             <span>
               <span className="flex items-start justify-between gap-3">
@@ -28,14 +29,16 @@ export const SpacesList = ({ spaces }: IProps) => {
                   {space.name}
                 </span>
                 {space.visibility === 'RESTRICTED' ? (
-                  <LockKeyhole aria-label="Espacio restringido" className="size-4 shrink-0 text-muted-foreground" />
+                  <LockKeyhole aria-label={t('restricted')} className="size-4 shrink-0 text-muted-foreground" />
                 ) : (
-                  <Users aria-label="Espacio interno" className="size-4 shrink-0 text-muted-foreground" />
+                  <Users aria-label={t('internal')} className="size-4 shrink-0 text-muted-foreground" />
                 )}
               </span>
               <span className="mt-1 block text-muted-foreground text-sm">/{space.slug}</span>
             </span>
-            <span className="text-muted-foreground text-xs">{getSpaceVisibilityLabel(space.visibility)}</span>
+            <span className="text-muted-foreground text-xs">
+              {space.visibility === 'RESTRICTED' ? t('visibility.restricted') : t('visibility.internal')}
+            </span>
           </Link>
         </li>
       ))}

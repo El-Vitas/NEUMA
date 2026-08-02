@@ -1,6 +1,7 @@
 'use client';
 
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
   DropdownMenu,
@@ -15,13 +16,14 @@ interface IProps {
 }
 
 export const TableActionsCell = ({ actions }: IProps) => {
+  const t = useTranslations('common');
   const [isPending, setIsPending] = useState(false);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          aria-label="Abrir menú de acciones"
+          aria-label={t('openActions')}
           className="flex size-8 items-center justify-center rounded-none text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
           disabled={isPending}
           type="button"
@@ -53,7 +55,7 @@ export const TableActionsCell = ({ actions }: IProps) => {
             ) : (
               <span className="flex items-center gap-2">
                 {action.icon}
-                {isPending && action.destructive ? 'Eliminando...' : action.label}
+                {isPending && action.destructive ? t('deleting') : action.label}
               </span>
             )}
           </DropdownMenuItem>

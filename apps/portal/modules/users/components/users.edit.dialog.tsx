@@ -1,6 +1,7 @@
 'use client';
 
 import { Pencil } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
@@ -23,6 +24,7 @@ interface IProps {
 }
 
 export const UsersEditDialog = ({ user }: IProps) => {
+  const t = useTranslations('users');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(user.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,11 +37,11 @@ export const UsersEditDialog = ({ user }: IProps) => {
     setIsSubmitting(false);
 
     if (hasActionError(result)) {
-      toast.error(result.serverError ?? 'No se pudo actualizar el usuario. Intenta de nuevo.');
+      toast.error(result.serverError ?? t('updateError'));
       return;
     }
 
-    toast.success('Usuario actualizado');
+    toast.success(t('updatedSuccess'));
     setOpen(false);
   };
 
@@ -47,7 +49,7 @@ export const UsersEditDialog = ({ user }: IProps) => {
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         <button
-          aria-label={`Editar ${user.name}`}
+          aria-label={t('editNamed', { name: user.name })}
           className="flex size-8 items-center justify-center rounded-none text-muted-foreground hover:bg-muted hover:text-foreground"
           type="button"
         >
@@ -56,14 +58,14 @@ export const UsersEditDialog = ({ user }: IProps) => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Editar usuario</DialogTitle>
+          <DialogTitle>{t('edit')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <FormField
             id="edit-user-name"
             inputClassName={USERS_DIALOG_INPUT_CLASS}
-            label="Nombre"
+            label={t('name')}
             onChange={(event) => setName(event.target.value)}
             value={name}
           />
@@ -71,7 +73,7 @@ export const UsersEditDialog = ({ user }: IProps) => {
 
         <DialogFooter>
           <PrimaryButton disabled={isSaveDisabled} onClick={handleRename} type="button">
-            {isSubmitting ? 'Guardando...' : 'Guardar'}
+            {isSubmitting ? t('saving') : t('save')}
           </PrimaryButton>
         </DialogFooter>
       </DialogContent>

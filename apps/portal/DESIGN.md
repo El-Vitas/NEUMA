@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Starter
+name: Company Brain
 description: >
   Dark-first workspace interface. The interface speaks in low-carbon
   surfaces, high-contrast warm-cream text, and a single purple accent that carries every CTA, active
@@ -229,7 +229,7 @@ components:
 
 ## 1. Overview
 
-Neuma is built for people who need to move fast and read
+Company Brain is built for people who need to move fast and read
 without guessing. The design system is **dark-first** — the default theme is a near-black carbon
 surface with warm cream text — with a layered surface hierarchy. The brand accent is
 a single purple (`{colors.primary}`) that does double duty as CTA color, active navigation

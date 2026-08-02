@@ -4,8 +4,8 @@ import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
 
 describe('FormErrorBanner', () => {
   it('renders the message inside an alert role', () => {
-    render(<FormErrorBanner message="No se pudo guardar" />);
+    render(<FormErrorBanner message="Could not save" />);
     const alert = screen.getByRole('alert');
-    expect(alert.textContent).toContain('No se pudo guardar');
+    expect(alert.textContent).toContain('Could not save');
   });
 });

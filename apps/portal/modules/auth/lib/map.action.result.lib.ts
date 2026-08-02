@@ -6,7 +6,7 @@ export const mapActionResultToState = (result: ActionResult): FormState => {
     return { message: result.serverError };
   }
   if (result.validationErrors !== undefined) {
-    return { message: 'Revisa los campos del formulario' };
+    return { message: '', messageKey: 'validationError' };
   }
   return INITIAL_FORM_STATE;
 };

@@ -2,6 +2,7 @@
 
 import { FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
@@ -19,6 +20,7 @@ interface IProps {
 }
 
 export const PagesTree = ({ canEdit, onSelect, selectedPageId, spaceId, tree }: IProps) => {
+  const t = useTranslations('pages');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const items = flattenPageTree(tree);
@@ -28,25 +30,23 @@ export const PagesTree = ({ canEdit, onSelect, selectedPageId, spaceId, tree }: 
       const action = page.lifecycle === 'TRASHED' ? restorePageAction : trashPageAction;
       const result = await action({ pageId: page.id, spaceId });
       if (hasActionError(result)) {
-        toast.error('No tienes permisos para cambiar esta página.');
+        toast.error(t('permissionError'));
         return;
       }
       onSelect({ ...page, lifecycle: page.lifecycle === 'TRASHED' ? 'ACTIVE' : 'TRASHED' });
-      toast.success(page.lifecycle === 'TRASHED' ? 'Página restaurada' : 'Página enviada a la papelera');
+      toast.success(page.lifecycle === 'TRASHED' ? t('restored') : t('trashed'));
       router.refresh();
     });
   };
 
   if (items.length === 0) {
     return (
-      <p className="border border-border border-dashed p-6 text-center text-muted-foreground text-sm">
-        Este espacio aún no tiene páginas.
-      </p>
+      <p className="border border-border border-dashed p-6 text-center text-muted-foreground text-sm">{t('empty')}</p>
     );
   }
 
   return (
-    <nav aria-label="Árbol de páginas">
+    <nav aria-label={t('tree')}>
       <ul className="space-y-1">
         {items.map(({ depth, page }) => (
           <li className="flex items-center gap-1" key={page.id} style={{ paddingLeft: `${depth * 16}px` }}>
@@ -58,12 +58,14 @@ export const PagesTree = ({ canEdit, onSelect, selectedPageId, spaceId, tree }: 
             >
               <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 truncate">{page.title}</span>
-              {page.lifecycle === 'TRASHED' && <span className="text-muted-foreground text-xs">Papelera</span>}
+              {page.lifecycle === 'TRASHED' && <span className="text-muted-foreground text-xs">{t('trash')}</span>}
             </button>
             {canEdit && (
               <PrimaryButton
                 aria-label={
-                  page.lifecycle === 'TRASHED' ? `Restaurar ${page.title}` : `Enviar ${page.title} a la papelera`
+                  page.lifecycle === 'TRASHED'
+                    ? t('restoreNamed', { name: page.title })
+                    : t('trashNamed', { name: page.title })
                 }
                 className="min-h-11 min-w-11 shrink-0 px-2"
                 disabled={isPending}

@@ -9,6 +9,7 @@ model Space {
   workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   members     SpaceMember[]
   pages       Page[]
+  databases   Database[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId, visibility])

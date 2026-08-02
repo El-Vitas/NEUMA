@@ -2,6 +2,7 @@
 
 import { ImageOff } from 'lucide-react';
 import Image, { type ImageProps } from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -10,12 +11,13 @@ interface IProps extends Omit<ImageProps, 'onError'> {
 }
 
 export const ImageWithFallback = ({ alt, className, fallbackClassName, ...props }: IProps) => {
+  const t = useTranslations('common');
   const [hasError, setHasError] = useState(false);
 
   if (hasError) {
     return (
       <div
-        aria-label={typeof alt === 'string' && alt.length > 0 ? alt : 'Imagen no disponible'}
+        aria-label={typeof alt === 'string' && alt.length > 0 ? alt : t('imageUnavailable')}
         className={cn('flex items-center justify-center bg-muted text-muted-foreground', className, fallbackClassName)}
         role="img"
       >

@@ -1,0 +1,4 @@
+enum DatabaseViewType {
+  TABLE
+  BOARD
+}

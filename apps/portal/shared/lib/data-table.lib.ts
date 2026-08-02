@@ -94,9 +94,8 @@ export const getEmptyMessage = <_T>(
   table: { getState: () => { columnFilters: unknown[] } },
   emptyMessage?: string,
   emptyMessageFiltered?: string,
-): string => {
+): string | undefined => {
   const hasActiveFilters = table.getState().columnFilters.length > 0;
   if (hasActiveFilters && emptyMessageFiltered) return emptyMessageFiltered;
-  if (hasActiveFilters) return 'No hay resultados para este filtro. Intenta limpiar los filtros.';
-  return emptyMessage ?? 'Sin resultados.';
+  return emptyMessage;
 };

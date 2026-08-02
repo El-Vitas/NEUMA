@@ -12,16 +12,16 @@ const bulletListInputRule = /^\s*([-+*])\s$/;
 const orderedListInputRule = /^\s*(\d+)\.\s$/;
 
 export const createPageEditorCommands = (schema: Schema): Readonly<Record<string, PageEditorCommand>> => ({
-  bold: { label: 'Negrita', run: toggleMark(schema.marks.strong) },
-  blockquote: { label: 'Cita', run: wrapIn(schema.nodes.blockquote) },
-  bulletList: { label: 'Lista con viñetas', run: wrapInList(schema.nodes.bullet_list) },
-  code: { label: 'Código en línea', run: toggleMark(schema.marks.code) },
-  codeBlock: { label: 'Bloque de código', run: setBlockType(schema.nodes.code_block) },
-  heading: { label: 'Título', run: setBlockType(schema.nodes.heading, { level: 2 }) },
-  italic: { label: 'Cursiva', run: toggleMark(schema.marks.em) },
-  orderedList: { label: 'Lista numerada', run: wrapInList(schema.nodes.ordered_list) },
-  redo: { label: 'Rehacer', run: redo },
-  undo: { label: 'Deshacer', run: undo },
+  bold: { labelKey: 'bold', run: toggleMark(schema.marks.strong) },
+  blockquote: { labelKey: 'blockquote', run: wrapIn(schema.nodes.blockquote) },
+  bulletList: { labelKey: 'bulletList', run: wrapInList(schema.nodes.bullet_list) },
+  code: { labelKey: 'code', run: toggleMark(schema.marks.code) },
+  codeBlock: { labelKey: 'codeBlock', run: setBlockType(schema.nodes.code_block) },
+  heading: { labelKey: 'heading', run: setBlockType(schema.nodes.heading, { level: 2 }) },
+  italic: { labelKey: 'italic', run: toggleMark(schema.marks.em) },
+  orderedList: { labelKey: 'orderedList', run: wrapInList(schema.nodes.ordered_list) },
+  redo: { labelKey: 'redo', run: redo },
+  undo: { labelKey: 'undo', run: undo },
 });
 
 export const createPageEditorPlugins = (schema: Schema): readonly EditorPlugin[] => [

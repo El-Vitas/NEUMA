@@ -20,8 +20,3 @@ export const USER_ROLE_BADGE_VARIANTS = {
 } as const satisfies Record<UserRole, 'default' | 'info' | 'outline'>;
 
 export const USERS_DIALOG_INPUT_CLASS = 'h-9 bg-background';
-
-export const USER_STATUS_LABELS = {
-  ACTIVE: 'Activo',
-  INACTIVE: 'Inactivo',
-} as const;

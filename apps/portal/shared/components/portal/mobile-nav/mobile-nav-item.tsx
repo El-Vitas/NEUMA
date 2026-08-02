@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Link } from '../../../../i18n/navigation';
 import type { MobileNavItemProps } from './types/mobile-nav.types';
 
 export const MobileNavItem = ({ href, label, icon: Icon, active, onClick }: MobileNavItemProps) => (

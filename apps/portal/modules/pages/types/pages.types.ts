@@ -4,7 +4,7 @@ import type { Command } from 'prosemirror-state';
 export type { PageContent, PageContentNode, PageContentText, PageLifecycle } from '@company-brain/shared';
 
 export interface PageEditorCommand {
-  readonly label: string;
+  readonly labelKey: string;
   readonly run: Command;
 }
 

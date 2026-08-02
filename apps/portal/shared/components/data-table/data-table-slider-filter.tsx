@@ -1,6 +1,7 @@
 'use client';
 
 import { PlusCircle, XCircle } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { type ChangeEvent, type MouseEvent, useCallback, useId, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ import { computeStep, getIsValidRange, parseValuesAsNumbers } from '@/shared/lib
 import type { DataTableSliderFilterProps, Range, RangeValue } from './types/data-table-slider-filter.types';
 
 export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSliderFilterProps<TData>) => {
+  const t = useTranslations('common');
+  const locale = useLocale();
   const id = useId();
 
   const columnFilterValue = parseValuesAsNumbers(column.getFilterValue());
@@ -49,9 +52,12 @@ export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSlider
     return columnFilterValue ?? [min, max];
   }, [columnFilterValue, min, max]);
 
-  const formatValue = useCallback((value: number) => {
-    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  }, []);
+  const formatValue = useCallback(
+    (value: number) => {
+      return value.toLocaleString(locale, { maximumFractionDigits: 0 });
+    },
+    [locale],
+  );
 
   const onFromInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +104,7 @@ export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSlider
         <Button className="rounded-none border-dashed font-normal text-foreground" size="sm" variant="outline">
           {columnFilterValue ? (
             <button
-              aria-label={`Limpiar filtro ${title}`}
+              aria-label={`${t('clear')} ${title}`}
               className="rounded-none opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               onClick={onReset}
               type="button"
@@ -123,7 +129,7 @@ export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSlider
           <p className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{title}</p>
           <div className="flex items-center gap-4">
             <Label className="sr-only" htmlFor={`${id}-from`}>
-              From
+              {t('from')}
             </Label>
             <div className="relative">
               <Input
@@ -147,7 +153,7 @@ export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSlider
               )}
             </div>
             <Label className="sr-only" htmlFor={`${id}-to`}>
-              to
+              {t('to')}
             </Label>
             <div className="relative">
               <Input
@@ -184,13 +190,13 @@ export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSlider
           />
         </div>
         <Button
-          aria-label={`Clear ${title} filter`}
+          aria-label={`${t('clear')} ${title}`}
           className="rounded-none"
           onClick={onReset}
           size="sm"
           variant="outline"
         >
-          Limpiar
+          {t('clear')}
         </Button>
       </PopoverContent>
     </Popover>

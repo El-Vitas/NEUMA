@@ -4,7 +4,7 @@ import { DotBadgeCell } from '@/shared/components/data-table/dot-badge-cell';
 
 describe('DotBadgeCell', () => {
   it('renders the label', () => {
-    render(<DotBadgeCell dotColor="bg-success" label="Pagada" />);
-    expect(screen.getByText('Pagada')).toBeDefined();
+    render(<DotBadgeCell dotColor="bg-success" label="Paid" />);
+    expect(screen.getByText('Paid')).toBeDefined();
   });
 });

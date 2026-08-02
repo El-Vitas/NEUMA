@@ -1,9 +1,11 @@
+import { getTranslations } from 'next-intl/server';
 import { AuthViewLayout } from '@/shared/components/auth/auth.view.layout';
 import { LoginForm } from '../components/auth.login.form';
 
-const LoginView = () => {
+const LoginView = async () => {
+  const t = await getTranslations('auth.login');
   return (
-    <AuthViewLayout description="Accede a tu panel con tu correo y contraseña." title="Iniciar sesión">
+    <AuthViewLayout description={t('description')} title={t('title')}>
       <LoginForm />
     </AuthViewLayout>
   );

@@ -15,21 +15,12 @@ export const authSessionSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.email('Ingresa un correo electrónico válido').max(255, 'El correo no puede superar los 255 caracteres'),
-  password: z
-    .string()
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
-    .max(100, 'La contraseña no puede superar los 100 caracteres'),
+  email: z.email('validation.invalidEmail').max(255, 'validation.emailTooLong'),
+  password: z.string().min(8, 'validation.passwordTooShort').max(100, 'validation.passwordTooLong'),
 });
 
 export const registerSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .max(100, 'El nombre no puede superar los 100 caracteres'),
-  email: z.email('Ingresa un correo electrónico válido').max(255, 'El correo no puede superar los 255 caracteres'),
-  password: z
-    .string()
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
-    .max(100, 'La contraseña no puede superar los 100 caracteres'),
+  name: z.string().min(2, 'validation.nameTooShort').max(100, 'validation.nameTooLong'),
+  email: z.email('validation.invalidEmail').max(255, 'validation.emailTooLong'),
+  password: z.string().min(8, 'validation.passwordTooShort').max(100, 'validation.passwordTooLong'),
 });

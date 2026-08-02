@@ -3,11 +3,14 @@ import { API_SEGMENTS, RESOURCE_ROUTES } from '@company-brain/shared';
 const API_V1_PREFIX = '/api/v1';
 
 export const ROUTES = {
-  HOME: '/',
   LOGIN: '/login',
   PORTAL: '/',
-  PORTAL_ACCOUNT: '/cuenta',
-  PORTAL_USERS: '/usuarios',
+  PORTAL_SPACES: '/spaces',
+  PORTAL_SPACE: (spaceId: string) => `/spaces/${spaceId}`,
+  PORTAL_ACCOUNT: '/account',
+  PORTAL_DATABASES: '/databases',
+  PORTAL_DATABASE: (databaseId: string) => `/databases/${databaseId}`,
+  PORTAL_USERS: '/users',
 } as const;
 
 export const API_ROUTES = {
