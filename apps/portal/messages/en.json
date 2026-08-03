@@ -213,6 +213,14 @@
     "saveError": "Could not save the page. Check your permissions and try again.",
     "created": "Page created",
     "updated": "Page updated",
+    "collaboration": {
+      "connecting": "Connecting collaborative editing...",
+      "connected": "Collaborative editing connected.",
+      "reconnecting": "Reconnecting collaborative editing...",
+      "disconnected": "Collaborative editing disconnected.",
+      "error": "Collaborative editing is unavailable.",
+      "fallback": "Editing locally; changes will use the standard page save."
+    },
     "location": "Location",
     "spaceRoot": "Space root",
     "move": "Move page",
@@ -238,6 +246,28 @@
       "codeBlock": "Code block",
       "redo": "Redo",
       "undo": "Undo"
+    },
+    "attachments": {
+      "title": "Attachments",
+      "description": "Files attached to this page.",
+      "empty": "No attachments yet.",
+      "selectFile": "Choose a file",
+      "fileHelp": "PDF, ZIP, images, and plain text up to 10 MB.",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "uploadProgress": "Upload progress",
+      "uploaded": "Attachment uploaded",
+      "uploadError": "Could not upload the attachment. Try again.",
+      "validationError": "Choose a valid file before uploading.",
+      "download": "Download",
+      "downloading": "Downloading...",
+      "downloadNamed": "Download {name}",
+      "downloadError": "Could not download the attachment. Try again.",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "deleteNamed": "Delete {name}",
+      "deleteError": "Could not delete the attachment. Try again.",
+      "deleted": "Attachment deleted"
     }
   },
   "databases": {

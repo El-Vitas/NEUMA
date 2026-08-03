@@ -12,8 +12,10 @@ import { AppModule } from './app.module';
 import { parseCorsOrigins } from './common/config/cors.config';
 import { getTrustProxy } from './common/config/trust-proxy.config';
 import { CORS_ORIGIN_KEY, PORT_KEY } from './common/constants/env.constants';
-import { MAX_FILE_SIZE } from './common/constants/storage.constants';
+import { MAX_FILE_SIZE } from './common/domain/file.constants';
 import { GlobalExceptionFilter } from './common/infrastructure/filters/global.exception.filter';
+import { CollaborationGateway } from './modules/collaboration/collaboration.service';
+import { registerCollaborationTransport } from './modules/collaboration/collaboration.transport';
 
 const bootstrap = async (): Promise<void> => {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -24,6 +26,7 @@ const bootstrap = async (): Promise<void> => {
   const logger = app.get(Logger);
 
   app.useLogger(logger);
+  app.enableShutdownHooks();
   const configService = app.get(ConfigService);
 
   const corsOrigin = configService.get<string>(CORS_ORIGIN_KEY);
@@ -36,6 +39,11 @@ const bootstrap = async (): Promise<void> => {
   await app.register(multipart, {
     limits: { fileSize: MAX_FILE_SIZE },
   });
+
+  const collaborationGateway = app.get(CollaborationGateway);
+  await registerCollaborationTransport(app.getHttpAdapter().getInstance(), (socket, request) =>
+    collaborationGateway.handleConnection(socket, request),
+  );
 
   if (configService.get('NODE_ENV') !== 'production') {
     const uploadsPath = join(process.cwd(), 'uploads');

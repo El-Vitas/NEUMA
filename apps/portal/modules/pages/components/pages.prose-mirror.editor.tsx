@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { EditorView } from 'prosemirror-view';
 import { useEffect, useRef } from 'react';
 import { PAGE_EDITOR_COMMANDS } from '../constants/pages.editor.constants';
+import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
+import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } from '../lib/pages.collaboration.lib';
 import {
   createPageEditorState,
   isPageEditorReadOnly,
@@ -16,13 +18,16 @@ interface IProps {
   readonly canEdit: boolean;
   readonly content: PageContent;
   readonly onContentChange: (content: PageContent) => void;
+  readonly pageId: string | null;
 }
 
-export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange }: IProps) => {
+export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange, pageId }: IProps) => {
   const t = useTranslations('pages');
+  const { session, status } = usePagesCollaboration(pageId, canEdit, content);
   const editorHostRef = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
   const contentCallbackRef = useRef(onContentChange);
+  const initialContentRef = useRef(content);
 
   useEffect(() => {
     contentCallbackRef.current = onContentChange;
@@ -32,7 +37,7 @@ export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange }: IP
     const editorHost = editorHostRef.current;
     if (editorHost === null) return;
 
-    const editorState = createPageEditorState(content);
+    const editorState = createPageEditorState(initialContentRef.current);
     const editorView = new EditorView(editorHost, {
       dispatchTransaction: (transaction) => {
         const nextState = editorView.state.apply(transaction);
@@ -48,10 +53,21 @@ export const PagesProseMirrorEditor = ({ canEdit, content, onContentChange }: IP
       editorView.destroy();
       editorViewRef.current = null;
     };
-  }, [canEdit, content]);
+  }, [canEdit]);
+
+  useEffect(() => {
+    if (session === null || editorViewRef.current === null) return;
+    editorViewRef.current.updateState(createCollaborativePageEditorState(session.fragment));
+  }, [session]);
 
   return (
     <section aria-label={t('editor')} className="space-y-3">
+      {pageId !== null && canEdit && status !== null && (
+        <p aria-live="polite" className="text-muted-foreground text-xs">
+          {t(getCollaborationStatusLabelKey(status))}
+          {(status === 'error' || status === 'disconnected') && ` ${t('collaboration.fallback')}`}
+        </p>
+      )}
       {canEdit && (
         <div aria-label={t('formattingTools')} className="flex flex-wrap gap-2" role="toolbar">
           {Object.entries(PAGE_EDITOR_COMMANDS).map(([commandName, command]) => (

@@ -16,11 +16,12 @@ import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 interface IProps {
   readonly canEdit: boolean;
   readonly page: PageSummary | null;
+  readonly pageId: string | null;
   readonly pages: readonly PageSummary[];
   readonly spaceId: string;
 }
 
-export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
+export const PagesEditor = ({ canEdit, page, pageId, pages, spaceId }: IProps) => {
   const router = useRouter();
   const t = useTranslations('pages');
   const [title, setTitle] = useState(page?.title ?? '');
@@ -71,6 +72,7 @@ export const PagesEditor = ({ canEdit, page, pages, spaceId }: IProps) => {
             onContentChange={(content) => {
               contentRef.current = content;
             }}
+            pageId={pageId}
           />
           <p className="mt-2 text-muted-foreground text-xs" id="page-content-help">
             {t('contentHelp')}
