@@ -1,0 +1,1 @@
+export const FILE_ASSET_REPOSITORY = Symbol('FILE_ASSET_REPOSITORY');

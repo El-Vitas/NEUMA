@@ -1,0 +1,21 @@
+model FileAsset {
+  id                String            @id @default(uuid(7))
+  ownerId           String
+  workspaceId       String
+  pageId            String?
+  databaseRecordId  String?
+  storageKey        String            @unique
+  originalFilename  String
+  mimeType          String
+  size              Int
+  checksum          String
+  lifecycle         FileAssetLifecycle @default(ACTIVE)
+  deletedAt         DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([workspaceId, lifecycle])
+  @@index([ownerId, lifecycle])
+  @@index([pageId, lifecycle])
+  @@index([databaseRecordId, lifecycle])
+}
