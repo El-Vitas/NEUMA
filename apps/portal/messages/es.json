@@ -53,6 +53,7 @@
   "navigation": {
     "general": "General",
     "home": "Inicio",
+    "search": "Buscar",
     "spaces": "Espacios",
     "users": "Usuarios",
     "account": "Cuenta",
@@ -95,7 +96,34 @@
     "welcome": "Bienvenido",
     "welcomeUser": "Bienvenido, {name}",
     "description": "Este es el punto de partida de tu espacio de trabajo.",
-    "modulesHint": "Agrega tus módulos en {modules} y sus rutas en {routes}."
+    "modulesHint": "Agrega tus módulos en {modules} y sus rutas en {routes}.",
+    "search": {
+      "title": "Buscar",
+      "subtitle": "Encuentra páginas y registros de bases de datos en el espacio de conocimiento.",
+      "formLabel": "Buscar en tu espacio de trabajo",
+      "queryLabel": "Buscar en tu espacio de trabajo",
+      "queryPlaceholder": "Buscar páginas y registros de bases de datos",
+      "submit": "Buscar",
+      "spaceLabel": "Espacio",
+      "spacePlaceholder": "Filtrar por ID de espacio",
+      "contentTypeLabel": "Tipo de contenido",
+      "contentTypePlaceholder": "Filtrar por tipo de contenido",
+      "sourceTypeLabel": "Tipo de fuente",
+      "allSources": "Todas las fuentes",
+      "tagsLabel": "Etiquetas",
+      "tagsPlaceholder": "etiqueta-uno, etiqueta-dos",
+      "filterHint": "Separa las etiquetas con comas. Solo se muestra contenido al que tienes acceso.",
+      "sourceTypes": {
+        "PAGE": "Página",
+        "DATABASE_RECORD": "Registro de base de datos"
+      },
+      "spaceValue": "Espacio: {space}",
+      "resultCount": "Se muestran {count, plural, one {# resultado} other {# resultados}}",
+      "nextPage": "Cargar más resultados",
+      "emptyTitle": "No se encontraron resultados",
+      "emptyDescription": "Prueba otra consulta o elimina un filtro.",
+      "loadError": "No se pudieron cargar los resultados. Comprueba tu conexión e inténtalo de nuevo."
+    }
   },
   "account": {
     "title": "Cuenta",

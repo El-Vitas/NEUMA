@@ -1,0 +1,69 @@
+import { Controller, Delete, Get, Param, Post, Query, Res, UseGuards, UseInterceptors } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
+import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
+import {
+  FastifyFileInterceptor,
+  UploadedFastifyFile,
+} from '../../common/infrastructure/interceptors/fastify-file.interceptor';
+import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
+import type { TokenPayload } from '../../common/types/auth.types';
+import type { UploadedFile } from '../../common/types/fastify-file.types';
+import { FileAssetQueryDto } from './dto/file.asset.query.dto';
+import { FilesService } from './files.service';
+
+@Controller('files')
+@UseGuards(JwtAuthGuard)
+export class FilesController {
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly workspaceContextService: WorkspaceContextService,
+  ) {}
+
+  @Post()
+  @UseInterceptors(FastifyFileInterceptor)
+  async create(
+    @Query() query: FileAssetQueryDto,
+    @UploadedFastifyFile() file: UploadedFile,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.filesService.create({
+      buffer: file.buffer,
+      databaseRecordId: query.databaseRecordId ?? null,
+      mimeType: file.mimetype,
+      originalFilename: file.originalname,
+      ownerId: payload.sub,
+      pageId: query.pageId ?? null,
+      role: payload.role,
+      size: file.size,
+      workspaceId: workspace.id,
+    });
+    if (result.isFail()) throw result.getError();
+    return result.getValue();
+  }
+
+  @Get(':assetId')
+  async download(
+    @Param('assetId') assetId: string,
+    @User('payload') payload: TokenPayload,
+    @Res() response: FastifyReply,
+  ): Promise<void> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.filesService.download(assetId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) throw result.getError();
+    const download = result.getValue();
+    response
+      .header('Content-Type', download.mimeType)
+      .header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(download.originalFilename)}`)
+      .send(download.body);
+  }
+
+  @Delete(':assetId')
+  async delete(@Param('assetId') assetId: string, @User('payload') payload: TokenPayload) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.filesService.delete(assetId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) throw result.getError();
+    return { deleted: result.getValue() };
+  }
+}

@@ -53,6 +53,7 @@
   "navigation": {
     "general": "General",
     "home": "Home",
+    "search": "Search",
     "spaces": "Spaces",
     "users": "Users",
     "account": "Account",
@@ -95,7 +96,34 @@
     "welcome": "Welcome",
     "welcomeUser": "Welcome, {name}",
     "description": "This is the starting point for your workspace.",
-    "modulesHint": "Add your modules in {modules} and their routes in {routes}."
+    "modulesHint": "Add your modules in {modules} and their routes in {routes}.",
+    "search": {
+      "title": "Search",
+      "subtitle": "Find pages and database records in the knowledge workspace.",
+      "formLabel": "Search your workspace",
+      "queryLabel": "Search your workspace",
+      "queryPlaceholder": "Search pages and database records",
+      "submit": "Search",
+      "spaceLabel": "Space",
+      "spacePlaceholder": "Filter by space ID",
+      "contentTypeLabel": "Content type",
+      "contentTypePlaceholder": "Filter by content type",
+      "sourceTypeLabel": "Source type",
+      "allSources": "All sources",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "tag-one, tag-two",
+      "filterHint": "Use commas to separate tags. Results are limited to content you can access.",
+      "sourceTypes": {
+        "PAGE": "Page",
+        "DATABASE_RECORD": "Database record"
+      },
+      "spaceValue": "Space: {space}",
+      "resultCount": "Showing {count, plural, one {# result} other {# results}}",
+      "nextPage": "Load more results",
+      "emptyTitle": "No results found",
+      "emptyDescription": "Try a different query or remove a filter.",
+      "loadError": "Could not load search results. Check your connection and try again."
+    }
   },
   "account": {
     "title": "Account",

@@ -35,4 +35,15 @@ describe('LocalStorageProvider', () => {
   it('delete does not throw for non-existent file', () => {
     expect(provider.delete('non-existent.jpg')).resolves.toBeUndefined();
   });
+
+  it('rejects path traversal keys and never writes outside the base directory', () => {
+    expect(provider.save(Buffer.from('unsafe'), '../outside-path-traversal-test.txt', 'text/plain')).rejects.toThrow();
+    expect(existsSync(join(TEST_DIR, '..', 'outside-path-traversal-test.txt'))).toBe(false);
+  });
+
+  it('reads a stored file by its storage key', async () => {
+    await provider.save(Buffer.from('download-data'), 'download.txt', 'text/plain');
+
+    expect(provider.read('download.txt')).resolves.toEqual(Buffer.from('download-data'));
+  });
 });

@@ -1,0 +1,4 @@
+enum FileAssetLifecycle {
+  ACTIVE
+  DELETED
+}

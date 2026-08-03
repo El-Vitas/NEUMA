@@ -11,6 +11,7 @@ export const ROUTES = {
   PORTAL_DATABASES: '/databases',
   PORTAL_DATABASE: (databaseId: string) => `/databases/${databaseId}`,
   PORTAL_USERS: '/users',
+  PORTAL_SEARCH: '/search',
 } as const;
 
 export const API_ROUTES = {
@@ -18,4 +19,5 @@ export const API_ROUTES = {
   AUTH_SESSIONS_CURRENT: `${API_V1_PREFIX}/${RESOURCE_ROUTES.AUTH}/${API_SEGMENTS.SESSIONS}/${API_SEGMENTS.CURRENT}`,
   USERS: `${API_V1_PREFIX}/${RESOURCE_ROUTES.USERS}`,
   USERS_ME: `${API_V1_PREFIX}/${RESOURCE_ROUTES.USERS}/${API_SEGMENTS.ME}`,
+  SEARCH: `${API_V1_PREFIX}/search`,
 } as const;
