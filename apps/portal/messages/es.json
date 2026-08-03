@@ -213,6 +213,14 @@
     "saveError": "No se pudo guardar la página. Revisa tus permisos e inténtalo de nuevo.",
     "created": "Página creada",
     "updated": "Página actualizada",
+    "collaboration": {
+      "connecting": "Conectando la edición colaborativa...",
+      "connected": "Edición colaborativa conectada.",
+      "reconnecting": "Reconectando la edición colaborativa...",
+      "disconnected": "Edición colaborativa desconectada.",
+      "error": "La edición colaborativa no está disponible.",
+      "fallback": "Editando localmente; los cambios usarán el guardado estándar."
+    },
     "location": "Ubicación",
     "spaceRoot": "Raíz del espacio",
     "move": "Mover página",
@@ -238,6 +246,28 @@
       "codeBlock": "Bloque de código",
       "redo": "Rehacer",
       "undo": "Deshacer"
+    },
+    "attachments": {
+      "title": "Archivos adjuntos",
+      "description": "Archivos adjuntos a esta página.",
+      "empty": "Aún no hay archivos adjuntos.",
+      "selectFile": "Elige un archivo",
+      "fileHelp": "PDF, ZIP, imágenes y texto plano de hasta 10 MB.",
+      "upload": "Subir",
+      "uploading": "Subiendo...",
+      "uploadProgress": "Progreso de carga",
+      "uploaded": "Archivo adjunto subido",
+      "uploadError": "No se pudo subir el archivo adjunto. Intenta de nuevo.",
+      "validationError": "Elige un archivo válido antes de subirlo.",
+      "download": "Descargar",
+      "downloading": "Descargando...",
+      "downloadNamed": "Descargar {name}",
+      "downloadError": "No se pudo descargar el archivo adjunto. Intenta de nuevo.",
+      "delete": "Eliminar",
+      "deleting": "Eliminando...",
+      "deleteNamed": "Eliminar {name}",
+      "deleteError": "No se pudo eliminar el archivo adjunto. Intenta de nuevo.",
+      "deleted": "Archivo adjunto eliminado"
     }
   },
   "databases": {

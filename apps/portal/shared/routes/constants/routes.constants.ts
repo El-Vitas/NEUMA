@@ -20,4 +20,5 @@ export const API_ROUTES = {
   USERS: `${API_V1_PREFIX}/${RESOURCE_ROUTES.USERS}`,
   USERS_ME: `${API_V1_PREFIX}/${RESOURCE_ROUTES.USERS}/${API_SEGMENTS.ME}`,
   SEARCH: `${API_V1_PREFIX}/search`,
+  COLLABORATION_TOKEN: `${API_V1_PREFIX}/collaboration/token`,
 } as const;

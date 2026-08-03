@@ -5,3 +5,6 @@ export const PERMISSIONS_KEY = 'permissions';
 export const JWT_SECRET_KEY = 'JWT_SECRET';
 export const JWT_ACCESS_TOKEN_EXPIRES_IN_KEY = 'JWT_ACCESS_TOKEN_EXPIRES_IN';
 export const JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN = '15m';
+export const COLLABORATION_TOKEN_PURPOSE = 'collaboration';
+export const COLLABORATION_TOKEN_AUDIENCE = 'collaboration';
+export const COLLABORATION_TOKEN_EXPIRES_IN = '5m';

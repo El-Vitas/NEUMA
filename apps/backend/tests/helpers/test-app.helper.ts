@@ -6,7 +6,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Logger } from 'nestjs-pino';
 import { AppModule } from '@/app.module';
-import { MAX_FILE_SIZE } from '@/common/constants/storage.constants';
+import { MAX_FILE_SIZE } from '@/common/domain/file.constants';
 import { GlobalExceptionFilter } from '@/common/infrastructure/filters/global.exception.filter';
 
 /* eslint-disable no-restricted-syntax */

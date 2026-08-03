@@ -1,8 +1,8 @@
+import { MAX_FILE_SIZE } from '../../../common/domain/file.constants';
 import { FileValidationError } from './files.error';
 
 const unsafeFilenameCharacters = /[^a-zA-Z0-9._-]+/g;
 const filenamePathSeparators = /[\\/]/u;
-const maxFileAssetSize = 10 * 1024 * 1024;
 const allowedFileMimeTypes = new Set([
   'application/pdf',
   'application/zip',
@@ -27,7 +27,7 @@ export const normalizeFilename = (filename: string): string => {
 
 export const validateFileUpload = (input: { filename: string; mimetype: string; size: number }): string => {
   const normalizedFilename = normalizeFilename(input.filename);
-  if (input.size <= 0 || input.size > maxFileAssetSize) throw new FileValidationError('File size is invalid');
+  if (input.size <= 0 || input.size > MAX_FILE_SIZE) throw new FileValidationError('File size is invalid');
   if (!allowedFileMimeTypes.has(input.mimetype.toLowerCase()))
     throw new FileValidationError('File MIME type is invalid');
   return normalizedFilename;

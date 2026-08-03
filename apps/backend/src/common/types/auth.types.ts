@@ -28,3 +28,14 @@ export interface TokenPayload {
   readonly role: UserRole;
   readonly sub: string;
 }
+
+export interface CollaborationTokenPayload {
+  readonly [claim: string]: unknown;
+  readonly aud: string;
+  readonly mode: 'read' | 'write';
+  readonly pageId: string;
+  readonly purpose: string;
+  readonly role: UserRole;
+  readonly sub: string;
+  readonly workspaceId: string;
+}

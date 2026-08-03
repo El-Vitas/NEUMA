@@ -51,6 +51,7 @@ export const PagesWorkspace = ({ canEditContent, pages, spaceId }: IProps) => {
         canEdit={canEditSelectedPage}
         key={`${selectedPage?.id ?? 'new-page'}:${selectedPage?.lifecycle ?? 'new'}`}
         page={selectedPage}
+        pageId={selectedPage?.id ?? null}
         pages={pages}
         spaceId={spaceId}
       />
