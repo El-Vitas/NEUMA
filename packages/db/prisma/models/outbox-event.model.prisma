@@ -9,6 +9,7 @@ model OutboxEvent {
   attemptCount   Int          @default(0)
   nextAttemptAt  DateTime     @default(now())
   idempotencyKey String       @unique
+  lastError      Json?
   processedAt    DateTime?
   createdAt      DateTime     @default(now())
 

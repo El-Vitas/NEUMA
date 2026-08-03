@@ -1,16 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { SearchRepository } from './infrastructure/persistence/search.repository';
-import type { SearchDocumentInput, SearchQuery, SearchReader, SearchResult } from './types/search.types';
+import { Inject, Injectable } from '@nestjs/common';
+import { SEARCH_REPOSITORY } from './constants/search.tokens';
+import type {
+  SearchDocumentInput,
+  SearchDocumentRemoval,
+  SearchPage,
+  SearchQuery,
+  SearchReader,
+  SearchRepositoryContract,
+} from './types/search.types';
 
 @Injectable()
 export class SearchService implements SearchReader {
-  constructor(private readonly searchRepository: SearchRepository) {}
+  constructor(@Inject(SEARCH_REPOSITORY) private readonly searchRepository: SearchRepositoryContract) {}
 
   async applyProjection(input: SearchDocumentInput): Promise<void> {
     await this.searchRepository.upsertDocument(input);
   }
 
-  async search(query: SearchQuery): Promise<readonly SearchResult[]> {
+  async removeProjection(input: SearchDocumentRemoval): Promise<void> {
+    await this.searchRepository.removeDocument(input);
+  }
+
+  async search(query: SearchQuery): Promise<SearchPage> {
+    if (query.query.trim() === '') return { items: [] };
     return this.searchRepository.search(query);
   }
 }

@@ -15,6 +15,7 @@ import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/
 import { PagesModule } from './modules/pages/pages.module';
 import { PagesService } from './modules/pages/pages.service';
 import { SearchModule } from './modules/search/search.module';
+import { SearchService } from './modules/search/search.service';
 import { SpacesModule } from './modules/spaces/spaces.module';
 import { SpacesService } from './modules/spaces/spaces.service';
 import { UsersModule } from './modules/users/users.module';
@@ -59,16 +60,18 @@ import { PrismaModule } from './prisma/prisma.module';
   controllers: [HealthController],
   providers: [
     {
-      inject: [PagesService, MCP_PRINCIPAL_RESOLVER, SpacesService, WorkspacesService],
+      inject: [PagesService, MCP_PRINCIPAL_RESOLVER, SearchService, SpacesService, WorkspacesService],
       provide: MCP_SERVER_DEPENDENCIES,
       useFactory: (
         pagesService: PagesService,
         principalResolver: McpPrincipalResolver,
+        searchService: SearchService,
         spacesService: SpacesService,
         workspacesService: WorkspacesService,
       ): McpServerDependencies => ({
         pagesService,
         principalResolver,
+        searchService,
         spacesService,
         workspacesService,
       }),

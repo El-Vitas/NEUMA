@@ -1,4 +1,5 @@
 import type { PageContent, PageLifecycle, SpaceVisibility, UserRole } from '@company-brain/shared';
+import type { SearchReader } from '../../../common/types/search.types';
 
 export interface McpWorkspace {
   readonly id: string;
@@ -71,6 +72,7 @@ export interface McpServerDependencies {
   readonly errorReporter?: McpErrorReporter;
   readonly pagesService: McpPageReader;
   readonly principalResolver: McpPrincipalResolver;
+  readonly searchService: SearchReader;
   readonly spacesService: McpSpaceReader;
   readonly workspacesService: McpWorkspaceReader;
 }

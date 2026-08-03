@@ -9,6 +9,7 @@ import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { canCreateSpace, canReadSpace } from '../../../../common/domain/workspace.policy';
+import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { getDatabaseTemplate } from '../../templates/database.templates';
 import type {
@@ -126,7 +127,10 @@ const databaseSelection = {
 
 @Injectable()
 export class DatabaseRepository implements DatabaseRepositoryContract {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outboxRepository: OutboxRepository,
+  ) {}
 
   async create(input: CreateDatabaseInput): Promise<DatabaseSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
@@ -169,6 +173,17 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
         },
         select: { ...databaseSelection },
       });
+      await this.outboxRepository.create(
+        {
+          aggregateId: database.id,
+          aggregateType: 'DATABASE',
+          eventType: 'DATABASE_CREATED',
+          idempotencyKey: `database:${database.id}:created`,
+          payload: { databaseId: database.id, version: 1 },
+          payloadVersion: 1,
+        },
+        transaction,
+      );
       return toSummary(database);
     });
   }
@@ -224,6 +239,17 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
         select: { ...databaseSelection },
         where: { id: input.databaseId },
       });
+      await this.outboxRepository.create(
+        {
+          aggregateId: input.databaseId,
+          aggregateType: 'DATABASE',
+          eventType: 'DATABASE_UPDATED',
+          idempotencyKey: `database:${input.databaseId}:property:${input.property.key}`,
+          payload: { databaseId: input.databaseId },
+          payloadVersion: 1,
+        },
+        transaction,
+      );
       return updated === null ? null : toSummary(updated);
     });
   }
@@ -253,6 +279,17 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
         select: { ...databaseSelection },
         where: { id: input.databaseId },
       });
+      await this.outboxRepository.create(
+        {
+          aggregateId: input.databaseId,
+          aggregateType: 'DATABASE',
+          eventType: 'DATABASE_UPDATED',
+          idempotencyKey: `database:${input.databaseId}:view:${input.view.name}`,
+          payload: { databaseId: input.databaseId },
+          payloadVersion: 1,
+        },
+        transaction,
+      );
       return updated === null ? null : toSummary(updated);
     });
   }
@@ -277,15 +314,34 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
           title: input.title,
           order: await this.findNextRecordOrder(transaction, input.databaseId),
         },
-        select: { databaseId: true, id: true, lifecycle: true, order: true, propertyValues: true, title: true },
+        select: {
+          databaseId: true,
+          id: true,
+          lifecycle: true,
+          order: true,
+          propertyValues: true,
+          title: true,
+          updatedAt: true,
+        },
       });
+      await this.outboxRepository.create(
+        {
+          aggregateId: created.id,
+          aggregateType: 'DATABASE_RECORD',
+          eventType: 'DATABASE_RECORD_CREATED',
+          idempotencyKey: `database-record:${created.id}:version:${created.updatedAt.toISOString()}`,
+          payload: { databaseId: created.databaseId, recordId: created.id, version: created.updatedAt.getTime() },
+          payloadVersion: 1,
+        },
+        transaction,
+      );
       return this.toRecordSummary(created);
     });
     return record;
   }
 
   async updateRecord(input: CreateRecordInput & { readonly recordId: string }): Promise<DatabaseRecordSummary | null> {
-    const updated = await this.prisma.$transaction(async (transaction) => {
+    return this.prisma.$transaction(async (transaction) => {
       const database = await transaction.database.findFirst({
         select: { id: true, spaceId: true },
         where: { id: input.databaseId, lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
@@ -296,7 +352,7 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
       )
         return null;
       if (database === null) return null;
-      return transaction.databaseRecord.updateMany({
+      const updated = await transaction.databaseRecord.updateMany({
         data: { propertyValues: input.propertyValues, title: input.title },
         where: {
           databaseId: input.databaseId,
@@ -305,17 +361,33 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
           lifecycle: DatabaseLifecycle.ACTIVE,
         },
       });
+      if (updated.count === 0) return null;
+      const record = await transaction.databaseRecord.findUnique({
+        select: {
+          databaseId: true,
+          id: true,
+          lifecycle: true,
+          order: true,
+          propertyValues: true,
+          title: true,
+          updatedAt: true,
+        },
+        where: { id: input.recordId },
+      });
+      if (record === null) return null;
+      await this.outboxRepository.create(
+        {
+          aggregateId: record.id,
+          aggregateType: 'DATABASE_RECORD',
+          eventType: 'DATABASE_RECORD_UPDATED',
+          idempotencyKey: `database-record:${record.id}:version:${record.updatedAt.toISOString()}`,
+          payload: { databaseId: record.databaseId, recordId: record.id, version: record.updatedAt.getTime() },
+          payloadVersion: 1,
+        },
+        transaction,
+      );
+      return this.toRecordSummary(record);
     });
-    if (updated === null || updated.count === 0) return null;
-    const record = await this.prisma.databaseRecord.findUnique({
-      select: { databaseId: true, id: true, lifecycle: true, order: true, propertyValues: true, title: true },
-      where: {
-        database: { lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
-        id: input.recordId,
-        lifecycle: DatabaseLifecycle.ACTIVE,
-      },
-    });
-    return record === null ? null : this.toRecordSummary(record);
   }
 
   async listWorkspaceMemberIds(workspaceId: string): Promise<readonly string[]> {
