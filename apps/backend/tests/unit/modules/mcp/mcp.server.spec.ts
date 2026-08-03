@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
+import type { SearchPage, SearchQuery } from '../../../../src/common/types/search.types';
 import type { WorkspaceSummary } from '../../../../src/common/types/workspace.types';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type {
@@ -31,6 +32,22 @@ const page: PageSummary = {
   version: 1,
 };
 
+const searchPage: SearchPage = {
+  items: [
+    {
+      contentType: 'PAGE',
+      rank: 0.91,
+      spaceId: 'space-1',
+      sourceId: page.id,
+      sourceType: 'PAGE',
+      snippet: '<mark>Runbook</mark> content',
+      title: 'Runbook',
+      updatedAt: '2026-08-02T12:00:00.000Z',
+    },
+  ],
+  nextCursor: 'next-page-cursor',
+};
+
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
   principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
   workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
@@ -38,6 +55,7 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   pagesService: {
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === page.id ? page : null)),
   },
+  searchService: { search: () => Promise.resolve(searchPage) },
 });
 
 const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult => ({
@@ -63,7 +81,7 @@ describe('MCP read contract', () => {
 
     const result = await client.listTools();
 
-    expect(result.tools.map((tool) => tool.name)).toEqual(['mcp.listSpaces', 'mcp.getPage']);
+    expect(result.tools.map((tool) => tool.name)).toEqual(['mcp.listSpaces', 'mcp.getPage', 'search_company_brain']);
   });
 
   test('lists spaces using the resolved authenticated principal', async () => {
@@ -79,6 +97,7 @@ describe('MCP read contract', () => {
       pagesService: {
         getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === page.id ? page : null)),
       },
+      searchService: { search: () => Promise.resolve(searchPage) },
     };
     resolvePrincipal = () => {
       calls.push('principal');
@@ -114,6 +133,7 @@ describe('MCP read contract', () => {
       pagesService: {
         getAccessible: (pageId, workspaceId, userId, role) => getPage(pageId, workspaceId, userId, role),
       },
+      searchService: { search: () => Promise.resolve(searchPage) },
     };
     getPage = (pageId: string, workspaceId: string, userId: string, role: UserRole) => {
       calls.push(`${pageId}:${workspaceId}:${userId}:${role}`);
@@ -153,6 +173,155 @@ describe('MCP read contract', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+  });
+
+  test('searches through SearchService with the authenticated principal and filters', async () => {
+    let receivedQuery: SearchQuery | undefined;
+    const client = await connectClient({
+      ...createDependencies(),
+      searchService: {
+        search: (query) => {
+          receivedQuery = query;
+          return Promise.resolve(searchPage);
+        },
+      },
+    });
+
+    const result = await client.callTool({
+      name: 'search_company_brain',
+      arguments: {
+        query: 'runbook',
+        limit: 10,
+        spaceId: 'space-1',
+        sourceType: 'PAGE',
+        contentType: 'PAGE',
+        tags: ['operations', 'runbook'],
+        cursor: 'cursor-1',
+      },
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent).toEqual(searchPage);
+    expect(receivedQuery).toEqual({
+      contentType: 'PAGE',
+      cursor: 'cursor-1',
+      limit: 10,
+      query: 'runbook',
+      sourceType: 'PAGE',
+      spaceId: 'space-1',
+      tags: ['operations', 'runbook'],
+      userId: 'user-1',
+      userRole: USER_ROLE.WORKER,
+      workspaceId: 'workspace-1',
+    });
+  });
+
+  test('returns concise text and the next cursor for search results', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({
+      name: 'search_company_brain',
+      arguments: { query: 'runbook' },
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: 'Runbook [PAGE/PAGE] in space-1\n<mark>Runbook</mark> content\nNext cursor: next-page-cursor',
+      },
+    ]);
+    expect(result.structuredContent).toEqual(searchPage);
+  });
+
+  test('returns parsed search output rather than raw service data', async () => {
+    const rawSearchPage = { ...searchPage, internalDebugValue: 'must not cross MCP boundary' };
+    const client = await connectClient({
+      ...createDependencies(),
+      searchService: { search: () => Promise.resolve(rawSearchPage) },
+    });
+
+    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
+
+    expect(result.structuredContent).toEqual(searchPage);
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: 'Runbook [PAGE/PAGE] in space-1\n<mark>Runbook</mark> content\nNext cursor: next-page-cursor',
+      },
+    ]);
+  });
+
+  test('rejects an empty search query', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: '' } });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({ type: 'text' });
+    expect((result.content[0] as { text: string }).text).toContain('Input validation error');
+  });
+
+  test('rejects an oversized search query', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({
+      name: 'search_company_brain',
+      arguments: { query: 'x'.repeat(201) },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({ type: 'text' });
+    expect((result.content[0] as { text: string }).text).toContain('Input validation error');
+  });
+
+  test('does not search without an authenticated principal', async () => {
+    let searchCalled = false;
+    const client = await connectClient({
+      ...createDependencies(null),
+      searchService: {
+        search: () => {
+          searchCalled = true;
+          return Promise.resolve(searchPage);
+        },
+      },
+    });
+
+    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
+
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(searchCalled).toBe(false);
+  });
+
+  test('does not report expected inaccessible errors', async () => {
+    const reportedErrors: unknown[] = [];
+    const client = await connectClient({
+      ...createDependencies(),
+      errorReporter: { report: (error) => reportedErrors.push(error) },
+    });
+
+    const result = await client.callTool({
+      name: 'mcp.getPage',
+      arguments: { pageId: '22222222-2222-4222-8222-222222222222' },
+    });
+
+    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(reportedErrors).toHaveLength(0);
+  });
+
+  test('reports unexpected search failures without exposing details', async () => {
+    const reportedErrors: unknown[] = [];
+    const client = await connectClient({
+      ...createDependencies(),
+      errorReporter: { report: (error) => reportedErrors.push(error) },
+      searchService: { search: () => Promise.reject(new Error('database unavailable')) },
+    });
+
+    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
+
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(reportedErrors).toHaveLength(1);
   });
 
   test('reports operational failures without exposing them to the client', async () => {

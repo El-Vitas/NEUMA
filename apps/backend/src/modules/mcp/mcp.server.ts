@@ -1,10 +1,13 @@
 import { pageContentSchema } from '@company-brain/shared';
 import { McpServer } from '@modelcontextprotocol/server';
+import type { SearchQuery } from '../../common/types/search.types';
 import {
   getPageInputSchema,
   getPageOutputSchema,
   listSpacesInputSchema,
   listSpacesOutputSchema,
+  searchCompanyBrainInputSchema,
+  searchCompanyBrainOutputSchema,
 } from './schemas/mcp.schemas';
 import type { McpPage, McpPrincipal, McpServerDependencies } from './types/mcp.types';
 
@@ -28,12 +31,23 @@ const findAccessiblePage = async (dependencies: McpServerDependencies, pageId: s
   return { ...page, content: pageContentSchema.parse(page.content) };
 };
 
+const isExpectedAccessError = (error: unknown): boolean =>
+  error instanceof Error && error.message === inaccessibleResourceMessage;
+
 const createToolError = (dependencies: McpServerDependencies, error: unknown) => {
-  dependencies.errorReporter?.report(error);
+  if (!isExpectedAccessError(error)) dependencies.errorReporter?.report(error);
   return {
     content: [{ type: 'text' as const, text: inaccessibleResourceMessage }],
     isError: true,
   };
+};
+
+const formatSearchText = (searchPage: ReturnType<typeof searchCompanyBrainOutputSchema.parse>): string => {
+  const resultText = searchPage.items.map(
+    (item) => `${item.title} [${item.sourceType}/${item.contentType}] in ${item.spaceId}\n${item.snippet}`,
+  );
+  if (searchPage.nextCursor !== undefined) resultText.push(`Next cursor: ${searchPage.nextCursor}`);
+  return resultText.length === 0 ? 'No matching company brain content.' : resultText.join('\n');
 };
 
 export const createMcpServer = (dependencies: McpServerDependencies): McpServer => {
@@ -71,6 +85,41 @@ export const createMcpServer = (dependencies: McpServerDependencies): McpServer 
         const accessiblePage = await findAccessiblePage(dependencies, pageId);
         const output = getPageOutputSchema.parse({ page: accessiblePage });
         return { content: [{ type: 'text' as const, text: JSON.stringify(output) }], structuredContent: output };
+      } catch (error) {
+        return createToolError(dependencies, error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'search_company_brain',
+    {
+      description: 'Search company brain content accessible to the authenticated principal.',
+      inputSchema: searchCompanyBrainInputSchema,
+      outputSchema: searchCompanyBrainOutputSchema,
+    },
+    async (input) => {
+      try {
+        const principal = await resolvePrincipal(dependencies);
+        const workspace = await resolveWorkspace(dependencies, principal);
+        const searchQuery: SearchQuery = {
+          limit: input.limit,
+          query: input.query,
+          ...(input.contentType === undefined ? {} : { contentType: input.contentType }),
+          ...(input.cursor === undefined ? {} : { cursor: input.cursor }),
+          ...(input.sourceType === undefined ? {} : { sourceType: input.sourceType }),
+          ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
+          ...(input.tags === undefined ? {} : { tags: input.tags }),
+          userId: principal.userId,
+          userRole: principal.role,
+          workspaceId: workspace.id,
+        };
+        const searchPage = await dependencies.searchService.search(searchQuery);
+        const output = searchCompanyBrainOutputSchema.parse(searchPage);
+        return {
+          content: [{ type: 'text' as const, text: formatSearchText(output) }],
+          structuredContent: output,
+        };
       } catch (error) {
         return createToolError(dependencies, error);
       }

@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "bun --watch src/main.ts",
     "mcp": "bun src/modules/mcp/mcp.main.ts",
+    "search:worker": "bun src/modules/search/infrastructure/worker/search.worker.main.ts",
     "start": "bun src/main.ts",
     "format": "biome format --write src tests",
     "format:check": "biome format src tests",

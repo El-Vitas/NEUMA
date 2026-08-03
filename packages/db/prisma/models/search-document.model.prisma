@@ -1,6 +1,7 @@
 model SearchDocument {
   id            String              @id @default(uuid(7))
-  pageId        String              @unique
+  sourceType    SearchSourceType
+  sourceId      String
   spaceId       String
   title         String
   extractedText String
@@ -10,9 +11,11 @@ model SearchDocument {
   contentType   String
   versionMarker Int
   indexingState SearchIndexingState @default(PENDING)
+  searchVector  Unsupported("tsvector")
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
+  @@unique([sourceType, sourceId])
   @@index([spaceId, indexingState])
   @@index([contentType])
 }
