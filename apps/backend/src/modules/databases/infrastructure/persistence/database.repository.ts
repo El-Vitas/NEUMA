@@ -1,15 +1,13 @@
-import {
-  DatabaseLifecycle,
-  DatabasePropertyType,
-  DatabaseTemplate,
-  DatabaseViewType,
-  SpaceVisibility,
-} from '@company-brain/db';
+import { DatabaseLifecycle, DatabasePropertyType, DatabaseTemplate, DatabaseViewType } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
-import { canCreateSpace, canReadSpace } from '../../../../common/domain/workspace.policy';
+import { canCreateSpace } from '../../../../common/domain/workspace.policy';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
+import {
+  buildSpaceVisibilityFilter,
+  findAccessibleSpaceId,
+} from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { getDatabaseTemplate } from '../../templates/database.templates';
 import type {
@@ -24,8 +22,6 @@ import type {
   DatabaseSummary,
   DatabaseViewDefinition,
 } from '../../types/database.types';
-
-const prismaOrOperator = 'OR';
 
 const getStringOptions = (value: Prisma.JsonValue | null): readonly string[] | null =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -134,15 +130,14 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
 
   async create(input: CreateDatabaseInput): Promise<DatabaseSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const space = await transaction.space.findFirst({
-        select: { id: true },
-        where: {
-          id: input.spaceId,
-          workspaceId: input.workspaceId,
-          ...this.spaceAccessFilter(input.userId, input.role),
-        },
-      });
-      if (space === null) return null;
+      const spaceId = await findAccessibleSpaceId(
+        transaction,
+        input.spaceId,
+        input.workspaceId,
+        input.userId,
+        input.role,
+      );
+      if (spaceId === null) return null;
       const template = getDatabaseTemplate(input.template);
       const database = await transaction.database.create({
         data: {
@@ -214,97 +209,55 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
 
   async createProperty(input: CreatePropertyInput): Promise<DatabaseSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const database = await transaction.database.findFirst({
-        select: { id: true, spaceId: true },
-        where: { id: input.databaseId, lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
-      });
-      if (
-        database !== null &&
-        !(await this.isSpaceAccessible(transaction, database.spaceId, input.workspaceId, input.userId, input.role))
-      )
-        return null;
+      const database = await this.findWritableDatabase(transaction, input);
       if (database === null) return null;
-      await transaction.databaseProperty.create({
-        data: {
-          databaseId: input.databaseId,
-          key: input.property.key,
-          label: input.property.label,
-          options: input.property.options === null ? Prisma.JsonNull : [...input.property.options],
-          order: await this.findNextPropertyOrder(transaction, input.databaseId),
-          required: input.property.required,
-          type: input.property.type,
-        },
-      });
-      const updated = await transaction.database.findUnique({
-        select: { ...databaseSelection },
-        where: { id: input.databaseId },
-      });
-      await this.outboxRepository.create(
-        {
-          aggregateId: input.databaseId,
-          aggregateType: 'DATABASE',
-          eventType: 'DATABASE_UPDATED',
-          idempotencyKey: `database:${input.databaseId}:property:${input.property.key}`,
-          payload: { databaseId: input.databaseId },
-          payloadVersion: 1,
-        },
+      return this.applyDatabaseMutation(
         transaction,
+        input.databaseId,
+        `database:${input.databaseId}:property:${input.property.key}`,
+        async () => {
+          await transaction.databaseProperty.create({
+            data: {
+              databaseId: input.databaseId,
+              key: input.property.key,
+              label: input.property.label,
+              options: input.property.options === null ? Prisma.JsonNull : [...input.property.options],
+              order: await this.findNextPropertyOrder(transaction, input.databaseId),
+              required: input.property.required,
+              type: input.property.type,
+            },
+          });
+        },
       );
-      return updated === null ? null : toSummary(updated);
     });
   }
 
   async createView(input: CreateViewInput): Promise<DatabaseSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const database = await transaction.database.findFirst({
-        select: { id: true, spaceId: true },
-        where: { id: input.databaseId, lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
-      });
-      if (
-        database !== null &&
-        !(await this.isSpaceAccessible(transaction, database.spaceId, input.workspaceId, input.userId, input.role))
-      )
-        return null;
+      const database = await this.findWritableDatabase(transaction, input);
       if (database === null) return null;
-      await transaction.databaseView.create({
-        data: {
-          configuration: input.view.configuration,
-          databaseId: input.databaseId,
-          isDefault: input.view.isDefault,
-          name: input.view.name,
-          type: input.view.type,
-        },
-      });
-      const updated = await transaction.database.findUnique({
-        select: { ...databaseSelection },
-        where: { id: input.databaseId },
-      });
-      await this.outboxRepository.create(
-        {
-          aggregateId: input.databaseId,
-          aggregateType: 'DATABASE',
-          eventType: 'DATABASE_UPDATED',
-          idempotencyKey: `database:${input.databaseId}:view:${input.view.name}`,
-          payload: { databaseId: input.databaseId },
-          payloadVersion: 1,
-        },
+      return this.applyDatabaseMutation(
         transaction,
+        input.databaseId,
+        `database:${input.databaseId}:view:${input.view.name}`,
+        async () => {
+          await transaction.databaseView.create({
+            data: {
+              configuration: input.view.configuration,
+              databaseId: input.databaseId,
+              isDefault: input.view.isDefault,
+              name: input.view.name,
+              type: input.view.type,
+            },
+          });
+        },
       );
-      return updated === null ? null : toSummary(updated);
     });
   }
 
   async createRecord(input: CreateRecordInput): Promise<DatabaseRecordSummary | null> {
     const record = await this.prisma.$transaction(async (transaction) => {
-      const database = await transaction.database.findFirst({
-        select: { id: true, spaceId: true },
-        where: { id: input.databaseId, lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
-      });
-      if (
-        database !== null &&
-        !(await this.isSpaceAccessible(transaction, database.spaceId, input.workspaceId, input.userId, input.role))
-      )
-        return null;
+      const database = await this.findWritableDatabase(transaction, input);
       if (database === null) return null;
       const created = await transaction.databaseRecord.create({
         data: {
@@ -342,15 +295,7 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
 
   async updateRecord(input: CreateRecordInput & { readonly recordId: string }): Promise<DatabaseRecordSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const database = await transaction.database.findFirst({
-        select: { id: true, spaceId: true },
-        where: { id: input.databaseId, lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
-      });
-      if (
-        database !== null &&
-        !(await this.isSpaceAccessible(transaction, database.spaceId, input.workspaceId, input.userId, input.role))
-      )
-        return null;
+      const database = await this.findWritableDatabase(transaction, input);
       if (database === null) return null;
       const updated = await transaction.databaseRecord.updateMany({
         data: { propertyValues: input.propertyValues, title: input.title },
@@ -418,17 +363,6 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
     return records.map((record) => this.toRecordSummary(record));
   }
 
-  private spaceAccessFilter(userId: string, role: UserRole): Prisma.SpaceWhereInput {
-    return {
-      [prismaOrOperator]: [
-        { visibility: SpaceVisibility.PUBLIC_INTERNAL },
-        ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
-          ? [{ visibility: SpaceVisibility.RESTRICTED }]
-          : [{ members: { some: { userId } }, visibility: SpaceVisibility.RESTRICTED }]),
-      ],
-    };
-  }
-
   private async findAccessibleSpaceIds(
     workspaceId: string,
     userId: string,
@@ -436,7 +370,7 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
   ): Promise<readonly string[]> {
     const spaces = await this.prisma.space.findMany({
       select: { id: true },
-      where: { workspaceId, ...this.spaceAccessFilter(userId, role) },
+      where: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
     });
     return spaces.map((space) => space.id);
   }
@@ -451,9 +385,66 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
     if (!canCreateSpace(role)) return false;
     const space = await transaction.space.findFirst({
       select: { id: true },
-      where: { id: spaceId, workspaceId, ...this.spaceAccessFilter(userId, role) },
+      where: { id: spaceId, workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
     });
     return space !== null;
+  }
+
+  private async findWritableDatabase(
+    transaction: Prisma.TransactionClient,
+    input: {
+      readonly databaseId: string;
+      readonly role: UserRole;
+      readonly userId: string;
+      readonly workspaceId: string;
+    },
+  ): Promise<{ readonly id: string; readonly spaceId: string } | null> {
+    const database = await transaction.database.findFirst({
+      select: { id: true, spaceId: true },
+      where: { id: input.databaseId, lifecycle: DatabaseLifecycle.ACTIVE, workspaceId: input.workspaceId },
+    });
+    if (database === null) return null;
+    const accessible = await this.isSpaceAccessible(
+      transaction,
+      database.spaceId,
+      input.workspaceId,
+      input.userId,
+      input.role,
+    );
+    return accessible ? database : null;
+  }
+
+  private async findDatabaseSummary(
+    transaction: Prisma.TransactionClient,
+    databaseId: string,
+  ): Promise<DatabaseSummary | null> {
+    const updated = await transaction.database.findUnique({
+      select: { ...databaseSelection },
+      where: { id: databaseId },
+    });
+    return updated === null ? null : toSummary(updated);
+  }
+
+  private async applyDatabaseMutation(
+    transaction: Prisma.TransactionClient,
+    databaseId: string,
+    idempotencyKey: string,
+    mutate: () => Promise<void>,
+  ): Promise<DatabaseSummary | null> {
+    await mutate();
+    const updated = await this.findDatabaseSummary(transaction, databaseId);
+    await this.outboxRepository.create(
+      {
+        aggregateId: databaseId,
+        aggregateType: 'DATABASE',
+        eventType: 'DATABASE_UPDATED',
+        idempotencyKey,
+        payload: { databaseId },
+        payloadVersion: 1,
+      },
+      transaction,
+    );
+    return updated;
   }
 
   private async findNextPropertyOrder(transaction: Prisma.TransactionClient, databaseId: string): Promise<number> {

@@ -42,6 +42,19 @@ const createToolError = (dependencies: McpServerDependencies, error: unknown) =>
   };
 };
 
+const runTool = async <TOutput>(
+  dependencies: McpServerDependencies,
+  action: () => Promise<TOutput>,
+  formatText: (output: TOutput) => string = (output) => JSON.stringify(output),
+) => {
+  try {
+    const output = await action();
+    return { content: [{ type: 'text' as const, text: formatText(output) }], structuredContent: output };
+  } catch (error) {
+    return createToolError(dependencies, error);
+  }
+};
+
 const formatSearchText = (searchPage: ReturnType<typeof searchCompanyBrainOutputSchema.parse>): string => {
   const resultText = searchPage.items.map(
     (item) => `${item.title} [${item.sourceType}/${item.contentType}] in ${item.spaceId}\n${item.snippet}`,
@@ -60,17 +73,13 @@ export const createMcpServer = (dependencies: McpServerDependencies): McpServer 
       inputSchema: listSpacesInputSchema,
       outputSchema: listSpacesOutputSchema,
     },
-    async () => {
-      try {
+    async () =>
+      runTool(dependencies, async () => {
         const principal = await resolvePrincipal(dependencies);
         const workspace = await resolveWorkspace(dependencies, principal);
         const spaces = await dependencies.spacesService.listAccessible(workspace.id, principal.userId, principal.role);
-        const output = listSpacesOutputSchema.parse({ spaces });
-        return { content: [{ type: 'text' as const, text: JSON.stringify(output) }], structuredContent: output };
-      } catch (error) {
-        return createToolError(dependencies, error);
-      }
-    },
+        return listSpacesOutputSchema.parse({ spaces });
+      }),
   );
 
   server.registerTool(
@@ -80,15 +89,11 @@ export const createMcpServer = (dependencies: McpServerDependencies): McpServer 
       inputSchema: getPageInputSchema,
       outputSchema: getPageOutputSchema,
     },
-    async ({ pageId }) => {
-      try {
+    async ({ pageId }) =>
+      runTool(dependencies, async () => {
         const accessiblePage = await findAccessiblePage(dependencies, pageId);
-        const output = getPageOutputSchema.parse({ page: accessiblePage });
-        return { content: [{ type: 'text' as const, text: JSON.stringify(output) }], structuredContent: output };
-      } catch (error) {
-        return createToolError(dependencies, error);
-      }
-    },
+        return getPageOutputSchema.parse({ page: accessiblePage });
+      }),
   );
 
   server.registerTool(
@@ -98,32 +103,29 @@ export const createMcpServer = (dependencies: McpServerDependencies): McpServer 
       inputSchema: searchCompanyBrainInputSchema,
       outputSchema: searchCompanyBrainOutputSchema,
     },
-    async (input) => {
-      try {
-        const principal = await resolvePrincipal(dependencies);
-        const workspace = await resolveWorkspace(dependencies, principal);
-        const searchQuery: SearchQuery = {
-          limit: input.limit,
-          query: input.query,
-          ...(input.contentType === undefined ? {} : { contentType: input.contentType }),
-          ...(input.cursor === undefined ? {} : { cursor: input.cursor }),
-          ...(input.sourceType === undefined ? {} : { sourceType: input.sourceType }),
-          ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
-          ...(input.tags === undefined ? {} : { tags: input.tags }),
-          userId: principal.userId,
-          userRole: principal.role,
-          workspaceId: workspace.id,
-        };
-        const searchPage = await dependencies.searchService.search(searchQuery);
-        const output = searchCompanyBrainOutputSchema.parse(searchPage);
-        return {
-          content: [{ type: 'text' as const, text: formatSearchText(output) }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        return createToolError(dependencies, error);
-      }
-    },
+    async (input) =>
+      runTool(
+        dependencies,
+        async () => {
+          const principal = await resolvePrincipal(dependencies);
+          const workspace = await resolveWorkspace(dependencies, principal);
+          const searchQuery: SearchQuery = {
+            limit: input.limit,
+            query: input.query,
+            ...(input.contentType === undefined ? {} : { contentType: input.contentType }),
+            ...(input.cursor === undefined ? {} : { cursor: input.cursor }),
+            ...(input.sourceType === undefined ? {} : { sourceType: input.sourceType }),
+            ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
+            ...(input.tags === undefined ? {} : { tags: input.tags }),
+            userId: principal.userId,
+            userRole: principal.role,
+            workspaceId: workspace.id,
+          };
+          const searchPage = await dependencies.searchService.search(searchQuery);
+          return searchCompanyBrainOutputSchema.parse(searchPage);
+        },
+        formatSearchText,
+      ),
   );
 
   return server;

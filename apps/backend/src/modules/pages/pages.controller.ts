@@ -1,9 +1,10 @@
+import type { Result } from '@company-brain/shared';
 import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
-import { PageAccessDeniedError } from './domain/page.error';
+import { PageAccessDeniedError, type PageLifecycleError } from './domain/page.error';
 import { CreatePageDto } from './dto/page.create.dto';
 import { ListPagesDto } from './dto/page.list.dto';
 import { MovePageDto } from './dto/page.move.dto';
@@ -118,12 +119,9 @@ export class PagesController {
     @Headers('x-mutation-id') mutationId: string,
     @User('payload') payload: TokenPayload,
   ) {
-    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.trash(pageId, payload.sub, workspace.id, mutationId, payload.role);
-    if (result.isFail()) {
-      throw result.getError();
-    }
-    return result.getValue();
+    return this.resolveLifecycleMutation(payload, (workspaceId) =>
+      this.pagesService.trash(pageId, payload.sub, workspaceId, mutationId, payload.role),
+    );
   }
 
   @Post(':pageId/restore')
@@ -133,8 +131,17 @@ export class PagesController {
     @Headers('x-mutation-id') mutationId: string,
     @User('payload') payload: TokenPayload,
   ) {
+    return this.resolveLifecycleMutation(payload, (workspaceId) =>
+      this.pagesService.restore(pageId, payload.sub, workspaceId, mutationId, payload.role),
+    );
+  }
+
+  private async resolveLifecycleMutation(
+    payload: TokenPayload,
+    action: (workspaceId: string) => Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>>,
+  ): Promise<boolean> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.restore(pageId, payload.sub, workspace.id, mutationId, payload.role);
+    const result = await action(workspace.id);
     if (result.isFail()) {
       throw result.getError();
     }

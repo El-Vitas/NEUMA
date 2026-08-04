@@ -85,16 +85,7 @@ export class PagesService {
     mutationId: string,
     role: UserRole,
   ): Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const updated = await this.pageRepository.setLifecycle(
-      pageId,
-      PageLifecycle.TRASHED,
-      userId,
-      workspaceId,
-      role,
-      mutationId,
-    );
-    return updated ? Result.ok(true) : Result.fail(new PageLifecycleError());
+    return this.applyLifecycle(pageId, PageLifecycle.TRASHED, userId, workspaceId, mutationId, role);
   }
 
   async restore(
@@ -104,16 +95,7 @@ export class PagesService {
     mutationId: string,
     role: UserRole,
   ): Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const updated = await this.pageRepository.setLifecycle(
-      pageId,
-      PageLifecycle.ACTIVE,
-      userId,
-      workspaceId,
-      role,
-      mutationId,
-    );
-    return updated ? Result.ok(true) : Result.fail(new PageLifecycleError());
+    return this.applyLifecycle(pageId, PageLifecycle.ACTIVE, userId, workspaceId, mutationId, role);
   }
 
   validateMove(
@@ -123,5 +105,18 @@ export class PagesService {
   ): Result<true, PageCycleError | PageParentError> {
     if (!hasValidPageParent(pageId, parentId, pages)) return Result.fail(new PageParentError());
     return isPageMoveAllowed(pageId, parentId, pages) ? Result.ok(true) : Result.fail(new PageCycleError());
+  }
+
+  private async applyLifecycle(
+    pageId: string,
+    lifecycle: PageLifecycle,
+    userId: string,
+    workspaceId: string,
+    mutationId: string,
+    role: UserRole,
+  ): Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const updated = await this.pageRepository.setLifecycle(pageId, lifecycle, userId, workspaceId, role, mutationId);
+    return updated ? Result.ok(true) : Result.fail(new PageLifecycleError());
   }
 }

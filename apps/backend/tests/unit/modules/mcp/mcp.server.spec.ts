@@ -75,6 +75,26 @@ const connectClient = async (dependencies: McpServerDependencies): Promise<Clien
   return client;
 };
 
+const createErrorReportingClient = async (
+  overrides: Partial<McpServerDependencies> = {},
+): Promise<{ readonly client: Client; readonly reportedErrors: unknown[] }> => {
+  const reportedErrors: unknown[] = [];
+  const client = await connectClient({
+    ...createDependencies(),
+    errorReporter: { report: (error) => reportedErrors.push(error) },
+    ...overrides,
+  });
+  return { client, reportedErrors };
+};
+
+type ToolResult = { readonly content: readonly unknown[]; readonly isError?: boolean | undefined };
+
+const expectInputValidationError = (result: ToolResult): void => {
+  expect(result.isError).toBe(true);
+  expect(result.content[0]).toMatchObject({ type: 'text' });
+  expect((result.content[0] as { text: string }).text).toContain('Input validation error');
+};
+
 describe('MCP read contract', () => {
   test('registers only authorized read tools', async () => {
     const client = await connectClient(createDependencies());
@@ -256,9 +276,7 @@ describe('MCP read contract', () => {
 
     const result = await client.callTool({ name: 'search_company_brain', arguments: { query: '' } });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0]).toMatchObject({ type: 'text' });
-    expect((result.content[0] as { text: string }).text).toContain('Input validation error');
+    expectInputValidationError(result);
   });
 
   test('rejects an oversized search query', async () => {
@@ -269,9 +287,7 @@ describe('MCP read contract', () => {
       arguments: { query: 'x'.repeat(201) },
     });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0]).toMatchObject({ type: 'text' });
-    expect((result.content[0] as { text: string }).text).toContain('Input validation error');
+    expectInputValidationError(result);
   });
 
   test('does not search without an authenticated principal', async () => {
@@ -294,11 +310,7 @@ describe('MCP read contract', () => {
   });
 
   test('does not report expected inaccessible errors', async () => {
-    const reportedErrors: unknown[] = [];
-    const client = await connectClient({
-      ...createDependencies(),
-      errorReporter: { report: (error) => reportedErrors.push(error) },
-    });
+    const { client, reportedErrors } = await createErrorReportingClient();
 
     const result = await client.callTool({
       name: 'mcp.getPage',
@@ -310,10 +322,7 @@ describe('MCP read contract', () => {
   });
 
   test('reports unexpected search failures without exposing details', async () => {
-    const reportedErrors: unknown[] = [];
-    const client = await connectClient({
-      ...createDependencies(),
-      errorReporter: { report: (error) => reportedErrors.push(error) },
+    const { client, reportedErrors } = await createErrorReportingClient({
       searchService: { search: () => Promise.reject(new Error('database unavailable')) },
     });
 
@@ -325,13 +334,9 @@ describe('MCP read contract', () => {
   });
 
   test('reports operational failures without exposing them to the client', async () => {
-    const reportedErrors: unknown[] = [];
-    const dependencies: McpServerDependencies = {
-      ...createDependencies(),
-      errorReporter: { report: (error) => reportedErrors.push(error) },
+    const { client, reportedErrors } = await createErrorReportingClient({
       spacesService: { listAccessible: () => Promise.reject(new Error('database unavailable')) },
-    };
-    const client = await connectClient(dependencies);
+    });
 
     const result = await client.callTool({ name: 'mcp.listSpaces', arguments: {} });
 

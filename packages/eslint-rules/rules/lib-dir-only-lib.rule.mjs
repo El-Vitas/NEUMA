@@ -1,6 +1,8 @@
 // lib-dir-only-lib
 // Qué hace: dentro de `lib/`, solo permite helpers/utilidades puras.
 // Para qué: que `lib/` no acumule componentes, tipos, constantes ni schemas (§1.1).
+import { eachExportedVariableDeclarator } from './dir-only-exports.util.mjs';
+
 const STARTS_WITH_UPPERCASE = /^[A-Z]/;
 
 const isZodSchema = (node) => {
@@ -33,16 +35,14 @@ export const libDirOnlyLib = {
         const decl = node.declaration;
         if (!decl) return;
 
-        if (decl.type === 'VariableDeclaration') {
-          for (const d of decl.declarations) {
-            if (d.id.type === 'Identifier' && STARTS_WITH_UPPERCASE.test(d.id.name)) {
-              context.report({ node, messageId: 'foundComponent' });
-              return;
-            }
-            if (isZodSchema(d)) {
-              context.report({ node, messageId: 'foundSchema' });
-              return;
-            }
+        for (const declarator of eachExportedVariableDeclarator(node)) {
+          if (STARTS_WITH_UPPERCASE.test(declarator.id.name)) {
+            context.report({ node, messageId: 'foundComponent' });
+            return;
+          }
+          if (isZodSchema(declarator)) {
+            context.report({ node, messageId: 'foundSchema' });
+            return;
           }
         }
 

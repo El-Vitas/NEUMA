@@ -1,5 +1,17 @@
 import { DatabasePropertyType, DatabaseTemplate, DatabaseViewType } from '@company-brain/db';
-import type { DatabaseTemplateDefinition, DatabaseViewDefinition } from '../types/database.types';
+import type {
+  DatabasePropertyDefinition,
+  DatabaseTemplateDefinition,
+  DatabaseViewDefinition,
+} from '../types/database.types';
+
+const titleProperty: DatabasePropertyDefinition = {
+  key: 'title',
+  label: 'Title',
+  options: null,
+  required: true,
+  type: DatabasePropertyType.TITLE,
+};
 
 const tableView = (name: string): DatabaseViewDefinition => ({
   configuration: { columns: [] },
@@ -18,7 +30,7 @@ const boardView = (name: string): DatabaseViewDefinition => ({
 const taskTemplate: DatabaseTemplateDefinition = {
   name: 'Tasks',
   properties: [
-    { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null },
+    titleProperty,
     {
       key: 'status',
       label: 'Status',
@@ -43,7 +55,7 @@ const taskTemplate: DatabaseTemplateDefinition = {
 const projectTemplate: DatabaseTemplateDefinition = {
   name: 'Projects',
   properties: [
-    { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null },
+    titleProperty,
     {
       key: 'status',
       label: 'Status',
@@ -71,7 +83,7 @@ export const getDatabaseTemplate = (template: DatabaseTemplate): DatabaseTemplat
   if (template === DatabaseTemplate.PROJECTS) return projectTemplate;
   return {
     name: 'Database',
-    properties: [{ key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null }],
+    properties: [titleProperty],
     views: [tableView('Table')],
   };
 };

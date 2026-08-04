@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import { isPageMoveAllowed } from '@/modules/pages/domain/page.domain';
 
+const buildTwoRootPages = () => [
+  { id: 'page-a', parentId: null, spaceId: 'space-a' },
+  { id: 'page-b', parentId: null, spaceId: 'space-a' },
+];
+
 describe('page domain rules', () => {
   it('allows a root page to move below another page', () => {
-    expect(
-      isPageMoveAllowed('page-a', 'page-b', [
-        { id: 'page-a', parentId: null, spaceId: 'space-a' },
-        { id: 'page-b', parentId: null, spaceId: 'space-a' },
-      ]),
-    ).toBe(true);
+    expect(isPageMoveAllowed('page-a', 'page-b', buildTwoRootPages())).toBe(true);
   });
 
   it('rejects moving a page below itself or one of its descendants', () => {
@@ -38,11 +38,6 @@ describe('page domain rules', () => {
   });
 
   it('allows moving a page below a same-space parent', () => {
-    expect(
-      isPageMoveAllowed('page-a', 'page-b', [
-        { id: 'page-a', parentId: null, spaceId: 'space-a' },
-        { id: 'page-b', parentId: null, spaceId: 'space-a' },
-      ]),
-    ).toBe(true);
+    expect(isPageMoveAllowed('page-a', 'page-b', buildTwoRootPages())).toBe(true);
   });
 });

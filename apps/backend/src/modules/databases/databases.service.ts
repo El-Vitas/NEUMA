@@ -14,6 +14,7 @@ import type {
   CreatePropertyInput,
   CreateRecordInput,
   CreateViewInput,
+  DatabasePropertyValues,
   DatabaseRecordSummary,
   DatabaseRepositoryContract,
   DatabaseSummary,
@@ -51,14 +52,9 @@ export class DatabasesService {
   async createProperty(
     input: CreatePropertyInput,
   ): Promise<Result<DatabaseSummary, DatabaseAccessDeniedError | DatabasePropertyValidationError>> {
-    const database = await this.databaseRepository.findAccessible(
-      input.databaseId,
-      input.workspaceId,
-      input.userId,
-      input.role,
-    );
-    if (database === null || input.role === USER_ROLE.CLIENT) return Result.fail(new DatabaseAccessDeniedError());
-    const properties = validateDatabaseProperties([...database.properties, input.property]);
+    const database = await this.getWritableDatabase(input.databaseId, input.workspaceId, input.userId, input.role);
+    if (database.isFail()) return Result.fail(database.getError());
+    const properties = validateDatabaseProperties([...database.getValue().properties, input.property]);
     if (properties.isFail()) return Result.fail(properties.getError());
     const updatedDatabase = await this.databaseRepository.createProperty(input);
     return updatedDatabase === null ? Result.fail(new DatabaseAccessDeniedError()) : Result.ok(updatedDatabase);
@@ -67,43 +63,15 @@ export class DatabasesService {
   async createRecord(
     input: CreateRecordInput,
   ): Promise<Result<DatabaseRecordSummary, DatabaseAccessDeniedError | DatabaseRecordValidationError>> {
-    const database = await this.databaseRepository.findAccessible(
-      input.databaseId,
-      input.workspaceId,
-      input.userId,
-      input.role,
-    );
-    if (database === null || input.role === USER_ROLE.CLIENT) return Result.fail(new DatabaseAccessDeniedError());
-    const personIds = new Set(await this.databaseRepository.listWorkspaceMemberIds(input.workspaceId));
-    const values = validateRecordValues(
-      database.properties,
-      { ...input.propertyValues, title: input.title },
-      personIds,
-    );
-    if (values.isFail()) return Result.fail(values.getError());
-    const record = await this.databaseRepository.createRecord({ ...input, propertyValues: values.getValue() });
-    return record === null ? Result.fail(new DatabaseAccessDeniedError()) : Result.ok(record);
+    return this.persistValidatedRecord(input, (record) => this.databaseRepository.createRecord(record));
   }
 
   async updateRecord(
     input: UpdateRecordInput,
   ): Promise<Result<DatabaseRecordSummary, DatabaseAccessDeniedError | DatabaseRecordValidationError>> {
-    const database = await this.databaseRepository.findAccessible(
-      input.databaseId,
-      input.workspaceId,
-      input.userId,
-      input.role,
+    return this.persistValidatedRecord(input, (record) =>
+      this.databaseRepository.updateRecord({ ...record, recordId: input.recordId }),
     );
-    if (database === null || input.role === USER_ROLE.CLIENT) return Result.fail(new DatabaseAccessDeniedError());
-    const personIds = new Set(await this.databaseRepository.listWorkspaceMemberIds(input.workspaceId));
-    const values = validateRecordValues(
-      database.properties,
-      { ...input.propertyValues, title: input.title },
-      personIds,
-    );
-    if (values.isFail()) return Result.fail(values.getError());
-    const record = await this.databaseRepository.updateRecord({ ...input, propertyValues: values.getValue() });
-    return record === null ? Result.fail(new DatabaseAccessDeniedError()) : Result.ok(record);
   }
 
   async listRecords(
@@ -118,16 +86,43 @@ export class DatabasesService {
   async createView(
     input: CreateViewInput,
   ): Promise<Result<DatabaseSummary, DatabaseAccessDeniedError | DatabaseViewValidationError>> {
-    const database = await this.databaseRepository.findAccessible(
-      input.databaseId,
-      input.workspaceId,
-      input.userId,
-      input.role,
-    );
-    if (database === null || input.role === USER_ROLE.CLIENT) return Result.fail(new DatabaseAccessDeniedError());
-    const view = validateDatabaseView(input.view, database.properties);
+    const database = await this.getWritableDatabase(input.databaseId, input.workspaceId, input.userId, input.role);
+    if (database.isFail()) return Result.fail(database.getError());
+    const view = validateDatabaseView(input.view, database.getValue().properties);
     if (view.isFail()) return Result.fail(view.getError());
     const updated = await this.databaseRepository.createView(input);
     return updated === null ? Result.fail(new DatabaseAccessDeniedError()) : Result.ok(updated);
+  }
+
+  private async getWritableDatabase(
+    databaseId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<DatabaseSummary, DatabaseAccessDeniedError>> {
+    const database = await this.databaseRepository.findAccessible(databaseId, workspaceId, userId, role);
+    if (database === null || role === USER_ROLE.CLIENT) return Result.fail(new DatabaseAccessDeniedError());
+    return Result.ok(database);
+  }
+
+  private async validateRecordValuesForInput(
+    database: DatabaseSummary,
+    workspaceId: string,
+    input: { readonly title: string; readonly propertyValues: DatabasePropertyValues },
+  ): Promise<Result<DatabasePropertyValues, DatabaseRecordValidationError>> {
+    const personIds = new Set(await this.databaseRepository.listWorkspaceMemberIds(workspaceId));
+    return validateRecordValues(database.properties, { ...input.propertyValues, title: input.title }, personIds);
+  }
+
+  private async persistValidatedRecord(
+    input: CreateRecordInput,
+    persist: (record: CreateRecordInput) => Promise<DatabaseRecordSummary | null>,
+  ): Promise<Result<DatabaseRecordSummary, DatabaseAccessDeniedError | DatabaseRecordValidationError>> {
+    const database = await this.getWritableDatabase(input.databaseId, input.workspaceId, input.userId, input.role);
+    if (database.isFail()) return Result.fail(database.getError());
+    const values = await this.validateRecordValuesForInput(database.getValue(), input.workspaceId, input);
+    if (values.isFail()) return Result.fail(values.getError());
+    const record = await persist({ ...input, propertyValues: values.getValue() });
+    return record === null ? Result.fail(new DatabaseAccessDeniedError()) : Result.ok(record);
   }
 }

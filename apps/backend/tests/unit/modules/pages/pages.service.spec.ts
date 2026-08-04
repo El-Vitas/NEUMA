@@ -3,7 +3,7 @@ import { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { type PageContent, USER_ROLE } from '@company-brain/shared';
 import { PagesService } from '@/modules/pages/pages.service';
-import type { PageRepositoryContract } from '@/modules/pages/types/page.types';
+import type { PageRepositoryContract, UpdatePageInput } from '@/modules/pages/types/page.types';
 
 const validPageContent: PageContent = {
   content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
@@ -21,6 +21,16 @@ const page = {
   title: 'Page A',
   version: 1,
 };
+
+const buildUpdatePageInput = (content: Prisma.InputJsonValue = validPageContent): UpdatePageInput => ({
+  content,
+  pageId: 'page-a',
+  role: USER_ROLE.WORKER,
+  title: 'Updated',
+  updatedById: 'user-a',
+  userId: 'user-a',
+  workspaceId: 'workspace-a',
+});
 
 const createRepository = (): PageRepositoryContract => ({
   create: () => Promise.resolve(page),
@@ -43,18 +53,7 @@ const createRepository = (): PageRepositoryContract => ({
 describe('pages service', () => {
   it('updates a page for an editor', async () => {
     const service = new PagesService(createRepository());
-    const result = await service.update(
-      {
-        content: validPageContent,
-        pageId: 'page-a',
-        role: USER_ROLE.WORKER,
-        title: 'Updated',
-        updatedById: 'user-a',
-        userId: 'user-a',
-        workspaceId: 'workspace-a',
-      },
-      USER_ROLE.WORKER,
-    );
+    const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
   });
@@ -103,18 +102,7 @@ describe('pages service', () => {
     };
     const service = new PagesService(repository);
 
-    const result = await service.update(
-      {
-        content,
-        pageId: 'page-a',
-        role: USER_ROLE.WORKER,
-        title: 'Updated',
-        updatedById: 'user-a',
-        userId: 'user-a',
-        workspaceId: 'workspace-a',
-      },
-      USER_ROLE.WORKER,
-    );
+    const result = await service.update(buildUpdatePageInput(content), USER_ROLE.WORKER);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_CONTENT_INVALID');
@@ -192,18 +180,7 @@ describe('pages service', () => {
     };
     const service = new PagesService(repository);
 
-    const result = await service.update(
-      {
-        content: validPageContent,
-        pageId: 'page-a',
-        role: USER_ROLE.WORKER,
-        title: 'Updated',
-        updatedById: 'user-a',
-        userId: 'user-a',
-        workspaceId: 'workspace-a',
-      },
-      USER_ROLE.WORKER,
-    );
+    const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
     expect(receivedContent).toEqual(validPageContent);

@@ -1,6 +1,8 @@
 // hooks-dir-only-hooks
 // Qué hace: dentro de `hooks/`, solo permite hooks `use*`.
 // Para qué: que `hooks/` sea hogar exclusivo de hooks (§1.1), sin tipos ni helpers sueltos.
+import { eachExportedVariableDeclarator } from './dir-only-exports.util.mjs';
+
 const STARTS_WITH_USE = /^use[A-Z]/;
 
 export const hooksDirOnlyHooks = {
@@ -21,12 +23,10 @@ export const hooksDirOnlyHooks = {
         const decl = node.declaration;
         if (!decl) return;
 
-        if (decl.type === 'VariableDeclaration') {
-          for (const d of decl.declarations) {
-            if (d.id.type === 'Identifier' && !STARTS_WITH_USE.test(d.id.name)) {
-              context.report({ node, messageId: 'foundNonHook' });
-              return;
-            }
+        for (const declarator of eachExportedVariableDeclarator(node)) {
+          if (!STARTS_WITH_USE.test(declarator.id.name)) {
+            context.report({ node, messageId: 'foundNonHook' });
+            return;
           }
         }
 

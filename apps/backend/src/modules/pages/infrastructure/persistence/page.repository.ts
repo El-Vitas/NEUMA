@@ -1,9 +1,12 @@
-import { PageLifecycle, SpaceVisibility } from '@company-brain/db';
+import { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
-import { canReadSpace } from '../../../../common/domain/workspace.policy';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
+import {
+  buildSpaceVisibilityFilter,
+  findAccessibleSpaceId,
+} from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type {
   CreatePageInput,
@@ -12,8 +15,6 @@ import type {
   PageSummary,
   UpdatePageInput,
 } from '../../types/page.types';
-
-const prismaOrOperator = 'OR';
 
 const pageSelection = {
   content: true,
@@ -64,15 +65,14 @@ export class PageRepository implements PageRepositoryContract {
 
   async create(input: CreatePageInput): Promise<PageSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
-      const accessibleSpace = await transaction.space.findFirst({
-        select: { id: true },
-        where: {
-          id: input.spaceId,
-          workspaceId: input.workspaceId,
-          ...this.spaceAccessFilter(input.userId, input.role),
-        },
-      });
-      if (accessibleSpace === null) return null;
+      const accessibleSpaceId = await findAccessibleSpaceId(
+        transaction,
+        input.spaceId,
+        input.workspaceId,
+        input.userId,
+        input.role,
+      );
+      if (accessibleSpaceId === null) return null;
       if (input.parentId !== null) {
         const parent = await transaction.page.findFirst({
           select: { id: true },
@@ -251,43 +251,11 @@ export class PageRepository implements PageRepositoryContract {
   }
 
   private accessFilter(spaceId: string, workspaceId: string, userId: string, role: UserRole): Prisma.PageWhereInput {
-    return {
-      space: {
-        [prismaOrOperator]: [
-          { visibility: SpaceVisibility.PUBLIC_INTERNAL },
-          ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
-            ? [{ visibility: SpaceVisibility.RESTRICTED }]
-            : [{ members: { some: { userId } }, visibility: SpaceVisibility.RESTRICTED }]),
-        ],
-        workspaceId,
-      },
-      spaceId,
-    };
-  }
-
-  private spaceAccessFilter(userId: string, role: UserRole): Prisma.SpaceWhereInput {
-    return {
-      [prismaOrOperator]: [
-        { visibility: SpaceVisibility.PUBLIC_INTERNAL },
-        ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
-          ? [{ visibility: SpaceVisibility.RESTRICTED }]
-          : [{ members: { some: { userId } }, visibility: SpaceVisibility.RESTRICTED }]),
-      ],
-    };
+    return { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId }, spaceId };
   }
 
   private pageAccessFilter(workspaceId: string, userId: string, role: UserRole): Prisma.PageWhereInput {
-    return {
-      space: {
-        [prismaOrOperator]: [
-          { visibility: SpaceVisibility.PUBLIC_INTERNAL },
-          ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
-            ? [{ visibility: SpaceVisibility.RESTRICTED }]
-            : [{ members: { some: { userId } }, visibility: SpaceVisibility.RESTRICTED }]),
-        ],
-        workspaceId,
-      },
-    };
+    return { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId } };
   }
 
   private async findNextOrder(
