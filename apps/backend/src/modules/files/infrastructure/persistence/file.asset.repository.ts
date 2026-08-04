@@ -1,12 +1,10 @@
-import { DatabaseLifecycle, FileAssetLifecycle, PageLifecycle, SpaceVisibility } from '@company-brain/db';
+import { DatabaseLifecycle, FileAssetLifecycle, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
-import { canReadSpace } from '../../../../common/domain/workspace.policy';
+import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import type { FileAssetRepository, FileAssetSummary } from '../../types/files.types';
-
-const prismaOrOperator = 'OR';
+import type { FileAssetMetadata, FileAssetRepository, FileAssetSummary } from '../../types/files.types';
 
 const fileAssetSelection = {
   checksum: true,
@@ -21,6 +19,13 @@ const fileAssetSelection = {
   size: true,
   storageKey: true,
   workspaceId: true,
+} satisfies Prisma.FileAssetSelect;
+
+const fileAssetMetadataSelection = {
+  id: true,
+  mimeType: true,
+  originalFilename: true,
+  size: true,
 } satisfies Prisma.FileAssetSelect;
 
 @Injectable()
@@ -62,6 +67,20 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
     return asset.ownerId === userId || role !== USER_ROLE.CLIENT ? asset : null;
   }
 
+  async findByPage(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<FileAssetMetadata[] | null> {
+    const hasAccess = await this.hasPageAccess(pageId, workspaceId, userId, role);
+    if (!hasAccess) return null;
+    return this.prisma.fileAsset.findMany({
+      select: fileAssetMetadataSelection,
+      where: { lifecycle: FileAssetLifecycle.ACTIVE, pageId, workspaceId },
+    });
+  }
+
   async markDeleted(assetId: string, workspaceId: string, _userId: string): Promise<boolean> {
     const result = await this.prisma.fileAsset.updateMany({
       data: { deletedAt: new Date(), lifecycle: FileAssetLifecycle.DELETED },
@@ -76,7 +95,7 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
       where: {
         id: pageId,
         lifecycle: PageLifecycle.ACTIVE,
-        space: { workspaceId, ...this.spaceAccessFilter(userId, role) },
+        space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
       },
     });
     return page !== null;
@@ -95,21 +114,10 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
         lifecycle: DatabaseLifecycle.ACTIVE,
         database: {
           lifecycle: DatabaseLifecycle.ACTIVE,
-          space: { workspaceId, ...this.spaceAccessFilter(userId, role) },
+          space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
         },
       },
     });
     return record !== null;
-  }
-
-  private spaceAccessFilter(userId: string, role: UserRole): Prisma.SpaceWhereInput {
-    return {
-      [prismaOrOperator]: [
-        { visibility: SpaceVisibility.PUBLIC_INTERNAL },
-        ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
-          ? [{ visibility: SpaceVisibility.RESTRICTED }]
-          : [{ members: { some: { userId } }, visibility: SpaceVisibility.RESTRICTED }]),
-      ],
-    };
   }
 }

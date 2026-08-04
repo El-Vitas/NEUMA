@@ -3,17 +3,15 @@
 import 'server-only';
 
 import { updateTag } from 'next/cache';
-import { cookies } from 'next/headers';
 import { actionClient } from '@/lib/safe-action';
-import { ACCESS_TOKEN_COOKIE } from '@/shared/constants/auth.constants';
 import { apiRequest } from '@/shared/lib/api-server';
+import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { PAGE_API_ROUTES, PAGES_CACHE_TAG } from '../../constants/pages.constants';
 import { pageLifecycleMutationSchema, pageMoveSchema, pageMutationSchema } from '../../schemas/pages.schemas';
 
 const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  const accessToken = await requireAccessTokenCookie();
   return apiRequest<T>(endpoint, accessToken, {
     body: JSON.stringify(body),
     headers: { 'x-mutation-id': crypto.randomUUID() },

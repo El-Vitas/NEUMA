@@ -1,6 +1,12 @@
 import { Hocuspocus } from '@hocuspocus/server';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
-import { assertStateSize, assertUpdateSize, parsePageId } from './collaboration.utils';
+import {
+  assertAwarenessStateSize,
+  assertStateSize,
+  assertUpdateSize,
+  parsePageId,
+  sanitizePresenceState,
+} from './collaboration.utils';
 import { MAX_COLLABORATION_UPDATE_BYTES } from './constants/collaboration.constants';
 import type {
   CollaborationAuthorizationAdapter,
@@ -62,6 +68,16 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
     async beforeHandleMessage({ context, documentName, update }) {
       await authorizeUpdate(context, documentName, update);
     },
+    async beforeHandleAwareness({ context, documentName, states }) {
+      await authorizeAwareness(context, documentName);
+      await Promise.all(
+        Array.from(states.keys()).map(async (clientId) => {
+          const rawState = states.get(clientId);
+          await assertAwarenessStateSize(rawState);
+          states.set(clientId, sanitizePresenceState(rawState));
+        }),
+      );
+    },
     async onChange({ context, documentName, update }) {
       await authorizeUpdate(context, documentName, update);
     },
@@ -80,6 +96,11 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
   ): Promise<void> => {
     await assertUpdateSize(update);
     await authorizeDocument(dependencies.authorization, context, documentName, 'write');
+  };
+
+  const authorizeAwareness = async (context: CollaborationContext | undefined, documentName: string): Promise<void> => {
+    if (context === undefined) throw createForbiddenError();
+    await authorizeDocument(dependencies.authorization, context, documentName, 'read');
   };
 
   return {

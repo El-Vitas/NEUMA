@@ -3,7 +3,7 @@
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import type * as React from 'react';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { type DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button.variants';
@@ -150,6 +150,10 @@ const Calendar = ({
 const CalendarDayButton = ({ className, day, modifiers, ...props }: React.ComponentProps<typeof DayButton>) => {
   const defaultClassNames = getDefaultClassNames();
   const locale = useLocale();
+  const formattedDay = useMemo(() => {
+    const civilDate = Date.UTC(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+    return new Date(civilDate).toLocaleDateString(locale, { timeZone: 'UTC' });
+  }, [day.date, locale]);
 
   const ref = useCallback(
     (node: HTMLButtonElement | null) => {
@@ -168,7 +172,7 @@ const CalendarDayButton = ({ className, day, modifiers, ...props }: React.Compon
         defaultClassNames.day,
         className,
       )}
-      data-day={day.date.toLocaleDateString(locale)}
+      data-day={formattedDay}
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       data-range-start={modifiers.range_start}

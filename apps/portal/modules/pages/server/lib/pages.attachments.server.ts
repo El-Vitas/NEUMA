@@ -1,21 +1,17 @@
 import 'server-only';
 
-import { cookies } from 'next/headers';
 import { config } from '@/shared/config';
-import { ACCESS_TOKEN_COOKIE, BEARER_PREFIX } from '@/shared/constants/auth.constants';
+import { BEARER_PREFIX } from '@/shared/constants/auth.constants';
+import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { FILES_API_ROUTE } from '../../constants/pages.attachments.constants';
-import { attachmentIdSchema } from '../../schemas/pages.attachments.schemas';
-import type { AttachmentDownload, AttachmentDownloadResult } from '../../types/pages.attachments.types';
+import type { AttachmentDownload } from '../../types/pages.attachments.types';
 
 const attachmentFilenamePattern = /filename\*=UTF-8''([^;]+)/iu;
 
-const getAttachmentDownloadRequest = async (attachmentId: string): Promise<Response> => {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
-  return fetch(`${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(attachmentId)}`, {
-    headers: accessToken === undefined ? {} : { authorization: `${BEARER_PREFIX}${accessToken}` },
+const getAttachmentDownloadRequest = async (attachmentId: string, accessToken: string): Promise<Response> =>
+  fetch(`${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(attachmentId)}`, {
+    headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
   });
-};
 
 const decodeFilename = (contentDisposition: string | null): string => {
   const encodedFilename = contentDisposition?.match(attachmentFilenamePattern)?.[1];
@@ -28,9 +24,9 @@ const readAttachmentDownload = async (response: Response): Promise<AttachmentDow
   originalFilename: decodeFilename(response.headers.get('content-disposition')),
 });
 
-export const getPageAttachmentDownload = async (attachmentId: string): Promise<AttachmentDownloadResult> => {
-  if (!attachmentIdSchema.safeParse(attachmentId).success) return { error: 'invalid', ok: false };
-  const response = await getAttachmentDownloadRequest(attachmentId);
-  if (!response.ok) return { error: 'request', ok: false };
-  return { download: await readAttachmentDownload(response), ok: true };
+export const getPageAttachmentDownload = async (attachmentId: string): Promise<AttachmentDownload> => {
+  const accessToken = await requireAccessTokenCookie();
+  const response = await getAttachmentDownloadRequest(attachmentId, accessToken);
+  if (!response.ok) throw new Error('Attachment download request failed');
+  return readAttachmentDownload(response);
 };

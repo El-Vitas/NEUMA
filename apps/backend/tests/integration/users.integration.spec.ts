@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import type { AuthSession } from '@company-brain/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
+import { loginUser, registerUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface UserListResponse {
@@ -10,19 +11,6 @@ interface UserListResponse {
   pageSize: number;
   total: number;
 }
-
-const registerUser = async (
-  testApp: TestApp,
-  payload: { email: string; name: string; password: string },
-): Promise<AuthSession> => {
-  const response = await request(testApp.getServer()).post('/api/v1/users').send(payload).expect(201);
-  return response.body as AuthSession;
-};
-
-const loginUser = async (testApp: TestApp, email: string, password: string): Promise<AuthSession> => {
-  const response = await request(testApp.getServer()).post('/api/v1/auth/sessions').send({ email, password });
-  return response.body as AuthSession;
-};
 
 describe('Users Module (Integration)', () => {
   let testApp: TestApp;

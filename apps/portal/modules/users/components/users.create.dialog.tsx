@@ -38,17 +38,22 @@ export const UsersCreateDialog = () => {
 
   const handleCreate = async () => {
     setIsSubmitting(true);
-    const result = await createUserAction({ name, email, password });
-    setIsSubmitting(false);
+    try {
+      const result = await createUserAction({ name, email, password });
 
-    if (hasActionError(result)) {
-      toast.error(result.serverError ?? t('createError'));
-      return;
+      if (hasActionError(result)) {
+        toast.error(result.serverError ?? t('createError'));
+        return;
+      }
+
+      toast.success(t('createdSuccess'));
+      resetForm();
+      setOpen(false);
+    } catch {
+      toast.error(t('createError'));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast.success(t('createdSuccess'));
-    resetForm();
-    setOpen(false);
   };
 
   return (

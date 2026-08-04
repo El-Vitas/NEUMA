@@ -9,12 +9,18 @@ import { PagesAttachmentsUpload } from './pages.attachments.upload';
 interface IProps {
   readonly attachments: readonly AttachmentSummary[];
   readonly canEdit: boolean;
+  readonly onAssetUploaded?: (attachment: AttachmentSummary) => void;
   readonly pageId?: string;
 }
 
-export const PagesAttachments = ({ attachments: initialAttachments, canEdit, pageId }: IProps) => {
+export const PagesAttachments = ({ attachments: initialAttachments, canEdit, onAssetUploaded, pageId }: IProps) => {
   const t = useTranslations('pages.attachments');
   const [attachments, setAttachments] = useState(initialAttachments);
+
+  const handleUploaded = (attachment: AttachmentSummary): void => {
+    setAttachments((current) => [...current, attachment]);
+    onAssetUploaded?.(attachment);
+  };
 
   return (
     <section aria-labelledby="page-attachments-title" className="space-y-4 border border-border bg-card p-4 sm:p-6">
@@ -24,12 +30,7 @@ export const PagesAttachments = ({ attachments: initialAttachments, canEdit, pag
         </h2>
         <p className="mt-1 text-muted-foreground text-sm">{t('description')}</p>
       </div>
-      {canEdit && pageId !== undefined && (
-        <PagesAttachmentsUpload
-          onUploaded={(attachment) => setAttachments((current) => [...current, attachment])}
-          pageId={pageId}
-        />
-      )}
+      {canEdit && pageId !== undefined && <PagesAttachmentsUpload onUploaded={handleUploaded} pageId={pageId} />}
       {attachments.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t('empty')}</p>
       ) : (

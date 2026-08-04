@@ -8,6 +8,14 @@ export interface PageEditorCommand {
   readonly run: Command;
 }
 
+export type PageAssetNodeType = 'file' | 'image';
+
+export interface PageAssetInsertCommandOptions {
+  readonly alt?: string;
+  readonly assetId: string;
+  readonly caption?: string;
+}
+
 export interface PageSummary {
   readonly content: PageContent;
   readonly id: string;

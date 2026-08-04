@@ -14,7 +14,7 @@ export const createEmptyPageContent = (): PageContent => ({
 
 export const createPageEditorState = (content: PageContent): EditorState =>
   EditorState.create({
-    doc: pageEditorSchema.nodeFromJSON(content),
+    doc: pageEditorSchema.nodeFromJSON(pageContentSchema.parse(content)),
     plugins: createPageEditorPlugins(pageEditorSchema),
     schema: pageEditorSchema,
   });
@@ -33,20 +33,28 @@ const normalizePageEditorJson = (value: unknown): Record<string, unknown> => {
   if (!isPageEditorJsonObject(value)) return {};
 
   const normalized = Object.fromEntries(
-    Object.entries(value).map(([key, entryValue]) => [
-      key,
-      key === 'content' ? normalizePageEditorContent(entryValue) : entryValue,
-    ]),
+    Object.entries(value).map(([key, entryValue]) => [key, normalizePageEditorEntry(key, entryValue)]),
   );
   if (isPageEditorContentNode(value.type) && !('content' in value)) normalized.content = [];
   return normalized;
 };
 
+const normalizePageEditorEntry = (key: string, value: unknown): unknown => {
+  if (key === 'attrs') return normalizePageEditorAttrs(value);
+  if (key === 'content') return normalizePageEditorContent(value);
+  return value;
+};
+
 const normalizePageEditorContent = (value: unknown): readonly Record<string, unknown>[] =>
   Array.isArray(value) ? value.map((child) => normalizePageEditorJson(child)) : [];
 
+const normalizePageEditorAttrs = (value: unknown): Record<string, unknown> => {
+  if (!isPageEditorJsonObject(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== null));
+};
+
 const isPageEditorContentNode = (value: unknown): boolean =>
-  typeof value === 'string' && !['code', 'em', 'link', 'strong', 'text'].includes(value);
+  typeof value === 'string' && !['code', 'em', 'embed', 'file', 'image', 'link', 'strong', 'text'].includes(value);
 
 const isPageEditorJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

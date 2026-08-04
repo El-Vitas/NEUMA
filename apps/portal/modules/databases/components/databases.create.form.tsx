@@ -28,17 +28,22 @@ export const DatabasesCreateForm = ({ spaces }: IProps) => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-    const result = await createDatabaseAction({ name, slug, spaceId, template });
-    setIsSubmitting(false);
+    try {
+      const result = await createDatabaseAction({ name, slug, spaceId, template });
 
-    if (hasActionError(result)) {
-      toast.error(result.serverError ?? t('createError'));
-      return;
+      if (hasActionError(result)) {
+        toast.error(result.serverError ?? t('createError'));
+        return;
+      }
+
+      toast.success(t('created'));
+      setName('');
+      setSlug('');
+    } catch {
+      toast.error(t('createError'));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast.success(t('created'));
-    setName('');
-    setSlug('');
   };
 
   return (

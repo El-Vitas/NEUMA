@@ -185,4 +185,120 @@ describe('pageContentSchema', () => {
     expect(pageContentSchema.safeParse({ content: [], schemaVersion: 2, type: 'doc' }).success).toBe(false);
     expect(pageContentSchema.safeParse({ blocks: [], schemaVersion: 1 }).success).toBe(false);
   });
+
+  test('accepts tables, toggles, image/file nodes, and allowlisted embeds', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            content: [
+              {
+                content: [
+                  {
+                    content: [{ content: [{ text: 'Cell', type: 'text' }], type: 'paragraph' }],
+                    type: 'table_cell',
+                  },
+                ],
+                type: 'table_row',
+              },
+            ],
+            type: 'table',
+          },
+          {
+            attrs: { summary: 'Details' },
+            content: [{ content: [{ text: 'Nested content', type: 'text' }], type: 'paragraph' }],
+            type: 'toggle',
+          },
+          { attrs: { alt: 'Preview', assetId: 'asset-1', caption: 'Caption' }, type: 'image' },
+          { attrs: { alt: 'Document', assetId: 'asset-2' }, type: 'file' },
+          { attrs: { provider: 'youtube', url: 'https://www.youtube.com/watch?v=abc123' }, type: 'embed' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects malformed table and toggle nesting', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ content: [{ content: [], type: 'paragraph' }], type: 'table' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { summary: 'Details' }, content: [{ type: 'image' }], type: 'toggle' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('rejects unbounded table dimensions and metadata', () => {
+    const wideRow = {
+      content: Array.from({ length: 11 }, () => ({
+        content: [{ content: [{ text: 'Cell', type: 'text' }], type: 'paragraph' }],
+        type: 'table_cell',
+      })),
+      type: 'table_row',
+    };
+    const tallTable = {
+      content: Array.from({ length: 51 }, () => ({
+        content: [{ content: [{ text: 'Cell', type: 'text' }], type: 'paragraph' }],
+        type: 'table_cell',
+      })),
+      type: 'table_row',
+    };
+
+    expect(
+      pageContentSchema.safeParse({ content: [{ content: [wideRow], type: 'table' }], schemaVersion: 1, type: 'doc' })
+        .success,
+    ).toBe(false);
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ content: Array.from({ length: 51 }, () => tallTable), type: 'table' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { summary: 'x'.repeat(501) },
+            content: [{ content: [{ text: 'Nested', type: 'text' }], type: 'paragraph' }],
+            type: 'toggle',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('rejects unsafe embed URLs and filesystem metadata', () => {
+    for (const url of [
+      'javascript:alert(1)',
+      'data:text/html,unsafe',
+      'file:///tmp/video',
+      'https://evil.example/video',
+    ]) {
+      expect(
+        pageContentSchema.safeParse({
+          content: [{ attrs: { provider: 'youtube', url }, type: 'embed' }],
+          schemaVersion: 1,
+          type: 'doc',
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { assetId: 'asset-1', storageKey: 'private/path' }, type: 'file' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
 });

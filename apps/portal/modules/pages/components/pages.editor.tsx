@@ -2,31 +2,57 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, useTransition } from 'react';
+import { type ComponentRef, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { FormField } from '@/shared/components/ui/form-field';
 import { hasActionError } from '@/shared/lib/action-result';
+import {
+  buildPageAssetInsertOptionsFromAttachment,
+  mapAttachmentMimeTypeToPageAssetNodeType,
+} from '../lib/pages.attachments.lib';
+import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { createEmptyPageContent } from '../lib/pages.editor.lib';
+import { pageEditorSchema } from '../lib/pages.editor.schema';
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
+import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
+import { PagesAttachments } from './pages.attachments';
 import { PagesMoveForm } from './pages.move.form';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
 interface IProps {
+  readonly attachments?: readonly AttachmentSummary[];
   readonly canEdit: boolean;
+  readonly currentUserDisplayName?: string;
   readonly page: PageSummary | null;
   readonly pageId: string | null;
   readonly pages: readonly PageSummary[];
   readonly spaceId: string;
 }
 
-export const PagesEditor = ({ canEdit, page, pageId, pages, spaceId }: IProps) => {
+export const PagesEditor = ({
+  attachments = [],
+  canEdit,
+  currentUserDisplayName,
+  page,
+  pageId,
+  pages,
+  spaceId,
+}: IProps) => {
   const router = useRouter();
   const t = useTranslations('pages');
   const [title, setTitle] = useState(page?.title ?? '');
   const contentRef = useRef<PageContent>(page?.content ?? createEmptyPageContent());
+  const editorHandleRef = useRef<ComponentRef<typeof PagesProseMirrorEditor>>(null);
   const [isPending, startTransition] = useTransition();
+
+  const insertUploadedAssetIntoDocument = (attachment: AttachmentSummary): void => {
+    const nodeType = mapAttachmentMimeTypeToPageAssetNodeType(attachment.mimeType);
+    const options = buildPageAssetInsertOptionsFromAttachment(attachment);
+    const insertCommand = createPageAssetInsertCommand(pageEditorSchema, nodeType, options);
+    editorHandleRef.current?.runCommand(insertCommand);
+  };
 
   const savePage = () => {
     startTransition(async () => {
@@ -69,10 +95,12 @@ export const PagesEditor = ({ canEdit, page, pageId, pages, spaceId }: IProps) =
           <PagesProseMirrorEditor
             canEdit={canEdit}
             content={page?.content ?? createEmptyPageContent()}
+            currentUserDisplayName={currentUserDisplayName}
             onContentChange={(content) => {
               contentRef.current = content;
             }}
             pageId={pageId}
+            ref={editorHandleRef}
           />
           <p className="mt-2 text-muted-foreground text-xs" id="page-content-help">
             {t('contentHelp')}
@@ -84,6 +112,14 @@ export const PagesEditor = ({ canEdit, page, pageId, pages, spaceId }: IProps) =
           </PrimaryButton>
         )}
         {page !== null && canEdit && <PagesMoveForm page={page} pages={pages} spaceId={spaceId} />}
+        {pageId !== null && (
+          <PagesAttachments
+            attachments={attachments}
+            canEdit={canEdit}
+            onAssetUploaded={insertUploadedAssetIntoDocument}
+            pageId={pageId}
+          />
+        )}
       </div>
     </section>
   );

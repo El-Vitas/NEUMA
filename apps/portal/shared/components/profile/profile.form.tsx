@@ -27,8 +27,14 @@ export const ProfileForm = ({ user }: IProps) => {
   const roleTranslations = useTranslations('users.roles');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(user.name);
+  const [syncedName, setSyncedName] = useState(user.name);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  if (user.name !== syncedName) {
+    setSyncedName(user.name);
+    setName(user.name);
+  }
 
   const handleUpdateName = async () => {
     const result = await updateProfileNameAction({ userId: user.id, name });

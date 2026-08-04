@@ -48,7 +48,8 @@
     "to": "to",
     "ascending": "Ascending",
     "descending": "Descending",
-    "hide": "Hide"
+    "hide": "Hide",
+    "actionError": "Something went wrong. Try again."
   },
   "navigation": {
     "general": "General",
@@ -219,7 +220,10 @@
       "reconnecting": "Reconnecting collaborative editing...",
       "disconnected": "Collaborative editing disconnected.",
       "error": "Collaborative editing is unavailable.",
-      "fallback": "Editing locally; changes will use the standard page save."
+      "exhausted": "Collaborative editing could not reconnect after several attempts.",
+      "fallback": "Editing locally; changes will use the standard page save.",
+      "participants": "People editing this page now",
+      "participantFallback": "Anonymous"
     },
     "location": "Location",
     "spaceRoot": "Space root",
@@ -245,6 +249,8 @@
       "code": "Code",
       "codeBlock": "Code block",
       "redo": "Redo",
+      "table": "Table",
+      "toggle": "Toggle",
       "undo": "Undo"
     },
     "attachments": {

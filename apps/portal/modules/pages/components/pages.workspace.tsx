@@ -11,14 +11,15 @@ import { PagesTree } from './pages.tree';
 
 interface IProps {
   readonly canEditContent: boolean;
+  readonly currentUserDisplayName?: string;
   readonly pages: readonly PageSummary[];
   readonly spaceId: string;
 }
 
-export const PagesWorkspace = ({ canEditContent, pages, spaceId }: IProps) => {
+export const PagesWorkspace = ({ canEditContent, currentUserDisplayName, pages, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const [selectedPage, setSelectedPage] = useState<PageSummary | null>(
-    pages.find((page) => page.lifecycle === 'ACTIVE') ?? null,
+    () => pages.find((page) => page.lifecycle === 'ACTIVE') ?? null,
   );
   const tree = buildPageTree(pages);
   const canEditSelectedPage = canEditPage(canEditContent, selectedPage?.lifecycle ?? null);
@@ -49,6 +50,7 @@ export const PagesWorkspace = ({ canEditContent, pages, spaceId }: IProps) => {
       </aside>
       <PagesEditor
         canEdit={canEditSelectedPage}
+        currentUserDisplayName={currentUserDisplayName}
         key={`${selectedPage?.id ?? 'new-page'}:${selectedPage?.lifecycle ?? 'new'}`}
         page={selectedPage}
         pageId={selectedPage?.id ?? null}

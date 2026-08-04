@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { useFilterSelection } from '@/shared/hooks/use-filter-selection';
+import { useColumnFilterSelection } from '@/shared/hooks/use-column-filter-selection';
 import { buildSelectionLabel } from '@/shared/lib/data-table.lib';
 
 import type { Option } from '@/types/data-table';
@@ -27,11 +27,7 @@ export const DataTableMobileFacetedFilter = <TData, TValue>({
   const [open, setOpen] = useState(false);
   const t = useTranslations('common');
 
-  const columnFilterValue = column?.getFilterValue();
-
-  const { onItemSelect, onReset, selectedValues } = useFilterSelection<string>(columnFilterValue, (values) =>
-    column?.setFilterValue(values),
-  );
+  const { onItemSelect, onReset, selectedValues } = useColumnFilterSelection(column);
 
   const selectedCount = selectedValues.size;
   const label = buildSelectionLabel(selectedCount, title ?? '');

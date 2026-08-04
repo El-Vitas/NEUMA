@@ -3,7 +3,7 @@ import { ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_SIZE } from '../constants/pages.a
 
 const allowedAttachmentMimeTypes = new Set<string>(ATTACHMENT_MIME_TYPES);
 
-export const attachmentIdSchema = z.string().uuid();
+export const attachmentIdSchema = z.uuid();
 
 export const attachmentSummarySchema = z.object({
   id: attachmentIdSchema,

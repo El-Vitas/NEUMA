@@ -1,12 +1,13 @@
 'use client';
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
-import { Button } from '@/shared/components/ui/button';
 import { FormField } from '@/shared/components/ui/form-field';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { Link } from '../../../i18n/navigation';
 import { INITIAL_FORM_STATE } from '../constants/auth.form.constants';
 import { submitRegister } from '../lib/auth.form.lib';
+import { AuthFormStatus } from './auth.form.status';
+import { AuthPasswordField } from './auth.password.field';
 
 export const RegisterForm = () => {
   const t = useTranslations('auth.register');
@@ -34,23 +35,15 @@ export const RegisterForm = () => {
         type="email"
       />
 
-      <FormField
-        id="register-password"
-        label={t('password')}
-        minLength={8}
-        name="password"
-        placeholder="********"
-        required
-        type="password"
+      <AuthPasswordField id="register-password" label={t('password')} />
+
+      <AuthFormStatus
+        errorMessage={state.messageKey ? t(state.messageKey) : state.message}
+        isPending={isPending}
+        state={state}
+        submitLabel={t('submit')}
+        submittingLabel={t('submitting')}
       />
-
-      {(state.message !== '' || state.messageKey !== undefined) && (
-        <p className="text-sm text-status-error">{state.messageKey ? t(state.messageKey) : state.message}</p>
-      )}
-
-      <Button className="mt-2 h-12 w-full" disabled={isPending} size="lg" type="submit" variant="primary">
-        {isPending ? t('submitting') : t('submit')}
-      </Button>
 
       <p className="mt-6 text-base text-status-muted">
         {t('existingAccount')}{' '}

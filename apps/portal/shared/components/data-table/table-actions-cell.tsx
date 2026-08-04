@@ -3,6 +3,7 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,9 +41,13 @@ export const TableActionsCell = ({ actions }: IProps) => {
             onSelect={async (e) => {
               if (action.href) return;
               e.preventDefault();
-              if (action.onClick) {
-                setIsPending(true);
+              if (!action.onClick) return;
+              setIsPending(true);
+              try {
                 await action.onClick();
+              } catch {
+                toast.error(t('actionError'));
+              } finally {
                 setIsPending(false);
               }
             }}

@@ -6,6 +6,7 @@ import {
   serializePageEditorState,
 } from '@/modules/pages/lib/pages.editor.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
+import { structuredEmbedNodeFixture, structuredToggleNodeFixture } from './pages.content.fixture';
 
 const content: PageContent = {
   content: [
@@ -72,6 +73,40 @@ describe('pages.editor.lib', () => {
     };
 
     expect(serializePageEditorState(createPageEditorState(richContent))).toEqual(richContent);
+  });
+
+  it('preserves structured blocks and marks during serialization', () => {
+    const structuredContent: PageContent = {
+      content: [
+        {
+          content: [
+            {
+              content: [
+                {
+                  content: [
+                    {
+                      content: [{ marks: [{ type: 'strong' }], text: 'Cell', type: 'text' }],
+                      type: 'paragraph',
+                    },
+                  ],
+                  type: 'table_cell',
+                },
+              ],
+              type: 'table_row',
+            },
+          ],
+          type: 'table',
+        },
+        structuredToggleNodeFixture,
+        { attrs: { alt: 'Image', assetId: 'asset-1' }, type: 'image' },
+        { attrs: { assetId: 'asset-2', caption: 'File' }, type: 'file' },
+        structuredEmbedNodeFixture,
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+
+    expect(serializePageEditorState(createPageEditorState(structuredContent))).toEqual(structuredContent);
   });
 
   it('marks viewer and trashed pages as read-only', () => {

@@ -41,26 +41,51 @@ const event = (overrides: Partial<OutboxEventRecord> = {}): OutboxEventRecord =>
   ...overrides,
 });
 
+type OutboxStubOverrides = Partial<{
+  readonly markFailed: (id: string) => Promise<void>;
+  readonly markProcessed: (id: string) => Promise<void>;
+  readonly markRetryable: (id: string) => Promise<void>;
+}>;
+
+const createOutboxStub = (
+  claimPending: () => Promise<readonly OutboxEventRecord[]>,
+  overrides: OutboxStubOverrides = {},
+) => ({
+  claimPending,
+  markFailed: (): Promise<void> => Promise.resolve(),
+  markProcessed: (): Promise<void> => Promise.resolve(),
+  markRetryable: (): Promise<void> => Promise.resolve(),
+  ...overrides,
+});
+
+const createSourceStub = (overrides: Partial<SearchProjectionSource> = {}): SearchProjectionSource => ({
+  findPage: () => Promise.resolve(null),
+  findRecord: () => Promise.resolve(null),
+  listRecords: () => Promise.resolve([]),
+  ...overrides,
+});
+
+const createProjectionStub = (overrides: Partial<SearchDocumentProjection> = {}): SearchDocumentProjection => ({
+  applyProjection: () => Promise.resolve(),
+  removeProjection: () => Promise.resolve(),
+  ...overrides,
+});
+
+const createFailingRecordWorker = (outbox: ReturnType<typeof createOutboxStub>): SearchProjectionWorker => {
+  const source = createSourceStub({ findRecord: () => Promise.reject(new Error('database unavailable')) });
+  return new SearchProjectionWorker(outbox, source, createProjectionStub());
+};
+
 const createWorker = (events: readonly OutboxEventRecord[]) => {
   const applied: SearchDocumentInput[] = [];
-  const outbox = {
-    claimPending: (): Promise<readonly OutboxEventRecord[]> => Promise.resolve(events),
-    markFailed: (): Promise<void> => Promise.resolve(),
-    markProcessed: (): Promise<void> => Promise.resolve(),
-    markRetryable: (): Promise<void> => Promise.resolve(),
-  };
-  const source: SearchProjectionSource = {
-    findPage: () => Promise.resolve(null),
-    findRecord: () => Promise.resolve(record),
-    listRecords: () => Promise.resolve([]),
-  };
-  const projection: SearchDocumentProjection = {
+  const outbox = createOutboxStub(() => Promise.resolve(events));
+  const source = createSourceStub({ findRecord: () => Promise.resolve(record) });
+  const projection = createProjectionStub({
     applyProjection: (input): Promise<void> => {
       applied.push(input);
       return Promise.resolve();
     },
-    removeProjection: (): Promise<void> => Promise.resolve(),
-  };
+  });
   const worker = new SearchProjectionWorker(outbox, source, projection);
   return { applied, worker };
 };
@@ -80,33 +105,24 @@ describe('SearchProjectionWorker', () => {
       title: 'Current title',
       version: 12,
     };
-    const outbox = {
-      claimPending: (): Promise<readonly OutboxEventRecord[]> =>
-        Promise.resolve([
-          event({
-            aggregateId: 'page-1',
-            aggregateType: 'PAGE',
-            eventType: 'PAGE_UPDATED',
-            idempotencyKey: 'page:page-1:version:10',
-            payload: { pageId: 'page-1', version: 10 },
-          }),
-        ]),
-      markFailed: (): Promise<void> => Promise.resolve(),
-      markProcessed: (): Promise<void> => Promise.resolve(),
-      markRetryable: (): Promise<void> => Promise.resolve(),
-    };
-    const source: SearchProjectionSource = {
-      findPage: () => Promise.resolve(page),
-      findRecord: () => Promise.resolve(null),
-      listRecords: () => Promise.resolve([]),
-    };
-    const projection: SearchDocumentProjection = {
+    const outbox = createOutboxStub(() =>
+      Promise.resolve([
+        event({
+          aggregateId: 'page-1',
+          aggregateType: 'PAGE',
+          eventType: 'PAGE_UPDATED',
+          idempotencyKey: 'page:page-1:version:10',
+          payload: { pageId: 'page-1', version: 10 },
+        }),
+      ]),
+    );
+    const source = createSourceStub({ findPage: () => Promise.resolve(page) });
+    const projection = createProjectionStub({
       applyProjection: (input) => {
         applied.push(input);
         return Promise.resolve();
       },
-      removeProjection: () => Promise.resolve(),
-    };
+    });
     const worker = new SearchProjectionWorker(outbox, source, projection);
 
     await worker.processBatch(10);
@@ -146,14 +162,10 @@ describe('SearchProjectionWorker', () => {
 
   test('removes an inactive page projection instead of keeping it searchable', async () => {
     const removals: SearchDocumentRemoval[] = [];
-    const outbox = {
-      claimPending: (): Promise<readonly OutboxEventRecord[]> =>
-        Promise.resolve([event({ aggregateId: 'page-1', aggregateType: 'PAGE', eventType: 'PAGE_TRASHED' })]),
-      markFailed: (): Promise<void> => Promise.resolve(),
-      markProcessed: (): Promise<void> => Promise.resolve(),
-      markRetryable: (): Promise<void> => Promise.resolve(),
-    };
-    const source: SearchProjectionSource = {
+    const outbox = createOutboxStub(() =>
+      Promise.resolve([event({ aggregateId: 'page-1', aggregateType: 'PAGE', eventType: 'PAGE_TRASHED' })]),
+    );
+    const source = createSourceStub({
       findPage: () =>
         Promise.resolve({
           content: {},
@@ -163,16 +175,13 @@ describe('SearchProjectionWorker', () => {
           title: 'Deleted page',
           version: 4,
         }),
-      findRecord: () => Promise.resolve(null),
-      listRecords: () => Promise.resolve([]),
-    };
-    const projection: SearchDocumentProjection = {
-      applyProjection: () => Promise.resolve(),
+    });
+    const projection = createProjectionStub({
       removeProjection: (input) => {
         removals.push(input);
         return Promise.resolve();
       },
-    };
+    });
     const worker = new SearchProjectionWorker(outbox, source, projection);
 
     await worker.processBatch(10);
@@ -188,21 +197,11 @@ describe('SearchProjectionWorker', () => {
       database: { ...record.database, lifecycle: 'ARCHIVED' },
       id: 'record-archived',
     };
-    const outbox = {
-      claimPending: (): Promise<readonly OutboxEventRecord[]> =>
-        Promise.resolve([
-          event({ aggregateId: 'database-1', aggregateType: 'DATABASE', eventType: 'DATABASE_UPDATED' }),
-        ]),
-      markFailed: (): Promise<void> => Promise.resolve(),
-      markProcessed: (): Promise<void> => Promise.resolve(),
-      markRetryable: (): Promise<void> => Promise.resolve(),
-    };
-    const source: SearchProjectionSource = {
-      findPage: () => Promise.resolve(null),
-      findRecord: () => Promise.resolve(null),
-      listRecords: () => Promise.resolve([record, archivedRecord]),
-    };
-    const projection: SearchDocumentProjection = {
+    const outbox = createOutboxStub(() =>
+      Promise.resolve([event({ aggregateId: 'database-1', aggregateType: 'DATABASE', eventType: 'DATABASE_UPDATED' })]),
+    );
+    const source = createSourceStub({ listRecords: () => Promise.resolve([record, archivedRecord]) });
+    const projection = createProjectionStub({
       applyProjection: (input) => {
         applied.push(input);
         return Promise.resolve();
@@ -211,7 +210,7 @@ describe('SearchProjectionWorker', () => {
         removals.push(input);
         return Promise.resolve();
       },
-    };
+    });
     const worker = new SearchProjectionWorker(outbox, source, projection);
 
     await worker.processBatch(10);
@@ -222,28 +221,17 @@ describe('SearchProjectionWorker', () => {
 
   test('marks a failed event retryable with bounded attempts', async () => {
     const failed: string[] = [];
-    const outbox = {
-      claimPending: (): Promise<readonly OutboxEventRecord[]> => Promise.resolve([event()]),
+    const outbox = createOutboxStub(() => Promise.resolve([event()]), {
       markFailed: (id: string): Promise<void> => {
         failed.push(`failed:${id}`);
         return Promise.resolve();
       },
-      markProcessed: (): Promise<void> => Promise.resolve(),
       markRetryable: (id: string): Promise<void> => {
         failed.push(`retry:${id}`);
         return Promise.resolve();
       },
-    };
-    const source: SearchProjectionSource = {
-      findPage: () => Promise.resolve(null),
-      findRecord: () => Promise.reject(new Error('database unavailable')),
-      listRecords: () => Promise.resolve([]),
-    };
-    const projection: SearchDocumentProjection = {
-      applyProjection: () => Promise.resolve(),
-      removeProjection: () => Promise.resolve(),
-    };
-    const worker = new SearchProjectionWorker(outbox, source, projection);
+    });
+    const worker = createFailingRecordWorker(outbox);
 
     await worker.processBatch(10);
 
@@ -252,24 +240,13 @@ describe('SearchProjectionWorker', () => {
 
   test('marks an event permanently failed at the attempt limit', async () => {
     const failed: string[] = [];
-    const outbox = {
-      claimPending: (): Promise<readonly OutboxEventRecord[]> => Promise.resolve([event({ attemptCount: 5 })]),
+    const outbox = createOutboxStub(() => Promise.resolve([event({ attemptCount: 5 })]), {
       markFailed: (id: string): Promise<void> => {
         failed.push(id);
         return Promise.resolve();
       },
-      markProcessed: (): Promise<void> => Promise.resolve(),
-      markRetryable: (): Promise<void> => Promise.resolve(),
-    };
-    const source: SearchProjectionSource = {
-      findPage: () => Promise.resolve(null),
-      findRecord: () => Promise.reject(new Error('database unavailable')),
-      listRecords: () => Promise.resolve([]),
-    };
-    const worker = new SearchProjectionWorker(outbox, source, {
-      applyProjection: () => Promise.resolve(),
-      removeProjection: () => Promise.resolve(),
     });
+    const worker = createFailingRecordWorker(outbox);
 
     await worker.processBatch(10);
 
