@@ -70,7 +70,10 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
           className="h-1 bg-muted"
           role="progressbar"
         >
-          <div className="h-1 bg-primary transition-all" style={{ width: `${progress}%` }} />
+          <div
+            className="h-1 origin-left bg-primary transition-transform"
+            style={{ transform: `scaleX(${progress / 100})` }}
+          />
         </div>
       )}
       <p className="text-muted-foreground text-xs">{t('fileHelp')}</p>

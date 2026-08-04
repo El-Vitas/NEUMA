@@ -1,10 +1,11 @@
 'use client';
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
-import { Button } from '@/shared/components/ui/button';
 import { FormField } from '@/shared/components/ui/form-field';
 import { INITIAL_FORM_STATE } from '../constants/auth.form.constants';
 import { submitLogin } from '../lib/auth.form.lib';
+import { AuthFormStatus } from './auth.form.status';
+import { AuthPasswordField } from './auth.password.field';
 
 export const LoginForm = () => {
   const t = useTranslations('auth.login');
@@ -21,23 +22,15 @@ export const LoginForm = () => {
         type="email"
       />
 
-      <FormField
-        id="login-password"
-        label={t('password')}
-        minLength={8}
-        name="password"
-        placeholder="********"
-        required
-        type="password"
+      <AuthPasswordField id="login-password" label={t('password')} />
+
+      <AuthFormStatus
+        errorMessage={state.messageKey ? t(state.messageKey) : state.message}
+        isPending={isPending}
+        state={state}
+        submitLabel={t('submit')}
+        submittingLabel={t('submitting')}
       />
-
-      {(state.message !== '' || state.messageKey !== undefined) && (
-        <p className="text-sm text-status-error">{state.messageKey ? t(state.messageKey) : state.message}</p>
-      )}
-
-      <Button className="mt-2 h-12 w-full" disabled={isPending} size="lg" type="submit" variant="primary">
-        {isPending ? t('submitting') : t('submit')}
-      </Button>
     </form>
   );
 };

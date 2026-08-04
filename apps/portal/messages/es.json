@@ -48,7 +48,8 @@
     "to": "hasta",
     "ascending": "Ascendente",
     "descending": "Descendente",
-    "hide": "Ocultar"
+    "hide": "Ocultar",
+    "actionError": "Ocurrió un error. Intenta de nuevo."
   },
   "navigation": {
     "general": "General",
@@ -219,7 +220,10 @@
       "reconnecting": "Reconectando la edición colaborativa...",
       "disconnected": "Edición colaborativa desconectada.",
       "error": "La edición colaborativa no está disponible.",
-      "fallback": "Editando localmente; los cambios usarán el guardado estándar."
+      "exhausted": "No se pudo reconectar la edición colaborativa tras varios intentos.",
+      "fallback": "Editando localmente; los cambios usarán el guardado estándar.",
+      "participants": "Personas editando esta página ahora",
+      "participantFallback": "Anónimo"
     },
     "location": "Ubicación",
     "spaceRoot": "Raíz del espacio",
@@ -245,6 +249,8 @@
       "code": "Código",
       "codeBlock": "Bloque de código",
       "redo": "Rehacer",
+      "table": "Tabla",
+      "toggle": "Desplegable",
       "undo": "Deshacer"
     },
     "attachments": {

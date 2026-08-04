@@ -10,6 +10,7 @@ import { validateFileUpload } from './domain/files.domain';
 import { FileAccessDeniedError, FileStorageError, FileValidationError } from './domain/files.error';
 import type {
   CreateFileAssetInput,
+  FileAssetMetadata,
   FileAssetRepository,
   FileAssetSummary,
   FileDownload,
@@ -90,6 +91,17 @@ export class FilesService {
       this.reportStorageFailure('file_asset_download', error);
       return Result.fail(new FileStorageError());
     }
+  }
+
+  async listByPage(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<readonly FileAssetMetadata[], FileAccessDeniedError>> {
+    const assets = await this.fileAssetRepository.findByPage(pageId, workspaceId, userId, role);
+    if (assets === null) return Result.fail(new FileAccessDeniedError());
+    return Result.ok(assets);
   }
 
   async delete(

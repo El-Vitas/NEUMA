@@ -11,6 +11,7 @@ import type { TokenPayload } from '../../common/types/auth.types';
 import type { UploadedFile } from '../../common/types/fastify-file.types';
 import { FileAssetQueryDto } from './dto/file.asset.query.dto';
 import { FilesService } from './files.service';
+import type { FileAssetMetadata } from './types/files.types';
 
 @Controller('files')
 @UseGuards(JwtAuthGuard)
@@ -57,6 +58,17 @@ export class FilesController {
       .header('Content-Type', download.mimeType)
       .header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(download.originalFilename)}`)
       .send(download.body);
+  }
+
+  @Get('page/:pageId')
+  async listByPage(
+    @Param('pageId') pageId: string,
+    @User('payload') payload: TokenPayload,
+  ): Promise<FileAssetMetadata[]> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.filesService.listByPage(pageId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) throw result.getError();
+    return [...result.getValue()];
   }
 
   @Delete(':assetId')

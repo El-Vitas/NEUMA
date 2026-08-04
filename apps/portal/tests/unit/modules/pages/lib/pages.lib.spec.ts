@@ -42,4 +42,18 @@ describe('pages.lib', () => {
 
     expect(extractPageText(summary.content)).toBe('page-1');
   });
+
+  it('joins multiple extracted blocks with a blank line', () => {
+    const content: PageSummary['content'] = {
+      content: [
+        { content: [{ text: 'First', type: 'text' }], type: 'paragraph' },
+        { attrs: { alt: 'Image metadata', assetId: 'asset-image' }, type: 'image' },
+        { content: [{ text: 'Second', type: 'text' }], type: 'paragraph' },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+
+    expect(extractPageText(content)).toBe('First\n\nSecond');
+  });
 });

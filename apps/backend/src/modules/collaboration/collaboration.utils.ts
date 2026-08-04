@@ -1,5 +1,10 @@
 import {
   COLLABORATION_DOCUMENT_PREFIX,
+  type CollaborationPresenceState,
+  sanitizeCollaborationPresenceIdentity,
+} from '@company-brain/shared';
+import {
+  MAX_COLLABORATION_AWARENESS_STATE_BYTES,
   MAX_COLLABORATION_DOCUMENT_NAME_LENGTH,
   MAX_COLLABORATION_STATE_BYTES,
   MAX_COLLABORATION_UPDATE_BYTES,
@@ -39,5 +44,20 @@ export const assertStateSize = (state: Uint8Array): Promise<void> => {
     return Promise.resolve();
   } catch {
     return Promise.reject(new Error('state-too-large'));
+  }
+};
+
+export const sanitizePresenceState = (state: Record<string, unknown> | undefined): CollaborationPresenceState => ({
+  cursor: state?.cursor ?? null,
+  user: sanitizeCollaborationPresenceIdentity(state?.user),
+});
+
+export const assertAwarenessStateSize = (state: unknown): Promise<void> => {
+  try {
+    const encoded = new TextEncoder().encode(JSON.stringify(state ?? {}));
+    assertByteLength(encoded, MAX_COLLABORATION_AWARENESS_STATE_BYTES, 'awareness-payload-too-large');
+    return Promise.resolve();
+  } catch {
+    return Promise.reject(new Error('awareness-payload-too-large'));
   }
 };

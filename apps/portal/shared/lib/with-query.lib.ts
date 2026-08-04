@@ -1,18 +1,24 @@
 import { Result } from '@company-brain/shared';
-import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
-import { ACCESS_TOKEN_COOKIE } from '@/shared/constants/auth.constants';
+import { requireAccessTokenCookie } from './auth.token.lib';
 
-const getAccessToken = async (): Promise<string> => {
-  const cookieStore = await cookies();
-  return cookieStore.get(ACCESS_TOKEN_COOKIE)?.value ?? '';
+const logQueryFailure = (meta: { op: string; params?: unknown }, error: unknown, durationMs?: number): Error => {
+  const wrapped = error instanceof Error ? error : new Error(String(error));
+  logger.error({ ...meta, status: 'error', error: wrapped.message, stack: wrapped.stack, durationMs });
+  return wrapped;
 };
 
 export const withQuery = async <T>(
   meta: { op: string; params?: unknown },
   fn: (accessToken: string) => Promise<T>,
 ): Promise<Result<T, Error>> => {
-  const accessToken = await getAccessToken();
+  let accessToken: string;
+  try {
+    accessToken = await requireAccessTokenCookie();
+  } catch (error) {
+    return Result.fail(logQueryFailure(meta, error));
+  }
+
   const start = Date.now();
   logger.info({ ...meta, status: 'start' });
 
@@ -21,14 +27,6 @@ export const withQuery = async <T>(
     logger.info({ ...meta, status: 'success', durationMs: Date.now() - start });
     return Result.ok(result);
   } catch (error) {
-    const wrapped = error instanceof Error ? error : new Error(String(error));
-    logger.error({
-      ...meta,
-      status: 'error',
-      error: wrapped.message,
-      stack: wrapped.stack,
-      durationMs: Date.now() - start,
-    });
-    return Result.fail(wrapped);
+    return Result.fail(logQueryFailure(meta, error, Date.now() - start));
   }
 };

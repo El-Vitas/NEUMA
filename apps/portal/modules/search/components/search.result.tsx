@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/shared/components/ui/badge';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { formatSearchResultDate } from '../lib/search.lib';
 import type { SearchResult } from '../types/search.types';
 
 interface IProps {
@@ -27,9 +28,7 @@ export const SearchResultCard = ({ locale, result }: IProps) => {
             <Badge variant="outline">{t(`sourceTypes.${result.sourceType}`)}</Badge>
             <span>{result.contentType}</span>
             <span>{t('spaceValue', { space: result.spaceId })}</span>
-            <time dateTime={result.updatedAt}>
-              {new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(result.updatedAt))}
-            </time>
+            <time dateTime={result.updatedAt}>{formatSearchResultDate(locale, result.updatedAt)}</time>
           </div>
         </div>
       </div>

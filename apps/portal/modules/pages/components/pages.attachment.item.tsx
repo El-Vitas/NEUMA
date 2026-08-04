@@ -3,9 +3,10 @@
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { formatAttachmentSize } from '../lib/pages.attachments.lib';
+import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { formatAttachmentSize, triggerAttachmentBlobDownload } from '../lib/pages.attachments.lib';
 import { deletePageAttachmentAction, downloadPageAttachmentAction } from '../server/actions/pages.attachments.actions';
-import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { AttachmentDownload, AttachmentSummary } from '../types/pages.attachments.types';
 
 interface IProps {
   readonly attachment: AttachmentSummary;
@@ -20,26 +21,21 @@ export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) 
 
   const download = () => {
     startTransition(async () => {
-      const result = await downloadPageAttachmentAction(attachment.id);
-      if (!result.ok) {
+      const result = await downloadPageAttachmentAction({ attachmentId: attachment.id });
+      if (!isActionSuccess<AttachmentDownload>(result)) {
         toast.error(t('downloadError'));
         return;
       }
-      const blob = new Blob([new Uint8Array(result.download.body)], { type: result.download.mimeType });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = result.download.originalFilename;
-      link.click();
-      URL.revokeObjectURL(link.href);
+      triggerAttachmentBlobDownload(result.data);
     });
   };
 
   const remove = () => {
     setIsDeleting(true);
     startTransition(async () => {
-      const result = await deletePageAttachmentAction(attachment.id);
+      const result = await deletePageAttachmentAction({ attachmentId: attachment.id });
       setIsDeleting(false);
-      if (!result.ok) {
+      if (hasActionError(result)) {
         toast.error(t('deleteError'));
         return;
       }

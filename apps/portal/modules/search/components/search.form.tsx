@@ -23,7 +23,7 @@ export const SearchForm = ({ initialValues }: IProps) => {
   const [contentType, setContentType] = useState(initialValues.contentType ?? '');
   const [sourceType, setSourceType] = useState(initialValues.sourceType ?? '');
   const [spaceId, setSpaceId] = useState(initialValues.spaceId ?? '');
-  const [tags, setTags] = useState(initialValues.tags?.join(',') ?? '');
+  const [tags, setTags] = useState(() => initialValues.tags?.join(',') ?? '');
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();

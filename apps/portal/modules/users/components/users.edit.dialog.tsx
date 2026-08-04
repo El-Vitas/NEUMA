@@ -27,22 +27,33 @@ export const UsersEditDialog = ({ user }: IProps) => {
   const t = useTranslations('users');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(user.name);
+  const [syncedName, setSyncedName] = useState(user.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (user.name !== syncedName) {
+    setSyncedName(user.name);
+    setName(user.name);
+  }
 
   const isSaveDisabled = name.trim() === '' || name === user.name || isSubmitting;
 
   const handleRename = async () => {
     setIsSubmitting(true);
-    const result = await updateUserNameAction({ userId: user.id, name });
-    setIsSubmitting(false);
+    try {
+      const result = await updateUserNameAction({ userId: user.id, name });
 
-    if (hasActionError(result)) {
-      toast.error(result.serverError ?? t('updateError'));
-      return;
+      if (hasActionError(result)) {
+        toast.error(result.serverError ?? t('updateError'));
+        return;
+      }
+
+      toast.success(t('updatedSuccess'));
+      setOpen(false);
+    } catch {
+      toast.error(t('updateError'));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast.success(t('updatedSuccess'));
-    setOpen(false);
   };
 
   return (

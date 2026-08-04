@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SIDEBAR_STORAGE_KEY } from '../constants/sidebar.constants';
 
 const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
@@ -31,12 +31,12 @@ const writeStoredCollapsed = (collapsed: boolean): void => {
 export const useSidebarCollapsed = (): readonly [boolean, () => void] => {
   const [collapsed, setCollapsed] = useState<boolean>(readStoredCollapsed);
 
+  useEffect(() => {
+    writeStoredCollapsed(collapsed);
+  }, [collapsed]);
+
   const toggle = (): void => {
-    setCollapsed((current) => {
-      const nextCollapsed = !current;
-      writeStoredCollapsed(nextCollapsed);
-      return nextCollapsed;
-    });
+    setCollapsed((current) => !current);
   };
 
   return [collapsed, toggle] as const;

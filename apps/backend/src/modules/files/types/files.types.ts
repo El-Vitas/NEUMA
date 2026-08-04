@@ -17,6 +17,13 @@ export interface FileAssetSummary {
   readonly workspaceId: string;
 }
 
+export interface FileAssetMetadata {
+  readonly id: string;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+  readonly size: number;
+}
+
 export interface CreateFileAssetInput {
   readonly buffer: Buffer;
   readonly databaseRecordId: string | null;
@@ -54,6 +61,12 @@ export interface FileAssetRepository {
     userId: string,
     role: UserRole,
   ) => Promise<FileAssetSummary | null>;
+  readonly findByPage: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<readonly FileAssetMetadata[] | null>;
   readonly markDeleted: (assetId: string, workspaceId: string, userId: string) => Promise<boolean>;
 }
 

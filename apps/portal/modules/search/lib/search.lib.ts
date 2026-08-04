@@ -1,4 +1,5 @@
 import { API_ROUTES, ROUTES } from '@/shared/routes/constants/routes.constants';
+import { SEARCH_RESULT_DATE_FORMATTER_EN, SEARCH_RESULT_DATE_FORMATTER_ES } from '../constants/search.constants';
 import { searchResponseSchema } from '../schemas/search.schemas';
 import type { SearchPage, SearchQuery, SearchResult, SearchSnippetPart } from '../types/search.types';
 
@@ -42,6 +43,15 @@ const buildSearchQueryString = (params: SearchQuery, includeDefaultLimit: boolea
   if (params.spaceId !== undefined) query.set('spaceId', params.spaceId);
   if (params.tags !== undefined) query.set('tags', params.tags.join(','));
   return query.toString();
+};
+
+export const formatSearchResultDate = (locale: string, updatedAt: string): string => {
+  switch (locale) {
+    case 'es':
+      return SEARCH_RESULT_DATE_FORMATTER_ES.format(new Date(updatedAt));
+    default:
+      return SEARCH_RESULT_DATE_FORMATTER_EN.format(new Date(updatedAt));
+  }
 };
 
 export const mapSearchResponse = (response: unknown): SearchPage => {

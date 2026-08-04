@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'bun:test';
-import { buildSearchApiEndpoint, mapSearchResponse, parseSearchSnippet } from '@/modules/search/lib/search.lib';
+import { describe, expect, it, spyOn } from 'bun:test';
+import {
+  buildSearchApiEndpoint,
+  formatSearchResultDate,
+  mapSearchResponse,
+  parseSearchSnippet,
+} from '@/modules/search/lib/search.lib';
 import { searchQuerySchema } from '@/modules/search/schemas/search.schemas';
 
 describe('search.lib', () => {
@@ -76,5 +81,21 @@ describe('search.lib', () => {
       ],
       nextCursor: 'next-page',
     });
+  });
+
+  it('formats the result date per locale using a hoisted formatter instance', () => {
+    expect(formatSearchResultDate('en', '2026-08-03T12:00:00.000Z')).toBe('Aug 3, 2026');
+    expect(formatSearchResultDate('es', '2026-08-03T12:00:00.000Z')).toBe('3 ago 2026');
+  });
+
+  it('reuses the hoisted formatter instance instead of constructing a new one on each call', () => {
+    const constructorSpy = spyOn(Intl, 'DateTimeFormat');
+
+    formatSearchResultDate('en', '2026-08-03T12:00:00.000Z');
+    formatSearchResultDate('en', '2026-08-04T12:00:00.000Z');
+    formatSearchResultDate('es', '2026-08-05T12:00:00.000Z');
+
+    expect(constructorSpy).not.toHaveBeenCalled();
+    constructorSpy.mockRestore();
   });
 });
