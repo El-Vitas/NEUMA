@@ -7,12 +7,20 @@ import type { PageSummary } from '../types/pages.types';
 interface IProps {
   readonly canEditContent: boolean;
   readonly currentUserDisplayName?: string;
+  readonly isNewPage?: boolean;
   readonly pages: readonly PageSummary[] | null;
   readonly spaceId: string;
   readonly spaceName: string;
 }
 
-export const PagesView = async ({ canEditContent, currentUserDisplayName, pages, spaceId, spaceName }: IProps) => {
+export const PagesView = async ({
+  canEditContent,
+  currentUserDisplayName,
+  isNewPage = false,
+  pages,
+  spaceId,
+  spaceName,
+}: IProps) => {
   const t = await getTranslations('pages');
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
@@ -23,6 +31,7 @@ export const PagesView = async ({ canEditContent, currentUserDisplayName, pages,
         <PagesWorkspace
           canEditContent={canEditContent}
           currentUserDisplayName={currentUserDisplayName}
+          isNewPage={isNewPage}
           pages={pages}
           spaceId={spaceId}
         />

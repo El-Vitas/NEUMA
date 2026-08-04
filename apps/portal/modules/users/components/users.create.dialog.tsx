@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -67,6 +68,7 @@ export const UsersCreateDialog = () => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('newUserTitle')}</DialogTitle>
+          <DialogDescription>{t('newUserDescription')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
