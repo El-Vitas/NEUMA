@@ -21,6 +21,7 @@ export default async function Page({ params }: IProps) {
     <PagesView
       canEditContent={canEditContent(user?.role ?? USER_ROLE.CLIENT)}
       currentUserDisplayName={user?.name}
+      isNewPage={false}
       pages={pagesResult?.isOk() ? pagesResult.getValue() : null}
       spaceId={spaceId}
       spaceName={space?.name ?? t('spaceUnavailable')}

@@ -7,6 +7,8 @@ export const ROUTES = {
   PORTAL: '/',
   PORTAL_SPACES: '/spaces',
   PORTAL_SPACE: (spaceId: string) => `/spaces/${spaceId}`,
+  PORTAL_SPACE_PAGE: (spaceId: string, pageId: string) => `/spaces/${spaceId}/pages/${pageId}`,
+  PORTAL_SPACE_NEW_PAGE: (spaceId: string) => `/spaces/${spaceId}/pages/new`,
   PORTAL_ACCOUNT: '/account',
   PORTAL_DATABASES: '/databases',
   PORTAL_DATABASE: (databaseId: string) => `/databases/${databaseId}`,

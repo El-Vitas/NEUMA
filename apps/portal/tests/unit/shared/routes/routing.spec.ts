@@ -20,6 +20,8 @@ describe('portal routing foundation', () => {
       PORTAL_DATABASES: '/databases',
     });
     expect(ROUTES.PORTAL_SPACE('space-1')).toBe('/spaces/space-1');
+    expect(ROUTES.PORTAL_SPACE_PAGE('space-1', 'page-1')).toBe('/spaces/space-1/pages/page-1');
+    expect(ROUTES.PORTAL_SPACE_NEW_PAGE('space-1')).toBe('/spaces/space-1/pages/new');
     expect(ROUTES.PORTAL_DATABASE('database-1')).toBe('/databases/database-1');
   });
 

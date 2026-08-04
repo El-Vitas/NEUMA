@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -70,6 +71,7 @@ export const UsersEditDialog = ({ user }: IProps) => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('edit')}</DialogTitle>
+          <DialogDescription>{t('editDescription')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -10,6 +10,7 @@ import { DetailRow } from '@/shared/components/ui/detail-row';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -74,6 +75,7 @@ export const ProfileForm = ({ user }: IProps) => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t('editAccountTitle')}</DialogTitle>
+              <DialogDescription>{t('editAccountDescription')}</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6">
