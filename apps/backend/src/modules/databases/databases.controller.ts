@@ -8,6 +8,7 @@ import { CreateDatabaseDto } from './dto/database.create.dto';
 import { CreateDatabasePropertyDto } from './dto/database.property.create.dto';
 import { CreateDatabaseRecordDto } from './dto/database.record.create.dto';
 import { CreateDatabaseViewDto } from './dto/database.view.create.dto';
+import type { CreateRecordInput } from './types/database.types';
 
 @Controller('databases')
 export class DatabasesController {
@@ -78,14 +79,9 @@ export class DatabasesController {
     @User('payload') payload: TokenPayload,
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.databasesService.createRecord({
-      databaseId,
-      propertyValues: dto.propertyValues,
-      role: payload.role,
-      title: dto.title,
-      userId: payload.sub,
-      workspaceId: workspace.id,
-    });
+    const result = await this.databasesService.createRecord(
+      this.buildRecordFields(databaseId, dto, payload, workspace.id),
+    );
     if (result.isFail()) throw result.getError();
     return result.getValue();
   }
@@ -109,13 +105,8 @@ export class DatabasesController {
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.databasesService.updateRecord({
-      databaseId,
-      propertyValues: dto.propertyValues,
+      ...this.buildRecordFields(databaseId, dto, payload, workspace.id),
       recordId,
-      role: payload.role,
-      title: dto.title,
-      userId: payload.sub,
-      workspaceId: workspace.id,
     });
     if (result.isFail()) throw result.getError();
     return result.getValue();
@@ -138,5 +129,21 @@ export class DatabasesController {
     });
     if (result.isFail()) throw result.getError();
     return result.getValue();
+  }
+
+  private buildRecordFields(
+    databaseId: string,
+    dto: CreateDatabaseRecordDto,
+    payload: TokenPayload,
+    workspaceId: string,
+  ): CreateRecordInput {
+    return {
+      databaseId,
+      propertyValues: dto.propertyValues,
+      role: payload.role,
+      title: dto.title,
+      userId: payload.sub,
+      workspaceId,
+    };
   }
 }
