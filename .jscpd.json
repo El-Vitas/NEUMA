@@ -1,0 +1,29 @@
+{
+  "path": [
+    "apps/backend/src",
+    "apps/backend/tests",
+    "apps/portal/modules",
+    "apps/portal/shared",
+    "apps/portal/app",
+    "apps/portal/lib",
+    "apps/portal/config",
+    "apps/portal/tests",
+    "packages/db/src",
+    "packages/design/src",
+    "packages/eslint-rules",
+    "packages/shared/src"
+  ],
+  "format": ["typescript", "tsx", "javascript"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.next/**",
+    "**/coverage/**",
+    "**/build/**",
+    "**/generated/**",
+    "**/*.d.ts",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.lock"
+  ]
+}

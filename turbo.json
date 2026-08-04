@@ -4,7 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.production"]
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.production"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
       "cache": false,
@@ -25,6 +26,14 @@
     },
     "check": {
       "dependsOn": ["typecheck", "lint"]
+    },
+    "react:doctor": {
+      "cache": false,
+      "dependsOn": []
+    },
+    "build:analyze": {
+      "cache": false,
+      "dependsOn": ["^build"]
     }
   }
 }

@@ -80,3 +80,6 @@ node_modules/
 # Business rules
 docs/business-rules/rules.db*
 docs/business-rules/history/
+
+# jscpd default report output
+report/
