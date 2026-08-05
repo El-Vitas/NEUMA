@@ -1,14 +1,8 @@
 import type { PageContent, PageLifecycle } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
+import type { PagePropertyValues } from './pages.schema.types';
 
-export type {
-  PageContent,
-  PageContentInlineNode,
-  PageContentMention,
-  PageContentNode,
-  PageContentText,
-  PageLifecycle,
-} from '@company-brain/shared';
+export type { PageContent, PageContentInlineNode, PageContentNode, PageLifecycle } from '@company-brain/shared';
 
 export interface PageEditorCommand {
   readonly labelKey: string;
@@ -35,6 +29,7 @@ export interface PageSummary {
   readonly lifecycle: PageLifecycle;
   readonly order: number;
   readonly parentId: null | string;
+  readonly propertyValues: PagePropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
   readonly version: number;
@@ -42,10 +37,5 @@ export interface PageSummary {
 
 export interface PageTreeItem {
   readonly children: readonly PageTreeItem[];
-  readonly page: PageSummary;
-}
-
-export interface FlatPageTreeItem {
-  readonly depth: number;
   readonly page: PageSummary;
 }
