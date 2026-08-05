@@ -1,2 +1,3 @@
 export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';
+export const PAGE_SCHEMA_REPOSITORY = 'PAGE_SCHEMA_REPOSITORY';
 export const REDACTED_MENTION_LABEL = 'Restricted page';

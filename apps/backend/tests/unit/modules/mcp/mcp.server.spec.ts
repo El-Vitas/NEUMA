@@ -27,6 +27,7 @@ const page: PageSummary = {
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: null,
+  propertyValues: null,
   spaceId: 'space-1',
   title: 'Runbook',
   version: 1,
@@ -162,9 +163,19 @@ describe('MCP read contract', () => {
     const client = await connectClient(dependencies);
 
     const result = await client.callTool({ name: 'mcp.getPage', arguments: { pageId: page.id } });
+    const expectedPage = {
+      content: page.content,
+      id: page.id,
+      lifecycle: page.lifecycle,
+      order: page.order,
+      parentId: page.parentId,
+      spaceId: page.spaceId,
+      title: page.title,
+      version: page.version,
+    };
 
     expect(result.isError).not.toBe(true);
-    expect(result.structuredContent).toEqual({ page });
+    expect(result.structuredContent).toEqual({ page: expectedPage });
     expect(calls).toEqual(['11111111-1111-4111-8111-111111111111:workspace-1:user-1:WORKER']);
   });
 

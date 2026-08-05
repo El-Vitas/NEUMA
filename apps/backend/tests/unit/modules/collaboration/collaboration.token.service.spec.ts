@@ -15,6 +15,7 @@ const page: PageSummary = {
   lifecycle: PageLifecycle.ACTIVE,
   order: 1,
   parentId: null,
+  propertyValues: null,
   spaceId: 'space-1',
   title: 'Page',
   version: 1,
