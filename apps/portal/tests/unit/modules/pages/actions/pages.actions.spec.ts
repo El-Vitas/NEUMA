@@ -1,9 +1,20 @@
 import { describe, expect, it, mock } from 'bun:test';
+import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 let cookieValue: string | undefined;
+const createdPage = {
+  content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
+  id: '33333333-3333-4333-8333-333333333333',
+  lifecycle: 'ACTIVE',
+  order: 0,
+  parentId: null,
+  spaceId: '11111111-1111-4111-8111-111111111111',
+  title: 'Untitled',
+  version: 1,
+} satisfies PageSummary;
 const fetchMock = mock(
   async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> =>
-    new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }),
+    new Response(JSON.stringify(createdPage), { status: 200, headers: { 'content-type': 'application/json' } }),
 );
 const updateTagMock = mock(() => undefined);
 
@@ -29,8 +40,6 @@ mock.module('@/lib/safe-action', () => ({
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
-
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
 
 const { createPageAction, movePageAction, restorePageAction, trashPageAction, updatePageAction } = await import(
   '@/modules/pages/server/actions/pages.actions'
@@ -122,8 +131,9 @@ describe('createPageAction with an access token', () => {
       title: 'Untitled',
     });
 
-    expect(result).toEqual({ data: undefined });
+    expect(result).toEqual({ data: createdPage });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(updateTagMock).toHaveBeenCalled();
   });
 });
+globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });

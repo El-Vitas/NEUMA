@@ -2,6 +2,7 @@ import { Database, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/shared/components/ui/badge';
+import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { formatSearchResultDate } from '../lib/search.lib';
 import type { SearchResult } from '../types/search.types';
@@ -13,7 +14,8 @@ interface IProps {
 
 export const SearchResultCard = ({ locale, result }: IProps) => {
   const t = useTranslations('portal.search');
-  const href = result.sourceType === 'PAGE' ? ROUTES.PORTAL_SPACE(result.spaceId) : ROUTES.PORTAL_DATABASES;
+  const href =
+    result.sourceType === 'PAGE' ? ROUTES.PORTAL_SPACE_PAGE(result.spaceId, result.sourceId) : ROUTES.PORTAL_DATABASES;
   const Icon = result.sourceType === 'PAGE' ? FileText : Database;
 
   return (
@@ -21,9 +23,14 @@ export const SearchResultCard = ({ locale, result }: IProps) => {
       <div className="flex items-start gap-3">
         <Icon aria-hidden="true" className="mt-1 size-5 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <Link className="wrap-break-word font-medium text-foreground underline-offset-4 hover:underline" href={href}>
-            {result.title}
-          </Link>
+          <h2>
+            <Link
+              className={`wrap-break-word font-medium text-foreground underline-offset-4 hover:underline ${FOCUS_RING_CLASS}`}
+              href={href}
+            >
+              {result.title}
+            </Link>
+          </h2>
           <div className="mt-2 flex flex-wrap gap-2 text-muted-foreground text-sm">
             <Badge variant="outline">{t(`sourceTypes.${result.sourceType}`)}</Badge>
             <span>{result.contentType}</span>

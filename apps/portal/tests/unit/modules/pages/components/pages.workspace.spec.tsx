@@ -14,15 +14,19 @@ mock.module('@/modules/pages/components/pages.editor', () => ({
   PagesEditor: ({
     attachments,
     pageId,
+    parentBreadcrumbPages,
   }: {
     readonly attachments: readonly (typeof attachment)[];
     readonly pageId: string | null;
+    readonly parentBreadcrumbPages: readonly { readonly id: string }[];
   }) => (
-    <div data-attachment-count={attachments.length} data-page-id={pageId ?? 'new-page'} data-testid="selected-page" />
+    <div
+      data-attachment-count={attachments.length}
+      data-page-id={pageId ?? 'new-page'}
+      data-parent-page-ids={parentBreadcrumbPages.map((page) => page.id).join(',')}
+      data-testid="selected-page"
+    />
   ),
-}));
-mock.module('@/modules/pages/components/pages.tree', () => ({
-  PagesTree: () => <div />,
 }));
 
 const { PagesWorkspace } = await import('@/modules/pages/components/pages.workspace');
@@ -37,10 +41,20 @@ describe('PagesWorkspace collaboration propagation', () => {
           pages={[
             {
               content: { content: [], schemaVersion: 1, type: 'doc' },
-              id: '22222222-2222-4222-8222-222222222222',
+              id: '11111111-1111-4111-8111-111111111111',
               lifecycle: 'ACTIVE',
               order: 0,
               parentId: null,
+              spaceId: '33333333-3333-4333-8333-333333333333',
+              title: 'Handbook',
+              version: 1,
+            },
+            {
+              content: { content: [], schemaVersion: 1, type: 'doc' },
+              id: '22222222-2222-4222-8222-222222222222',
+              lifecycle: 'ACTIVE',
+              order: 0,
+              parentId: '11111111-1111-4111-8111-111111111111',
               spaceId: '33333333-3333-4333-8333-333333333333',
               title: 'Saved page',
               version: 1,
@@ -56,6 +70,9 @@ describe('PagesWorkspace collaboration propagation', () => {
       '22222222-2222-4222-8222-222222222222',
     );
     expect(screen.getByTestId('selected-page').getAttribute('data-attachment-count')).toBe('1');
+    expect(screen.getByTestId('selected-page').getAttribute('data-parent-page-ids')).toBe(
+      '11111111-1111-4111-8111-111111111111',
+    );
   });
 
   it('does not render an editor when the route has no selected page', () => {
@@ -87,5 +104,34 @@ describe('PagesWorkspace collaboration propagation', () => {
     );
 
     expect(screen.getByTestId('selected-page').getAttribute('data-page-id')).toBe('new-page');
+  });
+
+  it('renders the document as the only content, without a duplicated page tree column', () => {
+    const { container } = render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          attachments={[attachment]}
+          canEditContent
+          pages={[
+            {
+              content: { content: [], schemaVersion: 1, type: 'doc' },
+              id: '11111111-1111-4111-8111-111111111111',
+              lifecycle: 'ACTIVE',
+              order: 0,
+              parentId: null,
+              spaceId: '33333333-3333-4333-8333-333333333333',
+              title: 'Handbook',
+              version: 1,
+            },
+          ]}
+          selectedPageId="11111111-1111-4111-8111-111111111111"
+          spaceId="33333333-3333-4333-8333-333333333333"
+        />
+      </NextIntlClientProvider>,
+    );
+
+    expect(container.querySelector('aside')).toBeNull();
+    expect(container.querySelector('nav')).toBeNull();
+    expect(container.firstElementChild).toBe(screen.getByTestId('selected-page'));
   });
 });

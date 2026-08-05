@@ -8,14 +8,15 @@ interface IProps {
   readonly locale: string;
   readonly page: SearchPage | null;
   readonly params: SearchQuery;
+  readonly spaces: readonly { readonly id: string; readonly name: string }[];
 }
 
-export const SearchView = async ({ locale, page, params }: IProps) => {
+export const SearchView = async ({ locale, page, params, spaces }: IProps) => {
   const t = await getTranslations('portal.search');
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
+    <main className="mx-auto w-full max-w-5xl space-y-7 p-4 sm:p-8 lg:pt-12">
       <PageHeader subtitle={t('subtitle')} title={t('title')} />
-      <SearchForm initialValues={params} />
+      <SearchForm initialValues={params} spaces={spaces} />
       <SearchResults locale={locale} page={page} params={params} />
     </main>
   );

@@ -8,3 +8,5 @@ export interface SpaceSummary {
   readonly slug: string;
   readonly visibility: SpaceVisibility;
 }
+
+export type SpaceFieldErrorCode = 'tooShort' | 'tooLong';

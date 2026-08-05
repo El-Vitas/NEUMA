@@ -1,5 +1,5 @@
 import { isAllowedPageEmbedUrl, PAGE_EMBED_PROVIDERS } from '@company-brain/shared';
-import type { Node as EditorNode, NodeSpec } from 'prosemirror-model';
+import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
 
 const getPageEditorAssetAttrs = (element: Element): Record<string, string | null> | false => {
@@ -124,7 +124,12 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       defining: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorToggleAttrs, tag: 'details[data-page-toggle]' }],
-      toDOM: (node: EditorNode) => ['details', { 'data-page-toggle': true }, ['summary', node.attrs.summary], 0],
+      toDOM: (node: EditorNode): DOMOutputSpec => [
+        'details',
+        { 'data-page-toggle': true },
+        ['summary', node.attrs.summary],
+        ['div', 0],
+      ],
     },
   ],
 ];
@@ -143,15 +148,15 @@ const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | f
 
 export const pageEditorSchema = new Schema({
   marks: {
-    code: {},
-    em: {},
+    code: { toDOM: (): DOMOutputSpec => ['code', 0] },
+    em: { toDOM: (): DOMOutputSpec => ['em', 0] },
     link: {
       attrs: { href: {} },
       inclusive: false,
       parseDOM: [{ getAttrs: getPageEditorLinkAttrs, tag: 'a[href]' }],
       toDOM: (mark) => ['a', { href: mark.attrs.href }, 0],
     },
-    strong: {},
+    strong: { toDOM: (): DOMOutputSpec => ['strong', 0] },
   },
   nodes: pageEditorNodes,
 });

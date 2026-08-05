@@ -1,9 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/shared/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
-import { PageHeader } from '@/shared/components/ui/page-header';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { Link } from '../../../i18n/navigation';
 import { DatabasesWorkspace } from '../components/databases.workspace';
@@ -24,29 +22,26 @@ export const DatabasesDetailView = async ({ database, records }: IProps) => {
     );
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
+    <main className="min-h-full space-y-5 p-4 sm:p-6 lg:p-8">
       <Button asChild variant="ghost">
         <Link href={ROUTES.PORTAL_DATABASES}>
           <ArrowLeft aria-hidden="true" className="size-4" />
           {t('back')}
         </Link>
       </Button>
-      <PageHeader
-        subtitle={t('databaseSubtitle', { template: t(`templates.${database.template}`) })}
-        title={database.name}
-      />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('properties')}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+      <header className="border-border border-b pb-5">
+        <p className="text-muted-foreground text-sm">
+          {t('databaseSubtitle', { template: t(`templates.${database.template}`) })}
+        </p>
+        <h1 className="mt-1 font-display font-semibold text-4xl text-foreground sm:text-5xl">{database.name}</h1>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-muted-foreground text-sm">
           {database.properties.map((property) => (
-            <span className="border px-3 py-1 text-sm" key={property.key}>
+            <span key={property.key}>
               {property.label} · {property.type}
             </span>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </header>
       <DatabasesWorkspace database={database} records={records} />
     </main>
   );

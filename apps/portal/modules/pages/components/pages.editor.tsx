@@ -2,11 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ComponentRef, useRef, useState, useTransition } from 'react';
+import { type ComponentRef, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
-import { FormField } from '@/shared/components/ui/form-field';
-import { hasActionError } from '@/shared/lib/action-result';
+import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { usePagesAutosave } from '../hooks/use.pages.autosave';
 import {
   buildPageAssetInsertOptionsFromAttachment,
   mapAttachmentMimeTypeToPageAssetNodeType,
@@ -18,6 +19,7 @@ import { createPageAction, updatePageAction } from '../server/actions/pages.acti
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesAttachments } from './pages.attachments';
+import { PagesHeader } from './pages.header';
 import { PagesMoveForm } from './pages.move.form';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
@@ -28,6 +30,8 @@ interface IProps {
   readonly page: PageSummary | null;
   readonly pageId: string | null;
   readonly pages: readonly PageSummary[];
+  readonly parentId: string | null;
+  readonly parentBreadcrumbPages: readonly PageSummary[];
   readonly spaceId: string;
 }
 
@@ -38,85 +42,117 @@ export const PagesEditor = ({
   page,
   pageId,
   pages,
+  parentId,
+  parentBreadcrumbPages,
   spaceId,
 }: IProps) => {
   const router = useRouter();
   const t = useTranslations('pages');
   const [title, setTitle] = useState(page?.title ?? '');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef(title);
   const contentRef = useRef<PageContent>(page?.content ?? createEmptyPageContent());
   const editorHandleRef = useRef<ComponentRef<typeof PagesProseMirrorEditor>>(null);
+  const [pageAttachments, setPageAttachments] = useState(attachments);
   const [isPending, startTransition] = useTransition();
 
-  const insertUploadedAssetIntoDocument = (attachment: AttachmentSummary): void => {
+  const updateCurrentPage = async (): Promise<boolean> => {
+    const result = await updatePageAction({
+      content: contentRef.current,
+      pageId: page?.id ?? '',
+      spaceId,
+      title: titleRef.current.trim(),
+    });
+    return !hasActionError(result);
+  };
+
+  const autosave = usePagesAutosave({
+    enabled: canEdit && page?.lifecycle === 'ACTIVE',
+    onSave: updateCurrentPage,
+  });
+
+  useEffect(() => {
+    if (page !== null) return;
+    titleInputRef.current?.focus();
+  }, [page]);
+
+  const addUploadedAttachment = (attachment: AttachmentSummary): void => {
+    setPageAttachments((current) =>
+      current.some((currentAttachment) => currentAttachment.id === attachment.id) ? current : [...current, attachment],
+    );
     const nodeType = mapAttachmentMimeTypeToPageAssetNodeType(attachment.mimeType);
     const options = buildPageAssetInsertOptionsFromAttachment(attachment);
     const insertCommand = createPageAssetInsertCommand(pageEditorSchema, nodeType, options);
     editorHandleRef.current?.runCommand(insertCommand);
   };
 
-  const savePage = () => {
+  const createNewPage = (): void => {
     startTransition(async () => {
-      const result =
-        page === null
-          ? await createPageAction({ content: contentRef.current, parentId: null, spaceId, title: title.trim() })
-          : await updatePageAction({ content: contentRef.current, pageId: page.id, spaceId, title: title.trim() });
-      if (hasActionError(result)) {
+      const result = await createPageAction({ content: contentRef.current, parentId, spaceId, title: title.trim() });
+      if (!isActionSuccess<PageSummary>(result)) {
         toast.error(t('saveError'));
         return;
       }
-      toast.success(page === null ? t('created') : t('updated'));
-      router.refresh();
+      toast.success(t('created'));
+      router.replace(ROUTES.PORTAL_SPACE_PAGE(spaceId, result.data.id));
     });
   };
 
-  let saveLabel = t('saveChanges');
-  if (isPending) saveLabel = t('saving');
-  if (!isPending && page === null) saveLabel = t('create');
+  const isSaving = isPending || autosave.isSaving;
 
   return (
-    <section aria-label={t('editor')} className="border border-border bg-card p-4 sm:p-6">
+    <section aria-label={t('editor')} className="min-w-0 bg-surface px-4 py-8 sm:px-8 lg:p-12 xl:px-16">
       {!canEdit && (
         <p className="mb-4 border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
           {page?.lifecycle === 'TRASHED' ? t('trashReadOnly') : t('readOnly')}
         </p>
       )}
-      <div className="space-y-4">
-        <FormField
-          disabled={!canEdit}
-          id="page-title"
-          label={t('titleField')}
-          onChange={(event) => setTitle(event.target.value)}
-          value={title}
+      <div className="mx-auto w-full max-w-[100rem] space-y-8" data-testid="page-editor-workspace">
+        <PagesHeader
+          canEdit={canEdit}
+          hasSaved={autosave.hasSaved}
+          isSaving={isSaving}
+          onTitleChange={(nextTitle) => {
+            titleRef.current = nextTitle;
+            setTitle(nextTitle);
+            autosave.schedule(nextTitle.trim().length > 0);
+          }}
+          parentPages={parentBreadcrumbPages}
+          spaceId={spaceId}
+          title={title}
+          titleInputRef={titleInputRef}
         />
-        <div>
-          <label className="mb-2 block text-sm text-status-muted" htmlFor="page-content">
-            {t('content')}
-          </label>
-          <PagesProseMirrorEditor
-            canEdit={canEdit}
-            content={page?.content ?? createEmptyPageContent()}
-            currentUserDisplayName={currentUserDisplayName}
-            onContentChange={(content) => {
-              contentRef.current = content;
-            }}
-            pageId={pageId}
-            ref={editorHandleRef}
-          />
-          <p className="mt-2 text-muted-foreground text-xs" id="page-content-help">
-            {t('contentHelp')}
-          </p>
-        </div>
-        {canEdit && (
-          <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={savePage} type="button">
-            {saveLabel}
+        <PagesProseMirrorEditor
+          canEdit={canEdit}
+          content={page?.content ?? createEmptyPageContent()}
+          currentUserDisplayName={currentUserDisplayName}
+          onAttachmentUploaded={addUploadedAttachment}
+          onContentChange={(content) => {
+            contentRef.current = content;
+            autosave.schedule(titleRef.current.trim().length > 0);
+          }}
+          pageId={pageId}
+          ref={editorHandleRef}
+        />
+        {canEdit && page === null && (
+          <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
+            {isPending ? t('saving') : t('create')}
           </PrimaryButton>
+        )}
+        {autosave.hasError && (
+          <p aria-live="polite" className="text-destructive text-sm" role="status">
+            {t('saveError')}
+          </p>
         )}
         {page !== null && canEdit && <PagesMoveForm page={page} pages={pages} spaceId={spaceId} />}
         {pageId !== null && (
           <PagesAttachments
-            attachments={attachments}
+            attachments={pageAttachments}
             canEdit={canEdit}
-            onAssetUploaded={insertUploadedAssetIntoDocument}
+            onAssetDeleted={(attachmentId) =>
+              setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId))
+            }
+            onAssetUploaded={addUploadedAttachment}
             pageId={pageId}
           />
         )}

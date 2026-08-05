@@ -8,7 +8,7 @@ import type { AttachmentDownload } from '../../types/pages.attachments.types';
 
 const attachmentFilenamePattern = /filename\*=UTF-8''([^;]+)/iu;
 
-const getAttachmentDownloadRequest = async (attachmentId: string, accessToken: string): Promise<Response> =>
+export const getPageAttachmentResponse = async (attachmentId: string, accessToken: string): Promise<Response> =>
   fetch(`${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(attachmentId)}`, {
     headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
   });
@@ -26,7 +26,7 @@ const readAttachmentDownload = async (response: Response): Promise<AttachmentDow
 
 export const getPageAttachmentDownload = async (attachmentId: string): Promise<AttachmentDownload> => {
   const accessToken = await requireAccessTokenCookie();
-  const response = await getAttachmentDownloadRequest(attachmentId, accessToken);
+  const response = await getPageAttachmentResponse(attachmentId, accessToken);
   if (!response.ok) throw new Error('Attachment download request failed');
   return readAttachmentDownload(response);
 };

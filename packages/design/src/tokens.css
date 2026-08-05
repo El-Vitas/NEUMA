@@ -1,18 +1,17 @@
 @custom-variant dark (&:is(.dark *));
 @custom-variant light (&:is(.light *));
 
-/* ─── Starter Design System ─── */
 @theme inline {
   /* Typography */
-  --font-sans: var(--font-ibm-plex-sans);
-  --font-display: var(--font-ibm-plex-sans);
-  --font-mono: var(--font-ibm-plex-mono);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-barlow-condensed);
+  --font-mono: var(--font-jetbrains-mono);
 
   /* Radii — calibrated to actual component usage */
   --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
   --radius-2xl: 16px;
 
   /* Colors */
@@ -30,7 +29,7 @@
   --color-panel-emphasis: var(--panel-emphasis);
   --color-status-active: var(--status-active);
   --color-status-muted: var(--status-muted);
-  --color-secondary-foreground: #000000;
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--surface-container-high);
   --color-muted-foreground: var(--on-surface-muted);
   --color-accent: var(--accent);
@@ -92,111 +91,55 @@
   --color-card: var(--card);
 }
 
-/* ─── DARK MODE (default) ─── */
-/* Brand: #560efe (morado potente) | Carbon #0e0e0e | Crema #efeff0 */
-:root,
-.dark {
+:root {
   --radius: 0px;
 
-  --surface: #0e0e0e;
-  --surface-container-low: #141418;
-  --surface-container: #1c1c24;
-  --surface-container-high: #1e1e26;
-  --surface-bright: #4a4266;
-  --on-surface: #f0ede8;
-  --on-surface-muted: #a0a0a0;
-  --tertiary: #2c2738;
-  --primary: #6d28d9;
-  --primary-soft: #a78bfa;
-  --primary-foreground: #ffffff;
-  --secondary: #5b21b6;
-  --secondary-foreground: #ffffff;
-  --border: #3d3654;
-  --input: #3d3654;
-  --ring: rgba(124, 58, 237, 0.35);
-  --muted-foreground: #a0a0a0;
-  --accent: #7c3aed;
-  --accent-hover: #9061f0;
-  --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --card: #18181c;
-  --card-foreground: #f0ede8;
-  --popover: #141418;
-  --popover-foreground: #f0ede8;
-  --background: #0e0e0e;
-  --foreground: #f0ede8;
-  --sidebar: #141418;
-  --sidebar-foreground: #f0ede8;
-  --sidebar-primary: #6d28d9;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #7c3aed;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #3d2466;
-  --sidebar-ring: rgba(124, 58, 237, 0.4);
-  --chart-1: #6d28d9;
-  --chart-2: #5b21b6;
-  --chart-3: #8b5cf6;
-  --chart-4: #a78bfa;
-  --chart-5: #c4b5fd;
-
-  --highlight-strong: #f0ede8;
-  --highlight-soft: #c4b5fd;
-  --panel-emphasis: #1a1525;
-  --status-active: #7c3aed;
-  --status-muted: #6b6780;
-}
-
-/* ─── LIGHT MODE ─── */
-/* IBM Carbon-inspired light theme */
-.light {
-  --radius: 0px;
-
-  --surface: #fafafa;
-  --surface-container-low: #f6f6f6;
-  --surface-container: #fafafa;
+  --surface: #f7f7f4;
+  --surface-container-low: #efefeb;
+  --surface-container: #ffffff;
   --surface-container-high: #ffffff;
   --surface-bright: #ffffff;
-  --on-surface: #0a0a0a;
-  --on-surface-muted: #52525b;
-  --tertiary: #fafafa;
-  --primary: #7c3aed;
-  --primary-soft: #6d28d9;
+  --on-surface: #111111;
+  --on-surface-muted: #6b6b68;
+  --tertiary: #efefeb;
+  --primary: #c1121f;
+  --primary-soft: #a30f1a;
   --primary-foreground: #ffffff;
-  --secondary: #6d28d9;
+  --secondary: #111111;
   --secondary-foreground: #ffffff;
-  --border: #c4c4cc;
-  --input: #b8b8c0;
-  --ring: rgba(124, 58, 237, 0.4);
-  --muted-foreground: #52525b;
-  --accent: #f3e8ff;
-  --accent-hover: #e9d5ff;
-  --accent-foreground: #6b21a8;
-  --destructive: #dc2626;
+  --border: #d8d8d2;
+  --input: #b8b8b0;
+  --ring: rgba(193, 18, 31, 0.35);
+  --muted-foreground: #6b6b68;
+  --accent: #efefeb;
+  --accent-hover: #d8d8d2;
+  --accent-foreground: #111111;
+  --destructive: #b42318;
   --card: #ffffff;
-  --card-foreground: #18181b;
+  --card-foreground: #111111;
   --popover: #ffffff;
-  --popover-foreground: #18181b;
-  --background: #fafafa;
-  --foreground: #18181b;
-  --sidebar: #e8e8e8;
-  --sidebar-foreground: #18181b;
-  --sidebar-primary: #7c3aed;
+  --popover-foreground: #111111;
+  --background: #f7f7f4;
+  --foreground: #111111;
+  --sidebar: #171717;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #c1121f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #7c3aed;
+  --sidebar-accent: #2a2a28;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #c4c4cc;
-  --sidebar-ring: rgba(124, 58, 237, 0.4);
-  --chart-1: #7c3aed;
-  --chart-2: #6d28d9;
-  --chart-3: #8b5cf6;
-  --chart-4: #a78bfa;
-  --chart-5: #c4b5fd;
+  --sidebar-border: #3a3a38;
+  --sidebar-ring: rgba(255, 255, 255, 0.45);
+  --chart-1: #c1121f;
+  --chart-2: #111111;
+  --chart-3: #6b6b68;
+  --chart-4: #b8b8b0;
+  --chart-5: #d8d8d2;
 
-  --highlight-strong: #18181b;
-  --highlight-soft: #6d28d9;
-  --panel-emphasis: #ffffff;
-  --status-active: #6d28d9;
-  --status-muted: #52525b;
+  --highlight-strong: #111111;
+  --highlight-soft: #d8d8d2;
+  --panel-emphasis: #efefeb;
+  --status-active: #c1121f;
+  --status-muted: #6b6b68;
 }
 
 @layer base {

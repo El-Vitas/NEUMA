@@ -4,7 +4,20 @@ import { render, screen } from '@testing-library/react';
 import { createElement } from 'react';
 
 const currentUser = mock(async (): Promise<{ readonly role: UserRole }> => ({ role: 'CLIENT' }));
-const pagesResult = { isOk: () => true, getValue: () => [] };
+const parentId = '44444444-4444-4444-8444-444444444444';
+const pagesResult = {
+  isOk: () => true,
+  getValue: () => [
+    {
+      content: { content: [], schemaVersion: 1, type: 'doc' },
+      id: parentId,
+      lifecycle: 'ACTIVE',
+      order: 0,
+      parentId: null,
+      title: 'Parent',
+    },
+  ],
+};
 const spacesResult = {
   isOk: () => true,
   getValue: () => [{ id: '33333333-3333-4333-8333-333333333333', name: 'Company Brain' }],
@@ -12,7 +25,9 @@ const spacesResult = {
 const notFound = mock(() => {
   throw new Error('NEXT_NOT_FOUND');
 });
-const workspace = mock(() => createElement('div', { 'data-testid': 'new-page-workspace' }));
+const workspace = mock((props: { readonly parentId?: string | null }) =>
+  createElement('div', { 'data-parent-id': props.parentId ?? '', 'data-testid': 'new-page-workspace' }),
+);
 
 mock.module('next/navigation', () => ({ notFound }));
 mock.module('next-intl/server', () => ({
@@ -50,5 +65,18 @@ describe('new page route authorization', () => {
     render(result);
 
     expect(screen.getByTestId('new-page-workspace')).toBeDefined();
+  });
+
+  it('passes a valid parent from the route query to the creation workspace', async () => {
+    currentUser.mockResolvedValueOnce({ role: 'WORKER' });
+
+    const result = await NewPage({
+      params: Promise.resolve({ spaceId: '33333333-3333-4333-8333-333333333333' }),
+      searchParams: Promise.resolve({ parentId }),
+    });
+
+    render(result);
+
+    expect(screen.getByTestId('new-page-workspace').getAttribute('data-parent-id')).toBe(parentId);
   });
 });

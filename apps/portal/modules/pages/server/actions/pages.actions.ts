@@ -8,7 +8,12 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { PAGE_API_ROUTES, PAGES_CACHE_TAG } from '../../constants/pages.constants';
-import { pageLifecycleMutationSchema, pageMoveSchema, pageMutationSchema } from '../../schemas/pages.schemas';
+import {
+  pageLifecycleMutationSchema,
+  pageMoveSchema,
+  pageMutationSchema,
+  pageSummarySchema,
+} from '../../schemas/pages.schemas';
 
 const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
   const accessToken = await requireAccessTokenCookie();
@@ -23,12 +28,13 @@ export const createPageAction = actionClient
   .schema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'createPage' }, async () => {
-      await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
+      const createdPage = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
         content: parsedInput.content,
         parentId: parsedInput.parentId,
         title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSummarySchema.parse(createdPage);
     }),
   );
 

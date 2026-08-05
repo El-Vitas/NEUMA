@@ -1,5 +1,4 @@
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { groupRecordsBySelectProperty } from '../lib/databases.lib';
 import type { DatabaseProperty, DatabaseRecord } from '../types/databases.types';
 
@@ -15,27 +14,29 @@ export const DatabasesBoard = ({ property, records }: IProps) => {
   }
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-max gap-4 md:grid-cols-3">
+    <section aria-label={t('records')}>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3" data-testid="database-board-columns">
         {groupRecordsBySelectProperty(records, property).map((column) => (
-          <Card className="min-h-48 w-64" key={column.key}>
-            <CardHeader className="border-b py-4">
-              <CardTitle className="text-sm">{column.key === 'unassigned' ? t('unassigned') : column.label}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-4">
+          <section className="flex min-h-48 flex-col bg-surface-container-low" key={column.key}>
+            <header className="flex min-h-11 items-center border-border border-b px-3">
+              <h2 className="font-medium text-foreground text-sm">
+                {column.key === 'unassigned' ? t('unassigned') : column.label}
+              </h2>
+            </header>
+            <ol className="space-y-2 p-3">
               {column.records.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t('noRecords')}</p>
+                <li className="text-muted-foreground text-sm">{t('noRecords')}</li>
               ) : (
                 column.records.map((record) => (
-                  <div className="border bg-background p-3 text-sm" key={record.id}>
+                  <li className="wrap-break-word border border-border bg-surface p-3 text-sm shadow-sm" key={record.id}>
                     {record.title}
-                  </div>
+                  </li>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </ol>
+          </section>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
