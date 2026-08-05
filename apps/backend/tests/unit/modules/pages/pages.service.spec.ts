@@ -5,6 +5,7 @@ import { type PageContent, USER_ROLE } from '@company-brain/shared';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { PagesService } from '@/modules/pages/pages.service';
 import type { PageRepositoryContract, UpdatePageInput } from '@/modules/pages/types/page.types';
+import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
 
 const validPageContent: PageContent = {
   content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
@@ -18,6 +19,7 @@ const page = {
   lifecycle: PageLifecycle.ACTIVE,
   order: 0,
   parentId: null,
+  propertyValues: null,
   spaceId: 'space-a',
   title: 'Page A',
   version: 1,
@@ -26,6 +28,7 @@ const page = {
 const buildUpdatePageInput = (content: Prisma.InputJsonValue = validPageContent): UpdatePageInput => ({
   content,
   pageId: 'page-a',
+  propertyValues: null,
   role: USER_ROLE.WORKER,
   title: 'Updated',
   updatedById: 'user-a',
@@ -44,6 +47,8 @@ const createRepository = (): PageRepositoryContract => ({
         { id: 'page-a', parentId: null, spaceId: 'space-a' },
         { id: 'page-b', parentId: null, spaceId: 'space-a' },
       ],
+      propertyValues: null,
+      title: 'Page A',
     }),
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
@@ -52,9 +57,17 @@ const createRepository = (): PageRepositoryContract => ({
   update: () => Promise.resolve(page),
 });
 
+const createSchemaRepository = (): PageSchemaRepositoryContract => ({
+  defineSchema: (pageId, properties, views) => Promise.resolve({ pageId, properties, views }),
+  getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
+  resolveSchemaProperties: () => Promise.resolve([]),
+  listRows: () => Promise.resolve([]),
+  listWorkspaceMemberIds: () => Promise.resolve([]),
+});
+
 describe('pages service', () => {
   it('updates a page for an editor', async () => {
-    const service = new PagesService(createRepository());
+    const service = new PagesService(createRepository(), createSchemaRepository());
     const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
@@ -102,7 +115,7 @@ describe('pages service', () => {
         return Promise.resolve(page);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.update(buildUpdatePageInput(content), USER_ROLE.WORKER);
 
@@ -120,13 +133,14 @@ describe('pages service', () => {
         return Promise.resolve(page);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.create(
       {
         content: { content: [], schemaVersion: 1, type: 'doc' },
         createdById: 'user-a',
         parentId: null,
+        propertyValues: null,
         role: USER_ROLE.WORKER,
         spaceId: 'space-a',
         title: 'Page A',
@@ -150,13 +164,14 @@ describe('pages service', () => {
         return Promise.resolve(page);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.create(
       {
         content: validPageContent,
         createdById: 'user-a',
         parentId: null,
+        propertyValues: null,
         role: USER_ROLE.WORKER,
         spaceId: 'space-a',
         title: 'Page A',
@@ -180,7 +195,7 @@ describe('pages service', () => {
         return Promise.resolve(versionedPage);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
@@ -204,7 +219,7 @@ describe('pages service', () => {
         return Promise.resolve([page]);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER, true);
@@ -213,7 +228,7 @@ describe('pages service', () => {
   });
 
   it('returns an authorized direct page read', async () => {
-    const service = new PagesService(createRepository());
+    const service = new PagesService(createRepository(), createSchemaRepository());
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
@@ -222,7 +237,7 @@ describe('pages service', () => {
 
   it('returns an inaccessible result for a page the repository cannot authorize', async () => {
     const repository = { ...createRepository(), getAccessible: () => Promise.resolve(null) };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
     const result = await service.getAccessible('private-page', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isFail()).toBe(true);
@@ -230,7 +245,7 @@ describe('pages service', () => {
   });
 
   it('moves a page only after validating the hierarchy', async () => {
-    const service = new PagesService(createRepository());
+    const service = new PagesService(createRepository(), createSchemaRepository());
     const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
@@ -238,12 +253,13 @@ describe('pages service', () => {
 
   it('rejects creating a page under a parent from another space', async () => {
     const repository = { ...createRepository(), parentBelongsToSpace: () => Promise.resolve(false) };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
     const result = await service.create(
       {
         content: validPageContent,
         createdById: 'user-a',
         parentId: 'page-other-space',
+        propertyValues: null,
         role: USER_ROLE.WORKER,
         spaceId: 'space-a',
         title: 'Child',
@@ -267,9 +283,11 @@ describe('pages service', () => {
             { id: 'page-a', parentId: null, spaceId: 'space-a' },
             { id: 'page-b', parentId: 'page-a', spaceId: 'space-a' },
           ],
+          propertyValues: null,
+          title: 'Page A',
         }),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
     const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-c', USER_ROLE.WORKER);
 
     expect(result.isFail()).toBe(true);
@@ -277,7 +295,7 @@ describe('pages service', () => {
   });
 
   it('trashes and restores a page through explicit lifecycle use cases', async () => {
-    const service = new PagesService(createRepository());
+    const service = new PagesService(createRepository(), createSchemaRepository());
 
     const trashed = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
     const restored = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-b', USER_ROLE.WORKER);
@@ -310,7 +328,7 @@ describe('mention redaction on served page content', () => {
       getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Roadmap 2026']))),
       findReadablePageIds: (pageIds: readonly string[]) => Promise.resolve(pageIds),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -325,7 +343,7 @@ describe('mention redaction on served page content', () => {
         Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']))),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
     const serialized = JSON.stringify(result.getValue().content);
@@ -340,7 +358,7 @@ describe('mention redaction on served page content', () => {
       getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(['deleted-page', 'Old Title']))),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -358,7 +376,7 @@ describe('mention redaction on served page content', () => {
         ),
       findReadablePageIds: () => Promise.resolve(['target-readable']),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
     const serialized = JSON.stringify(result.getValue().content);
@@ -383,7 +401,7 @@ describe('mention redaction on served page content', () => {
         return Promise.resolve(pageIds);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -405,7 +423,7 @@ describe('mention redaction on served page content', () => {
         return Promise.resolve(pageIds);
       },
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -419,7 +437,7 @@ describe('mention redaction on served page content', () => {
       getAccessible: () => Promise.resolve(storedPage),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -433,7 +451,7 @@ describe('mention redaction on served page content', () => {
         Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']))),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository);
+    const service = new PagesService(repository, createSchemaRepository());
 
     const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
     const serialized = JSON.stringify(result.getValue().content);

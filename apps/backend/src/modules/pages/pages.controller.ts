@@ -53,6 +53,7 @@ export class PagesController {
         content: dto.content,
         createdById: payload.sub,
         parentId: dto.parentId ?? null,
+        propertyValues: dto.propertyValues ?? null,
         role: payload.role,
         spaceId,
         title: dto.title,
@@ -75,6 +76,7 @@ export class PagesController {
       {
         content: dto.content,
         pageId,
+        propertyValues: dto.propertyValues ?? null,
         role: payload.role,
         title: dto.title,
         updatedById: payload.sub,

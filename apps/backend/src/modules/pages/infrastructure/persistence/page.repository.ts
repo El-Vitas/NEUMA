@@ -1,7 +1,8 @@
 import { PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
+import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { parseSchemaPropertyValues } from '../../../../common/domain/schema-property.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import {
   buildSpaceVisibilityFilter,
@@ -16,12 +17,17 @@ import type {
   UpdatePageInput,
 } from '../../types/page.types';
 
+const toPropertyValuesInput = (
+  propertyValues: CreatePageInput['propertyValues'],
+): Prisma.InputJsonValue | typeof Prisma.JsonNull => (propertyValues === null ? Prisma.JsonNull : propertyValues);
+
 const pageSelection = {
   content: true,
   id: true,
   lifecycle: true,
   order: true,
   parentId: true,
+  propertyValues: true,
   spaceId: true,
   title: true,
   versions: { orderBy: { version: 'desc' as const }, select: { version: true }, take: 1 },
@@ -105,6 +111,7 @@ export class PageRepository implements PageRepositoryContract {
           createdById: input.createdById,
           parentId: input.parentId,
           order,
+          propertyValues: toPropertyValuesInput(input.propertyValues),
           spaceId: input.spaceId,
           title: input.title,
           updatedById: input.createdById,
@@ -140,6 +147,7 @@ export class PageRepository implements PageRepositoryContract {
       const page = await transaction.page.update({
         data: {
           content: input.content,
+          propertyValues: toPropertyValuesInput(input.propertyValues),
           title: input.title,
           updatedById: input.updatedById,
           versions: {
@@ -176,7 +184,7 @@ export class PageRepository implements PageRepositoryContract {
     role: UserRole,
   ): Promise<PageMoveContext | null> {
     const page = await this.prisma.page.findFirst({
-      select: { id: true, parentId: true, spaceId: true },
+      select: { id: true, parentId: true, propertyValues: true, spaceId: true, title: true },
       where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
     });
     if (page === null) return null;
@@ -185,7 +193,12 @@ export class PageRepository implements PageRepositoryContract {
       select: { id: true, parentId: true, spaceId: true },
       where: { spaceId: page.spaceId },
     });
-    return { pageId: page.id, pages };
+    return {
+      pageId: page.id,
+      pages,
+      propertyValues: parseSchemaPropertyValues(page.propertyValues),
+      title: page.title,
+    };
   }
 
   async move(
@@ -298,6 +311,7 @@ export class PageRepository implements PageRepositoryContract {
     lifecycle: PageLifecycle;
     order: number;
     parentId: null | string;
+    propertyValues: Prisma.JsonValue;
     spaceId: string;
     title: string;
     versions: readonly { version: number }[];
@@ -308,6 +322,7 @@ export class PageRepository implements PageRepositoryContract {
       lifecycle: page.lifecycle,
       order: page.order,
       parentId: page.parentId,
+      propertyValues: parseSchemaPropertyValues(page.propertyValues),
       spaceId: page.spaceId,
       title: page.title,
       version: page.versions[0]?.version ?? 0,

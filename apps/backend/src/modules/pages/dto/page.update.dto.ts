@@ -1,9 +1,14 @@
 import type { PageContent } from '@company-brain/shared';
-import { IsObject, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 
 export class UpdatePageDto {
   @IsObject()
   content!: PageContent;
+
+  @IsObject()
+  @IsOptional()
+  propertyValues?: SchemaPropertyValues;
 
   @IsString()
   @MaxLength(200)
