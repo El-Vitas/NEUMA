@@ -1,8 +1,8 @@
 import { getLocale } from 'next-intl/server';
-import { searchQuerySchema } from '@/modules/search/schemas/search.schemas';
-import { getSearchResults } from '@/modules/search/server/queries/search.queries';
 import { SearchView } from '@/modules/search/views/search.view';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { searchQuerySchema } from '@/shared/schemas/search.schemas';
+import { getSearchResults } from '@/shared/server/queries/search.queries';
 
 interface IProps {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>;

@@ -1,8 +1,8 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { EmptyState } from '@/shared/components/ui/empty-state';
-import { buildSearchPageUrl } from '../lib/search.lib';
-import type { SearchPage, SearchQuery } from '../types/search.types';
+import { buildSearchPageUrl } from '@/shared/lib/search.lib';
+import type { SearchPage, SearchQuery } from '@/shared/types/search.types';
 import { SearchResultCard } from './search.result';
 import { SearchRetry } from './search.retry';
 

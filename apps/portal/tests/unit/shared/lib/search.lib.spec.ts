@@ -4,8 +4,8 @@ import {
   formatSearchResultDate,
   mapSearchResponse,
   parseSearchSnippet,
-} from '@/modules/search/lib/search.lib';
-import { searchQuerySchema } from '@/modules/search/schemas/search.schemas';
+} from '@/shared/lib/search.lib';
+import { searchQuerySchema } from '@/shared/schemas/search.schemas';
 
 describe('search.lib', () => {
   it('normalizes bounded search parameters once at the URL boundary', () => {

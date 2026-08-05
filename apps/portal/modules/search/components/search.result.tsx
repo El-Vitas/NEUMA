@@ -3,9 +3,9 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/shared/components/ui/badge';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { formatSearchResultDate } from '@/shared/lib/search.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { formatSearchResultDate } from '../lib/search.lib';
-import type { SearchResult } from '../types/search.types';
+import type { SearchResult } from '@/shared/types/search.types';
 
 interface IProps {
   readonly locale: string;

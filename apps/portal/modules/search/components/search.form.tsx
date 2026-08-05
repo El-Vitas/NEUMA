@@ -9,10 +9,14 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { SEARCH_FILTER_ALL_VALUE, SEARCH_MAX_QUERY_LENGTH, SEARCH_SOURCE_TYPES } from '../constants/search.constants';
-import { buildSearchPageUrl } from '../lib/search.lib';
-import { searchQuerySchema } from '../schemas/search.schemas';
-import type { SearchQuery } from '../types/search.types';
+import {
+  SEARCH_FILTER_ALL_VALUE,
+  SEARCH_MAX_QUERY_LENGTH,
+  SEARCH_SOURCE_TYPES,
+} from '@/shared/constants/search.constants';
+import { buildSearchPageUrl } from '@/shared/lib/search.lib';
+import { searchQuerySchema } from '@/shared/schemas/search.schemas';
+import type { SearchQuery } from '@/shared/types/search.types';
 
 interface IProps {
   readonly initialValues: SearchQuery;
