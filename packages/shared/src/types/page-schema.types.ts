@@ -1,0 +1,48 @@
+export type PagePropertyType =
+  | 'TITLE'
+  | 'RICH_TEXT'
+  | 'SELECT'
+  | 'MULTI_SELECT'
+  | 'PERSON'
+  | 'DATE'
+  | 'CHECKBOX'
+  | 'NUMBER';
+
+export const PAGE_PROPERTY_TYPE = {
+  TITLE: 'TITLE',
+  RICH_TEXT: 'RICH_TEXT',
+  SELECT: 'SELECT',
+  MULTI_SELECT: 'MULTI_SELECT',
+  PERSON: 'PERSON',
+  DATE: 'DATE',
+  CHECKBOX: 'CHECKBOX',
+  NUMBER: 'NUMBER',
+} as const satisfies Record<PagePropertyType, PagePropertyType>;
+
+export const PAGE_PROPERTY_TYPE_VALUES = [
+  PAGE_PROPERTY_TYPE.TITLE,
+  PAGE_PROPERTY_TYPE.RICH_TEXT,
+  PAGE_PROPERTY_TYPE.SELECT,
+  PAGE_PROPERTY_TYPE.MULTI_SELECT,
+  PAGE_PROPERTY_TYPE.PERSON,
+  PAGE_PROPERTY_TYPE.DATE,
+  PAGE_PROPERTY_TYPE.CHECKBOX,
+  PAGE_PROPERTY_TYPE.NUMBER,
+] as const;
+
+export type PageViewType = 'TABLE' | 'BOARD';
+
+export const PAGE_VIEW_TYPE = {
+  TABLE: 'TABLE',
+  BOARD: 'BOARD',
+} as const satisfies Record<PageViewType, PageViewType>;
+
+export const PAGE_VIEW_TYPE_VALUES = [PAGE_VIEW_TYPE.TABLE, PAGE_VIEW_TYPE.BOARD] as const;
+
+export type PageViewOutcomeKind = 'TABLE_ROWS' | 'BOARD_COLUMNS' | 'BOARD_MISSING_GROUPING_PROPERTY';
+
+export const PAGE_VIEW_OUTCOME_KIND = {
+  TABLE_ROWS: 'TABLE_ROWS',
+  BOARD_COLUMNS: 'BOARD_COLUMNS',
+  BOARD_MISSING_GROUPING_PROPERTY: 'BOARD_MISSING_GROUPING_PROPERTY',
+} as const satisfies Record<PageViewOutcomeKind, PageViewOutcomeKind>;

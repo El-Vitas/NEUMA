@@ -40,6 +40,14 @@ export {
   pageMentionAttrsSchema,
 } from './schemas/page-content.schema.js';
 export type { AuthSession } from './types/auth.types.js';
+export type { PagePropertyType, PageViewOutcomeKind, PageViewType } from './types/page-schema.types.js';
+export {
+  PAGE_PROPERTY_TYPE,
+  PAGE_PROPERTY_TYPE_VALUES,
+  PAGE_VIEW_OUTCOME_KIND,
+  PAGE_VIEW_TYPE,
+  PAGE_VIEW_TYPE_VALUES,
+} from './types/page-schema.types.js';
 export type { PageLifecycle } from './types/page.types.js';
 export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES } from './types/page.types.js';
 export type { SpaceVisibility } from './types/space.types.js';
