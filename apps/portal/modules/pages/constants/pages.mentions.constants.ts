@@ -1,0 +1,1 @@
+export const PAGE_MENTION_SEARCH_LIMIT = 5;

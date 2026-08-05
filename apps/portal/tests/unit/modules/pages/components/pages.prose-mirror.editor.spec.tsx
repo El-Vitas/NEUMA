@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
+import type { Command } from 'prosemirror-state';
 import { createRef } from 'react';
 import en from '../../../../../messages/en.json';
 
@@ -9,6 +10,22 @@ const collaborationSession = { marker: 'collaboration-session' };
 mock.module('@/modules/pages/hooks/use.pages.collaboration', () => ({
   usePagesCollaboration: () => ({ participants: [], session: collaborationSession, status: 'connected' }),
 }));
+
+const mentionCandidates: { id: string; label: string; spaceId: string }[] = [];
+
+mock.module('@/modules/pages/hooks/use.pages.mention-search', () => ({
+  usePagesMentionSearch: (query: string | null) => ({
+    candidates: query === null ? [] : mentionCandidates,
+    isLoading: false,
+  }),
+}));
+
+const insertTextCommand =
+  (text: string): Command =>
+  (state, dispatch) => {
+    if (dispatch) dispatch(state.tr.insertText(text));
+    return true;
+  };
 
 mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
@@ -227,5 +244,69 @@ describe('PagesProseMirrorEditor runCommand', () => {
     };
     expect(finalContent.content.map((node) => node.type)).toEqual(['image', 'paragraph']);
     expect(finalContent.content[1]?.content?.[0]?.text).toBe('from-collaboration-session');
+  });
+});
+
+describe('PagesProseMirrorEditor mention picker', () => {
+  it('inserts the selected page as a mention and removes the trigger text', () => {
+    mentionCandidates.length = 0;
+    mentionCandidates.push({ id: 'target-page-id', label: 'Target Page', spaceId: 'target-space-id' });
+    const contentUpdates: unknown[] = [];
+    const ref = renderEditor({
+      canEdit: true,
+      onContentChange: (content) => contentUpdates.push(content),
+      pageId: null,
+    });
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand('@Tar'));
+    });
+
+    const option = screen.getByRole('option', { name: 'Target Page' });
+    fireEvent.mouseDown(option);
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    const finalContent = contentUpdates.at(-1) as {
+      readonly content: readonly {
+        readonly content?: readonly { readonly attrs?: unknown; readonly text?: string; readonly type: string }[];
+      }[];
+    };
+    const paragraphNodes = finalContent.content[0]?.content ?? [];
+    expect(paragraphNodes).toContainEqual({
+      attrs: { label: 'Target Page', pageId: 'target-page-id', spaceId: 'target-space-id' },
+      type: 'mention',
+    });
+    expect(paragraphNodes.some((node) => node.text?.includes('@Tar'))).toBe(false);
+  });
+
+  it('closes the mention picker on Escape without inserting anything', () => {
+    mentionCandidates.length = 0;
+    mentionCandidates.push({ id: 'target-page-id', label: 'Target Page', spaceId: 'target-space-id' });
+    const contentUpdates: unknown[] = [];
+    const ref = renderEditor({
+      canEdit: true,
+      onContentChange: (content) => contentUpdates.push(content),
+      pageId: null,
+    });
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand('@Tar'));
+    });
+    expect(screen.getByRole('option', { name: 'Target Page' })).toBeDefined();
+
+    const editorHost = document.querySelector('.ProseMirror');
+    expect(editorHost).not.toBeNull();
+    if (editorHost === null) return;
+    fireEvent.keyDown(editorHost, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    const finalContent = contentUpdates.at(-1) as {
+      readonly content: readonly {
+        readonly content?: readonly { readonly attrs?: unknown; readonly text?: string; readonly type: string }[];
+      }[];
+    };
+    const paragraphNodes = finalContent.content[0]?.content ?? [];
+    expect(paragraphNodes.some((node) => node.type === 'mention')).toBe(false);
+    expect(paragraphNodes.some((node) => node.text?.startsWith('@Tar'))).toBe(true);
   });
 });

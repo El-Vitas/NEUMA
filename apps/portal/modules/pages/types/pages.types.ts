@@ -1,7 +1,14 @@
 import type { PageContent, PageLifecycle } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
 
-export type { PageContent, PageContentNode, PageContentText, PageLifecycle } from '@company-brain/shared';
+export type {
+  PageContent,
+  PageContentInlineNode,
+  PageContentMention,
+  PageContentNode,
+  PageContentText,
+  PageLifecycle,
+} from '@company-brain/shared';
 
 export interface PageEditorCommand {
   readonly labelKey: string;
@@ -14,6 +21,12 @@ export interface PageAssetInsertCommandOptions {
   readonly alt?: string;
   readonly assetId: string;
   readonly caption?: string;
+}
+
+export interface PageMentionInsertCommandOptions {
+  readonly label: string;
+  readonly pageId: string;
+  readonly spaceId: string;
 }
 
 export interface PageSummary {

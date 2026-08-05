@@ -23,6 +23,7 @@ import {
 } from '../constants/pages.editor.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
+import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } from '../lib/pages.collaboration.lib';
 import {
   computeSelectionToolbarPlacement,
@@ -32,8 +33,16 @@ import {
   serializePageEditorState,
 } from '../lib/pages.editor.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
-import { getSlashMenuQuery, handleSlashMenuKeyDown } from '../lib/pages.editor.slash-menu.lib';
+import { pageEditorSchema } from '../lib/pages.editor.schema';
+import {
+  buildEditorTriggerItems,
+  getEditorTriggerAriaLabelKey,
+  getEditorTriggerEmptyMessageKey,
+  handleSlashMenuKeyDown,
+  resolveEditorTrigger,
+} from '../lib/pages.editor.slash-menu.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { PagesEditorMenuItem, PagesEditorTriggerKind } from '../types/pages.editor.slash-menu.types';
 import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
 import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
@@ -69,10 +78,12 @@ export const PagesProseMirrorEditor = forwardRef(
       readonly left: number;
       readonly top: number;
     } | null>(null);
-    const [slashQuery, setSlashQuery] = useState<string | null>(null);
-    const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
-    const slashQueryRef = useRef<string | null>(null);
-    const slashSelectedIndexRef = useRef(0);
+    const [triggerKind, setTriggerKind] = useState<PagesEditorTriggerKind | null>(null);
+    const [triggerQuery, setTriggerQuery] = useState<string | null>(null);
+    const [triggerSelectedIndex, setTriggerSelectedIndex] = useState(0);
+    const triggerQueryRef = useRef<string | null>(null);
+    const triggerSelectedIndexRef = useRef(0);
+    const mentionSearch = usePagesMentionSearch(triggerKind === 'mention' ? triggerQuery : null);
     const reportUploadedAttachment = useCallback(
       (attachment: AttachmentSummary): void => onAttachmentUploaded?.(attachment),
       [onAttachmentUploaded],
@@ -96,17 +107,27 @@ export const PagesProseMirrorEditor = forwardRef(
       [canEdit, pageId],
     );
 
-    const slashCommands = useMemo(() => {
-      const normalizedQuery = slashQuery?.toLocaleLowerCase() ?? '';
-      return Object.entries(PAGE_EDITOR_COMMANDS).filter(([, command]) =>
-        t(`commands.${command.labelKey}`).toLocaleLowerCase().includes(normalizedQuery),
-      );
-    }, [slashQuery, t]);
-    const slashCommandsRef = useRef(slashCommands);
+    const translateCommandLabel = useCallback((labelKey: string) => t(`commands.${labelKey}`), [t]);
+    const triggerItems = useMemo<readonly PagesEditorMenuItem[]>(
+      () =>
+        buildEditorTriggerItems({
+          commands: PAGE_EDITOR_COMMANDS,
+          mentionCandidates: mentionSearch.candidates,
+          schema: pageEditorSchema,
+          translateCommandLabel,
+          triggerKind,
+          triggerQuery,
+        }),
+      [mentionSearch.candidates, translateCommandLabel, triggerKind, triggerQuery],
+    );
+    const triggerItemsRef = useRef(triggerItems);
 
     useEffect(() => {
-      slashCommandsRef.current = slashCommands;
-    }, [slashCommands]);
+      triggerItemsRef.current = triggerItems;
+    }, [triggerItems]);
+
+    const triggerEmptyMessage = t(getEditorTriggerEmptyMessageKey(triggerKind, mentionSearch.isLoading));
+    const triggerAriaLabel = t(getEditorTriggerAriaLabelKey(triggerKind));
 
     const computeSelectionToolbarPosition = useCallback(
       (editorView: EditorView, selection: Selection): { readonly left: number; readonly top: number } | null => {
@@ -134,34 +155,36 @@ export const PagesProseMirrorEditor = forwardRef(
       editorView.focus();
     }, []);
 
-    const closeSlashMenu = useCallback((): void => {
-      slashQueryRef.current = null;
-      slashSelectedIndexRef.current = 0;
-      setSlashQuery(null);
-      setSlashSelectedIndex(0);
+    const closeTriggerMenu = useCallback((): void => {
+      triggerQueryRef.current = null;
+      triggerSelectedIndexRef.current = 0;
+      setTriggerKind(null);
+      setTriggerQuery(null);
+      setTriggerSelectedIndex(0);
     }, []);
 
-    const updateSlashMenu = useCallback((text: string): void => {
-      const nextQuery = getSlashMenuQuery(text);
-      slashQueryRef.current = nextQuery;
-      slashSelectedIndexRef.current = 0;
-      setSlashQuery(nextQuery);
-      setSlashSelectedIndex(0);
+    const updateEditorTrigger = useCallback((text: string): void => {
+      const trigger = resolveEditorTrigger(text);
+      triggerQueryRef.current = trigger?.query ?? null;
+      triggerSelectedIndexRef.current = 0;
+      setTriggerKind(trigger?.kind ?? null);
+      setTriggerQuery(trigger?.query ?? null);
+      setTriggerSelectedIndex(0);
     }, []);
 
-    const selectSlashCommand = useCallback(
+    const selectTriggerCommand = useCallback(
       (command: Command): void => {
         const editorView = editorViewRef.current;
-        const query = slashQueryRef.current;
+        const query = triggerQueryRef.current;
         if (editorView === null || query === null) return;
-        const slashStart = editorView.state.selection.from - query.length - 1;
-        if (slashStart < 1) return;
-        editorView.dispatch(editorView.state.tr.delete(slashStart, editorView.state.selection.from));
+        const triggerStart = editorView.state.selection.from - query.length - 1;
+        if (triggerStart < 1) return;
+        editorView.dispatch(editorView.state.tr.delete(triggerStart, editorView.state.selection.from));
         command(editorView.state, editorView.dispatch);
-        closeSlashMenu();
+        closeTriggerMenu();
         editorView.focus();
       },
-      [closeSlashMenu],
+      [closeTriggerMenu],
     );
 
     useEffect(() => {
@@ -179,24 +202,24 @@ export const PagesProseMirrorEditor = forwardRef(
           editorView.updateState(nextState);
           contentCallbackRef.current(serializePageEditorState(nextState));
           const selection = nextState.selection;
-          updateSlashMenu(
+          updateEditorTrigger(
             selection.empty ? selection.$from.parent.textContent.slice(0, selection.$from.parentOffset) : '',
           );
           setSelectionToolbarPosition(computeSelectionToolbarPosition(editorView, selection));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: (currentEditorView, event) => {
-          if (slashQueryRef.current !== null) {
+          if (triggerQueryRef.current !== null) {
             return handleSlashMenuKeyDown({
-              commands: slashCommandsRef.current,
               event,
-              onClose: closeSlashMenu,
-              onSelect: selectSlashCommand,
+              items: triggerItemsRef.current,
+              onClose: closeTriggerMenu,
+              onSelect: selectTriggerCommand,
               onSelectedIndexChange: (index) => {
-                slashSelectedIndexRef.current = index;
-                setSlashSelectedIndex(index);
+                triggerSelectedIndexRef.current = index;
+                setTriggerSelectedIndex(index);
               },
-              selectedIndex: slashSelectedIndexRef.current,
+              selectedIndex: triggerSelectedIndexRef.current,
             });
           }
           if (event.key === 'Escape' && !currentEditorView.state.selection.empty) {
@@ -217,11 +240,11 @@ export const PagesProseMirrorEditor = forwardRef(
       };
     }, [
       canEdit,
-      closeSlashMenu,
+      closeTriggerMenu,
       computeSelectionToolbarPosition,
       dismissSelectionToolbar,
-      selectSlashCommand,
-      updateSlashMenu,
+      selectTriggerCommand,
+      updateEditorTrigger,
     ]);
 
     useEffect(() => {
@@ -290,12 +313,14 @@ export const PagesProseMirrorEditor = forwardRef(
           </div>
         )}
         <div className={PAGE_EDITOR_SURFACE_CLASS_NAME} ref={surfaceRef}>
-          {canEdit && slashQuery !== null && (
+          {canEdit && triggerQuery !== null && (
             <div className="absolute top-2 left-0 z-20 w-56">
               <PagesEditorSlashMenu
-                commands={slashCommands}
-                onSelect={(command) => selectSlashCommand(command.run)}
-                selectedIndex={slashSelectedIndex}
+                emptyMessage={triggerEmptyMessage}
+                items={triggerItems}
+                label={triggerAriaLabel}
+                onSelect={(item) => selectTriggerCommand(item.run)}
+                selectedIndex={triggerSelectedIndex}
               />
             </div>
           )}

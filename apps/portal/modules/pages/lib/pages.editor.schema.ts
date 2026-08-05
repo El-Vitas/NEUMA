@@ -26,15 +26,43 @@ const getPageEditorToggleAttrs = (element: Element): { readonly summary: string 
   return { summary };
 };
 
+const getPageEditorMentionAttrs = (
+  element: Element,
+): { readonly label: string; readonly pageId: string; readonly spaceId: string } | false => {
+  const pageId = element.getAttribute('data-page-mention');
+  const label = element.getAttribute('data-label');
+  const spaceId = element.getAttribute('data-space-id');
+  if (pageId === null || label === null || label.length === 0 || spaceId === null) return false;
+  return { label, pageId, spaceId };
+};
+
+const optionalBlockIdAttribute = { default: null };
+
 const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'blockquote',
-    { content: 'block+', group: 'block', parseDOM: [{ tag: 'blockquote' }], toDOM: () => ['blockquote', 0] },
+    {
+      attrs: { id: optionalBlockIdAttribute },
+      content: 'block+',
+      group: 'block',
+      parseDOM: [{ tag: 'blockquote' }],
+      toDOM: () => ['blockquote', 0],
+    },
   ],
-  ['bullet_list', { content: 'list_item+', group: 'block', parseDOM: [{ tag: 'ul' }], toDOM: () => ['ul', 0] }],
+  [
+    'bullet_list',
+    {
+      attrs: { id: optionalBlockIdAttribute },
+      content: 'list_item+',
+      group: 'block',
+      parseDOM: [{ tag: 'ul' }],
+      toDOM: () => ['ul', 0],
+    },
+  ],
   [
     'code_block',
     {
+      attrs: { id: optionalBlockIdAttribute },
       code: true,
       content: 'text*',
       group: 'block',
@@ -46,7 +74,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'embed',
     {
-      attrs: { provider: {}, url: {} },
+      attrs: { id: optionalBlockIdAttribute, provider: {}, url: {} },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorEmbedAttrs, tag: 'div[data-page-embed]' }],
@@ -56,7 +84,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'file',
     {
-      attrs: { alt: { default: null }, assetId: {}, caption: { default: null } },
+      attrs: { alt: { default: null }, assetId: {}, caption: { default: null }, id: optionalBlockIdAttribute },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorAssetAttrs, tag: 'div[data-page-file]' }],
@@ -70,7 +98,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'heading',
     {
-      attrs: { level: { default: 1 } },
+      attrs: { id: optionalBlockIdAttribute, level: { default: 1 } },
       content: 'inline*',
       defining: true,
       group: 'block',
@@ -85,7 +113,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'image',
     {
-      attrs: { alt: { default: null }, assetId: {}, caption: { default: null } },
+      attrs: { alt: { default: null }, assetId: {}, caption: { default: null }, id: optionalBlockIdAttribute },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorAssetAttrs, tag: 'img[data-page-image]' }],
@@ -95,11 +123,35 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     },
   ],
-  ['list_item', { content: 'paragraph block*', defining: true, parseDOM: [{ tag: 'li' }], toDOM: () => ['li', 0] }],
+  [
+    'list_item',
+    {
+      attrs: { id: optionalBlockIdAttribute },
+      content: 'paragraph block*',
+      defining: true,
+      parseDOM: [{ tag: 'li' }],
+      toDOM: () => ['li', 0],
+    },
+  ],
+  [
+    'mention',
+    {
+      attrs: { label: {}, pageId: {}, spaceId: {} },
+      atom: true,
+      group: 'inline',
+      inline: true,
+      parseDOM: [{ getAttrs: getPageEditorMentionAttrs, tag: 'span[data-page-mention]' }],
+      toDOM: (node: EditorNode): DOMOutputSpec => [
+        'span',
+        { 'data-label': node.attrs.label, 'data-page-mention': node.attrs.pageId, 'data-space-id': node.attrs.spaceId },
+        `@${node.attrs.label}`,
+      ],
+    },
+  ],
   [
     'ordered_list',
     {
-      attrs: { order: { default: 1 } },
+      attrs: { id: optionalBlockIdAttribute, order: { default: 1 } },
       content: 'list_item+',
       group: 'block',
       parseDOM: [
@@ -108,18 +160,44 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       toDOM: (node: EditorNode) => ['ol', node.attrs.order === 1 ? {} : { start: node.attrs.order }, 0],
     },
   ],
-  ['paragraph', { content: 'inline*', group: 'block', parseDOM: [{ tag: 'p' }], toDOM: () => ['p', 0] }],
+  [
+    'paragraph',
+    {
+      attrs: { id: optionalBlockIdAttribute },
+      content: 'inline*',
+      group: 'block',
+      parseDOM: [{ tag: 'p' }],
+      toDOM: () => ['p', 0],
+    },
+  ],
   ['text', { group: 'inline' }],
   [
     'table',
-    { content: 'table_row+', group: 'block', parseDOM: [{ tag: 'table' }], toDOM: () => ['table', ['tbody', 0]] },
+    {
+      attrs: { id: optionalBlockIdAttribute },
+      content: 'table_row+',
+      group: 'block',
+      parseDOM: [{ tag: 'table' }],
+      toDOM: () => ['table', ['tbody', 0]],
+    },
   ],
-  ['table_cell', { content: 'block+', parseDOM: [{ tag: 'td' }], toDOM: () => ['td', 0] }],
-  ['table_row', { content: 'table_cell+', parseDOM: [{ tag: 'tr' }], toDOM: () => ['tr', 0] }],
+  [
+    'table_cell',
+    { attrs: { id: optionalBlockIdAttribute }, content: 'block+', parseDOM: [{ tag: 'td' }], toDOM: () => ['td', 0] },
+  ],
+  [
+    'table_row',
+    {
+      attrs: { id: optionalBlockIdAttribute },
+      content: 'table_cell+',
+      parseDOM: [{ tag: 'tr' }],
+      toDOM: () => ['tr', 0],
+    },
+  ],
   [
     'toggle',
     {
-      attrs: { summary: {} },
+      attrs: { id: optionalBlockIdAttribute, summary: {} },
       content: 'block+',
       defining: true,
       group: 'block',

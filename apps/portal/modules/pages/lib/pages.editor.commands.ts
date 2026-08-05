@@ -1,5 +1,5 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
-import { pageAssetAttrsSchema, pageEmbedAttrsSchema } from '@company-brain/shared';
+import { pageAssetAttrsSchema, pageEmbedAttrsSchema, pageMentionAttrsSchema } from '@company-brain/shared';
 import { baseKeymap, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
 import { inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
@@ -7,7 +7,13 @@ import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
 import { splitListItem, wrapInList } from 'prosemirror-schema-list';
 import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
-import type { PageAssetInsertCommandOptions, PageAssetNodeType, PageEditorCommand } from '../types/pages.types';
+import type {
+  PageAssetInsertCommandOptions,
+  PageAssetNodeType,
+  PageEditorCommand,
+  PageMentionInsertCommandOptions,
+} from '../types/pages.types';
+import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
@@ -83,6 +89,27 @@ export const createPageEmbedInsertCommand = (schema: Schema, provider: PageEmbed
 };
 
 /**
+ * Builds a ProseMirror command that inserts a `mention` node referencing
+ * another page.
+ *
+ * Returns a no-op command (reports `false`, never dispatches) when the
+ * `pageId`/`label`/`spaceId` triple fails the shared `pageMentionAttrsSchema`
+ * — the same contract `serializePageEditorDocument` validates against at
+ * save time.
+ * Callers (the `@` mention picker) build the command once the requester has
+ * chosen a candidate page, then run it through `runPageEditorCommand`.
+ */
+export const createPageMentionInsertCommand = (schema: Schema, options: PageMentionInsertCommandOptions): Command => {
+  const attrs = pageMentionAttrsSchema.safeParse({
+    label: options.label,
+    pageId: options.pageId,
+    spaceId: options.spaceId,
+  });
+  if (!attrs.success) return () => false;
+  return insertPageNode(schema.nodes.mention.createChecked(attrs.data));
+};
+
+/**
  * Builds the full set of toolbar commands for the page editor.
  *
  * `toggleSummary` is the default `summary` attr used when inserting a new
@@ -120,4 +147,5 @@ export const createPageEditorPlugins = (schema: Schema): readonly EditorPlugin[]
   keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
   keymap(baseKeymap),
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
+  createPageEditorBlockIdPlugin(),
 ];

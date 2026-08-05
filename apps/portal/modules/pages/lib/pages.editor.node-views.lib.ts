@@ -1,5 +1,6 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
 const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeURIComponent(assetId)}`;
 
@@ -21,9 +22,19 @@ const createPageImageNodeView = (node: EditorNode): NodeView => {
   return { dom: image };
 };
 
+const createPageMentionNodeView = (node: EditorNode): NodeView => {
+  const link = document.createElement('a');
+  link.className =
+    'text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  link.href = ROUTES.PORTAL_SPACE_PAGE(node.attrs.spaceId, node.attrs.pageId);
+  link.textContent = node.attrs.label;
+  return { dom: link };
+};
+
 export const createPageEditorNodeViews = (): Readonly<
   Record<string, (node: EditorNode, view: EditorView) => NodeView>
 > => ({
   file: createPageFileNodeView,
   image: createPageImageNodeView,
+  mention: createPageMentionNodeView,
 });

@@ -1,0 +1,2 @@
+export const LINKS_OUTBOX_MAX_ATTEMPTS = 5;
+export const LINKS_WORKER_IDLE_DELAY_MS = 1000;

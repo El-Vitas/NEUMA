@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { EMPTY_PAGE_BACKLINKS } from '../constants/pages.constants';
 import { usePagesAutosave } from '../hooks/use.pages.autosave';
 import {
   buildPageAssetInsertOptionsFromAttachment,
@@ -17,14 +18,17 @@ import { createEmptyPageContent } from '../lib/pages.editor.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { PageBacklinksResult } from '../types/pages.backlinks.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesAttachments } from './pages.attachments';
+import { PagesBacklinks } from './pages.backlinks';
 import { PagesHeader } from './pages.header';
 import { PagesMoveForm } from './pages.move.form';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
+  readonly backlinks?: PageBacklinksResult;
   readonly canEdit: boolean;
   readonly currentUserDisplayName?: string;
   readonly page: PageSummary | null;
@@ -37,6 +41,7 @@ interface IProps {
 
 export const PagesEditor = ({
   attachments = [],
+  backlinks = EMPTY_PAGE_BACKLINKS,
   canEdit,
   currentUserDisplayName,
   page,
@@ -156,6 +161,7 @@ export const PagesEditor = ({
             pageId={pageId}
           />
         )}
+        {pageId !== null && <PagesBacklinks backlinks={backlinks} />}
       </div>
     </section>
   );

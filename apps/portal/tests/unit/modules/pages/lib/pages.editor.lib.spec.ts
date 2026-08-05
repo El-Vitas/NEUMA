@@ -110,6 +110,33 @@ describe('pages.editor.lib', () => {
     expect(serializePageEditorState(createPageEditorState(structuredContent))).toEqual(structuredContent);
   });
 
+  it('serializes a document containing a mention and block ids to something the shared contract accepts', () => {
+    const contentWithMentionAndIds: PageContent = {
+      content: [
+        {
+          attrs: { id: 'heading-1', level: 2 },
+          content: [{ text: 'Meeting notes', type: 'text' }],
+          type: 'heading',
+        },
+        {
+          attrs: { id: 'paragraph-1' },
+          content: [
+            { text: 'See ', type: 'text' },
+            { attrs: { label: 'Project Plan', pageId: 'page-42', spaceId: 'space-42' }, type: 'mention' },
+            { text: ' for context.', type: 'text' },
+          ],
+          type: 'paragraph',
+        },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+
+    const serialized = serializePageEditorState(createPageEditorState(contentWithMentionAndIds));
+
+    expect(serialized).toEqual(contentWithMentionAndIds);
+  });
+
   it('marks viewer and trashed pages as read-only', () => {
     expect(isPageEditorReadOnly(false)).toBe(true);
     expect(isPageEditorReadOnly(true)).toBe(false);

@@ -29,6 +29,7 @@ import type {
 } from './modules/collaboration/types/collaboration.types';
 import { DatabasesModule } from './modules/databases/databases.module';
 import { FilesModule } from './modules/files/files.module';
+import { LinksModule } from './modules/links/links.module';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
@@ -78,6 +79,7 @@ import { PrismaModule } from './prisma/prisma.module';
     FilesModule,
     McpModule,
     SearchModule,
+    LinksModule,
   ],
   controllers: [CollaborationController, HealthController],
   providers: [

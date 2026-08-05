@@ -63,6 +63,24 @@ export class PageRepository implements PageRepositoryContract {
     return page === null ? null : this.toSummary(page);
   }
 
+  async findReadablePageIds(
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<readonly string[]> {
+    if (pageIds.length === 0) return [];
+    const pages = await this.prisma.page.findMany({
+      select: { id: true },
+      where: {
+        ...this.pageAccessFilter(workspaceId, userId, role),
+        id: { in: [...pageIds] },
+        lifecycle: PageLifecycle.ACTIVE,
+      },
+    });
+    return pages.map((page) => page.id);
+  }
+
   async create(input: CreatePageInput): Promise<PageSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
       const accessibleSpaceId = await findAccessibleSpaceId(

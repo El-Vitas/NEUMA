@@ -10,6 +10,12 @@ const getPageAttachments = mock(async () => ({
   isFail: () => true,
   isOk: () => false,
 }));
+const getPageBacklinks = mock(async () => ({
+  getError: () => new Error('Backlinks unavailable'),
+  getValue: () => ({ count: 0, items: [] }),
+  isFail: () => true,
+  isOk: () => false,
+}));
 const pageId = '44444444-4444-4444-8444-444444444444';
 const spaceId = '22222222-2222-4222-8222-222222222222';
 const pagesResult = {
@@ -42,6 +48,7 @@ mock.module('next-intl/server', () => ({ getTranslations: async () => (key: stri
 mock.module('@/modules/auth/server/lib/get.current.user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
+mock.module('@/modules/pages/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({ getPages: async () => pagesResult }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({ getSpaces: async () => spacesResult }));
 
