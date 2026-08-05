@@ -1,6 +1,8 @@
 import { DatabaseLifecycle, PageLifecycle, SearchSourceType } from '@company-brain/db';
 import { pageContentSchema } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
+import type { OutboxProjectionEvent, OutboxProjectionOutbox } from '../../../../common/types/outbox.types';
 import { SEARCH_OUTBOX_MAX_ATTEMPTS } from '../../constants/search.constants';
 import {
   SEARCH_PROJECTION_OUTBOX as SEARCH_PROJECTION_OUTBOX_TOKEN,
@@ -8,11 +10,9 @@ import {
 } from '../../constants/search.tokens';
 import { SearchService } from '../../search.service';
 import type {
-  OutboxProjectionEvent,
   SearchDocumentInput,
   SearchDocumentProjection,
   SearchDocumentRemoval,
-  SearchProjectionOutbox,
   SearchProjectionRecord,
   SearchProjectionSource,
 } from '../../types/search.types';
@@ -107,30 +107,16 @@ const readVersionMarker = (event: OutboxProjectionEvent): number => {
 };
 
 @Injectable()
-export class SearchProjectionWorker {
+export class SearchProjectionWorker extends OutboxProjectionWorker {
   constructor(
-    @Inject(SEARCH_PROJECTION_OUTBOX_TOKEN) private readonly outbox: SearchProjectionOutbox,
+    @Inject(SEARCH_PROJECTION_OUTBOX_TOKEN) outbox: OutboxProjectionOutbox,
     @Inject(SEARCH_PROJECTION_SOURCE_TOKEN) private readonly source: SearchProjectionSource,
     @Inject(SearchService) private readonly projection: SearchDocumentProjection,
-  ) {}
-
-  async processBatch(limit: number): Promise<number> {
-    const events = await this.outbox.claimPending(limit);
-    for (const event of events) await this.processEvent(event);
-    return events.length;
+  ) {
+    super(outbox, SEARCH_OUTBOX_MAX_ATTEMPTS);
   }
 
-  private async processEvent(event: OutboxProjectionEvent): Promise<void> {
-    try {
-      await this.projectEvent(event);
-      await this.outbox.markProcessed(event.id);
-    } catch (error) {
-      if (event.attemptCount >= SEARCH_OUTBOX_MAX_ATTEMPTS) await this.outbox.markFailed(event.id, error);
-      else await this.outbox.markRetryable(event.id, error, event.attemptCount);
-    }
-  }
-
-  private async projectEvent(event: OutboxProjectionEvent): Promise<void> {
+  protected async projectEvent(event: OutboxProjectionEvent): Promise<void> {
     if (event.aggregateType === 'PAGE') {
       const page = await this.source.findPage(event.aggregateId);
       if (page === null || page.lifecycle !== PageLifecycle.ACTIVE) {

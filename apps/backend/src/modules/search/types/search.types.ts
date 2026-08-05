@@ -1,5 +1,4 @@
 import type { Prisma } from '@company-brain/db/generated';
-import type { OutboxEventContract, OutboxEventRecord } from '../../../common/types/outbox.types';
 import type { SearchPage, SearchQuery, SearchSourceType } from '../../../common/types/search.types';
 
 export type { SearchPage, SearchQuery, SearchReader, SearchResult } from '../../../common/types/search.types';
@@ -97,9 +96,3 @@ export interface SearchProjectionSource {
   readonly findRecord: (recordId: string) => Promise<SearchProjectionRecord | null>;
   readonly listRecords: (databaseId: string) => Promise<readonly SearchProjectionRecord[]>;
 }
-
-export type SearchProjectionOutbox = Pick<
-  OutboxEventContract,
-  'claimPending' | 'markFailed' | 'markProcessed' | 'markRetryable'
->;
-export type OutboxProjectionEvent = OutboxEventRecord;

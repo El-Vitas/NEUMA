@@ -1,16 +1,12 @@
 import { PageLifecycle } from '@company-brain/db';
 import { Inject, Injectable } from '@nestjs/common';
+import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
+import type { OutboxProjectionEvent, OutboxProjectionOutbox } from '../../../../common/types/outbox.types';
 import { LINKS_OUTBOX_MAX_ATTEMPTS } from '../../constants/links.constants';
 import { LINKS_PROJECTION_OUTBOX, LINKS_PROJECTION_SOURCE } from '../../constants/links.tokens';
 import { resolveLinkTargets } from '../../domain/page-link.domain';
 import { LinksService } from '../../links.service';
-import type {
-  LinksProjectionOutbox,
-  LinksProjectionPage,
-  LinksProjectionSource,
-  OutboxProjectionEvent,
-  PageLinkProjection,
-} from '../../types/links.types';
+import type { LinksProjectionPage, LinksProjectionSource, PageLinkProjection } from '../../types/links.types';
 import { extractLinkTargetPageIds } from '../../utils/links.content.utils';
 
 const resolveTargetPageIds = (sourcePageId: string, page: LinksProjectionPage | null): readonly string[] | null => {
@@ -20,30 +16,16 @@ const resolveTargetPageIds = (sourcePageId: string, page: LinksProjectionPage | 
 };
 
 @Injectable()
-export class LinksProjectionWorker {
+export class LinksProjectionWorker extends OutboxProjectionWorker {
   constructor(
-    @Inject(LINKS_PROJECTION_OUTBOX) private readonly outbox: LinksProjectionOutbox,
+    @Inject(LINKS_PROJECTION_OUTBOX) outbox: OutboxProjectionOutbox,
     @Inject(LINKS_PROJECTION_SOURCE) private readonly source: LinksProjectionSource,
     @Inject(LinksService) private readonly projection: PageLinkProjection,
-  ) {}
-
-  async processBatch(limit: number): Promise<number> {
-    const events = await this.outbox.claimPending(limit);
-    for (const event of events) await this.processEvent(event);
-    return events.length;
+  ) {
+    super(outbox, LINKS_OUTBOX_MAX_ATTEMPTS);
   }
 
-  private async processEvent(event: OutboxProjectionEvent): Promise<void> {
-    try {
-      await this.projectEvent(event);
-      await this.outbox.markProcessed(event.id);
-    } catch (error) {
-      if (event.attemptCount >= LINKS_OUTBOX_MAX_ATTEMPTS) await this.outbox.markFailed(event.id, error);
-      else await this.outbox.markRetryable(event.id, error, event.attemptCount);
-    }
-  }
-
-  private async projectEvent(event: OutboxProjectionEvent): Promise<void> {
+  protected async projectEvent(event: OutboxProjectionEvent): Promise<void> {
     if (event.aggregateType !== 'PAGE') return;
     const page = await this.source.findPage(event.aggregateId);
     const targetPageIds = resolveTargetPageIds(event.aggregateId, page);

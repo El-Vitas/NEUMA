@@ -27,3 +27,10 @@ export interface OutboxEventRecord {
   readonly payload: Prisma.JsonValue;
   readonly payloadVersion: number;
 }
+
+export type OutboxProjectionOutbox = Pick<
+  OutboxEventContract,
+  'claimPending' | 'markFailed' | 'markProcessed' | 'markRetryable'
+>;
+
+export type OutboxProjectionEvent = OutboxEventRecord;

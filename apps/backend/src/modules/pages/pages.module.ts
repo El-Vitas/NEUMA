@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OutboxRepository } from '../../common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
+import { WorkspaceMemberRepository } from '../../common/infrastructure/persistence/workspace-member.repository';
 import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY } from './constants/pages.constants';
 import { PageRepository } from './infrastructure/persistence/page.repository';
 import { PageSchemaRepository } from './infrastructure/persistence/page-schema.repository';
@@ -19,6 +20,7 @@ import { PagesService } from './pages.service';
     PagesService,
     PageSchemaService,
     WorkspaceContextService,
+    WorkspaceMemberRepository,
   ],
 })
 export class PagesModule {}

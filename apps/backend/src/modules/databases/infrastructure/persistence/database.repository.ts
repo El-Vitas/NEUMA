@@ -5,9 +5,14 @@ import { Injectable } from '@nestjs/common';
 import { canCreateSpace } from '../../../../common/domain/workspace.policy';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import {
+  toSchemaPropertyDefinition,
+  toSchemaViewDefinition,
+} from '../../../../common/infrastructure/persistence/schema-json.adapter';
+import {
   buildSpaceVisibilityFilter,
   findAccessibleSpaceId,
 } from '../../../../common/infrastructure/persistence/space.visibility.filter';
+import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { getDatabaseTemplate } from '../../templates/database.templates';
 import type {
@@ -15,62 +20,11 @@ import type {
   CreatePropertyInput,
   CreateRecordInput,
   CreateViewInput,
-  DatabasePropertyDefinition,
   DatabasePropertyValue,
   DatabaseRecordSummary,
   DatabaseRepositoryContract,
   DatabaseSummary,
-  DatabaseViewDefinition,
 } from '../../types/database.types';
-
-const getStringOptions = (value: Prisma.JsonValue | null): readonly string[] | null =>
-  Array.isArray(value) && value.every((item) => typeof item === 'string')
-    ? value.filter((item): item is string => typeof item === 'string')
-    : null;
-
-const toInputJsonValue = (value: Prisma.JsonValue): Prisma.InputJsonValue | null => {
-  if (value === null) return null;
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
-  if (Array.isArray(value)) return value.map((item) => toInputJsonValue(item));
-  const object: Record<string, Prisma.InputJsonValue> = {};
-  for (const [key, nestedValue] of Object.entries(value)) {
-    if (nestedValue === undefined) continue;
-    const converted = toInputJsonValue(nestedValue);
-    if (converted !== null) object[key] = converted;
-  }
-  return object;
-};
-
-const toPropertyDefinition = (property: {
-  key: string;
-  label: string;
-  type: DatabasePropertyType;
-  required: boolean;
-  options: Prisma.JsonValue | null;
-}): DatabasePropertyDefinition => ({
-  key: property.key,
-  label: property.label,
-  options: getStringOptions(property.options),
-  required: property.required,
-  type: property.type,
-});
-
-const toViewDefinition = (view: {
-  name: string;
-  type: DatabaseViewType;
-  configuration: Prisma.JsonValue;
-  isDefault: boolean;
-}): DatabaseViewDefinition | null => {
-  if (typeof view.configuration !== 'object' || view.configuration === null || Array.isArray(view.configuration))
-    return null;
-  const configuration: Record<string, Prisma.InputJsonValue> = {};
-  for (const [key, value] of Object.entries(view.configuration)) {
-    if (value === undefined) continue;
-    const converted = toInputJsonValue(value);
-    if (converted !== null) configuration[key] = converted;
-  }
-  return { configuration, isDefault: view.isDefault, name: view.name, type: view.type };
-};
 
 const toSummary = (database: {
   id: string;
@@ -92,12 +46,12 @@ const toSummary = (database: {
   id: database.id,
   lifecycle: database.lifecycle,
   name: database.name,
-  properties: database.properties.map(toPropertyDefinition),
+  properties: database.properties.map(toSchemaPropertyDefinition),
   slug: database.slug,
   spaceId: database.spaceId,
   template: database.template,
   views: database.views.flatMap((view) => {
-    const definition = toViewDefinition(view);
+    const definition = toSchemaViewDefinition(view);
     return definition === null ? [] : [definition];
   }),
   workspaceId: database.workspaceId,
@@ -126,6 +80,7 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outboxRepository: OutboxRepository,
+    private readonly workspaceMemberRepository: WorkspaceMemberRepository,
   ) {}
 
   async create(input: CreateDatabaseInput): Promise<DatabaseSummary | null> {
@@ -336,12 +291,7 @@ export class DatabaseRepository implements DatabaseRepositoryContract {
   }
 
   async listWorkspaceMemberIds(workspaceId: string): Promise<readonly string[]> {
-    const members = await this.prisma.workspaceMember.findMany({
-      select: { userId: true },
-      where: { workspaceId, user: { isActive: true } },
-      orderBy: { userId: 'asc' },
-    });
-    return members.map((member) => member.userId);
+    return this.workspaceMemberRepository.listActiveMemberIds(workspaceId);
   }
 
   async listRecords(

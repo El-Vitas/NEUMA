@@ -1,5 +1,6 @@
 import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
-import { Result, USER_ROLE, type UserRole } from '@company-brain/shared';
+import type { Prisma } from '@company-brain/db/generated';
+import { type PageContent, Result, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
 import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY, REDACTED_MENTION_LABEL } from './constants/pages.constants';
@@ -43,9 +44,7 @@ export class PagesService {
     role: UserRole,
   ): Promise<Result<PageSummary, PageAccessDeniedError>> {
     const page = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
-    const redactedPages = await this.redactPages([page], workspaceId, userId, role);
-    return Result.ok(redactedPages.at(0) ?? page);
+    return this.toAccessiblePageResult(page, workspaceId, userId, role);
   }
 
   async create(
@@ -57,8 +56,7 @@ export class PagesService {
       PageAccessDeniedError | PageContentValidationError | PagePropertyValidationError | PageParentError
     >
   > {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const content = validatePageContent(input.content);
+    const content = this.validateWritableContent(role, input.content);
     if (content.isFail()) return Result.fail(content.getError());
     if (input.parentId !== null && !(await this.pageRepository.parentBelongsToSpace(input.parentId, input.spaceId))) {
       return Result.fail(new PageParentError());
@@ -82,8 +80,7 @@ export class PagesService {
     input: UpdatePageInput,
     role: UserRole,
   ): Promise<Result<PageSummary, PageAccessDeniedError | PageContentValidationError | PagePropertyValidationError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const content = validatePageContent(input.content);
+    const content = this.validateWritableContent(role, input.content);
     if (content.isFail()) return Result.fail(content.getError());
     const existingPage = await this.pageRepository.getAccessible(
       input.pageId,
@@ -130,9 +127,7 @@ export class PagesService {
     );
     if (conformance.isFail()) return Result.fail(new PagePropertyConformanceError(conformance.getError().details));
     const page = await this.pageRepository.move(pageId, parentId, userId, workspaceId, role, mutationId);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
-    const redactedPages = await this.redactPages([page], workspaceId, userId, role);
-    return Result.ok(redactedPages.at(0) ?? page);
+    return this.toAccessiblePageResult(page, workspaceId, userId, role);
   }
 
   async trash(
@@ -162,6 +157,25 @@ export class PagesService {
   ): Result<true, PageCycleError | PageParentError> {
     if (!hasValidPageParent(pageId, parentId, pages)) return Result.fail(new PageParentError());
     return isPageMoveAllowed(pageId, parentId, pages) ? Result.ok(true) : Result.fail(new PageCycleError());
+  }
+
+  private validateWritableContent(
+    role: UserRole,
+    content: Prisma.InputJsonValue,
+  ): Result<PageContent, PageAccessDeniedError | PageContentValidationError> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    return validatePageContent(content);
+  }
+
+  private async toAccessiblePageResult(
+    page: PageSummary | null,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError>> {
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const redactedPages = await this.redactPages([page], workspaceId, userId, role);
+    return Result.ok(redactedPages.at(0) ?? page);
   }
 
   private async applyLifecycle(
