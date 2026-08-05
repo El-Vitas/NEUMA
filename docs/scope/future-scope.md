@@ -33,12 +33,10 @@ Nothing in this document is a current implementation task. These items are inten
 
 ## Product Features
 
-- Calendar and timeline database views.
+- Calendar and timeline collection views.
 - Comments.
-- Mentions.
 - Notifications.
 - Inbox.
-- Backlinks.
 - Slack, GitHub, Jira, Linear, and calendar integrations.
 - Public API keys.
 - Webhooks.

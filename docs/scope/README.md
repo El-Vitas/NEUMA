@@ -13,3 +13,13 @@ Read `future-scope.md` to see features intentionally excluded from the current p
 ## Execution Map
 
 Read `../superpowers/plans/2026-08-03-company-brain-module-slices.md` for the module-level slice scopes and dependencies. A slice may run in parallel only when its file scope is disjoint from the other active slices.
+
+## Model Direction
+
+Read `../architecture/adr/008-adopt-single-page-primitive-notion-alignment.md` before touching the page, database, or content-storage models. It establishes `Page` as the only content primitive, turns databases into collections that select pages instead of storing rows, puts page mentions and backlinks into the current scope, fixes `Page.content` as the canonical source of truth for content, and records the four-level storage ladder for blocks with level 3 as the target.
+
+Read `../architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md` before touching attachments. The content is the single source of truth for where a file lives; `FileAsset.pageId` is ownership and permission, not placement.
+
+Both are executed by `../superpowers/plans/2026-08-05-company-brain-notion-alignment.md`, which supersedes the data model in `../superpowers/plans/2026-08-02-company-brain-databases.md`.
+
+**The recurring rule behind all of it:** one fact is stored in one place. Every problem these documents fix — a task that cannot hold knowledge, a file listed in two places, content persisted down two paths — is the same mistake wearing different clothes.

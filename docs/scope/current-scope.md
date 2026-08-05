@@ -11,8 +11,9 @@ This is the only scope that is allowed to receive implementation work in the cur
 - Spaces with public-internal and restricted visibility.
 - Hierarchical pages with versioning and trash/restore.
 - Structured ProseMirror editor.
-- Configurable databases with Tasks/Projects templates.
+- Configurable collections with Tasks/Projects templates, contributing a typed property schema and views over pages.
 - Table and board views already delivered. Calendar and timeline are not part of the current completion pass.
+- Page mentions and backlinks: a persisted link graph between pages, maintained as an outbox projection.
 - PostgreSQL full-text search, filters, tags, ranking, snippets, permissions, outbox projection, and MCP search.
 - Local filesystem file assets behind a storage abstraction.
 - Hocuspocus/Yjs collaborative editing with page-scoped authorization.
@@ -62,7 +63,33 @@ Remaining files and changes:
 
 Status: generic definitions, typed properties, records, Tasks/Projects templates, permissions, table/board contracts, and portal views delivered.
 
+**Model change in progress.** Per `docs/architecture/adr/008-adopt-single-page-primitive-notion-alignment.md`, this module dissolves into `Page`:
+
+- a record becomes a **page**;
+- a database becomes a **page that carries a schema**, and its rows are that page's child pages — so membership is plain `parentId`, with no `collectionId` column and no separate collection entity;
+- `Database` is deleted rather than renamed; `DatabaseProperty` and `DatabaseView` survive as schema tables keyed by the owning page.
+
+The typed property engine, the Tasks/Projects templates and the table/board grouping logic all survive; only the storage and the entity boundaries move. Do not add new capabilities to `DatabaseRecord` — a request for versioning, trash or collaboration on records is a signal to accelerate the migration, not to duplicate `Page`.
+
 Remaining files: none for the currently accepted minimum. Calendar/timeline are part of the agreed data-view scope only when explicitly started as their own module slice.
+
+### `links`
+
+Status: not started. Introduced by ADR-008 as a current-scope module.
+
+Owns the page mention node, the `PageLink` graph, its outbox projection worker, and the backlinks read. Reads must filter by the requesting user's space access before counting, so the graph never discloses the existence of unreadable pages. Execution detail: `docs/superpowers/plans/2026-08-05-company-brain-notion-alignment.md`, Phase 1.
+
+### `blocks`
+
+Status: not started. Introduced by ADR-008 as a current-scope module.
+
+Owns the stable block ids in the editor schema and the `PageBlock` projection derived from `Page.content`. `PageBlock` is a read model: nothing outside its worker may write to it. It exists so content is addressable and queryable at block granularity — for citations, for cross-page queries over content, and for agent-directed edits — without making blocks the write model. Execution detail: same plan, Phases 1 and 4.
+
+### `mcp`
+
+Status: read surface delivered (`mcp.listSpaces`, `mcp.getPage`, `search_company_brain`).
+
+Gains write tooling in Phase 4 so an agent can operate the brain, not only read it. Every tool resolves a principal and filters by space access — there is no agent bypass — and every write goes through the same services the portal uses, so domain validation, versioning and outbox emission are identical. Tools are modelled on the domain, never on storage.
 
 ### `search`
 
@@ -78,6 +105,8 @@ Remaining files and verification:
 ### `files`
 
 Status: FileAsset model, local storage, upload/download/delete authorization, portal attachment primitives delivered.
+
+**Placement model change.** Per `docs/architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md`, the content becomes the single source of truth for *where* a file lives, and `FileAsset.pageId` becomes the ownership/permission/collection anchor rather than a parallel placement record. The separate "Attachments" list stops being the primary surface: a file is attached where it is dropped and removed by deleting its block. The authorization path in `file.asset.repository.ts` is already correct and does not change. Execution detail: `docs/superpowers/plans/2026-08-05-company-brain-notion-alignment.md`, Phase 5.
 
 Remaining files and changes:
 
