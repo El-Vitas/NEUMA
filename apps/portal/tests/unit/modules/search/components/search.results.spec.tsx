@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { SearchResults } from '@/modules/search/components/search.results';
-import type { SearchPage, SearchQuery } from '@/modules/search/types/search.types';
+import type { SearchPage, SearchQuery } from '@/shared/types/search.types';
 import en from '../../../../../messages/en.json';
 
 mock.module('next/navigation', () => ({

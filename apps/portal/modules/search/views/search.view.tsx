@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import type { SearchPage, SearchQuery } from '@/shared/types/search.types';
 import { SearchForm } from '../components/search.form';
 import { SearchResults } from '../components/search.results';
-import type { SearchPage, SearchQuery } from '../types/search.types';
 
 interface IProps {
   readonly locale: string;

@@ -15,15 +15,7 @@
       "from": { "path": "^modules/([^/]+)" },
       "to": {
         "path": "^modules/[^/]+/",
-        "pathNot": [
-          "^node_modules/",
-          "^modules/$1/",
-          "^modules/clients/(components/client-select\\.tsx|server/queries/client\\.queries\\.ts|types/client\\.types\\.ts)$",
-          "^modules/devices/(components/device-select\\.tsx|server/queries/device\\.queries\\.ts|types/device\\.types\\.ts)$",
-          "^modules/orders/server/queries/order\\.queries\\.ts$",
-          "^modules/auth/server/lib/auth\\.server\\.ts$",
-          "^modules/notifications/types/notification\\.types\\.ts$"
-        ]
+        "pathNot": ["^node_modules/", "^modules/$1/", "^modules/auth/server/lib/auth\\.server\\.ts$"]
       }
     },
     {
