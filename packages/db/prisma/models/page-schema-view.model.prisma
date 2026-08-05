@@ -1,0 +1,14 @@
+model PageSchemaView {
+  id            String           @id @default(uuid(7))
+  pageId        String
+  name          String
+  type          DatabaseViewType
+  configuration Json
+  isDefault     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  page          Page             @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, name])
+  @@index([pageId, type])
+}
