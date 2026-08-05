@@ -13,13 +13,13 @@
       "dependsOn": ["^build"]
     },
     "lint": {
-      "dependsOn": []
+      "dependsOn": ["^build"]
     },
     "format": {
       "dependsOn": []
     },
     "typecheck": {
-      "dependsOn": []
+      "dependsOn": ["^build"]
     },
     "db:generate": {
       "cache": false
