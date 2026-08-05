@@ -1,9 +1,16 @@
 import type { Command } from 'prosemirror-state';
-import type { PageEditorCommand } from './pages.types';
+
+export type PagesEditorTriggerKind = 'mention' | 'slash';
+
+export interface PagesEditorMenuItem {
+  readonly id: string;
+  readonly label: string;
+  readonly run: Command;
+}
 
 export interface SlashMenuKeyDownOptions {
-  readonly commands: readonly (readonly [string, PageEditorCommand])[];
   readonly event: KeyboardEvent;
+  readonly items: readonly PagesEditorMenuItem[];
   readonly onClose: () => void;
   readonly onSelect: (command: Command) => void;
   readonly onSelectedIndexChange: (index: number) => void;

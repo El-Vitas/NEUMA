@@ -1,7 +1,7 @@
 import { PageLifecycle } from '@company-brain/db';
 import { Result, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { PAGE_REPOSITORY } from './constants/pages.constants';
+import { PAGE_REPOSITORY, REDACTED_MENTION_LABEL } from './constants/pages.constants';
 import { hasValidPageParent, isPageMoveAllowed, validatePageContent } from './domain/page.domain';
 import {
   PageAccessDeniedError,
@@ -10,6 +10,7 @@ import {
   PageLifecycleError,
   PageParentError,
 } from './domain/page.error';
+import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
 import type { CreatePageInput, PageRepositoryContract, PageSummary, UpdatePageInput } from './types/page.types';
 
 @Injectable()
@@ -23,7 +24,8 @@ export class PagesService {
     role: UserRole,
     includeTrashed = false,
   ): Promise<readonly PageSummary[]> {
-    return this.pageRepository.listAccessible(spaceId, workspaceId, userId, role, includeTrashed);
+    const pages = await this.pageRepository.listAccessible(spaceId, workspaceId, userId, role, includeTrashed);
+    return this.redactPages(pages, workspaceId, userId, role);
   }
 
   async getAccessible(
@@ -33,7 +35,9 @@ export class PagesService {
     role: UserRole,
   ): Promise<Result<PageSummary, PageAccessDeniedError>> {
     const page = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const redactedPages = await this.redactPages([page], workspaceId, userId, role);
+    return Result.ok(redactedPages.at(0) ?? page);
   }
 
   async create(
@@ -75,7 +79,9 @@ export class PagesService {
     if (!hasValidPageParent(pageId, parentId, context.pages)) return Result.fail(new PageParentError());
     if (!isPageMoveAllowed(pageId, parentId, context.pages)) return Result.fail(new PageCycleError());
     const page = await this.pageRepository.move(pageId, parentId, userId, workspaceId, role, mutationId);
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const redactedPages = await this.redactPages([page], workspaceId, userId, role);
+    return Result.ok(redactedPages.at(0) ?? page);
   }
 
   async trash(
@@ -118,5 +124,27 @@ export class PagesService {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const updated = await this.pageRepository.setLifecycle(pageId, lifecycle, userId, workspaceId, role, mutationId);
     return updated ? Result.ok(true) : Result.fail(new PageLifecycleError());
+  }
+
+  private async redactPages(
+    pages: readonly PageSummary[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<readonly PageSummary[]> {
+    const pagesWithMentionIds = pages.map((page) => ({ mentionIds: extractMentionTargetPageIds(page.content), page }));
+    const referencedPageIds = [...new Set(pagesWithMentionIds.flatMap((entry) => entry.mentionIds))];
+    if (referencedPageIds.length === 0) return pages;
+    const readablePageIds = new Set(
+      await this.pageRepository.findReadablePageIds(referencedPageIds, workspaceId, userId, role),
+    );
+    return pagesWithMentionIds.map((entry) =>
+      entry.mentionIds.length === 0
+        ? entry.page
+        : {
+            ...entry.page,
+            content: redactUnreadableMentions(entry.page.content, readablePageIds, REDACTED_MENTION_LABEL),
+          },
+    );
   }
 }

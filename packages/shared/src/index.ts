@@ -18,12 +18,15 @@ export { InvalidMoneyError } from './money/money.error.js';
 export { Money } from './money/money.js';
 export {
   extractPageContentSegments,
+  extractPageMentionIds,
   joinPageContentSegmentsForDisplay,
   joinPageContentSegmentsForSearch,
 } from './page-content.lib.js';
 export { Result } from './result.js';
 export type {
   PageContent,
+  PageContentInlineNode,
+  PageContentMention,
   PageContentNode,
   PageContentText,
   PageEmbedProvider,
@@ -34,6 +37,7 @@ export {
   pageAssetAttrsSchema,
   pageContentSchema,
   pageEmbedAttrsSchema,
+  pageMentionAttrsSchema,
 } from './schemas/page-content.schema.js';
 export type { AuthSession } from './types/auth.types.js';
 export type { PageLifecycle } from './types/page.types.js';

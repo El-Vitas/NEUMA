@@ -10,6 +10,10 @@ const maximumToggleSummaryLength = 500;
 const maximumAssetIdLength = 200;
 const maximumAssetMetadataLength = 500;
 const maximumEmbedUrlLength = 2_048;
+const maximumBlockIdLength = 200;
+const maximumMentionPageIdLength = 200;
+const maximumMentionLabelLength = 200;
+const maximumMentionSpaceIdLength = 200;
 
 export const PAGE_EMBED_PROVIDERS = ['figma', 'loom', 'vimeo', 'youtube'] as const;
 export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
@@ -62,16 +66,37 @@ const pageCodeTextSchema = z
   })
   .strict();
 
+const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
+
+export const pageMentionAttrsSchema = z
+  .object({
+    label: z.string().min(1).max(maximumMentionLabelLength),
+    pageId: z.string().min(1).max(maximumMentionPageIdLength),
+    spaceId: z.string().min(1).max(maximumMentionSpaceIdLength),
+  })
+  .strict();
+
+const pageMentionSchema = z
+  .object({
+    attrs: pageMentionAttrsSchema,
+    type: z.literal('mention'),
+  })
+  .strict();
+
+const pageInlineNodeSchema = z.discriminatedUnion('type', [pageTextSchema, pageMentionSchema]);
+
 export const pageAssetAttrsSchema = z
   .object({
     alt: z.string().max(maximumAssetMetadataLength).optional(),
     assetId: z.string().min(1).max(maximumAssetIdLength),
     caption: z.string().max(maximumAssetMetadataLength).optional(),
+    id: pageBlockIdSchema.optional(),
   })
   .strict();
 
 export const pageEmbedAttrsSchema = z
   .object({
+    id: pageBlockIdSchema.optional(),
     provider: z.enum(PAGE_EMBED_PROVIDERS),
     url: z.url().max(maximumEmbedUrlLength),
   })
@@ -90,27 +115,62 @@ type PageMark =
 
 export type PageContentText = { readonly marks?: readonly PageMark[]; readonly text: string; readonly type: 'text' };
 
+export type PageContentMention = {
+  readonly attrs: z.infer<typeof pageMentionAttrsSchema>;
+  readonly type: 'mention';
+};
+
+export type PageContentInlineNode = PageContentText | PageContentMention;
+
 export type PageContentNode =
-  | { readonly content: readonly PageContentText[]; readonly type: 'paragraph' }
   | {
-      readonly attrs: { readonly level: number };
-      readonly content: readonly PageContentText[];
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentInlineNode[];
+      readonly type: 'paragraph';
+    }
+  | {
+      readonly attrs: { readonly id?: string; readonly level: number };
+      readonly content: readonly PageContentInlineNode[];
       readonly type: 'heading';
     }
-  | { readonly content: readonly PageContentNode[]; readonly type: 'bullet_list' }
   | {
-      readonly attrs?: { readonly order: number };
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'bullet_list';
+    }
+  | {
+      readonly attrs?: { readonly id?: string; readonly order: number };
       readonly content: readonly PageContentNode[];
       readonly type: 'ordered_list';
     }
-  | { readonly content: readonly PageContentNode[]; readonly type: 'list_item' }
-  | { readonly content: readonly PageContentNode[]; readonly type: 'blockquote' }
-  | { readonly content: readonly PageContentText[]; readonly type: 'code_block' }
-  | { readonly content: readonly PageContentNode[]; readonly type: 'table' }
-  | { readonly content: readonly PageContentNode[]; readonly type: 'table_row' }
-  | { readonly content: readonly PageContentNode[]; readonly type: 'table_cell' }
   | {
-      readonly attrs: { readonly summary: string };
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'list_item';
+    }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'blockquote';
+    }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentText[];
+      readonly type: 'code_block';
+    }
+  | { readonly attrs?: { readonly id?: string }; readonly content: readonly PageContentNode[]; readonly type: 'table' }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'table_row';
+    }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'table_cell';
+    }
+  | {
+      readonly attrs: { readonly id?: string; readonly summary: string };
       readonly content: readonly PageContentNode[];
       readonly type: 'toggle';
     }
@@ -122,19 +182,21 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
   z.discriminatedUnion('type', [
     z
       .object({
-        content: z.array(pageTextSchema),
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
+        content: z.array(pageInlineNodeSchema),
         type: z.literal('paragraph'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ level: z.number().int().min(1).max(3) }).strict(),
-        content: z.array(pageTextSchema),
+        attrs: z.object({ id: pageBlockIdSchema.optional(), level: z.number().int().min(1).max(3) }).strict(),
+        content: z.array(pageInlineNodeSchema),
         type: z.literal('heading'),
       })
       .strict(),
     z
       .object({
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
         content: z.array(pageNodeSchema).min(1),
         type: z.literal('bullet_list'),
       })
@@ -142,7 +204,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z
       .object({
         attrs: z
-          .object({ order: z.number().int().min(1).max(1000) })
+          .object({ id: pageBlockIdSchema.optional(), order: z.number().int().min(1).max(1000) })
           .strict()
           .optional(),
         content: z.array(pageNodeSchema).min(1),
@@ -151,38 +213,51 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
       .strict(),
     z
       .object({
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
         content: z.array(pageNodeSchema).min(1),
         type: z.literal('list_item'),
       })
       .strict(),
     z
       .object({
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
         content: z.array(pageNodeSchema).min(1),
         type: z.literal('blockquote'),
       })
       .strict(),
     z
       .object({
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
         content: z.array(pageCodeTextSchema),
         type: z.literal('code_block'),
       })
       .strict(),
     z
       .object({
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
         content: z.array(pageNodeSchema).min(1).max(maximumTableRows),
         type: z.literal('table'),
       })
       .strict(),
     z
       .object({
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
         content: z.array(pageNodeSchema).min(1).max(maximumTableColumns),
         type: z.literal('table_row'),
       })
       .strict(),
-    z.object({ content: z.array(pageNodeSchema).min(1), type: z.literal('table_cell') }).strict(),
     z
       .object({
-        attrs: z.object({ summary: z.string().min(1).max(maximumToggleSummaryLength) }).strict(),
+        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
+        content: z.array(pageNodeSchema).min(1),
+        type: z.literal('table_cell'),
+      })
+      .strict(),
+    z
+      .object({
+        attrs: z
+          .object({ id: pageBlockIdSchema.optional(), summary: z.string().min(1).max(maximumToggleSummaryLength) })
+          .strict(),
         content: z.array(pageNodeSchema).min(1),
         type: z.literal('toggle'),
       })

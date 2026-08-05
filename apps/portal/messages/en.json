@@ -230,6 +230,9 @@
     "moreFormattingTools": "More formatting tools",
     "slashCommands": "Block commands",
     "noCommands": "No matching block commands.",
+    "mentionCandidates": "Page mentions",
+    "noMentionCandidates": "No matching pages.",
+    "searchingMentionCandidates": "Searching pages...",
     "titleField": "Title",
     "untitled": "Untitled",
     "content": "Structured content",
@@ -287,6 +290,9 @@
       "table": "Table",
       "toggle": "Toggle",
       "undo": "Undo"
+    },
+    "backlinks": {
+      "title": "Linked from ({count})"
     },
     "attachments": {
       "title": "Attachments",

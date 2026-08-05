@@ -45,6 +45,12 @@ export interface PageListOptions {
 
 export interface PageRepositoryContract {
   readonly create: (input: CreatePageInput) => Promise<PageSummary | null>;
+  readonly findReadablePageIds: (
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<readonly string[]>;
   readonly getAccessible: (
     pageId: string,
     workspaceId: string,

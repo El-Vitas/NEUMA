@@ -82,7 +82,9 @@ const normalizePageEditorJson = (value: unknown): Record<string, unknown> => {
   if (!isPageEditorJsonObject(value)) return {};
 
   const normalized = Object.fromEntries(
-    Object.entries(value).map(([key, entryValue]) => [key, normalizePageEditorEntry(key, entryValue)]),
+    Object.entries(value)
+      .map(([key, entryValue]) => [key, normalizePageEditorEntry(key, entryValue)] as const)
+      .filter(([key, entryValue]) => !isEmptyNormalizedAttrs(key, entryValue)),
   );
   if (isPageEditorContentNode(value.type) && !('content' in value)) normalized.content = [];
   return normalized;
@@ -102,8 +104,12 @@ const normalizePageEditorAttrs = (value: unknown): Record<string, unknown> => {
   return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== null));
 };
 
+const isEmptyNormalizedAttrs = (key: string, value: unknown): boolean =>
+  key === 'attrs' && isPageEditorJsonObject(value) && Object.keys(value).length === 0;
+
 const isPageEditorContentNode = (value: unknown): boolean =>
-  typeof value === 'string' && !['code', 'em', 'embed', 'file', 'image', 'link', 'strong', 'text'].includes(value);
+  typeof value === 'string' &&
+  !['code', 'em', 'embed', 'file', 'image', 'link', 'mention', 'strong', 'text'].includes(value);
 
 const isPageEditorJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

@@ -230,6 +230,9 @@
     "moreFormattingTools": "Más herramientas de formato",
     "slashCommands": "Comandos de bloque",
     "noCommands": "No hay comandos de bloque coincidentes.",
+    "mentionCandidates": "Menciones de página",
+    "noMentionCandidates": "No hay páginas coincidentes.",
+    "searchingMentionCandidates": "Buscando páginas...",
     "titleField": "Título",
     "untitled": "Sin título",
     "content": "Contenido estructurado",
@@ -287,6 +290,9 @@
       "table": "Tabla",
       "toggle": "Desplegable",
       "undo": "Deshacer"
+    },
+    "backlinks": {
+      "title": "Vinculado desde ({count})"
     },
     "attachments": {
       "title": "Archivos adjuntos",

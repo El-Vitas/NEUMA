@@ -1,0 +1,12 @@
+model PageLink {
+  id           String   @id @default(uuid(7))
+  sourcePageId String
+  targetPageId String
+  createdAt    DateTime @default(now())
+  sourcePage   Page     @relation("PageLinkSource", fields: [sourcePageId], references: [id], onDelete: Cascade)
+  targetPage   Page     @relation("PageLinkTarget", fields: [targetPageId], references: [id], onDelete: Cascade)
+
+  @@unique([sourcePageId, targetPageId])
+  @@index([targetPageId])
+  @@index([sourcePageId])
+}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { type PageContent, USER_ROLE } from '@company-brain/shared';
+import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { PagesService } from '@/modules/pages/pages.service';
 import type { PageRepositoryContract, UpdatePageInput } from '@/modules/pages/types/page.types';
 
@@ -34,6 +35,7 @@ const buildUpdatePageInput = (content: Prisma.InputJsonValue = validPageContent)
 
 const createRepository = (): PageRepositoryContract => ({
   create: () => Promise.resolve(page),
+  findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () =>
     Promise.resolve({
@@ -282,5 +284,162 @@ describe('pages service', () => {
 
     expect(trashed.isOk()).toBe(true);
     expect(restored.isOk()).toBe(true);
+  });
+});
+
+const buildMentionNode = (pageId: string, label: string): Prisma.JsonValue => ({
+  attrs: { label, pageId, spaceId: 'space-a' },
+  type: 'mention',
+});
+
+const buildMentionDocument = (...mentions: readonly (readonly [string, string])[]): Prisma.JsonValue => ({
+  content: mentions.map(([pageId, label]) => ({
+    content: [buildMentionNode(pageId, label)],
+    type: 'paragraph',
+  })),
+  schemaVersion: 1,
+  type: 'doc',
+});
+
+const buildPageWithContent = (content: Prisma.JsonValue) => ({ ...page, content });
+
+describe('mention redaction on served page content', () => {
+  it('keeps the real label when the reader can access the target', async () => {
+    const repository = {
+      ...createRepository(),
+      getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Roadmap 2026']))),
+      findReadablePageIds: (pageIds: readonly string[]) => Promise.resolve(pageIds),
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(JSON.stringify(result.getValue().content)).toContain('Roadmap 2026');
+  });
+
+  it('replaces the label with the placeholder when the reader cannot access the target', async () => {
+    const repository = {
+      ...createRepository(),
+      getAccessible: () =>
+        Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']))),
+      findReadablePageIds: () => Promise.resolve([]),
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const serialized = JSON.stringify(result.getValue().content);
+
+    expect(serialized).not.toContain('Confidential Salary Review');
+    expect(serialized).toContain(REDACTED_MENTION_LABEL);
+  });
+
+  it('redacts a mention pointing at a page that no longer exists', async () => {
+    const repository = {
+      ...createRepository(),
+      getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(['deleted-page', 'Old Title']))),
+      findReadablePageIds: () => Promise.resolve([]),
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(JSON.stringify(result.getValue().content)).not.toContain('Old Title');
+  });
+
+  it('redacts only the unreadable mention when the document mixes readable and unreadable targets', async () => {
+    const repository = {
+      ...createRepository(),
+      getAccessible: () =>
+        Promise.resolve(
+          buildPageWithContent(
+            buildMentionDocument(['target-readable', 'Readable Page'], ['target-hidden', 'Hidden Page']),
+          ),
+        ),
+      findReadablePageIds: () => Promise.resolve(['target-readable']),
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const serialized = JSON.stringify(result.getValue().content);
+
+    expect(serialized).toContain('Readable Page');
+    expect(serialized).not.toContain('Hidden Page');
+  });
+
+  it('resolves every mention target in a single query, never one per mention', async () => {
+    const mentions = Array.from(
+      { length: 40 },
+      (_unused, index) => [`target-${String(index)}`, `Title ${String(index)}`] as const,
+    );
+    let callCount = 0;
+    let receivedIds: readonly string[] = [];
+    const repository = {
+      ...createRepository(),
+      getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(...mentions))),
+      findReadablePageIds: (pageIds: readonly string[]) => {
+        callCount += 1;
+        receivedIds = pageIds;
+        return Promise.resolve(pageIds);
+      },
+    };
+    const service = new PagesService(repository);
+
+    await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(callCount).toBe(1);
+    expect(receivedIds).toHaveLength(40);
+  });
+
+  it('resolves mentions across an entire page listing in a single query', async () => {
+    const pages = [
+      buildPageWithContent(buildMentionDocument(['target-a', 'Title A'])),
+      buildPageWithContent(buildMentionDocument(['target-b', 'Title B'])),
+    ];
+    let callCount = 0;
+    const repository = {
+      ...createRepository(),
+      listAccessible: () => Promise.resolve(pages),
+      findReadablePageIds: (pageIds: readonly string[]) => {
+        callCount += 1;
+        return Promise.resolve(pageIds);
+      },
+    };
+    const service = new PagesService(repository);
+
+    await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(callCount).toBe(1);
+  });
+
+  it('leaves the stored content untouched after serving a redacted read', async () => {
+    const storedPage = buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']));
+    const repository = {
+      ...createRepository(),
+      getAccessible: () => Promise.resolve(storedPage),
+      findReadablePageIds: () => Promise.resolve([]),
+    };
+    const service = new PagesService(repository);
+
+    await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(JSON.stringify(storedPage.content)).toContain('Confidential Salary Review');
+  });
+
+  it('redacts the moved page returned by move, since the caller never submitted its content', async () => {
+    const repository = {
+      ...createRepository(),
+      move: () =>
+        Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']))),
+      findReadablePageIds: () => Promise.resolve([]),
+    };
+    const service = new PagesService(repository);
+
+    const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
+    const serialized = JSON.stringify(result.getValue().content);
+
+    expect(result.isOk()).toBe(true);
+    expect(serialized).not.toContain('Confidential Salary Review');
+    expect(serialized).toContain(REDACTED_MENTION_LABEL);
   });
 });

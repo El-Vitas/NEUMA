@@ -2,6 +2,146 @@ import { describe, expect, test } from 'bun:test';
 import { pageContentSchema } from './page-content.schema.js';
 
 describe('pageContentSchema', () => {
+  test('accepts an existing document with no block ids anywhere (id-less regression)', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            content: [{ marks: [{ type: 'strong' }], text: 'Heading', type: 'text' }],
+            attrs: { level: 1 },
+            type: 'heading',
+          },
+          { content: [{ text: 'Paragraph text', type: 'text' }], type: 'paragraph' },
+          {
+            content: [
+              { content: [{ content: [{ text: 'Item', type: 'text' }], type: 'paragraph' }], type: 'list_item' },
+            ],
+            type: 'bullet_list',
+          },
+          {
+            content: [
+              {
+                content: [
+                  {
+                    content: [{ content: [{ text: 'Cell', type: 'text' }], type: 'paragraph' }],
+                    type: 'table_cell',
+                  },
+                ],
+                type: 'table_row',
+              },
+            ],
+            type: 'table',
+          },
+          {
+            attrs: { summary: 'Details' },
+            content: [{ content: [{ text: 'Toggle body', type: 'text' }], type: 'paragraph' }],
+            type: 'toggle',
+          },
+          { attrs: { assetId: 'asset-1' }, type: 'image' },
+          { attrs: { assetId: 'asset-2' }, type: 'file' },
+          { content: [{ text: 'const x = 1;', type: 'text' }], type: 'code_block' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('accepts stable block ids on block-level nodes', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { id: 'block-1' },
+            content: [{ text: 'Paragraph with id', type: 'text' }],
+            type: 'paragraph',
+          },
+          {
+            attrs: { id: 'block-2', level: 2 },
+            content: [{ text: 'Heading with id', type: 'text' }],
+            type: 'heading',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a block id beyond its maximum length', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { id: 'x'.repeat(201) },
+            content: [{ text: 'Paragraph with an oversized id', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('accepts a mention inside a paragraph', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            content: [
+              { text: 'See ', type: 'text' },
+              { attrs: { label: 'Q3 Planning', pageId: 'page-1', spaceId: 'space-1' }, type: 'mention' },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a mention missing its target space id', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            content: [{ attrs: { label: 'Q3 Planning', pageId: 'page-1' }, type: 'mention' }],
+            type: 'paragraph',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('rejects a mention as a top-level block', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { label: 'Q3 Planning', pageId: 'page-1', spaceId: 'space-1' }, type: 'mention' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('rejects a mention inside a code block', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            content: [{ attrs: { label: 'Q3 Planning', pageId: 'page-1', spaceId: 'space-1' }, type: 'mention' }],
+            type: 'code_block',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a versioned ProseMirror document', () => {
     expect(
       pageContentSchema.safeParse({

@@ -1,0 +1,49 @@
+import type { Prisma } from '@company-brain/db/generated';
+import type { UserRole } from '@company-brain/shared';
+import type { OutboxEventContract, OutboxEventRecord } from '../../../common/types/outbox.types';
+
+export interface PageLinkReconciliationInput {
+  readonly sourcePageId: string;
+  readonly targetPageIds: readonly string[];
+}
+
+export interface BacklinkSourcePage {
+  readonly id: string;
+  readonly spaceId: string;
+  readonly title: string;
+}
+
+export interface BacklinksResult {
+  readonly count: number;
+  readonly items: readonly BacklinkSourcePage[];
+}
+
+export interface PageLinkRepositoryContract {
+  readonly listBacklinks: (
+    targetPageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<BacklinksResult>;
+  readonly reconcile: (input: PageLinkReconciliationInput) => Promise<void>;
+}
+
+export interface PageLinkProjection {
+  readonly reconcileLinks: (input: PageLinkReconciliationInput) => Promise<void>;
+}
+
+export interface LinksProjectionPage {
+  readonly content: Prisma.JsonValue;
+  readonly id: string;
+  readonly lifecycle: string;
+}
+
+export interface LinksProjectionSource {
+  readonly findPage: (pageId: string) => Promise<LinksProjectionPage | null>;
+}
+
+export type LinksProjectionOutbox = Pick<
+  OutboxEventContract,
+  'claimPending' | 'markFailed' | 'markProcessed' | 'markRetryable'
+>;
+export type OutboxProjectionEvent = OutboxEventRecord;

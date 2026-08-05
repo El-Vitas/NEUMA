@@ -7,6 +7,7 @@ import {
   createPageAssetInsertCommand,
   createPageEditorCommands,
   createPageEmbedInsertCommand,
+  createPageMentionInsertCommand,
 } from '@/modules/pages/lib/pages.editor.commands';
 import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
@@ -113,6 +114,45 @@ describe('createPageEmbedInsertCommand', () => {
   it('rejects an otherwise allowlisted url over the shared contract length limit without dispatching', () => {
     const oversizedUrl = `https://www.youtube.com/watch?v=${'a'.repeat(2048)}`;
     const run = createPageEmbedInsertCommand(pageEditorSchema, 'youtube', oversizedUrl);
+
+    expect(rejectsWithoutDispatching(createEditorState(), run)).toBe(false);
+  });
+});
+
+describe('createPageMentionInsertCommand', () => {
+  it('inserts a mention node built from a page id, label and space id and round-trips it', () => {
+    const run = createPageMentionInsertCommand(pageEditorSchema, {
+      label: 'Target Page',
+      pageId: 'page-1',
+      spaceId: 'space-1',
+    });
+    const content = serializePageEditorState(runCommand(createEditorState(), run));
+
+    expect(pageContentSchema.safeParse(content).success).toBe(true);
+    expect(content.content[0]).toMatchObject({
+      content: [{ attrs: { label: 'Target Page', pageId: 'page-1', spaceId: 'space-1' }, type: 'mention' }],
+      type: 'paragraph',
+    });
+  });
+
+  it('rejects an empty label without dispatching', () => {
+    const run = createPageMentionInsertCommand(pageEditorSchema, { label: '', pageId: 'page-1', spaceId: 'space-1' });
+
+    expect(rejectsWithoutDispatching(createEditorState(), run)).toBe(false);
+  });
+
+  it('rejects a page id over the shared contract length limit without dispatching', () => {
+    const run = createPageMentionInsertCommand(pageEditorSchema, {
+      label: 'Target',
+      pageId: 'a'.repeat(201),
+      spaceId: 'space-1',
+    });
+
+    expect(rejectsWithoutDispatching(createEditorState(), run)).toBe(false);
+  });
+
+  it('rejects a missing space id without dispatching', () => {
+    const run = createPageMentionInsertCommand(pageEditorSchema, { label: 'Target', pageId: 'page-1', spaceId: '' });
 
     expect(rejectsWithoutDispatching(createEditorState(), run)).toBe(false);
   });
