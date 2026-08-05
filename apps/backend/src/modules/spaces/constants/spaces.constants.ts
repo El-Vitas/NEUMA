@@ -1,0 +1,1 @@
+export const SPACE_REPOSITORY = 'SPACE_REPOSITORY';

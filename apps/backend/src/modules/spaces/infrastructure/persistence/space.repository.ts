@@ -3,16 +3,20 @@ import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { canReadSpace } from '../../../../common/domain/workspace.policy';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
+import { findAccessibleSpaceId } from '../../../../common/infrastructure/persistence/space.visibility.filter';
+import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';
+import type { AssignableMember } from '../../../../common/types/workspace-member.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import type { CreateSpaceInput, SpaceSummary } from '../../types/space.types';
+import type { CreateSpaceInput, SpaceRepositoryContract, SpaceSummary } from '../../types/space.types';
 
 const prismaOrOperator = 'OR';
 
 @Injectable()
-export class SpaceRepository {
+export class SpaceRepository implements SpaceRepositoryContract {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outboxRepository: OutboxRepository,
+    private readonly workspaceMemberRepository: WorkspaceMemberRepository,
   ) {}
 
   async listAccessible(workspaceId: string, userId: string, role: UserRole): Promise<readonly SpaceSummary[]> {
@@ -56,5 +60,16 @@ export class SpaceRepository {
       );
       return space;
     });
+  }
+
+  async listAssignableMembers(
+    spaceId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<readonly AssignableMember[] | null> {
+    const accessibleSpaceId = await findAccessibleSpaceId(this.prisma, spaceId, workspaceId, userId, role);
+    if (accessibleSpaceId === null) return null;
+    return this.workspaceMemberRepository.listAssignableMembers(workspaceId);
   }
 }
