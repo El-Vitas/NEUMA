@@ -77,7 +77,10 @@ No enum is needed. A single relationship type exists; introducing a `type` colum
 ## Editor
 
 - Add a `mention` node to `apps/portal/modules/pages/lib/pages.editor.schema.ts`. Attributes: `pageId` and a denormalized `label` for rendering without a fetch. The node is `inline`, `atom`, and not editable as text.
-- The denormalized label is a deliberate trade-off: it renders instantly and keeps the document self-describing when exported, at the cost of going stale when the target is renamed. Resolve staleness at render time by preferring the resolved title when the target is readable, falling back to the stored label when it is not. Do not attempt to rewrite stored content on rename — that would mean editing every referencing document on every title change.
+- The denormalized label is a deliberate trade-off: it renders instantly and keeps the document self-describing when exported, at the cost of going stale when the target is renamed. Resolve staleness at render time by preferring the resolved title. Do not attempt to rewrite stored content on rename — that would mean editing every referencing document on every title change.
+- **The stored label must be redacted server-side when the reader cannot access the target.** This corrects an earlier draft of this plan, which said to fall back to the stored label when the target is unreadable — that is precisely backwards, because the stored label *is* the disclosure.
+  The label is a snapshot of the target's title frozen inside the source page's content. Inserting it is not an escalation (whoever inserted it could already read the target and could have typed the title by hand), but permissions change afterwards and the snapshot does not: move the target into a restricted space, or tighten that space's visibility, and the title keeps rendering for everyone who can read the source page, with nobody having acted.
+  Therefore: when serving a page's content, replace the `label` of every mention whose target the requesting user cannot read with a neutral placeholder, before the response leaves the server. Filtering this in the client is not a fix — the label travels in the API payload either way. The same redaction applies to any export or agent-facing read of page content.
 - Extend the existing slash-command infrastructure (`pages.editor.slash-menu.lib.ts`, `pages.editor.slash-menu.tsx`) with an `@` trigger. Reuse the existing menu component and keyboard handling rather than building a second popover.
 - The mention target list must come from the server through the existing server-first path. No client component may call the backend directly.
 
@@ -121,10 +124,12 @@ Follow `apps/backend/src/modules/search/infrastructure/worker/search.projection.
 
 ## Data Model
 
+**Phase 2 is purely additive.** An earlier draft of this plan said `Database` is deleted here while `DatabaseRecord` is left untouched. Those two statements cannot both hold: `DatabaseRecord`, `DatabaseProperty` and `DatabaseView` each carry a required `databaseId` foreign key with `onDelete: Cascade`, so dropping `Database` in this phase would cascade-delete every record. Corrected below; the deletion moves to Phase 3, where the whole cluster goes at once.
+
 - `Page` gains `propertyValues` (nullable JSON). **It does not gain a `collectionId`** — membership is `parentId`, and a page is a row exactly when its parent page carries a schema.
-- `Database` is **deleted**, not renamed. It contributed an id, name, slug, space, lifecycle and template kind, and `Page` already supplies every one of those.
-- `DatabaseProperty` and `DatabaseView` survive as the schema tables, re-keyed from `databaseId` to the **owning page id** (`PageSchemaProperty`, `PageSchemaView`, or whatever naming the module settles on — the important part is the key, not the label). A page carries a schema exactly when it has at least one schema property row.
-- `DatabaseRecord` is **left untouched in this phase.** Both models coexist so that nothing breaks mid-migration.
+- Add **new** schema tables keyed by the owning page — `PageSchemaProperty` and `PageSchemaView`, mirroring the field shape of `DatabaseProperty` and `DatabaseView` but with `pageId` in place of `databaseId`. A page carries a schema exactly when it has at least one `PageSchemaProperty` row.
+- `Database`, `DatabaseProperty`, `DatabaseView` and `DatabaseRecord` are **all left intact and working** in this phase. The two models coexist deliberately: that is what lets Phase 3 be a deletion instead of a rewrite, and what keeps the product usable in between.
+- The temporary cost is two parallel schema-table pairs. That is the normal shape of a safe migration, and Phase 3 removes the old pair. Do not try to avoid it by re-keying the existing tables in place — that would break `DatabaseRecord` validation while records still exist.
 
 ## Backend
 
@@ -167,7 +172,7 @@ Follow `apps/backend/src/modules/search/infrastructure/worker/search.projection.
 ## Steps
 
 1. Rewrite the seed (`packages/db/prisma/seed/demo.seed.ts`) so the demo tasks are created as pages whose parent is the schema-carrying "Tasks" page, carrying their titles and property values. No backfill script is needed because no user-authored record exists.
-2. Delete the `DatabaseRecord` model, its repository, its DTOs, its record endpoints, and the `pageId` column that was never wired.
+2. Delete the whole legacy cluster **together**, because their foreign keys make it inseparable: `DatabaseRecord`, `Database`, `DatabaseProperty` and `DatabaseView`, plus their repositories, DTOs and record endpoints, and the `pageId` column on `DatabaseRecord` that was never wired. The `PageSchemaProperty` / `PageSchemaView` tables added in Phase 2 take over.
 3. Point every view read at pages. The board and table domain logic does not change.
 4. Retire `SearchSourceType.DATABASE_RECORD`. Remove the record branches from the search projection worker — the worker loses code rather than gaining it. Reindex.
 5. Move collections into the space tree in the portal and retire the top-level `/databases` route.
