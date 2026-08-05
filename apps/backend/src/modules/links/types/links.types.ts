@@ -1,6 +1,5 @@
 import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
-import type { OutboxEventContract, OutboxEventRecord } from '../../../common/types/outbox.types';
 
 export interface PageLinkReconciliationInput {
   readonly sourcePageId: string;
@@ -41,9 +40,3 @@ export interface LinksProjectionPage {
 export interface LinksProjectionSource {
   readonly findPage: (pageId: string) => Promise<LinksProjectionPage | null>;
 }
-
-export type LinksProjectionOutbox = Pick<
-  OutboxEventContract,
-  'claimPending' | 'markFailed' | 'markProcessed' | 'markRetryable'
->;
-export type OutboxProjectionEvent = OutboxEventRecord;
