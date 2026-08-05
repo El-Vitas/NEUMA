@@ -1,0 +1,14 @@
+model PageSchemaProperty {
+  id       String               @id @default(uuid(7))
+  pageId   String
+  key      String
+  label    String
+  type     DatabasePropertyType
+  required Boolean              @default(false)
+  options  Json?
+  order    Int                  @default(0)
+  page     Page                 @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, key])
+  @@index([pageId, order])
+}
