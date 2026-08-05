@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
@@ -28,6 +28,17 @@ export class SpacesController {
       { name: dto.name, slug: dto.slug, visibility: dto.visibility, workspaceId: workspace.id },
       payload.role,
     );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Get(':spaceId/members')
+  @UseGuards(JwtAuthGuard)
+  async listMembers(@Param('spaceId') spaceId: string, @User('payload') payload: TokenPayload) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.spacesService.listAssignableMembers(spaceId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) {
       throw result.getError();
     }
