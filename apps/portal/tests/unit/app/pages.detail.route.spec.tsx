@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { UserRole } from '@company-brain/shared';
 import { render, screen } from '@testing-library/react';
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
 
 const currentUser = mock(async (): Promise<{ readonly role: UserRole }> => ({ role: 'ADMIN' }));
 const getPageAttachments = mock(async () => ({
@@ -45,11 +45,19 @@ mock.module('next/navigation', () => ({
   },
 }));
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+mock.module('@/i18n/navigation', () => ({
+  Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) =>
+    createElement('a', { href }, children),
+}));
 mock.module('@/modules/auth/server/lib/get.current.user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
 mock.module('@/modules/pages/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({ getPages: async () => pagesResult }));
+mock.module('@/modules/pages/server/queries/pages.schema.queries', () => ({
+  getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
+  getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),
+}));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({ getSpaces: async () => spacesResult }));
 
 const { default: Page } = await import('@/app/[locale]/(portal)/spaces/[spaceId]/pages/[pageId]/page');

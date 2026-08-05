@@ -21,5 +21,4 @@ const EmptyState = ({ message, action, className }: IProps) => {
   );
 };
 
-export type { IProps as EmptyStateProps };
 export { EmptyState };

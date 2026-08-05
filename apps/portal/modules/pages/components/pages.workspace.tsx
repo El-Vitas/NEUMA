@@ -1,15 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { EMPTY_PAGE_BACKLINKS } from '../constants/pages.constants';
+import { EMPTY_PAGE_ATTACHMENTS, EMPTY_PAGE_BACKLINKS } from '../constants/pages.constants';
 import { buildPageTree, canEditPage, getPageTreeExpandedIds } from '../lib/pages.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
+import type { PageSchema } from '../types/pages.schema.types';
 import type { PageSummary } from '../types/pages.types';
 import { PagesEditor } from './pages.editor';
 
@@ -17,22 +18,26 @@ interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
   readonly canEditContent: boolean;
+  readonly collectionSection?: ReactNode;
   readonly currentUserDisplayName?: string;
   readonly isNewPage?: boolean;
   readonly pages: readonly PageSummary[];
   readonly parentId?: string | null;
+  readonly parentSchema?: PageSchema | null;
   readonly selectedPageId?: string | null;
   readonly spaceId: string;
 }
 
 export const PagesWorkspace = ({
-  attachments = [],
+  attachments = EMPTY_PAGE_ATTACHMENTS,
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEditContent,
+  collectionSection = null,
   currentUserDisplayName,
   isNewPage = false,
   pages,
   parentId = null,
+  parentSchema = null,
   selectedPageId = null,
   spaceId,
 }: IProps) => {
@@ -57,6 +62,7 @@ export const PagesWorkspace = ({
         attachments={attachments}
         backlinks={backlinks}
         canEdit={isNewPage ? canEditContent : canEditSelectedPage}
+        collectionSection={collectionSection}
         currentUserDisplayName={currentUserDisplayName}
         key={`${selectedPage?.id ?? 'new-page'}:${selectedPage?.lifecycle ?? 'new'}`}
         page={selectedPage}
@@ -64,6 +70,7 @@ export const PagesWorkspace = ({
         pages={pages}
         parentBreadcrumbPages={parentBreadcrumbPages}
         parentId={parentId}
+        parentSchema={parentSchema}
         spaceId={spaceId}
       />
     );

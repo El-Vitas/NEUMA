@@ -20,5 +20,4 @@ const PageHeader = ({ title, subtitle, action, className }: IProps) => {
   );
 };
 
-export type { IProps as PageHeaderProps };
 export { PageHeader };

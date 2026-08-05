@@ -22,9 +22,3 @@ export const formatCurrency = (amount: number, locale = 'en-US', currency = 'CLP
     style: 'currency',
   }).format(amount);
 };
-
-export const formatPrice = (price: number, locale = 'en-US'): string => {
-  return formatCurrency(price, locale);
-};
-
-export const generateId = (): string => crypto.randomUUID();

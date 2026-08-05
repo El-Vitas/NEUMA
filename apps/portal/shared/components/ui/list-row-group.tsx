@@ -11,5 +11,4 @@ const ListRowGroup = ({ ariaLabel, children }: IProps) => (
   </ul>
 );
 
-export type { IProps as ListRowGroupProps };
 export { ListRowGroup };

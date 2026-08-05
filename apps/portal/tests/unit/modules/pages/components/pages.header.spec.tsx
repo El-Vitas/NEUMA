@@ -20,6 +20,7 @@ describe('PagesHeader', () => {
               lifecycle: 'ACTIVE',
               order: 0,
               parentId: null,
+              propertyValues: null,
               spaceId: '33333333-3333-4333-8333-333333333333',
               title: 'Handbook',
               version: 1,

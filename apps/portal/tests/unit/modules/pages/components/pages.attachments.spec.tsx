@@ -6,7 +6,7 @@ import en from '../../../../../messages/en.json';
 mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
-  uploadPageAttachmentAction: async () => ({ ok: false, error: 'request' }),
+  uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
 }));
 
 const { PagesAttachments } = await import('@/modules/pages/components/pages.attachments');

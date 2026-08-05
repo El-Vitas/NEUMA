@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ComponentRef, useEffect, useRef, useState, useTransition } from 'react';
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
@@ -16,26 +16,31 @@ import {
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { createEmptyPageContent } from '../lib/pages.editor.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
+import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
+import type { PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesAttachments } from './pages.attachments';
 import { PagesBacklinks } from './pages.backlinks';
 import { PagesHeader } from './pages.header';
 import { PagesMoveForm } from './pages.move.form';
+import { PagesPropertiesPanel } from './pages.properties.panel';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
   readonly canEdit: boolean;
+  readonly collectionSection?: ReactNode;
   readonly currentUserDisplayName?: string;
   readonly page: PageSummary | null;
   readonly pageId: string | null;
   readonly pages: readonly PageSummary[];
   readonly parentId: string | null;
   readonly parentBreadcrumbPages: readonly PageSummary[];
+  readonly parentSchema?: PageSchema | null;
   readonly spaceId: string;
 }
 
@@ -43,12 +48,14 @@ export const PagesEditor = ({
   attachments = [],
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEdit,
+  collectionSection = null,
   currentUserDisplayName,
   page,
   pageId,
   pages,
   parentId,
   parentBreadcrumbPages,
+  parentSchema = null,
   spaceId,
 }: IProps) => {
   const router = useRouter();
@@ -60,11 +67,17 @@ export const PagesEditor = ({
   const editorHandleRef = useRef<ComponentRef<typeof PagesProseMirrorEditor>>(null);
   const [pageAttachments, setPageAttachments] = useState(attachments);
   const [isPending, startTransition] = useTransition();
+  const editableProperties = getEditableSchemaProperties(parentSchema);
+  const [propertyValues, setPropertyValues] = useState<PagePropertyValues>(
+    page?.propertyValues ?? buildDefaultPropertyValues(editableProperties),
+  );
+  const propertyValuesRef = useRef(propertyValues);
 
   const updateCurrentPage = async (): Promise<boolean> => {
     const result = await updatePageAction({
       content: contentRef.current,
       pageId: page?.id ?? '',
+      propertyValues: editableProperties.length > 0 ? propertyValuesRef.current : undefined,
       spaceId,
       title: titleRef.current.trim(),
     });
@@ -93,7 +106,13 @@ export const PagesEditor = ({
 
   const createNewPage = (): void => {
     startTransition(async () => {
-      const result = await createPageAction({ content: contentRef.current, parentId, spaceId, title: title.trim() });
+      const result = await createPageAction({
+        content: contentRef.current,
+        parentId,
+        propertyValues: editableProperties.length > 0 ? propertyValuesRef.current : undefined,
+        spaceId,
+        title: title.trim(),
+      });
       if (!isActionSuccess<PageSummary>(result)) {
         toast.error(t('saveError'));
         return;
@@ -101,6 +120,13 @@ export const PagesEditor = ({
       toast.success(t('created'));
       router.replace(ROUTES.PORTAL_SPACE_PAGE(spaceId, result.data.id));
     });
+  };
+
+  const handlePropertyValueChange = (key: string, value: PagePropertyValue): void => {
+    const nextPropertyValues = { ...propertyValuesRef.current, [key]: value };
+    propertyValuesRef.current = nextPropertyValues;
+    setPropertyValues(nextPropertyValues);
+    if (page !== null) autosave.schedule(titleRef.current.trim().length > 0);
   };
 
   const isSaving = isPending || autosave.isSaving;
@@ -139,6 +165,12 @@ export const PagesEditor = ({
           pageId={pageId}
           ref={editorHandleRef}
         />
+        <PagesPropertiesPanel
+          canEdit={canEdit}
+          onPropertyValueChange={handlePropertyValueChange}
+          parentSchema={parentSchema}
+          propertyValues={propertyValues}
+        />
         {canEdit && page === null && (
           <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
             {isPending ? t('saving') : t('create')}
@@ -162,6 +194,7 @@ export const PagesEditor = ({
           />
         )}
         {pageId !== null && <PagesBacklinks backlinks={backlinks} />}
+        {collectionSection}
       </div>
     </section>
   );

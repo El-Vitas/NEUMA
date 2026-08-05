@@ -1,6 +1,10 @@
+import type { ActionFailure } from '@/shared/types/action-result.types';
 import { IMAGE_ATTACHMENT_MIME_TYPE_PREFIX } from '../constants/pages.attachments.constants';
-import type { AttachmentDownload, AttachmentSummary } from '../types/pages.attachments.types';
+import type { AttachmentDownload, AttachmentSummary, AttachmentUploadError } from '../types/pages.attachments.types';
 import type { PageAssetInsertCommandOptions, PageAssetNodeType } from '../types/pages.types';
+
+export const getAttachmentUploadErrorFromResult = (result: ActionFailure): AttachmentUploadError =>
+  result.validationErrors === undefined ? 'request' : 'invalid';
 
 export const formatAttachmentSize = (size: number): string => {
   if (size < 1024) return `${size} B`;

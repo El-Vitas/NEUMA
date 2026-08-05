@@ -31,13 +31,12 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({
-    attachment: {
+    data: {
       id: '22222222-2222-4222-8222-222222222222',
       mimeType: 'image/png',
       originalFilename: 'diagram.png',
       size: 1024,
     },
-    ok: true,
   }),
 }));
 

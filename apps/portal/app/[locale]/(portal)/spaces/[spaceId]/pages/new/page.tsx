@@ -4,6 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
+import { getPageSchema } from '@/modules/pages/server/queries/pages.schema.queries';
+import type { PageSchema } from '@/modules/pages/types/pages.schema.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
@@ -22,6 +24,9 @@ export default async function Page({ params, searchParams }: IProps) {
   const hasContentEditAccess = canEditContent(user?.role ?? USER_ROLE.CLIENT);
   if (space === undefined || !hasContentEditAccess) notFound();
   const t = await getTranslations('pages');
+  const resolvedParentId = pages?.some((page) => page.id === parentId) ? parentId : null;
+  const parentSchemaResult = resolvedParentId === null ? null : await getPageSchema(spaceId, resolvedParentId);
+  const parentSchema: PageSchema | null = parentSchemaResult?.isOk() ? parentSchemaResult.getValue() : null;
 
   return (
     <main className="min-h-full">
@@ -35,7 +40,8 @@ export default async function Page({ params, searchParams }: IProps) {
           currentUserDisplayName={user?.name}
           isNewPage
           pages={pages}
-          parentId={pages.some((page) => page.id === parentId) ? parentId : null}
+          parentId={resolvedParentId}
+          parentSchema={parentSchema}
           selectedPageId={null}
           spaceId={spaceId}
         />

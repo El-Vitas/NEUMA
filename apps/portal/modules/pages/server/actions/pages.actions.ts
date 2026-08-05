@@ -31,6 +31,7 @@ export const createPageAction = actionClient
       const createdPage = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
         content: parsedInput.content,
         parentId: parsedInput.parentId,
+        propertyValues: parsedInput.propertyValues,
         title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
@@ -44,6 +45,7 @@ export const updatePageAction = actionClient
     withAction({ action: 'updatePage' }, async () => {
       await authenticatedRequest(PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
         content: parsedInput.content,
+        propertyValues: parsedInput.propertyValues,
         title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));

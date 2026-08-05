@@ -1,5 +1,6 @@
 import { PAGE_LIFECYCLE_VALUES, pageContentSchema as sharedPageContentSchema } from '@company-brain/shared';
 import { z } from 'zod';
+import { pagePropertyValuesSchema } from './pages.schema.schemas';
 
 export const pageContentSchema = sharedPageContentSchema;
 
@@ -11,6 +12,7 @@ export const pageSummarySchema = z.object({
   lifecycle: pageLifecycleSchema,
   order: z.number(),
   parentId: z.string().nullable(),
+  propertyValues: pagePropertyValuesSchema.nullable(),
   spaceId: z.string(),
   title: z.string(),
   version: z.number(),
@@ -20,6 +22,7 @@ export const pagesListSchema = z.array(pageSummarySchema);
 
 export const pageMutationSchema = z.object({
   content: pageContentSchema,
+  propertyValues: pagePropertyValuesSchema.nullable().optional(),
   spaceId: z.string().min(1),
   title: z.string().trim().min(1).max(200),
 });
