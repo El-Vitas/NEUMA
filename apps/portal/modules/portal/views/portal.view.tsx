@@ -9,10 +9,12 @@ interface IProps {
 }
 
 export const PortalView = async ({ userName }: IProps) => {
-  const t = await getTranslations('portal');
-  const navigationT = await getTranslations('navigation');
-  const spacesT = await getTranslations('spaces');
-  const searchT = await getTranslations('portal.search');
+  const [t, navigationT, spacesT, searchT] = await Promise.all([
+    getTranslations('portal'),
+    getTranslations('navigation'),
+    getTranslations('spaces'),
+    getTranslations('portal.search'),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-8 p-4 sm:p-8 lg:pt-12">

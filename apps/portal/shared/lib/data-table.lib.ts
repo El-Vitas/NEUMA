@@ -1,24 +1,7 @@
 import type { Column, ColumnDef, SortDirection } from '@tanstack/react-table';
-import { createElement } from 'react';
 import type { DateRange } from 'react-day-picker';
 
 import type { DateSelection } from '@/shared/components/data-table/types/data-table-date-filter.types';
-
-export const getSortIcon = (isSorted: false | SortDirection) => {
-  if (isSorted === 'desc')
-    return createElement(
-      'svg',
-      { className: 'ml-1 size-3.5', viewBox: '0 0 24 24' },
-      createElement('path', { d: 'M6 9l6 6 6-6' }),
-    );
-  if (isSorted === 'asc')
-    return createElement(
-      'svg',
-      { className: 'ml-1 size-3.5', viewBox: '0 0 24 24' },
-      createElement('path', { d: 'M6 15l6-6 6 6' }),
-    );
-  return createElement('div', { className: 'ml-1 size-3.5 text-muted-foreground/70' });
-};
 
 export const getAriaSort = (isSorted: false | SortDirection): 'ascending' | 'descending' | 'none' => {
   if (isSorted === 'asc') return 'ascending';

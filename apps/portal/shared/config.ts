@@ -5,5 +5,3 @@ export const config = {
   nodeEnv: env.NODE_ENV,
   accessTokenMaxAgeSeconds: env.ACCESS_TOKEN_MAX_AGE_SECONDS,
 } as const;
-
-export type { Config } from './types/config.types';

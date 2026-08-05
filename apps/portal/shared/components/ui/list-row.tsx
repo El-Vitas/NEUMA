@@ -25,5 +25,4 @@ const ListRow = ({ href, secondary, title, trailing }: IProps) => (
   </li>
 );
 
-export type { IProps as ListRowProps };
 export { ListRow };

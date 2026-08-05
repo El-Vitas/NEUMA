@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { ATTACHMENT_MIME_TYPES } from '../constants/pages.attachments.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
@@ -14,11 +14,11 @@ interface IProps {
 export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
   const t = useTranslations('pages.attachments');
   const inputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | undefined>();
+  const selectedFileRef = useRef<File | undefined>(undefined);
   const { clearError, error, isPending, retry, upload } = usePagesAttachmentUpload({
     onUploaded: (attachment) => {
       if (inputRef.current !== null) inputRef.current.value = '';
-      setSelectedFile(undefined);
+      selectedFileRef.current = undefined;
       onUploaded(attachment);
     },
     pageId,
@@ -39,7 +39,7 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
           disabled={isPending}
           id="page-attachment"
           onChange={(event) => {
-            setSelectedFile(event.currentTarget.files?.[0]);
+            selectedFileRef.current = event.currentTarget.files?.[0];
             clearError();
           }}
           ref={inputRef}
@@ -48,7 +48,7 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
         <button
           className="min-h-11 border border-border px-3 text-foreground text-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           disabled={isPending}
-          onClick={() => upload(selectedFile)}
+          onClick={() => upload(selectedFileRef.current)}
           type="button"
         >
           {isPending ? t('uploading') : t('upload')}

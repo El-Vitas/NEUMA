@@ -75,13 +75,12 @@ const buildSlashTriggerItems = (
   translateCommandLabel: (labelKey: string) => string,
 ): readonly PagesEditorMenuItem[] => {
   const normalizedQuery = triggerQuery?.toLocaleLowerCase() ?? '';
-  return Object.entries(commands)
-    .filter(([, command]) => translateCommandLabel(command.labelKey).toLocaleLowerCase().includes(normalizedQuery))
-    .map(([commandName, command]) => ({
-      id: commandName,
-      label: translateCommandLabel(command.labelKey),
-      run: command.run,
-    }));
+  return Object.entries(commands).reduce<PagesEditorMenuItem[]>((matchingItems, [commandName, command]) => {
+    const label = translateCommandLabel(command.labelKey);
+    if (!label.toLocaleLowerCase().includes(normalizedQuery)) return matchingItems;
+    matchingItems.push({ id: commandName, label, run: command.run });
+    return matchingItems;
+  }, []);
 };
 
 export const buildEditorTriggerItems = (parameters: {

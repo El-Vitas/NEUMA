@@ -315,6 +315,18 @@
       "deleteNamed": "Eliminar {name}",
       "deleteError": "No se pudo eliminar el archivo adjunto. Intenta de nuevo.",
       "deleted": "Archivo adjunto eliminado"
+    },
+    "properties": {
+      "title": "Propiedades",
+      "yes": "Sí",
+      "no": "No"
+    },
+    "collection": {
+      "sectionTitle": "Filas",
+      "emptyTable": "Aún no hay filas",
+      "emptyColumn": "Sin filas",
+      "missingGroupingProperty": "La propiedad de agrupación de este tablero se eliminó del esquema. Actualiza la vista o el esquema para volver a ver las filas agrupadas.",
+      "loadError": "No se pudo cargar esta vista. Comprueba tus permisos e inténtalo de nuevo."
     }
   },
   "databases": {

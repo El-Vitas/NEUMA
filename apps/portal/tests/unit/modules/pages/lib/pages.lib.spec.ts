@@ -13,6 +13,7 @@ const page = (id: string, parentId: string | null, order: number): PageSummary =
   lifecycle: 'ACTIVE',
   order,
   parentId,
+  propertyValues: null,
   spaceId: 'space-1',
   title: id,
   version: 1,

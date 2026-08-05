@@ -315,6 +315,18 @@
       "deleteNamed": "Delete {name}",
       "deleteError": "Could not delete the attachment. Try again.",
       "deleted": "Attachment deleted"
+    },
+    "properties": {
+      "title": "Properties",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "collection": {
+      "sectionTitle": "Rows",
+      "emptyTable": "No rows yet",
+      "emptyColumn": "No rows",
+      "missingGroupingProperty": "This board's grouping property was removed from the schema. Update the view or the schema to see grouped rows again.",
+      "loadError": "Could not load this view. Check your permissions and try again."
     }
   },
   "databases": {

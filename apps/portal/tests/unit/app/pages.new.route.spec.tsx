@@ -38,6 +38,12 @@ mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspac
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
   getPages: async () => pagesResult,
 }));
+mock.module('@/modules/pages/server/queries/pages.schema.queries', () => ({
+  getPageSchema: async () => ({
+    getValue: () => ({ pageId: parentId, properties: [], spaceId: '33333333-3333-4333-8333-333333333333', views: [] }),
+    isOk: () => true,
+  }),
+}));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaces: async () => spacesResult,
 }));

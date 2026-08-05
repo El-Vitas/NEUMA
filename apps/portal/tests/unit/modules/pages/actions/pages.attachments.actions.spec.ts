@@ -34,14 +34,31 @@ describe('uploadPageAttachmentAction', () => {
   it('rejects without making an outbound request when there is no access token', async () => {
     cookieState.value = undefined;
     fetchMock.mockClear();
-    const formData = new FormData();
-    formData.set('file', new File(['content'], 'note.txt', { type: 'text/plain' }));
-    formData.set('pageId', attachmentId);
 
-    const result = await uploadPageAttachmentAction(formData);
+    const result = await uploadPageAttachmentAction({
+      file: new File(['content'], 'note.txt', { type: 'text/plain' }),
+      pageId: attachmentId,
+    });
 
-    expect(result).toEqual({ error: 'request', ok: false });
+    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uploads the file and invalidates the cache when authenticated', async () => {
+    cookieState.value = 'valid-access-token';
+    fetchMock.mockClear();
+    updateTagMock.mockClear();
+    const attachment = { id: attachmentId, mimeType: 'text/plain', originalFilename: 'note.txt', size: 7 };
+    fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify(attachment), { status: 200 }));
+
+    const result = await uploadPageAttachmentAction({
+      file: new File(['content'], 'note.txt', { type: 'text/plain' }),
+      pageId: attachmentId,
+    });
+
+    expect(result).toEqual({ data: attachment });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(updateTagMock).toHaveBeenCalledWith('page-attachments');
   });
 });
 

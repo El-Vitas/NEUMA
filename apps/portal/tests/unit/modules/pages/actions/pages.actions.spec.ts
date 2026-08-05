@@ -8,6 +8,7 @@ const createdPage = {
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: null,
+  propertyValues: null,
   spaceId: '11111111-1111-4111-8111-111111111111',
   title: 'Untitled',
   version: 1,

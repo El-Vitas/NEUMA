@@ -3,9 +3,12 @@
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { getAttachmentUploadErrorFromResult } from '../lib/pages.attachments.lib';
 import { attachmentUploadSchema } from '../schemas/pages.attachments.schemas';
 import { uploadPageAttachmentAction } from '../server/actions/pages.attachments.actions';
 import type {
+  AttachmentSummary,
   AttachmentUploadError,
   PagesAttachmentUploadController,
   PagesAttachmentUploadOptions,
@@ -37,21 +40,19 @@ export const usePagesAttachmentUpload = ({
 
       setLastFile(parsedUpload.data.file);
       setError(null);
-      const formData = new FormData();
-      formData.set('file', parsedUpload.data.file);
-      formData.set('pageId', parsedUpload.data.pageId);
       isUploadingRef.current = true;
       startTransition(async () => {
         try {
-          const result = await uploadPageAttachmentAction(formData);
-          if (!result.ok) {
-            setError(result.error);
-            toast.error(t(result.error === 'invalid' ? 'validationError' : 'uploadError'));
+          const result = await uploadPageAttachmentAction(parsedUpload.data);
+          if (isActionSuccess<AttachmentSummary>(result)) {
+            setLastFile(undefined);
+            onUploaded(result.data);
+            toast.success(t('uploaded'));
             return;
           }
-          setLastFile(undefined);
-          onUploaded(result.attachment);
-          toast.success(t('uploaded'));
+          const uploadError = hasActionError(result) ? getAttachmentUploadErrorFromResult(result) : 'request';
+          setError(uploadError);
+          toast.error(t(uploadError === 'invalid' ? 'validationError' : 'uploadError'));
         } catch {
           setError('request');
           toast.error(t('uploadError'));
