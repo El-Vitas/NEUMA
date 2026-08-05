@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  computeSelectionToolbarPlacement,
   createEmptyPageContent,
   createPageEditorState,
   isPageEditorReadOnly,
@@ -112,5 +113,82 @@ describe('pages.editor.lib', () => {
   it('marks viewer and trashed pages as read-only', () => {
     expect(isPageEditorReadOnly(false)).toBe(true);
     expect(isPageEditorReadOnly(true)).toBe(false);
+  });
+});
+
+describe('computeSelectionToolbarPlacement', () => {
+  const surfaceRect = { left: 100, top: 200, width: 800 };
+
+  it('flips below the selection when there is not enough room above it, so a selection on the first line stays visible', () => {
+    const selectionCoords = { bottom: 220, left: 140, right: 260, top: 204 };
+
+    const placement = computeSelectionToolbarPlacement({
+      selectionEndCoords: selectionCoords,
+      selectionStartCoords: selectionCoords,
+      surfaceRect,
+      toolbarHeight: 44,
+      toolbarWidth: 220,
+    });
+
+    expect(placement.placement).toBe('below');
+    expect(placement.top).toBeGreaterThanOrEqual(0);
+    expect(placement.top).toBe(28);
+  });
+
+  it('renders above the selection when there is enough room above it', () => {
+    const selectionCoords = { bottom: 420, left: 140, right: 260, top: 404 };
+
+    const placement = computeSelectionToolbarPlacement({
+      selectionEndCoords: selectionCoords,
+      selectionStartCoords: selectionCoords,
+      surfaceRect,
+      toolbarHeight: 44,
+      toolbarWidth: 220,
+    });
+
+    expect(placement.placement).toBe('above');
+    expect(placement.top).toBeGreaterThanOrEqual(0);
+    expect(placement.top).toBe(152);
+  });
+
+  it('spans the bounding box of a multi-line selection instead of only the caret position', () => {
+    const placement = computeSelectionToolbarPlacement({
+      selectionEndCoords: { bottom: 460, left: 120, right: 180, top: 440 },
+      selectionStartCoords: { bottom: 420, left: 500, right: 560, top: 404 },
+      surfaceRect,
+      toolbarHeight: 44,
+      toolbarWidth: 220,
+    });
+
+    expect(placement.placement).toBe('above');
+    expect(placement.top).toBe(404 - surfaceRect.top - 44 - 8);
+  });
+
+  it('clamps the toolbar so a selection near the left edge does not overflow the surface', () => {
+    const selectionCoords = { bottom: 420, left: 102, right: 110, top: 404 };
+
+    const placement = computeSelectionToolbarPlacement({
+      selectionEndCoords: selectionCoords,
+      selectionStartCoords: selectionCoords,
+      surfaceRect,
+      toolbarHeight: 44,
+      toolbarWidth: 220,
+    });
+
+    expect(placement.left).toBe(8);
+  });
+
+  it('clamps the toolbar so a selection near the right edge does not overflow the surface', () => {
+    const selectionCoords = { bottom: 420, left: 890, right: 898, top: 404 };
+
+    const placement = computeSelectionToolbarPlacement({
+      selectionEndCoords: selectionCoords,
+      selectionStartCoords: selectionCoords,
+      surfaceRect,
+      toolbarHeight: 44,
+      toolbarWidth: 220,
+    });
+
+    expect(placement.left).toBe(surfaceRect.width - 220 - 8);
   });
 });

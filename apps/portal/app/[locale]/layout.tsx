@@ -1,24 +1,28 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
+import { Barlow_Condensed, Inter, JetBrains_Mono } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
-import { ThemeProvider } from '@/shared/components/ui/theme-provider';
 import { NuqsProvider } from '../providers';
 import '../../globals.css';
 import { routing } from '../../i18n/routing';
 
-const ibmPlexSans = IBM_Plex_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  variable: '--font-ibm-plex-sans',
+  variable: '--font-inter',
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  variable: '--font-barlow-condensed',
+  weight: ['400', '500', '600', '700'],
+});
+
+const jetBrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400'],
-  variable: '--font-ibm-plex-mono',
+  variable: '--font-jetbrains-mono',
 });
 
 export const metadata: Metadata = {
@@ -33,9 +37,7 @@ const LocaleContent = async ({ children }: Readonly<{ children: React.ReactNode 
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <ThemeProvider>
-        <NuqsProvider>{children}</NuqsProvider>
-      </ThemeProvider>
+      <NuqsProvider>{children}</NuqsProvider>
     </NextIntlClientProvider>
   );
 };
@@ -56,7 +58,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${barlowCondensed.variable} ${jetBrainsMono.variable} font-sans antialiased`}>
         <Suspense fallback={null}>
           <LocaleContent>{children}</LocaleContent>
         </Suspense>

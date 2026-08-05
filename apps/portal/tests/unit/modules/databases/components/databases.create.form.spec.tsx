@@ -25,6 +25,8 @@ describe('DatabasesCreateForm', () => {
     createDatabaseAction.mockImplementationOnce(() => Promise.reject(new Error('network down')));
     renderForm();
 
+    fireEvent.click(screen.getByRole('button', { name: 'New database' }));
+
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Roadmap' } });
     fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'roadmap' } });
 
@@ -32,5 +34,18 @@ describe('DatabasesCreateForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => expect(submitButton.disabled).toBe(false));
+  });
+
+  it('disables the submit button until the required fields are filled in', () => {
+    renderForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New database' }));
+
+    expect((screen.getByRole('button', { name: 'Create database' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Roadmap' } });
+    fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'roadmap' } });
+
+    expect((screen.getByRole('button', { name: 'Create database' }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

@@ -15,9 +15,16 @@ export const DatabasesView = async ({ canManage, databases, spaces }: IProps) =>
   const t = await getTranslations('databases');
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
-      <PageHeader subtitle={t('subtitle')} title={t('title')} />
-      {databases === null ? <FormErrorBanner message={t('loadError')} /> : <DatabasesList databases={databases} />}
-      {canManage && <DatabasesCreateForm spaces={spaces} />}
+      <PageHeader
+        action={canManage ? <DatabasesCreateForm spaces={spaces} /> : undefined}
+        subtitle={t('subtitle')}
+        title={t('title')}
+      />
+      {databases === null ? (
+        <FormErrorBanner message={t('loadError')} />
+      ) : (
+        <DatabasesList canManage={canManage} databases={databases} spaces={spaces} />
+      )}
     </main>
   );
 };

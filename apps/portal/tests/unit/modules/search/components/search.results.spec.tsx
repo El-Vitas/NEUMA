@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { SearchResults } from '@/modules/search/components/search.results';
 import type { SearchPage, SearchQuery } from '@/modules/search/types/search.types';
 import en from '../../../../../messages/en.json';
+
+mock.module('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => undefined }),
+}));
 
 const params: SearchQuery = {
   limit: 20,
@@ -25,7 +29,7 @@ describe('SearchResults', () => {
 
   it('shows a useful empty state', () => {
     renderResults({ items: [] });
-    expect(screen.getByRole('heading', { name: 'No results found' })).toBeDefined();
+    expect(screen.getByText('No results found')).toBeDefined();
     expect(screen.getByText('Try a different query or remove a filter.')).toBeDefined();
   });
 
@@ -56,10 +60,18 @@ describe('SearchResults', () => {
       nextCursor: 'next-page',
     });
 
-    expect(screen.getByRole('link', { name: 'Onboarding page' }).getAttribute('href')).toBe('/spaces/space-1');
+    expect(screen.getByRole('link', { name: 'Onboarding page' }).getAttribute('href')).toBe(
+      '/spaces/space-1/pages/page-1',
+    );
     expect(screen.getByRole('link', { name: 'Project record' }).getAttribute('href')).toBe('/databases');
     expect(screen.getByRole('link', { name: 'Load more results' }).getAttribute('href')).toBe(
       '/search?cursor=next-page&query=onboarding',
     );
+  });
+
+  it('announces only the result count as a status update', () => {
+    renderResults({ items: [] });
+
+    expect(screen.getByRole('status').textContent).toBe('Showing 0 results');
   });
 });

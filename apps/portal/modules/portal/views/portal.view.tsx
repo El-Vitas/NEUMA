@@ -1,6 +1,8 @@
+import { Boxes, Search } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { PortalEntryCard } from '../components/portal.entry-card';
 
 interface IProps {
   readonly userName: string | null;
@@ -8,23 +10,27 @@ interface IProps {
 
 export const PortalView = async ({ userName }: IProps) => {
   const t = await getTranslations('portal');
+  const navigationT = await getTranslations('navigation');
+  const spacesT = await getTranslations('spaces');
+  const searchT = await getTranslations('portal.search');
+
   return (
-    <div className="space-y-6 p-6">
-      <PageHeader subtitle={t('subtitle')} title={t('title')} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{userName ? t('welcomeUser', { name: userName }) : t('welcome')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            {t.rich('modulesHint', {
-              modules: () => <code>modules/</code>,
-              routes: () => <code>app/[locale]/(portal)/</code>,
-            })}
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <main className="mx-auto w-full max-w-5xl space-y-8 p-4 sm:p-8 lg:pt-12">
+      <PageHeader subtitle={t('description')} title={userName ? t('welcomeUser', { name: userName }) : t('welcome')} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <PortalEntryCard
+          description={spacesT('subtitle')}
+          href={ROUTES.PORTAL_SPACES}
+          icon={Boxes}
+          title={navigationT('spaces')}
+        />
+        <PortalEntryCard
+          description={searchT('subtitle')}
+          href={ROUTES.PORTAL_SEARCH}
+          icon={Search}
+          title={navigationT('search')}
+        />
+      </div>
+    </main>
   );
 };

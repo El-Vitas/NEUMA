@@ -1,42 +1,47 @@
+import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { ListEmptyState } from '@/shared/components/ui/list-empty-state';
+import { ListRow } from '@/shared/components/ui/list-row';
+import { ListRowGroup } from '@/shared/components/ui/list-row-group';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { Link } from '../../../i18n/navigation';
-import type { DatabaseSummary } from '../types/databases.types';
+import type { DatabaseSpaceOption, DatabaseSummary } from '../types/databases.types';
+import { DatabasesCreateForm } from './databases.create.form';
 
 interface IProps {
+  readonly canManage: boolean;
   readonly databases: readonly DatabaseSummary[];
+  readonly spaces: readonly DatabaseSpaceOption[];
 }
 
-export const DatabasesList = ({ databases }: IProps) => {
+export const DatabasesList = ({ canManage, databases, spaces }: IProps) => {
   const t = useTranslations('databases');
   if (databases.length === 0) {
     return (
-      <div className="border bg-card px-4 py-16 text-center text-muted-foreground text-sm" role="status">
-        {t('available')}
-      </div>
+      <ListEmptyState
+        action={canManage ? <DatabasesCreateForm spaces={spaces} /> : undefined}
+        message={t('available')}
+      />
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <ListRowGroup ariaLabel={t('title')}>
       {databases.map((database) => (
-        <Link
-          className="block rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <ListRow
           href={ROUTES.PORTAL_DATABASE(database.id)}
           key={database.id}
-        >
-          <Card className="h-full transition-colors hover:bg-muted/40">
-            <CardHeader>
-              <CardTitle>{database.name}</CardTitle>
-              <p className="text-muted-foreground text-sm">{database.template}</p>
-            </CardHeader>
-            <CardContent className="text-muted-foreground text-sm">
-              {t('propertyCount', { properties: database.properties.length, views: database.views.length })}
-            </CardContent>
-          </Card>
-        </Link>
+          secondary={t(`templates.${database.template}`)}
+          title={database.name}
+          trailing={
+            <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
+              <span className="max-w-28 text-right text-xs/4 sm:max-w-none">
+                {t('propertyCount', { properties: database.properties.length, views: database.views.length })}
+              </span>
+              <ChevronRight aria-hidden="true" className="size-4 shrink-0 group-hover:text-primary" />
+            </span>
+          }
+        />
       ))}
-    </div>
+    </ListRowGroup>
   );
 };

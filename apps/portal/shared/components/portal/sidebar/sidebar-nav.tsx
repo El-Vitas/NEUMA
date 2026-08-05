@@ -21,7 +21,7 @@ export const SidebarNav = ({ collapsed, role, onNavigate }: SidebarNavProps) => 
   const isItemActive = (href: string) => pathname === href || (href !== ROUTES.PORTAL && pathname.startsWith(href));
 
   return (
-    <nav className={cn('flex-1 space-y-3 p-2', collapsed && 'space-y-2 p-1')}>
+    <nav className={cn('shrink-0 space-y-3 p-2', collapsed && 'space-y-2 p-1')}>
       {filterNavSectionsByRole(role).map((section) => (
         <div key={section.labelKey}>
           {!collapsed && (

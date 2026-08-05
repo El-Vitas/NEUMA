@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import en from '../../../../../messages/en.json';
 
@@ -14,7 +14,12 @@ const { PagesAttachments } = await import('@/modules/pages/components/pages.atta
 const renderAttachments = (attachments: Parameters<typeof PagesAttachments>[0]['attachments'] = []) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <PagesAttachments attachments={attachments} canEdit />
+      <PagesAttachments
+        attachments={attachments}
+        canEdit
+        onAssetDeleted={() => undefined}
+        onAssetUploaded={() => undefined}
+      />
     </NextIntlClientProvider>,
   );
 
@@ -40,5 +45,28 @@ describe('PagesAttachments', () => {
 
     expect(screen.getByText('No attachments yet.')).toBeDefined();
     expect(screen.queryByRole('list', { name: 'Attachments' })).toBeNull();
+  });
+
+  it('shows a recoverable inline validation error before uploading an unsupported file', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesAttachments
+          attachments={[]}
+          canEdit
+          onAssetDeleted={() => undefined}
+          onAssetUploaded={() => undefined}
+          pageId="22222222-2222-4222-8222-222222222222"
+        />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('Choose a file'), {
+      target: { files: [new File(['unsupported'], 'malware.exe', { type: 'application/octet-stream' })] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(screen.getByRole('alert').textContent).toBe('Choose a valid file before uploading.');
+    expect(screen.getByLabelText('Choose a file').getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByLabelText('Choose a file').getAttribute('aria-describedby')).toContain('page-attachment-error');
   });
 });

@@ -3,8 +3,10 @@ import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
+import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
+import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { redirect } from '../../../i18n/navigation';
 
@@ -15,7 +17,33 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     return null;
   }
 
-  return <PortalLayout role={user.role}>{children}</PortalLayout>;
+  const spacesResult = await getSpaces();
+  const spaceSummaries = spacesResult.isOk() ? spacesResult.getValue() : [];
+  const spaces = await Promise.all(
+    spaceSummaries.map(async (space) => {
+      const pagesResult = await getPages(space.id);
+      return {
+        id: space.id,
+        name: space.name,
+        pages: pagesResult.isOk()
+          ? pagesResult.getValue().map((page) => ({
+              id: page.id,
+              lifecycle: page.lifecycle,
+              order: page.order,
+              parentId: page.parentId,
+              title: page.title,
+            }))
+          : [],
+      };
+    }),
+  );
+  const portalUser = { email: user.email, name: user.name };
+
+  return (
+    <PortalLayout role={user.role} spaces={spaces} user={portalUser}>
+      {children}
+    </PortalLayout>
+  );
 };
 
 const Layout = async ({ children }: { readonly children: React.ReactNode }) => {

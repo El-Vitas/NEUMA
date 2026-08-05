@@ -1,9 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, useState, useTransition } from 'react';
-import { toast } from 'sonner';
-import { uploadPageAttachmentAction } from '../server/actions/pages.attachments.actions';
+import { useRef, useState } from 'react';
+import { ATTACHMENT_MIME_TYPES } from '../constants/pages.attachments.constants';
+import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 
 interface IProps {
@@ -14,29 +14,16 @@ interface IProps {
 export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
   const t = useTranslations('pages.attachments');
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isPending, startTransition] = useTransition();
-  const [progress, setProgress] = useState(0);
-
-  const submit = () => {
-    const file = inputRef.current?.files?.[0];
-    if (file === undefined) return;
-    const formData = new FormData();
-    formData.set('file', file);
-    formData.set('pageId', pageId);
-    setProgress(10);
-    startTransition(async () => {
-      const result = await uploadPageAttachmentAction(formData);
-      if (!result.ok) {
-        setProgress(0);
-        toast.error(t(result.error === 'invalid' ? 'validationError' : 'uploadError'));
-        return;
-      }
-      setProgress(100);
-      onUploaded(result.attachment);
-      toast.success(t('uploaded'));
+  const [selectedFile, setSelectedFile] = useState<File | undefined>();
+  const { clearError, error, isPending, retry, upload } = usePagesAttachmentUpload({
+    onUploaded: (attachment) => {
       if (inputRef.current !== null) inputRef.current.value = '';
-    });
-  };
+      setSelectedFile(undefined);
+      onUploaded(attachment);
+    },
+    pageId,
+  });
+  const isValidationError = error === 'invalid';
 
   return (
     <div className="space-y-2">
@@ -45,38 +32,53 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
       </label>
       <div className="flex flex-wrap items-center gap-2">
         <input
-          accept="application/pdf,application/zip,image/gif,image/jpeg,image/png,image/webp,text/plain"
-          className="min-h-10 min-w-0 flex-1 border border-border bg-background p-2 text-sm"
+          accept={ATTACHMENT_MIME_TYPES.join(',')}
+          aria-describedby={error === null ? 'page-attachment-help' : 'page-attachment-help page-attachment-error'}
+          aria-invalid={error !== null}
+          className="min-h-11 min-w-0 flex-1 border border-border bg-background p-2 text-sm"
           disabled={isPending}
           id="page-attachment"
+          onChange={(event) => {
+            setSelectedFile(event.currentTarget.files?.[0]);
+            clearError();
+          }}
           ref={inputRef}
           type="file"
         />
         <button
-          className="min-h-10 border border-border px-3 text-foreground text-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          className="min-h-11 border border-border px-3 text-foreground text-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           disabled={isPending}
-          onClick={submit}
+          onClick={() => upload(selectedFile)}
           type="button"
         >
           {isPending ? t('uploading') : t('upload')}
         </button>
       </div>
       {isPending && (
-        <div
-          aria-label={t('uploadProgress')}
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={progress}
-          className="h-1 bg-muted"
-          role="progressbar"
-        >
-          <div
-            className="h-1 origin-left bg-primary transition-transform"
-            style={{ transform: `scaleX(${progress / 100})` }}
-          />
+        <p aria-live="polite" className="text-muted-foreground text-xs" role="status">
+          {t('uploading')}
+        </p>
+      )}
+      {error !== null && (
+        <div className="flex items-center gap-2" id="page-attachment-error">
+          <p className="text-destructive text-xs" role="alert">
+            {t(isValidationError ? 'validationError' : 'uploadError')}
+          </p>
+          {error === 'request' && (
+            <button
+              className="min-h-11 px-2 text-foreground text-xs underline underline-offset-4 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={isPending}
+              onClick={retry}
+              type="button"
+            >
+              {t('upload')}
+            </button>
+          )}
         </div>
       )}
-      <p className="text-muted-foreground text-xs">{t('fileHelp')}</p>
+      <p className="text-muted-foreground text-xs" id="page-attachment-help">
+        {t('fileHelp')}
+      </p>
     </div>
   );
 };

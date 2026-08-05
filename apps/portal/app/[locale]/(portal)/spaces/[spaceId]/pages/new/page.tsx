@@ -7,14 +7,15 @@ import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
-import { PageHeader } from '@/shared/components/ui/page-header';
 
 interface IProps {
   readonly params: Promise<{ spaceId: string }>;
+  readonly searchParams?: Promise<{ parentId?: string }>;
 }
 
-export default async function Page({ params }: IProps) {
+export default async function Page({ params, searchParams }: IProps) {
   const { spaceId } = await params;
+  const parentId = (await searchParams)?.parentId ?? null;
   const [spacesResult, user, pagesResult] = await Promise.all([getSpaces(), getCurrentUser(), getPages(spaceId)]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const pages = pagesResult.isOk() ? pagesResult.getValue() : null;
@@ -23,16 +24,18 @@ export default async function Page({ params }: IProps) {
   const t = await getTranslations('pages');
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
-      <PageHeader subtitle={t('subtitle')} title={space?.name ?? t('spaceUnavailable')} />
+    <main className="min-h-full">
       {pages === null ? (
-        <FormErrorBanner message={t('loadError')} />
+        <div className="p-4 sm:p-6">
+          <FormErrorBanner message={t('loadError')} />
+        </div>
       ) : (
         <PagesWorkspace
           canEditContent={hasContentEditAccess}
           currentUserDisplayName={user?.name}
           isNewPage
           pages={pages}
+          parentId={pages.some((page) => page.id === parentId) ? parentId : null}
           selectedPageId={null}
           spaceId={spaceId}
         />

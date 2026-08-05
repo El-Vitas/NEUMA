@@ -18,3 +18,18 @@ export interface AttachmentDownload {
 export type AttachmentActionResult =
   | { readonly ok: true; readonly attachment: AttachmentSummary }
   | { readonly error: 'invalid' | 'request'; readonly ok: false };
+
+export type AttachmentUploadError = Extract<AttachmentActionResult, { readonly error: string }>['error'];
+
+export interface PagesAttachmentUploadController {
+  readonly clearError: () => void;
+  readonly error: AttachmentUploadError | null;
+  readonly isPending: boolean;
+  readonly retry: () => void;
+  readonly upload: (file: File | undefined) => void;
+}
+
+export interface PagesAttachmentUploadOptions {
+  readonly onUploaded: (attachment: AttachmentSummary) => void;
+  readonly pageId: string | null;
+}

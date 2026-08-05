@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { SIDEBAR_STORAGE_KEY } from '../constants/sidebar.constants';
+import { isSidebarToggleShortcut } from '../lib/portal.keyboard.lib';
 
 const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
 
@@ -28,12 +29,26 @@ const writeStoredCollapsed = (collapsed: boolean): void => {
   localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed));
 };
 
-export const useSidebarCollapsed = (): readonly [boolean, () => void] => {
+export const useSidebarCollapsed = (enableKeyboardShortcut = true): readonly [boolean, () => void] => {
   const [collapsed, setCollapsed] = useState<boolean>(readStoredCollapsed);
 
   useEffect(() => {
     writeStoredCollapsed(collapsed);
   }, [collapsed]);
+
+  useEffect(() => {
+    if (!enableKeyboardShortcut) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isSidebarToggleShortcut(event)) {
+        event.preventDefault();
+        setCollapsed((current) => !current);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [enableKeyboardShortcut]);
 
   const toggle = (): void => {
     setCollapsed((current) => !current);

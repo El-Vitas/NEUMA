@@ -1,6 +1,10 @@
 import type { Node as EditorDocument } from 'prosemirror-model';
 import { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
+import {
+  SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX,
+  SELECTION_TOOLBAR_VERTICAL_GAP_PX,
+} from '../constants/pages.editor.constants';
 import { pageContentSchema } from '../schemas/pages.schemas';
 import type { PageContent, PageEditorCommand } from '../types/pages.types';
 import { createPageEditorPlugins } from './pages.editor.commands';
@@ -28,6 +32,51 @@ export const isPageEditorReadOnly = (canEdit: boolean): boolean => !canEdit;
 
 export const runPageEditorCommand = (editorView: EditorView, command: PageEditorCommand): boolean =>
   command.run(editorView.state, editorView.dispatch);
+
+export const computeSelectionToolbarPlacement = (parameters: {
+  readonly selectionEndCoords: {
+    readonly bottom: number;
+    readonly left: number;
+    readonly right: number;
+    readonly top: number;
+  };
+  readonly selectionStartCoords: {
+    readonly bottom: number;
+    readonly left: number;
+    readonly right: number;
+    readonly top: number;
+  };
+  readonly surfaceRect: { readonly left: number; readonly top: number; readonly width: number };
+  readonly toolbarHeight: number;
+  readonly toolbarWidth: number;
+}): { readonly left: number; readonly placement: 'above' | 'below'; readonly top: number } => {
+  const { selectionEndCoords, selectionStartCoords, surfaceRect, toolbarHeight, toolbarWidth } = parameters;
+
+  const selectionTop = Math.min(selectionStartCoords.top, selectionEndCoords.top);
+  const selectionBottom = Math.max(selectionStartCoords.bottom, selectionEndCoords.bottom);
+  const selectionLeft = Math.min(selectionStartCoords.left, selectionEndCoords.left);
+  const selectionRight = Math.max(selectionStartCoords.right, selectionEndCoords.right);
+  const selectionCenterX = (selectionLeft + selectionRight) / 2;
+
+  const spaceAboveSelection = selectionTop - surfaceRect.top;
+  const placement: 'above' | 'below' =
+    spaceAboveSelection >= toolbarHeight + SELECTION_TOOLBAR_VERTICAL_GAP_PX ? 'above' : 'below';
+  const top =
+    placement === 'above'
+      ? selectionTop - surfaceRect.top - toolbarHeight - SELECTION_TOOLBAR_VERTICAL_GAP_PX
+      : selectionBottom - surfaceRect.top + SELECTION_TOOLBAR_VERTICAL_GAP_PX;
+
+  const maxLeft = Math.max(
+    surfaceRect.width - toolbarWidth - SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX,
+    SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX,
+  );
+  const left = Math.min(
+    Math.max(selectionCenterX - surfaceRect.left - toolbarWidth / 2, SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX),
+    maxLeft,
+  );
+
+  return { left, placement, top };
+};
 
 const normalizePageEditorJson = (value: unknown): Record<string, unknown> => {
   if (!isPageEditorJsonObject(value)) return {};

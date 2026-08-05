@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { DOMParser } from 'prosemirror-model';
+import { DOMParser, DOMSerializer } from 'prosemirror-model';
 import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
 import { structuredEmbedNodeFixture, structuredToggleNodeFixture } from './pages.content.fixture';
 
@@ -13,6 +13,13 @@ const parseLink = (href: string) => {
   documentElement.append(paragraph);
 
   return DOMParser.fromSchema(pageEditorSchema).parse(documentElement);
+};
+
+const serializeDocument = (document: ReturnType<typeof pageEditorSchema.nodeFromJSON>): string => {
+  const documentElement = window.document.createElement('div');
+  const fragment = DOMSerializer.fromSchema(pageEditorSchema).serializeFragment(document.content);
+  documentElement.append(fragment);
+  return documentElement.innerHTML;
 };
 
 describe('pageEditorSchema link parsing', () => {
@@ -76,5 +83,43 @@ describe('pageEditorSchema structured blocks', () => {
       content: [{ content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
       type: 'doc',
     });
+  });
+
+  it('serializes strong, em, and code marks through DOMSerializer', () => {
+    const paragraph = pageEditorSchema.nodes.paragraph.create(null, [
+      pageEditorSchema.text('Strong', [pageEditorSchema.marks.strong.create()]),
+      pageEditorSchema.text(' Em', [pageEditorSchema.marks.em.create()]),
+      pageEditorSchema.text(' Code', [pageEditorSchema.marks.code.create()]),
+    ]);
+    const document = pageEditorSchema.nodes.doc.create(null, paragraph);
+
+    expect(serializeDocument(document)).toBe('<p><strong>Strong</strong><em> Em</em><code> Code</code></p>');
+  });
+
+  it('serializes toggle content below its summary and table content in tbody', () => {
+    const document = pageEditorSchema.nodeFromJSON({
+      content: [
+        structuredToggleNodeFixture,
+        {
+          content: [
+            {
+              content: [
+                {
+                  content: [{ content: [{ text: 'Cell', type: 'text' }], type: 'paragraph' }],
+                  type: 'table_cell',
+                },
+              ],
+              type: 'table_row',
+            },
+          ],
+          type: 'table',
+        },
+      ],
+      type: 'doc',
+    });
+
+    expect(serializeDocument(document)).toBe(
+      '<details data-page-toggle="true"><summary>Details</summary><div><p>Nested</p></div></details><table><tbody><tr><td><p>Cell</p></td></tr></tbody></table>',
+    );
   });
 });

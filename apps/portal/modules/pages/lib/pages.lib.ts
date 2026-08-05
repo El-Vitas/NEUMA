@@ -25,3 +25,16 @@ export const extractPageText = (content: PageContent): string =>
 
 export const flattenPageTree = (tree: readonly PageTreeItem[], depth = 0): readonly FlatPageTreeItem[] =>
   tree.flatMap((item) => [{ depth, page: item.page }, ...flattenPageTree(item.children, depth + 1)]);
+
+export const getPageTreeExpandedIds = (
+  tree: readonly PageTreeItem[],
+  selectedPageId: string | null,
+): readonly string[] => {
+  if (selectedPageId === null) return [];
+  for (const treeItem of tree) {
+    if (treeItem.page.id === selectedPageId) return [treeItem.page.id];
+    const childPath = getPageTreeExpandedIds(treeItem.children, selectedPageId);
+    if (childPath.length > 0) return [treeItem.page.id, ...childPath];
+  }
+  return [];
+};

@@ -26,7 +26,7 @@ export const DatabasesWorkspace = ({ database, records }: IProps) => {
 
   return (
     <Tabs onValueChange={(value) => setViewType(getDatabaseViewType(value))} value={viewType}>
-      <TabsList aria-label={t('viewsLabel')}>
+      <TabsList aria-label={t('viewsLabel')} className="min-h-11 max-w-full overflow-x-auto" variant="line">
         {availableViews.map((view) => (
           <TabsTrigger key={view.type} value={view.type}>
             {view.name}

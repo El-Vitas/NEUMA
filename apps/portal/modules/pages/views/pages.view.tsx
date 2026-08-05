@@ -1,6 +1,5 @@
 import { getTranslations } from 'next-intl/server';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
-import { PageHeader } from '@/shared/components/ui/page-header';
 import { PagesWorkspace } from '../components/pages.workspace';
 import type { PageSummary } from '../types/pages.types';
 
@@ -19,14 +18,15 @@ export const PagesView = async ({
   isNewPage = false,
   pages,
   spaceId,
-  spaceName,
+  spaceName: _spaceName,
 }: IProps) => {
   const t = await getTranslations('pages');
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
-      <PageHeader subtitle={t('subtitle')} title={spaceName} />
+    <main className="min-h-full">
       {pages === null ? (
-        <FormErrorBanner message={t('loadError')} />
+        <div className="p-4 sm:p-6">
+          <FormErrorBanner message={t('loadError')} />
+        </div>
       ) : (
         <PagesWorkspace
           canEditContent={canEditContent}
