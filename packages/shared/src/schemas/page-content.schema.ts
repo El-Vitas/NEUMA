@@ -68,6 +68,8 @@ const pageCodeTextSchema = z
 
 const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
 
+const pageIdOnlyAttrsSchema = z.object({ id: pageBlockIdSchema.optional() }).strict();
+
 export const pageMentionAttrsSchema = z
   .object({
     label: z.string().min(1).max(maximumMentionLabelLength),
@@ -122,12 +124,14 @@ export type PageContentMention = {
 
 export type PageContentInlineNode = PageContentText | PageContentMention;
 
+type PageBlockNode<Type extends string, Content> = {
+  readonly attrs?: { readonly id?: string };
+  readonly content: readonly Content[];
+  readonly type: Type;
+};
+
 export type PageContentNode =
-  | {
-      readonly attrs?: { readonly id?: string };
-      readonly content: readonly PageContentInlineNode[];
-      readonly type: 'paragraph';
-    }
+  | PageBlockNode<'paragraph', PageContentInlineNode>
   | {
       readonly attrs: { readonly id?: string; readonly level: number };
       readonly content: readonly PageContentInlineNode[];
@@ -153,11 +157,7 @@ export type PageContentNode =
       readonly content: readonly PageContentNode[];
       readonly type: 'blockquote';
     }
-  | {
-      readonly attrs?: { readonly id?: string };
-      readonly content: readonly PageContentText[];
-      readonly type: 'code_block';
-    }
+  | PageBlockNode<'code_block', PageContentText>
   | { readonly attrs?: { readonly id?: string }; readonly content: readonly PageContentNode[]; readonly type: 'table' }
   | {
       readonly attrs?: { readonly id?: string };
@@ -182,7 +182,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
   z.discriminatedUnion('type', [
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
+        attrs: pageIdOnlyAttrsSchema.optional(),
         content: z.array(pageInlineNodeSchema),
         type: z.literal('paragraph'),
       })
@@ -196,8 +196,8 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
-        content: z.array(pageNodeSchema).min(1),
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema,
         type: z.literal('bullet_list'),
       })
       .strict(),
@@ -207,49 +207,49 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
           .object({ id: pageBlockIdSchema.optional(), order: z.number().int().min(1).max(1000) })
           .strict()
           .optional(),
-        content: z.array(pageNodeSchema).min(1),
+        content: pageNodeListSchema,
         type: z.literal('ordered_list'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
-        content: z.array(pageNodeSchema).min(1),
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema,
         type: z.literal('list_item'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
-        content: z.array(pageNodeSchema).min(1),
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema,
         type: z.literal('blockquote'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
+        attrs: pageIdOnlyAttrsSchema.optional(),
         content: z.array(pageCodeTextSchema),
         type: z.literal('code_block'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
-        content: z.array(pageNodeSchema).min(1).max(maximumTableRows),
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema.max(maximumTableRows),
         type: z.literal('table'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
-        content: z.array(pageNodeSchema).min(1).max(maximumTableColumns),
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema.max(maximumTableColumns),
         type: z.literal('table_row'),
       })
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional() }).strict().optional(),
-        content: z.array(pageNodeSchema).min(1),
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema,
         type: z.literal('table_cell'),
       })
       .strict(),
@@ -258,7 +258,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
         attrs: z
           .object({ id: pageBlockIdSchema.optional(), summary: z.string().min(1).max(maximumToggleSummaryLength) })
           .strict(),
-        content: z.array(pageNodeSchema).min(1),
+        content: pageNodeListSchema,
         type: z.literal('toggle'),
       })
       .strict(),
@@ -267,6 +267,8 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z.object({ attrs: pageEmbedAttrsSchema, type: z.literal('embed') }).strict(),
   ]),
 );
+
+const pageNodeListSchema = z.array(pageNodeSchema).min(1);
 
 const countPageContentNodes = (nodes: readonly PageContentNode[], depth: number): { depth: number; nodes: number } => {
   return nodes.reduce(
@@ -362,7 +364,7 @@ const validatePageNodeNesting = (
  */
 export const pageContentSchema = z
   .object({
-    content: z.array(pageNodeSchema).min(1),
+    content: pageNodeListSchema,
     schemaVersion: z.literal(pageContentSchemaVersion),
     type: z.literal('doc'),
   })
