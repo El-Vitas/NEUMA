@@ -18,6 +18,7 @@ interface AwarenessFieldCall {
 const providerConfigurations: MockProviderConfiguration[] = [];
 const destroyCalls: string[] = [];
 const awarenessFieldCalls: AwarenessFieldCall[] = [];
+const attachCalls: MockHocuspocusProvider[] = [];
 
 class MockHocuspocusProviderWebsocket {
   destroy(): void {
@@ -30,6 +31,10 @@ class MockHocuspocusProvider {
 
   constructor(public readonly configuration: MockProviderConfiguration) {
     providerConfigurations.push(configuration);
+  }
+
+  attach(): void {
+    attachCalls.push(this);
   }
 
   destroy(): void {
@@ -67,12 +72,32 @@ describe('usePagesCollaboration reconnect policy', () => {
     providerConfigurations.length = 0;
     destroyCalls.length = 0;
     awarenessFieldCalls.length = 0;
+    attachCalls.length = 0;
     jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.clearAllTimers();
     jest.useRealTimers();
+  });
+
+  it('attaches every provider it creates so the caller-owned websocket delivers status and sync events', async () => {
+    const { unmount } = renderHook(() => usePagesCollaboration('page-0', true, samplePageContent));
+
+    await waitFor(() => expect(providerConfigurations.length).toBe(1));
+    await waitFor(() => expect(attachCalls.length).toBe(1));
+
+    act(() => {
+      emitStatus(0, 'disconnected');
+    });
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(attachCalls.length).toBe(providerConfigurations.length));
+
+    unmount();
   });
 
   it('reaches the exhausted terminal state after the reconnect attempt cap and stops creating new providers', async () => {

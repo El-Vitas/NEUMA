@@ -143,6 +143,7 @@ export const usePagesCollaboration = (
         websocketProvider,
       });
       providerRef.current = provider;
+      provider.attach();
     };
 
     attemptConnect();
