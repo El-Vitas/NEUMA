@@ -6,37 +6,30 @@ import type {
   SearchDocumentProjection,
   SearchDocumentRemoval,
   SearchProjectionPage,
-  SearchProjectionRecord,
   SearchProjectionSource,
 } from '@/modules/search/types/search.types';
 
-const record: SearchProjectionRecord = {
-  database: {
-    lifecycle: 'ACTIVE',
-    name: 'Tasks',
-    properties: [
-      { key: 'status', label: 'Status', type: 'SELECT' },
-      { key: 'description', label: 'Description', type: 'RICH_TEXT' },
-    ],
-    spaceId: 'space-1',
-    template: 'TASKS',
+const activePage: SearchProjectionPage = {
+  content: {
+    content: [{ content: [{ text: 'Prepare launch', type: 'text' }], type: 'paragraph' }],
+    schemaVersion: 1,
+    type: 'doc',
   },
-  databaseId: 'database-1',
-  id: 'record-1',
+  id: 'page-1',
   lifecycle: 'ACTIVE',
-  propertyValues: { description: 'Prepare launch', status: 'todo' },
+  spaceId: 'space-1',
   title: 'Launch plan',
   version: 12,
 };
 
 const event = (overrides: Partial<OutboxEventRecord> = {}): OutboxEventRecord => ({
-  aggregateId: 'record-1',
-  aggregateType: 'DATABASE_RECORD',
+  aggregateId: 'page-1',
+  aggregateType: 'PAGE',
   attemptCount: 1,
-  eventType: 'DATABASE_RECORD_UPDATED',
+  eventType: 'PAGE_UPDATED',
   id: 'event-1',
-  idempotencyKey: 'record:record-1:version:12',
-  payload: { databaseId: 'database-1', recordId: 'record-1', version: 12 },
+  idempotencyKey: 'page:page-1:version:12',
+  payload: { pageId: 'page-1', version: 12 },
   payloadVersion: 1,
   ...overrides,
 });
@@ -60,8 +53,6 @@ const createOutboxStub = (
 
 const createSourceStub = (overrides: Partial<SearchProjectionSource> = {}): SearchProjectionSource => ({
   findPage: () => Promise.resolve(null),
-  findRecord: () => Promise.resolve(null),
-  listRecords: () => Promise.resolve([]),
   ...overrides,
 });
 
@@ -71,15 +62,15 @@ const createProjectionStub = (overrides: Partial<SearchDocumentProjection> = {})
   ...overrides,
 });
 
-const createFailingRecordWorker = (outbox: ReturnType<typeof createOutboxStub>): SearchProjectionWorker => {
-  const source = createSourceStub({ findRecord: () => Promise.reject(new Error('database unavailable')) });
+const createFailingWorker = (outbox: ReturnType<typeof createOutboxStub>): SearchProjectionWorker => {
+  const source = createSourceStub({ findPage: () => Promise.reject(new Error('database unavailable')) });
   return new SearchProjectionWorker(outbox, source, createProjectionStub());
 };
 
 const createWorker = (events: readonly OutboxEventRecord[]) => {
   const applied: SearchDocumentInput[] = [];
   const outbox = createOutboxStub(() => Promise.resolve(events));
-  const source = createSourceStub({ findRecord: () => Promise.resolve(record) });
+  const source = createSourceStub({ findPage: () => Promise.resolve(activePage) });
   const projection = createProjectionStub({
     applyProjection: (input): Promise<void> => {
       applied.push(input);
@@ -108,9 +99,6 @@ describe('SearchProjectionWorker', () => {
     const outbox = createOutboxStub(() =>
       Promise.resolve([
         event({
-          aggregateId: 'page-1',
-          aggregateType: 'PAGE',
-          eventType: 'PAGE_UPDATED',
           idempotencyKey: 'page:page-1:version:10',
           payload: { pageId: 'page-1', version: 10 },
         }),
@@ -131,19 +119,19 @@ describe('SearchProjectionWorker', () => {
     expect(applied[0]?.extractedText).toBe('Current body');
   });
 
-  test('projects the current database record with configured metadata', async () => {
+  test('projects the current page with its searchable metadata', async () => {
     const { applied, worker } = createWorker([event()]);
 
     await worker.processBatch(10);
 
     expect(applied).toEqual([
       {
-        contentType: 'TASK',
-        extractedText: 'todo Prepare launch',
+        contentType: 'PAGE',
+        extractedText: 'Prepare launch',
         language: null,
-        properties: { description: 'Prepare launch', status: 'todo' },
-        sourceId: 'record-1',
-        sourceType: 'DATABASE_RECORD',
+        properties: {},
+        sourceId: 'page-1',
+        sourceType: 'PAGE',
         spaceId: 'space-1',
         tags: [],
         title: 'Launch plan',
@@ -162,9 +150,7 @@ describe('SearchProjectionWorker', () => {
 
   test('removes an inactive page projection instead of keeping it searchable', async () => {
     const removals: SearchDocumentRemoval[] = [];
-    const outbox = createOutboxStub(() =>
-      Promise.resolve([event({ aggregateId: 'page-1', aggregateType: 'PAGE', eventType: 'PAGE_TRASHED' })]),
-    );
+    const outbox = createOutboxStub(() => Promise.resolve([event({ eventType: 'PAGE_TRASHED' })]));
     const source = createSourceStub({
       findPage: () =>
         Promise.resolve({
@@ -189,25 +175,15 @@ describe('SearchProjectionWorker', () => {
     expect(removals).toEqual([{ sourceId: 'page-1', sourceType: 'PAGE', versionMarker: 4 }]);
   });
 
-  test('keeps active records and removes records from archived databases', async () => {
+  test('ignores an event for an aggregate the search projection does not own', async () => {
     const applied: SearchDocumentInput[] = [];
-    const removals: SearchDocumentRemoval[] = [];
-    const archivedRecord: SearchProjectionRecord = {
-      ...record,
-      database: { ...record.database, lifecycle: 'ARCHIVED' },
-      id: 'record-archived',
-    };
     const outbox = createOutboxStub(() =>
-      Promise.resolve([event({ aggregateId: 'database-1', aggregateType: 'DATABASE', eventType: 'DATABASE_UPDATED' })]),
+      Promise.resolve([event({ aggregateId: 'space-1', aggregateType: 'SPACE', eventType: 'SPACE_UPDATED' })]),
     );
-    const source = createSourceStub({ listRecords: () => Promise.resolve([record, archivedRecord]) });
+    const source = createSourceStub({ findPage: () => Promise.resolve(activePage) });
     const projection = createProjectionStub({
       applyProjection: (input) => {
         applied.push(input);
-        return Promise.resolve();
-      },
-      removeProjection: (input) => {
-        removals.push(input);
         return Promise.resolve();
       },
     });
@@ -215,8 +191,7 @@ describe('SearchProjectionWorker', () => {
 
     await worker.processBatch(10);
 
-    expect(applied).toHaveLength(1);
-    expect(removals).toEqual([{ sourceId: 'record-archived', sourceType: 'DATABASE_RECORD', versionMarker: 12 }]);
+    expect(applied).toEqual([]);
   });
 
   test('marks a failed event retryable with bounded attempts', async () => {
@@ -231,7 +206,7 @@ describe('SearchProjectionWorker', () => {
         return Promise.resolve();
       },
     });
-    const worker = createFailingRecordWorker(outbox);
+    const worker = createFailingWorker(outbox);
 
     await worker.processBatch(10);
 
@@ -246,7 +221,7 @@ describe('SearchProjectionWorker', () => {
         return Promise.resolve();
       },
     });
-    const worker = createFailingRecordWorker(outbox);
+    const worker = createFailingWorker(outbox);
 
     await worker.processBatch(10);
 

@@ -1,8 +1,9 @@
 import type { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
+import type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
 
-export type SchemaPropertyValue = string | number | boolean | readonly string[];
-export type SchemaPropertyValues = Readonly<Record<string, SchemaPropertyValue>>;
+export type SchemaPropertyValue = PagePropertyValue;
+export type SchemaPropertyValues = PagePropertyValues;
 
 export interface SchemaPropertyDefinition {
   readonly key: string;
@@ -19,9 +20,12 @@ export interface SchemaViewDefinition {
   readonly isDefault: boolean;
 }
 
-export interface SchemaGroupableRow {
+export interface SchemaOrderedRow {
   readonly id: string;
   readonly order: number;
+}
+
+export interface SchemaGroupableRow extends SchemaOrderedRow {
   readonly propertyValues: SchemaPropertyValues;
 }
 

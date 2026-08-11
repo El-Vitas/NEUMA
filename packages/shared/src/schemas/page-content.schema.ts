@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const pageContentSchemaVersion = 1;
+export const PAGE_CONTENT_SCHEMA_VERSION = 1;
 const maximumPageContentDepth = 10;
 const maximumPageContentNodes = 500;
 const maximumPageTextLength = 20_000;
@@ -365,7 +365,7 @@ const validatePageNodeNesting = (
 export const pageContentSchema = z
   .object({
     content: pageNodeListSchema,
-    schemaVersion: z.literal(pageContentSchemaVersion),
+    schemaVersion: z.literal(PAGE_CONTENT_SCHEMA_VERSION),
     type: z.literal('doc'),
   })
   .strict()

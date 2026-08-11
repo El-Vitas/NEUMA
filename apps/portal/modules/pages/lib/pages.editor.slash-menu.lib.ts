@@ -8,7 +8,7 @@ import type { PageMentionCandidate } from '../types/pages.mentions.types';
 import type { PageEditorCommand } from '../types/pages.types';
 import { createPageMentionInsertCommand } from './pages.editor.commands';
 
-const slashQueryPattern = /(?:^|\s)\/([^\s]*)$/;
+const slashQueryPattern = /^\/([^\s]*)$/;
 const mentionQueryPattern = /(?:^|\s)@([^\s]*)$/;
 
 export const getSlashMenuQuery = (text: string): string | null => slashQueryPattern.exec(text)?.[1] ?? null;

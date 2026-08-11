@@ -58,7 +58,10 @@ mock.module('@/modules/pages/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
   getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),
 }));
-mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({ getSpaces: async () => spacesResult }));
+mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
+  getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
+  getSpaces: async () => spacesResult,
+}));
 
 const { default: Page } = await import('@/app/[locale]/(portal)/spaces/[spaceId]/pages/[pageId]/page');
 

@@ -1,11 +1,16 @@
 import { DatabasePropertyType } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import { Result } from '@company-brain/shared';
+import type { PagePropertyContext } from '@company-brain/shared';
+import {
+  isTitlePageProperty,
+  isValidPagePropertyValue,
+  pagePropertyRequiresOptions,
+  Result,
+} from '@company-brain/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValue, SchemaPropertyValues } from './schema.domain.types';
 import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schema.error';
 
 const propertyKeyPattern = /^[a-z][a-zA-Z0-9_]*$/;
-const titleMaximumLength = 200;
 
 const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -13,8 +18,13 @@ const isStringArray = (value: unknown): value is readonly string[] =>
 const isPropertyValue = (value: unknown): value is SchemaPropertyValue =>
   typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || isStringArray(value);
 
+const toPropertyContext = (
+  property: SchemaPropertyDefinition,
+  personIds: ReadonlySet<string> | undefined,
+): PagePropertyContext => ({ options: property.options, personIds });
+
 const validatePropertyOptions = (property: SchemaPropertyDefinition): string | null => {
-  if (property.type !== DatabasePropertyType.SELECT && property.type !== DatabasePropertyType.MULTI_SELECT) {
+  if (!pagePropertyRequiresOptions(property.type)) {
     return property.options === null || property.options.length === 0 ? null : `${property.key} cannot define options`;
   }
   if (property.options === null || property.options.length === 0) return `${property.key} requires options`;
@@ -37,7 +47,7 @@ export const validateSchemaProperties = (
     const optionsError = validatePropertyOptions(property);
     if (optionsError !== null) return Result.fail(new SchemaPropertyDefinitionError(optionsError));
   }
-  const titleProperties = properties.filter((property) => property.type === DatabasePropertyType.TITLE);
+  const titleProperties = properties.filter((property) => isTitlePageProperty(property.type));
   return titleProperties.length === 1
     ? Result.ok(properties)
     : Result.fail(new SchemaPropertyDefinitionError('Exactly one TITLE property is required'));
@@ -47,35 +57,18 @@ export const validateSchemaProperty = (
   property: SchemaPropertyDefinition,
 ): Result<SchemaPropertyDefinition, SchemaPropertyDefinitionError> => {
   const result = validateSchemaProperties(
-    property.type === DatabasePropertyType.TITLE
+    isTitlePageProperty(property.type)
       ? [property]
       : [{ key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null }, property],
   );
   return result.isFail() ? Result.fail(result.getError()) : Result.ok(property);
 };
 
-const validatePropertyValue = (
-  property: SchemaPropertyDefinition,
-  value: unknown,
-  personIds: ReadonlySet<string> | undefined,
-): boolean => {
-  if (property.type === DatabasePropertyType.TITLE)
-    return typeof value === 'string' && value.trim().length > 0 && value.length <= titleMaximumLength;
-  if (property.type === DatabasePropertyType.RICH_TEXT) return typeof value === 'string';
-  if (property.type === DatabasePropertyType.SELECT)
-    return typeof value === 'string' && property.options?.includes(value) === true;
-  if (property.type === DatabasePropertyType.MULTI_SELECT) {
-    return (
-      isStringArray(value) &&
-      new Set(value).size === value.length &&
-      value.every((item) => property.options?.includes(item) === true)
-    );
-  }
-  if (property.type === DatabasePropertyType.PERSON) return typeof value === 'string' && personIds?.has(value) === true;
-  if (property.type === DatabasePropertyType.DATE) return typeof value === 'string' && !Number.isNaN(Date.parse(value));
-  if (property.type === DatabasePropertyType.CHECKBOX) return typeof value === 'boolean';
-  return typeof value === 'number' && Number.isFinite(value);
-};
+const findMissingRequiredProperty = (
+  properties: readonly SchemaPropertyDefinition[],
+  propertyValues: Readonly<Record<string, unknown>>,
+): SchemaPropertyDefinition | undefined =>
+  properties.find((property) => property.required && propertyValues[property.key] === undefined);
 
 export const validateSchemaPropertyValues = (
   properties: readonly SchemaPropertyDefinition[],
@@ -83,26 +76,21 @@ export const validateSchemaPropertyValues = (
   personIds?: ReadonlySet<string>,
 ): Result<SchemaPropertyValues, SchemaPropertyValueError> => {
   const propertyByKey = new Map(properties.map((property) => [property.key, property]));
-  for (const key of Object.keys(propertyValues)) {
-    const property = propertyByKey.get(key);
-    if (
-      property === undefined ||
-      !isPropertyValue(propertyValues[key]) ||
-      !validatePropertyValue(property, propertyValues[key], personIds)
-    ) {
-      return Result.fail(new SchemaPropertyValueError(`Invalid value for ${key}`));
-    }
-  }
-  for (const property of properties) {
-    if (property.required && propertyValues[property.key] === undefined) {
-      return Result.fail(new SchemaPropertyValueError(`Missing required property ${property.key}`));
-    }
-  }
   const validatedValues: Record<string, SchemaPropertyValue> = {};
   for (const [key, value] of Object.entries(propertyValues)) {
-    if (isPropertyValue(value)) validatedValues[key] = value;
+    const property = propertyByKey.get(key);
+    if (property === undefined || !isPropertyValue(value)) {
+      return Result.fail(new SchemaPropertyValueError(`Invalid value for ${key}`));
+    }
+    if (!isValidPagePropertyValue(property.type, value, toPropertyContext(property, personIds))) {
+      return Result.fail(new SchemaPropertyValueError(`Invalid value for ${key}`));
+    }
+    validatedValues[key] = value;
   }
-  return Result.ok(validatedValues);
+  const missingProperty = findMissingRequiredProperty(properties, propertyValues);
+  return missingProperty === undefined
+    ? Result.ok(validatedValues)
+    : Result.fail(new SchemaPropertyValueError(`Missing required property ${missingProperty.key}`));
 };
 
 export const parseSchemaPropertyValues = (value: Prisma.JsonValue): SchemaPropertyValues | null => {

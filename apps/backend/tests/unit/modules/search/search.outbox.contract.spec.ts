@@ -3,10 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const repositoryPath = resolve(process.cwd(), 'src/common/infrastructure/persistence/outbox.repository.ts');
-const databaseRepositoryPath = resolve(
-  process.cwd(),
-  'src/modules/databases/infrastructure/persistence/database.repository.ts',
-);
+const pageRepositoryPath = resolve(process.cwd(), 'src/modules/pages/infrastructure/persistence/page.repository.ts');
 
 describe('search outbox projection contract', () => {
   test('claims pending and expired processing events atomically with a bounded lease', () => {
@@ -50,13 +47,12 @@ describe('search outbox projection contract', () => {
     expect(migration).toContain('ADD COLUMN "lastError" JSONB');
   });
 
-  test('emits database and record events inside repository transactions', () => {
-    const source = readFileSync(databaseRepositoryPath, 'utf8');
+  test('emits page events inside repository transactions', () => {
+    const source = readFileSync(pageRepositoryPath, 'utf8');
 
-    expect(source).toContain("eventType: 'DATABASE_CREATED'");
-    expect(source).toContain("eventType: 'DATABASE_UPDATED'");
-    expect(source).toContain("eventType: 'DATABASE_RECORD_CREATED'");
-    expect(source).toContain("eventType: 'DATABASE_RECORD_UPDATED'");
+    expect(source).toContain("eventType: 'PAGE_CREATED'");
+    expect(source).toContain("eventType: 'PAGE_UPDATED'");
+    expect(source).toContain("eventType: 'PAGE_MOVED'");
     expect(source).toContain('outboxRepository.create');
     expect(source).toContain('transaction,');
   });

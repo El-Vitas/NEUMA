@@ -22,7 +22,70 @@ export {
   joinPageContentSegmentsForDisplay,
   joinPageContentSegmentsForSearch,
 } from './page-content.lib.js';
+export {
+  canPagePropertyGroupBoard,
+  formatPagePropertyValue,
+  getDefaultPagePropertyValue,
+  getPagePropertyDefinition,
+  getPagePropertyLogicalType,
+  humanizeSelectOption,
+  isPagePropertyValueEmpty,
+  isTitlePageProperty,
+  isValidPagePropertyValue,
+  pagePropertyRequiresOptions,
+  pagePropertyRequiresPersonDirectory,
+} from './page-property/page-property.lib.js';
+export type {
+  PagePropertyCapabilities,
+  PagePropertyContext,
+  PagePropertyDefinition,
+  PagePropertyLogicalType,
+  PagePropertyValue,
+  PagePropertyValues,
+} from './page-property/page-property.types.js';
+export { PAGE_PROPERTY_LOGICAL_TYPE } from './page-property/page-property.types.js';
+export type { PageViewCapabilities, PageViewDefinition } from './page-view/page-view.definitions.js';
+export {
+  getPageFilterOperators,
+  hasPageFilterPredicate,
+  matchesPageFilter,
+} from './page-view/page-view.filter.lib.js';
+export {
+  getPageViewDefinition,
+  pageViewRequiresGrouping,
+  pageViewSupportsGrouping,
+} from './page-view/page-view.lib.js';
+export {
+  EMPTY_PAGE_VIEW_CONFIGURATION,
+  pageViewConfigurationSchema,
+  readPageViewConfiguration,
+} from './page-view/page-view.schemas.js';
+export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
+export type {
+  PageFilter,
+  PageFilterCondition,
+  PageFilterGroup,
+  PageFilterGroupOperator,
+  PageFilterOperator,
+  PageSort,
+  PageSortDirection,
+  PageViewConfiguration,
+  PageViewProperty,
+} from './page-view/page-view.types.js';
+export {
+  PAGE_FILTER_GROUP_OPERATOR,
+  PAGE_FILTER_OPERATOR,
+  PAGE_FILTER_OPERATOR_VALUES,
+  PAGE_SORT_DIRECTION,
+  PAGE_SORT_DIRECTION_VALUES,
+} from './page-view/page-view.types.js';
 export { Result } from './result.js';
+export type {
+  PageContentDocument,
+  PageContentMigration,
+  PageContentMigrations,
+} from './schemas/page-content.migration.js';
+export { applyPageContentMigrations, readStoredPageContent } from './schemas/page-content.migration.js';
 export type {
   PageContent,
   PageContentInlineNode,
@@ -33,6 +96,7 @@ export type {
 } from './schemas/page-content.schema.js';
 export {
   isAllowedPageEmbedUrl,
+  PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
   pageAssetAttrsSchema,
   pageContentSchema,

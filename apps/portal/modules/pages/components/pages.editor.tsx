@@ -20,12 +20,10 @@ import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../lib/
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
-import type { PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
+import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
-import { PagesAttachments } from './pages.attachments';
 import { PagesBacklinks } from './pages.backlinks';
 import { PagesHeader } from './pages.header';
-import { PagesMoveForm } from './pages.move.form';
 import { PagesPropertiesPanel } from './pages.properties.panel';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
@@ -41,6 +39,7 @@ interface IProps {
   readonly parentId: string | null;
   readonly parentBreadcrumbPages: readonly PageSummary[];
   readonly parentSchema?: PageSchema | null;
+  readonly personOptions?: readonly PagePersonOption[];
   readonly spaceId: string;
 }
 
@@ -56,6 +55,7 @@ export const PagesEditor = ({
   parentId,
   parentBreadcrumbPages,
   parentSchema = null,
+  personOptions = [],
   spaceId,
 }: IProps) => {
   const router = useRouter();
@@ -153,6 +153,22 @@ export const PagesEditor = ({
           title={title}
           titleInputRef={titleInputRef}
         />
+        <PagesPropertiesPanel
+          attachments={pageAttachments}
+          canEdit={canEdit}
+          onAttachmentDeleted={(attachmentId) =>
+            setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId))
+          }
+          onAttachmentUploaded={addUploadedAttachment}
+          onPropertyValueChange={handlePropertyValueChange}
+          page={page}
+          pageId={pageId}
+          pages={pages}
+          parentSchema={parentSchema}
+          personOptions={personOptions}
+          propertyValues={propertyValues}
+          spaceId={spaceId}
+        />
         <PagesProseMirrorEditor
           canEdit={canEdit}
           content={page?.content ?? createEmptyPageContent()}
@@ -165,12 +181,6 @@ export const PagesEditor = ({
           pageId={pageId}
           ref={editorHandleRef}
         />
-        <PagesPropertiesPanel
-          canEdit={canEdit}
-          onPropertyValueChange={handlePropertyValueChange}
-          parentSchema={parentSchema}
-          propertyValues={propertyValues}
-        />
         {canEdit && page === null && (
           <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
             {isPending ? t('saving') : t('create')}
@@ -180,18 +190,6 @@ export const PagesEditor = ({
           <p aria-live="polite" className="text-destructive text-sm" role="status">
             {t('saveError')}
           </p>
-        )}
-        {page !== null && canEdit && <PagesMoveForm page={page} pages={pages} spaceId={spaceId} />}
-        {pageId !== null && (
-          <PagesAttachments
-            attachments={pageAttachments}
-            canEdit={canEdit}
-            onAssetDeleted={(attachmentId) =>
-              setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId))
-            }
-            onAssetUploaded={addUploadedAttachment}
-            pageId={pageId}
-          />
         )}
         {pageId !== null && <PagesBacklinks backlinks={backlinks} />}
         {collectionSection}

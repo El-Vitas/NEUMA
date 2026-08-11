@@ -15,8 +15,12 @@ if (databaseUrl === undefined || databaseUrl === '') {
 
 const prisma = new PrismaClient({ connectionString: databaseUrl });
 
+const SEED_ROOT_TABLES = ['Workspace', 'User'] as const;
+const SEED_UNREFERENCED_TABLES = ['OutboxEvent', 'SearchDocument', 'CollaborationSnapshot', 'FileAsset'] as const;
+
 const clearAllTables = async (): Promise<void> => {
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Workspace", "User" CASCADE');
+  const tables = [...SEED_ROOT_TABLES, ...SEED_UNREFERENCED_TABLES].map((table) => `"${table}"`).join(', ');
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE`);
 };
 
 try {

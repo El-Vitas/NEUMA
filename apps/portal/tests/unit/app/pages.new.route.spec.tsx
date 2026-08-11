@@ -45,6 +45,7 @@ mock.module('@/modules/pages/server/queries/pages.schema.queries', () => ({
   }),
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
+  getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
   getSpaces: async () => spacesResult,
 }));
 mock.module('@/shared/components/ui/page-header', () => ({ PageHeader: () => null }));

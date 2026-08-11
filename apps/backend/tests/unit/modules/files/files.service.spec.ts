@@ -11,7 +11,6 @@ import type {
 
 const asset = {
   checksum: 'checksum',
-  databaseRecordId: null,
   deletedAt: null,
   id: 'asset-id',
   lifecycle: 'ACTIVE' as const,
@@ -64,7 +63,6 @@ const expectSingleStorageFailureLog = (logs: Record<string, unknown>[], operatio
 
 const buildCreateInput = (overrides: Partial<CreateFileAssetInput> = {}): CreateFileAssetInput => ({
   buffer: Buffer.from('notes'),
-  databaseRecordId: null,
   mimeType: 'text/plain',
   originalFilename: 'notes.txt',
   ownerId: 'owner-id',

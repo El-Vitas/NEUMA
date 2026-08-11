@@ -1,4 +1,4 @@
-import { Database, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/shared/components/ui/badge';
@@ -14,14 +14,12 @@ interface IProps {
 
 export const SearchResultCard = ({ locale, result }: IProps) => {
   const t = useTranslations('portal.search');
-  const href =
-    result.sourceType === 'PAGE' ? ROUTES.PORTAL_SPACE_PAGE(result.spaceId, result.sourceId) : ROUTES.PORTAL_DATABASES;
-  const Icon = result.sourceType === 'PAGE' ? FileText : Database;
+  const href = ROUTES.PORTAL_SPACE_PAGE(result.spaceId, result.sourceId);
 
   return (
     <article className="space-y-3 border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <Icon aria-hidden="true" className="mt-1 size-5 shrink-0 text-muted-foreground" />
+        <FileText aria-hidden="true" className="mt-1 size-5 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <h2>
             <Link

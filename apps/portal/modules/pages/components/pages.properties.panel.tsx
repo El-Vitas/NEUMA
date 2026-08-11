@@ -1,36 +1,97 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { PAGE_PROPERTIES_VISIBLE_LIMIT } from '../constants/pages.constants';
 import { getEditableSchemaProperties } from '../lib/pages.properties.lib';
-import type { PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
-import { PagesPropertiesField } from './pages.properties.field';
+import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
+import type { PageSummary } from '../types/pages.types';
+import { PagesAttachments } from './pages.attachments';
+import { PagesMetadataRow } from './pages.metadata.row';
+import { PagesMoveForm } from './pages.move.form';
+import { PagesPropertiesRow } from './pages.properties.row';
 
 interface IProps {
+  readonly attachments?: readonly AttachmentSummary[];
   readonly canEdit: boolean;
+  readonly onAttachmentDeleted?: (attachmentId: string) => void;
+  readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
   readonly onPropertyValueChange: (key: string, value: PagePropertyValue) => void;
+  readonly page?: PageSummary | null;
+  readonly pageId?: string | null;
+  readonly pages?: readonly PageSummary[];
   readonly parentSchema: PageSchema | null;
+  readonly personOptions?: readonly PagePersonOption[];
   readonly propertyValues: PagePropertyValues;
+  readonly spaceId?: string;
 }
 
-export const PagesPropertiesPanel = ({ canEdit, onPropertyValueChange, parentSchema, propertyValues }: IProps) => {
+export const PagesPropertiesPanel = ({
+  attachments = [],
+  canEdit,
+  onAttachmentDeleted = () => undefined,
+  onAttachmentUploaded = () => undefined,
+  onPropertyValueChange,
+  page = null,
+  pageId = null,
+  pages = [],
+  parentSchema,
+  personOptions = [],
+  propertyValues,
+  spaceId = '',
+}: IProps) => {
   const t = useTranslations('pages');
+  const [isExpanded, setIsExpanded] = useState(false);
   const properties = getEditableSchemaProperties(parentSchema);
-  if (properties.length === 0) return null;
+  const canMove = canEdit && page !== null;
+  const hasAttachmentsSection = pageId !== null;
+
+  if (properties.length === 0 && !canMove && !hasAttachmentsSection) return null;
+
+  const hiddenPropertiesCount = Math.max(properties.length - PAGE_PROPERTIES_VISIBLE_LIMIT, 0);
+  const visibleProperties = isExpanded ? properties : properties.slice(0, PAGE_PROPERTIES_VISIBLE_LIMIT);
+  const hiddenSectionsCount = (canMove ? 1 : 0) + (hasAttachmentsSection ? 1 : 0);
+  const hiddenItemsCount = hiddenPropertiesCount + hiddenSectionsCount;
+  const hasHiddenContent = hiddenItemsCount > 0;
 
   return (
-    <section aria-label={t('properties.title')} className="max-w-336 space-y-4 border-border border-t pt-6">
-      <h2 className="font-medium text-foreground text-sm">{t('properties.title')}</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {properties.map((property) => (
-          <PagesPropertiesField
-            disabled={!canEdit}
-            key={property.key}
-            onChange={(value) => onPropertyValueChange(property.key, value)}
-            property={property}
-            value={propertyValues[property.key]}
+    <section aria-label={t('properties.title')} className="max-w-336 border-border border-b pb-2">
+      {visibleProperties.map((property) => (
+        <PagesPropertiesRow
+          disabled={!canEdit}
+          key={property.key}
+          onChange={(value) => onPropertyValueChange(property.key, value)}
+          personOptions={personOptions}
+          property={property}
+          value={propertyValues[property.key]}
+        />
+      ))}
+      {isExpanded && canMove && page !== null && (
+        <PagesMetadataRow label={t('location')} labelId="page-location-label">
+          <PagesMoveForm ariaLabelledBy="page-location-label" page={page} pages={pages} spaceId={spaceId} />
+        </PagesMetadataRow>
+      )}
+      {isExpanded && hasAttachmentsSection && pageId !== null && (
+        <PagesMetadataRow label={t('attachments.title')} labelId="page-attachments-label">
+          <PagesAttachments
+            attachments={attachments}
+            canEdit={canEdit}
+            onAssetDeleted={onAttachmentDeleted}
+            onAssetUploaded={onAttachmentUploaded}
+            pageId={pageId}
           />
-        ))}
-      </div>
+        </PagesMetadataRow>
+      )}
+      {hasHiddenContent && (
+        <button
+          className="min-h-11 text-muted-foreground text-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+          onClick={() => setIsExpanded((current) => !current)}
+          type="button"
+        >
+          {isExpanded ? t('properties.showLess') : t('properties.showMore', { count: hiddenItemsCount })}
+        </button>
+      )}
     </section>
   );
 };

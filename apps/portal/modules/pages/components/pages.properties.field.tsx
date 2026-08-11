@@ -1,35 +1,51 @@
 'use client';
 
 import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
-import { FormField } from '@/shared/components/ui/form-field';
+import { useTranslations } from 'next-intl';
+import { Input } from '@/shared/components/ui/input';
+import { PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME } from '../constants/pages.constants';
 import {
   getBooleanPropertyValue,
   getMultiSelectPropertyValue,
   getNumberPropertyValue,
   getStringPropertyValue,
 } from '../lib/pages.properties.lib';
-import type { PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
+import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
 import { PagesPropertiesCheckboxField } from './pages.properties.checkbox-field';
 import { PagesPropertiesMultiSelectField } from './pages.properties.multi-select-field';
+import { PagesPropertiesPersonField } from './pages.properties.person-field';
 import { PagesPropertiesSelectField } from './pages.properties.select-field';
 
 interface IProps {
+  readonly ariaLabelledBy: string;
   readonly disabled: boolean;
   readonly onChange: (value: PagePropertyValue) => void;
+  readonly personOptions?: readonly PagePersonOption[];
   readonly property: PageSchemaProperty;
   readonly value: PagePropertyValue | undefined;
 }
 
-export const PagesPropertiesField = ({ disabled, onChange, property, value }: IProps) => {
+export const PagesPropertiesField = ({
+  ariaLabelledBy,
+  disabled,
+  onChange,
+  personOptions = [],
+  property,
+  value,
+}: IProps) => {
+  const t = useTranslations('pages');
   const fieldId = `page-property-${property.key}`;
+  const emptyPlaceholder = t('properties.empty');
 
   switch (property.type) {
     case PAGE_PROPERTY_TYPE.SELECT:
       return (
         <PagesPropertiesSelectField
+          ariaLabelledBy={ariaLabelledBy}
           disabled={disabled}
           fieldId={fieldId}
           onChange={onChange}
+          placeholder={emptyPlaceholder}
           property={property}
           value={getStringPropertyValue(value)}
         />
@@ -37,6 +53,7 @@ export const PagesPropertiesField = ({ disabled, onChange, property, value }: IP
     case PAGE_PROPERTY_TYPE.MULTI_SELECT:
       return (
         <PagesPropertiesMultiSelectField
+          ariaLabelledBy={ariaLabelledBy}
           disabled={disabled}
           fieldId={fieldId}
           onChange={onChange}
@@ -44,23 +61,35 @@ export const PagesPropertiesField = ({ disabled, onChange, property, value }: IP
           value={getMultiSelectPropertyValue(value)}
         />
       );
-    case PAGE_PROPERTY_TYPE.CHECKBOX:
+    case PAGE_PROPERTY_TYPE.PERSON:
       return (
-        <PagesPropertiesCheckboxField
+        <PagesPropertiesPersonField
+          ariaLabelledBy={ariaLabelledBy}
           disabled={disabled}
           fieldId={fieldId}
           onChange={onChange}
-          property={property}
+          options={personOptions}
+          placeholder={emptyPlaceholder}
+          value={getStringPropertyValue(value)}
+        />
+      );
+    case PAGE_PROPERTY_TYPE.CHECKBOX:
+      return (
+        <PagesPropertiesCheckboxField
+          ariaLabelledBy={ariaLabelledBy}
+          disabled={disabled}
+          fieldId={fieldId}
+          onChange={onChange}
           value={getBooleanPropertyValue(value)}
         />
       );
     case PAGE_PROPERTY_TYPE.DATE:
       return (
-        <FormField
+        <Input
+          aria-labelledby={ariaLabelledBy}
+          className={PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME}
           disabled={disabled}
           id={fieldId}
-          inputClassName="text-base"
-          label={property.label}
           onChange={(event) => onChange(event.target.value)}
           type="date"
           value={getStringPropertyValue(value)}
@@ -68,24 +97,26 @@ export const PagesPropertiesField = ({ disabled, onChange, property, value }: IP
       );
     case PAGE_PROPERTY_TYPE.NUMBER:
       return (
-        <FormField
+        <Input
+          aria-labelledby={ariaLabelledBy}
+          className={PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME}
           disabled={disabled}
           id={fieldId}
-          inputClassName="text-base"
-          label={property.label}
           onChange={(event) => onChange(Number(event.target.value))}
+          placeholder={emptyPlaceholder}
           type="number"
-          value={String(getNumberPropertyValue(value))}
+          value={value === undefined ? '' : String(getNumberPropertyValue(value))}
         />
       );
     default:
       return (
-        <FormField
+        <Input
+          aria-labelledby={ariaLabelledBy}
+          className={PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME}
           disabled={disabled}
           id={fieldId}
-          inputClassName="text-base"
-          label={property.label}
           onChange={(event) => onChange(event.target.value)}
+          placeholder={emptyPlaceholder}
           type="text"
           value={getStringPropertyValue(value)}
         />

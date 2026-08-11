@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabaseLifecycle, DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
+import { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
 import { groupRowsByBoard } from '@/common/domain/schema-view-grouping.domain';
-import type { DatabaseRecordSummary } from '@/modules/databases/domain/database.domain.types';
-import { groupRecordsByBoard } from '@/modules/databases/domain/database.views.domain';
 
 const statusProperty = {
   key: 'status',
@@ -62,65 +60,5 @@ describe('groupRowsByBoard', () => {
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('SCHEMA_VIEW_INVALID');
-  });
-});
-
-describe('board grouping is identical whether fed legacy database records or pages', () => {
-  it('produces the same columns for the same logical rows through both wrappers', () => {
-    const configuration = { groupBy: 'status' };
-    const properties = [statusProperty];
-
-    const legacyRecords: readonly DatabaseRecordSummary[] = [
-      {
-        id: 'b',
-        databaseId: 'database-a',
-        title: 'Second',
-        propertyValues: { status: 'done' },
-        order: 1,
-        lifecycle: DatabaseLifecycle.ACTIVE,
-      },
-      {
-        id: 'a',
-        databaseId: 'database-a',
-        title: 'First',
-        propertyValues: {},
-        order: 0,
-        lifecycle: DatabaseLifecycle.ACTIVE,
-      },
-    ];
-
-    const pageRows = [
-      {
-        id: 'b',
-        parentId: 'page-a',
-        spaceId: 'space-a',
-        title: 'Second',
-        propertyValues: { status: 'done' },
-        order: 1,
-        lifecycle: PageLifecycle.ACTIVE,
-      },
-      {
-        id: 'a',
-        parentId: 'page-a',
-        spaceId: 'space-a',
-        title: 'First',
-        propertyValues: {},
-        order: 0,
-        lifecycle: PageLifecycle.ACTIVE,
-      },
-    ];
-
-    const fromRecords = groupRecordsByBoard(DatabaseViewType.BOARD, configuration, properties, legacyRecords);
-    const fromPages = groupRowsByBoard(DatabaseViewType.BOARD, configuration, properties, pageRows);
-
-    expect(fromRecords.isOk()).toBe(true);
-    expect(fromPages.isOk()).toBe(true);
-    const recordShape = fromRecords
-      .getValue()
-      .map((column) => ({ key: column.key, label: column.label, ids: column.records.map((record) => record.id) }));
-    const pageShape = fromPages
-      .getValue()
-      .map((column) => ({ key: column.key, label: column.label, ids: column.rows.map((row) => row.id) }));
-    expect(pageShape).toEqual(recordShape);
   });
 });

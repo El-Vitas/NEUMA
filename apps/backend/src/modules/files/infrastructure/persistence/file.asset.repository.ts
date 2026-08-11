@@ -1,4 +1,4 @@
-import { DatabaseLifecycle, FileAssetLifecycle, PageLifecycle } from '@company-brain/db';
+import { FileAssetLifecycle, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
@@ -8,7 +8,6 @@ import type { FileAssetMetadata, FileAssetRepository, FileAssetSummary } from '.
 
 const fileAssetSelection = {
   checksum: true,
-  databaseRecordId: true,
   deletedAt: true,
   id: true,
   lifecycle: true,
@@ -34,15 +33,12 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
 
   async canAttachToContent(
     pageId: string | null,
-    databaseRecordId: string | null,
     workspaceId: string,
     userId: string,
     role: UserRole,
   ): Promise<boolean> {
-    if ((pageId === null) === (databaseRecordId === null) || role === USER_ROLE.CLIENT) return false;
-    if (pageId !== null) return this.hasPageAccess(pageId, workspaceId, userId, role);
-    if (databaseRecordId === null) return false;
-    return this.hasDatabaseRecordAccess(databaseRecordId, workspaceId, userId, role);
+    if (pageId === null || role === USER_ROLE.CLIENT) return false;
+    return this.hasPageAccess(pageId, workspaceId, userId, role);
   }
 
   async create(input: Parameters<FileAssetRepository['create']>[0]): Promise<FileAssetSummary> {
@@ -62,8 +58,6 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
     if (asset === null) return null;
     if (asset.pageId !== null)
       return (await this.hasPageAccess(asset.pageId, workspaceId, userId, role)) ? asset : null;
-    if (asset.databaseRecordId !== null)
-      return (await this.hasDatabaseRecordAccess(asset.databaseRecordId, workspaceId, userId, role)) ? asset : null;
     return asset.ownerId === userId || role !== USER_ROLE.CLIENT ? asset : null;
   }
 
@@ -99,25 +93,5 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
       },
     });
     return page !== null;
-  }
-
-  private async hasDatabaseRecordAccess(
-    databaseRecordId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<boolean> {
-    const record = await this.prisma.databaseRecord.findFirst({
-      select: { id: true },
-      where: {
-        id: databaseRecordId,
-        lifecycle: DatabaseLifecycle.ACTIVE,
-        database: {
-          lifecycle: DatabaseLifecycle.ACTIVE,
-          space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
-        },
-      },
-    });
-    return record !== null;
   }
 }

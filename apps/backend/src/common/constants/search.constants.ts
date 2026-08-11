@@ -1,4 +1,4 @@
-export const SEARCH_SOURCE_TYPE_VALUES = ['PAGE', 'DATABASE_RECORD'] as const;
+export const SEARCH_SOURCE_TYPE_VALUES = ['PAGE'] as const;
 export const SEARCH_DEFAULT_LIMIT = 20;
 export const SEARCH_MAX_LIMIT = 50;
 export const SEARCH_MAX_QUERY_LENGTH = 200;

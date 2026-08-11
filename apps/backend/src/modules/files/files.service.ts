@@ -40,11 +40,9 @@ export class FilesService {
       if (error instanceof FileValidationError) return Result.fail(error);
       throw error;
     }
-    if ((input.pageId === null) === (input.databaseRecordId === null))
-      return Result.fail(new FileValidationError('Content target is required'));
+    if (input.pageId === null) return Result.fail(new FileValidationError('Content target is required'));
     const canAttach = await this.fileAssetRepository.canAttachToContent(
       input.pageId,
-      input.databaseRecordId,
       input.workspaceId,
       input.ownerId,
       input.role,
@@ -56,7 +54,6 @@ export class FilesService {
       await this.storageProvider.save(input.buffer, storageKey, input.mimeType);
       const asset = await this.fileAssetRepository.create({
         checksum,
-        databaseRecordId: input.databaseRecordId,
         mimeType: input.mimeType,
         originalFilename: normalizedFilename,
         ownerId: input.ownerId,

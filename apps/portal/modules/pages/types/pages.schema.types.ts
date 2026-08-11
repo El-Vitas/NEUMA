@@ -1,7 +1,6 @@
-import type { PageLifecycle, PagePropertyType, PageViewType } from '@company-brain/shared';
+import type { PageLifecycle, PagePropertyType, PagePropertyValues, PageViewType } from '@company-brain/shared';
 
-export type PagePropertyValue = string | number | boolean | readonly string[];
-export type PagePropertyValues = Readonly<Record<string, PagePropertyValue>>;
+export type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
 
 export interface PageSchemaProperty {
   readonly key: string;
@@ -9,6 +8,12 @@ export interface PageSchemaProperty {
   readonly type: PagePropertyType;
   readonly required: boolean;
   readonly options: readonly string[] | null;
+}
+
+export interface PagePersonOption {
+  readonly email: string;
+  readonly id: string;
+  readonly name: string;
 }
 
 export interface PageSchemaView {

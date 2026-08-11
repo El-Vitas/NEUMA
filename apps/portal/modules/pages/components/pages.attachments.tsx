@@ -19,13 +19,7 @@ export const PagesAttachments = ({ attachments, canEdit, onAssetDeleted, onAsset
   const handleUploaded = (attachment: AttachmentSummary): void => onAssetUploaded(attachment);
 
   return (
-    <section aria-labelledby="page-attachments-title" className="space-y-4 border-border border-t pt-6">
-      <div>
-        <h2 className="font-display text-2xl text-foreground" id="page-attachments-title">
-          {t('title')}
-        </h2>
-        <p className="mt-1 text-muted-foreground text-sm">{t('description')}</p>
-      </div>
+    <div className="space-y-3">
       {canEdit && pageId !== undefined && <PagesAttachmentsUpload onUploaded={handleUploaded} pageId={pageId} />}
       {attachments.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t('empty')}</p>
@@ -43,6 +37,6 @@ export const PagesAttachments = ({ attachments, canEdit, onAssetDeleted, onAsset
           ))}
         </ul>
       )}
-    </section>
+    </div>
   );
 };

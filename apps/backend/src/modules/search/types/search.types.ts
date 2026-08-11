@@ -71,28 +71,6 @@ export interface SearchProjectionPage {
   readonly version: number;
 }
 
-export interface SearchProjectionRecord {
-  readonly databaseId: string;
-  readonly id: string;
-  readonly lifecycle: string;
-  readonly propertyValues: Prisma.JsonValue;
-  readonly title: string;
-  readonly version: number;
-  readonly database: {
-    readonly lifecycle: string;
-    readonly name: string;
-    readonly properties: readonly {
-      readonly key: string;
-      readonly label: string;
-      readonly type: string;
-    }[];
-    readonly spaceId: string;
-    readonly template: string;
-  };
-}
-
 export interface SearchProjectionSource {
   readonly findPage: (pageIdentifier: string) => Promise<SearchProjectionPage | null>;
-  readonly findRecord: (recordId: string) => Promise<SearchProjectionRecord | null>;
-  readonly listRecords: (databaseId: string) => Promise<readonly SearchProjectionRecord[]>;
 }

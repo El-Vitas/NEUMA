@@ -1,4 +1,3 @@
 enum SearchSourceType {
   PAGE
-  DATABASE_RECORD
 }

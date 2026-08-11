@@ -1,6 +1,6 @@
 'use client';
 
-import { Database, Home, Search } from 'lucide-react';
+import { Home, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
@@ -74,10 +74,6 @@ export const PortalCommandBar = ({ onOpenChange, open }: IProps) => {
           <CommandItem onSelect={() => navigate(ROUTES.PORTAL_SEARCH)}>
             <Search aria-hidden="true" />
             {t('search')}
-          </CommandItem>
-          <CommandItem onSelect={() => navigate(ROUTES.PORTAL_DATABASES)}>
-            <Database aria-hidden="true" />
-            {t('databases')}
           </CommandItem>
         </CommandGroup>
       </CommandList>

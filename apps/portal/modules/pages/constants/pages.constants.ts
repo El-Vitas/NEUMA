@@ -9,6 +9,11 @@ export const EMPTY_PAGE_BACKLINKS: PageBacklinksResult = { count: 0, items: [] }
 
 export const EMPTY_PAGE_ATTACHMENTS: readonly AttachmentSummary[] = [];
 
+export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
+
+export const PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME =
+  'h-11 rounded-none border-transparent bg-transparent px-2 shadow-none hover:border-border dark:bg-transparent';
+
 export const PAGE_API_ROUTES = {
   list: (spaceId: string, includeTrashed = false) =>
     `/api/v1/spaces/${spaceId}/pages?includeTrashed=${String(includeTrashed)}`,
