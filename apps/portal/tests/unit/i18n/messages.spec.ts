@@ -25,7 +25,6 @@ describe('portal message catalogs', () => {
       'users',
       'spaces',
       'pages',
-      'databases',
       'errors',
       'validation',
       'metadata',

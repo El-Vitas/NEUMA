@@ -5,14 +5,14 @@ import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.serve
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
-import { getEditableSchemaProperties } from '@/modules/pages/lib/pages.properties.lib';
+import { getEditableSchemaProperties, schemaNeedsPersonOptions } from '@/modules/pages/lib/pages.properties.lib';
 import { getPageAttachments } from '@/modules/pages/server/queries/pages.attachments.queries';
 import { getPageBacklinks } from '@/modules/pages/server/queries/pages.backlinks.queries';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { getPageSchema, getPageView } from '@/modules/pages/server/queries/pages.schema.queries';
 import type { PageSchema } from '@/modules/pages/types/pages.schema.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
-import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
@@ -38,6 +38,8 @@ export default async function Page({ params }: IProps) {
   const parentSchemaResult =
     selectedPage.parentId === null ? null : await getPageSchema(spaceId, selectedPage.parentId);
   const parentSchema: PageSchema | null = parentSchemaResult?.isOk() ? parentSchemaResult.getValue() : null;
+  const personOptionsResult = schemaNeedsPersonOptions(parentSchema) ? await getSpaceMembers(spaceId) : null;
+  const personOptions = personOptionsResult?.isOk() ? personOptionsResult.getValue() : [];
 
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
   const collectionSection =
@@ -67,6 +69,7 @@ export default async function Page({ params }: IProps) {
         isNewPage={false}
         pages={pages}
         parentSchema={parentSchema}
+        personOptions={personOptions}
         selectedPageId={selectedPage.id}
         spaceId={spaceId}
       />

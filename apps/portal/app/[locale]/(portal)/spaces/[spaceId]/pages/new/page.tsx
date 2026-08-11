@@ -3,11 +3,12 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
+import { schemaNeedsPersonOptions } from '@/modules/pages/lib/pages.properties.lib';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { getPageSchema } from '@/modules/pages/server/queries/pages.schema.queries';
 import type { PageSchema } from '@/modules/pages/types/pages.schema.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
-import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
 
 interface IProps {
@@ -27,6 +28,8 @@ export default async function Page({ params, searchParams }: IProps) {
   const resolvedParentId = pages?.some((page) => page.id === parentId) ? parentId : null;
   const parentSchemaResult = resolvedParentId === null ? null : await getPageSchema(spaceId, resolvedParentId);
   const parentSchema: PageSchema | null = parentSchemaResult?.isOk() ? parentSchemaResult.getValue() : null;
+  const personOptionsResult = schemaNeedsPersonOptions(parentSchema) ? await getSpaceMembers(spaceId) : null;
+  const personOptions = personOptionsResult?.isOk() ? personOptionsResult.getValue() : [];
 
   return (
     <main className="min-h-full">
@@ -42,6 +45,7 @@ export default async function Page({ params, searchParams }: IProps) {
           pages={pages}
           parentId={resolvedParentId}
           parentSchema={parentSchema}
+          personOptions={personOptions}
           selectedPageId={null}
           spaceId={spaceId}
         />

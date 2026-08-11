@@ -60,7 +60,6 @@
     "expandSpace": "Expand {name}",
     "users": "Users",
     "account": "Account",
-    "databases": "Databases",
     "profile": "Profile",
     "logout": "Log out",
     "mobileMenu": "Navigation menu",
@@ -318,8 +317,12 @@
     },
     "properties": {
       "title": "Properties",
+      "empty": "Empty",
+      "showMore": "Show {count} more",
+      "showLess": "Show less",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "unknownPerson": "Unknown member"
     },
     "collection": {
       "sectionTitle": "Rows",
@@ -328,47 +331,6 @@
       "missingGroupingProperty": "This board's grouping property was removed from the schema. Update the view or the schema to see grouped rows again.",
       "loadError": "Could not load this view. Check your permissions and try again."
     }
-  },
-  "databases": {
-    "title": "Databases",
-    "subtitle": "Configurable tables for tasks and projects.",
-    "loadError": "Could not load databases.",
-    "detailLoadError": "Could not load this database.",
-    "back": "Back to databases",
-    "databaseSubtitle": "{template} database",
-    "properties": "Properties",
-    "records": "Database records",
-    "titleColumn": "Title",
-    "empty": "No records are available.",
-    "noGrouping": "This database has no configured select grouping.",
-    "noRecords": "No records",
-    "available": "No databases are available in your accessible spaces.",
-    "unassigned": "Unassigned",
-    "emptyValue": "No value",
-    "yes": "Yes",
-    "no": "No",
-    "propertyCount": "{properties} properties · {views} views",
-    "name": "Name",
-    "slug": "Slug",
-    "space": "Space",
-    "selectSpace": "Select a space",
-    "template": "Template",
-    "newDatabase": "New database",
-    "create": "Create database",
-    "creating": "Creating database...",
-    "createError": "Could not create the database.",
-    "created": "Database created",
-    "createDatabase": "Create database",
-    "cancelCreate": "Cancel",
-    "templates": {
-      "TASKS": "Tasks",
-      "PROJECTS": "Projects"
-    },
-    "views": {
-      "TABLE": "Table",
-      "BOARD": "Board"
-    },
-    "viewsLabel": "Database views"
   },
   "errors": {
     "generic": "Something went wrong.",

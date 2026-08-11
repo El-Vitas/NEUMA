@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseTemplate, DatabaseViewType, SpaceVisibility } from '@company-brain/db';
+import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@company-brain/db';
 import type { PageContent } from '@company-brain/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -419,36 +419,6 @@ describe('Page Schema (Integration)', () => {
       ).expect(201);
 
       await getView(testApp, outsiderToken, secretSpaceId, collection.id, 'Table').expect(403);
-    });
-  });
-
-  describe('coexistence with the legacy databases cluster', () => {
-    it('still creates and lists legacy database records exactly as before, unaffected by the page schema tables', async () => {
-      const databaseResponse = await request(testApp.getServer())
-        .post('/api/v1/databases')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          name: 'Legacy Tasks',
-          slug: `legacy-tasks-${String(Date.now())}`,
-          spaceId: sharedSpaceId,
-          template: DatabaseTemplate.TASKS,
-        })
-        .expect(201);
-      const databaseId = (databaseResponse.body as { id: string }).id;
-
-      const recordResponse = await request(testApp.getServer())
-        .post(`/api/v1/databases/${databaseId}/records`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ propertyValues: { status: 'todo' }, title: 'Legacy Record' })
-        .expect(201);
-      const recordId = (recordResponse.body as { id: string }).id;
-
-      const listResponse = await request(testApp.getServer())
-        .get(`/api/v1/databases/${databaseId}/records`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .expect(200);
-
-      expect((listResponse.body as { id: string }[]).map((record) => record.id)).toEqual([recordId]);
     });
   });
 });

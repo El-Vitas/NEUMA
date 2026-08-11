@@ -9,4 +9,10 @@ export interface SpaceSummary {
   readonly visibility: SpaceVisibility;
 }
 
+export interface SpaceMember {
+  readonly email: string;
+  readonly id: string;
+  readonly name: string;
+}
+
 export type SpaceFieldErrorCode = 'tooShort' | 'tooLong';

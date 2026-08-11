@@ -60,7 +60,6 @@
     "expandSpace": "Expandir {name}",
     "users": "Usuarios",
     "account": "Cuenta",
-    "databases": "Bases de datos",
     "profile": "Perfil",
     "logout": "Cerrar sesión",
     "mobileMenu": "Menú de navegación",
@@ -318,8 +317,12 @@
     },
     "properties": {
       "title": "Propiedades",
+      "empty": "Vacío",
+      "showMore": "Mostrar {count} más",
+      "showLess": "Mostrar menos",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "unknownPerson": "Miembro desconocido"
     },
     "collection": {
       "sectionTitle": "Filas",
@@ -328,47 +331,6 @@
       "missingGroupingProperty": "La propiedad de agrupación de este tablero se eliminó del esquema. Actualiza la vista o el esquema para volver a ver las filas agrupadas.",
       "loadError": "No se pudo cargar esta vista. Comprueba tus permisos e inténtalo de nuevo."
     }
-  },
-  "databases": {
-    "title": "Bases de datos",
-    "subtitle": "Tablas configurables para tareas y proyectos.",
-    "loadError": "No se pudieron cargar las bases de datos.",
-    "detailLoadError": "No se pudo cargar esta base de datos.",
-    "back": "Volver a las bases de datos",
-    "databaseSubtitle": "Base de datos de {template}",
-    "properties": "Propiedades",
-    "records": "Registros de la base de datos",
-    "titleColumn": "Título",
-    "empty": "No hay registros disponibles.",
-    "noGrouping": "Esta base de datos no tiene una agrupación de selección configurada.",
-    "noRecords": "Sin registros",
-    "available": "No hay bases de datos disponibles en tus espacios accesibles.",
-    "unassigned": "Sin asignar",
-    "emptyValue": "Sin valor",
-    "yes": "Sí",
-    "no": "No",
-    "propertyCount": "{properties} propiedades · {views} vistas",
-    "name": "Nombre",
-    "slug": "Slug",
-    "space": "Espacio",
-    "selectSpace": "Selecciona un espacio",
-    "template": "Plantilla",
-    "newDatabase": "Nueva base de datos",
-    "create": "Crear base de datos",
-    "creating": "Creando base de datos...",
-    "createError": "No se pudo crear la base de datos.",
-    "created": "Base de datos creada",
-    "createDatabase": "Crear base de datos",
-    "cancelCreate": "Cancelar",
-    "templates": {
-      "TASKS": "Tareas",
-      "PROJECTS": "Proyectos"
-    },
-    "views": {
-      "TABLE": "Tabla",
-      "BOARD": "Tablero"
-    },
-    "viewsLabel": "Vistas de la base de datos"
   },
   "errors": {
     "generic": "Algo salió mal.",

@@ -4,7 +4,6 @@ import type { FileAccessDeniedError, FileStorageError, FileValidationError } fro
 
 export interface FileAssetSummary {
   readonly checksum: string;
-  readonly databaseRecordId: string | null;
   readonly deletedAt: Date | null;
   readonly id: string;
   readonly lifecycle: FileAssetLifecycle;
@@ -26,7 +25,6 @@ export interface FileAssetMetadata {
 
 export interface CreateFileAssetInput {
   readonly buffer: Buffer;
-  readonly databaseRecordId: string | null;
   readonly mimeType: string;
   readonly originalFilename: string;
   readonly ownerId: string;
@@ -39,14 +37,12 @@ export interface CreateFileAssetInput {
 export interface FileAssetRepository {
   readonly canAttachToContent: (
     pageId: string | null,
-    databaseRecordId: string | null,
     workspaceId: string,
     userId: string,
     role: UserRole,
   ) => Promise<boolean>;
   readonly create: (input: {
     readonly checksum: string;
-    readonly databaseRecordId: string | null;
     readonly mimeType: string;
     readonly originalFilename: string;
     readonly ownerId: string;

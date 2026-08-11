@@ -78,10 +78,15 @@ export const PagesProseMirrorEditor = forwardRef(
       readonly left: number;
       readonly top: number;
     } | null>(null);
+    const [triggerMenuPosition, setTriggerMenuPosition] = useState<{
+      readonly left: number;
+      readonly top: number;
+    } | null>(null);
     const [triggerKind, setTriggerKind] = useState<PagesEditorTriggerKind | null>(null);
     const [triggerQuery, setTriggerQuery] = useState<string | null>(null);
     const [triggerSelectedIndex, setTriggerSelectedIndex] = useState(0);
     const triggerQueryRef = useRef<string | null>(null);
+    const triggerMenuPositionRef = useRef<{ readonly left: number; readonly top: number } | null>(null);
     const triggerSelectedIndexRef = useRef(0);
     const mentionSearch = usePagesMentionSearch(triggerKind === 'mention' ? triggerQuery : null);
     const reportUploadedAttachment = useCallback(
@@ -129,14 +134,17 @@ export const PagesProseMirrorEditor = forwardRef(
     const triggerEmptyMessage = t(getEditorTriggerEmptyMessageKey(triggerKind, mentionSearch.isLoading));
     const triggerAriaLabel = t(getEditorTriggerAriaLabelKey(triggerKind));
 
-    const computeSelectionToolbarPosition = useCallback(
-      (editorView: EditorView, selection: Selection): { readonly left: number; readonly top: number } | null => {
-        if (selection.empty) return null;
+    const computeMenuPosition = useCallback(
+      (
+        editorView: EditorView,
+        fromPos: number,
+        toPos: number,
+      ): { readonly left: number; readonly top: number } | null => {
         const surfaceElement = surfaceRef.current;
         if (surfaceElement === null) return null;
         const surfaceRect = surfaceElement.getBoundingClientRect();
-        const startCoords = editorView.coordsAtPos(selection.from);
-        const endCoords = editorView.coordsAtPos(selection.to);
+        const startCoords = editorView.coordsAtPos(fromPos);
+        const endCoords = editorView.coordsAtPos(toPos);
         const placement = computeSelectionToolbarPlacement({
           selectionEndCoords: endCoords,
           selectionStartCoords: startCoords,
@@ -149,6 +157,12 @@ export const PagesProseMirrorEditor = forwardRef(
       [],
     );
 
+    const computeSelectionToolbarPosition = useCallback(
+      (editorView: EditorView, selection: Selection): { readonly left: number; readonly top: number } | null =>
+        selection.empty ? null : computeMenuPosition(editorView, selection.from, selection.to),
+      [computeMenuPosition],
+    );
+
     const dismissSelectionToolbar = useCallback((editorView: EditorView): void => {
       const collapsedSelection = TextSelection.create(editorView.state.doc, editorView.state.selection.from);
       editorView.dispatch(editorView.state.tr.setSelection(collapsedSelection));
@@ -158,19 +172,25 @@ export const PagesProseMirrorEditor = forwardRef(
     const closeTriggerMenu = useCallback((): void => {
       triggerQueryRef.current = null;
       triggerSelectedIndexRef.current = 0;
+      triggerMenuPositionRef.current = null;
       setTriggerKind(null);
       setTriggerQuery(null);
       setTriggerSelectedIndex(0);
+      setTriggerMenuPosition(null);
     }, []);
 
-    const updateEditorTrigger = useCallback((text: string): void => {
-      const trigger = resolveEditorTrigger(text);
-      triggerQueryRef.current = trigger?.query ?? null;
-      triggerSelectedIndexRef.current = 0;
-      setTriggerKind(trigger?.kind ?? null);
-      setTriggerQuery(trigger?.query ?? null);
-      setTriggerSelectedIndex(0);
-    }, []);
+    const updateEditorTrigger = useCallback(
+      (text: string): { readonly kind: PagesEditorTriggerKind; readonly query: string } | null => {
+        const trigger = resolveEditorTrigger(text);
+        triggerQueryRef.current = trigger?.query ?? null;
+        triggerSelectedIndexRef.current = 0;
+        setTriggerKind(trigger?.kind ?? null);
+        setTriggerQuery(trigger?.query ?? null);
+        setTriggerSelectedIndex(0);
+        return trigger;
+      },
+      [],
+    );
 
     const selectTriggerCommand = useCallback(
       (command: Command): void => {
@@ -202,14 +222,18 @@ export const PagesProseMirrorEditor = forwardRef(
           editorView.updateState(nextState);
           contentCallbackRef.current(serializePageEditorState(nextState));
           const selection = nextState.selection;
-          updateEditorTrigger(
+          const trigger = updateEditorTrigger(
             selection.empty ? selection.$from.parent.textContent.slice(0, selection.$from.parentOffset) : '',
           );
+          const nextTriggerMenuPosition =
+            trigger === null ? null : computeMenuPosition(editorView, selection.from, selection.from);
+          triggerMenuPositionRef.current = nextTriggerMenuPosition;
+          setTriggerMenuPosition(nextTriggerMenuPosition);
           setSelectionToolbarPosition(computeSelectionToolbarPosition(editorView, selection));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: (currentEditorView, event) => {
-          if (triggerQueryRef.current !== null) {
+          if (triggerQueryRef.current !== null && triggerMenuPositionRef.current !== null) {
             return handleSlashMenuKeyDown({
               event,
               items: triggerItemsRef.current,
@@ -241,6 +265,7 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [
       canEdit,
       closeTriggerMenu,
+      computeMenuPosition,
       computeSelectionToolbarPosition,
       dismissSelectionToolbar,
       selectTriggerCommand,
@@ -313,8 +338,11 @@ export const PagesProseMirrorEditor = forwardRef(
           </div>
         )}
         <div className={PAGE_EDITOR_SURFACE_CLASS_NAME} ref={surfaceRef}>
-          {canEdit && triggerQuery !== null && (
-            <div className="absolute top-2 left-0 z-20 w-56">
+          {canEdit && triggerQuery !== null && triggerMenuPosition !== null && (
+            <div
+              className="absolute z-20 w-56"
+              style={{ left: `${triggerMenuPosition.left}px`, top: `${triggerMenuPosition.top}px` }}
+            >
               <PagesEditorSlashMenu
                 emptyMessage={triggerEmptyMessage}
                 items={triggerItems}
@@ -325,7 +353,7 @@ export const PagesProseMirrorEditor = forwardRef(
             </div>
           )}
           <div
-            className="w-full bg-surface py-4 text-base/7 outline-none focus-within:ring-2 focus-within:ring-ring"
+            className="w-full bg-surface py-4 text-base/7 outline-none"
             id="page-content"
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}

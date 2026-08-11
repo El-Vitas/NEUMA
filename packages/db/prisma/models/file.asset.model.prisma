@@ -3,7 +3,6 @@ model FileAsset {
   ownerId          String
   workspaceId      String
   pageId           String?
-  databaseRecordId String?
   storageKey       String             @unique
   originalFilename String
   mimeType         String
@@ -17,5 +16,4 @@ model FileAsset {
   @@index([workspaceId, lifecycle])
   @@index([ownerId, lifecycle])
   @@index([pageId, lifecycle])
-  @@index([databaseRecordId, lifecycle])
 }

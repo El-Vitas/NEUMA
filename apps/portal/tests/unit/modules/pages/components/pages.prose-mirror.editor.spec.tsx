@@ -278,6 +278,37 @@ describe('PagesProseMirrorEditor mention picker', () => {
     expect(paragraphNodes.some((node) => node.text?.includes('@Tar'))).toBe(false);
   });
 
+  it('opens the mention menu for an @ typed after a space mid-sentence and inserts the mention inline', () => {
+    mentionCandidates.length = 0;
+    mentionCandidates.push({ id: 'target-page-id', label: 'Target Page', spaceId: 'target-space-id' });
+    const contentUpdates: unknown[] = [];
+    const ref = renderEditor({
+      canEdit: true,
+      onContentChange: (content) => contentUpdates.push(content),
+      pageId: null,
+    });
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand('See @Tar'));
+    });
+
+    const option = screen.getByRole('option', { name: 'Target Page' });
+    fireEvent.mouseDown(option);
+
+    expect(screen.queryByRole('listbox')).toBeNull();
+    const finalContent = contentUpdates.at(-1) as {
+      readonly content: readonly {
+        readonly content?: readonly { readonly attrs?: unknown; readonly text?: string; readonly type: string }[];
+      }[];
+    };
+    const paragraphNodes = finalContent.content[0]?.content ?? [];
+    expect(paragraphNodes).toContainEqual({
+      attrs: { label: 'Target Page', pageId: 'target-page-id', spaceId: 'target-space-id' },
+      type: 'mention',
+    });
+    expect(paragraphNodes.some((node) => node.text === 'See ')).toBe(true);
+  });
+
   it('closes the mention picker on Escape without inserting anything', () => {
     mentionCandidates.length = 0;
     mentionCandidates.push({ id: 'target-page-id', label: 'Target Page', spaceId: 'target-space-id' });
@@ -307,5 +338,71 @@ describe('PagesProseMirrorEditor mention picker', () => {
     const paragraphNodes = finalContent.content[0]?.content ?? [];
     expect(paragraphNodes.some((node) => node.type === 'mention')).toBe(false);
     expect(paragraphNodes.some((node) => node.text?.startsWith('@Tar'))).toBe(true);
+  });
+});
+
+describe('PagesProseMirrorEditor trigger safety', () => {
+  it('lets Enter insert a new line for prose that merely contains a slash after a space', () => {
+    const contentUpdates: unknown[] = [];
+    const ref = renderEditor({
+      canEdit: true,
+      onContentChange: (content) => contentUpdates.push(content),
+      pageId: null,
+    });
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand('Some text /tab'));
+    });
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    const editorHost = document.querySelector('.ProseMirror');
+    expect(editorHost).not.toBeNull();
+    if (editorHost === null) return;
+    fireEvent.keyDown(editorHost, { key: 'Enter' });
+
+    const finalContent = contentUpdates.at(-1) as { readonly content: readonly { readonly type: string }[] };
+    expect(finalContent.content.map((node) => node.type)).toEqual(['paragraph', 'paragraph']);
+  });
+
+  it('lets Enter insert a new line for prose that merely contains an email address', () => {
+    mentionCandidates.length = 0;
+    const contentUpdates: unknown[] = [];
+    const ref = renderEditor({
+      canEdit: true,
+      onContentChange: (content) => contentUpdates.push(content),
+      pageId: null,
+    });
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand('Contact me at john@example.com'));
+    });
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    const editorHost = document.querySelector('.ProseMirror');
+    expect(editorHost).not.toBeNull();
+    if (editorHost === null) return;
+    fireEvent.keyDown(editorHost, { key: 'Enter' });
+
+    const finalContent = contentUpdates.at(-1) as { readonly content: readonly { readonly type: string }[] };
+    expect(finalContent.content.map((node) => node.type)).toEqual(['paragraph', 'paragraph']);
+  });
+
+  it('closes the trigger menu as soon as a space ends the query', () => {
+    const contentUpdates: unknown[] = [];
+    const ref = renderEditor({
+      canEdit: true,
+      onContentChange: (content) => contentUpdates.push(content),
+      pageId: null,
+    });
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand('/head'));
+    });
+    expect(screen.getByRole('listbox')).toBeDefined();
+
+    act(() => {
+      ref.current?.runCommand(insertTextCommand(' '));
+    });
+    expect(screen.queryByRole('listbox')).toBeNull();
   });
 });

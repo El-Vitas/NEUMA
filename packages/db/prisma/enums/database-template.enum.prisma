@@ -1,5 +1,0 @@
-enum DatabaseTemplate {
-  TASKS
-  PROJECTS
-  CUSTOM
-}

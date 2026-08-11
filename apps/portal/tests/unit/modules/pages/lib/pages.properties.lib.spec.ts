@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'bun:test';
 import {
   buildDefaultPropertyValues,
+  findPagePersonOption,
   formatPropertyValueForDisplay,
   getBooleanPropertyValue,
   getEditableSchemaProperties,
   getMultiSelectPropertyValue,
   getNumberPropertyValue,
+  getPagePersonOptionLabel,
   getStringPropertyValue,
+  hasPersonProperty,
 } from '@/modules/pages/lib/pages.properties.lib';
-import type { PageSchema, PageSchemaProperty } from '@/modules/pages/types/pages.schema.types';
+import type { PagePersonOption, PageSchema, PageSchemaProperty } from '@/modules/pages/types/pages.schema.types';
 
 const titleProperty: PageSchemaProperty = {
   key: 'title',
@@ -98,8 +101,12 @@ describe('property value getters', () => {
 });
 
 describe('formatPropertyValueForDisplay', () => {
-  it('joins multi-select values with a comma', () => {
-    expect(formatPropertyValueForDisplay(teamProperty, ['design', 'engineering'])).toBe('design, engineering');
+  it('joins humanized multi-select values with a comma', () => {
+    expect(formatPropertyValueForDisplay(teamProperty, ['design', 'engineering'])).toBe('Design, Engineering');
+  });
+
+  it('humanizes a select value instead of showing the stored value', () => {
+    expect(formatPropertyValueForDisplay(statusProperty, 'in_progress')).toBe('In progress');
   });
 
   it('stringifies other values', () => {
@@ -108,5 +115,47 @@ describe('formatPropertyValueForDisplay', () => {
 
   it('returns an empty string when the value is undefined', () => {
     expect(formatPropertyValueForDisplay(statusProperty, undefined)).toBe('');
+  });
+});
+
+describe('hasPersonProperty', () => {
+  const assigneeProperty: PageSchemaProperty = {
+    key: 'assignee',
+    label: 'Assignee',
+    options: null,
+    required: false,
+    type: 'PERSON',
+  };
+
+  it('returns true when a PERSON property is present', () => {
+    expect(hasPersonProperty([statusProperty, assigneeProperty])).toBe(true);
+  });
+
+  it('returns false when no PERSON property is present', () => {
+    expect(hasPersonProperty([statusProperty, teamProperty])).toBe(false);
+  });
+});
+
+describe('person option helpers', () => {
+  const ada: PagePersonOption = { email: 'ada@example.com', id: 'ada-id', name: 'Ada Lovelace' };
+  const gracePrimary: PagePersonOption = { email: 'grace@example.com', id: 'grace-id-1', name: 'Grace Hopper' };
+  const graceSecondary: PagePersonOption = { email: 'grace2@example.com', id: 'grace-id-2', name: 'Grace Hopper' };
+  const options: readonly PagePersonOption[] = [ada, gracePrimary, graceSecondary];
+
+  it('finds a person option by id', () => {
+    expect(findPagePersonOption(options, 'ada-id')).toEqual(ada);
+  });
+
+  it('returns undefined when no option matches the id', () => {
+    expect(findPagePersonOption(options, 'missing-id')).toBeUndefined();
+  });
+
+  it('labels a person by name alone when it is unambiguous', () => {
+    expect(getPagePersonOptionLabel(options, ada)).toBe('Ada Lovelace');
+  });
+
+  it('disambiguates same-named people with their email', () => {
+    expect(getPagePersonOptionLabel(options, gracePrimary)).toBe('Grace Hopper (grace@example.com)');
+    expect(getPagePersonOptionLabel(options, graceSecondary)).toBe('Grace Hopper (grace2@example.com)');
   });
 });

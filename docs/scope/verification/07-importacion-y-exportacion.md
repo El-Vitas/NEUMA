@@ -1,0 +1,119 @@
+# 07 · Importación y exportación
+
+Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
+
+> Leer `README.md` de esta carpeta antes de usar este documento.
+
+---
+
+## IO-01 · Debe permitir exportar una página a Markdown
+
+**Cómo probarlo:** exporta una página con encabezados, listas, tabla, imagen y una mención.
+
+- [ ] Hay una opción de exportar en el menú de la página
+- [ ] Se descarga un archivo `.md`
+- [ ] Los encabezados salen como `#`, `##`, `###`
+- [ ] Las listas con viñetas y numeradas conservan su anidación
+- [ ] Las tareas salen como `- [ ]` y `- [x]` según su estado
+- [ ] Las citas salen como `>`
+- [ ] Los bloques de código conservan el lenguaje en la marca de apertura
+- [ ] Las tablas salen como tabla Markdown
+- [ ] Negrita, cursiva, código y tachado se conservan
+- [ ] Los enlaces conservan texto y destino
+- [ ] Las menciones a otras páginas salen como enlace con el título
+- [ ] Las imágenes salen referenciadas y el archivo se incluye
+- [ ] Los diagramas salen como bloque de código con su lenguaje
+- [ ] Las propiedades de la página salen al inicio del archivo
+- [ ] El archivo se llama como la página
+- [ ] Un archivo exportado y vuelto a importar produce la misma página
+
+## IO-02 · Debe permitir exportar varias páginas de una vez
+
+- [ ] Se puede exportar una página **con todas sus subpáginas**
+- [ ] Se puede exportar un espacio completo
+- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas
+- [ ] Se descarga un comprimido con la jerarquía reflejada en carpetas
+- [ ] Los enlaces entre las páginas exportadas apuntan a los archivos exportados, no a la web
+- [ ] Los archivos adjuntos se incluyen en el comprimido
+- [ ] Se elige si se incluyen los adjuntos o solo el texto
+- [ ] Una exportación grande no bloquea la interfaz: avisa cuando está lista
+- [ ] Se indica el avance mientras se prepara
+- [ ] Solo se exporta lo que uno tiene permiso de ver
+
+## IO-03 · Debe permitir exportar a otros formatos
+
+- [ ] Se puede exportar a PDF
+- [ ] Se puede exportar a HTML
+- [ ] El PDF conserva encabezados, listas, tablas e imágenes
+- [ ] El PDF no corta las tablas ni los diagramas por la mitad
+- [ ] Se puede elegir el tamaño de página y la escala
+- [ ] Se puede exportar a PDF incluyendo las subpáginas
+
+## IO-04 · Debe permitir exportar una colección como datos
+
+- [ ] Una colección se puede exportar a CSV
+- [ ] Cada propiedad sale como columna
+- [ ] Se exporta lo que muestra la vista actual, respetando filtros y orden
+- [ ] Se puede elegir exportar todas las filas en vez de la vista filtrada
+- [ ] Las fechas salen en un formato reconocible por una hoja de cálculo
+- [ ] Las selecciones múltiples salen separadas de forma legible
+- [ ] Los acentos y la ñ se leen bien al abrir el archivo
+
+## IO-05 · Debe permitir copiar como Markdown
+
+- [ ] Se puede copiar una página como Markdown al portapapeles
+- [ ] Se puede copiar una selección de varios bloques como Markdown
+- [ ] Lo copiado se pega correctamente en un editor de texto plano
+- [ ] Lo copiado se pega correctamente en otra página de la app
+
+## IO-06 · Debe permitir imprimir
+
+- [ ] La página se imprime desde el navegador de forma legible
+- [ ] No se imprimen el árbol lateral ni los botones
+- [ ] Los bloques plegados se imprimen abiertos
+- [ ] Las tablas anchas se ajustan al papel
+
+## IO-07 · Debe permitir importar Markdown
+
+- [ ] Se puede importar un archivo `.md` y queda como página
+- [ ] Encabezados, listas, tareas, citas, código y tablas se convierten en bloques reales
+- [ ] El formato en línea se conserva
+- [ ] Se pueden importar varios archivos a la vez
+- [ ] Una carpeta con subcarpetas conserva su jerarquía como páginas anidadas
+- [ ] Se elige en qué espacio y bajo qué página entra lo importado
+- [ ] Los enlaces entre los archivos importados quedan enlazando las páginas creadas
+
+## IO-08 · Debe permitir importar datos a una colección
+
+- [ ] Se puede importar un CSV como colección nueva
+- [ ] Se puede importar un CSV a una colección existente
+- [ ] Se muestra una previsualización antes de confirmar
+- [ ] Se elige a qué propiedad corresponde cada columna
+- [ ] Se detecta solo el tipo de cada columna y se puede corregir
+- [ ] Se puede elegir qué columna es el título
+- [ ] Las filas con errores se informan sin abortar toda la importación
+
+## IO-09 · Debe permitir traer contenido de otras herramientas
+
+- [ ] Se puede importar la exportación de otra herramienta de documentación
+- [ ] La jerarquía de páginas se conserva
+- [ ] Las bases de datos de esa herramienta llegan como colecciones
+- [ ] Se puede importar HTML
+- [ ] Se puede importar un documento de Word
+- [ ] Las imágenes referenciadas se suben y quedan enlazadas
+
+## IO-10 · Debe informar qué pasó al importar
+
+- [ ] Se ve el avance mientras importa
+- [ ] Al terminar se dice cuántas páginas se crearon
+- [ ] Se listan los archivos que fallaron y por qué
+- [ ] Se puede abrir directamente lo importado
+- [ ] Una importación fallida no deja páginas a medio crear
+
+---
+
+## Bitácora
+
+| Fecha | Bloque | Qué faltó | Estado |
+|---|---|---|---|
+| | | | |

@@ -10,7 +10,7 @@ import { EMPTY_PAGE_ATTACHMENTS, EMPTY_PAGE_BACKLINKS } from '../constants/pages
 import { buildPageTree, canEditPage, getPageTreeExpandedIds } from '../lib/pages.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
-import type { PageSchema } from '../types/pages.schema.types';
+import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
 import type { PageSummary } from '../types/pages.types';
 import { PagesEditor } from './pages.editor';
 
@@ -24,6 +24,7 @@ interface IProps {
   readonly pages: readonly PageSummary[];
   readonly parentId?: string | null;
   readonly parentSchema?: PageSchema | null;
+  readonly personOptions?: readonly PagePersonOption[];
   readonly selectedPageId?: string | null;
   readonly spaceId: string;
 }
@@ -38,6 +39,7 @@ export const PagesWorkspace = ({
   pages,
   parentId = null,
   parentSchema = null,
+  personOptions = [],
   selectedPageId = null,
   spaceId,
 }: IProps) => {
@@ -71,6 +73,7 @@ export const PagesWorkspace = ({
         parentBreadcrumbPages={parentBreadcrumbPages}
         parentId={parentId}
         parentSchema={parentSchema}
+        personOptions={personOptions}
         spaceId={spaceId}
       />
     );

@@ -7,12 +7,20 @@ import {
 } from '@/modules/pages/lib/pages.editor.slash-menu.lib';
 
 describe('getSlashMenuQuery', () => {
-  it('extracts the query right after a slash at the start of a line', () => {
+  it('extracts the query right after a slash at the very start of the block', () => {
     expect(getSlashMenuQuery('/head')).toBe('head');
   });
 
-  it('extracts the query after a slash preceded by whitespace', () => {
-    expect(getSlashMenuQuery('Some text /tab')).toBe('tab');
+  it('extracts an empty query for a bare trigger', () => {
+    expect(getSlashMenuQuery('/')).toBe('');
+  });
+
+  it('does not fire when the slash follows other text, even after whitespace', () => {
+    expect(getSlashMenuQuery('Some text /tab')).toBeNull();
+  });
+
+  it('does not fire mid-word', () => {
+    expect(getSlashMenuQuery('run /usr/bin')).toBeNull();
   });
 
   it('returns null when there is no active slash query', () => {
@@ -21,7 +29,7 @@ describe('getSlashMenuQuery', () => {
 });
 
 describe('getMentionMenuQuery', () => {
-  it('extracts the query right after an @ at the start of a line', () => {
+  it('extracts the query right after an @ at the start of the block', () => {
     expect(getMentionMenuQuery('@jo')).toBe('jo');
   });
 
@@ -29,7 +37,7 @@ describe('getMentionMenuQuery', () => {
     expect(getMentionMenuQuery('@')).toBe('');
   });
 
-  it('extracts the query after an @ preceded by whitespace', () => {
+  it('extracts the query after an @ preceded by whitespace, mid-sentence', () => {
     expect(getMentionMenuQuery('Ping @jo')).toBe('jo');
   });
 

@@ -13,8 +13,6 @@ export const ROUTES = {
   PORTAL_SPACE_NEW_CHILD_PAGE: (spaceId: string, parentId: string) =>
     `/spaces/${spaceId}/pages/new?parentId=${encodeURIComponent(parentId)}`,
   PORTAL_ACCOUNT: '/account',
-  PORTAL_DATABASES: '/databases',
-  PORTAL_DATABASE: (databaseId: string) => `/databases/${databaseId}`,
   PORTAL_USERS: '/users',
   PORTAL_SEARCH: '/search',
 } as const;

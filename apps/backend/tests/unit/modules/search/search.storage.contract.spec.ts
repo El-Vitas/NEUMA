@@ -41,7 +41,6 @@ describe('search storage contract', () => {
     expect(model).toContain('language      String?');
     expect(types).toContain("export type SearchLanguage = 'en' | 'es';");
     expect(readText(sourceTypeEnumPath)).toContain('PAGE');
-    expect(readText(sourceTypeEnumPath)).toContain('DATABASE_RECORD');
   });
 
   test('exposes the source identity in the backend storage contract', () => {

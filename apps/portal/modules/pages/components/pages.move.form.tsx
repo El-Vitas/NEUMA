@@ -9,12 +9,13 @@ import { movePageAction } from '../server/actions/pages.actions';
 import type { PageSummary } from '../types/pages.types';
 
 interface IProps {
+  readonly ariaLabelledBy: string;
   readonly page: PageSummary;
   readonly pages: readonly PageSummary[];
   readonly spaceId: string;
 }
 
-export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
+export const PagesMoveForm = ({ ariaLabelledBy, page, pages, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const [parentId, setParentId] = useState(page.parentId ?? 'root');
   const [isPending, startTransition] = useTransition();
@@ -36,25 +37,20 @@ export const PagesMoveForm = ({ page, pages, spaceId }: IProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-2 border-border border-t pt-4 sm:flex-row sm:items-end">
-      <div className="min-w-0 flex-1">
-        <label className="mb-2 block text-sm text-status-muted" htmlFor="page-parent">
-          {t('location')}
-        </label>
-        <select
-          className="min-h-11 w-full border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          id="page-parent"
-          onChange={(event) => setParentId(event.target.value)}
-          value={parentId}
-        >
-          <option value="root">{t('spaceRoot')}</option>
-          {possibleParents.map((candidate) => (
-            <option key={candidate.id} value={candidate.id}>
-              {candidate.title}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        aria-labelledby={ariaLabelledBy}
+        className="min-h-11 min-w-0 flex-1 border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onChange={(event) => setParentId(event.target.value)}
+        value={parentId}
+      >
+        <option value="root">{t('spaceRoot')}</option>
+        {possibleParents.map((candidate) => (
+          <option key={candidate.id} value={candidate.id}>
+            {candidate.title}
+          </option>
+        ))}
+      </select>
       <PrimaryButton
         disabled={isPending || parentId === (page.parentId ?? 'root')}
         onClick={movePage}

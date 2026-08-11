@@ -31,7 +31,6 @@ export class FilesController {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.filesService.create({
       buffer: file.buffer,
-      databaseRecordId: query.databaseRecordId ?? null,
       mimeType: file.mimetype,
       originalFilename: file.originalname,
       ownerId: payload.sub,

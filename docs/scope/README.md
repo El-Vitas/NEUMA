@@ -22,4 +22,8 @@ Read `../architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md` b
 
 Both are executed by `../superpowers/plans/2026-08-05-company-brain-single-page-primitive.md`, which supersedes the data model in `../superpowers/plans/2026-08-02-company-brain-databases.md`.
 
+## Functional Verification
+
+Read `verification/README.md` for the behaviour checklists. They state what the product **must be able to do**, written as things observable in the interface, and are walked one block at a time with El-Vitas testing each one. A block is only closed by that walkthrough — an agent's judgement that something "already works" closes nothing.
+
 **The recurring rule behind all of it:** one fact is stored in one place. Every problem these documents fix — a task that cannot hold knowledge, a file listed in two places, content persisted down two paths — is the same mistake wearing different clothes.
