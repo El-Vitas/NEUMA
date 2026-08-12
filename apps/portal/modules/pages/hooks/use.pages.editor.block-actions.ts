@@ -10,11 +10,7 @@ import { hasActionError } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { buildPageEditorBlockLink, readPageEditorBlockId } from '../lib/pages.editor.block-link.lib';
-import {
-  closePageEditorBlockRequest,
-  openPageEditorBlockRequest,
-  readPageEditorBlockRequest,
-} from '../lib/pages.editor.block-menu.lib';
+import { changePageEditorBlockRequest, closePageEditorBlockRequest } from '../lib/pages.editor.block-menu.lib';
 import { readSelectedPageBlocksContent } from '../lib/pages.editor.block-travel.lib';
 import { addBlocksToPageAction } from '../server/actions/pages.actions';
 import type { PageEditorBlockActions } from '../types/pages.editor.block-actions.types';
@@ -46,13 +42,12 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     [editorViewRef],
   );
 
-  /** Asks the same block something else — its comments, or where it is going. */
+  /** Asks the same blocks something else — their comments, or where they are going. */
   const ask = useCallback(
     (kind: PageEditorBlockRequestKind): void => {
       const editorView = editorViewRef.current;
-      const request = editorView === null ? null : readPageEditorBlockRequest(editorView.state);
-      if (editorView === null || request === null) return;
-      openPageEditorBlockRequest(editorView, request.blockStart, kind);
+      if (editorView === null) return;
+      changePageEditorBlockRequest(editorView, kind);
     },
     [editorViewRef],
   );
