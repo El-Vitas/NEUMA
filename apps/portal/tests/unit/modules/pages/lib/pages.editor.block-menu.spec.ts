@@ -3,10 +3,10 @@ import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
-  closePageEditorBlockMenu,
+  closePageEditorBlockRequest,
   openPageEditorBlockMenu,
-  openPageEditorBlockMenuAt,
-  readPageEditorBlockMenuTarget,
+  openPageEditorBlockRequest,
+  readPageEditorBlockRequest,
 } from '@/modules/pages/lib/pages.editor.block-menu.lib';
 import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 
@@ -31,9 +31,9 @@ describe('asking a block what can be done to it', () => {
     const { container, view } = mountEditor([paragraph('Uno'), paragraph('Dos')]);
     const secondBlock = startOfSecondBlock(view);
 
-    openPageEditorBlockMenuAt(view, secondBlock);
+    openPageEditorBlockRequest(view, secondBlock, 'actions');
 
-    expect(readPageEditorBlockMenuTarget(view.state)).toBe(secondBlock);
+    expect(readPageEditorBlockRequest(view.state)).toEqual({ blockStart: secondBlock, kind: 'actions' });
     expect(view.state.selection instanceof NodeSelection).toBe(true);
     expect(view.state.selection.from).toBe(secondBlock);
 
@@ -48,7 +48,7 @@ describe('asking a block what can be done to it', () => {
 
     openPageEditorBlockMenu(view.state, view.dispatch);
 
-    expect(readPageEditorBlockMenuTarget(view.state)).toBe(secondBlock);
+    expect(readPageEditorBlockRequest(view.state)).toEqual({ blockStart: secondBlock, kind: 'actions' });
 
     view.destroy();
     container.remove();
@@ -56,11 +56,11 @@ describe('asking a block what can be done to it', () => {
 
   it('closes when asked', () => {
     const { container, view } = mountEditor([paragraph('Uno')]);
-    openPageEditorBlockMenuAt(view, 0);
+    openPageEditorBlockRequest(view, 0, 'actions');
 
-    closePageEditorBlockMenu(view);
+    closePageEditorBlockRequest(view);
 
-    expect(readPageEditorBlockMenuTarget(view.state)).toBeNull();
+    expect(readPageEditorBlockRequest(view.state)).toBeNull();
 
     view.destroy();
     container.remove();
@@ -68,11 +68,11 @@ describe('asking a block what can be done to it', () => {
 
   it('closes as soon as the page changes, so it never acts on a block that moved', () => {
     const { container, view } = mountEditor([paragraph('Uno'), paragraph('Dos')]);
-    openPageEditorBlockMenuAt(view, startOfSecondBlock(view));
+    openPageEditorBlockRequest(view, startOfSecondBlock(view), 'actions');
 
     view.dispatch(view.state.tr.insertText('!', 2));
 
-    expect(readPageEditorBlockMenuTarget(view.state)).toBeNull();
+    expect(readPageEditorBlockRequest(view.state)).toBeNull();
 
     view.destroy();
     container.remove();
@@ -81,9 +81,9 @@ describe('asking a block what can be done to it', () => {
   it('says nothing to open when there is no block to ask about', () => {
     const { container, view } = mountEditor([paragraph('Uno')]);
 
-    openPageEditorBlockMenuAt(view, 999);
+    openPageEditorBlockRequest(view, 999, 'actions');
 
-    expect(readPageEditorBlockMenuTarget(view.state)).toBeNull();
+    expect(readPageEditorBlockRequest(view.state)).toBeNull();
 
     view.destroy();
     container.remove();

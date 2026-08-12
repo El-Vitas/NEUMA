@@ -15,6 +15,7 @@ import type {
   PageEditorCommand,
   PageMentionInsertCommandOptions,
 } from '../types/pages.types';
+import { createPageEditorBlockCommentPlugin } from './pages.editor.block-comment.plugin.lib';
 import { createPageEditorBlockDragPlugin } from './pages.editor.block-drag.plugin.lib';
 import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.lib';
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
@@ -173,6 +174,7 @@ export const createPageEditorPlugins = (
   selectBlockLabel: string,
   insertBlockLabel: string,
   resizeColumnLabel: string = selectBlockLabel,
+  blockCommentsLabel: string = selectBlockLabel,
 ): readonly EditorPlugin[] => [
   history(),
   inputRules({
@@ -196,6 +198,7 @@ export const createPageEditorPlugins = (
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
   createPageEditorBlockMenuPlugin(),
+  createPageEditorBlockCommentPlugin(blockCommentsLabel),
   createPageEditorBlockDragPlugin(),
   createPageEditorColumnCleanupPlugin(),
   createPageEditorColumnResizePlugin(resizeColumnLabel),

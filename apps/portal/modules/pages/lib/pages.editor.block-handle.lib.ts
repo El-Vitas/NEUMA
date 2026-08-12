@@ -16,7 +16,7 @@ import type {
   PageEditorGutterLabels,
 } from '../types/pages.editor.block-drag.types';
 import { armPageEditorBlockDrag, isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
-import { openPageEditorBlockMenuAt } from './pages.editor.block-menu.lib';
+import { openPageEditorBlockRequest } from './pages.editor.block-menu.lib';
 import { findPageEditorBlockAtPointer, offersGrabbableBlocks } from './pages.editor.block-target.lib';
 import { pageEditorBlockHandleKey } from './pages.editor.plugin-keys.lib';
 
@@ -125,7 +125,7 @@ const askForBlockActionsOnClick = (view: EditorView, grip: HTMLElement, position
     const releaseSurface = grip.ownerDocument;
     const openIfUnmoved = (release: MouseEvent): void => {
       releaseSurface.removeEventListener('mouseup', openIfUnmoved);
-      if (hasPointerStayedPut(origin, release)) openPageEditorBlockMenuAt(view, position);
+      if (hasPointerStayedPut(origin, release)) openPageEditorBlockRequest(view, position, 'actions');
     };
     releaseSurface.addEventListener('mouseup', openIfUnmoved);
   });

@@ -13,7 +13,7 @@ import { readPageEditorBlockColors } from './pages.editor.block-color.lib';
 import { readPageEditorBlockComments } from './pages.editor.block-comment.lib';
 import { isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
 import { readPageEditorBlockId } from './pages.editor.block-link.lib';
-import { readPageEditorBlockMenuTarget } from './pages.editor.block-menu.lib';
+import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
 import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
@@ -23,9 +23,9 @@ const readMenuPosition = (
   state: EditorState,
   surfaceRect: PageEditorSurfaceRect,
 ): PageEditorSpot | null => {
-  const blockStart = readPageEditorBlockMenuTarget(state);
-  if (blockStart === null) return null;
-  const blockCoords = view.coordsAtPos(blockStart);
+  const request = readPageEditorBlockRequest(state);
+  if (request === null) return null;
+  const blockCoords = view.coordsAtPos(request.blockStart);
   return { left: blockCoords.left - surfaceRect.left, top: blockCoords.top - surfaceRect.top };
 };
 
@@ -34,7 +34,7 @@ const readToolbarPosition = (
   state: EditorState,
   surfaceRect: PageEditorSurfaceRect,
 ): PageEditorSpot | null => {
-  const isBlockBusy = isPageEditorBlockDragActive(state) || readPageEditorBlockMenuTarget(state) !== null;
+  const isBlockBusy = isPageEditorBlockDragActive(state) || readPageEditorBlockRequest(state) !== null;
   if (isBlockBusy || state.selection.empty) return null;
   const placement = computeSelectionToolbarPlacement({
     selectionEndCoords: view.coordsAtPos(state.selection.to),
@@ -64,6 +64,7 @@ export const readPageEditorSurface = (
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
   menuPosition: surfaceRect === null ? null : readMenuPosition(view, state, surfaceRect),
+  request: readPageEditorBlockRequest(state),
   selectedBlockCount: countSelectedBlocks(state.selection),
   toolbarPosition: surfaceRect === null ? null : readToolbarPosition(view, state, surfaceRect),
 });
