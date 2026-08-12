@@ -39,7 +39,8 @@ export const generateStaticParams = () => routing.locales.map((locale) => ({ loc
  *
  * The reading is asked for here rather than around the `<html>` element so the
  * shell can still be sent while it is being worked out; the wrapper takes no
- * space of its own, it only passes the theme down.
+ * space of its own, it only passes the theme down — and lends itself as the
+ * place where dialogs and menus are drawn, so they are dressed too.
  */
 const LocaleContent = async ({ children }: Readonly<{ children: React.ReactNode }>) => {
   const messages = await getMessages();

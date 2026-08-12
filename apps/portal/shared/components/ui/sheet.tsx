@@ -4,8 +4,8 @@ import { XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Dialog as SheetPrimitive } from 'radix-ui';
 import type * as React from 'react';
-
 import { cn } from '@/lib/utils';
+import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 
 const Sheet = ({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) => {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
@@ -20,7 +20,7 @@ const SheetClose = ({ ...props }: React.ComponentProps<typeof SheetPrimitive.Clo
 };
 
 const SheetPortal = ({ ...props }: React.ComponentProps<typeof SheetPrimitive.Portal>) => {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
+  return <SheetPrimitive.Portal container={useThemeRoot() ?? undefined} data-slot="sheet-portal" {...props} />;
 };
 
 const SheetOverlay = ({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Overlay>) => {

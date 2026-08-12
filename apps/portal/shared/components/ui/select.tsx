@@ -3,8 +3,8 @@
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import type * as React from 'react';
-
 import { cn } from '@/lib/utils';
+import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 
 const Select = ({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) => {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
@@ -52,7 +52,7 @@ const SelectContent = ({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) => {
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={useThemeRoot() ?? undefined}>
       <SelectPrimitive.Content
         align={align}
         className={cn(

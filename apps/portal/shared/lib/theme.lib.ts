@@ -47,5 +47,5 @@ export const applyThemeReading = (root: Element, reading: ThemeReading): void =>
  * The element the theme is worn by: the wrapper the server dressed, so a change
  * made here lands where the page was already dressed and not somewhere above it.
  */
-export const findThemeRoot = (page: Document): Element =>
-  page.querySelector(`[${THEME_ROOT_ATTRIBUTE}]`) ?? page.documentElement;
+export const findThemeRoot = (page: Document): HTMLElement =>
+  page.querySelector<HTMLElement>(`[${THEME_ROOT_ATTRIBUTE}]`) ?? page.documentElement;

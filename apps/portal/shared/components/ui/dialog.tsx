@@ -6,6 +6,7 @@ import { Dialog as DialogPrimitive } from 'radix-ui';
 import type * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 
 const Dialog = ({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) => {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
@@ -16,7 +17,7 @@ const DialogTrigger = ({ ...props }: React.ComponentProps<typeof DialogPrimitive
 };
 
 const DialogPortal = ({ ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) => {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
+  return <DialogPrimitive.Portal container={useThemeRoot() ?? undefined} data-slot="dialog-portal" {...props} />;
 };
 
 const DialogClose = ({ ...props }: React.ComponentProps<typeof DialogPrimitive.Close>) => {
@@ -50,7 +51,7 @@ const DialogContent = ({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          'translate-[-50%] data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border bg-background p-6 shadow-lg outline-none duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in sm:max-w-lg',
+          'translate-[-50%] data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-none border border-border bg-popover p-6 text-popover-foreground shadow-lg outline-none duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in sm:max-w-lg',
           className,
         )}
         data-slot="dialog-content"
