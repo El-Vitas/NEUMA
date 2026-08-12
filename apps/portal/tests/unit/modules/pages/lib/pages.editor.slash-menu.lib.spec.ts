@@ -11,16 +11,21 @@ describe('getSlashMenuQuery', () => {
     expect(getSlashMenuQuery('/head')).toBe('head');
   });
 
+  it('fires mid sentence when the slash follows a space', () => {
+    expect(getSlashMenuQuery('Some text /tab')).toBe('tab');
+  });
+
   it('extracts an empty query for a bare trigger', () => {
     expect(getSlashMenuQuery('/')).toBe('');
   });
 
-  it('does not fire when the slash follows other text, even after whitespace', () => {
-    expect(getSlashMenuQuery('Some text /tab')).toBeNull();
+  it('does not fire inside a path, where the slash is glued to a word', () => {
+    expect(getSlashMenuQuery('src/lib')).toBeNull();
+    expect(getSlashMenuQuery('run /usr/bin')).toBeNull();
   });
 
-  it('does not fire mid-word', () => {
-    expect(getSlashMenuQuery('run /usr/bin')).toBeNull();
+  it('does not fire inside a date', () => {
+    expect(getSlashMenuQuery('2026/08/11')).toBeNull();
   });
 
   it('returns null when there is no active slash query', () => {
@@ -100,6 +105,6 @@ describe('handleSlashMenuKeyDown', () => {
     });
 
     expect(handled).toBe(true);
-    expect(onSelect).toHaveBeenCalledWith(runCommand);
+    expect(onSelect).toHaveBeenCalledWith({ id: 'a', label: 'A', run: runCommand });
   });
 });

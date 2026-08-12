@@ -27,6 +27,7 @@ import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } from '../lib/pages.collaboration.lib';
+import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import {
   computeSelectionToolbarPlacement,
   createPageEditorState,
@@ -36,6 +37,7 @@ import {
 } from '../lib/pages.editor.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
+import { countSelectedBlocks } from '../lib/pages.editor.selection.lib';
 import {
   buildEditorTriggerItems,
   getEditorTriggerAriaLabelKey,
@@ -76,7 +78,10 @@ export const PagesProseMirrorEditor = forwardRef(
     const t = useTranslations('pages');
     const selectBlockLabelRef = useRef(t('selectBlock'));
     const collectionLabelRef = useRef(t('collectionBlock'));
+    const insertBlockLabelRef = useRef(t('insertBlock'));
     const [collectionHosts, setCollectionHosts] = useState<readonly { element: HTMLElement; pageId: string }[]>([]);
+    const [recentCommandIds, setRecentCommandIds] = useState<readonly string[]>([]);
+    const [selectedBlockCount, setSelectedBlockCount] = useState(0);
 
     const syncCollectionHosts = useCallback(() => {
       const editorHost = editorHostRef.current;
@@ -148,12 +153,13 @@ export const PagesProseMirrorEditor = forwardRef(
         buildEditorTriggerItems({
           commands: PAGE_EDITOR_COMMANDS,
           mentionCandidates: mentionSearch.candidates,
+          recentCommandIds,
           schema: pageEditorSchema,
           translateCommandLabel,
           triggerKind,
           triggerQuery,
         }),
-      [mentionSearch.candidates, translateCommandLabel, triggerKind, triggerQuery],
+      [mentionSearch.candidates, recentCommandIds, translateCommandLabel, triggerKind, triggerQuery],
     );
     const triggerItemsRef = useRef(triggerItems);
 
@@ -223,7 +229,9 @@ export const PagesProseMirrorEditor = forwardRef(
     );
 
     const selectTriggerCommand = useCallback(
-      (command: Command): void => {
+      (item: PagesEditorMenuItem): void => {
+        const command = item.run;
+        setRecentCommandIds((previous) => [item.id, ...previous.filter((id) => id !== item.id)].slice(0, 3));
         const editorView = editorViewRef.current;
         const query = triggerQueryRef.current;
         if (editorView === null || query === null) return;
@@ -245,7 +253,11 @@ export const PagesProseMirrorEditor = forwardRef(
       const editorHost = editorHostRef.current;
       if (editorHost === null) return;
 
-      const editorState = createPageEditorState(initialContentRef.current, selectBlockLabelRef.current);
+      const editorState = createPageEditorState(
+        initialContentRef.current,
+        selectBlockLabelRef.current,
+        insertBlockLabelRef.current,
+      );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
           const nextState = editorView.state.apply(transaction);
@@ -261,6 +273,7 @@ export const PagesProseMirrorEditor = forwardRef(
           triggerMenuPositionRef.current = nextTriggerMenuPosition;
           setTriggerMenuPosition(nextTriggerMenuPosition);
           setSelectionToolbarPosition(computeSelectionToolbarPosition(editorView, selection));
+          setSelectedBlockCount(countSelectedBlocks(selection));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: (currentEditorView, event) => {
@@ -278,9 +291,8 @@ export const PagesProseMirrorEditor = forwardRef(
             });
           }
           if (event.key === 'Escape' && !currentEditorView.state.selection.empty) {
-            event.preventDefault();
             dismissSelectionToolbar(currentEditorView);
-            return true;
+            return false;
           }
           return false;
         },
@@ -307,7 +319,9 @@ export const PagesProseMirrorEditor = forwardRef(
 
     useEffect(() => {
       if (session === null || editorViewRef.current === null) return;
-      editorViewRef.current.updateState(createCollaborativePageEditorState(session, selectBlockLabelRef.current));
+      editorViewRef.current.updateState(
+        createCollaborativePageEditorState(session, selectBlockLabelRef.current, insertBlockLabelRef.current),
+      );
     }, [session]);
 
     useImperativeHandle(
@@ -380,7 +394,7 @@ export const PagesProseMirrorEditor = forwardRef(
                 emptyMessage={triggerEmptyMessage}
                 items={triggerItems}
                 label={triggerAriaLabel}
-                onSelect={(item) => selectTriggerCommand(item.run)}
+                onSelect={selectTriggerCommand}
                 selectedIndex={triggerSelectedIndex}
               />
             </div>
@@ -393,6 +407,28 @@ export const PagesProseMirrorEditor = forwardRef(
           />
           {collectionHosts.map(({ element, pageId: collectionPageId }) =>
             createPortal(embeddedCollections[collectionPageId] ?? null, element, collectionPageId),
+          )}
+          {selectedBlockCount > 1 && (
+            <p
+              aria-live="polite"
+              className="pointer-events-none absolute top-2 right-2 border border-border bg-surface px-2 py-1 text-muted-foreground text-xs"
+            >
+              {t('selectedBlocks', { count: selectedBlockCount })}
+            </p>
+          )}
+          {canEdit && (
+            <button
+              className="flex min-h-11 w-full items-center px-8 text-left text-muted-foreground text-sm hover:text-foreground"
+              onClick={() => {
+                const editorView = editorViewRef.current;
+                if (editorView === null) return;
+                appendParagraphAtEnd(editorView.state, editorView.dispatch);
+                editorView.focus();
+              }}
+              type="button"
+            >
+              {t('appendBlock')}
+            </button>
           )}
           {canEdit && selectionToolbarPosition !== null && (
             <div

@@ -332,7 +332,17 @@
       "loadError": "No se pudo cargar esta vista. Comprueba tus permisos e inténtalo de nuevo."
     },
     "selectBlock": "Seleccionar bloque",
-    "collectionBlock": "Colección"
+    "collectionBlock": "Colección",
+    "commandGroups": {
+      "advanced": "Avanzado",
+      "lists": "Listas",
+      "media": "Medios",
+      "recent": "Usadas hace poco",
+      "text": "Texto"
+    },
+    "insertBlock": "Insertar bloque debajo",
+    "appendBlock": "+ Añadir un bloque",
+    "selectedBlocks": "{count} bloques seleccionados"
   },
   "errors": {
     "generic": "Algo salió mal.",

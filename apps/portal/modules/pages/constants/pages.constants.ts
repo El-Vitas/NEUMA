@@ -22,6 +22,11 @@ export const PAGE_EDITOR_BLOCK_CHILDREN_CLASS = 'ml-1 border-border/70 border-l-
 
 export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plugin';
 
+export const PAGE_EDITOR_BLOCK_INSERT_CLASS = 'page-editor-block-insert';
+
+export const PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS =
+  'float-left -ml-14 w-5 cursor-pointer select-none text-center text-muted-foreground hover:text-foreground';
+
 export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
 
 export const PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME =

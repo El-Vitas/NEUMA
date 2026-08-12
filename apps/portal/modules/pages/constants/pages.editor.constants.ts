@@ -1,7 +1,28 @@
+import { Braces, ChevronRight, Heading, List, ListOrdered, type LucideIcon, Quote, Table } from 'lucide-react';
 import { createPageEditorCommands } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 
+import type { PageEditorCommandGroup } from '../types/pages.types';
+
 export const DEFAULT_PAGE_TOGGLE_SUMMARY = 'Toggle';
+
+export const PAGE_EDITOR_COMMAND_GROUP_ORDER: readonly PageEditorCommandGroup[] = [
+  'recent',
+  'text',
+  'lists',
+  'media',
+  'advanced',
+];
+
+export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
+  blockquote: Quote,
+  bulletList: List,
+  codeBlock: Braces,
+  heading: Heading,
+  orderedList: ListOrdered,
+  table: Table,
+  toggle: ChevronRight,
+};
 
 export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'code', 'heading'] as const;
 
@@ -26,6 +47,7 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror>pre]:my-6 [&_.ProseMirror>pre]:overflow-x-auto [&_.ProseMirror>pre]:bg-surface-low [&_.ProseMirror>pre]:p-4 [&_.ProseMirror>pre]:font-mono [&_.ProseMirror>pre]:text-sm [&_.ProseMirror>pre]:leading-relaxed',
   '[&_.ProseMirror>table]:my-6 [&_.ProseMirror>table]:w-full [&_.ProseMirror>table]:table-fixed [&_.ProseMirror>table]:border-collapse [&_.ProseMirror>table_td]:min-w-0 [&_.ProseMirror>table_td]:border [&_.ProseMirror>table_td]:border-border [&_.ProseMirror>table_td]:p-3 [&_.ProseMirror>table_td]:align-top [&_.ProseMirror>table_td]:wrap-break-word',
   '[&_.ProseMirror>details]:my-4 [&_.ProseMirror>details]:max-w-[72ch] [&_.ProseMirror>details]:border [&_.ProseMirror>details]:border-border [&_.ProseMirror>details]:px-4 [&_.ProseMirror>details]:py-3 [&_.ProseMirror>summary]:cursor-pointer [&_.ProseMirror>summary]:font-semibold',
+  '[&_.ProseMirror_.ProseMirror-selectednode]:bg-primary/10 [&_.ProseMirror_.ProseMirror-selectednode]:outline [&_.ProseMirror_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror_.ProseMirror-selectednode]:outline-primary/40 [&_.ProseMirror_.ProseMirror-selectednode]:outline-offset-2',
   '[&_.ProseMirror>img]:my-6 [&_.ProseMirror>img]:block [&_.ProseMirror>img]:max-w-full [&_.ProseMirror>[data-page-embed]]:my-6 [&_.ProseMirror>[data-page-embed]]:block [&_.ProseMirror>[data-page-embed]]:max-w-full [&_.ProseMirror>[data-page-file]]:my-6 [&_.ProseMirror>[data-page-file]]:block [&_.ProseMirror>[data-page-file]]:max-w-full',
 ].join(' ');
 

@@ -332,7 +332,17 @@
       "loadError": "Could not load this view. Check your permissions and try again."
     },
     "selectBlock": "Select block",
-    "collectionBlock": "Collection"
+    "collectionBlock": "Collection",
+    "commandGroups": {
+      "advanced": "Advanced",
+      "lists": "Lists",
+      "media": "Media",
+      "recent": "Recently used",
+      "text": "Text"
+    },
+    "insertBlock": "Insert block below",
+    "appendBlock": "+ Add a block",
+    "selectedBlocks": "{count} blocks selected"
   },
   "errors": {
     "generic": "Something went wrong.",

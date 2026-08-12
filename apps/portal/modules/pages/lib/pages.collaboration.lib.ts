@@ -25,6 +25,7 @@ export const computeCollaborationReconnectDelayMs = (attemptNumber: number): num
 export const createCollaborativePageEditorState = (
   session: PageCollaborationSession,
   selectBlockLabel: string,
+  insertBlockLabel: string = selectBlockLabel,
 ): EditorState => {
   const initializedDocument = initProseMirrorDoc(session.fragment, pageEditorSchema);
   const awareness = session.provider.awareness;
@@ -32,7 +33,10 @@ export const createCollaborativePageEditorState = (
     awareness === null ? [ySyncPlugin(session.fragment)] : [ySyncPlugin(session.fragment), yCursorPlugin(awareness)];
   return EditorState.create({
     doc: initializedDocument.doc,
-    plugins: [...createPageEditorPlugins(pageEditorSchema, selectBlockLabel), ...collaborationPlugins],
+    plugins: [
+      ...createPageEditorPlugins(pageEditorSchema, selectBlockLabel, insertBlockLabel),
+      ...collaborationPlugins,
+    ],
     schema: pageEditorSchema,
   });
 };

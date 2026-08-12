@@ -82,3 +82,6 @@ docs/business-rules/history/
 
 # jscpd default report output
 report/
+
+# playwright mcp session output
+.playwright-mcp/
