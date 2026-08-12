@@ -1,8 +1,6 @@
-import type { Node as EditorNode } from 'prosemirror-model';
+import type { NodeType } from 'prosemirror-model';
 
-export interface PageEditorBlockLocation {
-  readonly depth: number;
-  readonly index: number;
-  readonly node: EditorNode;
-  readonly parent: EditorNode;
+export interface PageEditorNestingTypes {
+  readonly blockChildren: NodeType;
+  readonly nestedBlock: NodeType;
 }

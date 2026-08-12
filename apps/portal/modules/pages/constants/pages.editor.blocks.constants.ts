@@ -56,11 +56,20 @@ export const PAGE_EDITOR_PAGE_TYPE = 'doc';
 
 export const PAGE_EDITOR_BLOCK_CHILDREN_TYPE = 'block_children';
 
+export const PAGE_EDITOR_NESTED_BLOCK_TYPE = 'nested_block';
+
 export const PAGE_EDITOR_TABLE_CELL_TYPE = 'table_cell';
 
 export const PAGE_EDITOR_COLUMN_ROW_TYPE = 'column_list';
 
 export const PAGE_EDITOR_COLUMN_TYPE = 'column';
+
+/** The containers whose children are blocks a person selects one at a time. */
+export const PAGE_EDITOR_BLOCK_HOLDER_TYPES: readonly string[] = [
+  PAGE_EDITOR_PAGE_TYPE,
+  PAGE_EDITOR_BLOCK_CHILDREN_TYPE,
+  PAGE_EDITOR_NESTED_BLOCK_TYPE,
+];
 
 /** Only containers declared as `block+` take a block dropped among their children. */
 export const PAGE_EDITOR_SIBLING_BLOCK_CONTENT = 'block+';
