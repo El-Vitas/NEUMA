@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { logout } from '@/modules/auth/server/lib/auth.logout.server';
 import type { PortalLayoutUser } from '@/modules/portal/types/portal.types';
+import { LanguageMenu } from '@/shared/components/language/language.menu';
 import { ThemeMenu } from '@/shared/components/theme/theme.menu';
 import {
   DropdownMenu,
@@ -48,6 +49,7 @@ export const SidebarAccount = ({ collapsed, themeChoice, user }: IProps) => {
             {t('account')}
           </DropdownMenuItem>
           <ThemeMenu choice={themeChoice} />
+          <LanguageMenu />
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild variant="destructive">
             <form action={logout} className="w-full">

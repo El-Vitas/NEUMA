@@ -6,6 +6,7 @@ import {
   PAGE_EDITOR_ARRANGEMENT_BLOCK_TYPES,
   PAGE_EDITOR_BLOCK_TARGETS,
   PAGE_EDITOR_BLOCKS_BEYOND_THEIR_LINES,
+  PAGE_EDITOR_CARRIED_BLOCK_ATTRS,
   PAGE_EDITOR_NOTHING_TO_CARRY,
 } from '../constants/pages.editor.convert.constants';
 import type {
@@ -41,8 +42,18 @@ const readSelectedBlocks = (state: EditorState): PageEditorConversionSource | nu
   if (range === null) return null;
   const blocks = range.parent.children.slice(range.startIndex, range.endIndex);
   const read = mergeLines(blocks.map(readBlockLines));
-  return read.lines.length === 0 ? null : { ...read, range };
+  const first = blocks[0];
+  if (read.lines.length === 0 || first === undefined) return null;
+  return { ...read, carried: readCarriedAttrs(first.attrs), range };
 };
+
+/**
+ * What a block keeps when it becomes another type: who it is, how it is
+ * painted, and what was said about it. Changing the shape of a block is not a
+ * reason to lose its colour or its comments.
+ */
+const readCarriedAttrs = (attrs: Attrs): Attrs =>
+  Object.fromEntries(PAGE_EDITOR_CARRIED_BLOCK_ATTRS.flatMap((name) => (name in attrs ? [[name, attrs[name]]] : [])));
 
 const keepAllBuilt = (blocks: readonly (EditorNode | null)[]): readonly EditorNode[] | null => {
   const built = blocks.filter((block): block is EditorNode => block !== null);
@@ -61,11 +72,12 @@ const buildTextblocks = (
   schema: Schema,
   shape: Extract<PageEditorBlockShape, { readonly kind: 'textblock' }>,
   lines: readonly Fragment[],
+  carried: Attrs,
 ): readonly EditorNode[] | null => {
   const type = schema.nodes[shape.type];
   if (type === undefined) return null;
   const contentOf = (line: Fragment): Fragment => (type.spec.code === true ? asPlainText(schema, line) : line);
-  return keepAllBuilt(lines.map((line) => buildBlock(type, shape.attrs ?? null, contentOf(line))));
+  return keepAllBuilt(lines.map((line) => buildBlock(type, { ...carried, ...shape.attrs }, contentOf(line))));
 };
 
 const buildParagraphs = (schema: Schema, lines: readonly Fragment[]): readonly EditorNode[] | null => {
@@ -74,11 +86,16 @@ const buildParagraphs = (schema: Schema, lines: readonly Fragment[]): readonly E
   return keepAllBuilt(lines.map((line) => buildBlock(paragraph, null, line)));
 };
 
-const buildHolder = (schema: Schema, typeName: string, lines: readonly Fragment[]): readonly EditorNode[] | null => {
+const buildHolder = (
+  schema: Schema,
+  typeName: string,
+  lines: readonly Fragment[],
+  carried: Attrs,
+): readonly EditorNode[] | null => {
   const holder = schema.nodes[typeName];
   const paragraphs = buildParagraphs(schema, lines);
   if (holder === undefined || paragraphs === null) return null;
-  const block = buildBlock(holder, null, Fragment.from([...paragraphs]));
+  const block = buildBlock(holder, carried, Fragment.from([...paragraphs]));
   return block === null ? null : [block];
 };
 
@@ -86,6 +103,7 @@ const buildList = (
   schema: Schema,
   shape: Extract<PageEditorBlockShape, { readonly kind: 'list' }>,
   lines: readonly Fragment[],
+  carried: Attrs,
 ): readonly EditorNode[] | null => {
   const list = schema.nodes[shape.type];
   const item = schema.nodes[shape.itemType];
@@ -93,7 +111,7 @@ const buildList = (
   if (list === undefined || item === undefined || paragraphs === null) return null;
   const items = keepAllBuilt(paragraphs.map((paragraph) => buildBlock(item, null, Fragment.from(paragraph))));
   if (items === null) return null;
-  const block = buildBlock(list, null, Fragment.from([...items]));
+  const block = buildBlock(list, carried, Fragment.from([...items]));
   return block === null ? null : [block];
 };
 
@@ -101,14 +119,15 @@ const buildTargetBlocks = (
   schema: Schema,
   shape: PageEditorBlockShape,
   lines: readonly Fragment[],
+  carried: Attrs,
 ): readonly EditorNode[] | null => {
   switch (shape.kind) {
     case 'textblock':
-      return buildTextblocks(schema, shape, lines);
+      return buildTextblocks(schema, shape, lines, carried);
     case 'holder':
-      return buildHolder(schema, shape.type, lines);
+      return buildHolder(schema, shape.type, lines, carried);
     default:
-      return buildList(schema, shape, lines);
+      return buildList(schema, shape, lines, carried);
   }
 };
 
@@ -138,7 +157,7 @@ const readConversion = (
   source: PageEditorConversionSource,
   target: PageEditorBlockTarget,
 ): PageEditorBlockConversion | null => {
-  const blocks = buildTargetBlocks(state.schema, target.shape, source.lines);
+  const blocks = buildTargetBlocks(state.schema, target.shape, source.lines, source.carried);
   if (blocks === null || !fitsWhereItLives(source.range, blocks)) return null;
   const losesFormatting = dropsFormatting(state.schema, target.shape) && !source.lines.every(isPlainText);
   return { id: target.id, labelKey: target.labelKey, losesContent: !source.keepsEverything || losesFormatting };
@@ -174,7 +193,7 @@ export const createPageEditorBlockConversionCommand =
     const source = readSelectedBlocks(state);
     if (target === undefined || source === null) return false;
 
-    const blocks = buildTargetBlocks(state.schema, target.shape, source.lines);
+    const blocks = buildTargetBlocks(state.schema, target.shape, source.lines, source.carried);
     if (blocks === null || !fitsWhereItLives(source.range, blocks)) return false;
     if (dispatch === undefined) return true;
 

@@ -440,5 +440,8 @@
     "system": "Match the system",
     "light": "Light",
     "dark": "Dark"
+  },
+  "language": {
+    "label": "Language"
   }
 }

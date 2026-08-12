@@ -29,6 +29,7 @@ describe('portal message catalogs', () => {
       'validation',
       'metadata',
       'theme',
+      'language',
     ]);
   });
 

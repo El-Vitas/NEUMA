@@ -263,3 +263,57 @@ describe('what stays selected after converting', () => {
     expect(offerIds(converted)).toContain('paragraph');
   });
 });
+
+describe('what a block keeps when it changes type', () => {
+  const painted = (text: string): PageContentNode => ({
+    attrs: { backgroundColor: 'yellow', textColor: 'red' },
+    content: [{ text, type: 'text' }],
+    type: 'paragraph',
+  });
+
+  it('keeps the colours it was wearing', () => {
+    const state = putCursorIn(createState([painted('Aviso')]), 'Aviso');
+
+    const converted = convert(state, 'heading2');
+
+    expect(converted.doc.child(0).attrs).toMatchObject({ backgroundColor: 'yellow', textColor: 'red' });
+  });
+
+  it('keeps them when it becomes a list or a callout, where the whole block is painted', () => {
+    for (const targetId of ['bulletList', 'taskList', 'callout', 'blockquote']) {
+      const state = putCursorIn(createState([painted('Aviso')]), 'Aviso');
+
+      const converted = convert(state, targetId);
+
+      expect(converted.doc.child(0).attrs).toMatchObject({ backgroundColor: 'yellow', textColor: 'red' });
+    }
+  });
+
+  it('keeps what was said about it', () => {
+    const commented: PageContentNode = {
+      attrs: {
+        comments: [{ author: 'Admin User', body: 'Revisar', createdAt: '2026-08-12T10:00:00.000Z', id: 'c1' }],
+      },
+      content: [{ text: 'Aviso', type: 'text' }],
+      type: 'paragraph',
+    };
+    const state = putCursorIn(createState([commented]), 'Aviso');
+
+    const converted = convert(state, 'callout');
+
+    expect(converted.doc.child(0).attrs.comments).toEqual([
+      { author: 'Admin User', body: 'Revisar', createdAt: '2026-08-12T10:00:00.000Z', id: 'c1' },
+    ]);
+  });
+
+  it('keeps its identity, so a link to it still opens it', () => {
+    const identified: PageContentNode = {
+      attrs: { id: 'block-1' },
+      content: [{ text: 'Aviso', type: 'text' }],
+      type: 'paragraph',
+    };
+    const state = putCursorIn(createState([identified]), 'Aviso');
+
+    expect(convert(state, 'heading1').doc.child(0).attrs.id).toBe('block-1');
+  });
+});
