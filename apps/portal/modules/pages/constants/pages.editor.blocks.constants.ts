@@ -21,8 +21,16 @@ export const PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE = 'data-commented';
 /** The bubble parked in the right margin of a block that carries comments. */
 export const PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS = [
   'float-right ml-2 flex cursor-pointer items-center gap-1',
-  'select-none text-muted-foreground text-xs hover:text-foreground',
+  'select-none text-muted-foreground text-xs tabular-nums hover:text-foreground',
 ].join(' ');
+
+/** The speech mark drawn on a commented block, from the same icon family as the rest of the app. */
+export const PAGE_EDITOR_COMMENT_MARK_ICON_PATH =
+  'M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z';
+
+export const PAGE_EDITOR_COMMENT_MARK_ICON_CLASS = 'size-3.5 shrink-0';
+
+export const PAGE_EDITOR_SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plugin';
 
