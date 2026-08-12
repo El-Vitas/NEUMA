@@ -90,6 +90,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const selectBlockLabelRef = useRef(t('selectBlock'));
     const collectionLabelRef = useRef(t('collectionBlock'));
     const taskLabelRef = useRef(t('taskBlock'));
+    const blockCommentsLabelRef = useRef(t('blockComments'));
     const insertBlockLabelRef = useRef(t('insertBlock'));
     const [recentCommandIds, setRecentCommandIds] = useState<readonly string[]>([]);
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
@@ -293,6 +294,7 @@ export const PagesProseMirrorEditor = forwardRef(
         initialContentRef.current,
         selectBlockLabelRef.current,
         insertBlockLabelRef.current,
+        blockCommentsLabelRef.current,
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
@@ -441,11 +443,13 @@ export const PagesProseMirrorEditor = forwardRef(
               conversions={surface.conversions}
               hasIdentity={surface.blockId !== null}
               menuPosition={surface.menuPosition}
+              onAsk={blockActions.ask}
               onClose={blockActions.close}
               onCopyLink={blockActions.copyLink}
               onHandOver={blockActions.handOver}
               onRunCommand={blockActions.runCommand}
               pageId={pageId}
+              request={surface.request}
               spaceId={spaceId}
             />
           )}

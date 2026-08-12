@@ -7,6 +7,7 @@ export const PAGE_EDITOR_QUIET_SURFACE: PageEditorSurfaceState = {
   comments: [],
   conversions: [],
   menuPosition: null,
+  request: null,
   selectedBlockCount: 0,
   toolbarPosition: null,
 };

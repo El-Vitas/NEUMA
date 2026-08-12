@@ -2,7 +2,6 @@
 
 import type { PageBlockComment } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
-import { useState } from 'react';
 import { createPageEditorBlockColorCommand } from '../lib/pages.editor.block-color.lib';
 import {
   createPageEditorBlockCommentCommand,
@@ -12,6 +11,7 @@ import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import type { PageEditorBlockColors } from '../types/pages.editor.block-color.types';
+import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
 import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
@@ -25,7 +25,9 @@ interface IProps {
   readonly conversions: readonly PageEditorBlockConversion[];
   readonly hasIdentity: boolean;
   readonly menuPosition: { readonly left: number; readonly top: number } | null;
+  readonly onAsk: (kind: PageEditorBlockRequestKind) => void;
   readonly pageId: string | null;
+  readonly request: PageEditorBlockRequest | null;
   readonly spaceId: string;
   readonly onClose: () => void;
   readonly onCopyLink: () => void;
@@ -48,16 +50,15 @@ export const PagesEditorBlockActions = ({
   conversions,
   hasIdentity,
   menuPosition,
+  onAsk,
   onClose,
   onCopyLink,
   onHandOver,
   onRunCommand,
   pageId,
+  request,
   spaceId,
 }: IProps) => {
-  const [isHandoverOpen, setHandoverOpen] = useState(false);
-  const [areCommentsOpen, setCommentsOpen] = useState(false);
-
   const writeComment = (body: string): void => {
     onRunCommand(
       createPageEditorBlockCommentCommand({
@@ -71,7 +72,7 @@ export const PagesEditorBlockActions = ({
 
   return (
     <>
-      {menuPosition !== null && (
+      {menuPosition !== null && request?.kind === 'actions' && (
         <div className="absolute z-30" style={{ left: `${menuPosition.left}px`, top: `${menuPosition.top}px` }}>
           <PagesEditorBlockMenu
             colors={colors}
@@ -79,35 +80,26 @@ export const PagesEditorBlockActions = ({
             hasIdentity={hasIdentity}
             onClose={onClose}
             onColor={(kind, color) => onRunCommand(createPageEditorBlockColorCommand(kind, color))}
-            onComment={() => {
-              onClose();
-              setCommentsOpen(true);
-            }}
+            onComment={() => onAsk('comments')}
             onConvert={(targetId) => onRunCommand(createPageEditorBlockConversionCommand(targetId))}
             onCopyLink={onCopyLink}
             onDelete={() => onRunCommand(deletePageEditorBlocks)}
             onDuplicate={() => onRunCommand(duplicatePageEditorBlock)}
-            onMoveToPage={() => {
-              onClose();
-              setHandoverOpen(true);
-            }}
+            onMoveToPage={() => onAsk('handover')}
           />
         </div>
       )}
       <PagesEditorBlockHandoverDialog
         exceptPageId={pageId}
-        isOpen={isHandoverOpen}
-        onCancel={() => setHandoverOpen(false)}
-        onChoose={(page) => {
-          setHandoverOpen(false);
-          onHandOver(page);
-        }}
+        isOpen={request?.kind === 'handover'}
+        onCancel={onClose}
+        onChoose={onHandOver}
         spaceId={spaceId}
       />
       <PagesEditorBlockCommentsDialog
         comments={comments}
-        isOpen={areCommentsOpen}
-        onClose={() => setCommentsOpen(false)}
+        isOpen={request?.kind === 'comments'}
+        onClose={onClose}
         onRemove={(commentId) => onRunCommand(createPageEditorBlockCommentRemovalCommand(commentId))}
         onWrite={writeComment}
       />

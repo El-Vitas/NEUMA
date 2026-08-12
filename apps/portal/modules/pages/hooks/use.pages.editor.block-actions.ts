@@ -10,10 +10,15 @@ import { hasActionError } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { buildPageEditorBlockLink, readPageEditorBlockId } from '../lib/pages.editor.block-link.lib';
-import { closePageEditorBlockMenu } from '../lib/pages.editor.block-menu.lib';
+import {
+  closePageEditorBlockRequest,
+  openPageEditorBlockRequest,
+  readPageEditorBlockRequest,
+} from '../lib/pages.editor.block-menu.lib';
 import { readSelectedPageBlocksContent } from '../lib/pages.editor.block-travel.lib';
 import { addBlocksToPageAction } from '../server/actions/pages.actions';
 import type { PageEditorBlockActions } from '../types/pages.editor.block-actions.types';
+import type { PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
 
 /**
@@ -34,9 +39,20 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     (command: Command): void => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
-      closePageEditorBlockMenu(editorView);
+      closePageEditorBlockRequest(editorView);
       command(editorView.state, editorView.dispatch);
       requestAnimationFrame(() => editorView.focus());
+    },
+    [editorViewRef],
+  );
+
+  /** Asks the same block something else — its comments, or where it is going. */
+  const ask = useCallback(
+    (kind: PageEditorBlockRequestKind): void => {
+      const editorView = editorViewRef.current;
+      const request = editorView === null ? null : readPageEditorBlockRequest(editorView.state);
+      if (editorView === null || request === null) return;
+      openPageEditorBlockRequest(editorView, request.blockStart, kind);
     },
     [editorViewRef],
   );
@@ -44,7 +60,7 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
   const close = useCallback((): void => {
     const editorView = editorViewRef.current;
     if (editorView === null) return;
-    closePageEditorBlockMenu(editorView);
+    closePageEditorBlockRequest(editorView);
     requestAnimationFrame(() => editorView.focus());
   }, [editorViewRef]);
 
@@ -53,7 +69,7 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     if (editorView === null) return;
     const blockId = readPageEditorBlockId(editorView.state);
     if (blockId === null) return;
-    closePageEditorBlockMenu(editorView);
+    closePageEditorBlockRequest(editorView);
 
     void navigator.clipboard
       .writeText(buildPageEditorBlockLink(window.location.href, blockId))
@@ -94,5 +110,5 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     [announceHandover, editorViewRef, t],
   );
 
-  return { close, copyLink, handOver, runCommand };
+  return { ask, close, copyLink, handOver, runCommand };
 };

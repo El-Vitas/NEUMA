@@ -20,10 +20,17 @@ export const createPageEditorState = (
   content: PageContent,
   selectBlockLabel: string,
   insertBlockLabel: string = selectBlockLabel,
+  blockCommentsLabel: string = selectBlockLabel,
 ): EditorState =>
   EditorState.create({
     doc: pageEditorSchema.nodeFromJSON(pageContentSchema.parse(content)),
-    plugins: createPageEditorPlugins(pageEditorSchema, selectBlockLabel, insertBlockLabel),
+    plugins: createPageEditorPlugins(
+      pageEditorSchema,
+      selectBlockLabel,
+      insertBlockLabel,
+      selectBlockLabel,
+      blockCommentsLabel,
+    ),
     schema: pageEditorSchema,
   });
 

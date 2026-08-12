@@ -1,54 +1,62 @@
 import type { Command, EditorState } from 'prosemirror-state';
 import { Plugin as EditorPlugin, NodeSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
+import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
 import { pageEditorBlockMenuKey } from './pages.editor.plugin-keys.lib';
 
-/** Where the block whose actions are on offer starts, or nothing when the menu is closed. */
-export const readPageEditorBlockMenuTarget = (state: EditorState): number | null =>
+const isPageEditorBlockRequest = (value: unknown): value is PageEditorBlockRequest =>
+  typeof value === 'object' && value !== null && 'blockStart' in value && 'kind' in value;
+
+/** What is being asked of which block, or nothing while the page is left alone. */
+export const readPageEditorBlockRequest = (state: EditorState): PageEditorBlockRequest | null =>
   pageEditorBlockMenuKey.getState(state) ?? null;
 
-export const closePageEditorBlockMenu = (view: EditorView): void => {
-  if (readPageEditorBlockMenuTarget(view.state) === null) return;
+export const closePageEditorBlockRequest = (view: EditorView): void => {
+  if (readPageEditorBlockRequest(view.state) === null) return;
   view.dispatch(view.state.tr.setMeta(pageEditorBlockMenuKey, null));
 };
 
 /**
- * Opens the actions of the block starting at `blockStart`, selecting it first
- * so what the menu offers and what the page shows as chosen are the same block.
+ * Asks something of the block starting at `blockStart`, selecting it first so
+ * what is being answered and what the page shows as chosen are the same block.
  */
-export const openPageEditorBlockMenuAt = (view: EditorView, blockStart: number): void => {
+export const openPageEditorBlockRequest = (
+  view: EditorView,
+  blockStart: number,
+  kind: PageEditorBlockRequestKind,
+): void => {
   if (blockStart < 0 || blockStart >= view.state.doc.content.size) return;
-  const block = view.state.doc.nodeAt(blockStart);
-  if (block === null) return;
+  if (view.state.doc.nodeAt(blockStart) === null) return;
+
   const transaction = view.state.tr.setSelection(NodeSelection.create(view.state.doc, blockStart));
-  view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, blockStart));
+  view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, { blockStart, kind }));
 };
 
-/** Opens the actions of the block the selection is on, so the menu is reachable without a pointer. */
+/** Asks the block the selection is on for its actions, so the menu is reachable without a pointer. */
 export const openPageEditorBlockMenu: Command = (state, dispatch) => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return false;
   if (dispatch === undefined) return true;
 
-  dispatch(state.tr.setMeta(pageEditorBlockMenuKey, range.start));
+  dispatch(state.tr.setMeta(pageEditorBlockMenuKey, { blockStart: range.start, kind: 'actions' }));
   return true;
 };
 
 /**
- * Remembers which block was asked about.
+ * Remembers what a block was asked.
  *
- * The menu closes on its own as soon as the page changes underneath it, so it
- * can never act on a block that is no longer where it was.
+ * The question is dropped as soon as the page changes underneath it, so an
+ * answer can never land on a block that is no longer where it was.
  */
-export const createPageEditorBlockMenuPlugin = (): EditorPlugin<number | null> =>
-  new EditorPlugin<number | null>({
+export const createPageEditorBlockMenuPlugin = (): EditorPlugin<PageEditorBlockRequest | null> =>
+  new EditorPlugin<PageEditorBlockRequest | null>({
     key: pageEditorBlockMenuKey,
     state: {
-      apply: (transaction, previousTarget) => {
-        const target: unknown = transaction.getMeta(pageEditorBlockMenuKey);
-        if (target === undefined) return transaction.docChanged ? null : previousTarget;
-        return typeof target === 'number' ? target : null;
+      apply: (transaction, previousRequest) => {
+        const request: unknown = transaction.getMeta(pageEditorBlockMenuKey);
+        if (request === undefined) return transaction.docChanged ? null : previousRequest;
+        return isPageEditorBlockRequest(request) ? request : null;
       },
       init: () => null,
     },

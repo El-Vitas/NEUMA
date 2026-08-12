@@ -8,6 +8,7 @@ import {
   readPageEditorBlockId,
   readPageEditorBlockLinkTarget,
   revealPageEditorBlock,
+  watchForPageEditorBlock,
 } from '@/modules/pages/lib/pages.editor.block-link.lib';
 import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 
@@ -74,5 +75,84 @@ describe('pointing at a block', () => {
 
     expect(findPageEditorBlockElement(page, 'block-2')?.textContent).toBe('Dos');
     expect(findPageEditorBlockElement(page, 'block-9')).toBeNull();
+  });
+});
+
+describe('waiting for the page to draw the block a link points at', () => {
+  const createPage = (): HTMLElement => {
+    const page = document.createElement('div');
+    document.body.append(page);
+    return page;
+  };
+
+  it('finds a block that is already there, without waiting', () => {
+    const page = createPage();
+    page.innerHTML = '<p data-block-id="block-1">Uno</p>';
+    const found: string[] = [];
+
+    watchForPageEditorBlock({
+      blockId: 'block-1',
+      onFound: (block) => found.push(block.textContent ?? ''),
+      onMissing: () => found.push('missing'),
+      root: page,
+      waitMs: 50,
+    });
+
+    expect(found).toEqual(['Uno']);
+    page.remove();
+  });
+
+  it('waits for a block the editor has not drawn yet, instead of saying it is gone', async () => {
+    const page = createPage();
+    const seen: string[] = [];
+
+    watchForPageEditorBlock({
+      blockId: 'block-1',
+      onFound: (block) => seen.push(block.textContent ?? ''),
+      onMissing: () => seen.push('missing'),
+      root: page,
+      waitMs: 500,
+    });
+    page.innerHTML = '<p data-block-id="block-1">Uno</p>';
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(seen).toEqual(['Uno']);
+    page.remove();
+  });
+
+  it('says the block is gone once the page has had its time', async () => {
+    const page = createPage();
+    const seen: string[] = [];
+
+    watchForPageEditorBlock({
+      blockId: 'block-9',
+      onFound: () => seen.push('found'),
+      onMissing: () => seen.push('missing'),
+      root: page,
+      waitMs: 30,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(seen).toEqual(['missing']);
+    page.remove();
+  });
+
+  it('stops watching when the page is left', async () => {
+    const page = createPage();
+    const seen: string[] = [];
+
+    const stopWatching = watchForPageEditorBlock({
+      blockId: 'block-1',
+      onFound: () => seen.push('found'),
+      onMissing: () => seen.push('missing'),
+      root: page,
+      waitMs: 30,
+    });
+    stopWatching();
+    page.innerHTML = '<p data-block-id="block-1">Uno</p>';
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(seen).toEqual([]);
+    page.remove();
   });
 });

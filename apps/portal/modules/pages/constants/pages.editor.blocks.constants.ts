@@ -18,6 +18,12 @@ export const PAGE_EDITOR_OPTIONAL_BLOCK_COMMENTS: AttributeSpec = { default: nul
 /** A block that has been talked about says so, so a comment is never invisible. */
 export const PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE = 'data-commented';
 
+/** The bubble parked in the right margin of a block that carries comments. */
+export const PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS = [
+  'float-right ml-2 flex cursor-pointer items-center gap-1',
+  'select-none text-muted-foreground text-xs hover:text-foreground',
+].join(' ');
+
 export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plugin';
 
 export const PAGE_EDITOR_BLOCK_HANDLE_CLASS = 'page-editor-block-handle';
@@ -49,6 +55,9 @@ export const PAGE_EDITOR_BLOCK_MENU_DROP_PX = 28;
 export const PAGE_EDITOR_BLOCK_ARRIVAL_STYLE_CLASSES: readonly string[] = ['ring-2', 'ring-primary', 'ring-offset-2'];
 
 export const PAGE_EDITOR_BLOCK_ARRIVAL_MS = 2500;
+
+/** How long a link waits for the page to draw the block it points at. */
+export const PAGE_EDITOR_BLOCK_ARRIVAL_WAIT_MS = 5000;
 
 export const PAGE_EDITOR_BLOCK_DRAG_PLUGIN_KEY = 'page-editor-block-drag-plugin';
 
