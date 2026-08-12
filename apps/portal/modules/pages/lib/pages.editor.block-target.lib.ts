@@ -2,6 +2,7 @@ import type { Node as EditorNode, ResolvedPos } from 'prosemirror-model';
 import type { EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_BLOCK_CHILDREN_TYPE,
+  PAGE_EDITOR_BLOCK_GROUP,
   PAGE_EDITOR_BLOCK_PROBE_INSET_PX,
   PAGE_EDITOR_COLUMN_ROW_TYPE,
   PAGE_EDITOR_DRAG_SWEEP_REACH_PX,
@@ -30,12 +31,19 @@ export const acceptsSiblingBlocks = (node: EditorNode): boolean =>
 /**
  * Holds blocks a person can take on their own.
  *
- * A table is one thing to move, not a stack of cells: its cells keep their
- * blocks for dropping into, but hovering a table hands over the table itself,
- * so it can be moved without hunting for the page margin.
+ * Only what exists to hold blocks hands over the ones inside it — the page, a
+ * column, what hangs from a nesting. A quote, a callout or a toggle is itself
+ * one thing to move, so reaching for the line written inside it hands over the
+ * block, which is what the keyboard already answers when the cursor is there.
+ *
+ * A table is one thing to move too, and this is where its cells are set aside:
+ * they keep their blocks for dropping into, but hovering a table hands over the
+ * table itself, so it can be moved without hunting for the page margin.
  */
 export const offersGrabbableBlocks = (node: EditorNode): boolean =>
-  acceptsSiblingBlocks(node) && node.type.name !== PAGE_EDITOR_TABLE_CELL_TYPE;
+  acceptsSiblingBlocks(node) &&
+  node.type.spec.group !== PAGE_EDITOR_BLOCK_GROUP &&
+  node.type.name !== PAGE_EDITOR_TABLE_CELL_TYPE;
 
 /**
  * Holds blocks that belong to the page itself, rather than to something drawn
