@@ -1,5 +1,6 @@
 import type { PageEditorBlockLines, PageEditorBlockTarget } from '../types/pages.editor.convert.types';
 import {
+  PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
   PAGE_EDITOR_COLUMN_ROW_TYPE,
   PAGE_EDITOR_COLUMN_TYPE,
   PAGE_EDITOR_NESTED_BLOCK_TYPE,
@@ -32,6 +33,14 @@ export const PAGE_EDITOR_ARRANGEMENT_BLOCK_TYPES: readonly string[] = [
   'table_row',
   PAGE_EDITOR_COLUMN_ROW_TYPE,
   PAGE_EDITOR_COLUMN_TYPE,
+];
+
+/** What a block keeps when it becomes another type: who it is, how it is painted, what was said about it. */
+export const PAGE_EDITOR_CARRIED_BLOCK_ATTRS: readonly string[] = [
+  'id',
+  'textColor',
+  'backgroundColor',
+  PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
 ];
 
 /** Blocks that hold more than the lines read out of them: a title, or others hanging from them. */

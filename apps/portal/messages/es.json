@@ -440,5 +440,8 @@
     "system": "Según el sistema",
     "light": "Claro",
     "dark": "Oscuro"
+  },
+  "language": {
+    "label": "Idioma"
   }
 }

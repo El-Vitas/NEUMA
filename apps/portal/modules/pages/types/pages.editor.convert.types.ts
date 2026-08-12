@@ -32,8 +32,9 @@ export interface PageEditorConversionRequest {
   readonly pending: PageEditorBlockConversion | null;
 }
 
-/** The blocks a conversion applies to, read out as lines of text. */
+/** The blocks a conversion applies to, read out as lines of text and what they carry over. */
 export interface PageEditorConversionSource {
+  readonly carried: Attrs;
   readonly keepsEverything: boolean;
   readonly lines: readonly Fragment[];
   readonly range: NodeRange;
