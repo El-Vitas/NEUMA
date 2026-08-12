@@ -85,3 +85,6 @@ report/
 
 # playwright mcp session output
 .playwright-mcp/
+
+# external references: local paths, not part of the project
+docs/referencias-externas.md
