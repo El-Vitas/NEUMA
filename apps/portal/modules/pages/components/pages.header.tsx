@@ -39,7 +39,7 @@ export const PagesHeader = ({
           <h1 className="sr-only">{title.length > 0 ? title : t('untitled')}</h1>
           <input
             aria-label={t('titleField')}
-            className="w-full border-0 border-transparent border-b bg-transparent px-0 py-2 font-display font-semibold text-4xl text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-0 disabled:cursor-not-allowed disabled:text-foreground sm:text-5xl"
+            className="w-full border-0 border-transparent border-b bg-transparent px-0 py-2 font-bold font-reading text-4xl text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-0 disabled:cursor-not-allowed disabled:text-foreground sm:text-5xl"
             disabled={!canEdit}
             id="page-title"
             onChange={(event) => onTitleChange(event.target.value)}
