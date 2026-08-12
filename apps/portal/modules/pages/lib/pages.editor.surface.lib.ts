@@ -1,0 +1,69 @@
+import type { EditorState } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
+import {
+  SELECTION_TOOLBAR_ESTIMATED_HEIGHT_PX,
+  SELECTION_TOOLBAR_ESTIMATED_WIDTH_PX,
+} from '../constants/pages.editor.constants';
+import type {
+  PageEditorSpot,
+  PageEditorSurfaceRect,
+  PageEditorSurfaceState,
+} from '../types/pages.editor.surface.types';
+import { readPageEditorBlockColors } from './pages.editor.block-color.lib';
+import { readPageEditorBlockComments } from './pages.editor.block-comment.lib';
+import { isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
+import { readPageEditorBlockId } from './pages.editor.block-link.lib';
+import { readPageEditorBlockMenuTarget } from './pages.editor.block-menu.lib';
+import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
+import { computeSelectionToolbarPlacement } from './pages.editor.lib';
+import { countSelectedBlocks } from './pages.editor.selection.lib';
+
+const readMenuPosition = (
+  view: EditorView,
+  state: EditorState,
+  surfaceRect: PageEditorSurfaceRect,
+): PageEditorSpot | null => {
+  const blockStart = readPageEditorBlockMenuTarget(state);
+  if (blockStart === null) return null;
+  const blockCoords = view.coordsAtPos(blockStart);
+  return { left: blockCoords.left - surfaceRect.left, top: blockCoords.top - surfaceRect.top };
+};
+
+const readToolbarPosition = (
+  view: EditorView,
+  state: EditorState,
+  surfaceRect: PageEditorSurfaceRect,
+): PageEditorSpot | null => {
+  const isBlockBusy = isPageEditorBlockDragActive(state) || readPageEditorBlockMenuTarget(state) !== null;
+  if (isBlockBusy || state.selection.empty) return null;
+  const placement = computeSelectionToolbarPlacement({
+    selectionEndCoords: view.coordsAtPos(state.selection.to),
+    selectionStartCoords: view.coordsAtPos(state.selection.from),
+    surfaceRect,
+    toolbarHeight: SELECTION_TOOLBAR_ESTIMATED_HEIGHT_PX,
+    toolbarWidth: SELECTION_TOOLBAR_ESTIMATED_WIDTH_PX,
+  });
+  return { left: placement.left, top: placement.top };
+};
+
+/**
+ * Everything the page around the editor needs to know after a change: what the
+ * selected blocks are wearing, what they can become, what has been said about
+ * them, and where the menu and the toolbar belong.
+ *
+ * It is read in one pass so the page never shows two answers from two
+ * different moments.
+ */
+export const readPageEditorSurface = (
+  view: EditorView,
+  state: EditorState,
+  surfaceRect: PageEditorSurfaceRect | null,
+): PageEditorSurfaceState => ({
+  blockId: readPageEditorBlockId(state),
+  colors: readPageEditorBlockColors(state),
+  comments: readPageEditorBlockComments(state),
+  conversions: listPageEditorBlockConversions(state),
+  menuPosition: surfaceRect === null ? null : readMenuPosition(view, state, surfaceRect),
+  selectedBlockCount: countSelectedBlocks(state.selection),
+  toolbarPosition: surfaceRect === null ? null : readToolbarPosition(view, state, surfaceRect),
+});

@@ -3,6 +3,7 @@ import { createPageEditorCommands } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 
 import type { PageEditorCommandGroup } from '../types/pages.types';
+import { PAGE_EDITOR_BACKGROUND_COLOR_CLASSES, PAGE_EDITOR_TEXT_COLOR_CLASSES } from './pages.editor.colors.constants';
 
 export const DEFAULT_PAGE_TOGGLE_SUMMARY = 'Toggle';
 
@@ -49,6 +50,8 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror_details]:my-4 [&_.ProseMirror_details]:border [&_.ProseMirror_details]:border-border [&_.ProseMirror_details]:px-4 [&_.ProseMirror_details]:py-3 [&_.ProseMirror_summary]:cursor-pointer [&_.ProseMirror_summary]:font-semibold',
   '[&_.ProseMirror_.ProseMirror-selectednode]:bg-primary/10 [&_.ProseMirror_.ProseMirror-selectednode]:outline [&_.ProseMirror_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror_.ProseMirror-selectednode]:outline-primary/40 [&_.ProseMirror_.ProseMirror-selectednode]:outline-offset-2',
   '[&_.ProseMirror_img]:my-6 [&_.ProseMirror_img]:block [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_[data-page-embed]]:my-6 [&_.ProseMirror_[data-page-embed]]:block [&_.ProseMirror_[data-page-embed]]:max-w-full [&_.ProseMirror_[data-page-file]]:my-6 [&_.ProseMirror_[data-page-file]]:block [&_.ProseMirror_[data-page-file]]:max-w-full',
+  ...PAGE_EDITOR_TEXT_COLOR_CLASSES,
+  ...PAGE_EDITOR_BACKGROUND_COLOR_CLASSES,
 ].join(' ');
 
 export const PAGE_EDITOR_COMMANDS = createPageEditorCommands(pageEditorSchema, DEFAULT_PAGE_TOGGLE_SUMMARY);

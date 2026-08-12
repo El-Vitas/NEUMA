@@ -9,20 +9,38 @@ const conversion: PageEditorBlockConversion = { id: 'heading1', labelKey: 'headi
 
 interface MenuUse {
   readonly closed: number[];
+  readonly commented: number[];
+  readonly copied: number[];
   readonly deleted: number[];
   readonly duplicated: number[];
+  readonly moved: number[];
+  readonly painted: string[];
 }
 
-const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversion]): MenuUse => {
-  const use: MenuUse = { closed: [], deleted: [], duplicated: [] };
+const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversion], hasIdentity = true): MenuUse => {
+  const use: MenuUse = {
+    closed: [],
+    commented: [],
+    copied: [],
+    deleted: [],
+    duplicated: [],
+    moved: [],
+    painted: [],
+  };
   render(
     <NextIntlClientProvider locale="es" messages={es}>
       <PagesEditorBlockMenu
+        colors={{ background: null, text: null }}
         conversions={conversions}
+        hasIdentity={hasIdentity}
         onClose={() => use.closed.push(1)}
+        onColor={(kind, color) => use.painted.push(`${kind}:${String(color)}`)}
+        onComment={() => use.commented.push(1)}
         onConvert={() => undefined}
+        onCopyLink={() => use.copied.push(1)}
         onDelete={() => use.deleted.push(1)}
         onDuplicate={() => use.duplicated.push(1)}
+        onMoveToPage={() => use.moved.push(1)}
       />
     </NextIntlClientProvider>,
   );
@@ -59,6 +77,27 @@ describe('the actions a block offers', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Eliminar' }));
 
     expect(use.deleted.length).toBe(1);
+  });
+
+  it('offers copying its link, moving it to another page and commenting it', () => {
+    showMenu();
+
+    expect(screen.getByRole('menuitem', { name: 'Copiar enlace' })).toBeDefined();
+    expect(screen.getByRole('menuitem', { name: 'Mover a…' })).toBeDefined();
+    expect(screen.getByRole('menuitem', { name: 'Comentar' })).toBeDefined();
+  });
+
+  it('leaves out copying a link for a block that has no identity yet', () => {
+    showMenu([conversion], false);
+
+    expect(screen.queryByRole('menuitem', { name: 'Copiar enlace' })).toBeNull();
+  });
+
+  it('offers a colour for the text and one for the background', () => {
+    showMenu();
+
+    expect(screen.getByRole('menuitem', { name: 'Color del texto' })).toBeDefined();
+    expect(screen.getByRole('menuitem', { name: 'Color de fondo' })).toBeDefined();
   });
 
   it('closes on Escape', () => {

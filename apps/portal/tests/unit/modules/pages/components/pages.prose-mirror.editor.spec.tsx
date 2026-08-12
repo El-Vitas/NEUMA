@@ -40,6 +40,15 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   }),
 }));
 
+mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  addBlocksToPageAction: async () => ({ data: undefined }),
+  listPageDestinationsAction: async () => ({ data: [] }),
+}));
+
+mock.module('next/navigation', () => ({
+  useRouter: () => ({ push: () => undefined }),
+}));
+
 const { createEmptyPageContent, createPageEditorState } = await import('@/modules/pages/lib/pages.editor.lib');
 const { createPageAssetInsertCommand } = await import('@/modules/pages/lib/pages.editor.commands');
 const { pageEditorSchema } = await import('@/modules/pages/lib/pages.editor.schema');
@@ -72,6 +81,7 @@ const renderEditor = (props: {
         onContentChange={props.onContentChange}
         pageId={props.pageId}
         ref={ref}
+        spaceId="space-1"
       />
     </NextIntlClientProvider>,
   );
@@ -89,6 +99,7 @@ describe('PagesProseMirrorEditor runCommand', () => {
           onAttachmentUploaded={(attachment) => uploadedAttachments.push(attachment)}
           onContentChange={() => undefined}
           pageId="22222222-2222-4222-8222-222222222222"
+          spaceId="space-1"
         />
       </NextIntlClientProvider>,
     );
@@ -111,6 +122,7 @@ describe('PagesProseMirrorEditor runCommand', () => {
           onAttachmentUploaded={(attachment) => uploadedAttachments.push(attachment)}
           onContentChange={() => undefined}
           pageId="22222222-2222-4222-8222-222222222222"
+          spaceId="space-1"
         />
       </NextIntlClientProvider>,
     );
@@ -139,6 +151,7 @@ describe('PagesProseMirrorEditor runCommand', () => {
           onAttachmentUploaded={(attachment) => uploadedAttachments.push(attachment)}
           onContentChange={() => undefined}
           pageId="22222222-2222-4222-8222-222222222222"
+          spaceId="space-1"
         />
       </NextIntlClientProvider>,
     );
@@ -162,6 +175,7 @@ describe('PagesProseMirrorEditor runCommand', () => {
           content={createEmptyPageContent()}
           onContentChange={() => undefined}
           pageId="22222222-2222-4222-8222-222222222222"
+          spaceId="space-1"
         />
       </NextIntlClientProvider>,
     );

@@ -89,6 +89,9 @@ export type {
 } from './schemas/page-content.migration.js';
 export { applyPageContentMigrations, readStoredPageContent } from './schemas/page-content.migration.js';
 export type {
+  PageBlockAttrs,
+  PageBlockColor,
+  PageBlockComment,
   PageContent,
   PageContentInlineNode,
   PageContentMention,
@@ -98,6 +101,7 @@ export type {
 } from './schemas/page-content.schema.js';
 export {
   isAllowedPageEmbedUrl,
+  PAGE_BLOCK_COLORS,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
   pageAssetAttrsSchema,

@@ -9,6 +9,9 @@ import {
   structuredToggleNodeFixture,
 } from './pages.content.fixture';
 
+/** What every block carries once the schema has had its say. */
+const BLOCK_ATTRS = { backgroundColor: null, comments: null, id: null, textColor: null };
+
 const parseLink = (href: string) => {
   const documentElement = document.createElement('div');
   const paragraph = document.createElement('p');
@@ -33,7 +36,7 @@ describe('pageEditorSchema link parsing', () => {
     expect(parseLink('https://example.com').toJSON()).toEqual({
       content: [
         {
-          attrs: { id: null },
+          attrs: BLOCK_ATTRS,
           content: [
             { marks: [{ attrs: { href: 'https://example.com' }, type: 'link' }], text: 'Enlace', type: 'text' },
           ],
@@ -46,7 +49,7 @@ describe('pageEditorSchema link parsing', () => {
 
   it('does not create a link mark for javascript URLs', () => {
     expect(parseLink('javascript:alert(1)').toJSON()).toEqual({
-      content: [{ attrs: { id: null }, content: [{ text: 'Enlace', type: 'text' }], type: 'paragraph' }],
+      content: [{ attrs: BLOCK_ATTRS, content: [{ text: 'Enlace', type: 'text' }], type: 'paragraph' }],
       type: 'doc',
     });
   });
@@ -67,8 +70,8 @@ describe('pageEditorSchema structured blocks', () => {
         type: 'table',
       },
       structuredToggleNodeFixture,
-      { attrs: { alt: 'Image', assetId: 'asset-1', caption: null }, type: 'image' },
-      { attrs: { alt: null, assetId: 'asset-2', caption: 'File' }, type: 'file' },
+      { attrs: { ...BLOCK_ATTRS, alt: 'Image', assetId: 'asset-1', caption: null }, type: 'image' },
+      { attrs: { ...BLOCK_ATTRS, alt: null, assetId: 'asset-2', caption: 'File' }, type: 'file' },
       structuredEmbedNodeFixture,
     ];
 
@@ -87,7 +90,7 @@ describe('pageEditorSchema structured blocks', () => {
     documentElement.append(paragraph, embed);
 
     expect(DOMParser.fromSchema(pageEditorSchema).parse(documentElement).toJSON()).toEqual({
-      content: [{ attrs: { id: null }, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
+      content: [{ attrs: BLOCK_ATTRS, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
       type: 'doc',
     });
   });
@@ -136,11 +139,11 @@ describe('pageEditorSchema mention node', () => {
     const structuredContent = {
       content: [
         {
-          attrs: { id: null },
+          attrs: BLOCK_ATTRS,
           content: [structuredMentionNodeFixture, { text: ' says hi', type: 'text' }],
           type: 'paragraph',
         },
-        { attrs: { id: null, level: 2 }, content: [structuredMentionNodeFixture], type: 'heading' },
+        { attrs: { ...BLOCK_ATTRS, level: 2 }, content: [structuredMentionNodeFixture], type: 'heading' },
       ],
       type: 'doc',
     };
@@ -160,7 +163,7 @@ describe('pageEditorSchema mention node', () => {
     documentElement.append(paragraph, mention);
 
     expect(DOMParser.fromSchema(pageEditorSchema).parse(documentElement).toJSON()).toEqual({
-      content: [{ attrs: { id: null }, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
+      content: [{ attrs: BLOCK_ATTRS, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
       type: 'doc',
     });
   });
@@ -175,7 +178,7 @@ describe('pageEditorSchema mention node', () => {
     documentElement.append(paragraph, mention);
 
     expect(DOMParser.fromSchema(pageEditorSchema).parse(documentElement).toJSON()).toEqual({
-      content: [{ attrs: { id: null }, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
+      content: [{ attrs: BLOCK_ATTRS, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
       type: 'doc',
     });
   });
@@ -201,9 +204,13 @@ describe('pageEditorSchema block ids', () => {
   it('accepts an optional id on every block-level node and preserves it through the ProseMirror schema', () => {
     const structuredContent = {
       content: [
-        { attrs: { id: 'heading-1', level: 2 }, content: [{ text: 'Título', type: 'text' }], type: 'heading' },
-        { attrs: { id: 'paragraph-1' }, content: [{ text: 'Texto', type: 'text' }], type: 'paragraph' },
-        { attrs: { alt: null, assetId: 'asset-1', caption: null, id: 'image-1' }, type: 'image' },
+        {
+          attrs: { ...BLOCK_ATTRS, id: 'heading-1', level: 2 },
+          content: [{ text: 'Título', type: 'text' }],
+          type: 'heading',
+        },
+        { attrs: { ...BLOCK_ATTRS, id: 'paragraph-1' }, content: [{ text: 'Texto', type: 'text' }], type: 'paragraph' },
+        { attrs: { ...BLOCK_ATTRS, alt: null, assetId: 'asset-1', caption: null, id: 'image-1' }, type: 'image' },
       ],
       type: 'doc',
     };

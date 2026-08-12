@@ -1,0 +1,33 @@
+import type { PageBlockComment } from '@company-brain/shared';
+import type { PageEditorBlockColors } from './pages.editor.block-color.types';
+import type { PageEditorBlockConversion } from './pages.editor.convert.types';
+
+/** Where on the screen a spot of the page is, measured from the editor's own box. */
+export interface PageEditorSpot {
+  readonly left: number;
+  readonly top: number;
+}
+
+/** The editor's own box, as the placement of menus is measured against it. */
+export interface PageEditorSurfaceRect {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+}
+
+/** Where a collection block stands, so its own page can be rendered into it. */
+export interface PageEditorCollectionHost {
+  readonly element: HTMLElement;
+  readonly pageId: string;
+}
+
+/** What the page around the editor shows about the blocks in play. */
+export interface PageEditorSurfaceState {
+  readonly blockId: string | null;
+  readonly colors: PageEditorBlockColors;
+  readonly comments: readonly PageBlockComment[];
+  readonly conversions: readonly PageEditorBlockConversion[];
+  readonly menuPosition: PageEditorSpot | null;
+  readonly selectedBlockCount: number;
+  readonly toolbarPosition: PageEditorSpot | null;
+}
