@@ -3,6 +3,7 @@ import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
+  changePageEditorBlockRequest,
   closePageEditorBlockRequest,
   openPageEditorBlockMenu,
   openPageEditorBlockRequest,
@@ -49,6 +50,22 @@ describe('asking a block what can be done to it', () => {
     openPageEditorBlockMenu(view.state, view.dispatch);
 
     expect(readPageEditorBlockRequest(view.state)).toEqual({ blockStart: secondBlock, kind: 'actions' });
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('asks the same blocks something else without letting go of the ones chosen', () => {
+    const { container, view } = mountEditor([paragraph('Uno'), paragraph('Dos'), paragraph('Tres')]);
+    const acrossTwoBlocks = TextSelection.create(view.state.doc, 1, startOfSecondBlock(view) + 2);
+    view.dispatch(view.state.tr.setSelection(acrossTwoBlocks));
+    openPageEditorBlockMenu(view.state, view.dispatch);
+
+    changePageEditorBlockRequest(view, 'handover');
+
+    expect(readPageEditorBlockRequest(view.state)?.kind).toBe('handover');
+    expect(view.state.selection.from).toBe(acrossTwoBlocks.from);
+    expect(view.state.selection.to).toBe(acrossTwoBlocks.to);
 
     view.destroy();
     container.remove();

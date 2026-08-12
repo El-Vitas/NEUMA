@@ -41,6 +41,19 @@ export const openPageEditorBlockRequest = (
 };
 
 /**
+ * Asks the same blocks something else — their comments, where they are going.
+ *
+ * What the page has hold of is left alone: the blocks were chosen before the
+ * menu was opened, and choosing one of them again on the way out would leave
+ * the rest behind.
+ */
+export const changePageEditorBlockRequest = (view: EditorView, kind: PageEditorBlockRequestKind): void => {
+  const request = readPageEditorBlockRequest(view.state);
+  if (request === null) return;
+  view.dispatch(view.state.tr.setMeta(pageEditorBlockMenuKey, { ...request, kind }));
+};
+
+/**
  * Asks what has been said about the chosen stretch of text.
  *
  * Unlike the questions asked of a whole block, this one leaves the chosen text
