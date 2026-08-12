@@ -29,7 +29,7 @@ interface IProps {
   readonly pageId: string | null;
   readonly request: PageEditorBlockRequest | null;
   readonly spaceId: string;
-  readonly onClose: () => void;
+  readonly onClose: (kind: PageEditorBlockRequestKind) => void;
   readonly onCopyLink: () => void;
   readonly onHandOver: (page: PageDestination) => void;
   readonly onRunCommand: (command: Command) => void;
@@ -78,7 +78,7 @@ export const PagesEditorBlockActions = ({
             colors={colors}
             conversions={conversions}
             hasIdentity={hasIdentity}
-            onClose={onClose}
+            onClose={() => onClose('actions')}
             onColor={(kind, color) => onRunCommand(createPageEditorBlockColorCommand(kind, color))}
             onComment={() => onAsk('comments')}
             onConvert={(targetId) => onRunCommand(createPageEditorBlockConversionCommand(targetId))}
@@ -92,14 +92,14 @@ export const PagesEditorBlockActions = ({
       <PagesEditorBlockHandoverDialog
         exceptPageId={pageId}
         isOpen={request?.kind === 'handover'}
-        onCancel={onClose}
+        onCancel={() => onClose('handover')}
         onChoose={onHandOver}
         spaceId={spaceId}
       />
       <PagesEditorBlockCommentsDialog
         comments={comments}
         isOpen={request?.kind === 'comments'}
-        onClose={onClose}
+        onClose={() => onClose('comments')}
         onRemove={(commentId) => onRunCommand(createPageEditorBlockCommentRemovalCommand(commentId))}
         onWrite={writeComment}
       />

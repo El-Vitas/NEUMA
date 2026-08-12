@@ -224,6 +224,50 @@ describe('pageContentSchema', () => {
     ).toBe(true);
   });
 
+  test('accepts a remark pointing at a fragment of the text, and the whole block wearing every mark at once', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: {
+              comments: [
+                { author: 'Admin User', body: 'Revisar esto', createdAt: '2026-08-12T10:00:00.000Z', id: 'remark-1' },
+              ],
+            },
+            content: [
+              { text: 'Antes ', type: 'text' },
+              { marks: [{ attrs: { id: 'remark-1' }, type: 'comment' }], text: 'la frase comentada', type: 'text' },
+              {
+                marks: [
+                  { type: 'strong' },
+                  { type: 'em' },
+                  { type: 'code' },
+                  { attrs: { href: 'https://example.com' }, type: 'link' },
+                  { attrs: { id: 'remark-1' }, type: 'comment' },
+                ],
+                text: ' y despues',
+                type: 'text',
+              },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a remark on the text that says nothing about which remark it is', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ content: [{ marks: [{ type: 'comment' }], text: 'Sin id', type: 'text' }], type: 'paragraph' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('rejects marks inside code blocks', () => {
     expect(
       pageContentSchema.safeParse({

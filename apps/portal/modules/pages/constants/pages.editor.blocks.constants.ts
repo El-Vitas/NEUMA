@@ -27,6 +27,13 @@ export const PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS = [
 /** The block wearing the bubble becomes the frame the bubble is placed against. */
 export const PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS = 'relative';
 
+/** Which remark a commented fragment of text belongs to. */
+export const PAGE_EDITOR_COMMENT_ID_ATTRIBUTE = 'data-comment-id';
+
+/** A commented fragment is underlined rather than painted, so it never fights the block's own colours. */
+export const PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS =
+  'cursor-pointer underline decoration-2 decoration-dotted underline-offset-4 decoration-primary/70 hover:decoration-primary';
+
 /** The speech mark drawn on a commented block, from the same icon family as the rest of the app. */
 export const PAGE_EDITOR_COMMENT_MARK_ICON_PATH =
   'M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z';

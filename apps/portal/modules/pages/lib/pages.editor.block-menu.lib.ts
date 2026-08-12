@@ -1,8 +1,8 @@
 import type { Command, EditorState } from 'prosemirror-state';
-import { Plugin as EditorPlugin, NodeSelection } from 'prosemirror-state';
+import { Plugin as EditorPlugin, NodeSelection, TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
-import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
+import { findPageBlockAround, findSelectedPageBlocks } from './pages.editor.block-range.lib';
 import { pageEditorBlockMenuKey } from './pages.editor.plugin-keys.lib';
 
 const isPageEditorBlockRequest = (value: unknown): value is PageEditorBlockRequest =>
@@ -12,8 +12,15 @@ const isPageEditorBlockRequest = (value: unknown): value is PageEditorBlockReque
 export const readPageEditorBlockRequest = (state: EditorState): PageEditorBlockRequest | null =>
   pageEditorBlockMenuKey.getState(state) ?? null;
 
-export const closePageEditorBlockRequest = (view: EditorView): void => {
-  if (readPageEditorBlockRequest(view.state) === null) return;
+/**
+ * Puts away what was being asked, and only that.
+ *
+ * A menu that hands the block over to a conversation — its comments, where it
+ * is going — closes itself right after; naming what is being closed keeps that
+ * farewell from taking the conversation with it.
+ */
+export const closePageEditorBlockRequest = (view: EditorView, kind: PageEditorBlockRequestKind): void => {
+  if (readPageEditorBlockRequest(view.state)?.kind !== kind) return;
   view.dispatch(view.state.tr.setMeta(pageEditorBlockMenuKey, null));
 };
 
@@ -31,6 +38,41 @@ export const openPageEditorBlockRequest = (
 
   const transaction = view.state.tr.setSelection(NodeSelection.create(view.state.doc, blockStart));
   view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, { blockStart, kind }));
+};
+
+/**
+ * Asks what has been said about the chosen stretch of text.
+ *
+ * Unlike the questions asked of a whole block, this one leaves the chosen text
+ * exactly as it was: it is the fragment being talked about, and losing hold of
+ * it would leave the remark with nothing to point at.
+ */
+export const openPageEditorFragmentComments = (view: EditorView): void => {
+  const range = findSelectedPageBlocks(view.state);
+  const { from, to } = view.state.selection;
+  if (range === null || from === to) return;
+
+  view.dispatch(
+    view.state.tr.setMeta(pageEditorBlockMenuKey, {
+      blockStart: range.start,
+      fragment: { from, to },
+      kind: 'comments',
+    }),
+  );
+};
+
+/**
+ * Opens what has been said about the block a place in the page belongs to.
+ *
+ * The place is also taken as the cursor, so what the conversation shows and
+ * what the page has hold of are the same block.
+ */
+export const openPageEditorBlockCommentsAt = (view: EditorView, place: number): void => {
+  const range = findPageBlockAround(view.state.doc.resolve(place));
+  if (range === null) return;
+
+  const transaction = view.state.tr.setSelection(TextSelection.create(view.state.doc, place));
+  view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, { blockStart: range.start, kind: 'comments' }));
 };
 
 /** Asks the block the selection is on for its actions, so the menu is reachable without a pointer. */

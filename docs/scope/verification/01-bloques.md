@@ -143,11 +143,14 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-12 · Debe permitir comentar un bloque
 
-- [ ] Se puede comentar un bloque desde su menú
-- [ ] Se puede comentar un fragmento de texto dentro del bloque
-- [ ] El bloque comentado se distingue
-- [ ] Mover el bloque no desancla su comentario
-- [ ] Convertir el bloque a otro tipo no pierde el comentario
+**Cómo probarlo:** abre el menú del bloque (Ctrl+/) y usa **Comentar**; para un fragmento, selecciona texto y usa **Comentar** en la barra que aparece sobre la selección.
+
+- [x] Se puede comentar un bloque desde su menú
+- [x] Se puede comentar un fragmento de texto dentro del bloque
+- [x] El bloque comentado se distingue
+- [x] Mover el bloque no desancla su comentario
+- [x] Convertir el bloque a otro tipo no pierde el comentario
+- [x] El fragmento comentado se distingue y al pulsarlo se abre lo que se dijo
 
 ## BL-13 · Debe permitir llevar bloques a otra página
 
@@ -206,6 +209,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio, como Notion. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-12 | **Comentar desde el menú no abría nada**: al elegir «Comentar» o «Mover a…», el menú se despedía cerrando justo lo que acababa de abrir. Ahora cada superficie cierra lo suyo —el menú cierra el menú, el diálogo cierra el diálogo— y no lo que otra abrió. Faltaba también **comentar un fragmento**: se creó como una marca sobre el texto que solo dice de qué comentario se trata; lo dicho lo sigue guardando el bloque, así que comentar una frase y comentar el bloque entero son lo mismo guardado en un solo lugar, y por eso el fragmento sobrevive a mover y a convertir. El fragmento comentado va subrayado y al pulsarlo se abre la conversación; borrar el comentario le quita el subrayado. | 6 de 6 |
 | 2026-08-12 | BL-11 | Nada. La identidad ya la tenía cada bloque; lo que faltaba era comprobarla: sobrevive a escribir al lado, a mover el bloque, a anidarlo, a convertirlo y a guardar la página. El enlace se copia con esa identidad, y al abrirlo la página espera a dibujarse antes de decidir —mirar una sola vez siempre encontraba nada— y recién entonces resalta el bloque o avisa que ya no está. Queda una salvedad de verificación: seguir un enlace a un bloque **de la página que ya se está leyendo** solo cambia la dirección, no recarga; eso se implementó y está cubierto por pruebas, pero no logré confirmarlo en el navegador —el servidor de desarrollo sirvió código viejo varias veces en esa sesión. | 6 de 6 |
 | 2026-08-12 | BL-10 | Nada. Faltaba el modo oscuro entero —los tokens `.dark` no existían—, así que se creó: el servidor lee de una cookie cómo lee cada quien y manda la página ya vestida, sin parpadeo, y el menú de la cuenta ofrece claro, oscuro o según el sistema. Los colores se midieron en el navegador en los dos modos: en claro, naranjo (3.34) y amarillo (2.74) no llegaban al mínimo legible de 4.5:1 y se oscurecieron —ahora los ocho van de 4.59 a 7.04—; en oscuro van de 5.59 a 13.48, y el texto sobre cada fondo, de 12.9 a 17.6. Los fondos de noche pasaron a ser un tinte del color sobre la página, no un bloque sólido. | 6 de 6 |
 | 2026-08-12 | BL-09 | Nada. Un clic en el agarre que no va a ninguna parte abre el menú, arrastrarlo sigue moviendo el bloque, Ctrl+/ lo abre sin mouse y Escape lo cierra devolviendo el cursor. Para no ofrecer acciones que fallan al elegirlas hubo que construirlas: el color vive como atributo de todo bloque (junto a su identidad, en un solo lugar), el comentario lo guarda el bloque mismo y por eso viaja con él, el enlace apunta al bloque y al llegar la página se desplaza y lo resalta, y mover a otra página agrega los bloques al final de la elegida antes de sacarlos de esta. El selector de destino lee las páginas del espacio en vez del buscador, que en este entorno devuelve cero resultados incluso para páginas antiguas. | 7 de 7 |

@@ -7,6 +7,8 @@ import {
   PAGE_EDITOR_CALLOUT_CLASS,
   PAGE_EDITOR_COLUMN_CLASS,
   PAGE_EDITOR_COLUMN_LIST_CLASS,
+  PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
+  PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
 } from '../constants/pages.editor.blocks.constants';
@@ -386,9 +388,28 @@ const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | f
   return { href };
 };
 
+const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | false => {
+  const id = element.getAttribute(PAGE_EDITOR_COMMENT_ID_ATTRIBUTE);
+  return id === null || id.length === 0 ? false : { id };
+};
+
 export const pageEditorSchema = new Schema({
   marks: {
     code: { toDOM: (): DOMOutputSpec => ['code', 0] },
+    /**
+     * A remark left on a fragment of the text. It says only which remark it is:
+     * what was said is kept by the block, as it is for a whole block.
+     */
+    comment: {
+      attrs: { id: {} },
+      inclusive: false,
+      parseDOM: [{ getAttrs: getPageEditorCommentAttrs, tag: `span[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]` }],
+      toDOM: (mark): DOMOutputSpec => [
+        'span',
+        { [PAGE_EDITOR_COMMENT_ID_ATTRIBUTE]: mark.attrs.id, class: PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS },
+        0,
+      ],
+    },
     em: { toDOM: (): DOMOutputSpec => ['em', 0] },
     link: {
       attrs: { href: {} },

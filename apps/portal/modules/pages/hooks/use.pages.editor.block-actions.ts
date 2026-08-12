@@ -39,7 +39,7 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     (command: Command): void => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
-      closePageEditorBlockRequest(editorView);
+      closePageEditorBlockRequest(editorView, 'actions');
       command(editorView.state, editorView.dispatch);
       requestAnimationFrame(() => editorView.focus());
     },
@@ -57,19 +57,23 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     [editorViewRef],
   );
 
-  const close = useCallback((): void => {
-    const editorView = editorViewRef.current;
-    if (editorView === null) return;
-    closePageEditorBlockRequest(editorView);
-    requestAnimationFrame(() => editorView.focus());
-  }, [editorViewRef]);
+  /** Puts away what the block was asked, so leaving the menu never closes what it opened. */
+  const close = useCallback(
+    (kind: PageEditorBlockRequestKind): void => {
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      closePageEditorBlockRequest(editorView, kind);
+      requestAnimationFrame(() => editorView.focus());
+    },
+    [editorViewRef],
+  );
 
   const copyLink = useCallback((): void => {
     const editorView = editorViewRef.current;
     if (editorView === null) return;
     const blockId = readPageEditorBlockId(editorView.state);
     if (blockId === null) return;
-    closePageEditorBlockRequest(editorView);
+    closePageEditorBlockRequest(editorView, 'actions');
 
     void navigator.clipboard
       .writeText(buildPageEditorBlockLink(window.location.href, blockId))

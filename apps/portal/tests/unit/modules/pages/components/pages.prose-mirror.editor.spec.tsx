@@ -421,6 +421,32 @@ describe('PagesProseMirrorEditor trigger safety', () => {
   });
 });
 
+describe('PagesProseMirrorEditor block menu', () => {
+  const openBlockMenu = (): void => {
+    renderEditor({ canEdit: true, onContentChange: () => undefined, pageId: 'page-1' });
+    const editor = document.querySelector('.ProseMirror');
+    if (editor === null) throw new Error('editor not rendered');
+
+    fireEvent.keyDown(editor, { ctrlKey: true, key: '/', keyCode: 191 });
+  };
+
+  it('opens what has been said about the block when its menu asks for the comments', async () => {
+    openBlockMenu();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Comment' }));
+
+    await waitFor(() => expect(screen.getByText('Block comments')).toBeDefined());
+  });
+
+  it('opens where the block is going when its menu asks to move it', async () => {
+    openBlockMenu();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to…' }));
+
+    await waitFor(() => expect(screen.getByText('Move the blocks to another page')).toBeDefined());
+  });
+});
+
 describe('PagesProseMirrorEditor content notifications', () => {
   it('does not report a content change when only the pointer moves over a block', async () => {
     const reportedChanges: unknown[] = [];

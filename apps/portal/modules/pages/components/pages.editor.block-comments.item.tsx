@@ -2,6 +2,7 @@
 
 import type { PageBlockComment } from '@company-brain/shared';
 import { useFormatter, useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
 
 interface IProps {
   readonly comment: PageBlockComment;
@@ -24,14 +25,10 @@ export const PagesEditorBlockCommentItem = ({ comment, onRemove }: IProps) => {
             : format.dateTime(writtenAt, { dateStyle: 'short', timeStyle: 'short' })}
         </span>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-foreground text-sm">{comment.body}</p>
-      <button
-        className="mt-2 min-h-11 text-muted-foreground text-xs hover:text-foreground"
-        onClick={() => onRemove(comment.id)}
-        type="button"
-      >
+      <p className="mt-1 whitespace-pre-wrap font-reading text-foreground text-sm">{comment.body}</p>
+      <Button className="mt-2 min-h-11" onClick={() => onRemove(comment.id)} size="sm" type="button" variant="ghost">
         {t('removeBlockComment')}
-      </button>
+      </Button>
     </li>
   );
 };

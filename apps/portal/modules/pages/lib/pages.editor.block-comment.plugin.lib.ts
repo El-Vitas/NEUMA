@@ -3,13 +3,14 @@ import { Plugin as EditorPlugin } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
+  PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
   PAGE_EDITOR_COMMENT_MARK_ICON_CLASS,
   PAGE_EDITOR_COMMENT_MARK_ICON_PATH,
   PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS,
   PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS,
   PAGE_EDITOR_SVG_NAMESPACE,
 } from '../constants/pages.editor.blocks.constants';
-import { openPageEditorBlockRequest } from './pages.editor.block-menu.lib';
+import { openPageEditorBlockCommentsAt, openPageEditorBlockRequest } from './pages.editor.block-menu.lib';
 
 const countBlockComments = (block: EditorNode): number => {
   const comments = block.attrs[PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE];
@@ -78,9 +79,14 @@ const collectCommentMarks = (document: EditorNode, label: string): readonly Deco
   return marks;
 };
 
+/** A commented fragment answers to a click, which is what its underline is inviting. */
+const isPointingAtCommentedText = (event: MouseEvent): boolean =>
+  event.target instanceof Element && event.target.closest(`[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]`) !== null;
+
 /**
  * Marks the blocks that have been talked about with a bubble on their right,
- * which opens what was said and where to say more.
+ * which opens what was said and where to say more, and lets a commented
+ * fragment of text open the same conversation when it is clicked.
  *
  * A comment nobody can see is a comment nobody answers, so the mark is drawn
  * from the block itself and appears the moment the first remark lands.
@@ -89,5 +95,10 @@ export const createPageEditorBlockCommentPlugin = (label: string): EditorPlugin 
   new EditorPlugin({
     props: {
       decorations: (state) => DecorationSet.create(state.doc, [...collectCommentMarks(state.doc, label)]),
+      handleClick: (view, place, event) => {
+        if (!isPointingAtCommentedText(event)) return false;
+        openPageEditorBlockCommentsAt(view, place);
+        return true;
+      },
     },
   });

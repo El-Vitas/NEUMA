@@ -58,9 +58,22 @@ describe('asking a block what can be done to it', () => {
     const { container, view } = mountEditor([paragraph('Uno')]);
     openPageEditorBlockRequest(view, 0, 'actions');
 
-    closePageEditorBlockRequest(view);
+    closePageEditorBlockRequest(view, 'actions');
 
     expect(readPageEditorBlockRequest(view.state)).toBeNull();
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('leaves the comments open when the menu that opened them closes behind them', () => {
+    const { container, view } = mountEditor([paragraph('Uno')]);
+    openPageEditorBlockRequest(view, 0, 'actions');
+    openPageEditorBlockRequest(view, 0, 'comments');
+
+    closePageEditorBlockRequest(view, 'actions');
+
+    expect(readPageEditorBlockRequest(view.state)).toEqual({ blockStart: 0, kind: 'comments' });
 
     view.destroy();
     container.remove();

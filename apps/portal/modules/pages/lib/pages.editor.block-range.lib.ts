@@ -1,4 +1,4 @@
-import type { Node as EditorNode, NodeRange } from 'prosemirror-model';
+import type { Node as EditorNode, NodeRange, ResolvedPos } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_BLOCK_GROUP } from '../constants/pages.editor.blocks.constants';
 import { acceptsSiblingBlocks } from './pages.editor.block-target.lib';
@@ -21,3 +21,7 @@ export const holdsStandaloneBlocks = (node: EditorNode): boolean =>
  */
 export const findSelectedPageBlocks = (state: EditorState): NodeRange | null =>
   state.selection.$from.blockRange(state.selection.$to, holdsStandaloneBlocks);
+
+/** The block a single place in the page belongs to, read the same way as the ones a selection covers. */
+export const findPageBlockAround = (place: ResolvedPos): NodeRange | null =>
+  place.blockRange(place, holdsStandaloneBlocks);

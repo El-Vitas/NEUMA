@@ -31,6 +31,7 @@ import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arri
 import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
+import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import {
@@ -374,7 +375,7 @@ export const PagesProseMirrorEditor = forwardRef(
             </div>
           )}
           <div
-            className="w-full bg-surface py-4 text-base/7 outline-none"
+            className="w-full bg-surface py-4 font-reading text-base leading-[1.6] outline-none"
             id="page-content"
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}
@@ -415,6 +416,11 @@ export const PagesProseMirrorEditor = forwardRef(
               <PagesEditorToolbar
                 commands={PAGE_EDITOR_COMMANDS}
                 conversions={surface.conversions}
+                onComment={() => {
+                  const editorView = editorViewRef.current;
+                  if (editorView === null) return;
+                  openPageEditorFragmentComments(editorView);
+                }}
                 onConvert={(targetId) => {
                   const editorView = editorViewRef.current;
                   if (editorView === null) return;
