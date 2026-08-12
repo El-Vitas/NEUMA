@@ -355,7 +355,9 @@
       "selectBlock": "Seleccionar el bloque completo",
       "selectBlockThenPage": "Seleccionar el bloque y, otra vez, la página",
       "undo": "Deshacer",
-      "redo": "Rehacer"
+      "redo": "Rehacer",
+      "duplicateBlock": "Duplicar el bloque, con lo que cuelga de él",
+      "deleteBlock": "Eliminar los bloques seleccionados"
     },
     "selectedBlocks": "{count} bloques seleccionados",
     "blockTypes": {

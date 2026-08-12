@@ -2,7 +2,6 @@ import type { Attrs, Node as EditorNode, NodeRange, NodeType, Schema } from 'pro
 import { Fragment } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { NodeSelection, Selection } from 'prosemirror-state';
-import { PAGE_EDITOR_BLOCK_GROUP } from '../constants/pages.editor.blocks.constants';
 import {
   PAGE_EDITOR_ARRANGEMENT_BLOCK_TYPES,
   PAGE_EDITOR_BLOCK_TARGETS,
@@ -16,7 +15,7 @@ import type {
   PageEditorBlockTarget,
   PageEditorConversionSource,
 } from '../types/pages.editor.convert.types';
-import { acceptsSiblingBlocks } from './pages.editor.block-target.lib';
+import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
 
 const mergeLines = (read: readonly PageEditorBlockLines[]): PageEditorBlockLines => ({
   keepsEverything: read.every((entry) => entry.keepsEverything),
@@ -36,22 +35,9 @@ const readBlockLines = (block: EditorNode): PageEditorBlockLines => {
   return PAGE_EDITOR_BLOCKS_BEYOND_THEIR_LINES.includes(block.type.name) ? { ...read, keepsEverything: false } : read;
 };
 
-/**
- * A container that only exists to hold blocks — the page, a column, a cell,
- * what hangs from a nesting — as opposed to a block that happens to hold
- * others, such as a quote or a callout, which is itself what a conversion aims
- * at.
- */
-const holdsStandaloneBlocks = (node: EditorNode): boolean =>
-  acceptsSiblingBlocks(node) && node.type.spec.group !== PAGE_EDITOR_BLOCK_GROUP;
-
-/**
- * The blocks a conversion applies to: every block the selection covers, read
- * from the container that holds them as siblings, so a cursor inside a quote
- * converts the quote and a cursor in a table cell converts only that paragraph.
- */
+/** The blocks a conversion applies to, read as the lines of text they hold. */
 const readSelectedBlocks = (state: EditorState): PageEditorConversionSource | null => {
-  const range = state.selection.$from.blockRange(state.selection.$to, holdsStandaloneBlocks);
+  const range = findSelectedPageBlocks(state);
   if (range === null) return null;
   const blocks = range.parent.children.slice(range.startIndex, range.endIndex);
   const read = mergeLines(blocks.map(readBlockLines));

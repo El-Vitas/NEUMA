@@ -98,12 +98,14 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-08 · Debe permitir duplicar y eliminar
 
-- [ ] Un bloque se puede duplicar, y la copia queda justo debajo
-- [ ] Un bloque se puede eliminar
-- [ ] Retroceso al inicio de un bloque vacío lo elimina y sube el cursor
-- [ ] Se pueden duplicar y eliminar varios bloques seleccionados
-- [ ] Duplicar un bloque con hijos duplica también los hijos
-- [ ] Eliminar se puede deshacer con el contenido intacto
+**Cómo probarlo:** Ctrl+D duplica; Ctrl+Shift+Retroceso elimina. Ambos aparecen en la lista de atajos.
+
+- [x] Un bloque se puede duplicar, y la copia queda justo debajo
+- [x] Un bloque se puede eliminar
+- [x] Retroceso al inicio de un bloque vacío lo elimina y sube el cursor
+- [x] Se pueden duplicar y eliminar varios bloques seleccionados
+- [x] Duplicar un bloque con hijos duplica también los hijos
+- [x] Eliminar se puede deshacer con el contenido intacto
 
 ## BL-09 · Debe ofrecer un menú de acciones por bloque
 
@@ -198,5 +200,6 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-08 | Nada. Duplicar y eliminar leen los bloques igual que convertir —una sola respuesta a qué bloques mira un gesto—, así que la copia se lleva lo que cuelga del bloque y recibe una identidad propia, y borrar el último bloque deja una página en la que todavía se puede escribir. | 6 de 6 |
 | 2026-08-12 | BL-07 | Nada. Faltaban dos tipos del contrato —**tarea** y **destacado**—, así que se crearon: la tarea se marca desde la página misma, no desde la casilla del navegador, para que lo hecho viva en el bloque. La conversión nace de una lista única de tipos destino: cada uno se arma y se mide contra el sitio donde vive el bloque antes de ofrecerse, de modo que lo que aparece en el menú es lo que el editor puede hacer, y lo que dejaría algo atrás lo avisa antes. | 7 de 7 |
 | 2026-08-12 | BL-04 | Los **diagramas**, que no existen como tipo de bloque; imágenes, tablas, código y colecciones sí se mueven. Por el camino nacieron las columnas (soltar al borde de un bloque parte la fila, con separador para repartir el ancho) y el desplegable pasó a abrirse y titularse. | 11 de 12 |
