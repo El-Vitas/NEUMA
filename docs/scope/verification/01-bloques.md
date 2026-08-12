@@ -64,10 +64,10 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-05 · Debe permitir mover un bloque con el teclado
 
-- [ ] Hay un atajo para subir el bloque actual una posición
-- [ ] Hay un atajo para bajarlo
-- [ ] Funciona con varios bloques seleccionados
-- [ ] El atajo aparece en la lista de atajos de la aplicación
+- [x] Hay un atajo para subir el bloque actual una posición
+- [x] Hay un atajo para bajarlo
+- [x] Funciona con varios bloques seleccionados
+- [x] El atajo aparece en la lista de atajos de la aplicación
 
 ## BL-06 · Debe permitir anidar un bloque dentro de otro
 
@@ -194,4 +194,5 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-01 | Nada. Insertarla desde el menú `/` queda pendiente en `TB-23`, no aquí. | 6 de 6 |
 | 2026-08-11 | BL-03 | Nada. Arrastrar y shift+clic producen selección de texto sobre varios bloques, que es el comportamiento nativo del editor. | 8 de 8 |
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio, como Notion. | 14 de 14 |
+| 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
 | 2026-08-12 | BL-04 | Los **diagramas**, que no existen como tipo de bloque; imágenes, tablas, código y colecciones sí se mueven. Por el camino nacieron las columnas (soltar al borde de un bloque parte la fila, con separador para repartir el ancho) y el desplegable pasó a abrirse y titularse. | 11 de 12 |

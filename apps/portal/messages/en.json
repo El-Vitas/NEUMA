@@ -342,6 +342,19 @@
     },
     "insertBlock": "Insert block below",
     "appendBlock": "+ Add a block",
+    "shortcutsTitle": "Keyboard shortcuts",
+    "shortcutsDescription": "What the editor obeys from the keyboard.",
+    "openShortcuts": "Keyboard shortcuts",
+    "shortcuts": {
+      "moveBlockUp": "Move the block up one place",
+      "moveBlockDown": "Move the block down one place",
+      "indentBlock": "Nest the block under the one above",
+      "outdentBlock": "Take the block out of where it is nested",
+      "selectBlock": "Select the whole block",
+      "selectBlockThenPage": "Select the block, then the page",
+      "undo": "Undo",
+      "redo": "Redo"
+    },
     "selectedBlocks": "{count} blocks selected"
   },
   "errors": {

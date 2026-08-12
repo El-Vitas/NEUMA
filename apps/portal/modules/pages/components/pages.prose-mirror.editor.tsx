@@ -50,6 +50,7 @@ import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PagesEditorMenuItem, PagesEditorTriggerKind } from '../types/pages.editor.slash-menu.types';
 import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
+import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
 import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
 import { PagesEditorToolbar } from './pages.editor.toolbar';
 
@@ -83,6 +84,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const [collectionHosts, setCollectionHosts] = useState<readonly { element: HTMLElement; pageId: string }[]>([]);
     const [recentCommandIds, setRecentCommandIds] = useState<readonly string[]>([]);
     const [selectedBlockCount, setSelectedBlockCount] = useState(0);
+    const [usesCommandKey, setUsesCommandKey] = useState(false);
 
     const syncCollectionHosts = useCallback(() => {
       const editorHost = editorHostRef.current;
@@ -249,6 +251,10 @@ export const PagesProseMirrorEditor = forwardRef(
     useEffect(() => {
       contentCallbackRef.current = onContentChange;
     }, [onContentChange]);
+
+    useEffect(() => {
+      setUsesCommandKey(navigator.platform.toLowerCase().includes('mac'));
+    }, []);
 
     useEffect(() => {
       const editorHost = editorHostRef.current;
@@ -420,18 +426,21 @@ export const PagesProseMirrorEditor = forwardRef(
             </p>
           )}
           {canEdit && (
-            <button
-              className="flex min-h-11 w-full items-center text-left text-muted-foreground text-sm hover:text-foreground"
-              onClick={() => {
-                const editorView = editorViewRef.current;
-                if (editorView === null) return;
-                appendParagraphAtEnd(editorView.state, editorView.dispatch);
-                editorView.focus();
-              }}
-              type="button"
-            >
-              {t('appendBlock')}
-            </button>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <button
+                className="flex min-h-11 items-center text-left text-muted-foreground text-sm hover:text-foreground"
+                onClick={() => {
+                  const editorView = editorViewRef.current;
+                  if (editorView === null) return;
+                  appendParagraphAtEnd(editorView.state, editorView.dispatch);
+                  editorView.focus();
+                }}
+                type="button"
+              >
+                {t('appendBlock')}
+              </button>
+              <PagesEditorShortcutsDialog usesCommandKey={usesCommandKey} />
+            </div>
           )}
           {canEdit && selectionToolbarPosition !== null && (
             <div

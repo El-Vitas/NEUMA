@@ -8,6 +8,7 @@ import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
 import { splitListItem, wrapInList } from 'prosemirror-schema-list';
 import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
+import { PAGE_EDITOR_SHORTCUTS } from '../constants/pages.editor.shortcuts.constants';
 import type {
   PageAssetInsertCommandOptions,
   PageAssetNodeType,
@@ -19,8 +20,8 @@ import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.l
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
-import { indentPageEditorBlock, outdentPageEditorBlock, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
-import { selectBlockThenDocument, selectEnclosingBlock } from './pages.editor.selection.lib';
+import { splitOutOfNestedBlock } from './pages.editor.nesting.lib';
+import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
@@ -178,22 +179,11 @@ export const createPageEditorPlugins = (
       wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
     ],
   }),
-  keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
-  keymap(
-    Object.fromEntries([
-      ['Escape', selectEnclosingBlock],
-      ['Mod-a', selectBlockThenDocument],
-      ['Enter', splitOutOfNestedBlock],
-    ]),
-  ),
+  keymap({ 'Mod-y': redo }),
+  keymap(createPageEditorShortcutBindings(PAGE_EDITOR_SHORTCUTS)),
+  keymap(Object.fromEntries([['Enter', splitOutOfNestedBlock]])),
   keymap(baseKeymap),
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
-  keymap(
-    Object.fromEntries([
-      ['Tab', indentPageEditorBlock],
-      ['Shift-Tab', outdentPageEditorBlock],
-    ]),
-  ),
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
   createPageEditorBlockDragPlugin(),

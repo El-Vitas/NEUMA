@@ -342,6 +342,19 @@
     },
     "insertBlock": "Insertar bloque debajo",
     "appendBlock": "+ Añadir un bloque",
+    "shortcutsTitle": "Atajos de teclado",
+    "shortcutsDescription": "Lo que el editor obedece desde el teclado.",
+    "openShortcuts": "Atajos de teclado",
+    "shortcuts": {
+      "moveBlockUp": "Subir el bloque una posición",
+      "moveBlockDown": "Bajar el bloque una posición",
+      "indentBlock": "Anidar el bloque bajo el anterior",
+      "outdentBlock": "Sacar el bloque de donde está anidado",
+      "selectBlock": "Seleccionar el bloque completo",
+      "selectBlockThenPage": "Seleccionar el bloque y, otra vez, la página",
+      "undo": "Deshacer",
+      "redo": "Rehacer"
+    },
     "selectedBlocks": "{count} bloques seleccionados"
   },
   "errors": {
