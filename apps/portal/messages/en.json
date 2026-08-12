@@ -355,7 +355,9 @@
       "selectBlock": "Select the whole block",
       "selectBlockThenPage": "Select the block, then the page",
       "undo": "Undo",
-      "redo": "Redo"
+      "redo": "Redo",
+      "duplicateBlock": "Duplicate the block, and whatever hangs from it",
+      "deleteBlock": "Delete the selected blocks"
     },
     "selectedBlocks": "{count} blocks selected",
     "blockTypes": {

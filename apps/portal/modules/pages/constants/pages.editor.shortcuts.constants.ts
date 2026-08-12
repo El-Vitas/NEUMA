@@ -1,4 +1,6 @@
 import { redo, undo } from 'prosemirror-history';
+import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
+import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { movePageEditorBlockDown, movePageEditorBlockUp } from '../lib/pages.editor.block-move.lib';
 import { indentPageEditorBlock, outdentPageEditorBlock } from '../lib/pages.editor.nesting.lib';
 import { selectBlockThenDocument, selectEnclosingBlock } from '../lib/pages.editor.selection.lib';
@@ -15,6 +17,8 @@ export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-Shift-ArrowDown', labelKey: 'moveBlockDown', run: movePageEditorBlockDown },
   { binding: 'Tab', labelKey: 'indentBlock', run: indentPageEditorBlock },
   { binding: 'Shift-Tab', labelKey: 'outdentBlock', run: outdentPageEditorBlock },
+  { binding: 'Mod-d', labelKey: 'duplicateBlock', run: duplicatePageEditorBlock },
+  { binding: 'Mod-Shift-Backspace', labelKey: 'deleteBlock', run: deletePageEditorBlocks },
   { binding: 'Escape', labelKey: 'selectBlock', run: selectEnclosingBlock },
   { binding: 'Mod-a', labelKey: 'selectBlockThenPage', run: selectBlockThenDocument },
   { binding: 'Mod-z', labelKey: 'undo', run: undo },
@@ -33,7 +37,9 @@ export const PAGE_EDITOR_SHORTCUT_KEY_STYLE_CLASS =
 export const PAGE_EDITOR_SHORTCUT_KEY_LABELS: Readonly<Record<string, string>> = {
   ArrowDown: '↓',
   ArrowUp: '↑',
+  Backspace: '⌫',
   Escape: 'Esc',
   a: 'A',
+  d: 'D',
   z: 'Z',
 };
