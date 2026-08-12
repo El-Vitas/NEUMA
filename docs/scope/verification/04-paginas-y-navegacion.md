@@ -35,6 +35,8 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## PG-04 · Debe permitir ponerle un ícono a la página
 
+**Cómo debe sentirse la interacción:** el botón aparece al pasar el cursor sobre la cabecera y no ocupa lugar cuando la página no tiene ícono.
+
 - [ ] Hay un botón para agregar un ícono sobre el título
 - [ ] Se puede elegir un emoji
 - [ ] Se puede subir una imagen como ícono
@@ -44,6 +46,8 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [ ] Se puede quitar
 
 ## PG-05 · Debe permitir una imagen de portada
+
+**De dónde mirar la interacción:** misma referencia que PG-04 —la portada se cambia y se quita desde botones que solo aparecen sobre ella, y el contenido no salta al ponerla.
 
 - [ ] Hay un botón para agregar una portada
 - [ ] Se puede subir una imagen propia
