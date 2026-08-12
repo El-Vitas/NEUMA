@@ -54,6 +54,53 @@ describe('deciding which block a gesture is aimed at', () => {
     expect(state.doc.nodeAt(0)?.type.name).toBe('table');
   });
 
+  it('hands over the whole callout when someone reaches for the line written inside it', () => {
+    const state = createState({
+      content: [
+        { content: [{ content: [{ text: 'Aviso', type: 'text' }], type: 'paragraph' }], type: 'callout' },
+        { content: [{ text: 'Debajo', type: 'text' }], type: 'paragraph' },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    });
+
+    expect(startFrom(state, findTextPosition(state, 'Aviso'), offersGrabbableBlocks)).toBe(0);
+    expect(state.doc.nodeAt(0)?.type.name).toBe('callout');
+  });
+
+  it('hands over the whole quote as well, which is one block and not the lines it holds', () => {
+    const state = createState({
+      content: [
+        { content: [{ content: [{ text: 'Citado', type: 'text' }], type: 'paragraph' }], type: 'blockquote' },
+        { content: [{ text: 'Debajo', type: 'text' }], type: 'paragraph' },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    });
+
+    expect(startFrom(state, findTextPosition(state, 'Citado'), offersGrabbableBlocks)).toBe(0);
+  });
+
+  it('still hands over the block hanging from another one, which is moved on its own', () => {
+    const state = createState({
+      content: [
+        {
+          content: [
+            { content: [{ text: 'Padre', type: 'text' }], type: 'paragraph' },
+            { content: [{ content: [{ text: 'Hijo', type: 'text' }], type: 'paragraph' }], type: 'block_children' },
+          ],
+          type: 'nested_block',
+        },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    });
+    const child = startFrom(state, findTextPosition(state, 'Hijo'), offersGrabbableBlocks);
+
+    expect(child).not.toBe(0);
+    expect(state.doc.nodeAt(child ?? 0)?.textContent).toBe('Hijo');
+  });
+
   it('still lets a block land inside the cell, which is a different question', () => {
     const state = createState(pageWithATable);
     const insideCell = startFrom(state, findTextPosition(state, 'Celda'), acceptsSiblingBlocks);

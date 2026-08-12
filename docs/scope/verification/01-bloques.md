@@ -178,14 +178,14 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 **Cómo probarlo:** toma la lista de tipos de `02-tipos-de-bloque.md` y prueba sobre cada uno las operaciones de arriba.
 
-- [ ] Arrastrar funciona en todos los tipos
-- [ ] Anidar funciona en todos los tipos
-- [ ] Duplicar funciona en todos los tipos
-- [ ] Eliminar funciona en todos los tipos
-- [ ] El menú de bloque aparece en todos los tipos
-- [ ] Copiar enlace funciona en todos los tipos
-- [ ] Seleccionar junto a otros bloques funciona en todos los tipos
-- [ ] Ningún tipo queda como isla que solo se puede editar por dentro
+- [x] Arrastrar funciona en todos los tipos
+- [x] Anidar funciona en todos los tipos
+- [x] Duplicar funciona en todos los tipos
+- [x] Eliminar funciona en todos los tipos
+- [x] El menú de bloque aparece en todos los tipos
+- [x] Copiar enlace funciona en todos los tipos
+- [x] Seleccionar junto a otros bloques funciona en todos los tipos
+- [x] Ningún tipo queda como isla que solo se puede editar por dentro
 
 ## BL-16 · Debe conservar los bloques que no entiende
 
@@ -213,6 +213,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-15 | **El destacado y la cita eran islas**: el agarre que aparecía sobre ellos pertenecía siempre a la línea de adentro, así que arrastrarlos los vaciaba en vez de moverlos, y el ratón apuntaba a un bloque distinto del que respondía el teclado. Ahora solo entrega lo de adentro lo que existe para contener bloques —la página, una columna, lo que cuelga de una anidación—, y la tabla sigue siendo la excepción que se toma entera. Se probó una página con los diez tipos que hoy se pueden escribir (párrafo, encabezado, viñetas, numerada, tareas, cita, destacado, código, tabla, desplegable) más una imagen: en todos aparece el agarre y el menú, y todos se duplican, se borran, se anidan, se arrastran y se seleccionan junto a otros —cuatro bloques de tipos distintos a la vez—, con Ctrl+Z devolviendo cada operación. Quedan sin ejercitar los tipos que aún no se pueden insertar desde el editor (colección, incrustado) y los que no existen. Por el camino aparecieron tres cosas para sus propios bloques: `[]` no crea una tarea, ``` no crea un bloque de código, y la búsqueda del menú `/` no ignora los acentos (`/codigo` no encuentra «Bloque de código»). | 8 de 8 |
 | 2026-08-12 | BL-14 | Faltaba la acción en el menú, no la operación: convertir bloques en página ya se había construido para el arrastre al árbol, así que ambas formas de pedirlo son ahora la misma —los bloques viajan enteros y la página se titula con su primera línea— y lo único que cambia es de quién es hija y qué queda en su lugar. Desde el menú, la página es hija de la que se está escribiendo y donde estaban los bloques queda un enlace: la misma mención que se escribe con `@`, una sola manera de apuntar a una página venga de donde venga. | 5 de 5 |
 | 2026-08-12 | BL-13 | **Mover varios bloques movía uno solo**: al pasar del menú al selector de destino se volvía a elegir el bloque del menú, y con eso se soltaban los demás. Ahora, cambiar lo que se le pregunta a un bloque no toca lo que la página tiene tomado. Faltaba también **arrastrar un bloque al árbol lateral**: el árbol dice qué filas pueden recibir bloques y qué página es cada una, y el editor lo lee; al soltar, los bloques —con lo que cuelgue de ellos— se convierten en una página hija titulada con su primera línea, salen de esta, y el aviso ofrece ir a verla. | 7 de 7 |
 | 2026-08-12 | BL-12 | **Comentar desde el menú no abría nada**: al elegir «Comentar» o «Mover a…», el menú se despedía cerrando justo lo que acababa de abrir. Ahora cada superficie cierra lo suyo —el menú cierra el menú, el diálogo cierra el diálogo— y no lo que otra abrió. Faltaba también **comentar un fragmento**: se creó como una marca sobre el texto que solo dice de qué comentario se trata; lo dicho lo sigue guardando el bloque, así que comentar una frase y comentar el bloque entero son lo mismo guardado en un solo lugar, y por eso el fragmento sobrevive a mover y a convertir. El fragmento comentado va subrayado y al pulsarlo se abre la conversación; borrar el comentario le quita el subrayado. | 6 de 6 |
