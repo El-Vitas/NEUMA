@@ -1,7 +1,9 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { PAGE_EDITOR_COLLECTION_CLASS } from '../constants/pages.editor.blocks.constants';
+import { PAGE_EDITOR_COLLECTION_CLASS, PAGE_EDITOR_TASK_ITEM_TYPE } from '../constants/pages.editor.blocks.constants';
+import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
 
 const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeURIComponent(assetId)}`;
@@ -47,13 +49,15 @@ const createPageMentionNodeView = (node: EditorNode): NodeView => {
 };
 
 export const createPageEditorNodeViews = (
-  collectionLabel: string,
+  labels: PageEditorNodeViewLabels,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
-  collection: (node) => createPageCollectionNodeView(node, collectionLabel),
+  collection: (node) => createPageCollectionNodeView(node, labels.collection),
   file: createPageFileNodeView,
   image: createPageImageNodeView,
   mention: createPageMentionNodeView,
+  [PAGE_EDITOR_TASK_ITEM_TYPE]: (node, view, getPosition) =>
+    createPageTaskItemNodeView(node, view, getPosition, labels.task),
   toggle: createPageToggleNodeView,
 });

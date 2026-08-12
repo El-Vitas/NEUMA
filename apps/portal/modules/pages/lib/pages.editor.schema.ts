@@ -3,8 +3,12 @@ import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-mo
 import { Schema } from 'prosemirror-model';
 import {
   PAGE_EDITOR_BLOCK_CHILDREN_CLASS,
+  PAGE_EDITOR_BLOCK_ID_ATTRIBUTE,
+  PAGE_EDITOR_CALLOUT_CLASS,
   PAGE_EDITOR_COLUMN_CLASS,
   PAGE_EDITOR_COLUMN_LIST_CLASS,
+  PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
+  PAGE_EDITOR_TASK_LIST_CLASS,
 } from '../constants/pages.editor.blocks.constants';
 import { definePageBlock } from './pages.editor.block-spec.lib';
 
@@ -51,6 +55,11 @@ const getPageEditorCollectionAttrs = (
   const viewName = element.getAttribute('data-view-name');
   return { pageId, spaceId, viewName: viewName === null || viewName.length === 0 ? null : viewName };
 };
+
+const getPageEditorTaskAttrs = (element: Element): { readonly checked: boolean; readonly id: string | null } => ({
+  checked: element.hasAttribute('data-checked'),
+  id: element.getAttribute(PAGE_EDITOR_BLOCK_ID_ATTRIBUTE),
+});
 
 const getPageEditorColumnAttrs = (element: Element): { readonly id: string | null; readonly width: number | null } => {
   const width = Number.parseFloat(element.getAttribute('data-width') ?? '');
@@ -187,6 +196,52 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       defining: true,
       parseDOM: [{ tag: 'li' }],
       render: (_node, blockAttributes) => ['li', blockAttributes, 0],
+    }),
+  ],
+  [
+    'task_list',
+    definePageBlock({
+      content: 'task_item+',
+      group: 'block',
+      parseDOM: [{ tag: 'ul[data-task-list]' }],
+      render: (_node, blockAttributes) => [
+        'ul',
+        { ...blockAttributes, 'data-task-list': 'true', class: PAGE_EDITOR_TASK_LIST_CLASS },
+        0,
+      ],
+    }),
+  ],
+  [
+    'task_item',
+    definePageBlock({
+      attrs: { checked: { default: false } },
+      content: 'paragraph block*',
+      defining: true,
+      parseDOM: [{ getAttrs: getPageEditorTaskAttrs, tag: 'li[data-task-item]' }],
+      render: (node, blockAttributes) => [
+        'li',
+        {
+          ...blockAttributes,
+          'data-task-item': 'true',
+          class: PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
+          ...(node.attrs.checked === true ? { 'data-checked': 'true' } : {}),
+        },
+        0,
+      ],
+    }),
+  ],
+  [
+    'callout',
+    definePageBlock({
+      content: 'block+',
+      defining: true,
+      group: 'block',
+      parseDOM: [{ tag: 'aside[data-callout]' }],
+      render: (_node, blockAttributes) => [
+        'aside',
+        { ...blockAttributes, 'data-callout': 'true', class: PAGE_EDITOR_CALLOUT_CLASS },
+        0,
+      ],
     }),
   ],
   [

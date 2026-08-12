@@ -164,6 +164,21 @@ export type PageContentNode =
   | {
       readonly attrs?: { readonly id?: string };
       readonly content: readonly PageContentNode[];
+      readonly type: 'task_list';
+    }
+  | {
+      readonly attrs?: { readonly checked?: boolean; readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'task_item';
+    }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'callout';
+    }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
       readonly type: 'blockquote';
     }
   | {
@@ -247,6 +262,19 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
         content: pageNodeListSchema,
         type: z.literal('list_item'),
       })
+      .strict(),
+    z
+      .object({ attrs: pageIdOnlyAttrsSchema.optional(), content: pageNodeListSchema, type: z.literal('task_list') })
+      .strict(),
+    z
+      .object({
+        attrs: z.object({ checked: z.boolean().optional(), id: pageBlockIdSchema.optional() }).strict().optional(),
+        content: pageNodeListSchema,
+        type: z.literal('task_item'),
+      })
+      .strict(),
+    z
+      .object({ attrs: pageIdOnlyAttrsSchema.optional(), content: pageNodeListSchema, type: z.literal('callout') })
       .strict(),
     z
       .object({
@@ -362,6 +390,9 @@ type PageBlockParentType = Extract<
   | 'toggle'
   | 'column_list'
   | 'column'
+  | 'task_list'
+  | 'task_item'
+  | 'callout'
 >;
 
 const pageFlowChildTypes: readonly PageContentNode['type'][] = [
@@ -369,7 +400,9 @@ const pageFlowChildTypes: readonly PageContentNode['type'][] = [
   'heading',
   'bullet_list',
   'ordered_list',
+  'task_list',
   'blockquote',
+  'callout',
   'code_block',
 ];
 
@@ -398,6 +431,9 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
   table_cell: pageContainerChildTypes,
   table_row: ['table_cell'],
   toggle: pageContainerChildTypes,
+  task_list: ['task_item'],
+  task_item: pageContainerChildTypes,
+  callout: pageContainerChildTypes,
   column_list: ['column'],
   column: pageContainerChildTypes,
 };

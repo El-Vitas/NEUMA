@@ -288,7 +288,9 @@
       "redo": "Redo",
       "table": "Table",
       "toggle": "Toggle",
-      "undo": "Undo"
+      "undo": "Undo",
+      "taskList": "To-do list",
+      "callout": "Callout"
     },
     "backlinks": {
       "title": "Linked from ({count})"
@@ -355,7 +357,26 @@
       "undo": "Undo",
       "redo": "Redo"
     },
-    "selectedBlocks": "{count} blocks selected"
+    "selectedBlocks": "{count} blocks selected",
+    "blockTypes": {
+      "paragraph": "Paragraph",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bulletList": "Bulleted list",
+      "orderedList": "Numbered list",
+      "taskList": "To-do list",
+      "blockquote": "Quote",
+      "callout": "Callout",
+      "codeBlock": "Code block"
+    },
+    "taskBlock": "Task",
+    "turnInto": "Turn into",
+    "turnIntoLosesContent": "loses content",
+    "turnIntoWarningTitle": "This conversion loses content",
+    "turnIntoWarningDescription": "Turning it into {blockType} drops part of what the block holds: anything that is not text, and whatever hangs from it. Convert anyway?",
+    "turnIntoCancel": "Cancel",
+    "turnIntoConfirm": "Convert anyway"
   },
   "errors": {
     "generic": "Something went wrong.",

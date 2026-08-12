@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { FormActions } from '@/shared/components/forms/form-actions';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
+import { BackButton } from '@/shared/components/ui/back-button';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { EMPTY_PAGE_BACKLINKS } from '../constants/pages.constants';
@@ -188,9 +190,11 @@ export const PagesEditor = ({
           ref={editorHandleRef}
         />
         {canEdit && page === null && (
-          <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
-            {isPending ? t('saving') : t('create')}
-          </PrimaryButton>
+          <FormActions back={<BackButton href={ROUTES.PORTAL_SPACE(spaceId)} />}>
+            <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
+              {isPending ? t('saving') : t('create')}
+            </PrimaryButton>
+          </FormActions>
         )}
         {autosave.hasError && (
           <p aria-live="polite" className="text-destructive text-sm" role="status">

@@ -9,15 +9,19 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { PAGE_EDITOR_PRIMARY_COMMAND_NAMES } from '../constants/pages.editor.constants';
+import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageEditorCommand } from '../types/pages.types';
+import { PagesEditorTurnIntoMenu } from './pages.editor.turn-into.menu';
 
 interface IProps {
   readonly commands: Readonly<Record<string, PageEditorCommand>>;
+  readonly conversions: readonly PageEditorBlockConversion[];
+  readonly onConvert: (targetId: string) => void;
   readonly onDismiss: () => void;
   readonly onRunCommand: (command: PageEditorCommand) => void;
 }
 
-export const PagesEditorToolbar = ({ commands, onDismiss, onRunCommand }: IProps) => {
+export const PagesEditorToolbar = ({ commands, conversions, onConvert, onDismiss, onRunCommand }: IProps) => {
   const t = useTranslations('pages');
   const primaryCommands = PAGE_EDITOR_PRIMARY_COMMAND_NAMES.map(
     (commandName) => [commandName, commands[commandName]] as const,
@@ -50,6 +54,7 @@ export const PagesEditorToolbar = ({ commands, onDismiss, onRunCommand }: IProps
           {t(`commands.${command.labelKey}`)}
         </button>
       ))}
+      <PagesEditorTurnIntoMenu conversions={conversions} onConvert={onConvert} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

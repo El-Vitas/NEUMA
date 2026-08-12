@@ -288,7 +288,9 @@
       "redo": "Rehacer",
       "table": "Tabla",
       "toggle": "Desplegable",
-      "undo": "Deshacer"
+      "undo": "Deshacer",
+      "taskList": "Lista de tareas",
+      "callout": "Destacado"
     },
     "backlinks": {
       "title": "Vinculado desde ({count})"
@@ -355,7 +357,26 @@
       "undo": "Deshacer",
       "redo": "Rehacer"
     },
-    "selectedBlocks": "{count} bloques seleccionados"
+    "selectedBlocks": "{count} bloques seleccionados",
+    "blockTypes": {
+      "paragraph": "Párrafo",
+      "heading1": "Encabezado 1",
+      "heading2": "Encabezado 2",
+      "heading3": "Encabezado 3",
+      "bulletList": "Lista con viñetas",
+      "orderedList": "Lista numerada",
+      "taskList": "Lista de tareas",
+      "blockquote": "Cita",
+      "callout": "Destacado",
+      "codeBlock": "Bloque de código"
+    },
+    "taskBlock": "Tarea",
+    "turnInto": "Convertir en",
+    "turnIntoLosesContent": "pierde contenido",
+    "turnIntoWarningTitle": "Esta conversión pierde contenido",
+    "turnIntoWarningDescription": "Al convertir en {blockType} se pierde parte de lo que hay en el bloque: lo que no es texto y lo que cuelga de él no se conserva. ¿Convertir igual?",
+    "turnIntoCancel": "Cancelar",
+    "turnIntoConfirm": "Convertir igual"
   },
   "errors": {
     "generic": "Algo salió mal.",

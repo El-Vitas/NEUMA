@@ -20,7 +20,7 @@ const mountToggle = (open?: boolean): { readonly container: HTMLElement; readonl
   const container = document.createElement('div');
   document.body.appendChild(container);
   const view = new EditorView(container, {
-    nodeViews: createPageEditorNodeViews('Collection'),
+    nodeViews: createPageEditorNodeViews({ collection: 'Collection', task: 'Task' }),
     state: createPageEditorState(toggleContent(open), 'Select block'),
   });
   return { container, view };
