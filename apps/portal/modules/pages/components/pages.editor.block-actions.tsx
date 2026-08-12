@@ -26,6 +26,7 @@ interface IProps {
   readonly hasIdentity: boolean;
   readonly menuPosition: { readonly left: number; readonly top: number } | null;
   readonly onAsk: (kind: PageEditorBlockRequestKind) => void;
+  readonly onBecomePage: () => void;
   readonly pageId: string | null;
   readonly request: PageEditorBlockRequest | null;
   readonly spaceId: string;
@@ -51,6 +52,7 @@ export const PagesEditorBlockActions = ({
   hasIdentity,
   menuPosition,
   onAsk,
+  onBecomePage,
   onClose,
   onCopyLink,
   onHandOver,
@@ -75,9 +77,11 @@ export const PagesEditorBlockActions = ({
       {menuPosition !== null && request?.kind === 'actions' && (
         <div className="absolute z-30" style={{ left: `${menuPosition.left}px`, top: `${menuPosition.top}px` }}>
           <PagesEditorBlockMenu
+            canBecomePage={pageId !== null}
             colors={colors}
             conversions={conversions}
             hasIdentity={hasIdentity}
+            onBecomePage={onBecomePage}
             onClose={() => onClose('actions')}
             onColor={(kind, color) => onRunCommand(createPageEditorBlockColorCommand(kind, color))}
             onComment={() => onAsk('comments')}

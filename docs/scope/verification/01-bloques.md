@@ -166,11 +166,13 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-14 · Debe permitir convertir un bloque en página
 
-- [ ] Un bloque se puede convertir en página hija
-- [ ] Su contenido pasa a ser el contenido de la página nueva
-- [ ] En el lugar original queda un enlace a esa página
-- [ ] Funciona con varios bloques seleccionados a la vez
-- [ ] La página nueva aparece anidada en el árbol lateral
+**Cómo probarlo:** menú del bloque (Ctrl+/) → **Convertir en página**.
+
+- [x] Un bloque se puede convertir en página hija
+- [x] Su contenido pasa a ser el contenido de la página nueva
+- [x] En el lugar original queda un enlace a esa página
+- [x] Funciona con varios bloques seleccionados a la vez
+- [x] La página nueva aparece anidada en el árbol lateral
 
 ## BL-15 · Debe aplicar las operaciones a todos los tipos por igual
 
@@ -211,6 +213,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio, como Notion. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-14 | Faltaba la acción en el menú, no la operación: convertir bloques en página ya se había construido para el arrastre al árbol, así que ambas formas de pedirlo son ahora la misma —los bloques viajan enteros y la página se titula con su primera línea— y lo único que cambia es de quién es hija y qué queda en su lugar. Desde el menú, la página es hija de la que se está escribiendo y donde estaban los bloques queda un enlace: la misma mención que se escribe con `@`, una sola manera de apuntar a una página venga de donde venga. | 5 de 5 |
 | 2026-08-12 | BL-13 | **Mover varios bloques movía uno solo**: al pasar del menú al selector de destino se volvía a elegir el bloque del menú, y con eso se soltaban los demás. Ahora, cambiar lo que se le pregunta a un bloque no toca lo que la página tiene tomado. Faltaba también **arrastrar un bloque al árbol lateral**: el árbol dice qué filas pueden recibir bloques y qué página es cada una, y el editor lo lee; al soltar, los bloques —con lo que cuelgue de ellos— se convierten en una página hija titulada con su primera línea, salen de esta, y el aviso ofrece ir a verla. | 7 de 7 |
 | 2026-08-12 | BL-12 | **Comentar desde el menú no abría nada**: al elegir «Comentar» o «Mover a…», el menú se despedía cerrando justo lo que acababa de abrir. Ahora cada superficie cierra lo suyo —el menú cierra el menú, el diálogo cierra el diálogo— y no lo que otra abrió. Faltaba también **comentar un fragmento**: se creó como una marca sobre el texto que solo dice de qué comentario se trata; lo dicho lo sigue guardando el bloque, así que comentar una frase y comentar el bloque entero son lo mismo guardado en un solo lugar, y por eso el fragmento sobrevive a mover y a convertir. El fragmento comentado va subrayado y al pulsarlo se abre la conversación; borrar el comentario le quita el subrayado. | 6 de 6 |
 | 2026-08-12 | BL-11 | Nada. La identidad ya la tenía cada bloque; lo que faltaba era comprobarla: sobrevive a escribir al lado, a mover el bloque, a anidarlo, a convertirlo y a guardar la página. El enlace se copia con esa identidad, y al abrirlo la página espera a dibujarse antes de decidir —mirar una sola vez siempre encontraba nada— y recién entonces resalta el bloque o avisa que ya no está. Queda una salvedad de verificación: seguir un enlace a un bloque **de la página que ya se está leyendo** solo cambia la dirección, no recarga; eso se implementó y está cubierto por pruebas, pero no logré confirmarlo en el navegador —el servidor de desarrollo sirvió código viejo varias veces en esa sesión. | 6 de 6 |

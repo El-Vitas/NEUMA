@@ -28,11 +28,13 @@ import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
 import { usePagesEditorBlockActions } from '../hooks/use.pages.editor.block-actions';
 import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arrival';
+import { usePagesEditorBlocksToPage } from '../hooks/use.pages.editor.blocks-to-page';
 import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
 import { usePagesEditorPageDrop } from '../hooks/use.pages.editor.page-drop';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
+import { findSelectedPageBlocks } from '../lib/pages.editor.block-range.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import {
@@ -208,6 +210,16 @@ export const PagesProseMirrorEditor = forwardRef(
     const blockActions = usePagesEditorBlockActions(editorViewRef);
     usePagesEditorBlockArrival(editorHostRef);
     usePagesEditorPageDrop({ editorViewRef, spaceId });
+    const turnBlocksIntoPage = usePagesEditorBlocksToPage({ editorViewRef, spaceId });
+
+    /** The blocks the menu is open for become a page held by the one being written. */
+    const becomePage = useCallback((): void => {
+      const editorView = editorViewRef.current;
+      const chosen = editorView === null ? null : findSelectedPageBlocks(editorView.state);
+      if (editorView === null || chosen === null || pageId === null) return;
+      blockActions.close('actions');
+      turnBlocksIntoPage({ leaveLink: true, parentPageId: pageId, range: { from: chosen.start, to: chosen.end } });
+    }, [blockActions, pageId, turnBlocksIntoPage]);
 
     const dismissSelectionToolbar = useCallback((editorView: EditorView): void => {
       const collapsedSelection = TextSelection.create(editorView.state.doc, editorView.state.selection.from);
@@ -452,6 +464,7 @@ export const PagesProseMirrorEditor = forwardRef(
               hasIdentity={surface.blockId !== null}
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}
+              onBecomePage={becomePage}
               onClose={blockActions.close}
               onCopyLink={blockActions.copyLink}
               onHandOver={blockActions.handOver}
