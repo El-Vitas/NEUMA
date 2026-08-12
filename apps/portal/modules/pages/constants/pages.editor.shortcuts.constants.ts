@@ -1,6 +1,7 @@
 import { redo, undo } from 'prosemirror-history';
 import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
+import { openPageEditorBlockMenu } from '../lib/pages.editor.block-menu.lib';
 import { movePageEditorBlockDown, movePageEditorBlockUp } from '../lib/pages.editor.block-move.lib';
 import { indentPageEditorBlock, outdentPageEditorBlock } from '../lib/pages.editor.nesting.lib';
 import { selectBlockThenDocument, selectEnclosingBlock } from '../lib/pages.editor.selection.lib';
@@ -17,6 +18,7 @@ export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-Shift-ArrowDown', labelKey: 'moveBlockDown', run: movePageEditorBlockDown },
   { binding: 'Tab', labelKey: 'indentBlock', run: indentPageEditorBlock },
   { binding: 'Shift-Tab', labelKey: 'outdentBlock', run: outdentPageEditorBlock },
+  { binding: 'Mod-/', labelKey: 'openBlockMenu', run: openPageEditorBlockMenu },
   { binding: 'Mod-d', labelKey: 'duplicateBlock', run: duplicatePageEditorBlock },
   { binding: 'Mod-Shift-Backspace', labelKey: 'deleteBlock', run: deletePageEditorBlocks },
   { binding: 'Escape', labelKey: 'selectBlock', run: selectEnclosingBlock },

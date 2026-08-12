@@ -24,6 +24,14 @@ export const PAGE_EDITOR_BLOCK_PROBE_INSET_PX = 40;
 /** How far into the page margin a block still answers with its buttons. */
 export const PAGE_EDITOR_GUTTER_REACH_PX = 56;
 
+export const PAGE_EDITOR_BLOCK_MENU_PLUGIN_KEY = 'page-editor-block-menu-plugin';
+
+/** How far the pointer may travel on a grip before the press means dragging instead of asking. */
+export const PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX = 4;
+
+/** The menu drops below the line it belongs to, rather than over the words it is about. */
+export const PAGE_EDITOR_BLOCK_MENU_DROP_PX = 28;
+
 export const PAGE_EDITOR_BLOCK_DRAG_PLUGIN_KEY = 'page-editor-block-drag-plugin';
 
 export const PAGE_EDITOR_IDLE_DRAG_STATE: PageEditorBlockDragState = { placement: null, range: null };

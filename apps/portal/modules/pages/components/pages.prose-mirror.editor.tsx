@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { Command, Selection } from 'prosemirror-state';
+import type { Command, EditorState, Selection } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
@@ -27,7 +27,10 @@ import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } from '../lib/pages.collaboration.lib';
+import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
+import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { isPageEditorBlockDragActive } from '../lib/pages.editor.block-drag.lib';
+import { closePageEditorBlockMenu, readPageEditorBlockMenuTarget } from '../lib/pages.editor.block-menu.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import {
   createPageEditorBlockConversionCommand,
@@ -55,6 +58,7 @@ import type { PageEditorBlockConversion } from '../types/pages.editor.convert.ty
 import type { PagesEditorMenuItem, PagesEditorTriggerKind } from '../types/pages.editor.slash-menu.types';
 import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
+import { PagesEditorBlockMenu } from './pages.editor.block-menu';
 import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
 import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
 import { PagesEditorToolbar } from './pages.editor.toolbar';
@@ -91,6 +95,10 @@ export const PagesProseMirrorEditor = forwardRef(
     const [recentCommandIds, setRecentCommandIds] = useState<readonly string[]>([]);
     const [selectedBlockCount, setSelectedBlockCount] = useState(0);
     const [blockConversions, setBlockConversions] = useState<readonly PageEditorBlockConversion[]>([]);
+    const [blockMenuPosition, setBlockMenuPosition] = useState<{
+      readonly left: number;
+      readonly top: number;
+    } | null>(null);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
     const syncCollectionHosts = useCallback(() => {
@@ -209,6 +217,48 @@ export const PagesProseMirrorEditor = forwardRef(
       [computeMenuPosition],
     );
 
+    const computeBlockMenuPosition = useCallback(
+      (editorView: EditorView, editorState: EditorState): { readonly left: number; readonly top: number } | null => {
+        const blockStart = readPageEditorBlockMenuTarget(editorState);
+        const surfaceElement = surfaceRef.current;
+        if (blockStart === null || surfaceElement === null) return null;
+        const surfaceRect = surfaceElement.getBoundingClientRect();
+        const blockCoords = editorView.coordsAtPos(blockStart);
+        return { left: blockCoords.left - surfaceRect.left, top: blockCoords.top - surfaceRect.top };
+      },
+      [],
+    );
+
+    /**
+     * Gives the editor the focus back once the menu that held it is gone.
+     *
+     * Asking for it while the menu is still on screen achieves nothing: what
+     * had the focus is about to be removed, and the page would be left with
+     * nothing focused at all.
+     */
+    const returnFocusToEditor = useCallback((editorView: EditorView): void => {
+      requestAnimationFrame(() => editorView.focus());
+    }, []);
+
+    const closeBlockMenu = useCallback((): void => {
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      closePageEditorBlockMenu(editorView);
+      returnFocusToEditor(editorView);
+    }, [returnFocusToEditor]);
+
+    /** Runs a block action and hands the editor back both the focus and the menu it came from. */
+    const runBlockCommand = useCallback(
+      (command: Command): void => {
+        const editorView = editorViewRef.current;
+        if (editorView === null) return;
+        closePageEditorBlockMenu(editorView);
+        command(editorView.state, editorView.dispatch);
+        returnFocusToEditor(editorView);
+      },
+      [returnFocusToEditor],
+    );
+
     const dismissSelectionToolbar = useCallback((editorView: EditorView): void => {
       const collapsedSelection = TextSelection.create(editorView.state.doc, editorView.state.selection.from);
       editorView.dispatch(editorView.state.tr.setSelection(collapsedSelection));
@@ -286,11 +336,12 @@ export const PagesProseMirrorEditor = forwardRef(
             trigger === null ? null : computeMenuPosition(editorView, selection.from, selection.from);
           triggerMenuPositionRef.current = nextTriggerMenuPosition;
           setTriggerMenuPosition(nextTriggerMenuPosition);
-          setSelectionToolbarPosition(
-            isPageEditorBlockDragActive(nextState) ? null : computeSelectionToolbarPosition(editorView, selection),
-          );
+          const isBlockBusy =
+            isPageEditorBlockDragActive(nextState) || readPageEditorBlockMenuTarget(nextState) !== null;
+          setSelectionToolbarPosition(isBlockBusy ? null : computeSelectionToolbarPosition(editorView, selection));
           setSelectedBlockCount(countSelectedBlocks(selection));
           setBlockConversions(listPageEditorBlockConversions(nextState));
+          setBlockMenuPosition(computeBlockMenuPosition(editorView, nextState));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: (currentEditorView, event) => {
@@ -326,6 +377,7 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [
       canEdit,
       closeTriggerMenu,
+      computeBlockMenuPosition,
       computeMenuPosition,
       syncCollectionHosts,
       computeSelectionToolbarPosition,
@@ -475,6 +527,20 @@ export const PagesProseMirrorEditor = forwardRef(
                   runPageEditorCommand(editorView, command);
                   editorView.focus();
                 }}
+              />
+            </div>
+          )}
+          {canEdit && blockMenuPosition !== null && (
+            <div
+              className="absolute z-30"
+              style={{ left: `${blockMenuPosition.left}px`, top: `${blockMenuPosition.top}px` }}
+            >
+              <PagesEditorBlockMenu
+                conversions={blockConversions}
+                onClose={closeBlockMenu}
+                onConvert={(targetId) => runBlockCommand(createPageEditorBlockConversionCommand(targetId))}
+                onDelete={() => runBlockCommand(deletePageEditorBlocks)}
+                onDuplicate={() => runBlockCommand(duplicatePageEditorBlock)}
               />
             </div>
           )}

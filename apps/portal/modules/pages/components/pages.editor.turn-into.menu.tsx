@@ -1,15 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
+import { usePagesEditorConversionRequest } from '../hooks/use.pages.editor.conversion';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
+import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
 
 interface IProps {
   readonly conversions: readonly PageEditorBlockConversion[];
@@ -25,7 +21,7 @@ interface IProps {
  */
 export const PagesEditorTurnIntoMenu = ({ conversions, onConvert }: IProps) => {
   const t = useTranslations('pages');
-  const [pendingConversion, setPendingConversion] = useState<PageEditorBlockConversion | null>(null);
+  const conversion = usePagesEditorConversionRequest(onConvert);
   if (conversions.length === 0) return null;
 
   return (
@@ -41,26 +37,13 @@ export const PagesEditorTurnIntoMenu = ({ conversions, onConvert }: IProps) => {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" onCloseAutoFocus={(event) => event.preventDefault()}>
-          {conversions.map((conversion) => (
-            <DropdownMenuItem
-              key={conversion.id}
-              onSelect={() => (conversion.losesContent ? setPendingConversion(conversion) : onConvert(conversion.id))}
-            >
-              <span className="flex-1">{t(`blockTypes.${conversion.labelKey}`)}</span>
-              {conversion.losesContent && (
-                <span className="ms-2 text-muted-foreground text-xs">{t('turnIntoLosesContent')}</span>
-              )}
-            </DropdownMenuItem>
-          ))}
+          <PagesEditorTurnIntoItems conversions={conversions} onSelect={conversion.ask} />
         </DropdownMenuContent>
       </DropdownMenu>
       <PagesEditorTurnIntoConfirmDialog
-        conversion={pendingConversion}
-        onCancel={() => setPendingConversion(null)}
-        onConfirm={(targetId) => {
-          setPendingConversion(null);
-          onConvert(targetId);
-        }}
+        conversion={conversion.pending}
+        onCancel={conversion.dismiss}
+        onConfirm={conversion.confirm}
       />
     </>
   );

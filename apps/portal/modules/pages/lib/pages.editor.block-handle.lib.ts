@@ -7,6 +7,7 @@ import {
   PAGE_EDITOR_BLOCK_INSERT_CLASS,
   PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS,
   PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE,
+  PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX,
   PAGE_EDITOR_GUTTER_REACH_PX,
 } from '../constants/pages.editor.blocks.constants';
 import type {
@@ -15,6 +16,7 @@ import type {
   PageEditorGutterLabels,
 } from '../types/pages.editor.block-drag.types';
 import { armPageEditorBlockDrag, isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
+import { openPageEditorBlockMenuAt } from './pages.editor.block-menu.lib';
 import { findPageEditorBlockAtPointer, offersGrabbableBlocks } from './pages.editor.block-target.lib';
 import { pageEditorBlockHandleKey } from './pages.editor.plugin-keys.lib';
 
@@ -109,8 +111,28 @@ const createInsertElement = (view: EditorView, position: number, label: string):
     symbol: '+',
   });
 
-const createHandleElement = (view: EditorView, position: number, label: string): HTMLElement =>
-  createGutterButton({
+const hasPointerStayedPut = (origin: MouseEvent, release: MouseEvent): boolean =>
+  Math.abs(release.clientX - origin.clientX) <= PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX &&
+  Math.abs(release.clientY - origin.clientY) <= PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX;
+
+/**
+ * A press on the grip that goes nowhere is a question, not a move: the block
+ * offers what can be done to it. Dragging is the same gesture carried further,
+ * so both live on one button as they do in the editors people already use.
+ */
+const askForBlockActionsOnClick = (view: EditorView, grip: HTMLElement, position: number): void => {
+  grip.addEventListener('mousedown', (origin) => {
+    const releaseSurface = grip.ownerDocument;
+    const openIfUnmoved = (release: MouseEvent): void => {
+      releaseSurface.removeEventListener('mouseup', openIfUnmoved);
+      if (hasPointerStayedPut(origin, release)) openPageEditorBlockMenuAt(view, position);
+    };
+    releaseSurface.addEventListener('mouseup', openIfUnmoved);
+  });
+};
+
+const createHandleElement = (view: EditorView, position: number, label: string): HTMLElement => {
+  const grip = createGutterButton({
     className: `${PAGE_EDITOR_BLOCK_HANDLE_CLASS} ${PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS}`,
     label,
     marker: 'data-drag-handle',
@@ -119,6 +141,9 @@ const createHandleElement = (view: EditorView, position: number, label: string):
     },
     symbol: '⠿',
   });
+  askForBlockActionsOnClick(view, grip, position);
+  return grip;
+};
 
 /**
  * Holds the `+` and the grip of one block, parked just outside its left edge.

@@ -357,7 +357,8 @@
       "undo": "Deshacer",
       "redo": "Rehacer",
       "duplicateBlock": "Duplicar el bloque, con lo que cuelga de él",
-      "deleteBlock": "Eliminar los bloques seleccionados"
+      "deleteBlock": "Eliminar los bloques seleccionados",
+      "openBlockMenu": "Abrir las acciones del bloque"
     },
     "selectedBlocks": "{count} bloques seleccionados",
     "blockTypes": {
@@ -378,7 +379,10 @@
     "turnIntoWarningTitle": "Esta conversión pierde contenido",
     "turnIntoWarningDescription": "Al convertir en {blockType} se pierde parte de lo que hay en el bloque: lo que no es texto y lo que cuelga de él no se conserva. ¿Convertir igual?",
     "turnIntoCancel": "Cancelar",
-    "turnIntoConfirm": "Convertir igual"
+    "turnIntoConfirm": "Convertir igual",
+    "blockActions": "Acciones del bloque",
+    "duplicateBlock": "Duplicar",
+    "deleteBlock": "Eliminar"
   },
   "errors": {
     "generic": "Algo salió mal.",

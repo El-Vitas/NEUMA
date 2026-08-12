@@ -357,7 +357,8 @@
       "undo": "Undo",
       "redo": "Redo",
       "duplicateBlock": "Duplicate the block, and whatever hangs from it",
-      "deleteBlock": "Delete the selected blocks"
+      "deleteBlock": "Delete the selected blocks",
+      "openBlockMenu": "Open the block actions"
     },
     "selectedBlocks": "{count} blocks selected",
     "blockTypes": {
@@ -378,7 +379,10 @@
     "turnIntoWarningTitle": "This conversion loses content",
     "turnIntoWarningDescription": "Turning it into {blockType} drops part of what the block holds: anything that is not text, and whatever hangs from it. Convert anyway?",
     "turnIntoCancel": "Cancel",
-    "turnIntoConfirm": "Convert anyway"
+    "turnIntoConfirm": "Convert anyway",
+    "blockActions": "Block actions",
+    "duplicateBlock": "Duplicate",
+    "deleteBlock": "Delete"
   },
   "errors": {
     "generic": "Something went wrong.",
