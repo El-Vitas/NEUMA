@@ -8,10 +8,10 @@ import type { PageEditorBlockColorKind } from '../types/pages.editor.block-color
  * exist. Every colour is given a light and a dark reading of its own.
  */
 export const PAGE_EDITOR_TEXT_COLOR_CLASSES: readonly string[] = [
-  '[&_[data-text-color=gray]]:text-gray-500 dark:[&_[data-text-color=gray]]:text-gray-400',
+  '[&_[data-text-color=gray]]:text-gray-600 dark:[&_[data-text-color=gray]]:text-gray-400',
   '[&_[data-text-color=brown]]:text-amber-800 dark:[&_[data-text-color=brown]]:text-amber-600',
-  '[&_[data-text-color=orange]]:text-orange-600 dark:[&_[data-text-color=orange]]:text-orange-400',
-  '[&_[data-text-color=yellow]]:text-yellow-600 dark:[&_[data-text-color=yellow]]:text-yellow-400',
+  '[&_[data-text-color=orange]]:text-orange-700 dark:[&_[data-text-color=orange]]:text-orange-400',
+  '[&_[data-text-color=yellow]]:text-yellow-700 dark:[&_[data-text-color=yellow]]:text-yellow-300',
   '[&_[data-text-color=green]]:text-green-700 dark:[&_[data-text-color=green]]:text-green-400',
   '[&_[data-text-color=blue]]:text-blue-700 dark:[&_[data-text-color=blue]]:text-blue-400',
   '[&_[data-text-color=purple]]:text-purple-700 dark:[&_[data-text-color=purple]]:text-purple-400',

@@ -121,12 +121,14 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-10 · Debe permitir colorear un bloque
 
-- [ ] Se puede cambiar el color del texto de un bloque completo
-- [ ] Se puede poner color de fondo al bloque
-- [ ] Hay una paleta acotada, no un selector libre
-- [ ] Los colores se leen bien en modo claro y en modo oscuro
-- [ ] Se puede quitar el color y volver al predeterminado
-- [ ] Se puede aplicar a varios bloques seleccionados
+**Cómo probarlo:** abre el menú del bloque (clic en el agarre o Ctrl+/) y usa **Color del texto** o **Color de fondo**.
+
+- [x] Se puede cambiar el color del texto de un bloque completo
+- [x] Se puede poner color de fondo al bloque
+- [x] Hay una paleta acotada, no un selector libre
+- [x] Los colores se leen bien en modo claro y en modo oscuro
+- [x] Se puede quitar el color y volver al predeterminado
+- [x] Se puede aplicar a varios bloques seleccionados
 
 ## BL-11 · Debe permitir referirse a un bloque concreto
 
@@ -202,6 +204,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-10 | Nada, pero con una salvedad: **la aplicación todavía no tiene modo oscuro** —los tokens `.dark` no existen—, así que la mitad oscura de la paleta está escrita y medida contra un fondo oscuro simulado, no vista en uso. Lo claro sí se midió en el navegador: naranjo (3.34) y amarillo (2.74) no llegaban al mínimo legible de 4.5:1 y se oscurecieron; ahora los ocho colores van de 4.59 a 7.04 sobre la página, y el texto sobre cada fondo, de 15.5 a 17.6. | 6 de 6 |
 | 2026-08-12 | BL-09 | Nada. Un clic en el agarre que no va a ninguna parte abre el menú, arrastrarlo sigue moviendo el bloque, Ctrl+/ lo abre sin mouse y Escape lo cierra devolviendo el cursor. Para no ofrecer acciones que fallan al elegirlas hubo que construirlas: el color vive como atributo de todo bloque (junto a su identidad, en un solo lugar), el comentario lo guarda el bloque mismo y por eso viaja con él, el enlace apunta al bloque y al llegar la página se desplaza y lo resalta, y mover a otra página agrega los bloques al final de la elegida antes de sacarlos de esta. El selector de destino lee las páginas del espacio en vez del buscador, que en este entorno devuelve cero resultados incluso para páginas antiguas. | 7 de 7 |
 | 2026-08-12 | BL-08 | Nada. Duplicar y eliminar leen los bloques igual que convertir —una sola respuesta a qué bloques mira un gesto—, así que la copia se lleva lo que cuelga del bloque y recibe una identidad propia, y borrar el último bloque deja una página en la que todavía se puede escribir. | 6 de 6 |
 | 2026-08-12 | BL-07 | Nada. Faltaban dos tipos del contrato —**tarea** y **destacado**—, así que se crearon: la tarea se marca desde la página misma, no desde la casilla del navegador, para que lo hecho viva en el bloque. La conversión nace de una lista única de tipos destino: cada uno se arma y se mide contra el sitio donde vive el bloque antes de ofrecerse, de modo que lo que aparece en el menú es lo que el editor puede hacer, y lo que dejaría algo atrás lo avisa antes. | 7 de 7 |
