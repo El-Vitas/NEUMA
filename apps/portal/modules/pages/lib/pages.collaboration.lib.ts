@@ -22,14 +22,17 @@ export const computeCollaborationReconnectDelayMs = (attemptNumber: number): num
   return Math.min(exponentialDelay, COLLABORATION_RECONNECT_MAX_DELAY_MS);
 };
 
-export const createCollaborativePageEditorState = (session: PageCollaborationSession): EditorState => {
+export const createCollaborativePageEditorState = (
+  session: PageCollaborationSession,
+  selectBlockLabel: string,
+): EditorState => {
   const initializedDocument = initProseMirrorDoc(session.fragment, pageEditorSchema);
   const awareness = session.provider.awareness;
   const collaborationPlugins =
     awareness === null ? [ySyncPlugin(session.fragment)] : [ySyncPlugin(session.fragment), yCursorPlugin(awareness)];
   return EditorState.create({
     doc: initializedDocument.doc,
-    plugins: [...createPageEditorPlugins(pageEditorSchema), ...collaborationPlugins],
+    plugins: [...createPageEditorPlugins(pageEditorSchema, selectBlockLabel), ...collaborationPlugins],
     schema: pageEditorSchema,
   });
 };

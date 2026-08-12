@@ -2,7 +2,7 @@
 
 Lo que convierte un montón de páginas en un cerebro: cómo se conectan entre sí.
 
-> Leer `README.md` de esta carpeta antes de usar este documento. Las plantillas se revisan en `08-plantillas.md`.
+> Leer `README.md` de esta carpeta antes de usar este documento. Las plantillas se revisan en `10-plantillas.md`.
 
 ---
 

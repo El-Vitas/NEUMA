@@ -1,6 +1,7 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { PAGE_EDITOR_COLLECTION_CLASS } from '../constants/pages.constants';
 
 const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeURIComponent(assetId)}`;
 
@@ -22,6 +23,19 @@ const createPageImageNodeView = (node: EditorNode): NodeView => {
   return { dom: image };
 };
 
+const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView => {
+  const host = document.createElement('div');
+  host.className = PAGE_EDITOR_COLLECTION_CLASS;
+  host.contentEditable = 'false';
+  host.setAttribute('aria-label', label);
+  host.setAttribute('data-page-collection', node.attrs.pageId);
+  host.setAttribute('data-space-id', node.attrs.spaceId);
+  if (typeof node.attrs.viewName === 'string' && node.attrs.viewName.length > 0) {
+    host.setAttribute('data-view-name', node.attrs.viewName);
+  }
+  return { dom: host };
+};
+
 const createPageMentionNodeView = (node: EditorNode): NodeView => {
   const link = document.createElement('a');
   link.className =
@@ -31,9 +45,10 @@ const createPageMentionNodeView = (node: EditorNode): NodeView => {
   return { dom: link };
 };
 
-export const createPageEditorNodeViews = (): Readonly<
-  Record<string, (node: EditorNode, view: EditorView) => NodeView>
-> => ({
+export const createPageEditorNodeViews = (
+  collectionLabel: string,
+): Readonly<Record<string, (node: EditorNode, view: EditorView) => NodeView>> => ({
+  collection: (node) => createPageCollectionNodeView(node, collectionLabel),
   file: createPageFileNodeView,
   image: createPageImageNodeView,
   mention: createPageMentionNodeView,

@@ -43,3 +43,24 @@ const extractPageContentSingleNodeMentionIds = (node: PageContentNode | PageCont
   if (!('content' in node)) return [];
   return extractPageContentNodeMentionIds(node.content);
 };
+
+export type PageCollectionReference = {
+  readonly pageId: string;
+  readonly spaceId: string;
+  readonly viewName?: string;
+};
+
+export const extractPageCollectionReferences = (content: PageContent): readonly PageCollectionReference[] =>
+  extractPageContentNodeCollections(content.content);
+
+const extractPageContentNodeCollections = (
+  nodes: readonly (PageContentNode | PageContentInlineNode)[],
+): readonly PageCollectionReference[] => nodes.flatMap(extractPageContentSingleNodeCollections);
+
+const extractPageContentSingleNodeCollections = (
+  node: PageContentNode | PageContentInlineNode,
+): readonly PageCollectionReference[] => {
+  if (node.type === 'collection') return [node.attrs];
+  if (!('content' in node)) return [];
+  return extractPageContentNodeCollections(node.content);
+};

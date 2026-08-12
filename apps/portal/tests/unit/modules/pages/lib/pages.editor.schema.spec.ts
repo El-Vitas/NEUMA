@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { pageContentSchema } from '@company-brain/shared';
+import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { DOMParser, DOMSerializer } from 'prosemirror-model';
 import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
 import {
@@ -220,5 +221,80 @@ describe('pageEditorSchema block ids', () => {
     };
 
     expect(pageContentSchema.safeParse(structuredContent).success).toBe(true);
+  });
+});
+
+describe('block identity in the DOM', () => {
+  const renderBlock = (node: ProseMirrorNode): HTMLElement => {
+    const container = document.createElement('div');
+    container.appendChild(DOMSerializer.fromSchema(pageEditorSchema).serializeNode(node));
+    return container;
+  };
+
+  it('exposes the block id so a block can be pointed at from the interface', () => {
+    const paragraph = pageEditorSchema.nodes.paragraph.create({ id: 'block-1' }, pageEditorSchema.text('Hola'));
+
+    expect(renderBlock(paragraph).querySelector('[data-block-id="block-1"]')).not.toBeNull();
+  });
+
+  it('omits the attribute when the block has no id yet', () => {
+    const paragraph = pageEditorSchema.nodes.paragraph.create(null, pageEditorSchema.text('Hola'));
+
+    expect(renderBlock(paragraph).querySelector('[data-block-id]')).toBeNull();
+  });
+
+  it('exposes the block id on every block type, not only paragraphs', () => {
+    const blocks = [
+      pageEditorSchema.nodes.heading.create({ id: 'heading-1', level: 2 }, pageEditorSchema.text('Título')),
+      pageEditorSchema.nodes.blockquote.create(
+        { id: 'quote-1' },
+        pageEditorSchema.nodes.paragraph.create(null, pageEditorSchema.text('Cita')),
+      ),
+      pageEditorSchema.nodes.code_block.create({ id: 'code-1' }, pageEditorSchema.text('const a = 1;')),
+      pageEditorSchema.nodes.bullet_list.create(
+        { id: 'list-1' },
+        pageEditorSchema.nodes.list_item.create(
+          { id: 'item-1' },
+          pageEditorSchema.nodes.paragraph.create(null, pageEditorSchema.text('Punto')),
+        ),
+      ),
+      pageEditorSchema.nodes.toggle.create(
+        { id: 'toggle-1', summary: 'Detalle' },
+        pageEditorSchema.nodes.paragraph.create(null, pageEditorSchema.text('Dentro')),
+      ),
+    ];
+
+    for (const block of blocks) {
+      expect(renderBlock(block).querySelector(`[data-block-id="${String(block.attrs.id)}"]`)).not.toBeNull();
+    }
+  });
+
+  it('reads the block id back when content is parsed from the DOM', () => {
+    const paragraph = pageEditorSchema.nodes.paragraph.create({ id: 'block-9' }, pageEditorSchema.text('Vuelta'));
+    const container = renderBlock(paragraph);
+
+    const parsed = DOMParser.fromSchema(pageEditorSchema).parse(container);
+
+    expect(parsed.firstChild?.attrs.id).toBe('block-9');
+  });
+});
+
+describe('the default block type', () => {
+  it('splits a paragraph into another paragraph, never into a code block', () => {
+    const paragraph = pageEditorSchema.nodes.paragraph.create(null, pageEditorSchema.text('Hola'));
+    const document = pageEditorSchema.nodes.doc.create(null, paragraph);
+
+    const defaultType = document.contentMatchAt(1).defaultType;
+
+    expect(defaultType?.name).toBe('paragraph');
+  });
+
+  it('keeps the paragraph as the default block inside every container', () => {
+    const containers = ['blockquote', 'toggle', 'table_cell', 'block_children'];
+
+    for (const container of containers) {
+      const type = pageEditorSchema.nodes[container];
+      expect(type?.contentMatch.defaultType?.name).toBe('paragraph');
+    }
   });
 });

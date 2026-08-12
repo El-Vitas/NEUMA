@@ -8,9 +8,15 @@ No es un inventario de lo que está hecho. Es la lista de lo que debe funcionar.
 
 Cada punto está escrito para que se pueda comprobar **mirando la pantalla**, sin leer código.
 
+## El modelo que se está verificando
+
+**Todo el contenido es un bloque.** Una página es un árbol de bloques; un párrafo, una imagen, una tabla y una colección son todos bloques y admiten las mismas operaciones. Los documentos están ordenados según ese modelo, no según cómo esté construido el producto por dentro.
+
+Por eso `01` no habla de tipos de contenido sino de lo que se puede hacer con cualquier bloque, y una colección aparece como un tipo de bloque más antes de tener su propio documento.
+
 ## Cómo se usa
 
-1. Se toma un bloque de capacidad (por ejemplo `ED-05`).
+1. Se toma un bloque de capacidad (por ejemplo `BL-04`).
 2. Se prueba en la aplicación corriendo: `bun run dev`, portal en `http://localhost:3010`.
 3. Se marca cada casilla que se cumple. Las que no, quedan sin marcar.
 4. Lo que quede sin marcar se implementa o se corrige.
@@ -28,39 +34,43 @@ Cada punto está escrito para que se pueda comprobar **mirando la pantalla**, si
 
 | Documento | Cubre |
 |---|---|
-| `01-escritura-y-editor.md` | Escribir: bloques, markdown, formato, menciones, arrastre de bloques |
-| `02-paginas-y-navegacion.md` | Crear, anidar, mover, papelera, favoritos, árbol lateral, búsqueda |
-| `03-colecciones-propiedades-vistas.md` | Colecciones, tipos de propiedad, tabla, tablero, filtros, orden |
-| `04-colaboracion-y-permisos.md` | Edición simultánea, comentarios, historial, permisos, compartir |
-| `05-grafo-de-conocimiento.md` | Menciones, retroenlaces, menciones sin enlazar, grafo |
-| `06-agentes-y-experiencia.md` | MCP, modo oscuro, atajos, móvil, estados vacíos |
-| `07-importacion-y-exportacion.md` | Markdown, PDF, CSV, exportación masiva, importar desde Notion |
-| `08-plantillas.md` | Elegir al crear, plantillas de fábrica y propias, plantillas de fila |
-| `09-administracion-y-cuenta.md` | Invitaciones, roles de la organización, grupos, auditoría, perfil, sesiones |
-| `10-automatizacion-e-integraciones.md` | Disparadores, botones, recurrencia, recordatorios, sistemas externos, IA |
-| `11-rendimiento-y-limites.md` | Colecciones grandes, páginas largas, memoria, límites, tolerancia a lo desconocido |
+| `01-bloques.md` | El bloque como unidad: crear, seleccionar, arrastrar, anidar, convertir, enlazar |
+| `02-tipos-de-bloque.md` | El catálogo de tipos, la colección incluida |
+| `03-escritura-y-formato.md` | Escribir dentro de un bloque: markdown, formato, menciones, guardado |
+| `04-paginas-y-navegacion.md` | Crear, anidar, mover, papelera, favoritos, árbol, búsqueda |
+| `05-colecciones-propiedades-vistas.md` | Tipos de propiedad, tabla, tablero, filtros, orden, cálculos |
+| `06-colaboracion-y-permisos.md` | Edición simultánea, comentarios, historial, permisos, publicar |
+| `07-grafo-de-conocimiento.md` | Menciones, retroenlaces, menciones sin enlazar, grafo |
+| `08-agentes-y-experiencia.md` | MCP, modo oscuro, atajos, móvil, estados vacíos |
+| `09-importacion-y-exportacion.md` | Markdown, PDF, CSV, exportación masiva, importar desde Notion |
+| `10-plantillas.md` | Elegir al crear, plantillas de fábrica y propias, plantillas de fila |
+| `11-administracion-y-cuenta.md` | Invitaciones, roles, grupos, auditoría, perfil, sesiones |
+| `12-automatizacion-e-integraciones.md` | Disparadores, botones, recurrencia, recordatorios, IA |
+| `13-rendimiento-y-limites.md` | Colecciones grandes, páginas largas, memoria, límites |
 
 ## Orden sugerido
 
-De lo que más se usa a lo que menos:
+De lo que sostiene todo lo demás a lo que menos se usa:
 
-1. `01` — escritura. Es donde se pasa el día y donde más se nota lo que falta.
-2. `02` — páginas y navegación.
-3. `03` — colecciones y vistas.
-4. `08` — plantillas. Va después de las colecciones porque una plantilla las reproduce.
-5. `05` — grafo de conocimiento.
-6. `04` — colaboración y permisos.
-7. `09` — administración y cuenta.
-8. `07` — importación y exportación.
-9. `10` — automatización e integraciones.
-10. `06` — agentes y detalle.
-11. `11` — rendimiento. Se revisa al final, pero se siembra el volumen de datos desde ya.
+1. `01` — bloques. Es la base: si mover o anidar no funciona, nada de lo que sigue se siente terminado.
+2. `02` — tipos de bloque.
+3. `03` — escritura y formato.
+4. `04` — páginas y navegación.
+5. `05` — colecciones y vistas.
+6. `10` — plantillas. Va después de las colecciones porque una plantilla las reproduce.
+7. `07` — grafo de conocimiento.
+8. `06` — colaboración y permisos.
+9. `11` — administración y cuenta.
+10. `09` — importación y exportación.
+11. `12` — automatización e integraciones.
+12. `08` — agentes y detalle.
+13. `13` — rendimiento. Se revisa al final, pero se siembra el volumen de datos desde ya.
 
 ## De dónde salen algunos comportamientos
 
-Varias casillas de `03` y de `11` no salieron de mirar Notion, sino de leer cómo lo resuelven AFFiNE y AppFlowy. El estudio está en `../../architecture/references/block-and-database-engines.md`.
+Varias casillas de `01`, `05` y `13` no salieron de mirar Notion, sino de leer cómo lo resuelven AFFiNE y AppFlowy. El estudio está en `../../architecture/references/block-and-database-engines.md`.
 
-Es una propuesta. Se puede empezar por lo que más moleste hoy.
+Una advertencia que sale de ahí: que una colección sea un bloque **dentro** de una página —y no una página completa— es el escalón que `../../architecture/adr/008-adopt-single-page-primitive-notion-alignment.md` dejó deliberadamente fuera. Las casillas están escritas igual, porque describen lo que el producto debe hacer; cumplirlas implica revisar esa decisión.
 
 ## Cómo se anota el resultado
 

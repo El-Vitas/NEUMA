@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { pageContentSchema } from './page-content.schema.js';
+import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from './page-content.schema.js';
 
 describe('pageContentSchema', () => {
   test('accepts an existing document with no block ids anywhere (id-less regression)', () => {
@@ -439,6 +439,136 @@ describe('pageContentSchema', () => {
         schemaVersion: 1,
         type: 'doc',
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe('nested blocks', () => {
+  const wrap = (content: unknown[]) => ({ content, schemaVersion: PAGE_CONTENT_SCHEMA_VERSION, type: 'doc' });
+  const paragraph = (text: string) => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
+
+  test('accepts a paragraph that holds another paragraph as its child', () => {
+    const document = wrap([
+      {
+        content: [paragraph('Padre'), { content: [paragraph('Hijo')], type: 'block_children' }],
+        type: 'nested_block',
+      },
+    ]);
+
+    expect(pageContentSchema.safeParse(document).success).toBe(true);
+  });
+
+  test('accepts children nested several levels deep', () => {
+    const document = wrap([
+      {
+        content: [
+          paragraph('Nivel 1'),
+          {
+            content: [
+              {
+                content: [paragraph('Nivel 2'), { content: [paragraph('Nivel 3')], type: 'block_children' }],
+                type: 'nested_block',
+              },
+            ],
+            type: 'block_children',
+          },
+        ],
+        type: 'nested_block',
+      },
+    ]);
+
+    expect(pageContentSchema.safeParse(document).success).toBe(true);
+  });
+
+  test('accepts any block type as the parent, not only paragraphs', () => {
+    const parents = [
+      { attrs: { level: 2 }, content: [{ text: 'Encabezado', type: 'text' }], type: 'heading' },
+      { content: [paragraph('Cita')], type: 'blockquote' },
+      { content: [{ text: 'const a = 1;', type: 'text' }], type: 'code_block' },
+    ];
+
+    for (const parent of parents) {
+      const document = wrap([
+        { content: [parent, { content: [paragraph('Hijo')], type: 'block_children' }], type: 'nested_block' },
+      ]);
+      expect(pageContentSchema.safeParse(document).success).toBe(true);
+    }
+  });
+
+  test('rejects a nested block without its children container', () => {
+    const document = wrap([{ content: [paragraph('Solo')], type: 'nested_block' }]);
+
+    expect(pageContentSchema.safeParse(document).success).toBe(false);
+  });
+
+  test('rejects a nested block whose children come before the parent', () => {
+    const document = wrap([
+      {
+        content: [{ content: [paragraph('Hijo')], type: 'block_children' }, paragraph('Padre')],
+        type: 'nested_block',
+      },
+    ]);
+
+    expect(pageContentSchema.safeParse(document).success).toBe(false);
+  });
+
+  test('keeps documents written before nesting existed valid', () => {
+    const document = wrap([paragraph('Contenido antiguo')]);
+
+    expect(pageContentSchema.safeParse(document).success).toBe(true);
+  });
+});
+
+describe('collection blocks', () => {
+  const document = (node: unknown) => ({
+    content: [node],
+    schemaVersion: PAGE_CONTENT_SCHEMA_VERSION,
+    type: 'doc',
+  });
+
+  test('accepts a collection sitting among the blocks of a page', () => {
+    const page = {
+      content: [
+        { content: [{ text: 'Antes', type: 'text' }], type: 'paragraph' },
+        { attrs: { pageId: 'page-1', spaceId: 'space-1' }, type: 'collection' },
+        { content: [{ text: 'Después', type: 'text' }], type: 'paragraph' },
+      ],
+      schemaVersion: PAGE_CONTENT_SCHEMA_VERSION,
+      type: 'doc',
+    };
+
+    expect(pageContentSchema.safeParse(page).success).toBe(true);
+  });
+
+  test('accepts a collection that points at one of its views', () => {
+    expect(
+      pageContentSchema.safeParse(
+        document({ attrs: { pageId: 'page-1', spaceId: 'space-1', viewName: 'Board' }, type: 'collection' }),
+      ).success,
+    ).toBe(true);
+  });
+
+  test('accepts a collection nested under another block', () => {
+    const nested = {
+      content: [
+        { content: [{ text: 'Padre', type: 'text' }], type: 'paragraph' },
+        { content: [{ attrs: { pageId: 'page-1', spaceId: 'space-1' }, type: 'collection' }], type: 'block_children' },
+      ],
+      type: 'nested_block',
+    };
+
+    expect(pageContentSchema.safeParse(document(nested)).success).toBe(true);
+  });
+
+  test('refuses a collection that does not say which page it shows', () => {
+    expect(pageContentSchema.safeParse(document({ attrs: {}, type: 'collection' })).success).toBe(false);
+  });
+
+  test('refuses unknown attributes on a collection', () => {
+    expect(
+      pageContentSchema.safeParse(
+        document({ attrs: { pageId: 'page-1', spaceId: 'space-1', rogue: true }, type: 'collection' }),
+      ).success,
     ).toBe(false);
   });
 });

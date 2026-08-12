@@ -19,6 +19,7 @@ interface IProps {
   readonly backlinks?: PageBacklinksResult;
   readonly canEditContent: boolean;
   readonly collectionSection?: ReactNode;
+  readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly isNewPage?: boolean;
   readonly pages: readonly PageSummary[];
@@ -34,6 +35,7 @@ export const PagesWorkspace = ({
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEditContent,
   collectionSection = null,
+  embeddedCollections = {},
   currentUserDisplayName,
   isNewPage = false,
   pages,
@@ -66,6 +68,7 @@ export const PagesWorkspace = ({
         canEdit={isNewPage ? canEditContent : canEditSelectedPage}
         collectionSection={collectionSection}
         currentUserDisplayName={currentUserDisplayName}
+        embeddedCollections={embeddedCollections}
         key={`${selectedPage?.id ?? 'new-page'}:${selectedPage?.lifecycle ?? 'new'}`}
         page={selectedPage}
         pageId={selectedPage?.id ?? null}

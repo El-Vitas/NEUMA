@@ -13,7 +13,9 @@ import type {
   PageEditorCommand,
   PageMentionInsertCommandOptions,
 } from '../types/pages.types';
+import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.lib';
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
+import { indentPageEditorBlock, outdentPageEditorBlock, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
@@ -135,7 +137,7 @@ export const createPageEditorCommands = (
   undo: { labelKey: 'undo', run: undo },
 });
 
-export const createPageEditorPlugins = (schema: Schema): readonly EditorPlugin[] => [
+export const createPageEditorPlugins = (schema: Schema, selectBlockLabel: string): readonly EditorPlugin[] => [
   history(),
   inputRules({
     rules: [
@@ -145,7 +147,15 @@ export const createPageEditorPlugins = (schema: Schema): readonly EditorPlugin[]
     ],
   }),
   keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
+  keymap(Object.fromEntries([['Enter', splitOutOfNestedBlock]])),
   keymap(baseKeymap),
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
+  keymap(
+    Object.fromEntries([
+      ['Tab', indentPageEditorBlock],
+      ['Shift-Tab', outdentPageEditorBlock],
+    ]),
+  ),
   createPageEditorBlockIdPlugin(),
+  createPageEditorBlockHandlePlugin(selectBlockLabel),
 ];

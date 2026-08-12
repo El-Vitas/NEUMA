@@ -1,5 +1,7 @@
-import { USER_ROLE } from '@company-brain/shared';
+import type { PageCollectionReference } from '@company-brain/shared';
+import { extractPageCollectionReferences, USER_ROLE } from '@company-brain/shared';
 import { notFound } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
@@ -17,6 +19,28 @@ import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spac
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
 }
+
+const renderEmbeddedCollection = async (reference: PageCollectionReference): Promise<ReactNode> => {
+  const schemaResult = await getPageSchema(reference.spaceId, reference.pageId);
+  if (schemaResult.isFail()) return null;
+  const schema = schemaResult.getValue();
+  const views = schema.views.filter((view) => reference.viewName === undefined || view.name === reference.viewName);
+
+  return (
+    <PagesCollectionSection
+      properties={getEditableSchemaProperties(schema)}
+      spaceId={reference.spaceId}
+      views={
+        await Promise.all(
+          views.map(async (view) => {
+            const outcomeResult = await getPageView(reference.spaceId, reference.pageId, view.name);
+            return { outcome: outcomeResult.isOk() ? outcomeResult.getValue() : null, view };
+          }),
+        )
+      }
+    />
+  );
+};
 
 export default async function Page({ params }: IProps) {
   const { pageId, spaceId } = await params;
@@ -58,6 +82,15 @@ export default async function Page({ params }: IProps) {
       />
     ) : null;
 
+  const embeddedCollections = Object.fromEntries(
+    await Promise.all(
+      extractPageCollectionReferences(selectedPage.content).map(async (reference) => [
+        reference.pageId,
+        await renderEmbeddedCollection(reference),
+      ]),
+    ),
+  );
+
   return (
     <main className="min-h-full">
       <PagesWorkspace
@@ -66,6 +99,7 @@ export default async function Page({ params }: IProps) {
         canEditContent={canEditContent(user?.role ?? USER_ROLE.CLIENT)}
         collectionSection={collectionSection}
         currentUserDisplayName={user?.name}
+        embeddedCollections={embeddedCollections}
         isNewPage={false}
         pages={pages}
         parentSchema={parentSchema}

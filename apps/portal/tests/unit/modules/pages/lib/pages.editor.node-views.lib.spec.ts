@@ -20,7 +20,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
   const mentionNode = document.content.firstChild?.content.firstChild;
   if (mentionNode === undefined || mentionNode === null) throw new Error('mention node missing');
 
-  const nodeViews = createPageEditorNodeViews();
+  const nodeViews = createPageEditorNodeViews('Collection');
   const view = nodeViews.mention?.(mentionNode, {} as never);
   if (view === undefined) throw new Error('mention node view missing');
 
@@ -44,5 +44,27 @@ describe('createPageEditorNodeViews mention', () => {
     );
 
     expect(link.getAttribute('href')).toBe('/spaces/44444444-4444-4444-8444-444444444444/pages/target-page-id');
+  });
+});
+
+describe('createPageEditorNodeViews collection', () => {
+  const nodeViews = createPageEditorNodeViews('Collection');
+
+  it('leaves a host in the content where the collection will be rendered', () => {
+    const node = pageEditorSchema.nodes.collection.create({ pageId: 'page-1', spaceId: 'space-1' });
+
+    const view = nodeViews.collection?.(node, {} as never);
+
+    expect(view?.dom.getAttribute('data-page-collection')).toBe('page-1');
+    expect(view?.dom.getAttribute('data-space-id')).toBe('space-1');
+    expect((view?.dom as HTMLElement).contentEditable).toBe('false');
+  });
+
+  it('records which view the block points at', () => {
+    const node = pageEditorSchema.nodes.collection.create({ pageId: 'page-1', spaceId: 'space-1', viewName: 'Board' });
+
+    const view = nodeViews.collection?.(node, {} as never);
+
+    expect(view?.dom.getAttribute('data-view-name')).toBe('Board');
   });
 });

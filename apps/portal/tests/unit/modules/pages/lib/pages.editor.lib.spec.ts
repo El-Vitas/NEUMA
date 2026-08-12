@@ -32,7 +32,7 @@ const content: PageContent = {
 
 describe('pages.editor.lib', () => {
   it('creates initial editor state from validated page JSON', () => {
-    const state = createPageEditorState(content);
+    const state = createPageEditorState(content, 'Select block');
 
     expect(state.doc.toJSON()).toMatchObject({ type: 'doc' });
     expect(state.doc.child(0).type.name).toBe('heading');
@@ -41,11 +41,11 @@ describe('pages.editor.lib', () => {
   it('creates a valid empty document for a new page', () => {
     const emptyContent = createEmptyPageContent();
 
-    expect(serializePageEditorState(createPageEditorState(emptyContent))).toEqual(emptyContent);
+    expect(serializePageEditorState(createPageEditorState(emptyContent, 'Select block'))).toEqual(emptyContent);
   });
 
   it('serializes editor state back to the shared PageContent contract', () => {
-    const state = createPageEditorState(content);
+    const state = createPageEditorState(content, 'Select block');
 
     expect(serializePageEditorState(state)).toEqual(content);
   });
@@ -73,7 +73,7 @@ describe('pages.editor.lib', () => {
       type: 'doc',
     };
 
-    expect(serializePageEditorState(createPageEditorState(richContent))).toEqual(richContent);
+    expect(serializePageEditorState(createPageEditorState(richContent, 'Select block'))).toEqual(richContent);
   });
 
   it('preserves structured blocks and marks during serialization', () => {
@@ -107,7 +107,9 @@ describe('pages.editor.lib', () => {
       type: 'doc',
     };
 
-    expect(serializePageEditorState(createPageEditorState(structuredContent))).toEqual(structuredContent);
+    expect(serializePageEditorState(createPageEditorState(structuredContent, 'Select block'))).toEqual(
+      structuredContent,
+    );
   });
 
   it('serializes a document containing a mention and block ids to something the shared contract accepts', () => {
@@ -132,7 +134,7 @@ describe('pages.editor.lib', () => {
       type: 'doc',
     };
 
-    const serialized = serializePageEditorState(createPageEditorState(contentWithMentionAndIds));
+    const serialized = serializePageEditorState(createPageEditorState(contentWithMentionAndIds, 'Select block'));
 
     expect(serialized).toEqual(contentWithMentionAndIds);
   });
