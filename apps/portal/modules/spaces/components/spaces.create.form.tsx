@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FormActions } from '@/shared/components/forms/form-actions';
+import { BackButton } from '@/shared/components/ui/back-button';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -120,7 +122,7 @@ export const SpacesCreateForm = () => {
         </Select>
         <p className="text-muted-foreground text-sm">{t(`visibility.description.${visibility}`)}</p>
       </div>
-      <div>
+      <FormActions back={<BackButton href={ROUTES.PORTAL_SPACES} />}>
         <Button
           className="min-h-11"
           disabled={isSubmitting || nameValidationIssue !== undefined || !isSlugValid}
@@ -128,7 +130,7 @@ export const SpacesCreateForm = () => {
         >
           {isSubmitting ? t('creating') : t('create')}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 };
