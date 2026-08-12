@@ -29,6 +29,7 @@ import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
 import { usePagesEditorBlockActions } from '../hooks/use.pages.editor.block-actions';
 import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arrival';
 import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
+import { usePagesEditorPageDrop } from '../hooks/use.pages.editor.page-drop';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
@@ -206,6 +207,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const syncCollectionHosts = collections.sync;
     const blockActions = usePagesEditorBlockActions(editorViewRef);
     usePagesEditorBlockArrival(editorHostRef);
+    usePagesEditorPageDrop({ editorViewRef, spaceId });
 
     const dismissSelectionToolbar = useCallback((editorView: EditorView): void => {
       const collapsedSelection = TextSelection.create(editorView.state.doc, editorView.state.selection.from);
