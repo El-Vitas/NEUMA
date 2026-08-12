@@ -20,9 +20,11 @@ import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confi
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
 
 interface IProps {
+  readonly canBecomePage: boolean;
   readonly colors: PageEditorBlockColors;
   readonly conversions: readonly PageEditorBlockConversion[];
   readonly hasIdentity: boolean;
+  readonly onBecomePage: () => void;
   readonly onClose: () => void;
   readonly onColor: (kind: PageEditorBlockColorKind, color: PageBlockColor | null) => void;
   readonly onComment: () => void;
@@ -40,9 +42,11 @@ interface IProps {
  * anything else is not offered the choice — so nothing here fails when chosen.
  */
 export const PagesEditorBlockMenu = ({
+  canBecomePage,
   colors,
   conversions,
   hasIdentity,
+  onBecomePage,
   onClose,
   onColor,
   onComment,
@@ -96,6 +100,7 @@ export const PagesEditorBlockMenu = ({
           <DropdownMenuItem onSelect={onDuplicate}>{t('duplicateBlock')}</DropdownMenuItem>
           {hasIdentity && <DropdownMenuItem onSelect={onCopyLink}>{t('copyBlockLink')}</DropdownMenuItem>}
           <DropdownMenuItem onSelect={onMoveToPage}>{t('moveBlocks')}</DropdownMenuItem>
+          {canBecomePage && <DropdownMenuItem onSelect={onBecomePage}>{t('blockToPage')}</DropdownMenuItem>}
           <DropdownMenuItem onSelect={onComment}>{t('commentBlock')}</DropdownMenuItem>
           <DropdownMenuItem onSelect={onDelete}>{t('deleteBlock')}</DropdownMenuItem>
         </DropdownMenuContent>

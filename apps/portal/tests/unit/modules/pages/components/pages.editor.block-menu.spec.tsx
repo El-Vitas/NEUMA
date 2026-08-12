@@ -8,6 +8,7 @@ import es from '../../../../../messages/es.json';
 const conversion: PageEditorBlockConversion = { id: 'heading1', labelKey: 'heading1', losesContent: false };
 
 interface MenuUse {
+  readonly becamePage: number[];
   readonly closed: number[];
   readonly commented: number[];
   readonly copied: number[];
@@ -19,6 +20,7 @@ interface MenuUse {
 
 const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversion], hasIdentity = true): MenuUse => {
   const use: MenuUse = {
+    becamePage: [],
     closed: [],
     commented: [],
     copied: [],
@@ -30,9 +32,11 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
   render(
     <NextIntlClientProvider locale="es" messages={es}>
       <PagesEditorBlockMenu
+        canBecomePage
         colors={{ background: null, text: null }}
         conversions={conversions}
         hasIdentity={hasIdentity}
+        onBecomePage={() => use.becamePage.push(1)}
         onClose={() => use.closed.push(1)}
         onColor={(kind, color) => use.painted.push(`${kind}:${String(color)}`)}
         onComment={() => use.commented.push(1)}
@@ -91,6 +95,14 @@ describe('the actions a block offers', () => {
     showMenu([conversion], false);
 
     expect(screen.queryByRole('menuitem', { name: 'Copiar enlace' })).toBeNull();
+  });
+
+  it('turns the block into a page of its own when asked', () => {
+    const use = showMenu();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Convertir en página' }));
+
+    expect(use.becamePage.length).toBe(1);
   });
 
   it('offers a colour for the text and one for the background', () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
 import {
+  createPageEditorBlockLinkCommand,
   createPageEditorBlockRangeRemovalCommand,
   readPageEditorBlocksContent,
   readPageEditorBlocksTitle,
@@ -71,6 +72,41 @@ describe('blocks that become a page of their own', () => {
 
     expect(mounted.view.state.doc.childCount).toBe(1);
     expect(mounted.view.state.doc.child(0).textContent).toBe('Se queda');
+
+    closeEditor(mounted);
+  });
+
+  it('leave a link to the page they became where they used to be', () => {
+    const mounted = mountEditor([nested('Padre', 'Hijo'), paragraph('Se queda')]);
+
+    createPageEditorBlockLinkCommand({
+      label: 'Padre',
+      pageId: '22222222-2222-4222-8222-222222222222',
+      range: firstBlock(mounted.view),
+      spaceId: 'space-1',
+    })(mounted.view.state, mounted.view.dispatch);
+
+    expect(mounted.view.state.doc.childCount).toBe(2);
+    const link = mounted.view.state.doc.child(0).child(0);
+    expect(link.type.name).toBe('mention');
+    expect(link.attrs.pageId).toBe('22222222-2222-4222-8222-222222222222');
+    expect(mounted.view.state.doc.child(1).textContent).toBe('Se queda');
+
+    closeEditor(mounted);
+  });
+
+  it('leave nothing behind when there is no page to point at', () => {
+    const mounted = mountEditor([paragraph('Uno'), paragraph('Se queda')]);
+
+    const ran = createPageEditorBlockLinkCommand({
+      label: 'Uno',
+      pageId: '',
+      range: firstBlock(mounted.view),
+      spaceId: 'space-1',
+    })(mounted.view.state, mounted.view.dispatch);
+
+    expect(ran).toBe(false);
+    expect(mounted.view.state.doc.child(0).textContent).toBe('Uno');
 
     closeEditor(mounted);
   });

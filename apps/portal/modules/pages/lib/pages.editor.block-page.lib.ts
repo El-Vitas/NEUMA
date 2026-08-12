@@ -1,7 +1,9 @@
+import { pageMentionAttrsSchema } from '@company-brain/shared';
 import { type Node as EditorNode, Fragment } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
 import type { PageEditorBlockRange } from '../types/pages.editor.block-drag.types';
+import type { PageEditorBlockLink } from '../types/pages.editor.page-drop.types';
 import type { PageContent } from '../types/pages.types';
 import { serializePageEditorDocument } from './pages.editor.lib';
 
@@ -50,6 +52,31 @@ const readReplacement = (state: EditorState, range: PageEditorBlockRange): Fragm
   const replacement = Fragment.from(paragraph);
   return place.parent.canReplace(startIndex, endIndex, replacement) ? replacement : null;
 };
+
+/**
+ * Puts a link to the new page where the blocks used to be, so the page they
+ * left still says where they went.
+ *
+ * The link is the same mention one writes with `@`: one way of pointing at a
+ * page, however it came to be written.
+ */
+export const createPageEditorBlockLinkCommand =
+  ({ label, pageId, range, spaceId }: PageEditorBlockLink): Command =>
+  (state, dispatch) => {
+    const mention = pageMentionAttrsSchema.safeParse({ label, pageId, spaceId });
+    const paragraphType = state.schema.nodes.paragraph;
+    const mentionType = state.schema.nodes.mention;
+    if (!mention.success || paragraphType === undefined || mentionType === undefined) return false;
+    if (dispatch === undefined) return true;
+
+    const link = paragraphType.create(null, mentionType.createChecked(mention.data));
+    const transaction = state.tr.replaceWith(range.from, range.to, link);
+    transaction.setSelection(
+      Selection.near(transaction.doc.resolve(Math.min(range.from, transaction.doc.content.size))),
+    );
+    dispatch(transaction.scrollIntoView());
+    return true;
+  };
 
 /**
  * Takes a known stretch of blocks off the page, for when they now live
