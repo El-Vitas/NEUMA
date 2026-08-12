@@ -408,6 +408,8 @@
     "moveBlocksDone": "Bloques movidos a {page}",
     "moveBlocksVisit": "Ir a la página",
     "moveBlocksError": "No se pudieron mover los bloques",
+    "blocksMadePage": "Bloques convertidos en la página {page}",
+    "blocksMadePageError": "No se pudo crear la página con esos bloques",
     "commentBlock": "Comentar",
     "blockComments": "Comentarios del bloque",
     "blockCommentsDescription": "Lo que se ha dicho sobre este bloque. Los comentarios viajan con él.",

@@ -47,7 +47,11 @@ export const SidebarPageTreeItem = ({
   return (
     <li data-page-tree-item="true">
       <div
-        className="group/page relative flex min-h-11 items-center pr-1"
+        className={cn(
+          'group/page relative flex min-h-11 items-center pr-1',
+          'data-[page-drop-over=true]:bg-primary/15 data-[page-drop-over=true]:outline data-[page-drop-over=true]:outline-primary/60',
+        )}
+        data-page-drop-target={canEdit && page.lifecycle === 'ACTIVE' ? page.id : undefined}
         style={{ paddingLeft: `${depth * 10 + 6}px` }}
       >
         {hasChildren ? (

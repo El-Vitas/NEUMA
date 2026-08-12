@@ -154,13 +154,15 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-13 · Debe permitir llevar bloques a otra página
 
-- [ ] Un bloque se puede mover a otra página desde su menú
-- [ ] La página destino se busca escribiendo
-- [ ] Funciona con varios bloques seleccionados
-- [ ] Los bloques desaparecen del origen y aparecen en el destino
-- [ ] Los hijos viajan con el padre
-- [ ] Se ofrece ir a la página destino después de mover
-- [ ] Se puede arrastrar un bloque hacia el árbol lateral para convertirlo en página
+**Cómo probarlo:** menú del bloque (Ctrl+/) → **Mover a…**; para la última casilla, arrastra el bloque por su agarre hasta una página del árbol lateral.
+
+- [x] Un bloque se puede mover a otra página desde su menú
+- [x] La página destino se busca escribiendo
+- [x] Funciona con varios bloques seleccionados
+- [x] Los bloques desaparecen del origen y aparecen en el destino
+- [x] Los hijos viajan con el padre
+- [x] Se ofrece ir a la página destino después de mover
+- [x] Se puede arrastrar un bloque hacia el árbol lateral para convertirlo en página
 
 ## BL-14 · Debe permitir convertir un bloque en página
 
@@ -209,6 +211,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio, como Notion. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-13 | **Mover varios bloques movía uno solo**: al pasar del menú al selector de destino se volvía a elegir el bloque del menú, y con eso se soltaban los demás. Ahora, cambiar lo que se le pregunta a un bloque no toca lo que la página tiene tomado. Faltaba también **arrastrar un bloque al árbol lateral**: el árbol dice qué filas pueden recibir bloques y qué página es cada una, y el editor lo lee; al soltar, los bloques —con lo que cuelgue de ellos— se convierten en una página hija titulada con su primera línea, salen de esta, y el aviso ofrece ir a verla. | 7 de 7 |
 | 2026-08-12 | BL-12 | **Comentar desde el menú no abría nada**: al elegir «Comentar» o «Mover a…», el menú se despedía cerrando justo lo que acababa de abrir. Ahora cada superficie cierra lo suyo —el menú cierra el menú, el diálogo cierra el diálogo— y no lo que otra abrió. Faltaba también **comentar un fragmento**: se creó como una marca sobre el texto que solo dice de qué comentario se trata; lo dicho lo sigue guardando el bloque, así que comentar una frase y comentar el bloque entero son lo mismo guardado en un solo lugar, y por eso el fragmento sobrevive a mover y a convertir. El fragmento comentado va subrayado y al pulsarlo se abre la conversación; borrar el comentario le quita el subrayado. | 6 de 6 |
 | 2026-08-12 | BL-11 | Nada. La identidad ya la tenía cada bloque; lo que faltaba era comprobarla: sobrevive a escribir al lado, a mover el bloque, a anidarlo, a convertirlo y a guardar la página. El enlace se copia con esa identidad, y al abrirlo la página espera a dibujarse antes de decidir —mirar una sola vez siempre encontraba nada— y recién entonces resalta el bloque o avisa que ya no está. Queda una salvedad de verificación: seguir un enlace a un bloque **de la página que ya se está leyendo** solo cambia la dirección, no recarga; eso se implementó y está cubierto por pruebas, pero no logré confirmarlo en el navegador —el servidor de desarrollo sirvió código viejo varias veces en esa sesión. | 6 de 6 |
 | 2026-08-12 | BL-10 | Nada. Faltaba el modo oscuro entero —los tokens `.dark` no existían—, así que se creó: el servidor lee de una cookie cómo lee cada quien y manda la página ya vestida, sin parpadeo, y el menú de la cuenta ofrece claro, oscuro o según el sistema. Los colores se midieron en el navegador en los dos modos: en claro, naranjo (3.34) y amarillo (2.74) no llegaban al mínimo legible de 4.5:1 y se oscurecieron —ahora los ocho van de 4.59 a 7.04—; en oscuro van de 5.59 a 13.48, y el texto sobre cada fondo, de 12.9 a 17.6. Los fondos de noche pasaron a ser un tinte del color sobre la página, no un bloque sólido. | 6 de 6 |
