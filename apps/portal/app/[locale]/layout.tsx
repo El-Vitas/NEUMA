@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
+import { readThemeClass } from '@/shared/lib/theme.lib';
+import { readRequestTheme } from '@/shared/server/lib/theme.server';
 import { NuqsProvider } from '../providers';
 import '../../globals.css';
 import { routing } from '../../i18n/routing';
@@ -32,12 +34,22 @@ export const metadata: Metadata = {
 
 export const generateStaticParams = () => routing.locales.map((locale) => ({ locale }));
 
+/**
+ * Everything below is dressed in the theme this browser reads with.
+ *
+ * The reading is asked for here rather than around the `<html>` element so the
+ * shell can still be sent while it is being worked out; the wrapper takes no
+ * space of its own, it only passes the theme down.
+ */
 const LocaleContent = async ({ children }: Readonly<{ children: React.ReactNode }>) => {
   const messages = await getMessages();
+  const theme = await readRequestTheme();
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <NuqsProvider>{children}</NuqsProvider>
+      <div className={`contents ${readThemeClass(theme.reading)}`} data-theme-root="true">
+        <NuqsProvider>{children}</NuqsProvider>
+      </div>
     </NextIntlClientProvider>
   );
 };

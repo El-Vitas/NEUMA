@@ -142,6 +142,64 @@
   --status-muted: #6b6b68;
 }
 
+/*
+ * The same interface read at night: the paper darkens, the ink lightens, and
+ * the brand red is lifted just enough to stay legible on it. Every token the
+ * light theme declares is answered here, so nothing falls back to a colour
+ * meant for paper.
+ *
+ * The page wears `.dark` when it is being read this way, which the server
+ * writes from what the browser last told it.
+ */
+.dark {
+  --surface: #17171a;
+  --surface-container-low: #1e1e22;
+  --surface-container: #232329;
+  --surface-container-high: #2b2b31;
+  --surface-bright: #33333a;
+  --on-surface: #f2f2ef;
+  --on-surface-muted: #a3a3a0;
+  --tertiary: #2b2b31;
+  --primary: #f05561;
+  --primary-soft: #d93b48;
+  --primary-foreground: #17171a;
+  --secondary: #f2f2ef;
+  --secondary-foreground: #17171a;
+  --border: #35353c;
+  --input: #4a4a52;
+  --ring: rgba(240, 85, 97, 0.45);
+  --muted-foreground: #a3a3a0;
+  --accent: #2b2b31;
+  --accent-hover: #35353c;
+  --accent-foreground: #f2f2ef;
+  --destructive: #f0655c;
+  --card: #1e1e22;
+  --card-foreground: #f2f2ef;
+  --popover: #1e1e22;
+  --popover-foreground: #f2f2ef;
+  --background: #17171a;
+  --foreground: #f2f2ef;
+  --sidebar: #101013;
+  --sidebar-foreground: #f2f2ef;
+  --sidebar-primary: #f05561;
+  --sidebar-primary-foreground: #17171a;
+  --sidebar-accent: #232329;
+  --sidebar-accent-foreground: #f2f2ef;
+  --sidebar-border: #2b2b31;
+  --sidebar-ring: rgba(255, 255, 255, 0.45);
+  --chart-1: #f05561;
+  --chart-2: #f2f2ef;
+  --chart-3: #a3a3a0;
+  --chart-4: #4a4a52;
+  --chart-5: #35353c;
+
+  --highlight-strong: #f2f2ef;
+  --highlight-soft: #35353c;
+  --panel-emphasis: #232329;
+  --status-active: #f05561;
+  --status-muted: #a3a3a0;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

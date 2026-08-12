@@ -7,18 +7,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Sidebar } from '@/shared/components/portal/sidebar';
 import { Topbar } from '@/shared/components/portal/topbar';
 import { Sheet, SheetContent, SheetTitle } from '@/shared/components/ui/sheet';
+import type { ThemeChoice } from '@/shared/types/theme.types';
 import { PortalCommandBar } from '../components/portal.command-bar';
 import { isPortalCommandShortcut } from '../lib/portal.keyboard.lib';
 import type { PortalLayoutSpace, PortalLayoutUser } from '../types/portal.types';
 
 interface PortalLayoutProps {
+  readonly themeChoice: ThemeChoice;
   children: React.ReactNode;
   readonly role: UserRole;
   readonly spaces: readonly PortalLayoutSpace[];
   readonly user: PortalLayoutUser;
 }
 
-export const PortalLayout = ({ children, role, spaces, user }: PortalLayoutProps) => {
+export const PortalLayout = ({ children, role, spaces, themeChoice, user }: PortalLayoutProps) => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandBarOpen, setCommandBarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -44,7 +46,7 @@ export const PortalLayout = ({ children, role, spaces, user }: PortalLayoutProps
   return (
     <div className="fixed inset-0 flex bg-background">
       <div className="hidden shrink-0 lg:block">
-        <Sidebar role={role} spaces={spaces} user={user} />
+        <Sidebar role={role} spaces={spaces} themeChoice={themeChoice} user={user} />
       </div>
 
       <Sheet onOpenChange={setMobileNavOpen} open={mobileNavOpen}>
@@ -56,6 +58,7 @@ export const PortalLayout = ({ children, role, spaces, user }: PortalLayoutProps
             onNavigate={() => setMobileNavOpen(false)}
             role={role}
             spaces={spaces}
+            themeChoice={themeChoice}
             user={user}
           />
         </SheetContent>

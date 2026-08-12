@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { logout } from '@/modules/auth/server/lib/auth.logout.server';
 import type { PortalLayoutUser } from '@/modules/portal/types/portal.types';
+import { ThemeMenu } from '@/shared/components/theme/theme.menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,13 +15,15 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import type { ThemeChoice } from '@/shared/types/theme.types';
 
 interface IProps {
   readonly collapsed: boolean;
+  readonly themeChoice: ThemeChoice;
   readonly user: PortalLayoutUser;
 }
 
-export const SidebarAccount = ({ collapsed, user }: IProps) => {
+export const SidebarAccount = ({ collapsed, themeChoice, user }: IProps) => {
   const router = useRouter();
   const t = useTranslations('navigation');
 
@@ -44,6 +47,7 @@ export const SidebarAccount = ({ collapsed, user }: IProps) => {
             <UserIcon aria-hidden="true" className="size-4" />
             {t('account')}
           </DropdownMenuItem>
+          <ThemeMenu choice={themeChoice} />
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild variant="destructive">
             <form action={logout} className="w-full">
