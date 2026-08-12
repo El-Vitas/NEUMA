@@ -2,8 +2,8 @@
 
 import { Popover as PopoverPrimitive } from 'radix-ui';
 import type * as React from 'react';
-
 import { cn } from '@/lib/utils';
+import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 
 const Popover = ({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Root>) => {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
@@ -20,7 +20,7 @@ const PopoverContent = ({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) => {
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={useThemeRoot() ?? undefined}>
       <PopoverPrimitive.Content
         align={align}
         className={cn(
