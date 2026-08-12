@@ -73,15 +73,15 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 **Cómo probarlo:** escribe dos párrafos sueltos y presiona Tab en el segundo.
 
-- [ ] Tab indenta el bloque actual y lo anida bajo el anterior
-- [ ] Shift+Tab lo desanida
-- [ ] Funciona con párrafos, no solo con listas
-- [ ] Funciona con encabezados, citas, imágenes, tablas, código y colecciones
-- [ ] Un bloque anidado puede tener a su vez bloques anidados
-- [ ] La indentación se ve claramente
-- [ ] Mover el bloque padre arrastra a sus hijos
-- [ ] Eliminar el padre pregunta o preserva a los hijos, pero no los borra en silencio
-- [ ] Se pueden indentar varios bloques seleccionados de una vez
+- [x] Tab indenta el bloque actual y lo anida bajo el anterior
+- [x] Shift+Tab lo desanida
+- [x] Funciona con párrafos, no solo con listas
+- [x] Funciona con encabezados, citas, imágenes, tablas, código y colecciones
+- [x] Un bloque anidado puede tener a su vez bloques anidados
+- [x] La indentación se ve claramente
+- [x] Mover el bloque padre arrastra a sus hijos
+- [x] Eliminar el padre pregunta o preserva a los hijos, pero no los borra en silencio
+- [x] Se pueden indentar varios bloques seleccionados de una vez
 - [ ] La anidación sobrevive al recargar y se exporta correctamente
 
 ## BL-07 · Debe permitir convertir un bloque en otro tipo
@@ -194,5 +194,6 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-01 | Nada. Insertarla desde el menú `/` queda pendiente en `TB-23`, no aquí. | 6 de 6 |
 | 2026-08-11 | BL-03 | Nada. Arrastrar y shift+clic producen selección de texto sobre varios bloques, que es el comportamiento nativo del editor. | 8 de 8 |
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio, como Notion. | 14 de 14 |
+| 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
 | 2026-08-12 | BL-04 | Los **diagramas**, que no existen como tipo de bloque; imágenes, tablas, código y colecciones sí se mueven. Por el camino nacieron las columnas (soltar al borde de un bloque parte la fila, con separador para repartir el ancho) y el desplegable pasó a abrirse y titularse. | 11 de 12 |

@@ -20,7 +20,7 @@ import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.l
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
-import { splitOutOfNestedBlock } from './pages.editor.nesting.lib';
+import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
@@ -181,7 +181,13 @@ export const createPageEditorPlugins = (
   }),
   keymap({ 'Mod-y': redo }),
   keymap(createPageEditorShortcutBindings(PAGE_EDITOR_SHORTCUTS)),
-  keymap(Object.fromEntries([['Enter', splitOutOfNestedBlock]])),
+  keymap(
+    Object.fromEntries([
+      ['Enter', splitOutOfNestedBlock],
+      ['Backspace', deletePageEditorBlockKeepingChildren],
+      ['Delete', deletePageEditorBlockKeepingChildren],
+    ]),
+  ),
   keymap(baseKeymap),
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
   createPageEditorBlockIdPlugin(),
