@@ -16,6 +16,7 @@ export {
 export { formatChileanTime } from './logger.lib.js';
 export { InvalidMoneyError } from './money/money.error.js';
 export { Money } from './money/money.js';
+export type { PageCollectionReference } from './page-content.lib.js';
 export {
   extractPageCollectionReferences,
   extractPageContentSegments,
@@ -87,7 +88,6 @@ export type {
   PageContentMigrations,
 } from './schemas/page-content.migration.js';
 export { applyPageContentMigrations, readStoredPageContent } from './schemas/page-content.migration.js';
-export type { PageCollectionReference } from './page-content.lib.js';
 export type {
   PageContent,
   PageContentInlineNode,
@@ -107,6 +107,8 @@ export {
   pageMentionAttrsSchema,
 } from './schemas/page-content.schema.js';
 export type { AuthSession } from './types/auth.types.js';
+export type { PageLifecycle } from './types/page.types.js';
+export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES } from './types/page.types.js';
 export type { PagePropertyType, PageViewOutcomeKind, PageViewType } from './types/page-schema.types.js';
 export {
   PAGE_PROPERTY_TYPE,
@@ -115,8 +117,6 @@ export {
   PAGE_VIEW_TYPE,
   PAGE_VIEW_TYPE_VALUES,
 } from './types/page-schema.types.js';
-export type { PageLifecycle } from './types/page.types.js';
-export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES } from './types/page.types.js';
 export type { SpaceVisibility } from './types/space.types.js';
 export { SPACE_VISIBILITY, SPACE_VISIBILITY_VALUES } from './types/space.types.js';
 export type { User } from './types/user.types.js';

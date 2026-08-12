@@ -27,6 +27,7 @@ import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
 import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } from '../lib/pages.collaboration.lib';
+import { isPageEditorBlockDragActive } from '../lib/pages.editor.block-drag.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import {
   computeSelectionToolbarPlacement,
@@ -272,7 +273,9 @@ export const PagesProseMirrorEditor = forwardRef(
             trigger === null ? null : computeMenuPosition(editorView, selection.from, selection.from);
           triggerMenuPositionRef.current = nextTriggerMenuPosition;
           setTriggerMenuPosition(nextTriggerMenuPosition);
-          setSelectionToolbarPosition(computeSelectionToolbarPosition(editorView, selection));
+          setSelectionToolbarPosition(
+            isPageEditorBlockDragActive(nextState) ? null : computeSelectionToolbarPosition(editorView, selection),
+          );
           setSelectedBlockCount(countSelectedBlocks(selection));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
@@ -400,7 +403,7 @@ export const PagesProseMirrorEditor = forwardRef(
             </div>
           )}
           <div
-            className="w-full bg-surface py-4 pl-10 text-base/7 outline-none"
+            className="w-full bg-surface py-4 text-base/7 outline-none"
             id="page-content"
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}
@@ -418,7 +421,7 @@ export const PagesProseMirrorEditor = forwardRef(
           )}
           {canEdit && (
             <button
-              className="flex min-h-11 w-full items-center px-8 text-left text-muted-foreground text-sm hover:text-foreground"
+              className="flex min-h-11 w-full items-center text-left text-muted-foreground text-sm hover:text-foreground"
               onClick={() => {
                 const editorView = editorViewRef.current;
                 if (editorView === null) return;

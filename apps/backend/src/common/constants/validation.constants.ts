@@ -6,3 +6,7 @@ export const EMAIL_MAX_LENGTH = 255;
 export const ID_MAX_LENGTH = 64;
 export const SEARCH_MAX_LENGTH = 200;
 export const SORT_MAX_LENGTH = 64;
+
+export const REFRESH_TOKEN_MIN_LENGTH = 20;
+
+export const REFRESH_TOKEN_MAX_LENGTH = 4096;

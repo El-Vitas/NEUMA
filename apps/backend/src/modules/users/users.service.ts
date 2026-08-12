@@ -44,9 +44,7 @@ export class UsersService {
       password: hashedPassword,
     });
 
-    const userSummary = toUser(created);
-    const accessToken = await this.tokenAdapter.signAccessToken(userSummary);
-    return Result.ok({ accessToken, user: userSummary });
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(created)));
   }
 
   async updateUser(id: string, dto: UpdateUserDto): Promise<{ id: string; email: string; name: string }> {

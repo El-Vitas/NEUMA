@@ -1,7 +1,12 @@
 import { isAllowedPageEmbedUrl, PAGE_EMBED_PROVIDERS } from '@company-brain/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
-import { PAGE_EDITOR_BLOCK_CHILDREN_CLASS } from '../constants/pages.constants';
+import {
+  PAGE_EDITOR_BLOCK_CHILDREN_CLASS,
+  PAGE_EDITOR_COLUMN_CLASS,
+  PAGE_EDITOR_COLUMN_LIST_CLASS,
+} from '../constants/pages.editor.blocks.constants';
+import { definePageBlock } from './pages.editor.block-spec.lib';
 
 const getPageEditorAssetAttrs = (element: Element): Record<string, string | null> | false => {
   const assetId = element.getAttribute('data-asset-id');
@@ -21,10 +26,10 @@ const getPageEditorEmbedAttrs = (element: Element): { readonly provider: string;
   return { provider: knownProvider, url };
 };
 
-const getPageEditorToggleAttrs = (element: Element): { readonly summary: string } | false => {
+const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; readonly summary: string } | false => {
   const summary = element.querySelector('summary')?.textContent;
-  if (summary === null || summary === undefined || summary.length === 0) return false;
-  return { summary };
+  if (summary === null || summary === undefined) return false;
+  return { open: element.hasAttribute('open'), summary };
 };
 
 const getPageEditorMentionAttrs = (
@@ -47,113 +52,105 @@ const getPageEditorCollectionAttrs = (
   return { pageId, spaceId, viewName: viewName === null || viewName.length === 0 ? null : viewName };
 };
 
-const optionalBlockIdAttribute = { default: null };
-
-const toBlockDomAttributes = (node: EditorNode): Record<string, string> =>
-  typeof node.attrs.id === 'string' ? { 'data-block-id': node.attrs.id } : {};
-
-const getPageEditorBlockAttrs = (element: Element): { readonly id: string | null } => ({
-  id: element.getAttribute('data-block-id'),
-});
+const getPageEditorColumnAttrs = (element: Element): { readonly id: string | null; readonly width: number | null } => {
+  const width = Number.parseFloat(element.getAttribute('data-width') ?? '');
+  return { id: element.getAttribute('data-block-id'), width: Number.isFinite(width) ? width : null };
+};
 
 const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   ['doc', { content: 'block+' }],
   [
     'paragraph',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'inline*',
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'p' }],
-      toDOM: (node: EditorNode) => ['p', toBlockDomAttributes(node), 0],
-    },
+      parseDOM: [{ tag: 'p' }],
+      render: (_node, blockAttributes) => ['p', blockAttributes, 0],
+    }),
   ],
   ['text', { group: 'inline' }],
   [
     'collection',
-    {
-      attrs: { id: optionalBlockIdAttribute, pageId: {}, spaceId: {}, viewName: { default: null } },
+    definePageBlock({
+      attrs: { pageId: {}, spaceId: {}, viewName: { default: null } },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorCollectionAttrs, tag: 'div[data-page-collection]' }],
-      toDOM: (node: EditorNode) => [
+      render: (node, blockAttributes) => [
         'div',
         {
-          ...toBlockDomAttributes(node),
+          ...blockAttributes,
           'data-page-collection': node.attrs.pageId,
           'data-space-id': node.attrs.spaceId,
           'data-view-name': node.attrs.viewName ?? '',
         },
       ],
-    },
+    }),
   ],
   [
     'blockquote',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'block+',
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'blockquote' }],
-      toDOM: (node: EditorNode) => ['blockquote', toBlockDomAttributes(node), 0],
-    },
+      parseDOM: [{ tag: 'blockquote' }],
+      render: (_node, blockAttributes) => ['blockquote', blockAttributes, 0],
+    }),
   ],
   [
     'bullet_list',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'list_item+',
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'ul' }],
-      toDOM: (node: EditorNode) => ['ul', toBlockDomAttributes(node), 0],
-    },
+      parseDOM: [{ tag: 'ul' }],
+      render: (_node, blockAttributes) => ['ul', blockAttributes, 0],
+    }),
   ],
   [
     'code_block',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       code: true,
       content: 'text*',
       group: 'block',
       marks: '',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, preserveWhitespace: 'full', tag: 'pre' }],
-      toDOM: (node: EditorNode) => ['pre', toBlockDomAttributes(node), ['code', 0]],
-    },
+      parseDOM: [{ preserveWhitespace: 'full', tag: 'pre' }],
+      render: (_node, blockAttributes) => ['pre', blockAttributes, ['code', 0]],
+    }),
   ],
   [
     'embed',
-    {
-      attrs: { id: optionalBlockIdAttribute, provider: {}, url: {} },
+    definePageBlock({
+      attrs: { provider: {}, url: {} },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorEmbedAttrs, tag: 'div[data-page-embed]' }],
-      toDOM: (node: EditorNode) => [
+      render: (node, blockAttributes) => [
         'div',
-        { ...toBlockDomAttributes(node), 'data-page-embed': node.attrs.provider, 'data-url': node.attrs.url },
+        { ...blockAttributes, 'data-page-embed': node.attrs.provider, 'data-url': node.attrs.url },
       ],
-    },
+    }),
   ],
   [
     'file',
-    {
-      attrs: { alt: { default: null }, assetId: {}, caption: { default: null }, id: optionalBlockIdAttribute },
+    definePageBlock({
+      attrs: { alt: { default: null }, assetId: {}, caption: { default: null } },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorAssetAttrs, tag: 'div[data-page-file]' }],
-      toDOM: (node: EditorNode) => [
+      render: (node, blockAttributes) => [
         'div',
         {
-          ...toBlockDomAttributes(node),
+          ...blockAttributes,
           'data-page-file': true,
           'data-asset-id': node.attrs.assetId,
           'data-caption': node.attrs.caption ?? '',
         },
       ],
-    },
+    }),
   ],
   [
     'heading',
-    {
-      attrs: { id: optionalBlockIdAttribute, level: { default: 1 } },
+    definePageBlock({
+      attrs: { level: { default: 1 } },
       content: 'inline*',
       defining: true,
       group: 'block',
@@ -162,36 +159,35 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
         { attrs: { level: 2 }, tag: 'h2' },
         { attrs: { level: 3 }, tag: 'h3' },
       ],
-      toDOM: (node: EditorNode) => [`h${node.attrs.level}`, toBlockDomAttributes(node), 0],
-    },
+      render: (node, blockAttributes) => [`h${node.attrs.level}`, blockAttributes, 0],
+    }),
   ],
   [
     'image',
-    {
-      attrs: { alt: { default: null }, assetId: {}, caption: { default: null }, id: optionalBlockIdAttribute },
+    definePageBlock({
+      attrs: { alt: { default: null }, assetId: {}, caption: { default: null } },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorAssetAttrs, tag: 'img[data-page-image]' }],
-      toDOM: (node: EditorNode) => [
+      render: (node, blockAttributes) => [
         'img',
         {
-          ...toBlockDomAttributes(node),
+          ...blockAttributes,
           'data-asset-id': node.attrs.assetId,
           'data-page-image': true,
           alt: node.attrs.alt ?? '',
         },
       ],
-    },
+    }),
   ],
   [
     'list_item',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'paragraph block*',
       defining: true,
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'li' }],
-      toDOM: (node: EditorNode) => ['li', toBlockDomAttributes(node), 0],
-    },
+      parseDOM: [{ tag: 'li' }],
+      render: (_node, blockAttributes) => ['li', blockAttributes, 0],
+    }),
   ],
   [
     'mention',
@@ -210,88 +206,116 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   ],
   [
     'ordered_list',
-    {
-      attrs: { id: optionalBlockIdAttribute, order: { default: 1 } },
+    definePageBlock({
+      attrs: { order: { default: 1 } },
       content: 'list_item+',
       group: 'block',
       parseDOM: [
         { getAttrs: (element: Element) => ({ order: Number(element.getAttribute('start')) || 1 }), tag: 'ol' },
       ],
-      toDOM: (node: EditorNode) => [
+      render: (node, blockAttributes) => [
         'ol',
-        node.attrs.order === 1
-          ? toBlockDomAttributes(node)
-          : { ...toBlockDomAttributes(node), start: node.attrs.order },
+        node.attrs.order === 1 ? blockAttributes : { ...blockAttributes, start: node.attrs.order },
         0,
       ],
-    },
+    }),
   ],
   [
     'table',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'table_row+',
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'table' }],
-      toDOM: (node: EditorNode) => ['table', toBlockDomAttributes(node), ['tbody', 0]],
-    },
+      parseDOM: [{ tag: 'table' }],
+      render: (_node, blockAttributes) => ['table', blockAttributes, ['tbody', 0]],
+    }),
   ],
   [
     'table_cell',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'block+',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'td' }],
-      toDOM: (node: EditorNode) => ['td', toBlockDomAttributes(node), 0],
-    },
+      parseDOM: [{ tag: 'td' }],
+      render: (_node, blockAttributes) => ['td', blockAttributes, 0],
+    }),
   ],
   [
     'table_row',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'table_cell+',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'tr' }],
-      toDOM: (node: EditorNode) => ['tr', toBlockDomAttributes(node), 0],
-    },
+      parseDOM: [{ tag: 'tr' }],
+      render: (_node, blockAttributes) => ['tr', blockAttributes, 0],
+    }),
   ],
   [
     'toggle',
-    {
-      attrs: { id: optionalBlockIdAttribute, summary: {} },
+    definePageBlock({
+      attrs: { open: { default: false }, summary: {} },
       content: 'block+',
       defining: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorToggleAttrs, tag: 'details[data-page-toggle]' }],
-      toDOM: (node: EditorNode): DOMOutputSpec => [
+      render: (node, blockAttributes): DOMOutputSpec => [
         'details',
-        { ...toBlockDomAttributes(node), 'data-page-toggle': true },
+        {
+          ...blockAttributes,
+          'data-page-toggle': true,
+          ...(node.attrs.open === true ? { open: 'true' } : {}),
+        },
         ['summary', node.attrs.summary],
         ['div', 0],
       ],
-    },
+    }),
+  ],
+  [
+    'column_list',
+    definePageBlock({
+      content: 'column+',
+      group: 'block',
+      parseDOM: [{ tag: 'div[data-column-list]' }],
+      render: (_node, blockAttributes) => [
+        'div',
+        { ...blockAttributes, 'data-column-list': 'true', class: PAGE_EDITOR_COLUMN_LIST_CLASS },
+        0,
+      ],
+    }),
+  ],
+  [
+    'column',
+    definePageBlock({
+      attrs: { width: { default: null } },
+      content: 'block+',
+      parseDOM: [{ getAttrs: getPageEditorColumnAttrs, tag: 'div[data-column]' }],
+      render: (node, blockAttributes) => [
+        'div',
+        {
+          ...blockAttributes,
+          'data-column': 'true',
+          class: PAGE_EDITOR_COLUMN_CLASS,
+          ...(typeof node.attrs.width === 'number' ? { style: `flex-grow:${String(node.attrs.width)}` } : {}),
+        },
+        0,
+      ],
+    }),
   ],
   [
     'block_children',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'block+',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'div[data-block-children]' }],
-      toDOM: (node: EditorNode) => [
+      parseDOM: [{ tag: 'div[data-block-children]' }],
+      render: (_node, blockAttributes) => [
         'div',
-        { ...toBlockDomAttributes(node), 'data-block-children': 'true', class: PAGE_EDITOR_BLOCK_CHILDREN_CLASS },
+        { ...blockAttributes, 'data-block-children': 'true', class: PAGE_EDITOR_BLOCK_CHILDREN_CLASS },
         0,
       ],
-    },
+    }),
   ],
   [
     'nested_block',
-    {
-      attrs: { id: optionalBlockIdAttribute },
+    definePageBlock({
       content: 'block block_children',
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorBlockAttrs, tag: 'div[data-nested-block]' }],
-      toDOM: (node: EditorNode) => ['div', { ...toBlockDomAttributes(node), 'data-nested-block': 'true' }, 0],
-    },
+      parseDOM: [{ tag: 'div[data-nested-block]' }],
+      render: (_node, blockAttributes) => ['div', { ...blockAttributes, 'data-nested-block': 'true' }, 0],
+    }),
   ],
 ];
 

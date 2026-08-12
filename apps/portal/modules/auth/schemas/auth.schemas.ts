@@ -11,6 +11,9 @@ export const userSchema = z.object({
 
 export const authSessionSchema = z.object({
   accessToken: z.string(),
+  accessTokenExpiresInSeconds: z.number().int().positive(),
+  refreshToken: z.string(),
+  refreshTokenExpiresInSeconds: z.number().int().positive(),
   user: userSchema,
 });
 

@@ -38,7 +38,7 @@ mock.module('@/modules/pages/components/pages.attachments', () => ({
 const { PagesEditor } = await import('@/modules/pages/components/pages.editor');
 
 describe('PagesEditor creation', () => {
-  it('gives a new document a broad adaptive work canvas', () => {
+  it('gives a new document the whole width it has, without a reading column of its own', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor
@@ -53,7 +53,10 @@ describe('PagesEditor creation', () => {
       </NextIntlClientProvider>,
     );
 
-    expect(screen.getByTestId('page-editor-workspace').classList.contains('max-w-[100rem]')).toBe(true);
+    const workspace = screen.getByTestId('page-editor-workspace');
+
+    expect(workspace.classList.contains('w-full')).toBe(true);
+    expect(Array.from(workspace.classList).some((name) => name.startsWith('max-w-'))).toBe(false);
   });
 
   it('focuses the title and opens the created page at its stable URL', async () => {

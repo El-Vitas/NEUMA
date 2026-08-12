@@ -113,7 +113,7 @@ const isEmptyNormalizedAttrs = (key: string, value: unknown): boolean =>
 
 const isPageEditorContentNode = (value: unknown): boolean =>
   typeof value === 'string' &&
-  !['code', 'em', 'embed', 'file', 'image', 'link', 'mention', 'strong', 'text'].includes(value);
+  !['code', 'collection', 'em', 'embed', 'file', 'image', 'link', 'mention', 'strong', 'text'].includes(value);
 
 const isPageEditorJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

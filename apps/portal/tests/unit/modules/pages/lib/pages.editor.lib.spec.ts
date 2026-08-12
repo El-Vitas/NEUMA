@@ -31,6 +31,21 @@ const content: PageContent = {
 };
 
 describe('pages.editor.lib', () => {
+  it('saves a page that embeds a collection, which has nothing inside it', () => {
+    const withCollection: PageContent = {
+      content: [
+        { attrs: { pageId: 'page-1', spaceId: 'space-1' }, type: 'collection' },
+        { content: [{ text: 'Debajo', type: 'text' }], type: 'paragraph' },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+
+    const saved = serializePageEditorState(createPageEditorState(withCollection, 'Select block'));
+
+    expect(saved).toEqual(withCollection);
+  });
+
   it('creates initial editor state from validated page JSON', () => {
     const state = createPageEditorState(content, 'Select block');
 

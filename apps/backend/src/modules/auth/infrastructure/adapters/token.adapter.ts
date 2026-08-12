@@ -1,4 +1,4 @@
-import { USER_ROLE_VALUES, type User } from '@company-brain/shared';
+import { type AuthSession, USER_ROLE_VALUES, type User } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -6,11 +6,17 @@ import {
   COLLABORATION_TOKEN_AUDIENCE,
   COLLABORATION_TOKEN_EXPIRES_IN,
   COLLABORATION_TOKEN_PURPOSE,
+  DEFAULT_ACCESS_TOKEN_LIFETIME_SECONDS,
+  DEFAULT_REFRESH_TOKEN_LIFETIME_SECONDS,
   JWT_ACCESS_TOKEN_EXPIRES_IN_KEY,
   JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN,
+  JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN,
+  JWT_REFRESH_TOKEN_EXPIRES_IN_KEY,
   JWT_SECRET_KEY,
+  REFRESH_TOKEN_AUDIENCE,
 } from '../../../../common/constants/auth.constants';
 import type { CollaborationTokenPayload, TokenPayload } from '../../../../common/types/auth.types';
+import { parseTokenLifetimeSeconds } from '../../utils/auth.token.utils';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -32,6 +38,58 @@ export class TokenAdapter {
       expiresIn: this.resolveExpiration() as `${number}${'d' | 'h' | 'm' | 's'}`,
       secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
     });
+  }
+
+  /**
+   * Signs the long-lived token whose only power is to ask for a new access
+   * token. It is marked with its own audience so an access token can never be
+   * used to renew a session, nor a refresh token to reach the API.
+   */
+  async signRefreshToken(user: User): Promise<string> {
+    const payload: TokenPayload = {
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      sub: user.id,
+    };
+    return this.jwtService.signAsync(
+      { ...payload, aud: REFRESH_TOKEN_AUDIENCE },
+      {
+        expiresIn: this.resolveRefreshExpiration() as `${number}${'d' | 'h' | 'm' | 's'}`,
+        secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
+      },
+    );
+  }
+
+  async verifyRefreshToken(token: string): Promise<TokenPayload> {
+    return this.jwtService.verifyAsync<TokenPayload>(token, {
+      audience: REFRESH_TOKEN_AUDIENCE,
+      secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
+    });
+  }
+
+  /**
+   * Issues the whole session at once — both tokens and how long each one
+   * lives — so every place that starts a session (signing in, signing up,
+   * renewing) hands out exactly the same thing.
+   */
+  async issueSession(user: User): Promise<AuthSession> {
+    const [accessToken, refreshToken] = await Promise.all([this.signAccessToken(user), this.signRefreshToken(user)]);
+    return {
+      accessToken,
+      accessTokenExpiresInSeconds: this.getAccessTokenLifetimeSeconds(),
+      refreshToken,
+      refreshTokenExpiresInSeconds: this.getRefreshTokenLifetimeSeconds(),
+      user,
+    };
+  }
+
+  getAccessTokenLifetimeSeconds(): number {
+    return parseTokenLifetimeSeconds(this.resolveExpiration(), DEFAULT_ACCESS_TOKEN_LIFETIME_SECONDS);
+  }
+
+  getRefreshTokenLifetimeSeconds(): number {
+    return parseTokenLifetimeSeconds(this.resolveRefreshExpiration(), DEFAULT_REFRESH_TOKEN_LIFETIME_SECONDS);
   }
 
   async verifyAccessToken(token: string): Promise<TokenPayload> {
@@ -72,6 +130,10 @@ export class TokenAdapter {
     } catch {
       throw new Error('invalid-collaboration-token');
     }
+  }
+
+  private resolveRefreshExpiration(): string {
+    return this.configService.get<string>(JWT_REFRESH_TOKEN_EXPIRES_IN_KEY) ?? JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN;
   }
 
   private resolveExpiration(): string {

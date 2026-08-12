@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SIDEBAR_STORAGE_KEY } from '../constants/sidebar.constants';
 import { isSidebarToggleShortcut } from '../lib/portal.keyboard.lib';
 
@@ -29,12 +29,31 @@ const writeStoredCollapsed = (collapsed: boolean): void => {
   localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed));
 };
 
+/**
+ * Remembers whether the sidebar is collapsed.
+ *
+ * The first render must match what the server sent, so it always starts
+ * expanded and adopts the stored preference right after mounting: reading
+ * storage while rendering makes the browser and the server disagree and React
+ * throws the whole tree away. The preference is written when someone changes
+ * it, so adopting the stored value can never overwrite it.
+ */
 export const useSidebarCollapsed = (enableKeyboardShortcut = true): readonly [boolean, () => void] => {
-  const [collapsed, setCollapsed] = useState<boolean>(readStoredCollapsed);
+  const [collapsed, setCollapsed] = useState(false);
+  const hasOwnChoice = useRef(false);
 
   useEffect(() => {
-    writeStoredCollapsed(collapsed);
+    if (!hasOwnChoice.current) setCollapsed(readStoredCollapsed());
+  }, []);
+
+  useEffect(() => {
+    if (hasOwnChoice.current) writeStoredCollapsed(collapsed);
   }, [collapsed]);
+
+  const toggle = useCallback((): void => {
+    hasOwnChoice.current = true;
+    setCollapsed((current) => !current);
+  }, []);
 
   useEffect(() => {
     if (!enableKeyboardShortcut) {
@@ -43,16 +62,12 @@ export const useSidebarCollapsed = (enableKeyboardShortcut = true): readonly [bo
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isSidebarToggleShortcut(event)) {
         event.preventDefault();
-        setCollapsed((current) => !current);
+        toggle();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [enableKeyboardShortcut]);
-
-  const toggle = (): void => {
-    setCollapsed((current) => !current);
-  };
+  }, [enableKeyboardShortcut, toggle]);
 
   return [collapsed, toggle] as const;
 };

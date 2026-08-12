@@ -32,6 +32,7 @@ export const API_SEGMENTS = {
   QUOTE: 'quote',
   READ: 'read',
   REGISTER: 'register',
+  REFRESH: 'refresh',
   SESSIONS: 'sessions',
   STATS: 'stats',
   STATUS_TRANSITIONS: 'status-transitions',

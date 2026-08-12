@@ -21,7 +21,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
   if (mentionNode === undefined || mentionNode === null) throw new Error('mention node missing');
 
   const nodeViews = createPageEditorNodeViews('Collection');
-  const view = nodeViews.mention?.(mentionNode, {} as never);
+  const view = nodeViews.mention?.(mentionNode, {} as never, () => undefined);
   if (view === undefined) throw new Error('mention node view missing');
 
   return view.dom as HTMLAnchorElement;
@@ -53,7 +53,7 @@ describe('createPageEditorNodeViews collection', () => {
   it('leaves a host in the content where the collection will be rendered', () => {
     const node = pageEditorSchema.nodes.collection.create({ pageId: 'page-1', spaceId: 'space-1' });
 
-    const view = nodeViews.collection?.(node, {} as never);
+    const view = nodeViews.collection?.(node, {} as never, () => undefined);
 
     expect(view?.dom.getAttribute('data-page-collection')).toBe('page-1');
     expect(view?.dom.getAttribute('data-space-id')).toBe('space-1');
@@ -63,7 +63,7 @@ describe('createPageEditorNodeViews collection', () => {
   it('records which view the block points at', () => {
     const node = pageEditorSchema.nodes.collection.create({ pageId: 'page-1', spaceId: 'space-1', viewName: 'Board' });
 
-    const view = nodeViews.collection?.(node, {} as never);
+    const view = nodeViews.collection?.(node, {} as never, () => undefined);
 
     expect(view?.dom.getAttribute('data-view-name')).toBe('Board');
   });

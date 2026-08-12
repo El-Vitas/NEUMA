@@ -189,7 +189,17 @@ export type PageContentNode =
       readonly type: 'table_cell';
     }
   | {
-      readonly attrs: { readonly id?: string; readonly summary: string };
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'column_list';
+    }
+  | {
+      readonly attrs?: { readonly id?: string; readonly width?: number };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'column';
+    }
+  | {
+      readonly attrs: { readonly id?: string; readonly open?: boolean; readonly summary: string };
       readonly content: readonly PageContentNode[];
       readonly type: 'toggle';
     }
@@ -290,10 +300,27 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z
       .object({
         attrs: z
-          .object({ id: pageBlockIdSchema.optional(), summary: z.string().min(1).max(maximumToggleSummaryLength) })
+          .object({
+            id: pageBlockIdSchema.optional(),
+            open: z.boolean().optional(),
+            summary: z.string().max(maximumToggleSummaryLength),
+          })
           .strict(),
         content: pageNodeListSchema,
         type: z.literal('toggle'),
+      })
+      .strict(),
+    z
+      .object({ attrs: pageIdOnlyAttrsSchema.optional(), content: pageNodeListSchema, type: z.literal('column_list') })
+      .strict(),
+    z
+      .object({
+        attrs: z
+          .object({ id: pageBlockIdSchema.optional(), width: z.number().gt(0).lte(1).optional() })
+          .strict()
+          .optional(),
+        content: pageNodeListSchema,
+        type: z.literal('column'),
       })
       .strict(),
     z.object({ attrs: pageAssetAttrsSchema, type: z.literal('image') }).strict(),
@@ -333,6 +360,8 @@ type PageBlockParentType = Extract<
   | 'table_cell'
   | 'table_row'
   | 'toggle'
+  | 'column_list'
+  | 'column'
 >;
 
 const pageFlowChildTypes: readonly PageContentNode['type'][] = [
@@ -353,6 +382,7 @@ const pageContainerChildTypes: readonly PageContentNode['type'][] = [
   'embed',
   'collection',
   'nested_block',
+  'column_list',
 ];
 
 const pageNestedBlockChildTypes: readonly PageContentNode['type'][] = [...pageContainerChildTypes, 'block_children'];
@@ -368,6 +398,8 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
   table_cell: pageContainerChildTypes,
   table_row: ['table_cell'],
   toggle: pageContainerChildTypes,
+  column_list: ['column'],
+  column: pageContainerChildTypes,
 };
 
 const validateBlockChildren = (

@@ -36,9 +36,35 @@ export class AuthService {
       return Result.fail(new InvalidCredentialsError());
     }
 
-    const userSummary = toUser(user);
-    const accessToken = await this.tokenAdapter.signAccessToken(userSummary);
-    return Result.ok({ accessToken, user: userSummary });
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
+  }
+
+  /**
+   * Trades a refresh token for a brand new session.
+   *
+   * The user is read again on every renewal, so someone deactivated after
+   * signing in stops being renewed instead of living on until their token
+   * happens to expire.
+   */
+  async refreshSession(
+    refreshToken: string,
+  ): Promise<Result<AuthSession, InactiveUserError | InvalidCredentialsError>> {
+    const payload = await this.tokenAdapter.verifyRefreshToken(refreshToken).catch(() => null);
+    if (payload === null) {
+      return Result.fail(new InvalidCredentialsError());
+    }
+
+    const user = await this.authRepository.findByEmail(payload.email);
+    if (user === null) {
+      return Result.fail(new InvalidCredentialsError());
+    }
+
+    const inactiveError = assertUserIsActive(user);
+    if (inactiveError !== null) {
+      return Result.fail(inactiveError);
+    }
+
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
   }
 
   logoutUser(): void {
