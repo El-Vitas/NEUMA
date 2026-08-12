@@ -18,11 +18,14 @@ export const PAGE_EDITOR_OPTIONAL_BLOCK_COMMENTS: AttributeSpec = { default: nul
 /** A block that has been talked about says so, so a comment is never invisible. */
 export const PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE = 'data-commented';
 
-/** The bubble parked in the right margin of a block that carries comments. */
+/** The bubble parked at the right edge of a block that carries comments, level with its middle. */
 export const PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS = [
-  'float-right ml-2 flex cursor-pointer items-center gap-1',
+  '-translate-y-1/2 absolute top-1/2 right-0 flex cursor-pointer items-center gap-1',
   'select-none text-muted-foreground text-xs tabular-nums hover:text-foreground',
 ].join(' ');
+
+/** The block wearing the bubble becomes the frame the bubble is placed against. */
+export const PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS = 'relative';
 
 /** The speech mark drawn on a commented block, from the same icon family as the rest of the app. */
 export const PAGE_EDITOR_COMMENT_MARK_ICON_PATH =

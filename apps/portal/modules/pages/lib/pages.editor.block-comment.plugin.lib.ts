@@ -6,6 +6,7 @@ import {
   PAGE_EDITOR_COMMENT_MARK_ICON_CLASS,
   PAGE_EDITOR_COMMENT_MARK_ICON_PATH,
   PAGE_EDITOR_COMMENT_MARK_STYLE_CLASS,
+  PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS,
   PAGE_EDITOR_SVG_NAMESPACE,
 } from '../constants/pages.editor.blocks.constants';
 import { openPageEditorBlockRequest } from './pages.editor.block-menu.lib';
@@ -50,17 +51,29 @@ const createCommentMark = (view: EditorView, blockStart: number, label: string, 
   return mark;
 };
 
+/**
+ * The bubble is placed inside the block it belongs to, which becomes its frame,
+ * so it sits level with the middle of what was commented however tall it is.
+ */
+const buildCommentMark = (
+  block: EditorNode,
+  blockStart: number,
+  label: string,
+  count: number,
+): readonly Decoration[] => [
+  Decoration.node(blockStart, blockStart + block.nodeSize, { class: PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS }),
+  Decoration.widget(blockStart + 1, (view) => createCommentMark(view, blockStart, label, count), {
+    key: `page-editor-block-comments-${String(blockStart)}-${String(count)}`,
+    side: -1,
+  }),
+];
+
 const collectCommentMarks = (document: EditorNode, label: string): readonly Decoration[] => {
   const marks: Decoration[] = [];
   document.descendants((block, blockStart) => {
     const count = countBlockComments(block);
-    if (count === 0) return;
-    marks.push(
-      Decoration.widget(blockStart, (view) => createCommentMark(view, blockStart, label, count), {
-        key: `page-editor-block-comments-${String(blockStart)}-${String(count)}`,
-        side: 1,
-      }),
-    );
+    if (count === 0 || block.isAtom) return;
+    marks.push(...buildCommentMark(block, blockStart, label, count));
   });
   return marks;
 };
