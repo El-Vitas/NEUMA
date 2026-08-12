@@ -9,6 +9,10 @@ mock.module('next/navigation', () => ({
   useRouter: () => ({ replace: () => undefined }),
 }));
 
+mock.module('@/i18n/navigation', () => ({
+  useRouter: () => ({ push: () => undefined }),
+}));
+
 mock.module('@/modules/spaces/server/actions/spaces.actions', () => ({
   createSpaceAction,
 }));
