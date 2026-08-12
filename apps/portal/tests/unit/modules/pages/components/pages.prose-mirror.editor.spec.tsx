@@ -342,7 +342,7 @@ describe('PagesProseMirrorEditor mention picker', () => {
 });
 
 describe('PagesProseMirrorEditor trigger safety', () => {
-  it('lets Enter insert a new line for prose that merely contains a slash after a space', () => {
+  it('lets Enter insert a new line for prose whose slash is glued to a word, like a path', () => {
     const contentUpdates: unknown[] = [];
     const ref = renderEditor({
       canEdit: true,
@@ -351,7 +351,7 @@ describe('PagesProseMirrorEditor trigger safety', () => {
     });
 
     act(() => {
-      ref.current?.runCommand(insertTextCommand('Some text /tab'));
+      ref.current?.runCommand(insertTextCommand('Some text src/lib'));
     });
     expect(screen.queryByRole('listbox')).toBeNull();
 

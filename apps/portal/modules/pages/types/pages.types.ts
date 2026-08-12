@@ -4,7 +4,13 @@ import type { PagePropertyValues } from './pages.schema.types';
 
 export type { PageContent, PageContentInlineNode, PageContentNode, PageLifecycle } from '@company-brain/shared';
 
+export type PageEditorCommandKind = 'block' | 'mark' | 'history';
+
+export type PageEditorCommandGroup = 'recent' | 'text' | 'lists' | 'media' | 'advanced';
+
 export interface PageEditorCommand {
+  readonly group?: PageEditorCommandGroup;
+  readonly kind: PageEditorCommandKind;
   readonly labelKey: string;
   readonly run: Command;
 }

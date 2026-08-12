@@ -1,9 +1,11 @@
-import { Plugin as EditorPlugin, NodeSelection, PluginKey } from 'prosemirror-state';
+import { Plugin as EditorPlugin, NodeSelection, PluginKey, Selection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_BLOCK_HANDLE_CLASS,
   PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY,
   PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS,
+  PAGE_EDITOR_BLOCK_INSERT_CLASS,
+  PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS,
   PAGE_EDITOR_BLOCK_PROBE_INSET_PX,
 } from '../constants/pages.constants';
 
@@ -35,22 +37,64 @@ const selectBlockAt = (view: EditorView, position: number): void => {
   view.focus();
 };
 
-const createHandleElement = (view: EditorView, position: number, label: string): HTMLElement => {
-  const handle = document.createElement('button');
-  handle.type = 'button';
-  handle.className = `${PAGE_EDITOR_BLOCK_HANDLE_CLASS} ${PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS}`;
-  handle.setAttribute('data-drag-handle', 'true');
-  handle.tabIndex = -1;
-  handle.setAttribute('aria-label', label);
-  handle.textContent = '⠿';
-  handle.addEventListener('mousedown', (event) => {
-    event.preventDefault();
-    selectBlockAt(view, position);
-  });
-  return handle;
+const insertParagraphAfter = (view: EditorView, position: number): void => {
+  const paragraphType = view.state.schema.nodes.paragraph;
+  const blockNode = view.state.doc.nodeAt(position);
+  if (paragraphType === undefined || blockNode === null) return;
+  const insertAt = position + blockNode.nodeSize;
+  const transaction = view.state.tr.insert(insertAt, paragraphType.create());
+  transaction.setSelection(Selection.near(transaction.doc.resolve(insertAt + 1)));
+  view.dispatch(transaction.scrollIntoView());
+  view.focus();
 };
 
-export const createPageEditorBlockHandlePlugin = (selectBlockLabel: string): EditorPlugin<number | null> =>
+const createGutterButton = (parameters: {
+  readonly className: string;
+  readonly label: string;
+  readonly marker: string;
+  readonly onPress: () => void;
+  readonly symbol: string;
+}): HTMLElement => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = parameters.className;
+  button.tabIndex = -1;
+  button.setAttribute(parameters.marker, 'true');
+  button.setAttribute('aria-label', parameters.label);
+  button.textContent = parameters.symbol;
+  button.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    parameters.onPress();
+  });
+  return button;
+};
+
+const createInsertElement = (view: EditorView, position: number, label: string): HTMLElement =>
+  createGutterButton({
+    className: `${PAGE_EDITOR_BLOCK_INSERT_CLASS} ${PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS}`,
+    label,
+    marker: 'data-block-insert',
+    onPress: () => {
+      insertParagraphAfter(view, position);
+    },
+    symbol: '+',
+  });
+
+const createHandleElement = (view: EditorView, position: number, label: string): HTMLElement =>
+  createGutterButton({
+    className: `${PAGE_EDITOR_BLOCK_HANDLE_CLASS} ${PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS}`,
+    label,
+    marker: 'data-drag-handle',
+    onPress: () => {
+      selectBlockAt(view, position);
+    },
+    symbol: '⠿',
+  });
+
+export const createPageEditorBlockHandlePlugin = (
+  selectBlockLabel: string,
+  insertBlockLabel: string,
+): EditorPlugin<number | null> =>
   new EditorPlugin<number | null>({
     key: pageEditorBlockHandleKey,
     props: {
@@ -58,6 +102,10 @@ export const createPageEditorBlockHandlePlugin = (selectBlockLabel: string): Edi
         const position = pageEditorBlockHandleKey.getState(state);
         if (position === null || position === undefined) return DecorationSet.empty;
         return DecorationSet.create(state.doc, [
+          Decoration.widget(position, (view) => createInsertElement(view, position, insertBlockLabel), {
+            key: `page-editor-block-insert-${String(position)}`,
+            side: -2,
+          }),
           Decoration.widget(position, (view) => createHandleElement(view, position, selectBlockLabel), {
             key: `page-editor-block-handle-${String(position)}`,
             side: -1,

@@ -19,30 +19,31 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-02 · Debe permitir crear un bloque en cualquier punto
 
-- [ ] Enter al final de un bloque crea el siguiente
-- [ ] Enter en medio de un bloque lo parte en dos
-- [ ] `/` abre el menú de inserción junto al cursor
-- [ ] Escribir después de `/` filtra las opciones
-- [ ] Las flechas recorren el menú y Enter inserta
-- [ ] Escape cierra el menú sin insertar nada
-- [ ] `/` en medio de una frase **no** abre el menú
-- [ ] Con el menú cerrado, Enter nunca ejecuta un comando por accidente
-- [ ] El menú ofrece solo inserción de bloques, no negrita ni deshacer
-- [ ] Las opciones están agrupadas por tipo, con ícono
-- [ ] Las usadas hace poco aparecen primero
-- [ ] Hay un punto visible para agregar un bloque al final de la página
-- [ ] Al pasar el cursor entre dos bloques aparece un punto para insertar ahí
+- [x] Enter al final de un bloque crea el siguiente
+- [x] Enter en medio de un bloque lo parte en dos
+- [x] `/` abre el menú de inserción junto al cursor
+- [x] Escribir después de `/` filtra las opciones
+- [x] Las flechas recorren el menú y Enter inserta
+- [x] Escape cierra el menú sin insertar nada
+- [x] `/` abre el menú también en medio de una frase, si viene después de un espacio
+- [x] `/` pegado a una palabra **no** abre el menú, para no molestar en rutas ni fechas
+- [x] Con el menú cerrado, Enter nunca ejecuta un comando por accidente
+- [x] El menú ofrece solo inserción de bloques, no negrita ni deshacer
+- [x] Las opciones están agrupadas por tipo, con ícono
+- [x] Las usadas hace poco aparecen primero
+- [x] Hay un punto visible para agregar un bloque al final de la página
+- [x] Al pasar el cursor entre dos bloques aparece un punto para insertar ahí
 
 ## BL-03 · Debe permitir seleccionar bloques
 
-- [ ] Escape sale de la edición de texto y selecciona el bloque completo
-- [ ] Un bloque seleccionado se distingue visualmente
-- [ ] Arrastrando el mouse se seleccionan varios bloques
-- [ ] Shift+clic extiende la selección hasta otro bloque
-- [ ] Shift+flechas extiende la selección con el teclado
-- [ ] Ctrl+A selecciona primero el bloque, luego toda la página
-- [ ] Se ve cuántos bloques hay seleccionados cuando son varios
-- [ ] Un clic fuera deshace la selección
+- [x] Escape sale de la edición de texto y selecciona el bloque completo
+- [x] Un bloque seleccionado se distingue visualmente
+- [x] Arrastrando el mouse se seleccionan varios bloques
+- [x] Shift+clic extiende la selección hasta otro bloque
+- [x] Shift+flechas extiende la selección con el teclado
+- [x] Ctrl+A selecciona primero el bloque, luego toda la página
+- [x] Se ve cuántos bloques hay seleccionados cuando son varios
+- [x] Un clic fuera deshace la selección
 
 ## BL-04 · Debe permitir mover un bloque con el mouse
 
@@ -191,3 +192,5 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
 | 2026-08-11 | BL-01 | Nada. Insertarla desde el menú `/` queda pendiente en `TB-23`, no aquí. | 6 de 6 |
+| 2026-08-11 | BL-03 | Nada. Arrastrar y shift+clic producen selección de texto sobre varios bloques, que es el comportamiento nativo del editor. | 8 de 8 |
+| 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |

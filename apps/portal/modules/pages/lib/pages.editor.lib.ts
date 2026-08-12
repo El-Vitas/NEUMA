@@ -16,10 +16,14 @@ export const createEmptyPageContent = (): PageContent => ({
   type: 'doc',
 });
 
-export const createPageEditorState = (content: PageContent, selectBlockLabel: string): EditorState =>
+export const createPageEditorState = (
+  content: PageContent,
+  selectBlockLabel: string,
+  insertBlockLabel: string = selectBlockLabel,
+): EditorState =>
   EditorState.create({
     doc: pageEditorSchema.nodeFromJSON(pageContentSchema.parse(content)),
-    plugins: createPageEditorPlugins(pageEditorSchema, selectBlockLabel),
+    plugins: createPageEditorPlugins(pageEditorSchema, selectBlockLabel, insertBlockLabel),
     schema: pageEditorSchema,
   });
 
