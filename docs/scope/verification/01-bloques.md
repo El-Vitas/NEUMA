@@ -1,0 +1,193 @@
+# 01 · Bloques
+
+Todo el contenido es un bloque. Este documento no trata de qué tipos existen —eso es `02-tipos-de-bloque.md`— sino de lo que se puede hacer con **cualquiera** de ellos.
+
+> Leer `README.md` de esta carpeta antes de usar este documento.
+
+La regla que sostiene todo lo demás: **si una operación vale para un párrafo, vale para una tabla, una imagen, un diagrama y una colección.** Cada vez que una operación funcione en unos tipos y en otros no, es un fallo, no una limitación aceptable.
+
+---
+
+## BL-01 · Debe tratar todo el contenido como bloques
+
+- [x] Cada pieza de contenido de una página es un bloque independiente
+- [x] Un bloque se puede señalar y actuar sobre él sin tocar los de al lado
+- [x] Los bloques tienen un orden explícito que se conserva al recargar
+- [x] Un bloque puede contener otros bloques
+- [x] Una página es un árbol de bloques, no un texto plano con formato
+- [x] Una colección es un bloque más, no una pantalla aparte
+
+## BL-02 · Debe permitir crear un bloque en cualquier punto
+
+- [ ] Enter al final de un bloque crea el siguiente
+- [ ] Enter en medio de un bloque lo parte en dos
+- [ ] `/` abre el menú de inserción junto al cursor
+- [ ] Escribir después de `/` filtra las opciones
+- [ ] Las flechas recorren el menú y Enter inserta
+- [ ] Escape cierra el menú sin insertar nada
+- [ ] `/` en medio de una frase **no** abre el menú
+- [ ] Con el menú cerrado, Enter nunca ejecuta un comando por accidente
+- [ ] El menú ofrece solo inserción de bloques, no negrita ni deshacer
+- [ ] Las opciones están agrupadas por tipo, con ícono
+- [ ] Las usadas hace poco aparecen primero
+- [ ] Hay un punto visible para agregar un bloque al final de la página
+- [ ] Al pasar el cursor entre dos bloques aparece un punto para insertar ahí
+
+## BL-03 · Debe permitir seleccionar bloques
+
+- [ ] Escape sale de la edición de texto y selecciona el bloque completo
+- [ ] Un bloque seleccionado se distingue visualmente
+- [ ] Arrastrando el mouse se seleccionan varios bloques
+- [ ] Shift+clic extiende la selección hasta otro bloque
+- [ ] Shift+flechas extiende la selección con el teclado
+- [ ] Ctrl+A selecciona primero el bloque, luego toda la página
+- [ ] Se ve cuántos bloques hay seleccionados cuando son varios
+- [ ] Un clic fuera deshace la selección
+
+## BL-04 · Debe permitir mover un bloque con el mouse
+
+**Cómo probarlo:** pasa el cursor sobre un bloque y busca el agarre a su izquierda.
+
+- [ ] Al pasar el cursor sobre un bloque aparece un agarre a su izquierda
+- [ ] Arrastrando el agarre, el bloque se mueve
+- [ ] Mientras se arrastra se ve una línea que indica dónde va a caer
+- [ ] Se puede soltar arriba, abajo y entre otros bloques
+- [ ] Se puede soltar dentro de un plegable, una columna o una celda
+- [ ] Se pueden arrastrar varios bloques seleccionados a la vez
+- [ ] Al arrastrar varios se ve cuántos se están moviendo
+- [ ] Arrastrar cerca del borde superior o inferior desplaza la página sola
+- [ ] Arrastrar manteniendo Alt deja una copia en vez de mover
+- [ ] Soltar fuera de un destino válido cancela sin dañar el contenido
+- [ ] El movimiento se puede deshacer con Ctrl+Z
+- [ ] Funciona igual con imágenes, tablas, código, diagramas y colecciones
+
+## BL-05 · Debe permitir mover un bloque con el teclado
+
+- [ ] Hay un atajo para subir el bloque actual una posición
+- [ ] Hay un atajo para bajarlo
+- [ ] Funciona con varios bloques seleccionados
+- [ ] El atajo aparece en la lista de atajos de la aplicación
+
+## BL-06 · Debe permitir anidar un bloque dentro de otro
+
+**Cómo probarlo:** escribe dos párrafos sueltos y presiona Tab en el segundo.
+
+- [ ] Tab indenta el bloque actual y lo anida bajo el anterior
+- [ ] Shift+Tab lo desanida
+- [ ] Funciona con párrafos, no solo con listas
+- [ ] Funciona con encabezados, citas, imágenes, tablas, código y colecciones
+- [ ] Un bloque anidado puede tener a su vez bloques anidados
+- [ ] La indentación se ve claramente
+- [ ] Mover el bloque padre arrastra a sus hijos
+- [ ] Eliminar el padre pregunta o preserva a los hijos, pero no los borra en silencio
+- [ ] Se pueden indentar varios bloques seleccionados de una vez
+- [ ] La anidación sobrevive al recargar y se exporta correctamente
+
+## BL-07 · Debe permitir convertir un bloque en otro tipo
+
+- [ ] Un bloque se puede convertir en otro tipo conservando su texto
+- [ ] Convertir entre párrafo, encabezado, cita, lista, tarea y destacado funciona en ambos sentidos
+- [ ] Convertir una lista en párrafos produce un bloque por punto
+- [ ] Convertir varios bloques seleccionados los convierte todos
+- [ ] Una conversión que perdería contenido se advierte antes
+- [ ] Una conversión imposible no se ofrece, en vez de fallar al aplicarla
+- [ ] La conversión se deshace con Ctrl+Z
+
+## BL-08 · Debe permitir duplicar y eliminar
+
+- [ ] Un bloque se puede duplicar, y la copia queda justo debajo
+- [ ] Un bloque se puede eliminar
+- [ ] Retroceso al inicio de un bloque vacío lo elimina y sube el cursor
+- [ ] Se pueden duplicar y eliminar varios bloques seleccionados
+- [ ] Duplicar un bloque con hijos duplica también los hijos
+- [ ] Eliminar se puede deshacer con el contenido intacto
+
+## BL-09 · Debe ofrecer un menú de acciones por bloque
+
+- [ ] Junto al agarre hay un menú de acciones del bloque
+- [ ] Ofrece convertir en, duplicar, eliminar, copiar enlace y mover a
+- [ ] Ofrece color de texto y de fondo
+- [ ] Ofrece comentar
+- [ ] Las acciones que no aplican a ese tipo no aparecen, en vez de fallar
+- [ ] El menú se abre con teclado, no solo con mouse
+- [ ] Escape lo cierra
+
+## BL-10 · Debe permitir colorear un bloque
+
+- [ ] Se puede cambiar el color del texto de un bloque completo
+- [ ] Se puede poner color de fondo al bloque
+- [ ] Hay una paleta acotada, no un selector libre
+- [ ] Los colores se leen bien en modo claro y en modo oscuro
+- [ ] Se puede quitar el color y volver al predeterminado
+- [ ] Se puede aplicar a varios bloques seleccionados
+
+## BL-11 · Debe permitir referirse a un bloque concreto
+
+- [ ] Cada bloque tiene una identidad estable que sobrevive a editar sus vecinos
+- [ ] Se puede copiar el enlace de un bloque
+- [ ] Al abrir ese enlace la página se desplaza hasta ese bloque
+- [ ] El bloque se resalta un momento al llegar
+- [ ] El enlace sigue funcionando después de mover el bloque dentro de la página
+- [ ] Un enlace a un bloque eliminado avisa, en vez de fallar en silencio
+
+## BL-12 · Debe permitir comentar un bloque
+
+- [ ] Se puede comentar un bloque desde su menú
+- [ ] Se puede comentar un fragmento de texto dentro del bloque
+- [ ] El bloque comentado se distingue
+- [ ] Mover el bloque no desancla su comentario
+- [ ] Convertir el bloque a otro tipo no pierde el comentario
+
+## BL-13 · Debe permitir llevar bloques a otra página
+
+- [ ] Un bloque se puede mover a otra página desde su menú
+- [ ] La página destino se busca escribiendo
+- [ ] Funciona con varios bloques seleccionados
+- [ ] Los bloques desaparecen del origen y aparecen en el destino
+- [ ] Los hijos viajan con el padre
+- [ ] Se ofrece ir a la página destino después de mover
+- [ ] Se puede arrastrar un bloque hacia el árbol lateral para convertirlo en página
+
+## BL-14 · Debe permitir convertir un bloque en página
+
+- [ ] Un bloque se puede convertir en página hija
+- [ ] Su contenido pasa a ser el contenido de la página nueva
+- [ ] En el lugar original queda un enlace a esa página
+- [ ] Funciona con varios bloques seleccionados a la vez
+- [ ] La página nueva aparece anidada en el árbol lateral
+
+## BL-15 · Debe aplicar las operaciones a todos los tipos por igual
+
+**Cómo probarlo:** toma la lista de tipos de `02-tipos-de-bloque.md` y prueba sobre cada uno las operaciones de arriba.
+
+- [ ] Arrastrar funciona en todos los tipos
+- [ ] Anidar funciona en todos los tipos
+- [ ] Duplicar funciona en todos los tipos
+- [ ] Eliminar funciona en todos los tipos
+- [ ] El menú de bloque aparece en todos los tipos
+- [ ] Copiar enlace funciona en todos los tipos
+- [ ] Seleccionar junto a otros bloques funciona en todos los tipos
+- [ ] Ningún tipo queda como isla que solo se puede editar por dentro
+
+## BL-16 · Debe conservar los bloques que no entiende
+
+- [ ] Un bloque de un tipo desconocido no rompe la página
+- [ ] Se muestra como marcador de posición identificable
+- [ ] Se conserva al guardar, en vez de desaparecer
+- [ ] Se puede eliminar a propósito
+- [ ] El resto de la página sigue siendo editable
+
+## BL-17 · Debe deshacer cualquier operación de bloque
+
+- [ ] Ctrl+Z deshace insertar, mover, anidar, convertir, duplicar y eliminar
+- [ ] Ctrl+Shift+Z rehace
+- [ ] Una operación sobre varios bloques se deshace completa, no bloque por bloque
+- [ ] Deshacer no revierte los cambios que hizo otra persona en simultáneo
+
+---
+
+## Bitácora
+
+| Fecha | Bloque | Qué faltó | Estado |
+|---|---|---|---|
+| 2026-08-11 | BL-01 | Nada. Insertarla desde el menú `/` queda pendiente en `TB-23`, no aquí. | 6 de 6 |

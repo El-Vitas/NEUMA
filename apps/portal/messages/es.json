@@ -330,7 +330,9 @@
       "emptyColumn": "Sin filas",
       "missingGroupingProperty": "La propiedad de agrupación de este tablero se eliminó del esquema. Actualiza la vista o el esquema para volver a ver las filas agrupadas.",
       "loadError": "No se pudo cargar esta vista. Comprueba tus permisos e inténtalo de nuevo."
-    }
+    },
+    "selectBlock": "Seleccionar bloque",
+    "collectionBlock": "Colección"
   },
   "errors": {
     "generic": "Algo salió mal.",

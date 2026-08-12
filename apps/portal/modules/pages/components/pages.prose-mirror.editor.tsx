@@ -8,6 +8,7 @@ import {
   type DragEvent,
   type ForwardedRef,
   forwardRef,
+  type ReactNode,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -15,6 +16,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   PAGE_EDITOR_COMMANDS,
   PAGE_EDITOR_SURFACE_CLASS_NAME,
@@ -52,6 +54,7 @@ interface IProps {
   readonly canEdit: boolean;
   readonly content: PageContent;
   readonly currentUserDisplayName?: string;
+  readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
   readonly onContentChange: (content: PageContent) => void;
   readonly pageId: string | null;
@@ -59,10 +62,37 @@ interface IProps {
 
 export const PagesProseMirrorEditor = forwardRef(
   (
-    { canEdit, content, currentUserDisplayName, onAttachmentUploaded, onContentChange, pageId }: IProps,
+    {
+      canEdit,
+      content,
+      currentUserDisplayName,
+      embeddedCollections = {},
+      onAttachmentUploaded,
+      onContentChange,
+      pageId,
+    }: IProps,
     handleRef: ForwardedRef<{ readonly runCommand: (command: Command) => boolean }>,
   ) => {
     const t = useTranslations('pages');
+    const selectBlockLabelRef = useRef(t('selectBlock'));
+    const collectionLabelRef = useRef(t('collectionBlock'));
+    const [collectionHosts, setCollectionHosts] = useState<readonly { element: HTMLElement; pageId: string }[]>([]);
+
+    const syncCollectionHosts = useCallback(() => {
+      const editorHost = editorHostRef.current;
+      if (editorHost === null) return;
+      const hosts = Array.from(editorHost.querySelectorAll('[data-page-collection]')).flatMap((element) => {
+        const collectionPageId = element.getAttribute('data-page-collection');
+        return collectionPageId === null || !(element instanceof HTMLElement)
+          ? []
+          : [{ element, pageId: collectionPageId }];
+      });
+      setCollectionHosts((previous) =>
+        previous.length === hosts.length && previous.every((entry, index) => entry.element === hosts[index]?.element)
+          ? previous
+          : hosts,
+      );
+    }, []);
     const { participants, session, status } = usePagesCollaboration(
       pageId,
       canEdit,
@@ -215,12 +245,13 @@ export const PagesProseMirrorEditor = forwardRef(
       const editorHost = editorHostRef.current;
       if (editorHost === null) return;
 
-      const editorState = createPageEditorState(initialContentRef.current);
+      const editorState = createPageEditorState(initialContentRef.current, selectBlockLabelRef.current);
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
-          contentCallbackRef.current(serializePageEditorState(nextState));
+          if (transaction.docChanged) contentCallbackRef.current(serializePageEditorState(nextState));
+          syncCollectionHosts();
           const selection = nextState.selection;
           const trigger = updateEditorTrigger(
             selection.empty ? selection.$from.parent.textContent.slice(0, selection.$from.parentOffset) : '',
@@ -253,10 +284,11 @@ export const PagesProseMirrorEditor = forwardRef(
           }
           return false;
         },
-        nodeViews: createPageEditorNodeViews(),
+        nodeViews: createPageEditorNodeViews(collectionLabelRef.current),
         state: editorState,
       });
       editorViewRef.current = editorView;
+      syncCollectionHosts();
 
       return () => {
         editorView.destroy();
@@ -266,6 +298,7 @@ export const PagesProseMirrorEditor = forwardRef(
       canEdit,
       closeTriggerMenu,
       computeMenuPosition,
+      syncCollectionHosts,
       computeSelectionToolbarPosition,
       dismissSelectionToolbar,
       selectTriggerCommand,
@@ -274,7 +307,7 @@ export const PagesProseMirrorEditor = forwardRef(
 
     useEffect(() => {
       if (session === null || editorViewRef.current === null) return;
-      editorViewRef.current.updateState(createCollaborativePageEditorState(session));
+      editorViewRef.current.updateState(createCollaborativePageEditorState(session, selectBlockLabelRef.current));
     }, [session]);
 
     useImperativeHandle(
@@ -353,11 +386,14 @@ export const PagesProseMirrorEditor = forwardRef(
             </div>
           )}
           <div
-            className="w-full bg-surface py-4 text-base/7 outline-none"
+            className="w-full bg-surface py-4 pl-10 text-base/7 outline-none"
             id="page-content"
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}
           />
+          {collectionHosts.map(({ element, pageId: collectionPageId }) =>
+            createPortal(embeddedCollections[collectionPageId] ?? null, element, collectionPageId),
+          )}
           {canEdit && selectionToolbarPosition !== null && (
             <div
               className="absolute z-30"

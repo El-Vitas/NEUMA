@@ -52,7 +52,7 @@ const collaborationMarkerContent = pageContentSchema.parse({
 });
 
 mock.module('@/modules/pages/lib/pages.collaboration.lib', () => ({
-  createCollaborativePageEditorState: () => createPageEditorState(collaborationMarkerContent),
+  createCollaborativePageEditorState: () => createPageEditorState(collaborationMarkerContent, 'Select block'),
   getCollaborationStatusLabelKey: (status: string) => `collaboration.${status}`,
 }));
 
@@ -404,5 +404,22 @@ describe('PagesProseMirrorEditor trigger safety', () => {
       ref.current?.runCommand(insertTextCommand(' '));
     });
     expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});
+
+describe('PagesProseMirrorEditor content notifications', () => {
+  it('does not report a content change when only the pointer moves over a block', async () => {
+    const reportedChanges: unknown[] = [];
+    renderEditor({ canEdit: true, onContentChange: (content) => reportedChanges.push(content), pageId: 'page-1' });
+    const editor = document.querySelector('.ProseMirror');
+    if (editor === null) throw new Error('editor not rendered');
+    const changesAfterMount = reportedChanges.length;
+
+    for (const block of Array.from(editor.children)) {
+      block.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    }
+    await Promise.resolve();
+
+    expect(reportedChanges.length).toBe(changesAfterMount);
   });
 });

@@ -17,6 +17,7 @@ export { formatChileanTime } from './logger.lib.js';
 export { InvalidMoneyError } from './money/money.error.js';
 export { Money } from './money/money.js';
 export {
+  extractPageCollectionReferences,
   extractPageContentSegments,
   extractPageMentionIds,
   joinPageContentSegmentsForDisplay,
@@ -86,6 +87,7 @@ export type {
   PageContentMigrations,
 } from './schemas/page-content.migration.js';
 export { applyPageContentMigrations, readStoredPageContent } from './schemas/page-content.migration.js';
+export type { PageCollectionReference } from './page-content.lib.js';
 export type {
   PageContent,
   PageContentInlineNode,
@@ -99,6 +101,7 @@ export {
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
   pageAssetAttrsSchema,
+  pageCollectionAttrsSchema,
   pageContentSchema,
   pageEmbedAttrsSchema,
   pageMentionAttrsSchema,

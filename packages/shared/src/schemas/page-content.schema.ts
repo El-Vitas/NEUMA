@@ -70,6 +70,15 @@ const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
 
 const pageIdOnlyAttrsSchema = z.object({ id: pageBlockIdSchema.optional() }).strict();
 
+export const pageCollectionAttrsSchema = z
+  .object({
+    id: pageBlockIdSchema.optional(),
+    pageId: z.string().min(1).max(maximumMentionPageIdLength),
+    spaceId: z.string().min(1).max(maximumMentionSpaceIdLength),
+    viewName: z.string().min(1).max(maximumMentionLabelLength).optional(),
+  })
+  .strict();
+
 export const pageMentionAttrsSchema = z
   .object({
     label: z.string().min(1).max(maximumMentionLabelLength),
@@ -157,6 +166,16 @@ export type PageContentNode =
       readonly content: readonly PageContentNode[];
       readonly type: 'blockquote';
     }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'nested_block';
+    }
+  | {
+      readonly attrs?: { readonly id?: string };
+      readonly content: readonly PageContentNode[];
+      readonly type: 'block_children';
+    }
   | PageBlockNode<'code_block', PageContentText>
   | { readonly attrs?: { readonly id?: string }; readonly content: readonly PageContentNode[]; readonly type: 'table' }
   | {
@@ -176,7 +195,8 @@ export type PageContentNode =
     }
   | { readonly attrs: z.infer<typeof pageAssetAttrsSchema>; readonly type: 'image' }
   | { readonly attrs: z.infer<typeof pageAssetAttrsSchema>; readonly type: 'file' }
-  | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' };
+  | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' }
+  | { readonly attrs: z.infer<typeof pageCollectionAttrsSchema>; readonly type: 'collection' };
 
 const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
   z.discriminatedUnion('type', [
@@ -228,6 +248,20 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z
       .object({
         attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema,
+        type: z.literal('nested_block'),
+      })
+      .strict(),
+    z
+      .object({
+        attrs: pageIdOnlyAttrsSchema.optional(),
+        content: pageNodeListSchema,
+        type: z.literal('block_children'),
+      })
+      .strict(),
+    z
+      .object({
+        attrs: pageIdOnlyAttrsSchema.optional(),
         content: z.array(pageCodeTextSchema),
         type: z.literal('code_block'),
       })
@@ -265,6 +299,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z.object({ attrs: pageAssetAttrsSchema, type: z.literal('image') }).strict(),
     z.object({ attrs: pageAssetAttrsSchema, type: z.literal('file') }).strict(),
     z.object({ attrs: pageEmbedAttrsSchema, type: z.literal('embed') }).strict(),
+    z.object({ attrs: pageCollectionAttrsSchema, type: z.literal('collection') }).strict(),
   ]),
 );
 
@@ -288,7 +323,16 @@ const countPageContentNodes = (nodes: readonly PageContentNode[], depth: number)
 
 type PageBlockParentType = Extract<
   PageContentNode['type'],
-  'blockquote' | 'bullet_list' | 'list_item' | 'ordered_list' | 'table' | 'table_cell' | 'table_row' | 'toggle'
+  | 'block_children'
+  | 'blockquote'
+  | 'bullet_list'
+  | 'list_item'
+  | 'nested_block'
+  | 'ordered_list'
+  | 'table'
+  | 'table_cell'
+  | 'table_row'
+  | 'toggle'
 >;
 
 const pageFlowChildTypes: readonly PageContentNode['type'][] = [
@@ -307,11 +351,17 @@ const pageContainerChildTypes: readonly PageContentNode['type'][] = [
   'image',
   'file',
   'embed',
+  'collection',
+  'nested_block',
 ];
 
+const pageNestedBlockChildTypes: readonly PageContentNode['type'][] = [...pageContainerChildTypes, 'block_children'];
+
 const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly PageContentNode['type'][]>> = {
+  block_children: pageContainerChildTypes,
   blockquote: pageFlowChildTypes,
   bullet_list: ['list_item'],
+  nested_block: pageNestedBlockChildTypes,
   list_item: pageContainerChildTypes,
   ordered_list: ['list_item'],
   table: ['table_row'],
@@ -336,6 +386,20 @@ const validateBlockChildren = (
   });
 };
 
+const validateNestedBlockShape = (
+  nodes: readonly PageContentNode[],
+  path: readonly (number | string)[],
+  context: z.RefinementCtx,
+): void => {
+  if (nodes.length !== 2 || nodes[0]?.type === 'block_children' || nodes[1]?.type !== 'block_children') {
+    context.addIssue({
+      code: 'custom',
+      message: 'A nested block must hold exactly one block followed by its children',
+      path: [...path, 'content'],
+    });
+  }
+};
+
 const validatePageNodeNesting = (
   node: PageContentNode,
   path: readonly (number | string)[],
@@ -352,6 +416,7 @@ const validatePageNodeNesting = (
       path: [...path, 'content', 0, 'type'],
     });
   }
+  if (node.type === 'nested_block') validateNestedBlockShape(node.content, path, context);
   validateBlockChildren(node.content, allowedTypes, [...path, 'content'], context);
   node.content.forEach((child, index) => {
     validatePageNodeNesting(child, [...path, 'content', index], context);

@@ -32,6 +32,7 @@ interface IProps {
   readonly backlinks?: PageBacklinksResult;
   readonly canEdit: boolean;
   readonly collectionSection?: ReactNode;
+  readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly page: PageSummary | null;
   readonly pageId: string | null;
@@ -48,6 +49,7 @@ export const PagesEditor = ({
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEdit,
   collectionSection = null,
+  embeddedCollections = {},
   currentUserDisplayName,
   page,
   pageId,
@@ -173,6 +175,7 @@ export const PagesEditor = ({
           canEdit={canEdit}
           content={page?.content ?? createEmptyPageContent()}
           currentUserDisplayName={currentUserDisplayName}
+          embeddedCollections={embeddedCollections}
           onAttachmentUploaded={addUploadedAttachment}
           onContentChange={(content) => {
             contentRef.current = content;

@@ -330,7 +330,9 @@
       "emptyColumn": "No rows",
       "missingGroupingProperty": "This board's grouping property was removed from the schema. Update the view or the schema to see grouped rows again.",
       "loadError": "Could not load this view. Check your permissions and try again."
-    }
+    },
+    "selectBlock": "Select block",
+    "collectionBlock": "Collection"
   },
   "errors": {
     "generic": "Something went wrong.",

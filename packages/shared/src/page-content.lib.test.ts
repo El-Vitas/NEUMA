@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  extractPageCollectionReferences,
   extractPageContentSegments,
   extractPageMentionIds,
   joinPageContentSegmentsForDisplay,
@@ -190,5 +191,43 @@ describe('joinPageContentSegmentsForSearch', () => {
     expect(joinPageContentSegmentsForSearch(extractPageContentSegments(structuredContent))).toBe(
       'Table text Toggle text',
     );
+  });
+});
+
+describe('extractPageCollectionReferences', () => {
+  const document = (nodes: unknown[]) => ({ content: nodes, schemaVersion: 1, type: 'doc' }) as never;
+
+  test('finds a collection sitting among the blocks', () => {
+    const references = extractPageCollectionReferences(
+      document([
+        { content: [{ text: 'Antes', type: 'text' }], type: 'paragraph' },
+        { attrs: { pageId: 'page-1', spaceId: 'space-1' }, type: 'collection' },
+      ]),
+    );
+
+    expect(references).toEqual([{ pageId: 'page-1', spaceId: 'space-1' }]);
+  });
+
+  test('finds a collection nested inside another block', () => {
+    const references = extractPageCollectionReferences(
+      document([
+        {
+          content: [
+            { content: [{ text: 'Padre', type: 'text' }], type: 'paragraph' },
+            {
+              content: [{ attrs: { pageId: 'page-2', spaceId: 'space-1' }, type: 'collection' }],
+              type: 'block_children',
+            },
+          ],
+          type: 'nested_block',
+        },
+      ]),
+    );
+
+    expect(references).toEqual([{ pageId: 'page-2', spaceId: 'space-1' }]);
+  });
+
+  test('returns nothing when the page holds no collection', () => {
+    expect(extractPageCollectionReferences(document([{ content: [], type: 'paragraph' }]))).toEqual([]);
   });
 });

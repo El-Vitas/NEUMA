@@ -1,8 +1,10 @@
-# 03 · Colecciones, propiedades y vistas
+# 05 · Colecciones, propiedades y vistas
 
-La parte estructurada: una página que lleva un esquema, y sus páginas hijas son sus filas.
+La parte estructurada. Una colección es **un bloque que lleva un esquema**: propiedades tipadas y vistas sobre un conjunto de filas, donde cada fila es una página completa.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
+>
+> Que la colección se comporte como cualquier otro bloque —arrastrarla, anidarla, duplicarla, insertarla en medio de un texto— se revisa en `01-bloques.md` y `02-tipos-de-bloque.md` (`TB-23`). Aquí se revisa lo que ocurre **dentro** de ella.
 
 ---
 
@@ -34,17 +36,6 @@ La parte estructurada: una página que lleva un esquema, y sus páginas hijas so
 - [ ] Se puede escribir el título de la fila nueva sin salir de la vista
 - [ ] La fila nueva aparece de inmediato, sin recargar
 - [ ] Se puede crear una fila a partir de una plantilla de la colección
-
-## CO-04 · Debe permitir colecciones dentro de una página
-
-- [ ] Se puede insertar una colección en medio del contenido de otra página
-- [ ] Convive con texto arriba y abajo
-- [ ] Se puede insertar una vista de una colección que vive en otra parte
-- [ ] Esa vista incrustada puede tener sus propios filtros y orden
-- [ ] Cambiar esos filtros no altera la colección de origen ni las otras vistas
-- [ ] Se ve que esa vista apunta a una colección que vive en otro lugar
-- [ ] Se puede saltar a la colección de origen
-- [ ] Una colección incrustada se puede convertir en página completa, y al revés
 
 ## CO-05 · Debe permitir organizar la colección como cualquier página
 

@@ -2,7 +2,7 @@
 
 Quién entra a la organización, con qué permisos, y qué controla cada persona sobre su propia cuenta.
 
-> Leer `README.md` de esta carpeta antes de usar este documento. Los permisos de espacio y de página se revisan en `04-colaboracion-y-permisos.md`; aquí se revisa el nivel de la organización.
+> Leer `README.md` de esta carpeta antes de usar este documento. Los permisos de espacio y de página se revisan en `06-colaboracion-y-permisos.md`; aquí se revisa el nivel de la organización.
 
 ---
 
