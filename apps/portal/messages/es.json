@@ -434,5 +434,11 @@
   "metadata": {
     "title": "Company Brain",
     "description": "El espacio de conocimiento interno de tu empresa."
+  },
+  "theme": {
+    "label": "Tema",
+    "system": "Según el sistema",
+    "light": "Claro",
+    "dark": "Oscuro"
   }
 }

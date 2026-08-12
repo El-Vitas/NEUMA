@@ -28,6 +28,7 @@ describe('portal message catalogs', () => {
       'errors',
       'validation',
       'metadata',
+      'theme',
     ]);
   });
 

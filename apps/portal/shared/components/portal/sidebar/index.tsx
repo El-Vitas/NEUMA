@@ -10,6 +10,7 @@ import {
 } from '@/modules/portal/constants/sidebar.constants';
 import { useSidebarCollapsed } from '@/modules/portal/hooks/use.sidebar.collapsed';
 import type { PortalLayoutSpace, PortalLayoutUser } from '@/modules/portal/types/portal.types';
+import type { ThemeChoice } from '@/shared/types/theme.types';
 import { SidebarAccount } from './sidebar-account';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarNav } from './sidebar-nav';
@@ -18,6 +19,7 @@ import { SidebarToggle } from './sidebar-toggle';
 
 interface SidebarProps {
   readonly role: UserRole;
+  readonly themeChoice: ThemeChoice;
   readonly onNavigate?: () => void;
   readonly spaces: readonly PortalLayoutSpace[];
   readonly user: PortalLayoutUser;
@@ -29,6 +31,7 @@ export const Sidebar = ({
   role,
   onNavigate,
   spaces,
+  themeChoice,
   user,
   enableCollapsing = true,
   enableKeyboardShortcut = true,
@@ -52,7 +55,7 @@ export const Sidebar = ({
 
       <SidebarNav collapsed={isCollapsed} onNavigate={onNavigate} role={role} />
       <SidebarSpaces collapsed={isCollapsed} onNavigate={onNavigate} role={role} spaces={spaces} />
-      <SidebarAccount collapsed={isCollapsed} user={user} />
+      <SidebarAccount collapsed={isCollapsed} themeChoice={themeChoice} user={user} />
 
       {enableCollapsing && <SidebarToggle collapsed={isCollapsed} onToggle={toggleCollapsed} />}
     </aside>

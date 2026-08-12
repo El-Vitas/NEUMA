@@ -434,5 +434,11 @@
   "metadata": {
     "title": "Company Brain",
     "description": "Your company's internal knowledge workspace."
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "Match the system",
+    "light": "Light",
+    "dark": "Dark"
   }
 }

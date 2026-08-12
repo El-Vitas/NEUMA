@@ -8,6 +8,7 @@ import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { readRequestTheme } from '@/shared/server/lib/theme.server';
 import { redirect } from '../../../i18n/navigation';
 
 const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) => {
@@ -38,9 +39,10 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     }),
   );
   const portalUser = { email: user.email, name: user.name };
+  const theme = await readRequestTheme();
 
   return (
-    <PortalLayout role={user.role} spaces={spaces} user={portalUser}>
+    <PortalLayout role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
       {children}
     </PortalLayout>
   );

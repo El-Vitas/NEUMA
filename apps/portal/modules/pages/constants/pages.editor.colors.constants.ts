@@ -18,16 +18,21 @@ export const PAGE_EDITOR_TEXT_COLOR_CLASSES: readonly string[] = [
   '[&_[data-text-color=red]]:text-red-700 dark:[&_[data-text-color=red]]:text-red-400',
 ];
 
+/**
+ * A background is a tint, not a paint: light enough by day to read black text
+ * on, and by night a wash of the same colour over the page rather than a solid
+ * block that would shout across a dark room.
+ */
 export const PAGE_EDITOR_BACKGROUND_COLOR_CLASSES: readonly string[] = [
   '[&_[data-background-color]]:px-2 [&_[data-background-color]]:py-1',
-  '[&_[data-background-color=gray]]:bg-gray-100 dark:[&_[data-background-color=gray]]:bg-gray-800',
-  '[&_[data-background-color=brown]]:bg-amber-100 dark:[&_[data-background-color=brown]]:bg-amber-950',
-  '[&_[data-background-color=orange]]:bg-orange-100 dark:[&_[data-background-color=orange]]:bg-orange-950',
-  '[&_[data-background-color=yellow]]:bg-yellow-100 dark:[&_[data-background-color=yellow]]:bg-yellow-950',
-  '[&_[data-background-color=green]]:bg-green-100 dark:[&_[data-background-color=green]]:bg-green-950',
-  '[&_[data-background-color=blue]]:bg-blue-100 dark:[&_[data-background-color=blue]]:bg-blue-950',
-  '[&_[data-background-color=purple]]:bg-purple-100 dark:[&_[data-background-color=purple]]:bg-purple-950',
-  '[&_[data-background-color=red]]:bg-red-100 dark:[&_[data-background-color=red]]:bg-red-950',
+  '[&_[data-background-color=gray]]:bg-gray-100 dark:[&_[data-background-color=gray]]:bg-gray-400/20',
+  '[&_[data-background-color=brown]]:bg-amber-100 dark:[&_[data-background-color=brown]]:bg-amber-700/25',
+  '[&_[data-background-color=orange]]:bg-orange-100 dark:[&_[data-background-color=orange]]:bg-orange-500/20',
+  '[&_[data-background-color=yellow]]:bg-yellow-100 dark:[&_[data-background-color=yellow]]:bg-yellow-500/20',
+  '[&_[data-background-color=green]]:bg-green-100 dark:[&_[data-background-color=green]]:bg-green-500/20',
+  '[&_[data-background-color=blue]]:bg-blue-100 dark:[&_[data-background-color=blue]]:bg-blue-500/20',
+  '[&_[data-background-color=purple]]:bg-purple-100 dark:[&_[data-background-color=purple]]:bg-purple-500/20',
+  '[&_[data-background-color=red]]:bg-red-100 dark:[&_[data-background-color=red]]:bg-red-500/25',
 ];
 
 /** The swatch each colour shows in the menu, so a colour is chosen by seeing it. */
