@@ -14,9 +14,37 @@ const maximumBlockIdLength = 200;
 const maximumMentionPageIdLength = 200;
 const maximumMentionLabelLength = 200;
 const maximumMentionSpaceIdLength = 200;
+const maximumCommentAuthorLength = 200;
+const maximumCommentBodyLength = 2_000;
+const maximumCommentDateLength = 40;
+const maximumCommentsPerBlock = 50;
 
 export const PAGE_EMBED_PROVIDERS = ['figma', 'loom', 'vimeo', 'youtube'] as const;
 export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
+
+/**
+ * The colours a block may be painted with, kept short on purpose: a page reads
+ * as one document, and every colour here is chosen to be legible on both a
+ * light and a dark background.
+ */
+export const PAGE_BLOCK_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'red'] as const;
+export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
+
+/** A remark left on a block, kept with the block itself so it travels wherever the block goes. */
+export type PageBlockComment = {
+  readonly author: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly id: string;
+};
+
+/** What every block carries, whatever its type: who it is, how it is painted, and what was said about it. */
+export type PageBlockAttrs = {
+  readonly backgroundColor?: PageBlockColor;
+  readonly comments?: readonly PageBlockComment[];
+  readonly id?: string;
+  readonly textColor?: PageBlockColor;
+};
 
 const pageEmbedHosts: Readonly<Record<PageEmbedProvider, readonly string[]>> = {
   figma: ['figma.com', 'www.figma.com'],
@@ -68,11 +96,28 @@ const pageCodeTextSchema = z
 
 const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
 
-const pageIdOnlyAttrsSchema = z.object({ id: pageBlockIdSchema.optional() }).strict();
+const pageBlockCommentSchema = z
+  .object({
+    author: z.string().min(1).max(maximumCommentAuthorLength),
+    body: z.string().min(1).max(maximumCommentBodyLength),
+    createdAt: z.string().min(1).max(maximumCommentDateLength),
+    id: pageBlockIdSchema,
+  })
+  .strict();
+
+/** What every block may carry, whatever its type. Block types add their own on top of these. */
+const pageBlockAttrsShape = {
+  backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
+  comments: z.array(pageBlockCommentSchema).max(maximumCommentsPerBlock).optional(),
+  id: pageBlockIdSchema.optional(),
+  textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
+};
+
+const pageIdOnlyAttrsSchema = z.object(pageBlockAttrsShape).strict();
 
 export const pageCollectionAttrsSchema = z
   .object({
-    id: pageBlockIdSchema.optional(),
+    ...pageBlockAttrsShape,
     pageId: z.string().min(1).max(maximumMentionPageIdLength),
     spaceId: z.string().min(1).max(maximumMentionSpaceIdLength),
     viewName: z.string().min(1).max(maximumMentionLabelLength).optional(),
@@ -98,16 +143,16 @@ const pageInlineNodeSchema = z.discriminatedUnion('type', [pageTextSchema, pageM
 
 export const pageAssetAttrsSchema = z
   .object({
+    ...pageBlockAttrsShape,
     alt: z.string().max(maximumAssetMetadataLength).optional(),
     assetId: z.string().min(1).max(maximumAssetIdLength),
     caption: z.string().max(maximumAssetMetadataLength).optional(),
-    id: pageBlockIdSchema.optional(),
   })
   .strict();
 
 export const pageEmbedAttrsSchema = z
   .object({
-    id: pageBlockIdSchema.optional(),
+    ...pageBlockAttrsShape,
     provider: z.enum(PAGE_EMBED_PROVIDERS),
     url: z.url().max(maximumEmbedUrlLength),
   })
@@ -134,7 +179,7 @@ export type PageContentMention = {
 export type PageContentInlineNode = PageContentText | PageContentMention;
 
 type PageBlockNode<Type extends string, Content> = {
-  readonly attrs?: { readonly id?: string };
+  readonly attrs?: PageBlockAttrs;
   readonly content: readonly Content[];
   readonly type: Type;
 };
@@ -142,79 +187,79 @@ type PageBlockNode<Type extends string, Content> = {
 export type PageContentNode =
   | PageBlockNode<'paragraph', PageContentInlineNode>
   | {
-      readonly attrs: { readonly id?: string; readonly level: number };
+      readonly attrs: PageBlockAttrs & { readonly level: number };
       readonly content: readonly PageContentInlineNode[];
       readonly type: 'heading';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'bullet_list';
     }
   | {
-      readonly attrs?: { readonly id?: string; readonly order: number };
+      readonly attrs?: PageBlockAttrs & { readonly order: number };
       readonly content: readonly PageContentNode[];
       readonly type: 'ordered_list';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'list_item';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'task_list';
     }
   | {
-      readonly attrs?: { readonly checked?: boolean; readonly id?: string };
+      readonly attrs?: PageBlockAttrs & { readonly checked?: boolean };
       readonly content: readonly PageContentNode[];
       readonly type: 'task_item';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'callout';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'blockquote';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'nested_block';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'block_children';
     }
   | PageBlockNode<'code_block', PageContentText>
-  | { readonly attrs?: { readonly id?: string }; readonly content: readonly PageContentNode[]; readonly type: 'table' }
+  | { readonly attrs?: PageBlockAttrs; readonly content: readonly PageContentNode[]; readonly type: 'table' }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'table_row';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'table_cell';
     }
   | {
-      readonly attrs?: { readonly id?: string };
+      readonly attrs?: PageBlockAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'column_list';
     }
   | {
-      readonly attrs?: { readonly id?: string; readonly width?: number };
+      readonly attrs?: PageBlockAttrs & { readonly width?: number };
       readonly content: readonly PageContentNode[];
       readonly type: 'column';
     }
   | {
-      readonly attrs: { readonly id?: string; readonly open?: boolean; readonly summary: string };
+      readonly attrs: PageBlockAttrs & { readonly open?: boolean; readonly summary: string };
       readonly content: readonly PageContentNode[];
       readonly type: 'toggle';
     }
@@ -234,7 +279,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
       .strict(),
     z
       .object({
-        attrs: z.object({ id: pageBlockIdSchema.optional(), level: z.number().int().min(1).max(3) }).strict(),
+        attrs: z.object({ ...pageBlockAttrsShape, level: z.number().int().min(1).max(3) }).strict(),
         content: z.array(pageInlineNodeSchema),
         type: z.literal('heading'),
       })
@@ -249,7 +294,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z
       .object({
         attrs: z
-          .object({ id: pageBlockIdSchema.optional(), order: z.number().int().min(1).max(1000) })
+          .object({ ...pageBlockAttrsShape, order: z.number().int().min(1).max(1000) })
           .strict()
           .optional(),
         content: pageNodeListSchema,
@@ -268,7 +313,10 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
       .strict(),
     z
       .object({
-        attrs: z.object({ checked: z.boolean().optional(), id: pageBlockIdSchema.optional() }).strict().optional(),
+        attrs: z
+          .object({ ...pageBlockAttrsShape, checked: z.boolean().optional() })
+          .strict()
+          .optional(),
         content: pageNodeListSchema,
         type: z.literal('task_item'),
       })
@@ -329,7 +377,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
       .object({
         attrs: z
           .object({
-            id: pageBlockIdSchema.optional(),
+            ...pageBlockAttrsShape,
             open: z.boolean().optional(),
             summary: z.string().max(maximumToggleSummaryLength),
           })
@@ -344,7 +392,7 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
     z
       .object({
         attrs: z
-          .object({ id: pageBlockIdSchema.optional(), width: z.number().gt(0).lte(1).optional() })
+          .object({ ...pageBlockAttrsShape, width: z.number().gt(0).lte(1).optional() })
           .strict()
           .optional(),
         content: pageNodeListSchema,

@@ -33,7 +33,18 @@ export const pageMoveSchema = z.object({
   spaceId: z.string().min(1),
 });
 
+export const pageBlocksHandoverSchema = z.object({
+  content: pageContentSchema,
+  pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+});
+
 export const pageLifecycleMutationSchema = z.object({
   pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+});
+
+export const pageDestinationsSchema = z.object({
+  exceptPageId: z.string().min(1).nullable(),
   spaceId: z.string().min(1),
 });

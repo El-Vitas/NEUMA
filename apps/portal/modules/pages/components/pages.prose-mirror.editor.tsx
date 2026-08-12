@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { Command, EditorState, Selection } from 'prosemirror-state';
+import type { Command, Selection } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
@@ -23,19 +23,16 @@ import {
   SELECTION_TOOLBAR_ESTIMATED_HEIGHT_PX,
   SELECTION_TOOLBAR_ESTIMATED_WIDTH_PX,
 } from '../constants/pages.editor.constants';
+import { PAGE_EDITOR_QUIET_SURFACE } from '../constants/pages.editor.surface.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
+import { usePagesEditorBlockActions } from '../hooks/use.pages.editor.block-actions';
+import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arrival';
+import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
-import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } from '../lib/pages.collaboration.lib';
-import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
-import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
-import { isPageEditorBlockDragActive } from '../lib/pages.editor.block-drag.lib';
-import { closePageEditorBlockMenu, readPageEditorBlockMenuTarget } from '../lib/pages.editor.block-menu.lib';
+import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
-import {
-  createPageEditorBlockConversionCommand,
-  listPageEditorBlockConversions,
-} from '../lib/pages.editor.convert.lib';
+import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import {
   computeSelectionToolbarPlacement,
   createPageEditorState,
@@ -45,7 +42,6 @@ import {
 } from '../lib/pages.editor.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
-import { countSelectedBlocks } from '../lib/pages.editor.selection.lib';
 import {
   buildEditorTriggerItems,
   getEditorTriggerAriaLabelKey,
@@ -53,12 +49,14 @@ import {
   handleSlashMenuKeyDown,
   resolveEditorTrigger,
 } from '../lib/pages.editor.slash-menu.lib';
+import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
-import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PagesEditorMenuItem, PagesEditorTriggerKind } from '../types/pages.editor.slash-menu.types';
+import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
 import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
-import { PagesEditorBlockMenu } from './pages.editor.block-menu';
+import { PagesEditorBlockActions } from './pages.editor.block-actions';
+import { PagesEditorCollaborationStatus } from './pages.editor.collaboration.status';
 import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
 import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
 import { PagesEditorToolbar } from './pages.editor.toolbar';
@@ -71,6 +69,7 @@ interface IProps {
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
   readonly onContentChange: (content: PageContent) => void;
   readonly pageId: string | null;
+  readonly spaceId: string;
 }
 
 export const PagesProseMirrorEditor = forwardRef(
@@ -83,6 +82,7 @@ export const PagesProseMirrorEditor = forwardRef(
       onAttachmentUploaded,
       onContentChange,
       pageId,
+      spaceId,
     }: IProps,
     handleRef: ForwardedRef<{ readonly runCommand: (command: Command) => boolean }>,
   ) => {
@@ -91,31 +91,10 @@ export const PagesProseMirrorEditor = forwardRef(
     const collectionLabelRef = useRef(t('collectionBlock'));
     const taskLabelRef = useRef(t('taskBlock'));
     const insertBlockLabelRef = useRef(t('insertBlock'));
-    const [collectionHosts, setCollectionHosts] = useState<readonly { element: HTMLElement; pageId: string }[]>([]);
     const [recentCommandIds, setRecentCommandIds] = useState<readonly string[]>([]);
-    const [selectedBlockCount, setSelectedBlockCount] = useState(0);
-    const [blockConversions, setBlockConversions] = useState<readonly PageEditorBlockConversion[]>([]);
-    const [blockMenuPosition, setBlockMenuPosition] = useState<{
-      readonly left: number;
-      readonly top: number;
-    } | null>(null);
+    const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
-    const syncCollectionHosts = useCallback(() => {
-      const editorHost = editorHostRef.current;
-      if (editorHost === null) return;
-      const hosts = Array.from(editorHost.querySelectorAll('[data-page-collection]')).flatMap((element) => {
-        const collectionPageId = element.getAttribute('data-page-collection');
-        return collectionPageId === null || !(element instanceof HTMLElement)
-          ? []
-          : [{ element, pageId: collectionPageId }];
-      });
-      setCollectionHosts((previous) =>
-        previous.length === hosts.length && previous.every((entry, index) => entry.element === hosts[index]?.element)
-          ? previous
-          : hosts,
-      );
-    }, []);
     const { participants, session, status } = usePagesCollaboration(
       pageId,
       canEdit,
@@ -127,10 +106,6 @@ export const PagesProseMirrorEditor = forwardRef(
     const editorViewRef = useRef<EditorView | null>(null);
     const contentCallbackRef = useRef(onContentChange);
     const initialContentRef = useRef(content);
-    const [selectionToolbarPosition, setSelectionToolbarPosition] = useState<{
-      readonly left: number;
-      readonly top: number;
-    } | null>(null);
     const [triggerMenuPosition, setTriggerMenuPosition] = useState<{
       readonly left: number;
       readonly top: number;
@@ -211,53 +186,24 @@ export const PagesProseMirrorEditor = forwardRef(
       [],
     );
 
-    const computeSelectionToolbarPosition = useCallback(
+    const _computeSelectionToolbarPosition = useCallback(
       (editorView: EditorView, selection: Selection): { readonly left: number; readonly top: number } | null =>
         selection.empty ? null : computeMenuPosition(editorView, selection.from, selection.to),
       [computeMenuPosition],
     );
 
-    const computeBlockMenuPosition = useCallback(
-      (editorView: EditorView, editorState: EditorState): { readonly left: number; readonly top: number } | null => {
-        const blockStart = readPageEditorBlockMenuTarget(editorState);
-        const surfaceElement = surfaceRef.current;
-        if (blockStart === null || surfaceElement === null) return null;
-        const surfaceRect = surfaceElement.getBoundingClientRect();
-        const blockCoords = editorView.coordsAtPos(blockStart);
-        return { left: blockCoords.left - surfaceRect.left, top: blockCoords.top - surfaceRect.top };
-      },
-      [],
-    );
-
-    /**
-     * Gives the editor the focus back once the menu that held it is gone.
-     *
-     * Asking for it while the menu is still on screen achieves nothing: what
-     * had the focus is about to be removed, and the page would be left with
-     * nothing focused at all.
-     */
-    const returnFocusToEditor = useCallback((editorView: EditorView): void => {
-      requestAnimationFrame(() => editorView.focus());
+    /** The editor's own box, which every menu is placed against. */
+    const readSurfaceRect = useCallback((): PageEditorSurfaceRect | null => {
+      const surfaceElement = surfaceRef.current;
+      if (surfaceElement === null) return null;
+      const rect = surfaceElement.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width };
     }, []);
 
-    const closeBlockMenu = useCallback((): void => {
-      const editorView = editorViewRef.current;
-      if (editorView === null) return;
-      closePageEditorBlockMenu(editorView);
-      returnFocusToEditor(editorView);
-    }, [returnFocusToEditor]);
-
-    /** Runs a block action and hands the editor back both the focus and the menu it came from. */
-    const runBlockCommand = useCallback(
-      (command: Command): void => {
-        const editorView = editorViewRef.current;
-        if (editorView === null) return;
-        closePageEditorBlockMenu(editorView);
-        command(editorView.state, editorView.dispatch);
-        returnFocusToEditor(editorView);
-      },
-      [returnFocusToEditor],
-    );
+    const collections = usePagesEditorCollectionHosts(editorHostRef);
+    const syncCollectionHosts = collections.sync;
+    const blockActions = usePagesEditorBlockActions(editorViewRef);
+    usePagesEditorBlockArrival(editorHostRef);
 
     const dismissSelectionToolbar = useCallback((editorView: EditorView): void => {
       const collapsedSelection = TextSelection.create(editorView.state.doc, editorView.state.selection.from);
@@ -305,6 +251,32 @@ export const PagesProseMirrorEditor = forwardRef(
       [closeTriggerMenu],
     );
 
+    /**
+     * The menu open beside the cursor answers the keyboard first; otherwise the
+     * editor keeps its own behaviour, only stepping aside so Escape can leave a
+     * selection behind.
+     */
+    const answerKeyPress = useCallback(
+      (editorView: EditorView, event: KeyboardEvent): boolean => {
+        if (triggerQueryRef.current !== null && triggerMenuPositionRef.current !== null) {
+          return handleSlashMenuKeyDown({
+            event,
+            items: triggerItemsRef.current,
+            onClose: closeTriggerMenu,
+            onSelect: selectTriggerCommand,
+            onSelectedIndexChange: (index) => {
+              triggerSelectedIndexRef.current = index;
+              setTriggerSelectedIndex(index);
+            },
+            selectedIndex: triggerSelectedIndexRef.current,
+          });
+        }
+        if (event.key === 'Escape' && !editorView.state.selection.empty) dismissSelectionToolbar(editorView);
+        return false;
+      },
+      [closeTriggerMenu, dismissSelectionToolbar, selectTriggerCommand],
+    );
+
     useEffect(() => {
       contentCallbackRef.current = onContentChange;
     }, [onContentChange]);
@@ -336,34 +308,10 @@ export const PagesProseMirrorEditor = forwardRef(
             trigger === null ? null : computeMenuPosition(editorView, selection.from, selection.from);
           triggerMenuPositionRef.current = nextTriggerMenuPosition;
           setTriggerMenuPosition(nextTriggerMenuPosition);
-          const isBlockBusy =
-            isPageEditorBlockDragActive(nextState) || readPageEditorBlockMenuTarget(nextState) !== null;
-          setSelectionToolbarPosition(isBlockBusy ? null : computeSelectionToolbarPosition(editorView, selection));
-          setSelectedBlockCount(countSelectedBlocks(selection));
-          setBlockConversions(listPageEditorBlockConversions(nextState));
-          setBlockMenuPosition(computeBlockMenuPosition(editorView, nextState));
+          setSurface(readPageEditorSurface(editorView, nextState, readSurfaceRect()));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
-        handleKeyDown: (currentEditorView, event) => {
-          if (triggerQueryRef.current !== null && triggerMenuPositionRef.current !== null) {
-            return handleSlashMenuKeyDown({
-              event,
-              items: triggerItemsRef.current,
-              onClose: closeTriggerMenu,
-              onSelect: selectTriggerCommand,
-              onSelectedIndexChange: (index) => {
-                triggerSelectedIndexRef.current = index;
-                setTriggerSelectedIndex(index);
-              },
-              selectedIndex: triggerSelectedIndexRef.current,
-            });
-          }
-          if (event.key === 'Escape' && !currentEditorView.state.selection.empty) {
-            dismissSelectionToolbar(currentEditorView);
-            return false;
-          }
-          return false;
-        },
+        handleKeyDown: answerKeyPress,
         nodeViews: createPageEditorNodeViews({ collection: collectionLabelRef.current, task: taskLabelRef.current }),
         state: editorState,
       });
@@ -374,17 +322,7 @@ export const PagesProseMirrorEditor = forwardRef(
         editorView.destroy();
         editorViewRef.current = null;
       };
-    }, [
-      canEdit,
-      closeTriggerMenu,
-      computeBlockMenuPosition,
-      computeMenuPosition,
-      syncCollectionHosts,
-      computeSelectionToolbarPosition,
-      dismissSelectionToolbar,
-      selectTriggerCommand,
-      updateEditorTrigger,
-    ]);
+    }, [answerKeyPress, canEdit, computeMenuPosition, updateEditorTrigger, readSurfaceRect, syncCollectionHosts]);
 
     useEffect(() => {
       if (session === null || editorViewRef.current === null) return;
@@ -405,44 +343,9 @@ export const PagesProseMirrorEditor = forwardRef(
       [],
     );
 
-    const isDegradedCollaborationStatus = status === 'error' || status === 'disconnected' || status === 'exhausted';
-    const collaborationStatusMessage =
-      status === null
-        ? ''
-        : `${t(getCollaborationStatusLabelKey(status))}${isDegradedCollaborationStatus ? ` ${t('collaboration.fallback')}` : ''}`;
-
     return (
       <section aria-label={t('editor')} className="space-y-3">
-        {pageId !== null && canEdit && status !== null && (
-          <p
-            aria-live="polite"
-            className={status === 'connected' ? 'sr-only' : 'text-muted-foreground text-xs'}
-            role="status"
-          >
-            {collaborationStatusMessage}
-          </p>
-        )}
-        {pageId !== null && canEdit && participants.length > 0 && (
-          <ul aria-label={t('collaboration.participants')} className="flex flex-wrap gap-2">
-            {participants.map((participant) => {
-              const participantDisplayName =
-                participant.name.length > 0 ? participant.name : t('collaboration.participantFallback');
-              return (
-                <li key={participant.clientId}>
-                  <span
-                    aria-hidden="true"
-                    className="flex size-8 items-center justify-center rounded-full border-2 bg-background font-medium text-foreground text-xs"
-                    style={{ borderColor: participant.color ?? undefined }}
-                    title={participantDisplayName}
-                  >
-                    {participantDisplayName.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="sr-only">{participantDisplayName}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        {pageId !== null && canEdit && <PagesEditorCollaborationStatus participants={participants} status={status} />}
         {canEdit && pageId !== null && (
           <div className="flex justify-end">
             <PagesEditorAttachmentUpload
@@ -474,15 +377,15 @@ export const PagesProseMirrorEditor = forwardRef(
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}
           />
-          {collectionHosts.map(({ element, pageId: collectionPageId }) =>
+          {collections.hosts.map(({ element, pageId: collectionPageId }) =>
             createPortal(embeddedCollections[collectionPageId] ?? null, element, collectionPageId),
           )}
-          {selectedBlockCount > 1 && (
+          {surface.selectedBlockCount > 1 && (
             <p
               aria-live="polite"
               className="pointer-events-none absolute top-2 right-2 border border-border bg-surface px-2 py-1 text-muted-foreground text-xs"
             >
-              {t('selectedBlocks', { count: selectedBlockCount })}
+              {t('selectedBlocks', { count: surface.selectedBlockCount })}
             </p>
           )}
           {canEdit && (
@@ -502,14 +405,14 @@ export const PagesProseMirrorEditor = forwardRef(
               <PagesEditorShortcutsDialog usesCommandKey={usesCommandKey} />
             </div>
           )}
-          {canEdit && selectionToolbarPosition !== null && (
+          {canEdit && surface.toolbarPosition !== null && (
             <div
               className="absolute z-30"
-              style={{ left: `${selectionToolbarPosition.left}px`, top: `${selectionToolbarPosition.top}px` }}
+              style={{ left: `${surface.toolbarPosition.left}px`, top: `${surface.toolbarPosition.top}px` }}
             >
               <PagesEditorToolbar
                 commands={PAGE_EDITOR_COMMANDS}
-                conversions={blockConversions}
+                conversions={surface.conversions}
                 onConvert={(targetId) => {
                   const editorView = editorViewRef.current;
                   if (editorView === null) return;
@@ -530,19 +433,21 @@ export const PagesProseMirrorEditor = forwardRef(
               />
             </div>
           )}
-          {canEdit && blockMenuPosition !== null && (
-            <div
-              className="absolute z-30"
-              style={{ left: `${blockMenuPosition.left}px`, top: `${blockMenuPosition.top}px` }}
-            >
-              <PagesEditorBlockMenu
-                conversions={blockConversions}
-                onClose={closeBlockMenu}
-                onConvert={(targetId) => runBlockCommand(createPageEditorBlockConversionCommand(targetId))}
-                onDelete={() => runBlockCommand(deletePageEditorBlocks)}
-                onDuplicate={() => runBlockCommand(duplicatePageEditorBlock)}
-              />
-            </div>
+          {canEdit && (
+            <PagesEditorBlockActions
+              authorName={currentUserDisplayName ?? t('collaboration.participantFallback')}
+              colors={surface.colors}
+              comments={surface.comments}
+              conversions={surface.conversions}
+              hasIdentity={surface.blockId !== null}
+              menuPosition={surface.menuPosition}
+              onClose={blockActions.close}
+              onCopyLink={blockActions.copyLink}
+              onHandOver={blockActions.handOver}
+              onRunCommand={blockActions.runCommand}
+              pageId={pageId}
+              spaceId={spaceId}
+            />
           )}
         </div>
       </section>

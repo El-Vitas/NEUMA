@@ -188,6 +188,7 @@ export const PagesEditor = ({
           }}
           pageId={pageId}
           ref={editorHandleRef}
+          spaceId={spaceId}
         />
         {canEdit && page === null && (
           <FormActions back={<BackButton href={ROUTES.PORTAL_SPACE(spaceId)} />}>

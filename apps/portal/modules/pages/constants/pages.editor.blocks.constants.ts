@@ -5,6 +5,19 @@ export const PAGE_EDITOR_BLOCK_ID_ATTRIBUTE = 'data-block-id';
 
 export const PAGE_EDITOR_OPTIONAL_BLOCK_ID: AttributeSpec = { default: null };
 
+export const PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE = 'data-text-color';
+
+export const PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE = 'data-background-color';
+
+export const PAGE_EDITOR_OPTIONAL_BLOCK_COLOR: AttributeSpec = { default: null };
+
+export const PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE = 'comments';
+
+export const PAGE_EDITOR_OPTIONAL_BLOCK_COMMENTS: AttributeSpec = { default: null };
+
+/** A block that has been talked about says so, so a comment is never invisible. */
+export const PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE = 'data-commented';
+
 export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plugin';
 
 export const PAGE_EDITOR_BLOCK_HANDLE_CLASS = 'page-editor-block-handle';
@@ -31,6 +44,11 @@ export const PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX = 4;
 
 /** The menu drops below the line it belongs to, rather than over the words it is about. */
 export const PAGE_EDITOR_BLOCK_MENU_DROP_PX = 28;
+
+/** How a block arrived at from a link is marked, and for how long. */
+export const PAGE_EDITOR_BLOCK_ARRIVAL_STYLE_CLASSES: readonly string[] = ['ring-2', 'ring-primary', 'ring-offset-2'];
+
+export const PAGE_EDITOR_BLOCK_ARRIVAL_MS = 2500;
 
 export const PAGE_EDITOR_BLOCK_DRAG_PLUGIN_KEY = 'page-editor-block-drag-plugin';
 
