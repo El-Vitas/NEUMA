@@ -132,12 +132,14 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-11 · Debe permitir referirse a un bloque concreto
 
-- [ ] Cada bloque tiene una identidad estable que sobrevive a editar sus vecinos
-- [ ] Se puede copiar el enlace de un bloque
-- [ ] Al abrir ese enlace la página se desplaza hasta ese bloque
-- [ ] El bloque se resalta un momento al llegar
-- [ ] El enlace sigue funcionando después de mover el bloque dentro de la página
-- [ ] Un enlace a un bloque eliminado avisa, en vez de fallar en silencio
+**Cómo probarlo:** abre el menú del bloque (Ctrl+/) y usa **Copiar enlace**; pega la dirección en otra pestaña.
+
+- [x] Cada bloque tiene una identidad estable que sobrevive a editar sus vecinos
+- [x] Se puede copiar el enlace de un bloque
+- [x] Al abrir ese enlace la página se desplaza hasta ese bloque
+- [x] El bloque se resalta un momento al llegar
+- [x] El enlace sigue funcionando después de mover el bloque dentro de la página
+- [x] Un enlace a un bloque eliminado avisa, en vez de fallar en silencio
 
 ## BL-12 · Debe permitir comentar un bloque
 
@@ -204,6 +206,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-11 | Nada. La identidad ya la tenía cada bloque; lo que faltaba era comprobarla: sobrevive a escribir al lado, a mover el bloque, a anidarlo, a convertirlo y a guardar la página. El enlace se copia con esa identidad, y al abrirlo la página espera a dibujarse antes de decidir —mirar una sola vez siempre encontraba nada— y recién entonces resalta el bloque o avisa que ya no está. Queda una salvedad de verificación: seguir un enlace a un bloque **de la página que ya se está leyendo** solo cambia la dirección, no recarga; eso se implementó y está cubierto por pruebas, pero no logré confirmarlo en el navegador —el servidor de desarrollo sirvió código viejo varias veces en esa sesión. | 6 de 6 |
 | 2026-08-12 | BL-10 | Nada. Faltaba el modo oscuro entero —los tokens `.dark` no existían—, así que se creó: el servidor lee de una cookie cómo lee cada quien y manda la página ya vestida, sin parpadeo, y el menú de la cuenta ofrece claro, oscuro o según el sistema. Los colores se midieron en el navegador en los dos modos: en claro, naranjo (3.34) y amarillo (2.74) no llegaban al mínimo legible de 4.5:1 y se oscurecieron —ahora los ocho van de 4.59 a 7.04—; en oscuro van de 5.59 a 13.48, y el texto sobre cada fondo, de 12.9 a 17.6. Los fondos de noche pasaron a ser un tinte del color sobre la página, no un bloque sólido. | 6 de 6 |
 | 2026-08-12 | BL-09 | Nada. Un clic en el agarre que no va a ninguna parte abre el menú, arrastrarlo sigue moviendo el bloque, Ctrl+/ lo abre sin mouse y Escape lo cierra devolviendo el cursor. Para no ofrecer acciones que fallan al elegirlas hubo que construirlas: el color vive como atributo de todo bloque (junto a su identidad, en un solo lugar), el comentario lo guarda el bloque mismo y por eso viaja con él, el enlace apunta al bloque y al llegar la página se desplaza y lo resalta, y mover a otra página agrega los bloques al final de la elegida antes de sacarlos de esta. El selector de destino lee las páginas del espacio en vez del buscador, que en este entorno devuelve cero resultados incluso para páginas antiguas. | 7 de 7 |
 | 2026-08-12 | BL-08 | Nada. Duplicar y eliminar leen los bloques igual que convertir —una sola respuesta a qué bloques mira un gesto—, así que la copia se lleva lo que cuelga del bloque y recibe una identidad propia, y borrar el último bloque deja una página en la que todavía se puede escribir. | 6 de 6 |
