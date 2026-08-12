@@ -41,6 +41,10 @@ export const generateStaticParams = () => routing.locales.map((locale) => ({ loc
  * shell can still be sent while it is being worked out; the wrapper takes no
  * space of its own, it only passes the theme down — and lends itself as the
  * place where dialogs and menus are drawn, so they are dressed too.
+ *
+ * It says the colour of the text as well as the theme. Whatever does not paint
+ * its own colour inherits it from here; without that it would reach up to the
+ * document, which is above the theme and always answers in daylight.
  */
 const LocaleContent = async ({ children }: Readonly<{ children: React.ReactNode }>) => {
   const messages = await getMessages();
@@ -48,7 +52,7 @@ const LocaleContent = async ({ children }: Readonly<{ children: React.ReactNode 
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <div className={`contents ${readThemeClass(theme.reading)}`} data-theme-root="true">
+      <div className={`contents text-foreground ${readThemeClass(theme.reading)}`} data-theme-root="true">
         <NuqsProvider>{children}</NuqsProvider>
       </div>
     </NextIntlClientProvider>
