@@ -18,6 +18,7 @@ import type {
 import { createPageEditorBlockDragPlugin } from './pages.editor.block-drag.plugin.lib';
 import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.lib';
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
+import { createPageEditorBlockMenuPlugin } from './pages.editor.block-menu.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
@@ -194,6 +195,7 @@ export const createPageEditorPlugins = (
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
+  createPageEditorBlockMenuPlugin(),
   createPageEditorBlockDragPlugin(),
   createPageEditorColumnCleanupPlugin(),
   createPageEditorColumnResizePlugin(resizeColumnLabel),

@@ -2,6 +2,7 @@ import { PluginKey } from 'prosemirror-state';
 import {
   PAGE_EDITOR_BLOCK_DRAG_PLUGIN_KEY,
   PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY,
+  PAGE_EDITOR_BLOCK_MENU_PLUGIN_KEY,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorBlockDragState } from '../types/pages.editor.block-drag.types';
 
@@ -14,3 +15,6 @@ import type { PageEditorBlockDragState } from '../types/pages.editor.block-drag.
 export const pageEditorBlockHandleKey = new PluginKey<number | null>(PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY);
 
 export const pageEditorBlockDragKey = new PluginKey<PageEditorBlockDragState>(PAGE_EDITOR_BLOCK_DRAG_PLUGIN_KEY);
+
+/** Which block the actions menu is open for, so the grip and the keyboard can both ask for it. */
+export const pageEditorBlockMenuKey = new PluginKey<number | null>(PAGE_EDITOR_BLOCK_MENU_PLUGIN_KEY);

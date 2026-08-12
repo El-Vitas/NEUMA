@@ -24,6 +24,14 @@ export interface PageEditorBlockConversion {
   readonly losesContent: boolean;
 }
 
+/** A conversion asked for, held back until it is confirmed when it would leave something behind. */
+export interface PageEditorConversionRequest {
+  readonly ask: (conversion: PageEditorBlockConversion) => void;
+  readonly confirm: (targetId: string) => void;
+  readonly dismiss: () => void;
+  readonly pending: PageEditorBlockConversion | null;
+}
+
 /** The blocks a conversion applies to, read out as lines of text. */
 export interface PageEditorConversionSource {
   readonly keepsEverything: boolean;
