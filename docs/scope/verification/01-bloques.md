@@ -86,13 +86,15 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-07 · Debe permitir convertir un bloque en otro tipo
 
-- [ ] Un bloque se puede convertir en otro tipo conservando su texto
-- [ ] Convertir entre párrafo, encabezado, cita, lista, tarea y destacado funciona en ambos sentidos
-- [ ] Convertir una lista en párrafos produce un bloque por punto
-- [ ] Convertir varios bloques seleccionados los convierte todos
-- [ ] Una conversión que perdería contenido se advierte antes
-- [ ] Una conversión imposible no se ofrece, en vez de fallar al aplicarla
-- [ ] La conversión se deshace con Ctrl+Z
+**Cómo probarlo:** pon el cursor en un bloque, presiona Escape para seleccionarlo y usa **Convertir en** en la barra que aparece.
+
+- [x] Un bloque se puede convertir en otro tipo conservando su texto
+- [x] Convertir entre párrafo, encabezado, cita, lista, tarea y destacado funciona en ambos sentidos
+- [x] Convertir una lista en párrafos produce un bloque por punto
+- [x] Convertir varios bloques seleccionados los convierte todos
+- [x] Una conversión que perdería contenido se advierte antes
+- [x] Una conversión imposible no se ofrece, en vez de fallar al aplicarla
+- [x] La conversión se deshace con Ctrl+Z
 
 ## BL-08 · Debe permitir duplicar y eliminar
 
@@ -196,4 +198,5 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-07 | Nada. Faltaban dos tipos del contrato —**tarea** y **destacado**—, así que se crearon: la tarea se marca desde la página misma, no desde la casilla del navegador, para que lo hecho viva en el bloque. La conversión nace de una lista única de tipos destino: cada uno se arma y se mide contra el sitio donde vive el bloque antes de ofrecerse, de modo que lo que aparece en el menú es lo que el editor puede hacer, y lo que dejaría algo atrás lo avisa antes. | 7 de 7 |
 | 2026-08-12 | BL-04 | Los **diagramas**, que no existen como tipo de bloque; imágenes, tablas, código y colecciones sí se mueven. Por el camino nacieron las columnas (soltar al borde de un bloque parte la fila, con separador para repartir el ancho) y el desplegable pasó a abrirse y titularse. | 11 de 12 |

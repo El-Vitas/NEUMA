@@ -20,7 +20,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
   const mentionNode = document.content.firstChild?.content.firstChild;
   if (mentionNode === undefined || mentionNode === null) throw new Error('mention node missing');
 
-  const nodeViews = createPageEditorNodeViews('Collection');
+  const nodeViews = createPageEditorNodeViews({ collection: 'Collection', task: 'Task' });
   const view = nodeViews.mention?.(mentionNode, {} as never, () => undefined);
   if (view === undefined) throw new Error('mention node view missing');
 
@@ -48,7 +48,7 @@ describe('createPageEditorNodeViews mention', () => {
 });
 
 describe('createPageEditorNodeViews collection', () => {
-  const nodeViews = createPageEditorNodeViews('Collection');
+  const nodeViews = createPageEditorNodeViews({ collection: 'Collection', task: 'Task' });
 
   it('leaves a host in the content where the collection will be rendered', () => {
     const node = pageEditorSchema.nodes.collection.create({ pageId: 'page-1', spaceId: 'space-1' });

@@ -30,6 +30,10 @@ import { createCollaborativePageEditorState, getCollaborationStatusLabelKey } fr
 import { isPageEditorBlockDragActive } from '../lib/pages.editor.block-drag.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import {
+  createPageEditorBlockConversionCommand,
+  listPageEditorBlockConversions,
+} from '../lib/pages.editor.convert.lib';
+import {
   computeSelectionToolbarPlacement,
   createPageEditorState,
   isPageEditorReadOnly,
@@ -47,6 +51,7 @@ import {
   resolveEditorTrigger,
 } from '../lib/pages.editor.slash-menu.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PagesEditorMenuItem, PagesEditorTriggerKind } from '../types/pages.editor.slash-menu.types';
 import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
@@ -80,10 +85,12 @@ export const PagesProseMirrorEditor = forwardRef(
     const t = useTranslations('pages');
     const selectBlockLabelRef = useRef(t('selectBlock'));
     const collectionLabelRef = useRef(t('collectionBlock'));
+    const taskLabelRef = useRef(t('taskBlock'));
     const insertBlockLabelRef = useRef(t('insertBlock'));
     const [collectionHosts, setCollectionHosts] = useState<readonly { element: HTMLElement; pageId: string }[]>([]);
     const [recentCommandIds, setRecentCommandIds] = useState<readonly string[]>([]);
     const [selectedBlockCount, setSelectedBlockCount] = useState(0);
+    const [blockConversions, setBlockConversions] = useState<readonly PageEditorBlockConversion[]>([]);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
     const syncCollectionHosts = useCallback(() => {
@@ -283,6 +290,7 @@ export const PagesProseMirrorEditor = forwardRef(
             isPageEditorBlockDragActive(nextState) ? null : computeSelectionToolbarPosition(editorView, selection),
           );
           setSelectedBlockCount(countSelectedBlocks(selection));
+          setBlockConversions(listPageEditorBlockConversions(nextState));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: (currentEditorView, event) => {
@@ -305,7 +313,7 @@ export const PagesProseMirrorEditor = forwardRef(
           }
           return false;
         },
-        nodeViews: createPageEditorNodeViews(collectionLabelRef.current),
+        nodeViews: createPageEditorNodeViews({ collection: collectionLabelRef.current, task: taskLabelRef.current }),
         state: editorState,
       });
       editorViewRef.current = editorView;
@@ -449,6 +457,13 @@ export const PagesProseMirrorEditor = forwardRef(
             >
               <PagesEditorToolbar
                 commands={PAGE_EDITOR_COMMANDS}
+                conversions={blockConversions}
+                onConvert={(targetId) => {
+                  const editorView = editorViewRef.current;
+                  if (editorView === null) return;
+                  createPageEditorBlockConversionCommand(targetId)(editorView.state, editorView.dispatch);
+                  editorView.focus();
+                }}
                 onDismiss={() => {
                   const editorView = editorViewRef.current;
                   if (editorView === null) return;

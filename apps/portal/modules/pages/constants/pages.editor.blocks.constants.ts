@@ -60,6 +60,11 @@ export const PAGE_EDITOR_NESTED_BLOCK_TYPE = 'nested_block';
 
 export const PAGE_EDITOR_TABLE_CELL_TYPE = 'table_cell';
 
+export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
+
+/** The group every block that stands on a page belongs to. */
+export const PAGE_EDITOR_BLOCK_GROUP = 'block';
+
 export const PAGE_EDITOR_COLUMN_ROW_TYPE = 'column_list';
 
 export const PAGE_EDITOR_COLUMN_TYPE = 'column';
@@ -98,6 +103,32 @@ export const PAGE_EDITOR_COLUMN_EDGE_MAX_PX = 120;
 export const PAGE_EDITOR_DROP_COLUMN_LEFT_STYLE_CLASS = '-ml-0.5 border-primary border-l-2';
 
 export const PAGE_EDITOR_DROP_COLUMN_RIGHT_STYLE_CLASS = '-mr-0.5 border-primary border-r-2';
+
+export const PAGE_EDITOR_CALLOUT_CLASS =
+  'my-4 border border-border border-l-4 border-l-primary bg-surface-container-low px-4 py-3';
+
+export const PAGE_EDITOR_TASK_ITEM_TYPE = 'task_item';
+
+export const PAGE_EDITOR_TASK_LIST_CLASS = 'my-4 list-none ps-0';
+
+export const PAGE_EDITOR_TASK_ITEM_STYLE_CLASS = 'flex items-start gap-2';
+
+export const PAGE_EDITOR_TASK_CHECKBOX_STYLE_CLASS = [
+  'mt-1.5 flex size-4 shrink-0 cursor-pointer items-center justify-center',
+  'border border-border text-[10px] leading-none',
+].join(' ');
+
+export const PAGE_EDITOR_TASK_BOX_DONE_STYLE_CLASSES: readonly string[] = [
+  'bg-primary',
+  'border-primary',
+  'text-primary-foreground',
+];
+
+export const PAGE_EDITOR_TASK_DONE_MARK = '\u2713';
+
+export const PAGE_EDITOR_TASK_CONTENT_STYLE_CLASS = 'min-w-0 flex-1';
+
+export const PAGE_EDITOR_TASK_DONE_STYLE_CLASSES: readonly string[] = ['line-through', 'text-muted-foreground'];
 
 export const PAGE_EDITOR_COLLECTION_CLASS = 'my-4 border border-border bg-surface-container-low px-4 py-3';
 
