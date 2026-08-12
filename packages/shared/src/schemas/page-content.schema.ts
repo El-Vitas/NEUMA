@@ -59,6 +59,8 @@ export const isAllowedPageEmbedUrl = (provider: PageEmbedProvider, value: string
   return url.protocol === 'https:' && pageEmbedHosts[provider].includes(url.hostname);
 };
 
+const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
+
 const pageMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('strong') }).strict(),
   z.object({ type: z.literal('em') }).strict(),
@@ -73,11 +75,17 @@ const pageMarkSchema = z.discriminatedUnion('type', [
       type: z.literal('link'),
     })
     .strict(),
+  /**
+   * A remark left on a fragment of the text. It carries only which remark it
+   * is: what was said is kept by the block, so a fragment and a whole block are
+   * commented in one place and travel together.
+   */
+  z.object({ attrs: z.object({ id: pageBlockIdSchema }).strict(), type: z.literal('comment') }).strict(),
 ]);
 
 const pageTextSchema = z
   .object({
-    marks: z.array(pageMarkSchema).max(4).optional(),
+    marks: z.array(pageMarkSchema).max(5).optional(),
     text: z
       .string()
       .min(1)
@@ -93,8 +101,6 @@ const pageCodeTextSchema = z
     type: z.literal('text'),
   })
   .strict();
-
-const pageBlockIdSchema = z.string().min(1).max(maximumBlockIdLength);
 
 const pageBlockCommentSchema = z
   .object({
@@ -167,7 +173,8 @@ type PageMark =
   | { readonly type: 'strong' }
   | { readonly type: 'em' }
   | { readonly type: 'code' }
-  | { readonly attrs: { readonly href: string }; readonly type: 'link' };
+  | { readonly attrs: { readonly href: string }; readonly type: 'link' }
+  | { readonly attrs: { readonly id: string }; readonly type: 'comment' };
 
 export type PageContentText = { readonly marks?: readonly PageMark[]; readonly text: string; readonly type: 'text' };
 

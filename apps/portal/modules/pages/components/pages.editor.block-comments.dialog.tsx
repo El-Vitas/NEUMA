@@ -2,7 +2,7 @@
 
 import type { PageBlockComment } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { PagesEditorBlockCommentItem } from './pages.editor.block-comments.item';
@@ -19,11 +19,13 @@ interface IProps {
  * What has been said about a block, and where to say something more.
  *
  * The remarks belong to the block, so this only shows them and hands back what
- * was written.
+ * was written. It opens with the cursor where one writes and not on the first
+ * button, which is the one that takes a remark away.
  */
 export const PagesEditorBlockCommentsDialog = ({ comments, isOpen, onClose, onRemove, onWrite }: IProps) => {
   const t = useTranslations('pages');
   const [body, setBody] = useState('');
+  const writingRef = useRef<HTMLTextAreaElement>(null);
 
   const writeComment = (): void => {
     if (body.trim().length === 0) return;
@@ -40,7 +42,12 @@ export const PagesEditorBlockCommentsDialog = ({ comments, isOpen, onClose, onRe
       }}
       open={isOpen}
     >
-      <DialogContent>
+      <DialogContent
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          writingRef.current?.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t('blockComments')}</DialogTitle>
           <DialogDescription>{t('blockCommentsDescription')}</DialogDescription>
@@ -56,9 +63,10 @@ export const PagesEditorBlockCommentsDialog = ({ comments, isOpen, onClose, onRe
         )}
         <textarea
           aria-label={t('writeBlockComment')}
-          className="min-h-24 w-full border border-border bg-background p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-h-24 w-full rounded-none border border-input bg-transparent p-3 font-reading text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
           onChange={(event) => setBody(event.target.value)}
           placeholder={t('writeBlockComment')}
+          ref={writingRef}
           value={body}
         />
         <div className="flex justify-end">

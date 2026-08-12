@@ -16,12 +16,20 @@ import { PagesEditorTurnIntoMenu } from './pages.editor.turn-into.menu';
 interface IProps {
   readonly commands: Readonly<Record<string, PageEditorCommand>>;
   readonly conversions: readonly PageEditorBlockConversion[];
+  readonly onComment: () => void;
   readonly onConvert: (targetId: string) => void;
   readonly onDismiss: () => void;
   readonly onRunCommand: (command: PageEditorCommand) => void;
 }
 
-export const PagesEditorToolbar = ({ commands, conversions, onConvert, onDismiss, onRunCommand }: IProps) => {
+export const PagesEditorToolbar = ({
+  commands,
+  conversions,
+  onComment,
+  onConvert,
+  onDismiss,
+  onRunCommand,
+}: IProps) => {
   const t = useTranslations('pages');
   const primaryCommands = PAGE_EDITOR_PRIMARY_COMMAND_NAMES.map(
     (commandName) => [commandName, commands[commandName]] as const,
@@ -55,6 +63,14 @@ export const PagesEditorToolbar = ({ commands, conversions, onConvert, onDismiss
         </button>
       ))}
       <PagesEditorTurnIntoMenu conversions={conversions} onConvert={onConvert} />
+      <button
+        className="min-h-11 min-w-11 px-3 text-foreground text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={onComment}
+        onMouseDown={(event) => event.preventDefault()}
+        type="button"
+      >
+        {t('commentBlock')}
+      </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
