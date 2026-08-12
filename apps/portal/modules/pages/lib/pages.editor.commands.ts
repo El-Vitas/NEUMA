@@ -14,8 +14,11 @@ import type {
   PageEditorCommand,
   PageMentionInsertCommandOptions,
 } from '../types/pages.types';
+import { createPageEditorBlockDragPlugin } from './pages.editor.block-drag.plugin.lib';
 import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.lib';
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
+import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
+import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
 import { indentPageEditorBlock, outdentPageEditorBlock, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { selectBlockThenDocument, selectEnclosingBlock } from './pages.editor.selection.lib';
 
@@ -165,6 +168,7 @@ export const createPageEditorPlugins = (
   schema: Schema,
   selectBlockLabel: string,
   insertBlockLabel: string,
+  resizeColumnLabel: string = selectBlockLabel,
 ): readonly EditorPlugin[] => [
   history(),
   inputRules({
@@ -192,4 +196,7 @@ export const createPageEditorPlugins = (
   ),
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
+  createPageEditorBlockDragPlugin(),
+  createPageEditorColumnCleanupPlugin(),
+  createPageEditorColumnResizePlugin(resizeColumnLabel),
 ];

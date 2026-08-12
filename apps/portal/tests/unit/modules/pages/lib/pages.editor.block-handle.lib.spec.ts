@@ -2,9 +2,9 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { NodeSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { PAGE_EDITOR_BLOCK_HANDLE_CLASS } from '@/modules/pages/constants/pages.constants';
-import { pageEditorBlockHandleKey } from '@/modules/pages/lib/pages.editor.block-handle.lib';
+import { PAGE_EDITOR_BLOCK_HANDLE_CLASS } from '@/modules/pages/constants/pages.editor.blocks.constants';
 import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { pageEditorBlockHandleKey } from '@/modules/pages/lib/pages.editor.plugin-keys.lib';
 
 const twoBlockContent: PageContent = {
   content: [
@@ -97,6 +97,45 @@ describe('block handle', () => {
     expect(selection.from).toBe(Number(hoveredPosition));
     expect((selection as NodeSelection).node.textContent).toBe('Segundo');
     expect(view.state.doc.childCount).toBe(2);
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('shows a handle for a block with nothing inside, such as an image', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView(container, {
+      state: createPageEditorState(
+        {
+          content: [
+            { attrs: { assetId: 'asset-1' }, type: 'image' },
+            { content: [], type: 'paragraph' },
+          ],
+          schemaVersion: 1,
+          type: 'doc',
+        },
+        'Select block',
+      ),
+    });
+
+    view.dispatch(view.state.tr.setMeta(pageEditorBlockHandleKey, 0));
+
+    expect(findHandle(container)).not.toBeNull();
+    expect(view.state.doc.child(0).type.name).toBe('image');
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('forgets the hovered block when the page changes, so the handle never lands inside the text', () => {
+    const { container, view } = mountEditor();
+
+    hoverBlock(view, 'Primero');
+    view.dispatch(view.state.tr.insertText('!', 3));
+
+    expect(pageEditorBlockHandleKey.getState(view.state)).toBeNull();
+    expect(findHandle(container)).toBeNull();
 
     view.destroy();
     container.remove();

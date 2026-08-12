@@ -1,39 +1,67 @@
-import { Plugin as EditorPlugin, NodeSelection, PluginKey, Selection } from 'prosemirror-state';
+import { Plugin as EditorPlugin, NodeSelection, Selection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import {
+  PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS,
   PAGE_EDITOR_BLOCK_HANDLE_CLASS,
-  PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY,
   PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS,
   PAGE_EDITOR_BLOCK_INSERT_CLASS,
   PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS,
-  PAGE_EDITOR_BLOCK_PROBE_INSET_PX,
-} from '../constants/pages.constants';
+  PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE,
+  PAGE_EDITOR_GUTTER_REACH_PX,
+} from '../constants/pages.editor.blocks.constants';
+import type {
+  PageEditorBlockRange,
+  PageEditorDropPointer,
+  PageEditorGutterLabels,
+} from '../types/pages.editor.block-drag.types';
+import { armPageEditorBlockDrag, isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
+import { findPageEditorBlockAtPointer, offersGrabbableBlocks } from './pages.editor.block-target.lib';
+import { pageEditorBlockHandleKey } from './pages.editor.plugin-keys.lib';
 
-export const pageEditorBlockHandleKey = new PluginKey<number | null>(PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY);
+/**
+ * The handle belongs to the innermost block under the pointer, read the same
+ * way a drop target is read, so a block inside a column or a cell gets its own
+ * pair of gutter buttons instead of the row's.
+ */
+export const findBlockPositionAtPointer = (view: EditorView, pointer: PageEditorDropPointer): number | null =>
+  findPageEditorBlockAtPointer(view, pointer, offersGrabbableBlocks);
 
-const toBlockStart = (view: EditorView, position: number): number | null => {
-  const resolved = view.state.doc.resolve(position);
-  for (let depth = resolved.depth; depth > 0; depth -= 1) {
-    const parentName = resolved.node(depth - 1).type.name;
-    if (parentName === 'doc' || parentName === 'block_children') return resolved.before(depth);
-  }
-  return null;
+/**
+ * Tells whether the pointer is close enough to a block to be asking for its
+ * buttons: over the text, or in the margin beside it where those buttons are
+ * drawn. The margin belongs to the page and not to the editor's own box, so
+ * the reach is measured rather than inherited from the DOM.
+ */
+const isPointerWithinGutterReach = (view: EditorView, event: MouseEvent): boolean => {
+  const box = view.dom.getBoundingClientRect();
+  return (
+    event.clientX >= box.left - PAGE_EDITOR_GUTTER_REACH_PX &&
+    event.clientX <= box.right &&
+    event.clientY >= box.top &&
+    event.clientY <= box.bottom
+  );
 };
 
-export const findBlockPositionAtPointer = (view: EditorView, clientY: number): number | null => {
-  const editorBox = view.dom.getBoundingClientRect();
-  const found = view.posAtCoords({ left: editorBox.left + PAGE_EDITOR_BLOCK_PROBE_INSET_PX, top: clientY });
-  return found === null ? null : toBlockStart(view, found.pos);
-};
+/**
+ * The strip between two columns belongs to the divider that shares their
+ * width: a block's buttons must not be drawn over it, or they would eat the
+ * press meant to resize the row.
+ */
+const isPointerOnColumnDivider = (event: MouseEvent): boolean =>
+  event.target instanceof Element && event.target.closest(`[${PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE}]`) !== null;
 
 const updateHoveredBlock = (view: EditorView, position: number | null): void => {
   if (position === pageEditorBlockHandleKey.getState(view.state)) return;
   view.dispatch(view.state.tr.setMeta(pageEditorBlockHandleKey, position));
 };
 
-const selectBlockAt = (view: EditorView, position: number): void => {
-  const selection = NodeSelection.create(view.state.doc, position);
-  view.dispatch(view.state.tr.setSelection(selection));
+const holdsSingleBlock = (view: EditorView, range: PageEditorBlockRange): boolean =>
+  view.state.doc.nodeAt(range.from)?.nodeSize === range.to - range.from;
+
+const grabBlockAt = (view: EditorView, position: number): void => {
+  const draggedBlocks = armPageEditorBlockDrag(view, position);
+  if (draggedBlocks !== null && !holdsSingleBlock(view, draggedBlocks)) return;
+  view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, position)));
   view.focus();
 };
 
@@ -59,6 +87,7 @@ const createGutterButton = (parameters: {
   button.type = 'button';
   button.className = parameters.className;
   button.tabIndex = -1;
+  button.contentEditable = 'false';
   button.setAttribute(parameters.marker, 'true');
   button.setAttribute('aria-label', parameters.label);
   button.textContent = parameters.symbol;
@@ -86,10 +115,27 @@ const createHandleElement = (view: EditorView, position: number, label: string):
     label,
     marker: 'data-drag-handle',
     onPress: () => {
-      selectBlockAt(view, position);
+      grabBlockAt(view, position);
     },
     symbol: '⠿',
   });
+
+/**
+ * Holds the `+` and the grip of one block, parked just outside its left edge.
+ *
+ * They belong to the block itself and not to the page margin, so a block
+ * sitting inside a column keeps its own pair right beside it.
+ */
+const createBlockGutter = (view: EditorView, position: number, labels: PageEditorGutterLabels): HTMLElement => {
+  const gutter = document.createElement('div');
+  gutter.className = PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS;
+  gutter.contentEditable = 'false';
+  gutter.append(
+    createInsertElement(view, position, labels.insertBlock),
+    createHandleElement(view, position, labels.selectBlock),
+  );
+  return gutter;
+};
 
 export const createPageEditorBlockHandlePlugin = (
   selectBlockLabel: string,
@@ -102,23 +148,27 @@ export const createPageEditorBlockHandlePlugin = (
         const position = pageEditorBlockHandleKey.getState(state);
         if (position === null || position === undefined) return DecorationSet.empty;
         return DecorationSet.create(state.doc, [
-          Decoration.widget(position, (view) => createInsertElement(view, position, insertBlockLabel), {
-            key: `page-editor-block-insert-${String(position)}`,
-            side: -2,
-          }),
-          Decoration.widget(position, (view) => createHandleElement(view, position, selectBlockLabel), {
-            key: `page-editor-block-handle-${String(position)}`,
-            side: -1,
-          }),
+          Decoration.widget(
+            position,
+            (view) =>
+              createBlockGutter(view, position, { insertBlock: insertBlockLabel, selectBlock: selectBlockLabel }),
+            { key: `page-editor-block-gutter-${String(position)}`, side: -1 },
+          ),
         ]);
       },
     },
     view: (editorView) => {
-      const pointerSurface = editorView.dom.parentElement ?? editorView.dom;
+      const pointerSurface = editorView.dom.ownerDocument;
       const trackPointer = (event: MouseEvent) => {
-        updateHoveredBlock(editorView, findBlockPositionAtPointer(editorView, event.clientY));
+        if (isPageEditorBlockDragActive(editorView.state)) return;
+        if (!isPointerWithinGutterReach(editorView, event) || isPointerOnColumnDivider(event)) {
+          updateHoveredBlock(editorView, null);
+          return;
+        }
+        updateHoveredBlock(editorView, findBlockPositionAtPointer(editorView, event));
       };
       const clearPointer = () => {
+        if (isPageEditorBlockDragActive(editorView.state)) return;
         updateHoveredBlock(editorView, null);
       };
       pointerSurface.addEventListener('mousemove', trackPointer);
@@ -133,7 +183,7 @@ export const createPageEditorBlockHandlePlugin = (
     state: {
       apply: (transaction, previousPosition) => {
         const nextPosition = transaction.getMeta(pageEditorBlockHandleKey);
-        if (nextPosition === undefined) return previousPosition;
+        if (nextPosition === undefined) return transaction.docChanged ? null : previousPosition;
         return typeof nextPosition === 'number' ? nextPosition : null;
       },
       init: () => null,

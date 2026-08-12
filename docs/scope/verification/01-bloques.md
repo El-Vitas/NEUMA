@@ -49,17 +49,17 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 **Cómo probarlo:** pasa el cursor sobre un bloque y busca el agarre a su izquierda.
 
-- [ ] Al pasar el cursor sobre un bloque aparece un agarre a su izquierda
-- [ ] Arrastrando el agarre, el bloque se mueve
-- [ ] Mientras se arrastra se ve una línea que indica dónde va a caer
-- [ ] Se puede soltar arriba, abajo y entre otros bloques
-- [ ] Se puede soltar dentro de un plegable, una columna o una celda
-- [ ] Se pueden arrastrar varios bloques seleccionados a la vez
-- [ ] Al arrastrar varios se ve cuántos se están moviendo
-- [ ] Arrastrar cerca del borde superior o inferior desplaza la página sola
-- [ ] Arrastrar manteniendo Alt deja una copia en vez de mover
-- [ ] Soltar fuera de un destino válido cancela sin dañar el contenido
-- [ ] El movimiento se puede deshacer con Ctrl+Z
+- [x] Al pasar el cursor sobre un bloque aparece un agarre a su izquierda
+- [x] Arrastrando el agarre, el bloque se mueve
+- [x] Mientras se arrastra se ve una línea que indica dónde va a caer
+- [x] Se puede soltar arriba, abajo y entre otros bloques
+- [x] Se puede soltar dentro de un plegable, una columna o una celda
+- [x] Se pueden arrastrar varios bloques seleccionados a la vez
+- [x] Al arrastrar varios se ve cuántos se están moviendo
+- [x] Arrastrar cerca del borde superior o inferior desplaza la página sola
+- [x] Arrastrar manteniendo Alt deja una copia en vez de mover
+- [x] Soltar fuera de un destino válido cancela sin dañar el contenido
+- [x] El movimiento se puede deshacer con Ctrl+Z
 - [ ] Funciona igual con imágenes, tablas, código, diagramas y colecciones
 
 ## BL-05 · Debe permitir mover un bloque con el teclado
@@ -194,3 +194,4 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-01 | Nada. Insertarla desde el menú `/` queda pendiente en `TB-23`, no aquí. | 6 de 6 |
 | 2026-08-11 | BL-03 | Nada. Arrastrar y shift+clic producen selección de texto sobre varios bloques, que es el comportamiento nativo del editor. | 8 de 8 |
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio, como Notion. | 14 de 14 |
+| 2026-08-12 | BL-04 | Los **diagramas**, que no existen como tipo de bloque; imágenes, tablas, código y colecciones sí se mueven. Por el camino nacieron las columnas (soltar al borde de un bloque parte la fila, con separador para repartir el ancho) y el desplegable pasó a abrirse y titularse. | 11 de 12 |

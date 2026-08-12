@@ -78,6 +78,9 @@ describe('createUserAction without an access token', () => {
         new Response(
           JSON.stringify({
             accessToken: 'issued-token',
+            accessTokenExpiresInSeconds: 900,
+            refreshToken: 'issued-refresh-token',
+            refreshTokenExpiresInSeconds: 604_800,
             user: { email: 'ana@example.com', id: userId, name: 'Ana', role: 'WORKER' },
           }),
           { status: 200, headers: { 'content-type': 'application/json' } },

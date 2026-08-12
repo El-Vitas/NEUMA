@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard'
 import { UserInterceptor } from '../../common/infrastructure/interceptors/user.interceptor';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RefreshSessionDto } from './dto/refresh.session.dto';
 
 @Controller(RESOURCE_ROUTES.AUTH)
 export class AuthController {
@@ -16,6 +17,17 @@ export class AuthController {
   @Public()
   async login(@Body() dto: LoginDto): Promise<AuthSession> {
     const result = await this.authService.loginUser(dto);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @HttpCode(HTTP_STATUS_CREATED)
+  @Post(`${API_SEGMENTS.SESSIONS}/${API_SEGMENTS.REFRESH}`)
+  @Public()
+  async refresh(@Body() dto: RefreshSessionDto): Promise<AuthSession> {
+    const result = await this.authService.refreshSession(dto.refreshToken);
     if (result.isFail()) {
       throw result.getError();
     }

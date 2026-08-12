@@ -33,6 +33,25 @@ describe('useSidebarCollapsed', () => {
     expect(localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe(JSON.stringify(true));
   });
 
+  it('starts expanded so the first paint matches what the server sent', () => {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(true));
+
+    const { result } = renderHook(() => useSidebarCollapsed());
+
+    expect(result.current[0]).toBe(true);
+    expect(localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe(JSON.stringify(true));
+    localStorage.removeItem(SIDEBAR_STORAGE_KEY);
+  });
+
+  it('keeps the stored preference when it only reads it back', () => {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(true));
+
+    renderHook(() => useSidebarCollapsed());
+
+    expect(localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe(JSON.stringify(true));
+    localStorage.removeItem(SIDEBAR_STORAGE_KEY);
+  });
+
   it('does not toggle while a person is typing in a text field', () => {
     localStorage.removeItem(SIDEBAR_STORAGE_KEY);
     const { result } = renderHook(() => useSidebarCollapsed());

@@ -1,7 +1,8 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { PAGE_EDITOR_COLLECTION_CLASS } from '../constants/pages.constants';
+import { PAGE_EDITOR_COLLECTION_CLASS } from '../constants/pages.editor.blocks.constants';
+import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
 
 const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeURIComponent(assetId)}`;
 
@@ -47,9 +48,12 @@ const createPageMentionNodeView = (node: EditorNode): NodeView => {
 
 export const createPageEditorNodeViews = (
   collectionLabel: string,
-): Readonly<Record<string, (node: EditorNode, view: EditorView) => NodeView>> => ({
+): Readonly<
+  Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
+> => ({
   collection: (node) => createPageCollectionNodeView(node, collectionLabel),
   file: createPageFileNodeView,
   image: createPageImageNodeView,
   mention: createPageMentionNodeView,
+  toggle: createPageToggleNodeView,
 });

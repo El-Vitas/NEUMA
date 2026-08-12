@@ -134,13 +134,16 @@ export const PagesEditor = ({
   const isSaving = isPending || autosave.isSaving;
 
   return (
-    <section aria-label={t('editor')} className="min-w-0 bg-surface px-4 py-8 sm:px-8 lg:p-12 xl:px-16">
+    <section
+      aria-label={t('editor')}
+      className="min-w-0 bg-surface py-8 pr-4 pl-14 sm:pr-6 lg:py-12 lg:pr-8 lg:pl-16 xl:pr-10"
+    >
       {!canEdit && (
         <p className="mb-4 border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
           {page?.lifecycle === 'TRASHED' ? t('trashReadOnly') : t('readOnly')}
         </p>
       )}
-      <div className="mx-auto w-full max-w-[100rem] space-y-8" data-testid="page-editor-workspace">
+      <div className="w-full space-y-8" data-testid="page-editor-workspace">
         <PagesHeader
           canEdit={canEdit}
           hasSaved={autosave.hasSaved}

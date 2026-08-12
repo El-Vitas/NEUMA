@@ -9,24 +9,6 @@ export const EMPTY_PAGE_BACKLINKS: PageBacklinksResult = { count: 0, items: [] }
 
 export const EMPTY_PAGE_ATTACHMENTS: readonly AttachmentSummary[] = [];
 
-export const PAGE_EDITOR_BLOCK_HANDLE_CLASS = 'page-editor-block-handle';
-
-export const PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS =
-  'float-left -ml-9 w-5 cursor-grab select-none text-center text-muted-foreground hover:text-foreground';
-
-export const PAGE_EDITOR_BLOCK_PROBE_INSET_PX = 40;
-
-export const PAGE_EDITOR_COLLECTION_CLASS = 'my-4 border border-border bg-surface-container-low px-4 py-3';
-
-export const PAGE_EDITOR_BLOCK_CHILDREN_CLASS = 'ml-1 border-border/70 border-l-2 pl-4';
-
-export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plugin';
-
-export const PAGE_EDITOR_BLOCK_INSERT_CLASS = 'page-editor-block-insert';
-
-export const PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS =
-  'float-left -ml-14 w-5 cursor-pointer select-none text-center text-muted-foreground hover:text-foreground';
-
 export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
 
 export const PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME =

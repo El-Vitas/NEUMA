@@ -1,7 +1,7 @@
 import type { PageContentInlineNode, PageContentNode } from '@/modules/pages/types/pages.types';
 
 export const structuredToggleNodeFixture: PageContentNode = {
-  attrs: { summary: 'Details' },
+  attrs: { open: false, summary: 'Details' },
   content: [{ content: [{ text: 'Nested', type: 'text' }], type: 'paragraph' }],
   type: 'toggle',
 };
