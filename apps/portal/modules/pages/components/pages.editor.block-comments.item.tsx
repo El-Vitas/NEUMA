@@ -16,7 +16,7 @@ export const PagesEditorBlockCommentItem = ({ comment, onRemove }: IProps) => {
   const writtenAt = new Date(comment.createdAt);
 
   return (
-    <li className="border border-border bg-surface-container-low p-3">
+    <li className="border border-border bg-surface-low p-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-medium text-foreground text-sm">{comment.author}</span>
         <span className="text-muted-foreground text-xs">

@@ -210,6 +210,9 @@ export const PAGE_EDITOR_DROP_INDICATOR_STYLE_CLASS = 'pointer-events-none -my-p
 
 export const PAGE_EDITOR_DRAGGED_BLOCK_STYLE_CLASS = 'opacity-40';
 
+/** What the editor's writable surface is called, which is also what every rule about how a block looks says. */
+export const PAGE_EDITOR_EDITABLE_SURFACE_CLASS = 'ProseMirror';
+
 export const PAGE_EDITOR_DRAG_GHOST_STYLE_CLASS = [
   'pointer-events-none fixed top-0 left-0 z-50',
   'max-h-40 overflow-hidden opacity-60',
@@ -343,7 +346,7 @@ export const PAGE_EDITOR_DROP_COLUMN_LEFT_STYLE_CLASS = '-ml-0.5 border-primary 
 export const PAGE_EDITOR_DROP_COLUMN_RIGHT_STYLE_CLASS = '-mr-0.5 border-primary border-r-2';
 
 export const PAGE_EDITOR_CALLOUT_CLASS =
-  'my-4 flex gap-3 border border-border border-l-4 border-l-primary bg-surface-container-low px-4 py-3';
+  'my-4 flex gap-3 border border-border border-l-4 border-l-primary bg-surface-low px-4 py-3';
 
 /** The mark sits beside what the aside says, on the first line, and never moves with the writing. */
 export const PAGE_EDITOR_CALLOUT_ICON_STYLE_CLASS = 'shrink-0 select-none text-lg leading-7';
@@ -384,7 +387,7 @@ export const PAGE_EDITOR_TASK_DONE_MARK = '\u2713';
 
 export const PAGE_EDITOR_TASK_CONTENT_STYLE_CLASS = 'min-w-0 flex-1';
 
-export const PAGE_EDITOR_COLLECTION_CLASS = 'my-4 border border-border bg-surface-container-low px-4 py-3';
+export const PAGE_EDITOR_COLLECTION_CLASS = 'my-4 border border-border bg-surface-low px-4 py-3';
 
 export const PAGE_EDITOR_TOGGLE_HEAD_STYLE_CLASS = 'flex items-center gap-2';
 

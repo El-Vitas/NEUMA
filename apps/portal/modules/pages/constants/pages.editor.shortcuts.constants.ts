@@ -45,7 +45,7 @@ export const PAGE_EDITOR_COMMAND_KEY_LABEL = '⌘';
 export const PAGE_EDITOR_CONTROL_KEY_LABEL = 'Ctrl';
 
 export const PAGE_EDITOR_SHORTCUT_KEY_STYLE_CLASS =
-  'min-w-7 border border-border bg-surface-container-low px-2 py-1 text-center font-mono text-xs';
+  'min-w-7 border border-border bg-surface-low px-2 py-1 text-center font-mono text-xs';
 
 export const PAGE_EDITOR_SHORTCUT_KEY_LABELS: Readonly<Record<string, string>> = {
   ArrowDown: '↓',
