@@ -23,6 +23,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
   const nodeViews = createPageEditorNodeViews({
     collection: 'Collection',
     task: 'Task',
+    toggle: { open: 'Toggle', title: 'Toggle title' },
     unsupported: 'Unsupported block',
   });
   const view = nodeViews.mention?.(mentionNode, {} as never, () => undefined);
@@ -55,6 +56,7 @@ describe('createPageEditorNodeViews collection', () => {
   const nodeViews = createPageEditorNodeViews({
     collection: 'Collection',
     task: 'Task',
+    toggle: { open: 'Toggle', title: 'Toggle title' },
     unsupported: 'Unsupported block',
   });
 

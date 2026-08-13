@@ -424,6 +424,8 @@
     "addBlockComment": "Comentar",
     "removeBlockComment": "Eliminar",
     "foldHeading": "Plegar o desplegar este encabezado",
+    "openToggle": "Abrir o cerrar este bloque plegable",
+    "toggleTitle": "Título del bloque plegable",
     "foldBlock": "Plegar",
     "unfoldBlock": "Desplegar"
   },

@@ -4,6 +4,7 @@ import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import {
   PAGE_EDITOR_COLLECTION_CLASS,
   PAGE_EDITOR_TASK_ITEM_TYPE,
+  PAGE_EDITOR_TOGGLE_TYPE,
   PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
   PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS,
   PAGE_EDITOR_UNSUPPORTED_TYPE,
@@ -78,6 +79,7 @@ export const createPageEditorNodeViews = (
   mention: createPageMentionNodeView,
   [PAGE_EDITOR_TASK_ITEM_TYPE]: (node, view, getPosition) =>
     createPageTaskItemNodeView(node, view, getPosition, labels.task),
-  toggle: createPageToggleNodeView,
+  [PAGE_EDITOR_TOGGLE_TYPE]: (node, view, getPosition) =>
+    createPageToggleNodeView(node, view, getPosition, labels.toggle),
   [PAGE_EDITOR_UNSUPPORTED_TYPE]: (node) => createPageUnsupportedNodeView(node, labels.unsupported),
 });

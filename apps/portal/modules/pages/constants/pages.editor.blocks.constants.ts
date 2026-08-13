@@ -317,15 +317,21 @@ export const PAGE_EDITOR_TASK_CONTENT_STYLE_CLASS = 'min-w-0 flex-1';
 
 export const PAGE_EDITOR_COLLECTION_CLASS = 'my-4 border border-border bg-surface-container-low px-4 py-3';
 
-export const PAGE_EDITOR_TOGGLE_SUMMARY_STYLE_CLASS =
-  'flex list-none items-center gap-2 [&::-webkit-details-marker]:hidden';
+export const PAGE_EDITOR_TOGGLE_HEAD_STYLE_CLASS = 'flex items-center gap-2';
+
+/** What the toggle holds sits under its title, past the arrow, so it reads as held by it. */
+export const PAGE_EDITOR_TOGGLE_CHILDREN_STYLE_CLASS = 'ps-7';
 
 export const PAGE_EDITOR_TOGGLE_ARROW_STYLE_CLASS = [
-  'inline-flex size-5 shrink-0 items-center justify-center',
+  'relative inline-flex size-5 shrink-0 items-center justify-center',
   'cursor-pointer select-none text-muted-foreground hover:text-foreground',
   'transition-transform',
+  "before:absolute before:-inset-3 before:content-['']",
 ].join(' ');
 
 export const PAGE_EDITOR_TOGGLE_ARROW_OPEN_STYLE_CLASS = 'rotate-90';
 
-export const PAGE_EDITOR_TOGGLE_TITLE_STYLE_CLASS = 'flex-1 outline-none';
+export const PAGE_EDITOR_TOGGLE_TITLE_STYLE_CLASS = [
+  'min-h-11 w-full flex-1 border-none bg-transparent font-semibold text-foreground',
+  'outline-none focus-visible:ring-0',
+].join(' ');

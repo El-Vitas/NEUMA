@@ -86,6 +86,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const insertBlockLabelRef = useRef(t('insertBlock'));
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
+    const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
@@ -222,6 +223,7 @@ export const PagesProseMirrorEditor = forwardRef(
         nodeViews: createPageEditorNodeViews({
           collection: collectionLabelRef.current,
           task: taskLabelRef.current,
+          toggle: toggleLabelsRef.current,
           unsupported: unsupportedLabelRef.current,
         }),
         state: editorState,

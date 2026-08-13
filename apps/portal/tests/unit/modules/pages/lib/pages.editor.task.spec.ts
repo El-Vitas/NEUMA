@@ -25,7 +25,12 @@ const mountTask = (checked?: boolean): { readonly container: HTMLElement; readon
   const container = document.createElement('div');
   document.body.appendChild(container);
   const view = new EditorView(container, {
-    nodeViews: createPageEditorNodeViews({ collection: 'Collection', task: 'Task', unsupported: 'Unsupported block' }),
+    nodeViews: createPageEditorNodeViews({
+      collection: 'Collection',
+      task: 'Task',
+      toggle: { open: 'Toggle', title: 'Toggle title' },
+      unsupported: 'Unsupported block',
+    }),
     state: createPageEditorState(taskContent(checked), 'Select block'),
   });
   return { container, view };
