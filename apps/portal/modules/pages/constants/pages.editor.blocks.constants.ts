@@ -30,6 +30,15 @@ export const PAGE_EDITOR_COMMENTED_BLOCK_STYLE_CLASS = 'relative';
 /** Which remark a commented fragment of text belongs to. */
 export const PAGE_EDITOR_COMMENT_ID_ATTRIBUTE = 'data-comment-id';
 
+/** The block type this version does not know, named on the placeholder that stands in for it. */
+export const PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE = 'data-unsupported-block';
+
+export const PAGE_EDITOR_UNSUPPORTED_TYPE = 'unsupported';
+
+/** A placeholder that reads as held rather than broken: quiet, outlined, and named. */
+export const PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS =
+  'my-4 flex select-none items-center gap-2 border border-border border-dashed bg-surface-low px-3 py-2 text-muted-foreground text-sm';
+
 /** A commented fragment is underlined rather than painted, so it never fights the block's own colours. */
 export const PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS =
   'cursor-pointer underline decoration-2 decoration-dotted underline-offset-4 decoration-primary/70 hover:decoration-primary';

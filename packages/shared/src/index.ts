@@ -94,14 +94,18 @@ export type {
   PageBlockComment,
   PageContent,
   PageContentInlineNode,
+  PageContentKnownNode,
   PageContentMention,
   PageContentNode,
   PageContentText,
+  PageContentUnknownNode,
   PageEmbedProvider,
 } from './schemas/page-content.schema.js';
 export {
   isAllowedPageEmbedUrl,
+  isKnownPageContentNode,
   PAGE_BLOCK_COLORS,
+  PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
   pageAssetAttrsSchema,

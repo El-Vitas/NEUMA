@@ -31,7 +31,15 @@ describe('reading stored page content', () => {
   });
 
   test('refuses a document whose content does not satisfy the schema', () => {
-    expect(readStoredPageContent({ ...currentDocument, content: [{ type: 'unknown_block' }] })).toBeNull();
+    expect(
+      readStoredPageContent({ ...currentDocument, content: [{ attrs: { level: 9 }, type: 'heading' }] }),
+    ).toBeNull();
+  });
+
+  test('reads a document holding a block this version does not know, which is kept rather than lost', () => {
+    const withUnknown = { ...currentDocument, content: [{ attrs: { source: 'A-->B' }, type: 'diagram' }] };
+
+    expect(readStoredPageContent(withUnknown)).toEqual(withUnknown);
   });
 
   test('refuses a value that is not a document', () => {

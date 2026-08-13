@@ -189,11 +189,13 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 
 ## BL-16 · Debe conservar los bloques que no entiende
 
-- [ ] Un bloque de un tipo desconocido no rompe la página
-- [ ] Se muestra como marcador de posición identificable
-- [ ] Se conserva al guardar, en vez de desaparecer
-- [ ] Se puede eliminar a propósito
-- [ ] El resto de la página sigue siendo editable
+**Cómo probarlo:** hace falta una página que ya contenga un bloque de un tipo que esta versión no conozca; se puede escribir directamente en la base de datos, que es la situación real —una página escrita por una versión más nueva.
+
+- [x] Un bloque de un tipo desconocido no rompe la página
+- [x] Se muestra como marcador de posición identificable
+- [x] Se conserva al guardar, en vez de desaparecer
+- [x] Se puede eliminar a propósito
+- [x] El resto de la página sigue siendo editable
 
 ## BL-17 · Debe deshacer cualquier operación de bloque
 
@@ -213,6 +215,7 @@ La regla que sostiene todo lo demás: **si una operación vale para un párrafo,
 | 2026-08-11 | BL-02 | Nada. Se cambió la regla del `/`: ahora abre en medio de una frase tras un espacio. | 14 de 14 |
 | 2026-08-12 | BL-06 | **Exportar una página**, que no existe todavía; la anidación sí sobrevive al recargar. Se arreglaron tres cosas por el camino: solo anidaba el bloque del cursor (ahora, todos los seleccionados), no anidaba lo que no tiene dónde escribir (imagen, colección), y borrar el padre se llevaba a los hijos porque Escape seleccionaba la anidación entera. | 9 de 10 |
 | 2026-08-12 | BL-05 | Nada. No existía lista de atajos, así que se creó: el editor ata sus teclas y el panel las muestra desde una única lista, de modo que un atajo no puede anunciarse sin funcionar ni funcionar sin anunciarse. | 4 de 4 |
+| 2026-08-12 | BL-16 | **Todo**: una página con un bloque de un tipo desconocido no se abría, respondía «Page not found» —el contrato rechazaba el documento entero por ese bloque, y con él se perdía la página—. Ahora el contrato acepta lo que no conoce y lo guarda tal cual, sin leer dentro: un bloque que sí se conoce sigue rechazándose si está mal formado, porque estar equivocado no es lo mismo que ser nuevo. El editor lo sostiene como un marcador que dice qué tipo es («Bloque no compatible · diagram»), y al guardar lo devuelve palabra por palabra: se comprobó en la base de datos que, tras escribir en el resto de la página, el bloque `diagram` volvió idéntico. Se puede seleccionar y eliminar como cualquier otro. Lo que no entendemos no se reescribe: una versión que sí lo entienda lo encontrará como lo dejó. | 5 de 5 |
 | 2026-08-12 | BL-15 | **El destacado y la cita eran islas**: el agarre que aparecía sobre ellos pertenecía siempre a la línea de adentro, así que arrastrarlos los vaciaba en vez de moverlos, y el ratón apuntaba a un bloque distinto del que respondía el teclado. Ahora solo entrega lo de adentro lo que existe para contener bloques —la página, una columna, lo que cuelga de una anidación—, y la tabla sigue siendo la excepción que se toma entera. Se probó una página con los diez tipos que hoy se pueden escribir (párrafo, encabezado, viñetas, numerada, tareas, cita, destacado, código, tabla, desplegable) más una imagen: en todos aparece el agarre y el menú, y todos se duplican, se borran, se anidan, se arrastran y se seleccionan junto a otros —cuatro bloques de tipos distintos a la vez—, con Ctrl+Z devolviendo cada operación. Quedan sin ejercitar los tipos que aún no se pueden insertar desde el editor (colección, incrustado) y los que no existen. Por el camino aparecieron tres cosas para sus propios bloques: `[]` no crea una tarea, ``` no crea un bloque de código, y la búsqueda del menú `/` no ignora los acentos (`/codigo` no encuentra «Bloque de código»). | 8 de 8 |
 | 2026-08-12 | BL-14 | Faltaba la acción en el menú, no la operación: convertir bloques en página ya se había construido para el arrastre al árbol, así que ambas formas de pedirlo son ahora la misma —los bloques viajan enteros y la página se titula con su primera línea— y lo único que cambia es de quién es hija y qué queda en su lugar. Desde el menú, la página es hija de la que se está escribiendo y donde estaban los bloques queda un enlace: la misma mención que se escribe con `@`, una sola manera de apuntar a una página venga de donde venga. | 5 de 5 |
 | 2026-08-12 | BL-13 | **Mover varios bloques movía uno solo**: al pasar del menú al selector de destino se volvía a elegir el bloque del menú, y con eso se soltaban los demás. Ahora, cambiar lo que se le pregunta a un bloque no toca lo que la página tiene tomado. Faltaba también **arrastrar un bloque al árbol lateral**: el árbol dice qué filas pueden recibir bloques y qué página es cada una, y el editor lo lee; al soltar, los bloques —con lo que cuelgue de ellos— se convierten en una página hija titulada con su primera línea, salen de esta, y el aviso ofrece ir a verla. | 7 de 7 |

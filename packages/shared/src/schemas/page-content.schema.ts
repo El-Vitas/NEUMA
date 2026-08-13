@@ -18,6 +18,7 @@ const maximumCommentAuthorLength = 200;
 const maximumCommentBodyLength = 2_000;
 const maximumCommentDateLength = 40;
 const maximumCommentsPerBlock = 50;
+const maximumUnknownTypeLength = 80;
 
 export const PAGE_EMBED_PROVIDERS = ['figma', 'loom', 'vimeo', 'youtube'] as const;
 export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
@@ -191,7 +192,14 @@ type PageBlockNode<Type extends string, Content> = {
   readonly type: Type;
 };
 
-export type PageContentNode =
+/** A block written by a version that knows more than this one: kept as it arrived, and never read into. */
+export type PageContentUnknownNode = {
+  readonly attrs?: Readonly<Record<string, unknown>>;
+  readonly content?: readonly unknown[];
+  readonly type: string;
+};
+
+export type PageContentKnownNode =
   | PageBlockNode<'paragraph', PageContentInlineNode>
   | {
       readonly attrs: PageBlockAttrs & { readonly level: number };
@@ -275,7 +283,37 @@ export type PageContentNode =
   | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' }
   | { readonly attrs: z.infer<typeof pageCollectionAttrsSchema>; readonly type: 'collection' };
 
-const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
+export type PageContentNode = PageContentKnownNode | PageContentUnknownNode;
+
+/** Every block type this version knows how to read. What is not here is kept as it arrived. */
+export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
+  'paragraph',
+  'heading',
+  'bullet_list',
+  'ordered_list',
+  'list_item',
+  'task_list',
+  'task_item',
+  'callout',
+  'blockquote',
+  'nested_block',
+  'block_children',
+  'code_block',
+  'table',
+  'table_row',
+  'table_cell',
+  'toggle',
+  'column_list',
+  'column',
+  'image',
+  'file',
+  'embed',
+  'collection',
+  'text',
+  'mention',
+];
+
+const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
   z.discriminatedUnion('type', [
     z
       .object({
@@ -413,11 +451,39 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.lazy(() =>
   ]),
 );
 
+/**
+ * A block written by a version that knows more than this one.
+ *
+ * It is kept exactly as it arrived — nobody here can read it, so nobody here
+ * may rewrite it — and it is kept inert: what it holds is never looked into,
+ * and whoever draws the page shows a placeholder rather than its contents. A
+ * block this version does know stays out of here even when it is malformed:
+ * being wrong is not the same as being new.
+ */
+const pageUnknownNodeSchema = z
+  .object({
+    attrs: z.record(z.string(), z.unknown()).optional(),
+    content: z.array(z.unknown()).max(maximumPageContentNodes).optional(),
+    type: z
+      .string()
+      .min(1)
+      .max(maximumUnknownTypeLength)
+      .refine((name) => !PAGE_CONTENT_NODE_TYPES.includes(name)),
+  })
+  .strict();
+
+const pageNodeSchema: z.ZodType<PageContentNode> = z.union([pageKnownNodeSchema, pageUnknownNodeSchema]);
+
 const pageNodeListSchema = z.array(pageNodeSchema).min(1);
+
+/** What this version can read into. A block it does not know counts as one thing and is not opened. */
+export const isKnownPageContentNode = (node: { readonly type: string }): node is PageContentKnownNode =>
+  PAGE_CONTENT_NODE_TYPES.includes(node.type);
 
 const countPageContentNodes = (nodes: readonly PageContentNode[], depth: number): { depth: number; nodes: number } => {
   return nodes.reduce(
     (totals, node) => {
+      if (!isKnownPageContentNode(node)) return { depth: totals.depth, nodes: totals.nodes + 1 };
       if (!('content' in node)) return { depth: totals.depth, nodes: totals.nodes + 1 };
       if (node.type === 'paragraph' || node.type === 'heading' || node.type === 'code_block')
         return { depth: totals.depth, nodes: totals.nodes + node.content.length + 1 };
@@ -432,7 +498,7 @@ const countPageContentNodes = (nodes: readonly PageContentNode[], depth: number)
 };
 
 type PageBlockParentType = Extract<
-  PageContentNode['type'],
+  PageContentKnownNode['type'],
   | 'block_children'
   | 'blockquote'
   | 'bullet_list'
@@ -450,7 +516,7 @@ type PageBlockParentType = Extract<
   | 'callout'
 >;
 
-const pageFlowChildTypes: readonly PageContentNode['type'][] = [
+const pageFlowChildTypes: readonly PageContentKnownNode['type'][] = [
   'paragraph',
   'heading',
   'bullet_list',
@@ -461,7 +527,7 @@ const pageFlowChildTypes: readonly PageContentNode['type'][] = [
   'code_block',
 ];
 
-const pageContainerChildTypes: readonly PageContentNode['type'][] = [
+const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   ...pageFlowChildTypes,
   'table',
   'toggle',
@@ -473,9 +539,12 @@ const pageContainerChildTypes: readonly PageContentNode['type'][] = [
   'column_list',
 ];
 
-const pageNestedBlockChildTypes: readonly PageContentNode['type'][] = [...pageContainerChildTypes, 'block_children'];
+const pageNestedBlockChildTypes: readonly PageContentKnownNode['type'][] = [
+  ...pageContainerChildTypes,
+  'block_children',
+];
 
-const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly PageContentNode['type'][]>> = {
+const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly PageContentKnownNode['type'][]>> = {
   block_children: pageContainerChildTypes,
   blockquote: pageFlowChildTypes,
   bullet_list: ['list_item'],
@@ -495,12 +564,14 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
 
 const validateBlockChildren = (
   nodes: readonly PageContentNode[],
-  allowedTypes: readonly PageContentNode['type'][],
+  allowedTypes: readonly PageContentKnownNode['type'][],
   path: readonly (number | string)[],
   context: z.RefinementCtx,
 ): void => {
   nodes.forEach((node, index) => {
-    if (allowedTypes.includes(node.type)) return;
+    /** A block this version does not know is kept wherever it was written, since nothing here can judge it. */
+    if (!isKnownPageContentNode(node)) return;
+    if (allowedTypes.some((allowed) => allowed === node.type)) return;
     context.addIssue({
       code: 'custom',
       message: `Node type ${node.type} is not valid here`,
@@ -528,6 +599,7 @@ const validatePageNodeNesting = (
   path: readonly (number | string)[],
   context: z.RefinementCtx,
 ): void => {
+  if (!isKnownPageContentNode(node)) return;
   if (!('content' in node) || node.type === 'paragraph' || node.type === 'heading' || node.type === 'code_block')
     return;
 

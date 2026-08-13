@@ -268,6 +268,34 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('keeps a block whose type this version does not know, instead of losing the page', () => {
+    const parsed = pageContentSchema.safeParse({
+      content: [
+        { content: [{ text: 'Antes', type: 'text' }], type: 'paragraph' },
+        { attrs: { id: 'diagrama-1', source: 'graph TD; A-->B' }, type: 'diagram' },
+        { content: [{ text: 'Despues', type: 'text' }], type: 'paragraph' },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.content[1]).toEqual({
+      attrs: { id: 'diagrama-1', source: 'graph TD; A-->B' },
+      type: 'diagram',
+    });
+  });
+
+  test('still rejects a block it does know when it is malformed, rather than taking it as unknown', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { level: 9 }, content: [{ text: 'Nivel imposible', type: 'text' }], type: 'heading' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('rejects marks inside code blocks', () => {
     expect(
       pageContentSchema.safeParse({
@@ -280,19 +308,12 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
-  test('rejects unknown node types and marks', () => {
+  test('rejects unknown marks, which travel inside text this version does read', () => {
     expect(
       pageContentSchema.safeParse({
         content: [
           { content: [{ marks: [{ type: 'highlight' }], text: 'Unknown mark', type: 'text' }], type: 'paragraph' },
         ],
-        schemaVersion: 1,
-        type: 'doc',
-      }).success,
-    ).toBe(false);
-    expect(
-      pageContentSchema.safeParse({
-        content: [{ type: 'html' }],
         schemaVersion: 1,
         type: 'doc',
       }).success,

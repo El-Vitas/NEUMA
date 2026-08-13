@@ -1,7 +1,13 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { PAGE_EDITOR_COLLECTION_CLASS, PAGE_EDITOR_TASK_ITEM_TYPE } from '../constants/pages.editor.blocks.constants';
+import {
+  PAGE_EDITOR_COLLECTION_CLASS,
+  PAGE_EDITOR_TASK_ITEM_TYPE,
+  PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
+  PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS,
+  PAGE_EDITOR_UNSUPPORTED_TYPE,
+} from '../constants/pages.editor.blocks.constants';
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
@@ -48,6 +54,19 @@ const createPageMentionNodeView = (node: EditorNode): NodeView => {
   return { dom: link };
 };
 
+/**
+ * A block written by a version that knows more than this one, drawn as what it
+ * is: something held on the page, named, and plainly not editable here.
+ */
+const createPageUnsupportedNodeView = (node: EditorNode, label: string): NodeView => {
+  const placeholder = document.createElement('div');
+  placeholder.className = PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS;
+  placeholder.contentEditable = 'false';
+  placeholder.setAttribute(PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE, node.attrs.name);
+  placeholder.textContent = `${label} · ${node.attrs.name}`;
+  return { dom: placeholder };
+};
+
 export const createPageEditorNodeViews = (
   labels: PageEditorNodeViewLabels,
 ): Readonly<
@@ -60,4 +79,5 @@ export const createPageEditorNodeViews = (
   [PAGE_EDITOR_TASK_ITEM_TYPE]: (node, view, getPosition) =>
     createPageTaskItemNodeView(node, view, getPosition, labels.task),
   toggle: createPageToggleNodeView,
+  [PAGE_EDITOR_UNSUPPORTED_TYPE]: (node) => createPageUnsupportedNodeView(node, labels.unsupported),
 });

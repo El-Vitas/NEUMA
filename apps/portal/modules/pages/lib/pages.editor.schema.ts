@@ -11,6 +11,9 @@ import {
   PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
+  PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
+  PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS,
+  PAGE_EDITOR_UNSUPPORTED_TYPE,
 } from '../constants/pages.editor.blocks.constants';
 import { definePageBlock } from './pages.editor.block-spec.lib';
 
@@ -56,6 +59,13 @@ const getPageEditorCollectionAttrs = (
   if (pageId === null || pageId.length === 0 || spaceId === null || spaceId.length === 0) return false;
   const viewName = element.getAttribute('data-view-name');
   return { pageId, spaceId, viewName: viewName === null || viewName.length === 0 ? null : viewName };
+};
+
+const getPageEditorUnsupportedAttrs = (
+  element: Element,
+): { readonly name: string; readonly source: string } | false => {
+  const name = element.getAttribute(PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE);
+  return name === null || name.length === 0 ? false : { name, source: JSON.stringify({ type: name }) };
 };
 
 const getPageEditorTaskAttrs = (element: Element): { readonly checked: boolean; readonly id: string | null } => ({
@@ -362,6 +372,28 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
         'div',
         { ...blockAttributes, 'data-block-children': 'true', class: PAGE_EDITOR_BLOCK_CHILDREN_CLASS },
         0,
+      ],
+    }),
+  ],
+  [
+    /**
+     * A block written by a version that knows more than this one. It stands in
+     * the page as a placeholder that says which type it is, and carries the
+     * original word for word so that saving the page gives it back untouched.
+     */
+    PAGE_EDITOR_UNSUPPORTED_TYPE,
+    definePageBlock({
+      attrs: { name: {}, source: {} },
+      atom: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorUnsupportedAttrs, tag: `div[${PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE}]` }],
+      render: (node, blockAttributes) => [
+        'div',
+        {
+          ...blockAttributes,
+          [PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE]: node.attrs.name,
+          class: PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS,
+        },
       ],
     }),
   ],
