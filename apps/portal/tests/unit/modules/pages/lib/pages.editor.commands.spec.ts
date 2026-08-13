@@ -43,6 +43,18 @@ describe('createPageEditorCommands', () => {
     expect(content.content[0]).toMatchObject({ type: 'table' });
   });
 
+  it('draws a line and leaves a place to go on writing under it', () => {
+    const commands = createPageEditorCommands(pageEditorSchema, DEFAULT_PAGE_TOGGLE_SUMMARY);
+    const divider = commands.divider;
+    if (divider === undefined) throw new Error('divider command missing');
+
+    const content = serializePageEditorState(runCommand(createEditorState(), divider.run));
+
+    expect(pageContentSchema.safeParse(content).success).toBe(true);
+    expect(content.content[0]).toMatchObject({ type: 'divider' });
+    expect(content.content[1]).toMatchObject({ type: 'paragraph' });
+  });
+
   it('inserts a toggle with a non-empty summary that round-trips through the shared contract', () => {
     const commands = createPageEditorCommands(pageEditorSchema, DEFAULT_PAGE_TOGGLE_SUMMARY);
     const toggle = commands.toggle;

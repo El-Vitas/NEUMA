@@ -2,11 +2,11 @@ import type { PageEmbedProvider } from '@company-brain/shared';
 import { pageAssetAttrsSchema, pageEmbedAttrsSchema, pageMentionAttrsSchema } from '@company-brain/shared';
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { history } from 'prosemirror-history';
-import { inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
+import { InputRule, inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
-import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
+import type { Command, Plugin as EditorPlugin, EditorState, Transaction } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
 import { PAGE_EDITOR_SHORTCUTS } from '../constants/pages.editor.shortcuts.constants';
 import type {
@@ -34,6 +34,38 @@ const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
 const orderedListInputRule = /^\s*(\d+)\.\s$/;
 const taskListInputRule = /^\s*\[ ?\]\s$/;
+const blockquoteInputRule = /^\s*>\s$/;
+const dividerInputRule = /^---$/;
+
+/**
+ * Leaves somewhere to go on writing under a line.
+ *
+ * A line holds nothing, so a page that ends on one has nowhere to put the next
+ * word: the writing would have to be started from the button in the margin
+ * rather than by simply typing.
+ */
+const leaveSomewhereToWriteUnder = (transaction: Transaction, schema: Schema): Transaction => {
+  const afterTheLine = transaction.selection.to;
+  if (afterTheLine < transaction.doc.content.size) return transaction;
+  transaction.insert(afterTheLine, schema.nodes.paragraph.createChecked());
+  return transaction.setSelection(Selection.near(transaction.doc.resolve(afterTheLine)));
+};
+
+const insertPageDivider =
+  (schema: Schema): Command =>
+  (state, dispatch) => {
+    const divider = schema.nodes.divider;
+    if (!canInsertPageNode(state, divider)) return false;
+    if (dispatch === undefined) return true;
+    dispatch(leaveSomewhereToWriteUnder(state.tr.replaceSelectionWith(divider.createChecked()), schema));
+    return true;
+  };
+
+/** Draws a line where three dashes were written. */
+const drawPageDivider = (schema: Schema): InputRule =>
+  new InputRule(dividerInputRule, (state, _match, start, end) =>
+    leaveSomewhereToWriteUnder(state.tr.replaceRangeWith(start, end, schema.nodes.divider.createChecked()), schema),
+  );
 
 const canInsertPageNode = (state: EditorState, nodeType: NodeType): boolean => {
   const { $from } = state.selection;
@@ -162,6 +194,12 @@ export const createPageEditorCommands = (
     run: setBlockType(schema.nodes.heading, { level: 3 }),
   },
   italic: { kind: 'mark', labelKey: 'italic', run: toggleMark(schema.marks.em) },
+  divider: {
+    group: 'advanced',
+    kind: 'block',
+    labelKey: 'divider',
+    run: insertPageDivider(schema),
+  },
   orderedList: { group: 'lists', kind: 'block', labelKey: 'orderedList', run: wrapInList(schema.nodes.ordered_list) },
   redo: { kind: 'history', labelKey: 'redo', run: redoPageEditorStep },
   taskList: { group: 'lists', kind: 'block', labelKey: 'taskList', run: wrapInList(schema.nodes.task_list) },
@@ -225,6 +263,8 @@ export const createPageEditorPlugins = (
       wrappingInputRule(bulletListInputRule, schema.nodes.bullet_list),
       wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
       wrappingInputRule(taskListInputRule, schema.nodes.task_list),
+      wrappingInputRule(blockquoteInputRule, schema.nodes.blockquote),
+      drawPageDivider(schema),
     ],
   }),
   keymap({ 'Mod-y': redoPageEditorStep }),

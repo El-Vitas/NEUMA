@@ -290,6 +290,7 @@
       "code": "Code",
       "codeBlock": "Code block",
       "redo": "Redo",
+      "divider": "Divider",
       "table": "Table",
       "toggle": "Toggle",
       "undo": "Undo",

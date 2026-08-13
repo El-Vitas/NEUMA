@@ -113,6 +113,40 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a line drawn between two stretches of a page', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          { content: [{ text: 'Antes', type: 'text' }], type: 'paragraph' },
+          { type: 'divider' },
+          { content: [{ text: 'Despues', type: 'text' }], type: 'paragraph' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a divider holding anything, since there is nothing to write on a line', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ content: [{ text: 'Algo', type: 'text' }], type: 'divider' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('refuses an image handed content instead of failing to answer', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { assetId: 'a' }, content: [{ text: 'Algo', type: 'text' }], type: 'image' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a heading remembering that it is folded', () => {
     expect(
       pageContentSchema.safeParse({

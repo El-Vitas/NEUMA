@@ -295,6 +295,7 @@ export type PageContentKnownNode =
       readonly content: readonly PageContentNode[];
       readonly type: 'toggle';
     }
+  | { readonly attrs?: PageBlockAttrs; readonly type: 'divider' }
   | { readonly attrs: z.infer<typeof pageAssetAttrsSchema>; readonly type: 'image' }
   | { readonly attrs: z.infer<typeof pageAssetAttrsSchema>; readonly type: 'file' }
   | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' }
@@ -322,6 +323,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'toggle',
   'column_list',
   'column',
+  'divider',
   'image',
   'file',
   'embed',
@@ -468,6 +470,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
         type: z.literal('column'),
       })
       .strict(),
+    z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('divider') }).strict(),
     z.object({ attrs: pageAssetAttrsSchema, type: z.literal('image') }).strict(),
     z.object({ attrs: pageAssetAttrsSchema, type: z.literal('file') }).strict(),
     z.object({ attrs: pageEmbedAttrsSchema, type: z.literal('embed') }).strict(),
@@ -566,6 +569,7 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   ...pageFlowChildTypes,
   'table',
   'toggle',
+  'divider',
   'image',
   'file',
   'embed',
@@ -629,14 +633,26 @@ const validateNestedBlockShape = (
   }
 };
 
+/**
+ * Whether a block is one that holds other blocks.
+ *
+ * What a paragraph or a heading holds is writing, not blocks, and a line or an
+ * image holds nothing at all. Asked as a question about the block rather than
+ * read off its shape, a block arriving with content it could never hold — which
+ * the contract refuses anyway — is left alone instead of being read into.
+ */
+const holdsOtherBlocks = (
+  node: PageContentKnownNode,
+): node is Extract<PageContentKnownNode, { readonly type: PageBlockParentType }> =>
+  node.type in pageBlockParentChildTypes;
+
 const validatePageNodeNesting = (
   node: PageContentNode,
   path: readonly (number | string)[],
   context: z.RefinementCtx,
 ): void => {
   if (!isKnownPageContentNode(node)) return;
-  if (!('content' in node) || node.type === 'paragraph' || node.type === 'heading' || node.type === 'code_block')
-    return;
+  if (!holdsOtherBlocks(node)) return;
 
   const allowedTypes = pageBlockParentChildTypes[node.type];
   if (node.type === 'list_item' && node.content[0]?.type !== 'paragraph') {
