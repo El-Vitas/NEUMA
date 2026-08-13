@@ -1,7 +1,7 @@
 import { SpaceVisibility } from '@company-brain/db';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
-import { canReadSpace } from '../../../../common/domain/workspace.policy';
+import { canReadSpace } from '../../../../common/domain/workspace.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { findAccessibleSpaceId } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';

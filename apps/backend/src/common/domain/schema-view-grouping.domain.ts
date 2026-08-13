@@ -35,8 +35,10 @@ export const groupRowsByBoard = <TRow extends SchemaGroupableRow>(
 ): Result<readonly SchemaBoardColumn<TRow>[], SchemaViewValidationError> => {
   if (!pageViewRequiresGrouping(viewType)) return Result.fail(new SchemaViewValidationError('View is not a board'));
   const groupKey = getGroupKey(configuration);
-  const property = groupKey === null ? null : findGroupingProperty(properties, groupKey);
-  if (groupKey === null || property === null || property.options === null) {
+  if (groupKey === null)
+    return Result.fail(new SchemaViewValidationError('Board groupBy must reference a SELECT property'));
+  const property = findGroupingProperty(properties, groupKey);
+  if (property?.options == null) {
     return Result.fail(new SchemaViewValidationError('Board groupBy must reference a SELECT property'));
   }
   const columns = property.options.map((option) => ({ key: option, label: option, rows: [] as TRow[] }));

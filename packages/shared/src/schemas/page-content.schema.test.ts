@@ -296,29 +296,27 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
-  test('rejects marks inside code blocks', () => {
-    expect(
-      pageContentSchema.safeParse({
-        content: [
-          { content: [{ marks: [{ type: 'strong' }], text: 'const answer = 42;', type: 'text' }], type: 'code_block' },
-        ],
-        schemaVersion: 1,
-        type: 'doc',
-      }).success,
-    ).toBe(false);
-  });
+  const markedTextThatMustBeRejected = [
+    { blockType: 'code_block', markType: 'strong', name: 'a mark inside a code block', text: 'const answer = 42;' },
+    {
+      blockType: 'paragraph',
+      markType: 'highlight',
+      name: 'a mark this version does not know, which travels inside text it does read',
+      text: 'Unknown mark',
+    },
+  ] as const;
 
-  test('rejects unknown marks, which travel inside text this version does read', () => {
-    expect(
-      pageContentSchema.safeParse({
-        content: [
-          { content: [{ marks: [{ type: 'highlight' }], text: 'Unknown mark', type: 'text' }], type: 'paragraph' },
-        ],
-        schemaVersion: 1,
-        type: 'doc',
-      }).success,
-    ).toBe(false);
-  });
+  for (const { blockType, markType, name, text } of markedTextThatMustBeRejected) {
+    test(`rejects ${name}`, () => {
+      expect(
+        pageContentSchema.safeParse({
+          content: [{ content: [{ marks: [{ type: markType }], text, type: 'text' }], type: blockType }],
+          schemaVersion: 1,
+          type: 'doc',
+        }).success,
+      ).toBe(false);
+    });
+  }
 
   test('rejects invalid nesting', () => {
     expect(

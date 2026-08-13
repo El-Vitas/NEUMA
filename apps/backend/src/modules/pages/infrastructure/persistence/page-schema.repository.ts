@@ -3,8 +3,8 @@ import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../../common/domain/schema.domain.types';
-import { parseSchemaPropertyValues } from '../../../../common/domain/schema-property.domain';
 import {
+  parseSchemaPropertyValues,
   toSchemaPropertyDefinition,
   toSchemaViewDefinition,
 } from '../../../../common/infrastructure/persistence/schema-json.adapter';

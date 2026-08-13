@@ -38,5 +38,5 @@ export const hasValidPageParent = (
   if (page === undefined) return false;
   if (parentId === null) return true;
   const parent = pages.find((candidate) => candidate.id === parentId);
-  return parent !== undefined && parent.spaceId === page.spaceId && parent.id !== page.id;
+  return parent?.spaceId === page.spaceId && parent.id !== page.id;
 };

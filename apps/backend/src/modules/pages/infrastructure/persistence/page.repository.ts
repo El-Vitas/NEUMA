@@ -2,8 +2,8 @@ import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
-import { parseSchemaPropertyValues } from '../../../../common/domain/schema-property.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
+import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import {
   buildSpaceVisibilityFilter,
   findAccessibleSpaceId,
@@ -19,7 +19,7 @@ import type {
 
 const toPropertyValuesInput = (
   propertyValues: CreatePageInput['propertyValues'],
-): Prisma.InputJsonValue | typeof Prisma.JsonNull => (propertyValues === null ? Prisma.JsonNull : propertyValues);
+): Prisma.InputJsonValue | typeof Prisma.JsonNull => propertyValues ?? Prisma.JsonNull;
 
 const pageSelection = {
   content: true,

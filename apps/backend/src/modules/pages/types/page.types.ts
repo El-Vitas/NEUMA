@@ -2,6 +2,7 @@ import type { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
+import type { PageParentReference } from '../domain/page.domain.types';
 
 export interface CreatePageInput {
   readonly content: Prisma.InputJsonValue;
@@ -40,7 +41,7 @@ export interface PageSummary {
 
 export interface PageMoveContext {
   readonly pageId: string;
-  readonly pages: readonly { id: string; parentId: null | string; spaceId: string }[];
+  readonly pages: readonly PageParentReference[];
   readonly propertyValues: SchemaPropertyValues | null;
   readonly title: string;
 }

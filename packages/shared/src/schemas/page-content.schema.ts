@@ -192,10 +192,22 @@ type PageBlockNode<Type extends string, Content> = {
   readonly type: Type;
 };
 
+/**
+ * Anything a page may hold, said in the only shape a page is stored in. A block
+ * this version does not know is kept as such: readable as JSON, never read into.
+ */
+export type PageContentJson =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly PageContentJson[]
+  | { readonly [key: string]: PageContentJson };
+
 /** A block written by a version that knows more than this one: kept as it arrived, and never read into. */
 export type PageContentUnknownNode = {
-  readonly attrs?: Readonly<Record<string, unknown>>;
-  readonly content?: readonly unknown[];
+  readonly attrs?: { readonly [key: string]: PageContentJson };
+  readonly content?: readonly PageContentJson[];
   readonly type: string;
 };
 
@@ -460,10 +472,21 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
  * block this version does know stays out of here even when it is malformed:
  * being wrong is not the same as being new.
  */
+const pageJsonSchema: z.ZodType<PageContentJson> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(pageJsonSchema),
+    z.record(z.string(), pageJsonSchema),
+  ]),
+);
+
 const pageUnknownNodeSchema = z
   .object({
-    attrs: z.record(z.string(), z.unknown()).optional(),
-    content: z.array(z.unknown()).max(maximumPageContentNodes).optional(),
+    attrs: z.record(z.string(), pageJsonSchema).optional(),
+    content: z.array(pageJsonSchema).max(maximumPageContentNodes).optional(),
     type: z
       .string()
       .min(1)
@@ -564,14 +587,14 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
 
 const validateBlockChildren = (
   nodes: readonly PageContentNode[],
-  allowedTypes: readonly PageContentKnownNode['type'][],
+  allowedTypes: readonly string[],
   path: readonly (number | string)[],
   context: z.RefinementCtx,
 ): void => {
   nodes.forEach((node, index) => {
     /** A block this version does not know is kept wherever it was written, since nothing here can judge it. */
     if (!isKnownPageContentNode(node)) return;
-    if (allowedTypes.some((allowed) => allowed === node.type)) return;
+    if (allowedTypes.includes(node.type)) return;
     context.addIssue({
       code: 'custom',
       message: `Node type ${node.type} is not valid here`,

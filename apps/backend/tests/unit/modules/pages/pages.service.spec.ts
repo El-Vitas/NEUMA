@@ -75,8 +75,8 @@ describe('pages service', () => {
 
   const invalidPageContents: { content: Prisma.InputJsonObject; name: string }[] = [
     {
-      content: { content: [{ content: [], type: 'unknown' }], schemaVersion: 1, type: 'doc' },
-      name: 'an unknown node type',
+      content: { content: [{ attrs: { level: 9 }, content: [], type: 'heading' }], schemaVersion: 1, type: 'doc' },
+      name: 'a block it knows, malformed',
     },
     {
       content: {
