@@ -224,6 +224,8 @@ export const PAGE_EDITOR_BLOCK_CHILDREN_TYPE = 'block_children';
 
 export const PAGE_EDITOR_NESTED_BLOCK_TYPE = 'nested_block';
 
+export const PAGE_EDITOR_LIST_ITEM_TYPE = 'list_item';
+
 export const PAGE_EDITOR_TABLE_CELL_TYPE = 'table_cell';
 
 export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
@@ -291,6 +293,9 @@ export const PAGE_EDITOR_CALLOUT_CLASS =
 
 export const PAGE_EDITOR_TASK_ITEM_TYPE = 'task_item';
 
+/** What a page calls a point of a list: the same shape under two names. */
+export const PAGE_EDITOR_LIST_POINT_TYPES: readonly string[] = [PAGE_EDITOR_LIST_ITEM_TYPE, PAGE_EDITOR_TASK_ITEM_TYPE];
+
 export const PAGE_EDITOR_TASK_LIST_CLASS = 'my-4 list-none ps-0';
 
 export const PAGE_EDITOR_TASK_ITEM_STYLE_CLASS = 'flex items-start gap-2';
@@ -309,8 +314,6 @@ export const PAGE_EDITOR_TASK_BOX_DONE_STYLE_CLASSES: readonly string[] = [
 export const PAGE_EDITOR_TASK_DONE_MARK = '\u2713';
 
 export const PAGE_EDITOR_TASK_CONTENT_STYLE_CLASS = 'min-w-0 flex-1';
-
-export const PAGE_EDITOR_TASK_DONE_STYLE_CLASSES: readonly string[] = ['line-through', 'text-muted-foreground'];
 
 export const PAGE_EDITOR_COLLECTION_CLASS = 'my-4 border border-border bg-surface-container-low px-4 py-3';
 
