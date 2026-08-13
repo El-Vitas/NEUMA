@@ -427,6 +427,23 @@
     "foldHeading": "Fold or unfold this heading",
     "openToggle": "Open or close this toggle",
     "toggleTitle": "Toggle title",
+    "copyCode": "Copy the code",
+    "codeLanguage": "Code language",
+    "wrapCode": "Wrap long lines",
+    "codeLanguages": {
+      "plain": "No language",
+      "bash": "Bash",
+      "css": "CSS",
+      "html": "HTML",
+      "java": "Java",
+      "javascript": "JavaScript",
+      "json": "JSON",
+      "markdown": "Markdown",
+      "python": "Python",
+      "sql": "SQL",
+      "typescript": "TypeScript",
+      "yaml": "YAML"
+    },
     "calloutIcon": "Callout mark",
     "noCalloutIcon": "No mark",
     "calloutIcons": {

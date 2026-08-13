@@ -51,6 +51,33 @@ describe('starting a task by writing it', () => {
   });
 });
 
+describe('starting a code block by writing it', () => {
+  it('turns three backticks and a space into a code block', () => {
+    const view = writeThenSpace('```');
+
+    expect(readFirstBlock(view).type).toBe('code_block');
+
+    view.destroy();
+  });
+
+  it('takes the language written after them, so the block already knows what it holds', () => {
+    const view = writeThenSpace('```typescript');
+
+    expect(view.state.doc.child(0).attrs.language).toBe('typescript');
+
+    view.destroy();
+  });
+
+  it('leaves the language out when it is one this version does not know', () => {
+    const view = writeThenSpace('```brainfuck');
+
+    expect(readFirstBlock(view).type).toBe('code_block');
+    expect(view.state.doc.child(0).attrs.language).toBeNull();
+
+    view.destroy();
+  });
+});
+
 describe('drawing a line by writing it', () => {
   it('turns three dashes into a line, and leaves somewhere to keep writing', () => {
     const view = writeThen('--', '-');

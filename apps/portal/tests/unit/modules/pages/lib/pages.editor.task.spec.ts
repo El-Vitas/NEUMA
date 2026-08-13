@@ -26,6 +26,7 @@ const mountTask = (checked?: boolean): { readonly container: HTMLElement; readon
   document.body.appendChild(container);
   const view = new EditorView(container, {
     nodeViews: createPageEditorNodeViews({
+      code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
       collection: 'Collection',
       task: 'Task',
       toggle: { open: 'Toggle', title: 'Toggle title' },

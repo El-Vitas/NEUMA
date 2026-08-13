@@ -427,6 +427,23 @@
     "foldHeading": "Plegar o desplegar este encabezado",
     "openToggle": "Abrir o cerrar este bloque plegable",
     "toggleTitle": "Título del bloque plegable",
+    "copyCode": "Copiar el código",
+    "codeLanguage": "Lenguaje del código",
+    "wrapCode": "Ajustar las líneas largas",
+    "codeLanguages": {
+      "plain": "Sin lenguaje",
+      "bash": "Bash",
+      "css": "CSS",
+      "html": "HTML",
+      "java": "Java",
+      "javascript": "JavaScript",
+      "json": "JSON",
+      "markdown": "Markdown",
+      "python": "Python",
+      "sql": "SQL",
+      "typescript": "TypeScript",
+      "yaml": "YAML"
+    },
     "calloutIcon": "Marca del destacado",
     "noCalloutIcon": "Sin marca",
     "calloutIcons": {

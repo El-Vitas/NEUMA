@@ -21,6 +21,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
   if (mentionNode === undefined || mentionNode === null) throw new Error('mention node missing');
 
   const nodeViews = createPageEditorNodeViews({
+    code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
     collection: 'Collection',
     task: 'Task',
     toggle: { open: 'Toggle', title: 'Toggle title' },
@@ -54,6 +55,7 @@ describe('createPageEditorNodeViews mention', () => {
 
 describe('createPageEditorNodeViews collection', () => {
   const nodeViews = createPageEditorNodeViews({
+    code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
     collection: 'Collection',
     task: 'Task',
     toggle: { open: 'Toggle', title: 'Toggle title' },

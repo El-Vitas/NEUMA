@@ -234,6 +234,28 @@ export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
 
 export const PAGE_EDITOR_CALLOUT_TYPE = 'callout';
 
+export const PAGE_EDITOR_CODE_TYPE = 'code_block';
+
+/** A step of indentation inside code: two spaces, written as such rather than as a tab. */
+export const PAGE_EDITOR_CODE_INDENT = '  ';
+
+/** The controls of a code block sit above it, out of the way of the code itself. */
+export const PAGE_EDITOR_CODE_BAR_STYLE_CLASS = 'mt-6 flex items-center justify-end gap-1 bg-surface-low px-2 pt-2';
+
+export const PAGE_EDITOR_CODE_LANGUAGE_STYLE_CLASS = [
+  'me-auto min-h-11 border-none bg-transparent px-1 text-muted-foreground text-xs',
+  'outline-none focus-visible:ring-0',
+].join(' ');
+
+export const PAGE_EDITOR_CODE_BUTTON_STYLE_CLASS = [
+  'relative inline-flex size-5 shrink-0 items-center justify-center',
+  'cursor-pointer select-none text-muted-foreground text-xs hover:text-foreground',
+  "before:absolute before:-inset-3 before:content-['']",
+].join(' ');
+
+/** Long lines fold onto the next instead of running off the side. */
+export const PAGE_EDITOR_CODE_WRAPPED_STYLE_CLASS = 'whitespace-pre-wrap';
+
 export const PAGE_EDITOR_CALLOUT_ICON_ATTRIBUTE = 'icon';
 
 /** The group every block that stands on a page belongs to. */

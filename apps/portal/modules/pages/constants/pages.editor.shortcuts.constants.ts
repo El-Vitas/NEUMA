@@ -3,6 +3,7 @@ import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { openPageEditorBlockMenu } from '../lib/pages.editor.block-menu.lib';
 import { movePageEditorBlockDown, movePageEditorBlockUp } from '../lib/pages.editor.block-move.lib';
+import { indentPageEditorCode, outdentPageEditorCode } from '../lib/pages.editor.code.lib';
 import { redoPageEditorStep, undoPageEditorStep } from '../lib/pages.editor.history.lib';
 import { nestPageEditorListItem, unnestPageEditorListItem } from '../lib/pages.editor.list.lib';
 import { indentPageEditorBlock, outdentPageEditorBlock } from '../lib/pages.editor.nesting.lib';
@@ -18,11 +19,15 @@ import type { PageEditorShortcut } from '../types/pages.editor.shortcuts.types';
 export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-Shift-ArrowUp', labelKey: 'moveBlockUp', run: movePageEditorBlockUp },
   { binding: 'Mod-Shift-ArrowDown', labelKey: 'moveBlockDown', run: movePageEditorBlockDown },
-  { binding: 'Tab', labelKey: 'indentBlock', run: chainCommands(nestPageEditorListItem, indentPageEditorBlock) },
+  {
+    binding: 'Tab',
+    labelKey: 'indentBlock',
+    run: chainCommands(indentPageEditorCode, nestPageEditorListItem, indentPageEditorBlock),
+  },
   {
     binding: 'Shift-Tab',
     labelKey: 'outdentBlock',
-    run: chainCommands(unnestPageEditorListItem, outdentPageEditorBlock),
+    run: chainCommands(outdentPageEditorCode, unnestPageEditorListItem, outdentPageEditorBlock),
   },
   { binding: 'Mod-/', labelKey: 'openBlockMenu', run: openPageEditorBlockMenu },
   { binding: 'Mod-d', labelKey: 'duplicateBlock', run: duplicatePageEditorBlock },

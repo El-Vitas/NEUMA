@@ -84,14 +84,14 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-10 · Bloque de código
 
-- [ ] Se inserta desde el menú `/` y con ` ``` ` + espacio
-- [ ] Se puede elegir el lenguaje
+- [x] Se inserta desde el menú `/` y con ` ``` ` + espacio
+- [x] Se puede elegir el lenguaje
 - [ ] El código se colorea según el lenguaje
-- [ ] Enter hace salto de línea, no sale del bloque
-- [ ] Tab indenta en vez de mover el foco
-- [ ] Hay un botón para copiar el contenido
-- [ ] El texto no se reformatea ni se autocorrige dentro
-- [ ] Se puede alternar el ajuste de línea
+- [x] Enter hace salto de línea, no sale del bloque
+- [x] Tab indenta en vez de mover el foco
+- [x] Hay un botón para copiar el contenido
+- [x] El texto no se reformatea ni se autocorrige dentro
+- [x] Se puede alternar el ajuste de línea
 
 ## TB-11 · Tabla simple
 
@@ -229,6 +229,7 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-10 | Faltaba casi todo salvo Enter y que no se reformatee dentro: se agregaron ` ``` ` + espacio (con el lenguaje escrito ahí mismo), la elección de lenguaje, el botón de copiar, el ajuste de línea y que `Tab` indente en vez de sacar el foco de la página. Queda sin marcar el coloreado según el lenguaje: necesita una biblioteca nueva y las dependencias no se tocan sin instrucción. | 7 de 8 |
 | 13/08/2026 | TB-09 | Faltaba la marca de la izquierda, que no existía. Se agregó al contrato como el **tipo** de aviso (idea, información, advertencia, listo, bloqueado, fijado) y no como el símbolo: la página dice lo mismo para todos, y cada quien ve el dibujo que le toque. Se elige desde el menú del bloque, junto al color, que ya funcionaba. | 5 de 5 |
 | 13/08/2026 | TB-08 | El separador no existía en ninguna parte: se agregó al contrato (`divider`), al editor, al menú `/` y a `---`. Como la línea no sostiene nada, insertarla al final de la página deja un párrafo debajo para seguir escribiendo. De paso se corrigió que un bloque que no sostiene nada, llegando con contenido, rompía la validación con un error técnico en vez de rechazarla. | 4 de 4 |
 | 13/08/2026 | TB-07 | Faltaba solo empezarla escribiendo: `>` + espacio no hacía nada porque no existía la regla. El resto ya estaba: se distingue del párrafo por su barra y su color, y dos Enter salen de ella. | 3 de 3 |

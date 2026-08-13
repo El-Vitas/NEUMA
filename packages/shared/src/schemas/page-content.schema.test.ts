@@ -113,6 +113,32 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a code block that says what it is written in and how it is shown', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { language: 'typescript', wrapped: true },
+            content: [{ text: 'const x = 1;', type: 'text' }],
+            type: 'code_block',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a code block written in a language this version does not know', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { language: 'brainfuck' }, content: [{ text: '+++', type: 'text' }], type: 'code_block' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a callout marked with one of the marks on offer', () => {
     expect(
       pageContentSchema.safeParse({
