@@ -1,23 +1,43 @@
-import type { PageContent, PageContentInlineNode, PageContentNode } from './schemas/page-content.schema.js';
+import {
+  isKnownPageContentNode,
+  type PageContent,
+  type PageContentInlineNode,
+  type PageContentMention,
+  type PageContentNode,
+  type PageContentText,
+} from './schemas/page-content.schema.js';
+
+type PageContentAnyNode = PageContentNode | PageContentInlineNode;
+
+/**
+ * What is written in a line, as opposed to a block. A block this version does
+ * not know has a free-form type, so what is read out of a node is asked of its
+ * shape rather than of its name alone.
+ */
+const isPageContentText = (node: PageContentAnyNode): node is PageContentText =>
+  node.type === 'text' && 'text' in node && typeof node.text === 'string';
+
+const isPageContentMention = (node: PageContentAnyNode): node is PageContentMention =>
+  node.type === 'mention' && 'attrs' in node && typeof node.attrs?.label === 'string';
 
 /**
  * Walks a page's ProseMirror-shaped content and returns every leaf text
  * segment in document order. Structural nodes without a `content` field
- * (image, file, embed) contribute nothing. A mention contributes its
- * denormalized `label`, so a page mentioning another page is findable by
- * searching the mentioned page's title.
+ * (image, file, embed) contribute nothing, and neither does a block this
+ * version does not know: what it holds is never read into. A mention
+ * contributes its denormalized `label`, so a page mentioning another page is
+ * findable by searching the mentioned page's title.
  */
 export const extractPageContentSegments = (content: PageContent): readonly string[] =>
   extractPageContentNodeSegments(content.content).filter((segment) => segment.length > 0);
 
-const extractPageContentNodeSegments = (
-  nodes: readonly (PageContentNode | PageContentInlineNode)[],
-): readonly string[] => nodes.flatMap(extractPageContentSingleNodeSegments);
+const extractPageContentNodeSegments = (nodes: readonly PageContentAnyNode[]): readonly string[] =>
+  nodes.flatMap(extractPageContentSingleNodeSegments);
 
-const extractPageContentSingleNodeSegments = (node: PageContentNode | PageContentInlineNode): readonly string[] => {
-  if (node.type === 'text') return [node.text];
-  if (node.type === 'mention') return [node.attrs.label];
-  if (!('content' in node)) return [];
+const extractPageContentSingleNodeSegments = (node: PageContentAnyNode): readonly string[] => {
+  if (isPageContentText(node)) return [node.text];
+  if (isPageContentMention(node)) return [node.attrs.label];
+  if (!isKnownPageContentNode(node) || !('content' in node)) return [];
   return extractPageContentNodeSegments(node.content);
 };
 
@@ -34,13 +54,12 @@ export const extractPageMentionIds = (content: PageContent): readonly string[] =
   return [...new Set(mentionedPageIds)];
 };
 
-const extractPageContentNodeMentionIds = (
-  nodes: readonly (PageContentNode | PageContentInlineNode)[],
-): readonly string[] => nodes.flatMap(extractPageContentSingleNodeMentionIds);
+const extractPageContentNodeMentionIds = (nodes: readonly PageContentAnyNode[]): readonly string[] =>
+  nodes.flatMap(extractPageContentSingleNodeMentionIds);
 
-const extractPageContentSingleNodeMentionIds = (node: PageContentNode | PageContentInlineNode): readonly string[] => {
-  if (node.type === 'mention') return [node.attrs.pageId];
-  if (!('content' in node)) return [];
+const extractPageContentSingleNodeMentionIds = (node: PageContentAnyNode): readonly string[] => {
+  if (isPageContentMention(node)) return [node.attrs.pageId];
+  if (!isKnownPageContentNode(node) || !('content' in node)) return [];
   return extractPageContentNodeMentionIds(node.content);
 };
 
@@ -53,13 +72,11 @@ export type PageCollectionReference = {
 export const extractPageCollectionReferences = (content: PageContent): readonly PageCollectionReference[] =>
   extractPageContentNodeCollections(content.content);
 
-const extractPageContentNodeCollections = (
-  nodes: readonly (PageContentNode | PageContentInlineNode)[],
-): readonly PageCollectionReference[] => nodes.flatMap(extractPageContentSingleNodeCollections);
+const extractPageContentNodeCollections = (nodes: readonly PageContentAnyNode[]): readonly PageCollectionReference[] =>
+  nodes.flatMap(extractPageContentSingleNodeCollections);
 
-const extractPageContentSingleNodeCollections = (
-  node: PageContentNode | PageContentInlineNode,
-): readonly PageCollectionReference[] => {
+const extractPageContentSingleNodeCollections = (node: PageContentAnyNode): readonly PageCollectionReference[] => {
+  if (!isKnownPageContentNode(node)) return [];
   if (node.type === 'collection') return [node.attrs];
   if (!('content' in node)) return [];
   return extractPageContentNodeCollections(node.content);

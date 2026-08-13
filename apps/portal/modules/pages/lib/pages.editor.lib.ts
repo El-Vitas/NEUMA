@@ -9,6 +9,10 @@ import { pageContentSchema } from '../schemas/pages.schemas';
 import type { PageContent, PageEditorCommand } from '../types/pages.types';
 import { createPageEditorPlugins } from './pages.editor.commands';
 import { pageEditorSchema } from './pages.editor.schema';
+import {
+  holdPageContentThisVersionCannotRead,
+  releasePageContentThisVersionCannotRead,
+} from './pages.editor.unsupported.lib';
 
 export const createEmptyPageContent = (): PageContent => ({
   content: [{ content: [], type: 'paragraph' }],
@@ -23,7 +27,7 @@ export const createPageEditorState = (
   blockCommentsLabel: string = selectBlockLabel,
 ): EditorState =>
   EditorState.create({
-    doc: pageEditorSchema.nodeFromJSON(pageContentSchema.parse(content)),
+    doc: pageEditorSchema.nodeFromJSON(holdPageContentThisVersionCannotRead(pageContentSchema.parse(content))),
     plugins: createPageEditorPlugins(
       pageEditorSchema,
       selectBlockLabel,
@@ -35,7 +39,10 @@ export const createPageEditorState = (
   });
 
 export const serializePageEditorDocument = (document: EditorDocument): PageContent =>
-  pageContentSchema.parse({ ...normalizePageEditorJson(document.toJSON()), schemaVersion: 1 });
+  pageContentSchema.parse({
+    ...releasePageContentThisVersionCannotRead(normalizePageEditorJson(document.toJSON())),
+    schemaVersion: 1,
+  });
 
 export const serializePageEditorState = (state: EditorState): PageContent => serializePageEditorDocument(state.doc);
 

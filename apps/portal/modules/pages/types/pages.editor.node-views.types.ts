@@ -2,4 +2,5 @@
 export interface PageEditorNodeViewLabels {
   readonly collection: string;
   readonly task: string;
+  readonly unsupported: string;
 }

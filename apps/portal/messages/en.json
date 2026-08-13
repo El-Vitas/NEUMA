@@ -408,6 +408,7 @@
     "moveBlocksDone": "Blocks moved to {page}",
     "moveBlocksVisit": "Go to the page",
     "moveBlocksError": "The blocks could not be moved",
+    "unsupportedBlock": "Unsupported block",
     "blockToPage": "Turn into a page",
     "blocksMadePage": "Blocks turned into the page {page}",
     "blocksMadePageError": "The page could not be created from those blocks",
