@@ -17,8 +17,10 @@ import type { PageEditorBlockColorKind, PageEditorBlockColors } from '../types/p
 import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageEditorBlockFolding } from '../types/pages.editor.heading-fold.types';
+import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockColorItems } from './pages.editor.block-color.items';
 import { PagesEditorCalloutIconItems } from './pages.editor.callout-icon.items';
+import { PagesEditorTableItems } from './pages.editor.table.items';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
 
@@ -33,12 +35,14 @@ interface IProps {
   readonly onCalloutIcon: (icon: PageCalloutIcon | null) => void;
   readonly onClose: () => void;
   readonly onColor: (kind: PageEditorBlockColorKind, color: PageBlockColor | null) => void;
+  readonly onTableAction: (action: PageEditorTableAction) => void;
   readonly onComment: () => void;
   readonly onConvert: (targetId: string) => void;
   readonly onCopyLink: () => void;
   readonly onDelete: () => void;
   readonly onDuplicate: () => void;
   readonly onMoveToPage: () => void;
+  readonly tableActions: boolean;
 }
 
 /**
@@ -64,6 +68,8 @@ export const PagesEditorBlockMenu = ({
   onDelete,
   onDuplicate,
   onMoveToPage,
+  onTableAction,
+  tableActions,
 }: IProps) => {
   const t = useTranslations('pages');
   const conversion = usePagesEditorConversionRequest(onConvert);
@@ -96,6 +102,14 @@ export const PagesEditorBlockMenu = ({
               <DropdownMenuSubTrigger>{t('calloutIcon')}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <PagesEditorCalloutIconItems onSelect={onCalloutIcon} selected={calloutIcon.chosen} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          {tableActions && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{t('tableActionsLabel')}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <PagesEditorTableItems onSelect={onTableAction} />
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}

@@ -69,7 +69,19 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror_[data-code-block]_pre]:mt-0',
   '[&_.ProseMirror_blockquote]:my-6 [&_.ProseMirror_blockquote]:border-primary [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:ps-4 [&_.ProseMirror_blockquote]:text-muted-foreground',
   '[&_.ProseMirror_pre]:my-6 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre]:bg-surface-low [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:font-mono [&_.ProseMirror_pre]:text-sm [&_.ProseMirror_pre]:leading-relaxed',
-  '[&_.ProseMirror_table]:my-6 [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:table-fixed [&_.ProseMirror_table]:border-collapse [&_.ProseMirror>table_td]:min-w-0 [&_.ProseMirror>table_td]:border [&_.ProseMirror>table_td]:border-border [&_.ProseMirror>table_td]:p-3 [&_.ProseMirror>table_td]:align-top [&_.ProseMirror>table_td]:wrap-break-word',
+  /**
+   * A table has to read as a grid: every cell walled, the header row set apart,
+   * and no paragraph inside a cell carrying the spacing meant for a page.
+   */
+  '[&_.ProseMirror_table]:my-6 [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:table-fixed [&_.ProseMirror_table]:border-collapse',
+  /** A column narrower than this cannot be read, so the table outgrows its box and scrolls there. */
+  '[&_.ProseMirror_td]:relative [&_.ProseMirror_td]:min-w-32 [&_.ProseMirror_td]:border [&_.ProseMirror_td]:border-border [&_.ProseMirror_td]:p-2 [&_.ProseMirror_td]:align-top [&_.ProseMirror_td]:wrap-break-word',
+  '[&_.ProseMirror_th]:relative [&_.ProseMirror_th]:min-w-32 [&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-border [&_.ProseMirror_th]:bg-surface-container-low [&_.ProseMirror_th]:p-2 [&_.ProseMirror_th]:text-start [&_.ProseMirror_th]:align-top [&_.ProseMirror_th]:font-semibold [&_.ProseMirror_th]:wrap-break-word',
+  '[&_.ProseMirror_td>p]:mb-0 [&_.ProseMirror_th>p]:mb-0',
+  /** The cells a gesture is aimed at, and the edge a column is stretched by. */
+  '[&_.ProseMirror_.selectedCell]:bg-primary/10',
+  '[&_.ProseMirror_.column-resize-handle]:pointer-events-none [&_.ProseMirror_.column-resize-handle]:absolute [&_.ProseMirror_.column-resize-handle]:top-0 [&_.ProseMirror_.column-resize-handle]:bottom-0 [&_.ProseMirror_.column-resize-handle]:-right-0.5 [&_.ProseMirror_.column-resize-handle]:z-20 [&_.ProseMirror_.column-resize-handle]:w-1 [&_.ProseMirror_.column-resize-handle]:bg-primary',
+  '[&_.ProseMirror.resize-cursor]:cursor-col-resize',
   '[&_.ProseMirror_details]:my-4 [&_.ProseMirror_details]:border [&_.ProseMirror_details]:border-border [&_.ProseMirror_details]:px-4 [&_.ProseMirror_details]:py-3 [&_.ProseMirror_summary]:cursor-pointer [&_.ProseMirror_summary]:font-semibold',
   '[&_.ProseMirror_.ProseMirror-selectednode]:bg-primary/10 [&_.ProseMirror_.ProseMirror-selectednode]:outline [&_.ProseMirror_.ProseMirror-selectednode]:outline-2 [&_.ProseMirror_.ProseMirror-selectednode]:outline-primary/40 [&_.ProseMirror_.ProseMirror-selectednode]:outline-offset-2',
   '[&_.ProseMirror_img]:my-6 [&_.ProseMirror_img]:block [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_[data-page-embed]]:my-6 [&_.ProseMirror_[data-page-embed]]:block [&_.ProseMirror_[data-page-embed]]:max-w-full [&_.ProseMirror_[data-page-file]]:my-6 [&_.ProseMirror_[data-page-file]]:block [&_.ProseMirror_[data-page-file]]:max-w-full',

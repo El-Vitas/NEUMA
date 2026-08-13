@@ -455,7 +455,16 @@
       "warning": "Advertencia"
     },
     "foldBlock": "Plegar",
-    "unfoldBlock": "Desplegar"
+    "unfoldBlock": "Desplegar",
+    "tableActionsLabel": "Tabla",
+    "tableActions": {
+      "addRow": "Agregar fila",
+      "addColumn": "Agregar columna",
+      "deleteRow": "Eliminar fila",
+      "deleteColumn": "Eliminar columna",
+      "toggleHeaderRow": "Fila de encabezado",
+      "deleteTable": "Eliminar tabla"
+    }
   },
   "errors": {
     "generic": "Algo salió mal.",

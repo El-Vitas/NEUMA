@@ -48,6 +48,8 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         onDelete={() => use.deleted.push(1)}
         onDuplicate={() => use.duplicated.push(1)}
         onMoveToPage={() => use.moved.push(1)}
+        onTableAction={() => undefined}
+        tableActions={false}
       />
     </NextIntlClientProvider>,
   );

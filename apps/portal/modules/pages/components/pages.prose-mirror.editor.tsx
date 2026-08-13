@@ -383,6 +383,7 @@ export const PagesProseMirrorEditor = forwardRef(
               conversions={surface.conversions}
               foldState={surface.foldState}
               hasIdentity={surface.blockId !== null}
+              isInTable={surface.isInTable}
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}
               onBecomePage={becomePage}

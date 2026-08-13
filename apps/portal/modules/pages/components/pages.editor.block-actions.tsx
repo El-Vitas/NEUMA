@@ -12,11 +12,13 @@ import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { createPageEditorCalloutIconCommand } from '../lib/pages.editor.callout-icon.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import { togglePageEditorHeadingFold } from '../lib/pages.editor.heading-fold.lib';
+import { createPageTableCommand } from '../lib/pages.editor.table.lib';
 import type { PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
+import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
 import { PagesEditorBlockHandoverDialog } from './pages.editor.block-handover.dialog';
 import { PagesEditorBlockMenu } from './pages.editor.block-menu';
@@ -24,6 +26,7 @@ import { PagesEditorBlockMenu } from './pages.editor.block-menu';
 interface IProps {
   readonly authorName: string;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
+  readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
@@ -53,6 +56,7 @@ export const PagesEditorBlockActions = ({
   authorName,
   calloutIcon,
   colors,
+  isInTable,
   comments,
   conversions,
   foldState,
@@ -107,6 +111,8 @@ export const PagesEditorBlockActions = ({
             onDelete={() => onRunCommand(deletePageEditorBlocks)}
             onDuplicate={() => onRunCommand(duplicatePageEditorBlock)}
             onMoveToPage={() => onAsk('handover')}
+            onTableAction={(action: PageEditorTableAction) => onRunCommand(createPageTableCommand(action))}
+            tableActions={isInTable}
           />
         </div>
       )}

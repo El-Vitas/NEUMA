@@ -95,12 +95,12 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-11 · Tabla simple
 
-- [ ] Se inserta desde el menú `/`
-- [ ] Se escribe en cada celda y Tab avanza a la siguiente
-- [ ] Se pueden agregar y eliminar filas y columnas después de creada
-- [ ] La primera fila puede marcarse como encabezado
+- [x] Se inserta desde el menú `/`
+- [x] Se escribe en cada celda y Tab avanza a la siguiente
+- [x] Se pueden agregar y eliminar filas y columnas después de creada
+- [x] La primera fila puede marcarse como encabezado
 - [ ] Se puede ajustar el ancho de columna
-- [ ] Una tabla ancha se desplaza dentro de sí misma sin romper la página
+- [x] Una tabla ancha se desplaza dentro de sí misma sin romper la página
 - [ ] Una tabla simple se puede convertir en colección conservando sus datos
 
 ## TB-12 · Imagen
@@ -229,6 +229,7 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-11 | La tabla era una sola celda sin encabezados, `Tab` sacaba el foco de la página y no había forma de agregar ni quitar filas o columnas. Se adoptó `prosemirror-tables` (autorizado) con estas decisiones de interacción: se inserta 3×3 con encabezado y el cursor en la primera celda, `Tab` recorre las celdas y en la última agrega fila, y la tabla se desplaza dentro de su propia caja sin arrastrar la página. El encabezado siempre es la primera fila, se abra el menú donde se abra. Falta que El-Vitas pruebe a mano el arrastre del borde de columna, y lo de convertir en colección, que es del documento `05`. | 5 de 7 |
 | 13/08/2026 | TB-10 | Faltaba casi todo salvo Enter y que no se reformatee dentro: se agregaron ` ``` ` + espacio (con el lenguaje escrito ahí mismo), la elección de lenguaje, el botón de copiar, el ajuste de línea y que `Tab` indente en vez de sacar el foco de la página. Queda sin marcar el coloreado según el lenguaje: necesita una biblioteca nueva y las dependencias no se tocan sin instrucción. | 7 de 8 |
 | 13/08/2026 | TB-09 | Faltaba la marca de la izquierda, que no existía. Se agregó al contrato como el **tipo** de aviso (idea, información, advertencia, listo, bloqueado, fijado) y no como el símbolo: la página dice lo mismo para todos, y cada quien ve el dibujo que le toque. Se elige desde el menú del bloque, junto al color, que ya funcionaba. | 5 de 5 |
 | 13/08/2026 | TB-08 | El separador no existía en ninguna parte: se agregó al contrato (`divider`), al editor, al menú `/` y a `---`. Como la línea no sostiene nada, insertarla al final de la página deja un párrafo debajo para seguir escribiendo. De paso se corrigió que un bloque que no sostiene nada, llegando con contenido, rompía la validación con un error técnico en vez de rechazarla. | 4 de 4 |

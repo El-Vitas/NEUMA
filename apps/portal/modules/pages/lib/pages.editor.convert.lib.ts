@@ -17,6 +17,7 @@ import type {
   PageEditorConversionSource,
 } from '../types/pages.editor.convert.types';
 import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
+import { isPageEditorCellSelection } from './pages.editor.table.lib';
 
 const mergeLines = (read: readonly PageEditorBlockLines[]): PageEditorBlockLines => ({
   keepsEverything: read.every((entry) => entry.keepsEverything),
@@ -38,6 +39,7 @@ const readBlockLines = (block: EditorNode): PageEditorBlockLines => {
 
 /** The blocks a conversion applies to, read as the lines of text they hold. */
 const readSelectedBlocks = (state: EditorState): PageEditorConversionSource | null => {
+  if (isPageEditorCellSelection(state)) return null;
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;
   const blocks = range.parent.children.slice(range.startIndex, range.endIndex);
