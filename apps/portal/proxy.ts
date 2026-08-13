@@ -93,6 +93,12 @@ export const proxy = async (request: NextRequest) => {
   return storeSessionOnResponse(localeResponse, session);
 };
 
+/**
+ * Next.js reads this matcher when it builds, without running the file, and it
+ * only understands a plain string literal here. Written any other way — a
+ * `String.raw` template among them — it is not read at all, the proxy starts
+ * answering for `/_next/static` too, and every chunk comes back a 404.
+ */
 export const config = {
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 };
