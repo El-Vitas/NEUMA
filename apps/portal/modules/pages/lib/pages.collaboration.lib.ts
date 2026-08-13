@@ -33,6 +33,7 @@ export const createCollaborativePageEditorState = (
   page: PageCollaborationDraft,
   selectBlockLabel: string,
   insertBlockLabel: string = selectBlockLabel,
+  writeHereLabel = '',
 ): EditorState => {
   const initializedDocument = initProseMirrorDoc(page.fragment, pageEditorSchema);
   const collaborationPlugins = [
@@ -43,7 +44,14 @@ export const createCollaborativePageEditorState = (
   return EditorState.create({
     doc: initializedDocument.doc,
     plugins: [
-      ...createPageEditorPlugins(pageEditorSchema, selectBlockLabel, insertBlockLabel),
+      ...createPageEditorPlugins(
+        pageEditorSchema,
+        selectBlockLabel,
+        insertBlockLabel,
+        selectBlockLabel,
+        selectBlockLabel,
+        writeHereLabel,
+      ),
       ...collaborationPlugins,
     ],
     schema: pageEditorSchema,

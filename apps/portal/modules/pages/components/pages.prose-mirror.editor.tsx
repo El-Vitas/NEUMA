@@ -84,6 +84,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const blockCommentsLabelRef = useRef(t('blockComments'));
     const unsupportedLabelRef = useRef(t('unsupportedBlock'));
     const insertBlockLabelRef = useRef(t('insertBlock'));
+    const writeHereLabelRef = useRef(t('writeHere'));
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
@@ -197,6 +198,7 @@ export const PagesProseMirrorEditor = forwardRef(
         selectBlockLabelRef.current,
         insertBlockLabelRef.current,
         blockCommentsLabelRef.current,
+        writeHereLabelRef.current,
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
@@ -246,6 +248,7 @@ export const PagesProseMirrorEditor = forwardRef(
           { awareness: session.provider.awareness, fragment: session.fragment },
           selectBlockLabelRef.current,
           insertBlockLabelRef.current,
+          writeHereLabelRef.current,
         ),
       );
     }, [session]);

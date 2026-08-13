@@ -24,6 +24,7 @@ import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
+import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
@@ -170,12 +171,29 @@ export const appendParagraphAtEnd: Command = (state, dispatch) => {
   return true;
 };
 
+/**
+ * Breaks the line where the cursor is without starting another block.
+ *
+ * A code block already keeps its own newlines, so there it stands aside and
+ * lets the usual behaviour answer.
+ */
+const breakTheLineWithoutLeavingTheBlock =
+  (schema: Schema): Command =>
+  (state, dispatch) => {
+    const hardBreak = schema.nodes.hard_break;
+    if (hardBreak === undefined) return false;
+    if (state.selection.$from.parent.type.spec.code === true) return false;
+    dispatch?.(state.tr.replaceSelectionWith(hardBreak.create()).scrollIntoView());
+    return true;
+  };
+
 export const createPageEditorPlugins = (
   schema: Schema,
   selectBlockLabel: string,
   insertBlockLabel: string,
   resizeColumnLabel: string = selectBlockLabel,
   blockCommentsLabel: string = selectBlockLabel,
+  writeHereLabel = '',
 ): readonly EditorPlugin[] => [
   history(),
   inputRules({
@@ -194,6 +212,7 @@ export const createPageEditorPlugins = (
       ['Delete', deletePageEditorBlockKeepingChildren],
     ]),
   ),
+  keymap(Object.fromEntries([['Shift-Enter', breakTheLineWithoutLeavingTheBlock(schema)]])),
   keymap(baseKeymap),
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
   createPageEditorBlockIdPlugin(),
@@ -203,4 +222,5 @@ export const createPageEditorPlugins = (
   createPageEditorBlockDragPlugin(),
   createPageEditorColumnCleanupPlugin(),
   createPageEditorColumnResizePlugin(resizeColumnLabel),
+  createPageEditorPlaceholderPlugin(writeHereLabel),
 ];

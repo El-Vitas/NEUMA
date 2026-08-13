@@ -84,6 +84,35 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a line broken on purpose inside a paragraph', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            content: [
+              { text: 'Primera linea', type: 'text' },
+              { type: 'hard_break' },
+              { text: 'Segunda linea', type: 'text' },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a broken line standing on its own as a block', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ type: 'hard_break' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a mention inside a paragraph', () => {
     expect(
       pageContentSchema.safeParse({

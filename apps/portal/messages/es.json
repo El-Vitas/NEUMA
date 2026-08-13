@@ -267,6 +267,8 @@
     "collapsePage": "Contraer {name}",
     "expandPage": "Expandir {name}",
     "pageActions": "Acciones para {name}",
+    "pageTree": "Páginas del espacio",
+    "writeHere": "Escribe, o pulsa / para bloques",
     "trash": "Papelera",
     "trashPage": "Enviar a la papelera",
     "restorePage": "Restaurar página",

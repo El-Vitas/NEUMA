@@ -146,7 +146,10 @@ const pageMentionSchema = z
   })
   .strict();
 
-const pageInlineNodeSchema = z.discriminatedUnion('type', [pageTextSchema, pageMentionSchema]);
+/** A line broken on purpose inside a block, without starting another one. */
+const pageHardBreakSchema = z.object({ type: z.literal('hard_break') }).strict();
+
+const pageInlineNodeSchema = z.discriminatedUnion('type', [pageTextSchema, pageMentionSchema, pageHardBreakSchema]);
 
 export const pageAssetAttrsSchema = z
   .object({
@@ -184,7 +187,9 @@ export type PageContentMention = {
   readonly type: 'mention';
 };
 
-export type PageContentInlineNode = PageContentText | PageContentMention;
+export type PageContentHardBreak = { readonly type: 'hard_break' };
+
+export type PageContentInlineNode = PageContentText | PageContentMention | PageContentHardBreak;
 
 type PageBlockNode<Type extends string, Content> = {
   readonly attrs?: PageBlockAttrs;
@@ -323,6 +328,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'collection',
   'text',
   'mention',
+  'hard_break',
 ];
 
 const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
