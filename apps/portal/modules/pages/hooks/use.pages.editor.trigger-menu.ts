@@ -125,7 +125,7 @@ export const usePagesEditorTriggerMenu = ({
       const triggerStart = editorView.state.selection.from - query.length - 1;
       if (triggerStart < 1) return;
       editorView.dispatch(editorView.state.tr.delete(triggerStart, editorView.state.selection.from));
-      command(editorView.state, editorView.dispatch);
+      command(editorView.state, editorView.dispatch, editorView);
       closeTriggerMenu();
       editorView.focus();
     },

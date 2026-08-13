@@ -3,6 +3,7 @@ import {
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
   PAGE_EMBED_PROVIDERS,
+  PAGE_IMAGE_ALIGNMENTS,
 } from '@company-brain/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
@@ -30,6 +31,19 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
     alt: element.getAttribute('alt'),
     assetId,
     caption: element.dataset.caption ?? null,
+  };
+};
+
+/** How an image was left standing on the page: where in the column, and how much of it. */
+const getPageEditorImageAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+  const asset = getPageEditorAssetAttrs(element);
+  if (asset === false) return false;
+  const align = element.dataset.align;
+  const width = Number.parseFloat(element.dataset.width ?? '');
+  return {
+    ...asset,
+    align: PAGE_IMAGE_ALIGNMENTS.find((known) => known === align) ?? null,
+    width: Number.isFinite(width) && width > 0 && width <= 1 ? width : null,
   };
 };
 
@@ -268,10 +282,16 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'image',
     definePageBlock({
-      attrs: { alt: { default: null }, assetId: {}, caption: { default: null } },
+      attrs: {
+        align: { default: null },
+        alt: { default: null },
+        assetId: {},
+        caption: { default: null },
+        width: { default: null },
+      },
       atom: true,
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorAssetAttrs, tag: 'img[data-page-image]' }],
+      parseDOM: [{ getAttrs: getPageEditorImageAttrs, tag: 'img[data-page-image]' }],
       render: (node, blockAttributes) => [
         'img',
         {
@@ -279,6 +299,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
           'data-asset-id': node.attrs.assetId,
           'data-page-image': true,
           alt: node.attrs.alt ?? '',
+          ...(typeof node.attrs.align === 'string' ? { 'data-align': node.attrs.align } : {}),
+          ...(typeof node.attrs.width === 'number' ? { 'data-width': String(node.attrs.width) } : {}),
         },
       ],
     }),

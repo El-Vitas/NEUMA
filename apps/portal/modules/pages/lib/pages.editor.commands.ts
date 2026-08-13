@@ -33,6 +33,7 @@ import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plug
 import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages.editor.heading-fold.lib';
 import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
+import { askForPageImage } from './pages.editor.image.lib';
 import { splitPageEditorListPoint } from './pages.editor.list.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
@@ -221,6 +222,7 @@ export const createPageEditorCommands = (
     run: setBlockType(schema.nodes.heading, { level: 3 }),
   },
   italic: { kind: 'mark', labelKey: 'italic', run: toggleMark(schema.marks.em) },
+  image: { group: 'media', kind: 'block', labelKey: 'insertImage', run: askForPageImage },
   divider: {
     group: 'advanced',
     kind: 'block',

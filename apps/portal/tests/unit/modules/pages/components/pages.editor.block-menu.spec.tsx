@@ -38,6 +38,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         conversions={conversions}
         folding={null}
         hasIdentity={hasIdentity}
+        imageAlign={null}
         onBecomePage={() => use.becamePage.push(1)}
         onCalloutIcon={() => undefined}
         onClose={() => use.closed.push(1)}
@@ -47,6 +48,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         onCopyLink={() => use.copied.push(1)}
         onDelete={() => use.deleted.push(1)}
         onDuplicate={() => use.duplicated.push(1)}
+        onImageAlign={() => undefined}
         onMoveToPage={() => use.moved.push(1)}
         onTableAction={() => undefined}
         tableActions={false}

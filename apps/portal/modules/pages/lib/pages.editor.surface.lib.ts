@@ -18,6 +18,7 @@ import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
 import { isPageEditorCalloutSelected, readPageEditorCalloutIcon } from './pages.editor.callout-icon.lib';
 import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
 import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
+import { readPageImageAlignment } from './pages.editor.image.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
 import { isPageEditorInTable } from './pages.editor.table.lib';
@@ -76,6 +77,7 @@ export const readPageEditorSurface = (
   blockId: readPageEditorBlockId(state),
   calloutIcon: readCalloutIconChoice(state),
   colors: readPageEditorBlockColors(state),
+  imageAlign: readPageImageAlignment(state),
   isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),

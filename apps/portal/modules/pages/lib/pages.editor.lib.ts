@@ -58,8 +58,9 @@ export const serializePageEditorState = (state: EditorState): PageContent => ser
 
 export const isPageEditorReadOnly = (canEdit: boolean): boolean => !canEdit;
 
+/** A command is handed the view as well: some of them answer with the page around the writing. */
 export const runPageEditorCommand = (editorView: EditorView, command: PageEditorCommand): boolean =>
-  command.run(editorView.state, editorView.dispatch);
+  command.run(editorView.state, editorView.dispatch, editorView);
 
 export const computeSelectionToolbarPlacement = (parameters: {
   readonly selectionEndCoords: {

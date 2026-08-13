@@ -263,6 +263,37 @@ export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
 
 export const PAGE_EDITOR_CALLOUT_TYPE = 'callout';
 
+export const PAGE_EDITOR_IMAGE_TYPE = 'image';
+
+/** Where the page keeps the chooser that answers for every file put on it. */
+export const PAGE_EDITOR_FILE_INPUT_SELECTOR = '[data-page-file-input]';
+
+/** Narrower than this an image says nothing, so the edge stops there. */
+export const PAGE_EDITOR_IMAGE_MINIMUM_WIDTH = 0.1;
+
+export const PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS = 'group relative my-6 flex flex-col gap-2';
+
+/** Where the image stands in the column of writing. */
+export const PAGE_EDITOR_IMAGE_ALIGN_STYLE_CLASSES: Readonly<Record<string, string>> = {
+  center: 'items-center text-center',
+  left: 'items-start text-start',
+  right: 'items-end text-end',
+};
+
+export const PAGE_EDITOR_IMAGE_STYLE_CLASS = 'h-auto max-w-full';
+
+/** The line under an image: what a reader sees, and what is read out to whoever cannot see it. */
+export const PAGE_EDITOR_IMAGE_CAPTION_STYLE_CLASS = [
+  'min-h-11 w-full border-none bg-transparent text-muted-foreground text-sm',
+  'outline-none focus-visible:ring-0',
+].join(' ');
+
+/** The edge an image is stretched by, shown once the pointer is on the image. */
+export const PAGE_EDITOR_IMAGE_HANDLE_STYLE_CLASS = [
+  'absolute top-1/2 right-0 h-16 w-1.5 -translate-y-1/2 cursor-col-resize bg-primary',
+  'opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
+].join(' ');
+
 export const PAGE_EDITOR_CODE_TYPE = 'code_block';
 
 /** A step of indentation inside code: two spaces, written as such rather than as a tab. */

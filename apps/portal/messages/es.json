@@ -295,7 +295,8 @@
       "toggle": "Desplegable",
       "undo": "Deshacer",
       "taskList": "Lista de tareas",
-      "callout": "Destacado"
+      "callout": "Destacado",
+      "insertImage": "Imagen"
     },
     "backlinks": {
       "title": "Vinculado desde ({count})"
@@ -464,6 +465,15 @@
       "deleteColumn": "Eliminar columna",
       "toggleHeaderRow": "Fila de encabezado",
       "deleteTable": "Eliminar tabla"
+    },
+    "imageCaption": "Describe la imagen",
+    "resizeImage": "Ajustar el ancho de la imagen",
+    "imageAlignLabel": "Alineación",
+    "imageAlign": {
+      "left": "A la izquierda",
+      "center": "Al centro",
+      "right": "A la derecha",
+      "full": "Ancho completo"
     }
   },
   "errors": {

@@ -28,6 +28,7 @@ const mountTask = (checked?: boolean): { readonly container: HTMLElement; readon
     nodeViews: createPageEditorNodeViews({
       code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
       collection: 'Collection',
+      image: { caption: 'Describe the image', resize: 'Resize' },
       task: 'Task',
       toggle: { open: 'Toggle', title: 'Toggle title' },
       unsupported: 'Unsupported block',
