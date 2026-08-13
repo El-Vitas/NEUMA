@@ -1,5 +1,10 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
-import { pageAssetAttrsSchema, pageEmbedAttrsSchema, pageMentionAttrsSchema } from '@company-brain/shared';
+import {
+  PAGE_CODE_LANGUAGES,
+  pageAssetAttrsSchema,
+  pageEmbedAttrsSchema,
+  pageMentionAttrsSchema,
+} from '@company-brain/shared';
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { history } from 'prosemirror-history';
 import { InputRule, inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
@@ -36,6 +41,11 @@ const orderedListInputRule = /^\s*(\d+)\.\s$/;
 const taskListInputRule = /^\s*\[ ?\]\s$/;
 const blockquoteInputRule = /^\s*>\s$/;
 const dividerInputRule = /^---$/;
+const codeBlockInputRule = /^```(\w+)?\s$/;
+
+/** The language written after the backticks, kept only when it is one this version knows. */
+const readWrittenCodeLanguage = (written: string | undefined): string | null =>
+  PAGE_CODE_LANGUAGES.find((language) => language === written) ?? null;
 
 /**
  * Leaves somewhere to go on writing under a line.
@@ -265,6 +275,9 @@ export const createPageEditorPlugins = (
       wrappingInputRule(taskListInputRule, schema.nodes.task_list),
       wrappingInputRule(blockquoteInputRule, schema.nodes.blockquote),
       drawPageDivider(schema),
+      textblockTypeInputRule(codeBlockInputRule, schema.nodes.code_block, (match) => ({
+        language: readWrittenCodeLanguage(match[1]),
+      })),
     ],
   }),
   keymap({ 'Mod-y': redoPageEditorStep }),

@@ -41,6 +41,23 @@ export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
 export const PAGE_CALLOUT_ICONS = ['idea', 'info', 'warning', 'done', 'blocked', 'pinned'] as const;
 export type PageCalloutIcon = (typeof PAGE_CALLOUT_ICONS)[number];
 
+/** The languages a code block can be said to be written in. `plain` is code nobody named. */
+export const PAGE_CODE_LANGUAGES = [
+  'plain',
+  'bash',
+  'css',
+  'html',
+  'java',
+  'javascript',
+  'json',
+  'markdown',
+  'python',
+  'sql',
+  'typescript',
+  'yaml',
+] as const;
+export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
+
 /** A remark left on a block, kept with the block itself so it travels wherever the block goes. */
 export type PageBlockComment = {
   readonly author: string;
@@ -278,7 +295,11 @@ export type PageContentKnownNode =
       readonly content: readonly PageContentNode[];
       readonly type: 'block_children';
     }
-  | PageBlockNode<'code_block', PageContentText>
+  | {
+      readonly attrs?: PageBlockAttrs & { readonly language?: PageCodeLanguage; readonly wrapped?: boolean };
+      readonly content: readonly PageContentText[];
+      readonly type: 'code_block';
+    }
   | { readonly attrs?: PageBlockAttrs; readonly content: readonly PageContentNode[]; readonly type: 'table' }
   | {
       readonly attrs?: PageBlockAttrs;
@@ -435,7 +456,14 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       .strict(),
     z
       .object({
-        attrs: pageIdOnlyAttrsSchema.optional(),
+        attrs: z
+          .object({
+            ...pageBlockAttrsShape,
+            language: z.enum(PAGE_CODE_LANGUAGES).optional(),
+            wrapped: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
         content: z.array(pageCodeTextSchema),
         type: z.literal('code_block'),
       })

@@ -21,6 +21,7 @@ const mountToggle = (open?: boolean): { readonly container: HTMLElement; readonl
   document.body.appendChild(container);
   const view = new EditorView(container, {
     nodeViews: createPageEditorNodeViews({
+      code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
       collection: 'Collection',
       task: 'Task',
       toggle: { open: 'Toggle', title: 'Toggle title' },

@@ -1,4 +1,9 @@
-import { isAllowedPageEmbedUrl, PAGE_CALLOUT_ICONS, PAGE_EMBED_PROVIDERS } from '@company-brain/shared';
+import {
+  isAllowedPageEmbedUrl,
+  PAGE_CALLOUT_ICONS,
+  PAGE_CODE_LANGUAGES,
+  PAGE_EMBED_PROVIDERS,
+} from '@company-brain/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
 import {
@@ -38,6 +43,14 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   const summary = element.querySelector('summary')?.textContent;
   if (summary === null || summary === undefined) return false;
   return { open: element.hasAttribute('open'), summary };
+};
+
+const getPageEditorCodeAttrs = (element: Element): { readonly language: string | null; readonly wrapped: boolean } => {
+  const language = element.getAttribute('data-language');
+  return {
+    language: language !== null && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
+    wrapped: element.getAttribute('data-wrapped') === 'true',
+  };
 };
 
 /** A mark that is not one of the few on offer is no mark at all. */
@@ -152,12 +165,21 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'code_block',
     definePageBlock({
+      attrs: { language: { default: null }, wrapped: { default: false } },
       code: true,
       content: 'text*',
       group: 'block',
       marks: '',
-      parseDOM: [{ preserveWhitespace: 'full', tag: 'pre' }],
-      render: (_node, blockAttributes) => ['pre', blockAttributes, ['code', 0]],
+      parseDOM: [{ getAttrs: getPageEditorCodeAttrs, preserveWhitespace: 'full', tag: 'pre' }],
+      render: (node, blockAttributes) => [
+        'pre',
+        {
+          ...blockAttributes,
+          ...(typeof node.attrs.language === 'string' ? { 'data-language': node.attrs.language } : {}),
+          ...(node.attrs.wrapped === true ? { 'data-wrapped': 'true' } : {}),
+        },
+        ['code', 0],
+      ],
     }),
   ],
   [

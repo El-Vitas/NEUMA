@@ -1,5 +1,6 @@
 'use client';
 
+import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import type { Command } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
@@ -87,6 +88,12 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
+    const codeLabelsRef = useRef({
+      copy: t('copyCode'),
+      language: t('codeLanguage'),
+      languages: Object.fromEntries(PAGE_CODE_LANGUAGES.map((language) => [language, t(`codeLanguages.${language}`)])),
+      wrap: t('wrapCode'),
+    });
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
@@ -221,6 +228,7 @@ export const PagesProseMirrorEditor = forwardRef(
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: answerKeyPress,
         nodeViews: createPageEditorNodeViews({
+          code: codeLabelsRef.current,
           collection: collectionLabelRef.current,
           task: taskLabelRef.current,
           toggle: toggleLabelsRef.current,
