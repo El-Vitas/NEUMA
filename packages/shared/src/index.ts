@@ -118,6 +118,7 @@ export {
   pageCollectionAttrsSchema,
   pageContentSchema,
   pageEmbedAttrsSchema,
+  pageFileAttrsSchema,
   pageImageAttrsSchema,
   pageMentionAttrsSchema,
 } from './schemas/page-content.schema.js';

@@ -20,7 +20,9 @@ export const buildPageAssetInsertOptionsFromAttachment = (
 ): PageAssetInsertCommandOptions => {
   const nodeType = mapAttachmentMimeTypeToPageAssetNodeType(attachment.mimeType);
   const displayMetadata =
-    nodeType === 'image' ? { alt: attachment.originalFilename } : { caption: attachment.originalFilename };
+    nodeType === 'image'
+      ? { alt: attachment.originalFilename }
+      : { caption: attachment.originalFilename, mimeType: attachment.mimeType, size: attachment.size };
   return { assetId: attachment.id, ...displayMetadata };
 };
 

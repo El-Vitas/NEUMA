@@ -115,9 +115,9 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-13 · Archivo adjunto
 
-- [ ] Se inserta en el punto exacto donde está el cursor
-- [ ] Muestra nombre, tipo y peso
-- [ ] Se descarga con un clic
+- [x] Se inserta en el punto exacto donde está el cursor
+- [x] Muestra nombre, tipo y peso
+- [x] Se descarga con un clic
 - [ ] Al eliminarlo desaparece también de la lista de adjuntos de la página
 - [ ] Quien no tiene acceso a la página tampoco puede descargarlo
 
@@ -229,6 +229,7 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-13 | El bloque solo mostraba el nombre: se agregaron al contrato el tipo y el peso del archivo, que ya venían al subirlo, y ahora se leen como se los nombra (TXT, PDF) en vez de como se envían (`text/plain`). El enlace baja el archivo de un clic, con su nombre original. Quedan dos: **eliminar el bloque no lo quita de la lista de adjuntos** —hacerlo implica borrar el archivo del servidor al deshacer una edición, y esa decisión no la tomo solo—, y que quien no tiene acceso no pueda descargarlo, del que está probado que sin sesión responde 401 y que el servicio niega la descarga sin permiso, pero falta la prueba con un segundo usuario. | 3 de 5 |
 | 13/08/2026 | TB-12 | Solo se podía subir por el clip, y la imagen no admitía nada más: se agregaron al contrato dónde se para y cuánto ocupa, la entrada «Imagen» en el menú `/`, y pegar desde el portapapeles. La línea escrita bajo la imagen es a la vez su leyenda y el texto que se lee a quien no la ve: pedir la misma frase dos veces es como una página termina con leyenda y sin texto alternativo. El ancho se arrastra desde el borde y se guarda como parte de la página, no en píxeles. Queda sin marcar solo la mitad de una casilla: sigue visible al recargar (probado), pero «para otra persona» depende de la colaboración en vivo, documento `06`. | 6 de 7 |
 | 13/08/2026 | TB-11 | La tabla era una sola celda sin encabezados, `Tab` sacaba el foco de la página y no había forma de agregar ni quitar filas o columnas. Se adoptó `prosemirror-tables` (autorizado) y las decisiones de interacción de Outline: se inserta 3×3 con encabezado y el cursor en la primera celda, `Tab` recorre las celdas y en la última agrega fila, y la tabla se desplaza dentro de su propia caja sin arrastrar la página. El encabezado siempre es la primera fila, se abra el menú donde se abra. Falta que El-Vitas pruebe a mano el arrastre del borde de columna, y lo de convertir en colección, que es del documento `05`. | 5 de 7 |
 | 13/08/2026 | TB-10 | Faltaba casi todo salvo Enter y que no se reformatee dentro: se agregaron ` ``` ` + espacio (con el lenguaje escrito ahí mismo), la elección de lenguaje, el botón de copiar, el ajuste de línea y que `Tab` indente en vez de sacar el foco de la página. Queda sin marcar el coloreado según el lenguaje: necesita una biblioteca nueva y las dependencias no se tocan sin instrucción. | 7 de 8 |

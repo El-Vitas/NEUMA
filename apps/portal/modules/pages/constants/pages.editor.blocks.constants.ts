@@ -265,6 +265,21 @@ export const PAGE_EDITOR_CALLOUT_TYPE = 'callout';
 
 export const PAGE_EDITOR_IMAGE_TYPE = 'image';
 
+/** A file says what it is called, what kind it is and how heavy, on one line that brings it down. */
+export const PAGE_EDITOR_FILE_STYLE_CLASS = [
+  'my-3 flex min-h-11 items-center gap-3 border border-border bg-surface-low px-3',
+  'text-foreground text-sm underline-offset-4 hover:underline',
+].join(' ');
+
+export const PAGE_EDITOR_FILE_NAME_STYLE_CLASS = 'min-w-0 flex-1 truncate';
+
+export const PAGE_EDITOR_FILE_ABOUT_STYLE_CLASS = 'shrink-0 text-muted-foreground text-xs tabular-nums';
+
+/** A thousand and twenty-four of one unit is one of the next. */
+export const PAGE_EDITOR_FILE_SIZE_STEP = 1024;
+
+export const PAGE_EDITOR_FILE_SIZE_UNITS: readonly string[] = ['B', 'KB', 'MB', 'GB'];
+
 /** Where the page keeps the chooser that answers for every file put on it. */
 export const PAGE_EDITOR_FILE_INPUT_SELECTOR = '[data-page-file-input]';
 

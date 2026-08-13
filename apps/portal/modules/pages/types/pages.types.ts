@@ -21,6 +21,8 @@ export interface PageAssetInsertCommandOptions {
   readonly alt?: string;
   readonly assetId: string;
   readonly caption?: string;
+  readonly mimeType?: string;
+  readonly size?: number;
 }
 
 export interface PageMentionInsertCommandOptions {
