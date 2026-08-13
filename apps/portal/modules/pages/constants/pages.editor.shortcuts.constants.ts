@@ -1,8 +1,8 @@
-import { redo, undo } from 'prosemirror-history';
 import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { openPageEditorBlockMenu } from '../lib/pages.editor.block-menu.lib';
 import { movePageEditorBlockDown, movePageEditorBlockUp } from '../lib/pages.editor.block-move.lib';
+import { redoPageEditorStep, undoPageEditorStep } from '../lib/pages.editor.history.lib';
 import { indentPageEditorBlock, outdentPageEditorBlock } from '../lib/pages.editor.nesting.lib';
 import { selectBlockThenDocument, selectEnclosingBlock } from '../lib/pages.editor.selection.lib';
 import type { PageEditorShortcut } from '../types/pages.editor.shortcuts.types';
@@ -23,8 +23,8 @@ export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-Shift-Backspace', labelKey: 'deleteBlock', run: deletePageEditorBlocks },
   { binding: 'Escape', labelKey: 'selectBlock', run: selectEnclosingBlock },
   { binding: 'Mod-a', labelKey: 'selectBlockThenPage', run: selectBlockThenDocument },
-  { binding: 'Mod-z', labelKey: 'undo', run: undo },
-  { binding: 'Shift-Mod-z', labelKey: 'redo', run: redo },
+  { binding: 'Mod-z', labelKey: 'undo', run: undoPageEditorStep },
+  { binding: 'Shift-Mod-z', labelKey: 'redo', run: redoPageEditorStep },
 ];
 
 export const PAGE_EDITOR_MODIFIER_KEY = 'Mod';

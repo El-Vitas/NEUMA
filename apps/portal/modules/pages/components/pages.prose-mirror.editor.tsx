@@ -349,7 +349,11 @@ export const PagesProseMirrorEditor = forwardRef(
     useEffect(() => {
       if (session === null || editorViewRef.current === null) return;
       editorViewRef.current.updateState(
-        createCollaborativePageEditorState(session, selectBlockLabelRef.current, insertBlockLabelRef.current),
+        createCollaborativePageEditorState(
+          { awareness: session.provider.awareness, fragment: session.fragment },
+          selectBlockLabelRef.current,
+          insertBlockLabelRef.current,
+        ),
       );
     }, [session]);
 

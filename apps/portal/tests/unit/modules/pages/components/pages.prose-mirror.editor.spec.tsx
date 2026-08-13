@@ -5,7 +5,7 @@ import type { Command } from 'prosemirror-state';
 import { createRef } from 'react';
 import en from '../../../../../messages/en.json';
 
-const collaborationSession = { marker: 'collaboration-session' };
+const collaborationSession = { fragment: null, marker: 'collaboration-session', provider: { awareness: null } };
 
 mock.module('@/modules/pages/hooks/use.pages.collaboration', () => ({
   usePagesCollaboration: () => ({ participants: [], session: collaborationSession, status: 'connected' }),

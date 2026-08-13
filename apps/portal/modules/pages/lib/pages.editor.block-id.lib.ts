@@ -27,6 +27,16 @@ export const collectPageEditorBlockIdAssignments = (document: EditorNode): reado
   return assignments;
 };
 
+/**
+ * Hands out an identity to every block that lacks one, riding along with the
+ * change that created it.
+ *
+ * It travels as part of that change rather than as one of its own: the history
+ * of a page written alone puts appended work in the same step it came with, and
+ * the history of a page written together is told, once, whether the whole step
+ * belongs there — so a step marked as not worth remembering would take the
+ * writing with it.
+ */
 export const createPageEditorBlockIdPlugin = (): EditorPlugin =>
   new EditorPlugin({
     appendTransaction: (transactions, _previousState, nextState) => {
@@ -38,7 +48,6 @@ export const createPageEditorBlockIdPlugin = (): EditorPlugin =>
       for (const [pos, blockId] of assignments) {
         transaction.setNodeAttribute(pos, 'id', blockId);
       }
-      transaction.setMeta('addToHistory', false);
       return transaction;
     },
   });

@@ -1,7 +1,7 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
 import { pageAssetAttrsSchema, pageEmbedAttrsSchema, pageMentionAttrsSchema } from '@company-brain/shared';
 import { baseKeymap, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
-import { history, redo, undo } from 'prosemirror-history';
+import { history } from 'prosemirror-history';
 import { inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
@@ -22,6 +22,7 @@ import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 import { createPageEditorBlockMenuPlugin } from './pages.editor.block-menu.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
+import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 
@@ -140,7 +141,7 @@ export const createPageEditorCommands = (
   heading: { group: 'text', kind: 'block', labelKey: 'heading', run: setBlockType(schema.nodes.heading, { level: 2 }) },
   italic: { kind: 'mark', labelKey: 'italic', run: toggleMark(schema.marks.em) },
   orderedList: { group: 'lists', kind: 'block', labelKey: 'orderedList', run: wrapInList(schema.nodes.ordered_list) },
-  redo: { kind: 'history', labelKey: 'redo', run: redo },
+  redo: { kind: 'history', labelKey: 'redo', run: redoPageEditorStep },
   taskList: { group: 'lists', kind: 'block', labelKey: 'taskList', run: wrapInList(schema.nodes.task_list) },
   table: {
     group: 'advanced',
@@ -154,7 +155,7 @@ export const createPageEditorCommands = (
     labelKey: 'toggle',
     run: insertPageNode(createMinimalPageToggleNode(schema, toggleSummary)),
   },
-  undo: { kind: 'history', labelKey: 'undo', run: undo },
+  undo: { kind: 'history', labelKey: 'undo', run: undoPageEditorStep },
 });
 
 export const appendParagraphAtEnd: Command = (state, dispatch) => {
@@ -184,7 +185,7 @@ export const createPageEditorPlugins = (
       wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
     ],
   }),
-  keymap({ 'Mod-y': redo }),
+  keymap({ 'Mod-y': redoPageEditorStep }),
   keymap(createPageEditorShortcutBindings(PAGE_EDITOR_SHORTCUTS)),
   keymap(
     Object.fromEntries([

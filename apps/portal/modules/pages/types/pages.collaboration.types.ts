@@ -9,6 +9,16 @@ export interface PageCollaborationParticipant extends CollaborationPresenceIdent
   readonly cursor: unknown;
 }
 
+/**
+ * What the editor needs of a page written together: the shared text, and who
+ * else is looking at it. Everything else about the session — the provider, the
+ * page it belongs to — is the business of whoever keeps the connection.
+ */
+export interface PageCollaborationDraft {
+  readonly awareness: HocuspocusProvider['awareness'] | null;
+  readonly fragment: XmlFragment;
+}
+
 export interface PageCollaborationSession {
   readonly fragment: XmlFragment;
   readonly pageId: string;
