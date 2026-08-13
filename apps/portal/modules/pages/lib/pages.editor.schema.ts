@@ -88,6 +88,16 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   ],
   ['text', { group: 'inline' }],
   [
+    'hard_break',
+    {
+      group: 'inline',
+      inline: true,
+      parseDOM: [{ tag: 'br' }],
+      selectable: false,
+      toDOM: () => ['br'],
+    },
+  ],
+  [
     'collection',
     definePageBlock({
       attrs: { pageId: {}, spaceId: {}, viewName: { default: null } },

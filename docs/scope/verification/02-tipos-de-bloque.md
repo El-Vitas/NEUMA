@@ -10,11 +10,11 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-01 · Párrafo
 
-- [ ] Es el tipo por defecto al escribir
-- [ ] Enter crea un párrafo nuevo separado
-- [ ] Shift+Enter hace un salto de línea dentro del mismo párrafo
-- [ ] Al escribir no aparece ningún fondo ni color que no se haya pedido
-- [ ] Un párrafo vacío indica que se puede escribir ahí, sin ensuciar la lectura
+- [x] Es el tipo por defecto al escribir
+- [x] Enter crea un párrafo nuevo separado
+- [x] Shift+Enter hace un salto de línea dentro del mismo párrafo
+- [x] Al escribir no aparece ningún fondo ni color que no se haya pedido
+- [x] Un párrafo vacío indica que se puede escribir ahí, sin ensuciar la lectura
 
 ## TB-02 · Encabezados
 
@@ -229,4 +229,4 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
-| | | | |
+| 13/08/2026 | TB-01 | Faltaban `Shift+Enter` (no existía el nodo `hard_break` en el contrato) y la invitación a escribir en un párrafo vacío. Ambas implementadas y probadas en el navegador. | 5 de 5 |

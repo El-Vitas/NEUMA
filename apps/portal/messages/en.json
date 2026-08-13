@@ -267,6 +267,8 @@
     "collapsePage": "Collapse {name}",
     "expandPage": "Expand {name}",
     "pageActions": "Actions for {name}",
+    "pageTree": "Pages in this space",
+    "writeHere": "Write, or press / for blocks",
     "trash": "Trash",
     "trashPage": "Move to trash",
     "restorePage": "Restore page",

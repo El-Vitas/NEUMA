@@ -1,6 +1,7 @@
 import type { Node as EditorDocument } from 'prosemirror-model';
 import { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
+import { PAGE_EDITOR_LEAF_NODE_TYPES } from '../constants/pages.editor.blocks.constants';
 import {
   PAGE_EDITOR_APPLE_USER_AGENT_PATTERN,
   SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX,
@@ -26,6 +27,7 @@ export const createPageEditorState = (
   selectBlockLabel: string,
   insertBlockLabel: string = selectBlockLabel,
   blockCommentsLabel: string = selectBlockLabel,
+  writeHereLabel = '',
 ): EditorState =>
   EditorState.create({
     doc: pageEditorSchema.nodeFromJSON(holdPageContentThisVersionCannotRead(pageContentSchema.parse(content))),
@@ -35,6 +37,7 @@ export const createPageEditorState = (
       insertBlockLabel,
       selectBlockLabel,
       blockCommentsLabel,
+      writeHereLabel,
     ),
     schema: pageEditorSchema,
   });
@@ -127,8 +130,7 @@ const isEmptyNormalizedAttrs = (key: string, value: unknown): boolean =>
   key === 'attrs' && isPageEditorJsonObject(value) && Object.keys(value).length === 0;
 
 const isPageEditorContentNode = (value: unknown): boolean =>
-  typeof value === 'string' &&
-  !['code', 'collection', 'em', 'embed', 'file', 'image', 'link', 'mention', 'strong', 'text'].includes(value);
+  typeof value === 'string' && !PAGE_EDITOR_LEAF_NODE_TYPES.includes(value);
 
 const isPageEditorJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

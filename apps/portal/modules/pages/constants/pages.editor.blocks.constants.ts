@@ -65,6 +65,30 @@ export const PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS =
 
 export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS = '-ml-11 float-left flex items-start gap-0.5';
 
+/**
+ * The nodes that hold nothing inside them.
+ *
+ * Handing one of these an empty `content` on the way out would be a shape the
+ * shared contract refuses, and the refusal lands in the middle of a keystroke.
+ */
+export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
+  'code',
+  'collection',
+  'em',
+  'embed',
+  'file',
+  'hard_break',
+  'image',
+  'link',
+  'mention',
+  'strong',
+  'text',
+];
+
+/** The invitation to write, drawn beside the cursor without taking up room of its own. */
+export const PAGE_EDITOR_PLACEHOLDER_STYLE_CLASS =
+  'relative before:pointer-events-none before:absolute before:text-muted-foreground/60 before:content-[attr(data-placeholder)]';
+
 export const PAGE_EDITOR_BLOCK_PROBE_INSET_PX = 40;
 
 /** How far into the page margin a block still answers with its buttons. */
