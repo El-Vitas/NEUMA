@@ -113,6 +113,28 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a heading remembering that it is folded', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          { attrs: { collapsed: true, level: 2 }, content: [{ text: 'Plegado', type: 'text' }], type: 'heading' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('accepts a heading that says nothing about being folded, as every existing one does', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { level: 2 }, content: [{ text: 'Sin plegar', type: 'text' }], type: 'heading' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
   test('accepts a mention inside a paragraph', () => {
     expect(
       pageContentSchema.safeParse({

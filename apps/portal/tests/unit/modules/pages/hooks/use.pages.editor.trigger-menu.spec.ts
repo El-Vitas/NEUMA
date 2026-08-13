@@ -84,7 +84,7 @@ describe('opening a trigger', () => {
     });
 
     expect(result.current.triggerQuery).toBe('');
-    expect(result.current.triggerItems.map((item) => item.label)).toContain('Heading');
+    expect(result.current.triggerItems.map((item) => item.label)).toContain('Heading 2');
     expect(result.current.triggerItems.length).toBeGreaterThan(1);
   });
 
@@ -108,7 +108,7 @@ describe('filtering as the query changes', () => {
       result.current.updateEditorTrigger('/head');
     });
 
-    expect(result.current.triggerItems.map((item) => item.label)).toEqual(['Heading']);
+    expect(result.current.triggerItems.map((item) => item.label)).toEqual(['Heading 1', 'Heading 2', 'Heading 3']);
   });
 
   it('shows the empty message once nothing matches anymore', () => {

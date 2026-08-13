@@ -6,6 +6,7 @@ export const PAGE_EDITOR_QUIET_SURFACE: PageEditorSurfaceState = {
   colors: { background: null, text: null },
   comments: [],
   conversions: [],
+  foldState: null,
   menuPosition: null,
   request: null,
   selectedBlockCount: 0,

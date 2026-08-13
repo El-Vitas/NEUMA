@@ -12,7 +12,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SPACE_NAME_MAX_LENGTH, SPACE_SLUG_MAX_LENGTH } from '../constants/spaces.constants';
 import { getSpaceFieldErrorCode, resolveSpaceFieldErrorMessage } from '../lib/spaces.lib';
@@ -23,6 +23,7 @@ import type { SpaceSummary, SpaceVisibility } from '../types/spaces.types';
 export const SpacesCreateForm = () => {
   const router = useRouter();
   const t = useTranslations('spaces');
+  const tErrors = useTranslations('errors');
   const validationT = useTranslations('validation');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -51,7 +52,7 @@ export const SpacesCreateForm = () => {
     try {
       const result = await createSpaceAction({ name, slug, visibility });
       if (!isActionSuccess<SpaceSummary>(result)) {
-        toast.error(hasActionError(result) ? (result.serverError ?? t('createError')) : t('createError'));
+        toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
         return;
       }
       toast.success(t('created'));

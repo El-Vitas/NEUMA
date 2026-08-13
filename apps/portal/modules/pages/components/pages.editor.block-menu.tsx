@@ -15,6 +15,7 @@ import { PAGE_EDITOR_BLOCK_MENU_DROP_PX } from '../constants/pages.editor.blocks
 import { usePagesEditorConversionRequest } from '../hooks/use.pages.editor.conversion';
 import type { PageEditorBlockColorKind, PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
+import type { PageEditorBlockFolding } from '../types/pages.editor.heading-fold.types';
 import { PagesEditorBlockColorItems } from './pages.editor.block-color.items';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
@@ -23,6 +24,7 @@ interface IProps {
   readonly canBecomePage: boolean;
   readonly colors: PageEditorBlockColors;
   readonly conversions: readonly PageEditorBlockConversion[];
+  readonly folding: PageEditorBlockFolding | null;
   readonly hasIdentity: boolean;
   readonly onBecomePage: () => void;
   readonly onClose: () => void;
@@ -45,6 +47,7 @@ export const PagesEditorBlockMenu = ({
   canBecomePage,
   colors,
   conversions,
+  folding,
   hasIdentity,
   onBecomePage,
   onClose,
@@ -97,6 +100,11 @@ export const PagesEditorBlockMenu = ({
               />
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          {folding !== null && (
+            <DropdownMenuItem onSelect={folding.toggle}>
+              {folding.isFolded ? t('unfoldBlock') : t('foldBlock')}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={onDuplicate}>{t('duplicateBlock')}</DropdownMenuItem>
           {hasIdentity && <DropdownMenuItem onSelect={onCopyLink}>{t('copyBlockLink')}</DropdownMenuItem>}
           <DropdownMenuItem onSelect={onMoveToPage}>{t('moveBlocks')}</DropdownMenuItem>

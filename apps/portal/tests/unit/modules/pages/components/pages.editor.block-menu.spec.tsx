@@ -35,6 +35,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         canBecomePage
         colors={{ background: null, text: null }}
         conversions={conversions}
+        folding={null}
         hasIdentity={hasIdentity}
         onBecomePage={() => use.becamePage.push(1)}
         onClose={() => use.closed.push(1)}

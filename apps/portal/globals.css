@@ -2,3 +2,15 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@company-brain/design/tokens.css";
+
+/*
+ * ProseMirror places a separator image after a widget that ends a block, and
+ * expects it to sit inline. The base reset makes every image a block, which
+ * turns that separator into a line of its own: a heading with a button at its
+ * end grew to three lines tall.
+ */
+.ProseMirror img.ProseMirror-separator {
+  display: inline;
+  border: none;
+  margin: 0;
+}

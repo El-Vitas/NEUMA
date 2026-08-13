@@ -75,6 +75,14 @@ const getPageEditorColumnAttrs = (
   return { id: element.dataset.blockId ?? null, width: Number.isFinite(width) ? width : null };
 };
 
+/** A heading carries its level and whether it was left folded, and both must survive a round trip through the DOM. */
+const readPageEditorHeadingAttrs =
+  (level: number) =>
+  (element: HTMLElement): { readonly collapsed: boolean; readonly level: number } => ({
+    collapsed: element.dataset.collapsed === 'true',
+    level,
+  });
+
 const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   ['doc', { content: 'block+' }],
   [
@@ -178,16 +186,20 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'heading',
     definePageBlock({
-      attrs: { level: { default: 1 } },
+      attrs: { collapsed: { default: false }, level: { default: 1 } },
       content: 'inline*',
       defining: true,
       group: 'block',
       parseDOM: [
-        { attrs: { level: 1 }, tag: 'h1' },
-        { attrs: { level: 2 }, tag: 'h2' },
-        { attrs: { level: 3 }, tag: 'h3' },
+        { getAttrs: readPageEditorHeadingAttrs(1), tag: 'h1' },
+        { getAttrs: readPageEditorHeadingAttrs(2), tag: 'h2' },
+        { getAttrs: readPageEditorHeadingAttrs(3), tag: 'h3' },
       ],
-      render: (node, blockAttributes) => [`h${node.attrs.level}`, blockAttributes, 0],
+      render: (node, blockAttributes) => [
+        `h${node.attrs.level}`,
+        node.attrs.collapsed === true ? { ...blockAttributes, 'data-collapsed': 'true' } : blockAttributes,
+        0,
+      ],
     }),
   ],
   [

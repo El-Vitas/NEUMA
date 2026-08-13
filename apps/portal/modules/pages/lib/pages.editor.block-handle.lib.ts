@@ -8,6 +8,10 @@ import {
   PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS,
   PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE,
   PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX,
+  PAGE_EDITOR_GUTTER_BLOCK_GAP_PX,
+  PAGE_EDITOR_GUTTER_BUTTON_MAX_PX,
+  PAGE_EDITOR_GUTTER_BUTTON_MIN_PX,
+  PAGE_EDITOR_GUTTER_BUTTON_RATIO,
   PAGE_EDITOR_GUTTER_REACH_PX,
 } from '../constants/pages.editor.blocks.constants';
 import type {
@@ -17,7 +21,11 @@ import type {
 } from '../types/pages.editor.block-drag.types';
 import { armPageEditorBlockDrag, isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
 import { openPageEditorBlockRequest } from './pages.editor.block-menu.lib';
-import { findPageEditorBlockAtPointer, offersGrabbableBlocks } from './pages.editor.block-target.lib';
+import {
+  findPageEditorBlockAtPointer,
+  findPageEditorBlockOnPointerRow,
+  offersGrabbableBlocks,
+} from './pages.editor.block-target.lib';
 import { pageEditorBlockHandleKey } from './pages.editor.plugin-keys.lib';
 
 /**
@@ -26,7 +34,8 @@ import { pageEditorBlockHandleKey } from './pages.editor.plugin-keys.lib';
  * pair of gutter buttons instead of the row's.
  */
 export const findBlockPositionAtPointer = (view: EditorView, pointer: PageEditorDropPointer): number | null =>
-  findPageEditorBlockAtPointer(view, pointer, offersGrabbableBlocks);
+  findPageEditorBlockAtPointer(view, pointer, offersGrabbableBlocks) ??
+  findPageEditorBlockOnPointerRow(view, pointer.clientY);
 
 /**
  * Tells whether the pointer is close enough to a block to be asking for its
@@ -38,7 +47,7 @@ const isPointerWithinGutterReach = (view: EditorView, event: MouseEvent): boolea
   const box = view.dom.getBoundingClientRect();
   return (
     event.clientX >= box.left - PAGE_EDITOR_GUTTER_REACH_PX &&
-    event.clientX <= box.right &&
+    event.clientX <= box.right + PAGE_EDITOR_GUTTER_REACH_PX &&
     event.clientY >= box.top &&
     event.clientY <= box.bottom
   );
@@ -151,6 +160,60 @@ const createHandleElement = (view: EditorView, position: number, label: string):
  * They belong to the block itself and not to the page margin, so a block
  * sitting inside a column keeps its own pair right beside it.
  */
+/** Kept between what still reads as a target and what would push into the margin. */
+const clampGutterButtonSize = (size: number): number =>
+  Math.min(Math.max(size, PAGE_EDITOR_GUTTER_BUTTON_MIN_PX), PAGE_EDITOR_GUTTER_BUTTON_MAX_PX);
+
+/**
+ * How big this block's buttons should be drawn.
+ *
+ * They follow the block's own line, so a heading is offered a bigger pair than
+ * a line nested inside a column. They are not measured against the room beside
+ * the block: that room belongs to the page margin, which the editor's own box
+ * cannot see.
+ */
+const measureGutterButton = (blockStyle: CSSStyleDeclaration, blockHeight: number): number => {
+  const lineHeight = Number.parseFloat(blockStyle.lineHeight);
+  const line = Number.isFinite(lineHeight) ? lineHeight : blockHeight;
+  return clampGutterButtonSize(line * PAGE_EDITOR_GUTTER_BUTTON_RATIO);
+};
+
+/**
+ * Stands the buttons beside the block, level with its middle.
+ *
+ * Against the block itself and not floated into the text: a float lands
+ * wherever the flow happens to be, which is why beside a tall heading they rode
+ * high and beside a block holding others they landed on top of them.
+ */
+const standGutterBesideBlock = (view: EditorView, gutter: HTMLElement, position: number): void => {
+  const blockDom = view.nodeDOM(position);
+  if (!(blockDom instanceof HTMLElement)) return;
+  /**
+   * The box the browser will measure the gutter against — which is not the
+   * editor: the editor itself is not positioned, so both it and the gutter fall
+   * back to the same ancestor, and measuring against anything else lands the
+   * buttons a fixed distance away from the block they belong to.
+   */
+  const origin = blockDom.offsetParent instanceof HTMLElement ? blockDom.offsetParent : view.dom;
+  const originRect = origin.getBoundingClientRect();
+  const originLeft = originRect.left + origin.clientLeft;
+  const originTop = originRect.top + origin.clientTop;
+  const blockRect = blockDom.getBoundingClientRect();
+  const buttonSize = measureGutterButton(globalThis.getComputedStyle(blockDom), blockRect.height);
+
+  gutter.style.left = `${String(blockRect.left - originLeft - PAGE_EDITOR_GUTTER_BLOCK_GAP_PX)}px`;
+  gutter.style.top = `${String(blockRect.top - originTop)}px`;
+  gutter.style.height = `${String(blockRect.height)}px`;
+  for (const button of gutter.children) {
+    if (!(button instanceof HTMLElement)) continue;
+    const size = buttonSize;
+    button.style.width = `${String(Math.round(size))}px`;
+    button.style.height = `${String(Math.round(size))}px`;
+    button.style.fontSize = `${String(Math.round(size * PAGE_EDITOR_GUTTER_BUTTON_RATIO))}px`;
+    button.style.lineHeight = '1';
+  }
+};
+
 const createBlockGutter = (view: EditorView, position: number, labels: PageEditorGutterLabels): HTMLElement => {
   const gutter = document.createElement('div');
   gutter.className = PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS;
@@ -159,6 +222,7 @@ const createBlockGutter = (view: EditorView, position: number, labels: PageEdito
     createInsertElement(view, position, labels.insertBlock),
     createHandleElement(view, position, labels.selectBlock),
   );
+  standGutterBesideBlock(view, gutter, position);
   return gutter;
 };
 
@@ -176,7 +240,10 @@ export const createPageEditorBlockHandlePlugin = (
           Decoration.widget(
             position,
             (view) =>
-              createBlockGutter(view, position, { insertBlock: insertBlockLabel, selectBlock: selectBlockLabel }),
+              createBlockGutter(view, position, {
+                insertBlock: insertBlockLabel,
+                selectBlock: selectBlockLabel,
+              }),
             { key: `page-editor-block-gutter-${String(position)}`, side: -1 },
           ),
         ]);

@@ -18,11 +18,11 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-02 · Encabezados
 
-- [ ] `#`, `##`, `###` + espacio producen los tres niveles
-- [ ] Los tres se distinguen visualmente entre sí y del texto normal
-- [ ] Desde el menú `/` se puede elegir el nivel, no solo uno fijo
-- [ ] Un encabezado se puede volver plegable
-- [ ] Plegarlo oculta el contenido hasta el siguiente encabezado del mismo nivel
+- [x] `#`, `##`, `###` + espacio producen los tres niveles
+- [x] Los tres se distinguen visualmente entre sí y del texto normal
+- [x] Desde el menú `/` se puede elegir el nivel, no solo uno fijo
+- [x] Un encabezado se puede volver plegable
+- [x] Plegarlo oculta el contenido hasta el siguiente encabezado del mismo nivel
 - [ ] El estado plegado se conserva al navegar
 - [ ] Al exportar o imprimir, lo plegado se incluye igual
 
@@ -229,4 +229,5 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-02 | Faltaban los tres niveles en el menú `/` (estaba fijo en 2) y el encabezado plegable, ambos implementados. Quedan sin marcar: que el plegado sobreviva a la recarga (se guarda `collapsed: true` y sale el POST, pero vuelve en `false` — se sospecha de la capa colaborativa, misma zona que CL-01) y lo de exportar, que no existe en el producto (documento `09`). | 5 de 7 |
 | 13/08/2026 | TB-01 | Faltaban `Shift+Enter` (no existía el nodo `hard_break` en el contrato) y la invitación a escribir en un párrafo vacío. Ambas implementadas y probadas en el navegador. | 5 de 5 |

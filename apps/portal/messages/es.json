@@ -242,7 +242,7 @@
     "saveChanges": "Guardar cambios",
     "saving": "Guardando...",
     "create": "Crear página",
-    "saveError": "No se pudo guardar la página. Revisa tus permisos e inténtalo de nuevo.",
+    "saveError": "Tu último cambio todavía no se ha guardado.",
     "created": "Página creada",
     "updated": "Página actualizada",
     "collaboration": {
@@ -281,7 +281,9 @@
     "commands": {
       "bold": "Negrita",
       "italic": "Cursiva",
-      "heading": "Encabezado",
+      "heading1": "Encabezado 1",
+      "heading2": "Encabezado 2",
+      "heading3": "Encabezado 3",
       "bulletList": "Lista con viñetas",
       "orderedList": "Lista numerada",
       "blockquote": "Cita",
@@ -420,12 +422,28 @@
     "noBlockComments": "Todavía no hay comentarios.",
     "writeBlockComment": "Escribe un comentario",
     "addBlockComment": "Comentar",
-    "removeBlockComment": "Eliminar"
+    "removeBlockComment": "Eliminar",
+    "foldHeading": "Plegar o desplegar este encabezado",
+    "foldBlock": "Plegar",
+    "unfoldBlock": "Desplegar"
   },
   "errors": {
     "generic": "Algo salió mal.",
     "network": "No se pudo conectar con el servidor. Verifica tu conexión.",
-    "emptyResponse": "El servidor devolvió una respuesta vacía."
+    "emptyResponse": "El servidor devolvió una respuesta vacía.",
+    "pageTitle": "No se pudo abrir esta página",
+    "pageBody": "Algo de nuestro lado dejó de funcionar. Lo que escribiste está a salvo. Inténtalo otra vez y, si sigue pasando, cuéntanos la referencia de abajo.",
+    "reference": "Referencia",
+    "retry": "Intentar de nuevo",
+    "goHome": "Ir al inicio",
+    "reasons": {
+      "invalid": "Algo de esta página no se puede guardar como está. Deshaz tu último cambio e inténtalo de nuevo.",
+      "forbidden": "No tienes permiso para hacer esto.",
+      "missing": "Esto ya no existe. Puede que se haya eliminado.",
+      "conflict": "Otra persona lo cambió antes. Recarga para ver cómo quedó.",
+      "offline": "No se pudo contactar con el servidor. Revisa tu conexión.",
+      "unexpected": "Algo falló de nuestro lado. Inténtalo de nuevo."
+    }
   },
   "validation": {
     "invalidEmail": "Ingresa un correo electrónico válido.",

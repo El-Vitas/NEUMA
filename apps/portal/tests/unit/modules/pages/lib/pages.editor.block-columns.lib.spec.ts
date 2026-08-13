@@ -64,9 +64,14 @@ describe('deciding when a drop splits a row into columns', () => {
     expect(findPageEditorColumnSide({ blockRect, clientX: 300 })).toBeNull();
   });
 
-  it('ignores a pointer outside the block', () => {
-    expect(findPageEditorColumnSide({ blockRect, clientX: 40 })).toBeNull();
-    expect(findPageEditorColumnSide({ blockRect, clientX: 560 })).toBeNull();
+  it('still answers just outside the block, which is where a drag arrives from', () => {
+    expect(findPageEditorColumnSide({ blockRect, clientX: 40 })).toBe('left');
+    expect(findPageEditorColumnSide({ blockRect, clientX: 560 })).toBe('right');
+  });
+
+  it('ignores a pointer far away from the block', () => {
+    expect(findPageEditorColumnSide({ blockRect, clientX: -60 })).toBeNull();
+    expect(findPageEditorColumnSide({ blockRect, clientX: 700 })).toBeNull();
   });
 
   it('keeps the column band from swallowing a very wide block', () => {

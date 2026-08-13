@@ -55,15 +55,55 @@ export const PAGE_EDITOR_BLOCK_HANDLE_PLUGIN_KEY = 'page-editor-block-handle-plu
 
 export const PAGE_EDITOR_BLOCK_HANDLE_CLASS = 'page-editor-block-handle';
 
-export const PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS =
-  'w-5 cursor-grab select-none text-center text-muted-foreground hover:text-foreground';
+/**
+ * The grip: drawn small so it does not shout, pressed on a target far larger
+ * than what is drawn. The guidance asks for 44px of reach, and an icon that
+ * size beside a line of text would be the loudest thing on the page.
+ */
+export const PAGE_EDITOR_BLOCK_HANDLE_STYLE_CLASS = [
+  'relative inline-flex items-center justify-center',
+  'cursor-grab select-none text-center text-muted-foreground hover:text-foreground',
+  "before:absolute before:-inset-3 before:content-['']",
+].join(' ');
 
 export const PAGE_EDITOR_BLOCK_INSERT_CLASS = 'page-editor-block-insert';
 
-export const PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS =
-  'w-5 cursor-pointer select-none text-center text-muted-foreground hover:text-foreground';
+export const PAGE_EDITOR_BLOCK_INSERT_STYLE_CLASS = [
+  'relative inline-flex items-center justify-center',
+  'cursor-pointer select-none text-center text-muted-foreground hover:text-foreground',
+  "before:absolute before:-inset-3 before:content-['']",
+].join(' ');
 
-export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS = '-ml-11 float-left flex items-start gap-0.5';
+/**
+ * How big the pair of buttons is drawn, following the block's own line.
+ *
+ * A block nested inside another sits on a tighter line and has less room to its
+ * left, so its pair comes out smaller rather than pushing into the text beside
+ * it. Neither end is left to chance: too small stops being a target, too big
+ * breaks the margin.
+ */
+export const PAGE_EDITOR_GUTTER_BUTTON_MIN_PX = 18;
+
+export const PAGE_EDITOR_GUTTER_BUTTON_MAX_PX = 24;
+
+/** How much of the line a button takes up. */
+export const PAGE_EDITOR_GUTTER_BUTTON_RATIO = 0.8;
+
+/** The triangle is a quieter affordance than the two beside it, and takes up less room accordingly. */
+export const PAGE_EDITOR_GUTTER_FOLD_RATIO = 0.7;
+
+/** The breathing room kept between the pair and the block it belongs to. */
+export const PAGE_EDITOR_GUTTER_BLOCK_GAP_PX = 5;
+
+/**
+ * The pair of buttons a block offers, parked just outside its left edge.
+ *
+ * It is placed against the block rather than floated into the text, because a
+ * float lands wherever the flow happens to be: beside a tall heading it rode
+ * high, and beside a block holding others it landed on top of them.
+ */
+export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS =
+  'pointer-events-auto absolute flex -translate-x-full items-center gap-1 pr-1.5';
 
 /**
  * The nodes that hold nothing inside them.
@@ -84,6 +124,46 @@ export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'strong',
   'text',
 ];
+
+/**
+ * Attributes that only mean something when they are true.
+ *
+ * Written when they are, absent when they are not, so a page full of headings
+ * nobody folded reads exactly as it did before folding existed.
+ */
+export const PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES: readonly string[] = ['collapsed'];
+
+/** What a folded heading is holding: kept in the page, taken out of sight. */
+export const PAGE_EDITOR_FOLDED_STYLE_CLASS = 'hidden';
+
+/** The triangle that folds a heading, parked outside its left edge like the block grip. */
+export const PAGE_EDITOR_HEADING_FOLD_CLASS = 'page-editor-heading-fold';
+
+export const PAGE_EDITOR_HEADING_FOLD_STYLE_CLASS =
+  'shrink-0 cursor-pointer select-none text-center text-muted-foreground leading-none hover:text-foreground';
+
+/**
+ * The heading becomes the frame its own fold button is shown against, so the
+ * button can stay out of the way until the pointer is on the heading.
+ */
+export const PAGE_EDITOR_FOLDABLE_HEADING_STYLE_CLASS = 'group';
+
+/**
+ * The button at the end of a heading that folds it.
+ *
+ * Drawn quietly and only when the heading is under the pointer — except when
+ * what it is holding is out of sight, and then it stays, because a folded
+ * heading with no sign would read as a heading with nothing under it.
+ */
+export const PAGE_EDITOR_HEADING_FOLD_END_STYLE_CLASS = [
+  'relative ml-3 inline-flex select-none items-center justify-center align-middle',
+  'cursor-pointer text-muted-foreground text-base leading-none hover:text-foreground',
+  'opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
+  "before:absolute before:-inset-3 before:content-['']",
+].join(' ');
+
+/** Once folded it stays in sight, whatever the pointer is doing. */
+export const PAGE_EDITOR_FOLDED_HEADING_MARK_STYLE_CLASS = 'opacity-100';
 
 /** The invitation to write, drawn beside the cursor without taking up room of its own. */
 export const PAGE_EDITOR_PLACEHOLDER_STYLE_CLASS =
@@ -181,6 +261,22 @@ export const PAGE_EDITOR_COLUMN_DIVIDER_STYLE_CLASS = [
 
 export const PAGE_EDITOR_COLUMN_DIVIDER_BAR_STYLE_CLASS =
   'w-1 rounded-full bg-transparent transition-colors group-hover:bg-primary/40';
+
+/**
+ * How much of a block's height, top and bottom, means "a new line here".
+ *
+ * Those bands are read before the side ones, so aiming above or below a block
+ * wins over making a column of it. The grip lives in the left margin, so the
+ * pointer starts there on every drag: without this, the left side answered
+ * first and dropping a block above another was almost impossible.
+ */
+export const PAGE_EDITOR_DROP_EDGE_RATIO = 0.3;
+
+/** However thin the block, its edges still offer somewhere to aim. */
+export const PAGE_EDITOR_DROP_EDGE_MIN_PX = 10;
+
+/** However narrow a block is, its sides still offer somewhere to aim at. */
+export const PAGE_EDITOR_COLUMN_EDGE_MIN_PX = 44;
 
 export const PAGE_EDITOR_COLUMN_EDGE_RATIO = 0.25;
 

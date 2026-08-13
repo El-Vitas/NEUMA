@@ -10,6 +10,7 @@ import {
 import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
+import { togglePageEditorHeadingFold } from '../lib/pages.editor.heading-fold.lib';
 import type { PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
@@ -23,6 +24,7 @@ interface IProps {
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
+  readonly foldState: { readonly isFolded: boolean } | null;
   readonly hasIdentity: boolean;
   readonly menuPosition: { readonly left: number; readonly top: number } | null;
   readonly onAsk: (kind: PageEditorBlockRequestKind) => void;
@@ -49,6 +51,7 @@ export const PagesEditorBlockActions = ({
   colors,
   comments,
   conversions,
+  foldState,
   hasIdentity,
   menuPosition,
   onAsk,
@@ -80,6 +83,14 @@ export const PagesEditorBlockActions = ({
             canBecomePage={pageId !== null}
             colors={colors}
             conversions={conversions}
+            folding={
+              foldState === null || request === null
+                ? null
+                : {
+                    isFolded: foldState.isFolded,
+                    toggle: () => onRunCommand(togglePageEditorHeadingFold(request.blockStart)),
+                  }
+            }
             hasIdentity={hasIdentity}
             onBecomePage={onBecomePage}
             onClose={() => onClose('actions')}

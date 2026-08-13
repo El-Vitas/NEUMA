@@ -1,4 +1,15 @@
-import { Braces, ChevronRight, Heading, List, ListOrdered, type LucideIcon, Quote, Table } from 'lucide-react';
+import {
+  Braces,
+  ChevronRight,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  type LucideIcon,
+  Quote,
+  Table,
+} from 'lucide-react';
 import { createPageEditorCommands } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 
@@ -19,13 +30,15 @@ export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
   blockquote: Quote,
   bulletList: List,
   codeBlock: Braces,
-  heading: Heading,
+  heading1: Heading1,
+  heading2: Heading2,
+  heading3: Heading3,
   orderedList: ListOrdered,
   table: Table,
   toggle: ChevronRight,
 };
 
-export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'code', 'heading'] as const;
+export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'code', 'heading2'] as const;
 
 export const PAGE_EDITOR_APPLE_USER_AGENT_PATTERN = /mac|iphone|ipad|ipod/i;
 

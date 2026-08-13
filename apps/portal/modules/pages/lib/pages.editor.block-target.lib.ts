@@ -231,6 +231,23 @@ const probeBlockAtPointer = (
  * dropping are different questions: a table is grabbed whole, yet a block can
  * still be dropped inside one of its cells.
  */
+/**
+ * The block whose row the pointer is on, whatever it is doing sideways.
+ *
+ * Past the end of a short line, or out in the margin, there is no block under
+ * the pointer at all — but the reader is plainly still on that line, and its
+ * buttons blinking out from under them is what this answers.
+ */
+export const findPageEditorBlockOnPointerRow = (view: EditorView, clientY: number): number | null => {
+  let found: number | null = null;
+  view.state.doc.forEach((_node, offset) => {
+    if (found !== null) return;
+    const rect = getPageEditorBlockRect(view, offset);
+    if (rect !== null && clientY >= rect.top && clientY <= rect.bottom) found = offset;
+  });
+  return found;
+};
+
 export const findPageEditorBlockAtPointer = (
   view: EditorView,
   pointer: PageEditorDropPointer,

@@ -28,6 +28,7 @@ export interface PageEditorSurfaceState {
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
+  readonly foldState: { readonly isFolded: boolean } | null;
   readonly menuPosition: PageEditorSpot | null;
   readonly request: PageEditorBlockRequest | null;
   readonly selectedBlockCount: number;
