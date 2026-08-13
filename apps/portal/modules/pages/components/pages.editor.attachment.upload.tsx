@@ -23,6 +23,7 @@ export const PagesEditorAttachmentUpload = ({ error, isPending, onFileSelected, 
         accept={ATTACHMENT_MIME_TYPES.join(',')}
         aria-label={t('selectFile')}
         className="sr-only"
+        data-page-file-input="true"
         disabled={isPending}
         onChange={(event) => {
           const selectedFile = event.currentTarget.files?.[0];

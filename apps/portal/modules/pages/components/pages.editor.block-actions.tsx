@@ -12,6 +12,7 @@ import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { createPageEditorCalloutIconCommand } from '../lib/pages.editor.callout-icon.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import { togglePageEditorHeadingFold } from '../lib/pages.editor.heading-fold.lib';
+import { createPageImageAlignmentCommand } from '../lib/pages.editor.image.lib';
 import { createPageTableCommand } from '../lib/pages.editor.table.lib';
 import type { PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
@@ -26,6 +27,7 @@ import { PagesEditorBlockMenu } from './pages.editor.block-menu';
 interface IProps {
   readonly authorName: string;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
+  readonly imageAlign: { readonly chosen: string | null } | null;
   readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
@@ -56,6 +58,7 @@ export const PagesEditorBlockActions = ({
   authorName,
   calloutIcon,
   colors,
+  imageAlign,
   isInTable,
   comments,
   conversions,
@@ -101,6 +104,7 @@ export const PagesEditorBlockActions = ({
                   }
             }
             hasIdentity={hasIdentity}
+            imageAlign={imageAlign}
             onBecomePage={onBecomePage}
             onCalloutIcon={(icon) => onRunCommand(createPageEditorCalloutIconCommand(icon))}
             onClose={() => onClose('actions')}
@@ -110,6 +114,7 @@ export const PagesEditorBlockActions = ({
             onCopyLink={onCopyLink}
             onDelete={() => onRunCommand(deletePageEditorBlocks)}
             onDuplicate={() => onRunCommand(duplicatePageEditorBlock)}
+            onImageAlign={(align) => onRunCommand(createPageImageAlignmentCommand(align))}
             onMoveToPage={() => onAsk('handover')}
             onTableAction={(action: PageEditorTableAction) => onRunCommand(createPageTableCommand(action))}
             tableActions={isInTable}

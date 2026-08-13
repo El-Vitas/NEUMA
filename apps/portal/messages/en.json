@@ -295,7 +295,8 @@
       "toggle": "Toggle",
       "undo": "Undo",
       "taskList": "To-do list",
-      "callout": "Callout"
+      "callout": "Callout",
+      "insertImage": "Image"
     },
     "backlinks": {
       "title": "Linked from ({count})"
@@ -464,6 +465,15 @@
       "deleteColumn": "Delete column",
       "toggleHeaderRow": "Header row",
       "deleteTable": "Delete table"
+    },
+    "imageCaption": "Describe the image",
+    "resizeImage": "Resize the image",
+    "imageAlignLabel": "Alignment",
+    "imageAlign": {
+      "left": "Left",
+      "center": "Centre",
+      "right": "Right",
+      "full": "Full width"
     }
   },
   "errors": {

@@ -93,6 +93,7 @@ export type {
   PageBlockColor,
   PageCalloutIcon,
   PageCodeLanguage,
+  PageImageAlignment,
   PageBlockComment,
   PageContent,
   PageContentInlineNode,
@@ -109,6 +110,7 @@ export {
   PAGE_BLOCK_COLORS,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
+  PAGE_IMAGE_ALIGNMENTS,
   PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
@@ -116,6 +118,7 @@ export {
   pageCollectionAttrsSchema,
   pageContentSchema,
   pageEmbedAttrsSchema,
+  pageImageAttrsSchema,
   pageMentionAttrsSchema,
 } from './schemas/page-content.schema.js';
 export type { AuthSession } from './types/auth.types.js';

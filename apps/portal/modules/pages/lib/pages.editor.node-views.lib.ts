@@ -5,6 +5,7 @@ import {
   PAGE_EDITOR_CALLOUT_TYPE,
   PAGE_EDITOR_CODE_TYPE,
   PAGE_EDITOR_COLLECTION_CLASS,
+  PAGE_EDITOR_IMAGE_TYPE,
   PAGE_EDITOR_TASK_ITEM_TYPE,
   PAGE_EDITOR_TOGGLE_TYPE,
   PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
@@ -14,6 +15,7 @@ import {
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageCodeBlockNodeView } from './pages.editor.code.node-view.lib';
+import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
 
@@ -27,14 +29,6 @@ const createPageFileNodeView = (node: EditorNode): NodeView => {
   link.rel = 'noopener';
   link.textContent = node.attrs.caption || node.attrs.assetId;
   return { dom: link };
-};
-
-const createPageImageNodeView = (node: EditorNode): NodeView => {
-  const image = document.createElement('img');
-  image.alt = node.attrs.alt || '';
-  image.className = 'my-4 h-auto max-w-full';
-  image.src = getPageAssetUrl(node.attrs.assetId);
-  return { dom: image };
 };
 
 const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView => {
@@ -82,7 +76,8 @@ export const createPageEditorNodeViews = (
     createPageCodeBlockNodeView(node, view, getPosition, labels.code),
   collection: (node) => createPageCollectionNodeView(node, labels.collection),
   file: createPageFileNodeView,
-  image: createPageImageNodeView,
+  [PAGE_EDITOR_IMAGE_TYPE]: (node, view, getPosition) =>
+    createPageImageNodeView(node, view, getPosition, labels.image, getPageAssetUrl),
   mention: createPageMentionNodeView,
   [PAGE_EDITOR_TASK_ITEM_TYPE]: (node, view, getPosition) =>
     createPageTaskItemNodeView(node, view, getPosition, labels.task),

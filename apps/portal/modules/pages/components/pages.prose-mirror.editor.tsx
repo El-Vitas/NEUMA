@@ -88,6 +88,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
+    const imageLabelsRef = useRef({ caption: t('imageCaption'), resize: t('resizeImage') });
     const codeLabelsRef = useRef({
       copy: t('copyCode'),
       language: t('codeLanguage'),
@@ -127,6 +128,23 @@ export const PagesProseMirrorEditor = forwardRef(
         const droppedFile = event.dataTransfer.files[0];
         if (droppedFile === undefined) return;
         uploadAttachmentRef.current(droppedFile);
+      },
+      [canEdit, pageId],
+    );
+
+    /**
+     * A picture on the clipboard becomes a picture on the page.
+     *
+     * Pasting is how an image most often arrives — from a screenshot, from
+     * another page — and without this it arrived as nothing at all.
+     */
+    const uploadPastedFile = useCallback(
+      (_view: EditorView, event: ClipboardEvent): boolean => {
+        const pastedFile = event.clipboardData?.files[0];
+        if (!canEdit || pageId === null || pastedFile === undefined) return false;
+        event.preventDefault();
+        uploadAttachmentRef.current(pastedFile);
+        return true;
       },
       [canEdit, pageId],
     );
@@ -227,9 +245,11 @@ export const PagesProseMirrorEditor = forwardRef(
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: answerKeyPress,
+        handlePaste: uploadPastedFile,
         nodeViews: createPageEditorNodeViews({
           code: codeLabelsRef.current,
           collection: collectionLabelRef.current,
+          image: imageLabelsRef.current,
           task: taskLabelRef.current,
           toggle: toggleLabelsRef.current,
           unsupported: unsupportedLabelRef.current,
@@ -251,6 +271,7 @@ export const PagesProseMirrorEditor = forwardRef(
       rememberTriggerMenuPosition,
       syncCollectionHosts,
       updateEditorTrigger,
+      uploadPastedFile,
     ]);
 
     useEffect(() => {
@@ -383,6 +404,7 @@ export const PagesProseMirrorEditor = forwardRef(
               conversions={surface.conversions}
               foldState={surface.foldState}
               hasIdentity={surface.blockId !== null}
+              imageAlign={surface.imageAlign}
               isInTable={surface.isInTable}
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}

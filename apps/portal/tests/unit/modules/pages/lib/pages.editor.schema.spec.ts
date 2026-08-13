@@ -214,7 +214,18 @@ describe('pageEditorSchema block ids', () => {
           type: 'heading',
         },
         { attrs: { ...BLOCK_ATTRS, id: 'paragraph-1' }, content: [{ text: 'Texto', type: 'text' }], type: 'paragraph' },
-        { attrs: { ...BLOCK_ATTRS, alt: null, assetId: 'asset-1', caption: null, id: 'image-1' }, type: 'image' },
+        {
+          attrs: {
+            ...BLOCK_ATTRS,
+            align: null,
+            alt: null,
+            assetId: 'asset-1',
+            caption: null,
+            id: 'image-1',
+            width: null,
+          },
+          type: 'image',
+        },
       ],
       type: 'doc',
     };

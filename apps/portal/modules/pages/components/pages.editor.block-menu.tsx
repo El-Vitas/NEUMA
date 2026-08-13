@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockColor, PageCalloutIcon } from '@company-brain/shared';
+import type { PageBlockColor, PageCalloutIcon, PageImageAlignment } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import type { PageEditorBlockFolding } from '../types/pages.editor.heading-fold.
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockColorItems } from './pages.editor.block-color.items';
 import { PagesEditorCalloutIconItems } from './pages.editor.callout-icon.items';
+import { PagesEditorImageAlignItems } from './pages.editor.image-align.items';
 import { PagesEditorTableItems } from './pages.editor.table.items';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
@@ -35,6 +36,7 @@ interface IProps {
   readonly onCalloutIcon: (icon: PageCalloutIcon | null) => void;
   readonly onClose: () => void;
   readonly onColor: (kind: PageEditorBlockColorKind, color: PageBlockColor | null) => void;
+  readonly onImageAlign: (align: PageImageAlignment) => void;
   readonly onTableAction: (action: PageEditorTableAction) => void;
   readonly onComment: () => void;
   readonly onConvert: (targetId: string) => void;
@@ -42,6 +44,7 @@ interface IProps {
   readonly onDelete: () => void;
   readonly onDuplicate: () => void;
   readonly onMoveToPage: () => void;
+  readonly imageAlign: { readonly chosen: string | null } | null;
   readonly tableActions: boolean;
 }
 
@@ -68,7 +71,9 @@ export const PagesEditorBlockMenu = ({
   onDelete,
   onDuplicate,
   onMoveToPage,
+  onImageAlign,
   onTableAction,
+  imageAlign,
   tableActions,
 }: IProps) => {
   const t = useTranslations('pages');
@@ -102,6 +107,14 @@ export const PagesEditorBlockMenu = ({
               <DropdownMenuSubTrigger>{t('calloutIcon')}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <PagesEditorCalloutIconItems onSelect={onCalloutIcon} selected={calloutIcon.chosen} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          {imageAlign !== null && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{t('imageAlignLabel')}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <PagesEditorImageAlignItems onSelect={onImageAlign} selected={imageAlign.chosen} />
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}

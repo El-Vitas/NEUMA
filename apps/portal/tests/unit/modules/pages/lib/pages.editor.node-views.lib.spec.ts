@@ -23,6 +23,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
   const nodeViews = createPageEditorNodeViews({
     code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
     collection: 'Collection',
+    image: { caption: 'Describe the image', resize: 'Resize' },
     task: 'Task',
     toggle: { open: 'Toggle', title: 'Toggle title' },
     unsupported: 'Unsupported block',
@@ -57,6 +58,7 @@ describe('createPageEditorNodeViews collection', () => {
   const nodeViews = createPageEditorNodeViews({
     code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
     collection: 'Collection',
+    image: { caption: 'Describe the image', resize: 'Resize' },
     task: 'Task',
     toggle: { open: 'Toggle', title: 'Toggle title' },
     unsupported: 'Unsupported block',
