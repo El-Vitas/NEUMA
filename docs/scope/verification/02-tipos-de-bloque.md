@@ -63,16 +63,16 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-07 · Cita
 
-- [ ] `>` + espacio la crea
-- [ ] Se distingue visualmente del párrafo
-- [ ] Se puede salir y seguir escribiendo normal
+- [x] `>` + espacio la crea
+- [x] Se distingue visualmente del párrafo
+- [x] Se puede salir y seguir escribiendo normal
 
 ## TB-08 · Separador
 
-- [ ] `---` crea la línea divisoria
-- [ ] También se inserta desde el menú `/`
-- [ ] Se elimina con retroceso
-- [ ] Ocupa su propia línea sin interrumpir lo que sigue
+- [x] `---` crea la línea divisoria
+- [x] También se inserta desde el menú `/`
+- [x] Se elimina con retroceso
+- [x] Ocupa su propia línea sin interrumpir lo que sigue
 
 ## TB-09 · Bloque destacado
 
@@ -229,6 +229,8 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-08 | El separador no existía en ninguna parte: se agregó al contrato (`divider`), al editor, al menú `/` y a `---`. Como la línea no sostiene nada, insertarla al final de la página deja un párrafo debajo para seguir escribiendo. De paso se corrigió que un bloque que no sostiene nada, llegando con contenido, rompía la validación con un error técnico en vez de rechazarla. | 4 de 4 |
+| 13/08/2026 | TB-07 | Faltaba solo empezarla escribiendo: `>` + espacio no hacía nada porque no existía la regla. El resto ya estaba: se distingue del párrafo por su barra y su color, y dos Enter salen de ella. | 3 de 3 |
 | 13/08/2026 | TB-06 | El título no se podía escribir: estaba dentro de un `<summary>`, que se queda el foco, y ninguna tecla llegaba. Tampoco servía escribirlo como contenido del editor —el teclado responde a quien tiene el foco y el editor lee cada tecla como escritura en la página—, así que el título pasó a ser un campo propio y la flecha, un botón de verdad. Lo demás ya funcionaba; el bloque se dibuja sin `<details>` y lo que sostiene se sangra bajo el título. | 6 de 6 |
 | 13/08/2026 | TB-05 | Faltaban tres cosas, las tres hechas: `[]` + espacio no creaba nada, Enter partía el párrafo en vez de dar otra tarea (y la nueva nace sin marcar aunque la anterior esté hecha), y marcar una tarea tachaba también las que colgaban de ella. Queda sin marcar que se vea lo que marca otra persona: dos clientes conectados a la misma página no se ven entre sí —ni el texto ni la presencia—, aunque cada uno guarda bien contra el documento compartido. Eso es la capa colaborativa, documento `06`. | 6 de 7 |
 | 13/08/2026 | TB-04 | No faltó nada: numera sola, empezar en `5.` respeta el inicio y sobrevive a la recarga, intercalar un punto renumera lo que sigue, y al anidar la numeración interior reinicia en `a.`. Anidar quedó disponible con lo hecho en TB-03. | 5 de 5 |

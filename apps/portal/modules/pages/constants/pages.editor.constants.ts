@@ -64,6 +64,7 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror_li_ol]:mb-0 [&_.ProseMirror_li_ol]:list-[lower-alpha] [&_.ProseMirror_li_ol_ol]:list-[lower-roman]',
   /** A task done is crossed out on its own line, never on the tasks hanging from it. */
   '[&_.ProseMirror_li[data-checked]>div>p]:text-muted-foreground [&_.ProseMirror_li[data-checked]>div>p]:line-through',
+  '[&_.ProseMirror_hr]:my-6 [&_.ProseMirror_hr]:border-border [&_.ProseMirror_hr]:border-t',
   '[&_.ProseMirror_blockquote]:my-6 [&_.ProseMirror_blockquote]:border-primary [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:ps-4 [&_.ProseMirror_blockquote]:text-muted-foreground',
   '[&_.ProseMirror_pre]:my-6 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre]:bg-surface-low [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:font-mono [&_.ProseMirror_pre]:text-sm [&_.ProseMirror_pre]:leading-relaxed',
   '[&_.ProseMirror_table]:my-6 [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:table-fixed [&_.ProseMirror_table]:border-collapse [&_.ProseMirror>table_td]:min-w-0 [&_.ProseMirror>table_td]:border [&_.ProseMirror>table_td]:border-border [&_.ProseMirror>table_td]:p-3 [&_.ProseMirror>table_td]:align-top [&_.ProseMirror>table_td]:wrap-break-word',

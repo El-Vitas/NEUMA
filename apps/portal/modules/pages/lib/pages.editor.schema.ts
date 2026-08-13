@@ -153,6 +153,15 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     }),
   ],
   [
+    'divider',
+    definePageBlock({
+      atom: true,
+      group: 'block',
+      parseDOM: [{ tag: 'hr' }],
+      render: (_node, blockAttributes) => ['hr', blockAttributes],
+    }),
+  ],
+  [
     'embed',
     definePageBlock({
       attrs: { provider: {}, url: {} },

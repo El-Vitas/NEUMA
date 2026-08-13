@@ -114,6 +114,7 @@ export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS =
 export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'code',
   'collection',
+  'divider',
   'em',
   'embed',
   'file',
