@@ -22,7 +22,7 @@ const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeU
 const createPageFileNodeView = (node: EditorNode): NodeView => {
   const link = document.createElement('a');
   link.className =
-    'my-3 flex min-h-11 items-center border border-border bg-surface-container-low px-3 text-sm text-foreground underline-offset-4 hover:underline';
+    'my-3 flex min-h-11 items-center border border-border bg-surface-low px-3 text-sm text-foreground underline-offset-4 hover:underline';
   link.href = getPageAssetUrl(node.attrs.assetId);
   link.rel = 'noopener';
   link.textContent = node.attrs.caption || node.attrs.assetId;

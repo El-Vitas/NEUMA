@@ -76,7 +76,7 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror_table]:my-6 [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:table-fixed [&_.ProseMirror_table]:border-collapse',
   /** A column narrower than this cannot be read, so the table outgrows its box and scrolls there. */
   '[&_.ProseMirror_td]:relative [&_.ProseMirror_td]:min-w-32 [&_.ProseMirror_td]:border [&_.ProseMirror_td]:border-border [&_.ProseMirror_td]:p-2 [&_.ProseMirror_td]:align-top [&_.ProseMirror_td]:wrap-break-word',
-  '[&_.ProseMirror_th]:relative [&_.ProseMirror_th]:min-w-32 [&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-border [&_.ProseMirror_th]:bg-surface-container-low [&_.ProseMirror_th]:p-2 [&_.ProseMirror_th]:text-start [&_.ProseMirror_th]:align-top [&_.ProseMirror_th]:font-semibold [&_.ProseMirror_th]:wrap-break-word',
+  '[&_.ProseMirror_th]:relative [&_.ProseMirror_th]:min-w-32 [&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-border [&_.ProseMirror_th]:bg-surface-low [&_.ProseMirror_th]:p-2 [&_.ProseMirror_th]:text-start [&_.ProseMirror_th]:align-top [&_.ProseMirror_th]:font-semibold [&_.ProseMirror_th]:wrap-break-word',
   '[&_.ProseMirror_td>p]:mb-0 [&_.ProseMirror_th>p]:mb-0',
   /** The cells a gesture is aimed at, and the edge a column is stretched by. */
   '[&_.ProseMirror_.selectedCell]:bg-primary/10',

@@ -14,3 +14,35 @@
   border: none;
   margin: 0;
 }
+
+/*
+ * The cursor standing in the gap beside a block that holds no writing — a
+ * table, a line, an image. It is drawn as the caret it stands for, in the
+ * page's own colour, and only while the page is being written in.
+ */
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  margin: 0;
+}
+
+.ProseMirror-gapcursor::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 2rem;
+  border-top: 2px solid var(--color-foreground);
+  animation: page-editor-gap-cursor 1.1s steps(2, start) infinite;
+}
+
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+@keyframes page-editor-gap-cursor {
+  to {
+    visibility: hidden;
+  }
+}

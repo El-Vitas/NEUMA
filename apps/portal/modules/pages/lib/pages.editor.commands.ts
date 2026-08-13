@@ -6,6 +6,7 @@ import {
   pageMentionAttrsSchema,
 } from '@company-brain/shared';
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
+import { gapCursor } from 'prosemirror-gapcursor';
 import { history } from 'prosemirror-history';
 import { InputRule, inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
@@ -328,6 +329,15 @@ export const createPageEditorPlugins = (
    */
   keymap(Object.fromEntries([['Enter', splitPageEditorListPoint]])),
   keymap(baseKeymap),
+  /**
+   * The cursor can stand beside a block that holds no writing.
+   *
+   * A table, a line or an image at the edge of a page would otherwise fence the
+   * writing in: there is no paragraph to reach with an arrow, so the page ends
+   * with nowhere to go on. The cursor lands in the gap instead, and whatever is
+   * written there becomes a block of its own.
+   */
+  gapCursor(),
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
   createPageEditorBlockMenuPlugin(),

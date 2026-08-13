@@ -2,6 +2,7 @@ import type { EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_DRAG_GHOST_OFFSET_PX,
   PAGE_EDITOR_DRAG_GHOST_STYLE_CLASS,
+  PAGE_EDITOR_EDITABLE_SURFACE_CLASS,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorBlockRange, PageEditorDragGhost } from '../types/pages.editor.block-drag.types';
 
@@ -22,8 +23,11 @@ const collectDraggedBlockElements = (view: EditorView, range: PageEditorBlockRan
  * they are being dragged, so it is the content itself that visibly travels and
  * not only the line marking where it would land.
  *
- * It is a plain clone parked on the page, outside the editor: it never takes
- * pointer events and it is thrown away when the drag ends.
+ * It is drawn beside the editor rather than out on the page, and answers to the
+ * same name the editor does: everything a page knows about how a block looks —
+ * the walls of a table, the marks of a list — is said of what is inside the
+ * editor, so a copy parked anywhere else travels as bare text. It takes no
+ * pointer events and is thrown away when the drag ends.
  */
 export const createPageEditorDragGhost = (
   view: EditorView,
@@ -34,11 +38,13 @@ export const createPageEditorDragGhost = (
   if (firstBlock === undefined) return null;
 
   const ghost = document.createElement('div');
-  ghost.className = PAGE_EDITOR_DRAG_GHOST_STYLE_CLASS;
+  ghost.className = `${PAGE_EDITOR_EDITABLE_SURFACE_CLASS} ${PAGE_EDITOR_DRAG_GHOST_STYLE_CLASS}`;
   ghost.setAttribute('aria-hidden', 'true');
   ghost.style.width = `${Math.round(firstBlock.getBoundingClientRect().width)}px`;
+  /** The editor's own height and width are meant for the page, never for a copy of one block. */
+  ghost.style.minHeight = '0';
   for (const block of blocks) ghost.append(block.cloneNode(true));
-  view.dom.ownerDocument.body.append(ghost);
+  (view.dom.parentElement ?? view.dom.ownerDocument.body).append(ghost);
 
   return {
     moveTo: (clientX, clientY) => {
