@@ -64,7 +64,7 @@ export const usePagesEditorBlockArrival = (editorHostRef: RefObject<HTMLElement 
      * used to be would report every block as gone.
      */
     const arrive = (): (() => void) | null => {
-      const blockId = readPageEditorBlockLinkTarget(window.location.href);
+      const blockId = readPageEditorBlockLinkTarget(globalThis.location.href);
       const editorHost = editorHostRef.current;
       return blockId === null || editorHost === null ? null : arriveAtBlock(editorHost, blockId, missingMessage);
     };
@@ -75,9 +75,9 @@ export const usePagesEditorBlockArrival = (editorHostRef: RefObject<HTMLElement 
       giveUpArrival = arrive();
     };
 
-    window.addEventListener('hashchange', arriveAgain);
+    globalThis.addEventListener('hashchange', arriveAgain);
     return () => {
-      window.removeEventListener('hashchange', arriveAgain);
+      globalThis.removeEventListener('hashchange', arriveAgain);
       giveUpArrival?.();
     };
   }, [editorHostRef, missingMessage]);

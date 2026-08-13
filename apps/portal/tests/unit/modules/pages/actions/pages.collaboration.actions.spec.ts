@@ -5,7 +5,7 @@ const post = mock(async () => ({ token: 'short-lived-token' }));
 mock.module('server-only', () => ({}));
 mock.module('@/lib/safe-action', () => ({
   actionClient: {
-    schema: () => ({
+    inputSchema: () => ({
       action:
         (handler: (input: { readonly parsedInput: { readonly pageId: string } }) => Promise<unknown>) =>
         async (input: { readonly pageId: string }) => ({ data: await handler({ parsedInput: input }) }),

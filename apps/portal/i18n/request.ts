@@ -13,4 +13,4 @@ const requestConfig = getRequestConfig(async ({ requestLocale }) => {
 });
 
 // biome-ignore lint/style/noDefaultExport: next-intl loads the request configuration as the module default
-export { requestConfig as default };
+export default requestConfig;

@@ -167,6 +167,15 @@ const eslintConfig = defineConfig([
     files: ['**/server/**'],
     rules: { 'local/no-direct-fetch': 'off' },
   },
+  {
+    // Único punto del proyecto que llama a TanStack Table. Devuelve funciones que el compilador
+    // de React no puede memoizar: es una limitación de la librería, no un defecto corregible en
+    // nuestro código, y no hay forma de evitar el aviso desde aquí (ni con la directiva
+    // 'use no memo'). La excepción se acota a este archivo para que el resto del proyecto siga
+    // avisando si alguien introduce otra librería incompatible.
+    files: ['shared/hooks/use-data-table.ts'],
+    rules: { 'react-hooks/incompatible-library': 'off' },
+  },
   globalIgnores([
     '.next/**',
     'out/**',

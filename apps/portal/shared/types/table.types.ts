@@ -1,5 +1,13 @@
-import type { ColumnDef, ColumnFiltersState, SortingState } from '@tanstack/react-table';
+import type { CellContext, ColumnDef, ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import type React from 'react';
+
+/**
+ * What a cell of our data table receives.
+ *
+ * Named here so a cell written inside a module speaks our table's language and
+ * not the table library's — the library stays behind `shared/`.
+ */
+export type TableCellProps<TData> = CellContext<TData, unknown>;
 
 export interface TableAction {
   icon: React.ReactNode;

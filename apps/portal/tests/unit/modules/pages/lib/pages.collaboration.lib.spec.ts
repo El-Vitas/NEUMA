@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+import { createCollaborationDocumentName } from '@company-brain/shared';
 import {
   computeCollaborationReconnectDelayMs,
-  createCollaborationDocumentName,
   getCollaborationStatusLabelKey,
   mapAwarenessStatesToParticipants,
 } from '@/modules/pages/lib/pages.collaboration.lib';

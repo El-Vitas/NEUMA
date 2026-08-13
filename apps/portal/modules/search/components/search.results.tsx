@@ -19,9 +19,9 @@ export const SearchResults = ({ locale, page, params }: IProps) => {
   if (page.items.length === 0) {
     return (
       <section className="space-y-4">
-        <p aria-atomic="true" className="text-muted-foreground text-sm" role="status">
+        <output aria-atomic="true" className="block text-muted-foreground text-sm">
           {t('resultCount', { count: page.items.length })}
-        </p>
+        </output>
         <EmptyState
           action={<p className="text-muted-foreground text-sm">{t('emptyDescription')}</p>}
           className="border border-border"
@@ -34,9 +34,9 @@ export const SearchResults = ({ locale, page, params }: IProps) => {
   const nextParams = page.nextCursor === undefined ? undefined : { ...params, cursor: page.nextCursor };
   return (
     <section className="space-y-4">
-      <p aria-atomic="true" className="text-muted-foreground text-sm" role="status">
+      <output aria-atomic="true" className="block text-muted-foreground text-sm">
         {t('resultCount', { count: page.items.length })}
-      </p>
+      </output>
       <div className="space-y-3">
         {page.items.map((result) => (
           <SearchResultCard key={`${result.sourceType}-${result.sourceId}`} locale={locale} result={result} />

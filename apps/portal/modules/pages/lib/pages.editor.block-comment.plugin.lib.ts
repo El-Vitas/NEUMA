@@ -42,7 +42,7 @@ const createCommentMark = (view: EditorView, blockStart: number, label: string, 
   mark.contentEditable = 'false';
   mark.tabIndex = -1;
   mark.setAttribute('aria-label', label);
-  mark.setAttribute('data-block-comments', String(count));
+  mark.dataset.blockComments = String(count);
   total.textContent = String(count);
   mark.append(createCommentIcon(), total);
   mark.addEventListener('mousedown', (event) => {

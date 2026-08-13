@@ -25,7 +25,7 @@ const writeColumnWidths = (view: EditorView, row: PageEditorColumnRow, widths: r
 
 const findRowAt = (view: EditorView, rowStart: number): PageEditorColumnRow | null => {
   const row = view.state.doc.nodeAt(rowStart);
-  if (row === null || row.type.name !== PAGE_EDITOR_COLUMN_ROW_TYPE) return null;
+  if (row?.type.name !== PAGE_EDITOR_COLUMN_ROW_TYPE) return null;
   return { columns: row.children, start: rowStart };
 };
 

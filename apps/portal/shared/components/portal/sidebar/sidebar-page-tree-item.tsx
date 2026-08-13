@@ -2,6 +2,7 @@
 
 import { ChevronRight, FileText, MoreHorizontal, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { KeyboardEvent } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '@/modules/portal/types/portal.types';
@@ -19,6 +20,7 @@ interface IProps {
   readonly depth: number;
   readonly expandedPageIds: ReadonlySet<string>;
   readonly onLifecycleChange: (page: PortalSidebarPage) => void;
+  readonly onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => void;
   readonly onNavigate?: () => void;
   readonly onToggle: (pageId: string) => void;
   readonly selectedPageId: string | null;
@@ -30,6 +32,7 @@ export const SidebarPageTreeItem = ({
   canEdit,
   depth,
   expandedPageIds,
+  onKeyDown,
   onLifecycleChange,
   onNavigate,
   onToggle,
@@ -85,6 +88,7 @@ export const SidebarPageTreeItem = ({
           data-page-tree-link="true"
           href={ROUTES.PORTAL_SPACE_PAGE(spaceId, page.id)}
           onClick={onNavigate}
+          onKeyDown={onKeyDown}
           title={page.title}
         >
           {isSelected && <span aria-hidden="true" className="absolute inset-y-1 left-0 w-0.5 bg-primary" />}
@@ -139,6 +143,7 @@ export const SidebarPageTreeItem = ({
               depth={depth + 1}
               expandedPageIds={expandedPageIds}
               key={child.page.id}
+              onKeyDown={onKeyDown}
               onLifecycleChange={onLifecycleChange}
               onNavigate={onNavigate}
               onToggle={onToggle}

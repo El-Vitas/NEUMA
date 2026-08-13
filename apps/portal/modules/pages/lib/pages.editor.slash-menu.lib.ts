@@ -1,6 +1,7 @@
 import type { Schema } from 'prosemirror-model';
 import type {
   PagesEditorMenuItem,
+  PagesEditorTrigger,
   PagesEditorTriggerKind,
   SlashMenuKeyDownOptions,
 } from '../types/pages.editor.slash-menu.types';
@@ -11,13 +12,34 @@ import { createPageMentionInsertCommand } from './pages.editor.commands';
 const slashQueryPattern = /(?:^|\s)\/([^\s/]*)$/;
 const mentionQueryPattern = /(?:^|\s)@([^\s]*)$/;
 
+export const buildSlashMenuOptionId = (menuId: string, itemId: string): string => `${menuId}-option-${itemId}`;
+
+/**
+ * What the editor says about itself while the menu beside the cursor is open.
+ *
+ * It is said on the editor and not on the menu because the focus never leaves
+ * the text: a reader only follows `aria-activedescendant` on the element it is
+ * standing on. The words are taken back when the menu closes, so the rest of
+ * the time the editor is plain text again and nothing announces a list.
+ */
+export const describeEditorWithTriggerMenu = (
+  menuId: string,
+  activeItemId: string | null,
+): Readonly<Record<string, string>> =>
+  activeItemId === null
+    ? {}
+    : {
+        'aria-activedescendant': buildSlashMenuOptionId(menuId, activeItemId),
+        'aria-controls': menuId,
+        'aria-expanded': 'true',
+        role: 'combobox',
+      };
+
 export const getSlashMenuQuery = (text: string): string | null => slashQueryPattern.exec(text)?.[1] ?? null;
 
 export const getMentionMenuQuery = (text: string): string | null => mentionQueryPattern.exec(text)?.[1] ?? null;
 
-export const resolveEditorTrigger = (
-  text: string,
-): { readonly kind: PagesEditorTriggerKind; readonly query: string } | null => {
+export const resolveEditorTrigger = (text: string): PagesEditorTrigger | null => {
   const slashQuery = getSlashMenuQuery(text);
   if (slashQuery !== null) return { kind: 'slash', query: slashQuery };
 

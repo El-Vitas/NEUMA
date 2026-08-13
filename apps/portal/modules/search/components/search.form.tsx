@@ -2,7 +2,7 @@
 
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { FormEvent } from 'react';
+import type { SyntheticEvent } from 'react';
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/shared/components/ui/button';
@@ -32,7 +32,7 @@ export const SearchForm = ({ initialValues, spaces }: IProps) => {
   const [spaceId, setSpaceId] = useState<string>(initialValues.spaceId ?? SEARCH_FILTER_ALL_VALUE);
   const [tags, setTags] = useState(() => initialValues.tags?.join(',') ?? '');
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>): void => {
+  const submitSearch = (event: SyntheticEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const parsed = searchQuerySchema.parse({
       query,

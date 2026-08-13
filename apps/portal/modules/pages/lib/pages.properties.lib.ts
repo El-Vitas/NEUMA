@@ -59,3 +59,7 @@ export const getPagePersonOptionLabel = (options: readonly PagePersonOption[], o
   const hasNameCollision = options.filter((candidate) => candidate.name === option.name).length > 1;
   return hasNameCollision ? `${option.name} (${option.email})` : option.name;
 };
+
+/** Which word a checkbox is read as, so the cell that shows it asks one question and not two. */
+export const readCheckboxLabelKey = (value: PagePropertyValue | undefined): string =>
+  getBooleanPropertyValue(value) ? 'properties.yes' : 'properties.no';

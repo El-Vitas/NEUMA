@@ -7,7 +7,7 @@ registerAttachmentTestMocks();
 mock.module('next/cache', () => ({ updateTag: updateTagMock }));
 mock.module('@/lib/safe-action', () => ({
   actionClient: {
-    schema: () => ({
+    inputSchema: () => ({
       action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
         try {
           return { data: await handler({ parsedInput: input }) };

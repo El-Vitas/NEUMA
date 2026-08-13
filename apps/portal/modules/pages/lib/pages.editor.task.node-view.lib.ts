@@ -53,7 +53,7 @@ export const createPageTaskItemNodeView = (
   let task = node;
 
   item.className = PAGE_EDITOR_TASK_ITEM_STYLE_CLASS;
-  item.setAttribute('data-task-item', 'true');
+  item.dataset.taskItem = 'true';
   content.className = PAGE_EDITOR_TASK_CONTENT_STYLE_CLASS;
   item.append(checkbox, content);
   showTaskDoneState(item, checkbox, node.attrs.checked === true);

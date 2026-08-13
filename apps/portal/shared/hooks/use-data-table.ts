@@ -8,10 +8,10 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  useReactTable,
 } from '@tanstack/react-table';
 import { useCallback } from 'react';
 import type { UseDataTableOptions } from './types/use-data-table.types';
-import { useReactTable } from './use-react-table';
 
 export const useDataTable = <TData>({
   data,

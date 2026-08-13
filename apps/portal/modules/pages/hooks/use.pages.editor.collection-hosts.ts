@@ -4,9 +4,9 @@ import { type RefObject, useCallback, useState } from 'react';
 import type { PageEditorCollectionHost } from '../types/pages.editor.surface.types';
 
 const readCollectionHosts = (editorHost: HTMLElement): readonly PageEditorCollectionHost[] =>
-  Array.from(editorHost.querySelectorAll('[data-page-collection]')).flatMap((element) => {
-    const pageId = element.getAttribute('data-page-collection');
-    return pageId === null || !(element instanceof HTMLElement) ? [] : [{ element, pageId }];
+  Array.from(editorHost.querySelectorAll<HTMLElement>('[data-page-collection]')).flatMap((element) => {
+    const pageId = element.dataset.pageCollection;
+    return pageId === undefined ? [] : [{ element, pageId }];
   });
 
 const isSameHosts = (

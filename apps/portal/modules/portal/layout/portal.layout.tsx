@@ -25,6 +25,7 @@ export const PortalLayout = ({ children, role, spaces, themeChoice, user }: Port
   const [commandBarOpen, setCommandBarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
+  const lastPathnameRef = useRef<string | null>(null);
   const t = useTranslations('navigation');
 
   useEffect(() => {
@@ -34,12 +35,18 @@ export const PortalLayout = ({ children, role, spaces, themeChoice, user }: Port
         setCommandBarOpen(true);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  /**
+   * Every arrival puts the reader back at the content, which is what changed
+   * under them. The address is read rather than merely awaited, so what the
+   * effect answers to is plain to see.
+   */
   useEffect(() => {
-    void pathname;
+    if (lastPathnameRef.current === pathname) return;
+    lastPathnameRef.current = pathname;
     mainRef.current?.focus({ preventScroll: true });
   }, [pathname]);
 

@@ -3,7 +3,27 @@ import { SEARCH_RESULT_DATE_FORMATTER_EN, SEARCH_RESULT_DATE_FORMATTER_ES } from
 import { searchResponseSchema } from '../schemas/search.schemas';
 import type { SearchPage, SearchQuery, SearchResult, SearchSnippetPart } from '../types/search.types';
 
-const stripMarkup = (text: string): string => text.replace(/<[^>]*>/g, '');
+/**
+ * Drops the tags a snippet still carries, keeping the text between them.
+ *
+ * It walks the snippet instead of matching a pattern: a pattern for a tag
+ * restarts at every `<`, so a snippet made of nothing but `<` would keep the
+ * server busy for as long as whoever wrote the page cared to make it.
+ */
+const stripMarkup = (text: string): string => {
+  let stripped = '';
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const tagStart = text.indexOf('<', cursor);
+    const tagEnd = tagStart === -1 ? -1 : text.indexOf('>', tagStart);
+    if (tagEnd === -1) return stripped + text.slice(cursor);
+    stripped += text.slice(cursor, tagStart);
+    cursor = tagEnd + 1;
+  }
+
+  return stripped;
+};
 
 export const parseSearchSnippet = (snippet: string): readonly SearchSnippetPart[] => {
   const parts: SearchSnippetPart[] = [];
@@ -46,12 +66,8 @@ const buildSearchQueryString = (params: SearchQuery, includeDefaultLimit: boolea
 };
 
 export const formatSearchResultDate = (locale: string, updatedAt: string): string => {
-  switch (locale) {
-    case 'es':
-      return SEARCH_RESULT_DATE_FORMATTER_ES.format(new Date(updatedAt));
-    default:
-      return SEARCH_RESULT_DATE_FORMATTER_EN.format(new Date(updatedAt));
-  }
+  const formatter = locale === 'es' ? SEARCH_RESULT_DATE_FORMATTER_ES : SEARCH_RESULT_DATE_FORMATTER_EN;
+  return formatter.format(new Date(updatedAt));
 };
 
 export const mapSearchResponse = (response: unknown): SearchPage => {

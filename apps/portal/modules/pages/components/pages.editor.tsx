@@ -9,7 +9,12 @@ import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { BackButton } from '@/shared/components/ui/back-button';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { EMPTY_PAGE_BACKLINKS } from '../constants/pages.constants';
+import {
+  EMPTY_PAGE_ATTACHMENTS,
+  EMPTY_PAGE_BACKLINKS,
+  EMPTY_PAGE_EMBEDDED_COLLECTIONS,
+  EMPTY_PAGE_PERSON_OPTIONS,
+} from '../constants/pages.constants';
 import { usePagesAutosave } from '../hooks/use.pages.autosave';
 import {
   buildPageAssetInsertOptionsFromAttachment,
@@ -47,11 +52,11 @@ interface IProps {
 }
 
 export const PagesEditor = ({
-  attachments = [],
+  attachments = EMPTY_PAGE_ATTACHMENTS,
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEdit,
   collectionSection = null,
-  embeddedCollections = {},
+  embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
   page,
   pageId,
@@ -59,7 +64,7 @@ export const PagesEditor = ({
   parentId,
   parentBreadcrumbPages,
   parentSchema = null,
-  personOptions = [],
+  personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   spaceId,
 }: IProps) => {
   const router = useRouter();

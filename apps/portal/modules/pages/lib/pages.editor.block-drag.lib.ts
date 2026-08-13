@@ -152,7 +152,7 @@ export const computePageEditorAutoScrollStep = (parameters: {
 
 const findScrollableAncestor = (element: HTMLElement | null): HTMLElement | null => {
   for (let current = element; current !== null; current = current.parentElement) {
-    const overflowY = window.getComputedStyle(current).overflowY;
+    const overflowY = globalThis.getComputedStyle(current).overflowY;
     if (PAGE_EDITOR_SCROLLABLE_OVERFLOW_VALUES.has(overflowY) && current.scrollHeight > current.clientHeight) {
       return current;
     }
@@ -161,10 +161,10 @@ const findScrollableAncestor = (element: HTMLElement | null): HTMLElement | null
 };
 
 export const scrollPageWhileDragging = (view: EditorView, clientY: number): void => {
-  const step = computePageEditorAutoScrollStep({ clientY, viewportHeight: window.innerHeight });
+  const step = computePageEditorAutoScrollStep({ clientY, viewportHeight: globalThis.innerHeight });
   if (step === 0) return;
   const scrollable = findScrollableAncestor(view.dom.parentElement);
-  if (scrollable === null) window.scrollBy(0, step);
+  if (scrollable === null) globalThis.scrollBy(0, step);
   else scrollable.scrollBy(0, step);
 };
 

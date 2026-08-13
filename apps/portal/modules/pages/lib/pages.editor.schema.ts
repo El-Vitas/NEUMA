@@ -17,21 +17,20 @@ import {
 } from '../constants/pages.editor.blocks.constants';
 import { definePageBlock } from './pages.editor.block-spec.lib';
 
-const getPageEditorAssetAttrs = (element: Element): Record<string, string | null> | false => {
-  const assetId = element.getAttribute('data-asset-id');
-  if (assetId === null) return false;
+const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | null> | false => {
+  const assetId = element.dataset.assetId;
+  if (assetId === undefined) return false;
   return {
     alt: element.getAttribute('alt'),
     assetId,
-    caption: element.getAttribute('data-caption'),
+    caption: element.dataset.caption ?? null,
   };
 };
 
-const getPageEditorEmbedAttrs = (element: Element): { readonly provider: string; readonly url: string } | false => {
-  const provider = element.getAttribute('data-page-embed');
-  const url = element.getAttribute('data-url');
-  const knownProvider = PAGE_EMBED_PROVIDERS.find((entry) => entry === provider);
-  if (knownProvider === undefined || url === null || !isAllowedPageEmbedUrl(knownProvider, url)) return false;
+const getPageEditorEmbedAttrs = (element: HTMLElement): { readonly provider: string; readonly url: string } | false => {
+  const { pageEmbed, url } = element.dataset;
+  const knownProvider = PAGE_EMBED_PROVIDERS.find((entry) => entry === pageEmbed);
+  if (knownProvider === undefined || url === undefined || !isAllowedPageEmbedUrl(knownProvider, url)) return false;
   return { provider: knownProvider, url };
 };
 
@@ -42,23 +41,19 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
 };
 
 const getPageEditorMentionAttrs = (
-  element: Element,
+  element: HTMLElement,
 ): { readonly label: string; readonly pageId: string; readonly spaceId: string } | false => {
-  const pageId = element.getAttribute('data-page-mention');
-  const label = element.getAttribute('data-label');
-  const spaceId = element.getAttribute('data-space-id');
-  if (pageId === null || label === null || label.length === 0 || spaceId === null) return false;
+  const { label, pageMention: pageId, spaceId } = element.dataset;
+  if (pageId === undefined || label === undefined || label.length === 0 || spaceId === undefined) return false;
   return { label, pageId, spaceId };
 };
 
 const getPageEditorCollectionAttrs = (
-  element: Element,
+  element: HTMLElement,
 ): { readonly pageId: string; readonly spaceId: string; readonly viewName: string | null } | false => {
-  const pageId = element.getAttribute('data-page-collection');
-  const spaceId = element.getAttribute('data-space-id');
-  if (pageId === null || pageId.length === 0 || spaceId === null || spaceId.length === 0) return false;
-  const viewName = element.getAttribute('data-view-name');
-  return { pageId, spaceId, viewName: viewName === null || viewName.length === 0 ? null : viewName };
+  const { pageCollection: pageId, spaceId, viewName } = element.dataset;
+  if (pageId === undefined || pageId.length === 0 || spaceId === undefined || spaceId.length === 0) return false;
+  return { pageId, spaceId, viewName: viewName === undefined || viewName.length === 0 ? null : viewName };
 };
 
 const getPageEditorUnsupportedAttrs = (
@@ -68,14 +63,16 @@ const getPageEditorUnsupportedAttrs = (
   return name === null || name.length === 0 ? false : { name, source: JSON.stringify({ type: name }) };
 };
 
-const getPageEditorTaskAttrs = (element: Element): { readonly checked: boolean; readonly id: string | null } => ({
-  checked: element.hasAttribute('data-checked'),
+const getPageEditorTaskAttrs = (element: HTMLElement): { readonly checked: boolean; readonly id: string | null } => ({
+  checked: element.dataset.checked !== undefined,
   id: element.getAttribute(PAGE_EDITOR_BLOCK_ID_ATTRIBUTE),
 });
 
-const getPageEditorColumnAttrs = (element: Element): { readonly id: string | null; readonly width: number | null } => {
-  const width = Number.parseFloat(element.getAttribute('data-width') ?? '');
-  return { id: element.getAttribute('data-block-id'), width: Number.isFinite(width) ? width : null };
+const getPageEditorColumnAttrs = (
+  element: HTMLElement,
+): { readonly id: string | null; readonly width: number | null } => {
+  const width = Number.parseFloat(element.dataset.width ?? '');
+  return { id: element.dataset.blockId ?? null, width: Number.isFinite(width) ? width : null };
 };
 
 const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [

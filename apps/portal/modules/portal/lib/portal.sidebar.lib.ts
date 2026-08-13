@@ -27,6 +27,9 @@ export const getPortalSidebarSelectedPageId = (
 
 const sidebarPageTreeItemSelector = '[data-page-tree-item="true"]';
 const sidebarPageTreeLinkSelector = '[data-page-tree-link="true"]';
+
+/** The list the pages of a space hang from, which is where moving between them makes sense. */
+const sidebarPageTreeSelector = '[data-page-tree="true"]';
 const sidebarPageTreeToggleSelector = '[data-page-tree-toggle="true"]';
 
 const getSidebarPageTreeLinks = (treeElement: HTMLElement): HTMLAnchorElement[] =>
@@ -90,13 +93,19 @@ const navigateSidebarPageTreeLeft = (pageLink: HTMLAnchorElement): void => {
 const isSidebarPageTreeNavigationKey = (key: string): boolean =>
   ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(key);
 
-export const handleSidebarPageTreeKeyDown = (event: KeyboardEvent<HTMLUListElement>): void => {
-  const pageLink =
-    event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(sidebarPageTreeLinkSelector) : null;
-  if (pageLink === null || !event.currentTarget.contains(pageLink)) return;
-  if (!isSidebarPageTreeNavigationKey(event.key)) return;
+/**
+ * The arrow keys move between pages of the tree.
+ *
+ * It is the link that listens, not the list around it: the list is only a
+ * container, and a container that answers to the keyboard is a container
+ * nobody can reach with one.
+ */
+export const handleSidebarPageTreeKeyDown = (event: KeyboardEvent<HTMLAnchorElement>): void => {
+  const pageLink = event.currentTarget;
+  const tree = pageLink.closest<HTMLUListElement>(sidebarPageTreeSelector);
+  if (tree === null || !isSidebarPageTreeNavigationKey(event.key)) return;
 
-  const pageLinks = getSidebarPageTreeLinks(event.currentTarget);
+  const pageLinks = getSidebarPageTreeLinks(tree);
   event.preventDefault();
 
   switch (event.key) {

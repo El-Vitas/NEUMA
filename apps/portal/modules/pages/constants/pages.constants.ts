@@ -1,5 +1,8 @@
+import type { ReactNode } from 'react';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
+import type { PagePersonOption } from '../types/pages.schema.types';
+import type { PageSummary } from '../types/pages.types';
 
 export const PAGES_CACHE_TAG = (spaceId: string): string => `pages:${spaceId}`;
 
@@ -8,6 +11,19 @@ export const PAGE_BACKLINKS_CACHE_TAG = (pageId: string): string => `page-backli
 export const EMPTY_PAGE_BACKLINKS: PageBacklinksResult = { count: 0, items: [] };
 
 export const EMPTY_PAGE_ATTACHMENTS: readonly AttachmentSummary[] = [];
+
+/**
+ * The empty values a page's parts fall back to.
+ *
+ * They are named once and shared because a fresh `[]` or `{}` written at each
+ * call is a different value every render, and everything downstream redraws
+ * for a change that never happened.
+ */
+export const EMPTY_PAGE_PERSON_OPTIONS: readonly PagePersonOption[] = [];
+
+export const EMPTY_PAGE_SUMMARIES: readonly PageSummary[] = [];
+
+export const EMPTY_PAGE_EMBEDDED_COLLECTIONS: Readonly<Record<string, ReactNode>> = {};
 
 export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
 

@@ -27,25 +27,27 @@ const uploadAttachment = async (pageId: string, file: File, accessToken: string)
   });
 };
 
-export const uploadPageAttachmentAction = actionClient.schema(attachmentUploadSchema).action(async ({ parsedInput }) =>
-  withAction({ action: 'uploadPageAttachment' }, async () => {
-    const accessToken = await requireAccessTokenCookie();
-    const response = await uploadAttachment(parsedInput.pageId, parsedInput.file, accessToken);
-    if (!response.ok) throw new Error('Attachment upload request failed');
-    const attachment = attachmentSummarySchema.parse(await response.json());
-    updateTag(PAGE_ATTACHMENTS_CACHE_TAG);
-    return attachment;
-  }),
-);
+export const uploadPageAttachmentAction = actionClient
+  .inputSchema(attachmentUploadSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'uploadPageAttachment' }, async () => {
+      const accessToken = await requireAccessTokenCookie();
+      const response = await uploadAttachment(parsedInput.pageId, parsedInput.file, accessToken);
+      if (!response.ok) throw new Error('Attachment upload request failed');
+      const attachment = attachmentSummarySchema.parse(await response.json());
+      updateTag(PAGE_ATTACHMENTS_CACHE_TAG);
+      return attachment;
+    }),
+  );
 
 export const downloadPageAttachmentAction = actionClient
-  .schema(z.object({ attachmentId: attachmentIdSchema }))
+  .inputSchema(z.object({ attachmentId: attachmentIdSchema }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'downloadPageAttachment' }, () => getPageAttachmentDownload(parsedInput.attachmentId)),
   );
 
 export const deletePageAttachmentAction = actionClient
-  .schema(z.object({ attachmentId: attachmentIdSchema }))
+  .inputSchema(z.object({ attachmentId: attachmentIdSchema }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'deletePageAttachment' }, async () => {
       const accessToken = await requireAccessTokenCookie();

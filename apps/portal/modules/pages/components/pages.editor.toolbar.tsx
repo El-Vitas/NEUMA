@@ -34,9 +34,9 @@ export const PagesEditorToolbar = ({
   const primaryCommands = PAGE_EDITOR_PRIMARY_COMMAND_NAMES.map(
     (commandName) => [commandName, commands[commandName]] as const,
   );
+  const primaryCommandNames: readonly string[] = PAGE_EDITOR_PRIMARY_COMMAND_NAMES;
   const secondaryCommands = Object.entries(commands).filter(
-    ([commandName]) =>
-      !PAGE_EDITOR_PRIMARY_COMMAND_NAMES.some((primaryCommandName) => primaryCommandName === commandName),
+    ([commandName]) => !primaryCommandNames.includes(commandName),
   );
 
   return (

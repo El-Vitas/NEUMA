@@ -1,5 +1,6 @@
 'use client';
 
+import { EMPTY_PAGE_PERSON_OPTIONS } from '../constants/pages.constants';
 import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
 import { PagesMetadataRow } from './pages.metadata.row';
 import { PagesPropertiesField } from './pages.properties.field';
@@ -12,7 +13,13 @@ interface IProps {
   readonly value: PagePropertyValue | undefined;
 }
 
-export const PagesPropertiesRow = ({ disabled, onChange, personOptions = [], property, value }: IProps) => {
+export const PagesPropertiesRow = ({
+  disabled,
+  onChange,
+  personOptions = EMPTY_PAGE_PERSON_OPTIONS,
+  property,
+  value,
+}: IProps) => {
   const labelId = `page-property-label-${property.key}`;
 
   return (

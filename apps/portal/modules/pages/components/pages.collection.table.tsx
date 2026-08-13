@@ -4,7 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { formatPropertyValueForDisplay, getBooleanPropertyValue } from '../lib/pages.properties.lib';
+import { formatPropertyValueForDisplay, readCheckboxLabelKey } from '../lib/pages.properties.lib';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
 
 interface IProps {
@@ -40,7 +40,7 @@ export const PagesCollectionTable = async ({ properties, rows, spaceId }: IProps
               return (
                 <TableCell key={property.key}>
                   {property.type === PAGE_PROPERTY_TYPE.CHECKBOX
-                    ? t(getBooleanPropertyValue(rawValue) ? 'properties.yes' : 'properties.no')
+                    ? t(readCheckboxLabelKey(rawValue))
                     : formatPropertyValueForDisplay(property, rawValue)}
                 </TableCell>
               );
