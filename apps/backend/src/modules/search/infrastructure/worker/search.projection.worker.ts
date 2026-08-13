@@ -69,7 +69,7 @@ export class SearchProjectionWorker extends OutboxProjectionWorker {
   protected async projectEvent(event: OutboxProjectionEvent): Promise<void> {
     if (event.aggregateType === 'PAGE') {
       const page = await this.source.findPage(event.aggregateId);
-      if (page === null || page.lifecycle !== PageLifecycle.ACTIVE) {
+      if (page?.lifecycle !== PageLifecycle.ACTIVE) {
         await this.projection.removeProjection(
           toRemoval(SearchSourceType.PAGE, event.aggregateId, page?.version ?? readVersionMarker(event)),
         );

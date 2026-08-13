@@ -1,5 +1,4 @@
 import { DatabasePropertyType } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
 import type { PagePropertyContext } from '@company-brain/shared';
 import {
   isTitlePageProperty,
@@ -10,12 +9,12 @@ import {
 import type { SchemaPropertyDefinition, SchemaPropertyValue, SchemaPropertyValues } from './schema.domain.types';
 import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schema.error';
 
-const propertyKeyPattern = /^[a-z][a-zA-Z0-9_]*$/;
+const propertyKeyPattern = /^[a-z]\w*$/;
 
 const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
-const isPropertyValue = (value: unknown): value is SchemaPropertyValue =>
+export const isPropertyValue = (value: unknown): value is SchemaPropertyValue =>
   typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || isStringArray(value);
 
 const toPropertyContext = (
@@ -91,13 +90,4 @@ export const validateSchemaPropertyValues = (
   return missingProperty === undefined
     ? Result.ok(validatedValues)
     : Result.fail(new SchemaPropertyValueError(`Missing required property ${missingProperty.key}`));
-};
-
-export const parseSchemaPropertyValues = (value: Prisma.JsonValue): SchemaPropertyValues | null => {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
-  const parsed: Record<string, SchemaPropertyValue> = {};
-  for (const [key, entry] of Object.entries(value)) {
-    if (isPropertyValue(entry)) parsed[key] = entry;
-  }
-  return parsed;
 };

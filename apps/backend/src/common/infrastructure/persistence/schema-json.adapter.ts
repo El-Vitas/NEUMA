@@ -1,6 +1,12 @@
 import type { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../domain/schema.domain.types';
+import type {
+  SchemaPropertyDefinition,
+  SchemaPropertyValue,
+  SchemaPropertyValues,
+  SchemaViewDefinition,
+} from '../../domain/schema.domain.types';
+import { isPropertyValue } from '../../domain/schema-property.domain';
 
 const getStringOptions = (value: Prisma.JsonValue | null): readonly string[] | null =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -49,4 +55,13 @@ export const toSchemaViewDefinition = (view: {
     if (converted !== null) configuration[key] = converted;
   }
   return { configuration, isDefault: view.isDefault, name: view.name, type: view.type };
+};
+
+export const parseSchemaPropertyValues = (value: Prisma.JsonValue): SchemaPropertyValues | null => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const parsed: Record<string, SchemaPropertyValue> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (isPropertyValue(entry)) parsed[key] = entry;
+  }
+  return parsed;
 };

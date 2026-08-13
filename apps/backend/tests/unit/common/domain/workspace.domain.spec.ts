@@ -5,7 +5,7 @@ import {
   canManageWorkspace,
   canReadSpace,
   getWorkspaceCapability,
-} from '@/common/domain/workspace.policy';
+} from '@/common/domain/workspace.domain';
 
 describe('workspace domain policy', () => {
   it('allows an admin to manage the workspace', () => {

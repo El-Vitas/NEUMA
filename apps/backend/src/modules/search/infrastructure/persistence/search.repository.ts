@@ -3,7 +3,7 @@ import { SearchIndexingState, SpaceVisibility } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
-import { canReadSpace } from '../../../../common/domain/workspace.policy';
+import { canReadSpace } from '../../../../common/domain/workspace.domain';
 import type { SearchPage, SearchQuery, SearchResult } from '../../../../common/types/search.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { SEARCH_TRIGRAM_THRESHOLD } from '../../constants/search.constants';

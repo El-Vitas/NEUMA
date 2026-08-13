@@ -1,4 +1,4 @@
-export const TOKEN_LIFETIME_PATTERN = /^(\d+)(s|m|h|d)?$/;
+export const TOKEN_LIFETIME_PATTERN = /^(\d+)([smhd])?$/;
 
 export const TOKEN_LIFETIME_SECONDS_PER_UNIT: Readonly<Record<string, number>> = {
   d: 86_400,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { normalizeFilename, validateFileUpload } from '../../../../src/modules/files/domain/files.domain';
-import { FileValidationError } from '../../../../src/modules/files/domain/files.error';
+import { normalizeFilename, validateFileUpload } from '@/modules/files/domain/files.domain';
+import { FileValidationError } from '@/modules/files/domain/files.error';
 
 describe('files domain', () => {
   it('normalizes path segments and unsafe characters from an original filename', () => {

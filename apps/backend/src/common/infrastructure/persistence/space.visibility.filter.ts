@@ -1,7 +1,7 @@
 import { SpaceVisibility } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
-import { canReadSpace } from '../../domain/workspace.policy';
+import { canReadSpace } from '../../domain/workspace.domain';
 
 const spaceOrOperator = 'OR';
 

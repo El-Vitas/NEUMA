@@ -1,7 +1,7 @@
 import type { UserRole } from '@company-brain/shared';
 import { Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { canCreateSpace } from '../../common/domain/workspace.policy';
+import { canCreateSpace } from '../../common/domain/workspace.domain';
 import type { AssignableMember } from '../../common/types/workspace-member.types';
 import { SPACE_REPOSITORY } from './constants/spaces.constants';
 import { SpaceAccessDeniedError } from './domain/space.error';

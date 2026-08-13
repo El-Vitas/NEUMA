@@ -1,4 +1,5 @@
 import { type AuthSession, USER_ROLE_VALUES, type User } from '@company-brain/shared';
+
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -17,6 +18,9 @@ import {
 } from '../../../../common/constants/auth.constants';
 import type { CollaborationTokenPayload, TokenPayload } from '../../../../common/types/auth.types';
 import { parseTokenLifetimeSeconds } from '../../utils/auth.token.utils';
+
+/** The roles a token may name, read as plain text so a claim can be checked without pretending it is one. */
+const knownRoles: readonly string[] = USER_ROLE_VALUES;
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -149,7 +153,7 @@ export class TokenAdapter {
       this.isUuid(payload.pageId) &&
       payload.purpose === COLLABORATION_TOKEN_PURPOSE &&
       typeof payload.role === 'string' &&
-      USER_ROLE_VALUES.some((role) => role === payload.role) &&
+      knownRoles.includes(payload.role) &&
       typeof payload.sub === 'string' &&
       typeof payload.workspaceId === 'string'
     );

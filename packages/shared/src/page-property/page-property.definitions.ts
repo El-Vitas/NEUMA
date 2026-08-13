@@ -25,12 +25,10 @@ const isDeclaredOption = (value: string, context: PagePropertyContext): boolean 
   context.options?.includes(value) === true;
 
 export const humanizeSelectOption = (rawOption: string): string => {
-  const normalized = rawOption.replace(/[_-]+/g, ' ').trim().toLowerCase();
+  const normalized = rawOption.replaceAll(/[_-]+/g, ' ').trim().toLowerCase();
   if (normalized.length === 0) return normalized;
   return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`;
 };
-
-const toPlainText = (value: PagePropertyValue): string => String(value);
 
 const isBlankText = (value: PagePropertyValue): boolean => typeof value === 'string' && value.trim().length === 0;
 
@@ -45,7 +43,7 @@ const titleDefinition: PagePropertyDefinition = {
   getDefaultValue: () => '',
   isValidValue: (value) => typeof value === 'string' && value.trim().length > 0 && value.length <= titleMaximumLength,
   isEmptyValue: isBlankText,
-  toDisplayString: toPlainText,
+  toDisplayString: String,
 };
 
 const richTextDefinition: PagePropertyDefinition = {
@@ -55,7 +53,7 @@ const richTextDefinition: PagePropertyDefinition = {
   getDefaultValue: () => '',
   isValidValue: (value) => typeof value === 'string',
   isEmptyValue: isBlankText,
-  toDisplayString: toPlainText,
+  toDisplayString: String,
 };
 
 const selectDefinition: PagePropertyDefinition = {
@@ -65,7 +63,7 @@ const selectDefinition: PagePropertyDefinition = {
   getDefaultValue: (context) => context.options?.[0] ?? '',
   isValidValue: (value, context) => typeof value === 'string' && isDeclaredOption(value, context),
   isEmptyValue: isBlankText,
-  toDisplayString: (value) => humanizeSelectOption(toPlainText(value)),
+  toDisplayString: (value) => humanizeSelectOption(String(value)),
 };
 
 const multiSelectDefinition: PagePropertyDefinition = {
@@ -76,7 +74,7 @@ const multiSelectDefinition: PagePropertyDefinition = {
   isValidValue: (value, context) =>
     isStringArray(value) && hasUniqueEntries(value) && value.every((entry) => isDeclaredOption(entry, context)),
   isEmptyValue: isEmptyCollection,
-  toDisplayString: (value) => (isStringArray(value) ? value.map(humanizeSelectOption).join(', ') : toPlainText(value)),
+  toDisplayString: (value) => (isStringArray(value) ? value.map(humanizeSelectOption).join(', ') : String(value)),
 };
 
 const personDefinition: PagePropertyDefinition = {
@@ -86,7 +84,7 @@ const personDefinition: PagePropertyDefinition = {
   getDefaultValue: () => '',
   isValidValue: (value, context) => typeof value === 'string' && context.personIds?.has(value) === true,
   isEmptyValue: isBlankText,
-  toDisplayString: toPlainText,
+  toDisplayString: String,
 };
 
 const dateDefinition: PagePropertyDefinition = {
@@ -96,7 +94,7 @@ const dateDefinition: PagePropertyDefinition = {
   getDefaultValue: () => '',
   isValidValue: (value) => typeof value === 'string' && !Number.isNaN(Date.parse(value)),
   isEmptyValue: isBlankText,
-  toDisplayString: toPlainText,
+  toDisplayString: String,
 };
 
 const checkboxDefinition: PagePropertyDefinition = {
@@ -106,7 +104,7 @@ const checkboxDefinition: PagePropertyDefinition = {
   getDefaultValue: () => false,
   isValidValue: (value) => typeof value === 'boolean',
   isEmptyValue: isNeverEmpty,
-  toDisplayString: toPlainText,
+  toDisplayString: String,
 };
 
 const numberDefinition: PagePropertyDefinition = {
@@ -116,7 +114,7 @@ const numberDefinition: PagePropertyDefinition = {
   getDefaultValue: () => 0,
   isValidValue: (value) => typeof value === 'number' && Number.isFinite(value),
   isEmptyValue: isNeverEmpty,
-  toDisplayString: toPlainText,
+  toDisplayString: String,
 };
 
 export const PAGE_PROPERTY_DEFINITIONS = {

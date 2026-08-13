@@ -15,7 +15,7 @@ const redactionLabel = 'removed';
 const safeErrorMessage = (error: unknown): string => {
   const message = error instanceof Error ? error.message : 'Unknown outbox processing error';
   return message
-    .replace(
+    .replaceAll(
       /(authorization|password|secret|token|api[_-]?key)\s*[:=]\s*[^\s,;]+/gi,
       (_match, key: string) => `${key}=${redactionLabel}`,
     )
@@ -81,7 +81,7 @@ export class OutboxRepository implements OutboxEventContract {
       data: {
         nextAttemptAt,
         lastError: { message: safeErrorMessage(error), recordedAt: new Date().toISOString() },
-        payload: event.payload === null ? Prisma.JsonNull : event.payload,
+        payload: event.payload ?? Prisma.JsonNull,
         status,
       },
       where: { id },

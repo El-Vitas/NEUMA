@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType } from '@company-brain/db';
-import {
-  parseSchemaPropertyValues,
-  validateSchemaProperties,
-  validateSchemaPropertyValues,
-} from '@/common/domain/schema-property.domain';
+import { validateSchemaProperties, validateSchemaPropertyValues } from '@/common/domain/schema-property.domain';
 
 describe('schema property domain validation', () => {
   it('rejects duplicate property keys before persistence', () => {
@@ -51,16 +47,5 @@ describe('schema property domain validation', () => {
     );
 
     expect(result.isFail()).toBe(true);
-  });
-
-  it('parses a stored JSON blob into typed property values, dropping anything unrecognizable', () => {
-    const parsed = parseSchemaPropertyValues({ status: 'done', weird: { nested: true }, count: 3 });
-
-    expect(parsed).toEqual({ status: 'done', count: 3 });
-  });
-
-  it('returns null when the stored JSON value is not a plain object', () => {
-    expect(parseSchemaPropertyValues(null)).toBeNull();
-    expect(parseSchemaPropertyValues(['a', 'b'])).toBeNull();
   });
 });

@@ -10,7 +10,7 @@ import type { LinksProjectionPage, LinksProjectionSource, PageLinkProjection } f
 import { extractLinkTargetPageIds } from '../../utils/links.content.utils';
 
 const resolveTargetPageIds = (sourcePageId: string, page: LinksProjectionPage | null): readonly string[] | null => {
-  if (page === null || page.lifecycle !== PageLifecycle.ACTIVE) return [];
+  if (page?.lifecycle !== PageLifecycle.ACTIVE) return [];
   const mentionedPageIds = extractLinkTargetPageIds(page.content);
   return mentionedPageIds === null ? null : resolveLinkTargets(sourcePageId, mentionedPageIds);
 };
