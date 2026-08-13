@@ -31,6 +31,16 @@ export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
 export const PAGE_BLOCK_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'red'] as const;
 export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
 
+/**
+ * What kind of aside a callout is.
+ *
+ * What is kept is the kind and not the symbol drawn for it: a page says the
+ * same thing to everyone reading it, whatever each of them ends up seeing, and
+ * the same few kinds mean the same few things throughout a document.
+ */
+export const PAGE_CALLOUT_ICONS = ['idea', 'info', 'warning', 'done', 'blocked', 'pinned'] as const;
+export type PageCalloutIcon = (typeof PAGE_CALLOUT_ICONS)[number];
+
 /** A remark left on a block, kept with the block itself so it travels wherever the block goes. */
 export type PageBlockComment = {
   readonly author: string;
@@ -249,7 +259,7 @@ export type PageContentKnownNode =
       readonly type: 'task_item';
     }
   | {
-      readonly attrs?: PageBlockAttrs;
+      readonly attrs?: PageBlockAttrs & { readonly icon?: PageCalloutIcon };
       readonly content: readonly PageContentNode[];
       readonly type: 'callout';
     }
@@ -393,7 +403,14 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       })
       .strict(),
     z
-      .object({ attrs: pageIdOnlyAttrsSchema.optional(), content: pageNodeListSchema, type: z.literal('callout') })
+      .object({
+        attrs: z
+          .object({ ...pageBlockAttrsShape, icon: z.enum(PAGE_CALLOUT_ICONS).optional() })
+          .strict()
+          .optional(),
+        content: pageNodeListSchema,
+        type: z.literal('callout'),
+      })
       .strict(),
     z
       .object({

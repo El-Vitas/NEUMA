@@ -4,6 +4,7 @@ import {
   SELECTION_TOOLBAR_ESTIMATED_HEIGHT_PX,
   SELECTION_TOOLBAR_ESTIMATED_WIDTH_PX,
 } from '../constants/pages.editor.constants';
+import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-icon.types';
 import type {
   PageEditorSpot,
   PageEditorSurfaceRect,
@@ -14,6 +15,7 @@ import { readPageEditorBlockComments } from './pages.editor.block-comment.lib';
 import { isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
 import { readPageEditorBlockId } from './pages.editor.block-link.lib';
 import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
+import { isPageEditorCalloutSelected, readPageEditorCalloutIcon } from './pages.editor.callout-icon.lib';
 import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
 import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
@@ -61,12 +63,17 @@ const readFoldStateOfRequestedBlock = (state: EditorState): { readonly isFolded:
   return request === null ? null : readPageEditorFoldState(state.doc, request.blockStart);
 };
 
+/** The mark, read only for a callout, so no other block is offered a choice that means nothing to it. */
+const readCalloutIconChoice = (state: EditorState): PageEditorCalloutIconChoice | null =>
+  isPageEditorCalloutSelected(state) ? { chosen: readPageEditorCalloutIcon(state) } : null;
+
 export const readPageEditorSurface = (
   view: EditorView,
   state: EditorState,
   surfaceRect: PageEditorSurfaceRect | null,
 ): PageEditorSurfaceState => ({
   blockId: readPageEditorBlockId(state),
+  calloutIcon: readCalloutIconChoice(state),
   colors: readPageEditorBlockColors(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),

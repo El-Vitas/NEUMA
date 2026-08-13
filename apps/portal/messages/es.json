@@ -427,6 +427,16 @@
     "foldHeading": "Plegar o desplegar este encabezado",
     "openToggle": "Abrir o cerrar este bloque plegable",
     "toggleTitle": "Título del bloque plegable",
+    "calloutIcon": "Marca del destacado",
+    "noCalloutIcon": "Sin marca",
+    "calloutIcons": {
+      "blocked": "Bloqueado",
+      "done": "Listo",
+      "idea": "Idea",
+      "info": "Información",
+      "pinned": "Fijado",
+      "warning": "Advertencia"
+    },
     "foldBlock": "Plegar",
     "unfoldBlock": "Desplegar"
   },

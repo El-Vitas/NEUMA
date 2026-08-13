@@ -2,6 +2,7 @@ import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import {
+  PAGE_EDITOR_CALLOUT_TYPE,
   PAGE_EDITOR_COLLECTION_CLASS,
   PAGE_EDITOR_TASK_ITEM_TYPE,
   PAGE_EDITOR_TOGGLE_TYPE,
@@ -10,6 +11,7 @@ import {
   PAGE_EDITOR_UNSUPPORTED_TYPE,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
 
@@ -73,6 +75,7 @@ export const createPageEditorNodeViews = (
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
+  [PAGE_EDITOR_CALLOUT_TYPE]: (node) => createPageCalloutNodeView(node),
   collection: (node) => createPageCollectionNodeView(node, labels.collection),
   file: createPageFileNodeView,
   image: createPageImageNodeView,

@@ -1,6 +1,7 @@
 import type { PageBlockComment } from '@company-brain/shared';
 import type { PageEditorBlockColors } from './pages.editor.block-color.types';
 import type { PageEditorBlockRequest } from './pages.editor.block-request.types';
+import type { PageEditorCalloutIconChoice } from './pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from './pages.editor.convert.types';
 
 /** Where on the screen a spot of the page is, measured from the editor's own box. */
@@ -25,6 +26,7 @@ export interface PageEditorCollectionHost {
 /** What the page around the editor shows about the blocks in play. */
 export interface PageEditorSurfaceState {
   readonly blockId: string | null;
+  readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];

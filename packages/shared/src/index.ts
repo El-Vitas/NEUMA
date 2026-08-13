@@ -91,6 +91,7 @@ export { applyPageContentMigrations, readStoredPageContent } from './schemas/pag
 export type {
   PageBlockAttrs,
   PageBlockColor,
+  PageCalloutIcon,
   PageBlockComment,
   PageContent,
   PageContentInlineNode,
@@ -105,6 +106,7 @@ export {
   isAllowedPageEmbedUrl,
   isKnownPageContentNode,
   PAGE_BLOCK_COLORS,
+  PAGE_CALLOUT_ICONS,
   PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,

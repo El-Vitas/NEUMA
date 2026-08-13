@@ -369,6 +369,7 @@ export const PagesProseMirrorEditor = forwardRef(
           {canEdit && (
             <PagesEditorBlockActions
               authorName={currentUserDisplayName ?? t('collaboration.participantFallback')}
+              calloutIcon={surface.calloutIcon}
               colors={surface.colors}
               comments={surface.comments}
               conversions={surface.conversions}

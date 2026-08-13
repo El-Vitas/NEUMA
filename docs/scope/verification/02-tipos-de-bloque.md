@@ -76,11 +76,11 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-09 · Bloque destacado
 
-- [ ] Se inserta desde el menú `/`
-- [ ] Tiene un ícono a la izquierda que se puede cambiar
-- [ ] El color de fondo se puede cambiar
-- [ ] Admite varias líneas y otros bloques dentro
-- [ ] Se distingue claramente de una cita
+- [x] Se inserta desde el menú `/`
+- [x] Tiene un ícono a la izquierda que se puede cambiar
+- [x] El color de fondo se puede cambiar
+- [x] Admite varias líneas y otros bloques dentro
+- [x] Se distingue claramente de una cita
 
 ## TB-10 · Bloque de código
 
@@ -229,6 +229,7 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-09 | Faltaba la marca de la izquierda, que no existía. Se agregó al contrato como el **tipo** de aviso (idea, información, advertencia, listo, bloqueado, fijado) y no como el símbolo: la página dice lo mismo para todos, y cada quien ve el dibujo que le toque. Se elige desde el menú del bloque, junto al color, que ya funcionaba. | 5 de 5 |
 | 13/08/2026 | TB-08 | El separador no existía en ninguna parte: se agregó al contrato (`divider`), al editor, al menú `/` y a `---`. Como la línea no sostiene nada, insertarla al final de la página deja un párrafo debajo para seguir escribiendo. De paso se corrigió que un bloque que no sostiene nada, llegando con contenido, rompía la validación con un error técnico en vez de rechazarla. | 4 de 4 |
 | 13/08/2026 | TB-07 | Faltaba solo empezarla escribiendo: `>` + espacio no hacía nada porque no existía la regla. El resto ya estaba: se distingue del párrafo por su barra y su color, y dos Enter salen de ella. | 3 de 3 |
 | 13/08/2026 | TB-06 | El título no se podía escribir: estaba dentro de un `<summary>`, que se queda el foco, y ninguna tecla llegaba. Tampoco servía escribirlo como contenido del editor —el teclado responde a quien tiene el foco y el editor lee cada tecla como escritura en la página—, así que el título pasó a ser un campo propio y la flecha, un botón de verdad. Lo demás ya funcionaba; el bloque se dibuja sin `<details>` y lo que sostiene se sangra bajo el título. | 6 de 6 |
