@@ -455,7 +455,16 @@
       "warning": "Warning"
     },
     "foldBlock": "Fold",
-    "unfoldBlock": "Unfold"
+    "unfoldBlock": "Unfold",
+    "tableActionsLabel": "Table",
+    "tableActions": {
+      "addRow": "Add row",
+      "addColumn": "Add column",
+      "deleteRow": "Delete row",
+      "deleteColumn": "Delete column",
+      "toggleHeaderRow": "Header row",
+      "deleteTable": "Delete table"
+    }
   },
   "errors": {
     "generic": "Something went wrong.",

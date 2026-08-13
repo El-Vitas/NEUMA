@@ -3,6 +3,7 @@ import { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_LEAF_NODE_TYPES,
+  PAGE_EDITOR_ONLY_WHEN_BEYOND_ONE_ATTRIBUTES,
   PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES,
 } from '../constants/pages.editor.blocks.constants';
 import {
@@ -128,7 +129,8 @@ const normalizePageEditorContent = (value: unknown): readonly Record<string, unk
 
 const saysSomething = ([key, value]: readonly [string, unknown]): boolean => {
   if (value === null) return false;
-  return !(PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES.includes(key) && value === false);
+  if (PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES.includes(key) && value === false) return false;
+  return !(PAGE_EDITOR_ONLY_WHEN_BEYOND_ONE_ATTRIBUTES.includes(key) && value === 1);
 };
 
 const normalizePageEditorAttrs = (value: unknown): Record<string, unknown> => {

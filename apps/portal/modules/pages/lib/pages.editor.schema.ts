@@ -14,6 +14,7 @@ import {
   PAGE_EDITOR_COLUMN_LIST_CLASS,
   PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
   PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS,
+  PAGE_EDITOR_TABLE_CELL_ATTRS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
   PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
@@ -52,6 +53,29 @@ const getPageEditorCodeAttrs = (element: Element): { readonly language: string |
     wrapped: element.getAttribute('data-wrapped') === 'true',
   };
 };
+
+/**
+ * How far a cell reaches and how wide its column was left.
+ *
+ * A table records the widths on the cells of a row rather than on the table, so
+ * stretching a column is a change to that row and travels with it.
+ */
+const getPageEditorTableCellAttrs = (
+  element: HTMLElement,
+): { readonly colspan: number; readonly colwidth: readonly number[] | null; readonly rowspan: number } => {
+  const widths = element.dataset.colwidth?.split(',').map(Number).filter(Number.isFinite) ?? [];
+  return {
+    colspan: Number(element.getAttribute('colspan')) || 1,
+    colwidth: widths.length === 0 ? null : widths,
+    rowspan: Number(element.getAttribute('rowspan')) || 1,
+  };
+};
+
+const readTableCellDomAttrs = (node: EditorNode): Record<string, string> => ({
+  ...(node.attrs.colspan === 1 ? {} : { colspan: String(node.attrs.colspan) }),
+  ...(node.attrs.rowspan === 1 ? {} : { rowspan: String(node.attrs.rowspan) }),
+  ...(Array.isArray(node.attrs.colwidth) ? { 'data-colwidth': node.attrs.colwidth.join(',') } : {}),
+});
 
 /** A mark that is not one of the few on offer is no mark at all. */
 const isPageCalloutIcon = (value: string): boolean => PAGE_CALLOUT_ICONS.some((icon) => icon === value);
@@ -356,24 +380,41 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     definePageBlock({
       content: 'table_row+',
       group: 'block',
+      isolating: true,
       parseDOM: [{ tag: 'table' }],
       render: (_node, blockAttributes) => ['table', blockAttributes, ['tbody', 0]],
+      tableRole: 'table',
     }),
   ],
   [
     'table_cell',
     definePageBlock({
+      attrs: PAGE_EDITOR_TABLE_CELL_ATTRS,
       content: 'block+',
-      parseDOM: [{ tag: 'td' }],
-      render: (_node, blockAttributes) => ['td', blockAttributes, 0],
+      isolating: true,
+      parseDOM: [{ getAttrs: getPageEditorTableCellAttrs, tag: 'td' }],
+      render: (node, blockAttributes) => ['td', { ...blockAttributes, ...readTableCellDomAttrs(node) }, 0],
+      tableRole: 'cell',
+    }),
+  ],
+  [
+    'table_header',
+    definePageBlock({
+      attrs: PAGE_EDITOR_TABLE_CELL_ATTRS,
+      content: 'block+',
+      isolating: true,
+      parseDOM: [{ getAttrs: getPageEditorTableCellAttrs, tag: 'th' }],
+      render: (node, blockAttributes) => ['th', { ...blockAttributes, ...readTableCellDomAttrs(node) }, 0],
+      tableRole: 'header_cell',
     }),
   ],
   [
     'table_row',
     definePageBlock({
-      content: 'table_cell+',
+      content: '(table_cell | table_header)+',
       parseDOM: [{ tag: 'tr' }],
       render: (_node, blockAttributes) => ['tr', blockAttributes, 0],
+      tableRole: 'row',
     }),
   ],
   [

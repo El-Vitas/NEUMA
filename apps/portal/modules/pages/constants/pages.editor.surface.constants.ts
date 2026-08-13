@@ -8,6 +8,7 @@ export const PAGE_EDITOR_QUIET_SURFACE: PageEditorSurfaceState = {
   comments: [],
   conversions: [],
   foldState: null,
+  isInTable: false,
   menuPosition: null,
   request: null,
   selectedBlockCount: 0,

@@ -20,6 +20,7 @@ import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
 import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
+import { isPageEditorInTable } from './pages.editor.table.lib';
 
 const readMenuPosition = (
   view: EditorView,
@@ -75,6 +76,7 @@ export const readPageEditorSurface = (
   blockId: readPageEditorBlockId(state),
   calloutIcon: readCalloutIconChoice(state),
   colors: readPageEditorBlockColors(state),
+  isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
   foldState: readFoldStateOfRequestedBlock(state),

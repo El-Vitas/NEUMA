@@ -6,6 +6,7 @@ const maximumPageContentNodes = 500;
 const maximumPageTextLength = 20_000;
 const maximumTableRows = 50;
 const maximumTableColumns = 10;
+const maximumTableColumnWidth = 2_000;
 const maximumToggleSummaryLength = 500;
 const maximumAssetIdLength = 200;
 const maximumAssetMetadataLength = 500;
@@ -148,6 +149,30 @@ const pageBlockAttrsShape = {
 };
 
 const pageIdOnlyAttrsSchema = z.object(pageBlockAttrsShape).strict();
+
+/**
+ * What a cell of a table carries beyond what it says: how far it reaches, and
+ * how wide its column was left. The widths are kept per cell because that is
+ * where a table records them when a column is stretched.
+ */
+const pageTableCellAttrsSchema = z
+  .object({
+    ...pageBlockAttrsShape,
+    colspan: z.number().int().min(1).max(maximumTableColumns).optional(),
+    colwidth: z
+      .array(z.number().int().min(1).max(maximumTableColumnWidth))
+      .max(maximumTableColumns)
+      .nullable()
+      .optional(),
+    rowspan: z.number().int().min(1).max(maximumTableRows).optional(),
+  })
+  .strict();
+
+export type PageTableCellAttrs = PageBlockAttrs & {
+  readonly colspan?: number;
+  readonly colwidth?: readonly number[] | null;
+  readonly rowspan?: number;
+};
 
 export const pageCollectionAttrsSchema = z
   .object({
@@ -307,9 +332,14 @@ export type PageContentKnownNode =
       readonly type: 'table_row';
     }
   | {
-      readonly attrs?: PageBlockAttrs;
+      readonly attrs?: PageTableCellAttrs;
       readonly content: readonly PageContentNode[];
       readonly type: 'table_cell';
+    }
+  | {
+      readonly attrs?: PageTableCellAttrs;
+      readonly content: readonly PageContentNode[];
+      readonly type: 'table_header';
     }
   | {
       readonly attrs?: PageBlockAttrs;
@@ -351,6 +381,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'table',
   'table_row',
   'table_cell',
+  'table_header',
   'toggle',
   'column_list',
   'column',
@@ -484,9 +515,16 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       .strict(),
     z
       .object({
-        attrs: pageIdOnlyAttrsSchema.optional(),
+        attrs: pageTableCellAttrsSchema.optional(),
         content: pageNodeListSchema,
         type: z.literal('table_cell'),
+      })
+      .strict(),
+    z
+      .object({
+        attrs: pageTableCellAttrsSchema.optional(),
+        content: pageNodeListSchema,
+        type: z.literal('table_header'),
       })
       .strict(),
     z
@@ -590,6 +628,7 @@ type PageBlockParentType = Extract<
   | 'ordered_list'
   | 'table'
   | 'table_cell'
+  | 'table_header'
   | 'table_row'
   | 'toggle'
   | 'column_list'
@@ -637,7 +676,8 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
   ordered_list: ['list_item'],
   table: ['table_row'],
   table_cell: pageContainerChildTypes,
-  table_row: ['table_cell'],
+  table_header: pageContainerChildTypes,
+  table_row: ['table_cell', 'table_header'],
   toggle: pageContainerChildTypes,
   task_list: ['task_item'],
   task_item: pageContainerChildTypes,

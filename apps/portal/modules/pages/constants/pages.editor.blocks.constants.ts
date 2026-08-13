@@ -135,6 +135,14 @@ export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
  */
 export const PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES: readonly string[] = ['collapsed'];
 
+/**
+ * Attributes that only mean something when they are more than one.
+ *
+ * A cell that reaches exactly one column and one row is every cell there is, so
+ * writing it down would say nothing and would change every table already saved.
+ */
+export const PAGE_EDITOR_ONLY_WHEN_BEYOND_ONE_ATTRIBUTES: readonly string[] = ['colspan', 'rowspan'];
+
 /** What a folded heading is holding: kept in the page, taken out of sight. */
 export const PAGE_EDITOR_FOLDED_STYLE_CLASS = 'hidden';
 
@@ -229,6 +237,24 @@ export const PAGE_EDITOR_NESTED_BLOCK_TYPE = 'nested_block';
 export const PAGE_EDITOR_LIST_ITEM_TYPE = 'list_item';
 
 export const PAGE_EDITOR_TABLE_CELL_TYPE = 'table_cell';
+
+export const PAGE_EDITOR_TABLE_TYPE = 'table';
+
+/** How big a table is when it is first drawn, counting the header among the rows. */
+export const PAGE_EDITOR_TABLE_SIZE = { columns: 3, rows: 3 } as const;
+
+/** Narrower than this a column cannot be read, so a column edge stops there. */
+export const PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH = 60;
+
+/** What is too wide travels within the table, never taking the page with it. */
+export const PAGE_EDITOR_TABLE_SCROLL_STYLE_CLASS = 'overflow-x-auto';
+
+/** What a cell of a table carries beyond what it says, in the shape a table expects to find. */
+export const PAGE_EDITOR_TABLE_CELL_ATTRS: Readonly<Record<string, AttributeSpec>> = {
+  colspan: { default: 1 },
+  colwidth: { default: null },
+  rowspan: { default: 1 },
+};
 
 export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
 

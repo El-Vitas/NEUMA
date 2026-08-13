@@ -12,7 +12,10 @@ export interface PageBlockDefinition {
   readonly content?: string;
   readonly defining?: boolean;
   readonly group?: string;
+  readonly isolating?: boolean;
   readonly marks?: string;
   readonly parseDOM: readonly TagParseRule[];
+  /** What part of a table this block plays, which is how a table knows its own shape. */
+  readonly tableRole?: 'table' | 'row' | 'cell' | 'header_cell';
   readonly render: (node: EditorNode, blockAttributes: Record<string, string>) => DOMOutputSpec;
 }
