@@ -3,7 +3,7 @@
 import { SPACE_VISIBILITY } from '@company-brain/shared';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { FormEvent } from 'react';
+import type { SyntheticEvent } from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FormActions } from '@/shared/components/forms/form-actions';
@@ -41,7 +41,7 @@ export const SpacesCreateForm = () => {
     ? resolveSpaceFieldErrorMessage(slugValidationIssue, validationT('slugRequired'))
     : undefined;
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsNameTouched(true);
     setIsSlugTouched(true);

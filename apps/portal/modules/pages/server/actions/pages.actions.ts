@@ -30,7 +30,7 @@ const authenticatedRequest = async <T>(endpoint: string, method: string, body: u
 };
 
 export const createPageAction = actionClient
-  .schema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
+  .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'createPage' }, async () => {
       const createdPage = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
@@ -45,7 +45,7 @@ export const createPageAction = actionClient
   );
 
 export const updatePageAction = actionClient
-  .schema(pageMutationSchema.extend({ pageId: pageMoveSchema.shape.pageId }))
+  .inputSchema(pageMutationSchema.extend({ pageId: pageMoveSchema.shape.pageId }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'updatePage' }, async () => {
       await authenticatedRequest(PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -57,7 +57,7 @@ export const updatePageAction = actionClient
     }),
   );
 
-export const movePageAction = actionClient.schema(pageMoveSchema).action(async ({ parsedInput }) =>
+export const movePageAction = actionClient.inputSchema(pageMoveSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'movePage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.move(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
       parentId: parsedInput.parentId,
@@ -72,16 +72,18 @@ export const movePageAction = actionClient.schema(pageMoveSchema).action(async (
  * They are read from the space itself rather than from the search index, so
  * choosing a destination works the moment a page exists.
  */
-export const listPageDestinationsAction = actionClient.schema(pageDestinationsSchema).action(async ({ parsedInput }) =>
-  withAction({ action: 'listDestinations' }, async (): Promise<readonly PageDestination[]> => {
-    const accessToken = await requireAccessTokenCookie();
-    const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(parsedInput.spaceId), accessToken);
-    return pagesListSchema
-      .parse(response)
-      .filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE && page.id !== parsedInput.exceptPageId)
-      .map((page) => ({ id: page.id, label: page.title, spaceId: page.spaceId }));
-  }),
-);
+export const listPageDestinationsAction = actionClient
+  .inputSchema(pageDestinationsSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'listDestinations' }, async (): Promise<readonly PageDestination[]> => {
+      const accessToken = await requireAccessTokenCookie();
+      const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(parsedInput.spaceId), accessToken);
+      return pagesListSchema
+        .parse(response)
+        .filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE && page.id !== parsedInput.exceptPageId)
+        .map((page) => ({ id: page.id, label: page.title, spaceId: page.spaceId }));
+    }),
+  );
 
 /**
  * Adds blocks at the end of another page.
@@ -89,29 +91,31 @@ export const listPageDestinationsAction = actionClient.schema(pageDestinationsSc
  * The page that receives them is read first and written back whole, so the
  * blocks join what is already there instead of replacing it.
  */
-export const addBlocksToPageAction = actionClient.schema(pageBlocksHandoverSchema).action(async ({ parsedInput }) =>
-  withAction({ action: 'addBlocks' }, async () => {
-    const accessToken = await requireAccessTokenCookie();
-    const endpoint = PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId);
-    const destination = pageSummarySchema.parse(await apiRequest<unknown>(endpoint, accessToken));
+export const addBlocksToPageAction = actionClient
+  .inputSchema(pageBlocksHandoverSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'addBlocks' }, async () => {
+      const accessToken = await requireAccessTokenCookie();
+      const endpoint = PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId);
+      const destination = pageSummarySchema.parse(await apiRequest<unknown>(endpoint, accessToken));
 
-    await authenticatedRequest(endpoint, 'PATCH', {
-      content: { ...destination.content, content: [...destination.content.content, ...parsedInput.content.content] },
-      propertyValues: destination.propertyValues,
-      title: destination.title,
-    });
-    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
-  }),
-);
+      await authenticatedRequest(endpoint, 'PATCH', {
+        content: { ...destination.content, content: [...destination.content.content, ...parsedInput.content.content] },
+        propertyValues: destination.propertyValues,
+        title: destination.title,
+      });
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    }),
+  );
 
-export const trashPageAction = actionClient.schema(pageLifecycleMutationSchema).action(async ({ parsedInput }) =>
+export const trashPageAction = actionClient.inputSchema(pageLifecycleMutationSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'trashPage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.trash(parsedInput.spaceId, parsedInput.pageId), 'POST', {});
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
   }),
 );
 
-export const restorePageAction = actionClient.schema(pageLifecycleMutationSchema).action(async ({ parsedInput }) =>
+export const restorePageAction = actionClient.inputSchema(pageLifecycleMutationSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'restorePage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.restore(parsedInput.spaceId, parsedInput.pageId), 'POST', {});
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));

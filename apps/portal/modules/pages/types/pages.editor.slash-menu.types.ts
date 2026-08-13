@@ -1,7 +1,15 @@
 import type { Command } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
+import type { RefObject } from 'react';
+import type { PageEditorSpot } from './pages.editor.surface.types';
 import type { PageEditorCommandGroup } from './pages.types';
 
 export type PagesEditorTriggerKind = 'mention' | 'slash';
+
+export interface PagesEditorTrigger {
+  readonly kind: PagesEditorTriggerKind;
+  readonly query: string;
+}
 
 export interface PagesEditorMenuItem {
   readonly group?: PageEditorCommandGroup;
@@ -17,4 +25,26 @@ export interface SlashMenuKeyDownOptions {
   readonly onSelect: (item: PagesEditorMenuItem) => void;
   readonly onSelectedIndexChange: (index: number) => void;
   readonly selectedIndex: number;
+}
+
+/** What the menu beside the cursor needs: the editor it types into, the box it is placed against, and what to do when Escape leaves a selection behind instead of closing a menu. */
+export interface PagesEditorTriggerMenuParameters {
+  readonly editorViewRef: RefObject<EditorView | null>;
+  readonly onEscapeWithSelection: (editorView: EditorView) => void;
+  readonly surfaceRef: RefObject<HTMLDivElement | null>;
+}
+
+/** The trigger menu's own state and the operations that move it, kept apart from the rest of the editor. */
+export interface PagesEditorTriggerMenu {
+  readonly answerKeyPress: (editorView: EditorView, event: KeyboardEvent) => boolean;
+  readonly computeMenuPosition: (editorView: EditorView, fromPos: number, toPos: number) => PageEditorSpot | null;
+  readonly selectTriggerCommand: (item: PagesEditorMenuItem) => void;
+  readonly rememberTriggerMenuPosition: (position: PageEditorSpot | null) => void;
+  readonly triggerAriaLabel: string;
+  readonly triggerEmptyMessage: string;
+  readonly triggerItems: readonly PagesEditorMenuItem[];
+  readonly triggerMenuPosition: PageEditorSpot | null;
+  readonly triggerQuery: string | null;
+  readonly triggerSelectedIndex: number;
+  readonly updateEditorTrigger: (text: string) => PagesEditorTrigger | null;
 }

@@ -18,7 +18,7 @@ export const readPageEditorBlocksContent = (state: EditorState, range: PageEdito
   const blocks = state.doc.slice(range.from, range.to).content;
   if (blocks.childCount === 0) return null;
   const documentType = state.schema.nodes.doc;
-  if (documentType === undefined || !documentType.validContent(blocks)) return null;
+  if (documentType?.validContent(blocks) !== true) return null;
   return serializePageEditorDocument(documentType.create(null, blocks));
 };
 

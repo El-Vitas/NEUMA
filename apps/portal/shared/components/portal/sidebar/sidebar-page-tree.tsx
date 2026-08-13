@@ -110,13 +110,14 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const canEdit = canEditContent(role) && !isPending;
 
   return (
-    <ul className="space-y-px pb-1" id={id} onKeyDown={handleSidebarPageTreeKeyDown}>
+    <ul aria-label={t('pageTree')} className="space-y-px pb-1" data-page-tree="true" id={id}>
       {tree.map((treeItem) => (
         <SidebarPageTreeItem
           canEdit={canEdit}
           depth={0}
           expandedPageIds={expandedPageIds}
           key={treeItem.page.id}
+          onKeyDown={handleSidebarPageTreeKeyDown}
           onLifecycleChange={changeLifecycle}
           onNavigate={onNavigate}
           onToggle={togglePage}

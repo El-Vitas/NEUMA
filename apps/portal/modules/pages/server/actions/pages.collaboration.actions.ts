@@ -12,7 +12,7 @@ import {
 } from '../../schemas/pages.collaboration.schemas';
 
 export const getPageCollaborationToken = actionClient
-  .schema(pageCollaborationTokenRequestSchema)
+  .inputSchema(pageCollaborationTokenRequestSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'getPageCollaborationToken' }, async () => {
       const response = await apiServer.post(API_ROUTES.COLLABORATION_TOKEN, {

@@ -2,6 +2,7 @@ import type { Node as EditorDocument } from 'prosemirror-model';
 import { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import {
+  PAGE_EDITOR_APPLE_USER_AGENT_PATTERN,
   SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX,
   SELECTION_TOOLBAR_VERTICAL_GAP_PX,
 } from '../constants/pages.editor.constants';
@@ -131,3 +132,10 @@ const isPageEditorContentNode = (value: unknown): boolean =>
 
 const isPageEditorJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Whether the shortcuts should be announced with the command key rather than
+ * control. It is read from what the browser says it is, since the platform it
+ * runs on is no longer something a page may ask for.
+ */
+export const usesCommandKeyboard = (userAgent: string): boolean => PAGE_EDITOR_APPLE_USER_AGENT_PATTERN.test(userAgent);

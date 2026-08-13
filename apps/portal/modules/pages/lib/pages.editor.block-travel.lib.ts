@@ -18,6 +18,6 @@ export const readSelectedPageBlocksContent = (state: EditorState): PageContent |
   const blocks = state.doc.slice(range.start, range.end).content;
   if (blocks.childCount === 0) return null;
   const documentType = state.schema.nodes.doc;
-  if (documentType === undefined || !documentType.validContent(blocks)) return null;
+  if (documentType?.validContent(blocks) !== true) return null;
   return serializePageEditorDocument(documentType.create(null, blocks));
 };

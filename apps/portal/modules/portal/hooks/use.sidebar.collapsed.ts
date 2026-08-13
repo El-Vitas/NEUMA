@@ -65,8 +65,8 @@ export const useSidebarCollapsed = (enableKeyboardShortcut = true): readonly [bo
         toggle();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [enableKeyboardShortcut, toggle]);
 
   return [collapsed, toggle] as const;

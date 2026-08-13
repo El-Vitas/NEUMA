@@ -10,7 +10,7 @@ import {
 const createToggleArrow = (): HTMLElement => {
   const arrow = document.createElement('span');
   arrow.className = PAGE_EDITOR_TOGGLE_ARROW_STYLE_CLASS;
-  arrow.setAttribute('data-toggle-arrow', 'true');
+  arrow.dataset.toggleArrow = 'true';
   arrow.setAttribute('aria-hidden', 'true');
   arrow.contentEditable = 'false';
   arrow.textContent = '▸';
@@ -20,7 +20,7 @@ const createToggleArrow = (): HTMLElement => {
 const createToggleTitle = (summary: string): HTMLElement => {
   const title = document.createElement('span');
   title.className = PAGE_EDITOR_TOGGLE_TITLE_STYLE_CLASS;
-  title.setAttribute('data-toggle-title', 'true');
+  title.dataset.toggleTitle = 'true';
   title.contentEditable = 'true';
   title.textContent = summary;
   return title;
@@ -50,7 +50,7 @@ export const createPageToggleNodeView = (
     arrow.classList.toggle(PAGE_EDITOR_TOGGLE_ARROW_OPEN_STYLE_CLASS, open);
   };
 
-  details.setAttribute('data-page-toggle', 'true');
+  details.dataset.pageToggle = 'true';
   showOpenState(node.attrs.open === true);
   summary.className = PAGE_EDITOR_TOGGLE_SUMMARY_STYLE_CLASS;
   summary.append(arrow, title);

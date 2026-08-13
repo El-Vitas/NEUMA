@@ -1,5 +1,7 @@
 'use client';
 
+import { Languages } from 'lucide-react';
+
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import {
@@ -9,7 +11,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/shared/components/ui/dropdown-menu';
-import { LANGUAGE_CHOICES, LANGUAGE_ICON, LANGUAGE_NAMES } from '@/shared/constants/language.constants';
+import { LANGUAGE_CHOICES, LANGUAGE_NAMES } from '@/shared/constants/language.constants';
 
 /**
  * Lets the interface be read in another language, staying on the same page.
@@ -26,7 +28,7 @@ export const LanguageMenu = () => {
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
-        <LANGUAGE_ICON aria-hidden="true" className="size-4" />
+        <Languages aria-hidden="true" className="size-4" />
         {t('label')}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>

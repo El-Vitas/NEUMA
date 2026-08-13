@@ -13,7 +13,7 @@ interface IProps {
 
 export default async function Page({ searchParams }: IProps) {
   const user = await getCurrentUser();
-  if (user === null || user.role !== USER_ROLE.ADMIN) {
+  if (user?.role !== USER_ROLE.ADMIN) {
     redirect({ href: ROUTES.PORTAL, locale: await getLocale() });
   }
 

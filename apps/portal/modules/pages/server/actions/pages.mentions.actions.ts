@@ -11,7 +11,7 @@ import { pageMentionSearchInputSchema } from '../../schemas/pages.mentions.schem
 import type { PageMentionCandidate } from '../../types/pages.mentions.types';
 
 export const searchPageMentionCandidatesAction = actionClient
-  .schema(pageMentionSearchInputSchema)
+  .inputSchema(pageMentionSearchInputSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'searchPageMentionCandidates' }, async (): Promise<readonly PageMentionCandidate[]> => {
       const result = await getSearchResults({

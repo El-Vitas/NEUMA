@@ -27,6 +27,8 @@ export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
 
 export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'code', 'heading'] as const;
 
+export const PAGE_EDITOR_APPLE_USER_AGENT_PATTERN = /mac|iphone|ipad|ipod/i;
+
 export const SELECTION_TOOLBAR_ESTIMATED_HEIGHT_PX = 44;
 
 export const SELECTION_TOOLBAR_ESTIMATED_WIDTH_PX = 220;

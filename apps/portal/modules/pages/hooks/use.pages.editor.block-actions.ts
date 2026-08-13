@@ -71,7 +71,7 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     closePageEditorBlockRequest(editorView, 'actions');
 
     void navigator.clipboard
-      .writeText(buildPageEditorBlockLink(window.location.href, blockId))
+      .writeText(buildPageEditorBlockLink(globalThis.location.href, blockId))
       .then(() => toast.success(t('blockLinkCopied')))
       .catch(() => toast.error(t('blockLinkCopyFailed')));
   }, [editorViewRef, t]);

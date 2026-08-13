@@ -6,7 +6,7 @@ const readPayload = (token: string): Record<string, unknown> | null => {
   const payload = sections[1];
   if (payload === undefined) return null;
   try {
-    const parsed: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    const parsed: unknown = JSON.parse(atob(payload.replaceAll('-', '+').replaceAll('_', '/')));
     return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : null;
   } catch {
     return null;

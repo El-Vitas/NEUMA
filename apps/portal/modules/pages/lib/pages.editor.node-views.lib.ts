@@ -37,10 +37,10 @@ const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView
   host.className = PAGE_EDITOR_COLLECTION_CLASS;
   host.contentEditable = 'false';
   host.setAttribute('aria-label', label);
-  host.setAttribute('data-page-collection', node.attrs.pageId);
-  host.setAttribute('data-space-id', node.attrs.spaceId);
+  host.dataset.pageCollection = node.attrs.pageId;
+  host.dataset.spaceId = node.attrs.spaceId;
   if (typeof node.attrs.viewName === 'string' && node.attrs.viewName.length > 0) {
-    host.setAttribute('data-view-name', node.attrs.viewName);
+    host.dataset.viewName = node.attrs.viewName;
   }
   return { dom: host };
 };

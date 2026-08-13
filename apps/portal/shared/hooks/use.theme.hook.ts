@@ -6,7 +6,7 @@ import { applyThemeReading, findThemeRoot, resolveThemeReading } from '@/shared/
 import { rememberThemeAction } from '@/shared/server/actions/theme.actions';
 import type { ThemeChoice } from '@/shared/types/theme.types';
 
-const prefersDarkNow = (): boolean => window.matchMedia(DARK_THEME_MEDIA_QUERY).matches;
+const prefersDarkNow = (): boolean => globalThis.matchMedia(DARK_THEME_MEDIA_QUERY).matches;
 
 /**
  * Dresses the page at once and tells the server, which is what makes the next
@@ -32,7 +32,7 @@ export const useTheme = (
 
   useEffect(() => {
     if (choice !== 'system') return;
-    const system = window.matchMedia(DARK_THEME_MEDIA_QUERY);
+    const system = globalThis.matchMedia(DARK_THEME_MEDIA_QUERY);
     const follow = (): void => rememberTheme('system', system.matches);
     follow();
     system.addEventListener('change', follow);

@@ -29,7 +29,7 @@ import { pageEditorBlockDragKey } from './pages.editor.plugin-keys.lib';
 const createDropIndicator = (): HTMLElement => {
   const indicator = document.createElement('div');
   indicator.className = `${PAGE_EDITOR_DROP_INDICATOR_CLASS} ${PAGE_EDITOR_DROP_INDICATOR_STYLE_CLASS}`;
-  indicator.setAttribute('data-drop-indicator', 'true');
+  indicator.dataset.dropIndicator = 'true';
   indicator.contentEditable = 'false';
   return indicator;
 };

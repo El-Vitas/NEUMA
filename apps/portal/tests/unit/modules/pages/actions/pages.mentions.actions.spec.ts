@@ -24,7 +24,7 @@ mock.module('server-only', () => ({}));
 mock.module('@/shared/server/queries/search.queries', () => ({ getSearchResults }));
 mock.module('@/lib/safe-action', () => ({
   actionClient: {
-    schema: () => ({
+    inputSchema: () => ({
       action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
         try {
           return { data: await handler({ parsedInput: input }) };

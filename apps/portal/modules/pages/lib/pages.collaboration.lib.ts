@@ -1,4 +1,4 @@
-import { createCollaborationDocumentName, sanitizeCollaborationPresenceIdentity } from '@company-brain/shared';
+import { sanitizeCollaborationPresenceIdentity } from '@company-brain/shared';
 import type { StatesArray } from '@hocuspocus/provider';
 import { EditorState } from 'prosemirror-state';
 import { initProseMirrorDoc, yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
@@ -13,8 +13,6 @@ import type {
 } from '../types/pages.collaboration.types';
 import { createPageEditorPlugins } from './pages.editor.commands';
 import { pageEditorSchema } from './pages.editor.schema';
-
-export { createCollaborationDocumentName };
 
 export const computeCollaborationReconnectDelayMs = (attemptNumber: number): number => {
   const clampedAttempt = Math.max(attemptNumber, 1);

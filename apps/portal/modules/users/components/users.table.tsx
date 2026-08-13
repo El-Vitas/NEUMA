@@ -8,9 +8,9 @@ import { formatDate } from '@/shared/utils/formatters';
 import { buildUsersInitialColumnFilters, buildUsersPageUrl } from '../lib/users.lib';
 import type { UserListItem } from '../types/users.types';
 import { UsersCreateDialog } from './users.create.dialog';
-import { UsersEditDialog } from './users.edit.dialog';
-import { UsersRoleBadge } from './users.role.badge';
-import { UsersStatusBadge } from './users.status.badge';
+import { UsersTableActionsCell } from './users.table.actions.cell';
+import { UsersTableRoleCell } from './users.table.role.cell';
+import { UsersTableStatusCell } from './users.table.status.cell';
 
 interface IProps {
   readonly items: UserListItem[];
@@ -42,14 +42,14 @@ export const UsersTable = ({ items, page, pageSize, total, search }: IProps) => 
         header: t('role'),
         enableColumnFilter: false,
         enableSorting: false,
-        cell: ({ row }) => <UsersRoleBadge role={row.original.role} />,
+        cell: UsersTableRoleCell,
       },
       {
         accessorKey: 'isActive',
         header: t('status'),
         enableColumnFilter: false,
         enableSorting: false,
-        cell: ({ row }) => <UsersStatusBadge isActive={row.original.isActive} />,
+        cell: UsersTableStatusCell,
       },
       {
         accessorKey: 'createdAt',
@@ -64,7 +64,7 @@ export const UsersTable = ({ items, page, pageSize, total, search }: IProps) => 
         enableColumnFilter: false,
         enableHiding: false,
         enableSorting: false,
-        cell: ({ row }) => <UsersEditDialog user={row.original} />,
+        cell: UsersTableActionsCell,
       },
     ],
     [locale, t],

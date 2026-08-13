@@ -17,19 +17,28 @@ export const usePagesMentionSearch = (query: string | null): PagesMentionSearchR
     const requestId = latestRequestIdRef.current + 1;
     latestRequestIdRef.current = requestId;
 
+    /** An answer is only worth reading while it is still the one being waited for. */
+    const receiveCandidates = (result: unknown): void => {
+      if (latestRequestIdRef.current !== requestId) return;
+      setIsLoading(false);
+      setCandidates(isActionSuccess<readonly PageMentionCandidate[]>(result) ? result.data : []);
+    };
+
+    const askForCandidates = (): void => {
+      void searchPageMentionCandidatesAction({ query }).then(receiveCandidates);
+    };
+
     const startMentionSearch = (): ReturnType<typeof setTimeout> => {
       setIsLoading(true);
-      return setTimeout(() => {
-        void searchPageMentionCandidatesAction({ query }).then((result) => {
-          if (latestRequestIdRef.current !== requestId) return;
-          setIsLoading(false);
-          setCandidates(isActionSuccess<readonly PageMentionCandidate[]>(result) ? result.data : []);
-        });
-      }, DEFAULT_DEBOUNCE_MS);
+      return setTimeout(askForCandidates, DEFAULT_DEBOUNCE_MS);
     };
 
     const timeoutId = startMentionSearch();
-    return () => clearTimeout(timeoutId);
+    return () => {
+      /** Moving the mark past this request is what makes a late answer arrive to nobody. */
+      latestRequestIdRef.current += 1;
+      clearTimeout(timeoutId);
+    };
   }, [query]);
 
   return {

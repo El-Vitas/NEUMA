@@ -3,7 +3,7 @@
 import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/shared/components/ui/input';
-import { PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME } from '../constants/pages.constants';
+import { EMPTY_PAGE_PERSON_OPTIONS, PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME } from '../constants/pages.constants';
 import {
   getBooleanPropertyValue,
   getMultiSelectPropertyValue,
@@ -29,7 +29,7 @@ export const PagesPropertiesField = ({
   ariaLabelledBy,
   disabled,
   onChange,
-  personOptions = [],
+  personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   property,
   value,
 }: IProps) => {

@@ -1,5 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import {
+  buildSlashMenuOptionId,
+  describeEditorWithTriggerMenu,
   getMentionMenuQuery,
   getSlashMenuQuery,
   handleSlashMenuKeyDown,
@@ -106,5 +108,22 @@ describe('handleSlashMenuKeyDown', () => {
 
     expect(handled).toBe(true);
     expect(onSelect).toHaveBeenCalledWith({ id: 'a', label: 'A', run: runCommand });
+  });
+
+  describe('describeEditorWithTriggerMenu', () => {
+    it('points the editor at the option marked in the menu it controls', () => {
+      const described = describeEditorWithTriggerMenu('menu-1', 'heading');
+
+      expect(described).toEqual({
+        'aria-activedescendant': buildSlashMenuOptionId('menu-1', 'heading'),
+        'aria-controls': 'menu-1',
+        'aria-expanded': 'true',
+        role: 'combobox',
+      });
+    });
+
+    it('says nothing at all when no option is marked, so a closed menu leaves the editor as plain text', () => {
+      expect(describeEditorWithTriggerMenu('menu-1', null)).toEqual({});
+    });
   });
 });

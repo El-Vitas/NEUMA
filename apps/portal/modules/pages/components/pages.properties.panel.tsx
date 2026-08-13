@@ -2,7 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { PAGE_PROPERTIES_VISIBLE_LIMIT } from '../constants/pages.constants';
+import {
+  EMPTY_PAGE_ATTACHMENTS,
+  EMPTY_PAGE_PERSON_OPTIONS,
+  EMPTY_PAGE_SUMMARIES,
+  PAGE_PROPERTIES_VISIBLE_LIMIT,
+} from '../constants/pages.constants';
 import { getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
@@ -28,16 +33,16 @@ interface IProps {
 }
 
 export const PagesPropertiesPanel = ({
-  attachments = [],
+  attachments = EMPTY_PAGE_ATTACHMENTS,
   canEdit,
   onAttachmentDeleted = () => undefined,
   onAttachmentUploaded = () => undefined,
   onPropertyValueChange,
   page = null,
   pageId = null,
-  pages = [],
+  pages = EMPTY_PAGE_SUMMARIES,
   parentSchema,
-  personOptions = [],
+  personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   propertyValues,
   spaceId = '',
 }: IProps) => {

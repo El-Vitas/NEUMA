@@ -6,7 +6,12 @@ import { Link } from '@/i18n/navigation';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { EMPTY_PAGE_ATTACHMENTS, EMPTY_PAGE_BACKLINKS } from '../constants/pages.constants';
+import {
+  EMPTY_PAGE_ATTACHMENTS,
+  EMPTY_PAGE_BACKLINKS,
+  EMPTY_PAGE_EMBEDDED_COLLECTIONS,
+  EMPTY_PAGE_PERSON_OPTIONS,
+} from '../constants/pages.constants';
 import { buildPageTree, canEditPage, getPageTreeExpandedIds } from '../lib/pages.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
@@ -35,13 +40,13 @@ export const PagesWorkspace = ({
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEditContent,
   collectionSection = null,
-  embeddedCollections = {},
+  embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
   isNewPage = false,
   pages,
   parentId = null,
   parentSchema = null,
-  personOptions = [],
+  personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   selectedPageId = null,
   spaceId,
 }: IProps) => {
