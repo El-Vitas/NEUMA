@@ -5,7 +5,7 @@ import { history } from 'prosemirror-history';
 import { inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
-import { splitListItem, wrapInList } from 'prosemirror-schema-list';
+import { wrapInList } from 'prosemirror-schema-list';
 import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
 import { PAGE_EDITOR_SHORTCUTS } from '../constants/pages.editor.shortcuts.constants';
@@ -25,6 +25,7 @@ import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plug
 import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages.editor.heading-fold.lib';
 import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
+import { splitPageEditorListPoint } from './pages.editor.list.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
@@ -32,6 +33,7 @@ import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
 const orderedListInputRule = /^\s*(\d+)\.\s$/;
+const taskListInputRule = /^\s*\[ ?\]\s$/;
 
 const canInsertPageNode = (state: EditorState, nodeType: NodeType): boolean => {
   const { $from } = state.selection;
@@ -222,6 +224,7 @@ export const createPageEditorPlugins = (
       textblockTypeInputRule(headingInputRule, schema.nodes.heading, (match) => ({ level: match[1]?.length ?? 1 })),
       wrappingInputRule(bulletListInputRule, schema.nodes.bullet_list),
       wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
+      wrappingInputRule(taskListInputRule, schema.nodes.task_list),
     ],
   }),
   keymap({ 'Mod-y': redoPageEditorStep }),
@@ -241,7 +244,7 @@ export const createPageEditorPlugins = (
    * the list instead of gaining a point — which is what a reader sees as the
    * second bullet silently becoming a paragraph.
    */
-  keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
+  keymap(Object.fromEntries([['Enter', splitPageEditorListPoint]])),
   keymap(baseKeymap),
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),

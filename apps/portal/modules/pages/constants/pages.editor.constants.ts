@@ -59,6 +59,11 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror_h3]:mt-8 [&_.ProseMirror_h3]:mb-4 [&_.ProseMirror_h3]:text-xl [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:leading-tight sm:[&_.ProseMirror_h3]:text-2xl',
   '[&_.ProseMirror_ul]:mb-4 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:ps-6',
   '[&_.ProseMirror_ol]:mb-4 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:ps-6',
+  /** A nested level reads as one by its own mark, and sits against the level that holds it. */
+  '[&_.ProseMirror_li_ul]:mb-0 [&_.ProseMirror_li_ul]:list-[circle] [&_.ProseMirror_li_ul_ul]:list-[square]',
+  '[&_.ProseMirror_li_ol]:mb-0 [&_.ProseMirror_li_ol]:list-[lower-alpha] [&_.ProseMirror_li_ol_ol]:list-[lower-roman]',
+  /** A task done is crossed out on its own line, never on the tasks hanging from it. */
+  '[&_.ProseMirror_li[data-checked]>div>p]:text-muted-foreground [&_.ProseMirror_li[data-checked]>div>p]:line-through',
   '[&_.ProseMirror_blockquote]:my-6 [&_.ProseMirror_blockquote]:border-primary [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:ps-4 [&_.ProseMirror_blockquote]:text-muted-foreground',
   '[&_.ProseMirror_pre]:my-6 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre]:bg-surface-low [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:font-mono [&_.ProseMirror_pre]:text-sm [&_.ProseMirror_pre]:leading-relaxed',
   '[&_.ProseMirror_table]:my-6 [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:table-fixed [&_.ProseMirror_table]:border-collapse [&_.ProseMirror>table_td]:min-w-0 [&_.ProseMirror>table_td]:border [&_.ProseMirror>table_td]:border-border [&_.ProseMirror>table_td]:p-3 [&_.ProseMirror>table_td]:align-top [&_.ProseMirror>table_td]:wrap-break-word',

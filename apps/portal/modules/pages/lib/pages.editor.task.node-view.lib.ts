@@ -5,7 +5,6 @@ import {
   PAGE_EDITOR_TASK_CHECKBOX_STYLE_CLASS,
   PAGE_EDITOR_TASK_CONTENT_STYLE_CLASS,
   PAGE_EDITOR_TASK_DONE_MARK,
-  PAGE_EDITOR_TASK_DONE_STYLE_CLASSES,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
 } from '../constants/pages.editor.blocks.constants';
 
@@ -26,11 +25,18 @@ const createTaskCheckbox = (label: string): HTMLButtonElement => {
   return checkbox;
 };
 
+/**
+ * A task done says so on itself, and the page draws it from there.
+ *
+ * Whether it is done is written as an attribute rather than as a look given to
+ * the whole item, because a task can hold other tasks: crossing out the item
+ * would cross out everything hanging from it, and a task nobody ticked would
+ * read as done.
+ */
 const showTaskDoneState = (item: HTMLElement, checkbox: HTMLButtonElement, isDone: boolean): void => {
   checkbox.setAttribute('aria-checked', String(isDone));
   checkbox.textContent = isDone ? PAGE_EDITOR_TASK_DONE_MARK : '';
   item.toggleAttribute('data-checked', isDone);
-  for (const className of PAGE_EDITOR_TASK_DONE_STYLE_CLASSES) item.classList.toggle(className, isDone);
   for (const className of PAGE_EDITOR_TASK_BOX_DONE_STYLE_CLASSES) checkbox.classList.toggle(className, isDone);
 };
 

@@ -23,33 +23,33 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 - [x] Desde el menú `/` se puede elegir el nivel, no solo uno fijo
 - [x] Un encabezado se puede volver plegable
 - [x] Plegarlo oculta el contenido hasta el siguiente encabezado del mismo nivel
-- [ ] El estado plegado se conserva al navegar
+- [x] El estado plegado se conserva al navegar
 - [ ] Al exportar o imprimir, lo plegado se incluye igual
 
 ## TB-03 · Lista con viñetas
 
-- [ ] `-`, `*` o `+` + espacio inician la lista
-- [ ] Enter crea el siguiente punto
-- [ ] Enter en un punto vacío sale de la lista
-- [ ] Tab y Shift+Tab anidan y desanidan
-- [ ] Los niveles anidados se ven distintos entre sí
+- [x] `-`, `*` o `+` + espacio inician la lista
+- [x] Enter crea el siguiente punto
+- [x] Enter en un punto vacío sale de la lista
+- [x] Tab y Shift+Tab anidan y desanidan
+- [x] Los niveles anidados se ven distintos entre sí
 
 ## TB-04 · Lista numerada
 
-- [ ] `1.` + espacio inicia la lista
-- [ ] La numeración continúa sola
-- [ ] Empezar en otro número respeta ese inicio
-- [ ] Al anidar, la numeración interior reinicia
-- [ ] Insertar un punto en el medio renumera lo que sigue
+- [x] `1.` + espacio inicia la lista
+- [x] La numeración continúa sola
+- [x] Empezar en otro número respeta ese inicio
+- [x] Al anidar, la numeración interior reinicia
+- [x] Insertar un punto en el medio renumera lo que sigue
 
 ## TB-05 · Lista de tareas
 
-- [ ] `[]` + espacio crea una casilla marcable
-- [ ] Un clic marca y desmarca
-- [ ] El texto marcado se distingue del no marcado
-- [ ] El estado sobrevive al recargar
-- [ ] Enter crea la siguiente tarea
-- [ ] Se pueden anidar tareas dentro de tareas
+- [x] `[]` + espacio crea una casilla marcable
+- [x] Un clic marca y desmarca
+- [x] El texto marcado se distingue del no marcado
+- [x] El estado sobrevive al recargar
+- [x] Enter crea la siguiente tarea
+- [x] Se pueden anidar tareas dentro de tareas
 - [ ] Si otra persona marca una casilla, se ve sin recargar
 
 ## TB-06 · Bloque plegable
@@ -229,5 +229,9 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-05 | Faltaban tres cosas, las tres hechas: `[]` + espacio no creaba nada, Enter partía el párrafo en vez de dar otra tarea (y la nueva nace sin marcar aunque la anterior esté hecha), y marcar una tarea tachaba también las que colgaban de ella. Queda sin marcar que se vea lo que marca otra persona: dos clientes conectados a la misma página no se ven entre sí —ni el texto ni la presencia—, aunque cada uno guarda bien contra el documento compartido. Eso es la capa colaborativa, documento `06`. | 6 de 7 |
+| 13/08/2026 | TB-04 | No faltó nada: numera sola, empezar en `5.` respeta el inicio y sobrevive a la recarga, intercalar un punto renumera lo que sigue, y al anidar la numeración interior reinicia en `a.`. Anidar quedó disponible con lo hecho en TB-03. | 5 de 5 |
+| 13/08/2026 | TB-03 | Faltaba anidar: `Tab` usaba la anidación general, que dentro de una lista lee la lista entera y no hacía nada. Ahora un punto cuelga del punto de arriba, y los tres niveles se distinguen por su marca (punto, círculo, cuadrado). Probado en el navegador, con guardado y recarga. | 5 de 5 |
+| 13/08/2026 | TB-02 | Se repitió la prueba del plegado sobre una página nueva: sobrevive a recargar y a navegar, plegado y desplegado. No era la capa colaborativa: el backend tenía el contrato viejo en memoria y rechazaba el guardado con 400. Queda sin marcar solo lo de exportar, que no existe en el producto (documento `09`). | 6 de 7 |
 | 13/08/2026 | TB-02 | Faltaban los tres niveles en el menú `/` (estaba fijo en 2) y el encabezado plegable, ambos implementados. Quedan sin marcar: que el plegado sobreviva a la recarga (se guarda `collapsed: true` y sale el POST, pero vuelve en `false` — se sospecha de la capa colaborativa, misma zona que CL-01) y lo de exportar, que no existe en el producto (documento `09`). | 5 de 7 |
 | 13/08/2026 | TB-01 | Faltaban `Shift+Enter` (no existía el nodo `hard_break` en el contrato) y la invitación a escribir en un párrafo vacío. Ambas implementadas y probadas en el navegador. | 5 de 5 |
