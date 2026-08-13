@@ -85,6 +85,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const unsupportedLabelRef = useRef(t('unsupportedBlock'));
     const insertBlockLabelRef = useRef(t('insertBlock'));
     const writeHereLabelRef = useRef(t('writeHere'));
+    const foldHeadingLabelRef = useRef(t('foldHeading'));
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
@@ -199,6 +200,7 @@ export const PagesProseMirrorEditor = forwardRef(
         insertBlockLabelRef.current,
         blockCommentsLabelRef.current,
         writeHereLabelRef.current,
+        foldHeadingLabelRef.current,
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
@@ -249,6 +251,7 @@ export const PagesProseMirrorEditor = forwardRef(
           selectBlockLabelRef.current,
           insertBlockLabelRef.current,
           writeHereLabelRef.current,
+          foldHeadingLabelRef.current,
         ),
       );
     }, [session]);
@@ -367,6 +370,7 @@ export const PagesProseMirrorEditor = forwardRef(
               colors={surface.colors}
               comments={surface.comments}
               conversions={surface.conversions}
+              foldState={surface.foldState}
               hasIdentity={surface.blockId !== null}
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}

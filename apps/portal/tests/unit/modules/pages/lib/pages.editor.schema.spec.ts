@@ -143,7 +143,11 @@ describe('pageEditorSchema mention node', () => {
           content: [structuredMentionNodeFixture, { text: ' says hi', type: 'text' }],
           type: 'paragraph',
         },
-        { attrs: { ...BLOCK_ATTRS, level: 2 }, content: [structuredMentionNodeFixture], type: 'heading' },
+        {
+          attrs: { ...BLOCK_ATTRS, collapsed: false, level: 2 },
+          content: [structuredMentionNodeFixture],
+          type: 'heading',
+        },
       ],
       type: 'doc',
     };
@@ -205,7 +209,7 @@ describe('pageEditorSchema block ids', () => {
     const structuredContent = {
       content: [
         {
-          attrs: { ...BLOCK_ATTRS, id: 'heading-1', level: 2 },
+          attrs: { ...BLOCK_ATTRS, collapsed: false, id: 'heading-1', level: 2 },
           content: [{ text: 'Título', type: 'text' }],
           type: 'heading',
         },

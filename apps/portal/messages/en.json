@@ -242,7 +242,7 @@
     "saveChanges": "Save changes",
     "saving": "Saving...",
     "create": "Create page",
-    "saveError": "Could not save the page. Check your permissions and try again.",
+    "saveError": "Your last change has not been saved yet.",
     "created": "Page created",
     "updated": "Page updated",
     "collaboration": {
@@ -281,7 +281,9 @@
     "commands": {
       "bold": "Bold",
       "italic": "Italic",
-      "heading": "Heading",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
       "bulletList": "Bullet list",
       "orderedList": "Numbered list",
       "blockquote": "Blockquote",
@@ -420,12 +422,28 @@
     "noBlockComments": "No comments yet.",
     "writeBlockComment": "Write a comment",
     "addBlockComment": "Comment",
-    "removeBlockComment": "Remove"
+    "removeBlockComment": "Remove",
+    "foldHeading": "Fold or unfold this heading",
+    "foldBlock": "Fold",
+    "unfoldBlock": "Unfold"
   },
   "errors": {
     "generic": "Something went wrong.",
     "network": "Could not connect to the server. Check your connection.",
-    "emptyResponse": "The server returned an empty response."
+    "emptyResponse": "The server returned an empty response.",
+    "pageTitle": "This page could not be opened",
+    "pageBody": "Something on our side stopped working. Your writing is safe. Try again, and if it keeps happening, tell us the reference below.",
+    "reference": "Reference",
+    "retry": "Try again",
+    "goHome": "Go to the start",
+    "reasons": {
+      "invalid": "Something in this page cannot be saved as it is. Undo your last change and try again.",
+      "forbidden": "You do not have permission to do this.",
+      "missing": "This no longer exists. It may have been deleted.",
+      "conflict": "Someone else changed this first. Reload to see how it stands.",
+      "offline": "Could not reach the server. Check your connection.",
+      "unexpected": "Something went wrong on our side. Try again."
+    }
   },
   "validation": {
     "invalidEmail": "Enter a valid email address.",

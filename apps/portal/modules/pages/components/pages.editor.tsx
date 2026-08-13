@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { FormActions } from '@/shared/components/forms/form-actions';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { BackButton } from '@/shared/components/ui/back-button';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { hasActionError, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import {
   EMPTY_PAGE_ATTACHMENTS,
@@ -69,6 +69,7 @@ export const PagesEditor = ({
 }: IProps) => {
   const router = useRouter();
   const t = useTranslations('pages');
+  const tErrors = useTranslations('errors');
   const [title, setTitle] = useState(page?.title ?? '');
   const titleInputRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef(title);
@@ -123,7 +124,7 @@ export const PagesEditor = ({
         title: title.trim(),
       });
       if (!isActionSuccess<PageSummary>(result)) {
-        toast.error(t('saveError'));
+        toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
         return;
       }
       toast.success(t('created'));

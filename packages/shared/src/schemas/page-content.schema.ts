@@ -219,7 +219,7 @@ export type PageContentUnknownNode = {
 export type PageContentKnownNode =
   | PageBlockNode<'paragraph', PageContentInlineNode>
   | {
-      readonly attrs: PageBlockAttrs & { readonly level: number };
+      readonly attrs: PageBlockAttrs & { readonly collapsed?: boolean; readonly level: number };
       readonly content: readonly PageContentInlineNode[];
       readonly type: 'heading';
     }
@@ -342,7 +342,13 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       .strict(),
     z
       .object({
-        attrs: z.object({ ...pageBlockAttrsShape, level: z.number().int().min(1).max(3) }).strict(),
+        attrs: z
+          .object({
+            ...pageBlockAttrsShape,
+            collapsed: z.boolean().optional(),
+            level: z.number().int().min(1).max(3),
+          })
+          .strict(),
         content: z.array(pageInlineNodeSchema),
         type: z.literal('heading'),
       })

@@ -3,7 +3,10 @@ import type { Command, EditorState, Transaction } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
 import {
   PAGE_EDITOR_COLUMN_EDGE_MAX_PX,
+  PAGE_EDITOR_COLUMN_EDGE_MIN_PX,
   PAGE_EDITOR_COLUMN_EDGE_RATIO,
+  PAGE_EDITOR_DROP_EDGE_MIN_PX,
+  PAGE_EDITOR_DROP_EDGE_RATIO,
 } from '../constants/pages.editor.blocks.constants';
 import type {
   PageEditorColumnDrop,
@@ -19,14 +22,39 @@ import type {
  * The band is a share of the block's width, capped so wide blocks do not turn
  * most of their surface into a column target.
  */
+/** Whether the pointer is close enough to the top or the bottom of a block to mean a new line rather than a column. */
+export const isPointerAtPageEditorBlockEdge = (parameters: {
+  readonly blockRect: { readonly height: number; readonly top: number };
+  readonly clientY: number;
+}): boolean => {
+  const { blockRect, clientY } = parameters;
+  const band = Math.max(blockRect.height * PAGE_EDITOR_DROP_EDGE_RATIO, PAGE_EDITOR_DROP_EDGE_MIN_PX);
+  const middle = blockRect.height / 2;
+  const reach = Math.min(band, middle);
+  return clientY <= blockRect.top + reach || clientY >= blockRect.top + blockRect.height - reach;
+};
+
 export const findPageEditorColumnSide = (parameters: {
   readonly blockRect: { readonly left: number; readonly width: number };
   readonly clientX: number;
 }): PageEditorColumnSide | null => {
   const { blockRect, clientX } = parameters;
   const right = blockRect.left + blockRect.width;
-  if (clientX < blockRect.left || clientX > right) return null;
-  const band = Math.min(blockRect.width * PAGE_EDITOR_COLUMN_EDGE_RATIO, PAGE_EDITOR_COLUMN_EDGE_MAX_PX);
+  const band = Math.min(
+    Math.max(blockRect.width * PAGE_EDITOR_COLUMN_EDGE_RATIO, PAGE_EDITOR_COLUMN_EDGE_MIN_PX),
+    PAGE_EDITOR_COLUMN_EDGE_MAX_PX,
+  );
+
+  /**
+   * The bands reach a little past the block. The grip a drag starts from sits
+   * out in the margin, so the pointer arrives from outside: refusing to answer
+   * there is what made dropping beside a block feel like it went unnoticed.
+   */
+  if (clientX < blockRect.left - band || clientX > right + band) return null;
+
+  /** On a block narrower than two bands there is no middle left, so each side takes half. */
+  if (blockRect.width <= band * 2) return clientX < blockRect.left + blockRect.width / 2 ? 'left' : 'right';
+
   if (clientX <= blockRect.left + band) return 'left';
   if (clientX >= right - band) return 'right';
   return null;

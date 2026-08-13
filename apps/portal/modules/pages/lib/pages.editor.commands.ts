@@ -1,6 +1,6 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
 import { pageAssetAttrsSchema, pageEmbedAttrsSchema, pageMentionAttrsSchema } from '@company-brain/shared';
-import { baseKeymap, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
+import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { history } from 'prosemirror-history';
 import { inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
@@ -22,6 +22,8 @@ import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 import { createPageEditorBlockMenuPlugin } from './pages.editor.block-menu.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
+import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages.editor.heading-fold.lib';
+import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
@@ -139,7 +141,24 @@ export const createPageEditorCommands = (
   callout: { group: 'text', kind: 'block', labelKey: 'callout', run: wrapIn(schema.nodes.callout) },
   code: { kind: 'mark', labelKey: 'code', run: toggleMark(schema.marks.code) },
   codeBlock: { group: 'advanced', kind: 'block', labelKey: 'codeBlock', run: setBlockType(schema.nodes.code_block) },
-  heading: { group: 'text', kind: 'block', labelKey: 'heading', run: setBlockType(schema.nodes.heading, { level: 2 }) },
+  heading1: {
+    group: 'text',
+    kind: 'block',
+    labelKey: 'heading1',
+    run: setBlockType(schema.nodes.heading, { level: 1 }),
+  },
+  heading2: {
+    group: 'text',
+    kind: 'block',
+    labelKey: 'heading2',
+    run: setBlockType(schema.nodes.heading, { level: 2 }),
+  },
+  heading3: {
+    group: 'text',
+    kind: 'block',
+    labelKey: 'heading3',
+    run: setBlockType(schema.nodes.heading, { level: 3 }),
+  },
   italic: { kind: 'mark', labelKey: 'italic', run: toggleMark(schema.marks.em) },
   orderedList: { group: 'lists', kind: 'block', labelKey: 'orderedList', run: wrapInList(schema.nodes.ordered_list) },
   redo: { kind: 'history', labelKey: 'redo', run: redoPageEditorStep },
@@ -165,7 +184,8 @@ export const appendParagraphAtEnd: Command = (state, dispatch) => {
   if (dispatch === undefined) return true;
 
   const insertAt = state.doc.content.size;
-  const transaction = state.tr.insert(insertAt, paragraphType.create());
+  const transaction = openFoldsReachingTheEnd(state.tr, state.doc);
+  transaction.insert(insertAt, paragraphType.create());
   transaction.setSelection(Selection.near(transaction.doc.resolve(insertAt + 1)));
   dispatch(transaction.scrollIntoView());
   return true;
@@ -194,6 +214,7 @@ export const createPageEditorPlugins = (
   resizeColumnLabel: string = selectBlockLabel,
   blockCommentsLabel: string = selectBlockLabel,
   writeHereLabel = '',
+  foldHeadingLabel = '',
 ): readonly EditorPlugin[] => [
   history(),
   inputRules({
@@ -207,14 +228,21 @@ export const createPageEditorPlugins = (
   keymap(createPageEditorShortcutBindings(PAGE_EDITOR_SHORTCUTS)),
   keymap(
     Object.fromEntries([
-      ['Enter', splitOutOfNestedBlock],
+      ['Enter', chainCommands(openFoldedHeadingBeforeWriting, splitOutOfNestedBlock)],
       ['Backspace', deletePageEditorBlockKeepingChildren],
       ['Delete', deletePageEditorBlockKeepingChildren],
     ]),
   ),
   keymap(Object.fromEntries([['Shift-Enter', breakTheLineWithoutLeavingTheBlock(schema)]])),
-  keymap(baseKeymap),
+  /**
+   * A list answers Enter before the general rule does.
+   *
+   * The other way round, the generic split attends first and the writing leaves
+   * the list instead of gaining a point — which is what a reader sees as the
+   * second bullet silently becoming a paragraph.
+   */
   keymap(Object.fromEntries([['Enter', splitListItem(schema.nodes.list_item)]])),
+  keymap(baseKeymap),
   createPageEditorBlockIdPlugin(),
   createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
   createPageEditorBlockMenuPlugin(),
@@ -223,4 +251,5 @@ export const createPageEditorPlugins = (
   createPageEditorColumnCleanupPlugin(),
   createPageEditorColumnResizePlugin(resizeColumnLabel),
   createPageEditorPlaceholderPlugin(writeHereLabel),
+  createPageEditorHeadingFoldPlugin(foldHeadingLabel),
 ];

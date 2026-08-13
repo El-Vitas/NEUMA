@@ -15,6 +15,7 @@ import { isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
 import { readPageEditorBlockId } from './pages.editor.block-link.lib';
 import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
 import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
+import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
 
@@ -54,6 +55,12 @@ const readToolbarPosition = (
  * It is read in one pass so the page never shows two answers from two
  * different moments.
  */
+/** The fold, read for whichever block the menu was opened for. */
+const readFoldStateOfRequestedBlock = (state: EditorState): { readonly isFolded: boolean } | null => {
+  const request = readPageEditorBlockRequest(state);
+  return request === null ? null : readPageEditorFoldState(state.doc, request.blockStart);
+};
+
 export const readPageEditorSurface = (
   view: EditorView,
   state: EditorState,
@@ -63,6 +70,7 @@ export const readPageEditorSurface = (
   colors: readPageEditorBlockColors(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
+  foldState: readFoldStateOfRequestedBlock(state),
   menuPosition: surfaceRect === null ? null : readMenuPosition(view, state, surfaceRect),
   request: readPageEditorBlockRequest(state),
   selectedBlockCount: countSelectedBlocks(state.selection),

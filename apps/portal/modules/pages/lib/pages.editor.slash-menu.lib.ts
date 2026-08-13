@@ -102,6 +102,16 @@ const moveRecentToTheFront = (
   return [...recentItems, ...remainingItems];
 };
 
+/**
+ * Whether a command answers to what was typed after the slash.
+ *
+ * Its own name counts as well as its label: someone reaching for a list of
+ * things to do types `/task`, and the label they would be shown may well be
+ * written in another language than the one they are typing in.
+ */
+const answersTo = (query: string, label: string, commandName: string): boolean =>
+  label.toLocaleLowerCase().includes(query) || commandName.toLocaleLowerCase().includes(query);
+
 const buildSlashTriggerItems = (
   commands: Readonly<Record<string, PageEditorCommand>>,
   triggerQuery: string | null,
@@ -112,7 +122,7 @@ const buildSlashTriggerItems = (
   const matchingItems = Object.entries(commands).reduce<PagesEditorMenuItem[]>((items, [commandName, command]) => {
     if (command.kind !== 'block') return items;
     const label = translateCommandLabel(command.labelKey);
-    if (!label.toLocaleLowerCase().includes(normalizedQuery)) return items;
+    if (!answersTo(normalizedQuery, label, commandName)) return items;
     items.push({ group: command.group ?? 'advanced', id: commandName, label, run: command.run });
     return items;
   }, []);

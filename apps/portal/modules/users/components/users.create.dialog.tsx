@@ -16,13 +16,14 @@ import {
 } from '@/shared/components/ui/dialog';
 import { FormField } from '@/shared/components/ui/form-field';
 import { PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
-import { hasActionError } from '@/shared/lib/action-result';
+import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 import { USERS_DIALOG_INPUT_CLASS } from '../constants/users.constants';
 import { isCreateUserInputValid } from '../lib/users.lib';
 import { createUserAction } from '../server/actions/users.actions';
 
 export const UsersCreateDialog = () => {
   const t = useTranslations('users');
+  const tErrors = useTranslations('errors');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,7 +44,7 @@ export const UsersCreateDialog = () => {
       const result = await createUserAction({ name, email, password });
 
       if (hasActionError(result)) {
-        toast.error(result.serverError ?? t('createError'));
+        toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
         return;
       }
 

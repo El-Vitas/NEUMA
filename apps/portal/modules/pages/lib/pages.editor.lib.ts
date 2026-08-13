@@ -1,7 +1,10 @@
 import type { Node as EditorDocument } from 'prosemirror-model';
 import { EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { PAGE_EDITOR_LEAF_NODE_TYPES } from '../constants/pages.editor.blocks.constants';
+import {
+  PAGE_EDITOR_LEAF_NODE_TYPES,
+  PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES,
+} from '../constants/pages.editor.blocks.constants';
 import {
   PAGE_EDITOR_APPLE_USER_AGENT_PATTERN,
   SELECTION_TOOLBAR_HORIZONTAL_MARGIN_PX,
@@ -28,6 +31,7 @@ export const createPageEditorState = (
   insertBlockLabel: string = selectBlockLabel,
   blockCommentsLabel: string = selectBlockLabel,
   writeHereLabel = '',
+  foldHeadingLabel = '',
 ): EditorState =>
   EditorState.create({
     doc: pageEditorSchema.nodeFromJSON(holdPageContentThisVersionCannotRead(pageContentSchema.parse(content))),
@@ -38,6 +42,7 @@ export const createPageEditorState = (
       selectBlockLabel,
       blockCommentsLabel,
       writeHereLabel,
+      foldHeadingLabel,
     ),
     schema: pageEditorSchema,
   });
@@ -121,9 +126,14 @@ const normalizePageEditorEntry = (key: string, value: unknown): unknown => {
 const normalizePageEditorContent = (value: unknown): readonly Record<string, unknown>[] =>
   Array.isArray(value) ? value.map((child) => normalizePageEditorJson(child)) : [];
 
+const saysSomething = ([key, value]: readonly [string, unknown]): boolean => {
+  if (value === null) return false;
+  return !(PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES.includes(key) && value === false);
+};
+
 const normalizePageEditorAttrs = (value: unknown): Record<string, unknown> => {
   if (!isPageEditorJsonObject(value)) return {};
-  return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== null));
+  return Object.fromEntries(Object.entries(value).filter(saysSomething));
 };
 
 const isEmptyNormalizedAttrs = (key: string, value: unknown): boolean =>

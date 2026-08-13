@@ -20,6 +20,7 @@ import {
   canSplitPageEditorBlockIntoColumns,
   createPageEditorColumnDropCommand,
   findPageEditorColumnSide,
+  isPointerAtPageEditorBlockEdge,
 } from './pages.editor.block-columns.lib';
 import {
   acceptsSiblingBlocks,
@@ -109,7 +110,8 @@ export const findPageEditorDropPlacement = (
   const blockRect = getPageEditorBlockRect(view, blockStart);
   if (blockRect === null) return null;
 
-  const side = findPageEditorColumnSide({ blockRect, clientX: pointer.clientX });
+  const atEdge = isPointerAtPageEditorBlockEdge({ blockRect, clientY: pointer.clientY });
+  const side = atEdge ? null : findPageEditorColumnSide({ blockRect, clientX: pointer.clientX });
   if (side !== null && canSplitPageEditorBlockIntoColumns(view.state, blockStart)) {
     return { blockStart, kind: 'column', side };
   }
