@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
+import { PAGE_EDITOR_COMMANDS } from '@/modules/pages/constants/pages.editor.constants';
 import { movePageEditorBlockDown } from '@/modules/pages/lib/pages.editor.block-move.lib';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 import { indentPageEditorBlock } from '@/modules/pages/lib/pages.editor.nesting.lib';
@@ -91,6 +92,18 @@ describe('the identity a block carries', () => {
 
     expect(mounted.view.state.doc.child(0).type.name).toBe('nested_block');
     expect(readIdOf(mounted.view, 'Hijo')).toBe(before);
+
+    closeEditor(mounted);
+  });
+
+  it('is handed out as part of the change that asked for it, so one undo takes back the writing', () => {
+    const mounted = mountEditor([paragraph('Uno')]);
+    putCursorIn(mounted.view, 'Uno');
+
+    mounted.view.dispatch(mounted.view.state.tr.insertText('!'));
+    PAGE_EDITOR_COMMANDS.undo.run(mounted.view.state, mounted.view.dispatch);
+
+    expect(mounted.view.state.doc.child(0).textContent).toBe('Uno');
 
     closeEditor(mounted);
   });

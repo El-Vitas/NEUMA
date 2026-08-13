@@ -1,15 +1,15 @@
 import { createCollaborationDocumentName, sanitizeCollaborationPresenceIdentity } from '@company-brain/shared';
 import type { StatesArray } from '@hocuspocus/provider';
 import { EditorState } from 'prosemirror-state';
-import { initProseMirrorDoc, yCursorPlugin, ySyncPlugin } from 'y-prosemirror';
+import { initProseMirrorDoc, yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import {
   COLLABORATION_RECONNECT_BASE_DELAY_MS,
   COLLABORATION_RECONNECT_MAX_DELAY_MS,
 } from '../constants/pages.collaboration.constants';
 import type {
   CollaborationStatus,
+  PageCollaborationDraft,
   PageCollaborationParticipant,
-  PageCollaborationSession,
 } from '../types/pages.collaboration.types';
 import { createPageEditorPlugins } from './pages.editor.commands';
 import { pageEditorSchema } from './pages.editor.schema';
@@ -22,15 +22,26 @@ export const computeCollaborationReconnectDelayMs = (attemptNumber: number): num
   return Math.min(exponentialDelay, COLLABORATION_RECONNECT_MAX_DELAY_MS);
 };
 
+/**
+ * The page as it is written together.
+ *
+ * What is being written is the shared document, so the history is the shared
+ * document's too: undoing takes back what this person did and leaves what
+ * everyone else did where it is. Undoing and redoing ask which history is in
+ * charge, so the same keys and the same menu answer on a page written alone
+ * and on one written with others.
+ */
 export const createCollaborativePageEditorState = (
-  session: PageCollaborationSession,
+  page: PageCollaborationDraft,
   selectBlockLabel: string,
   insertBlockLabel: string = selectBlockLabel,
 ): EditorState => {
-  const initializedDocument = initProseMirrorDoc(session.fragment, pageEditorSchema);
-  const awareness = session.provider.awareness;
-  const collaborationPlugins =
-    awareness === null ? [ySyncPlugin(session.fragment)] : [ySyncPlugin(session.fragment), yCursorPlugin(awareness)];
+  const initializedDocument = initProseMirrorDoc(page.fragment, pageEditorSchema);
+  const collaborationPlugins = [
+    ySyncPlugin(page.fragment),
+    yUndoPlugin(),
+    ...(page.awareness === null ? [] : [yCursorPlugin(page.awareness)]),
+  ];
   return EditorState.create({
     doc: initializedDocument.doc,
     plugins: [
