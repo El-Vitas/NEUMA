@@ -32,12 +32,14 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
   render(
     <NextIntlClientProvider locale="es" messages={es}>
       <PagesEditorBlockMenu
+        calloutIcon={null}
         canBecomePage
         colors={{ background: null, text: null }}
         conversions={conversions}
         folding={null}
         hasIdentity={hasIdentity}
         onBecomePage={() => use.becamePage.push(1)}
+        onCalloutIcon={() => undefined}
         onClose={() => use.closed.push(1)}
         onColor={(kind, color) => use.painted.push(`${kind}:${String(color)}`)}
         onComment={() => use.commented.push(1)}

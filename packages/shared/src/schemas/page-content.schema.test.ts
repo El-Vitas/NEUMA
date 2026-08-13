@@ -113,6 +113,38 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a callout marked with one of the marks on offer', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { icon: 'warning' },
+            content: [{ content: [{ text: 'Ojo', type: 'text' }], type: 'paragraph' }],
+            type: 'callout',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a callout marked with anything else', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { icon: 'unicorn' },
+            content: [{ content: [{ text: 'Ojo', type: 'text' }], type: 'paragraph' }],
+            type: 'callout',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a line drawn between two stretches of a page', () => {
     expect(
       pageContentSchema.safeParse({

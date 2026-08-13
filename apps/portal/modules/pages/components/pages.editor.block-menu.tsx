@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockColor } from '@company-brain/shared';
+import type { PageBlockColor, PageCalloutIcon } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
@@ -14,19 +14,23 @@ import {
 import { PAGE_EDITOR_BLOCK_MENU_DROP_PX } from '../constants/pages.editor.blocks.constants';
 import { usePagesEditorConversionRequest } from '../hooks/use.pages.editor.conversion';
 import type { PageEditorBlockColorKind, PageEditorBlockColors } from '../types/pages.editor.block-color.types';
+import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageEditorBlockFolding } from '../types/pages.editor.heading-fold.types';
 import { PagesEditorBlockColorItems } from './pages.editor.block-color.items';
+import { PagesEditorCalloutIconItems } from './pages.editor.callout-icon.items';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
 
 interface IProps {
+  readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly canBecomePage: boolean;
   readonly colors: PageEditorBlockColors;
   readonly conversions: readonly PageEditorBlockConversion[];
   readonly folding: PageEditorBlockFolding | null;
   readonly hasIdentity: boolean;
   readonly onBecomePage: () => void;
+  readonly onCalloutIcon: (icon: PageCalloutIcon | null) => void;
   readonly onClose: () => void;
   readonly onColor: (kind: PageEditorBlockColorKind, color: PageBlockColor | null) => void;
   readonly onComment: () => void;
@@ -44,12 +48,14 @@ interface IProps {
  * anything else is not offered the choice — so nothing here fails when chosen.
  */
 export const PagesEditorBlockMenu = ({
+  calloutIcon,
   canBecomePage,
   colors,
   conversions,
   folding,
   hasIdentity,
   onBecomePage,
+  onCalloutIcon,
   onClose,
   onColor,
   onComment,
@@ -82,6 +88,14 @@ export const PagesEditorBlockMenu = ({
               <DropdownMenuSubTrigger>{t('turnInto')}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <PagesEditorTurnIntoItems conversions={conversions} onSelect={conversion.ask} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          {calloutIcon !== null && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{t('calloutIcon')}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <PagesEditorCalloutIconItems onSelect={onCalloutIcon} selected={calloutIcon.chosen} />
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}

@@ -427,6 +427,16 @@
     "foldHeading": "Fold or unfold this heading",
     "openToggle": "Open or close this toggle",
     "toggleTitle": "Toggle title",
+    "calloutIcon": "Callout mark",
+    "noCalloutIcon": "No mark",
+    "calloutIcons": {
+      "blocked": "Blocked",
+      "done": "Done",
+      "idea": "Idea",
+      "info": "Information",
+      "pinned": "Pinned",
+      "warning": "Warning"
+    },
     "foldBlock": "Fold",
     "unfoldBlock": "Unfold"
   },

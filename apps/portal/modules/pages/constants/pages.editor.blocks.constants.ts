@@ -1,3 +1,4 @@
+import type { PageCalloutIcon } from '@company-brain/shared';
 import type { AttributeSpec } from 'prosemirror-model';
 import type { PageEditorBlockDragState } from '../types/pages.editor.block-drag.types';
 
@@ -231,6 +232,10 @@ export const PAGE_EDITOR_TABLE_CELL_TYPE = 'table_cell';
 
 export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
 
+export const PAGE_EDITOR_CALLOUT_TYPE = 'callout';
+
+export const PAGE_EDITOR_CALLOUT_ICON_ATTRIBUTE = 'icon';
+
 /** The group every block that stands on a page belongs to. */
 export const PAGE_EDITOR_BLOCK_GROUP = 'block';
 
@@ -290,7 +295,22 @@ export const PAGE_EDITOR_DROP_COLUMN_LEFT_STYLE_CLASS = '-ml-0.5 border-primary 
 export const PAGE_EDITOR_DROP_COLUMN_RIGHT_STYLE_CLASS = '-mr-0.5 border-primary border-r-2';
 
 export const PAGE_EDITOR_CALLOUT_CLASS =
-  'my-4 border border-border border-l-4 border-l-primary bg-surface-container-low px-4 py-3';
+  'my-4 flex gap-3 border border-border border-l-4 border-l-primary bg-surface-container-low px-4 py-3';
+
+/** The mark sits beside what the aside says, on the first line, and never moves with the writing. */
+export const PAGE_EDITOR_CALLOUT_ICON_STYLE_CLASS = 'shrink-0 select-none text-lg leading-7';
+
+/** What each kind of aside is drawn as. The page keeps the kind; this is only how it is shown. */
+export const PAGE_EDITOR_CALLOUT_ICON_GLYPHS: Readonly<Record<PageCalloutIcon, string>> = {
+  blocked: '⛔',
+  done: '✅',
+  idea: '💡',
+  info: 'ℹ️',
+  pinned: '📌',
+  warning: '⚠️',
+};
+
+export const PAGE_EDITOR_CALLOUT_BODY_STYLE_CLASS = 'min-w-0 flex-1';
 
 export const PAGE_EDITOR_TASK_ITEM_TYPE = 'task_item';
 

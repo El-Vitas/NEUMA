@@ -1,4 +1,4 @@
-import { isAllowedPageEmbedUrl, PAGE_EMBED_PROVIDERS } from '@company-brain/shared';
+import { isAllowedPageEmbedUrl, PAGE_CALLOUT_ICONS, PAGE_EMBED_PROVIDERS } from '@company-brain/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
 import {
@@ -38,6 +38,14 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   const summary = element.querySelector('summary')?.textContent;
   if (summary === null || summary === undefined) return false;
   return { open: element.hasAttribute('open'), summary };
+};
+
+/** A mark that is not one of the few on offer is no mark at all. */
+const isPageCalloutIcon = (value: string): boolean => PAGE_CALLOUT_ICONS.some((icon) => icon === value);
+
+const getPageEditorCalloutAttrs = (element: Element): { readonly icon: string | null } => {
+  const icon = element.getAttribute('data-icon');
+  return { icon: icon !== null && isPageCalloutIcon(icon) ? icon : null };
 };
 
 const getPageEditorMentionAttrs = (
@@ -273,13 +281,19 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'callout',
     definePageBlock({
+      attrs: { icon: { default: null } },
       content: 'block+',
       defining: true,
       group: 'block',
-      parseDOM: [{ tag: 'aside[data-callout]' }],
-      render: (_node, blockAttributes) => [
+      parseDOM: [{ getAttrs: getPageEditorCalloutAttrs, tag: 'aside[data-callout]' }],
+      render: (node, blockAttributes) => [
         'aside',
-        { ...blockAttributes, 'data-callout': 'true', class: PAGE_EDITOR_CALLOUT_CLASS },
+        {
+          ...blockAttributes,
+          'data-callout': 'true',
+          class: PAGE_EDITOR_CALLOUT_CLASS,
+          ...(typeof node.attrs.icon === 'string' ? { 'data-icon': node.attrs.icon } : {}),
+        },
         0,
       ],
     }),

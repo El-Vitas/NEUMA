@@ -9,10 +9,12 @@ import {
 } from '../lib/pages.editor.block-comment.lib';
 import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
+import { createPageEditorCalloutIconCommand } from '../lib/pages.editor.callout-icon.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import { togglePageEditorHeadingFold } from '../lib/pages.editor.heading-fold.lib';
 import type { PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
+import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
 import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
@@ -21,6 +23,7 @@ import { PagesEditorBlockMenu } from './pages.editor.block-menu';
 
 interface IProps {
   readonly authorName: string;
+  readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
@@ -48,6 +51,7 @@ interface IProps {
  */
 export const PagesEditorBlockActions = ({
   authorName,
+  calloutIcon,
   colors,
   comments,
   conversions,
@@ -80,6 +84,7 @@ export const PagesEditorBlockActions = ({
       {menuPosition !== null && request?.kind === 'actions' && (
         <div className="absolute z-30" style={{ left: `${menuPosition.left}px`, top: `${menuPosition.top}px` }}>
           <PagesEditorBlockMenu
+            calloutIcon={calloutIcon}
             canBecomePage={pageId !== null}
             colors={colors}
             conversions={conversions}
@@ -93,6 +98,7 @@ export const PagesEditorBlockActions = ({
             }
             hasIdentity={hasIdentity}
             onBecomePage={onBecomePage}
+            onCalloutIcon={(icon) => onRunCommand(createPageEditorCalloutIconCommand(icon))}
             onClose={() => onClose('actions')}
             onColor={(kind, color) => onRunCommand(createPageEditorBlockColorCommand(kind, color))}
             onComment={() => onAsk('comments')}
