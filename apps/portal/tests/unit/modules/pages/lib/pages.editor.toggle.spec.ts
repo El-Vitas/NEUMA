@@ -20,22 +20,30 @@ const mountToggle = (open?: boolean): { readonly container: HTMLElement; readonl
   const container = document.createElement('div');
   document.body.appendChild(container);
   const view = new EditorView(container, {
-    nodeViews: createPageEditorNodeViews({ collection: 'Collection', task: 'Task', unsupported: 'Unsupported block' }),
+    nodeViews: createPageEditorNodeViews({
+      collection: 'Collection',
+      task: 'Task',
+      toggle: { open: 'Toggle', title: 'Toggle title' },
+      unsupported: 'Unsupported block',
+    }),
     state: createPageEditorState(toggleContent(open), 'Select block'),
   });
   return { container, view };
 };
 
-const findDetails = (container: HTMLElement): HTMLDetailsElement => {
-  const details = container.querySelector('details');
-  if (details === null) throw new Error('the toggle is not rendered');
-  return details;
+const findArrow = (container: HTMLElement): HTMLElement => {
+  const arrow = container.querySelector<HTMLElement>('[data-toggle-arrow]');
+  if (arrow === null) throw new Error('the toggle has no arrow to press');
+  return arrow;
 };
 
+const isOpen = (container: HTMLElement): boolean => findArrow(container).getAttribute('aria-expanded') === 'true';
+
+const isShowingWhatItHolds = (container: HTMLElement): boolean =>
+  container.querySelector('[data-toggle-children]')?.hasAttribute('hidden') === false;
+
 const pressArrow = (container: HTMLElement): void => {
-  const arrow = container.querySelector('[data-toggle-arrow]');
-  if (arrow === null) throw new Error('the toggle has no arrow to press');
-  arrow.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  findArrow(container).dispatchEvent(new MouseEvent('click', { bubbles: true }));
 };
 
 const readToggleAttrs = (view: EditorView): Record<string, unknown> => view.state.doc.child(0).attrs;
@@ -44,7 +52,7 @@ describe('opening and closing a toggle', () => {
   it('renders it closed when the page says nothing about it', () => {
     const { container, view } = mountToggle();
 
-    expect(findDetails(container).open).toBe(false);
+    expect(isOpen(container)).toBe(false);
 
     view.destroy();
     container.remove();
@@ -53,7 +61,7 @@ describe('opening and closing a toggle', () => {
   it('renders it open when the page was saved open', () => {
     const { container, view } = mountToggle(true);
 
-    expect(findDetails(container).open).toBe(true);
+    expect(isOpen(container)).toBe(true);
 
     view.destroy();
     container.remove();
@@ -65,7 +73,35 @@ describe('opening and closing a toggle', () => {
     pressArrow(container);
 
     expect(readToggleAttrs(view).open).toBe(true);
-    expect(findDetails(container).open).toBe(true);
+    expect(isOpen(container)).toBe(true);
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('hides what it holds while it is closed, and shows it once opened', () => {
+    const { container, view } = mountToggle();
+
+    expect(isShowingWhatItHolds(container)).toBe(false);
+
+    pressArrow(container);
+
+    expect(isShowingWhatItHolds(container)).toBe(true);
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('answers the keyboard, since the arrow is a button and not a drawing', () => {
+    const { container, view } = mountToggle();
+    const arrow = findArrow(container);
+
+    expect(arrow.tagName).toBe('BUTTON');
+    expect(arrow.getAttribute('aria-label')).toBe('Toggle');
+
+    arrow.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(readToggleAttrs(view).open).toBe(true);
 
     view.destroy();
     container.remove();
@@ -102,7 +138,7 @@ describe('opening and closing a toggle', () => {
     pressArrow(container);
 
     expect(view.state.doc.child(0).textContent).toBe('Dentro');
-    expect(container.querySelector('details p')?.textContent).toBe('Dentro');
+    expect(container.querySelector('[data-toggle-children] p')?.textContent).toBe('Dentro');
 
     view.destroy();
     container.remove();
@@ -110,25 +146,38 @@ describe('opening and closing a toggle', () => {
 });
 
 describe('titling a toggle', () => {
-  const findTitle = (container: HTMLElement): HTMLElement => {
-    const title = container.querySelector<HTMLElement>('[data-toggle-title]');
+  const findTitle = (container: HTMLElement): HTMLInputElement => {
+    const title = container.querySelector<HTMLInputElement>('[data-toggle-title]');
     if (title === null) throw new Error('the toggle has no title to write in');
     return title;
+  };
+
+  const write = (title: HTMLInputElement, text: string): void => {
+    title.value = text;
+    title.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   it('shows the title the page holds', () => {
     const { container, view } = mountToggle();
 
-    expect(findTitle(container).textContent).toBe('Resumen');
+    expect(findTitle(container).value).toBe('Resumen');
 
     view.destroy();
     container.remove();
   });
 
-  it('offers the title for writing', () => {
+  /**
+   * The keyboard answers to whatever holds the focus. Written as content of the
+   * editor, the title never received a keystroke: the editor read them all as
+   * writing on the page. It is a field of its own, and it is named.
+   */
+  it('offers the title as a field of its own, named for whoever cannot see it', () => {
     const { container, view } = mountToggle();
+    const title = findTitle(container);
 
-    expect(findTitle(container).isContentEditable).toBe(true);
+    expect(title.tagName).toBe('INPUT');
+    expect(title.getAttribute('aria-label')).toBe('Toggle title');
+    expect(container.querySelector('summary')).toBeNull();
 
     view.destroy();
     container.remove();
@@ -136,10 +185,8 @@ describe('titling a toggle', () => {
 
   it('writes what is typed back into the block', () => {
     const { container, view } = mountToggle();
-    const title = findTitle(container);
 
-    title.textContent = 'Otro nombre';
-    title.dispatchEvent(new Event('input', { bubbles: true }));
+    write(findTitle(container), 'Otro nombre');
 
     expect(readToggleAttrs(view).summary).toBe('Otro nombre');
 
@@ -149,13 +196,25 @@ describe('titling a toggle', () => {
 
   it('saves a title that was emptied instead of refusing the page', () => {
     const { container, view } = mountToggle();
-    const title = findTitle(container);
 
-    title.textContent = '';
-    title.dispatchEvent(new Event('input', { bubbles: true }));
+    write(findTitle(container), '');
 
     expect(readToggleAttrs(view).summary).toBe('');
     expect(() => serializePageEditorState(view.state)).not.toThrow();
+
+    view.destroy();
+    container.remove();
+  });
+
+  it('keeps what is being typed while another hand renames the same toggle', () => {
+    const { container, view } = mountToggle();
+    const title = findTitle(container);
+
+    title.focus();
+    write(title, 'Escribiendo');
+
+    expect(title.value).toBe('Escribiendo');
+    expect(readToggleAttrs(view).summary).toBe('Escribiendo');
 
     view.destroy();
     container.remove();

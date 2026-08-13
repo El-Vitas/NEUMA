@@ -424,6 +424,8 @@
     "addBlockComment": "Comment",
     "removeBlockComment": "Remove",
     "foldHeading": "Fold or unfold this heading",
+    "openToggle": "Open or close this toggle",
+    "toggleTitle": "Toggle title",
     "foldBlock": "Fold",
     "unfoldBlock": "Unfold"
   },

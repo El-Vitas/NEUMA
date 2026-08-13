@@ -54,12 +54,12 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-06 · Bloque plegable
 
-- [ ] Se inserta desde el menú `/`
-- [ ] El triángulo lo abre y lo cierra
-- [ ] Se puede escribir su título
-- [ ] Admite otros bloques dentro, no solo texto
-- [ ] Cerrado, oculta su contenido por completo
-- [ ] El estado abierto/cerrado no se pierde de forma molesta al navegar
+- [x] Se inserta desde el menú `/`
+- [x] El triángulo lo abre y lo cierra
+- [x] Se puede escribir su título
+- [x] Admite otros bloques dentro, no solo texto
+- [x] Cerrado, oculta su contenido por completo
+- [x] El estado abierto/cerrado no se pierde de forma molesta al navegar
 
 ## TB-07 · Cita
 
@@ -229,6 +229,7 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 13/08/2026 | TB-06 | El título no se podía escribir: estaba dentro de un `<summary>`, que se queda el foco, y ninguna tecla llegaba. Tampoco servía escribirlo como contenido del editor —el teclado responde a quien tiene el foco y el editor lee cada tecla como escritura en la página—, así que el título pasó a ser un campo propio y la flecha, un botón de verdad. Lo demás ya funcionaba; el bloque se dibuja sin `<details>` y lo que sostiene se sangra bajo el título. | 6 de 6 |
 | 13/08/2026 | TB-05 | Faltaban tres cosas, las tres hechas: `[]` + espacio no creaba nada, Enter partía el párrafo en vez de dar otra tarea (y la nueva nace sin marcar aunque la anterior esté hecha), y marcar una tarea tachaba también las que colgaban de ella. Queda sin marcar que se vea lo que marca otra persona: dos clientes conectados a la misma página no se ven entre sí —ni el texto ni la presencia—, aunque cada uno guarda bien contra el documento compartido. Eso es la capa colaborativa, documento `06`. | 6 de 7 |
 | 13/08/2026 | TB-04 | No faltó nada: numera sola, empezar en `5.` respeta el inicio y sobrevive a la recarga, intercalar un punto renumera lo que sigue, y al anidar la numeración interior reinicia en `a.`. Anidar quedó disponible con lo hecho en TB-03. | 5 de 5 |
 | 13/08/2026 | TB-03 | Faltaba anidar: `Tab` usaba la anidación general, que dentro de una lista lee la lista entera y no hacía nada. Ahora un punto cuelga del punto de arriba, y los tres niveles se distinguen por su marca (punto, círculo, cuadrado). Probado en el navegador, con guardado y recarga. | 5 de 5 |
