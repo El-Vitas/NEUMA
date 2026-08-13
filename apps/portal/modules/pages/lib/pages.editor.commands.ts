@@ -1,8 +1,9 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
 import {
   PAGE_CODE_LANGUAGES,
-  pageAssetAttrsSchema,
   pageEmbedAttrsSchema,
+  pageFileAttrsSchema,
+  pageImageAttrsSchema,
   pageMentionAttrsSchema,
 } from '@company-brain/shared';
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
@@ -120,10 +121,12 @@ const insertPageNode =
 const createMinimalPageToggleNode = (schema: Schema, toggleSummary: string): EditorNode =>
   schema.nodes.toggle.createChecked({ summary: toggleSummary }, schema.nodes.paragraph.createChecked());
 
-const buildPageAssetAttrs = (options: PageAssetInsertCommandOptions): Record<string, string> => {
-  const attrs: Record<string, string> = { assetId: options.assetId };
+const buildPageAssetAttrs = (options: PageAssetInsertCommandOptions): Record<string, number | string> => {
+  const attrs: Record<string, number | string> = { assetId: options.assetId };
   if (options.alt !== undefined) attrs.alt = options.alt;
   if (options.caption !== undefined) attrs.caption = options.caption;
+  if (options.mimeType !== undefined) attrs.mimeType = options.mimeType;
+  if (options.size !== undefined) attrs.size = options.size;
   return attrs;
 };
 
@@ -143,7 +146,8 @@ export const createPageAssetInsertCommand = (
   nodeType: PageAssetNodeType,
   options: PageAssetInsertCommandOptions,
 ): Command => {
-  const attrs = pageAssetAttrsSchema.safeParse(buildPageAssetAttrs(options));
+  const shape = nodeType === 'file' ? pageFileAttrsSchema : pageImageAttrsSchema;
+  const attrs = shape.safeParse(buildPageAssetAttrs(options));
   if (!attrs.success) return () => false;
   return insertPageNode(schema.nodes[nodeType].createChecked(attrs.data));
 };

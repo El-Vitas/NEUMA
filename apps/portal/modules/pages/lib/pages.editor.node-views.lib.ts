@@ -5,6 +5,9 @@ import {
   PAGE_EDITOR_CALLOUT_TYPE,
   PAGE_EDITOR_CODE_TYPE,
   PAGE_EDITOR_COLLECTION_CLASS,
+  PAGE_EDITOR_FILE_ABOUT_STYLE_CLASS,
+  PAGE_EDITOR_FILE_NAME_STYLE_CLASS,
+  PAGE_EDITOR_FILE_STYLE_CLASS,
   PAGE_EDITOR_IMAGE_TYPE,
   PAGE_EDITOR_TASK_ITEM_TYPE,
   PAGE_EDITOR_TOGGLE_TYPE,
@@ -15,19 +18,34 @@ import {
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageCodeBlockNodeView } from './pages.editor.code.node-view.lib';
+import { describePageFile } from './pages.editor.file.lib';
 import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
 
 const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeURIComponent(assetId)}`;
 
+/**
+ * Renders a file as what it is: a name, what kind of file it is and how heavy,
+ * on a line that takes one press to bring it down. The name is what it was
+ * called when it arrived, since that is what whoever saved it will look for.
+ */
 const createPageFileNodeView = (node: EditorNode): NodeView => {
   const link = document.createElement('a');
-  link.className =
-    'my-3 flex min-h-11 items-center border border-border bg-surface-low px-3 text-sm text-foreground underline-offset-4 hover:underline';
+  const name = document.createElement('span');
+  const about = document.createElement('span');
+
+  link.className = PAGE_EDITOR_FILE_STYLE_CLASS;
   link.href = getPageAssetUrl(node.attrs.assetId);
   link.rel = 'noopener';
-  link.textContent = node.attrs.caption || node.attrs.assetId;
+  link.download = typeof node.attrs.caption === 'string' ? node.attrs.caption : '';
+  link.dataset.pageFile = 'true';
+  name.className = PAGE_EDITOR_FILE_NAME_STYLE_CLASS;
+  name.textContent = node.attrs.caption || node.attrs.assetId;
+  about.className = PAGE_EDITOR_FILE_ABOUT_STYLE_CLASS;
+  about.dataset.fileAbout = 'true';
+  about.textContent = describePageFile(node.attrs.caption, node.attrs.mimeType, node.attrs.size);
+  link.append(name, about);
   return { dom: link };
 };
 

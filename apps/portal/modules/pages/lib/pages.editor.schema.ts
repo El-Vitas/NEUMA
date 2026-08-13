@@ -34,6 +34,18 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
   };
 };
 
+/** What a page says about the file it holds: what kind it is and how heavy. */
+const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+  const asset = getPageEditorAssetAttrs(element);
+  if (asset === false) return false;
+  const size = Number.parseInt(element.dataset.size ?? '', 10);
+  return {
+    ...asset,
+    mimeType: element.dataset.mimeType ?? null,
+    size: Number.isFinite(size) && size >= 0 ? size : null,
+  };
+};
+
 /** How an image was left standing on the page: where in the column, and how much of it. */
 const getPageEditorImageAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
   const asset = getPageEditorAssetAttrs(element);
@@ -245,10 +257,16 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'file',
     definePageBlock({
-      attrs: { alt: { default: null }, assetId: {}, caption: { default: null } },
+      attrs: {
+        alt: { default: null },
+        assetId: {},
+        caption: { default: null },
+        mimeType: { default: null },
+        size: { default: null },
+      },
       atom: true,
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorAssetAttrs, tag: 'div[data-page-file]' }],
+      parseDOM: [{ getAttrs: getPageEditorFileAttrs, tag: 'div[data-page-file]' }],
       render: (node, blockAttributes) => [
         'div',
         {
@@ -256,6 +274,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
           'data-page-file': true,
           'data-asset-id': node.attrs.assetId,
           'data-caption': node.attrs.caption ?? '',
+          ...(typeof node.attrs.mimeType === 'string' ? { 'data-mime-type': node.attrs.mimeType } : {}),
+          ...(typeof node.attrs.size === 'number' ? { 'data-size': String(node.attrs.size) } : {}),
         },
       ],
     }),

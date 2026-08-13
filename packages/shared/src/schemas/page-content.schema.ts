@@ -221,6 +221,20 @@ export const pageAssetAttrsSchema = z
 export const PAGE_IMAGE_ALIGNMENTS = ['left', 'center', 'right', 'full'] as const;
 export type PageImageAlignment = (typeof PAGE_IMAGE_ALIGNMENTS)[number];
 
+/**
+ * What a page says about a file it is holding.
+ *
+ * The kind of file and how heavy it is are kept on the block rather than looked
+ * up: an asset never changes once uploaded, and a page that describes what it
+ * holds can be read without asking anyone else.
+ */
+export const pageFileAttrsSchema = pageAssetAttrsSchema
+  .extend({
+    mimeType: z.string().min(1).max(maximumAssetMetadataLength).optional(),
+    size: z.number().int().min(0).optional(),
+  })
+  .strict();
+
 export const pageImageAttrsSchema = pageAssetAttrsSchema
   .extend({
     align: z.enum(PAGE_IMAGE_ALIGNMENTS).optional(),
@@ -374,7 +388,7 @@ export type PageContentKnownNode =
     }
   | { readonly attrs?: PageBlockAttrs; readonly type: 'divider' }
   | { readonly attrs: z.infer<typeof pageImageAttrsSchema>; readonly type: 'image' }
-  | { readonly attrs: z.infer<typeof pageAssetAttrsSchema>; readonly type: 'file' }
+  | { readonly attrs: z.infer<typeof pageFileAttrsSchema>; readonly type: 'file' }
   | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' }
   | { readonly attrs: z.infer<typeof pageCollectionAttrsSchema>; readonly type: 'collection' };
 
@@ -571,7 +585,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       .strict(),
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('divider') }).strict(),
     z.object({ attrs: pageImageAttrsSchema, type: z.literal('image') }).strict(),
-    z.object({ attrs: pageAssetAttrsSchema, type: z.literal('file') }).strict(),
+    z.object({ attrs: pageFileAttrsSchema, type: z.literal('file') }).strict(),
     z.object({ attrs: pageEmbedAttrsSchema, type: z.literal('embed') }).strict(),
     z.object({ attrs: pageCollectionAttrsSchema, type: z.literal('collection') }).strict(),
   ]),
