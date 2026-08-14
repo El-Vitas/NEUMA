@@ -15,7 +15,7 @@ export interface PageEditorCommand {
   readonly run: Command;
 }
 
-export type PageAssetNodeType = 'file' | 'image';
+export type PageAssetNodeType = 'audio' | 'file' | 'image' | 'video';
 
 export interface PageAssetInsertCommandOptions {
   readonly alt?: string;

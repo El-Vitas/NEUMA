@@ -1,9 +1,11 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
 import {
   PAGE_CODE_LANGUAGES,
+  pageAssetAttrsSchema,
   pageEmbedAttrsSchema,
   pageFileAttrsSchema,
   pageImageAttrsSchema,
+  pageMediaAttrsSchema,
   pageMentionAttrsSchema,
 } from '@company-brain/shared';
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
@@ -14,7 +16,7 @@ import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
 import type { Command, Plugin as EditorPlugin, EditorState, Transaction } from 'prosemirror-state';
-import { Selection } from 'prosemirror-state';
+import { NodeSelection, Selection } from 'prosemirror-state';
 import { columnResizing, tableEditing } from 'prosemirror-tables';
 import { PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_SHORTCUTS } from '../constants/pages.editor.shortcuts.constants';
@@ -40,7 +42,6 @@ import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './p
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 import { createPageTable, goToNextPageTableCell, goToPreviousPageTableCell } from './pages.editor.table.lib';
-import { PageTableView } from './pages.editor.table.view.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
@@ -110,11 +111,21 @@ const canInsertPageNode = (state: EditorState, nodeType: NodeType): boolean => {
   return false;
 };
 
+/**
+ * Puts a block on the page where the cursor is.
+ *
+ * A block that is selected — a picture, a document, a player — is what someone
+ * is looking at, not a hole to drop the next thing into, so the new block lands
+ * after it. Replacing it is how a page loses what it was already holding.
+ */
 const insertPageNode =
   (node: EditorNode): Command =>
   (state, dispatch) => {
     if (!canInsertPageNode(state, node.type)) return false;
-    if (dispatch) dispatch(state.tr.replaceSelectionWith(node));
+    if (dispatch === undefined) return true;
+    const { selection } = state;
+    if (selection instanceof NodeSelection) dispatch(state.tr.insert(selection.to, node));
+    else dispatch(state.tr.replaceSelectionWith(node));
     return true;
   };
 
@@ -128,6 +139,21 @@ const buildPageAssetAttrs = (options: PageAssetInsertCommandOptions): Record<str
   if (options.mimeType !== undefined) attrs.mimeType = options.mimeType;
   if (options.size !== undefined) attrs.size = options.size;
   return attrs;
+};
+
+/** What each kind of asset is allowed to carry, so an insert can never save a shape the page refuses. */
+const readPageAssetAttrsShape = (nodeType: PageAssetNodeType) => {
+  switch (nodeType) {
+    case 'file':
+      return pageFileAttrsSchema;
+    case 'image':
+      return pageImageAttrsSchema;
+    case 'audio':
+    case 'video':
+      return pageMediaAttrsSchema;
+    default:
+      return pageAssetAttrsSchema;
+  }
 };
 
 /**
@@ -146,7 +172,7 @@ export const createPageAssetInsertCommand = (
   nodeType: PageAssetNodeType,
   options: PageAssetInsertCommandOptions,
 ): Command => {
-  const shape = nodeType === 'file' ? pageFileAttrsSchema : pageImageAttrsSchema;
+  const shape = readPageAssetAttrsShape(nodeType);
   const attrs = shape.safeParse(buildPageAssetAttrs(options));
   if (!attrs.success) return () => false;
   return insertPageNode(schema.nodes[nodeType].createChecked(attrs.data));
@@ -357,7 +383,10 @@ export const createPageEditorPlugins = (
    * A table minds its own selection and the width of its columns. It comes last
    * so a cell answers the page's own rules first and the table only what is
    * left — dragging a column edge, selecting across cells.
+   *
+   * How the table itself is drawn is not left to this plugin: it is a node view
+   * like every other, and it lives with the rest of them.
    */
-  columnResizing({ cellMinWidth: PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH, View: PageTableView }),
+  columnResizing({ cellMinWidth: PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH }),
   tableEditing(),
 ];

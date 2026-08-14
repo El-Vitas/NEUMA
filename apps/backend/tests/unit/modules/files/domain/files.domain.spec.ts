@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { normalizeFilename, validateFileUpload } from '@/modules/files/domain/files.domain';
+import { describeFileDisposition, normalizeFilename, validateFileUpload } from '@/modules/files/domain/files.domain';
 import { FileValidationError } from '@/modules/files/domain/files.error';
 
 describe('files domain', () => {
@@ -17,9 +17,32 @@ describe('files domain', () => {
     ).toThrow(FileValidationError);
   });
 
+  it('accepts what a page can play, so a recording is not turned away at the door', () => {
+    expect(validateFileUpload({ filename: 'demo.mp4', mimetype: 'video/mp4', size: 100 })).toBe('demo.mp4');
+    expect(validateFileUpload({ filename: 'nota.mp3', mimetype: 'audio/mpeg', size: 100 })).toBe('nota.mp3');
+  });
+
   it('rejects unsupported MIME types', () => {
     expect(() => validateFileUpload({ filename: 'script.js', mimetype: 'application/javascript', size: 100 })).toThrow(
       FileValidationError,
+    );
+  });
+});
+
+describe('describeFileDisposition', () => {
+  /** A page that shows a document in place needs it handed over to be read, not to be saved. */
+  it('hands over a document a page can show in place to be read where it is', () => {
+    expect(describeFileDisposition('application/pdf', 'manual.pdf')).toBe("inline; filename*=UTF-8''manual.pdf");
+  });
+
+  it('hands over everything else to be saved', () => {
+    expect(describeFileDisposition('application/zip', 'copia.zip')).toBe("attachment; filename*=UTF-8''copia.zip");
+    expect(describeFileDisposition('video/webm', 'demo.webm')).toBe("attachment; filename*=UTF-8''demo.webm");
+  });
+
+  it('says the name in a way that survives the journey', () => {
+    expect(describeFileDisposition('application/pdf', 'informe anual ñ.pdf')).toBe(
+      "inline; filename*=UTF-8''informe%20anual%20%C3%B1.pdf",
     );
   });
 });

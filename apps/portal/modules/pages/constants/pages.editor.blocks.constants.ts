@@ -113,6 +113,7 @@ export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS =
  * shared contract refuses, and the refusal lands in the middle of a keystroke.
  */
 export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
+  'audio',
   'code',
   'collection',
   'divider',
@@ -125,6 +126,7 @@ export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'mention',
   'strong',
   'text',
+  'video',
 ];
 
 /**
@@ -265,6 +267,74 @@ export const PAGE_EDITOR_CALLOUT_TYPE = 'callout';
 
 export const PAGE_EDITOR_IMAGE_TYPE = 'image';
 
+export const PAGE_EDITOR_VIDEO_TYPE = 'video';
+
+export const PAGE_EDITOR_AUDIO_TYPE = 'audio';
+
+/** A video nobody has sized plays at the size it came in at; a recording is a line of controls. */
+export const PAGE_EDITOR_MEDIA_VIDEO_STYLE_CLASS = 'block h-auto w-full max-w-full bg-black';
+
+/** A video sits in the same kind of frame as an image, so its edge can be taken hold of the same way. */
+export const PAGE_EDITOR_MEDIA_FIGURE_STYLE_CLASS = 'my-6 flex flex-col';
+
+/**
+ * A player nobody sized takes the whole column of writing: it is a control to
+ * be worked, not a picture to be looked at.
+ */
+export const PAGE_EDITOR_MEDIA_UNSIZED_WIDTH = 1;
+
+/** Taken to the whole screen, the video is what fills it and the controls stay under it. */
+export const PAGE_EDITOR_MEDIA_PLAYER_STYLE_CLASS = [
+  'flex w-full flex-col',
+  '[&:fullscreen]:justify-center [&:fullscreen]:bg-black',
+  '[&:fullscreen>video]:max-h-screen [&:fullscreen>video]:object-contain',
+].join(' ');
+
+/** Sixty seconds in a minute, and sixty minutes in an hour. */
+export const PAGE_EDITOR_MEDIA_MINUTE = 60;
+
+/** Seconds and minutes are said with two digits: 0:07, never 0:7. */
+export const PAGE_EDITOR_MEDIA_TIME_PAD = 2;
+
+export const PAGE_EDITOR_MEDIA_AUDIO_STYLE_CLASS = 'sr-only';
+
+/** The controls of a player: drawn here, in the colours of the page, and not by the browser. */
+export const PAGE_EDITOR_MEDIA_BAR_STYLE_CLASS =
+  'flex w-full items-center gap-3 border border-border bg-surface-low px-3 py-2';
+
+export const PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS = [
+  'relative inline-flex size-6 shrink-0 items-center justify-center text-muted-foreground text-sm',
+  'hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+  "before:absolute before:-inset-2.5 before:content-['']",
+].join(' ');
+
+/** Where it is and how long it lasts, in figures that do not shift as the seconds pass. */
+export const PAGE_EDITOR_MEDIA_TIME_STYLE_CLASS = 'shrink-0 text-muted-foreground text-xs tabular-nums';
+
+export const PAGE_EDITOR_MEDIA_SEEK_STYLE_CLASS = 'h-1 w-full min-w-0 flex-1 cursor-pointer accent-primary';
+
+/** How finely the bar can be moved: tenths of a second, so a short recording is not all or nothing. */
+export const PAGE_EDITOR_MEDIA_SEEK_STEP = '0.1';
+
+/**
+ * The marks a block is worked by, drawn as strokes on a 24 by 24 square so
+ * each one takes the colour of the text around it instead of arriving with a
+ * colour of its own, as a letter or an emoji would.
+ */
+export const PAGE_EDITOR_MARKS = {
+  fullScreen: ['M9 4H4v5', 'M15 4h5v5', 'M15 20h5v-5', 'M9 20H4v-5'],
+  pause: ['M9 5v14', 'M15 5v14'],
+  play: ['M8 5.5v13l11-6.5z'],
+  silent: ['M11 5 6.5 9H3v6h3.5L11 19z', 'm17 10 4 4', 'm21 10-4 4'],
+  sound: ['M11 5 6.5 9H3v6h3.5L11 19z', 'M15.5 8.5a5 5 0 0 1 0 7'],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
+
+export const PAGE_EDITOR_MARK_BOX = '0 0 24 24';
+
+export const PAGE_EDITOR_MARK_WEIGHT = '1.8';
+
+export const PAGE_EDITOR_MARK_STYLE_CLASS = 'size-4';
+
 /** A file says what it is called, what kind it is and how heavy, on one line that brings it down. */
 export const PAGE_EDITOR_FILE_STYLE_CLASS = [
   'my-3 flex min-h-11 items-center gap-3 border border-border bg-surface-low px-3',
@@ -280,22 +350,65 @@ export const PAGE_EDITOR_FILE_SIZE_STEP = 1024;
 
 export const PAGE_EDITOR_FILE_SIZE_UNITS: readonly string[] = ['B', 'KB', 'MB', 'GB'];
 
+export const PAGE_EDITOR_FILE_TYPE = 'file';
+
+/** The one kind of file a page draws where it stands: a document, read among the writing. */
+export const PAGE_EDITOR_DOCUMENT_MIME_TYPE = 'application/pdf';
+
+export const PAGE_EDITOR_DOCUMENT_NAME_ENDING = /\.pdf$/i;
+
+/** A document is drawn on the page it was written for: a sheet of paper standing up. */
+export const PAGE_EDITOR_DOCUMENT_ASPECT_RATIO = '768 / 1086';
+
+/** As wide as the sheet it was written for, and never wider than the column it sits in. */
+export const PAGE_EDITOR_DOCUMENT_UNSIZED_WIDTH = 'min(100%, 768px)';
+
+/** The document itself, framed like the block it sits in and given room to be read. */
+export const PAGE_EDITOR_DOCUMENT_STYLE_CLASS = 'block w-full border border-border bg-surface-low';
+
+/** The line above a document: what it is called, what kind it is, and a way to take it away. */
+export const PAGE_EDITOR_DOCUMENT_BAR_STYLE_CLASS = [
+  'flex min-h-11 flex-1 items-center gap-3 text-foreground text-sm underline-offset-4 hover:underline',
+].join(' ');
+
+/** The name and the way to see the document whole share one line above it. */
+export const PAGE_EDITOR_DOCUMENT_HEAD_STYLE_CLASS =
+  'flex w-full items-center gap-3 border border-border border-b-0 bg-surface-low px-3';
+
+export const PAGE_EDITOR_DOCUMENT_FIGURE_STYLE_CLASS = 'my-3 flex flex-col';
+
+/** What a file's name ends in: the letters after the last dot, and nothing longer than a kind. */
+export const PAGE_EDITOR_FILE_NAME_ENDING = /\.([a-z0-9]{1,8})$/i;
+
 /** Where the page keeps the chooser that answers for every file put on it. */
 export const PAGE_EDITOR_FILE_INPUT_SELECTOR = '[data-page-file-input]';
 
-/** Narrower than this an image says nothing, so the edge stops there. */
-export const PAGE_EDITOR_IMAGE_MINIMUM_WIDTH = 0.1;
+/** A block nobody sized hugs whatever it came in at, never stretched to fill the page. */
+export const PAGE_EDITOR_BLOCK_UNSIZED_WIDTH = 'max-content';
 
-export const PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS = 'group relative my-6 flex flex-col gap-2';
+/** The frame carries the width; the block inside fills it and never spills past the writing. */
+export const PAGE_EDITOR_BLOCK_WIDTH_FRAME_STYLE_CLASS = 'group relative max-w-full';
 
-/** Where the image stands in the column of writing. */
-export const PAGE_EDITOR_IMAGE_ALIGN_STYLE_CLASSES: Readonly<Record<string, string>> = {
+/** Narrower than this a block says nothing, so the edge stops there. */
+export const PAGE_EDITOR_BLOCK_MINIMUM_WIDTH = 0.1;
+
+export const PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS = 'my-6 flex flex-col gap-2';
+
+/** What can stand somewhere other than the left of the column: what is not writing. */
+export const PAGE_EDITOR_ALIGNABLE_TYPES: readonly string[] = [
+  PAGE_EDITOR_AUDIO_TYPE,
+  PAGE_EDITOR_IMAGE_TYPE,
+  PAGE_EDITOR_VIDEO_TYPE,
+];
+
+/** Where a block stands in the column of writing. */
+export const PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES: Readonly<Record<string, string>> = {
   center: 'items-center text-center',
   left: 'items-start text-start',
   right: 'items-end text-end',
 };
 
-export const PAGE_EDITOR_IMAGE_STYLE_CLASS = 'h-auto max-w-full';
+export const PAGE_EDITOR_IMAGE_STYLE_CLASS = 'h-auto w-full max-w-full';
 
 /** The line under an image: what a reader sees, and what is read out to whoever cannot see it. */
 export const PAGE_EDITOR_IMAGE_CAPTION_STYLE_CLASS = [
@@ -303,9 +416,9 @@ export const PAGE_EDITOR_IMAGE_CAPTION_STYLE_CLASS = [
   'outline-none focus-visible:ring-0',
 ].join(' ');
 
-/** The edge an image is stretched by, shown once the pointer is on the image. */
-export const PAGE_EDITOR_IMAGE_HANDLE_STYLE_CLASS = [
-  'absolute top-1/2 right-0 h-16 w-1.5 -translate-y-1/2 cursor-col-resize bg-primary',
+/** The edge a block is stretched by, shown once the pointer is on it. */
+export const PAGE_EDITOR_BLOCK_RESIZE_HANDLE_STYLE_CLASS = [
+  'absolute top-1/2 right-0 h-full max-h-16 w-1.5 -translate-y-1/2 cursor-col-resize bg-primary',
   'opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
 ].join(' ');
 

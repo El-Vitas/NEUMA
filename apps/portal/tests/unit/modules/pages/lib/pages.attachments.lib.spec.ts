@@ -54,6 +54,15 @@ describe('buildPageAssetInsertOptionsFromAttachment', () => {
     });
   });
 
+  it('makes something that plays out of a video and a recording', () => {
+    const video = { id: 'v', mimeType: 'video/mp4', originalFilename: 'demo.mp4', size: 2048 };
+    const audio = { id: 'a', mimeType: 'audio/mpeg', originalFilename: 'nota.mp3', size: 1024 };
+
+    expect(mapAttachmentMimeTypeToPageAssetNodeType(video.mimeType)).toBe('video');
+    expect(mapAttachmentMimeTypeToPageAssetNodeType(audio.mimeType)).toBe('audio');
+    expect(buildPageAssetInsertOptionsFromAttachment(video)).toEqual({ assetId: 'v', caption: 'demo.mp4' });
+  });
+
   /** A file says what kind it is and how heavy on the block itself, so the page describes what it holds. */
   it('derives the asset id, name, kind and weight from a non-image attachment', () => {
     expect(buildPageAssetInsertOptionsFromAttachment(fileAttachment)).toEqual({

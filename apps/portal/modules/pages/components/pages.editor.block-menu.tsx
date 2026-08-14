@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockColor, PageCalloutIcon, PageImageAlignment } from '@company-brain/shared';
+import type { PageBlockAlignment, PageBlockColor, PageCalloutIcon, PageFileDisplay } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
@@ -18,9 +18,10 @@ import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageEditorBlockFolding } from '../types/pages.editor.heading-fold.types';
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
+import { PagesEditorBlockAlignItems } from './pages.editor.block-align.items';
 import { PagesEditorBlockColorItems } from './pages.editor.block-color.items';
 import { PagesEditorCalloutIconItems } from './pages.editor.callout-icon.items';
-import { PagesEditorImageAlignItems } from './pages.editor.image-align.items';
+import { PagesEditorFileDisplayItems } from './pages.editor.file-display.items';
 import { PagesEditorTableItems } from './pages.editor.table.items';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
@@ -36,7 +37,8 @@ interface IProps {
   readonly onCalloutIcon: (icon: PageCalloutIcon | null) => void;
   readonly onClose: () => void;
   readonly onColor: (kind: PageEditorBlockColorKind, color: PageBlockColor | null) => void;
-  readonly onImageAlign: (align: PageImageAlignment) => void;
+  readonly onBlockAlign: (align: PageBlockAlignment) => void;
+  readonly onFileDisplay: (display: PageFileDisplay) => void;
   readonly onTableAction: (action: PageEditorTableAction) => void;
   readonly onComment: () => void;
   readonly onConvert: (targetId: string) => void;
@@ -44,7 +46,8 @@ interface IProps {
   readonly onDelete: () => void;
   readonly onDuplicate: () => void;
   readonly onMoveToPage: () => void;
-  readonly imageAlign: { readonly chosen: string | null } | null;
+  readonly blockAlign: { readonly chosen: string | null } | null;
+  readonly fileDisplay: { readonly chosen: string } | null;
   readonly tableActions: boolean;
 }
 
@@ -71,9 +74,11 @@ export const PagesEditorBlockMenu = ({
   onDelete,
   onDuplicate,
   onMoveToPage,
-  onImageAlign,
+  onBlockAlign,
+  onFileDisplay,
   onTableAction,
-  imageAlign,
+  blockAlign,
+  fileDisplay,
   tableActions,
 }: IProps) => {
   const t = useTranslations('pages');
@@ -110,11 +115,19 @@ export const PagesEditorBlockMenu = ({
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}
-          {imageAlign !== null && (
+          {fileDisplay !== null && (
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>{t('imageAlignLabel')}</DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger>{t('fileDisplayLabel')}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                <PagesEditorImageAlignItems onSelect={onImageAlign} selected={imageAlign.chosen} />
+                <PagesEditorFileDisplayItems onSelect={onFileDisplay} selected={fileDisplay.chosen} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          {blockAlign !== null && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{t('blockAlignLabel')}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <PagesEditorBlockAlignItems onSelect={onBlockAlign} selected={blockAlign.chosen} />
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}

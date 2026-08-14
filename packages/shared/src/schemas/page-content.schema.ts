@@ -213,13 +213,13 @@ export const pageAssetAttrsSchema = z
   .strict();
 
 /**
- * Where an image sits on the line it occupies, and how much of the width it
- * takes. A page reads as one column of writing, so an image says how it stands
- * in that column rather than carrying a size in pixels that no other screen
- * would honour.
+ * Where a block that is not writing — an image, a player — stands on the line
+ * it occupies, and how much of the width it takes. A page reads as one column,
+ * so such a block says how it stands in that column rather than carrying a size
+ * in pixels that no other screen would honour.
  */
-export const PAGE_IMAGE_ALIGNMENTS = ['left', 'center', 'right', 'full'] as const;
-export type PageImageAlignment = (typeof PAGE_IMAGE_ALIGNMENTS)[number];
+export const PAGE_BLOCK_ALIGNMENTS = ['left', 'center', 'right', 'full'] as const;
+export type PageBlockAlignment = (typeof PAGE_BLOCK_ALIGNMENTS)[number];
 
 /**
  * What a page says about a file it is holding.
@@ -227,17 +227,47 @@ export type PageImageAlignment = (typeof PAGE_IMAGE_ALIGNMENTS)[number];
  * The kind of file and how heavy it is are kept on the block rather than looked
  * up: an asset never changes once uploaded, and a page that describes what it
  * holds can be read without asking anyone else.
+ *
+ * A file the page shows in place — a document, read where it stands — is placed
+ * and sized like anything else that is not writing.
  */
+/**
+ * How a page shows a file it is holding: read where it stands, or named on one
+ * line that brings it down.
+ *
+ * It is the block that says so and not the kind of file, because the same
+ * document is a thing to read on one page and a thing to keep on another, and
+ * nobody should have to upload it twice to say which.
+ */
+export const PAGE_FILE_DISPLAYS = ['document', 'line'] as const;
+export type PageFileDisplay = (typeof PAGE_FILE_DISPLAYS)[number];
+
 export const pageFileAttrsSchema = pageAssetAttrsSchema
   .extend({
+    align: z.enum(PAGE_BLOCK_ALIGNMENTS).optional(),
+    display: z.enum(PAGE_FILE_DISPLAYS).optional(),
     mimeType: z.string().min(1).max(maximumAssetMetadataLength).optional(),
     size: z.number().int().min(0).optional(),
+    width: z.number().gt(0).lte(1).optional(),
+  })
+  .strict();
+
+/**
+ * A video kept on the page: how much of the width it takes, said as a share of
+ * the page for the same reason an image does — a size in pixels is a size on
+ * one screen only. A recording is sized the same way: what is drawn is the row
+ * of controls it is worked by, and a row of controls has a width.
+ */
+export const pageMediaAttrsSchema = pageAssetAttrsSchema
+  .extend({
+    align: z.enum(PAGE_BLOCK_ALIGNMENTS).optional(),
+    width: z.number().gt(0).lte(1).optional(),
   })
   .strict();
 
 export const pageImageAttrsSchema = pageAssetAttrsSchema
   .extend({
-    align: z.enum(PAGE_IMAGE_ALIGNMENTS).optional(),
+    align: z.enum(PAGE_BLOCK_ALIGNMENTS).optional(),
     width: z.number().gt(0).lte(1).optional(),
   })
   .strict();
@@ -388,6 +418,8 @@ export type PageContentKnownNode =
     }
   | { readonly attrs?: PageBlockAttrs; readonly type: 'divider' }
   | { readonly attrs: z.infer<typeof pageImageAttrsSchema>; readonly type: 'image' }
+  | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'video' }
+  | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'audio' }
   | { readonly attrs: z.infer<typeof pageFileAttrsSchema>; readonly type: 'file' }
   | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' }
   | { readonly attrs: z.infer<typeof pageCollectionAttrsSchema>; readonly type: 'collection' };
@@ -415,8 +447,10 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'toggle',
   'column_list',
   'column',
+  'audio',
   'divider',
   'image',
+  'video',
   'file',
   'embed',
   'collection',
@@ -585,6 +619,8 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       .strict(),
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('divider') }).strict(),
     z.object({ attrs: pageImageAttrsSchema, type: z.literal('image') }).strict(),
+    z.object({ attrs: pageMediaAttrsSchema, type: z.literal('video') }).strict(),
+    z.object({ attrs: pageMediaAttrsSchema, type: z.literal('audio') }).strict(),
     z.object({ attrs: pageFileAttrsSchema, type: z.literal('file') }).strict(),
     z.object({ attrs: pageEmbedAttrsSchema, type: z.literal('embed') }).strict(),
     z.object({ attrs: pageCollectionAttrsSchema, type: z.literal('collection') }).strict(),
@@ -683,8 +719,10 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   ...pageFlowChildTypes,
   'table',
   'toggle',
+  'audio',
   'divider',
   'image',
+  'video',
   'file',
   'embed',
   'collection',

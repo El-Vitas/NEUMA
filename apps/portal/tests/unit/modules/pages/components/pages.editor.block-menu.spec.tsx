@@ -32,14 +32,16 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
   render(
     <NextIntlClientProvider locale="es" messages={es}>
       <PagesEditorBlockMenu
+        blockAlign={null}
         calloutIcon={null}
         canBecomePage
         colors={{ background: null, text: null }}
         conversions={conversions}
+        fileDisplay={null}
         folding={null}
         hasIdentity={hasIdentity}
-        imageAlign={null}
         onBecomePage={() => use.becamePage.push(1)}
+        onBlockAlign={() => undefined}
         onCalloutIcon={() => undefined}
         onClose={() => use.closed.push(1)}
         onColor={(kind, color) => use.painted.push(`${kind}:${String(color)}`)}
@@ -48,7 +50,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         onCopyLink={() => use.copied.push(1)}
         onDelete={() => use.deleted.push(1)}
         onDuplicate={() => use.duplicated.push(1)}
-        onImageAlign={() => undefined}
+        onFileDisplay={() => undefined}
         onMoveToPage={() => use.moved.push(1)}
         onTableAction={() => undefined}
         tableActions={false}

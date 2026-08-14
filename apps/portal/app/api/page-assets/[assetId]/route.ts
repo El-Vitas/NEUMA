@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PAGE_ASSET_PASSED_HEADERS } from '@/modules/pages/constants/pages.attachments.constants';
 import { getPageAttachmentResponse } from '@/modules/pages/server/lib/pages.attachments.server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 
@@ -6,7 +7,7 @@ interface IProps {
   readonly params: Promise<{ assetId: string }>;
 }
 
-export const GET = async (_request: Request, { params }: IProps): Promise<Response> => {
+export const GET = async (request: Request, { params }: IProps): Promise<Response> => {
   const { assetId } = await params;
   if (!z.uuid().safeParse(assetId).success) return new Response(null, { status: 404 });
 
@@ -17,13 +18,13 @@ export const GET = async (_request: Request, { params }: IProps): Promise<Respon
     return new Response(null, { status: 401 });
   }
 
-  const response = await getPageAttachmentResponse(assetId, accessToken);
+  const response = await getPageAttachmentResponse(assetId, accessToken, request.headers.get('range'));
   if (!response.ok) return new Response(null, { status: response.status });
 
   const headers = new Headers();
-  const contentDisposition = response.headers.get('content-disposition');
-  const contentType = response.headers.get('content-type');
-  if (contentDisposition !== null) headers.set('content-disposition', contentDisposition);
-  if (contentType !== null) headers.set('content-type', contentType);
+  for (const name of PAGE_ASSET_PASSED_HEADERS) {
+    const value = response.headers.get(name);
+    if (value !== null) headers.set(name, value);
+  }
   return new Response(response.body, { headers, status: response.status });
 };

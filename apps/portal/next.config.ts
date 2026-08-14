@@ -13,14 +13,26 @@ const securityHeaders = [
     value: 'max-age=31536000; includeSubDomains',
   },
   {
-    key: 'X-Frame-Options',
-    value: 'DENY',
-  },
-  {
     key: 'Referrer-Policy',
     value: 'strict-origin-when-cross-origin',
   },
 ];
+
+/** Where the files a page holds are handed over. */
+const attachmentsPath = 'api/page-assets';
+
+/**
+ * Nothing of this application may be put in a frame, anywhere.
+ *
+ * The one exception is the attachments themselves, and only inside this same
+ * origin: a document shown on a page is drawn by the browser's own viewer,
+ * which reads it in a frame of its own. Denying that frame denies the viewer,
+ * and the page shows an empty box instead of the document.
+ */
+const framingHeaders = [
+  { source: `/((?!${attachmentsPath}).*)`, value: 'DENY' },
+  { source: `/${attachmentsPath}/:path*`, value: 'SAMEORIGIN' },
+].map(({ source, value }) => ({ headers: [{ key: 'X-Frame-Options', value }], source }));
 
 const monorepoRoot = path.join(import.meta.dirname, '../../');
 
@@ -37,6 +49,7 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      ...framingHeaders,
     ];
   },
 };

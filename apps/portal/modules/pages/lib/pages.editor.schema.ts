@@ -1,9 +1,10 @@
 import {
   isAllowedPageEmbedUrl,
+  PAGE_BLOCK_ALIGNMENTS,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
   PAGE_EMBED_PROVIDERS,
-  PAGE_IMAGE_ALIGNMENTS,
+  PAGE_FILE_DISPLAYS,
 } from '@company-brain/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
@@ -34,15 +35,30 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
   };
 };
 
-/** What a page says about the file it holds: what kind it is and how heavy. */
+/** What a page says about the file it holds: what kind it is, how heavy, and how it is shown. */
 const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
-  const asset = getPageEditorAssetAttrs(element);
+  const asset = getPageEditorMediaAttrs(element);
   if (asset === false) return false;
   const size = Number.parseInt(element.dataset.size ?? '', 10);
+  const display = element.dataset.display;
   return {
     ...asset,
+    display: PAGE_FILE_DISPLAYS.find((known) => known === display) ?? null,
     mimeType: element.dataset.mimeType ?? null,
     size: Number.isFinite(size) && size >= 0 ? size : null,
+  };
+};
+
+/** How a player was left standing on the page: where in the column, and how wide. */
+const getPageEditorMediaAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+  const asset = getPageEditorAssetAttrs(element);
+  if (asset === false) return false;
+  const align = element.dataset.align;
+  const width = Number.parseFloat(element.dataset.width ?? '');
+  return {
+    ...asset,
+    align: PAGE_BLOCK_ALIGNMENTS.find((known) => known === align) ?? null,
+    width: Number.isFinite(width) && width > 0 && width <= 1 ? width : null,
   };
 };
 
@@ -54,7 +70,7 @@ const getPageEditorImageAttrs = (element: HTMLElement): Record<string, string | 
   const width = Number.parseFloat(element.dataset.width ?? '');
   return {
     ...asset,
-    align: PAGE_IMAGE_ALIGNMENTS.find((known) => known === align) ?? null,
+    align: PAGE_BLOCK_ALIGNMENTS.find((known) => known === align) ?? null,
     width: Number.isFinite(width) && width > 0 && width <= 1 ? width : null,
   };
 };
@@ -233,6 +249,58 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     }),
   ],
   [
+    'video',
+    definePageBlock({
+      attrs: {
+        align: { default: null },
+        alt: { default: null },
+        assetId: {},
+        caption: { default: null },
+        width: { default: null },
+      },
+      atom: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorMediaAttrs, tag: 'video[data-page-video]' }],
+      render: (node, blockAttributes) => [
+        'video',
+        {
+          ...blockAttributes,
+          'data-asset-id': node.attrs.assetId,
+          'data-caption': node.attrs.caption ?? '',
+          'data-page-video': true,
+          ...(typeof node.attrs.align === 'string' ? { 'data-align': node.attrs.align } : {}),
+          ...(typeof node.attrs.width === 'number' ? { 'data-width': String(node.attrs.width) } : {}),
+        },
+      ],
+    }),
+  ],
+  [
+    'audio',
+    definePageBlock({
+      attrs: {
+        align: { default: null },
+        alt: { default: null },
+        assetId: {},
+        caption: { default: null },
+        width: { default: null },
+      },
+      atom: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorMediaAttrs, tag: 'audio[data-page-audio]' }],
+      render: (node, blockAttributes) => [
+        'audio',
+        {
+          ...blockAttributes,
+          'data-asset-id': node.attrs.assetId,
+          'data-caption': node.attrs.caption ?? '',
+          'data-page-audio': true,
+          ...(typeof node.attrs.align === 'string' ? { 'data-align': node.attrs.align } : {}),
+          ...(typeof node.attrs.width === 'number' ? { 'data-width': String(node.attrs.width) } : {}),
+        },
+      ],
+    }),
+  ],
+  [
     'divider',
     definePageBlock({
       atom: true,
@@ -258,11 +326,14 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     'file',
     definePageBlock({
       attrs: {
+        align: { default: null },
         alt: { default: null },
         assetId: {},
         caption: { default: null },
+        display: { default: null },
         mimeType: { default: null },
         size: { default: null },
+        width: { default: null },
       },
       atom: true,
       group: 'block',
@@ -274,8 +345,11 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
           'data-page-file': true,
           'data-asset-id': node.attrs.assetId,
           'data-caption': node.attrs.caption ?? '',
+          ...(typeof node.attrs.align === 'string' ? { 'data-align': node.attrs.align } : {}),
+          ...(typeof node.attrs.display === 'string' ? { 'data-display': node.attrs.display } : {}),
           ...(typeof node.attrs.mimeType === 'string' ? { 'data-mime-type': node.attrs.mimeType } : {}),
           ...(typeof node.attrs.size === 'number' ? { 'data-size': String(node.attrs.size) } : {}),
+          ...(typeof node.attrs.width === 'number' ? { 'data-width': String(node.attrs.width) } : {}),
         },
       ],
     }),
