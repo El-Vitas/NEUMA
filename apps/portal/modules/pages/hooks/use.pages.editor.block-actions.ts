@@ -12,6 +12,7 @@ import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { buildPageEditorBlockLink, readPageEditorBlockId } from '../lib/pages.editor.block-link.lib';
 import { changePageEditorBlockRequest, closePageEditorBlockRequest } from '../lib/pages.editor.block-menu.lib';
 import { readSelectedPageBlocksContent } from '../lib/pages.editor.block-travel.lib';
+import { buildSyncedBlockContent } from '../lib/pages.editor.synced.lib';
 import { addBlocksToPageAction } from '../server/actions/pages.actions';
 import type { PageEditorBlockActions } from '../types/pages.editor.block-actions.types';
 import type { PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
@@ -22,7 +23,11 @@ import type { PageDestination } from '../types/pages.editor.destination.types';
  * plumbing: running a command on the block, copying its address, and handing
  * the selected blocks to another page.
  */
-export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView | null>): PageEditorBlockActions => {
+export const usePagesEditorBlockActions = (
+  editorViewRef: RefObject<EditorView | null>,
+  /** Which page is being written: a block can only be shown elsewhere once it has a page to live in. */
+  shownPage: { readonly pageId: string | null; readonly spaceId: string },
+): PageEditorBlockActions => {
   const t = useTranslations('pages');
   const router = useRouter();
 
@@ -109,5 +114,40 @@ export const usePagesEditorBlockActions = (editorViewRef: RefObject<EditorView |
     [announceHandover, editorViewRef, t],
   );
 
-  return { ask, close, copyLink, handOver, runCommand };
+  /**
+   * Shows this block in another page too, without moving it.
+   *
+   * What travels is not the block but where it lives, so the other page shows
+   * what this one says: one block, read in two places.
+   */
+  const syncInto = useCallback(
+    (destination: PageDestination): void => {
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      const blockId = readPageEditorBlockId(editorView.state);
+      if (blockId === null || shownPage.pageId === null) {
+        toast.error(t('syncedNeedsBlock'));
+        return;
+      }
+      closePageEditorBlockRequest(editorView, 'sync');
+
+      void addBlocksToPageAction({
+        content: buildSyncedBlockContent({ blockId, pageId: shownPage.pageId, spaceId: shownPage.spaceId }),
+        pageId: destination.id,
+        spaceId: destination.spaceId,
+      }).then((result) => {
+        if (hasActionError(result)) toast.error(t('syncedError'));
+        else
+          toast.success(t('syncedDone', { page: destination.label }), {
+            action: {
+              label: t('moveBlocksVisit'),
+              onClick: () => router.push(ROUTES.PORTAL_SPACE_PAGE(destination.spaceId, destination.id)),
+            },
+          });
+      });
+    },
+    [editorViewRef, router, shownPage.pageId, shownPage.spaceId, t],
+  );
+
+  return { ask, close, copyLink, handOver, runCommand, syncInto };
 };

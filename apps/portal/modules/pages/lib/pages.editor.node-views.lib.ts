@@ -15,6 +15,7 @@ import {
   PAGE_EDITOR_MENTION_MARK_STYLE_CLASS,
   PAGE_EDITOR_MENTION_STYLE_CLASS,
   PAGE_EDITOR_SUBPAGE_TYPE,
+  PAGE_EDITOR_SYNCED_TYPE,
   PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH,
   PAGE_EDITOR_TABLE_TYPE,
   PAGE_EDITOR_TASK_ITEM_TYPE,
@@ -35,6 +36,7 @@ import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
 import { createPageMark } from './pages.editor.marks.lib';
 import { createPageAudioNodeView, createPageVideoNodeView } from './pages.editor.media.node-view.lib';
 import { createPageSubpageNodeView } from './pages.editor.subpage.node-view.lib';
+import { createPageSyncedNodeView } from './pages.editor.synced.node-view.lib';
 import { PageTableView } from './pages.editor.table.view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
@@ -100,6 +102,8 @@ export const createPageEditorNodeViews = (
   labels: PageEditorNodeViewLabels,
   /** How a page says what it is called now, since what a block keeps is which page it is. */
   readPageTitle: (pageId: string) => string | null = () => null,
+  /** How a block written in another page is fetched, since a borrowed block is drawn from where it lives. */
+  readBorrowed: (pageId: string, blockId: string) => EditorNode | null = () => null,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
@@ -130,5 +134,6 @@ export const createPageEditorNodeViews = (
   [PAGE_EDITOR_TOGGLE_TYPE]: (node, view, getPosition) =>
     createPageToggleNodeView(node, view, getPosition, labels.toggle),
   [PAGE_EDITOR_SUBPAGE_TYPE]: (node) => createPageSubpageNodeView(node, labels.subpage, readPageTitle),
+  [PAGE_EDITOR_SYNCED_TYPE]: (node) => createPageSyncedNodeView(node, labels.synced, readBorrowed),
   [PAGE_EDITOR_UNSUPPORTED_TYPE]: (node) => createPageUnsupportedNodeView(node, labels.unsupported),
 });

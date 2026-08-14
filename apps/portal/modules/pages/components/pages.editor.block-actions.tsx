@@ -23,6 +23,7 @@ import type { PageEditorBlockConversion } from '../types/pages.editor.convert.ty
 import type { PageDestination } from '../types/pages.editor.destination.types';
 import type { PageEditorLinkShape, PageEditorLinkTarget } from '../types/pages.editor.link-shape.types';
 import type { PageEditorPageShape, PageEditorPageShapeTarget } from '../types/pages.editor.page-shape.types';
+import type { PageSyncedReference } from '../types/pages.editor.synced.types';
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
 import { PagesEditorBlockMenu } from './pages.editor.block-menu';
@@ -36,6 +37,8 @@ interface IProps {
   readonly linkTarget: PageEditorLinkTarget | null;
   readonly onLinkShape: (target: PageEditorLinkTarget, shape: PageEditorLinkShape) => void;
   readonly onPageShape: (shape: PageEditorPageShape) => void;
+  readonly onUnsync: () => void;
+  readonly syncedTarget: PageSyncedReference | null;
   readonly pageShape: PageEditorPageShapeTarget | null;
   readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
@@ -52,6 +55,7 @@ interface IProps {
   readonly onClose: (kind: PageEditorBlockRequestKind) => void;
   readonly onCopyLink: () => void;
   readonly onHandOver: (page: PageDestination) => void;
+  readonly onSyncInto: (page: PageDestination) => void;
   readonly onRunCommand: (command: Command) => void;
 }
 
@@ -72,6 +76,8 @@ export const PagesEditorBlockActions = ({
   linkTarget,
   onLinkShape,
   onPageShape,
+  onUnsync,
+  syncedTarget,
   pageShape,
   isInTable,
   comments,
@@ -84,6 +90,7 @@ export const PagesEditorBlockActions = ({
   onClose,
   onCopyLink,
   onHandOver,
+  onSyncInto,
   onRunCommand,
   pageId,
   request,
@@ -122,6 +129,7 @@ export const PagesEditorBlockActions = ({
                   }
             }
             hasIdentity={hasIdentity}
+            isSynced={syncedTarget !== null}
             linkTarget={linkTarget}
             onBecomePage={onBecomePage}
             onBlockAlign={(align) => onRunCommand(createPageBlockAlignmentCommand(align))}
@@ -139,12 +147,27 @@ export const PagesEditorBlockActions = ({
             }}
             onMoveToPage={() => onAsk('handover')}
             onPageShape={onPageShape}
+            onSyncIntoPage={() => onAsk('sync')}
             onTableAction={(action: PageEditorTableAction) => onRunCommand(createPageTableCommand(action))}
+            onUnsync={onUnsync}
             pageShape={pageShape}
             tableActions={isInTable}
           />
         </div>
       )}
+      <PagesEditorPagePickerDialog
+        exceptPageId={pageId}
+        isOpen={request?.kind === 'sync'}
+        onCancel={() => onClose('sync')}
+        onChoose={onSyncInto}
+        spaceId={spaceId}
+        wording={{
+          candidates: t('moveBlocksCandidates'),
+          description: t('syncedPickDescription'),
+          search: t('moveBlocksSearch'),
+          title: t('syncedInto'),
+        }}
+      />
       <PagesEditorPagePickerDialog
         exceptPageId={pageId}
         isOpen={request?.kind === 'handover'}

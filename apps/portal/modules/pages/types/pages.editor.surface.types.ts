@@ -5,6 +5,7 @@ import type { PageEditorCalloutIconChoice } from './pages.editor.callout-icon.ty
 import type { PageEditorBlockConversion } from './pages.editor.convert.types';
 import type { PageEditorLinkTarget } from './pages.editor.link-shape.types';
 import type { PageEditorPageShapeTarget } from './pages.editor.page-shape.types';
+import type { PageSyncedReference } from './pages.editor.synced.types';
 
 /** Where on the screen a spot of the page is, measured from the editor's own box. */
 export interface PageEditorSpot {
@@ -30,6 +31,7 @@ export interface PageEditorCollectionHost {
 /** What the page around the editor shows about the blocks in play. */
 export interface PageEditorSurfaceState {
   readonly pageShape: PageEditorPageShapeTarget | null;
+  readonly syncedTarget: PageSyncedReference | null;
   readonly blockId: string | null;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;

@@ -212,6 +212,21 @@ export const pageMentionAttrsSchema = z
   .strict();
 
 /**
+ * A block that lives in another page and is only shown here.
+ *
+ * What is kept is where it lives — which page, and which block of it — so that
+ * what is read here is what is written there, at the moment of reading.
+ */
+export const pageSyncedAttrsSchema = z
+  .object({
+    ...pageBlockAttrsShape,
+    blockId: pageBlockIdSchema,
+    pageId: z.string().min(1).max(maximumMentionPageIdLength),
+    spaceId: z.string().min(1).max(maximumMentionSpaceIdLength),
+  })
+  .strict();
+
+/**
  * A page that hangs from this one, standing in the writing as a line of its own.
  *
  * What is kept is which page it is; the name is kept only so a page whose child
@@ -474,6 +489,7 @@ export type PageContentKnownNode =
   | { readonly attrs?: PageBlockAttrs; readonly type: 'divider' }
   | { readonly attrs?: PageBlockAttrs; readonly type: 'table_of_contents' }
   | { readonly attrs: z.infer<typeof pageSubpageAttrsSchema>; readonly type: 'subpage' }
+  | { readonly attrs: z.infer<typeof pageSyncedAttrsSchema>; readonly type: 'synced' }
   | { readonly attrs: z.infer<typeof pageImageAttrsSchema>; readonly type: 'image' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'video' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'audio' }
@@ -509,6 +525,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'divider',
   'table_of_contents',
   'subpage',
+  'synced',
   'image',
   'video',
   'file',
@@ -682,6 +699,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('divider') }).strict(),
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('table_of_contents') }).strict(),
     z.object({ attrs: pageSubpageAttrsSchema, type: z.literal('subpage') }).strict(),
+    z.object({ attrs: pageSyncedAttrsSchema, type: z.literal('synced') }).strict(),
     z.object({ attrs: pageImageAttrsSchema, type: z.literal('image') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('video') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('audio') }).strict(),
@@ -788,6 +806,7 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   'divider',
   'table_of_contents',
   'subpage',
+  'synced',
   'image',
   'video',
   'file',

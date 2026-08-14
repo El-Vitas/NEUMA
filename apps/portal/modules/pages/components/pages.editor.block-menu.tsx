@@ -50,6 +50,9 @@ interface IProps {
   readonly onDelete: () => void;
   readonly onDuplicate: () => void;
   readonly onMoveToPage: () => void;
+  readonly onSyncIntoPage: () => void;
+  readonly onUnsync: () => void;
+  readonly isSynced: boolean;
   readonly blockAlign: { readonly chosen: string | null } | null;
   readonly fileDisplay: { readonly chosen: string } | null;
   readonly linkTarget: { readonly chosen: string } | null;
@@ -82,6 +85,9 @@ export const PagesEditorBlockMenu = ({
   onDelete,
   onDuplicate,
   onMoveToPage,
+  onSyncIntoPage,
+  onUnsync,
+  isSynced,
   onBlockAlign,
   onFileDisplay,
   onTableAction,
@@ -190,6 +196,8 @@ export const PagesEditorBlockMenu = ({
           <DropdownMenuItem onSelect={onDuplicate}>{t('duplicateBlock')}</DropdownMenuItem>
           {hasIdentity && <DropdownMenuItem onSelect={onCopyLink}>{t('copyBlockLink')}</DropdownMenuItem>}
           <DropdownMenuItem onSelect={onMoveToPage}>{t('moveBlocks')}</DropdownMenuItem>
+          {hasIdentity && !isSynced && <DropdownMenuItem onSelect={onSyncIntoPage}>{t('syncedInto')}</DropdownMenuItem>}
+          {isSynced && <DropdownMenuItem onSelect={onUnsync}>{t('unsync')}</DropdownMenuItem>}
           {canBecomePage && <DropdownMenuItem onSelect={onBecomePage}>{t('blockToPage')}</DropdownMenuItem>}
           <DropdownMenuItem onSelect={onComment}>{t('commentBlock')}</DropdownMenuItem>
           <DropdownMenuItem onSelect={onDelete}>{t('deleteBlock')}</DropdownMenuItem>

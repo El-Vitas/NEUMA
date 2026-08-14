@@ -56,6 +56,7 @@ import { pageEditorSchema } from '../lib/pages.editor.schema';
 import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.lib';
 import { createPageSubpageInsertCommand, readPageTitleFrom } from '../lib/pages.editor.subpage.lib';
 import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
+import { createPageUnsyncCommand, readBorrowedBlock } from '../lib/pages.editor.synced.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
@@ -123,6 +124,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const blockTooLongLabelRef = useRef(t('blockTooLong'));
     const resizeColumnLabelRef = useRef(t('resizeColumn'));
     const subpageLabelsRef = useRef({ subpage: t('subpageBlock'), untitled: t('untitled') });
+    const syncedLabelsRef = useRef({ lost: t('syncedLost'), source: t('syncedSource'), synced: t('syncedBlock') });
     const collectionWordingRef = useRef({
       firstProperty: t('collection.firstProperty'),
       firstView: t('collection.firstView'),
@@ -252,7 +254,7 @@ export const PagesProseMirrorEditor = forwardRef(
 
     const collections = usePagesEditorCollectionHosts(editorHostRef);
     const syncCollectionHosts = collections.sync;
-    const blockActions = usePagesEditorBlockActions(editorViewRef);
+    const blockActions = usePagesEditorBlockActions(editorViewRef, { pageId, spaceId });
     usePagesEditorBlockArrival(editorHostRef);
     usePagesEditorPageDrop({ editorViewRef, spaceId });
     const turnBlocksIntoPage = usePagesEditorBlocksToPage({ editorViewRef, spaceId });
@@ -379,11 +381,13 @@ export const PagesProseMirrorEditor = forwardRef(
             image: imageLabelsRef.current,
             media: mediaLabelsRef.current,
             subpage: subpageLabelsRef.current,
+            synced: syncedLabelsRef.current,
             task: taskLabelRef.current,
             toggle: toggleLabelsRef.current,
             unsupported: unsupportedLabelRef.current,
           },
           (childId) => readPageTitleRef.current(childId),
+          (borrowedPageId, blockId) => readBorrowedBlock(pagesRef.current, borrowedPageId, blockId),
         ),
         state: editorState,
       });
@@ -566,6 +570,21 @@ export const PagesProseMirrorEditor = forwardRef(
         createPageShapeCommand(pageEditorSchema, shape, target, viewName)(editorView.state, editorView.dispatch);
         router.refresh();
       });
+    };
+
+    /**
+     * Breaks the tie with the page the block lives in and keeps a copy here.
+     *
+     * The copy is this page's own writing from then on: neither side hears
+     * about the other again, which is the whole point of asking for it.
+     */
+    const breakTheSync = (): void => {
+      const editorView = editorViewRef.current;
+      const target = surface.syncedTarget;
+      if (editorView === null || target === null) return;
+      const borrowed = readBorrowedBlock(pagesRef.current, target.pageId, target.blockId);
+      createPageUnsyncCommand(pageEditorSchema, target, borrowed)(editorView.state, editorView.dispatch);
+      editorView.focus();
     };
 
     useImperativeHandle(
@@ -756,10 +775,13 @@ export const PagesProseMirrorEditor = forwardRef(
               onLinkShape={pastedLink.shapeLink}
               onPageShape={showThePageAs}
               onRunCommand={blockActions.runCommand}
+              onSyncInto={blockActions.syncInto}
+              onUnsync={breakTheSync}
               pageId={pageId}
               pageShape={surface.pageShape}
               request={surface.request}
               spaceId={spaceId}
+              syncedTarget={surface.syncedTarget}
             />
           )}
         </div>

@@ -24,6 +24,7 @@ import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { readPageLinkTarget } from './pages.editor.link-target.lib';
 import { readPageShapeTarget } from './pages.editor.page-shape.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
+import { readSyncedTarget } from './pages.editor.synced.lib';
 import { isPageEditorInTable } from './pages.editor.table.lib';
 
 /**
@@ -105,6 +106,7 @@ export const readPageEditorSurface = (
   fileDisplay: readPageFileDisplay(state),
   linkTarget: readPageLinkTarget(state),
   pageShape: readPageShapeTarget(state),
+  syncedTarget: readSyncedTarget(state),
   isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
