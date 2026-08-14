@@ -400,6 +400,25 @@ rules:
         given: Una página que todavía no tiene encabezados
         when: Se inserta el índice
         then: El índice dice que no hay encabezados aún, y se puebla solo al escribir el primero
+  - id: BR-f2b2986
+    status: active
+    title: Una colección es una página con forma, mirada desde donde se la nombra
+    rule: >-
+      Una colección se crea como una página y su forma se define en el mismo acto. Empieza con lo mínimo: el nombre, que
+      es el título de la página que cada fila es, y una columna propia. El bloque que la muestra dentro de otra página
+      no guarda sus filas: guarda qué colección es y por qué vista se la mira.
+    why: >-
+      Una página que iba a ser colección y quedó sin forma no se distingue de una cualquiera, y nadie sabría que quedó a
+      medias. Y adivinar columnas es decidir por quien la escribe para qué va a servir.
+    context: >-
+      La misma colección puede mostrarse en varias páginas y varias veces en una. Mostrar una que vive en otra parte
+      pregunta primero si esa página es una colección; si no lo es, se dice en vez de dejar un hueco. Un bloque puede
+      cambiar entre mantener la colección a la vista y dejar solo el enlace a su página, sin que la colección se toque.
+    scenarios:
+      - title: La página elegida no es una colección
+        given: Alguien pide mostrar una colección que vive en otra parte
+        when: Elige una página que no tiene forma
+        then: No se inserta nada y se explica que esa página no es una colección
   - id: BR-f5cb934
     status: active
     title: Insertar un bloque no reemplaza el que estaba

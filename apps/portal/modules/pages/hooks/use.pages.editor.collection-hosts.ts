@@ -1,12 +1,15 @@
 'use client';
 
-import { type RefObject, useCallback, useState } from 'react';
+import { type RefObject, useCallback, useRef, useState } from 'react';
 import type { PageEditorCollectionHost } from '../types/pages.editor.surface.types';
 
-const readCollectionHosts = (editorHost: HTMLElement): readonly PageEditorCollectionHost[] =>
+const readCollectionHosts = (
+  editorHost: HTMLElement,
+  nameTheHost: (element: HTMLElement) => string,
+): readonly PageEditorCollectionHost[] =>
   Array.from(editorHost.querySelectorAll<HTMLElement>('[data-page-collection]')).flatMap((element) => {
     const pageId = element.dataset.pageCollection;
-    return pageId === undefined ? [] : [{ element, pageId }];
+    return pageId === undefined ? [] : [{ element, name: nameTheHost(element), pageId }];
   });
 
 const isSameHosts = (
@@ -25,13 +28,30 @@ export const usePagesEditorCollectionHosts = (
   editorHostRef: RefObject<HTMLElement | null>,
 ): { readonly hosts: readonly PageEditorCollectionHost[]; readonly sync: () => void } => {
   const [hosts, setHosts] = useState<readonly PageEditorCollectionHost[]>([]);
+  /**
+   * Each spot answers to a name of its own, minted the first time it is seen.
+   * Naming them after the collection they show would give two spots the same
+   * name when a page shows one collection twice — and, for a moment while a
+   * block is being dragged, when it shows one collection once.
+   */
+  const namesRef = useRef(new WeakMap<HTMLElement, string>());
+  const mintedRef = useRef(0);
+
+  const nameTheHost = useCallback((element: HTMLElement): string => {
+    const known = namesRef.current.get(element);
+    if (known !== undefined) return known;
+    mintedRef.current += 1;
+    const minted = `collection-${String(mintedRef.current)}`;
+    namesRef.current.set(element, minted);
+    return minted;
+  }, []);
 
   const sync = useCallback((): void => {
     const editorHost = editorHostRef.current;
     if (editorHost === null) return;
-    const nextHosts = readCollectionHosts(editorHost);
+    const nextHosts = readCollectionHosts(editorHost, nameTheHost);
     setHosts((previous) => (isSameHosts(previous, nextHosts) ? previous : nextHosts));
-  }, [editorHostRef]);
+  }, [editorHostRef, nameTheHost]);
 
   return { hosts, sync };
 };

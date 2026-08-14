@@ -15,7 +15,7 @@ import { InputRule, inputRules, textblockTypeInputRule, wrappingInputRule } from
 import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
-import type { Command, Plugin as EditorPlugin, EditorState, Transaction } from 'prosemirror-state';
+import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
 import { columnResizing, tableEditing } from 'prosemirror-tables';
 import { PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH } from '../constants/pages.editor.blocks.constants';
@@ -35,6 +35,7 @@ import { createPageEditorBlockDragPlugin } from './pages.editor.block-drag.plugi
 import { createPageEditorBlockHandlePlugin } from './pages.editor.block-handle.lib';
 import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 import { createPageEditorBlockMenuPlugin } from './pages.editor.block-menu.lib';
+import { askForACollection, askForACollectionAlreadyWritten } from './pages.editor.collection.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
 import { createPageEditorContentsPlugin } from './pages.editor.contents.plugin.lib';
@@ -48,6 +49,7 @@ import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.pl
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 import { askForAPageAlreadyWritten, askForPageChild } from './pages.editor.subpage.lib';
 import { createPageTable, goToNextPageTableCell, goToPreviousPageTableCell } from './pages.editor.table.lib';
+import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
 const bulletListInputRule = /^\s*([-+*])\s$/;
@@ -61,20 +63,6 @@ const linkInputRule = /\[([^\]]+)]\((https?:\/\/[^\s)]+)\)$/;
 /** The language written after the backticks, kept only when it is one this version knows. */
 const readWrittenCodeLanguage = (written: string | undefined): string | null =>
   PAGE_CODE_LANGUAGES.find((language) => language === written) ?? null;
-
-/**
- * Leaves somewhere to go on writing under a line.
- *
- * A line holds nothing, so a page that ends on one has nowhere to put the next
- * word: the writing would have to be started from the button in the margin
- * rather than by simply typing.
- */
-const leaveSomewhereToWriteUnder = (transaction: Transaction, schema: Schema): Transaction => {
-  const afterTheLine = transaction.selection.to;
-  if (afterTheLine < transaction.doc.content.size) return transaction;
-  transaction.insert(afterTheLine, schema.nodes.paragraph.createChecked());
-  return transaction.setSelection(Selection.near(transaction.doc.resolve(afterTheLine)));
-};
 
 const insertPageDivider =
   (schema: Schema): Command =>
@@ -299,6 +287,15 @@ export const createPageEditorCommands = (
   image: { group: 'media', kind: 'block', labelKey: 'insertImage', run: askForPageImage },
   /** A page of its own, hanging from this one, asked for rather than written. */
   subpage: { group: 'advanced', kind: 'block', labelKey: 'subpage', run: askForPageChild },
+  /** A collection of its own, kept here: a page with a shape, asked for rather than written. */
+  collection: { group: 'advanced', kind: 'block', labelKey: 'collection', run: askForACollection },
+  /** A collection that lives somewhere else, looked at from here. */
+  collectionView: {
+    group: 'advanced',
+    kind: 'block',
+    labelKey: 'collectionView',
+    run: askForACollectionAlreadyWritten,
+  },
   /** A page that is already written, named here: the same looking `@` does, asked for from the menu. */
   pageLink: { group: 'advanced', kind: 'block', labelKey: 'pageLink', run: askForAPageAlreadyWritten },
   divider: {

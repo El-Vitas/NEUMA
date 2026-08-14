@@ -1,6 +1,7 @@
 'use client';
 
 import type { PageBlockComment } from '@company-brain/shared';
+import { useTranslations } from 'next-intl';
 import type { Command } from 'prosemirror-state';
 import { createPageBlockAlignmentCommand } from '../lib/pages.editor.align.lib';
 import { createPageEditorBlockColorCommand } from '../lib/pages.editor.block-color.lib';
@@ -21,10 +22,11 @@ import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
 import type { PageEditorLinkShape, PageEditorLinkTarget } from '../types/pages.editor.link-shape.types';
+import type { PageEditorPageShape, PageEditorPageShapeTarget } from '../types/pages.editor.page-shape.types';
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
-import { PagesEditorBlockHandoverDialog } from './pages.editor.block-handover.dialog';
 import { PagesEditorBlockMenu } from './pages.editor.block-menu';
+import { PagesEditorPagePickerDialog } from './pages.editor.page-picker.dialog';
 
 interface IProps {
   readonly authorName: string;
@@ -33,6 +35,8 @@ interface IProps {
   readonly fileDisplay: { readonly chosen: string } | null;
   readonly linkTarget: PageEditorLinkTarget | null;
   readonly onLinkShape: (target: PageEditorLinkTarget, shape: PageEditorLinkShape) => void;
+  readonly onPageShape: (shape: PageEditorPageShape) => void;
+  readonly pageShape: PageEditorPageShapeTarget | null;
   readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
@@ -67,6 +71,8 @@ export const PagesEditorBlockActions = ({
   fileDisplay,
   linkTarget,
   onLinkShape,
+  onPageShape,
+  pageShape,
   isInTable,
   comments,
   conversions,
@@ -83,6 +89,8 @@ export const PagesEditorBlockActions = ({
   request,
   spaceId,
 }: IProps) => {
+  const t = useTranslations('pages');
+
   const writeComment = (body: string): void => {
     onRunCommand(
       createPageEditorBlockCommentCommand({
@@ -130,17 +138,25 @@ export const PagesEditorBlockActions = ({
               if (linkTarget !== null) onLinkShape(linkTarget, shape);
             }}
             onMoveToPage={() => onAsk('handover')}
+            onPageShape={onPageShape}
             onTableAction={(action: PageEditorTableAction) => onRunCommand(createPageTableCommand(action))}
+            pageShape={pageShape}
             tableActions={isInTable}
           />
         </div>
       )}
-      <PagesEditorBlockHandoverDialog
+      <PagesEditorPagePickerDialog
         exceptPageId={pageId}
         isOpen={request?.kind === 'handover'}
         onCancel={() => onClose('handover')}
         onChoose={onHandOver}
         spaceId={spaceId}
+        wording={{
+          candidates: t('moveBlocksCandidates'),
+          description: t('moveBlocksDescription'),
+          search: t('moveBlocksSearch'),
+          title: t('moveBlocksTitle'),
+        }}
       />
       <PagesEditorBlockCommentsDialog
         comments={comments}

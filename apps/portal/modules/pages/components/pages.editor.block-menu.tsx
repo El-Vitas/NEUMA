@@ -18,12 +18,14 @@ import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageEditorBlockFolding } from '../types/pages.editor.heading-fold.types';
 import type { PageEditorLinkShape } from '../types/pages.editor.link-shape.types';
+import type { PageEditorPageShape, PageEditorPageShapeTarget } from '../types/pages.editor.page-shape.types';
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockAlignItems } from './pages.editor.block-align.items';
 import { PagesEditorBlockColorItems } from './pages.editor.block-color.items';
 import { PagesEditorCalloutIconItems } from './pages.editor.callout-icon.items';
 import { PagesEditorFileDisplayItems } from './pages.editor.file-display.items';
 import { PagesEditorLinkShapeItems } from './pages.editor.link-shape.items';
+import { PagesEditorPageShapeItems } from './pages.editor.page-shape.items';
 import { PagesEditorTableItems } from './pages.editor.table.items';
 import { PagesEditorTurnIntoConfirmDialog } from './pages.editor.turn-into.confirm.dialog';
 import { PagesEditorTurnIntoItems } from './pages.editor.turn-into.items';
@@ -51,6 +53,8 @@ interface IProps {
   readonly blockAlign: { readonly chosen: string | null } | null;
   readonly fileDisplay: { readonly chosen: string } | null;
   readonly linkTarget: { readonly chosen: string } | null;
+  readonly onPageShape: (shape: PageEditorPageShape) => void;
+  readonly pageShape: PageEditorPageShapeTarget | null;
   readonly onLinkShape: (shape: PageEditorLinkShape) => void;
   readonly tableActions: boolean;
 }
@@ -84,6 +88,8 @@ export const PagesEditorBlockMenu = ({
   blockAlign,
   fileDisplay,
   linkTarget,
+  onPageShape,
+  pageShape,
   onLinkShape,
   tableActions,
 }: IProps) => {
@@ -134,6 +140,14 @@ export const PagesEditorBlockMenu = ({
               <DropdownMenuSubTrigger>{t('linkShapeLabel')}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <PagesEditorLinkShapeItems onSelect={onLinkShape} selected={linkTarget.chosen} />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+          {pageShape !== null && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{t('pageShapeLabel')}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <PagesEditorPageShapeItems onSelect={onPageShape} selected={pageShape.chosen} />
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}

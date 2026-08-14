@@ -4,6 +4,7 @@ import type { PageEditorBlockRequest } from './pages.editor.block-request.types'
 import type { PageEditorCalloutIconChoice } from './pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from './pages.editor.convert.types';
 import type { PageEditorLinkTarget } from './pages.editor.link-shape.types';
+import type { PageEditorPageShapeTarget } from './pages.editor.page-shape.types';
 
 /** Where on the screen a spot of the page is, measured from the editor's own box. */
 export interface PageEditorSpot {
@@ -21,11 +22,14 @@ export interface PageEditorSurfaceRect {
 /** Where a collection block stands, so its own page can be rendered into it. */
 export interface PageEditorCollectionHost {
   readonly element: HTMLElement;
+  /** Which spot on the page this is, told apart from every other one: the same collection may be shown twice. */
+  readonly name: string;
   readonly pageId: string;
 }
 
 /** What the page around the editor shows about the blocks in play. */
 export interface PageEditorSurfaceState {
+  readonly pageShape: PageEditorPageShapeTarget | null;
   readonly blockId: string | null;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;

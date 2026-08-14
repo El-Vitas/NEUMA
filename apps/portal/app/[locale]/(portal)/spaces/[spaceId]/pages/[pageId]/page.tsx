@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
+import { PagesCollectionEmbed } from '@/modules/pages/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
@@ -20,24 +21,27 @@ interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
 }
 
-const renderEmbeddedCollection = async (reference: PageCollectionReference): Promise<ReactNode> => {
+/**
+ * A collection looked at from inside another page: one of its views, drawn
+ * where the block that names it stands. A reference to something this page
+ * cannot read shows nothing rather than a broken frame.
+ */
+const renderEmbeddedCollection = async (reference: PageCollectionReference, title: string): Promise<ReactNode> => {
   const schemaResult = await getPageSchema(reference.spaceId, reference.pageId);
   if (schemaResult.isFail()) return null;
   const schema = schemaResult.getValue();
-  const views = schema.views.filter((view) => reference.viewName === undefined || view.name === reference.viewName);
+  const view = schema.views.find((candidate) => candidate.name === reference.viewName) ?? schema.views[0];
+  if (view === undefined) return null;
+  const outcomeResult = await getPageView(reference.spaceId, reference.pageId, view.name);
 
   return (
-    <PagesCollectionSection
+    <PagesCollectionEmbed
+      outcome={outcomeResult.isOk() ? outcomeResult.getValue() : null}
+      pageId={reference.pageId}
       properties={getEditableSchemaProperties(schema)}
       spaceId={reference.spaceId}
-      views={
-        await Promise.all(
-          views.map(async (view) => {
-            const outcomeResult = await getPageView(reference.spaceId, reference.pageId, view.name);
-            return { outcome: outcomeResult.isOk() ? outcomeResult.getValue() : null, view };
-          }),
-        )
-      }
+      title={title}
+      view={view}
     />
   );
 };
@@ -86,7 +90,10 @@ export default async function Page({ params }: IProps) {
     await Promise.all(
       extractPageCollectionReferences(selectedPage.content).map(async (reference) => [
         reference.pageId,
-        await renderEmbeddedCollection(reference),
+        await renderEmbeddedCollection(
+          reference,
+          pages.find((page) => page.id === reference.pageId)?.title ?? reference.pageId,
+        ),
       ]),
     ),
   );

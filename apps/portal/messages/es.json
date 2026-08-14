@@ -234,6 +234,15 @@
     "noMentionCandidates": "No hay páginas coincidentes.",
     "searchingMentionCandidates": "Buscando páginas...",
     "titleField": "Título",
+    "collectionCandidates": "Colecciones",
+    "collectionPickDescription": "Elige la página cuya colección quieres mostrar aquí.",
+    "collectionPickSearch": "Buscar páginas",
+    "collectionPickTitle": "Mostrar una colección",
+    "pageShapeLabel": "Cómo se muestra esta página",
+    "pageShape": {
+      "collection": "Mantener la colección a la vista",
+      "link": "Solo el enlace a la página"
+    },
     "subpageBlock": "Subpágina",
     "subpageNeedsPage": "Crea esta página antes de colgarle otra.",
     "untitled": "Sin título",
@@ -304,6 +313,8 @@
       "taskList": "Lista de tareas",
       "callout": "Destacado",
       "insertImage": "Imagen",
+      "collection": "Colección",
+      "collectionView": "Colección de otra parte",
       "pageLink": "Enlazar una página",
       "subpage": "Subpágina"
     },
@@ -342,6 +353,12 @@
       "unknownPerson": "Miembro desconocido"
     },
     "collection": {
+      "newTitle": "Colección sin título",
+      "titleProperty": "Nombre",
+      "firstProperty": "Notas",
+      "firstView": "Tabla",
+      "notACollection": "Esa página no es una colección.",
+      "needsPage": "Crea esta página antes de guardar una colección en ella.",
       "sectionTitle": "Filas",
       "emptyTable": "Aún no hay filas",
       "emptyColumn": "Sin filas",

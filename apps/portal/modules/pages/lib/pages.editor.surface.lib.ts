@@ -22,6 +22,7 @@ import { readPageFileDisplay } from './pages.editor.file.display.lib';
 import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { readPageLinkTarget } from './pages.editor.link-target.lib';
+import { readPageShapeTarget } from './pages.editor.page-shape.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
 import { isPageEditorInTable } from './pages.editor.table.lib';
 
@@ -103,6 +104,7 @@ export const readPageEditorSurface = (
   blockAlign: readPageBlockAlignment(state),
   fileDisplay: readPageFileDisplay(state),
   linkTarget: readPageLinkTarget(state),
+  pageShape: readPageShapeTarget(state),
   isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),

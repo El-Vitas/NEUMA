@@ -74,11 +74,11 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
    * whole — a card, a document, a page started here — draw themselves and are
    * left alone.
    */
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:text-primary',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:underline',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:underline-offset-4',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:decoration-primary/50',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:hover:decoration-primary',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage]):not([data-page-collection]_a)]:text-primary',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage]):not([data-page-collection]_a)]:underline',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage]):not([data-page-collection]_a)]:underline-offset-4',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage]):not([data-page-collection]_a)]:decoration-primary/50',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage]):not([data-page-collection]_a)]:hover:decoration-primary',
   /** The code sits right under the bar that describes it, as one block and not two. */
   '[&_.ProseMirror_[data-code-block]_pre]:mt-0',
   '[&_.ProseMirror_blockquote]:my-6 [&_.ProseMirror_blockquote]:border-primary [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:ps-4 [&_.ProseMirror_blockquote]:text-muted-foreground',
@@ -86,12 +86,16 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   /**
    * A table has to read as a grid: every cell walled, the header row set apart,
    * and no paragraph inside a cell carrying the spacing meant for a page.
+   *
+   * This is the page's own table. A collection drawn inside the writing brings
+   * its own, which is laid out by what it holds rather than by columns somebody
+   * dragged, so it is left alone.
    */
-  '[&_.ProseMirror_table]:my-6 [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:table-fixed [&_.ProseMirror_table]:border-collapse',
+  '[&_.ProseMirror_table:not([data-page-collection]_table)]:my-6 [&_.ProseMirror_table:not([data-page-collection]_table)]:w-full [&_.ProseMirror_table:not([data-page-collection]_table)]:table-fixed [&_.ProseMirror_table:not([data-page-collection]_table)]:border-collapse',
   /** A column narrower than this cannot be read, so the table outgrows its box and scrolls there. */
-  '[&_.ProseMirror_td]:relative [&_.ProseMirror_td]:min-w-32 [&_.ProseMirror_td]:border [&_.ProseMirror_td]:border-border [&_.ProseMirror_td]:p-2 [&_.ProseMirror_td]:align-top [&_.ProseMirror_td]:wrap-break-word',
-  '[&_.ProseMirror_th]:relative [&_.ProseMirror_th]:min-w-32 [&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-border [&_.ProseMirror_th]:bg-surface-low [&_.ProseMirror_th]:p-2 [&_.ProseMirror_th]:text-start [&_.ProseMirror_th]:align-top [&_.ProseMirror_th]:font-semibold [&_.ProseMirror_th]:wrap-break-word',
-  '[&_.ProseMirror_td>p]:mb-0 [&_.ProseMirror_th>p]:mb-0',
+  '[&_.ProseMirror_td:not([data-page-collection]_td)]:relative [&_.ProseMirror_td:not([data-page-collection]_td)]:min-w-32 [&_.ProseMirror_td:not([data-page-collection]_td)]:border [&_.ProseMirror_td:not([data-page-collection]_td)]:border-border [&_.ProseMirror_td:not([data-page-collection]_td)]:p-2 [&_.ProseMirror_td:not([data-page-collection]_td)]:align-top [&_.ProseMirror_td:not([data-page-collection]_td)]:wrap-break-word',
+  '[&_.ProseMirror_th:not([data-page-collection]_th)]:relative [&_.ProseMirror_th:not([data-page-collection]_th)]:min-w-32 [&_.ProseMirror_th:not([data-page-collection]_th)]:border [&_.ProseMirror_th:not([data-page-collection]_th)]:border-border [&_.ProseMirror_th:not([data-page-collection]_th)]:bg-surface-low [&_.ProseMirror_th:not([data-page-collection]_th)]:p-2 [&_.ProseMirror_th:not([data-page-collection]_th)]:text-start [&_.ProseMirror_th:not([data-page-collection]_th)]:align-top [&_.ProseMirror_th:not([data-page-collection]_th)]:font-semibold [&_.ProseMirror_th:not([data-page-collection]_th)]:wrap-break-word',
+  '[&_.ProseMirror_td:not([data-page-collection]_td)>p]:mb-0 [&_.ProseMirror_th:not([data-page-collection]_th)>p]:mb-0',
   /** The cells a gesture is aimed at, and the edge a column is stretched by. */
   '[&_.ProseMirror_.selectedCell]:bg-primary/10',
   '[&_.ProseMirror_.column-resize-handle]:pointer-events-none [&_.ProseMirror_.column-resize-handle]:absolute [&_.ProseMirror_.column-resize-handle]:top-0 [&_.ProseMirror_.column-resize-handle]:bottom-0 [&_.ProseMirror_.column-resize-handle]:-right-0.5 [&_.ProseMirror_.column-resize-handle]:z-20 [&_.ProseMirror_.column-resize-handle]:w-1 [&_.ProseMirror_.column-resize-handle]:bg-primary',

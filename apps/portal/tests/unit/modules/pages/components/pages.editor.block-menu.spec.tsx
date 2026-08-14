@@ -54,7 +54,9 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         onFileDisplay={() => undefined}
         onLinkShape={() => undefined}
         onMoveToPage={() => use.moved.push(1)}
+        onPageShape={() => undefined}
         onTableAction={() => undefined}
+        pageShape={null}
         tableActions={false}
       />
     </NextIntlClientProvider>,
