@@ -165,6 +165,14 @@ const getPageEditorCollectionAttrs = (
   return { pageId, spaceId, viewName: viewName === undefined || viewName.length === 0 ? null : viewName };
 };
 
+const getPageEditorSubpageAttrs = (
+  element: HTMLElement,
+): { readonly label: string; readonly pageId: string; readonly spaceId: string } | false => {
+  const { pageSubpage: pageId, spaceId, label } = element.dataset;
+  if (pageId === undefined || pageId.length === 0 || spaceId === undefined || spaceId.length === 0) return false;
+  return { label: label === undefined || label.length === 0 ? pageId : label, pageId, spaceId };
+};
+
 const getPageEditorUnsupportedAttrs = (
   element: Element,
 ): { readonly name: string; readonly source: string } | false => {
@@ -340,6 +348,25 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       group: 'block',
       parseDOM: [{ tag: 'nav[data-page-contents]' }],
       render: (_node, blockAttributes) => ['nav', { ...blockAttributes, 'data-page-contents': 'true' }],
+    }),
+  ],
+  /** A page that hangs from this one, standing in the writing as the line that leads to it. */
+  [
+    'subpage',
+    definePageBlock({
+      attrs: { label: {}, pageId: {}, spaceId: {} },
+      atom: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorSubpageAttrs, tag: 'a[data-page-subpage]' }],
+      render: (node, blockAttributes) => [
+        'a',
+        {
+          ...blockAttributes,
+          'data-label': node.attrs.label,
+          'data-page-subpage': node.attrs.pageId,
+          'data-space-id': node.attrs.spaceId,
+        },
+      ],
     }),
   ],
   [

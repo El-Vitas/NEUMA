@@ -211,6 +211,21 @@ export const pageMentionAttrsSchema = z
   })
   .strict();
 
+/**
+ * A page that hangs from this one, standing in the writing as a line of its own.
+ *
+ * What is kept is which page it is; the name is kept only so a page whose child
+ * cannot be read still says something instead of showing an empty line.
+ */
+export const pageSubpageAttrsSchema = z
+  .object({
+    ...pageBlockAttrsShape,
+    label: z.string().min(1).max(maximumMentionLabelLength),
+    pageId: z.string().min(1).max(maximumMentionPageIdLength),
+    spaceId: z.string().min(1).max(maximumMentionSpaceIdLength),
+  })
+  .strict();
+
 const pageMentionSchema = z
   .object({
     attrs: pageMentionAttrsSchema,
@@ -458,6 +473,7 @@ export type PageContentKnownNode =
     }
   | { readonly attrs?: PageBlockAttrs; readonly type: 'divider' }
   | { readonly attrs?: PageBlockAttrs; readonly type: 'table_of_contents' }
+  | { readonly attrs: z.infer<typeof pageSubpageAttrsSchema>; readonly type: 'subpage' }
   | { readonly attrs: z.infer<typeof pageImageAttrsSchema>; readonly type: 'image' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'video' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'audio' }
@@ -492,6 +508,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'audio',
   'divider',
   'table_of_contents',
+  'subpage',
   'image',
   'video',
   'file',
@@ -664,6 +681,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       .strict(),
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('divider') }).strict(),
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('table_of_contents') }).strict(),
+    z.object({ attrs: pageSubpageAttrsSchema, type: z.literal('subpage') }).strict(),
     z.object({ attrs: pageImageAttrsSchema, type: z.literal('image') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('video') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('audio') }).strict(),
@@ -769,6 +787,7 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   'audio',
   'divider',
   'table_of_contents',
+  'subpage',
   'image',
   'video',
   'file',

@@ -126,6 +126,7 @@ export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'link',
   'mention',
   'strong',
+  'subpage',
   'table_of_contents',
   'text',
   'video',
@@ -334,6 +335,7 @@ export const PAGE_EDITOR_MARKS = {
   silent: ['M11 5 6.5 9H3v6h3.5L11 19z', 'm17 10 4 4', 'm21 10-4 4'],
   wrap: ['M4 6h16', 'M4 12h13a3 3 0 0 1 0 6h-3', 'm16 15-2 3 2 3', 'M4 18h4'],
   sound: ['M11 5 6.5 9H3v6h3.5L11 19z', 'M15.5 8.5a5 5 0 0 1 0 7'],
+  page: ['M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z', 'M14 3v5h5', 'M9 13h6', 'M9 17h4'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export const PAGE_EDITOR_MARK_BOX = '0 0 24 24';
@@ -390,6 +392,9 @@ export const PAGE_EDITOR_FILE_NAME_ENDING = /\.([a-z0-9]{1,8})$/i;
 /** Where the page keeps the chooser that answers for every file put on it. */
 export const PAGE_EDITOR_FILE_INPUT_SELECTOR = '[data-page-file-input]';
 
+/** Where the page keeps whoever knows how to make another page hang from it. */
+export const PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR = '[data-page-subpage-request]';
+
 /** A block nobody sized hugs whatever it came in at, never stretched to fill the page. */
 export const PAGE_EDITOR_BLOCK_UNSIZED_WIDTH = 'max-content';
 
@@ -434,6 +439,21 @@ export const PAGE_EDITOR_CODE_TYPE = 'code_block';
 
 /** The block that lists what the page holds, written by the page itself. */
 export const PAGE_EDITOR_CONTENTS_TYPE = 'table_of_contents';
+
+/** The block that leads to a page hanging from this one. */
+export const PAGE_EDITOR_SUBPAGE_TYPE = 'subpage';
+
+/** A page in the writing: the line that leads to it, drawn as a line and not as a card. */
+export const PAGE_EDITOR_SUBPAGE_STYLE_CLASS = [
+  'my-1 flex w-full items-center gap-2 rounded px-1 py-1.5 no-underline',
+  'font-medium text-foreground transition-colors hover:bg-surface-low',
+  'outline-none focus-visible:ring-2 focus-visible:ring-ring',
+].join(' ');
+
+/** The mark of a page, drawn rather than written, so it says «page» in any language. */
+export const PAGE_EDITOR_SUBPAGE_MARK_STYLE_CLASS = 'size-4 shrink-0 text-muted-foreground';
+
+export const PAGE_EDITOR_SUBPAGE_NAME_STYLE_CLASS = 'truncate underline decoration-border underline-offset-4';
 
 /** A step of indentation inside code: two spaces, written as such rather than as a tab. */
 export const PAGE_EDITOR_CODE_INDENT = '  ';

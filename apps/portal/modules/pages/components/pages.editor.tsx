@@ -203,6 +203,7 @@ export const PagesEditor = ({
             }}
             onHeadingsChange={setHeadings}
             pageId={pageId}
+            pages={pages}
             ref={editorHandleRef}
             spaceId={spaceId}
           />
