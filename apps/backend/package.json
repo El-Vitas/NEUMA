@@ -19,6 +19,9 @@
     "lint:check": "biome check src tests && eslint \"{src,tests}/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit --incremental",
     "check": "depcruise . -c .depcruise.json --output-type err && concurrently --names \"FORMAT,LINT,TYPES\" --prefix-colors \"cyan,yellow,magenta\" \"bun run format:check\" \"bun run lint:check\" \"bun run typecheck\"",
+    "format:ramless": "RAYON_NUM_THREADS=1 biome format --write src tests",
+    "check:ramless": "NODE_OPTIONS=--max-old-space-size=512 node ../../node_modules/.bin/depcruise . -c .depcruise.json --output-type err && RAYON_NUM_THREADS=1 biome format src tests && RAYON_NUM_THREADS=1 biome check src tests && NODE_OPTIONS=--max-old-space-size=1024 node node_modules/.bin/eslint \"{src,tests}/**/*.ts\" && NODE_OPTIONS=--max-old-space-size=768 node ../../node_modules/.bin/tsc -p tsconfig.json --noEmit --incremental",
+    "test:ramless": "bun test tests/unit tests/integration --timeout 30000 --smol",
     "test": "bun test tests/unit tests/integration --timeout 30000",
     "test:watch": "bun test tests/unit tests/integration --watch"
   },
