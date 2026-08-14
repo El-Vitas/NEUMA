@@ -98,6 +98,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const blockTooLongLabelRef = useRef(t('blockTooLong'));
+    const resizeColumnLabelRef = useRef(t('resizeColumn'));
     const contentsLabelsRef = useRef({ empty: t('pageContentsEmpty'), title: t('pageContents') });
     /** Said once, and again only after the page has managed to keep something. */
     const toldOfTooMuchRef = useRef(false);
@@ -308,6 +309,7 @@ export const PagesProseMirrorEditor = forwardRef(
         blockCommentsLabelRef.current,
         writeHereLabelRef.current,
         foldHeadingLabelRef.current,
+        resizeColumnLabelRef.current,
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
@@ -372,6 +374,7 @@ export const PagesProseMirrorEditor = forwardRef(
           insertBlockLabelRef.current,
           writeHereLabelRef.current,
           foldHeadingLabelRef.current,
+          resizeColumnLabelRef.current,
         ),
       );
       followHeadingsRef.current(editorViewRef.current.state);

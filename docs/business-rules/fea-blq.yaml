@@ -284,6 +284,24 @@ rules:
       Un diagrama de varios pasos ajustado al ancho de la columna queda dibujado a una fracción de su tamaño, y deja de
       leerse mucho antes de dejar de caber.
     context: Un dibujo más pequeño que la columna se centra en ella y no se estira para llenarla.
+  - id: BR-c189a28
+    status: active
+    title: Una fila de columnas se arma y se reparte por proporción
+    rule: >-
+      Una zona de la página se parte en columnas arrastrando un bloque contra el costado de otro, y el mismo gesto
+      contra una fila ya armada le agrega una columna más. El ancho de cada columna se guarda como la parte que le toca
+      de la fila, nunca en píxeles. La columna que queda sin nada se retira sola.
+    why: >-
+      Un ancho en píxeles vale solo para la pantalla en que se eligió, y deja la página rota en cualquier otra; una
+      parte de la fila significa lo mismo en todas. Una columna vacía es un hueco que nadie escribió a propósito.
+    context: >-
+      Bajo el ancho en que dos columnas dejan de leerse, se apilan en el orden en que fueron escritas y cada una toma
+      todo el ancho; ahí no hay ancho que repartir y la separación no se ofrece.
+    scenarios:
+      - title: La última pertenencia de una columna se va a otra
+        given: Una fila de columnas donde una tiene un solo bloque
+        when: Ese bloque se arrastra a otra columna
+        then: La columna que quedó sin nada desaparece y la fila sigue con las demás
   - id: BR-c32c578
     status: active
     title: Un dibujo se recorre y se acerca para leerlo

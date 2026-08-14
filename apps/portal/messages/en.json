@@ -505,6 +505,7 @@
     "embedRefused": "Nothing can be shown of this link:",
     "resizeFile": "Resize the document",
     "resizeMedia": "Resize the player",
+    "resizeColumn": "Share the width between these columns",
     "mediaPlay": "Play",
     "mediaPause": "Pause",
     "mediaSeek": "Playback position",

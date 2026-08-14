@@ -505,6 +505,7 @@
     "embedRefused": "De este enlace no se puede mostrar nada:",
     "resizeFile": "Ajustar el ancho del documento",
     "resizeMedia": "Ajustar el ancho del reproductor",
+    "resizeColumn": "Repartir el ancho entre estas columnas",
     "mediaPlay": "Reproducir",
     "mediaPause": "Pausar",
     "mediaSeek": "Punto de reproducción",
