@@ -1,24 +1,24 @@
 'use client';
 
-import { PAGE_IMAGE_ALIGNMENTS, type PageImageAlignment } from '@company-brain/shared';
+import { PAGE_BLOCK_ALIGNMENTS, type PageBlockAlignment } from '@company-brain/shared';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenuItem } from '@/shared/components/ui/dropdown-menu';
 
 interface IProps {
-  readonly onSelect: (align: PageImageAlignment) => void;
+  readonly onSelect: (align: PageBlockAlignment) => void;
   readonly selected: string | null;
 }
 
-/** Where an image may stand in the column of writing, including taking all of it. */
-export const PagesEditorImageAlignItems = ({ onSelect, selected }: IProps) => {
+/** Where a block may stand in the column of writing, including taking all of it. */
+export const PagesEditorBlockAlignItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 
   return (
     <>
-      {PAGE_IMAGE_ALIGNMENTS.map((align) => (
+      {PAGE_BLOCK_ALIGNMENTS.map((align) => (
         <DropdownMenuItem key={align} onSelect={() => onSelect(align)}>
-          <span className="flex-1">{t(`imageAlign.${align}`)}</span>
+          <span className="flex-1">{t(`blockAlign.${align}`)}</span>
           {selected === align && <Check aria-hidden="true" className="ms-2 size-4" />}
         </DropdownMenuItem>
       ))}

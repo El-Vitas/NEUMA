@@ -66,6 +66,12 @@ export interface FileAssetRepository {
   readonly markDeleted: (assetId: string, workspaceId: string, userId: string) => Promise<boolean>;
 }
 
+/** What a reader asked for of a file: all of it, one stretch of it, or something that is not there. */
+export type FileByteRangeRequest =
+  | { readonly end: number; readonly kind: 'part'; readonly start: number }
+  | { readonly kind: 'unsatisfiable' }
+  | { readonly kind: 'whole' };
+
 export interface FileDownload {
   readonly body: Buffer;
   readonly mimeType: string;

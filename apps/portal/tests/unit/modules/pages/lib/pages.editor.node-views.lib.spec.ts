@@ -22,9 +22,19 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
 
   const nodeViews = createPageEditorNodeViews({
     code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
+    file: { fullScreen: 'Full screen', resize: 'Resize the document' },
     collection: 'Collection',
     image: { caption: 'Describe the image', resize: 'Resize' },
     task: 'Task',
+    media: {
+      fullScreen: 'Full screen',
+      mute: 'Mute',
+      pause: 'Pause',
+      play: 'Play',
+      resize: 'Resize',
+      seek: 'Position',
+      unmute: 'Unmute',
+    },
     toggle: { open: 'Toggle', title: 'Toggle title' },
     unsupported: 'Unsupported block',
   });
@@ -57,9 +67,19 @@ describe('createPageEditorNodeViews mention', () => {
 describe('createPageEditorNodeViews collection', () => {
   const nodeViews = createPageEditorNodeViews({
     code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
+    file: { fullScreen: 'Full screen', resize: 'Resize the document' },
     collection: 'Collection',
     image: { caption: 'Describe the image', resize: 'Resize' },
     task: 'Task',
+    media: {
+      fullScreen: 'Full screen',
+      mute: 'Mute',
+      pause: 'Pause',
+      play: 'Play',
+      resize: 'Resize',
+      seek: 'Position',
+      unmute: 'Unmute',
+    },
     toggle: { open: 'Toggle', title: 'Toggle title' },
     unsupported: 'Unsupported block',
   });

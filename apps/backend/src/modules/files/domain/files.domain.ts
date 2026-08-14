@@ -20,15 +20,40 @@ const trimFilenameEdges = (filename: string): string => {
   while (end > start && filenameEdgeCharacters.has(filename.charAt(end - 1))) end -= 1;
   return filename.slice(start, end);
 };
+/**
+ * What a page is allowed to be given. It is a list rather than a rule so that
+ * adding a kind of file is a decision someone made, and everything else is
+ * refused without having to be foreseen.
+ */
 const allowedFileMimeTypes = new Set([
   'application/pdf',
   'application/zip',
+  'audio/mpeg',
+  'audio/ogg',
+  'audio/wav',
   'image/gif',
   'image/jpeg',
   'image/png',
   'image/webp',
   'text/plain',
+  'video/mp4',
+  'video/webm',
 ]);
+
+/**
+ * What a page draws where it stands instead of handing over to be saved.
+ *
+ * A document among the writing is read where it is; the browser's own viewer
+ * turns its pages and offers to save it. Handed over as something to save, it
+ * never gets the chance: the page shows an empty frame and the file lands in a
+ * folder nobody asked about.
+ */
+const filesShownInPlace = new Set(['application/pdf']);
+
+export const describeFileDisposition = (mimeType: string, filename: string): string => {
+  const handedOver = filesShownInPlace.has(mimeType.toLowerCase()) ? 'inline' : 'attachment';
+  return `${handedOver}; filename*=UTF-8''${encodeURIComponent(filename)}`;
+};
 
 export const normalizeFilename = (filename: string): string => {
   const basename = filename.normalize('NFKC').split(filenamePathSeparators).pop()?.trim() ?? '';

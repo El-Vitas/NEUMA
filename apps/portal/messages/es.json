@@ -468,8 +468,21 @@
     },
     "imageCaption": "Describe la imagen",
     "resizeImage": "Ajustar el ancho de la imagen",
-    "imageAlignLabel": "Alineación",
-    "imageAlign": {
+    "resizeFile": "Ajustar el ancho del documento",
+    "resizeMedia": "Ajustar el ancho del reproductor",
+    "mediaPlay": "Reproducir",
+    "mediaPause": "Pausar",
+    "mediaSeek": "Punto de reproducción",
+    "mediaMute": "Silenciar",
+    "mediaUnmute": "Quitar el silencio",
+    "mediaFullScreen": "Pantalla completa",
+    "fileDisplayLabel": "Mostrar como",
+    "fileDisplay": {
+      "document": "Documento",
+      "line": "Archivo"
+    },
+    "blockAlignLabel": "Alineación",
+    "blockAlign": {
       "left": "A la izquierda",
       "center": "Al centro",
       "right": "A la derecha",

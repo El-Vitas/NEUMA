@@ -88,7 +88,17 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
+    const fileLabelsRef = useRef({ fullScreen: t('mediaFullScreen'), resize: t('resizeFile') });
     const imageLabelsRef = useRef({ caption: t('imageCaption'), resize: t('resizeImage') });
+    const mediaLabelsRef = useRef({
+      fullScreen: t('mediaFullScreen'),
+      mute: t('mediaMute'),
+      pause: t('mediaPause'),
+      play: t('mediaPlay'),
+      resize: t('resizeMedia'),
+      seek: t('mediaSeek'),
+      unmute: t('mediaUnmute'),
+    });
     const codeLabelsRef = useRef({
       copy: t('copyCode'),
       language: t('codeLanguage'),
@@ -249,7 +259,9 @@ export const PagesProseMirrorEditor = forwardRef(
         nodeViews: createPageEditorNodeViews({
           code: codeLabelsRef.current,
           collection: collectionLabelRef.current,
+          file: fileLabelsRef.current,
           image: imageLabelsRef.current,
+          media: mediaLabelsRef.current,
           task: taskLabelRef.current,
           toggle: toggleLabelsRef.current,
           unsupported: unsupportedLabelRef.current,
@@ -398,13 +410,14 @@ export const PagesProseMirrorEditor = forwardRef(
           {canEdit && (
             <PagesEditorBlockActions
               authorName={currentUserDisplayName ?? t('collaboration.participantFallback')}
+              blockAlign={surface.blockAlign}
               calloutIcon={surface.calloutIcon}
               colors={surface.colors}
               comments={surface.comments}
               conversions={surface.conversions}
+              fileDisplay={surface.fileDisplay}
               foldState={surface.foldState}
               hasIdentity={surface.blockId !== null}
-              imageAlign={surface.imageAlign}
               isInTable={surface.isInTable}
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}

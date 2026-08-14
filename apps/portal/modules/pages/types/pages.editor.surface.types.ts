@@ -31,7 +31,8 @@ export interface PageEditorSurfaceState {
   readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
   readonly foldState: { readonly isFolded: boolean } | null;
-  readonly imageAlign: { readonly chosen: string | null } | null;
+  readonly blockAlign: { readonly chosen: string | null } | null;
+  readonly fileDisplay: { readonly chosen: string } | null;
   readonly isInTable: boolean;
   readonly menuPosition: PageEditorSpot | null;
   readonly request: PageEditorBlockRequest | null;

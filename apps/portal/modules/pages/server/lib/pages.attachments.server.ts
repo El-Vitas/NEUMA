@@ -8,9 +8,21 @@ import type { AttachmentDownload } from '../../types/pages.attachments.types';
 
 const attachmentFilenamePattern = /filename\*=UTF-8''([^;]+)/iu;
 
-export const getPageAttachmentResponse = async (attachmentId: string, accessToken: string): Promise<Response> =>
+/**
+ * The stretch a player asked for travels with the request: dropping it here
+ * would leave the page asking for a piece and the server answering with the
+ * whole file, which is a seek bar that does not move.
+ */
+export const getPageAttachmentResponse = async (
+  attachmentId: string,
+  accessToken: string,
+  range: string | null = null,
+): Promise<Response> =>
   fetch(`${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(attachmentId)}`, {
-    headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
+    headers:
+      range === null
+        ? { authorization: `${BEARER_PREFIX}${accessToken}` }
+        : { authorization: `${BEARER_PREFIX}${accessToken}`, range },
   });
 
 const decodeFilename = (contentDisposition: string | null): string => {

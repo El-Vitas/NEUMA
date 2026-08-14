@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import type { EditorState } from 'prosemirror-state';
 import { NodeSelection } from 'prosemirror-state';
-import { createPageImageAlignmentCommand, readPageImageAlignment } from '@/modules/pages/lib/pages.editor.image.lib';
+import { createPageBlockAlignmentCommand, readPageBlockAlignment } from '@/modules/pages/lib/pages.editor.align.lib';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 
 const imagePage = (attrs: Record<string, unknown> = {}): PageContent =>
@@ -26,7 +26,7 @@ const withTheBlockSelected = (content: PageContent): EditorState => {
 const run = (content: PageContent, align: 'left' | 'center' | 'right' | 'full'): EditorState | null => {
   const state = withTheBlockSelected(content);
   let next: EditorState | null = null;
-  createPageImageAlignmentCommand(align)(state, (transaction) => {
+  createPageBlockAlignmentCommand(align)(state, (transaction) => {
     next = state.apply(transaction);
   });
   return next;
@@ -34,15 +34,15 @@ const run = (content: PageContent, align: 'left' | 'center' | 'right' | 'full'):
 
 describe('where an image stands', () => {
   it('is nothing until it is placed, which is where a page puts it by default', () => {
-    expect(readPageImageAlignment(withTheBlockSelected(imagePage()))?.chosen).toBeNull();
+    expect(readPageBlockAlignment(withTheBlockSelected(imagePage()))?.chosen).toBeNull();
   });
 
   it('is read back from the block once it has been placed', () => {
-    expect(readPageImageAlignment(withTheBlockSelected(imagePage({ align: 'right' })))?.chosen).toBe('right');
+    expect(readPageBlockAlignment(withTheBlockSelected(imagePage({ align: 'right' })))?.chosen).toBe('right');
   });
 
   it('says nothing about a block that is not an image, so nothing is offered for it', () => {
-    expect(readPageImageAlignment(withTheBlockSelected(paragraphPage))).toBeNull();
+    expect(readPageBlockAlignment(withTheBlockSelected(paragraphPage))).toBeNull();
   });
 });
 

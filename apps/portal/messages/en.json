@@ -468,8 +468,21 @@
     },
     "imageCaption": "Describe the image",
     "resizeImage": "Resize the image",
-    "imageAlignLabel": "Alignment",
-    "imageAlign": {
+    "resizeFile": "Resize the document",
+    "resizeMedia": "Resize the player",
+    "mediaPlay": "Play",
+    "mediaPause": "Pause",
+    "mediaSeek": "Playback position",
+    "mediaMute": "Mute",
+    "mediaUnmute": "Unmute",
+    "mediaFullScreen": "Full screen",
+    "fileDisplayLabel": "Show as",
+    "fileDisplay": {
+      "document": "Document",
+      "line": "File"
+    },
+    "blockAlignLabel": "Alignment",
+    "blockAlign": {
       "left": "Left",
       "center": "Centre",
       "right": "Right",

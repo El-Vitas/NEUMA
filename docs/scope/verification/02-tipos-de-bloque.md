@@ -123,17 +123,17 @@ El catálogo. Qué tipos existen y qué hace cada uno por dentro.
 
 ## TB-14 · Video y audio
 
-- [ ] Se puede subir un video y se reproduce dentro de la página
-- [ ] Se puede subir un audio y se reproduce dentro de la página
+- [x] Se puede subir un video y se reproduce dentro de la página
+- [x] Se puede subir un audio y se reproduce dentro de la página
 - [ ] Se puede pegar el enlace de un video externo
-- [ ] Los controles de reproducción funcionan
-- [ ] El reproductor de video se puede redimensionar
+- [x] Los controles de reproducción funcionan
+- [x] El reproductor de video se puede redimensionar
 
 ## TB-15 · PDF
 
-- [ ] Se sube y se ve incrustado
-- [ ] Se pasa de página dentro del visor
-- [ ] Se puede descargar y abrir a pantalla completa
+- [x] Se sube y se ve incrustado
+- [x] Se pasa de página dentro del visor
+- [x] Se puede descargar y abrir a pantalla completa
 
 ## TB-16 · Incrustados y marcadores
 
@@ -229,6 +229,8 @@ Una colección es un bloque más. Su comportamiento interno —propiedades, vist
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 14/08/2026 | TB-15 | El PDF solo era una línea para bajarlo. Siguiendo a Outline no se creó un tipo nuevo: es el mismo adjunto, dibujado como documento cuando lo es, con el visor del propio navegador —que pasa páginas, guarda e imprime sin que haya que construirlo—. Tres cosas lo impedían: el servidor entregaba todo como algo que se guarda (ahora un documento viaja `inline`, y el resto sigue viajando para guardarse), el portal negaba con `X-Frame-Options: DENY` el marco que el visor necesita (ahora se permite solo para los adjuntos y solo desde el mismo origen), y el visor se comía el puntero, con lo que ni aparecía la manija del bloque (ahora no escucha hasta que el bloque se elige, como en Outline). Se agregó **Mostrar como** —documento o archivo— porque el mismo PDF es algo que se lee en una página y algo que se guarda en otra; la opción no se ofrece donde no puede cumplirse. De paso: subir algo con un bloque seleccionado lo reemplazaba —se perdía lo que había—, ahora se inserta debajo; y el menú del bloque se abría arriba del bloque, lejos de la manija que lo abrió y fuera de la pantalla en bloques altos: ahora abre a la altura de sus botones. | 3 de 3 |
+| 14/08/2026 | TB-14 | Ni el video ni el audio existían: se agregaron al contrato (`video` y `audio`, ambos con ancho), al editor y al reparto de lo que se sube, y el servidor pasó a aceptar mp4, webm, mpeg, ogg y wav. Nada de esto se guardaba: a un bloque que no sostiene nada se le estaba escribiendo contenido vacío y el contrato lo rechazaba —el mismo tropiezo del separador, ahora con una prueba que lo fija. Los controles del navegador se reemplazaron por los propios (reproducir, punto de reproducción, tiempo, silencio, pantalla completa), dibujados con los colores y los trazos de la casa, sobre el mismo `<video>`/`<audio>` de siempre. Ninguno de los dos se podía saltar hacia adelante: el servidor entregaba el archivo entero y desoía la pregunta por un trozo, así que se implementó la respuesta por rangos y el portal la deja pasar. Un reproductor sin ancho propio toma la columna, pero un video nunca se estira más allá de su propia resolución; los dos se ajustan desde el borde, que ahora es el mismo arrastre que el de la imagen. Tampoco podían moverse dentro de su columna, siempre pegados a la izquierda: la alineación dejó de ser cosa de la imagen y pasó a ser de cualquier bloque que no sea escritura (`PAGE_BLOCK_ALIGNMENTS`), así que un video o una grabación se paran a la izquierda, al centro, a la derecha o a lo ancho, y se guarda con la página. Queda sin marcar pegar el enlace de un video externo: eso es incrustar, del TB-16. | 4 de 5 |
 | 13/08/2026 | TB-13 | El bloque solo mostraba el nombre: se agregaron al contrato el tipo y el peso del archivo, que ya venían al subirlo, y ahora se leen como se los nombra (TXT, PDF) en vez de como se envían (`text/plain`). El enlace baja el archivo de un clic, con su nombre original. Quedan dos: **eliminar el bloque no lo quita de la lista de adjuntos** —hacerlo implica borrar el archivo del servidor al deshacer una edición, y esa decisión no la tomo solo—, y que quien no tiene acceso no pueda descargarlo, del que está probado que sin sesión responde 401 y que el servicio niega la descarga sin permiso, pero falta la prueba con un segundo usuario. | 3 de 5 |
 | 13/08/2026 | TB-12 | Solo se podía subir por el clip, y la imagen no admitía nada más: se agregaron al contrato dónde se para y cuánto ocupa, la entrada «Imagen» en el menú `/`, y pegar desde el portapapeles. La línea escrita bajo la imagen es a la vez su leyenda y el texto que se lee a quien no la ve: pedir la misma frase dos veces es como una página termina con leyenda y sin texto alternativo. El ancho se arrastra desde el borde y se guarda como parte de la página, no en píxeles. Queda sin marcar solo la mitad de una casilla: sigue visible al recargar (probado), pero «para otra persona» depende de la colaboración en vivo, documento `06`. | 6 de 7 |
 | 13/08/2026 | TB-11 | La tabla era una sola celda sin encabezados, `Tab` sacaba el foco de la página y no había forma de agregar ni quitar filas o columnas. Se adoptó `prosemirror-tables` (autorizado) y las decisiones de interacción de Outline: se inserta 3×3 con encabezado y el cursor en la primera celda, `Tab` recorre las celdas y en la última agrega fila, y la tabla se desplaza dentro de su propia caja sin arrastrar la página. El encabezado siempre es la primera fila, se abra el menú donde se abra. Falta que El-Vitas pruebe a mano el arrastre del borde de columna, y lo de convertir en colección, que es del documento `05`. | 5 de 7 |

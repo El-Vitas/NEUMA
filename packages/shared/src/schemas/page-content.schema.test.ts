@@ -139,6 +139,44 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a document placed and sized where it is read', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { align: 'center', assetId: 'a', caption: 'manual.pdf', mimeType: 'application/pdf', width: 0.8 },
+            type: 'file',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('accepts a video and a recording that say how much of the page they take', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          { attrs: { assetId: 'a', width: 0.5 }, type: 'video' },
+          { attrs: { assetId: 'b', caption: 'La grabación', width: 0.6 }, type: 'audio' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a player wider than the page it sits on', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { assetId: 'b', width: 1.5 }, type: 'audio' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a callout marked with one of the marks on offer', () => {
     expect(
       pageContentSchema.safeParse({

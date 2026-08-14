@@ -10,6 +10,7 @@ import type {
   PageEditorSurfaceRect,
   PageEditorSurfaceState,
 } from '../types/pages.editor.surface.types';
+import { readPageBlockAlignment } from './pages.editor.align.lib';
 import { readPageEditorBlockColors } from './pages.editor.block-color.lib';
 import { readPageEditorBlockComments } from './pages.editor.block-comment.lib';
 import { isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
@@ -17,11 +18,27 @@ import { readPageEditorBlockId } from './pages.editor.block-link.lib';
 import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
 import { isPageEditorCalloutSelected, readPageEditorCalloutIcon } from './pages.editor.callout-icon.lib';
 import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
+import { readPageFileDisplay } from './pages.editor.file.display.lib';
 import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
-import { readPageImageAlignment } from './pages.editor.image.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
 import { isPageEditorInTable } from './pages.editor.table.lib';
+
+/**
+ * Where a block's menu opens: level with the buttons that open it, which stand
+ * beside the middle of the block.
+ *
+ * Opening at the top of the block instead puts the menu nowhere near the hand
+ * that asked for it, and on a tall block — a video, a document — off the screen
+ * altogether.
+ */
+export const readPageEditorMenuSpot = (
+  block: { readonly height: number; readonly left: number; readonly top: number },
+  surfaceRect: PageEditorSurfaceRect,
+): PageEditorSpot => ({
+  left: block.left - surfaceRect.left,
+  top: block.top + block.height / 2 - surfaceRect.top,
+});
 
 const readMenuPosition = (
   view: EditorView,
@@ -30,8 +47,13 @@ const readMenuPosition = (
 ): PageEditorSpot | null => {
   const request = readPageEditorBlockRequest(state);
   if (request === null) return null;
+  const blockDom = view.nodeDOM(request.blockStart);
+  if (blockDom instanceof HTMLElement) return readPageEditorMenuSpot(blockDom.getBoundingClientRect(), surfaceRect);
   const blockCoords = view.coordsAtPos(request.blockStart);
-  return { left: blockCoords.left - surfaceRect.left, top: blockCoords.top - surfaceRect.top };
+  return readPageEditorMenuSpot(
+    { height: blockCoords.bottom - blockCoords.top, left: blockCoords.left, top: blockCoords.top },
+    surfaceRect,
+  );
 };
 
 const readToolbarPosition = (
@@ -77,7 +99,8 @@ export const readPageEditorSurface = (
   blockId: readPageEditorBlockId(state),
   calloutIcon: readCalloutIconChoice(state),
   colors: readPageEditorBlockColors(state),
-  imageAlign: readPageImageAlignment(state),
+  blockAlign: readPageBlockAlignment(state),
+  fileDisplay: readPageFileDisplay(state),
   isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
