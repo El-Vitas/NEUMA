@@ -14,7 +14,7 @@ import { DARK_THEME_CLASS, THEME_ROOT_ATTRIBUTE } from '@/shared/constants/theme
 import { describeDiagramFault } from '@/shared/lib/diagram.fault.lib';
 import { hideWhatIsHungOnTheRoot } from '@/shared/lib/diagram.root.lib';
 import { keepTheDiagramSourceToItself, keepTheDrawingToItself, mendTheDrawing } from '@/shared/lib/diagram.trust.lib';
-import type { DrawnDiagram } from '@/shared/types/diagram.types';
+import type { Drawn } from '@/shared/types/diagram.types';
 
 let named = 0;
 let taught: Promise<void> | null = null;
@@ -101,9 +101,9 @@ const nameTheShareColours = (): Record<string, string> =>
  * written in a diagram is written by whoever can write on the page, and the
  * page is read by everyone.
  */
-export const drawDiagram = async (source: string): Promise<DrawnDiagram> => {
+export const drawDiagram = async (source: string): Promise<Drawn> => {
   const waited = inTurn;
-  const turn = (async (): Promise<DrawnDiagram> => {
+  const turn = (async (): Promise<Drawn> => {
     await waited;
     return drawInTurn(source);
   })();
@@ -119,7 +119,7 @@ export const drawDiagram = async (source: string): Promise<DrawnDiagram> => {
  * first comes out wearing the second's colours. A page with thirty diagrams on
  * it is exactly that, thirty times over.
  */
-const drawInTurn = async (source: string): Promise<DrawnDiagram> => {
+const drawInTurn = async (source: string): Promise<Drawn> => {
   await teachTheEngineOnce();
 
   const look = readLook();
@@ -145,8 +145,8 @@ const drawInTurn = async (source: string): Promise<DrawnDiagram> => {
       `${DIAGRAM_NAME_PREFIX}${String(named)}`,
       keepTheDiagramSourceToItself(source),
     );
-    return { fault: null, svg: mendTheDrawing(keepTheDrawingToItself(svg)) };
+    return { fault: null, html: mendTheDrawing(keepTheDrawingToItself(svg)) };
   } catch (fault) {
-    return { fault: describeDiagramFault(fault), svg: null };
+    return { fault: describeDiagramFault(fault), html: null };
   }
 };

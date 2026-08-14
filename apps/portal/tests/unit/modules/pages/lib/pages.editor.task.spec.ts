@@ -37,6 +37,7 @@ const mountTask = (checked?: boolean): { readonly container: HTMLElement; readon
           fullScreen: 'Full screen',
           line: 'line',
           unknown: 'no es un diagrama',
+          formula: { both: 'código y fórmula', code: 'solo el código', drawing: 'solo la fórmula' },
         },
         language: 'Language',
         languages: { plain: 'No language' },

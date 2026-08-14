@@ -118,6 +118,11 @@ export const PagesProseMirrorEditor = forwardRef(
         code: t('diagramView.code'),
         download: t('diagramDownload'),
         drawing: t('diagramView.drawing'),
+        formula: {
+          both: t('formulaView.both'),
+          code: t('formulaView.code'),
+          drawing: t('formulaView.drawing'),
+        },
         fullScreen: t('diagramFullScreen'),
         line: t('diagramLine'),
         unknown: t('diagramUnknown'),

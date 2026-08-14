@@ -28,6 +28,9 @@ export const DOCS_DIAGRAM_FENCE = 'mermaid';
 /** What tells a fenced block to become the gallery of pictures a diagram may name. */
 export const DOCS_ICONS_FENCE = 'icons';
 
+/** What tells a fenced block to be set as a formula instead of shown as writing. */
+export const DOCS_FORMULA_FENCE = 'latex';
+
 /** How a fenced block says what it is written in. */
 export const DOCS_FENCE_LANGUAGE_CLASS = /language-([\w-]+)/;
 

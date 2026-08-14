@@ -3,6 +3,8 @@ import type { Node as EditorNode } from 'prosemirror-model';
 import { drawDiagram } from '@/shared/lib/diagram.drawing.lib';
 import { isDiagramUnknown } from '@/shared/lib/diagram.fault.lib';
 import { watchTheDiagramGround } from '@/shared/lib/diagram.ground.lib';
+import { drawFormula } from '@/shared/lib/formula.drawing.lib';
+import type { Drawn } from '@/shared/types/diagram.types';
 import {
   PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS,
   PAGE_EDITOR_CODE_LANGUAGE_STYLE_CLASS,
@@ -15,11 +17,12 @@ import {
   PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS,
+  PAGE_EDITOR_FORMULA_STYLE_CLASS,
 } from '../constants/pages.editor.diagram.constants';
 import type { PageEditorDiagramLabels } from '../types/pages.editor.diagram.types';
 import { askForTheWholeScreen } from './pages.editor.asking.lib';
 import { letTheDrawingBeHandled } from './pages.editor.diagram.handling.lib';
-import { isPageDiagram, readPageDiagramView } from './pages.editor.diagram.lib';
+import { isPageDiagram, isPageDrawn, isPageFormula, readPageDiagramView } from './pages.editor.diagram.lib';
 import { createPageMarkButton } from './pages.editor.marks.lib';
 
 const createViewChoice = (labels: PageEditorDiagramLabels): HTMLSelectElement => {
@@ -30,10 +33,22 @@ const createViewChoice = (labels: PageEditorDiagramLabels): HTMLSelectElement =>
   for (const view of PAGE_DIAGRAM_VIEWS) {
     const option = document.createElement('option');
     option.value = view;
-    option.textContent = labels[view];
     choice.append(option);
   }
   return choice;
+};
+
+/**
+ * The choice says what it is choosing between: a drawing for a diagram, a
+ * formula for a formula. The same three views, named after what is in the box.
+ */
+const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels, isFormula: boolean): void => {
+  const named = isFormula ? labels.formula : labels;
+  choice.setAttribute('aria-label', named.drawing);
+  for (const [index, view] of PAGE_DIAGRAM_VIEWS.entries()) {
+    const option = choice.options.item(index);
+    if (option !== null) option.textContent = named[view];
+  }
 };
 
 /** What a drawing is saved as: the drawing itself, which is a picture that never blurs. */
@@ -56,7 +71,7 @@ const takeDrawingAway = (svg: string): void => {
  * half-written diagram is mostly a parse error, and redrawing each one of them
  * makes the page flicker at whoever is typing.
  */
-export const attachPageDiagram = (parts: {
+export const attachPageDrawing = (parts: {
   readonly bar: HTMLElement;
   readonly container: HTMLElement;
   readonly labels: PageEditorDiagramLabels;
@@ -89,6 +104,7 @@ export const attachPageDiagram = (parts: {
 
   const handling = letTheDrawingBeHandled(drawing);
   let drawn = '';
+  let language = '';
   let settling: ReturnType<typeof setTimeout> | null = null;
 
   /**
@@ -114,16 +130,24 @@ export const attachPageDiagram = (parts: {
     fault.textContent = line === null || names ? said : `${said} · ${parts.labels.line} ${String(line)}`;
   };
 
+  /**
+   * What is written is set out by whoever knows how to set it out: the one that
+   * draws diagrams, or the one that sets formulas. Both hand back the same
+   * thing — what came out, or why nothing did.
+   */
+  const askForTheDrawing = async (source: string): Promise<Drawn> =>
+    isPageFormula(language) ? drawFormula(source) : drawDiagram(source);
+
   const draw = (source: string): void => {
     if (source.trim().length === 0) {
       drawing.replaceChildren();
       showFault(null, null);
       return;
     }
-    void drawDiagram(source).then((made) => {
-      if (made.svg !== null) {
-        drawing.innerHTML = made.svg;
-        handling.showAtItsSize();
+    void askForTheDrawing(source).then((made) => {
+      if (made.html !== null) {
+        drawing.innerHTML = made.html;
+        if (!isPageFormula(language)) handling.showAtItsSize();
       }
       showFault(made.fault?.said ?? null, made.fault?.line ?? null);
     });
@@ -152,18 +176,24 @@ export const attachPageDiagram = (parts: {
   return {
     stop: stopWatchingTheGround,
     show: (node) => {
-      const draws = isPageDiagram(node.attrs.language);
+      language = typeof node.attrs.language === 'string' ? node.attrs.language : '';
+      const draws = isPageDrawn(language);
       const shown = readPageDiagramView(node.attrs.shown);
       view.hidden = !draws;
-      keep.hidden = !draws;
+      /** A formula is set out, not drawn: there is no picture of it to take away. */
+      keep.hidden = !isPageDiagram(language);
       wide.hidden = !draws;
       drawing.hidden = !draws || shown === 'code';
+      drawing.className = isPageFormula(language)
+        ? PAGE_EDITOR_FORMULA_STYLE_CLASS
+        : PAGE_EDITOR_DIAGRAM_DRAWING_STYLE_CLASS;
       fault.hidden = fault.hidden || !draws;
       parts.pre.hidden = draws && shown === 'drawing';
       parts.container.className = draws
         ? `${PAGE_EDITOR_DIAGRAM_STYLE_CLASS} ${PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS}`
         : '';
       if (!draws) return;
+      nameTheViews(view, parts.labels, isPageFormula(language));
       view.value = shown;
       drawOnceItSettles(node.textContent);
     },

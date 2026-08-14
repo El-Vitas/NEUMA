@@ -8,6 +8,7 @@ import {
   ListOrdered,
   type LucideIcon,
   Quote,
+  Sigma,
   Table,
   Workflow,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
   bulletList: List,
   codeBlock: Braces,
   diagram: Workflow,
+  formula: Sigma,
   heading1: Heading1,
   heading2: Heading2,
   heading3: Heading3,

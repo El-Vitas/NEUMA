@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@company-brain/design/tokens.css";
+/*
+ * How a formula is set out, and the letters it is set in, which travel with the
+ * page: a formula has to look the same on a machine that never reaches the
+ * internet as on one that does.
+ */
+@import "katex/dist/katex.min.css";
 
 /*
  * ProseMirror places a separator image after a widget that ends a block, and

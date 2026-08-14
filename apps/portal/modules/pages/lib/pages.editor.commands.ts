@@ -19,7 +19,10 @@ import type { Command, Plugin as EditorPlugin, EditorState, Transaction } from '
 import { Selection } from 'prosemirror-state';
 import { columnResizing, tableEditing } from 'prosemirror-tables';
 import { PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH } from '../constants/pages.editor.blocks.constants';
-import { PAGE_EDITOR_DIAGRAM_LANGUAGE } from '../constants/pages.editor.diagram.constants';
+import {
+  PAGE_EDITOR_DIAGRAM_LANGUAGE,
+  PAGE_EDITOR_FORMULA_LANGUAGE,
+} from '../constants/pages.editor.diagram.constants';
 import { PAGE_EDITOR_SHORTCUTS } from '../constants/pages.editor.shortcuts.constants';
 import type {
   PageAssetInsertCommandOptions,
@@ -257,6 +260,13 @@ export const createPageEditorCommands = (
     kind: 'block',
     labelKey: 'diagram',
     run: setBlockType(schema.nodes.code_block, { language: PAGE_EDITOR_DIAGRAM_LANGUAGE, shown: 'both' }),
+  },
+  /** A formula is a block of code written in the language formulas have been written in for fifty years. */
+  formula: {
+    group: 'advanced',
+    kind: 'block',
+    labelKey: 'formula',
+    run: setBlockType(schema.nodes.code_block, { language: PAGE_EDITOR_FORMULA_LANGUAGE, shown: 'both' }),
   },
   heading1: {
     group: 'text',

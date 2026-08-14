@@ -4,10 +4,17 @@ import {
   PAGE_EDITOR_DIAGRAM_LANGUAGE,
   PAGE_EDITOR_DIAGRAM_ZOOM_LEAST,
   PAGE_EDITOR_DIAGRAM_ZOOM_MOST,
+  PAGE_EDITOR_FORMULA_LANGUAGE,
 } from '../constants/pages.editor.diagram.constants';
 
 /** A block of code written in the language diagrams are written in. */
 export const isPageDiagram = (language: unknown): boolean => language === PAGE_EDITOR_DIAGRAM_LANGUAGE;
+
+/** A block of code written in the language formulas are written in. */
+export const isPageFormula = (language: unknown): boolean => language === PAGE_EDITOR_FORMULA_LANGUAGE;
+
+/** Whether what is written in this block is meant to be set out rather than read as code. */
+export const isPageDrawn = (language: unknown): boolean => isPageDiagram(language) || isPageFormula(language);
 
 /** What is shown of it: what was chosen, and until then the drawing, which is what it is for. */
 export const readPageDiagramView = (shown: unknown): PageDiagramView =>

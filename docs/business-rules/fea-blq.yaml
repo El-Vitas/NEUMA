@@ -243,6 +243,19 @@ rules:
     why: >-
       Seguir escribiendo sobre una pagina que dejo de guardarse es perder trabajo sin enterarse, que es la peor forma de
       fallar que tiene un editor.
+  - id: BR-bd24008
+    status: active
+    title: Una formula se escribe y la pagina la compone
+    rule: >-
+      Una formula se escribe como texto en el lenguaje en que se escriben las formulas, y la pagina la compone a partir
+      de ese texto. El bloque puede mostrar solo la formula, solo el texto o ambos, y esa eleccion se guarda con la
+      pagina.
+    why: >-
+      Lo que se guarda es el texto, de modo que una formula se puede buscar, copiar y corregir, y sigue siendo la misma
+      formula aunque cambie la forma de componerla.
+    context: >-
+      Es el mismo bloque que dibuja diagramas, con otro lenguaje. No se ofrece descargarla, porque una formula no es un
+      dibujo aparte, y las letras con que se compone viajan con la pagina.
   - id: BR-bfe4bc6
     status: active
     title: Un diagrama se lee al tamaño en que fue dibujado

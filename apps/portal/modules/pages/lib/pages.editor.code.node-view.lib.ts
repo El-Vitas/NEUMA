@@ -11,7 +11,7 @@ import {
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorCodeLabels } from '../types/pages.editor.code.types';
 import { askTheBrowser } from './pages.editor.asking.lib';
-import { attachPageDiagram } from './pages.editor.diagram.node-view.lib';
+import { attachPageDrawing } from './pages.editor.drawing.node-view.lib';
 import { createPageMarkButton } from './pages.editor.marks.lib';
 
 const createLanguageChoice = (labels: PageEditorCodeLabels): HTMLSelectElement => {
@@ -64,7 +64,7 @@ export const createPageCodeBlockNodeView = (
   pre.append(code);
   container.append(bar, pre);
 
-  const diagram = attachPageDiagram({ bar, container, labels: labels.diagram, pre, writeAttribute });
+  const drawing = attachPageDrawing({ bar, container, labels: labels.diagram, pre, writeAttribute });
 
   const showState = (current: EditorNode): void => {
     language.value = typeof current.attrs.language === 'string' ? current.attrs.language : 'plain';
@@ -72,7 +72,7 @@ export const createPageCodeBlockNodeView = (
     wrap.setAttribute('aria-pressed', String(isWrapped));
     pre.classList.toggle(PAGE_EDITOR_CODE_WRAPPED_STYLE_CLASS, isWrapped);
     pre.toggleAttribute('data-wrapped', isWrapped);
-    diagram.show(current);
+    drawing.show(current);
   };
 
   showState(node);
@@ -90,7 +90,7 @@ export const createPageCodeBlockNodeView = (
 
   return {
     contentDOM: code,
-    destroy: () => diagram.stop(),
+    destroy: () => drawing.stop(),
     dom: container,
     ignoreMutation: (mutation) => !code.contains(mutation.target),
     stopEvent: (event) => event.target instanceof Node && bar.contains(event.target),
