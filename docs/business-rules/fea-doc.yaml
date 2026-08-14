@@ -1,0 +1,31 @@
+id: FEA-DOC
+name: Documentacion de la aplicacion
+purpose: Define como se escribe y se lee el manual propio de la aplicacion, separado de los espacios de trabajo.
+scope: docs
+rules:
+  - id: BR-ad71c82
+    status: active
+    title: El manual se escribe en archivos, no en el codigo
+    rule: >-
+      La documentacion de la aplicacion vive en archivos de texto, uno por documento y uno por idioma. Agregar o
+      corregir un documento es escribir un archivo; nadie tiene que tocar el codigo para hacerlo, y nadie tiene que
+      saber programar para escribirlo.
+    why: >-
+      Un manual que vive dentro del codigo lo escribe solo quien programa, y por eso no se escribe. Sacarlo del codigo
+      es lo que permite que lo escriba y lo corrija cualquiera que sepa del tema.
+    context: >-
+      Cada documento dice en su encabezado como se llama, que responde y en que orden va. Lo que este escrito en el
+      idioma que se esta leyendo se muestra en ese idioma; lo que no, se muestra en el idioma en que fue escrito, porque
+      medio manual es peor que un manual en otro idioma.
+  - id: BR-b657d72
+    status: active
+    title: Cada parte de un documento tiene su propia direccion
+    rule: >-
+      Cada titulo de un documento responde a un nombre propio, y el indice de la pagina lleva a el. La direccion de la
+      pagina terminada en ese nombre lleva directo a esa parte.
+    why: >-
+      Nadie lee un manual entero: lo que se hace con un manual es buscar una cosa, y mandarle a otra persona el pedazo
+      exacto en vez de la pagina completa.
+    context: >-
+      El indice se queda fijo al costado, se desplaza por su cuenta cuando es mas largo que la pantalla, y marca la
+      parte que se esta leyendo. En pantallas angostas queda debajo del documento.
