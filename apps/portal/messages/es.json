@@ -293,6 +293,7 @@
       "codeBlock": "Bloque de código",
       "diagram": "Diagrama",
       "formula": "Fórmula",
+      "tableOfContents": "Índice de la página",
       "redo": "Rehacer",
       "divider": "Separador",
       "table": "Tabla",
@@ -457,6 +458,8 @@
       "code": "Solo el código",
       "both": "Código y dibujo"
     },
+    "pageContents": "En esta página",
+    "pageContentsEmpty": "Todavía no hay encabezados en esta página.",
     "formulaView": {
       "drawing": "Solo la fórmula",
       "code": "Solo el código",

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { watchWhatIsBeingRead } from '@/shared/lib/reading.lib';
+import { DOCS_READING_LINE } from '../constants/docs.reading.constants';
 import {
   DOCS_CONTENTS_LINK_STYLE_CLASS,
   DOCS_CONTENTS_READING_STYLE_CLASS,
   DOCS_CONTENTS_STYLE_CLASS,
   DOCS_CONTENTS_TITLE_STYLE_CLASS,
 } from '../constants/docs.style.constants';
-import { watchWhatIsBeingRead } from '../lib/docs.reading.lib';
 import type { DocsHeading } from '../types/docs.types';
 
 interface IProps {
@@ -29,8 +30,9 @@ export const DocsContents = ({ headings, title }: IProps) => {
   useEffect(
     () =>
       watchWhatIsBeingRead(
-        headings.map((heading) => heading.id),
-        setBeingRead,
+        headings.map((heading) => document.getElementById(heading.id)).filter((heading) => heading !== null),
+        (being) => setBeingRead(being?.id ?? null),
+        DOCS_READING_LINE,
       ),
     [headings],
   );

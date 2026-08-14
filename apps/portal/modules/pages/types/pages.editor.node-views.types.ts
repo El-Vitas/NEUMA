@@ -1,4 +1,5 @@
 import type { PageEditorCodeLabels } from './pages.editor.code.types';
+import type { PageEditorContentsLabels } from './pages.editor.contents.types';
 import type { PageEditorDocumentLabels } from './pages.editor.document.types';
 import type { PageEditorEmbedLabels } from './pages.editor.embed.types';
 import type { PageEditorImageLabels } from './pages.editor.image.types';
@@ -14,6 +15,7 @@ export interface PageEditorToggleLabels {
 export interface PageEditorNodeViewLabels {
   readonly code: PageEditorCodeLabels;
   readonly collection: string;
+  readonly contents: PageEditorContentsLabels;
   readonly embed: PageEditorEmbedLabels;
   readonly file: PageEditorDocumentLabels;
   readonly image: PageEditorImageLabels;

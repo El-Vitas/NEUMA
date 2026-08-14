@@ -126,6 +126,7 @@ export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'link',
   'mention',
   'strong',
+  'table_of_contents',
   'text',
   'video',
 ];
@@ -430,6 +431,9 @@ export const PAGE_EDITOR_BLOCK_RESIZE_HANDLE_STYLE_CLASS = [
 ].join(' ');
 
 export const PAGE_EDITOR_CODE_TYPE = 'code_block';
+
+/** The block that lists what the page holds, written by the page itself. */
+export const PAGE_EDITOR_CONTENTS_TYPE = 'table_of_contents';
 
 /** A step of indentation inside code: two spaces, written as such rather than as a tab. */
 export const PAGE_EDITOR_CODE_INDENT = '  ';

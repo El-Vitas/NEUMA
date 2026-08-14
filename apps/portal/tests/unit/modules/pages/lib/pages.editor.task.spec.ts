@@ -46,6 +46,7 @@ const mountTask = (checked?: boolean): { readonly container: HTMLElement; readon
       embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
       file: { fullScreen: 'Full screen', resize: 'Resize the document' },
       collection: 'Collection',
+      contents: { empty: 'sin encabezados', title: 'en esta página' },
       image: { caption: 'Describe the image', resize: 'Resize' },
       task: 'Task',
       media: {

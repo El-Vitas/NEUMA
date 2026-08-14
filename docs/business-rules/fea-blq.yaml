@@ -139,6 +139,24 @@ rules:
     context: >-
       El costo aceptado es que ese diagrama se ve igual de dia y de noche. Un diagrama que no dice nada al respecto si
       sigue el modo en que se esta leyendo la pagina.
+  - id: BR-744f3ec
+    status: active
+    title: El índice al costado acompaña a quien lee la página
+    rule: >-
+      Toda página muestra sus encabezados en un índice al costado, sin que nadie tenga que insertarlo, y marca el
+      encabezado que se está leyendo. Aparece solo donde hay ancho de sobra; en pantalla angosta la página se queda con
+      todo el ancho.
+    why: >-
+      Saber dónde está uno en una página larga es cosa de quien la lee, no de quien la escribió; pedirle al autor que
+      inserte un bloque para que los demás puedan orientarse deja sin índice justo a las páginas que más lo necesitan.
+    context: >-
+      Convive con el bloque de índice, que sigue siendo del autor: ese ocupa una línea de la página, se guarda con ella
+      y se ve en cualquier pantalla. El del costado no se guarda en ninguna parte.
+    scenarios:
+      - title: Página sin encabezados
+        given: Una página que no tiene encabezados
+        when: Alguien la abre en una pantalla ancha
+        then: No se muestra ningún índice al costado, y la página conserva todo el ancho
   - id: BR-77de182
     status: active
     title: Cómo se muestra un archivo lo decide el bloque
@@ -313,6 +331,23 @@ rules:
       La única línea que se escribe bajo una imagen es a la vez su leyenda visible y el texto que se lee a quien no
       puede verla.
     why: Pedir la misma frase dos veces es como una página termina con leyenda y sin texto alternativo.
+  - id: BR-f1c0b40
+    status: active
+    title: El índice se lee de la página, no se guarda
+    rule: >-
+      Una página puede tener un índice de sus encabezados. El índice no guarda la lista: la lee de los encabezados de la
+      página cada vez que se muestra y se rehace mientras alguien escribe.
+    why: >-
+      Guardar la lista sería guardar dos veces lo mismo, y quedaría vieja en cuanto se corrija un título; un índice que
+      miente es peor que no tener índice.
+    context: >-
+      Cada línea del índice lleva al encabezado que nombra y deja el cursor ahí, porque quien llega a un encabezado
+      suele querer escribir en él. La jerarquía se muestra con sangría por nivel.
+    scenarios:
+      - title: Página sin encabezados
+        given: Una página que todavía no tiene encabezados
+        when: Se inserta el índice
+        then: El índice dice que no hay encabezados aún, y se puebla solo al escribir el primero
   - id: BR-f5cb934
     status: active
     title: Insertar un bloque no reemplaza el que estaba
