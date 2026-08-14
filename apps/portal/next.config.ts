@@ -39,6 +39,11 @@ const monorepoRoot = path.join(import.meta.dirname, '../../');
 const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
+  /**
+   * The manual is written in files rather than in the code, and files nothing
+   * imports are not carried into what gets deployed unless they are named here.
+   */
+  outputFileTracingIncludes: { '/[locale]/(portal)/docs/**': ['./content/docs/**/*'] },
   cacheComponents: true,
   logging: {
     serverFunctions: false,
