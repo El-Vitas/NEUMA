@@ -40,6 +40,11 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   }),
 }));
 
+mock.module('@/modules/pages/server/actions/pages.collections.actions', () => ({
+  createPageCollectionAction: async () => ({ data: { id: 'page-3', title: 'Colección' } }),
+  readPageCollectionAction: async () => ({ data: null }),
+}));
+
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   addBlocksToPageAction: async () => ({ data: undefined }),
   createPageAction: async () => ({ data: { id: 'page-2', title: 'Nueva' } }),

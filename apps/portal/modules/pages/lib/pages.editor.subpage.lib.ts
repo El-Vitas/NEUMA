@@ -5,6 +5,7 @@ import {
   PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageSubpageInsert } from '../types/pages.editor.subpage.types';
+import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
 
 /**
  * Asks for the page that will hang from this one.
@@ -37,8 +38,7 @@ export const createPageSubpageInsertCommand =
 
     const node = subpageType.createChecked(subpage);
     const at = Math.min(Math.max(spot, 0), state.doc.content.size);
-    const transaction = state.tr.replaceRangeWith(at, at, node);
-    dispatch(transaction.scrollIntoView());
+    dispatch(leaveSomewhereToWriteUnder(state.tr.replaceRangeWith(at, at, node), schema).scrollIntoView());
     return true;
   };
 

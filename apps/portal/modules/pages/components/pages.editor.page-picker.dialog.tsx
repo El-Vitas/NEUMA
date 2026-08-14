@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/shared/components/ui/input';
 import { usePagesEditorDestinations } from '../hooks/use.pages.editor.destinations';
 import { findPageDestinations } from '../lib/pages.editor.destination.lib';
-import type { PageDestination } from '../types/pages.editor.destination.types';
+import type { PageDestination, PagePickerWording } from '../types/pages.editor.destination.types';
 
 interface IProps {
   readonly exceptPageId: string | null;
@@ -14,14 +14,17 @@ interface IProps {
   readonly onCancel: () => void;
   readonly onChoose: (page: PageDestination) => void;
   readonly spaceId: string;
+  readonly wording: PagePickerWording;
 }
 
 /**
- * Asks which page the blocks are going to, narrowing the space's pages as the
- * name is typed. Nothing moves until one is chosen, so closing this leaves the
- * page exactly as it was.
+ * Asks which page of the space is meant, narrowing them as the name is typed.
+ *
+ * Nothing happens until one is chosen, so closing this leaves the page exactly
+ * as it was. What the asking is for is said by whoever asks: the same list
+ * answers for sending blocks somewhere and for showing a collection here.
  */
-export const PagesEditorBlockHandoverDialog = ({ exceptPageId, isOpen, onCancel, onChoose, spaceId }: IProps) => {
+export const PagesEditorPagePickerDialog = ({ exceptPageId, isOpen, onCancel, onChoose, spaceId, wording }: IProps) => {
   const t = useTranslations('pages');
   const [query, setQuery] = useState('');
   const destinations = usePagesEditorDestinations(isOpen, spaceId, exceptPageId);
@@ -41,20 +44,20 @@ export const PagesEditorBlockHandoverDialog = ({ exceptPageId, isOpen, onCancel,
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('moveBlocksTitle')}</DialogTitle>
-          <DialogDescription>{t('moveBlocksDescription')}</DialogDescription>
+          <DialogTitle>{wording.title}</DialogTitle>
+          <DialogDescription>{wording.description}</DialogDescription>
         </DialogHeader>
         <Input
-          aria-label={t('moveBlocksSearch')}
+          aria-label={wording.search}
           className="min-h-11"
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('moveBlocksSearch')}
+          placeholder={wording.search}
           value={query}
         />
         {matches.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('noMentionCandidates')}</p>
         ) : (
-          <ul aria-label={t('moveBlocksCandidates')} className="max-h-72 divide-y divide-border overflow-y-auto">
+          <ul aria-label={wording.candidates} className="max-h-72 divide-y divide-border overflow-y-auto">
             {matches.map((destination) => (
               <li key={destination.id}>
                 <button

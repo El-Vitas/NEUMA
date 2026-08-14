@@ -234,6 +234,15 @@
     "noMentionCandidates": "No matching pages.",
     "searchingMentionCandidates": "Searching pages...",
     "titleField": "Title",
+    "collectionCandidates": "Collections",
+    "collectionPickDescription": "Choose the page whose collection you want to show here.",
+    "collectionPickSearch": "Search pages",
+    "collectionPickTitle": "Show a collection",
+    "pageShapeLabel": "How this page is shown",
+    "pageShape": {
+      "collection": "Keep the collection in sight",
+      "link": "Only the link to the page"
+    },
     "subpageBlock": "Subpage",
     "subpageNeedsPage": "Create this page before hanging another one from it.",
     "untitled": "Untitled",
@@ -304,6 +313,8 @@
       "taskList": "To-do list",
       "callout": "Callout",
       "insertImage": "Image",
+      "collection": "Collection",
+      "collectionView": "Collection from elsewhere",
       "pageLink": "Link to a page",
       "subpage": "Subpage"
     },
@@ -342,6 +353,12 @@
       "unknownPerson": "Unknown member"
     },
     "collection": {
+      "newTitle": "Untitled collection",
+      "titleProperty": "Name",
+      "firstProperty": "Notes",
+      "firstView": "Table",
+      "notACollection": "That page is not a collection.",
+      "needsPage": "Create this page before keeping a collection in it.",
       "sectionTitle": "Rows",
       "emptyTable": "No rows yet",
       "emptyColumn": "No rows",
