@@ -16,7 +16,7 @@ import { keymap } from 'prosemirror-keymap';
 import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
 import type { Command, Plugin as EditorPlugin, EditorState, Transaction } from 'prosemirror-state';
-import { NodeSelection, Selection } from 'prosemirror-state';
+import { Selection } from 'prosemirror-state';
 import { columnResizing, tableEditing } from 'prosemirror-tables';
 import { PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_SHORTCUTS } from '../constants/pages.editor.shortcuts.constants';
@@ -50,6 +50,7 @@ const taskListInputRule = /^\s*\[ ?\]\s$/;
 const blockquoteInputRule = /^\s*>\s$/;
 const dividerInputRule = /^---$/;
 const codeBlockInputRule = /^```(\w+)?\s$/;
+const linkInputRule = /\[([^\]]+)]\((https?:\/\/[^\s)]+)\)$/;
 
 /** The language written after the backticks, kept only when it is one this version knows. */
 const readWrittenCodeLanguage = (written: string | undefined): string | null =>
@@ -103,6 +104,21 @@ const drawPageDivider = (schema: Schema): InputRule =>
     leaveSomewhereToWriteUnder(state.tr.replaceRangeWith(start, end, schema.nodes.divider.createChecked()), schema),
   );
 
+/**
+ * Turns `[what it is called](where it points)` into the words themselves,
+ * carrying the link.
+ *
+ * It is the way a link is written by hand everywhere else — Markdown, Obsidian —
+ * so writing it that way here should mean the same thing rather than leaving
+ * the brackets on the page.
+ */
+const writePageLink = (schema: Schema): InputRule =>
+  new InputRule(linkInputRule, (state, match, start, end) => {
+    const [, label, url] = match;
+    if (label === undefined || url === undefined) return null;
+    return state.tr.replaceRangeWith(start, end, schema.text(label, [schema.marks.link.create({ href: url })]));
+  });
+
 const canInsertPageNode = (state: EditorState, nodeType: NodeType): boolean => {
   const { $from } = state.selection;
   for (let depth = $from.depth; depth >= 0; depth -= 1) {
@@ -123,8 +139,9 @@ const insertPageNode =
   (state, dispatch) => {
     if (!canInsertPageNode(state, node.type)) return false;
     if (dispatch === undefined) return true;
+    /** A selection is asked what it holds rather than what class it is, which is not the same answer twice. */
     const { selection } = state;
-    if (selection instanceof NodeSelection) dispatch(state.tr.insert(selection.to, node));
+    if ('node' in selection) dispatch(state.tr.insert(selection.to, node));
     else dispatch(state.tr.replaceSelectionWith(node));
     return true;
   };
@@ -324,6 +341,7 @@ export const createPageEditorPlugins = (
       wrappingInputRule(taskListInputRule, schema.nodes.task_list),
       wrappingInputRule(blockquoteInputRule, schema.nodes.blockquote),
       drawPageDivider(schema),
+      writePageLink(schema),
       textblockTypeInputRule(codeBlockInputRule, schema.nodes.code_block, (match) => ({
         language: readWrittenCodeLanguage(match[1]),
       })),

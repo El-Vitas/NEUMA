@@ -468,6 +468,17 @@
     },
     "imageCaption": "Describe la imagen",
     "resizeImage": "Ajustar el ancho de la imagen",
+    "linkShapeLabel": "Qué hacer con el enlace",
+    "linkShape": {
+      "link": "Enlace",
+      "card": "Tarjeta",
+      "embed": "Incrustar"
+    },
+    "linkBeingRead": "Leyendo el enlace…",
+    "linkNotEmbeddable": "Este enlace no se puede mostrar dentro de la página, así que se dejó como enlace.",
+    "linkNotPreviewable": "De este enlace no se pudo leer nada, así que se dejó como enlace.",
+    "resizeEmbed": "Ajustar el ancho de lo incrustado",
+    "embedRefused": "De este enlace no se puede mostrar nada:",
     "resizeFile": "Ajustar el ancho del documento",
     "resizeMedia": "Ajustar el ancho del reproductor",
     "mediaPlay": "Reproducir",

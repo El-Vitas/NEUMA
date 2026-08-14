@@ -114,6 +114,7 @@ export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS =
  */
 export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'audio',
+  'bookmark',
   'code',
   'collection',
   'divider',
@@ -271,6 +272,8 @@ export const PAGE_EDITOR_VIDEO_TYPE = 'video';
 
 export const PAGE_EDITOR_AUDIO_TYPE = 'audio';
 
+export const PAGE_EDITOR_EMBED_TYPE = 'embed';
+
 /** A video nobody has sized plays at the size it came in at; a recording is a line of controls. */
 export const PAGE_EDITOR_MEDIA_VIDEO_STYLE_CLASS = 'block h-auto w-full max-w-full bg-black';
 
@@ -397,6 +400,7 @@ export const PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS = 'my-6 flex flex-col gap-2';
 /** What can stand somewhere other than the left of the column: what is not writing. */
 export const PAGE_EDITOR_ALIGNABLE_TYPES: readonly string[] = [
   PAGE_EDITOR_AUDIO_TYPE,
+  PAGE_EDITOR_EMBED_TYPE,
   PAGE_EDITOR_IMAGE_TYPE,
   PAGE_EDITOR_VIDEO_TYPE,
 ];
@@ -566,3 +570,53 @@ export const PAGE_EDITOR_TOGGLE_TITLE_STYLE_CLASS = [
   'min-h-11 w-full flex-1 border-none bg-transparent font-semibold text-foreground',
   'outline-none focus-visible:ring-0',
 ].join(' ');
+
+/** Where a video shared as `youtu.be/ID` keeps its name, and where one already framed keeps it. */
+export const PAGE_EDITOR_EMBED_YOUTUBE_SHORT_HOST = 'youtu.be';
+
+export const PAGE_EDITOR_EMBED_YOUTUBE_VIDEO = /^\/embed\/([\w-]+)/;
+
+export const PAGE_EDITOR_EMBED_VIMEO_VIDEO = /^\/(?:video\/)?(\d+)/;
+
+/** Loom shares a recording and shows it at the same address with one word changed. */
+export const PAGE_EDITOR_EMBED_LOOM_SHARE = /^\/(share|embed)\/([\w-]+)/;
+
+/** Figma draws what it is handed, and asks who is asking. */
+export const PAGE_EDITOR_EMBED_FIGMA_HOST = 'https://www.figma.com/embed?embed_host=company-brain&url=';
+
+/** A video sits in the shape it was filmed in; a drawing is given room to be looked at. */
+export const PAGE_EDITOR_EMBED_ASPECT_RATIOS: Readonly<Record<string, string>> = {
+  figma: '4 / 3',
+  loom: '16 / 9',
+  vimeo: '16 / 9',
+  youtube: '16 / 9',
+};
+
+/** What the frame is allowed to do: play, and take the screen if asked. Nothing else. */
+export const PAGE_EDITOR_EMBED_FRAME_ALLOW = 'accelerometer; clipboard-write; encrypted-media; picture-in-picture';
+
+export const PAGE_EDITOR_EMBED_FIGURE_STYLE_CLASS = 'my-6 flex flex-col';
+
+export const PAGE_EDITOR_EMBED_FRAME_STYLE_CLASS = 'w-full overflow-hidden border border-border bg-surface-low';
+
+/** A link nothing can be shown of is said plainly, and left as a link. */
+export const PAGE_EDITOR_EMBED_REFUSED_STYLE_CLASS = [
+  'my-3 flex min-h-11 flex-wrap items-center gap-2 border border-border border-dashed bg-surface-low px-3 py-2',
+  'text-muted-foreground text-sm [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4',
+].join(' ');
+
+export const PAGE_EDITOR_BOOKMARK_TYPE = 'bookmark';
+
+/** A card: the mark of the site, what it is called, what it says, and where it points. */
+export const PAGE_EDITOR_BOOKMARK_STYLE_CLASS = [
+  'my-3 flex min-h-11 w-full items-center gap-3 border border-border bg-surface-low px-3 py-2',
+  'text-foreground text-sm no-underline hover:bg-surface-container',
+].join(' ');
+
+export const PAGE_EDITOR_BOOKMARK_ICON_STYLE_CLASS = 'size-5 shrink-0 rounded-sm';
+
+export const PAGE_EDITOR_BOOKMARK_TEXT_STYLE_CLASS = 'flex min-w-0 flex-1 flex-col';
+
+export const PAGE_EDITOR_BOOKMARK_TITLE_STYLE_CLASS = 'truncate font-medium';
+
+export const PAGE_EDITOR_BOOKMARK_ABOUT_STYLE_CLASS = 'truncate text-muted-foreground text-xs';

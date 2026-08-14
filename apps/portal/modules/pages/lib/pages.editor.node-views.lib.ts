@@ -3,9 +3,11 @@ import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import {
   PAGE_EDITOR_AUDIO_TYPE,
+  PAGE_EDITOR_BOOKMARK_TYPE,
   PAGE_EDITOR_CALLOUT_TYPE,
   PAGE_EDITOR_CODE_TYPE,
   PAGE_EDITOR_COLLECTION_CLASS,
+  PAGE_EDITOR_EMBED_TYPE,
   PAGE_EDITOR_FILE_TYPE,
   PAGE_EDITOR_IMAGE_TYPE,
   PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH,
@@ -18,8 +20,10 @@ import {
   PAGE_EDITOR_VIDEO_TYPE,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import { createPageBookmarkNodeView } from './pages.editor.bookmark.node-view.lib';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageCodeBlockNodeView } from './pages.editor.code.node-view.lib';
+import { createPageEmbedNodeView } from './pages.editor.embed.node-view.lib';
 import { createPageFileNodeView } from './pages.editor.file.node-view.lib';
 import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
 import { createPageAudioNodeView, createPageVideoNodeView } from './pages.editor.media.node-view.lib';
@@ -82,6 +86,8 @@ export const createPageEditorNodeViews = (
     createPageFileNodeView(node, view, getPosition, labels.file, getPageAssetUrl),
   [PAGE_EDITOR_IMAGE_TYPE]: (node, view, getPosition) =>
     createPageImageNodeView(node, view, getPosition, labels.image, getPageAssetUrl),
+  [PAGE_EDITOR_BOOKMARK_TYPE]: (node) => createPageBookmarkNodeView(node),
+  [PAGE_EDITOR_EMBED_TYPE]: (node, view, getPosition) => createPageEmbedNodeView(node, view, getPosition, labels.embed),
   mention: createPageMentionNodeView,
   /**
    * The table is drawn here rather than by `columnResizing`, whose own drawing
