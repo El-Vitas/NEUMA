@@ -40,6 +40,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         fileDisplay={null}
         folding={null}
         hasIdentity={hasIdentity}
+        isSynced={false}
         linkTarget={null}
         onBecomePage={() => use.becamePage.push(1)}
         onBlockAlign={() => undefined}
@@ -55,7 +56,9 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         onLinkShape={() => undefined}
         onMoveToPage={() => use.moved.push(1)}
         onPageShape={() => undefined}
+        onSyncIntoPage={() => undefined}
         onTableAction={() => undefined}
+        onUnsync={() => undefined}
         pageShape={null}
         tableActions={false}
       />

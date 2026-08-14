@@ -4,6 +4,7 @@ import type { PageEditorDocumentLabels } from './pages.editor.document.types';
 import type { PageEditorEmbedLabels } from './pages.editor.embed.types';
 import type { PageEditorImageLabels } from './pages.editor.image.types';
 import type { PageEditorMediaLabels } from './pages.editor.media.types';
+import type { PageEditorSyncedLabels } from './pages.editor.synced.types';
 
 /** What the two controls of a toggle are called, since neither is a stretch of text to read. */
 export interface PageEditorToggleLabels {
@@ -23,6 +24,7 @@ export interface PageEditorNodeViewLabels {
   readonly collection: string;
   readonly contents: PageEditorContentsLabels;
   readonly subpage: PageEditorSubpageLabels;
+  readonly synced: PageEditorSyncedLabels;
   readonly embed: PageEditorEmbedLabels;
   readonly file: PageEditorDocumentLabels;
   readonly image: PageEditorImageLabels;

@@ -241,6 +241,26 @@ rules:
     why: >-
       En un bloque alto, como un video o un documento, el borde superior puede quedar fuera de la pantalla, y el menú
       aparece donde nadie lo está mirando.
+  - id: BR-9eaf811
+    status: active
+    title: Un bloque sincronizado guarda dónde vive, no lo que dice
+    rule: >-
+      Un bloque puede mostrarse en otra página sin dejar de vivir en la suya: lo que la otra página guarda es qué página
+      y qué bloque, y lo que muestra es lo que ese bloque dice ahora. Se escribe donde vive; donde se muestra, se lee.
+      Romper la sincronización deja una copia que ya no es de nadie más.
+    why: >-
+      Copiar la escritura sería tener dos versiones de lo mismo envejeciendo por separado, que es justo lo que un bloque
+      sincronizado viene a evitar. Y un mismo bloque editado desde dos lados a la vez es un bloque que en algún momento
+      pierde la mitad de lo escrito.
+    context: >-
+      Donde se muestra va apartado, con su marca y el enlace a donde vive. La copia que queda al romper el vínculo lleva
+      la misma escritura pero no quién era el otro bloque ni lo que se comentó sobre él. Un bloque cuya página ya no lo
+      tiene lo dice en vez de mostrar un recuadro vacío.
+    scenarios:
+      - title: El bloque cambia en su página
+        given: Una página que muestra un bloque que vive en otra
+        when: Alguien corrige ese bloque donde vive
+        then: La página que lo muestra dice lo corregido
   - id: BR-a27127f
     status: active
     title: Un bloque que no sostiene nada no se guarda con contenido

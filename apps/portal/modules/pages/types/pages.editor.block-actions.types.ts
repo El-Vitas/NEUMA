@@ -9,4 +9,5 @@ export interface PageEditorBlockActions {
   readonly copyLink: () => void;
   readonly handOver: (destination: PageDestination) => void;
   readonly runCommand: (command: Command) => void;
+  readonly syncInto: (destination: PageDestination) => void;
 }

@@ -127,6 +127,7 @@ export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
   'mention',
   'strong',
   'subpage',
+  'synced',
   'table_of_contents',
   'text',
   'video',
@@ -442,6 +443,23 @@ export const PAGE_EDITOR_CONTENTS_TYPE = 'table_of_contents';
 
 /** The block that leads to a page hanging from this one. */
 export const PAGE_EDITOR_SUBPAGE_TYPE = 'subpage';
+
+/** The block that shows a block written in another page. */
+export const PAGE_EDITOR_SYNCED_TYPE = 'synced';
+
+/** What is shown of another page's block: set apart, marked as borrowed, and never written in here. */
+export const PAGE_EDITOR_SYNCED_STYLE_CLASS =
+  'my-4 flex flex-col gap-2 border-primary/40 border-s-2 bg-surface-low/60 px-4 py-3';
+
+export const PAGE_EDITOR_SYNCED_MARK_STYLE_CLASS =
+  'flex items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wide';
+
+export const PAGE_EDITOR_SYNCED_SOURCE_STYLE_CLASS = 'underline underline-offset-4 hover:text-foreground';
+
+export const PAGE_EDITOR_SYNCED_BODY_STYLE_CLASS = 'min-w-0';
+
+/** A block whose page cannot be read from here says so, rather than showing an empty frame. */
+export const PAGE_EDITOR_SYNCED_LOST_STYLE_CLASS = 'text-muted-foreground text-sm italic';
 
 /** What is written to start looking for a page already written, wherever the looking was asked for. */
 export const PAGE_EDITOR_MENTION_TRIGGER = '@';

@@ -173,6 +173,14 @@ const getPageEditorSubpageAttrs = (
   return { label: label === undefined || label.length === 0 ? pageId : label, pageId, spaceId };
 };
 
+const getPageEditorSyncedAttrs = (
+  element: HTMLElement,
+): { readonly blockId: string; readonly pageId: string; readonly spaceId: string } | false => {
+  const { pageSynced: pageId, spaceId, syncedBlock: blockId } = element.dataset;
+  if (pageId === undefined || pageId.length === 0 || spaceId === undefined || spaceId.length === 0) return false;
+  return blockId === undefined || blockId.length === 0 ? false : { blockId, pageId, spaceId };
+};
+
 const getPageEditorUnsupportedAttrs = (
   element: Element,
 ): { readonly name: string; readonly source: string } | false => {
@@ -348,6 +356,25 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       group: 'block',
       parseDOM: [{ tag: 'nav[data-page-contents]' }],
       render: (_node, blockAttributes) => ['nav', { ...blockAttributes, 'data-page-contents': 'true' }],
+    }),
+  ],
+  /** A block that lives in another page and is only shown here, as it stands there now. */
+  [
+    'synced',
+    definePageBlock({
+      attrs: { blockId: {}, pageId: {}, spaceId: {} },
+      atom: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorSyncedAttrs, tag: 'div[data-page-synced]' }],
+      render: (node, blockAttributes) => [
+        'div',
+        {
+          ...blockAttributes,
+          'data-page-synced': node.attrs.pageId,
+          'data-space-id': node.attrs.spaceId,
+          'data-synced-block': node.attrs.blockId,
+        },
+      ],
     }),
   ],
   /** A page that hangs from this one, standing in the writing as the line that leads to it. */

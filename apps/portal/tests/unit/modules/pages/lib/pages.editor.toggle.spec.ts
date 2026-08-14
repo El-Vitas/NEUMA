@@ -43,6 +43,7 @@ const mountToggle = (open?: boolean): { readonly container: HTMLElement; readonl
       collection: 'Collection',
       contents: { empty: 'sin encabezados', title: 'en esta página' },
       subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
+      synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },
       image: { caption: 'Describe the image', resize: 'Resize' },
       task: 'Task',
       media: {
