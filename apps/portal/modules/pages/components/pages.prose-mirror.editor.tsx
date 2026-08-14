@@ -2,7 +2,7 @@
 
 import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
-import type { Command } from 'prosemirror-state';
+import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
@@ -18,6 +18,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../constants/pages.editor.constants';
 import { PAGE_EDITOR_QUIET_SURFACE } from '../constants/pages.editor.surface.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
@@ -37,8 +38,8 @@ import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.conv
 import {
   createPageEditorState,
   isPageEditorReadOnly,
+  readWhatThePageCanKeep,
   runPageEditorCommand,
-  serializePageEditorState,
   usesCommandKeyboard,
 } from '../lib/pages.editor.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
@@ -89,6 +90,9 @@ export const PagesProseMirrorEditor = forwardRef(
     const insertBlockLabelRef = useRef(t('insertBlock'));
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
+    const blockTooLongLabelRef = useRef(t('blockTooLong'));
+    /** Said once, and again only after the page has managed to keep something. */
+    const toldOfTooMuchRef = useRef(false);
     const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
     const embedLabelsRef = useRef({
       providers: { figma: 'Figma', loom: 'Loom', vimeo: 'Vimeo', youtube: 'YouTube' },
@@ -107,7 +111,17 @@ export const PagesProseMirrorEditor = forwardRef(
       unmute: t('mediaUnmute'),
     });
     const codeLabelsRef = useRef({
+      copied: t('codeCopied'),
       copy: t('copyCode'),
+      diagram: {
+        both: t('diagramView.both'),
+        code: t('diagramView.code'),
+        download: t('diagramDownload'),
+        drawing: t('diagramView.drawing'),
+        fullScreen: t('diagramFullScreen'),
+        line: t('diagramLine'),
+        unknown: t('diagramUnknown'),
+      },
       language: t('codeLanguage'),
       languages: Object.fromEntries(PAGE_CODE_LANGUAGES.map((language) => [language, t(`codeLanguages.${language}`)])),
       wrap: t('wrapCode'),
@@ -242,6 +256,24 @@ export const PagesProseMirrorEditor = forwardRef(
       contentCallbackRef.current = onContentChange;
     }, [onContentChange]);
 
+    /**
+     * The page keeps what it can keep, and says so when it cannot.
+     *
+     * What the editor allows is wider than what a page accepts — a block longer
+     * than the page holds, above all — and a page that quietly stops being kept
+     * while somebody keeps writing it is the worst way for that to end.
+     */
+    const keepWhatCanBeKeptRef = useRef((state: EditorState): void => {
+      const kept = readWhatThePageCanKeep(state);
+      if (kept === null) {
+        if (!toldOfTooMuchRef.current) toast.error(blockTooLongLabelRef.current);
+        toldOfTooMuchRef.current = true;
+        return;
+      }
+      toldOfTooMuchRef.current = false;
+      contentCallbackRef.current(kept);
+    });
+
     useEffect(() => {
       setUsesCommandKey(usesCommandKeyboard(navigator.userAgent));
     }, []);
@@ -262,7 +294,7 @@ export const PagesProseMirrorEditor = forwardRef(
         dispatchTransaction: (transaction) => {
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
-          if (transaction.docChanged) contentCallbackRef.current(serializePageEditorState(nextState));
+          if (transaction.docChanged) keepWhatCanBeKeptRef.current(nextState);
           syncCollectionHosts();
           const selection = nextState.selection;
           const trigger = updateEditorTrigger(

@@ -1,0 +1,342 @@
+id: FEA-BLQ
+name: Bloques de página
+purpose: Define qué puede sostener una página y cómo se comporta cada tipo de bloque al escribirlo, mostrarlo y guardarlo.
+scope: pages
+rules:
+  - id: BR-01743a9
+    status: active
+    title: Dónde se para un bloque en la columna
+    rule: >-
+      Un bloque que no es escritura puede pararse a la izquierda, al centro, a la derecha o a lo ancho de la columna, y
+      esa elección se guarda con la página.
+    why: >-
+      La misma página mezcla lectura y material de apoyo; poder correr una imagen o un reproductor a un lado es lo que
+      permite que el texto siga leyéndose.
+    context: >-
+      Elegir a lo ancho es pararse a la izquierda ocupando toda la columna, de modo que estrecharlo después no lo hace
+      saltar de lado. La opción se ofrece solo a bloques que pueden moverse; una línea de archivo no tiene dónde ir.
+  - id: BR-061d307
+    status: active
+    title: Una tabla se recorre y crece mientras se llena
+    rule: >-
+      Una tabla nace con encabezado y con el cursor en su primera celda, se recorre celda por celda con la tecla de
+      tabulación y agrega una fila al llegar al final. El encabezado es siempre la primera fila. Una tabla más ancha que
+      la página se desplaza dentro de su propia caja sin arrastrar la página.
+    why: Una tabla se pide para llenarla, y detenerse a agregar filas con el ratón rompe ese ritmo.
+  - id: BR-0736884
+    status: active
+    title: Escribir marcas conocidas crea el bloque correspondiente
+    rule: >-
+      Escribir las marcas de siempre al principio de una línea crea el bloque que representan, como almohadillas para un
+      encabezado, un guion para una lista, corchetes para una tarea, un signo mayor para una cita, tres guiones para un
+      separador y tres acentos graves para un bloque de código.
+    why: >-
+      Quien viene de escribir en texto plano ya conoce estas marcas, y tener que ir al menú por cada bloque interrumpe
+      la escritura.
+  - id: BR-09d3e17
+    status: active
+    title: Un bloque de código dice en qué está escrito y se lleva entero
+    rule: >-
+      Un bloque de código guarda en qué lenguaje está escrito, permite copiarlo entero, ajustar las líneas largas para
+      que no se corten, y sangrar con la tecla de tabulación sin sacar el foco de la página.
+    why: >-
+      El código se consulta para copiarlo y para leerlo; si tabular saca el foco o las líneas se cortan, deja de poder
+      trabajarse ahí.
+  - id: BR-2c31f48
+    status: active
+    title: Una tarea nace sin marcar y solo se tacha a sí misma
+    rule: >-
+      Al terminar una tarea y seguir escribiendo nace otra tarea, siempre sin marcar. Marcar una tarea la tacha solo a
+      ella, nunca a las que cuelgan de ella.
+    why: >-
+      Una lista de pendientes se escribe de corrido, y dar por hechas las subtareas porque se marcó la de arriba es dar
+      por hecho trabajo que nadie hizo.
+  - id: BR-2dee8f4
+    status: active
+    title: Tamaño de un bloque que no es escritura
+    rule: >-
+      Un bloque que no es escritura —imagen, video, grabación, documento o contenido incrustado— guarda cuánto ocupa
+      como proporción de la columna de escritura, no en píxeles, y se ajusta arrastrando su borde derecho.
+    why: >-
+      Una medida en píxeles es una medida en una sola pantalla; la misma página se lee en un monitor ancho y en un
+      teléfono.
+    context: >-
+      Un bloque que nadie ha medido ocupa la columna entera, salvo el video, que no se agranda más allá de la resolución
+      del archivo.
+  - id: BR-47933f7
+    status: active
+    title: Un aviso dice de qué clase es, no qué dibujo lleva
+    rule: >-
+      Un bloque destacado guarda de qué clase de aviso se trata, como idea, información, advertencia, listo, bloqueado o
+      fijado, y no el símbolo con que se dibuja.
+    why: >-
+      La página dice lo mismo para todos los que la leen, y cada quien ve el dibujo que le toque según la interfaz de su
+      momento.
+  - id: BR-4efd88a
+    status: active
+    title: Cada control de un bloque dice qué hace y confirma
+    rule: >-
+      Cada botón de un bloque dice qué hace tanto a quien lo ve como a quien no puede verlo, y las acciones que no dejan
+      rastro visible confirman que ocurrieron.
+    why: >-
+      Un dibujo en un botón no explica nada hasta que alguien ya lo aprendió, y copiar algo sin señal alguna deja a la
+      persona sin saber si funcionó.
+    context: >-
+      Copiar el texto de un bloque avisa que se copió. Descargar entrega el archivo. Ver a pantalla completa se puede
+      deshacer con la misma tecla de siempre.
+  - id: BR-5a00e66
+    status: active
+    title: Las listas se anidan y se distinguen por nivel
+    rule: >-
+      Un punto de una lista puede colgar del punto de arriba, y cada nivel se distingue por su propia marca. Una lista
+      numerada respeta el número donde se le dijo empezar y renumera sola al intercalar un punto.
+    why: La jerarquía de una lista se lee por la marca; si todos los niveles se ven igual, la lista deja de decir nada.
+  - id: BR-5f3a4aa
+    status: active
+    title: Un diagrama se escribe como texto y se dibuja
+    rule: >-
+      Un diagrama se escribe como texto en la página y se dibuja a partir de él. El bloque puede mostrar solo el dibujo,
+      solo el texto o ambos, y la elección se guarda con la página.
+    why: >-
+      Lo que se guarda es el texto, de modo que un diagrama siempre se puede volver a editar, buscar y conservar aunque
+      cambie la forma de dibujarlo.
+    context: >-
+      El dibujo se rehace cuando la escritura se detiene, no en cada tecla, para no parpadear mientras alguien escribe.
+      El dibujo no se guarda, se deriva del texto.
+    scenarios:
+      - title: Sintaxis incorrecta
+        given: Un diagrama a medio escribir o mal escrito
+        when: La página intenta dibujarlo
+        then: El bloque explica qué falló y en qué línea, conserva el texto y el resto de la página sigue funcionando
+  - id: BR-66a1e2d
+    status: active
+    title: Un bloque solo se coloca donde la página puede guardarlo
+    rule: >-
+      Un bloque se coloca únicamente donde la página admite tenerlo. Si el sitio elegido no lo admite, sube hasta el
+      lugar más cercano que sí lo acepte.
+    why: >-
+      La escritura permite más combinaciones de las que una página puede guardar, y un bloque puesto donde no cabe solo
+      se descubre cuando la página deja de guardarse.
+    context: Por ejemplo, una cita sostiene escritura pero no un video; el video queda entonces debajo de la cita.
+  - id: BR-6f1d15d
+    status: active
+    title: Las estampas de un diagrama viajan con la pagina
+    rule: >-
+      Las estampas que un diagrama puede nombrar viajan con la pagina. Dibujar un diagrama nunca es una peticion a un
+      servidor ajeno, ni siquiera para traer un dibujito.
+    why: >-
+      Una pagina que se dibuja delante de quien la lee no debe contarle a un tercero quien la esta leyendo, y una pagina
+      interna tiene que poder leerse igual sin salida a internet.
+  - id: BR-705d16a
+    status: active
+    title: Un diagrama puede fijar su propio aspecto
+    rule: >-
+      Un diagrama puede fijar en su propio texto el aspecto con que quiere dibujarse, y la pagina lo respeta en lugar de
+      imponerle el suyo.
+    why: >-
+      Quien escribe un diagrama sabe con que colores se entiende lo que esta explicando, y un diagrama es material de
+      lectura antes que decoracion de la interfaz.
+    context: >-
+      El costo aceptado es que ese diagrama se ve igual de dia y de noche. Un diagrama que no dice nada al respecto si
+      sigue el modo en que se esta leyendo la pagina.
+  - id: BR-77de182
+    status: active
+    title: Cómo se muestra un archivo lo decide el bloque
+    rule: >-
+      Cada bloque de archivo dice si se muestra como documento leído en la página o como una línea con su nombre, tipo y
+      peso. La opción solo se ofrece cuando puede cumplirse.
+    why: >-
+      El mismo documento es material de lectura en una página y algo que se guarda en otra, y ofrecer una forma que el
+      sistema no puede dibujar es un menú que no hace nada.
+    context: Un archivo que la página no sabe dibujar se muestra siempre como línea, y no se le ofrece la elección.
+  - id: BR-85d65ab
+    status: active
+    title: Un encabezado pliega lo que sostiene
+    rule: >-
+      Un encabezado puede plegarse para ocultar todo lo que va debajo de él hasta el siguiente encabezado del mismo
+      nivel, y ese estado se guarda con la página.
+    why: >-
+      Una página larga se recorre plegando lo que no se está mirando; si el plegado se pierde al recargar, no sirve de
+      nada.
+    context: >-
+      Lo plegado sigue en la página, solo queda fuera de la vista, y un encabezado plegado lo dice aunque el puntero no
+      esté encima.
+  - id: BR-921afcd
+    status: active
+    title: Un enlace que no se puede mostrar se queda como enlace
+    rule: >-
+      Si una dirección no se puede mostrar dentro de la página, o si no se pudo leer nada sobre ella, el bloque se queda
+      como enlace y la página lo dice con un aviso.
+    why: >-
+      Un enlace que desaparece o un marco vacío hacen dudar de si se perdió algo; dejarlo como enlace conserva siempre
+      lo que la persona pegó.
+    context: >-
+      Solo unos pocos servicios pueden mostrarse dentro de la página; el resto de las direcciones son enlaces o
+      tarjetas.
+  - id: BR-9577952
+    status: active
+    title: Un bloque que esta versión no conoce se conserva tal como llegó
+    rule: >-
+      Una página guarda solo los tipos de bloque que la versión actual conoce, y cualquier bloque desconocido se
+      conserva tal como llegó y se dibuja nombrado como algo que la página sostiene pero no sabe mostrar.
+    why: >-
+      Dos versiones distintas leen la misma página; descartar lo que una no entiende sería borrar el trabajo hecho en la
+      otra.
+  - id: BR-9961539
+    status: active
+    title: El menú de un bloque se abre junto al botón que lo abrió
+    rule: El menú de un bloque se abre a la altura de los botones que lo abren, no en el borde superior del bloque.
+    why: >-
+      En un bloque alto, como un video o un documento, el borde superior puede quedar fuera de la pantalla, y el menú
+      aparece donde nadie lo está mirando.
+  - id: BR-a27127f
+    status: active
+    title: Un bloque que no sostiene nada no se guarda con contenido
+    rule: >-
+      Los bloques que no sostienen nada dentro, como un separador, una imagen, un reproductor o una tarjeta, se guardan
+      sin contenido alguno.
+    why: >-
+      Escribirles un contenido vacío es una forma que la página rechaza, y el rechazo aparece en medio de una tecla, sin
+      que nadie entienda qué hizo mal.
+  - id: BR-a87ec49
+    status: active
+    title: Video y grabación se reproducen en la página
+    rule: >-
+      Un video o una grabación subidos a una página se reproducen dentro de ella, sin salir a otra pantalla ni
+      descargarlos, y con controles propios de la página.
+    why: >-
+      Lo que se sube a una página se consulta ahí mismo; obligar a bajarlo rompe la lectura y deja copias sueltas fuera
+      del espacio de trabajo.
+    context: >-
+      Los controles son los de la página (reproducir, punto de reproducción, tiempo, silencio y pantalla completa para
+      el video) para que se lean igual que el resto de la interfaz. Cada control dice qué hace para quien no puede
+      verlo.
+    scenarios:
+      - title: Video subido a una página
+        given: Una persona con permiso de edición y un video en un formato aceptado
+        when: Lo sube a la página
+        then: El video queda en el punto donde estaba escribiendo y se reproduce ahí mismo
+      - title: Salto dentro de una grabación larga
+        given: Una grabación ya publicada en la página
+        when: Quien la escucha mueve el punto de reproducción
+        then: La reproducción continúa desde ese punto sin esperar a que baje la grabación entera
+  - id: BR-ab31bcc
+    status: active
+    title: Un dibujo no le pide nada a nadie
+    rule: >-
+      Nada de lo que se escribe en un diagrama puede hacer que el navegador de quien lo lee pida algo a un servidor
+      ajeno. Las direcciones escritas en un diagrama se quitan antes de dibujarlo y se vuelven a quitar del dibujo
+      terminado.
+    why: >-
+      Un diagrama lo escribe cualquiera que pueda escribir en la pagina y lo mira todo el que la lee. Una direccion
+      metida ahi es una peticion que sale una vez por cada lector, y le cuenta a un tercero quien esta leyendo, desde
+      donde y cuando.
+    context: >-
+      Limpiar solo el dibujo terminado llega tarde: para medirlo, el motor lo pone en la pagina un instante, y en ese
+      instante ya se pidio. Por eso se limpia lo escrito antes de dibujar.
+  - id: BR-b11ee41
+    status: active
+    title: Una pagina que no se puede guardar lo dice
+    rule: >-
+      Cuando lo escrito pasa de lo que una pagina acepta —un bloque mas largo de lo permitido, sobre todo— la pagina lo
+      dice de inmediato y sigue funcionando. Nunca deja de guardarse en silencio.
+    why: >-
+      Seguir escribiendo sobre una pagina que dejo de guardarse es perder trabajo sin enterarse, que es la peor forma de
+      fallar que tiene un editor.
+  - id: BR-bfe4bc6
+    status: active
+    title: Un diagrama se lee al tamaño en que fue dibujado
+    rule: >-
+      Un diagrama se muestra al tamaño en que fue dibujado. Cuando resulta más ancho que la columna en que se lee, no se
+      encoge para caber; es su propia caja la que se desplaza, sin arrastrar la página.
+    why: >-
+      Un diagrama de varios pasos ajustado al ancho de la columna queda dibujado a una fracción de su tamaño, y deja de
+      leerse mucho antes de dejar de caber.
+    context: Un dibujo más pequeño que la columna se centra en ella y no se estira para llenarla.
+  - id: BR-c32c578
+    status: active
+    title: Un dibujo se recorre y se acerca para leerlo
+    rule: >-
+      Un diagrama que alcanza más allá de su caja se arrastra para recorrerlo, y se acerca o se aleja con la rueda para
+      leer lo que quedó demasiado pequeño o ver entero lo que quedó demasiado grande. Llevado a pantalla completa se
+      comporta igual, con el dibujo ocupando todo el espacio disponible.
+    why: >-
+      Un diagrama existe para mirarlo, y uno grande no se entiende ni de una sola mirada ni a través de una ventana del
+      ancho de un párrafo.
+    context: Tomar un dibujo con el puntero no escribe en la página, así que ese gesto no llega al editor ni mueve el cursor.
+  - id: BR-cbe82d0
+    status: active
+    title: La tarjeta de un enlace guarda lo que se leyó
+    rule: >-
+      Cuando un enlace se muestra como tarjeta, el título y el ícono se leen una sola vez y quedan guardados con la
+      página. No se vuelve a consultar el sitio cada vez que alguien abre la página.
+    why: >-
+      Una página tiene que leerse igual mañana, y el sitio al que apunta puede estar caído o haber desaparecido. Además,
+      una página no debe ir a tocar servidores ajenos cada vez que se la mira.
+    context: >-
+      La consulta la hace el servidor del sistema y nunca el navegador de quien escribe, solo por conexión segura, y se
+      guarda únicamente el nombre del enlace y la marca del sitio. Lo que un sitio dice de sí mismo a un desconocido a
+      menudo describe otra cosa, y una tarjeta que cita algo falso es peor que una que no cita nada.
+  - id: BR-d3e1e93
+    status: active
+    title: Los dibujos siguen el modo de lectura de la interfaz
+    rule: >-
+      Un diagrama se dibuja con los colores del modo en que se está leyendo la página, claro u oscuro, y se vuelve a
+      dibujar solo cuando ese modo cambia.
+    why: >-
+      Un dibujo dejado en los colores de la noche es ilegible de día, y nadie va a reescribir un diagrama para arreglar
+      eso.
+  - id: BR-e1147d1
+    status: active
+    title: Un documento se lee dentro de la página
+    rule: >-
+      Un documento adjunto se lee dentro de la página, se pasa de página, se ve a pantalla completa y se descarga entero
+      con un clic conservando su nombre original.
+    why: Un manual o un contrato se consultan mientras se escribe sobre ellos.
+  - id: BR-e5e524e
+    status: active
+    title: La línea escrita bajo una imagen es también lo que se lee en voz alta
+    rule: >-
+      La única línea que se escribe bajo una imagen es a la vez su leyenda visible y el texto que se lee a quien no
+      puede verla.
+    why: Pedir la misma frase dos veces es como una página termina con leyenda y sin texto alternativo.
+  - id: BR-f5cb934
+    status: active
+    title: Insertar un bloque no reemplaza el que estaba
+    rule: >-
+      Poner algo en una página cuando hay un bloque seleccionado lo coloca debajo de ese bloque, nunca encima. Lo que la
+      página ya sostenía no se pierde.
+    why: >-
+      Un bloque seleccionado es lo que alguien está mirando, no un hueco donde dejar caer lo siguiente. Reemplazarlo
+      hace desaparecer trabajo sin aviso.
+    scenarios:
+      - title: Segundo archivo subido con un bloque elegido
+        given: Una página con un documento seleccionado
+        when: Se sube otro archivo
+        then: El archivo nuevo queda debajo y el documento sigue en la página
+  - id: BR-f6955e5
+    status: active
+    title: Un enlace pegado ofrece tres formas
+    rule: >-
+      Al pegar una dirección sola, la página la escribe como enlace y ofrece mostrarla como enlace, como tarjeta o
+      incrustada dentro de la página. La misma elección sigue disponible después desde el menú del bloque.
+    why: >-
+      Quien pega un enlace no siempre sabe en ese segundo qué quiere de él, y escribirlo primero como enlace hace que
+      seguir escribiendo deje exactamente lo que se pegó.
+    context: >-
+      Solo se ofrece la elección a direcciones seguras, que son las únicas que la página puede consultar o mostrar
+      dentro de sí.
+    scenarios:
+      - title: Enlace pegado y dejado como estaba
+        given: Una dirección pegada en una línea vacía
+        when: Quien escribe sigue escribiendo sin elegir nada
+        then: La línea queda con el enlace tal como se pegó
+  - id: BR-fdb811b
+    status: active
+    title: Un enlace se escribe como se escribe en todas partes
+    rule: >-
+      Escribir el nombre entre corchetes seguido de la dirección entre paréntesis deja el nombre enlazado a esa
+      dirección, y un enlace entre las palabras se ve como un enlace.
+    why: >-
+      Es la forma en que la gente ya escribe enlaces a mano en otras herramientas, y un enlace que no se distingue del
+      texto no invita a seguirlo.

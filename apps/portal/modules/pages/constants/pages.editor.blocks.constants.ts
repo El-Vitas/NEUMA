@@ -325,10 +325,13 @@ export const PAGE_EDITOR_MEDIA_SEEK_STEP = '0.1';
  * colour of its own, as a letter or an emoji would.
  */
 export const PAGE_EDITOR_MARKS = {
+  copy: ['M9 9h10v10H9z', 'M5 15V5h10'],
+  download: ['M12 4v11', 'M8 11l4 4 4-4', 'M5 19h14'],
   fullScreen: ['M9 4H4v5', 'M15 4h5v5', 'M15 20h5v-5', 'M9 20H4v-5'],
   pause: ['M9 5v14', 'M15 5v14'],
   play: ['M8 5.5v13l11-6.5z'],
   silent: ['M11 5 6.5 9H3v6h3.5L11 19z', 'm17 10 4 4', 'm21 10-4 4'],
+  wrap: ['M4 6h16', 'M4 12h13a3 3 0 0 1 0 6h-3', 'm16 15-2 3 2 3', 'M4 18h4'],
   sound: ['M11 5 6.5 9H3v6h3.5L11 19z', 'M15.5 8.5a5 5 0 0 1 0 7'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
@@ -432,11 +435,24 @@ export const PAGE_EDITOR_CODE_TYPE = 'code_block';
 export const PAGE_EDITOR_CODE_INDENT = '  ';
 
 /** The controls of a code block sit above it, out of the way of the code itself. */
-export const PAGE_EDITOR_CODE_BAR_STYLE_CLASS = 'mt-6 flex items-center justify-end gap-1 bg-surface-low px-2 pt-2';
+/**
+ * The bar of a block wraps rather than pushing its first control off the side
+ * of a narrow screen, and stays off paper, where a control is only ink.
+ */
+export const PAGE_EDITOR_CODE_BAR_STYLE_CLASS =
+  'mt-6 flex flex-wrap items-center justify-end gap-1 bg-surface-low px-2 pt-2 print:hidden';
 
+/**
+ * A choice on the bar of a block: quiet until it is looked at, and drawn in the
+ * page's own colours — the list a browser opens takes the colours of the
+ * control it belongs to, so leaving it transparent is what opens a white list
+ * on a dark page.
+ */
 export const PAGE_EDITOR_CODE_LANGUAGE_STYLE_CLASS = [
-  'me-auto min-h-11 border-none bg-transparent px-1 text-muted-foreground text-xs',
-  'outline-none focus-visible:ring-0',
+  'me-auto min-h-11 cursor-pointer rounded-none border border-transparent bg-surface-low px-2 text-xs',
+  'text-muted-foreground hover:border-border hover:text-foreground',
+  'outline-none focus-visible:ring-2 focus-visible:ring-ring',
+  '[&>option]:bg-surface [&>option]:text-foreground',
 ].join(' ');
 
 export const PAGE_EDITOR_CODE_BUTTON_STYLE_CLASS = [

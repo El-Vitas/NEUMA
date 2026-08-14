@@ -43,12 +43,20 @@ export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
 export const PAGE_CALLOUT_ICONS = ['idea', 'info', 'warning', 'done', 'blocked', 'pinned'] as const;
 export type PageCalloutIcon = (typeof PAGE_CALLOUT_ICONS)[number];
 
-/** The languages a code block can be said to be written in. `plain` is code nobody named. */
+/**
+ * The languages a code block can be said to be written in. `plain` is code
+ * nobody named.
+ *
+ * A diagram is one of them rather than a block of its own: what is written is
+ * text, kept as text, and a page that cannot draw it still holds everything
+ * that was said.
+ */
 export const PAGE_CODE_LANGUAGES = [
   'plain',
   'bash',
   'css',
   'html',
+  'mermaid',
   'java',
   'javascript',
   'json',
@@ -59,6 +67,15 @@ export const PAGE_CODE_LANGUAGES = [
   'yaml',
 ] as const;
 export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
+
+/**
+ * What is shown of a diagram: what was written, what it draws, or both at once.
+ *
+ * The drawing is what a diagram is for, so it is what a page shows unless
+ * someone says otherwise; the writing is there for whoever is changing it.
+ */
+export const PAGE_DIAGRAM_VIEWS = ['drawing', 'code', 'both'] as const;
+export type PageDiagramView = (typeof PAGE_DIAGRAM_VIEWS)[number];
 
 /** A remark left on a block, kept with the block itself so it travels wherever the block goes. */
 export type PageBlockComment = {
@@ -578,6 +595,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
           .object({
             ...pageBlockAttrsShape,
             language: z.enum(PAGE_CODE_LANGUAGES).optional(),
+            shown: z.enum(PAGE_DIAGRAM_VIEWS).optional(),
             wrapped: z.boolean().optional(),
           })
           .strict()

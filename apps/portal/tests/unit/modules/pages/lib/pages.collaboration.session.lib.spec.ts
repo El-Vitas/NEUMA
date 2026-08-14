@@ -14,6 +14,11 @@ const attachCalls: MockHocuspocusProvider[] = [];
 let setAwarenessFieldCallCount = 0;
 
 class MockHocuspocusProviderWebsocket {
+  /** The socket is asked to connect by the session, so its refusal belongs to the session. */
+  connect(): Promise<void> {
+    return Promise.resolve();
+  }
+
   destroy(): void {
     destroyCalls.push('websocket');
   }
@@ -203,5 +208,29 @@ describe('pages.collaboration.session.lib', () => {
 
     expect(() => handle.updateDisplayName()).not.toThrow();
     expect(setAwarenessFieldCallCount).toBe(0);
+  });
+
+  /**
+   * A failing connection is heard from more than once — the socket refuses and
+   * the provider reports it — and each account of the same failure must not
+   * become a reconnection of its own.
+   */
+  it('schedules one reconnection however many times the same failure is reported', async () => {
+    const { handle, statuses } = createRecordingSession('page-once');
+
+    await Promise.resolve();
+    emitStatus(0, 'disconnected');
+    emitStatus(0, 'disconnected');
+    emitStatus(0, 'disconnected');
+    await Promise.resolve();
+
+    expect(statuses.filter((status) => status === 'reconnecting').length).toBe(1);
+
+    jest.advanceTimersByTime(computeCollaborationReconnectDelayMs(1));
+    await Promise.resolve();
+
+    expect(providerConfigurations.length).toBe(2);
+
+    handle.destroy();
   });
 });

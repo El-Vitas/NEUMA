@@ -58,6 +58,7 @@
     "spaces": "Espacios",
     "collapseSpace": "Contraer {name}",
     "expandSpace": "Expandir {name}",
+    "docs": "Documentación",
     "users": "Usuarios",
     "account": "Cuenta",
     "profile": "Perfil",
@@ -269,6 +270,7 @@
     "pageActions": "Acciones para {name}",
     "pageTree": "Páginas del espacio",
     "writeHere": "Escribe, o pulsa / para bloques",
+    "blockTooLong": "Hay un bloque demasiado largo y la página no se está guardando. Acórtalo o repártelo en varios bloques.",
     "trash": "Papelera",
     "trashPage": "Enviar a la papelera",
     "restorePage": "Restaurar página",
@@ -289,6 +291,7 @@
       "blockquote": "Cita",
       "code": "Código",
       "codeBlock": "Bloque de código",
+      "diagram": "Diagrama",
       "redo": "Rehacer",
       "divider": "Separador",
       "table": "Tabla",
@@ -428,6 +431,7 @@
     "foldHeading": "Plegar o desplegar este encabezado",
     "openToggle": "Abrir o cerrar este bloque plegable",
     "toggleTitle": "Título del bloque plegable",
+    "codeCopied": "Código copiado",
     "copyCode": "Copiar el código",
     "codeLanguage": "Lenguaje del código",
     "wrapCode": "Ajustar las líneas largas",
@@ -440,11 +444,21 @@
       "javascript": "JavaScript",
       "json": "JSON",
       "markdown": "Markdown",
+      "mermaid": "Diagrama",
       "python": "Python",
       "sql": "SQL",
       "typescript": "TypeScript",
       "yaml": "YAML"
     },
+    "diagramView": {
+      "drawing": "Solo el dibujo",
+      "code": "Solo el código",
+      "both": "Código y dibujo"
+    },
+    "diagramUnknown": "La primera línea no dice qué tipo de diagrama es.",
+    "diagramLine": "línea",
+    "diagramDownload": "Descargar el dibujo",
+    "diagramFullScreen": "Ver a pantalla completa",
     "calloutIcon": "Marca del destacado",
     "noCalloutIcon": "Sin marca",
     "calloutIcons": {
@@ -540,5 +554,14 @@
   },
   "language": {
     "label": "Idioma"
+  },
+  "docs": {
+    "title": "Documentación",
+    "subtitle": "Cómo se usan las cosas de este espacio de trabajo, explicadas paso a paso.",
+    "back": "← Volver a la documentación",
+    "contents": "En esta página",
+    "drawingActualSize": "Tamaño real",
+    "drawingFit": "Ajustar",
+    "empty": "Todavía no hay documentos escritos."
   }
 }

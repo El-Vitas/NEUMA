@@ -49,7 +49,16 @@ export const createPageCollaborationSession = (
     targetProvider.setAwarenessField('user', { name: trimmedDisplayName });
   };
 
+  /**
+   * One failure, one reconnection.
+   *
+   * The same failure is heard from twice — the socket refuses, and the provider
+   * reports the disconnection — and each account used to become a reconnection
+   * of its own: two sessions racing, two timers running, and the attempts spent
+   * twice as fast as the reader was told.
+   */
   const handleConnectionFailure = (): void => {
+    if (reconnectTimeoutId !== null) return;
     teardownSession();
     if (attemptsMade >= MAX_COLLABORATION_RECONNECT_ATTEMPTS) {
       callbacks.onStatusChange('exhausted');
@@ -86,6 +95,18 @@ export const createPageCollaborationSession = (
     websocketProvider = new HocuspocusProviderWebsocket({
       maxAttempts: 1,
       url: env.NEXT_PUBLIC_COLLABORATION_WS_URL,
+    });
+    /**
+     * The socket is asked to connect here so that its refusal belongs to us.
+     *
+     * It starts connecting on its own the moment it is built, and a connection
+     * that fails ends as a rejection nobody is waiting for — which the browser
+     * then reports as a fault in the middle of writing, over something as
+     * ordinary as a page opened while the server is restarting. Asking again
+     * calls off that first attempt and hands us the answer to the second.
+     */
+    websocketProvider.connect().catch(() => {
+      if (isActive) handleConnectionFailure();
     });
     provider = new HocuspocusProvider({
       document: ydoc,

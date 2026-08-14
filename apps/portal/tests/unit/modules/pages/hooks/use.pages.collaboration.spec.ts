@@ -21,6 +21,11 @@ const awarenessFieldCalls: AwarenessFieldCall[] = [];
 const attachCalls: MockHocuspocusProvider[] = [];
 
 class MockHocuspocusProviderWebsocket {
+  /** The socket is asked to connect by the session, so its refusal belongs to the session. */
+  connect(): Promise<void> {
+    return Promise.resolve();
+  }
+
   destroy(): void {
     destroyCalls.push('websocket');
   }

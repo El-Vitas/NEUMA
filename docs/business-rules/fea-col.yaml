@@ -1,0 +1,49 @@
+id: FEA-COL
+name: Escritura en vivo
+purpose: >-
+  Define cómo varias personas escriben la misma página a la vez y qué ocurre cuando la conexión en vivo no está
+  disponible.
+scope: collaboration
+rules:
+  - id: BR-7ee2df8
+    status: active
+    title: La página se sigue escribiendo sin conexión en vivo
+    rule: >-
+      La escritura en vivo permite que varias personas trabajen la misma página a la vez y vean quién está presente. Si
+      esa conexión no se puede establecer, la página se sigue escribiendo y guardando; lo único que se pierde es ver a
+      los demás en el momento.
+    why: >-
+      La conexión en vivo es una comodidad, no la condición para trabajar. Un servidor reiniciándose no puede dejar a
+      nadie sin poder escribir.
+  - id: BR-bacaeed
+    status: active
+    title: Cada persona escribe con su nombre visible
+    rule: >-
+      Quien entra a escribir en vivo se anuncia con su nombre para el resto, y ese nombre se actualiza si cambia sin
+      necesidad de reconectar.
+    why: >-
+      Ver quién más está en la página es lo que evita pisarse el trabajo, y un participante sin nombre no dice nada a
+      nadie.
+  - id: BR-d7afef8
+    status: active
+    title: Una conexión rechazada no interrumpe la escritura
+    rule: >-
+      Que la conexión en vivo sea rechazada no puede mostrarse como un fallo del sistema ni interrumpir a quien está
+      escribiendo. La página lo refleja en su estado de conexión y sigue funcionando.
+    why: >-
+      Abrir una página mientras el servidor se reinicia es algo cotidiano, y presentarlo como un error hace dudar de si
+      lo escrito se perdió.
+  - id: BR-d985817
+    status: active
+    title: Un corte provoca una sola reconexión
+    rule: >-
+      Un corte de la conexión en vivo provoca un solo intento de reconexión, con una espera que crece entre intentos y
+      un máximo de intentos. Al agotarlos, la página avisa que dejó de intentarlo.
+    why: >-
+      El mismo corte se conoce por más de una vía, y tratar cada aviso como un corte distinto abre varias sesiones
+      compitiendo y gasta los intentos al doble de velocidad de lo que se le dijo a la persona.
+    scenarios:
+      - title: Un corte avisado varias veces
+        given: Una página conectada en vivo
+        when: La conexión se cae y el sistema se entera por más de una vía
+        then: Se programa una sola reconexión y el estado de la página lo dice una sola vez

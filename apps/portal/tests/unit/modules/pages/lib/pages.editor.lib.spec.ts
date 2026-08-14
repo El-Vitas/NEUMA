@@ -4,6 +4,7 @@ import {
   createEmptyPageContent,
   createPageEditorState,
   isPageEditorReadOnly,
+  readWhatThePageCanKeep,
   serializePageEditorState,
 } from '@/modules/pages/lib/pages.editor.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
@@ -234,5 +235,33 @@ describe('computeSelectionToolbarPlacement', () => {
     });
 
     expect(placement.left).toBe(surfaceRect.width - 220 - 8);
+  });
+});
+
+/**
+ * The editor lets more be written than a page accepts, and a page that quietly
+ * stops being kept while somebody keeps writing it is the worst way for that to
+ * end — so what cannot be kept comes back as nothing, to be said out loud.
+ */
+describe('what of the writing the page is able to keep', () => {
+  it('hands back the writing when the page can keep it', () => {
+    const state = createPageEditorState(content, 'Elegir bloque');
+
+    expect(readWhatThePageCanKeep(state)).not.toBeNull();
+  });
+
+  it('hands back nothing when a block grows longer than a page holds', () => {
+    const started: PageContent = {
+      content: [
+        { attrs: { language: 'mermaid' }, content: [{ text: 'flowchart TD', type: 'text' }], type: 'code_block' },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+    const state = createPageEditorState(started, 'Elegir bloque');
+
+    const overgrown = state.apply(state.tr.insertText('A'.repeat(20_001), 1));
+
+    expect(readWhatThePageCanKeep(overgrown)).toBeNull();
   });
 });

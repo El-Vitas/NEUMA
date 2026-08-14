@@ -21,7 +21,22 @@ const mountToggle = (open?: boolean): { readonly container: HTMLElement; readonl
   document.body.appendChild(container);
   const view = new EditorView(container, {
     nodeViews: createPageEditorNodeViews({
-      code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
+      code: {
+        copied: 'Copied',
+        copy: 'Copy',
+        diagram: {
+          both: 'Both',
+          code: 'Code',
+          download: 'Download',
+          drawing: 'Drawing',
+          fullScreen: 'Full screen',
+          line: 'line',
+          unknown: 'no es un diagrama',
+        },
+        language: 'Language',
+        languages: { plain: 'No language' },
+        wrap: 'Wrap',
+      },
       embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
       file: { fullScreen: 'Full screen', resize: 'Resize the document' },
       collection: 'Collection',

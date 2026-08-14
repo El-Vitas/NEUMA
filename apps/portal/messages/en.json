@@ -58,6 +58,7 @@
     "spaces": "Spaces",
     "collapseSpace": "Collapse {name}",
     "expandSpace": "Expand {name}",
+    "docs": "Documentation",
     "users": "Users",
     "account": "Account",
     "profile": "Profile",
@@ -269,6 +270,7 @@
     "pageActions": "Actions for {name}",
     "pageTree": "Pages in this space",
     "writeHere": "Write, or press / for blocks",
+    "blockTooLong": "One block is too long and the page is not being saved. Shorten it or split it into several blocks.",
     "trash": "Trash",
     "trashPage": "Move to trash",
     "restorePage": "Restore page",
@@ -289,6 +291,7 @@
       "blockquote": "Blockquote",
       "code": "Code",
       "codeBlock": "Code block",
+      "diagram": "Diagram",
       "redo": "Redo",
       "divider": "Divider",
       "table": "Table",
@@ -428,6 +431,7 @@
     "foldHeading": "Fold or unfold this heading",
     "openToggle": "Open or close this toggle",
     "toggleTitle": "Toggle title",
+    "codeCopied": "Code copied",
     "copyCode": "Copy the code",
     "codeLanguage": "Code language",
     "wrapCode": "Wrap long lines",
@@ -440,11 +444,21 @@
       "javascript": "JavaScript",
       "json": "JSON",
       "markdown": "Markdown",
+      "mermaid": "Diagram",
       "python": "Python",
       "sql": "SQL",
       "typescript": "TypeScript",
       "yaml": "YAML"
     },
+    "diagramView": {
+      "drawing": "Drawing only",
+      "code": "Code only",
+      "both": "Code and drawing"
+    },
+    "diagramUnknown": "The first line does not say what kind of diagram this is.",
+    "diagramLine": "line",
+    "diagramDownload": "Download the drawing",
+    "diagramFullScreen": "See it full screen",
     "calloutIcon": "Callout mark",
     "noCalloutIcon": "No mark",
     "calloutIcons": {
@@ -540,5 +554,14 @@
   },
   "language": {
     "label": "Language"
+  },
+  "docs": {
+    "title": "Documentation",
+    "subtitle": "How the things in this workspace are used, explained step by step.",
+    "back": "← Back to documentation",
+    "contents": "On this page",
+    "drawingActualSize": "Actual size",
+    "drawingFit": "Fit",
+    "empty": "No documents have been written yet."
   }
 }
