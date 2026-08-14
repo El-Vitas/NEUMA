@@ -22,6 +22,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
 
   const nodeViews = createPageEditorNodeViews({
     code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
+    embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
     file: { fullScreen: 'Full screen', resize: 'Resize the document' },
     collection: 'Collection',
     image: { caption: 'Describe the image', resize: 'Resize' },
@@ -67,6 +68,7 @@ describe('createPageEditorNodeViews mention', () => {
 describe('createPageEditorNodeViews collection', () => {
   const nodeViews = createPageEditorNodeViews({
     code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
+    embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
     file: { fullScreen: 'Full screen', resize: 'Resize the document' },
     collection: 'Collection',
     image: { caption: 'Describe the image', resize: 'Resize' },

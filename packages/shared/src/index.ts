@@ -106,6 +106,7 @@ export type {
   PageEmbedProvider,
 } from './schemas/page-content.schema.js';
 export {
+  canPageBlockHold,
   isAllowedPageEmbedUrl,
   isKnownPageContentNode,
   PAGE_BLOCK_COLORS,
@@ -119,6 +120,7 @@ export {
   pageAssetAttrsSchema,
   pageCollectionAttrsSchema,
   pageContentSchema,
+  pageBookmarkAttrsSchema,
   pageEmbedAttrsSchema,
   pageFileAttrsSchema,
   pageImageAttrsSchema,

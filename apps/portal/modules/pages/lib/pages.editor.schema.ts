@@ -75,11 +75,30 @@ const getPageEditorImageAttrs = (element: HTMLElement): Record<string, string | 
   };
 };
 
-const getPageEditorEmbedAttrs = (element: HTMLElement): { readonly provider: string; readonly url: string } | false => {
+/** What a page kept about a link it holds as a card. */
+const getPageEditorBookmarkAttrs = (element: HTMLElement): Record<string, string | null> | false => {
+  const url = element.getAttribute('href') ?? element.dataset.url;
+  if (url === undefined || url === null || url.length === 0) return false;
+  return {
+    description: element.dataset.description ?? null,
+    icon: element.dataset.icon ?? null,
+    title: element.dataset.title ?? null,
+    url,
+  };
+};
+
+const getPageEditorEmbedAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
   const { pageEmbed, url } = element.dataset;
   const knownProvider = PAGE_EMBED_PROVIDERS.find((entry) => entry === pageEmbed);
   if (knownProvider === undefined || url === undefined || !isAllowedPageEmbedUrl(knownProvider, url)) return false;
-  return { provider: knownProvider, url };
+  const align = element.dataset.align;
+  const width = Number.parseFloat(element.dataset.width ?? '');
+  return {
+    align: PAGE_BLOCK_ALIGNMENTS.find((known) => known === align) ?? null,
+    provider: knownProvider,
+    url,
+    width: Number.isFinite(width) && width > 0 && width <= 1 ? width : null,
+  };
 };
 
 const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; readonly summary: string } | false => {
@@ -310,15 +329,42 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     }),
   ],
   [
+    'bookmark',
+    definePageBlock({
+      attrs: { description: { default: null }, icon: { default: null }, title: { default: null }, url: {} },
+      atom: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorBookmarkAttrs, tag: 'a[data-page-bookmark]' }],
+      render: (node, blockAttributes) => [
+        'a',
+        {
+          ...blockAttributes,
+          'data-page-bookmark': 'true',
+          href: node.attrs.url,
+          rel: 'noopener noreferrer',
+          ...(typeof node.attrs.title === 'string' ? { 'data-title': node.attrs.title } : {}),
+          ...(typeof node.attrs.description === 'string' ? { 'data-description': node.attrs.description } : {}),
+          ...(typeof node.attrs.icon === 'string' ? { 'data-icon': node.attrs.icon } : {}),
+        },
+      ],
+    }),
+  ],
+  [
     'embed',
     definePageBlock({
-      attrs: { provider: {}, url: {} },
+      attrs: { align: { default: null }, provider: {}, url: {}, width: { default: null } },
       atom: true,
       group: 'block',
       parseDOM: [{ getAttrs: getPageEditorEmbedAttrs, tag: 'div[data-page-embed]' }],
       render: (node, blockAttributes) => [
         'div',
-        { ...blockAttributes, 'data-page-embed': node.attrs.provider, 'data-url': node.attrs.url },
+        {
+          ...blockAttributes,
+          'data-page-embed': node.attrs.provider,
+          'data-url': node.attrs.url,
+          ...(typeof node.attrs.align === 'string' ? { 'data-align': node.attrs.align } : {}),
+          ...(typeof node.attrs.width === 'number' ? { 'data-width': String(node.attrs.width) } : {}),
+        },
       ],
     }),
   ],

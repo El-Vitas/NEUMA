@@ -3,6 +3,7 @@ import type { PageEditorBlockColors } from './pages.editor.block-color.types';
 import type { PageEditorBlockRequest } from './pages.editor.block-request.types';
 import type { PageEditorCalloutIconChoice } from './pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from './pages.editor.convert.types';
+import type { PageEditorLinkTarget } from './pages.editor.link-shape.types';
 
 /** Where on the screen a spot of the page is, measured from the editor's own box. */
 export interface PageEditorSpot {
@@ -33,6 +34,7 @@ export interface PageEditorSurfaceState {
   readonly foldState: { readonly isFolded: boolean } | null;
   readonly blockAlign: { readonly chosen: string | null } | null;
   readonly fileDisplay: { readonly chosen: string } | null;
+  readonly linkTarget: PageEditorLinkTarget | null;
   readonly isInTable: boolean;
   readonly menuPosition: PageEditorSpot | null;
   readonly request: PageEditorBlockRequest | null;

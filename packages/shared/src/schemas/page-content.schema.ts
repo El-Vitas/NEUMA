@@ -20,6 +20,7 @@ const maximumCommentBodyLength = 2_000;
 const maximumCommentDateLength = 40;
 const maximumCommentsPerBlock = 50;
 const maximumUnknownTypeLength = 80;
+const maximumBookmarkTextLength = 300;
 
 export const PAGE_EMBED_PROVIDERS = ['figma', 'loom', 'vimeo', 'youtube'] as const;
 export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
@@ -272,11 +273,31 @@ export const pageImageAttrsSchema = pageAssetAttrsSchema
   })
   .strict();
 
+/**
+ * A link kept on the page as a card: what it is called, what it says about
+ * itself, and the mark the site is known by.
+ *
+ * What was read from the link is written down rather than looked up again: a
+ * page has to read the same tomorrow, and the site it points at may be gone by
+ * then — a card that keeps its title still says what was linked.
+ */
+export const pageBookmarkAttrsSchema = z
+  .object({
+    ...pageBlockAttrsShape,
+    description: z.string().max(maximumBookmarkTextLength).optional(),
+    icon: z.url().max(maximumEmbedUrlLength).optional(),
+    title: z.string().max(maximumBookmarkTextLength).optional(),
+    url: z.url().max(maximumEmbedUrlLength),
+  })
+  .strict();
+
 export const pageEmbedAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
+    align: z.enum(PAGE_BLOCK_ALIGNMENTS).optional(),
     provider: z.enum(PAGE_EMBED_PROVIDERS),
     url: z.url().max(maximumEmbedUrlLength),
+    width: z.number().gt(0).lte(1).optional(),
   })
   .strict()
   .superRefine((attrs, context) => {
@@ -421,6 +442,7 @@ export type PageContentKnownNode =
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'video' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'audio' }
   | { readonly attrs: z.infer<typeof pageFileAttrsSchema>; readonly type: 'file' }
+  | { readonly attrs: z.infer<typeof pageBookmarkAttrsSchema>; readonly type: 'bookmark' }
   | { readonly attrs: z.infer<typeof pageEmbedAttrsSchema>; readonly type: 'embed' }
   | { readonly attrs: z.infer<typeof pageCollectionAttrsSchema>; readonly type: 'collection' };
 
@@ -452,6 +474,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'image',
   'video',
   'file',
+  'bookmark',
   'embed',
   'collection',
   'text',
@@ -622,6 +645,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('video') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('audio') }).strict(),
     z.object({ attrs: pageFileAttrsSchema, type: z.literal('file') }).strict(),
+    z.object({ attrs: pageBookmarkAttrsSchema, type: z.literal('bookmark') }).strict(),
     z.object({ attrs: pageEmbedAttrsSchema, type: z.literal('embed') }).strict(),
     z.object({ attrs: pageCollectionAttrsSchema, type: z.literal('collection') }).strict(),
   ]),
@@ -724,6 +748,7 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   'image',
   'video',
   'file',
+  'bookmark',
   'embed',
   'collection',
   'nested_block',
@@ -753,6 +778,18 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
   column_list: ['column'],
   column: pageContainerChildTypes,
 };
+
+/**
+ * Whether a block of one kind may hold a block of another.
+ *
+ * Asked before writing rather than after: the editor is free to draw more than
+ * a page may keep, and a block put where the page cannot keep it is only found
+ * out when the page fails to save.
+ */
+export const canPageBlockHold = (parent: string, child: string): boolean =>
+  parent in pageBlockParentChildTypes
+    ? pageBlockParentChildTypes[parent as PageBlockParentType].some((allowed) => allowed === child)
+    : true;
 
 const validateBlockChildren = (
   nodes: readonly PageContentNode[],

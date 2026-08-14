@@ -10,6 +10,7 @@ export const PAGE_EDITOR_QUIET_SURFACE: PageEditorSurfaceState = {
   foldState: null,
   blockAlign: null,
   fileDisplay: null,
+  linkTarget: null,
   isInTable: false,
   menuPosition: null,
   request: null,

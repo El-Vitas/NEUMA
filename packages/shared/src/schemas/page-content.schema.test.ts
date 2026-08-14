@@ -139,6 +139,32 @@ describe('pageContentSchema', () => {
     ).toBe(false);
   });
 
+  test('accepts a link kept as a card, with or without what was read from it', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [
+          {
+            attrs: { icon: 'https://example.com/favicon.ico', title: 'Ejemplo', url: 'https://example.com/a' },
+            type: 'bookmark',
+          },
+          { attrs: { url: 'https://example.com/b' }, type: 'bookmark' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects a card that points nowhere', () => {
+    expect(
+      pageContentSchema.safeParse({
+        content: [{ attrs: { title: 'Ejemplo' }, type: 'bookmark' }],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts a document placed and sized where it is read', () => {
     expect(
       pageContentSchema.safeParse({

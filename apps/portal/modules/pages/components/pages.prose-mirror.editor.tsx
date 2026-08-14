@@ -27,6 +27,7 @@ import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arri
 import { usePagesEditorBlocksToPage } from '../hooks/use.pages.editor.blocks-to-page';
 import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
 import { usePagesEditorPageDrop } from '../hooks/use.pages.editor.page-drop';
+import { usePagesEditorPastedLink } from '../hooks/use.pages.editor.pasted-link';
 import { usePagesEditorTriggerMenu } from '../hooks/use.pages.editor.trigger-menu';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
@@ -49,6 +50,7 @@ import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
 import { PagesEditorBlockActions } from './pages.editor.block-actions';
 import { PagesEditorCollaborationStatus } from './pages.editor.collaboration.status';
+import { PagesEditorLinkShapeMenu } from './pages.editor.link-shape.menu';
 import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
 import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
 import { PagesEditorToolbar } from './pages.editor.toolbar';
@@ -88,6 +90,11 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
+    const embedLabelsRef = useRef({
+      providers: { figma: 'Figma', loom: 'Loom', vimeo: 'Vimeo', youtube: 'YouTube' },
+      refused: t('embedRefused'),
+      resize: t('resizeEmbed'),
+    });
     const fileLabelsRef = useRef({ fullScreen: t('mediaFullScreen'), resize: t('resizeFile') });
     const imageLabelsRef = useRef({ caption: t('imageCaption'), resize: t('resizeImage') });
     const mediaLabelsRef = useRef({
@@ -142,23 +149,6 @@ export const PagesProseMirrorEditor = forwardRef(
       [canEdit, pageId],
     );
 
-    /**
-     * A picture on the clipboard becomes a picture on the page.
-     *
-     * Pasting is how an image most often arrives — from a screenshot, from
-     * another page — and without this it arrived as nothing at all.
-     */
-    const uploadPastedFile = useCallback(
-      (_view: EditorView, event: ClipboardEvent): boolean => {
-        const pastedFile = event.clipboardData?.files[0];
-        if (!canEdit || pageId === null || pastedFile === undefined) return false;
-        event.preventDefault();
-        uploadAttachmentRef.current(pastedFile);
-        return true;
-      },
-      [canEdit, pageId],
-    );
-
     /** The editor's own box, which every menu is placed against. */
     const readSurfaceRect = useCallback((): PageEditorSurfaceRect | null => {
       const surfaceElement = surfaceRef.current;
@@ -166,6 +156,36 @@ export const PagesProseMirrorEditor = forwardRef(
       const rect = surfaceElement.getBoundingClientRect();
       return { left: rect.left, top: rect.top, width: rect.width };
     }, []);
+
+    /**
+     * Taken apart on purpose: the editor is built once, and it is built again
+     * whenever the hand it was given changes. A whole object handed over fresh
+     * on every render is a new hand every time, and rebuilding the editor
+     * reloads every video, every frame and every document on the page.
+     */
+    const pastedLink = usePagesEditorPastedLink(editorViewRef, readSurfaceRect);
+    const { handlePastedLink } = pastedLink;
+
+    /**
+     * A picture on the clipboard becomes a picture on the page.
+     *
+     * Pasting is how an image most often arrives — from a screenshot, from
+     * another page — and without this it arrived as nothing at all.
+     */
+    const uploadPastedFile = useCallback(
+      (view: EditorView, event: ClipboardEvent): boolean => {
+        const pastedFile = event.clipboardData?.files[0];
+        if (!canEdit) return false;
+        if (pastedFile !== undefined) {
+          if (pageId === null) return false;
+          event.preventDefault();
+          uploadAttachmentRef.current(pastedFile);
+          return true;
+        }
+        return handlePastedLink(view, event);
+      },
+      [canEdit, handlePastedLink, pageId],
+    );
 
     const collections = usePagesEditorCollectionHosts(editorHostRef);
     const syncCollectionHosts = collections.sync;
@@ -259,6 +279,7 @@ export const PagesProseMirrorEditor = forwardRef(
         nodeViews: createPageEditorNodeViews({
           code: codeLabelsRef.current,
           collection: collectionLabelRef.current,
+          embed: embedLabelsRef.current,
           file: fileLabelsRef.current,
           image: imageLabelsRef.current,
           media: mediaLabelsRef.current,
@@ -374,6 +395,14 @@ export const PagesProseMirrorEditor = forwardRef(
               <PagesEditorShortcutsDialog usesCommandKey={usesCommandKey} />
             </div>
           )}
+          {canEdit && pastedLink.pasted !== null && (
+            <div
+              className="absolute z-30"
+              style={{ left: `${pastedLink.pasted.left}px`, top: `${pastedLink.pasted.top}px` }}
+            >
+              <PagesEditorLinkShapeMenu onChoose={pastedLink.choose} />
+            </div>
+          )}
           {canEdit && surface.toolbarPosition !== null && (
             <div
               className="absolute z-30"
@@ -419,12 +448,14 @@ export const PagesProseMirrorEditor = forwardRef(
               foldState={surface.foldState}
               hasIdentity={surface.blockId !== null}
               isInTable={surface.isInTable}
+              linkTarget={surface.linkTarget}
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}
               onBecomePage={becomePage}
               onClose={blockActions.close}
               onCopyLink={blockActions.copyLink}
               onHandOver={blockActions.handOver}
+              onLinkShape={pastedLink.shapeLink}
               onRunCommand={blockActions.runCommand}
               pageId={pageId}
               request={surface.request}

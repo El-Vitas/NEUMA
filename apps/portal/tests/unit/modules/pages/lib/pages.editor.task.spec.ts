@@ -27,6 +27,7 @@ const mountTask = (checked?: boolean): { readonly container: HTMLElement; readon
   const view = new EditorView(container, {
     nodeViews: createPageEditorNodeViews({
       code: { copy: 'Copy', language: 'Language', languages: { plain: 'No language' }, wrap: 'Wrap' },
+      embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
       file: { fullScreen: 'Full screen', resize: 'Resize the document' },
       collection: 'Collection',
       image: { caption: 'Describe the image', resize: 'Resize' },

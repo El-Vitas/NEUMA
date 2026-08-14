@@ -20,6 +20,7 @@ import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../type
 import type { PageEditorCalloutIconChoice } from '../types/pages.editor.callout-icon.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
+import type { PageEditorLinkShape, PageEditorLinkTarget } from '../types/pages.editor.link-shape.types';
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
 import { PagesEditorBlockHandoverDialog } from './pages.editor.block-handover.dialog';
@@ -30,6 +31,8 @@ interface IProps {
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly blockAlign: { readonly chosen: string | null } | null;
   readonly fileDisplay: { readonly chosen: string } | null;
+  readonly linkTarget: PageEditorLinkTarget | null;
+  readonly onLinkShape: (target: PageEditorLinkTarget, shape: PageEditorLinkShape) => void;
   readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
   readonly comments: readonly PageBlockComment[];
@@ -62,6 +65,8 @@ export const PagesEditorBlockActions = ({
   colors,
   blockAlign,
   fileDisplay,
+  linkTarget,
+  onLinkShape,
   isInTable,
   comments,
   conversions,
@@ -109,6 +114,7 @@ export const PagesEditorBlockActions = ({
                   }
             }
             hasIdentity={hasIdentity}
+            linkTarget={linkTarget}
             onBecomePage={onBecomePage}
             onBlockAlign={(align) => onRunCommand(createPageBlockAlignmentCommand(align))}
             onCalloutIcon={(icon) => onRunCommand(createPageEditorCalloutIconCommand(icon))}
@@ -120,6 +126,9 @@ export const PagesEditorBlockActions = ({
             onDelete={() => onRunCommand(deletePageEditorBlocks)}
             onDuplicate={() => onRunCommand(duplicatePageEditorBlock)}
             onFileDisplay={(display) => onRunCommand(createPageFileDisplayCommand(display))}
+            onLinkShape={(shape) => {
+              if (linkTarget !== null) onLinkShape(linkTarget, shape);
+            }}
             onMoveToPage={() => onAsk('handover')}
             onTableAction={(action: PageEditorTableAction) => onRunCommand(createPageTableCommand(action))}
             tableActions={isInTable}
