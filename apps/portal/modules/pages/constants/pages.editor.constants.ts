@@ -71,13 +71,14 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   '[&_.ProseMirror_hr]:my-6 [&_.ProseMirror_hr]:border-border [&_.ProseMirror_hr]:border-t',
   /**
    * A link written among the words looks like one. The blocks that are a link
-   * whole — a card, a document — draw themselves and are left alone.
+   * whole — a card, a document, a page started here — draw themselves and are
+   * left alone.
    */
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file])]:text-primary',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file])]:underline',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file])]:underline-offset-4',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file])]:decoration-primary/50',
-  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file])]:hover:decoration-primary',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:text-primary',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:underline',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:underline-offset-4',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:decoration-primary/50',
+  '[&_.ProseMirror_a:not([data-page-bookmark]):not([data-page-file]):not([data-page-subpage])]:hover:decoration-primary',
   /** The code sits right under the bar that describes it, as one block and not two. */
   '[&_.ProseMirror_[data-code-block]_pre]:mt-0',
   '[&_.ProseMirror_blockquote]:my-6 [&_.ProseMirror_blockquote]:border-primary [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:ps-4 [&_.ProseMirror_blockquote]:text-muted-foreground',

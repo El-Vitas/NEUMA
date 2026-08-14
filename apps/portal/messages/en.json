@@ -304,6 +304,7 @@
       "taskList": "To-do list",
       "callout": "Callout",
       "insertImage": "Image",
+      "pageLink": "Link to a page",
       "subpage": "Subpage"
     },
     "backlinks": {

@@ -443,9 +443,20 @@ export const PAGE_EDITOR_CONTENTS_TYPE = 'table_of_contents';
 /** The block that leads to a page hanging from this one. */
 export const PAGE_EDITOR_SUBPAGE_TYPE = 'subpage';
 
+/** What is written to start looking for a page already written, wherever the looking was asked for. */
+export const PAGE_EDITOR_MENTION_TRIGGER = '@';
+
+/** A page named in the middle of a sentence: it reads as part of the line, not as a line of its own. */
+export const PAGE_EDITOR_MENTION_STYLE_CLASS = [
+  'inline-flex items-baseline gap-1 rounded px-0.5 text-primary underline underline-offset-4',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+].join(' ');
+
+export const PAGE_EDITOR_MENTION_MARK_STYLE_CLASS = 'size-3.5 self-center shrink-0';
+
 /** A page in the writing: the line that leads to it, drawn as a line and not as a card. */
 export const PAGE_EDITOR_SUBPAGE_STYLE_CLASS = [
-  'my-1 flex w-full items-center gap-2 rounded px-1 py-1.5 no-underline',
+  'group my-1 flex w-full items-center gap-2 rounded px-1 py-1.5 no-underline',
   'font-medium text-foreground transition-colors hover:bg-surface-low',
   'outline-none focus-visible:ring-2 focus-visible:ring-ring',
 ].join(' ');
@@ -453,7 +464,12 @@ export const PAGE_EDITOR_SUBPAGE_STYLE_CLASS = [
 /** The mark of a page, drawn rather than written, so it says «page» in any language. */
 export const PAGE_EDITOR_SUBPAGE_MARK_STYLE_CLASS = 'size-4 shrink-0 text-muted-foreground';
 
-export const PAGE_EDITOR_SUBPAGE_NAME_STYLE_CLASS = 'truncate underline decoration-border underline-offset-4';
+/**
+ * A page started here is named plainly, not underlined: what is underlined in a
+ * page is a link to somewhere else, and this one is part of the page itself.
+ * The underline arrives when the pointer does, which is when it behaves as one.
+ */
+export const PAGE_EDITOR_SUBPAGE_NAME_STYLE_CLASS = 'truncate underline-offset-4 group-hover:underline';
 
 /** A step of indentation inside code: two spaces, written as such rather than as a tab. */
 export const PAGE_EDITOR_CODE_INDENT = '  ';

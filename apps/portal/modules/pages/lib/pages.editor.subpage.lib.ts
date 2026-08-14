@@ -1,6 +1,9 @@
 import type { Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
-import { PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR } from '../constants/pages.editor.blocks.constants';
+import {
+  PAGE_EDITOR_MENTION_TRIGGER,
+  PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR,
+} from '../constants/pages.editor.blocks.constants';
 import type { PageSubpageInsert } from '../types/pages.editor.subpage.types';
 
 /**
@@ -17,19 +20,40 @@ export const askForPageChild: Command = (_state, _dispatch, view) => {
   return true;
 };
 
-/** Puts the line that leads to a child page where the writing was left. */
+/**
+ * Puts the line that leads to a child page where the writing was left.
+ *
+ * Where it was left is said outright rather than read from the writing when the
+ * page comes back: making a page takes a moment, and in that moment the cursor
+ * has been elsewhere — the menu was pressed, the writing lost hold — so a line
+ * asked for at the end of a page would land at the top of it.
+ */
 export const createPageSubpageInsertCommand =
-  (schema: Schema, subpage: PageSubpageInsert): Command =>
+  (schema: Schema, subpage: PageSubpageInsert, spot: number): Command =>
   (state, dispatch) => {
     const subpageType = schema.nodes.subpage;
     if (subpageType === undefined) return false;
     if (dispatch === undefined) return true;
 
     const node = subpageType.createChecked(subpage);
-    const transaction = state.tr.replaceSelectionWith(node, false);
+    const at = Math.min(Math.max(spot, 0), state.doc.content.size);
+    const transaction = state.tr.replaceRangeWith(at, at, node);
     dispatch(transaction.scrollIntoView());
     return true;
   };
+
+/**
+ * Asks which page already written is being named here.
+ *
+ * The asking is the same one `@` does, so it is done by writing the `@`: one
+ * way of looking for a page, whether it was reached from the menu or typed
+ * straight into the sentence.
+ */
+export const askForAPageAlreadyWritten: Command = (state, dispatch) => {
+  if (dispatch === undefined) return true;
+  dispatch(state.tr.insertText(PAGE_EDITOR_MENTION_TRIGGER));
+  return true;
+};
 
 /** What a page hanging from another is called before anybody has named it. */
 export const nameTheChildPage = (title: string, untitled: string): string =>
