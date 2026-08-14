@@ -292,6 +292,7 @@
       "code": "Code",
       "codeBlock": "Code block",
       "diagram": "Diagram",
+      "formula": "Formula",
       "redo": "Redo",
       "divider": "Divider",
       "table": "Table",
@@ -443,6 +444,7 @@
       "java": "Java",
       "javascript": "JavaScript",
       "json": "JSON",
+      "latex": "Formula",
       "markdown": "Markdown",
       "mermaid": "Diagram",
       "python": "Python",
@@ -454,6 +456,11 @@
       "drawing": "Drawing only",
       "code": "Code only",
       "both": "Code and drawing"
+    },
+    "formulaView": {
+      "drawing": "Formula only",
+      "code": "Code only",
+      "both": "Code and formula"
     },
     "diagramUnknown": "The first line does not say what kind of diagram this is.",
     "diagramLine": "line",

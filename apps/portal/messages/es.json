@@ -292,6 +292,7 @@
       "code": "Código",
       "codeBlock": "Bloque de código",
       "diagram": "Diagrama",
+      "formula": "Fórmula",
       "redo": "Rehacer",
       "divider": "Separador",
       "table": "Tabla",
@@ -443,6 +444,7 @@
       "java": "Java",
       "javascript": "JavaScript",
       "json": "JSON",
+      "latex": "Fórmula",
       "markdown": "Markdown",
       "mermaid": "Diagrama",
       "python": "Python",
@@ -454,6 +456,11 @@
       "drawing": "Solo el dibujo",
       "code": "Solo el código",
       "both": "Código y dibujo"
+    },
+    "formulaView": {
+      "drawing": "Solo la fórmula",
+      "code": "Solo el código",
+      "both": "Código y fórmula"
     },
     "diagramUnknown": "La primera línea no dice qué tipo de diagrama es.",
     "diagramLine": "línea",

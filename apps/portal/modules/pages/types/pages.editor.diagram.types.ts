@@ -21,4 +21,6 @@ export interface PageEditorDiagramLabels {
   readonly fullScreen: string;
   readonly line: string;
   readonly unknown: string;
+  /** The same three views, named after what is in the box when what is in it is a formula. */
+  readonly formula: { readonly both: string; readonly code: string; readonly drawing: string };
 }

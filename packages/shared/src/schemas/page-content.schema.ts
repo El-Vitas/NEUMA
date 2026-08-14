@@ -60,6 +60,7 @@ export const PAGE_CODE_LANGUAGES = [
   'java',
   'javascript',
   'json',
+  'latex',
   'markdown',
   'python',
   'sql',
@@ -69,10 +70,11 @@ export const PAGE_CODE_LANGUAGES = [
 export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
 
 /**
- * What is shown of a diagram: what was written, what it draws, or both at once.
+ * What is shown of a block that draws: what was written, what it draws, or both at once.
  *
- * The drawing is what a diagram is for, so it is what a page shows unless
- * someone says otherwise; the writing is there for whoever is changing it.
+ * The drawing is what such a block is for — a diagram, a formula — so it is what
+ * a page shows unless someone says otherwise; the writing is there for whoever
+ * is changing it.
  */
 export const PAGE_DIAGRAM_VIEWS = ['drawing', 'code', 'both'] as const;
 export type PageDiagramView = (typeof PAGE_DIAGRAM_VIEWS)[number];

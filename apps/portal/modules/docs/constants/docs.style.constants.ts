@@ -72,3 +72,7 @@ export const DOCS_ARTICLE_LAYOUT_STYLE_CLASS = 'gap-12 lg:grid lg:grid-cols-[min
 
 /** No line of a document runs wider than an eye can follow back to the start of the next one. */
 export const DOCS_READING_WIDTH_STYLE_CLASS = 'min-w-0 max-w-3xl';
+
+/** A formula is set out in the middle of its box, like the line of a book it stands in for. */
+export const DOCS_FORMULA_STYLE_CLASS =
+  'flex justify-center overflow-auto border border-border bg-surface-low p-4 text-foreground';

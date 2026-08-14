@@ -46,8 +46,8 @@ export const DocsDiagram = ({ source }: IProps) => {
     const draw = (): void => {
       void drawDiagram(source).then((made) => {
         const drawing = drawingRef.current;
-        if (!isShown || drawing === null || made.svg === null) return;
-        drawing.innerHTML = made.svg;
+        if (!isShown || drawing === null || made.html === null) return;
+        drawing.innerHTML = made.html;
         show(isFitted);
       });
     };

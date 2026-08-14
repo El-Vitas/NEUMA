@@ -46,3 +46,9 @@ export const PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS = [
   '[&:fullscreen]:bg-surface',
   '[&:fullscreen_[data-page-diagram]]:grow',
 ].join(' ');
+
+/** The language a formula is written in, which is what tells a code block to set it out. */
+export const PAGE_EDITOR_FORMULA_LANGUAGE = 'latex';
+
+/** A formula is set out in the middle of its box, like the line of a book it stands in for. */
+export const PAGE_EDITOR_FORMULA_STYLE_CLASS = 'flex w-full justify-center overflow-auto p-4 text-foreground';
