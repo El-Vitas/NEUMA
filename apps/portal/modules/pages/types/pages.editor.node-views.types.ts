@@ -11,11 +11,18 @@ export interface PageEditorToggleLabels {
   readonly title: string;
 }
 
+/** What a page hanging from this one is called, and what an unnamed one is called. */
+export interface PageEditorSubpageLabels {
+  readonly subpage: string;
+  readonly untitled: string;
+}
+
 /** The user-visible names the editor's node views need, kept out of the libs that render them. */
 export interface PageEditorNodeViewLabels {
   readonly code: PageEditorCodeLabels;
   readonly collection: string;
   readonly contents: PageEditorContentsLabels;
+  readonly subpage: PageEditorSubpageLabels;
   readonly embed: PageEditorEmbedLabels;
   readonly file: PageEditorDocumentLabels;
   readonly image: PageEditorImageLabels;

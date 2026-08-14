@@ -42,6 +42,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
     file: { fullScreen: 'Full screen', resize: 'Resize the document' },
     collection: 'Collection',
     contents: { empty: 'sin encabezados', title: 'en esta página' },
+    subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
     image: { caption: 'Describe the image', resize: 'Resize' },
     task: 'Task',
     media: {
@@ -105,6 +106,7 @@ describe('createPageEditorNodeViews collection', () => {
     file: { fullScreen: 'Full screen', resize: 'Resize the document' },
     collection: 'Collection',
     contents: { empty: 'sin encabezados', title: 'en esta página' },
+    subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
     image: { caption: 'Describe the image', resize: 'Resize' },
     task: 'Task',
     media: {

@@ -191,6 +191,26 @@ rules:
     context: >-
       Solo unos pocos servicios pueden mostrarse dentro de la página; el resto de las direcciones son enlaces o
       tarjetas.
+  - id: BR-94069a8
+    status: active
+    title: Una subpágina se nombra donde vive
+    rule: >-
+      Una página puede tener páginas colgando de ella, puestas en la escritura como la línea que lleva a cada una. El
+      bloque guarda qué página es, no cómo se llama: el nombre se lee de la página cada vez que se muestra. Borrar el
+      bloque no borra la página.
+    why: >-
+      Un nombre copiado en la escritura envejece en cuanto alguien renombra la página, y la página termina anunciada con
+      un nombre que ya no es el suyo. Y borrar una línea de una página no puede significar tirar a la basura todo lo que
+      hay escrito en otra.
+    context: >-
+      El nombre escrito al insertarla queda de respaldo, para una hija que ya no se puede leer desde aquí. Una subpágina
+      ocupa su propia línea, con la marca de una página delante, que es lo que la distingue de un enlace a una página
+      que ya existía.
+    scenarios:
+      - title: La hija cambia de nombre
+        given: Una página con una subpágina llamada «Sin título»
+        when: Alguien abre la hija y la renombra
+        then: La línea en la madre pasa a decir el nombre nuevo
   - id: BR-9577952
     status: active
     title: Un bloque que esta versión no conoce se conserva tal como llegó

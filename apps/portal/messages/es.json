@@ -234,6 +234,8 @@
     "noMentionCandidates": "No hay páginas coincidentes.",
     "searchingMentionCandidates": "Buscando páginas...",
     "titleField": "Título",
+    "subpageBlock": "Subpágina",
+    "subpageNeedsPage": "Crea esta página antes de colgarle otra.",
     "untitled": "Sin título",
     "content": "Contenido estructurado",
     "contentHelp": "El texto se guarda como un bloque estructurado versionado.",
@@ -301,7 +303,8 @@
       "undo": "Deshacer",
       "taskList": "Lista de tareas",
       "callout": "Destacado",
-      "insertImage": "Imagen"
+      "insertImage": "Imagen",
+      "subpage": "Subpágina"
     },
     "backlinks": {
       "title": "Vinculado desde ({count})"

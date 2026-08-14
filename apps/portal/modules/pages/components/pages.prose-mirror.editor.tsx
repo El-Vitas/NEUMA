@@ -1,6 +1,7 @@
 'use client';
 
 import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
@@ -16,9 +17,12 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  useTransition,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
+import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../constants/pages.editor.constants';
 import { PAGE_EDITOR_QUIET_SURFACE } from '../constants/pages.editor.surface.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
@@ -37,6 +41,7 @@ import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import { followThePageHeadings, goToThePageHeading } from '../lib/pages.editor.contents.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import {
+  createEmptyPageContent,
   createPageEditorState,
   isPageEditorReadOnly,
   readWhatThePageCanKeep,
@@ -44,12 +49,15 @@ import {
   usesCommandKeyboard,
 } from '../lib/pages.editor.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
+import { pageEditorSchema } from '../lib/pages.editor.schema';
 import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.lib';
+import { createPageSubpageInsertCommand, readPageTitleFrom } from '../lib/pages.editor.subpage.lib';
 import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
+import { createPageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
-import type { PageContent } from '../types/pages.types';
+import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
 import { PagesEditorBlockActions } from './pages.editor.block-actions';
 import { PagesEditorCollaborationStatus } from './pages.editor.collaboration.status';
@@ -67,6 +75,8 @@ interface IProps {
   readonly onContentChange: (content: PageContent) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
   readonly pageId: string | null;
+  /** The pages this one already knows about, which is how a block says what a page is called now. */
+  readonly pages?: readonly PageSummary[];
   readonly spaceId: string;
 }
 
@@ -81,6 +91,7 @@ export const PagesProseMirrorEditor = forwardRef(
       onContentChange,
       onHeadingsChange,
       pageId,
+      pages = EMPTY_PAGE_SUMMARIES,
       spaceId,
     }: IProps,
     handleRef: ForwardedRef<{
@@ -88,7 +99,10 @@ export const PagesProseMirrorEditor = forwardRef(
       readonly runCommand: (command: Command) => boolean;
     }>,
   ) => {
+    const router = useRouter();
     const t = useTranslations('pages');
+    const tErrors = useTranslations('errors');
+    const [isMakingChild, startMakingChild] = useTransition();
     const selectBlockLabelRef = useRef(t('selectBlock'));
     const collectionLabelRef = useRef(t('collectionBlock'));
     const taskLabelRef = useRef(t('taskBlock'));
@@ -99,6 +113,9 @@ export const PagesProseMirrorEditor = forwardRef(
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const blockTooLongLabelRef = useRef(t('blockTooLong'));
     const resizeColumnLabelRef = useRef(t('resizeColumn'));
+    const subpageLabelsRef = useRef({ subpage: t('subpageBlock'), untitled: t('untitled') });
+    const pagesRef = useRef(pages);
+    const readPageTitleRef = useRef((childId: string): string | null => readPageTitleFrom(pagesRef.current, childId));
     const contentsLabelsRef = useRef({ empty: t('pageContentsEmpty'), title: t('pageContents') });
     /** Said once, and again only after the page has managed to keep something. */
     const toldOfTooMuchRef = useRef(false);
@@ -276,6 +293,10 @@ export const PagesProseMirrorEditor = forwardRef(
       headingsCallbackRef.current = onHeadingsChange;
     }, [onHeadingsChange]);
 
+    useEffect(() => {
+      pagesRef.current = pages;
+    }, [pages]);
+
     /**
      * The page keeps what it can keep, and says so when it cannot.
      *
@@ -332,18 +353,22 @@ export const PagesProseMirrorEditor = forwardRef(
         editable: () => !isPageEditorReadOnly(canEdit),
         handleKeyDown: answerKeyPress,
         handlePaste: uploadPastedFile,
-        nodeViews: createPageEditorNodeViews({
-          code: codeLabelsRef.current,
-          collection: collectionLabelRef.current,
-          contents: contentsLabelsRef.current,
-          embed: embedLabelsRef.current,
-          file: fileLabelsRef.current,
-          image: imageLabelsRef.current,
-          media: mediaLabelsRef.current,
-          task: taskLabelRef.current,
-          toggle: toggleLabelsRef.current,
-          unsupported: unsupportedLabelRef.current,
-        }),
+        nodeViews: createPageEditorNodeViews(
+          {
+            code: codeLabelsRef.current,
+            collection: collectionLabelRef.current,
+            contents: contentsLabelsRef.current,
+            embed: embedLabelsRef.current,
+            file: fileLabelsRef.current,
+            image: imageLabelsRef.current,
+            media: mediaLabelsRef.current,
+            subpage: subpageLabelsRef.current,
+            task: taskLabelRef.current,
+            toggle: toggleLabelsRef.current,
+            unsupported: unsupportedLabelRef.current,
+          },
+          (childId) => readPageTitleRef.current(childId),
+        ),
         state: editorState,
       });
       editorViewRef.current = editorView;
@@ -380,6 +405,43 @@ export const PagesProseMirrorEditor = forwardRef(
       followHeadingsRef.current(editorViewRef.current.state);
     }, [session]);
 
+    /**
+     * Makes the page that will hang from this one, and leaves the line to it
+     * where the writing was.
+     *
+     * The page is made first and named afterwards, the way a page is made
+     * anywhere else here: what is written in it is written in the page itself,
+     * so this one only has to say where it is.
+     */
+    const makeTheChildPage = (): void => {
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      if (pageId === null) {
+        toast.error(t('subpageNeedsPage'));
+        return;
+      }
+      startMakingChild(async () => {
+        const made = await createPageAction({
+          content: createEmptyPageContent(),
+          parentId: pageId,
+          spaceId,
+          title: subpageLabelsRef.current.untitled,
+        });
+        if (!isActionSuccess<PageSummary>(made)) {
+          toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
+          return;
+        }
+        const insert = createPageSubpageInsertCommand(pageEditorSchema, {
+          label: made.data.title,
+          pageId: made.data.id,
+          spaceId,
+        });
+        insert(editorView.state, editorView.dispatch);
+        editorView.focus();
+        router.refresh();
+      });
+    };
+
     useImperativeHandle(
       handleRef,
       () => ({
@@ -399,6 +461,16 @@ export const PagesProseMirrorEditor = forwardRef(
 
     return (
       <section aria-label={t('editor')} className="space-y-3">
+        {/** Whoever knows how to make a page, kept where the menu can reach it and nobody else can. */}
+        <button
+          aria-hidden="true"
+          className="hidden"
+          data-page-subpage-request="true"
+          disabled={isMakingChild}
+          onClick={makeTheChildPage}
+          tabIndex={-1}
+          type="button"
+        />
         {pageId !== null && canEdit && <PagesEditorCollaborationStatus participants={participants} status={status} />}
         {canEdit && pageId !== null && (
           <div className="flex justify-end">

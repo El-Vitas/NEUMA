@@ -11,6 +11,7 @@ import {
   PAGE_EDITOR_EMBED_TYPE,
   PAGE_EDITOR_FILE_TYPE,
   PAGE_EDITOR_IMAGE_TYPE,
+  PAGE_EDITOR_SUBPAGE_TYPE,
   PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH,
   PAGE_EDITOR_TABLE_TYPE,
   PAGE_EDITOR_TASK_ITEM_TYPE,
@@ -29,6 +30,7 @@ import { createPageEmbedNodeView } from './pages.editor.embed.node-view.lib';
 import { createPageFileNodeView } from './pages.editor.file.node-view.lib';
 import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
 import { createPageAudioNodeView, createPageVideoNodeView } from './pages.editor.media.node-view.lib';
+import { createPageSubpageNodeView } from './pages.editor.subpage.node-view.lib';
 import { PageTableView } from './pages.editor.table.view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
@@ -77,6 +79,8 @@ const createPageUnsupportedNodeView = (node: EditorNode, label: string): NodeVie
 
 export const createPageEditorNodeViews = (
   labels: PageEditorNodeViewLabels,
+  /** How a page says what it is called now, since what a block keeps is which page it is. */
+  readPageTitle: (pageId: string) => string | null = () => null,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
@@ -106,5 +110,6 @@ export const createPageEditorNodeViews = (
     createPageTaskItemNodeView(node, view, getPosition, labels.task),
   [PAGE_EDITOR_TOGGLE_TYPE]: (node, view, getPosition) =>
     createPageToggleNodeView(node, view, getPosition, labels.toggle),
+  [PAGE_EDITOR_SUBPAGE_TYPE]: (node) => createPageSubpageNodeView(node, labels.subpage, readPageTitle),
   [PAGE_EDITOR_UNSUPPORTED_TYPE]: (node) => createPageUnsupportedNodeView(node, labels.unsupported),
 });

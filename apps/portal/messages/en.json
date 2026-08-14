@@ -234,6 +234,8 @@
     "noMentionCandidates": "No matching pages.",
     "searchingMentionCandidates": "Searching pages...",
     "titleField": "Title",
+    "subpageBlock": "Subpage",
+    "subpageNeedsPage": "Create this page before hanging another one from it.",
     "untitled": "Untitled",
     "content": "Structured content",
     "contentHelp": "Text is saved as a versioned structured block.",
@@ -301,7 +303,8 @@
       "undo": "Undo",
       "taskList": "To-do list",
       "callout": "Callout",
-      "insertImage": "Image"
+      "insertImage": "Image",
+      "subpage": "Subpage"
     },
     "backlinks": {
       "title": "Linked from ({count})"
