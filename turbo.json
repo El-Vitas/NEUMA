@@ -27,6 +27,16 @@
     "check": {
       "dependsOn": ["^build"]
     },
+    "check:ramless": {
+      "dependsOn": ["^build"]
+    },
+    "format:ramless": {
+      "dependsOn": []
+    },
+    "test:ramless": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    },
     "react:doctor": {
       "cache": false,
       "dependsOn": []
