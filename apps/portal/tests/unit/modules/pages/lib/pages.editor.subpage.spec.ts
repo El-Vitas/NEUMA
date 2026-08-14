@@ -13,11 +13,11 @@ const emptyPage: PageContent = {
 describe('createPageSubpageInsertCommand', () => {
   it('leaves the line that leads to the child page, keeping which page it is', () => {
     const state = createPageEditorState(emptyPage, 'Select', 'Insert', 'Comments', 'Write here', 'Fold');
-    const insert = createPageSubpageInsertCommand(pageEditorSchema, {
-      label: 'Hija',
-      pageId: 'page-2',
-      spaceId: 'space-1',
-    });
+    const insert = createPageSubpageInsertCommand(
+      pageEditorSchema,
+      { label: 'Hija', pageId: 'page-2', spaceId: 'space-1' },
+      state.selection.from,
+    );
     let kept: PageContent | null = null;
 
     const ran = insert(state, (transaction) => {

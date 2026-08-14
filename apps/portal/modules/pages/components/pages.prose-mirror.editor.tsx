@@ -420,6 +420,8 @@ export const PagesProseMirrorEditor = forwardRef(
         toast.error(t('subpageNeedsPage'));
         return;
       }
+      /** Where the writing is now, said before the making begins, because it will not be there after. */
+      const spot = editorView.state.selection.from;
       startMakingChild(async () => {
         const made = await createPageAction({
           content: createEmptyPageContent(),
@@ -431,11 +433,11 @@ export const PagesProseMirrorEditor = forwardRef(
           toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
           return;
         }
-        const insert = createPageSubpageInsertCommand(pageEditorSchema, {
-          label: made.data.title,
-          pageId: made.data.id,
-          spaceId,
-        });
+        const insert = createPageSubpageInsertCommand(
+          pageEditorSchema,
+          { label: made.data.title, pageId: made.data.id, spaceId },
+          spot,
+        );
         insert(editorView.state, editorView.dispatch);
         editorView.focus();
         router.refresh();

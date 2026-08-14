@@ -46,7 +46,7 @@ import { splitPageEditorListPoint } from './pages.editor.list.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
-import { askForPageChild } from './pages.editor.subpage.lib';
+import { askForAPageAlreadyWritten, askForPageChild } from './pages.editor.subpage.lib';
 import { createPageTable, goToNextPageTableCell, goToPreviousPageTableCell } from './pages.editor.table.lib';
 
 const headingInputRule = /^(#{1,3})\s$/;
@@ -299,6 +299,8 @@ export const createPageEditorCommands = (
   image: { group: 'media', kind: 'block', labelKey: 'insertImage', run: askForPageImage },
   /** A page of its own, hanging from this one, asked for rather than written. */
   subpage: { group: 'advanced', kind: 'block', labelKey: 'subpage', run: askForPageChild },
+  /** A page that is already written, named here: the same looking `@` does, asked for from the menu. */
+  pageLink: { group: 'advanced', kind: 'block', labelKey: 'pageLink', run: askForAPageAlreadyWritten },
   divider: {
     group: 'advanced',
     kind: 'block',

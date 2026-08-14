@@ -11,6 +11,9 @@ import {
   PAGE_EDITOR_EMBED_TYPE,
   PAGE_EDITOR_FILE_TYPE,
   PAGE_EDITOR_IMAGE_TYPE,
+  PAGE_EDITOR_MARKS,
+  PAGE_EDITOR_MENTION_MARK_STYLE_CLASS,
+  PAGE_EDITOR_MENTION_STYLE_CLASS,
   PAGE_EDITOR_SUBPAGE_TYPE,
   PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH,
   PAGE_EDITOR_TABLE_TYPE,
@@ -29,6 +32,7 @@ import { createPageContentsNodeView } from './pages.editor.contents.node-view.li
 import { createPageEmbedNodeView } from './pages.editor.embed.node-view.lib';
 import { createPageFileNodeView } from './pages.editor.file.node-view.lib';
 import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
+import { createPageMark } from './pages.editor.marks.lib';
 import { createPageAudioNodeView, createPageVideoNodeView } from './pages.editor.media.node-view.lib';
 import { createPageSubpageNodeView } from './pages.editor.subpage.node-view.lib';
 import { PageTableView } from './pages.editor.table.view.lib';
@@ -55,12 +59,27 @@ const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView
   return { dom: host };
 };
 
-const createPageMentionNodeView = (node: EditorNode): NodeView => {
+/**
+ * A page named in the middle of a sentence.
+ *
+ * Like the block that leads to a child page, it keeps which page it is and asks
+ * what that page is called every time it is drawn; the name written down when
+ * it was inserted answers for a page that cannot be read from here — one in
+ * another space, or thrown away. The mark of a page in front of it says what
+ * kind of thing is being named, and that it lives in the writing rather than on
+ * a line of its own is what tells it apart from a page started here.
+ */
+const createPageMentionNodeView = (node: EditorNode, readPageTitle: (pageId: string) => string | null): NodeView => {
   const link = document.createElement('a');
-  link.className =
-    'text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const name = document.createElement('span');
+  const mark = createPageMark(PAGE_EDITOR_MARKS.page);
+
+  mark.setAttribute('class', PAGE_EDITOR_MENTION_MARK_STYLE_CLASS);
+  link.className = PAGE_EDITOR_MENTION_STYLE_CLASS;
   link.href = ROUTES.PORTAL_SPACE_PAGE(node.attrs.spaceId, node.attrs.pageId);
-  link.textContent = node.attrs.label;
+  link.dataset.pageMention = node.attrs.pageId;
+  name.textContent = readPageTitle(node.attrs.pageId) ?? node.attrs.label;
+  link.append(mark, name);
   return { dom: link };
 };
 
@@ -95,7 +114,7 @@ export const createPageEditorNodeViews = (
     createPageImageNodeView(node, view, getPosition, labels.image, getPageAssetUrl),
   [PAGE_EDITOR_BOOKMARK_TYPE]: (node) => createPageBookmarkNodeView(node),
   [PAGE_EDITOR_EMBED_TYPE]: (node, view, getPosition) => createPageEmbedNodeView(node, view, getPosition, labels.embed),
-  mention: createPageMentionNodeView,
+  mention: (node) => createPageMentionNodeView(node, readPageTitle),
   /**
    * The table is drawn here rather than by `columnResizing`, whose own drawing
    * would have to be named the way that plugin names it. What a page decides

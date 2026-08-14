@@ -15,6 +15,20 @@ rules:
     context: >-
       Elegir a lo ancho es pararse a la izquierda ocupando toda la columna, de modo que estrecharlo después no lo hace
       saltar de lado. La opción se ofrece solo a bloques que pueden moverse; una línea de archivo no tiene dónde ir.
+  - id: BR-0322257
+    status: active
+    title: Una página nombrada en la escritura se llama como se llama hoy
+    rule: >-
+      Nombrar una página ya escrita guarda qué página es, no cómo se llama: el nombre se lee de la página cada vez que
+      se muestra, y delante lleva la marca de una página. Vive dentro de la frase, mientras que una página empezada aquí
+      ocupa su propia línea.
+    why: >-
+      Un nombre copiado envejece, y un enlace que anuncia un nombre viejo manda a la gente a algo que cree conocer.
+      Además, quien lee tiene que poder distinguir de un vistazo lo que cuelga de esta página de lo que solo se está
+      mencionando.
+    context: >-
+      Se busca por título desde `@` o desde el menú `/`, que son la misma búsqueda. El nombre escrito al insertarlo
+      queda de respaldo para una página que no se pueda leer desde aquí, como la de otro espacio.
   - id: BR-061d307
     status: active
     title: Una tabla se recorre y crece mientras se llena
