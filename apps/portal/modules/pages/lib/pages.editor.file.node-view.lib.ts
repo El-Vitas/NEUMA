@@ -16,6 +16,7 @@ import {
   PAGE_EDITOR_MARKS,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorDocumentLabels } from '../types/pages.editor.document.types';
+import { askForTheWholeScreen } from './pages.editor.asking.lib';
 import { describePageFile, readPageFileShape } from './pages.editor.file.lib';
 import { createPageMarkButton } from './pages.editor.marks.lib';
 import { framePageBlockWidth } from './pages.editor.width.lib';
@@ -83,10 +84,7 @@ const createPageDocumentNodeView = (
   head.className = PAGE_EDITOR_DOCUMENT_HEAD_STYLE_CLASS;
   head.append(bar, wide);
   shown.append(head, viewer);
-  wide.addEventListener('click', () => {
-    if (document.fullscreenElement === null) void shown.requestFullscreen();
-    else void document.exitFullscreen();
-  });
+  wide.addEventListener('click', () => askForTheWholeScreen(shown));
 
   const { frame, showWidth } = framePageBlockWidth(shown, figure, labels.resize, (width) => {
     const position = getPosition();

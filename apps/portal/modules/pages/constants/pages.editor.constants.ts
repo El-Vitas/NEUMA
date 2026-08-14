@@ -9,6 +9,7 @@ import {
   type LucideIcon,
   Quote,
   Table,
+  Workflow,
 } from 'lucide-react';
 import { createPageEditorCommands } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
@@ -30,6 +31,7 @@ export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
   blockquote: Quote,
   bulletList: List,
   codeBlock: Braces,
+  diagram: Workflow,
   heading1: Heading1,
   heading2: Heading2,
   heading3: Heading3,

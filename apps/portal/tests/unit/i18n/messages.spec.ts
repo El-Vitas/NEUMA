@@ -30,6 +30,7 @@ describe('portal message catalogs', () => {
       'metadata',
       'theme',
       'language',
+      'docs',
     ]);
   });
 

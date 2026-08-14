@@ -1,0 +1,65 @@
+id: FEA-ADJ
+name: Archivos de una página
+purpose: Define qué archivos acepta una página, cómo se entregan a quien los consulta y qué se puede hacer con ellos.
+scope: attachments
+rules:
+  - id: BR-6f62d11
+    status: active
+    title: Un archivo dice qué es y cuánto pesa
+    rule: >-
+      Un archivo en una página muestra su nombre, el tipo que es y cuánto pesa, con las palabras que la gente usa para
+      ese tipo.
+    why: Antes de abrir algo se decide si vale la pena, y para eso hay que saber qué es y cuánto va a costar bajarlo.
+    context: Un archivo guardado antes de que la página registrara esos datos no dice nada en vez de decir algo falso.
+  - id: BR-8f2657d
+    status: active
+    title: Lista explícita de tipos aceptados
+    rule: >-
+      Una página solo acepta los tipos de archivo de una lista explícita, que hoy son imágenes, documentos, comprimidos,
+      texto plano, audio y video en los formatos que un navegador sabe reproducir.
+    why: >-
+      Es una lista y no una regla general para que agregar un tipo sea una decisión que alguien tomó, y todo lo demás
+      quede rechazado sin tener que haberlo previsto.
+  - id: BR-aaf3a59
+    status: active
+    title: Un archivo se entrega entero o por el trozo pedido
+    rule: >-
+      Cuando alguien pide solo una parte de un archivo, el sistema entrega esa parte y dice cuál es del total. Si no se
+      pide ninguna parte, entrega el archivo entero.
+    why: >-
+      Es lo que permite saltar al minuto cuarenta de una grabación sin esperar los treinta y nueve anteriores. Responder
+      siempre con el archivo completo deja la barra de reproducción inmóvil.
+    context: >-
+      Pedir un trozo que no existe se responde diciendo que no está disponible, no entregando el archivo entero, porque
+      eso sería responder otra pregunta.
+    scenarios:
+      - title: Salto dentro de una grabación
+        given: Una grabación larga publicada en una página
+        when: Quien la escucha salta a un punto avanzado
+        then: El sistema entrega solo el trozo correspondiente y la reproducción sigue desde ahí
+  - id: BR-c251abd
+    status: active
+    title: Un documento viaja para leerse, el resto para guardarse
+    rule: >-
+      Un archivo que la página muestra en su interior se entrega para ser leído ahí mismo. Cualquier otro se entrega
+      para ser guardado en el equipo de quien lo pide.
+    why: >-
+      Entregar un documento como algo que se guarda hace que la página muestre un marco vacío y el archivo termine en
+      una carpeta que nadie pidió.
+    context: >-
+      El enlace del bloque siempre baja el archivo con su nombre original, aunque el documento se esté leyendo en la
+      página.
+  - id: BR-c78adcb
+    status: active
+    title: Un archivo baja con su nombre y de un clic
+    rule: Cualquier archivo de una página se descarga con un clic y llega con el nombre con que fue subido.
+    why: Un archivo bajado con un nombre inventado obliga a renombrarlo para reconocerlo después.
+  - id: BR-f2bb3a7
+    status: active
+    title: Solo los archivos pueden enmarcarse, y solo en la propia aplicación
+    rule: >-
+      Ninguna pantalla de la aplicación puede mostrarse dentro de un marco en otro sitio. La única excepción son los
+      archivos de una página, y únicamente dentro de la propia aplicación.
+    why: >-
+      El visor que dibuja un documento lo lee dentro de un marco propio; negar ese marco es negar el visor. Fuera de esa
+      excepción, permitir marcos abre la puerta a que otro sitio muestre la aplicación como si fuera suya.

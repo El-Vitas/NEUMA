@@ -24,9 +24,16 @@ export const createPageMark = (strokes: readonly string[]): SVGSVGElement => {
   return mark;
 };
 
-/** What the button does now, said both in its mark and in words. */
+/**
+ * What the button does now, said both in its mark and in words.
+ *
+ * The words are given twice: to whoever cannot see the mark, and to whoever can
+ * see it and still cannot tell what it means — a drawing on a button explains
+ * nothing until someone has already learnt it.
+ */
 export const showPageButtonAs = (button: HTMLButtonElement, label: string, strokes: readonly string[]): void => {
   button.setAttribute('aria-label', label);
+  button.title = label;
   button.replaceChildren(createPageMark(strokes));
 };
 

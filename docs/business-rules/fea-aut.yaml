@@ -49,7 +49,9 @@ rules:
   - id: BR-007
     status: active
     title: Acceso de CLIENT
-    rule: El rol CLIENT no tiene permisos administrativos; solo puede autenticarse y acceder a los recursos propios que cada proyecto defina.
+    rule: >-
+      El rol CLIENT no tiene permisos administrativos; solo puede autenticarse y acceder a los recursos propios que cada
+      proyecto defina.
     why: Punto de extensión — cada proyecto define qué recursos posee un cliente.
   - id: BR-008
     status: active

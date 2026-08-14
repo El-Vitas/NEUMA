@@ -3,6 +3,7 @@ import {
   PAGE_BLOCK_ALIGNMENTS,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
+  PAGE_DIAGRAM_VIEWS,
   PAGE_EMBED_PROVIDERS,
   PAGE_FILE_DISPLAYS,
 } from '@company-brain/shared';
@@ -107,10 +108,12 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   return { open: element.hasAttribute('open'), summary };
 };
 
-const getPageEditorCodeAttrs = (element: Element): { readonly language: string | null; readonly wrapped: boolean } => {
+const getPageEditorCodeAttrs = (element: Element): Record<string, string | boolean | null> => {
   const language = element.getAttribute('data-language');
+  const shown = element.getAttribute('data-shown');
   return {
     language: language !== null && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
+    shown: PAGE_DIAGRAM_VIEWS.find((known) => known === shown) ?? null,
     wrapped: element.getAttribute('data-wrapped') === 'true',
   };
 };
@@ -250,7 +253,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'code_block',
     definePageBlock({
-      attrs: { language: { default: null }, wrapped: { default: false } },
+      attrs: { language: { default: null }, shown: { default: null }, wrapped: { default: false } },
       code: true,
       content: 'text*',
       group: 'block',
@@ -261,6 +264,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
         {
           ...blockAttributes,
           ...(typeof node.attrs.language === 'string' ? { 'data-language': node.attrs.language } : {}),
+          ...(typeof node.attrs.shown === 'string' ? { 'data-shown': node.attrs.shown } : {}),
           ...(node.attrs.wrapped === true ? { 'data-wrapped': 'true' } : {}),
         },
         ['code', 0],

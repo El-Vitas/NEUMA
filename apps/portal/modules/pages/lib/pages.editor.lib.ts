@@ -48,13 +48,29 @@ export const createPageEditorState = (
     schema: pageEditorSchema,
   });
 
+const writeDownPageEditorDocument = (document: EditorDocument): unknown => ({
+  ...releasePageContentThisVersionCannotRead(normalizePageEditorJson(document.toJSON())),
+  schemaVersion: 1,
+});
+
 export const serializePageEditorDocument = (document: EditorDocument): PageContent =>
-  pageContentSchema.parse({
-    ...releasePageContentThisVersionCannotRead(normalizePageEditorJson(document.toJSON())),
-    schemaVersion: 1,
-  });
+  pageContentSchema.parse(writeDownPageEditorDocument(document));
 
 export const serializePageEditorState = (state: EditorState): PageContent => serializePageEditorDocument(state.doc);
+
+/**
+ * What of the writing the page is able to keep, and nothing when it cannot keep it.
+ *
+ * The editor lets more be written than a page accepts — a single block longer
+ * than the page allows, above all — and asking for it as a value rather than
+ * having it thrown is what lets the refusal be said out loud: thrown from the
+ * middle of writing it stops nothing visible and saves nothing either, which is
+ * a page that quietly stops being kept while somebody keeps writing it.
+ */
+export const readWhatThePageCanKeep = (state: EditorState): PageContent | null => {
+  const kept = pageContentSchema.safeParse(writeDownPageEditorDocument(state.doc));
+  return kept.success ? kept.data : null;
+};
 
 export const isPageEditorReadOnly = (canEdit: boolean): boolean => !canEdit;
 

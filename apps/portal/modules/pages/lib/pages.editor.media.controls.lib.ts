@@ -7,6 +7,7 @@ import {
   PAGE_EDITOR_MEDIA_TIME_STYLE_CLASS,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorMediaLabels } from '../types/pages.editor.media.types';
+import { askForTheWholeScreen, askTheBrowser } from './pages.editor.asking.lib';
 import { createPageMarkButton, showPageButtonAs } from './pages.editor.marks.lib';
 import { describePageMediaMoment } from './pages.editor.media.lib';
 
@@ -65,7 +66,7 @@ export const createPageMediaControls = (player: HTMLMediaElement, labels: PageEd
   showSound();
 
   playing.addEventListener('click', () => {
-    if (player.paused) void player.play();
+    if (player.paused) askTheBrowser(player.play());
     else player.pause();
   });
   sound.addEventListener('click', () => {
@@ -93,8 +94,7 @@ export const createPageMediaControls = (player: HTMLMediaElement, labels: PageEd
     );
     wide.addEventListener('click', () => {
       const shown = player.parentElement;
-      if (document.fullscreenElement !== null) void document.exitFullscreen();
-      else if (shown !== null) void shown.requestFullscreen();
+      if (shown !== null) askForTheWholeScreen(shown);
     });
     bar.append(wide);
   }
