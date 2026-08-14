@@ -7,6 +7,7 @@ import {
   PAGE_EDITOR_CALLOUT_TYPE,
   PAGE_EDITOR_CODE_TYPE,
   PAGE_EDITOR_COLLECTION_CLASS,
+  PAGE_EDITOR_CONTENTS_TYPE,
   PAGE_EDITOR_EMBED_TYPE,
   PAGE_EDITOR_FILE_TYPE,
   PAGE_EDITOR_IMAGE_TYPE,
@@ -23,6 +24,7 @@ import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.
 import { createPageBookmarkNodeView } from './pages.editor.bookmark.node-view.lib';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageCodeBlockNodeView } from './pages.editor.code.node-view.lib';
+import { createPageContentsNodeView } from './pages.editor.contents.node-view.lib';
 import { createPageEmbedNodeView } from './pages.editor.embed.node-view.lib';
 import { createPageFileNodeView } from './pages.editor.file.node-view.lib';
 import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
@@ -82,6 +84,7 @@ export const createPageEditorNodeViews = (
   [PAGE_EDITOR_CODE_TYPE]: (node, view, getPosition) =>
     createPageCodeBlockNodeView(node, view, getPosition, labels.code),
   collection: (node) => createPageCollectionNodeView(node, labels.collection),
+  [PAGE_EDITOR_CONTENTS_TYPE]: (node, view) => createPageContentsNodeView(node, view, labels.contents),
   [PAGE_EDITOR_FILE_TYPE]: (node, view, getPosition) =>
     createPageFileNodeView(node, view, getPosition, labels.file, getPageAssetUrl),
   [PAGE_EDITOR_IMAGE_TYPE]: (node, view, getPosition) =>

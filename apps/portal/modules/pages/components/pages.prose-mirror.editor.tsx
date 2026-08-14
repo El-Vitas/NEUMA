@@ -34,6 +34,7 @@ import { createCollaborativePageEditorState } from '../lib/pages.collaboration.l
 import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
 import { findSelectedPageBlocks } from '../lib/pages.editor.block-range.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
+import { followThePageHeadings, goToThePageHeading } from '../lib/pages.editor.contents.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import {
   createPageEditorState,
@@ -46,6 +47,7 @@ import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
 import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.lib';
 import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
 import type { PageContent } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
@@ -63,6 +65,7 @@ interface IProps {
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
   readonly onContentChange: (content: PageContent) => void;
+  readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
   readonly pageId: string | null;
   readonly spaceId: string;
 }
@@ -76,10 +79,14 @@ export const PagesProseMirrorEditor = forwardRef(
       embeddedCollections = {},
       onAttachmentUploaded,
       onContentChange,
+      onHeadingsChange,
       pageId,
       spaceId,
     }: IProps,
-    handleRef: ForwardedRef<{ readonly runCommand: (command: Command) => boolean }>,
+    handleRef: ForwardedRef<{
+      readonly goToHeading: (position: number) => void;
+      readonly runCommand: (command: Command) => boolean;
+    }>,
   ) => {
     const t = useTranslations('pages');
     const selectBlockLabelRef = useRef(t('selectBlock'));
@@ -91,6 +98,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const blockTooLongLabelRef = useRef(t('blockTooLong'));
+    const contentsLabelsRef = useRef({ empty: t('pageContentsEmpty'), title: t('pageContents') });
     /** Said once, and again only after the page has managed to keep something. */
     const toldOfTooMuchRef = useRef(false);
     const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
@@ -144,6 +152,8 @@ export const PagesProseMirrorEditor = forwardRef(
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
     const contentCallbackRef = useRef(onContentChange);
+    const headingsCallbackRef = useRef(onHeadingsChange);
+    const followHeadingsRef = useRef(followThePageHeadings((headings) => headingsCallbackRef.current?.(headings)));
     const initialContentRef = useRef(content);
     const reportUploadedAttachment = useCallback(
       (attachment: AttachmentSummary): void => onAttachmentUploaded?.(attachment),
@@ -261,6 +271,10 @@ export const PagesProseMirrorEditor = forwardRef(
       contentCallbackRef.current = onContentChange;
     }, [onContentChange]);
 
+    useEffect(() => {
+      headingsCallbackRef.current = onHeadingsChange;
+    }, [onHeadingsChange]);
+
     /**
      * The page keeps what it can keep, and says so when it cannot.
      *
@@ -299,7 +313,10 @@ export const PagesProseMirrorEditor = forwardRef(
         dispatchTransaction: (transaction) => {
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
-          if (transaction.docChanged) keepWhatCanBeKeptRef.current(nextState);
+          if (transaction.docChanged) {
+            keepWhatCanBeKeptRef.current(nextState);
+            followHeadingsRef.current(nextState);
+          }
           syncCollectionHosts();
           const selection = nextState.selection;
           const trigger = updateEditorTrigger(
@@ -316,6 +333,7 @@ export const PagesProseMirrorEditor = forwardRef(
         nodeViews: createPageEditorNodeViews({
           code: codeLabelsRef.current,
           collection: collectionLabelRef.current,
+          contents: contentsLabelsRef.current,
           embed: embedLabelsRef.current,
           file: fileLabelsRef.current,
           image: imageLabelsRef.current,
@@ -328,6 +346,7 @@ export const PagesProseMirrorEditor = forwardRef(
       });
       editorViewRef.current = editorView;
       syncCollectionHosts();
+      followHeadingsRef.current(editorView.state);
 
       return () => {
         editorView.destroy();
@@ -355,11 +374,17 @@ export const PagesProseMirrorEditor = forwardRef(
           foldHeadingLabelRef.current,
         ),
       );
+      followHeadingsRef.current(editorViewRef.current.state);
     }, [session]);
 
     useImperativeHandle(
       handleRef,
       () => ({
+        goToHeading: (position) => {
+          const editorView = editorViewRef.current;
+          if (editorView === null) return;
+          goToThePageHeading(editorView, position);
+        },
         runCommand: (command) => {
           const editorView = editorViewRef.current;
           if (editorView === null) return false;

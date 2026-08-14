@@ -37,6 +37,7 @@ import { createPageEditorBlockIdPlugin } from './pages.editor.block-id.lib';
 import { createPageEditorBlockMenuPlugin } from './pages.editor.block-menu.lib';
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
+import { createPageEditorContentsPlugin } from './pages.editor.contents.plugin.lib';
 import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages.editor.heading-fold.lib';
 import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
@@ -261,6 +262,13 @@ export const createPageEditorCommands = (
     labelKey: 'diagram',
     run: setBlockType(schema.nodes.code_block, { language: PAGE_EDITOR_DIAGRAM_LANGUAGE, shown: 'both' }),
   },
+  /** What the page holds, listed by the page itself: it is asked for, never written. */
+  tableOfContents: {
+    group: 'advanced',
+    kind: 'block',
+    labelKey: 'tableOfContents',
+    run: insertPageNode(schema.nodes.table_of_contents.createChecked()),
+  },
   /** A formula is a block of code written in the language formulas have been written in for fifty years. */
   formula: {
     group: 'advanced',
@@ -412,6 +420,7 @@ export const createPageEditorPlugins = (
   createPageEditorBlockCommentPlugin(blockCommentsLabel),
   createPageEditorBlockDragPlugin(),
   createPageEditorColumnCleanupPlugin(),
+  createPageEditorContentsPlugin(),
   createPageEditorColumnResizePlugin(resizeColumnLabel),
   createPageEditorPlaceholderPlugin(writeHereLabel),
   createPageEditorHeadingFoldPlugin(foldHeadingLabel),

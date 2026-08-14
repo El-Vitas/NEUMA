@@ -293,6 +293,7 @@
       "codeBlock": "Code block",
       "diagram": "Diagram",
       "formula": "Formula",
+      "tableOfContents": "Table of contents",
       "redo": "Redo",
       "divider": "Divider",
       "table": "Table",
@@ -457,6 +458,8 @@
       "code": "Code only",
       "both": "Code and drawing"
     },
+    "pageContents": "On this page",
+    "pageContentsEmpty": "There are no headings on this page yet.",
     "formulaView": {
       "drawing": "Formula only",
       "code": "Code only",

@@ -457,6 +457,7 @@ export type PageContentKnownNode =
       readonly type: 'toggle';
     }
   | { readonly attrs?: PageBlockAttrs; readonly type: 'divider' }
+  | { readonly attrs?: PageBlockAttrs; readonly type: 'table_of_contents' }
   | { readonly attrs: z.infer<typeof pageImageAttrsSchema>; readonly type: 'image' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'video' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'audio' }
@@ -490,6 +491,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'column',
   'audio',
   'divider',
+  'table_of_contents',
   'image',
   'video',
   'file',
@@ -661,6 +663,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
       })
       .strict(),
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('divider') }).strict(),
+    z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('table_of_contents') }).strict(),
     z.object({ attrs: pageImageAttrsSchema, type: z.literal('image') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('video') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('audio') }).strict(),
@@ -765,6 +768,7 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   'toggle',
   'audio',
   'divider',
+  'table_of_contents',
   'image',
   'video',
   'file',

@@ -332,6 +332,16 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       render: (_node, blockAttributes) => ['hr', blockAttributes],
     }),
   ],
+  /** What is in the page, listed by the page itself: it holds nothing of its own. */
+  [
+    'table_of_contents',
+    definePageBlock({
+      atom: true,
+      group: 'block',
+      parseDOM: [{ tag: 'nav[data-page-contents]' }],
+      render: (_node, blockAttributes) => ['nav', { ...blockAttributes, 'data-page-contents': 'true' }],
+    }),
+  ],
   [
     'bookmark',
     definePageBlock({

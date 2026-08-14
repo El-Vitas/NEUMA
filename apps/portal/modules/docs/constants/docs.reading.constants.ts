@@ -41,8 +41,8 @@ export const DOCS_FENCE_TRAILING_LINE = /\n$/;
 export const DOCS_LINK_OUTSIDE = /^https?:\/\//i;
 
 /**
- * The band of the screen that counts as being read: from a little below the top
- * down to most of the way, so the heading somebody is under is the one marked,
- * and not whichever one the eye passes on the way down.
+ * Where on the screen reading happens: a little below the top, so the heading
+ * marked is the one somebody is under and not whichever one the eye passes on
+ * the way down.
  */
-export const DOCS_READING_MARGIN = '-96px 0px -70% 0px';
+export const DOCS_READING_LINE = 96;

@@ -13,8 +13,13 @@ import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_BACKLINKS,
   EMPTY_PAGE_EMBEDDED_COLLECTIONS,
+  EMPTY_PAGE_HEADINGS,
   EMPTY_PAGE_PERSON_OPTIONS,
 } from '../constants/pages.constants';
+import {
+  PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
+  PAGE_OUTLINE_SIDE_STYLE_CLASS,
+} from '../constants/pages.editor.contents.constants';
 import { usePagesAutosave } from '../hooks/use.pages.autosave';
 import {
   buildPageAssetInsertOptionsFromAttachment,
@@ -27,10 +32,12 @@ import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../lib/
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
+import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesBacklinks } from './pages.backlinks';
 import { PagesHeader } from './pages.header';
+import { PagesOutline } from './pages.outline';
 import { PagesPropertiesPanel } from './pages.properties.panel';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
 
@@ -82,6 +89,7 @@ export const PagesEditor = ({
     page?.propertyValues ?? buildDefaultPropertyValues(editableProperties),
   );
   const propertyValuesRef = useRef(propertyValues);
+  const [headings, setHeadings] = useState<readonly PageEditorHeading[]>(EMPTY_PAGE_HEADINGS);
 
   const updateCurrentPage = async (): Promise<boolean> => {
     const result = await updatePageAction({
@@ -151,65 +159,75 @@ export const PagesEditor = ({
           {page?.lifecycle === 'TRASHED' ? t('trashReadOnly') : t('readOnly')}
         </p>
       )}
-      <div className="w-full space-y-8" data-testid="page-editor-workspace">
-        <PagesHeader
-          canEdit={canEdit}
-          hasSaved={autosave.hasSaved}
-          isSaving={isSaving}
-          onTitleChange={(nextTitle) => {
-            titleRef.current = nextTitle;
-            setTitle(nextTitle);
-            autosave.schedule(nextTitle.trim().length > 0);
-          }}
-          parentPages={parentBreadcrumbPages}
-          spaceId={spaceId}
-          title={title}
-          titleInputRef={titleInputRef}
-        />
-        <PagesPropertiesPanel
-          attachments={pageAttachments}
-          canEdit={canEdit}
-          onAttachmentDeleted={(attachmentId) =>
-            setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId))
-          }
-          onAttachmentUploaded={addUploadedAttachment}
-          onPropertyValueChange={handlePropertyValueChange}
-          page={page}
-          pageId={pageId}
-          pages={pages}
-          parentSchema={parentSchema}
-          personOptions={personOptions}
-          propertyValues={propertyValues}
-          spaceId={spaceId}
-        />
-        <PagesProseMirrorEditor
-          canEdit={canEdit}
-          content={page?.content ?? createEmptyPageContent()}
-          currentUserDisplayName={currentUserDisplayName}
-          embeddedCollections={embeddedCollections}
-          onAttachmentUploaded={addUploadedAttachment}
-          onContentChange={(content) => {
-            contentRef.current = content;
-            autosave.schedule(titleRef.current.trim().length > 0);
-          }}
-          pageId={pageId}
-          ref={editorHandleRef}
-          spaceId={spaceId}
-        />
-        {canEdit && page === null && (
-          <FormActions back={<BackButton href={ROUTES.PORTAL_SPACE(spaceId)} />}>
-            <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
-              {isPending ? t('saving') : t('create')}
-            </PrimaryButton>
-          </FormActions>
-        )}
-        {autosave.hasError && (
-          <p aria-live="polite" className="text-destructive text-sm" role="status">
-            {t('saveError')}
-          </p>
-        )}
-        {pageId !== null && <PagesBacklinks backlinks={backlinks} />}
-        {collectionSection}
+      <div className={PAGE_OUTLINE_LAYOUT_STYLE_CLASS}>
+        <div className="w-full min-w-0 space-y-8" data-testid="page-editor-workspace">
+          <PagesHeader
+            canEdit={canEdit}
+            hasSaved={autosave.hasSaved}
+            isSaving={isSaving}
+            onTitleChange={(nextTitle) => {
+              titleRef.current = nextTitle;
+              setTitle(nextTitle);
+              autosave.schedule(nextTitle.trim().length > 0);
+            }}
+            parentPages={parentBreadcrumbPages}
+            spaceId={spaceId}
+            title={title}
+            titleInputRef={titleInputRef}
+          />
+          <PagesPropertiesPanel
+            attachments={pageAttachments}
+            canEdit={canEdit}
+            onAttachmentDeleted={(attachmentId) =>
+              setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId))
+            }
+            onAttachmentUploaded={addUploadedAttachment}
+            onPropertyValueChange={handlePropertyValueChange}
+            page={page}
+            pageId={pageId}
+            pages={pages}
+            parentSchema={parentSchema}
+            personOptions={personOptions}
+            propertyValues={propertyValues}
+            spaceId={spaceId}
+          />
+          <PagesProseMirrorEditor
+            canEdit={canEdit}
+            content={page?.content ?? createEmptyPageContent()}
+            currentUserDisplayName={currentUserDisplayName}
+            embeddedCollections={embeddedCollections}
+            onAttachmentUploaded={addUploadedAttachment}
+            onContentChange={(content) => {
+              contentRef.current = content;
+              autosave.schedule(titleRef.current.trim().length > 0);
+            }}
+            onHeadingsChange={setHeadings}
+            pageId={pageId}
+            ref={editorHandleRef}
+            spaceId={spaceId}
+          />
+          {canEdit && page === null && (
+            <FormActions back={<BackButton href={ROUTES.PORTAL_SPACE(spaceId)} />}>
+              <PrimaryButton disabled={isPending || title.trim().length === 0} onClick={createNewPage} type="button">
+                {isPending ? t('saving') : t('create')}
+              </PrimaryButton>
+            </FormActions>
+          )}
+          {autosave.hasError && (
+            <p aria-live="polite" className="text-destructive text-sm" role="status">
+              {t('saveError')}
+            </p>
+          )}
+          {pageId !== null && <PagesBacklinks backlinks={backlinks} />}
+          {collectionSection}
+        </div>
+        <aside className={PAGE_OUTLINE_SIDE_STYLE_CLASS}>
+          <PagesOutline
+            headings={headings}
+            onGoToHeading={(position) => editorHandleRef.current?.goToHeading(position)}
+            title={t('pageContents')}
+          />
+        </aside>
       </div>
     </section>
   );

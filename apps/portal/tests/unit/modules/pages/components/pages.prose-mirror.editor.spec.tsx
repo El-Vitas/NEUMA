@@ -73,7 +73,10 @@ const renderEditor = (props: {
   readonly onContentChange: (content: unknown) => void;
   readonly pageId: string | null;
 }) => {
-  const ref = createRef<{ readonly runCommand: (command: (...args: never[]) => boolean) => boolean } | null>();
+  const ref = createRef<{
+    readonly goToHeading: (position: number) => void;
+    readonly runCommand: (command: (...args: never[]) => boolean) => boolean;
+  } | null>();
   render(
     <NextIntlClientProvider locale="en" messages={en}>
       <PagesProseMirrorEditor
