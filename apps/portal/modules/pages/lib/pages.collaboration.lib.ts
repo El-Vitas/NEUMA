@@ -35,6 +35,7 @@ export const createCollaborativePageEditorState = (
   insertBlockLabel: string = selectBlockLabel,
   writeHereLabel = '',
   foldHeadingLabel = '',
+  resizeColumnLabel: string = selectBlockLabel,
 ): EditorState => {
   const initializedDocument = initProseMirrorDoc(page.fragment, pageEditorSchema);
   const collaborationPlugins = [
@@ -49,7 +50,7 @@ export const createCollaborativePageEditorState = (
         pageEditorSchema,
         selectBlockLabel,
         insertBlockLabel,
-        selectBlockLabel,
+        resizeColumnLabel,
         selectBlockLabel,
         writeHereLabel,
         foldHeadingLabel,

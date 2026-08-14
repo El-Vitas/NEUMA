@@ -71,6 +71,9 @@ const createDivider = (parameters: {
   divider.append(bar);
   divider.className = PAGE_EDITOR_COLUMN_DIVIDER_STYLE_CLASS;
   divider.setAttribute(PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE, 'true');
+  /** What it is, said as what it is: the line between two columns, and how wide each one is left. */
+  divider.setAttribute('role', 'separator');
+  divider.setAttribute('aria-orientation', 'vertical');
   divider.setAttribute('aria-label', parameters.label);
   divider.contentEditable = 'false';
   divider.addEventListener('mousedown', (event) => {

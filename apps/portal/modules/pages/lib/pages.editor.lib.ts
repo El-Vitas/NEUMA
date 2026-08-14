@@ -33,6 +33,7 @@ export const createPageEditorState = (
   blockCommentsLabel: string = selectBlockLabel,
   writeHereLabel = '',
   foldHeadingLabel = '',
+  resizeColumnLabel: string = selectBlockLabel,
 ): EditorState =>
   EditorState.create({
     doc: pageEditorSchema.nodeFromJSON(holdPageContentThisVersionCannotRead(pageContentSchema.parse(content))),
@@ -40,7 +41,7 @@ export const createPageEditorState = (
       pageEditorSchema,
       selectBlockLabel,
       insertBlockLabel,
-      selectBlockLabel,
+      resizeColumnLabel,
       blockCommentsLabel,
       writeHereLabel,
       foldHeadingLabel,
