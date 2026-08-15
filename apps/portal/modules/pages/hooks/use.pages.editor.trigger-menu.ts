@@ -33,8 +33,10 @@ import { usePagesMentionSearch } from './use.pages.mention-search';
  * of the editor, which only asks it to answer a keypress or watch a selection.
  */
 export const usePagesEditorTriggerMenu = ({
+  canMakeAPage,
   editorViewRef,
   onEscapeWithSelection,
+  pagesAtHand,
   surfaceRef,
 }: PagesEditorTriggerMenuParameters): PagesEditorTriggerMenu => {
   const t = useTranslations('pages');
@@ -46,7 +48,7 @@ export const usePagesEditorTriggerMenu = ({
   const triggerQueryRef = useRef<string | null>(null);
   const triggerMenuPositionRef = useRef<PageEditorSpot | null>(null);
   const triggerSelectedIndexRef = useRef(0);
-  const mentionSearch = usePagesMentionSearch(triggerKind === 'mention' ? triggerQuery : null);
+  const mentionSearch = usePagesMentionSearch(triggerKind === 'mention' ? triggerQuery : null, pagesAtHand);
 
   const translateCommandLabel = useCallback((labelKey: string) => t(`commands.${labelKey}`), [t]);
   const nameTheOfferToMakeAPage = useCallback((title: string) => t('mentionCreatePage', { title }), [t]);
@@ -54,6 +56,7 @@ export const usePagesEditorTriggerMenu = ({
     () =>
       buildEditorTriggerItems({
         commands: PAGE_EDITOR_COMMANDS,
+        canMakeAPage,
         mentionCandidates: mentionSearch.candidates,
         nameTheOfferToMakeAPage,
         recentCommandIds,
@@ -63,6 +66,7 @@ export const usePagesEditorTriggerMenu = ({
         triggerQuery,
       }),
     [
+      canMakeAPage,
       mentionSearch.candidates,
       nameTheOfferToMakeAPage,
       recentCommandIds,
@@ -133,6 +137,8 @@ export const usePagesEditorTriggerMenu = ({
       if (editorView === null || query === null) return;
       const triggerStart = editorView.state.selection.from - query.length - 1;
       if (triggerStart < 1) return;
+      /** Asked first whether it can be done at all: what was typed is not worth losing to a menu entry that does nothing. */
+      if (!command(editorView.state, undefined, editorView)) return;
       editorView.dispatch(editorView.state.tr.delete(triggerStart, editorView.state.selection.from));
       command(editorView.state, editorView.dispatch, editorView);
       closeTriggerMenu();

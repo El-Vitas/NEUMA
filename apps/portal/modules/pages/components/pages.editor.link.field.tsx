@@ -11,9 +11,11 @@ import {
   PAGE_EDITOR_LINK_INPUT_STYLE_CLASS,
 } from '../constants/pages.editor.link.constants';
 import { usePagesMentionSearch } from '../hooks/use.pages.mention-search';
+import type { PageSummary } from '../types/pages.types';
 
 interface IProps {
   readonly href: string | null;
+  readonly pagesAtHand: readonly PageSummary[];
   readonly onCancel: () => void;
   readonly onChoose: (href: string | null) => void;
 }
@@ -27,7 +29,7 @@ interface IProps {
  * the machine rather than about the writing. What is not somewhere to go is
  * refused with a reason instead of being written down as a broken link.
  */
-export const PagesEditorLinkField = ({ href, onCancel, onChoose }: IProps) => {
+export const PagesEditorLinkField = ({ href, onCancel, onChoose, pagesAtHand }: IProps) => {
   const t = useTranslations('pages');
   const [written, setWritten] = useState(href ?? '');
   const fieldRef = useRef<HTMLInputElement>(null);
@@ -36,7 +38,7 @@ export const PagesEditorLinkField = ({ href, onCancel, onChoose }: IProps) => {
 
   /** The field is asked for, so it takes the writing: leaving the cursor behind would ask and then not listen. */
   useEffect(() => fieldRef.current?.focus(), []);
-  const search = usePagesMentionSearch(looking ? written.trim() : null);
+  const search = usePagesMentionSearch(looking ? written.trim() : null, pagesAtHand);
 
   const apply = (): void => {
     if (isPageLinkTarget(written)) {

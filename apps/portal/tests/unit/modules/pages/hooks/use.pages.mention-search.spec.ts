@@ -24,7 +24,7 @@ describe('usePagesMentionSearch', () => {
   });
 
   it('returns no candidates and stays idle while there is no active query', () => {
-    const { result } = renderHook(() => usePagesMentionSearch(null));
+    const { result } = renderHook(() => usePagesMentionSearch(null, []));
 
     expect(result.current.candidates).toEqual([]);
     expect(result.current.isLoading).toBe(false);
@@ -32,7 +32,7 @@ describe('usePagesMentionSearch', () => {
   });
 
   it('debounces the search action and reports candidates once it resolves', async () => {
-    const { result, rerender } = renderHook(({ query }) => usePagesMentionSearch(query), {
+    const { result, rerender } = renderHook(({ query }) => usePagesMentionSearch(query, []), {
       initialProps: { query: 'ta' },
     });
 
@@ -51,7 +51,7 @@ describe('usePagesMentionSearch', () => {
   });
 
   it('clears candidates once the query is dismissed', async () => {
-    const { result, rerender } = renderHook(({ query }) => usePagesMentionSearch(query), {
+    const { result, rerender } = renderHook(({ query }) => usePagesMentionSearch(query, []), {
       initialProps: { query: 'tar' as string | null },
     });
 

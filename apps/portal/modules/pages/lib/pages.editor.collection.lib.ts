@@ -5,16 +5,8 @@ import {
   PAGE_EDITOR_COLLECTION_VIEW_REQUEST_SELECTOR,
 } from '../constants/pages.collections.constants';
 import type { PageCollectionInsert } from '../types/pages.collections.types';
+import { createPageEditorAskCommand } from './pages.editor.ask.lib';
 import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
-
-const clickWhoeverAnswers =
-  (selector: string): Command =>
-  (_state, _dispatch, view) => {
-    const asking = view?.dom.ownerDocument.querySelector<HTMLButtonElement>(selector);
-    if (asking === null || asking === undefined) return false;
-    asking.click();
-    return true;
-  };
 
 /**
  * Asks for a collection to keep here.
@@ -23,10 +15,10 @@ const clickWhoeverAnswers =
  * only whoever holds the page knows how to make one. So the menu asks, and what
  * lands in the writing is the block that shows it.
  */
-export const askForACollection: Command = clickWhoeverAnswers(PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR);
+export const askForACollection: Command = createPageEditorAskCommand(PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR);
 
 /** Asks which collection already written is being shown here. */
-export const askForACollectionAlreadyWritten: Command = clickWhoeverAnswers(
+export const askForACollectionAlreadyWritten: Command = createPageEditorAskCommand(
   PAGE_EDITOR_COLLECTION_VIEW_REQUEST_SELECTOR,
 );
 

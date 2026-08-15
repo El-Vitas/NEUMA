@@ -3,10 +3,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_DEBOUNCE_MS } from '@/shared/constants/use-table-action.constants';
 import { isActionSuccess } from '@/shared/lib/action-result';
+import { PAGE_MENTION_SEARCH_LIMIT } from '../constants/pages.mentions.constants';
+import { gatherThePagesNamed } from '../lib/pages.mentions.lib';
 import { searchPageMentionCandidatesAction } from '../server/actions/pages.mentions.actions';
 import type { PageMentionCandidate, PagesMentionSearchResult } from '../types/pages.mentions.types';
+import type { PageSummary } from '../types/pages.types';
 
-export const usePagesMentionSearch = (query: string | null): PagesMentionSearchResult => {
+/**
+ * The pages somebody may be naming, as they type.
+ *
+ * The pages of this space are already in hand, so the first letter is answered
+ * without waiting for anybody; the search is asked as well, because it reaches
+ * pages this one does not hold.
+ */
+export const usePagesMentionSearch = (
+  query: string | null,
+  pagesAtHand: readonly PageSummary[],
+): PagesMentionSearchResult => {
   const [candidates, setCandidates] = useState<readonly PageMentionCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const latestRequestIdRef = useRef(0);
@@ -42,7 +55,7 @@ export const usePagesMentionSearch = (query: string | null): PagesMentionSearchR
   }, [query]);
 
   return {
-    candidates: query === null ? [] : candidates,
+    candidates: query === null ? [] : gatherThePagesNamed(pagesAtHand, candidates, query, PAGE_MENTION_SEARCH_LIMIT),
     isLoading: query === null ? false : isLoading,
   };
 };

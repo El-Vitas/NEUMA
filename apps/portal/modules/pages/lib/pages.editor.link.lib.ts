@@ -6,6 +6,7 @@ import {
 } from '../constants/pages.editor.link.constants';
 import type { PageEditorLinkAtHand, PageEditorWrittenLink } from '../types/pages.editor.link.types';
 import type { PageEditorSurfaceRect } from '../types/pages.editor.surface.types';
+import { createPageEditorAskCommand } from './pages.editor.ask.lib';
 import { pageEditorSchema } from './pages.editor.schema';
 
 /** A page of this app rather than somewhere else, which is what can be opened without leaving. */
@@ -77,9 +78,4 @@ export const createPageLinkCommand =
  * the same way the menu reaches whoever knows how to make a page: by knocking
  * on a door the page left open.
  */
-export const askForTheLinkField: Command = (_state, _dispatch, view) => {
-  const asking = view?.dom.ownerDocument.querySelector<HTMLButtonElement>(PAGE_EDITOR_LINK_REQUEST_SELECTOR);
-  if (asking === null || asking === undefined) return false;
-  asking.click();
-  return true;
-};
+export const askForTheLinkField: Command = createPageEditorAskCommand(PAGE_EDITOR_LINK_REQUEST_SELECTOR);
