@@ -12,6 +12,8 @@ export interface PageEditorCommand {
   readonly group?: PageEditorCommandGroup;
   readonly kind: PageEditorCommandKind;
   readonly labelKey: string;
+  /** Which mark it puts on the writing, so a button can show that it is already on. */
+  readonly mark?: string;
   readonly run: Command;
 }
 

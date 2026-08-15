@@ -57,6 +57,12 @@ import {
   runPageEditorCommand,
   usesCommandKeyboard,
 } from '../lib/pages.editor.lib';
+import {
+  createPageLinkCommand,
+  isWithinThePages,
+  readTheLinkInHand,
+  readTheLinkUnderPointer,
+} from '../lib/pages.editor.link.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
 import { createPageShapeCommand } from '../lib/pages.editor.page-shape.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
@@ -64,12 +70,14 @@ import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.li
 import { createPageSubpageInsertCommand, readPageTitleFrom } from '../lib/pages.editor.subpage.lib';
 import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
 import { createPageUnsyncCommand, readBorrowedBlock } from '../lib/pages.editor.synced.lib';
+import { createPageTextColorCommand } from '../lib/pages.editor.text-color.lib';
 import { buildRowPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
+import type { PageEditorLinkAtHand } from '../types/pages.editor.link.types';
 import type { PageEditorPageShape } from '../types/pages.editor.page-shape.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
 import type { PageSchema } from '../types/pages.schema.types';
@@ -77,6 +85,7 @@ import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
 import { PagesEditorBlockActions } from './pages.editor.block-actions';
 import { PagesEditorCollaborationStatus } from './pages.editor.collaboration.status';
+import { PagesEditorLinkLayer } from './pages.editor.link.layer';
 import { PagesEditorLinkShapeMenu } from './pages.editor.link-shape.menu';
 import { PagesEditorPagePickerDialog } from './pages.editor.page-picker.dialog';
 import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
@@ -121,6 +130,9 @@ export const PagesProseMirrorEditor = forwardRef(
     const tErrors = useTranslations('errors');
     const [isMakingChild, startMakingChild] = useTransition();
     const [isChoosingCollection, setIsChoosingCollection] = useState(false);
+    const [linkInHand, setLinkInHand] = useState<PageEditorLinkAtHand | null>(null);
+    const [linkUnderPointer, setLinkUnderPointer] = useState<PageEditorLinkAtHand | null>(null);
+    const goToRef = useRef((href: string) => router.push(href));
     const selectBlockLabelRef = useRef(t('selectBlock'));
     const collectionLabelRef = useRef(t('collectionBlock'));
     const taskLabelRef = useRef(t('taskBlock'));
@@ -334,6 +346,10 @@ export const PagesProseMirrorEditor = forwardRef(
       pagesRef.current = pages;
     }, [pages]);
 
+    useEffect(() => {
+      goToRef.current = (href: string) => router.push(href);
+    }, [router]);
+
     /**
      * The page keeps what it can keep, and says so when it cannot.
      *
@@ -388,6 +404,26 @@ export const PagesProseMirrorEditor = forwardRef(
           setSurface(readPageEditorSurface(editorView, nextState, readSurfaceRect()));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
+        /**
+         * A link to a page of this app is followed without leaving the app: a
+         * whole page load to reach the next page of the same workspace throws
+         * away everything the browser already had.
+         */
+        handleClickOn: (_view, _pos, _node, _nodePos, event) => {
+          const followed = event.target instanceof Element ? event.target.closest('a') : null;
+          const href = followed?.getAttribute('href') ?? null;
+          if (href === null || !isWithinThePages(href)) return false;
+          event.preventDefault();
+          goToRef.current(href);
+          return true;
+        },
+        handleDOMEvents: {
+          mouseover: (view, event) => {
+            const surfaceRect = readSurfaceRect();
+            setLinkUnderPointer(surfaceRect === null ? null : readTheLinkUnderPointer(view, event.target, surfaceRect));
+            return false;
+          },
+        },
         handleKeyDown: answerKeyPress,
         handlePaste: uploadPastedFile,
         nodeViews: createPageEditorNodeViews(
@@ -702,6 +738,36 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
+    /** Asks where the writing in hand should take whoever presses it. */
+    const askWhereTheLinkGoes = (): void => {
+      const editorView = editorViewRef.current;
+      const spot = surface.toolbarPosition;
+      if (editorView === null || spot === null) return;
+      const link = readTheLinkInHand(editorView.state);
+      if (link === null) return;
+      setLinkUnderPointer(null);
+      setLinkInHand({ link, spot });
+    };
+
+    /** Leaves the writing where it is and takes the link off it. */
+    const stopBeingALink = (rested: PageEditorLinkAtHand): void => {
+      const editorView = editorViewRef.current;
+      setLinkUnderPointer(null);
+      if (editorView === null) return;
+      createPageLinkCommand(rested.link, null)(editorView.state, editorView.dispatch);
+      editorView.focus();
+    };
+
+    /** Writes down where it goes, or takes the link off, and gives the writing back its cursor. */
+    const sayWhereTheLinkGoes = (href: string | null): void => {
+      const editorView = editorViewRef.current;
+      const asked = linkInHand;
+      setLinkInHand(null);
+      if (editorView === null || asked === null) return;
+      createPageLinkCommand(asked.link, href)(editorView.state, editorView.dispatch);
+      editorView.focus();
+    };
+
     useImperativeHandle(
       handleRef,
       () => ({
@@ -750,6 +816,14 @@ export const PagesProseMirrorEditor = forwardRef(
             collectionSpotRef.current = editorView.state.selection.from;
             setIsChoosingCollection(true);
           }}
+          tabIndex={-1}
+          type="button"
+        />
+        <button
+          aria-hidden="true"
+          className="hidden"
+          data-page-link-request="true"
+          onClick={askWhereTheLinkGoes}
           tabIndex={-1}
           type="button"
         />
@@ -835,14 +909,35 @@ export const PagesProseMirrorEditor = forwardRef(
               <PagesEditorLinkShapeMenu onChoose={pastedLink.choose} />
             </div>
           )}
-          {canEdit && surface.toolbarPosition !== null && (
+          {canEdit && (
+            <PagesEditorLinkLayer
+              asked={linkInHand}
+              onCancel={() => {
+                setLinkInHand(null);
+                editorViewRef.current?.focus();
+              }}
+              onChoose={sayWhereTheLinkGoes}
+              onEdit={(rested) => {
+                setLinkUnderPointer(null);
+                setLinkInHand(rested);
+              }}
+              onLeave={() => setLinkUnderPointer(null)}
+              onRemove={stopBeingALink}
+              rested={linkUnderPointer}
+            />
+          )}
+          {/* One floating thing at a time: a bar and a bubble on the same words cover each other. */}
+          {canEdit && linkInHand === null && linkUnderPointer === null && surface.toolbarPosition !== null && (
             <div
               className="absolute z-30"
               style={{ left: `${surface.toolbarPosition.left}px`, top: `${surface.toolbarPosition.top}px` }}
             >
               <PagesEditorToolbar
+                colors={surface.textColors}
                 commands={PAGE_EDITOR_COMMANDS}
                 conversions={surface.conversions}
+                marksInUse={surface.marksInUse}
+                onColor={(kind, color) => blockActions.runCommand(createPageTextColorCommand(kind, color))}
                 onComment={() => {
                   const editorView = editorViewRef.current;
                   if (editorView === null) return;

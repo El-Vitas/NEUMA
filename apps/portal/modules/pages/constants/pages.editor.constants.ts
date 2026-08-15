@@ -46,7 +46,22 @@ export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
 };
 
 /** What the bar offers at a glance over a stretch of chosen text; the rest is behind the ellipsis. */
-export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'underline', 'strike', 'code', 'heading2'] as const;
+export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = [
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'code',
+  'link',
+  'heading2',
+] as const;
+
+/** A tool on the bar, and the same tool when what is chosen already carries it. */
+export const PAGE_EDITOR_TOOL_STYLE_CLASS =
+  'min-h-11 min-w-11 px-3 text-foreground text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+export const PAGE_EDITOR_TOOL_IN_USE_STYLE_CLASS =
+  'min-h-11 min-w-11 bg-muted px-3 font-semibold text-foreground text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 export const PAGE_EDITOR_APPLE_USER_AGENT_PATTERN = /mac|iphone|ipad|ipod/i;
 

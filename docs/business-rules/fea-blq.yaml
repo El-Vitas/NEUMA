@@ -56,6 +56,13 @@ rules:
     why: >-
       El código se consulta para copiarlo y para leerlo; si tabular saca el foco o las líneas se cortan, deja de poder
       trabajarse ahí.
+  - id: BR-2693dd5
+    status: active
+    title: Un enlace a esta app no recarga el navegador
+    rule: Seguir un enlace que apunta a una página de esta app lleva a ella sin recargar la página entera.
+    why: >-
+      Una recarga completa para llegar a otra página del mismo espacio tira todo lo que el navegador ya tenía y hace
+      esperar por algo que ya estaba.
   - id: BR-2c31f48
     status: active
     title: Una tarea nace sin marcar y solo se tacha a sí misma
@@ -181,6 +188,16 @@ rules:
       El mismo documento es material de lectura en una página y algo que se guarda en otra, y ofrecer una forma que el
       sistema no puede dibujar es un menú que no hace nada.
     context: Un archivo que la página no sabe dibujar se muestra siempre como línea, y no se le ofrece la elección.
+  - id: BR-7a7269d
+    status: active
+    title: Un enlace ya escrito se alcanza sin seguirlo
+    rule: >-
+      Al dejar el puntero sobre un enlace aparece una burbuja que muestra a dónde va y ofrece las dos únicas cosas que
+      se le pueden hacer: cambiar su destino o dejar de ser un enlace. Mientras la burbuja está a la vista, la barra de
+      formato no se muestra sobre las mismas palabras.
+    why: >-
+      Meter el cursor dentro de un enlace es también la forma de seguirlo, así que descansar encima es lo único que
+      queda para preguntarle algo. Dos cosas flotando sobre las mismas palabras se tapan entre sí.
   - id: BR-85d65ab
     status: active
     title: Un encabezado pliega lo que sostiene
@@ -193,6 +210,17 @@ rules:
     context: >-
       Lo plegado sigue en la página, solo queda fuera de la vista, y un encabezado plegado lo dice aunque el puntero no
       esté encima.
+  - id: BR-8609c2e
+    status: active
+    title: El color en línea usa la misma paleta acotada
+    rule: >-
+      El color de la escritura y el color de fondo se pueden poner sobre lo elegido, no solo sobre el bloque entero, y
+      se eligen de la misma paleta acotada que usan los bloques, con la opción de quitarlo y volver al predeterminado.
+      No hay selector libre de color.
+    why: >-
+      Quien elige cuatro palabras y busca un color quiere esas cuatro; pintar el bloque entero pintaría lo que no
+      eligió. Una paleta acotada es lo que garantiza que cada color tenga su lectura de día y de noche y que nada quede
+      ilegible sobre el papel de la página.
   - id: BR-921afcd
     status: active
     title: Un enlace que no se puede mostrar se queda como enlace
@@ -438,6 +466,19 @@ rules:
       La única línea que se escribe bajo una imagen es a la vez su leyenda visible y el texto que se lee a quien no
       puede verla.
     why: Pedir la misma frase dos veces es como una página termina con leyenda y sin texto alternativo.
+  - id: BR-ea2b093
+    status: active
+    title: Un enlace se pide en una sola pregunta
+    rule: >-
+      Poner un enlace sobre lo elegido abre un campo que pregunta a dónde va, y ese campo acepta tanto una dirección
+      como el nombre de una página de la app: si lo escrito es una dirección se enlaza tal cual, y si no lo es se busca
+      entre las páginas para elegir una. Lo que no es ningún sitio al que se pueda ir se rechaza con un mensaje en vez
+      de escribirse.
+    why: >-
+      Desde donde está quien escribe, una dirección y el nombre de una página responden la misma pregunta —a dónde
+      debería llevar esto—, y tener que decir de antemano cuál de las dos es sería una pregunta sobre la máquina. Un
+      enlace roto guardado en silencio es peor que no dejar guardarlo.
+    context: Un enlace puede llevar a la web, a un correo o a una página de esta app.
   - id: BR-f1c0b40
     status: active
     title: El índice se lee de la página, no se guarda

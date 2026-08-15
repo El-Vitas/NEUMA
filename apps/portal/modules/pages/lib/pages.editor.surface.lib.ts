@@ -23,10 +23,12 @@ import { readPageFileDisplay } from './pages.editor.file.display.lib';
 import { readPageEditorFoldState } from './pages.editor.heading-fold.lib';
 import { computeSelectionToolbarPlacement } from './pages.editor.lib';
 import { readPageLinkTarget } from './pages.editor.link-target.lib';
+import { readMarksInUse } from './pages.editor.marks-in-use.lib';
 import { readPageShapeTarget } from './pages.editor.page-shape.lib';
 import { countSelectedBlocks } from './pages.editor.selection.lib';
 import { readSyncedTarget } from './pages.editor.synced.lib';
 import { isPageEditorInTable } from './pages.editor.table.lib';
+import { readPageTextColors } from './pages.editor.text-color.lib';
 
 /**
  * Where a block's menu opens: level with the buttons that open it, which stand
@@ -109,6 +111,8 @@ export const readPageEditorSurface = (
   pageShape: readPageShapeTarget(state),
   syncedTarget: readSyncedTarget(state),
   buttonAt: readSelectedButton(state),
+  textColors: readPageTextColors(state),
+  marksInUse: readMarksInUse(state),
   isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),
