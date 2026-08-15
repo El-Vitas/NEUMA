@@ -2,7 +2,7 @@ import type { Command } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { RefObject } from 'react';
 import type { PageEditorSpot } from './pages.editor.surface.types';
-import type { PageEditorCommandGroup } from './pages.types';
+import type { PageEditorCommandGroup, PageSummary } from './pages.types';
 
 export type PagesEditorTriggerKind = 'mention' | 'slash';
 
@@ -29,8 +29,12 @@ export interface SlashMenuKeyDownOptions {
 
 /** What the menu beside the cursor needs: the editor it types into, the box it is placed against, and what to do when Escape leaves a selection behind instead of closing a menu. */
 export interface PagesEditorTriggerMenuParameters {
+  /** Whether this page is written yet, since a page can only be made hanging from one that exists. */
+  readonly canMakeAPage: boolean;
   readonly editorViewRef: RefObject<EditorView | null>;
   readonly onEscapeWithSelection: (editorView: EditorView) => void;
+  /** The pages this one already holds, which answer a name without asking anybody. */
+  readonly pagesAtHand: readonly PageSummary[];
   readonly surfaceRef: RefObject<HTMLDivElement | null>;
 }
 

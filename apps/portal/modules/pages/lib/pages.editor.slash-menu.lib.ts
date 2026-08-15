@@ -91,6 +91,7 @@ const buildMentionTriggerItems = (
   mentionCandidates: readonly PageMentionCandidate[],
   triggerQuery: string | null,
   nameTheOfferToMakeAPage: (title: string) => string,
+  canMakeAPage: boolean,
 ): readonly PagesEditorMenuItem[] => {
   const found = mentionCandidates.map((candidate) => ({
     id: candidate.id,
@@ -103,7 +104,7 @@ const buildMentionTriggerItems = (
   }));
 
   const wanted = triggerQuery?.trim() ?? '';
-  if (wanted.length === 0 || isAlreadyWritten(mentionCandidates, wanted)) return found;
+  if (!canMakeAPage || wanted.length === 0 || isAlreadyWritten(mentionCandidates, wanted)) return found;
   return [
     ...found,
     {
@@ -158,6 +159,8 @@ export const buildEditorTriggerItems = (parameters: {
   readonly schema: Schema;
   readonly translateCommandLabel: (labelKey: string) => string;
   readonly nameTheOfferToMakeAPage: (title: string) => string;
+  /** Whether this page is written yet, since a page can only be made hanging from one that exists. */
+  readonly canMakeAPage: boolean;
   readonly recentCommandIds?: readonly string[];
   readonly triggerKind: PagesEditorTriggerKind | null;
   readonly triggerQuery: string | null;
@@ -168,6 +171,7 @@ export const buildEditorTriggerItems = (parameters: {
         parameters.mentionCandidates,
         parameters.triggerQuery,
         parameters.nameTheOfferToMakeAPage,
+        parameters.canMakeAPage,
       )
     : buildSlashTriggerItems(
         parameters.commands,

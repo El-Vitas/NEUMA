@@ -320,8 +320,10 @@ export const PagesProseMirrorEditor = forwardRef(
       triggerSelectedIndex,
       updateEditorTrigger,
     } = usePagesEditorTriggerMenu({
+      canMakeAPage: pageId !== null,
       editorViewRef,
       onEscapeWithSelection: dismissSelectionToolbar,
+      pagesAtHand: pages,
       surfaceRef,
     });
 
@@ -968,6 +970,7 @@ export const PagesProseMirrorEditor = forwardRef(
               }}
               onLeave={() => setLinkUnderPointer(null)}
               onRemove={stopBeingALink}
+              pagesAtHand={pages}
               rested={linkUnderPointer}
             />
           )}

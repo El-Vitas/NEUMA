@@ -5,6 +5,7 @@ import {
   PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageMentionInsertCommandOptions } from '../types/pages.types';
+import { createPageEditorAskCommand } from './pages.editor.ask.lib';
 
 /**
  * Asks for the page that was named but is not written yet.
@@ -15,15 +16,10 @@ import type { PageMentionInsertCommandOptions } from '../types/pages.types';
  * writing can do, so it is asked of whoever holds the page, under the name
  * that was typed.
  */
-export const askToMakeTheNamedPage =
-  (title: string): Command =>
-  (_state, _dispatch, view) => {
-    const asking = view?.dom.ownerDocument.querySelector<HTMLButtonElement>(PAGE_EDITOR_MENTION_REQUEST_SELECTOR);
-    if (asking === null || asking === undefined) return false;
-    asking.dataset[PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE] = title;
-    asking.click();
-    return true;
-  };
+export const askToMakeTheNamedPage = (title: string): Command =>
+  createPageEditorAskCommand(PAGE_EDITOR_MENTION_REQUEST_SELECTOR, (answering) => {
+    answering.dataset[PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE] = title;
+  });
 
 /**
  * Names the page where the writing was left.

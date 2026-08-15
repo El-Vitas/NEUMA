@@ -55,8 +55,10 @@ const renderTriggerMenu = () => {
   const escapedSelections: EditorView[] = [];
   const rendered = renderHook(() =>
     usePagesEditorTriggerMenu({
+      canMakeAPage: true,
       editorViewRef,
       onEscapeWithSelection: (editorView) => escapedSelections.push(editorView),
+      pagesAtHand: [],
       surfaceRef,
     }),
   );

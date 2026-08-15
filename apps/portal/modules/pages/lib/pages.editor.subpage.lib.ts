@@ -5,6 +5,7 @@ import {
   PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageSubpageInsert } from '../types/pages.editor.subpage.types';
+import { createPageEditorAskCommand } from './pages.editor.ask.lib';
 import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
 
 /**
@@ -14,12 +15,7 @@ import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
  * whoever holds the page knows how to make one. So the menu asks, the same way
  * it asks for an image, and what lands here is whatever comes back.
  */
-export const askForPageChild: Command = (_state, _dispatch, view) => {
-  const asking = view?.dom.ownerDocument.querySelector<HTMLButtonElement>(PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR);
-  if (asking === null || asking === undefined) return false;
-  asking.click();
-  return true;
-};
+export const askForPageChild: Command = createPageEditorAskCommand(PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR);
 
 /**
  * Puts the line that leads to a child page where the writing was left.
