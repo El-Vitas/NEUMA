@@ -231,6 +231,7 @@
     "slashCommands": "Comandos de bloque",
     "noCommands": "No hay comandos de bloque coincidentes.",
     "mentionCandidates": "Menciones de página",
+    "mentionCreatePage": "Crear «{title}»",
     "noMentionCandidates": "No hay páginas coincidentes.",
     "searchingMentionCandidates": "Buscando páginas...",
     "titleField": "Título",

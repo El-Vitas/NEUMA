@@ -472,6 +472,15 @@ export const PAGE_EDITOR_SYNCED_LOST_STYLE_CLASS = 'text-muted-foreground text-s
 /** What is written to start looking for a page already written, wherever the looking was asked for. */
 export const PAGE_EDITOR_MENTION_TRIGGER = '@';
 
+/** Where the page keeps whoever knows how to make the page that was named but does not exist yet. */
+export const PAGE_EDITOR_MENTION_REQUEST_SELECTOR = '[data-page-mention-request]';
+
+/** Under what name the page being asked for travels from the menu to whoever makes it. */
+export const PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE = 'pageMentionTitle';
+
+/** The one entry in the finder that is not a page, because it is the offer to make one. */
+export const PAGE_EDITOR_MENTION_CREATION_ITEM_ID = 'mention-creation';
+
 /** A page named in the middle of a sentence: it reads as part of the line, not as a line of its own. */
 export const PAGE_EDITOR_MENTION_STYLE_CLASS = [
   'inline-flex items-baseline gap-1 rounded px-0.5 text-primary underline underline-offset-4',

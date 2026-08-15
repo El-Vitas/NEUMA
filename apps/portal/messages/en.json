@@ -231,6 +231,7 @@
     "slashCommands": "Block commands",
     "noCommands": "No matching block commands.",
     "mentionCandidates": "Page mentions",
+    "mentionCreatePage": "Create “{title}”",
     "noMentionCandidates": "No matching pages.",
     "searchingMentionCandidates": "Searching pages...",
     "titleField": "Title",

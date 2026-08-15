@@ -49,18 +49,27 @@ export const usePagesEditorTriggerMenu = ({
   const mentionSearch = usePagesMentionSearch(triggerKind === 'mention' ? triggerQuery : null);
 
   const translateCommandLabel = useCallback((labelKey: string) => t(`commands.${labelKey}`), [t]);
+  const nameTheOfferToMakeAPage = useCallback((title: string) => t('mentionCreatePage', { title }), [t]);
   const triggerItems = useMemo<readonly PagesEditorMenuItem[]>(
     () =>
       buildEditorTriggerItems({
         commands: PAGE_EDITOR_COMMANDS,
         mentionCandidates: mentionSearch.candidates,
+        nameTheOfferToMakeAPage,
         recentCommandIds,
         schema: pageEditorSchema,
         translateCommandLabel,
         triggerKind,
         triggerQuery,
       }),
-    [mentionSearch.candidates, recentCommandIds, translateCommandLabel, triggerKind, triggerQuery],
+    [
+      mentionSearch.candidates,
+      nameTheOfferToMakeAPage,
+      recentCommandIds,
+      translateCommandLabel,
+      triggerKind,
+      triggerQuery,
+    ],
   );
   const triggerItemsRef = useRef(triggerItems);
 

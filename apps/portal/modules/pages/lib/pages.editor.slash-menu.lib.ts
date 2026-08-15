@@ -1,4 +1,5 @@
 import type { Schema } from 'prosemirror-model';
+import { PAGE_EDITOR_MENTION_CREATION_ITEM_ID } from '../constants/pages.editor.blocks.constants';
 import type {
   PagesEditorMenuItem,
   PagesEditorTrigger,
@@ -8,6 +9,7 @@ import type {
 import type { PageMentionCandidate } from '../types/pages.mentions.types';
 import type { PageEditorCommand } from '../types/pages.types';
 import { createPageMentionInsertCommand } from './pages.editor.commands';
+import { askToMakeTheNamedPage } from './pages.editor.mention.lib';
 
 const slashQueryPattern = /(?:^|\s)\/([^\s/]*)$/;
 const mentionQueryPattern = /(?:^|\s)@([^\s]*)$/;
@@ -77,11 +79,20 @@ export const handleSlashMenuKeyDown = ({
   return true;
 };
 
+const isAlreadyWritten = (mentionCandidates: readonly PageMentionCandidate[], wanted: string): boolean =>
+  mentionCandidates.some((candidate) => candidate.label.trim().toLowerCase() === wanted.toLowerCase());
+
+/**
+ * The pages that answer to what was typed, and — when none of them is called
+ * exactly that — the offer to make the page that was named.
+ */
 const buildMentionTriggerItems = (
   schema: Schema,
   mentionCandidates: readonly PageMentionCandidate[],
-): readonly PagesEditorMenuItem[] =>
-  mentionCandidates.map((candidate) => ({
+  triggerQuery: string | null,
+  nameTheOfferToMakeAPage: (title: string) => string,
+): readonly PagesEditorMenuItem[] => {
+  const found = mentionCandidates.map((candidate) => ({
     id: candidate.id,
     label: candidate.label,
     run: createPageMentionInsertCommand(schema, {
@@ -90,6 +101,18 @@ const buildMentionTriggerItems = (
       spaceId: candidate.spaceId,
     }),
   }));
+
+  const wanted = triggerQuery?.trim() ?? '';
+  if (wanted.length === 0 || isAlreadyWritten(mentionCandidates, wanted)) return found;
+  return [
+    ...found,
+    {
+      id: PAGE_EDITOR_MENTION_CREATION_ITEM_ID,
+      label: nameTheOfferToMakeAPage(wanted),
+      run: askToMakeTheNamedPage(wanted),
+    },
+  ];
+};
 
 const moveRecentToTheFront = (
   items: readonly PagesEditorMenuItem[],
@@ -134,12 +157,18 @@ export const buildEditorTriggerItems = (parameters: {
   readonly mentionCandidates: readonly PageMentionCandidate[];
   readonly schema: Schema;
   readonly translateCommandLabel: (labelKey: string) => string;
+  readonly nameTheOfferToMakeAPage: (title: string) => string;
   readonly recentCommandIds?: readonly string[];
   readonly triggerKind: PagesEditorTriggerKind | null;
   readonly triggerQuery: string | null;
 }): readonly PagesEditorMenuItem[] =>
   parameters.triggerKind === 'mention'
-    ? buildMentionTriggerItems(parameters.schema, parameters.mentionCandidates)
+    ? buildMentionTriggerItems(
+        parameters.schema,
+        parameters.mentionCandidates,
+        parameters.triggerQuery,
+        parameters.nameTheOfferToMakeAPage,
+      )
     : buildSlashTriggerItems(
         parameters.commands,
         parameters.triggerQuery,
