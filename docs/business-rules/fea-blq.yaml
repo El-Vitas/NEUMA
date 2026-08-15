@@ -63,6 +63,16 @@ rules:
     why: >-
       Una recarga completa para llegar a otra página del mismo espacio tira todo lo que el navegador ya tenía y hace
       esperar por algo que ya estaba.
+  - id: BR-29a76e9
+    status: active
+    title: Nombrar una página que no existe ofrece hacerla
+    rule: >-
+      Cuando lo escrito tras `@` no corresponde a ninguna página, el buscador ofrece crear una con ese nombre. La página
+      se crea colgando de aquella donde se escribió y queda mencionada en el mismo punto del texto.
+    why: >-
+      Nombrar una página que todavía no existe es como suele empezar una página: el pensamiento va primero. Responder
+      «no encontré nada» obliga a salir de la frase, crear la página en otra parte y volver.
+    context: La página donde se escribe tiene que estar creada antes de poder colgarle otra.
   - id: BR-2c31f48
     status: active
     title: Una tarea nace sin marcar y solo se tacha a sí misma
@@ -93,6 +103,15 @@ rules:
     why: >-
       La página dice lo mismo para todos los que la leen, y cada quien ve el dibujo que le toque según la interfaz de su
       momento.
+  - id: BR-4e634dd
+    status: active
+    title: Una página nombrada se sigue como un enlace
+    rule: >-
+      Hacer clic en una página nombrada en medio de una frase lleva a esa página sin recargar el navegador entero, igual
+      que un enlace a una página de esta app.
+    why: >-
+      Para quien lee son la misma cosa —algo escrito que lleva a otra página—, y que una recargue y la otra no es una
+      diferencia que solo existe por cómo está dibujada cada una.
   - id: BR-4efd88a
     status: active
     title: Cada control de un bloque dice qué hace y confirma

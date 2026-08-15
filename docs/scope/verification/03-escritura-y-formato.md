@@ -69,16 +69,16 @@ Lo que ocurre **dentro** de un bloque: escribir, dar formato, mencionar, buscar 
 
 **Cómo probarlo:** escribe `@` después de un espacio, en medio de una frase.
 
-- [ ] `@` abre el buscador de páginas
-- [ ] Escribir filtra por título
-- [ ] Funciona en medio de una frase, no solo al inicio de la línea
-- [ ] Un correo como `juan@ejemplo.com` **no** dispara el menú
-- [ ] La mención muestra el título de la página, no su identificador
-- [ ] Al hacer clic se navega a la página mencionada
-- [ ] Si la página cambia de título, la mención lo refleja
+- [x] `@` abre el buscador de páginas
+- [x] Escribir filtra por título
+- [x] Funciona en medio de una frase, no solo al inicio de la línea
+- [x] Un correo como `juan@ejemplo.com` **no** dispara el menú
+- [x] La mención muestra el título de la página, no su identificador
+- [x] Al hacer clic se navega a la página mencionada
+- [x] Si la página cambia de título, la mención lo refleja
 - [ ] Quien no tiene acceso al destino no ve su título
-- [ ] La mención aparece como retroenlace en la página destino
-- [ ] El buscador ofrece crear una página nueva con lo escrito si no existe
+- [x] La mención aparece como retroenlace en la página destino
+- [x] El buscador ofrece crear una página nueva con lo escrito si no existe
 
 ## ES-08 · Debe permitir mencionar a una persona
 
@@ -145,6 +145,7 @@ Lo que ocurre **dentro** de un bloque: escribir, dar formato, mencionar, buscar 
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
+| 15/08/2026 | ES-07 | Faltaba una cosa de las diez: el buscador no ofrecía crear la página nombrada, se limitaba a desaparecer. Nombrar una página que todavía no existe es como suele empezar una página —primero el pensamiento y después la página—, así que ahora, cuando ninguna se llama así, la última entrada del buscador es hacerla: se crea colgando de la página donde se escribió y queda mencionada en el mismo lugar. Al probar el resto aparecieron dos cosas. Una, arreglada: seguir una mención recargaba el navegador entero, porque lo que responde al clic estaba puesto en el nodo y una mención se dibuja con su propia vista; ahora responde el editor, y una página nombrada en medio de una frase se sigue igual que un enlace. La otra, no arreglada y anotada aparte: dos proyecciones —la búsqueda y los retroenlaces— leen la misma bandeja de eventos y la primera que toma uno lo marca como hecho, así que con las dos corriendo cada guardado llega solo a una. Con la proyección de enlaces corriendo, el retroenlace aparece. Queda sin marcar que quien no tiene acceso al destino no vea su título: hoy la mención guarda el nombre con que se insertó y lo muestra cuando no puede leer la página, de modo que el título se filtra; distinguir «no tienes acceso» de «está en otro espacio» exige que el servidor lo diga. | 9 de 10 |
 | 14/08/2026 | ES-06 | Faltaba todo el enlace hecho a mano: existía la marca en el contrato y la regla de Markdown `[texto](url)`, pero no había forma de poner un enlace sobre algo ya escrito. Se agregó un campo que se abre con Ctrl+K o desde la barra, y que hace una sola pregunta —a dónde va esto— porque desde donde uno está, una dirección y el nombre de una página responden lo mismo: si lo escrito es una dirección se enlaza, y si no, se busca entre las páginas y se elige una. Lo que no es ningún sitio se rechaza diciéndolo, en vez de quedar escrito como un enlace roto. Un enlace ya escrito se alcanza dejando el puntero encima: aparece una burbuja con a dónde va y las dos únicas cosas que se le pueden hacer, cambiarlo o quitarlo, porque meter el cursor dentro de un enlace es también la forma de seguirlo. Y seguir un enlace a una página de la propia app ya no recarga el navegador entero. Al probarlo apareció que el contrato solo aceptaba direcciones absolutas, así que una página interna no se podía guardar; ahora un enlace puede llevar también a un sitio de esta app, y esa verdad quedó en el paquete compartido en lugar de estar escrita dos veces. | 6 de 6 |
 | 14/08/2026 | ES-05 | La barra ya aparecía y ya reflejaba el estado de lo elegido, pero le faltaban dos cosas de las que la lista pide: el enlace y —lo mismo, visto de otro lado— que el botón de enlace dijera que lo elegido ya es un enlace. Se agregó a la fila principal, junto a negrita, cursiva, subrayado, tachado y código, y se le dio la marca que lo hace responder como los demás. Además, la barra y la burbuja de un enlace ya no se pisan: sobre las mismas palabras solo puede haber una cosa flotando, y mientras el puntero descansa en un enlace manda la burbuja. | 6 de 6 |
 | 14/08/2026 | ES-04 | El color en línea no existía: solo se podía pintar un bloque entero, cuando quien elige cuatro palabras y busca un color quiere esas cuatro. Se agregaron las dos marcas —color de la escritura y color de fondo— con la misma paleta acotada de ocho colores que ya usan los bloques, más «sin color» para volver al predeterminado; no hay selector libre, de modo que nada puede quedar ilegible sobre el papel de la página. Cada color tiene su lectura de día y de noche, y se comprobaron ambas sobre el mismo texto: el fondo es un tinte, no un bloque sólido. Los dos colores se combinan sobre las mismas palabras y sobreviven a recargar. | 5 de 5 |

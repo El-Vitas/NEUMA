@@ -23,6 +23,7 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
+import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../constants/pages.editor.constants';
 import { PAGE_EDITOR_QUIET_SURFACE } from '../constants/pages.editor.surface.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
@@ -63,6 +64,7 @@ import {
   readTheLinkInHand,
   readTheLinkUnderPointer,
 } from '../lib/pages.editor.link.lib';
+import { createPageMentionInsertAtCommand } from '../lib/pages.editor.mention.lib';
 import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
 import { createPageShapeCommand } from '../lib/pages.editor.page-shape.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
@@ -404,20 +406,22 @@ export const PagesProseMirrorEditor = forwardRef(
           setSurface(readPageEditorSurface(editorView, nextState, readSurfaceRect()));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
-        /**
-         * A link to a page of this app is followed without leaving the app: a
-         * whole page load to reach the next page of the same workspace throws
-         * away everything the browser already had.
-         */
-        handleClickOn: (_view, _pos, _node, _nodePos, event) => {
-          const followed = event.target instanceof Element ? event.target.closest('a') : null;
-          const href = followed?.getAttribute('href') ?? null;
-          if (href === null || !isWithinThePages(href)) return false;
-          event.preventDefault();
-          goToRef.current(href);
-          return true;
-        },
         handleDOMEvents: {
+          /**
+           * A link to a page of this app is followed without leaving the app: a
+           * whole page load to reach the next page of the same workspace throws
+           * away everything the browser already had. It is answered here, and
+           * not at the node the click landed on, so that a page named in the
+           * middle of a sentence is followed the same way as a plain link.
+           */
+          click: (_view, event) => {
+            const followed = event.target instanceof Element ? event.target.closest('a') : null;
+            const href = followed?.getAttribute('href') ?? null;
+            if (href === null || !isWithinThePages(href)) return false;
+            event.preventDefault();
+            goToRef.current(href);
+            return true;
+          },
           mouseover: (view, event) => {
             const surfaceRect = readSurfaceRect();
             setLinkUnderPointer(surfaceRect === null ? null : readTheLinkUnderPointer(view, event.target, surfaceRect));
@@ -548,6 +552,38 @@ export const PagesProseMirrorEditor = forwardRef(
           spot,
         );
         insert(editorView.state, editorView.dispatch);
+        editorView.focus();
+        router.refresh();
+      });
+    };
+
+    /** Makes the page that was named in the middle of a sentence but was not written yet. */
+    const makeTheNamedPage = (title: string): void => {
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      if (pageId === null) {
+        toast.error(t('subpageNeedsPage'));
+        return;
+      }
+      /** Where the writing is now, said before the making begins, because it will not be there after. */
+      const spot = editorView.state.selection.from;
+      startMakingChild(async () => {
+        const made = await createPageAction({
+          content: createEmptyPageContent(),
+          parentId: pageId,
+          spaceId,
+          title,
+        });
+        if (!isActionSuccess<PageSummary>(made)) {
+          toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
+          return;
+        }
+        const name = createPageMentionInsertAtCommand(
+          pageEditorSchema,
+          { label: made.data.title, pageId: made.data.id, spaceId },
+          spot,
+        );
+        name(editorView.state, editorView.dispatch);
         editorView.focus();
         router.refresh();
       });
@@ -794,6 +830,15 @@ export const PagesProseMirrorEditor = forwardRef(
           data-page-subpage-request="true"
           disabled={isMakingChild}
           onClick={makeTheChildPage}
+          tabIndex={-1}
+          type="button"
+        />
+        <button
+          aria-hidden="true"
+          className="hidden"
+          data-page-mention-request="true"
+          disabled={isMakingChild}
+          onClick={(event) => makeTheNamedPage(event.currentTarget.dataset[PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE] ?? '')}
           tabIndex={-1}
           type="button"
         />
