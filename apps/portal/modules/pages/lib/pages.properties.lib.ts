@@ -2,6 +2,7 @@ import type { PagePropertyContext } from '@company-brain/shared';
 import {
   formatPagePropertyValue,
   getDefaultPagePropertyValue,
+  isPagePropertyValueEmpty,
   isTitlePageProperty,
   pagePropertyRequiresPersonDirectory,
 } from '@company-brain/shared';
@@ -26,6 +27,22 @@ export const getDefaultPropertyValue = (property: PageSchemaProperty): PagePrope
 
 export const buildDefaultPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(properties.map((property) => [property.key, getDefaultPropertyValue(property)]));
+
+/**
+ * The defaults a row can be made with, leaving out what would be no answer.
+ *
+ * A collection may require an answer for every row, and it may also hold
+ * properties nobody can guess — who it is for, when it is due. Sending an empty
+ * one is worse than sending none: the collection reads it as an answer and
+ * refuses it, and whoever pressed the button is told nothing they can act on.
+ */
+export const buildRowPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
+  Object.fromEntries(
+    properties
+      .map((property) => [property, getDefaultPropertyValue(property)] as const)
+      .filter(([property, value]) => !isPagePropertyValueEmpty(property.type, value))
+      .map(([property, value]) => [property.key, value]),
+  );
 
 export const getStringPropertyValue = (value: PagePropertyValue | undefined): string =>
   typeof value === 'string' ? value : '';

@@ -20,6 +20,9 @@ import { PAGE_EDITOR_BACKGROUND_COLOR_CLASSES, PAGE_EDITOR_TEXT_COLOR_CLASSES } 
 
 export const DEFAULT_PAGE_TOGGLE_SUMMARY = 'Toggle';
 
+/** What a button says before anybody has named it. It is renamed where it stands. */
+export const DEFAULT_PAGE_BUTTON_LABEL = 'Button';
+
 export const PAGE_EDITOR_COMMAND_GROUP_ORDER: readonly PageEditorCommandGroup[] = [
   'recent',
   'text',
@@ -107,4 +110,8 @@ export const PAGE_EDITOR_SURFACE_CLASS_NAME = [
   ...PAGE_EDITOR_BACKGROUND_COLOR_CLASSES,
 ].join(' ');
 
-export const PAGE_EDITOR_COMMANDS = createPageEditorCommands(pageEditorSchema, DEFAULT_PAGE_TOGGLE_SUMMARY);
+export const PAGE_EDITOR_COMMANDS = createPageEditorCommands(
+  pageEditorSchema,
+  DEFAULT_PAGE_TOGGLE_SUMMARY,
+  DEFAULT_PAGE_BUTTON_LABEL,
+);

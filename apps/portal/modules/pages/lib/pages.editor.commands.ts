@@ -143,6 +143,10 @@ const insertPageNode =
 const createMinimalPageToggleNode = (schema: Schema, toggleSummary: string): EditorNode =>
   schema.nodes.toggle.createChecked({ summary: toggleSummary }, schema.nodes.paragraph.createChecked());
 
+/** A button starts with a line to write in: what it writes is what it holds, and it must hold something. */
+const createMinimalPageButtonNode = (schema: Schema, label: string): EditorNode =>
+  schema.nodes.button.createChecked({ label }, schema.nodes.paragraph.createChecked());
+
 const buildPageAssetAttrs = (options: PageAssetInsertCommandOptions): Record<string, number | string> => {
   const attrs: Record<string, number | string> = { assetId: options.assetId };
   if (options.alt !== undefined) attrs.alt = options.alt;
@@ -237,7 +241,15 @@ export const createPageMentionInsertCommand = (schema: Schema, options: PageMent
 export const createPageEditorCommands = (
   schema: Schema,
   toggleSummary: string,
+  buttonLabel: string = toggleSummary,
 ): Readonly<Record<string, PageEditorCommand>> => ({
+  /** A button, and what it writes when pressed, which is whatever is written inside it. */
+  button: {
+    group: 'advanced',
+    kind: 'block',
+    labelKey: 'button',
+    run: insertPageNode(createMinimalPageButtonNode(schema, buttonLabel)),
+  },
   bold: { kind: 'mark', labelKey: 'bold', run: toggleMark(schema.marks.strong) },
   blockquote: { group: 'text', kind: 'block', labelKey: 'blockquote', run: wrapIn(schema.nodes.blockquote) },
   bulletList: { group: 'lists', kind: 'block', labelKey: 'bulletList', run: wrapInList(schema.nodes.bullet_list) },

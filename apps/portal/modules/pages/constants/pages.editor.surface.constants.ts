@@ -13,6 +13,7 @@ export const PAGE_EDITOR_QUIET_SURFACE: PageEditorSurfaceState = {
   linkTarget: null,
   pageShape: null,
   syncedTarget: null,
+  buttonAt: null,
   isInTable: false,
   menuPosition: null,
   request: null,

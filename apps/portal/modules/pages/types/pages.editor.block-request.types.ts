@@ -1,5 +1,5 @@
 /** What a block is being asked for: its actions, what was said about it, where it is going, or where it is also to be shown. */
-export type PageEditorBlockRequestKind = 'actions' | 'comments' | 'handover' | 'sync';
+export type PageEditorBlockRequestKind = 'actions' | 'button' | 'comments' | 'handover' | 'sync';
 
 /** The stretch of text a question is about, when it is about part of a block and not all of it. */
 export interface PageEditorFragment {

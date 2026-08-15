@@ -25,8 +25,10 @@ import {
   PAGE_EDITOR_UNSUPPORTED_TYPE,
   PAGE_EDITOR_VIDEO_TYPE,
 } from '../constants/pages.editor.blocks.constants';
+import { PAGE_EDITOR_BUTTON_TYPE } from '../constants/pages.editor.button.constants';
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
 import { createPageBookmarkNodeView } from './pages.editor.bookmark.node-view.lib';
+import { createPageButtonNodeView } from './pages.editor.button.node-view.lib';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageCodeBlockNodeView } from './pages.editor.code.node-view.lib';
 import { createPageContentsNodeView } from './pages.editor.contents.node-view.lib';
@@ -104,9 +106,13 @@ export const createPageEditorNodeViews = (
   readPageTitle: (pageId: string) => string | null = () => null,
   /** How a block written in another page is fetched, since a borrowed block is drawn from where it lives. */
   readBorrowed: (pageId: string, blockId: string) => EditorNode | null = () => null,
+  /** What happens when a button is pressed, which is more than the writing can do on its own. */
+  pressTheButton: (at: number) => void = () => undefined,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
+  [PAGE_EDITOR_BUTTON_TYPE]: (node, view, getPosition) =>
+    createPageButtonNodeView(node, view, getPosition, labels.button, pressTheButton),
   [PAGE_EDITOR_CALLOUT_TYPE]: (node) => createPageCalloutNodeView(node),
   [PAGE_EDITOR_CODE_TYPE]: (node, view, getPosition) =>
     createPageCodeBlockNodeView(node, view, getPosition, labels.code),
