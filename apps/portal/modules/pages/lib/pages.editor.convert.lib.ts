@@ -54,7 +54,7 @@ const readSelectedBlocks = (state: EditorState): PageEditorConversionSource | nu
  * painted, and what was said about it. Changing the shape of a block is not a
  * reason to lose its colour or its comments.
  */
-const readCarriedAttrs = (attrs: Attrs): Attrs =>
+export const readCarriedAttrs = (attrs: Attrs): Attrs =>
   Object.fromEntries(PAGE_EDITOR_CARRIED_BLOCK_ATTRS.flatMap((name) => (name in attrs ? [[name, attrs[name]]] : [])));
 
 const keepAllBuilt = (blocks: readonly (EditorNode | null)[]): readonly EditorNode[] | null => {

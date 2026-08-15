@@ -409,6 +409,21 @@ rules:
         given: Un botón que agrega filas a una colección con propiedades obligatorias
         when: Alguien lo pulsa
         then: La fila se crea con los valores por defecto de esa colección, sin los que quedarían vacíos
+  - id: BR-de73559
+    status: active
+    title: Escribir el signo cambia la forma de la línea, no cuál línea es
+    rule: >-
+      Los signos con que se escribe a mano —`#`, `-`, `1.`, `>`, `---`, y `**`, `*`, `` ` ``, `~~` dentro de la línea—
+      convierten lo escrito en lo que representan y se llevan los signos con ellos. La línea convertida sigue siendo la
+      misma: conserva quién es, sus colores y lo que se comentó sobre ella. Deshacer justo después devuelve el signo tal
+      como se escribió.
+    why: >-
+      Dejar los asteriscos a la vista es responder a medias lo que se pidió; y darle a la línea una identidad nueva
+      rompería los enlaces a ese bloque y dejaría huérfano lo que se comentó sobre él. Deshacer tiene que devolver lo
+      escrito porque a veces lo que se quería era el signo.
+    context: >-
+      Dentro de un bloque de código no ocurre ninguna conversión: lo que se escribe ahí es lo que se quiso decir, signo
+      por signo.
   - id: BR-e1147d1
     status: active
     title: Un documento se lee dentro de la página

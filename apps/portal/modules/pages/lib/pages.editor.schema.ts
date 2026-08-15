@@ -22,6 +22,7 @@ import {
   PAGE_EDITOR_TABLE_CELL_ATTRS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
+  PAGE_EDITOR_UNDERLINE_STYLE_CLASS,
   PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
   PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS,
   PAGE_EDITOR_UNSUPPORTED_TYPE,
@@ -831,7 +832,18 @@ export const pageEditorSchema = new Schema({
       parseDOM: [{ getAttrs: getPageEditorLinkAttrs, tag: 'a[href]' }],
       toDOM: (mark) => ['a', { href: mark.attrs.href }, 0],
     },
+    /** Struck through, and read as struck through by whatever the writing is pasted into. */
+    strike: { parseDOM: [{ tag: 's' }, { tag: 'del' }, { tag: 'strike' }], toDOM: (): DOMOutputSpec => ['s', 0] },
     strong: { toDOM: (): DOMOutputSpec => ['strong', 0] },
+    /**
+     * Underlined, drawn in the colour of the writing rather than the colour of a
+     * link: on a page where every link is underlined too, the only thing left to
+     * tell them apart is that one of them is not a link.
+     */
+    underline: {
+      parseDOM: [{ tag: 'u' }, { style: 'text-decoration=underline' }],
+      toDOM: (): DOMOutputSpec => ['u', { class: PAGE_EDITOR_UNDERLINE_STYLE_CLASS }, 0],
+    },
   },
   nodes: pageEditorNodes,
 });

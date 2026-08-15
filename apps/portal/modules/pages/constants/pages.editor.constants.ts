@@ -45,7 +45,8 @@ export const PAGE_EDITOR_COMMAND_ICONS: Readonly<Record<string, LucideIcon>> = {
   toggle: ChevronRight,
 };
 
-export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'code', 'heading2'] as const;
+/** What the bar offers at a glance over a stretch of chosen text; the rest is behind the ellipsis. */
+export const PAGE_EDITOR_PRIMARY_COMMAND_NAMES = ['bold', 'italic', 'underline', 'strike', 'code', 'heading2'] as const;
 
 export const PAGE_EDITOR_APPLE_USER_AGENT_PATTERN = /mac|iphone|ipad|ipod/i;
 

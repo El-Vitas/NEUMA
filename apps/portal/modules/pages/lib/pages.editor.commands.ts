@@ -11,9 +11,9 @@ import {
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { gapCursor } from 'prosemirror-gapcursor';
 import { history } from 'prosemirror-history';
-import { InputRule, inputRules, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
+import { InputRule, inputRules, undoInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
-import type { Node as EditorNode, NodeType, Schema } from 'prosemirror-model';
+import type { Attrs, Node as EditorNode, MarkType, NodeType, Schema } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
 import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
@@ -39,6 +39,7 @@ import { askForACollection, askForACollectionAlreadyWritten } from './pages.edit
 import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize.plugin.lib';
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
 import { createPageEditorContentsPlugin } from './pages.editor.contents.plugin.lib';
+import { readCarriedAttrs } from './pages.editor.convert.lib';
 import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages.editor.heading-fold.lib';
 import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
@@ -59,6 +60,11 @@ const blockquoteInputRule = /^\s*>\s$/;
 const dividerInputRule = /^---$/;
 const codeBlockInputRule = /^```(\w+)?\s$/;
 const linkInputRule = /\[([^\]]+)]\((https?:\/\/[^\s)]+)\)$/;
+const boldInputRule = /\*\*([^*]+)\*\*$/;
+/** One asterisk, and not the second of a pair: `**` is bold and must not be read as italic twice. */
+const italicInputRule = /(?<!\*)\*([^*]+)\*$/;
+const codeInputRule = /`([^`]+)`$/;
+const strikeInputRule = /~~([^~]+)~~$/;
 
 /** The language written after the backticks, kept only when it is one this version knows. */
 const readWrittenCodeLanguage = (written: string | undefined): string | null =>
@@ -111,6 +117,38 @@ const writePageLink = (schema: Schema): InputRule =>
     const [, label, url] = match;
     if (label === undefined || url === undefined) return null;
     return state.tr.replaceRangeWith(start, end, schema.text(label, [schema.marks.link.create({ href: url })]));
+  });
+
+/**
+ * Turns the line into the kind of block the sign at its start stands for,
+ * keeping who the block is.
+ *
+ * The identity travels with it — its name, its colours, what was said about it —
+ * for the same reason it travels when a block is turned into another type by
+ * hand: writing `# ` in front of a line changes its shape, not which line it is.
+ */
+const turnTheLineInto = (pattern: RegExp, type: NodeType, readAttrs: (match: RegExpMatchArray) => Attrs): InputRule =>
+  new InputRule(pattern, (state, match, start, end) => {
+    const written = state.doc.resolve(start);
+    if (!written.node(-1).canReplaceWith(written.index(-1), written.indexAfter(-1), type)) return null;
+    const kept = { ...readCarriedAttrs(written.parent.attrs), ...readAttrs(match) };
+    return state.tr.delete(start, end).setBlockType(start, start, type, kept);
+  });
+
+/**
+ * Turns what is written around a stretch of text into the mark it stands for.
+ *
+ * The signs are taken out with it: `**so**` is how bold is written by hand
+ * everywhere else, and leaving the asterisks behind would be answering half of
+ * what was asked. Inside a block of code nothing of this happens — what is
+ * written there is what was meant, sign for sign.
+ */
+const writeInlineMark = (pattern: RegExp, mark: MarkType): InputRule =>
+  new InputRule(pattern, (state, match, start, end) => {
+    const written = match[1];
+    if (written === undefined) return null;
+    if (state.doc.resolve(start).parent.type.spec.code === true) return null;
+    return state.tr.replaceWith(start, end, state.schema.text(written, [mark.create()])).removeStoredMark(mark);
   });
 
 const canInsertPageNode = (state: EditorState, nodeType: NodeType): boolean => {
@@ -296,6 +334,8 @@ export const createPageEditorCommands = (
     run: setBlockType(schema.nodes.heading, { level: 3 }),
   },
   italic: { kind: 'mark', labelKey: 'italic', run: toggleMark(schema.marks.em) },
+  strike: { kind: 'mark', labelKey: 'strike', run: toggleMark(schema.marks.strike) },
+  underline: { kind: 'mark', labelKey: 'underline', run: toggleMark(schema.marks.underline) },
   image: { group: 'media', kind: 'block', labelKey: 'insertImage', run: askForPageImage },
   /** A page of its own, hanging from this one, asked for rather than written. */
   subpage: { group: 'advanced', kind: 'block', labelKey: 'subpage', run: askForPageChild },
@@ -363,6 +403,27 @@ const breakTheLineWithoutLeavingTheBlock =
     return true;
   };
 
+/** Everything the editor answers to as it is written, kept as one plugin so what it remembers can be carried. */
+const createPageEditorWritingRules = (schema: Schema): EditorPlugin =>
+  inputRules({
+    rules: [
+      turnTheLineInto(headingInputRule, schema.nodes.heading, (match) => ({ level: match[1]?.length ?? 1 })),
+      wrappingInputRule(bulletListInputRule, schema.nodes.bullet_list),
+      wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
+      wrappingInputRule(taskListInputRule, schema.nodes.task_list),
+      wrappingInputRule(blockquoteInputRule, schema.nodes.blockquote),
+      drawPageDivider(schema),
+      writePageLink(schema),
+      writeInlineMark(boldInputRule, schema.marks.strong),
+      writeInlineMark(italicInputRule, schema.marks.em),
+      writeInlineMark(codeInputRule, schema.marks.code),
+      writeInlineMark(strikeInputRule, schema.marks.strike),
+      turnTheLineInto(codeBlockInputRule, schema.nodes.code_block, (match) => ({
+        language: readWrittenCodeLanguage(match[1]),
+      })),
+    ],
+  });
+
 export const createPageEditorPlugins = (
   schema: Schema,
   selectBlockLabel: string,
@@ -371,81 +432,73 @@ export const createPageEditorPlugins = (
   blockCommentsLabel: string = selectBlockLabel,
   writeHereLabel = '',
   foldHeadingLabel = '',
-): readonly EditorPlugin[] => [
-  history(),
-  inputRules({
-    rules: [
-      textblockTypeInputRule(headingInputRule, schema.nodes.heading, (match) => ({ level: match[1]?.length ?? 1 })),
-      wrappingInputRule(bulletListInputRule, schema.nodes.bullet_list),
-      wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
-      wrappingInputRule(taskListInputRule, schema.nodes.task_list),
-      wrappingInputRule(blockquoteInputRule, schema.nodes.blockquote),
-      drawPageDivider(schema),
-      writePageLink(schema),
-      textblockTypeInputRule(codeBlockInputRule, schema.nodes.code_block, (match) => ({
-        language: readWrittenCodeLanguage(match[1]),
-      })),
-    ],
-  }),
-  keymap({ 'Mod-y': redoPageEditorStep }),
-  /**
-   * Inside a table, Tab walks from cell to cell.
-   *
-   * It answers before the general Tab does, which nests one block under
-   * another: a table is filled by walking it, and nesting a cell would be
-   * asking for something nobody means while writing in a grid.
-   */
-  keymap(
-    Object.fromEntries([
-      ['Tab', goToNextPageTableCell],
-      ['Shift-Tab', goToPreviousPageTableCell],
-    ]),
-  ),
-  keymap(createPageEditorShortcutBindings(PAGE_EDITOR_SHORTCUTS)),
-  keymap(
-    Object.fromEntries([
-      ['Enter', chainCommands(openFoldedHeadingBeforeWriting, splitOutOfNestedBlock)],
-      ['Backspace', deletePageEditorBlockKeepingChildren],
-      ['Delete', deletePageEditorBlockKeepingChildren],
-    ]),
-  ),
-  keymap(Object.fromEntries([['Shift-Enter', breakTheLineWithoutLeavingTheBlock(schema)]])),
-  /**
-   * A list answers Enter before the general rule does.
-   *
-   * The other way round, the generic split attends first and the writing leaves
-   * the list instead of gaining a point — which is what a reader sees as the
-   * second bullet silently becoming a paragraph.
-   */
-  keymap(Object.fromEntries([['Enter', splitPageEditorListPoint]])),
-  keymap(baseKeymap),
-  /**
-   * The cursor can stand beside a block that holds no writing.
-   *
-   * A table, a line or an image at the edge of a page would otherwise fence the
-   * writing in: there is no paragraph to reach with an arrow, so the page ends
-   * with nowhere to go on. The cursor lands in the gap instead, and whatever is
-   * written there becomes a block of its own.
-   */
-  gapCursor(),
-  createPageEditorBlockIdPlugin(),
-  createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
-  createPageEditorBlockMenuPlugin(),
-  createPageEditorBlockCommentPlugin(blockCommentsLabel),
-  createPageEditorBlockDragPlugin(),
-  createPageEditorColumnCleanupPlugin(),
-  createPageEditorContentsPlugin(),
-  createPageEditorColumnResizePlugin(resizeColumnLabel),
-  createPageEditorPlaceholderPlugin(writeHereLabel),
-  createPageEditorHeadingFoldPlugin(foldHeadingLabel),
-  /**
-   * A table minds its own selection and the width of its columns. It comes last
-   * so a cell answers the page's own rules first and the table only what is
-   * left — dragging a column edge, selecting across cells.
-   *
-   * How the table itself is drawn is not left to this plugin: it is a node view
-   * like every other, and it lives with the rest of them.
-   */
-  columnResizing({ cellMinWidth: PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH }),
-  tableEditing(),
-];
+): readonly EditorPlugin[] => {
+  /** Made once per page: what it remembers is carried by the plugin that hands out identities. */
+  const writingRules = createPageEditorWritingRules(schema);
+
+  return [
+    history(),
+    writingRules,
+    keymap({ 'Mod-y': redoPageEditorStep }),
+    /**
+     * Inside a table, Tab walks from cell to cell.
+     *
+     * It answers before the general Tab does, which nests one block under
+     * another: a table is filled by walking it, and nesting a cell would be
+     * asking for something nobody means while writing in a grid.
+     */
+    keymap(
+      Object.fromEntries([
+        ['Tab', goToNextPageTableCell],
+        ['Shift-Tab', goToPreviousPageTableCell],
+      ]),
+    ),
+    keymap(createPageEditorShortcutBindings(PAGE_EDITOR_SHORTCUTS)),
+    keymap(
+      Object.fromEntries([
+        ['Enter', chainCommands(openFoldedHeadingBeforeWriting, splitOutOfNestedBlock)],
+        ['Backspace', chainCommands(undoInputRule, deletePageEditorBlockKeepingChildren)],
+        ['Delete', deletePageEditorBlockKeepingChildren],
+      ]),
+    ),
+    keymap(Object.fromEntries([['Shift-Enter', breakTheLineWithoutLeavingTheBlock(schema)]])),
+    /**
+     * A list answers Enter before the general rule does.
+     *
+     * The other way round, the generic split attends first and the writing leaves
+     * the list instead of gaining a point — which is what a reader sees as the
+     * second bullet silently becoming a paragraph.
+     */
+    keymap(Object.fromEntries([['Enter', splitPageEditorListPoint]])),
+    keymap(baseKeymap),
+    /**
+     * The cursor can stand beside a block that holds no writing.
+     *
+     * A table, a line or an image at the edge of a page would otherwise fence the
+     * writing in: there is no paragraph to reach with an arrow, so the page ends
+     * with nowhere to go on. The cursor lands in the gap instead, and whatever is
+     * written there becomes a block of its own.
+     */
+    gapCursor(),
+    createPageEditorBlockIdPlugin(writingRules),
+    createPageEditorBlockHandlePlugin(selectBlockLabel, insertBlockLabel),
+    createPageEditorBlockMenuPlugin(),
+    createPageEditorBlockCommentPlugin(blockCommentsLabel),
+    createPageEditorBlockDragPlugin(),
+    createPageEditorColumnCleanupPlugin(),
+    createPageEditorContentsPlugin(),
+    createPageEditorColumnResizePlugin(resizeColumnLabel),
+    createPageEditorPlaceholderPlugin(writeHereLabel),
+    createPageEditorHeadingFoldPlugin(foldHeadingLabel),
+    /**
+     * A table minds its own selection and the width of its columns. It comes last
+     * so a cell answers the page's own rules first and the table only what is
+     * left — dragging a column edge, selecting across cells.
+     *
+     * How the table itself is drawn is not left to this plugin: it is a node view
+     * like every other, and it lives with the rest of them.
+     */
+    columnResizing({ cellMinWidth: PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH }),
+    tableEditing(),
+  ];
+};

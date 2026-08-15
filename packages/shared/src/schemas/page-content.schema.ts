@@ -125,6 +125,8 @@ const pageMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('strong') }).strict(),
   z.object({ type: z.literal('em') }).strict(),
   z.object({ type: z.literal('code') }).strict(),
+  z.object({ type: z.literal('strike') }).strict(),
+  z.object({ type: z.literal('underline') }).strict(),
   z
     .object({
       attrs: z
@@ -387,6 +389,8 @@ type PageMark =
   | { readonly type: 'strong' }
   | { readonly type: 'em' }
   | { readonly type: 'code' }
+  | { readonly type: 'strike' }
+  | { readonly type: 'underline' }
   | { readonly attrs: { readonly href: string }; readonly type: 'link' }
   | { readonly attrs: { readonly id: string }; readonly type: 'comment' };
 
