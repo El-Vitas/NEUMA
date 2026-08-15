@@ -444,6 +444,11 @@ export const PAGE_EDITOR_CONTENTS_TYPE = 'table_of_contents';
 /** The block that leads to a page hanging from this one. */
 export const PAGE_EDITOR_SUBPAGE_TYPE = 'subpage';
 
+/** What a stretch of painted writing is called, said once so the page and the editor agree on the name. */
+export const PAGE_EDITOR_TEXT_COLOR_MARK = 'text_color';
+
+export const PAGE_EDITOR_BACKGROUND_COLOR_MARK = 'background_color';
+
 /** Underlined in the colour of the writing: what is underlined in the colour of a link is a link. */
 export const PAGE_EDITOR_UNDERLINE_STYLE_CLASS = 'underline decoration-foreground/60 underline-offset-4';
 

@@ -14,6 +14,8 @@ export const PAGE_EDITOR_QUIET_SURFACE: PageEditorSurfaceState = {
   pageShape: null,
   syncedTarget: null,
   buttonAt: null,
+  textColors: { background: null, text: null },
+  marksInUse: [],
   isInTable: false,
   menuPosition: null,
   request: null,

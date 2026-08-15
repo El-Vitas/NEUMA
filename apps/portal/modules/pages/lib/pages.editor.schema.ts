@@ -1,6 +1,7 @@
 import {
   isAllowedPageEmbedUrl,
   PAGE_BLOCK_ALIGNMENTS,
+  PAGE_BLOCK_COLORS,
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
@@ -12,6 +13,8 @@ import {
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
 import {
+  PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE,
+  PAGE_EDITOR_BACKGROUND_COLOR_MARK,
   PAGE_EDITOR_BLOCK_CHILDREN_CLASS,
   PAGE_EDITOR_BLOCK_ID_ATTRIBUTE,
   PAGE_EDITOR_CALLOUT_CLASS,
@@ -22,6 +25,8 @@ import {
   PAGE_EDITOR_TABLE_CELL_ATTRS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
+  PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE,
+  PAGE_EDITOR_TEXT_COLOR_MARK,
   PAGE_EDITOR_UNDERLINE_STYLE_CLASS,
   PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE,
   PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS,
@@ -174,6 +179,20 @@ const getPageEditorSubpageAttrs = (
   const { pageSubpage: pageId, spaceId, label } = element.dataset;
   if (pageId === undefined || pageId.length === 0 || spaceId === undefined || spaceId.length === 0) return false;
   return { label: label === undefined || label.length === 0 ? pageId : label, pageId, spaceId };
+};
+
+/** A colour that is not one of the few the page allows is no colour at all. */
+const readPageColor = (value: string | null): string | null =>
+  PAGE_BLOCK_COLORS.find((known) => known === value) ?? null;
+
+const getPageEditorTextColorAttrs = (element: HTMLElement): { readonly color: string } | false => {
+  const color = readPageColor(element.getAttribute(PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE));
+  return color === null ? false : { color };
+};
+
+const getPageEditorBackgroundColorAttrs = (element: HTMLElement): { readonly color: string } | false => {
+  const color = readPageColor(element.getAttribute(PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE));
+  return color === null ? false : { color };
 };
 
 const getPageEditorButtonAttrs = (element: HTMLElement): Record<string, string | null> | false => {
@@ -832,9 +851,28 @@ export const pageEditorSchema = new Schema({
       parseDOM: [{ getAttrs: getPageEditorLinkAttrs, tag: 'a[href]' }],
       toDOM: (mark) => ['a', { href: mark.attrs.href }, 0],
     },
+    /**
+     * A stretch of writing painted on its own.
+     *
+     * It is painted with the same few colours a whole block is painted with,
+     * and drawn by the same rule: what is read on screen comes from the
+     * attribute, so a colour cannot be invented on the spot.
+     */
+    [PAGE_EDITOR_BACKGROUND_COLOR_MARK]: {
+      attrs: { color: {} },
+      parseDOM: [
+        { getAttrs: getPageEditorBackgroundColorAttrs, tag: `span[${PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE}]` },
+      ],
+      toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE]: mark.attrs.color }, 0],
+    },
     /** Struck through, and read as struck through by whatever the writing is pasted into. */
     strike: { parseDOM: [{ tag: 's' }, { tag: 'del' }, { tag: 'strike' }], toDOM: (): DOMOutputSpec => ['s', 0] },
     strong: { toDOM: (): DOMOutputSpec => ['strong', 0] },
+    [PAGE_EDITOR_TEXT_COLOR_MARK]: {
+      attrs: { color: {} },
+      parseDOM: [{ getAttrs: getPageEditorTextColorAttrs, tag: `span[${PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE}]` }],
+      toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE]: mark.attrs.color }, 0],
+    },
     /**
      * Underlined, drawn in the colour of the writing rather than the colour of a
      * link: on a page where every link is underlined too, the only thing left to

@@ -6,6 +6,7 @@ import { openPageEditorBlockMenu } from '../lib/pages.editor.block-menu.lib';
 import { movePageEditorBlockDown, movePageEditorBlockUp } from '../lib/pages.editor.block-move.lib';
 import { indentPageEditorCode, outdentPageEditorCode } from '../lib/pages.editor.code.lib';
 import { redoPageEditorStep, undoPageEditorStep } from '../lib/pages.editor.history.lib';
+import { askForTheLinkField } from '../lib/pages.editor.link.lib';
 import { nestPageEditorListItem, unnestPageEditorListItem } from '../lib/pages.editor.list.lib';
 import { indentPageEditorBlock, outdentPageEditorBlock } from '../lib/pages.editor.nesting.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
@@ -24,6 +25,7 @@ export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-u', labelKey: 'underline', run: toggleMark(pageEditorSchema.marks.underline) },
   { binding: 'Mod-Shift-s', labelKey: 'strike', run: toggleMark(pageEditorSchema.marks.strike) },
   { binding: 'Mod-e', labelKey: 'code', run: toggleMark(pageEditorSchema.marks.code) },
+  { binding: 'Mod-k', labelKey: 'link', run: askForTheLinkField },
   { binding: 'Mod-Shift-ArrowUp', labelKey: 'moveBlockUp', run: movePageEditorBlockUp },
   { binding: 'Mod-Shift-ArrowDown', labelKey: 'moveBlockDown', run: movePageEditorBlockDown },
   {

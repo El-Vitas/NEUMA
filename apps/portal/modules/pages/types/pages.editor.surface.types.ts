@@ -33,6 +33,8 @@ export interface PageEditorSurfaceState {
   readonly pageShape: PageEditorPageShapeTarget | null;
   readonly syncedTarget: PageSyncedReference | null;
   readonly buttonAt: number | null;
+  readonly textColors: PageEditorBlockColors;
+  readonly marksInUse: readonly string[];
   readonly blockId: string | null;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;

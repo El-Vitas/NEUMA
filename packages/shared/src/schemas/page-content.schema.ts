@@ -30,6 +30,20 @@ export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
  * as one document, and every colour here is chosen to be legible on both a
  * light and a dark background.
  */
+/** Where a link written in a page may lead, other than to a place within this app. */
+export const PAGE_LINK_PROTOCOLS: readonly string[] = ['http:', 'https:', 'mailto:'];
+
+/**
+ * Whether an address is somewhere a link may take a reader: a page of this app,
+ * written as a path, or an address of one of the few protocols a page allows.
+ */
+export const isPageLinkTarget = (href: string): boolean => {
+  const trimmed = href.trim();
+  if (trimmed.startsWith('/')) return true;
+  if (!URL.canParse(trimmed)) return false;
+  return PAGE_LINK_PROTOCOLS.includes(new URL(trimmed).protocol);
+};
+
 export const PAGE_BLOCK_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'red'] as const;
 export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
 
@@ -126,14 +140,19 @@ const pageMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('em') }).strict(),
   z.object({ type: z.literal('code') }).strict(),
   z.object({ type: z.literal('strike') }).strict(),
+  /**
+   * A stretch of writing painted on its own, rather than a whole block painted.
+   * The colour is one of the few the page allows, so what is read is legible on
+   * both a light and a dark background.
+   */
+  z.object({ attrs: z.object({ color: z.enum(PAGE_BLOCK_COLORS) }).strict(), type: z.literal('text_color') }).strict(),
+  z
+    .object({ attrs: z.object({ color: z.enum(PAGE_BLOCK_COLORS) }).strict(), type: z.literal('background_color') })
+    .strict(),
   z.object({ type: z.literal('underline') }).strict(),
   z
     .object({
-      attrs: z
-        .object({
-          href: z.url().refine((url) => ['http:', 'https:', 'mailto:'].includes(new URL(url).protocol)),
-        })
-        .strict(),
+      attrs: z.object({ href: z.string().refine(isPageLinkTarget) }).strict(),
       type: z.literal('link'),
     })
     .strict(),
@@ -390,6 +409,8 @@ type PageMark =
   | { readonly type: 'em' }
   | { readonly type: 'code' }
   | { readonly type: 'strike' }
+  | { readonly attrs: { readonly color: PageBlockColor }; readonly type: 'text_color' }
+  | { readonly attrs: { readonly color: PageBlockColor }; readonly type: 'background_color' }
   | { readonly type: 'underline' }
   | { readonly attrs: { readonly href: string }; readonly type: 'link' }
   | { readonly attrs: { readonly id: string }; readonly type: 'comment' };

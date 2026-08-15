@@ -44,6 +44,7 @@ import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages
 import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
 import { askForPageImage } from './pages.editor.image.lib';
+import { askForTheLinkField } from './pages.editor.link.lib';
 import { splitPageEditorListPoint } from './pages.editor.list.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
@@ -288,11 +289,11 @@ export const createPageEditorCommands = (
     labelKey: 'button',
     run: insertPageNode(createMinimalPageButtonNode(schema, buttonLabel)),
   },
-  bold: { kind: 'mark', labelKey: 'bold', run: toggleMark(schema.marks.strong) },
+  bold: { kind: 'mark', labelKey: 'bold', mark: 'strong', run: toggleMark(schema.marks.strong) },
   blockquote: { group: 'text', kind: 'block', labelKey: 'blockquote', run: wrapIn(schema.nodes.blockquote) },
   bulletList: { group: 'lists', kind: 'block', labelKey: 'bulletList', run: wrapInList(schema.nodes.bullet_list) },
   callout: { group: 'text', kind: 'block', labelKey: 'callout', run: wrapIn(schema.nodes.callout) },
-  code: { kind: 'mark', labelKey: 'code', run: toggleMark(schema.marks.code) },
+  code: { kind: 'mark', labelKey: 'code', mark: 'code', run: toggleMark(schema.marks.code) },
   codeBlock: { group: 'advanced', kind: 'block', labelKey: 'codeBlock', run: setBlockType(schema.nodes.code_block) },
   /** A diagram is a block of code written in the one language a page knows how to draw. */
   diagram: {
@@ -333,9 +334,11 @@ export const createPageEditorCommands = (
     labelKey: 'heading3',
     run: setBlockType(schema.nodes.heading, { level: 3 }),
   },
-  italic: { kind: 'mark', labelKey: 'italic', run: toggleMark(schema.marks.em) },
-  strike: { kind: 'mark', labelKey: 'strike', run: toggleMark(schema.marks.strike) },
-  underline: { kind: 'mark', labelKey: 'underline', run: toggleMark(schema.marks.underline) },
+  italic: { kind: 'mark', labelKey: 'italic', mark: 'em', run: toggleMark(schema.marks.em) },
+  /** Where a stretch of writing takes whoever presses it: asked for in a field, never typed in as a mark. */
+  link: { kind: 'mark', labelKey: 'link', mark: 'link', run: askForTheLinkField },
+  strike: { kind: 'mark', labelKey: 'strike', mark: 'strike', run: toggleMark(schema.marks.strike) },
+  underline: { kind: 'mark', labelKey: 'underline', mark: 'underline', run: toggleMark(schema.marks.underline) },
   image: { group: 'media', kind: 'block', labelKey: 'insertImage', run: askForPageImage },
   /** A page of its own, hanging from this one, asked for rather than written. */
   subpage: { group: 'advanced', kind: 'block', labelKey: 'subpage', run: askForPageChild },

@@ -112,6 +112,8 @@ export {
   canPageBlockHold,
   isAllowedPageEmbedUrl,
   isKnownPageContentNode,
+  isPageLinkTarget,
+  PAGE_LINK_PROTOCOLS,
   PAGE_BLOCK_COLORS,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
