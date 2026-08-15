@@ -12,32 +12,32 @@ Lo que ocurre **dentro** de un bloque: escribir, dar formato, mencionar, buscar 
 
 **Cómo probarlo:** abre cualquier página y escribe.
 
-- [ ] El cursor se coloca en el cuerpo con un clic
-- [ ] Escribir muestra el texto sin retraso perceptible
-- [ ] El texto sobrevive al recargar la página
-- [ ] Escribir mucho texto no hace que la página se sienta lenta
-- [ ] Una página vacía sugiere cómo empezar y menciona el menú `/`
+- [x] El cursor se coloca en el cuerpo con un clic
+- [x] Escribir muestra el texto sin retraso perceptible
+- [x] El texto sobrevive al recargar la página
+- [x] Escribir mucho texto no hace que la página se sienta lenta
+- [x] Una página vacía sugiere cómo empezar y menciona el menú `/`
 
 ## ES-02 · Debe reconocer atajos de Markdown al escribir
 
-- [ ] `#`, `##`, `###` para encabezados
-- [ ] `-`, `*`, `+` para viñetas
-- [ ] `1.` para lista numerada
-- [ ] `[]` para tarea
-- [ ] `>` para cita
-- [ ] `---` para separador
-- [ ] ` ``` ` para bloque de código
-- [ ] `**`, `*`, `` ` ``, `~~` para formato en línea
-- [ ] Ninguna conversión ocurre dentro de un bloque de código
-- [ ] Ctrl+Z inmediatamente después revierte la conversión y deja el texto tal cual
+- [x] `#`, `##`, `###` para encabezados
+- [x] `-`, `*`, `+` para viñetas
+- [x] `1.` para lista numerada
+- [x] `[]` para tarea
+- [x] `>` para cita
+- [x] `---` para separador
+- [x] ` ``` ` para bloque de código
+- [x] `**`, `*`, `` ` ``, `~~` para formato en línea
+- [x] Ninguna conversión ocurre dentro de un bloque de código
+- [x] Ctrl+Z inmediatamente después revierte la conversión y deja el texto tal cual
 
 ## ES-03 · Debe permitir formato dentro de la línea
 
-- [ ] Ctrl+B negrita, Ctrl+I cursiva, Ctrl+E código
-- [ ] Ctrl+U subrayado, y hay atajo para tachado
-- [ ] Los formatos se combinan sobre el mismo texto
-- [ ] Se quitan volviendo a aplicar el mismo atajo
-- [ ] El subrayado se distingue visualmente de un enlace
+- [x] Ctrl+B negrita, Ctrl+I cursiva, Ctrl+E código
+- [x] Ctrl+U subrayado, y hay atajo para tachado
+- [x] Los formatos se combinan sobre el mismo texto
+- [x] Se quitan volviendo a aplicar el mismo atajo
+- [x] El subrayado se distingue visualmente de un enlace
 
 ## ES-04 · Debe permitir color y resaltado del texto
 
@@ -145,4 +145,6 @@ Lo que ocurre **dentro** de un bloque: escribir, dar formato, mencionar, buscar 
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
-| | | | |
+| 14/08/2026 | ES-03 | Faltaba casi todo: ninguna marca respondía al teclado —ni negrita, ni cursiva, ni código— y ni el subrayado ni el tachado existían en el contrato, así que no había nada que aplicar. Se agregaron las dos marcas y los cinco atajos, y quedaron en la misma lista que el editor obedece y el panel de atajos muestra, de modo que un atajo no puede estar puesto sin estar dicho ni dicho sin funcionar. Las marcas se combinan sobre el mismo texto y se quitan repitiendo el atajo. El subrayado se dibuja en el color de la escritura y no en el de un enlace: en una página donde todo enlace va subrayado, lo único que queda para distinguirlos es que uno de los dos no es un enlace. Probado en el navegador, incluida la comparación de un subrayado y un enlace en la misma pantalla. | 5 de 5 |
+| 14/08/2026 | ES-02 | Los atajos de bloque ya andaban —los seis— pero el formato en línea no existía: `**negrita**` se quedaba tal cual. Se agregaron las cuatro reglas (`**`, `*`, `` ` ``, `~~`), que se llevan los signos con ellas, porque dejar los asteriscos sería responder a medias lo que se pidió. Dentro de un bloque de código no ocurre ninguna conversión: lo que se escribe ahí es lo que se quiso decir, signo por signo. Y aparecieron dos cosas al probar el deshacer. La primera: deshacer justo después de una conversión se llevaba también la línea entera, porque lo que la biblioteca recuerda para devolver el signo escrito se borra con cualquier cambio posterior, y repartir identidades a los bloques nuevos es un cambio; ahora ese reparto lleva consigo lo que la página acaba de recordar. La segunda, de paso: convertir una línea en encabezado le cambiaba la identidad —le daba un bloque nuevo—, cuando escribir `# ` delante de una línea cambia su forma y no cuál línea es; ahora conserva quién es, sus colores y lo que se comentó sobre ella, igual que cuando se convierte a mano desde el menú. | 10 de 10 |
+| 14/08/2026 | ES-01 | No faltó nada. El cursor entra con un clic, la página vacía dice cómo empezar y nombra el menú `/`, lo escrito sobrevive a recargar, y escribir no arrastra: cuarenta y cuatro letras en 268 ms sobre una página vacía y cuarenta y dos en 214 ms sobre una de doscientos bloques, es decir cinco milisegundos por tecla en ambas. | 5 de 5 |

@@ -444,6 +444,9 @@ export const PAGE_EDITOR_CONTENTS_TYPE = 'table_of_contents';
 /** The block that leads to a page hanging from this one. */
 export const PAGE_EDITOR_SUBPAGE_TYPE = 'subpage';
 
+/** Underlined in the colour of the writing: what is underlined in the colour of a link is a link. */
+export const PAGE_EDITOR_UNDERLINE_STYLE_CLASS = 'underline decoration-foreground/60 underline-offset-4';
+
 /** The block that shows a block written in another page. */
 export const PAGE_EDITOR_SYNCED_TYPE = 'synced';
 

@@ -1,4 +1,5 @@
 import type { Node as EditorNode } from 'prosemirror-model';
+import type { EditorState, Transaction } from 'prosemirror-state';
 import { Plugin as EditorPlugin } from 'prosemirror-state';
 
 export const generatePageEditorBlockId = (): string => crypto.randomUUID();
@@ -28,6 +29,23 @@ export const collectPageEditorBlockIdAssignments = (document: EditorNode): reado
 };
 
 /**
+ * Carries over what the page has just turned into.
+ *
+ * Handing out an identity is a change like any other, and any change makes the
+ * page forget the rule it has just answered — so taking a heading back the
+ * instant after writing `# ` would take the hash with it, and what was meant
+ * was a line that begins with a hash.
+ */
+const rememberWhatWasJustWritten = (
+  transaction: Transaction,
+  writingRules: EditorPlugin,
+  state: EditorState,
+): Transaction => {
+  const remembered: unknown = writingRules.getState(state);
+  return remembered === undefined || remembered === null ? transaction : transaction.setMeta(writingRules, remembered);
+};
+
+/**
  * Hands out an identity to every block that lacks one, riding along with the
  * change that created it.
  *
@@ -37,7 +55,7 @@ export const collectPageEditorBlockIdAssignments = (document: EditorNode): reado
  * belongs there — so a step marked as not worth remembering would take the
  * writing with it.
  */
-export const createPageEditorBlockIdPlugin = (): EditorPlugin =>
+export const createPageEditorBlockIdPlugin = (writingRules: EditorPlugin): EditorPlugin =>
   new EditorPlugin({
     appendTransaction: (transactions, _previousState, nextState) => {
       if (!transactions.some((transaction) => transaction.docChanged)) return null;
@@ -48,6 +66,6 @@ export const createPageEditorBlockIdPlugin = (): EditorPlugin =>
       for (const [pos, blockId] of assignments) {
         transaction.setNodeAttribute(pos, 'id', blockId);
       }
-      return transaction;
+      return rememberWhatWasJustWritten(transaction, writingRules, nextState);
     },
   });
