@@ -40,11 +40,13 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         fileDisplay={null}
         folding={null}
         hasIdentity={hasIdentity}
+        isButton={false}
         isSynced={false}
         linkTarget={null}
         onBecomePage={() => use.becamePage.push(1)}
         onBlockAlign={() => undefined}
         onCalloutIcon={() => undefined}
+        onChooseCollection={() => undefined}
         onClose={() => use.closed.push(1)}
         onColor={(kind, color) => use.painted.push(`${kind}:${String(color)}`)}
         onComment={() => use.commented.push(1)}

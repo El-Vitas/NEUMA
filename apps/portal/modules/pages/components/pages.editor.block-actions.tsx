@@ -39,6 +39,8 @@ interface IProps {
   readonly onPageShape: (shape: PageEditorPageShape) => void;
   readonly onUnsync: () => void;
   readonly syncedTarget: PageSyncedReference | null;
+  readonly buttonAt: number | null;
+  readonly onChooseCollection: (page: PageDestination) => void;
   readonly pageShape: PageEditorPageShapeTarget | null;
   readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
@@ -78,6 +80,8 @@ export const PagesEditorBlockActions = ({
   onPageShape,
   onUnsync,
   syncedTarget,
+  buttonAt,
+  onChooseCollection,
   pageShape,
   isInTable,
   comments,
@@ -129,11 +133,13 @@ export const PagesEditorBlockActions = ({
                   }
             }
             hasIdentity={hasIdentity}
+            isButton={buttonAt !== null}
             isSynced={syncedTarget !== null}
             linkTarget={linkTarget}
             onBecomePage={onBecomePage}
             onBlockAlign={(align) => onRunCommand(createPageBlockAlignmentCommand(align))}
             onCalloutIcon={(icon) => onRunCommand(createPageEditorCalloutIconCommand(icon))}
+            onChooseCollection={() => onAsk('button')}
             onClose={() => onClose('actions')}
             onColor={(kind, color) => onRunCommand(createPageEditorBlockColorCommand(kind, color))}
             onComment={() => onAsk('comments')}
@@ -155,6 +161,19 @@ export const PagesEditorBlockActions = ({
           />
         </div>
       )}
+      <PagesEditorPagePickerDialog
+        exceptPageId={pageId}
+        isOpen={request?.kind === 'button'}
+        onCancel={() => onClose('button')}
+        onChoose={onChooseCollection}
+        spaceId={spaceId}
+        wording={{
+          candidates: t('collectionCandidates'),
+          description: t('buttonPickDescription'),
+          search: t('collectionPickSearch'),
+          title: t('buttonCollection'),
+        }}
+      />
       <PagesEditorPagePickerDialog
         exceptPageId={pageId}
         isOpen={request?.kind === 'sync'}

@@ -389,6 +389,26 @@ rules:
     why: >-
       Un dibujo dejado en los colores de la noche es ilegible de día, y nadie va a reescribir un diagrama para arreglar
       eso.
+  - id: BR-dc609a1
+    status: active
+    title: Un botón escribe lo que tiene dentro
+    rule: >-
+      Un botón sostiene los bloques que escribe, escritos dentro de él como se escribe en cualquier parte de la página.
+      Al pulsarlo deja una copia de lo que tiene, donde se le haya dicho: debajo de sí mismo, al principio o al final.
+      También puede, en vez de escribir, agregar una fila a una colección.
+    why: >-
+      Un botón que hubiera que llenar por un formulario propio sería el único bloque de la página en el que no se puede
+      escribir, y lo que va a escribir no se vería hasta pulsarlo. Y lo que deja es una copia porque el mismo bloque no
+      puede estar dos veces en la misma página.
+    context: >-
+      Sus ajustes están detrás de «Configurar»: una página llena de botones enseñando sus tripas se lee como una
+      máquina. La fila que crea se llama como la primera línea que el botón habría escrito, y se le dan a la colección
+      los valores por defecto que no queden vacíos. Dónde escribe deja de ofrecerse cuando el botón hace filas.
+    scenarios:
+      - title: La colección exige un valor a cada fila
+        given: Un botón que agrega filas a una colección con propiedades obligatorias
+        when: Alguien lo pulsa
+        then: La fila se crea con los valores por defecto de esa colección, sin los que quedarían vacíos
   - id: BR-e1147d1
     status: active
     title: Un documento se lee dentro de la página

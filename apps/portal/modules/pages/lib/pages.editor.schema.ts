@@ -1,6 +1,8 @@
 import {
   isAllowedPageEmbedUrl,
   PAGE_BLOCK_ALIGNMENTS,
+  PAGE_BUTTON_DEEDS,
+  PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
   PAGE_DIAGRAM_VIEWS,
@@ -171,6 +173,18 @@ const getPageEditorSubpageAttrs = (
   const { pageSubpage: pageId, spaceId, label } = element.dataset;
   if (pageId === undefined || pageId.length === 0 || spaceId === undefined || spaceId.length === 0) return false;
   return { label: label === undefined || label.length === 0 ? pageId : label, pageId, spaceId };
+};
+
+const getPageEditorButtonAttrs = (element: HTMLElement): Record<string, string | null> | false => {
+  const { collection, deed, label, place, spaceId } = element.dataset;
+  if (label === undefined || label.length === 0) return false;
+  return {
+    deed: PAGE_BUTTON_DEEDS.find((known) => known === deed) ?? null,
+    label,
+    pageId: collection ?? null,
+    place: PAGE_BUTTON_PLACES.find((known) => known === place) ?? null,
+    spaceId: spaceId ?? null,
+  };
 };
 
 const getPageEditorSyncedAttrs = (
@@ -356,6 +370,39 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       group: 'block',
       parseDOM: [{ tag: 'nav[data-page-contents]' }],
       render: (_node, blockAttributes) => ['nav', { ...blockAttributes, 'data-page-contents': 'true' }],
+    }),
+  ],
+  /**
+   * A button, and what it writes when pressed: what it writes is what it holds,
+   * so setting it up is writing in it like anywhere else on the page.
+   */
+  [
+    'button',
+    definePageBlock({
+      attrs: {
+        deed: { default: null },
+        label: {},
+        pageId: { default: null },
+        place: { default: null },
+        spaceId: { default: null },
+      },
+      content: 'block+',
+      defining: true,
+      group: 'block',
+      parseDOM: [{ getAttrs: getPageEditorButtonAttrs, tag: 'div[data-page-button]' }],
+      render: (node, blockAttributes): DOMOutputSpec => [
+        'div',
+        {
+          ...blockAttributes,
+          'data-label': node.attrs.label,
+          'data-page-button': 'true',
+          ...(typeof node.attrs.deed === 'string' ? { 'data-deed': node.attrs.deed } : {}),
+          ...(typeof node.attrs.place === 'string' ? { 'data-place': node.attrs.place } : {}),
+          ...(typeof node.attrs.pageId === 'string' ? { 'data-collection': node.attrs.pageId } : {}),
+          ...(typeof node.attrs.spaceId === 'string' ? { 'data-space-id': node.attrs.spaceId } : {}),
+        },
+        ['div', 0],
+      ],
     }),
   ],
   /** A block that lives in another page and is only shown here, as it stands there now. */

@@ -38,6 +38,13 @@ import { createCollaborativePageEditorState } from '../lib/pages.collaboration.l
 import { describeANewCollection, readTheViewToShow } from '../lib/pages.collections.lib';
 import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
 import { findSelectedPageBlocks } from '../lib/pages.editor.block-range.lib';
+import {
+  createPageButtonCollectionCommand,
+  createPageButtonWriteCommand,
+  readThePressedButton,
+  readTheRowContent,
+  readTheRowTitle,
+} from '../lib/pages.editor.button.lib';
 import { createPageCollectionInsertCommand } from '../lib/pages.editor.collection.lib';
 import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
 import { followThePageHeadings, goToThePageHeading } from '../lib/pages.editor.contents.lib';
@@ -57,6 +64,7 @@ import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.li
 import { createPageSubpageInsertCommand, readPageTitleFrom } from '../lib/pages.editor.subpage.lib';
 import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
 import { createPageUnsyncCommand, readBorrowedBlock } from '../lib/pages.editor.synced.lib';
+import { buildRowPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
@@ -122,9 +130,20 @@ export const PagesProseMirrorEditor = forwardRef(
     const writeHereLabelRef = useRef(t('writeHere'));
     const foldHeadingLabelRef = useRef(t('foldHeading'));
     const blockTooLongLabelRef = useRef(t('blockTooLong'));
+    const buttonEmptyLabelRef = useRef(t('buttonEmpty'));
+    const untitledLabelRef = useRef(t('untitled'));
     const resizeColumnLabelRef = useRef(t('resizeColumn'));
     const subpageLabelsRef = useRef({ subpage: t('subpageBlock'), untitled: t('untitled') });
     const syncedLabelsRef = useRef({ lost: t('syncedLost'), source: t('syncedSource'), synced: t('syncedBlock') });
+    const buttonLabelsRef = useRef({
+      deed: t('buttonDeed'),
+      deeds: { blocks: t('buttonDeedBlocks'), row: t('buttonDeedRow') },
+      name: t('buttonName'),
+      needsCollection: t('buttonNeedsCollection'),
+      place: t('buttonPlace'),
+      places: { below: t('buttonPlaceBelow'), bottom: t('buttonPlaceBottom'), top: t('buttonPlaceTop') },
+      setup: t('buttonSetup'),
+    });
     const collectionWordingRef = useRef({
       firstProperty: t('collection.firstProperty'),
       firstView: t('collection.firstView'),
@@ -380,6 +399,7 @@ export const PagesProseMirrorEditor = forwardRef(
             file: fileLabelsRef.current,
             image: imageLabelsRef.current,
             media: mediaLabelsRef.current,
+            button: buttonLabelsRef.current,
             subpage: subpageLabelsRef.current,
             synced: syncedLabelsRef.current,
             task: taskLabelRef.current,
@@ -388,6 +408,7 @@ export const PagesProseMirrorEditor = forwardRef(
           },
           (childId) => readPageTitleRef.current(childId),
           (borrowedPageId, blockId) => readBorrowedBlock(pagesRef.current, borrowedPageId, blockId),
+          (at) => pressTheButtonRef.current(at),
         ),
         state: editorState,
       });
@@ -424,6 +445,38 @@ export const PagesProseMirrorEditor = forwardRef(
       );
       followHeadingsRef.current(editorViewRef.current.state);
     }, [session]);
+
+    /**
+     * Does what a button says when it is pressed.
+     *
+     * What it holds is written where it says, or — when it is a button for a
+     * collection — becomes one more row of it, named after the first thing it
+     * would have written, because a row nobody named is a row nobody finds.
+     */
+    const pressTheButtonRef = useRef((at: number): void => {
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      const pressed = readThePressedButton(editorView.state, at);
+      if (pressed === null) return;
+      if (pressed.content.childCount === 0) {
+        toast.error(buttonEmptyLabelRef.current);
+        return;
+      }
+      if (pressed.deed !== 'row') {
+        createPageButtonWriteCommand(pressed)(editorView.state, editorView.dispatch);
+        return;
+      }
+      if (pressed.pageId === null || pressed.spaceId === null) {
+        toast.error(buttonLabelsRef.current.needsCollection);
+        return;
+      }
+      addTheRow(
+        pressed.pageId,
+        pressed.spaceId,
+        readTheRowTitle(pressed.content, untitledLabelRef.current),
+        readTheRowContent(pressed.content),
+      );
+    });
 
     /**
      * Makes the page that will hang from this one, and leaves the line to it
@@ -585,6 +638,68 @@ export const PagesProseMirrorEditor = forwardRef(
       const borrowed = readBorrowedBlock(pagesRef.current, target.pageId, target.blockId);
       createPageUnsyncCommand(pageEditorSchema, target, borrowed)(editorView.state, editorView.dispatch);
       editorView.focus();
+    };
+
+    /**
+     * Says which collection a button adds its rows to.
+     *
+     * The page is asked whether it is a collection before it is written down: a
+     * button pointing at a page that keeps nothing would fail only when somebody
+     * presses it, which is the worst moment to find out.
+     */
+    const chooseTheButtonCollection = (chosen: PageDestination): void => {
+      const editorView = editorViewRef.current;
+      const at = surface.buttonAt;
+      if (editorView === null || at === null) return;
+      blockActions.close('button');
+      startMakingChild(async () => {
+        const asked = await readPageCollectionAction({ pageId: chosen.id, spaceId });
+        if (!isActionSuccess<PageSchema | null>(asked)) {
+          toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
+          return;
+        }
+        if (asked.data === null || asked.data.properties.length === 0) {
+          toast.error(t('collection.notACollection'));
+          return;
+        }
+        createPageButtonCollectionCommand(at, chosen.id, spaceId)(editorView.state, editorView.dispatch);
+      });
+    };
+
+    /**
+     * One more row of a collection: a page of its own hanging from it, as every
+     * row is.
+     *
+     * The collection is asked what it keeps before the row is made, because a
+     * collection that requires something of every row would refuse one that
+     * arrives empty, and the refusal would land on whoever pressed the button
+     * with nothing to do about it.
+     */
+    const addTheRow = (collectionId: string, collectionSpaceId: string, title: string, content: PageContent): void => {
+      startMakingChild(async () => {
+        const asked = await readPageCollectionAction({ pageId: collectionId, spaceId: collectionSpaceId });
+        if (!isActionSuccess<PageSchema | null>(asked)) {
+          toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
+          return;
+        }
+        if (asked.data === null || asked.data.properties.length === 0) {
+          toast.error(t('collection.notACollection'));
+          return;
+        }
+        const made = await createPageAction({
+          content,
+          parentId: collectionId,
+          propertyValues: buildRowPropertyValues(getEditableSchemaProperties(asked.data)),
+          spaceId: collectionSpaceId,
+          title,
+        });
+        if (!isActionSuccess<PageSummary>(made)) {
+          toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
+          return;
+        }
+        toast.success(t('buttonRowDone', { page: readPageTitleRef.current(collectionId) ?? title }));
+        router.refresh();
+      });
     };
 
     useImperativeHandle(
@@ -757,6 +872,7 @@ export const PagesProseMirrorEditor = forwardRef(
             <PagesEditorBlockActions
               authorName={currentUserDisplayName ?? t('collaboration.participantFallback')}
               blockAlign={surface.blockAlign}
+              buttonAt={surface.buttonAt}
               calloutIcon={surface.calloutIcon}
               colors={surface.colors}
               comments={surface.comments}
@@ -769,6 +885,7 @@ export const PagesProseMirrorEditor = forwardRef(
               menuPosition={surface.menuPosition}
               onAsk={blockActions.ask}
               onBecomePage={becomePage}
+              onChooseCollection={chooseTheButtonCollection}
               onClose={blockActions.close}
               onCopyLink={blockActions.copyLink}
               onHandOver={blockActions.handOver}

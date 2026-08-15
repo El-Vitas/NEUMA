@@ -32,6 +32,7 @@ export interface PageEditorCollectionHost {
 export interface PageEditorSurfaceState {
   readonly pageShape: PageEditorPageShapeTarget | null;
   readonly syncedTarget: PageSyncedReference | null;
+  readonly buttonAt: number | null;
   readonly blockId: string | null;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly colors: PageEditorBlockColors;

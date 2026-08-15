@@ -16,6 +16,7 @@ import { readPageEditorBlockComments } from './pages.editor.block-comment.lib';
 import { isPageEditorBlockDragActive } from './pages.editor.block-drag.lib';
 import { readPageEditorBlockId } from './pages.editor.block-link.lib';
 import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
+import { readSelectedButton } from './pages.editor.button.lib';
 import { isPageEditorCalloutSelected, readPageEditorCalloutIcon } from './pages.editor.callout-icon.lib';
 import { listPageEditorBlockConversions } from './pages.editor.convert.lib';
 import { readPageFileDisplay } from './pages.editor.file.display.lib';
@@ -107,6 +108,7 @@ export const readPageEditorSurface = (
   linkTarget: readPageLinkTarget(state),
   pageShape: readPageShapeTarget(state),
   syncedTarget: readSyncedTarget(state),
+  buttonAt: readSelectedButton(state),
   isInTable: isPageEditorInTable(state),
   comments: readPageEditorBlockComments(state),
   conversions: listPageEditorBlockConversions(state),

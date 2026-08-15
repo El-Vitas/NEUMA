@@ -79,6 +79,17 @@ export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
 export const PAGE_DIAGRAM_VIEWS = ['drawing', 'code', 'both'] as const;
 export type PageDiagramView = (typeof PAGE_DIAGRAM_VIEWS)[number];
 
+/**
+ * What a button does when it is pressed: write what it holds into the page, or
+ * add one more row to a collection.
+ */
+export const PAGE_BUTTON_DEEDS = ['blocks', 'row'] as const;
+export type PageButtonDeed = (typeof PAGE_BUTTON_DEEDS)[number];
+
+/** Where what a button writes lands: under the button itself, or at either end of the page. */
+export const PAGE_BUTTON_PLACES = ['below', 'top', 'bottom'] as const;
+export type PageButtonPlace = (typeof PAGE_BUTTON_PLACES)[number];
+
 /** A remark left on a block, kept with the block itself so it travels wherever the block goes. */
 export type PageBlockComment = {
   readonly author: string;
@@ -208,6 +219,23 @@ export const pageMentionAttrsSchema = z
     label: z.string().min(1).max(maximumMentionLabelLength),
     pageId: z.string().min(1).max(maximumMentionPageIdLength),
     spaceId: z.string().min(1).max(maximumMentionSpaceIdLength),
+  })
+  .strict();
+
+/**
+ * A button, and what it does when pressed.
+ *
+ * What it writes is what it holds, so it is set up by writing in it like
+ * anywhere else on the page rather than through a form of its own.
+ */
+export const pageButtonAttrsSchema = z
+  .object({
+    ...pageBlockAttrsShape,
+    deed: z.enum(PAGE_BUTTON_DEEDS).optional(),
+    label: z.string().min(1).max(maximumMentionLabelLength),
+    pageId: z.string().min(1).max(maximumMentionPageIdLength).optional(),
+    place: z.enum(PAGE_BUTTON_PLACES).optional(),
+    spaceId: z.string().min(1).max(maximumMentionSpaceIdLength).optional(),
   })
   .strict();
 
@@ -490,6 +518,11 @@ export type PageContentKnownNode =
   | { readonly attrs?: PageBlockAttrs; readonly type: 'table_of_contents' }
   | { readonly attrs: z.infer<typeof pageSubpageAttrsSchema>; readonly type: 'subpage' }
   | { readonly attrs: z.infer<typeof pageSyncedAttrsSchema>; readonly type: 'synced' }
+  | {
+      readonly attrs: z.infer<typeof pageButtonAttrsSchema>;
+      readonly content: readonly PageContentNode[];
+      readonly type: 'button';
+    }
   | { readonly attrs: z.infer<typeof pageImageAttrsSchema>; readonly type: 'image' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'video' }
   | { readonly attrs: z.infer<typeof pageMediaAttrsSchema>; readonly type: 'audio' }
@@ -526,6 +559,7 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'table_of_contents',
   'subpage',
   'synced',
+  'button',
   'image',
   'video',
   'file',
@@ -700,6 +734,7 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
     z.object({ attrs: pageIdOnlyAttrsSchema.optional(), type: z.literal('table_of_contents') }).strict(),
     z.object({ attrs: pageSubpageAttrsSchema, type: z.literal('subpage') }).strict(),
     z.object({ attrs: pageSyncedAttrsSchema, type: z.literal('synced') }).strict(),
+    z.object({ attrs: pageButtonAttrsSchema, content: pageNodeListSchema, type: z.literal('button') }).strict(),
     z.object({ attrs: pageImageAttrsSchema, type: z.literal('image') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('video') }).strict(),
     z.object({ attrs: pageMediaAttrsSchema, type: z.literal('audio') }).strict(),
@@ -785,6 +820,7 @@ type PageBlockParentType = Extract<
   | 'task_list'
   | 'task_item'
   | 'callout'
+  | 'button'
 >;
 
 const pageFlowChildTypes: readonly PageContentKnownNode['type'][] = [
@@ -807,6 +843,7 @@ const pageContainerChildTypes: readonly PageContentKnownNode['type'][] = [
   'table_of_contents',
   'subpage',
   'synced',
+  'button',
   'image',
   'video',
   'file',
@@ -836,6 +873,7 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
   toggle: pageContainerChildTypes,
   task_list: ['task_item'],
   task_item: pageContainerChildTypes,
+  button: pageContainerChildTypes,
   callout: pageContainerChildTypes,
   column_list: ['column'],
   column: pageContainerChildTypes,

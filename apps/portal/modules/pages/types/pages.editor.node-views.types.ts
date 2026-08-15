@@ -1,3 +1,4 @@
+import type { PageEditorButtonLabels } from './pages.editor.button.types';
 import type { PageEditorCodeLabels } from './pages.editor.code.types';
 import type { PageEditorContentsLabels } from './pages.editor.contents.types';
 import type { PageEditorDocumentLabels } from './pages.editor.document.types';
@@ -20,6 +21,7 @@ export interface PageEditorSubpageLabels {
 
 /** The user-visible names the editor's node views need, kept out of the libs that render them. */
 export interface PageEditorNodeViewLabels {
+  readonly button: PageEditorButtonLabels;
   readonly code: PageEditorCodeLabels;
   readonly collection: string;
   readonly contents: PageEditorContentsLabels;
