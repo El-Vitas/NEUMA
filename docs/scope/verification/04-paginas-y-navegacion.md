@@ -84,39 +84,39 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 ## PG-09 · Debe permitir enviar una página a la papelera
 
 - [ ] Hay una opción de eliminar accesible desde la página y desde el árbol
-- [ ] Pide confirmación antes de eliminar
+- [x] Pide confirmación antes de eliminar
 - [ ] La página desaparece del árbol y de los resultados de búsqueda
-- [ ] Las hijas se van a la papelera con ella
-- [ ] Se avisa cuántas páginas hijas se van a eliminar
+- [x] Las hijas se van a la papelera con ella
+- [x] Se avisa cuántas páginas hijas se van a eliminar
 - [ ] Las menciones a esa página en otras páginas indican que fue eliminada
 
 ## PG-10 · Debe permitir ver y recuperar lo eliminado
 
-- [ ] Existe una pantalla que lista las páginas en la papelera
-- [ ] Se ve cuándo se eliminó cada una y quién lo hizo
-- [ ] Se puede buscar dentro de la papelera
-- [ ] Se puede restaurar una página y vuelve a su lugar original
+- [x] Existe una pantalla que lista las páginas en la papelera
+- [x] Se ve cuándo se eliminó cada una y quién lo hizo
+- [x] Se puede buscar dentro de la papelera
+- [x] Se puede restaurar una página y vuelve a su lugar original
 - [ ] Si su padre ya no existe, la restauración explica dónde quedó
-- [ ] Restaurar una madre ofrece restaurar también sus hijas
+- [x] Restaurar una madre ofrece restaurar también sus hijas
 
 ## PG-11 · Debe permitir eliminar definitivamente
 
-- [ ] Desde la papelera se puede eliminar una página para siempre
-- [ ] La confirmación deja claro que no tiene vuelta atrás
-- [ ] Se puede vaciar la papelera completa
+- [x] Desde la papelera se puede eliminar una página para siempre
+- [x] La confirmación deja claro que no tiene vuelta atrás
+- [x] Se puede vaciar la papelera completa
 - [ ] Los archivos adjuntos de esa página también se eliminan
 
 ## PG-12 · Debe permitir marcar páginas como favoritas
 
-- [ ] Hay una estrella o similar en la página
-- [ ] Las favoritas aparecen en una sección propia arriba del árbol
-- [ ] Se pueden reordenar las favoritas
+- [x] Hay una estrella o similar en la página
+- [x] Las favoritas aparecen en una sección propia arriba del árbol
+- [x] Se pueden reordenar las favoritas
 - [ ] Se puede quitar de favoritas desde ambos lugares
 
 ## PG-13 · Debe permitir volver a lo reciente
 
-- [ ] Existe una lista de páginas visitadas recientemente
-- [ ] Está a un clic o un atajo de distancia
+- [x] Existe una lista de páginas visitadas recientemente
+- [x] Está a un clic o un atajo de distancia
 - [ ] Muestra el espacio al que pertenece cada una
 - [ ] No repite la misma página varias veces
 
@@ -142,18 +142,18 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## PG-16 · Debe informar sobre la página
 
-- [ ] Se puede ver quién la creó y cuándo
-- [ ] Se puede ver quién la editó por última vez y cuándo
-- [ ] Se puede ver el conteo de palabras
-- [ ] Esta información no ocupa espacio permanente en pantalla
+- [x] Se puede ver quién la creó y cuándo
+- [x] Se puede ver quién la editó por última vez y cuándo
+- [x] Se puede ver el conteo de palabras
+- [x] Esta información no ocupa espacio permanente en pantalla
 
 ## PG-17 · Debe permitir ajustar cómo se ve la página
 
-- [ ] Se puede pasar la página a ancho completo
-- [ ] Se puede reducir el tamaño del texto
+- [x] Se puede pasar la página a ancho completo
+- [x] Se puede reducir el tamaño del texto
 - [ ] Se puede elegir la tipografía entre unas pocas opciones
-- [ ] La elección se guarda por página, no de forma global
-- [ ] El cambio se aplica sin recargar
+- [x] La elección se guarda por página, no de forma global
+- [x] El cambio se aplica sin recargar
 
 ## PG-18 · Debe permitir bloquear una página
 
@@ -220,21 +220,21 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## NV-04 · Debe permitir buscar contenido
 
-- [ ] Se busca por título y por contenido del cuerpo
-- [ ] Los resultados muestran un fragmento con el término resaltado
+- [x] Se busca por título y por contenido del cuerpo
+- [x] Los resultados muestran un fragmento con el término resaltado
 - [ ] Se ve a qué espacio y a qué página madre pertenece cada resultado
 - [ ] Solo aparecen páginas a las que se tiene acceso
 - [ ] El texto de las menciones también es encontrable
-- [ ] Una búsqueda sin resultados lo dice claramente
-- [ ] Los resultados aparecen rápido y no bloquean la escritura
+- [x] Una búsqueda sin resultados lo dice claramente
+- [x] Los resultados aparecen rápido y no bloquean la escritura
 
 ## NV-05 · Debe ofrecer un buscador rápido por teclado
 
-- [ ] Un atajo abre el buscador desde cualquier pantalla
-- [ ] Encuentra páginas escribiendo parte del título
+- [x] Un atajo abre el buscador desde cualquier pantalla
+- [x] Encuentra páginas escribiendo parte del título
 - [ ] Se navega con flechas y se abre con Enter
 - [ ] Escape lo cierra
-- [ ] Ofrece también acciones, no solo páginas (crear página, ir a un espacio)
+- [x] Ofrece también acciones, no solo páginas (crear página, ir a un espacio)
 - [ ] Muestra las páginas recientes antes de escribir nada
 
 ## NV-06 · Debe permitir afinar la búsqueda
@@ -264,11 +264,11 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 **Cómo probarlo:** pasa el cursor sobre una mención, y después ábrela sin salir de la página actual.
 
-- [ ] Al pasar el cursor sobre una mención se ve una vista previa con su título y un fragmento
+- [x] Al pasar el cursor sobre una mención se ve una vista previa con su título y un fragmento
 - [ ] Lo mismo al pasar el cursor sobre un enlace interno
 - [ ] La vista previa muestra el ícono y las propiedades principales
 - [ ] Aparece con un pequeño retraso, no al rozarla sin querer
-- [ ] Desaparece al alejar el cursor
+- [x] Desaparece al alejar el cursor
 - [ ] La vista previa no aparece si uno no tiene acceso a esa página
 
 ## NV-10 · Debe permitir abrir una página al costado
@@ -311,4 +311,6 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
-| | | | |
+| 2026-08-17 | PG-10/11/12/13/16/17, NV-04/05 | La UI comprobó listado, búsqueda, restauración, eliminación permanente, vaciado, estrella, orden, información, apariencia, recientes, búsqueda y acciones. Se corrigió y volvió a probar quitar favoritas desde el portal; el filtro `sourceType=inventado` se ignora y el buscador rápido no mostró recientes al abrirse. No se ejecutaron los bloques restantes. | Parcial: una falla registrada |
+| 2026-08-17 | PG-09, PG-10, NV-09 | Cascada al enviar a la papelera y restauración con hijas **verificadas contra PostgreSQL** (madre + 3 hijas, ida y vuelta); la confirmación dice el conteo real de hijas. La vista previa al pasar el cursor muestra título y fragmento, y se va al alejarse. Falta: que la página desaparezca del árbol (corregido en consolidación, sin volver a probar), que las menciones digan que fue eliminada, que se pueda eliminar desde el encabezado, y que la restauración explique dónde quedó si el padre ya no existe. | Parcial |
+| 2026-08-17 | NV-05 (corrección de la fila anterior) | El buscador rápido **sí** muestra las recientes: tras visitar una página, Ctrl+K abre el grupo «Vistas recientemente» con ella dentro. La observación anterior se debió al perfil del navegador —las recientes viven en `localStorage` bajo `portal.recent-pages`— y no a un defecto. | Correcto |
