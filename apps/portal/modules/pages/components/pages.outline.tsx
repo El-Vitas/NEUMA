@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
 import { watchWhatIsBeingRead } from '@/shared/lib/reading.lib';
 import {
   PAGE_EDITOR_CONTENTS_INDENT_REM,
   PAGE_EDITOR_CONTENTS_TITLE_STYLE_CLASS,
+  PAGE_OUTLINE_COLLAPSED_STYLE_CLASS,
   PAGE_OUTLINE_ENTRY_STYLE_CLASS,
+  PAGE_OUTLINE_HEADER_STYLE_CLASS,
   PAGE_OUTLINE_READING_LINE,
   PAGE_OUTLINE_READING_STYLE_CLASS,
   PAGE_OUTLINE_STYLE_CLASS,
+  PAGE_OUTLINE_TOGGLE_STYLE_CLASS,
+  PAGE_OUTLINE_VISIBILITY_STORAGE_KEY,
 } from '../constants/pages.editor.contents.constants';
 import { readTheWrittenHeadings, readWhichHeading } from '../lib/pages.outline.lib';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
@@ -28,7 +34,10 @@ interface IProps {
  * into a place to stand, and a page with nothing to list shows nothing at all.
  */
 export const PagesOutline = ({ headings, onGoToHeading, title }: IProps) => {
+  const t = useTranslations('pages.outline');
   const [beingRead, setBeingRead] = useState<number | null>(null);
+  const [isHidden, setIsHidden] = useState(false);
+  const hasOwnChoice = useRef(false);
 
   useEffect(
     () =>
@@ -40,11 +49,53 @@ export const PagesOutline = ({ headings, onGoToHeading, title }: IProps) => {
     [headings],
   );
 
+  useEffect(() => {
+    if (!hasOwnChoice.current) setIsHidden(localStorage.getItem(PAGE_OUTLINE_VISIBILITY_STORAGE_KEY) === 'true');
+  }, []);
+
+  useEffect(() => {
+    if (hasOwnChoice.current) localStorage.setItem(PAGE_OUTLINE_VISIBILITY_STORAGE_KEY, String(isHidden));
+  }, [isHidden]);
+
+  const toggleHidden = (): void => {
+    hasOwnChoice.current = true;
+    setIsHidden((current) => !current);
+  };
+
   if (headings.length === 0) return null;
+
+  if (isHidden) {
+    return (
+      <div className={PAGE_OUTLINE_COLLAPSED_STYLE_CLASS}>
+        <button
+          aria-expanded="false"
+          aria-label={t('show')}
+          className={PAGE_OUTLINE_TOGGLE_STYLE_CLASS}
+          onClick={toggleHidden}
+          title={t('show')}
+          type="button"
+        >
+          <PanelRightOpen aria-hidden="true" className="size-4" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <nav aria-label={title} className={PAGE_OUTLINE_STYLE_CLASS}>
-      <p className={PAGE_EDITOR_CONTENTS_TITLE_STYLE_CLASS}>{title}</p>
+      <div className={PAGE_OUTLINE_HEADER_STYLE_CLASS}>
+        <p className={PAGE_EDITOR_CONTENTS_TITLE_STYLE_CLASS}>{title}</p>
+        <button
+          aria-expanded="true"
+          aria-label={t('hide')}
+          className={PAGE_OUTLINE_TOGGLE_STYLE_CLASS}
+          onClick={toggleHidden}
+          title={t('hide')}
+          type="button"
+        >
+          <PanelRightClose aria-hidden="true" className="size-4" />
+        </button>
+      </div>
       {headings.map((heading, which) => (
         <button
           aria-current={which === beingRead ? 'true' : undefined}

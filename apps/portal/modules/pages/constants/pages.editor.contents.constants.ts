@@ -58,3 +58,17 @@ export const PAGE_OUTLINE_READING_LINE = 140;
 export const PAGE_OUTLINE_LAYOUT_STYLE_CLASS = 'gap-10 xl:grid xl:grid-cols-[minmax(0,1fr)_14rem] xl:items-start';
 
 export const PAGE_OUTLINE_SIDE_STYLE_CLASS = 'hidden xl:sticky xl:top-12 xl:block';
+
+/** Where the choice to hide the index is kept, the same way the sidebar keeps its own. */
+export const PAGE_OUTLINE_VISIBILITY_STORAGE_KEY = 'company-brain-page-outline-hidden';
+
+export const PAGE_OUTLINE_HEADER_STYLE_CLASS = 'flex items-center justify-between gap-2';
+
+/** The button that hides or brings back the index: quiet, but a real touch target. */
+export const PAGE_OUTLINE_TOGGLE_STYLE_CLASS = [
+  'flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground',
+  'outline-none focus-visible:ring-2 focus-visible:ring-ring',
+].join(' ');
+
+/** What is left where the index was, so hiding it never leaves a bare gap in the page. */
+export const PAGE_OUTLINE_COLLAPSED_STYLE_CLASS = 'flex justify-end';

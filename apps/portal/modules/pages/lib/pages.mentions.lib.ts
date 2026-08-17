@@ -2,6 +2,7 @@ import { PAGE_LIFECYCLE } from '@company-brain/shared';
 import type { SearchResult } from '@/shared/types/search.types';
 import type { PageMentionCandidate } from '../types/pages.mentions.types';
 import type { PageSummary } from '../types/pages.types';
+import { foldPageLookingText } from './pages.looking.lib';
 
 export const toPageMentionCandidate = (result: SearchResult): PageMentionCandidate => ({
   id: result.sourceId,
@@ -10,12 +11,7 @@ export const toPageMentionCandidate = (result: SearchResult): PageMentionCandida
 });
 
 /** Read as somebody types a name: capitals and accents are not part of the asking. */
-const asItIsLookedFor = (written: string): string =>
-  written
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '');
+const asItIsLookedFor = (written: string): string => foldPageLookingText(written.trim());
 
 /**
  * Whether a page is called what was written.

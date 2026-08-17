@@ -15,6 +15,8 @@ const maximumBlockIdLength = 200;
 const maximumMentionPageIdLength = 200;
 const maximumMentionLabelLength = 200;
 const maximumMentionSpaceIdLength = 200;
+const maximumPersonLabelLength = 200;
+const maximumFormulaLatexLength = 4_000;
 const maximumCommentAuthorLength = 200;
 const maximumCommentBodyLength = 2_000;
 const maximumCommentDateLength = 40;
@@ -243,6 +245,42 @@ export const pageMentionAttrsSchema = z
   })
   .strict();
 
+/** A person named in the writing: who, and what they were called at the time. */
+export const pagePersonAttrsSchema = z
+  .object({
+    label: z.string().min(1).max(maximumPersonLabelLength),
+    userId: z.uuid(),
+  })
+  .strict();
+
+const pageCalendarDayPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** Whether a string names a real calendar day, not merely one shaped like one. */
+export const isPageCalendarDay = (value: string): boolean => {
+  const match = pageCalendarDayPattern.exec(value);
+  if (match === null) return false;
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
+
+/** A date named in the writing, kept as the calendar day it points at. */
+export const pageDateAttrsSchema = z
+  .object({
+    at: z.string().refine(isPageCalendarDay),
+  })
+  .strict();
+
+/** A formula inside the line. Empty means one not written yet. */
+export const pageFormulaAttrsSchema = z
+  .object({
+    latex: z.string().max(maximumFormulaLatexLength),
+  })
+  .strict();
+
 /**
  * A button, and what it does when pressed.
  *
@@ -297,10 +335,38 @@ const pageMentionSchema = z
   })
   .strict();
 
+const pagePersonSchema = z
+  .object({
+    attrs: pagePersonAttrsSchema,
+    type: z.literal('person'),
+  })
+  .strict();
+
+const pageDateSchema = z
+  .object({
+    attrs: pageDateAttrsSchema,
+    type: z.literal('date'),
+  })
+  .strict();
+
+const pageFormulaSchema = z
+  .object({
+    attrs: pageFormulaAttrsSchema,
+    type: z.literal('formula'),
+  })
+  .strict();
+
 /** A line broken on purpose inside a block, without starting another one. */
 const pageHardBreakSchema = z.object({ type: z.literal('hard_break') }).strict();
 
-const pageInlineNodeSchema = z.discriminatedUnion('type', [pageTextSchema, pageMentionSchema, pageHardBreakSchema]);
+const pageInlineNodeSchema = z.discriminatedUnion('type', [
+  pageTextSchema,
+  pageMentionSchema,
+  pagePersonSchema,
+  pageDateSchema,
+  pageFormulaSchema,
+  pageHardBreakSchema,
+]);
 
 export const pageAssetAttrsSchema = z
   .object({
@@ -422,9 +488,30 @@ export type PageContentMention = {
   readonly type: 'mention';
 };
 
+export type PageContentPerson = {
+  readonly attrs: z.infer<typeof pagePersonAttrsSchema>;
+  readonly type: 'person';
+};
+
+export type PageContentDate = {
+  readonly attrs: z.infer<typeof pageDateAttrsSchema>;
+  readonly type: 'date';
+};
+
+export type PageContentFormula = {
+  readonly attrs: z.infer<typeof pageFormulaAttrsSchema>;
+  readonly type: 'formula';
+};
+
 export type PageContentHardBreak = { readonly type: 'hard_break' };
 
-export type PageContentInlineNode = PageContentText | PageContentMention | PageContentHardBreak;
+export type PageContentInlineNode =
+  | PageContentText
+  | PageContentMention
+  | PageContentPerson
+  | PageContentDate
+  | PageContentFormula
+  | PageContentHardBreak;
 
 type PageBlockNode<Type extends string, Content> = {
   readonly attrs?: PageBlockAttrs;
@@ -593,6 +680,9 @@ export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'collection',
   'text',
   'mention',
+  'person',
+  'date',
+  'formula',
   'hard_break',
 ];
 

@@ -51,6 +51,10 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageDestinationsAction: async () => ({ data: [] }),
 }));
 
+mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
+  searchPagePersonCandidatesAction: async () => ({ data: [] }),
+}));
+
 mock.module('next/navigation', () => ({
   useRouter: () => ({ push: () => undefined }),
 }));

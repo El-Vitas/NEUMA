@@ -4,7 +4,7 @@ import type { RefObject } from 'react';
 import type { PageEditorSpot } from './pages.editor.surface.types';
 import type { PageEditorCommandGroup, PageSummary } from './pages.types';
 
-export type PagesEditorTriggerKind = 'mention' | 'slash';
+export type PagesEditorTriggerKind = 'emoji' | 'mention' | 'slash';
 
 export interface PagesEditorTrigger {
   readonly kind: PagesEditorTriggerKind;
@@ -35,6 +35,8 @@ export interface PagesEditorTriggerMenuParameters {
   readonly onEscapeWithSelection: (editorView: EditorView) => void;
   /** The pages this one already holds, which answer a name without asking anybody. */
   readonly pagesAtHand: readonly PageSummary[];
+  /** The space this page belongs to, which is who a name after `@` may answer for once it means a person. */
+  readonly spaceId: string;
   readonly surfaceRef: RefObject<HTMLDivElement | null>;
 }
 

@@ -230,9 +230,9 @@
     "moreFormattingTools": "More formatting tools",
     "slashCommands": "Block commands",
     "noCommands": "No matching block commands.",
-    "mentionCandidates": "Page mentions",
+    "mentionCandidates": "Pages, people and dates",
     "mentionCreatePage": "Create “{title}”",
-    "noMentionCandidates": "No matching pages.",
+    "noMentionCandidates": "Nothing goes by that name.",
     "searchingMentionCandidates": "Searching pages...",
     "titleField": "Title",
     "collectionCandidates": "Collections",
@@ -269,6 +269,10 @@
     "buttonPickDescription": "Choose the collection this button adds a row to.",
     "buttonEmpty": "Write inside the button what it should write.",
     "subpageBlock": "Subpage",
+    "personBlock": "Person",
+    "dateBlock": "Date",
+    "formulaEmpty": "Formula not written yet",
+    "formulaUnreadable": "This formula cannot be drawn, so it is shown exactly as it was written.",
     "subpageNeedsPage": "Create this page before hanging another one from it.",
     "untitled": "Untitled",
     "content": "Structured content",
@@ -345,7 +349,10 @@
       "collection": "Collection",
       "collectionView": "Collection from elsewhere",
       "pageLink": "Link to a page",
-      "subpage": "Subpage"
+      "subpage": "Subpage",
+      "emoji": "Emoji",
+      "person": "Person",
+      "formulaInline": "Formula in line"
     },
     "backlinks": {
       "title": "Linked from ({count})"
@@ -425,7 +432,53 @@
       "redo": "Redo",
       "duplicateBlock": "Duplicate the block, and whatever hangs from it",
       "deleteBlock": "Delete the selected blocks",
-      "openBlockMenu": "Open the block actions"
+      "openBlockMenu": "Open the block actions",
+      "find": "Find on this page"
+    },
+    "find": {
+      "open": "Find on this page",
+      "field": "What to find",
+      "replaceField": "What to put instead",
+      "matches": "{current} of {total}",
+      "noMatches": "No matches",
+      "next": "Next match",
+      "previous": "Previous match",
+      "replace": "Replace",
+      "replaceAll": "Replace all",
+      "close": "Close the search"
+    },
+    "save": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "savedAt": "Saved at {time}",
+      "pending": "There are unsaved changes",
+      "offline": "No connection. What you write is saved as soon as it comes back.",
+      "backOnline": "The connection is back: what was pending is being saved.",
+      "failed": "This could not be saved. It keeps retrying; if it goes on, copy what you wrote before closing."
+    },
+    "paste": {
+      "tooMuch": "What was pasted does not fit in a block of this page, so it was pasted as text."
+    },
+    "emoji": {
+      "candidates": "Emoji",
+      "none": "No emoji goes by that name."
+    },
+    "date": {
+      "candidates": "Dates",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
+      "pick": "Pick another day",
+      "field": "Which day"
+    },
+    "formula": {
+      "field": "The formula",
+      "help": "Written in LaTeX.",
+      "done": "Done"
+    },
+    "outline": {
+      "hide": "Hide the outline",
+      "show": "Show the outline"
     },
     "selectedBlocks": "{count} blocks selected",
     "blockTypes": {

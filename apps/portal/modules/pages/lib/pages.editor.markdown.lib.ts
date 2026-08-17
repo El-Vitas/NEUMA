@@ -1,0 +1,218 @@
+import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
+import type { Node as EditorNode, Mark, Schema } from 'prosemirror-model';
+import type {
+  PageEditorMarkdownGroup,
+  PageEditorMarkdownInlineMatch,
+  PageEditorMarkdownLineMatcher,
+  PageEditorMarkdownMarkKind,
+} from '../types/pages.editor.paste.types';
+
+const lineBreak = /\r\n|\r|\n/;
+const headingLine = /^(#{1,3})\s+(.*)$/;
+const bulletLine = /^\s*[-+*]\s+(.*)$/;
+const orderedLine = /^\s*(\d+)\.\s+(.*)$/;
+const taskLine = /^\s*\[([ xX]?)]\s+(.*)$/;
+const quoteLine = /^\s*>\s?(.*)$/;
+const dividerLine = /^---$/;
+const codeFenceLine = /^```([\w-]+)?\s*$/;
+
+const linkInline = /\[([^\]]+)]\((https?:\/\/[^\s)]+)\)/;
+const boldInline = /\*\*([^*]+)\*\*/;
+const codeInline = /`([^`]+)`/;
+const strikeInline = /~~([^~]+)~~/;
+/** One asterisk, and not the second of a pair: `**` is bold and must not be read as italic twice. */
+const italicInline = /(?<!\*)\*([^*]+)\*(?!\*)/;
+
+const markNameByKind: Record<PageEditorMarkdownMarkKind, string> = {
+  code: 'code',
+  em: 'em',
+  link: 'link',
+  strike: 'strike',
+  strong: 'strong',
+};
+
+const inlinePatterns: readonly { readonly kind: PageEditorMarkdownMarkKind; readonly pattern: RegExp }[] = [
+  { kind: 'link', pattern: linkInline },
+  { kind: 'strong', pattern: boldInline },
+  { kind: 'code', pattern: codeInline },
+  { kind: 'strike', pattern: strikeInline },
+  { kind: 'em', pattern: italicInline },
+];
+
+/** The one candidate that starts earliest in what is left to read, since that is the one written first. */
+const findEarliestInlineMatch = (text: string): PageEditorMarkdownInlineMatch | null =>
+  inlinePatterns.reduce<PageEditorMarkdownInlineMatch | null>((earliest, { kind, pattern }) => {
+    const match = pattern.exec(text);
+    if (match === null || (earliest !== null && match.index >= earliest.index)) return earliest;
+    return { index: match.index, kind, label: match[1], length: match[0].length, url: match[2] ?? null };
+  }, null);
+
+const readPageEditorMarkdownMark = (schema: Schema, found: PageEditorMarkdownInlineMatch): Mark | null => {
+  if (found.kind === 'link') return found.url === null ? null : schema.marks.link.create({ href: found.url });
+  return schema.marks[markNameByKind[found.kind]].create();
+};
+
+const parsePageEditorInlineMarkdown = (schema: Schema, text: string): readonly EditorNode[] => {
+  const nodes: EditorNode[] = [];
+  let remaining = text;
+  while (remaining.length > 0) {
+    const found = findEarliestInlineMatch(remaining);
+    if (found === null) {
+      nodes.push(schema.text(remaining));
+      break;
+    }
+    if (found.index > 0) nodes.push(schema.text(remaining.slice(0, found.index)));
+    const mark = readPageEditorMarkdownMark(schema, found);
+    const matched = remaining.slice(found.index, found.index + found.length);
+    nodes.push(mark === null ? schema.text(matched) : schema.text(found.label, [mark]));
+    remaining = remaining.slice(found.index + found.length);
+  }
+  return nodes;
+};
+
+const buildPageEditorParagraphFromText = (schema: Schema, text: string): EditorNode => {
+  const inline = parsePageEditorInlineMarkdown(schema, text);
+  return schema.nodes.paragraph.createChecked(null, inline.length === 0 ? null : inline);
+};
+
+const readPageEditorCodeLanguage = (written: string | undefined): string | null =>
+  PAGE_CODE_LANGUAGES.find((language) => language === written) ?? null;
+
+const readPageEditorCodeFence = (schema: Schema, lines: readonly string[], start: number): PageEditorMarkdownGroup => {
+  const language = readPageEditorCodeLanguage(codeFenceLine.exec(lines[start])?.[1]);
+  const body: string[] = [];
+  let index = start + 1;
+  while (index < lines.length && !codeFenceLine.test(lines[index])) {
+    body.push(lines[index]);
+    index += 1;
+  }
+  const next = index < lines.length ? index + 1 : index;
+  const content = body.length === 0 ? null : schema.text(body.join('\n'));
+  return { block: schema.nodes.code_block.createChecked({ language }, content), next };
+};
+
+const readPageEditorHeading = (schema: Schema, lines: readonly string[], start: number): PageEditorMarkdownGroup => {
+  const match = headingLine.exec(lines[start]);
+  const level = match === null ? 1 : match[1].length;
+  const text = match === null ? '' : match[2];
+  const inline = parsePageEditorInlineMarkdown(schema, text);
+  return { block: schema.nodes.heading.createChecked({ level }, inline.length === 0 ? null : inline), next: start + 1 };
+};
+
+const readPageEditorDivider = (schema: Schema, _lines: readonly string[], start: number): PageEditorMarkdownGroup => ({
+  block: schema.nodes.divider.createChecked(),
+  next: start + 1,
+});
+
+const readPageEditorQuote = (schema: Schema, lines: readonly string[], start: number): PageEditorMarkdownGroup => {
+  const paragraphs: EditorNode[] = [];
+  let index = start;
+  while (index < lines.length) {
+    const match = quoteLine.exec(lines[index]);
+    if (match === null) break;
+    paragraphs.push(buildPageEditorParagraphFromText(schema, match[1]));
+    index += 1;
+  }
+  return { block: schema.nodes.blockquote.createChecked(null, paragraphs), next: index };
+};
+
+const readPageEditorBulletList = (schema: Schema, lines: readonly string[], start: number): PageEditorMarkdownGroup => {
+  const items: EditorNode[] = [];
+  let index = start;
+  while (index < lines.length) {
+    const match = bulletLine.exec(lines[index]);
+    if (match === null) break;
+    items.push(schema.nodes.list_item.createChecked(null, buildPageEditorParagraphFromText(schema, match[1])));
+    index += 1;
+  }
+  return { block: schema.nodes.bullet_list.createChecked(null, items), next: index };
+};
+
+const readPageEditorOrderedList = (
+  schema: Schema,
+  lines: readonly string[],
+  start: number,
+): PageEditorMarkdownGroup => {
+  const items: EditorNode[] = [];
+  let order: number | null = null;
+  let index = start;
+  while (index < lines.length) {
+    const match = orderedLine.exec(lines[index]);
+    if (match === null) break;
+    order ??= Number(match[1]);
+    items.push(schema.nodes.list_item.createChecked(null, buildPageEditorParagraphFromText(schema, match[2])));
+    index += 1;
+  }
+  return { block: schema.nodes.ordered_list.createChecked({ order: order ?? 1 }, items), next: index };
+};
+
+const readPageEditorTaskList = (schema: Schema, lines: readonly string[], start: number): PageEditorMarkdownGroup => {
+  const items: EditorNode[] = [];
+  let index = start;
+  while (index < lines.length) {
+    const match = taskLine.exec(lines[index]);
+    if (match === null) break;
+    const checked = match[1].toLowerCase() === 'x';
+    items.push(schema.nodes.task_item.createChecked({ checked }, buildPageEditorParagraphFromText(schema, match[2])));
+    index += 1;
+  }
+  return { block: schema.nodes.task_list.createChecked(null, items), next: index };
+};
+
+const lineMatchers: readonly PageEditorMarkdownLineMatcher[] = [
+  { read: readPageEditorCodeFence, test: (line) => codeFenceLine.test(line) },
+  { read: readPageEditorHeading, test: (line) => headingLine.test(line) },
+  { read: readPageEditorDivider, test: (line) => dividerLine.test(line) },
+  { read: readPageEditorQuote, test: (line) => quoteLine.test(line) },
+  { read: readPageEditorTaskList, test: (line) => taskLine.test(line) },
+  { read: readPageEditorBulletList, test: (line) => bulletLine.test(line) },
+  { read: readPageEditorOrderedList, test: (line) => orderedLine.test(line) },
+];
+
+const findPageEditorMarkdownMatcher = (line: string): PageEditorMarkdownLineMatcher | undefined =>
+  lineMatchers.find((matcher) => matcher.test(line));
+
+const readPageEditorParagraph = (schema: Schema, lines: readonly string[], start: number): PageEditorMarkdownGroup => {
+  const written: string[] = [];
+  let index = start;
+  while (
+    index < lines.length &&
+    lines[index].trim().length > 0 &&
+    findPageEditorMarkdownMatcher(lines[index]) === undefined
+  ) {
+    written.push(lines[index]);
+    index += 1;
+  }
+  return { block: buildPageEditorParagraphFromText(schema, written.join(' ')), next: index };
+};
+
+/**
+ * Whether a stretch of pasted text is written the way Markdown is written —
+ * enough that reading it as blocks, rather than as a single run of text, is
+ * what whoever pasted it meant.
+ */
+export const looksLikePageEditorMarkdown = (text: string): boolean =>
+  text.split(lineBreak).some((line) => findPageEditorMarkdownMatcher(line) !== undefined);
+
+/**
+ * Reads pasted Markdown into the blocks this page already knows how to write
+ * by hand — the same headings, lists, quotes and marks the input rules make
+ * as each is typed, made instead from what arrived all at once.
+ */
+export const parsePageEditorMarkdown = (schema: Schema, text: string): readonly EditorNode[] => {
+  const lines = text.split(lineBreak);
+  const blocks: EditorNode[] = [];
+  let index = 0;
+  while (index < lines.length) {
+    if (lines[index].trim().length === 0) {
+      index += 1;
+      continue;
+    }
+    const matcher = findPageEditorMarkdownMatcher(lines[index]);
+    const group =
+      matcher === undefined ? readPageEditorParagraph(schema, lines, index) : matcher.read(schema, lines, index);
+    blocks.push(group.block);
+    index = group.next;
+  }
+  return blocks;
+};

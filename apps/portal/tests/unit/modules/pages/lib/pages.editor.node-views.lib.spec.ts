@@ -38,8 +38,17 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
       languages: { plain: 'No language' },
       wrap: 'Wrap',
     },
+    date: { field: 'Which day', label: 'Date', locale: 'en' },
     embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
     file: { fullScreen: 'Full screen', resize: 'Resize the document' },
+    formula: {
+      done: 'Done',
+      empty: 'Formula not written yet',
+      field: 'The formula',
+      help: 'Written in LaTeX.',
+      inline: 'Formula',
+      unreadable: 'This formula cannot be drawn, so it is shown exactly as it was written.',
+    },
     collection: 'Collection',
     contents: { empty: 'sin encabezados', title: 'en esta página' },
     button: {
@@ -54,6 +63,7 @@ const renderMentionLink = (content: ReturnType<typeof buildMentionDocument>): HT
     subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
     synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },
     image: { caption: 'Describe the image', resize: 'Resize' },
+    person: 'Person',
     task: 'Task',
     media: {
       fullScreen: 'Full screen',
@@ -112,8 +122,17 @@ describe('createPageEditorNodeViews collection', () => {
       languages: { plain: 'No language' },
       wrap: 'Wrap',
     },
+    date: { field: 'Which day', label: 'Date', locale: 'en' },
     embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
     file: { fullScreen: 'Full screen', resize: 'Resize the document' },
+    formula: {
+      done: 'Done',
+      empty: 'Formula not written yet',
+      field: 'The formula',
+      help: 'Written in LaTeX.',
+      inline: 'Formula',
+      unreadable: 'This formula cannot be drawn, so it is shown exactly as it was written.',
+    },
     collection: 'Collection',
     contents: { empty: 'sin encabezados', title: 'en esta página' },
     button: {
@@ -128,6 +147,7 @@ describe('createPageEditorNodeViews collection', () => {
     subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
     synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },
     image: { caption: 'Describe the image', resize: 'Resize' },
+    person: 'Person',
     task: 'Task',
     media: {
       fullScreen: 'Full screen',

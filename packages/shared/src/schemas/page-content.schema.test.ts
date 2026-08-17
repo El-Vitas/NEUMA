@@ -842,3 +842,87 @@ describe('collection blocks', () => {
     ).toBe(false);
   });
 });
+
+describe('person, date, and formula nodes', () => {
+  const paragraphOf = (inline: unknown) => ({
+    content: [{ content: [inline], type: 'paragraph' }],
+    schemaVersion: PAGE_CONTENT_SCHEMA_VERSION,
+    type: 'doc',
+  });
+
+  test('accepts a person named inside a paragraph', () => {
+    expect(
+      pageContentSchema.safeParse(
+        paragraphOf({
+          attrs: { label: 'Ada Lovelace', userId: '3fa85f64-5717-4562-b3fc-2c963f66afa6' },
+          type: 'person',
+        }),
+      ).success,
+    ).toBe(true);
+  });
+
+  test('rejects a person whose id is not a uuid', () => {
+    expect(
+      pageContentSchema.safeParse(
+        paragraphOf({ attrs: { label: 'Ada Lovelace', userId: 'not-a-uuid' }, type: 'person' }),
+      ).success,
+    ).toBe(false);
+  });
+
+  test('rejects a person missing a label', () => {
+    expect(
+      pageContentSchema.safeParse(
+        paragraphOf({ attrs: { userId: '3fa85f64-5717-4562-b3fc-2c963f66afa6' }, type: 'person' }),
+      ).success,
+    ).toBe(false);
+  });
+
+  test('rejects a person carrying an attribute the contract does not know', () => {
+    expect(
+      pageContentSchema.safeParse(
+        paragraphOf({
+          attrs: { label: 'Ada Lovelace', rogue: true, userId: '3fa85f64-5717-4562-b3fc-2c963f66afa6' },
+          type: 'person',
+        }),
+      ).success,
+    ).toBe(false);
+  });
+
+  test('accepts a date named inside a paragraph', () => {
+    expect(pageContentSchema.safeParse(paragraphOf({ attrs: { at: '2026-08-15' }, type: 'date' })).success).toBe(true);
+  });
+
+  test('rejects a date shaped wrong', () => {
+    expect(pageContentSchema.safeParse(paragraphOf({ attrs: { at: '15/08/2026' }, type: 'date' })).success).toBe(false);
+  });
+
+  test('rejects a date that is not a real calendar day', () => {
+    expect(pageContentSchema.safeParse(paragraphOf({ attrs: { at: '2026-02-30' }, type: 'date' })).success).toBe(false);
+  });
+
+  test('rejects a date carrying an attribute the contract does not know', () => {
+    expect(
+      pageContentSchema.safeParse(paragraphOf({ attrs: { at: '2026-08-15', rogue: true }, type: 'date' })).success,
+    ).toBe(false);
+  });
+
+  test('accepts a formula written inside a paragraph', () => {
+    expect(
+      pageContentSchema.safeParse(paragraphOf({ attrs: { latex: '\\frac{1}{2}' }, type: 'formula' })).success,
+    ).toBe(true);
+  });
+
+  test('accepts a formula not written yet', () => {
+    expect(pageContentSchema.safeParse(paragraphOf({ attrs: { latex: '' }, type: 'formula' })).success).toBe(true);
+  });
+
+  test('rejects a formula missing its latex attribute', () => {
+    expect(pageContentSchema.safeParse(paragraphOf({ attrs: {}, type: 'formula' })).success).toBe(false);
+  });
+
+  test('rejects a formula carrying an attribute the contract does not know', () => {
+    expect(
+      pageContentSchema.safeParse(paragraphOf({ attrs: { latex: 'x', rogue: true }, type: 'formula' })).success,
+    ).toBe(false);
+  });
+});

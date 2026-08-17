@@ -8,6 +8,7 @@ import {
   SELECTION_TOOLBAR_ESTIMATED_HEIGHT_PX,
   SELECTION_TOOLBAR_ESTIMATED_WIDTH_PX,
 } from '../constants/pages.editor.constants';
+import { listTheDaysOffered } from '../lib/pages.editor.date.lib';
 import { computeSelectionToolbarPlacement } from '../lib/pages.editor.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 import {
@@ -17,6 +18,7 @@ import {
   handleSlashMenuKeyDown,
   resolveEditorTrigger,
 } from '../lib/pages.editor.slash-menu.lib';
+import type { PageEditorDayOffer } from '../types/pages.editor.date.types';
 import type {
   PagesEditorMenuItem,
   PagesEditorTrigger,
@@ -26,6 +28,7 @@ import type {
 } from '../types/pages.editor.slash-menu.types';
 import type { PageEditorSpot } from '../types/pages.editor.surface.types';
 import { usePagesMentionSearch } from './use.pages.mention-search';
+import { usePagesPersonSearch } from './use.pages.person-search';
 
 /**
  * The menu that opens beside the cursor on `/` or `@`: what it shows, how it
@@ -37,6 +40,7 @@ export const usePagesEditorTriggerMenu = ({
   editorViewRef,
   onEscapeWithSelection,
   pagesAtHand,
+  spaceId,
   surfaceRef,
 }: PagesEditorTriggerMenuParameters): PagesEditorTriggerMenu => {
   const t = useTranslations('pages');
@@ -49,28 +53,37 @@ export const usePagesEditorTriggerMenu = ({
   const triggerMenuPositionRef = useRef<PageEditorSpot | null>(null);
   const triggerSelectedIndexRef = useRef(0);
   const mentionSearch = usePagesMentionSearch(triggerKind === 'mention' ? triggerQuery : null, pagesAtHand);
+  const personSearch = usePagesPersonSearch(triggerKind === 'mention' ? triggerQuery : null, spaceId);
+  const dayOffers = useMemo<readonly PageEditorDayOffer[]>(() => listTheDaysOffered(new Date()), []);
 
   const translateCommandLabel = useCallback((labelKey: string) => t(`commands.${labelKey}`), [t]);
+  const translateDayLabel = useCallback((labelKey: PageEditorDayOffer['labelKey']) => t(`date.${labelKey}`), [t]);
   const nameTheOfferToMakeAPage = useCallback((title: string) => t('mentionCreatePage', { title }), [t]);
   const triggerItems = useMemo<readonly PagesEditorMenuItem[]>(
     () =>
       buildEditorTriggerItems({
         commands: PAGE_EDITOR_COMMANDS,
         canMakeAPage,
+        dayOffers,
         mentionCandidates: mentionSearch.candidates,
         nameTheOfferToMakeAPage,
+        personCandidates: personSearch.candidates,
         recentCommandIds,
         schema: pageEditorSchema,
         translateCommandLabel,
+        translateDayLabel,
         triggerKind,
         triggerQuery,
       }),
     [
       canMakeAPage,
+      dayOffers,
       mentionSearch.candidates,
       nameTheOfferToMakeAPage,
+      personSearch.candidates,
       recentCommandIds,
       translateCommandLabel,
+      translateDayLabel,
       triggerKind,
       triggerQuery,
     ],
@@ -81,7 +94,9 @@ export const usePagesEditorTriggerMenu = ({
     triggerItemsRef.current = triggerItems;
   }, [triggerItems]);
 
-  const triggerEmptyMessage = t(getEditorTriggerEmptyMessageKey(triggerKind, mentionSearch.isLoading));
+  const triggerEmptyMessage = t(
+    getEditorTriggerEmptyMessageKey(triggerKind, mentionSearch.isLoading || personSearch.isLoading),
+  );
   const triggerAriaLabel = t(getEditorTriggerAriaLabelKey(triggerKind));
 
   const computeMenuPosition = useCallback(

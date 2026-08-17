@@ -1,9 +1,11 @@
 import {
   isKnownPageContentNode,
   type PageContent,
+  type PageContentDate,
   type PageContentInlineNode,
   type PageContentMention,
   type PageContentNode,
+  type PageContentPerson,
   type PageContentText,
 } from './schemas/page-content.schema.js';
 
@@ -20,13 +22,23 @@ const isPageContentText = (node: PageContentAnyNode): node is PageContentText =>
 const isPageContentMention = (node: PageContentAnyNode): node is PageContentMention =>
   node.type === 'mention' && 'attrs' in node && typeof node.attrs?.label === 'string';
 
+const isPageContentPerson = (node: PageContentAnyNode): node is PageContentPerson =>
+  node.type === 'person' && 'attrs' in node && typeof node.attrs?.label === 'string';
+
+const isPageContentDate = (node: PageContentAnyNode): node is PageContentDate =>
+  node.type === 'date' && 'attrs' in node && typeof node.attrs?.at === 'string';
+
 /**
  * Walks a page's ProseMirror-shaped content and returns every leaf text
  * segment in document order. Structural nodes without a `content` field
  * (image, file, embed) contribute nothing, and neither does a block this
  * version does not know: what it holds is never read into. A mention
  * contributes its denormalized `label`, so a page mentioning another page is
- * findable by searching the mentioned page's title.
+ * findable by searching the mentioned page's title. A person contributes its
+ * `label` and a date contributes its `at`, for the same reason: naming
+ * someone or naming a day should make the page findable by that name or that
+ * day. A formula contributes nothing — its `latex` is machine writing, and
+ * indexing it would only add noise.
  */
 export const extractPageContentSegments = (content: PageContent): readonly string[] =>
   extractPageContentNodeSegments(content.content).filter((segment) => segment.length > 0);
@@ -37,6 +49,8 @@ const extractPageContentNodeSegments = (nodes: readonly PageContentAnyNode[]): r
 const extractPageContentSingleNodeSegments = (node: PageContentAnyNode): readonly string[] => {
   if (isPageContentText(node)) return [node.text];
   if (isPageContentMention(node)) return [node.attrs.label];
+  if (isPageContentPerson(node)) return [node.attrs.label];
+  if (isPageContentDate(node)) return [node.attrs.at];
   if (!isKnownPageContentNode(node) || !('content' in node)) return [];
   return extractPageContentNodeSegments(node.content);
 };
