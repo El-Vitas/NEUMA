@@ -38,13 +38,14 @@ export const SearchResultCard = ({ locale, result }: IProps) => {
         </div>
       </div>
       <p className="wrap-break-word text-muted-foreground text-sm/6">
-        {result.snippet.map((part) =>
+        {/* A snippet is one sentence cut into pieces, so where a piece stands is what tells it from another that reads the same. */}
+        {result.snippet.map((part, at) =>
           part.highlighted ? (
-            <mark className="bg-highlight-soft text-foreground" key={`highlight-${part.text}`}>
+            <mark className="bg-highlight-soft text-foreground" key={`snippet-${String(at)}`}>
               {part.text}
             </mark>
           ) : (
-            <span key={`text-${part.text}`}>{part.text}</span>
+            <span key={`snippet-${String(at)}`}>{part.text}</span>
           ),
         )}
       </p>
