@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { pageContentSchema } from '@company-brain/shared';
 import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { DOMParser, DOMSerializer } from 'prosemirror-model';
+import { serializePageEditorDocument } from '@/modules/pages/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
 import {
   structuredEmbedNodeFixture,
@@ -201,6 +202,75 @@ describe('pageEditorSchema mention node', () => {
     };
 
     expect(pageContentSchema.safeParse(invalidContent).success).toBe(false);
+  });
+});
+
+describe('pageEditorSchema person, date, and formula nodes', () => {
+  const structuredPersonNodeFixture = {
+    attrs: { label: 'Ada Lovelace', userId: '3fa85f64-5717-4562-b3fc-2c963f66afa6' },
+    type: 'person',
+  };
+  const structuredDateNodeFixture = { attrs: { at: '2026-08-15' }, type: 'date' };
+  const structuredFormulaNodeFixture = { attrs: { latex: '\\frac{1}{2}' }, type: 'formula' };
+
+  it('accepts a person, a date, and a formula inside a paragraph, and round-trips them through the editor schema', () => {
+    const structuredContent = {
+      content: [
+        {
+          attrs: BLOCK_ATTRS,
+          content: [
+            structuredPersonNodeFixture,
+            { text: ' met on ', type: 'text' },
+            structuredDateNodeFixture,
+            { text: ' to compute ', type: 'text' },
+            structuredFormulaNodeFixture,
+          ],
+          type: 'paragraph',
+        },
+      ],
+      type: 'doc',
+    };
+
+    const document = pageEditorSchema.nodeFromJSON(structuredContent);
+
+    expect(document.toJSON()).toEqual(structuredContent);
+  });
+
+  it('survives a round trip through the editor schema and back into the shared contract', () => {
+    const paragraphContent = {
+      content: [structuredPersonNodeFixture, structuredDateNodeFixture, structuredFormulaNodeFixture],
+      type: 'paragraph',
+    };
+    const document = pageEditorSchema.nodeFromJSON({ content: [paragraphContent], type: 'doc' });
+
+    const persisted = serializePageEditorDocument(document);
+
+    expect(persisted.content).toEqual([paragraphContent]);
+  });
+
+  it('accepts a formula not written yet', () => {
+    const structuredContent = {
+      content: [{ attrs: BLOCK_ATTRS, content: [{ attrs: { latex: '' }, type: 'formula' }], type: 'paragraph' }],
+      type: 'doc',
+    };
+
+    const document = pageEditorSchema.nodeFromJSON(structuredContent);
+
+    expect(document.toJSON()).toEqual(structuredContent);
+  });
+
+  it('does not parse a date span whose day is not a real calendar day', () => {
+    const documentElement = document.createElement('div');
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'Safe content';
+    const dateSpan = document.createElement('span');
+    dateSpan.setAttribute('data-page-date', '2026-02-30');
+    documentElement.append(paragraph, dateSpan);
+
+    expect(DOMParser.fromSchema(pageEditorSchema).parse(documentElement).toJSON()).toEqual({
+      content: [{ attrs: BLOCK_ATTRS, content: [{ text: 'Safe content', type: 'text' }], type: 'paragraph' }],
+      type: 'doc',
+    });
   });
 });
 

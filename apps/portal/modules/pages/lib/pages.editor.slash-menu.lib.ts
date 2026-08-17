@@ -1,5 +1,7 @@
 import type { Schema } from 'prosemirror-model';
+import type { Command } from 'prosemirror-state';
 import { PAGE_EDITOR_MENTION_CREATION_ITEM_ID } from '../constants/pages.editor.blocks.constants';
+import type { PageEditorDayOffer } from '../types/pages.editor.date.types';
 import type {
   PagesEditorMenuItem,
   PagesEditorTrigger,
@@ -7,12 +9,18 @@ import type {
   SlashMenuKeyDownOptions,
 } from '../types/pages.editor.slash-menu.types';
 import type { PageMentionCandidate } from '../types/pages.mentions.types';
+import type { PagePersonOption } from '../types/pages.schema.types';
 import type { PageEditorCommand } from '../types/pages.types';
 import { createPageMentionInsertCommand } from './pages.editor.commands';
+import { createPageDateInsertCommand, createPageDatePickCommand } from './pages.editor.date.lib';
+import { buildEmojiTriggerItems } from './pages.editor.emoji.lib';
 import { askToMakeTheNamedPage } from './pages.editor.mention.lib';
+import { createPagePersonInsertCommand } from './pages.editor.person.lib';
+import { foldPageLookingText } from './pages.looking.lib';
 
 const slashQueryPattern = /(?:^|\s)\/([^\s/]*)$/;
 const mentionQueryPattern = /(?:^|\s)@([^\s]*)$/;
+const emojiQueryPattern = /(?:^|\s):(\p{L}+)$/u;
 
 export const buildSlashMenuOptionId = (menuId: string, itemId: string): string => `${menuId}-option-${itemId}`;
 
@@ -41,12 +49,17 @@ export const getSlashMenuQuery = (text: string): string | null => slashQueryPatt
 
 export const getMentionMenuQuery = (text: string): string | null => mentionQueryPattern.exec(text)?.[1] ?? null;
 
+export const getEmojiMenuQuery = (text: string): string | null => emojiQueryPattern.exec(text)?.[1] ?? null;
+
 export const resolveEditorTrigger = (text: string): PagesEditorTrigger | null => {
   const slashQuery = getSlashMenuQuery(text);
   if (slashQuery !== null) return { kind: 'slash', query: slashQuery };
 
   const mentionQuery = getMentionMenuQuery(text);
   if (mentionQuery !== null) return { kind: 'mention', query: mentionQuery };
+
+  const emojiQuery = getEmojiMenuQuery(text);
+  if (emojiQuery !== null) return { kind: 'emoji', query: emojiQuery };
 
   return null;
 };
@@ -82,18 +95,11 @@ export const handleSlashMenuKeyDown = ({
 const isAlreadyWritten = (mentionCandidates: readonly PageMentionCandidate[], wanted: string): boolean =>
   mentionCandidates.some((candidate) => candidate.label.trim().toLowerCase() === wanted.toLowerCase());
 
-/**
- * The pages that answer to what was typed, and — when none of them is called
- * exactly that — the offer to make the page that was named.
- */
-const buildMentionTriggerItems = (
+const buildPageMentionItems = (
   schema: Schema,
   mentionCandidates: readonly PageMentionCandidate[],
-  triggerQuery: string | null,
-  nameTheOfferToMakeAPage: (title: string) => string,
-  canMakeAPage: boolean,
-): readonly PagesEditorMenuItem[] => {
-  const found = mentionCandidates.map((candidate) => ({
+): readonly PagesEditorMenuItem[] =>
+  mentionCandidates.map((candidate) => ({
     id: candidate.id,
     label: candidate.label,
     run: createPageMentionInsertCommand(schema, {
@@ -103,13 +109,94 @@ const buildMentionTriggerItems = (
     }),
   }));
 
+/** Told apart from a page once it is written, by the mark it carries rather than by anything shown here. */
+const buildPersonMentionItems = (
+  schema: Schema,
+  personCandidates: readonly PagePersonOption[],
+): readonly PagesEditorMenuItem[] =>
+  personCandidates.map((candidate) => ({
+    id: `person-${candidate.id}`,
+    label: candidate.name,
+    run: createPagePersonInsertCommand(schema, { label: candidate.name, userId: candidate.id }),
+  }));
+
+const answersToTheDayName = (label: string, query: string): boolean =>
+  query.length === 0 || foldPageLookingText(label).includes(foldPageLookingText(query));
+
+/** The one day offered for picking opens its own calendar the moment it lands; the rest are written outright. */
+const chooseDayCommand = (schema: Schema, offer: PageEditorDayOffer): Command =>
+  offer.labelKey === 'pick'
+    ? createPageDatePickCommand(schema, { at: offer.at })
+    : createPageDateInsertCommand(schema, { at: offer.at });
+
+const buildDayMentionItems = (
+  schema: Schema,
+  dayOffers: readonly PageEditorDayOffer[],
+  translateDayLabel: (labelKey: PageEditorDayOffer['labelKey']) => string,
+  triggerQuery: string | null,
+): readonly PagesEditorMenuItem[] => {
   const wanted = triggerQuery?.trim() ?? '';
-  if (!canMakeAPage || wanted.length === 0 || isAlreadyWritten(mentionCandidates, wanted)) return found;
+  return dayOffers
+    .map((offer) => ({ label: translateDayLabel(offer.labelKey), offer }))
+    .filter(({ label }) => answersToTheDayName(label, wanted))
+    .map(({ label, offer }) => ({ id: `date-${offer.id}`, label, run: chooseDayCommand(schema, offer) }));
+};
+
+/**
+ * How close an answer sits to what was typed: an exact match first, then
+ * whichever starts the same way, then whatever merely contains it — so pages,
+ * people, and days sort by the same rule instead of by which kind they are.
+ */
+const rankAgainstQuery = (label: string, query: string): number => {
+  const foldedQuery = foldPageLookingText(query);
+  if (foldedQuery.length === 0) return 0;
+  const foldedLabel = foldPageLookingText(label);
+  if (foldedLabel === foldedQuery) return 0;
+  return foldedLabel.startsWith(foldedQuery) ? 1 : 2;
+};
+
+const byHowCloseToQuery =
+  (query: string) =>
+  (left: PagesEditorMenuItem, right: PagesEditorMenuItem): number =>
+    rankAgainstQuery(left.label, query) - rankAgainstQuery(right.label, query);
+
+/**
+ * Everyone and everything that answers to what was typed after `@`: the
+ * pages named that way, the members of this space called that, and the days
+ * that go by that name — closest first, whichever kind they are — and, when
+ * none of them is called exactly that, the offer to make the page that was
+ * named.
+ */
+const buildMentionTriggerItems = (parameters: {
+  readonly canMakeAPage: boolean;
+  readonly dayOffers: readonly PageEditorDayOffer[];
+  readonly mentionCandidates: readonly PageMentionCandidate[];
+  readonly nameTheOfferToMakeAPage: (title: string) => string;
+  readonly personCandidates: readonly PagePersonOption[];
+  readonly schema: Schema;
+  readonly translateDayLabel: (labelKey: PageEditorDayOffer['labelKey']) => string;
+  readonly triggerQuery: string | null;
+}): readonly PagesEditorMenuItem[] => {
+  const wanted = parameters.triggerQuery?.trim() ?? '';
+  const found = [
+    ...buildPageMentionItems(parameters.schema, parameters.mentionCandidates),
+    ...buildPersonMentionItems(parameters.schema, parameters.personCandidates),
+    ...buildDayMentionItems(
+      parameters.schema,
+      parameters.dayOffers,
+      parameters.translateDayLabel,
+      parameters.triggerQuery,
+    ),
+  ].sort(byHowCloseToQuery(wanted));
+
+  if (!parameters.canMakeAPage || wanted.length === 0 || isAlreadyWritten(parameters.mentionCandidates, wanted)) {
+    return found;
+  }
   return [
     ...found,
     {
       id: PAGE_EDITOR_MENTION_CREATION_ITEM_ID,
-      label: nameTheOfferToMakeAPage(wanted),
+      label: parameters.nameTheOfferToMakeAPage(wanted),
       run: askToMakeTheNamedPage(wanted),
     },
   ];
@@ -155,38 +242,64 @@ const buildSlashTriggerItems = (
 
 export const buildEditorTriggerItems = (parameters: {
   readonly commands: Readonly<Record<string, PageEditorCommand>>;
+  readonly dayOffers: readonly PageEditorDayOffer[];
   readonly mentionCandidates: readonly PageMentionCandidate[];
+  readonly personCandidates: readonly PagePersonOption[];
   readonly schema: Schema;
   readonly translateCommandLabel: (labelKey: string) => string;
+  readonly translateDayLabel: (labelKey: PageEditorDayOffer['labelKey']) => string;
   readonly nameTheOfferToMakeAPage: (title: string) => string;
   /** Whether this page is written yet, since a page can only be made hanging from one that exists. */
   readonly canMakeAPage: boolean;
   readonly recentCommandIds?: readonly string[];
   readonly triggerKind: PagesEditorTriggerKind | null;
   readonly triggerQuery: string | null;
-}): readonly PagesEditorMenuItem[] =>
-  parameters.triggerKind === 'mention'
-    ? buildMentionTriggerItems(
-        parameters.schema,
-        parameters.mentionCandidates,
-        parameters.triggerQuery,
-        parameters.nameTheOfferToMakeAPage,
-        parameters.canMakeAPage,
-      )
-    : buildSlashTriggerItems(
+}): readonly PagesEditorMenuItem[] => {
+  switch (parameters.triggerKind) {
+    case 'mention':
+      return buildMentionTriggerItems({
+        canMakeAPage: parameters.canMakeAPage,
+        dayOffers: parameters.dayOffers,
+        mentionCandidates: parameters.mentionCandidates,
+        nameTheOfferToMakeAPage: parameters.nameTheOfferToMakeAPage,
+        personCandidates: parameters.personCandidates,
+        schema: parameters.schema,
+        translateDayLabel: parameters.translateDayLabel,
+        triggerQuery: parameters.triggerQuery,
+      });
+    case 'emoji':
+      return buildEmojiTriggerItems(parameters.triggerQuery);
+    default:
+      return buildSlashTriggerItems(
         parameters.commands,
         parameters.triggerQuery,
         parameters.translateCommandLabel,
         parameters.recentCommandIds ?? [],
       );
+  }
+};
 
 export const getEditorTriggerEmptyMessageKey = (
   triggerKind: PagesEditorTriggerKind | null,
   isMentionSearchLoading: boolean,
 ): string => {
-  if (triggerKind !== 'mention') return 'noCommands';
-  return isMentionSearchLoading ? 'searchingMentionCandidates' : 'noMentionCandidates';
+  switch (triggerKind) {
+    case 'mention':
+      return isMentionSearchLoading ? 'searchingMentionCandidates' : 'noMentionCandidates';
+    case 'emoji':
+      return 'emoji.none';
+    default:
+      return 'noCommands';
+  }
 };
 
-export const getEditorTriggerAriaLabelKey = (triggerKind: PagesEditorTriggerKind | null): string =>
-  triggerKind === 'mention' ? 'mentionCandidates' : 'slashCommands';
+export const getEditorTriggerAriaLabelKey = (triggerKind: PagesEditorTriggerKind | null): string => {
+  switch (triggerKind) {
+    case 'mention':
+      return 'mentionCandidates';
+    case 'emoji':
+      return 'emoji.candidates';
+    default:
+      return 'slashCommands';
+  }
+};

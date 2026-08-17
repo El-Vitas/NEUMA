@@ -91,6 +91,44 @@ describe('extractPageContentSegments', () => {
 
     expect(extractPageContentSegments(content)).toEqual(['See ', 'Q3 Planning', ' for details']);
   });
+
+  test('includes a person label and a date, interleaved with surrounding text, in document order', () => {
+    const content: PageContent = {
+      content: [
+        {
+          content: [
+            { text: 'Met ', type: 'text' },
+            { attrs: { label: 'Ada Lovelace', userId: '3fa85f64-5717-4562-b3fc-2c963f66afa6' }, type: 'person' },
+            { text: ' on ', type: 'text' },
+            { attrs: { at: '2026-08-15' }, type: 'date' },
+          ],
+          type: 'paragraph',
+        },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+
+    expect(extractPageContentSegments(content)).toEqual(['Met ', 'Ada Lovelace', ' on ', '2026-08-15']);
+  });
+
+  test('leaves out a formula, since its latex is machine writing rather than something to search by', () => {
+    const content: PageContent = {
+      content: [
+        {
+          content: [
+            { text: 'Solve ', type: 'text' },
+            { attrs: { latex: '\\frac{1}{2}' }, type: 'formula' },
+          ],
+          type: 'paragraph',
+        },
+      ],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+
+    expect(extractPageContentSegments(content)).toEqual(['Solve ']);
+  });
 });
 
 describe('extractPageMentionIds', () => {

@@ -31,6 +31,7 @@ import { pageEditorSchema } from '../lib/pages.editor.schema';
 import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
+import type { PagesAutosaveDisplayState } from '../types/pages.autosave.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
@@ -102,8 +103,10 @@ export const PagesEditor = ({
     return !hasActionError(result);
   };
 
+  const canAutosave = canEdit && page?.lifecycle === 'ACTIVE';
+
   const autosave = usePagesAutosave({
-    enabled: canEdit && page?.lifecycle === 'ACTIVE',
+    enabled: canAutosave,
     onSave: updateCurrentPage,
   });
 
@@ -147,7 +150,8 @@ export const PagesEditor = ({
     if (page !== null) autosave.schedule(titleRef.current.trim().length > 0);
   };
 
-  const isSaving = isPending || autosave.isSaving;
+  const autosaveDisplayState: PagesAutosaveDisplayState = canAutosave ? autosave.displayState : 'idle';
+  const headerDisplayState: PagesAutosaveDisplayState = isPending ? 'saving' : autosaveDisplayState;
 
   return (
     <section
@@ -163,14 +167,14 @@ export const PagesEditor = ({
         <div className="w-full min-w-0 space-y-8" data-testid="page-editor-workspace">
           <PagesHeader
             canEdit={canEdit}
-            hasSaved={autosave.hasSaved}
-            isSaving={isSaving}
+            displayState={headerDisplayState}
             onTitleChange={(nextTitle) => {
               titleRef.current = nextTitle;
               setTitle(nextTitle);
               autosave.schedule(nextTitle.trim().length > 0);
             }}
             parentPages={parentBreadcrumbPages}
+            savedAt={autosave.savedAt}
             spaceId={spaceId}
             title={title}
             titleInputRef={titleInputRef}
@@ -204,6 +208,7 @@ export const PagesEditor = ({
             onHeadingsChange={setHeadings}
             pageId={pageId}
             pages={pages}
+            personOptions={personOptions}
             ref={editorHandleRef}
             spaceId={spaceId}
           />
@@ -213,11 +218,6 @@ export const PagesEditor = ({
                 {isPending ? t('saving') : t('create')}
               </PrimaryButton>
             </FormActions>
-          )}
-          {autosave.hasError && (
-            <p aria-live="polite" className="text-destructive text-sm" role="status">
-              {t('saveError')}
-            </p>
           )}
           {pageId !== null && <PagesBacklinks backlinks={backlinks} />}
           {collectionSection}

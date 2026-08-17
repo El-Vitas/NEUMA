@@ -2,7 +2,7 @@
 
 import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
@@ -22,7 +22,7 @@ import {
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
-import { EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
+import { EMPTY_PAGE_PERSON_OPTIONS, EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
 import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../constants/pages.editor.constants';
 import { PAGE_EDITOR_QUIET_SURFACE } from '../constants/pages.editor.surface.constants';
@@ -32,11 +32,13 @@ import { usePagesEditorBlockActions } from '../hooks/use.pages.editor.block-acti
 import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arrival';
 import { usePagesEditorBlocksToPage } from '../hooks/use.pages.editor.blocks-to-page';
 import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
+import { usePagesEditorFind } from '../hooks/use.pages.editor.find';
 import { usePagesEditorPageDrop } from '../hooks/use.pages.editor.page-drop';
 import { usePagesEditorPastedLink } from '../hooks/use.pages.editor.pasted-link';
 import { usePagesEditorTriggerMenu } from '../hooks/use.pages.editor.trigger-menu';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { describeANewCollection, readTheViewToShow } from '../lib/pages.collections.lib';
+import { isTheWritingStillInHand } from '../lib/pages.editor.attention.lib';
 import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
 import { findSelectedPageBlocks } from '../lib/pages.editor.block-range.lib';
 import {
@@ -82,11 +84,12 @@ import type { PageDestination } from '../types/pages.editor.destination.types';
 import type { PageEditorLinkAtHand } from '../types/pages.editor.link.types';
 import type { PageEditorPageShape } from '../types/pages.editor.page-shape.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
-import type { PageSchema } from '../types/pages.schema.types';
+import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
 import { PagesEditorBlockActions } from './pages.editor.block-actions';
 import { PagesEditorCollaborationStatus } from './pages.editor.collaboration.status';
+import { PagesEditorFindPanel } from './pages.editor.find.panel';
 import { PagesEditorLinkLayer } from './pages.editor.link.layer';
 import { PagesEditorLinkShapeMenu } from './pages.editor.link-shape.menu';
 import { PagesEditorPagePickerDialog } from './pages.editor.page-picker.dialog';
@@ -105,6 +108,8 @@ interface IProps {
   readonly pageId: string | null;
   /** The pages this one already knows about, which is how a block says what a page is called now. */
   readonly pages?: readonly PageSummary[];
+  /** The members of this space, which is how a named person says who they are once the pointer rests on them. */
+  readonly personOptions?: readonly PagePersonOption[];
   readonly spaceId: string;
 }
 
@@ -120,6 +125,7 @@ export const PagesProseMirrorEditor = forwardRef(
       onHeadingsChange,
       pageId,
       pages = EMPTY_PAGE_SUMMARIES,
+      personOptions = EMPTY_PAGE_PERSON_OPTIONS,
       spaceId,
     }: IProps,
     handleRef: ForwardedRef<{
@@ -129,9 +135,12 @@ export const PagesProseMirrorEditor = forwardRef(
   ) => {
     const router = useRouter();
     const t = useTranslations('pages');
+    const locale = useLocale();
     const tErrors = useTranslations('errors');
     const [isMakingChild, startMakingChild] = useTransition();
     const [isChoosingCollection, setIsChoosingCollection] = useState(false);
+    /** Whether the writing is still what somebody is working on, which is what the bar over a selection answers to. */
+    const [isWritingInHand, setIsWritingInHand] = useState(true);
     const [linkInHand, setLinkInHand] = useState<PageEditorLinkAtHand | null>(null);
     const [linkUnderPointer, setLinkUnderPointer] = useState<PageEditorLinkAtHand | null>(null);
     const goToRef = useRef((href: string) => router.push(href));
@@ -167,6 +176,10 @@ export const PagesProseMirrorEditor = forwardRef(
     const collectionSpotRef = useRef(0);
     const pagesRef = useRef(pages);
     const readPageTitleRef = useRef((childId: string): string | null => readPageTitleFrom(pagesRef.current, childId));
+    const personOptionsRef = useRef(personOptions);
+    const findPersonForHoverRef = useRef((userId: string): PagePersonOption | undefined =>
+      personOptionsRef.current.find((option) => option.id === userId),
+    );
     const contentsLabelsRef = useRef({ empty: t('pageContentsEmpty'), title: t('pageContents') });
     /** Said once, and again only after the page has managed to keep something. */
     const toldOfTooMuchRef = useRef(false);
@@ -207,6 +220,16 @@ export const PagesProseMirrorEditor = forwardRef(
       language: t('codeLanguage'),
       languages: Object.fromEntries(PAGE_CODE_LANGUAGES.map((language) => [language, t(`codeLanguages.${language}`)])),
       wrap: t('wrapCode'),
+    });
+    const personLabelRef = useRef(t('personBlock'));
+    const dateLabelsRef = useRef({ field: t('date.field'), label: t('dateBlock'), locale });
+    const formulaLabelsRef = useRef({
+      done: t('formula.done'),
+      empty: t('formulaEmpty'),
+      field: t('formula.field'),
+      help: t('formula.help'),
+      inline: t('commands.formulaInline'),
+      unreadable: t('formulaUnreadable'),
     });
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
@@ -291,6 +314,9 @@ export const PagesProseMirrorEditor = forwardRef(
     usePagesEditorBlockArrival(editorHostRef);
     usePagesEditorPageDrop({ editorViewRef, spaceId });
     const turnBlocksIntoPage = usePagesEditorBlocksToPage({ editorViewRef, spaceId });
+    const find = usePagesEditorFind(editorViewRef);
+    const syncFind = find.sync;
+    const resumeFind = find.resume;
 
     /** The blocks the menu is open for become a page held by the one being written. */
     const becomePage = useCallback((): void => {
@@ -324,6 +350,7 @@ export const PagesProseMirrorEditor = forwardRef(
       editorViewRef,
       onEscapeWithSelection: dismissSelectionToolbar,
       pagesAtHand: pages,
+      spaceId,
       surfaceRef,
     });
 
@@ -349,6 +376,10 @@ export const PagesProseMirrorEditor = forwardRef(
     useEffect(() => {
       pagesRef.current = pages;
     }, [pages]);
+
+    useEffect(() => {
+      personOptionsRef.current = personOptions;
+    }, [personOptions]);
 
     useEffect(() => {
       goToRef.current = (href: string) => router.push(href);
@@ -393,6 +424,7 @@ export const PagesProseMirrorEditor = forwardRef(
         dispatchTransaction: (transaction) => {
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
+          syncFind(editorView);
           if (transaction.docChanged) {
             keepWhatCanBeKeptRef.current(nextState);
             followHeadingsRef.current(nextState);
@@ -409,6 +441,21 @@ export const PagesProseMirrorEditor = forwardRef(
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleDOMEvents: {
+          /**
+           * The bar over a chosen stretch of writing belongs to the moment of
+           * choosing it. ProseMirror keeps its selection while it is not
+           * focused — so that coming back returns it — but a bar left floating
+           * over writing nobody is holding any more is only in the way.
+           */
+          blur: (_view, event) => {
+            const tookTheFocus = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+            setIsWritingInHand(isTheWritingStillInHand(tookTheFocus, surfaceRef.current));
+            return false;
+          },
+          focus: () => {
+            setIsWritingInHand(true);
+            return false;
+          },
           /**
            * A link to a page of this app is followed without leaving the app: a
            * whole page load to reach the next page of the same workspace throws
@@ -437,10 +484,13 @@ export const PagesProseMirrorEditor = forwardRef(
             code: codeLabelsRef.current,
             collection: collectionLabelRef.current,
             contents: contentsLabelsRef.current,
+            date: dateLabelsRef.current,
             embed: embedLabelsRef.current,
             file: fileLabelsRef.current,
+            formula: formulaLabelsRef.current,
             image: imageLabelsRef.current,
             media: mediaLabelsRef.current,
+            person: personLabelRef.current,
             button: buttonLabelsRef.current,
             subpage: subpageLabelsRef.current,
             synced: syncedLabelsRef.current,
@@ -451,6 +501,7 @@ export const PagesProseMirrorEditor = forwardRef(
           (childId) => readPageTitleRef.current(childId),
           (borrowedPageId, blockId) => readBorrowedBlock(pagesRef.current, borrowedPageId, blockId),
           (at) => pressTheButtonRef.current(at),
+          (userId) => findPersonForHoverRef.current(userId),
         ),
         state: editorState,
       });
@@ -469,6 +520,7 @@ export const PagesProseMirrorEditor = forwardRef(
       readSurfaceRect,
       rememberTriggerMenuPosition,
       syncCollectionHosts,
+      syncFind,
       updateEditorTrigger,
       uploadPastedFile,
     ]);
@@ -486,7 +538,9 @@ export const PagesProseMirrorEditor = forwardRef(
         ),
       );
       followHeadingsRef.current(editorViewRef.current.state);
-    }, [session]);
+      resumeFind(editorViewRef.current);
+      syncFind(editorViewRef.current);
+    }, [resumeFind, session, syncFind]);
 
     /**
      * Does what a button says when it is pressed.
@@ -874,6 +928,14 @@ export const PagesProseMirrorEditor = forwardRef(
           tabIndex={-1}
           type="button"
         />
+        <button
+          aria-hidden="true"
+          className="hidden"
+          data-page-find-request="true"
+          onClick={find.open}
+          tabIndex={-1}
+          type="button"
+        />
         <PagesEditorPagePickerDialog
           exceptPageId={pageId}
           isOpen={isChoosingCollection}
@@ -922,6 +984,23 @@ export const PagesProseMirrorEditor = forwardRef(
           />
           {collections.hosts.map(({ element, name, pageId: collectionPageId }) =>
             createPortal(embeddedCollections[collectionPageId] ?? null, element, name),
+          )}
+          {find.isOpen && (
+            <div className="absolute top-2 right-2 z-40 w-[min(20rem,calc(100%-1rem))]">
+              <PagesEditorFindPanel
+                currentIndex={find.found.currentIndex}
+                onClose={find.close}
+                onNext={find.goNext}
+                onPrevious={find.goPrevious}
+                onQueryChange={find.search}
+                onReplace={find.replace}
+                onReplaceAll={find.replaceAll}
+                onReplacementChange={find.setReplacement}
+                query={find.query}
+                replacement={find.replacement}
+                totalMatches={find.found.matches.length}
+              />
+            </div>
           )}
           {surface.selectedBlockCount > 1 && (
             <p
@@ -975,42 +1054,46 @@ export const PagesProseMirrorEditor = forwardRef(
             />
           )}
           {/* One floating thing at a time: a bar and a bubble on the same words cover each other. */}
-          {canEdit && linkInHand === null && linkUnderPointer === null && surface.toolbarPosition !== null && (
-            <div
-              className="absolute z-30"
-              style={{ left: `${surface.toolbarPosition.left}px`, top: `${surface.toolbarPosition.top}px` }}
-            >
-              <PagesEditorToolbar
-                colors={surface.textColors}
-                commands={PAGE_EDITOR_COMMANDS}
-                conversions={surface.conversions}
-                marksInUse={surface.marksInUse}
-                onColor={(kind, color) => blockActions.runCommand(createPageTextColorCommand(kind, color))}
-                onComment={() => {
-                  const editorView = editorViewRef.current;
-                  if (editorView === null) return;
-                  openPageEditorFragmentComments(editorView);
-                }}
-                onConvert={(targetId) => {
-                  const editorView = editorViewRef.current;
-                  if (editorView === null) return;
-                  createPageEditorBlockConversionCommand(targetId)(editorView.state, editorView.dispatch);
-                  editorView.focus();
-                }}
-                onDismiss={() => {
-                  const editorView = editorViewRef.current;
-                  if (editorView === null) return;
-                  dismissSelectionToolbar(editorView);
-                }}
-                onRunCommand={(command) => {
-                  const editorView = editorViewRef.current;
-                  if (editorView === null) return;
-                  runPageEditorCommand(editorView, command);
-                  editorView.focus();
-                }}
-              />
-            </div>
-          )}
+          {canEdit &&
+            isWritingInHand &&
+            linkInHand === null &&
+            linkUnderPointer === null &&
+            surface.toolbarPosition !== null && (
+              <div
+                className="absolute z-30"
+                style={{ left: `${surface.toolbarPosition.left}px`, top: `${surface.toolbarPosition.top}px` }}
+              >
+                <PagesEditorToolbar
+                  colors={surface.textColors}
+                  commands={PAGE_EDITOR_COMMANDS}
+                  conversions={surface.conversions}
+                  marksInUse={surface.marksInUse}
+                  onColor={(kind, color) => blockActions.runCommand(createPageTextColorCommand(kind, color))}
+                  onComment={() => {
+                    const editorView = editorViewRef.current;
+                    if (editorView === null) return;
+                    openPageEditorFragmentComments(editorView);
+                  }}
+                  onConvert={(targetId) => {
+                    const editorView = editorViewRef.current;
+                    if (editorView === null) return;
+                    createPageEditorBlockConversionCommand(targetId)(editorView.state, editorView.dispatch);
+                    editorView.focus();
+                  }}
+                  onDismiss={() => {
+                    const editorView = editorViewRef.current;
+                    if (editorView === null) return;
+                    dismissSelectionToolbar(editorView);
+                  }}
+                  onRunCommand={(command) => {
+                    const editorView = editorViewRef.current;
+                    if (editorView === null) return;
+                    runPageEditorCommand(editorView, command);
+                    editorView.focus();
+                  }}
+                />
+              </div>
+            )}
           {canEdit && (
             <PagesEditorBlockActions
               authorName={currentUserDisplayName ?? t('collaboration.participantFallback')}

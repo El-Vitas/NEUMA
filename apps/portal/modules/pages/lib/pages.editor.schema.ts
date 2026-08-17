@@ -1,5 +1,6 @@
 import {
   isAllowedPageEmbedUrl,
+  isPageCalendarDay,
   PAGE_BLOCK_ALIGNMENTS,
   PAGE_BLOCK_COLORS,
   PAGE_BUTTON_DEEDS,
@@ -163,6 +164,24 @@ const getPageEditorMentionAttrs = (
   const { label, pageMention: pageId, spaceId } = element.dataset;
   if (pageId === undefined || label === undefined || label.length === 0 || spaceId === undefined) return false;
   return { label, pageId, spaceId };
+};
+
+const getPageEditorPersonAttrs = (
+  element: HTMLElement,
+): { readonly label: string; readonly userId: string } | false => {
+  const { label, pagePerson: userId } = element.dataset;
+  if (userId === undefined || label === undefined || label.length === 0) return false;
+  return { label, userId };
+};
+
+const getPageEditorDateAttrs = (element: HTMLElement): { readonly at: string } | false => {
+  const at = element.dataset.pageDate;
+  return at === undefined || !isPageCalendarDay(at) ? false : { at };
+};
+
+const getPageEditorFormulaAttrs = (element: HTMLElement): { readonly latex: string } | false => {
+  const { pageFormula: latex } = element.dataset;
+  return latex === undefined ? false : { latex };
 };
 
 const getPageEditorCollectionAttrs = (
@@ -654,6 +673,49 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
         { 'data-label': node.attrs.label, 'data-page-mention': node.attrs.pageId, 'data-space-id': node.attrs.spaceId },
         `@${node.attrs.label}`,
       ],
+    },
+  ],
+  /** A person named in the writing: who, and what they were called at the time. */
+  [
+    'person',
+    {
+      attrs: { label: {}, userId: {} },
+      atom: true,
+      group: 'inline',
+      inline: true,
+      parseDOM: [{ getAttrs: getPageEditorPersonAttrs, tag: 'span[data-page-person]' }],
+      selectable: true,
+      toDOM: (node: EditorNode): DOMOutputSpec => [
+        'span',
+        { 'data-label': node.attrs.label, 'data-page-person': node.attrs.userId },
+        node.attrs.label,
+      ],
+    },
+  ],
+  /** A date named in the writing, kept as the calendar day it points at. */
+  [
+    'date',
+    {
+      attrs: { at: {} },
+      atom: true,
+      group: 'inline',
+      inline: true,
+      parseDOM: [{ getAttrs: getPageEditorDateAttrs, tag: 'span[data-page-date]' }],
+      selectable: true,
+      toDOM: (node: EditorNode): DOMOutputSpec => ['span', { 'data-page-date': node.attrs.at }, node.attrs.at],
+    },
+  ],
+  /** A formula inside the line. Empty means one not written yet. */
+  [
+    'formula',
+    {
+      attrs: { latex: { default: '' } },
+      atom: true,
+      group: 'inline',
+      inline: true,
+      parseDOM: [{ getAttrs: getPageEditorFormulaAttrs, tag: 'span[data-page-formula]' }],
+      selectable: true,
+      toDOM: (node: EditorNode): DOMOutputSpec => ['span', { 'data-page-formula': node.attrs.latex }, node.attrs.latex],
     },
   ],
   [

@@ -230,9 +230,9 @@
     "moreFormattingTools": "Más herramientas de formato",
     "slashCommands": "Comandos de bloque",
     "noCommands": "No hay comandos de bloque coincidentes.",
-    "mentionCandidates": "Menciones de página",
+    "mentionCandidates": "Páginas, personas y fechas",
     "mentionCreatePage": "Crear «{title}»",
-    "noMentionCandidates": "No hay páginas coincidentes.",
+    "noMentionCandidates": "No hay nada que se llame así.",
     "searchingMentionCandidates": "Buscando páginas...",
     "titleField": "Título",
     "collectionCandidates": "Colecciones",
@@ -269,6 +269,10 @@
     "buttonPickDescription": "Elige la colección a la que este botón agrega una fila.",
     "buttonEmpty": "Escribe dentro del botón lo que debe escribir.",
     "subpageBlock": "Subpágina",
+    "personBlock": "Persona",
+    "dateBlock": "Fecha",
+    "formulaEmpty": "Fórmula sin escribir",
+    "formulaUnreadable": "Esa fórmula no se puede dibujar, así que se muestra tal como fue escrita.",
     "subpageNeedsPage": "Crea esta página antes de colgarle otra.",
     "untitled": "Sin título",
     "content": "Contenido estructurado",
@@ -345,7 +349,10 @@
       "collection": "Colección",
       "collectionView": "Colección de otra parte",
       "pageLink": "Enlazar una página",
-      "subpage": "Subpágina"
+      "subpage": "Subpágina",
+      "emoji": "Emoji",
+      "person": "Persona",
+      "formulaInline": "Fórmula en línea"
     },
     "backlinks": {
       "title": "Vinculado desde ({count})"
@@ -425,7 +432,53 @@
       "redo": "Rehacer",
       "duplicateBlock": "Duplicar el bloque, con lo que cuelga de él",
       "deleteBlock": "Eliminar los bloques seleccionados",
-      "openBlockMenu": "Abrir las acciones del bloque"
+      "openBlockMenu": "Abrir las acciones del bloque",
+      "find": "Buscar en la página"
+    },
+    "find": {
+      "open": "Buscar en la página",
+      "field": "Qué buscar",
+      "replaceField": "Con qué reemplazar",
+      "matches": "{current} de {total}",
+      "noMatches": "Sin coincidencias",
+      "next": "Siguiente coincidencia",
+      "previous": "Coincidencia anterior",
+      "replace": "Reemplazar",
+      "replaceAll": "Reemplazar todas",
+      "close": "Cerrar la búsqueda"
+    },
+    "save": {
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "savedAt": "Guardado a las {time}",
+      "pending": "Hay cambios sin guardar",
+      "offline": "Sin conexión. Lo escrito se guarda en cuanto vuelva.",
+      "backOnline": "Volvió la conexión: se está guardando lo pendiente.",
+      "failed": "No se pudo guardar. Se reintenta solo; si sigue así, copia lo escrito antes de cerrar."
+    },
+    "paste": {
+      "tooMuch": "Lo pegado no cabe en un bloque de esta página, así que se pegó como texto."
+    },
+    "emoji": {
+      "candidates": "Emoji",
+      "none": "No hay ningún emoji con ese nombre."
+    },
+    "date": {
+      "candidates": "Fechas",
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "yesterday": "Ayer",
+      "pick": "Elegir otro día",
+      "field": "Qué día"
+    },
+    "formula": {
+      "field": "La fórmula",
+      "help": "Se escribe en LaTeX.",
+      "done": "Listo"
+    },
+    "outline": {
+      "hide": "Ocultar el índice",
+      "show": "Mostrar el índice"
     },
     "selectedBlocks": "{count} bloques seleccionados",
     "blockTypes": {

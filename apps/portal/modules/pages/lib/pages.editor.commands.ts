@@ -15,7 +15,7 @@ import { InputRule, inputRules, undoInputRule, wrappingInputRule } from 'prosemi
 import { keymap } from 'prosemirror-keymap';
 import type { Attrs, Node as EditorNode, MarkType, NodeType, Schema } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
-import type { Command, Plugin as EditorPlugin, EditorState } from 'prosemirror-state';
+import type { Command, Plugin as EditorPlugin } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';
 import { columnResizing, tableEditing } from 'prosemirror-tables';
 import { PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH } from '../constants/pages.editor.blocks.constants';
@@ -40,13 +40,17 @@ import { createPageEditorColumnResizePlugin } from './pages.editor.column-resize
 import { createPageEditorColumnCleanupPlugin } from './pages.editor.columns.plugin.lib';
 import { createPageEditorContentsPlugin } from './pages.editor.contents.plugin.lib';
 import { readCarriedAttrs } from './pages.editor.convert.lib';
+import { askForEmoji } from './pages.editor.emoji.lib';
+import { createPageEditorFindPlugin } from './pages.editor.find.plugin.lib';
 import { openFoldedHeadingBeforeWriting, openFoldsReachingTheEnd } from './pages.editor.heading-fold.lib';
 import { createPageEditorHeadingFoldPlugin } from './pages.editor.heading-fold.plugin.lib';
 import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.lib';
 import { askForPageImage } from './pages.editor.image.lib';
+import { canInsertPageNode, insertPageNode } from './pages.editor.insert.lib';
 import { askForTheLinkField } from './pages.editor.link.lib';
 import { splitPageEditorListPoint } from './pages.editor.list.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from './pages.editor.nesting.lib';
+import { askForAPerson } from './pages.editor.person.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
 import { createPageEditorShortcutBindings } from './pages.editor.shortcuts.lib';
 import { askForAPageAlreadyWritten, askForPageChild } from './pages.editor.subpage.lib';
@@ -151,33 +155,6 @@ const writeInlineMark = (pattern: RegExp, mark: MarkType): InputRule =>
     if (state.doc.resolve(start).parent.type.spec.code === true) return null;
     return state.tr.replaceWith(start, end, state.schema.text(written, [mark.create()])).removeStoredMark(mark);
   });
-
-const canInsertPageNode = (state: EditorState, nodeType: NodeType): boolean => {
-  const { $from } = state.selection;
-  for (let depth = $from.depth; depth >= 0; depth -= 1) {
-    if ($from.node(depth).canReplaceWith($from.index(depth), $from.index(depth), nodeType)) return true;
-  }
-  return false;
-};
-
-/**
- * Puts a block on the page where the cursor is.
- *
- * A block that is selected — a picture, a document, a player — is what someone
- * is looking at, not a hole to drop the next thing into, so the new block lands
- * after it. Replacing it is how a page loses what it was already holding.
- */
-const insertPageNode =
-  (node: EditorNode): Command =>
-  (state, dispatch) => {
-    if (!canInsertPageNode(state, node.type)) return false;
-    if (dispatch === undefined) return true;
-    /** A selection is asked what it holds rather than what class it is, which is not the same answer twice. */
-    const { selection } = state;
-    if ('node' in selection) dispatch(state.tr.insert(selection.to, node));
-    else dispatch(state.tr.replaceSelectionWith(node));
-    return true;
-  };
 
 const createMinimalPageToggleNode = (schema: Schema, toggleSummary: string): EditorNode =>
   schema.nodes.toggle.createChecked({ summary: toggleSummary }, schema.nodes.paragraph.createChecked());
@@ -316,6 +293,13 @@ export const createPageEditorCommands = (
     labelKey: 'formula',
     run: setBlockType(schema.nodes.code_block, { language: PAGE_EDITOR_FORMULA_LANGUAGE, shown: 'both' }),
   },
+  /** The same formula, written inside a line instead of on one of its own. */
+  formulaInline: {
+    group: 'advanced',
+    kind: 'block',
+    labelKey: 'formulaInline',
+    run: insertPageNode(schema.nodes.formula.createChecked()),
+  },
   heading1: {
     group: 'text',
     kind: 'block',
@@ -353,6 +337,10 @@ export const createPageEditorCommands = (
   },
   /** A page that is already written, named here: the same looking `@` does, asked for from the menu. */
   pageLink: { group: 'advanced', kind: 'block', labelKey: 'pageLink', run: askForAPageAlreadyWritten },
+  /** Who is being named here, asked for the same way a page already written is. */
+  person: { group: 'advanced', kind: 'block', labelKey: 'person', run: askForAPerson },
+  /** An emoji, written where the cursor stands: the same looking `:` does, asked for from the menu. */
+  emoji: { group: 'advanced', kind: 'block', labelKey: 'emoji', run: askForEmoji },
   divider: {
     group: 'advanced',
     kind: 'block',
@@ -493,6 +481,7 @@ export const createPageEditorPlugins = (
     createPageEditorColumnResizePlugin(resizeColumnLabel),
     createPageEditorPlaceholderPlugin(writeHereLabel),
     createPageEditorHeadingFoldPlugin(foldHeadingLabel),
+    createPageEditorFindPlugin(),
     /**
      * A table minds its own selection and the width of its columns. It comes last
      * so a cell answers the page's own rules first and the table only what is

@@ -4,9 +4,11 @@ import type { Result } from '@company-brain/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
-import { SPACE_API_ROUTES, SPACE_MEMBERS_CACHE_TAG, SPACES_CACHE_TAG } from '../../constants/spaces.constants';
-import { spaceMembersListSchema, spacesListSchema } from '../../schemas/spaces.schemas';
-import type { SpaceMember, SpaceSummary } from '../../types/spaces.types';
+import { getSpaceMembers as getSharedSpaceMembers } from '@/shared/server/queries/space-members.queries';
+import type { SpaceMember } from '@/shared/types/space-members.types';
+import { SPACE_API_ROUTES, SPACES_CACHE_TAG } from '../../constants/spaces.constants';
+import { spacesListSchema } from '../../schemas/spaces.schemas';
+import type { SpaceSummary } from '../../types/spaces.types';
 
 export const getSpaces = async (): Promise<Result<readonly SpaceSummary[], Error>> =>
   withQuery({ op: 'getSpaces' }, (accessToken) => getSpacesCached(accessToken));
@@ -20,16 +22,6 @@ const getSpacesCached = async (accessToken: string): Promise<readonly SpaceSumma
   return spacesListSchema.parse(response);
 };
 
-export const getSpaceMembers = async (spaceId: string): Promise<Result<readonly SpaceMember[], Error>> =>
-  withQuery({ op: 'getSpaceMembers', params: { spaceId } }, (accessToken) =>
-    getSpaceMembersCached(accessToken, spaceId),
-  );
-
-const getSpaceMembersCached = async (accessToken: string, spaceId: string): Promise<readonly SpaceMember[]> => {
-  'use cache';
-  cacheLife('seconds');
-  cacheTag(SPACE_MEMBERS_CACHE_TAG(spaceId));
-
-  const response = await apiRequest<unknown>(SPACE_API_ROUTES.members(spaceId), accessToken);
-  return spaceMembersListSchema.parse(response);
-};
+/** The members of a space, read through the query `shared/` also hands the pages module — a space belongs to the spaces module, but neither module may import the other directly. */
+export const getSpaceMembers = (spaceId: string): Promise<Result<readonly SpaceMember[], Error>> =>
+  getSharedSpaceMembers(spaceId);

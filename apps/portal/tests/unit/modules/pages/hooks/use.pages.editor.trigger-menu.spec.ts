@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import en from '../../../../../messages/en.json';
@@ -22,6 +22,14 @@ mock.module('next-intl', () => ({
 
 mock.module('@/modules/pages/server/actions/pages.mentions.actions', () => ({
   searchPageMentionCandidatesAction: async () => ({ data: [] }),
+}));
+
+const searchPagePersonCandidatesAction = mock(async (_input: { readonly query: string; readonly spaceId: string }) => ({
+  data: [{ email: 'ana@example.com', id: '9f5d6c3a-1b2e-4a3d-8f6b-2c1a9d0e7f4b', name: 'Ana' }],
+}));
+
+mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
+  searchPagePersonCandidatesAction,
 }));
 
 const { usePagesEditorTriggerMenu } = await import('@/modules/pages/hooks/use.pages.editor.trigger-menu');
@@ -49,7 +57,7 @@ const selectRange = (editorView: EditorView, from: number, to: number): void => 
 
 const keyDown = (key: string): KeyboardEvent => new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key });
 
-const renderTriggerMenu = () => {
+const renderTriggerMenu = (spaceId = 'space-1') => {
   const editorViewRef: { current: EditorView | null } = { current: mountEditor() };
   const surfaceRef: { current: HTMLDivElement | null } = { current: null };
   const escapedSelections: EditorView[] = [];
@@ -59,6 +67,7 @@ const renderTriggerMenu = () => {
       editorViewRef,
       onEscapeWithSelection: (editorView) => escapedSelections.push(editorView),
       pagesAtHand: [],
+      spaceId,
       surfaceRef,
     }),
   );
@@ -100,6 +109,63 @@ describe('opening a trigger', () => {
     expect(result.current.triggerQuery).toBe('bob');
     expect(result.current.triggerEmptyMessage).toBe('Searching pages...');
   });
+
+  it('opens the emoji finder once the colon has been typed', () => {
+    const { result } = renderTriggerMenu();
+
+    act(() => {
+      result.current.updateEditorTrigger(':heart');
+    });
+
+    expect(result.current.triggerQuery).toBe('heart');
+    expect(result.current.triggerItems.some((item) => item.label.startsWith('❤️'))).toBe(true);
+  });
+
+  it('does not open any finder on a colon glued to a word, as in a url or a time', () => {
+    const { result } = renderTriggerMenu();
+
+    act(() => {
+      result.current.updateEditorTrigger('http://x');
+    });
+    expect(result.current.triggerQuery).toBeNull();
+
+    act(() => {
+      result.current.updateEditorTrigger('12:30');
+    });
+    expect(result.current.triggerQuery).toBeNull();
+  });
+
+  it('does not open the emoji finder on a bare colon: punctuation opens nothing on its own', () => {
+    const { result } = renderTriggerMenu();
+
+    act(() => {
+      result.current.updateEditorTrigger(':');
+    });
+
+    expect(result.current.triggerQuery).toBeNull();
+  });
+
+  it('opens the emoji finder on a name written with an accent', () => {
+    const { result } = renderTriggerMenu();
+
+    act(() => {
+      result.current.updateEditorTrigger(':guiño');
+    });
+
+    expect(result.current.triggerQuery).toBe('guiño');
+    expect(result.current.triggerItems.some((item) => item.label.startsWith('😉'))).toBe(true);
+  });
+
+  it('opens the emoji finder on a name carrying ñ', () => {
+    const { result } = renderTriggerMenu();
+
+    act(() => {
+      result.current.updateEditorTrigger(':cumpleaños');
+    });
+
+    expect(result.current.triggerQuery).toBe('cumpleaños');
+    expect(result.current.triggerItems.some((item) => item.label.startsWith('🎂'))).toBe(true);
+  });
 });
 
 describe('filtering as the query changes', () => {
@@ -122,6 +188,17 @@ describe('filtering as the query changes', () => {
 
     expect(result.current.triggerItems).toEqual([]);
     expect(result.current.triggerEmptyMessage).toBe('No matching block commands.');
+  });
+
+  it('narrows the emoji down to the ones matching the name typed after the colon', () => {
+    const { result } = renderTriggerMenu();
+
+    act(() => {
+      result.current.updateEditorTrigger(':dog');
+    });
+
+    expect(result.current.triggerItems.length).toBe(1);
+    expect(result.current.triggerItems[0]?.label.startsWith('🐶')).toBe(true);
   });
 });
 
@@ -165,6 +242,19 @@ describe('choosing a command with Enter', () => {
     expect(result.current.triggerQuery).toBeNull();
     expect(editorView.state.selection.$from.parent.type.name).toBe('heading');
   });
+
+  it('writes the emoji as plain text and closes the menu', () => {
+    const { editorView, result } = renderTriggerMenu();
+    putCursorAt(editorView, 17);
+    openTriggerMenu(result, ':dog');
+
+    act(() => {
+      result.current.answerKeyPress(editorView, keyDown('Enter'));
+    });
+
+    expect(result.current.triggerQuery).toBeNull();
+    expect(editorView.state.doc.textContent).toContain('🐶');
+  });
 });
 
 describe('closing the menu with Escape', () => {
@@ -191,5 +281,60 @@ describe('closing the menu with Escape', () => {
     });
 
     expect(escapedSelections).toEqual([editorView]);
+  });
+});
+
+describe('the @ menu also offering people and days', () => {
+  it('searches people once a space is at hand to scope them to', async () => {
+    const { result } = renderTriggerMenu('space-1');
+
+    act(() => {
+      result.current.updateEditorTrigger('@ana');
+    });
+
+    await waitFor(() =>
+      expect(searchPagePersonCandidatesAction).toHaveBeenCalledWith({ query: 'ana', spaceId: 'space-1' }),
+    );
+  });
+
+  it('keeps "Searching pages..." as the loading message while people are also being searched', () => {
+    const { result } = renderTriggerMenu('space-1');
+
+    act(() => {
+      result.current.updateEditorTrigger('@bob');
+    });
+
+    expect(result.current.triggerEmptyMessage).toBe('Searching pages...');
+  });
+
+  it('offers the four days under their own translated names once @ is typed', () => {
+    const { result } = renderTriggerMenu('space-1');
+
+    act(() => {
+      result.current.updateEditorTrigger('@');
+    });
+
+    expect(result.current.triggerItems.map((item) => item.label)).toEqual(
+      expect.arrayContaining(['Today', 'Tomorrow', 'Yesterday', 'Pick another day']),
+    );
+  });
+
+  it('names a person chosen from the @ menu', async () => {
+    const { editorView, result } = renderTriggerMenu('space-1');
+    putCursorAt(editorView, 17);
+    openTriggerMenu(result, '@ana');
+
+    await waitFor(() => expect(result.current.triggerItems[0]?.id).toBe('person-9f5d6c3a-1b2e-4a3d-8f6b-2c1a9d0e7f4b'));
+
+    act(() => {
+      result.current.answerKeyPress(editorView, keyDown('Enter'));
+    });
+
+    expect(result.current.triggerQuery).toBeNull();
+    let namedPersonLabel: unknown;
+    editorView.state.doc.descendants((node) => {
+      if (node.type.name === 'person') namedPersonLabel = node.attrs.label;
+    });
+    expect(namedPersonLabel).toBe('Ana');
   });
 });

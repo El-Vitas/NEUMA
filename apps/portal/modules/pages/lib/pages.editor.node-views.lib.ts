@@ -27,16 +27,20 @@ import {
 } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_BUTTON_TYPE } from '../constants/pages.editor.button.constants';
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import type { PagePersonOption } from '../types/pages.schema.types';
 import { createPageBookmarkNodeView } from './pages.editor.bookmark.node-view.lib';
 import { createPageButtonNodeView } from './pages.editor.button.node-view.lib';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
 import { createPageCodeBlockNodeView } from './pages.editor.code.node-view.lib';
 import { createPageContentsNodeView } from './pages.editor.contents.node-view.lib';
+import { createPageDateNodeView } from './pages.editor.date.lib';
 import { createPageEmbedNodeView } from './pages.editor.embed.node-view.lib';
 import { createPageFileNodeView } from './pages.editor.file.node-view.lib';
+import { createPageFormulaNodeView } from './pages.editor.formula.lib';
 import { createPageImageNodeView } from './pages.editor.image.node-view.lib';
 import { createPageMark } from './pages.editor.marks.lib';
 import { createPageAudioNodeView, createPageVideoNodeView } from './pages.editor.media.node-view.lib';
+import { createPagePersonNodeView } from './pages.editor.person.lib';
 import { createPageSubpageNodeView } from './pages.editor.subpage.node-view.lib';
 import { createPageSyncedNodeView } from './pages.editor.synced.node-view.lib';
 import { PageTableView } from './pages.editor.table.view.lib';
@@ -108,6 +112,8 @@ export const createPageEditorNodeViews = (
   readBorrowed: (pageId: string, blockId: string) => EditorNode | null = () => null,
   /** What happens when a button is pressed, which is more than the writing can do on its own. */
   pressTheButton: (at: number) => void = () => undefined,
+  /** Who a named person is, once the pointer rests on them and their id is worth looking up. */
+  readPersonForHover: (userId: string) => PagePersonOption | undefined = () => undefined,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
@@ -125,6 +131,9 @@ export const createPageEditorNodeViews = (
   [PAGE_EDITOR_BOOKMARK_TYPE]: (node) => createPageBookmarkNodeView(node),
   [PAGE_EDITOR_EMBED_TYPE]: (node, view, getPosition) => createPageEmbedNodeView(node, view, getPosition, labels.embed),
   mention: (node) => createPageMentionNodeView(node, readPageTitle),
+  person: (node) => createPagePersonNodeView(node, labels.person, { findMember: readPersonForHover }),
+  date: (node, view, getPosition) => createPageDateNodeView(node, view, getPosition, labels.date),
+  formula: (node, view, getPosition) => createPageFormulaNodeView(node, view, getPosition, labels.formula),
   /**
    * The table is drawn here rather than by `columnResizing`, whose own drawing
    * would have to be named the way that plugin names it. What a page decides
