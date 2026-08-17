@@ -1,14 +1,47 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesHeader } from '@/modules/pages/components/pages.header';
+import { PAGE_APPEARANCE_DEFAULT_PREFERENCES } from '@/modules/pages/constants/pages.appearance.constants';
+import type { PagesAppearanceResult } from '@/modules/pages/types/pages.appearance.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
 import en from '../../../../../messages/en.json';
 
+mock.module('@/shared/components/portal/page-favorite-toggle', () => ({
+  PageFavoriteToggle: ({
+    isFavorite,
+    pageId,
+  }: {
+    readonly isFavorite: boolean;
+    readonly pageId: string;
+    readonly spaceId: string;
+    readonly title: string;
+  }) => (
+    <button aria-label={`favorite:${pageId}:${String(isFavorite)}`} type="button">
+      favorite
+    </button>
+  ),
+}));
+
+mock.module('@/shared/components/portal/recents-recorder', () => ({
+  RecentPageRecorder: ({
+    pageId,
+    spaceName,
+  }: {
+    readonly pageId: string;
+    readonly spaceId: string;
+    readonly spaceName: string;
+    readonly title: string;
+  }) => <div data-testid={`recent-recorder:${pageId}:${spaceName}`} />,
+}));
+
+const { PagesHeader } = await import('@/modules/pages/components/pages.header');
+
 const PARENT_PAGES: readonly PageSummary[] = [
   {
     content: { content: [], schemaVersion: 1, type: 'doc' },
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    createdBy: null,
     id: '22222222-2222-4222-8222-222222222222',
     lifecycle: 'ACTIVE',
     order: 0,
@@ -16,27 +49,42 @@ const PARENT_PAGES: readonly PageSummary[] = [
     propertyValues: null,
     spaceId: '33333333-3333-4333-8333-333333333333',
     title: 'Handbook',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedBy: null,
     version: 1,
   },
 ];
 
+const buildAppearance = (overrides: Partial<PagesAppearanceResult> = {}): PagesAppearanceResult => ({
+  preferences: PAGE_APPEARANCE_DEFAULT_PREFERENCES,
+  setFullWidth: () => undefined,
+  setTextSize: () => undefined,
+  setTypography: () => undefined,
+  ...overrides,
+});
+
+const renderHeader = (props: Partial<Parameters<typeof PagesHeader>[0]> = {}) =>
+  render(
+    <NextIntlClientProvider locale="en" messages={en} timeZone={APP_TIME_ZONE}>
+      <PagesHeader
+        appearance={buildAppearance()}
+        canEdit
+        displayState="saved"
+        onTitleChange={() => undefined}
+        parentPages={PARENT_PAGES}
+        savedAt={null}
+        spaceId="33333333-3333-4333-8333-333333333333"
+        title="Policies"
+        titleInputRef={{ current: null }}
+        {...props}
+      />
+    </NextIntlClientProvider>,
+  );
+
 describe('PagesHeader', () => {
   it('renders the space, parent path, current page, and when it finished saving', () => {
     const savedAt = new Date('2026-08-15T14:32:00Z');
-    render(
-      <NextIntlClientProvider locale="en" messages={en} timeZone={APP_TIME_ZONE}>
-        <PagesHeader
-          canEdit
-          displayState="saved"
-          onTitleChange={() => undefined}
-          parentPages={PARENT_PAGES}
-          savedAt={savedAt}
-          spaceId="33333333-3333-4333-8333-333333333333"
-          title="Policies"
-          titleInputRef={{ current: null }}
-        />
-      </NextIntlClientProvider>,
-    );
+    renderHeader({ savedAt });
 
     expect(screen.getByRole('navigation', { name: 'Location' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Space root' }).getAttribute('href')).toBe(
@@ -56,22 +104,43 @@ describe('PagesHeader', () => {
   });
 
   it('says it is saving, with a single live region, one answer to the reader', () => {
-    render(
-      <NextIntlClientProvider locale="en" messages={en} timeZone={APP_TIME_ZONE}>
-        <PagesHeader
-          canEdit
-          displayState="saving"
-          onTitleChange={() => undefined}
-          parentPages={PARENT_PAGES}
-          savedAt={null}
-          spaceId="33333333-3333-4333-8333-333333333333"
-          title="Policies"
-          titleInputRef={{ current: null }}
-        />
-      </NextIntlClientProvider>,
-    );
+    renderHeader({ displayState: 'saving' });
 
     expect(screen.getAllByRole('status')).toHaveLength(1);
     expect(screen.getByRole('status').textContent).toBe('Saving…');
+  });
+
+  it('always offers a way to change how the page looks', () => {
+    renderHeader();
+
+    expect(screen.getByRole('button', { name: 'Appearance' })).toBeDefined();
+  });
+
+  it('keeps the page info, favorite star, and recent-visit mark out of a page that was never saved', () => {
+    renderHeader({ pageId: null });
+
+    expect(screen.queryByRole('button', { name: 'Info' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /favorite/ })).toBeNull();
+    expect(screen.queryByTestId(/recent-recorder/)).toBeNull();
+  });
+
+  it('offers the page info once the page has an id, counting its own writing', () => {
+    renderHeader({
+      content: {
+        content: [{ content: [{ text: 'Hello there', type: 'text' }], type: 'paragraph' }],
+        schemaVersion: 1,
+        type: 'doc',
+      },
+      pageId: 'page-1',
+    });
+
+    expect(screen.getByRole('button', { name: 'Info' })).toBeDefined();
+  });
+
+  it('mounts the favorite star and the recent-visit mark once it has what they need', () => {
+    renderHeader({ isFavorite: true, pageId: 'page-1', spaceName: 'Handbook space' });
+
+    expect(screen.getByRole('button', { name: 'favorite:page-1:true' })).toBeDefined();
+    expect(screen.getByTestId('recent-recorder:page-1:Handbook space')).toBeDefined();
   });
 });

@@ -1,0 +1,12 @@
+model PageFavorite {
+  id        String   @id @default(uuid(7))
+  userId    String
+  pageId    String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pageId], name: "userIdPageId")
+  @@index([userId, order])
+}

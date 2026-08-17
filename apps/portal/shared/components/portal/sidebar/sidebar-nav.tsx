@@ -1,8 +1,8 @@
 'use client';
 
 import type { UserRole } from '@company-brain/shared';
-import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { filterNavSectionsByRole } from '@/modules/portal/lib/portal.nav.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';

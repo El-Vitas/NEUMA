@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { pageContentSchema } from '@/modules/pages/schemas/pages.schemas';
+import { pageContentSchema, pageLocatorSchema, pageRestoreMutationSchema } from '@/modules/pages/schemas/pages.schemas';
 
 describe('pageContentSchema', () => {
   it('accepts the approved versioned ProseMirror contract', () => {
@@ -35,5 +35,21 @@ describe('pageContentSchema', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('pageLocatorSchema', () => {
+  it('requires both pageId and spaceId', () => {
+    expect(pageLocatorSchema.safeParse({ pageId: 'page-a' }).success).toBe(false);
+    expect(pageLocatorSchema.safeParse({ pageId: 'page-a', spaceId: 'space-a' }).success).toBe(true);
+  });
+});
+
+describe('pageRestoreMutationSchema', () => {
+  it('makes includeChildren optional', () => {
+    expect(pageRestoreMutationSchema.safeParse({ pageId: 'page-a', spaceId: 'space-a' }).success).toBe(true);
+    expect(
+      pageRestoreMutationSchema.safeParse({ includeChildren: true, pageId: 'page-a', spaceId: 'space-a' }).success,
+    ).toBe(true);
   });
 });

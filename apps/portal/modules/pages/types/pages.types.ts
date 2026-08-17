@@ -17,6 +17,11 @@ export interface PageEditorCommand {
   readonly run: Command;
 }
 
+export interface PageAuthor {
+  readonly id: string;
+  readonly name: string;
+}
+
 export type PageAssetNodeType = 'audio' | 'file' | 'image' | 'video';
 
 export interface PageAssetInsertCommandOptions {
@@ -35,6 +40,8 @@ export interface PageMentionInsertCommandOptions {
 
 export interface PageSummary {
   readonly content: PageContent;
+  readonly createdAt: Date;
+  readonly createdBy: null | PageAuthor;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
   readonly order: number;
@@ -42,6 +49,8 @@ export interface PageSummary {
   readonly propertyValues: PagePropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
+  readonly updatedAt: Date;
+  readonly updatedBy: null | PageAuthor;
   readonly version: number;
 }
 

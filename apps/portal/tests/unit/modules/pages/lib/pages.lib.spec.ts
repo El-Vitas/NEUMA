@@ -9,6 +9,8 @@ const page = (id: string, parentId: string | null, order: number): PageSummary =
     schemaVersion: 1,
     type: 'doc',
   },
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id,
   lifecycle: 'ACTIVE',
   order,
@@ -16,6 +18,8 @@ const page = (id: string, parentId: string | null, order: number): PageSummary =
   propertyValues: null,
   spaceId: 'space-1',
   title: id,
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
 });
 

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
+import type { PageInfoMetadata } from '../types/pages.info.types';
 import type { PagePersonOption } from '../types/pages.schema.types';
 import type { PageSummary } from '../types/pages.types';
 
@@ -27,6 +28,16 @@ export const EMPTY_PAGE_SUMMARIES: readonly PageSummary[] = [];
 export const EMPTY_PAGE_HEADINGS: readonly PageEditorHeading[] = [];
 
 export const EMPTY_PAGE_EMBEDDED_COLLECTIONS: Readonly<Record<string, ReactNode>> = {};
+
+export const EMPTY_PAGE_INFO: PageInfoMetadata = {
+  createdAt: null,
+  createdByName: null,
+  lastEditedAt: null,
+  lastEditedByName: null,
+};
+
+/** What splits a page's own writing into the words its word count reads off. */
+export const PAGE_INFO_WORD_SEPARATOR = /\s+/;
 
 export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
 

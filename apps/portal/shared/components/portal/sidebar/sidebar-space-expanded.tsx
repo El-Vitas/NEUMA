@@ -5,6 +5,7 @@ import { BookOpen, ChevronRight, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { getVisiblePortalSidebarPages } from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
@@ -33,7 +34,7 @@ export const SidebarSpaceExpanded = ({
 }: IProps) => {
   const t = useTranslations('navigation');
   const pagesT = useTranslations('pages');
-  const hasPages = space.pages.length > 0;
+  const hasPages = getVisiblePortalSidebarPages(space.pages).length > 0;
   const childrenId = `sidebar-space-pages-${space.id}`;
 
   return (

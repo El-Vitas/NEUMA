@@ -1,3 +1,8 @@
+const DROPDOWN_MENU_CONTENT_SLOT = 'dropdown-menu-content';
+const DROPDOWN_MENU_SUB_CONTENT_SLOT = 'dropdown-menu-sub-content';
+const POPOVER_CONTENT_SLOT = 'popover-content';
+const DIALOG_ROLE = 'dialog';
+
 /**
  * What the writing opens for itself and answers from.
  *
@@ -5,8 +10,8 @@
  * has left the writing to go somewhere else on the page.
  */
 export const PAGE_EDITOR_OWN_SURFACES_SELECTOR = [
-  '[data-slot="dropdown-menu-content"]',
-  '[data-slot="dropdown-menu-sub-content"]',
-  '[data-slot="popover-content"]',
-  '[role="dialog"]',
+  `[data-slot="${DROPDOWN_MENU_CONTENT_SLOT}"]`,
+  `[data-slot="${DROPDOWN_MENU_SUB_CONTENT_SLOT}"]`,
+  `[data-slot="${POPOVER_CONTENT_SLOT}"]`,
+  `[role="${DIALOG_ROLE}"]`,
 ].join(',');

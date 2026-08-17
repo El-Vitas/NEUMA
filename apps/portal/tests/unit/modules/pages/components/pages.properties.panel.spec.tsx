@@ -18,6 +18,8 @@ const { PagesPropertiesPanel } = await import('@/modules/pages/components/pages.
 
 const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
   content: { content: [], schemaVersion: 1, type: 'doc' },
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id: '11111111-1111-4111-8111-111111111111',
   lifecycle: 'ACTIVE',
   order: 0,
@@ -25,6 +27,8 @@ const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
   propertyValues: null,
   spaceId: '33333333-3333-4333-8333-333333333333',
   title: 'Task one',
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
   ...overrides,
 });

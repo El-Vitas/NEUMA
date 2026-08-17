@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, FileText, MoreHorizontal, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ChevronRight, FileText, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -19,9 +19,9 @@ interface IProps {
   readonly canEdit: boolean;
   readonly depth: number;
   readonly expandedPageIds: ReadonlySet<string>;
-  readonly onLifecycleChange: (page: PortalSidebarPage) => void;
   readonly onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => void;
   readonly onNavigate?: () => void;
+  readonly onRequestTrash: (page: PortalSidebarPage) => void;
   readonly onToggle: (pageId: string) => void;
   readonly selectedPageId: string | null;
   readonly spaceId: string;
@@ -33,8 +33,8 @@ export const SidebarPageTreeItem = ({
   depth,
   expandedPageIds,
   onKeyDown,
-  onLifecycleChange,
   onNavigate,
+  onRequestTrash,
   onToggle,
   selectedPageId,
   spaceId,
@@ -94,9 +94,6 @@ export const SidebarPageTreeItem = ({
           {isSelected && <span aria-hidden="true" className="absolute inset-y-1 left-0 w-0.5 bg-primary" />}
           <FileText aria-hidden="true" className="size-3.5 shrink-0" />
           <span className="min-w-0 truncate">{page.title}</span>
-          {page.lifecycle === 'TRASHED' && (
-            <span className="shrink-0 text-sidebar-foreground/45 text-xs">{t('trash')}</span>
-          )}
         </Link>
         {canEdit && (
           <DropdownMenu>
@@ -121,15 +118,9 @@ export const SidebarPageTreeItem = ({
                   </Link>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onSelect={() => onLifecycleChange(page)}>
-                {page.lifecycle === 'TRASHED' ? (
-                  <RotateCcw aria-hidden="true" className="size-4" />
-                ) : (
-                  <Trash2 aria-hidden="true" className="size-4" />
-                )}
-                {page.lifecycle === 'TRASHED'
-                  ? t('restoreNamed', { name: page.title })
-                  : t('trashNamed', { name: page.title })}
+              <DropdownMenuItem onSelect={() => onRequestTrash(page)}>
+                <Trash2 aria-hidden="true" className="size-4" />
+                {t('trashNamed', { name: page.title })}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -144,8 +135,8 @@ export const SidebarPageTreeItem = ({
               expandedPageIds={expandedPageIds}
               key={child.page.id}
               onKeyDown={onKeyDown}
-              onLifecycleChange={onLifecycleChange}
               onNavigate={onNavigate}
+              onRequestTrash={onRequestTrash}
               onToggle={onToggle}
               selectedPageId={selectedPageId}
               spaceId={spaceId}

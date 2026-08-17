@@ -1,9 +1,10 @@
-import type { PageCollectionReference } from '@company-brain/shared';
+import type { PageCollectionReference, Result } from '@company-brain/shared';
 import { extractPageCollectionReferences, USER_ROLE } from '@company-brain/shared';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
+import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { PagesCollectionEmbed } from '@/modules/pages/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
@@ -13,9 +14,16 @@ import { getPageAttachments } from '@/modules/pages/server/queries/pages.attachm
 import { getPageBacklinks } from '@/modules/pages/server/queries/pages.backlinks.queries';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { getPageSchema, getPageView } from '@/modules/pages/server/queries/pages.schema.queries';
-import type { PageSchema } from '@/modules/pages/types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PageSchema,
+  PageSchemaView,
+  PageViewOutcome,
+} from '@/modules/pages/types/pages.schema.types';
+import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import type { FavoritePage } from '@/shared/types/favorites.types';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
@@ -46,57 +54,88 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
   );
 };
 
+/** Whether this reader already keeps the page among their favorites. */
+const resolveIsFavorite = (favoritesResult: Result<readonly FavoritePage[], Error>, pageId: string): boolean => {
+  const favorites = favoritesResult.isOk() ? favoritesResult.getValue() : [];
+  return favorites.some((favorite) => favorite.pageId === pageId);
+};
+
+/** The schema a page's own parent carries, since that is what says what its properties mean. */
+const resolveParentSchema = async (spaceId: string, parentId: string | null): Promise<PageSchema | null> => {
+  if (parentId === null) return null;
+  const parentSchemaResult = await getPageSchema(spaceId, parentId);
+  return parentSchemaResult.isOk() ? parentSchemaResult.getValue() : null;
+};
+
+/** The space members a schema's own person properties need to name, asked only when one is present. */
+const resolvePersonOptions = async (
+  spaceId: string,
+  parentSchema: PageSchema | null,
+): Promise<readonly PagePersonOption[]> => {
+  if (!schemaNeedsPersonOptions(parentSchema)) return [];
+  const personOptionsResult = await getSpaceMembers(spaceId);
+  return personOptionsResult.isOk() ? personOptionsResult.getValue() : [];
+};
+
+/** One view of a page's own schema, rendered with whatever it already holds. */
+const buildOwnCollectionView = async (
+  spaceId: string,
+  pageId: string,
+  view: PageSchemaView,
+): Promise<{ readonly outcome: PageViewOutcome | null; readonly view: PageSchemaView }> => {
+  const outcomeResult = await getPageView(spaceId, pageId, view.name);
+  return { outcome: outcomeResult.isOk() ? outcomeResult.getValue() : null, view };
+};
+
+/** The section a page shows of its own rows, present only when its own schema actually has properties. */
+const buildCollectionSection = async (
+  ownSchema: PageSchema | null,
+  spaceId: string,
+  pageId: string,
+): Promise<ReactNode> => {
+  if (ownSchema === null || ownSchema.properties.length === 0) return null;
+  const views = await Promise.all(ownSchema.views.map((view) => buildOwnCollectionView(spaceId, pageId, view)));
+  return <PagesCollectionSection properties={getEditableSchemaProperties(ownSchema)} spaceId={spaceId} views={views} />;
+};
+
+/** Every collection this page's own writing points at, drawn where each reference stands. */
+const buildEmbeddedCollections = async (
+  page: PageSummary,
+  pages: readonly PageSummary[],
+): Promise<Readonly<Record<string, ReactNode>>> => {
+  const entries = await Promise.all(
+    extractPageCollectionReferences(page.content).map(async (reference) => {
+      const title = pages.find((candidate) => candidate.id === reference.pageId)?.title ?? reference.pageId;
+      return [reference.pageId, await renderEmbeddedCollection(reference, title)] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
+};
+
 export default async function Page({ params }: IProps) {
   const { pageId, spaceId } = await params;
   if (!z.uuid().safeParse(pageId).success) notFound();
 
-  const [spacesResult, user, pagesResult, attachmentsResult, backlinksResult, ownSchemaResult] = await Promise.all([
-    getSpaces(),
-    getCurrentUser(),
-    getPages(spaceId),
-    getPageAttachments(pageId),
-    getPageBacklinks(pageId),
-    getPageSchema(spaceId, pageId),
-  ]);
+  const [spacesResult, user, pagesResult, attachmentsResult, backlinksResult, ownSchemaResult, favoritesResult] =
+    await Promise.all([
+      getSpaces(),
+      getCurrentUser(),
+      getPages(spaceId),
+      getPageAttachments(pageId),
+      getPageBacklinks(pageId),
+      getPageSchema(spaceId, pageId),
+      getFavoritePages(),
+    ]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const pages = pagesResult.isOk() ? pagesResult.getValue() : null;
   const selectedPage = pages?.find((page) => page.id === pageId);
   if (space === undefined || pages === null || selectedPage === undefined) notFound();
 
-  const parentSchemaResult =
-    selectedPage.parentId === null ? null : await getPageSchema(spaceId, selectedPage.parentId);
-  const parentSchema: PageSchema | null = parentSchemaResult?.isOk() ? parentSchemaResult.getValue() : null;
-  const personOptionsResult = schemaNeedsPersonOptions(parentSchema) ? await getSpaceMembers(spaceId) : null;
-  const personOptions = personOptionsResult?.isOk() ? personOptionsResult.getValue() : [];
-
+  const parentSchema = await resolveParentSchema(spaceId, selectedPage.parentId);
+  const personOptions = await resolvePersonOptions(spaceId, parentSchema);
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
-  const collectionSection =
-    ownSchema !== null && ownSchema.properties.length > 0 ? (
-      <PagesCollectionSection
-        properties={getEditableSchemaProperties(ownSchema)}
-        spaceId={spaceId}
-        views={
-          await Promise.all(
-            ownSchema.views.map(async (view) => {
-              const outcomeResult = await getPageView(spaceId, pageId, view.name);
-              return { outcome: outcomeResult.isOk() ? outcomeResult.getValue() : null, view };
-            }),
-          )
-        }
-      />
-    ) : null;
-
-  const embeddedCollections = Object.fromEntries(
-    await Promise.all(
-      extractPageCollectionReferences(selectedPage.content).map(async (reference) => [
-        reference.pageId,
-        await renderEmbeddedCollection(
-          reference,
-          pages.find((page) => page.id === reference.pageId)?.title ?? reference.pageId,
-        ),
-      ]),
-    ),
-  );
+  const collectionSection = await buildCollectionSection(ownSchema, spaceId, pageId);
+  const embeddedCollections = await buildEmbeddedCollections(selectedPage, pages);
 
   return (
     <main className="min-h-full">
@@ -107,12 +146,14 @@ export default async function Page({ params }: IProps) {
         collectionSection={collectionSection}
         currentUserDisplayName={user?.name}
         embeddedCollections={embeddedCollections}
+        isFavorite={resolveIsFavorite(favoritesResult, pageId)}
         isNewPage={false}
         pages={pages}
         parentSchema={parentSchema}
         personOptions={personOptions}
         selectedPageId={selectedPage.id}
         spaceId={spaceId}
+        spaceName={space.name}
       />
     </main>
   );

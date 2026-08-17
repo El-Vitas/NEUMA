@@ -14,23 +14,35 @@ import {
   SEARCH_MAX_QUERY_LENGTH,
   SEARCH_SOURCE_TYPES,
 } from '@/shared/constants/search.constants';
-import { buildSearchPageUrl } from '@/shared/lib/search.lib';
 import { searchQuerySchema } from '@/shared/schemas/search.schemas';
 import type { SearchQuery } from '@/shared/types/search.types';
+import {
+  SEARCH_EDITED_RANGE_LABEL_KEYS,
+  SEARCH_EDITED_RANGE_VALUES,
+  SEARCH_MAX_AUTHOR_QUERY_LENGTH,
+} from '../constants/search.filters.constants';
+import { buildFilteredSearchPageUrl } from '../lib/search.filters.lib';
+import { searchExtraFiltersSchema } from '../schemas/search.filters.schemas';
+import type { SearchExtraFilters } from '../types/search.types';
+import { SearchFilterChips } from './search.filters.chips';
 
 interface IProps {
+  readonly initialFilters: SearchExtraFilters;
   readonly initialValues: SearchQuery;
   readonly spaces: readonly { readonly id: string; readonly name: string }[];
 }
 
-export const SearchForm = ({ initialValues, spaces }: IProps) => {
+export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) => {
   const t = useTranslations('portal.search');
+  const filtersT = useTranslations('pages.searchFilters');
   const router = useRouter();
   const [query, setQuery] = useState(initialValues.query);
   const [contentType] = useState(initialValues.contentType);
   const [sourceType, setSourceType] = useState<string>(initialValues.sourceType ?? SEARCH_FILTER_ALL_VALUE);
   const [spaceId, setSpaceId] = useState<string>(initialValues.spaceId ?? SEARCH_FILTER_ALL_VALUE);
   const [tags, setTags] = useState(() => initialValues.tags?.join(',') ?? '');
+  const [authorQuery, setAuthorQuery] = useState(initialFilters.authorQuery ?? '');
+  const [editedRange, setEditedRange] = useState<string>(initialFilters.editedRange ?? SEARCH_FILTER_ALL_VALUE);
 
   const submitSearch = (event: SyntheticEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -41,7 +53,11 @@ export const SearchForm = ({ initialValues, spaces }: IProps) => {
       spaceId: spaceId === SEARCH_FILTER_ALL_VALUE ? undefined : spaceId,
       tags,
     });
-    router.push(buildSearchPageUrl(parsed));
+    const parsedFilters = searchExtraFiltersSchema.parse({
+      authorQuery,
+      editedRange: editedRange === SEARCH_FILTER_ALL_VALUE ? undefined : editedRange,
+    });
+    router.push(buildFilteredSearchPageUrl(parsed, parsedFilters));
   };
 
   return (
@@ -69,51 +85,82 @@ export const SearchForm = ({ initialValues, spaces }: IProps) => {
           {t('submit')}
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="search-space">{t('spaceFilter')}</Label>
-          <Select onValueChange={setSpaceId} value={spaceId}>
-            <SelectTrigger aria-label={t('spaceFilter')} className="min-h-11 w-full" id="search-space">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEARCH_FILTER_ALL_VALUE}>{t('allSpaces')}</SelectItem>
-              {spaces.map((space) => (
-                <SelectItem key={space.id} value={space.id}>
-                  {space.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="space-y-3">
+        <h2 className="font-medium text-foreground text-sm">{filtersT('title')}</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="space-y-2">
+            <Label htmlFor="search-space">{filtersT('spaceLabel')}</Label>
+            <Select onValueChange={setSpaceId} value={spaceId}>
+              <SelectTrigger aria-label={t('spaceFilter')} className="min-h-11 w-full" id="search-space">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEARCH_FILTER_ALL_VALUE}>{t('allSpaces')}</SelectItem>
+                {spaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="search-content-type">{t('contentTypeFilter')}</Label>
+            <Select onValueChange={setSourceType} value={sourceType}>
+              <SelectTrigger aria-label={t('contentTypeFilter')} className="min-h-11 w-full" id="search-content-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEARCH_FILTER_ALL_VALUE}>{t('allContentTypes')}</SelectItem>
+                {SEARCH_SOURCE_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {t(`sourceTypes.${type}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="search-tags">{t('tagsLabel')}</Label>
+            <Input
+              className="min-h-11 text-base"
+              id="search-tags"
+              onChange={(event) => setTags(event.target.value)}
+              placeholder={t('tagsPlaceholder')}
+              value={tags}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="search-author">{filtersT('authorLabel')}</Label>
+            <Input
+              className="min-h-11 text-base"
+              id="search-author"
+              maxLength={SEARCH_MAX_AUTHOR_QUERY_LENGTH}
+              onChange={(event) => setAuthorQuery(event.target.value)}
+              placeholder={filtersT('authorPlaceholder')}
+              value={authorQuery}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="search-edited">{filtersT('editedLabel')}</Label>
+            <Select onValueChange={setEditedRange} value={editedRange}>
+              <SelectTrigger aria-label={filtersT('editedPlaceholder')} className="min-h-11 w-full" id="search-edited">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEARCH_FILTER_ALL_VALUE}>{filtersT('dateOptions.anyDate')}</SelectItem>
+                {SEARCH_EDITED_RANGE_VALUES.map((range) => (
+                  <SelectItem key={range} value={range}>
+                    {filtersT(`dateOptions.${SEARCH_EDITED_RANGE_LABEL_KEYS[range]}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="search-content-type">{t('contentTypeFilter')}</Label>
-          <Select onValueChange={setSourceType} value={sourceType}>
-            <SelectTrigger aria-label={t('contentTypeFilter')} className="min-h-11 w-full" id="search-content-type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEARCH_FILTER_ALL_VALUE}>{t('allContentTypes')}</SelectItem>
-              {SEARCH_SOURCE_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {t(`sourceTypes.${type}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="search-tags">{t('tagsLabel')}</Label>
-          <Input
-            className="min-h-11 text-base"
-            id="search-tags"
-            onChange={(event) => setTags(event.target.value)}
-            placeholder={t('tagsPlaceholder')}
-            value={tags}
-          />
-        </div>
+        <p className="text-muted-foreground text-sm">{t('filterHint')}</p>
+        <SearchFilterChips filters={initialFilters} params={initialValues} spaces={spaces} />
       </div>
-      <p className="text-muted-foreground text-sm">{t('filterHint')}</p>
     </form>
   );
 };

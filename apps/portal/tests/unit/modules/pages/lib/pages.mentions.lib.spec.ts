@@ -10,6 +10,8 @@ const aPage = (
   lifecycle: PageSummary['lifecycle'] = PAGE_LIFECYCLE.ACTIVE,
 ): PageSummary => ({
   content: createEmptyPageContent(),
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id,
   lifecycle,
   order: 0,
@@ -17,6 +19,8 @@ const aPage = (
   propertyValues: null,
   spaceId: 'space',
   title,
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
 });
 

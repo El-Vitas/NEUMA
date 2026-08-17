@@ -44,8 +44,17 @@ export const parseSearchSnippet = (snippet: string): readonly SearchSnippetPart[
   return parts;
 };
 
-export const buildSearchApiEndpoint = (params: SearchQuery): string => {
-  return `${API_ROUTES.SEARCH}?${buildSearchQueryString(params, true)}`;
+export const appendSearchExtraParams = (url: string, extraParams: Readonly<Record<string, string>> = {}): string => {
+  const suffix = new URLSearchParams(extraParams).toString();
+  if (suffix === '') return url;
+  return `${url}${url.includes('?') ? '&' : '?'}${suffix}`;
+};
+
+export const buildSearchApiEndpoint = (
+  params: SearchQuery,
+  extraParams: Readonly<Record<string, string>> = {},
+): string => {
+  return appendSearchExtraParams(`${API_ROUTES.SEARCH}?${buildSearchQueryString(params, true)}`, extraParams);
 };
 
 export const buildSearchPageUrl = (params: SearchQuery): string => {

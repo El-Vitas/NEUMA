@@ -10,10 +10,8 @@ let pathname = '/spaces/engineering';
 
 const refreshRouter = mock(() => undefined);
 const restorePage = mock(async () => ({ data: undefined }));
-const trashPage = mock(async () => ({ data: undefined }));
 
 mock.module('next/navigation', () => ({
-  usePathname: () => pathname,
   useRouter: () => ({ refresh: refreshRouter }),
 }));
 mock.module('@/i18n/navigation', () => ({
@@ -22,10 +20,33 @@ mock.module('@/i18n/navigation', () => ({
       {children}
     </a>
   ),
+  usePathname: () => pathname,
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   restorePageAction: restorePage,
-  trashPageAction: trashPage,
+}));
+mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
+  PagesTrashConfirmDialog: ({
+    onClose,
+    onTrashed,
+    page,
+  }: {
+    readonly onClose: () => void;
+    readonly onTrashed?: () => void;
+    readonly page: { readonly id: string; readonly title: string } | null;
+    readonly spaceId: string;
+  }) =>
+    page === null ? null : (
+      <div>
+        <p>{`Trash ${page.title}?`}</p>
+        <button onClick={onTrashed} type="button">
+          Confirm trash
+        </button>
+        <button onClick={onClose} type="button">
+          Cancel
+        </button>
+      </div>
+    ),
 }));
 mock.module('@/shared/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { readonly children: ReactNode }) => <div>{children}</div>,
@@ -113,16 +134,10 @@ describe('SidebarPageTree', () => {
     );
   });
 
-  it('keeps trashed pages reachable in the tree instead of hiding them', () => {
+  it('does not show a page that was sent to the trash, since it is now reachable from /trash instead', () => {
     renderSidebarPageTree([trashedPage]);
 
-    expect(screen.getByRole('link', { name: /Trashed page/ })).toBeDefined();
-  });
-
-  it('does not offer child creation from a trashed page', () => {
-    renderSidebarPageTree([trashedPage]);
-
-    expect(screen.queryByRole('link', { name: 'Create child page' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Trashed page/ })).toBeNull();
   });
 
   it('does not offer page actions to members who cannot edit content', () => {
@@ -166,30 +181,41 @@ describe('SidebarPageTree', () => {
     expect(document.activeElement).toBe(parentLink);
   });
 
-  it('offers undo after trashing a page and restores the same page', async () => {
+  it('asks for confirmation before trashing a page, instead of trashing right away', async () => {
     renderSidebarPageTree([parentPage]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Move Parent page to the trash' }));
+
+    expect(await screen.findByText('Trash Parent page?')).toBeDefined();
+    expect(refreshRouter).not.toHaveBeenCalled();
+  });
+
+  it('closes the confirmation dialog without trashing when cancelled', async () => {
+    renderSidebarPageTree([parentPage]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move Parent page to the trash' }));
+    expect(await screen.findByText('Trash Parent page?')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Trash Parent page?')).toBeNull();
+    });
+    expect(refreshRouter).not.toHaveBeenCalled();
+  });
+
+  it('offers undo once the dialog confirms the page was trashed, and restores the same page', async () => {
+    renderSidebarPageTree([parentPage]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move Parent page to the trash' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm trash' }));
 
     const undoButton = await screen.findByRole('button', { name: 'Undo' });
     fireEvent.click(undoButton);
 
     await waitFor(() => {
-      expect(trashPage).toHaveBeenCalledWith({ pageId: 'parent-page', spaceId });
       expect(restorePage).toHaveBeenCalledWith({ pageId: 'parent-page', spaceId });
       expect(refreshRouter).toHaveBeenCalledTimes(2);
     });
-  });
-
-  it('does not offer undo after restoring a page from the tree', async () => {
-    renderSidebarPageTree([trashedPage]);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Restore Trashed page' }));
-
-    await waitFor(() => {
-      expect(restorePage).toHaveBeenCalledWith({ pageId: 'trashed-page', spaceId });
-    });
-
-    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ import type {
   SearchDocumentInput,
   SearchDocumentRemoval,
   SearchPage,
-  SearchQuery,
+  SearchQueryWithFilters,
   SearchReader,
   SearchRepositoryContract,
 } from './types/search.types';
@@ -21,7 +21,7 @@ export class SearchService implements SearchReader {
     await this.searchRepository.removeDocument(input);
   }
 
-  async search(query: SearchQuery): Promise<SearchPage> {
+  async search(query: SearchQueryWithFilters): Promise<SearchPage> {
     if (query.query.trim() === '') return { items: [] };
     return this.searchRepository.search(query);
   }

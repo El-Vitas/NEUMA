@@ -18,7 +18,7 @@ export const PagesView = async ({
   isNewPage = false,
   pages,
   spaceId,
-  spaceName: _spaceName,
+  spaceName,
 }: IProps) => {
   const t = await getTranslations('pages');
   return (
@@ -34,6 +34,7 @@ export const PagesView = async ({
           isNewPage={isNewPage}
           pages={pages}
           spaceId={spaceId}
+          spaceName={spaceName}
         />
       )}
     </main>

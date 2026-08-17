@@ -1,9 +1,19 @@
 import type { Prisma } from '@company-brain/db/generated';
 import type { SearchPage, SearchQuery, SearchSourceType } from '../../../common/types/search.types';
+import type { SEARCH_EDITED_RANGE_VALUES } from '../constants/search.constants';
 
 export type { SearchPage, SearchQuery, SearchReader, SearchResult } from '../../../common/types/search.types';
 
 export type SearchLanguage = 'en' | 'es';
+
+export type SearchEditedRange = (typeof SEARCH_EDITED_RANGE_VALUES)[number];
+
+export interface SearchQueryFilters {
+  readonly authorQuery?: string;
+  readonly editedRange?: SearchEditedRange;
+}
+
+export type SearchQueryWithFilters = SearchQuery & SearchQueryFilters;
 
 export interface SearchDocumentInput {
   readonly contentType: string;
@@ -19,8 +29,10 @@ export interface SearchDocumentInput {
 }
 
 export interface SearchQueryParams {
+  readonly authorQuery?: string;
   readonly contentType?: string;
   readonly cursor?: string;
+  readonly editedRange?: string;
   readonly limit?: number | string;
   readonly query?: string;
   readonly sourceType?: SearchSourceType;
@@ -47,7 +59,7 @@ export interface SearchCursor {
 
 export interface SearchRepositoryContract {
   readonly removeDocument: (input: SearchDocumentRemoval) => Promise<void>;
-  readonly search: (query: SearchQuery) => Promise<SearchPage>;
+  readonly search: (query: SearchQueryWithFilters) => Promise<SearchPage>;
   readonly upsertDocument: (input: SearchDocumentInput) => Promise<void>;
 }
 
@@ -63,6 +75,8 @@ export interface SearchDocumentProjection {
 }
 
 export interface SearchProjectionPage {
+  readonly authorId: string;
+  readonly authorName: string | null;
   readonly content: Prisma.JsonValue;
   readonly id: string;
   readonly lifecycle: string;

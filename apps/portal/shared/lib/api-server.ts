@@ -8,8 +8,12 @@ import { ApiError } from './api';
 import { MissingAccessTokenError, readAccessTokenCookie } from './auth.token.lib';
 import { NetworkError, parseJsonBodyStrict } from './parse-json-body';
 
-export const buildHeaders = (accessToken: string | undefined, customHeaders: HeadersInit | undefined): HeadersInit => ({
-  'Content-Type': 'application/json',
+export const buildHeaders = (
+  accessToken: string | undefined,
+  customHeaders: HeadersInit | undefined,
+  hasBody = true,
+): HeadersInit => ({
+  ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
   ...customHeaders,
   ...(accessToken === undefined ? {} : { authorization: `${BEARER_PREFIX}${accessToken}` }),
 });
@@ -22,7 +26,7 @@ const sendApiRequest = async <T>(endpoint: string, accessToken: string | undefin
   try {
     response = await fetch(buildUrl(endpoint), {
       ...init,
-      headers: buildHeaders(accessToken, init.headers),
+      headers: buildHeaders(accessToken, init.headers, init.body !== undefined),
     });
   } catch (error) {
     throw new NetworkError(error);

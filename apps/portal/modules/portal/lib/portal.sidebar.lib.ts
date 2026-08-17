@@ -1,9 +1,17 @@
+import { PAGE_LIFECYCLE } from '@company-brain/shared';
 import type { KeyboardEvent } from 'react';
 import { buildTree, getTreeExpandedIds } from '@/shared/lib/tree.lib';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '../types/portal.types';
 
+/**
+ * A trashed page is reachable from `/trash`, not from the space's own tree,
+ * so the tree only ever shows what is still active.
+ */
+export const getVisiblePortalSidebarPages = (pages: readonly PortalSidebarPage[]): readonly PortalSidebarPage[] =>
+  pages.filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE);
+
 export const buildPortalSidebarPageTree = (pages: readonly PortalSidebarPage[]): readonly PortalSidebarPageTreeItem[] =>
-  buildTree(pages, (page, children) => ({ children, page }));
+  buildTree(getVisiblePortalSidebarPages(pages), (page, children) => ({ children, page }));
 
 export const getPortalSidebarExpandedPageIds = (
   tree: readonly PortalSidebarPageTreeItem[],

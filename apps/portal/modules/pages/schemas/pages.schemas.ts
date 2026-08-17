@@ -6,8 +6,12 @@ export const pageContentSchema = sharedPageContentSchema;
 
 export const pageLifecycleSchema = z.enum(PAGE_LIFECYCLE_VALUES);
 
+export const pageAuthorSchema = z.object({ id: z.string(), name: z.string() });
+
 export const pageSummarySchema = z.object({
   content: pageContentSchema,
+  createdAt: z.coerce.date(),
+  createdBy: pageAuthorSchema.nullable(),
   id: z.string(),
   lifecycle: pageLifecycleSchema,
   order: z.number(),
@@ -15,6 +19,8 @@ export const pageSummarySchema = z.object({
   propertyValues: pagePropertyValuesSchema.nullable(),
   spaceId: z.string(),
   title: z.string(),
+  updatedAt: z.coerce.date(),
+  updatedBy: pageAuthorSchema.nullable(),
   version: z.number(),
 });
 
@@ -39,9 +45,13 @@ export const pageBlocksHandoverSchema = z.object({
   spaceId: z.string().min(1),
 });
 
-export const pageLifecycleMutationSchema = z.object({
+export const pageLocatorSchema = z.object({
   pageId: z.string().min(1),
   spaceId: z.string().min(1),
+});
+
+export const pageRestoreMutationSchema = pageLocatorSchema.extend({
+  includeChildren: z.boolean().optional(),
 });
 
 export const pageDestinationsSchema = z.object({

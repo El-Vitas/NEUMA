@@ -1,4 +1,6 @@
 import { getLocale } from 'next-intl/server';
+import { toSearchExtraFilterParams } from '@/modules/search/lib/search.filters.lib';
+import { searchExtraFiltersSchema } from '@/modules/search/schemas/search.filters.schemas';
 import { SearchView } from '@/modules/search/views/search.view';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { searchQuerySchema } from '@/shared/schemas/search.schemas';
@@ -9,10 +11,17 @@ interface IProps {
 }
 
 export default async function Page({ searchParams }: IProps) {
-  const params = searchQuerySchema.parse(await searchParams);
-  const [result, spacesResult, locale] = await Promise.all([getSearchResults(params), getSpaces(), getLocale()]);
+  const resolvedSearchParams = await searchParams;
+  const params = searchQuerySchema.parse(resolvedSearchParams);
+  const filters = searchExtraFiltersSchema.parse(resolvedSearchParams);
+  const [result, spacesResult, locale] = await Promise.all([
+    getSearchResults(params, toSearchExtraFilterParams(filters)),
+    getSpaces(),
+    getLocale(),
+  ]);
   return (
     <SearchView
+      filters={filters}
       locale={locale}
       page={result.isOk() ? result.getValue() : null}
       params={params}

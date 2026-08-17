@@ -1,8 +1,8 @@
 'use client';
 
 import type { UserRole } from '@company-brain/shared';
-import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { usePathname } from '@/i18n/navigation';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';

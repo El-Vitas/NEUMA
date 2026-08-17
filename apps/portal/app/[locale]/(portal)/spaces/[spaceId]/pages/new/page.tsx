@@ -48,6 +48,7 @@ export default async function Page({ params, searchParams }: IProps) {
           personOptions={personOptions}
           selectedPageId={null}
           spaceId={spaceId}
+          spaceName={space.name}
         />
       )}
     </main>

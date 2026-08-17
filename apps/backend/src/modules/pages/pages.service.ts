@@ -2,8 +2,15 @@ import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { type PageContent, Result, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
-import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY, REDACTED_MENTION_LABEL } from './constants/pages.constants';
+import type { IStorageProvider } from '../../common/types/storage.types';
+import {
+  PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
+  PAGE_REPOSITORY,
+  PAGE_SCHEMA_REPOSITORY,
+  REDACTED_MENTION_LABEL,
+} from './constants/pages.constants';
 import { hasValidPageParent, isPageMoveAllowed, validatePageContent } from './domain/page.domain';
 import {
   PageAccessDeniedError,
@@ -16,7 +23,16 @@ import {
 } from './domain/page.error';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
 import { validatePageProperties } from './domain/page-schema.domain';
-import type { CreatePageInput, PageRepositoryContract, PageSummary, UpdatePageInput } from './types/page.types';
+import type {
+  CreatePageInput,
+  PageAttachmentsCleanupRepositoryContract,
+  PageDescendantsPreview,
+  PageRepositoryContract,
+  PageRestoreOutcome,
+  PageSummary,
+  TrashedPageSummary,
+  UpdatePageInput,
+} from './types/page.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
 
 @Injectable()
@@ -24,6 +40,9 @@ export class PagesService {
   constructor(
     @Inject(PAGE_REPOSITORY) private readonly pageRepository: PageRepositoryContract,
     @Inject(PAGE_SCHEMA_REPOSITORY) private readonly pageSchemaRepository: PageSchemaRepositoryContract,
+    @Inject(PAGE_ATTACHMENTS_CLEANUP_REPOSITORY)
+    private readonly pageAttachmentsCleanupRepository: PageAttachmentsCleanupRepositoryContract,
+    @Inject(STORAGE_PROVIDER) private readonly storageProvider: IStorageProvider,
   ) {}
 
   async list(
@@ -137,7 +156,9 @@ export class PagesService {
     mutationId: string,
     role: UserRole,
   ): Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>> {
-    return this.applyLifecycle(pageId, PageLifecycle.TRASHED, userId, workspaceId, mutationId, role);
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const trashed = await this.pageRepository.trashCascade(pageId, userId, workspaceId, role, mutationId);
+    return trashed ? Result.ok(true) : Result.fail(new PageLifecycleError());
   }
 
   async restore(
@@ -146,8 +167,72 @@ export class PagesService {
     workspaceId: string,
     mutationId: string,
     role: UserRole,
-  ): Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>> {
-    return this.applyLifecycle(pageId, PageLifecycle.ACTIVE, userId, workspaceId, mutationId, role);
+    includeChildren = false,
+  ): Promise<Result<PageRestoreOutcome, PageAccessDeniedError | PageLifecycleError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const outcome = await this.pageRepository.restoreCascade(
+      pageId,
+      userId,
+      workspaceId,
+      role,
+      mutationId,
+      includeChildren,
+    );
+    return outcome === null ? Result.fail(new PageLifecycleError()) : Result.ok(outcome);
+  }
+
+  async previewTrashCascade(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<PageDescendantsPreview, PageAccessDeniedError>> {
+    return this.previewDescendants(pageId, PageLifecycle.ACTIVE, workspaceId, userId, role);
+  }
+
+  async previewRestoreCascade(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<PageDescendantsPreview, PageAccessDeniedError>> {
+    return this.previewDescendants(pageId, PageLifecycle.TRASHED, workspaceId, userId, role);
+  }
+
+  async listTrashed(
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    spaceId: null | string,
+    search: null | string,
+  ): Promise<readonly TrashedPageSummary[]> {
+    return this.pageRepository.listTrashed(workspaceId, userId, role, spaceId, search);
+  }
+
+  async deleteForever(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<true, PageAccessDeniedError | PageLifecycleError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const outcome = await this.pageRepository.deleteForever(pageId, workspaceId, userId, role);
+    if (outcome === 'NOT_FOUND') return Result.fail(new PageAccessDeniedError());
+    if (outcome === 'NOT_TRASHED') return Result.fail(new PageLifecycleError());
+    await this.cleanupAttachments([pageId]);
+    return Result.ok(true);
+  }
+
+  async emptyTrash(
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    spaceId: null | string,
+  ): Promise<Result<{ deletedCount: number }, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const deletedPageIds = await this.pageRepository.emptyTrash(workspaceId, userId, role, spaceId);
+    await this.cleanupAttachments(deletedPageIds);
+    return Result.ok({ deletedCount: deletedPageIds.length });
   }
 
   validateMove(
@@ -178,17 +263,28 @@ export class PagesService {
     return Result.ok(redactedPages.at(0) ?? page);
   }
 
-  private async applyLifecycle(
+  private async previewDescendants(
     pageId: string,
     lifecycle: PageLifecycle,
-    userId: string,
     workspaceId: string,
-    mutationId: string,
+    userId: string,
     role: UserRole,
-  ): Promise<Result<boolean, PageAccessDeniedError | PageLifecycleError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const updated = await this.pageRepository.setLifecycle(pageId, lifecycle, userId, workspaceId, role, mutationId);
-    return updated ? Result.ok(true) : Result.fail(new PageLifecycleError());
+  ): Promise<Result<PageDescendantsPreview, PageAccessDeniedError>> {
+    const childPageCount = await this.pageRepository.countDescendantsByLifecycle(
+      pageId,
+      lifecycle,
+      workspaceId,
+      userId,
+      role,
+    );
+    return childPageCount === null ? Result.fail(new PageAccessDeniedError()) : Result.ok({ childPageCount });
+  }
+
+  private async cleanupAttachments(pageIds: readonly string[]): Promise<void> {
+    if (pageIds.length === 0) return;
+    const storageKeys = await this.pageAttachmentsCleanupRepository.listStorageKeysForPages(pageIds);
+    await this.pageAttachmentsCleanupRepository.deleteForPages(pageIds);
+    await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
   }
 
   private async resolvePropertyValuesForWrite(
