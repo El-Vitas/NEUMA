@@ -73,6 +73,15 @@ rules:
       Nombrar una página que todavía no existe es como suele empezar una página: el pensamiento va primero. Responder
       «no encontré nada» obliga a salir de la frase, crear la página en otra parte y volver.
     context: La página donde se escribe tiene que estar creada antes de poder colgarle otra.
+  - id: BR-2a30ebb
+    status: active
+    title: Una fórmula que no se puede dibujar se muestra como fue escrita
+    rule: >-
+      Una fórmula en línea se dibuja junto al texto sin alterar la altura de la línea. Si no se puede dibujar, se
+      muestra exactamente lo que se escribió, diciendo por qué, en vez de dejar un hueco o romper la página.
+    why: >-
+      Lo escrito es de quien lo escribió: perderlo porque una biblioteca no lo entiende es peor que mostrarlo tal cual y
+      explicarlo.
   - id: BR-2c31f48
     status: active
     title: Una tarea nace sin marcar y solo se tacha a sí misma
@@ -94,6 +103,47 @@ rules:
     context: >-
       Un bloque que nadie ha medido ocupa la columna entera, salvo el video, que no se agranda más allá de la resolución
       del archivo.
+  - id: BR-357e60a
+    status: active
+    title: Buscar en la página abre lo que esconde la coincidencia
+    rule: >-
+      Buscar dentro de una página resalta todas las coincidencias, dice cuántas son y en cuál se está, y al llegar a una
+      que está dentro de un encabezado plegado o de un desplegable cerrado lo abre. Solo se abre lo que esconde esa
+      coincidencia, no los demás pliegues de la página. Buscar y saltar de una coincidencia a otra no entra en el
+      historial de deshacer; reemplazar sí.
+    why: >-
+      Una coincidencia que no se puede ver no es una coincidencia encontrada. Y abrir de paso los pliegues vecinos le
+      deshace a quien lee un orden que había elegido. Deshacer justo después de buscar debe devolver la última frase
+      escrita, no la búsqueda.
+  - id: BR-39b1413
+    status: active
+    title: La barra de formato pertenece al momento de elegir
+    rule: >-
+      La barra que aparece sobre un texto elegido se va en cuanto quien lee deja de tener esa escritura en las manos: al
+      colapsar la selección, al pinchar en otro campo o al irse a otra parte de la página. No se va porque el foco haya
+      entrado en un menú que la propia barra abrió, ni porque se haya dejado la ventana entera.
+    why: >-
+      El editor conserva la selección cuando pierde el foco, para devolverla al volver, pero una barra flotando sobre un
+      texto que ya nadie tiene elegido no ofrece nada: solo tapa la escritura y estorba, sobre todo a quien se mueve con
+      las flechas del teclado.
+  - id: BR-400b88c
+    status: active
+    title: La página no afirma lo que no sabe de una persona
+    rule: >-
+      Al pasar el cursor sobre una persona nombrada se muestra su nombre y, cuando el dato está a mano, la dirección con
+      que se la alcanza. Cuando no se sabe más, se muestra solo el nombre: nunca se dice que la persona ya no está.
+    why: >-
+      Con lo que el editor tiene no hay forma de distinguir «esta persona se fue» de «nadie cargó la lista», y decir lo
+      primero es afirmar algo falso sobre alguien que está ahí.
+  - id: BR-42fc687
+    status: active
+    title: El día se cuenta en el huso de quien lee
+    rule: >-
+      Hoy, mañana y ayer se calculan sobre el día local de quien escribe, nunca sumando horas en UTC, y una fecha se
+      muestra siempre en el formato y el idioma de quien lee.
+    why: >-
+      A las diez de la noche en Santiago ya es el día siguiente en UTC, de modo que «hoy» escribiría mañana y «mañana»
+      pasado. Un día es el día del calendario de quien lo nombra.
   - id: BR-47933f7
     status: active
     title: Un aviso dice de qué clase es, no qué dibujo lleva
@@ -317,6 +367,17 @@ rules:
     why: >-
       Escribirles un contenido vacío es una forma que la página rechaza, y el rechazo aparece en medio de una tecla, sin
       que nadie entienda qué hizo mal.
+  - id: BR-a75d589
+    status: active
+    title: La página dice en qué va su guardado, en un solo lugar
+    rule: >-
+      La página dice si está guardando, a qué hora terminó, o que hay algo sin guardar, y lo dice en un solo lugar,
+      junto al título. Si se pierde la conexión lo avisa y no intenta guardar; cuando vuelve, envía lo pendiente sola.
+      Cerrar la pestaña con algo sin guardar avisa antes de salir, y solo entonces. Un error de guardado nunca aparece
+      sin decir qué hacer.
+    why: >-
+      Quien escribe necesita saber si su trabajo está a salvo, y dos indicadores diciendo lo mismo en dos sitios no dan
+      más certeza sino menos. Intentar guardar sin conexión solo produce errores que no significan nada.
   - id: BR-a87ec49
     status: active
     title: Video y grabación se reproducen en la página
@@ -414,6 +475,17 @@ rules:
       Un diagrama existe para mirarlo, y uno grande no se entiende ni de una sola mirada ni a través de una ventana del
       ancho de un párrafo.
     context: Tomar un dibujo con el puntero no escribe en la página, así que ese gesto no llega al editor ni mueve el cursor.
+  - id: BR-c84eff6
+    status: active
+    title: Escribir `@` ofrece páginas, personas y días en una sola lista
+    rule: >-
+      Lo escrito tras `@` se busca a la vez entre las páginas, entre los miembros del espacio de esa página y entre los
+      días con nombre (hoy, mañana, ayer), y las respuestas se ordenan por cercanía a lo escrito, no agrupadas por tipo.
+      Cada una se distingue por su propio icono.
+    why: >-
+      Quien escribe `@ana` no está pensando «voy a mencionar una persona»: está buscando a Ana. Obligar a elegir primero
+      la clase de cosa es preguntar por la máquina en vez de responder lo que se quiso decir.
+    context: Solo aparecen personas con acceso al espacio de esa página.
   - id: BR-cbe82d0
     status: active
     title: La tarjeta de un enlace guarda lo que se leyó
@@ -436,6 +508,28 @@ rules:
     why: >-
       Un dibujo dejado en los colores de la noche es ilegible de día, y nadie va a reescribir un diagrama para arreglar
       eso.
+  - id: BR-d8c9964
+    status: active
+    title: Una fecha nombrada es una palabra de la frase
+    rule: >-
+      Una fecha nombrada en medio de un texto se dibuja a la altura de la línea que la rodea, igual que una persona
+      nombrada o una fórmula en línea, y el tamaño mínimo de objetivo táctil se aplica a la superficie del calendario
+      que se abre, nunca a la palabra escrita.
+    why: >-
+      La regla de los 44 píxeles existe para controles que un dedo tiene que acertar. Aplicada a una palabra dentro de
+      una frase, estira esa línea —de 27 a 44 píxeles— y hace saltar el texto alrededor.
+  - id: BR-dc4e430
+    status: active
+    title: Nada que dependa del navegador se lee al dibujar la página por primera vez
+    rule: >-
+      El estado de la conexión, el tamaño de la ventana y cualquier otra cosa que solo el navegador conoce se leen
+      después de montar la página, nunca mientras se decide el primer dibujo.
+    why: >-
+      El servidor y el navegador tienen que dibujar lo mismo la primera vez. Al leer el estado de la conexión durante el
+      primer dibujo, el servidor decidió que estaba sin conexión —Node tiene un `navigator` sin `onLine`— y el navegador
+      que sí; React rehizo ese trozo del árbol y el editor quedó agarrado a un nodo que ya no estaba en la página, de
+      modo que no se podía escribir en ninguna parte de la aplicación.
+    context: Es una regla transversal, aunque el caso que la reveló fuera el guardado.
   - id: BR-dc609a1
     status: active
     title: Un botón escribe lo que tiene dentro
@@ -498,6 +592,18 @@ rules:
       debería llevar esto—, y tener que decir de antemano cuál de las dos es sería una pregunta sobre la máquina. Un
       enlace roto guardado en silencio es peor que no dejar guardarlo.
     context: Un enlace puede llevar a la web, a un correo o a una página de esta app.
+  - id: BR-eab444c
+    status: active
+    title: Lo pegado se une a la escritura donde cae
+    rule: >-
+      Pegar texto sin formato une lo pegado a la escritura donde cae: la primera línea continúa el bloque en que está el
+      cursor y la última se junta con lo que seguía, de modo que pegar una palabra en medio de una frase no la parte.
+      Solo las líneas del medio forman bloques propios. Un pegado de Markdown, en cambio, llega como bloques enteros.
+    why: >-
+      Un bloque que crece con el tamaño de lo pegado termina siendo más largo de lo que la página acepta, y entonces no
+      se puede guardar: cuanto más grande el pegado, más segura la pérdida. Y una palabra pegada en una frase es parte
+      de la frase, no una frase nueva.
+    context: Un encabezado o una lista pegados como Markdown sí son bloques, y por eso no se funden con el párrafo donde caen.
   - id: BR-f1c0b40
     status: active
     title: El índice se lee de la página, no se guarda
