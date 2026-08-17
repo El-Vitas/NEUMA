@@ -93,4 +93,23 @@ describe('SearchResults', () => {
 
     expect(screen.getByRole('status').textContent).toBe('Showing 0 results');
   });
+
+  it('keeps the verb singular along with the noun when there is exactly one result', () => {
+    renderResults({
+      items: [
+        {
+          contentType: 'guide',
+          rank: 0.8,
+          snippet: [{ highlighted: false, text: 'Onboarding' }],
+          sourceId: 'page-1',
+          sourceType: 'PAGE',
+          spaceId: 'space-1',
+          title: 'Onboarding page',
+          updatedAt: '2026-08-03T12:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(screen.getByRole('status').textContent).toBe('Showing 1 result');
+  });
 });

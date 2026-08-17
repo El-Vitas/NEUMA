@@ -9,18 +9,22 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { PAGE_API_ROUTES, PAGES_CACHE_TAG } from '../../constants/pages.constants';
+import { PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import {
   pageBlocksHandoverSchema,
   pageDestinationsSchema,
-  pageLifecycleMutationSchema,
+  pageLocatorSchema,
   pageMoveSchema,
   pageMutationSchema,
+  pageRestoreMutationSchema,
   pageSummarySchema,
   pagesListSchema,
 } from '../../schemas/pages.schemas';
+import { trashRestoreOutcomeSchema } from '../../schemas/pages.trash.schemas';
 import type { PageDestination } from '../../types/pages.editor.destination.types';
+import type { TrashRestoreOutcome } from '../../types/pages.trash.types';
 
-const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
+export const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
   const accessToken = await requireAccessTokenCookie();
   return apiRequest<T>(endpoint, accessToken, {
     body: JSON.stringify(body),
@@ -108,16 +112,23 @@ export const addBlocksToPageAction = actionClient
     }),
   );
 
-export const trashPageAction = actionClient.inputSchema(pageLifecycleMutationSchema).action(async ({ parsedInput }) =>
+export const trashPageAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'trashPage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.trash(parsedInput.spaceId, parsedInput.pageId), 'POST', {});
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    updateTag(PAGE_TRASH_CACHE_TAG);
   }),
 );
 
-export const restorePageAction = actionClient.inputSchema(pageLifecycleMutationSchema).action(async ({ parsedInput }) =>
-  withAction({ action: 'restorePage' }, async () => {
-    await authenticatedRequest(PAGE_API_ROUTES.restore(parsedInput.spaceId, parsedInput.pageId), 'POST', {});
+export const restorePageAction = actionClient.inputSchema(pageRestoreMutationSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'restorePage' }, async (): Promise<TrashRestoreOutcome> => {
+    const response = await authenticatedRequest(
+      PAGE_API_ROUTES.restore(parsedInput.spaceId, parsedInput.pageId),
+      'POST',
+      { includeChildren: parsedInput.includeChildren ?? false },
+    );
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    updateTag(PAGE_TRASH_CACHE_TAG);
+    return trashRestoreOutcomeSchema.parse(response);
   }),
 );

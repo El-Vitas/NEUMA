@@ -40,3 +40,37 @@ export const hasValidPageParent = (
   const parent = pages.find((candidate) => candidate.id === parentId);
   return parent?.spaceId === page.spaceId && parent.id !== page.id;
 };
+
+/**
+ * Every page nested under `pageId`, at any depth, so a trash or restore
+ * action can carry the whole branch with it instead of only the one page.
+ *
+ * A breadth-first walk over a parent-to-children map, since the hierarchy
+ * arrives flat and recursion would need the same map rebuilt on every call.
+ */
+export const collectDescendantIds = (pageId: string, pages: readonly PageParentReference[]): readonly string[] => {
+  const childIdsByParentId = new Map<string, string[]>();
+  for (const page of pages) {
+    if (page.parentId === null) continue;
+    const siblingIds = childIdsByParentId.get(page.parentId) ?? [];
+    siblingIds.push(page.id);
+    childIdsByParentId.set(page.parentId, siblingIds);
+  }
+
+  const descendantIds: string[] = [];
+  const queue = [...(childIdsByParentId.get(pageId) ?? [])];
+  let cursor = 0;
+  while (cursor < queue.length) {
+    const currentId = queue[cursor];
+    cursor += 1;
+    if (currentId === undefined) continue;
+    descendantIds.push(currentId);
+    queue.push(...(childIdsByParentId.get(currentId) ?? []));
+  }
+  return descendantIds;
+};
+
+export const pageTitleMatchesSearch = (title: string, search: null | string): boolean => {
+  const trimmedSearch = search?.trim().toLowerCase() ?? '';
+  return trimmedSearch.length === 0 || title.toLowerCase().includes(trimmedSearch);
+};

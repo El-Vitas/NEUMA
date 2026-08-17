@@ -1,0 +1,53 @@
+'use server';
+
+import 'server-only';
+
+import { updateTag } from 'next/cache';
+import { actionClient } from '@/lib/safe-action';
+import { apiRequest } from '@/shared/lib/api-server';
+import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
+import { withAction } from '@/shared/lib/with-action.lib';
+import { PAGE_API_ROUTES, PAGES_CACHE_TAG } from '../../constants/pages.constants';
+import { PAGE_TRASH_API_ROUTES, PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
+import { pageLocatorSchema } from '../../schemas/pages.schemas';
+import { trashDescendantsPreviewSchema, trashEmptySchema } from '../../schemas/pages.trash.schemas';
+import type { TrashDescendantsPreview } from '../../types/pages.trash.types';
+import { authenticatedRequest } from './pages.actions';
+
+export const getPageTrashPreviewAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'getPageTrashPreview' }, async (): Promise<TrashDescendantsPreview> => {
+    const accessToken = await requireAccessTokenCookie();
+    const response = await apiRequest<unknown>(
+      PAGE_TRASH_API_ROUTES.trashPreview(parsedInput.spaceId, parsedInput.pageId),
+      accessToken,
+    );
+    return trashDescendantsPreviewSchema.parse(response);
+  }),
+);
+
+export const getPageRestorePreviewAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'getPageRestorePreview' }, async (): Promise<TrashDescendantsPreview> => {
+    const accessToken = await requireAccessTokenCookie();
+    const response = await apiRequest<unknown>(
+      PAGE_TRASH_API_ROUTES.restorePreview(parsedInput.spaceId, parsedInput.pageId),
+      accessToken,
+    );
+    return trashDescendantsPreviewSchema.parse(response);
+  }),
+);
+
+export const deletePageForeverAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'deletePageForever' }, async () => {
+    await authenticatedRequest(PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId), 'DELETE', {});
+    updateTag(PAGE_TRASH_CACHE_TAG);
+    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+  }),
+);
+
+export const emptyTrashAction = actionClient.inputSchema(trashEmptySchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'emptyTrash' }, async () => {
+    await authenticatedRequest(PAGE_TRASH_API_ROUTES.empty(parsedInput.spaceId), 'DELETE', {});
+    updateTag(PAGE_TRASH_CACHE_TAG);
+    if (parsedInput.spaceId !== undefined) updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+  }),
+);

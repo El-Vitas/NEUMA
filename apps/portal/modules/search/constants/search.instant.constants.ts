@@ -1,0 +1,1 @@
+export const SEARCH_INSTANT_RESULT_LIMIT = 6;

@@ -59,6 +59,7 @@
     "collapseSpace": "Contraer {name}",
     "expandSpace": "Expandir {name}",
     "docs": "Documentación",
+    "trash": "Papelera",
     "users": "Usuarios",
     "account": "Cuenta",
     "profile": "Perfil",
@@ -125,11 +126,31 @@
         "DATABASE_RECORD": "Registro de base de datos"
       },
       "spaceValue": "Espacio: {space}",
-      "resultCount": "Se muestran {count, plural, one {# resultado} other {# resultados}}",
+      "resultCount": "{count, plural, one {Se muestra # resultado} other {Se muestran # resultados}}",
       "nextPage": "Cargar más resultados",
       "emptyTitle": "No se encontraron resultados",
       "emptyDescription": "Prueba otra consulta o elimina un filtro.",
       "loadError": "No se pudieron cargar los resultados. Comprueba tu conexión e inténtalo de nuevo."
+    },
+    "finder": {
+      "label": "Buscador rápido",
+      "placeholder": "Busca una página o escribe una acción",
+      "pagesGroup": "Páginas",
+      "actionsGroup": "Acciones",
+      "recentGroup": "Vistas recientemente",
+      "empty": "Sin resultados",
+      "actions": {
+        "createPage": "Crear una página",
+        "goToSpace": "Ir a un espacio",
+        "openTrash": "Abrir la papelera",
+        "goHome": "Ir al inicio"
+      },
+      "keyboardHelp": "Usa las flechas para moverte, Enter para abrir y Esc para cerrar"
+    },
+    "recents": {
+      "title": "Recientes",
+      "empty": "Todavía no has visto ninguna página",
+      "spaceLabel": "En {space}"
     }
   },
   "account": {
@@ -315,11 +336,110 @@
     "trashPage": "Enviar a la papelera",
     "restorePage": "Restaurar página",
     "empty": "Este espacio aún no tiene páginas.",
-    "restoreNamed": "Restaurar {name}",
     "trashNamed": "Enviar {name} a la papelera",
     "permissionError": "No tienes permisos para cambiar esta página.",
     "restored": "Página restaurada",
     "trashed": "Página enviada a la papelera",
+    "trashScreen": {
+      "description": "Páginas eliminadas de este espacio. Puedes restaurarlas o eliminarlas para siempre.",
+      "empty": "No hay nada en la papelera",
+      "searchLabel": "Buscar en la papelera",
+      "searchPlaceholder": "Busca por título de página",
+      "noSearchResults": "No hay resultados para «{query}»",
+      "deletedAt": "Eliminada el",
+      "deletedBy": "Eliminada por",
+      "deleteForever": "Eliminar para siempre",
+      "emptyTrash": "Vaciar la papelera",
+      "deleteForeverTitle": "¿Eliminar esta página para siempre?",
+      "deleteForeverBody": "Esta acción no se puede deshacer. La página y su contenido se eliminarán para siempre.",
+      "emptyTrashTitle": "¿Vaciar la papelera?",
+      "emptyTrashBody": "Se eliminarán para siempre todas las páginas de la papelera. Esta acción no se puede deshacer.",
+      "attachmentsWarning": "Los archivos adjuntos de la página también se eliminan para siempre.",
+      "childPagesWarning": "{count, plural, one {También se eliminará # página hija} other {También se eliminarán # páginas hijas}}",
+      "childPagesWillBeTrashedWarning": "{count, plural, one {También se enviará # página hija a la papelera} other {También se enviarán # páginas hijas a la papelera}}",
+      "trashConfirmTitle": "¿Enviar esta página a la papelera?",
+      "trashConfirmBody": "La página se moverá a la papelera. Podrás restaurarla más tarde o eliminarla para siempre.",
+      "restoredToRoot": "Página restaurada. Su página madre ya no existe, así que quedó en la raíz del espacio.",
+      "restoreChildPagesQuestion": "¿Restaurar también sus páginas hijas?",
+      "restoreChildPagesYes": "Restaurar también las páginas hijas",
+      "restoreChildPagesNo": "Restaurar solo esta página",
+      "restoreError": "No se pudo restaurar la página. Intenta de nuevo.",
+      "deleteForeverError": "No se pudo eliminar la página para siempre. Intenta de nuevo.",
+      "mentionedPageDeleted": "Esta página se eliminó"
+    },
+    "favorites": {
+      "add": "Agregar {name} a favoritas",
+      "remove": "Quitar {name} de favoritas",
+      "title": "Favoritas",
+      "empty": "No tienes páginas favoritas",
+      "moveUp": "Subir {name} una posición",
+      "moveDown": "Bajar {name} una posición"
+    },
+    "info": {
+      "title": "Información",
+      "createdBy": "Creada por",
+      "createdAt": "Creada el",
+      "lastEditedBy": "Editada por última vez por",
+      "lastEditedAt": "Editada el",
+      "wordCount": "{count, plural, one {# palabra} other {# palabras}}",
+      "characterCount": "{count, plural, one {# carácter} other {# caracteres}}"
+    },
+    "appearance": {
+      "title": "Aspecto",
+      "fullWidth": "Ancho completo",
+      "textSize": "Tamaño del texto",
+      "textSizeOptions": {
+        "small": "Pequeño",
+        "normal": "Normal",
+        "large": "Grande"
+      },
+      "typography": "Tipografía",
+      "typographyOptions": {
+        "system": "Del sistema",
+        "serif": "Con remates",
+        "monospace": "De ancho fijo"
+      },
+      "scopeNote": "Esto solo vale para esta página"
+    },
+    "preview": {
+      "label": "Vista previa de la página",
+      "loading": "Cargando la vista previa...",
+      "empty": "Esta página todavía no tiene nada escrito",
+      "noAccess": "No se puede mostrar esta vista previa porque no tienes acceso"
+    },
+    "searchFilters": {
+      "title": "Filtros",
+      "spaceLabel": "Espacio",
+      "spacePlaceholder": "Filtrar por espacio",
+      "authorLabel": "Autor",
+      "authorPlaceholder": "Filtrar por autor",
+      "editedLabel": "Fecha de edición",
+      "editedPlaceholder": "Filtrar por fecha de edición",
+      "dateOptions": {
+        "today": "Hoy",
+        "lastSevenDays": "Últimos siete días",
+        "lastMonth": "Último mes",
+        "thisYear": "Este año",
+        "anyDate": "Cualquier fecha"
+      },
+      "removeFilter": "Quitar el filtro {name}",
+      "clearAll": "Limpiar todos los filtros"
+    },
+    "propertiesPanel": {
+      "showMore": "{count, plural, one {Mostrar # propiedad más} other {Mostrar # propiedades más}}",
+      "empty": "Esta página no tiene propiedades"
+    },
+    "attachmentsPanel": {
+      "columns": {
+        "name": "Nombre",
+        "type": "Tipo",
+        "size": "Peso",
+        "uploadedBy": "Subido por"
+      },
+      "deleteConfirmTitle": "¿Eliminar este archivo adjunto?",
+      "deleteConfirmBody": "El archivo se eliminará para siempre. Esta acción no se puede deshacer.",
+      "fileTooLarge": "El archivo pesa más de {limit} y no se puede subir."
+    },
     "commands": {
       "bold": "Negrita",
       "italic": "Cursiva",

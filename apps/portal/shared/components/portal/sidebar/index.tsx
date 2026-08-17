@@ -3,6 +3,7 @@
 import type { UserRole } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { FavoritesSection } from '@/modules/favorites/components/favorites.section';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -10,6 +11,7 @@ import {
 } from '@/modules/portal/constants/sidebar.constants';
 import { useSidebarCollapsed } from '@/modules/portal/hooks/use.sidebar.collapsed';
 import type { PortalLayoutSpace, PortalLayoutUser } from '@/modules/portal/types/portal.types';
+import type { FavoritePage } from '@/shared/types/favorites.types';
 import type { ThemeChoice } from '@/shared/types/theme.types';
 import { SidebarAccount } from './sidebar-account';
 import { SidebarBrand } from './sidebar-brand';
@@ -18,6 +20,7 @@ import { SidebarSpaces } from './sidebar-spaces';
 import { SidebarToggle } from './sidebar-toggle';
 
 interface SidebarProps {
+  readonly favorites: readonly FavoritePage[];
   readonly role: UserRole;
   readonly themeChoice: ThemeChoice;
   readonly onNavigate?: () => void;
@@ -28,6 +31,7 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({
+  favorites,
   role,
   onNavigate,
   spaces,
@@ -54,6 +58,7 @@ export const Sidebar = ({
       </div>
 
       <SidebarNav collapsed={isCollapsed} onNavigate={onNavigate} role={role} />
+      {!isCollapsed && <FavoritesSection favorites={favorites} onNavigate={onNavigate} />}
       <SidebarSpaces collapsed={isCollapsed} onNavigate={onNavigate} role={role} spaces={spaces} />
       <SidebarAccount collapsed={isCollapsed} themeChoice={themeChoice} user={user} />
 

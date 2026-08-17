@@ -2,7 +2,17 @@ import type { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
+import { PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';
+
+export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
+
+export interface PageHierarchyRow extends PageParentReference {
+  readonly lifecycle: PageLifecycle;
+  readonly title: string;
+  readonly trashedAt: Date | null;
+  readonly updatedById: string;
+}
 
 export interface CreatePageInput {
   readonly content: Prisma.InputJsonValue;
@@ -29,6 +39,8 @@ export interface UpdatePageInput {
 
 export interface PageSummary {
   readonly content: Prisma.JsonValue;
+  readonly createdAt: Date;
+  readonly createdBy: null | { readonly id: string; readonly name: string };
   readonly id: string;
   readonly lifecycle: PageLifecycle;
   readonly order: number;
@@ -36,6 +48,8 @@ export interface PageSummary {
   readonly propertyValues: SchemaPropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
+  readonly updatedAt: Date;
+  readonly updatedBy: null | { readonly id: string; readonly name: string };
   readonly version: number;
 }
 
@@ -50,8 +64,51 @@ export interface PageListOptions {
   readonly includeTrashed: boolean;
 }
 
+export interface PageDescendantsPreview {
+  readonly childPageCount: number;
+}
+
+export interface PageRestoreOutcome {
+  readonly restoredChildCount: number;
+  readonly restoredToRoot: boolean;
+}
+
+export interface PageAttachmentsCleanupRepositoryContract {
+  readonly deleteForPages: (pageIds: readonly string[]) => Promise<void>;
+  readonly listStorageKeysForPages: (pageIds: readonly string[]) => Promise<readonly string[]>;
+}
+
+export interface TrashedPageSummary {
+  readonly deletedAt: Date;
+  readonly deletedBy: null | { readonly id: string; readonly name: string };
+  readonly id: string;
+  readonly parentId: null | string;
+  readonly spaceId: string;
+  readonly title: string;
+  readonly trashedChildCount: number;
+}
+
 export interface PageRepositoryContract {
+  readonly countDescendantsByLifecycle: (
+    pageId: string,
+    lifecycle: PageLifecycle,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<null | number>;
   readonly create: (input: CreatePageInput) => Promise<PageSummary | null>;
+  readonly deleteForever: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageDeleteForeverOutcome>;
+  readonly emptyTrash: (
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    spaceId: null | string,
+  ) => Promise<readonly string[]>;
   readonly findReadablePageIds: (
     pageIds: readonly string[],
     workspaceId: string,
@@ -70,6 +127,13 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<PageMoveContext | null>;
+  readonly listTrashed: (
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    spaceId: null | string,
+    search: null | string,
+  ) => Promise<readonly TrashedPageSummary[]>;
   readonly move: (
     pageId: string,
     parentId: null | string,
@@ -86,9 +150,16 @@ export interface PageRepositoryContract {
     role: UserRole,
     includeTrashed: boolean,
   ) => Promise<readonly PageSummary[]>;
-  readonly setLifecycle: (
+  readonly restoreCascade: (
     pageId: string,
-    lifecycle: PageLifecycle,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+    mutationId: string,
+    includeChildren: boolean,
+  ) => Promise<null | PageRestoreOutcome>;
+  readonly trashCascade: (
+    pageId: string,
     userId: string,
     workspaceId: string,
     role: UserRole,

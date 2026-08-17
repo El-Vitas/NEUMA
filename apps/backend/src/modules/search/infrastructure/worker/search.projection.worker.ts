@@ -18,6 +18,8 @@ import type {
 import { extractPageContentText } from '../../utils/search.content.utils';
 
 const toPageProjection = (page: {
+  authorId: string;
+  authorName: string | null;
   content: unknown;
   id: string;
   spaceId: string;
@@ -30,7 +32,7 @@ const toPageProjection = (page: {
     contentType: 'PAGE',
     extractedText: extractPageContentText(content),
     language: null,
-    properties: {},
+    properties: { authorId: page.authorId, authorName: page.authorName },
     sourceId: page.id,
     sourceType: SearchSourceType.PAGE,
     spaceId: page.spaceId,

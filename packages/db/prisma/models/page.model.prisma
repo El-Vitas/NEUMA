@@ -20,6 +20,7 @@ model Page {
   linksAsTarget    PageLink[]           @relation("PageLinkTarget")
   schemaProperties PageSchemaProperty[]
   schemaViews      PageSchemaView[]
+  favorites        PageFavorite[]
 
   @@index([spaceId, lifecycle, order])
   @@index([parentId, order])

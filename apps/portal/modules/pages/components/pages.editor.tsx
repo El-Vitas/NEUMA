@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { FormActions } from '@/shared/components/forms/form-actions';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
 import { BackButton } from '@/shared/components/ui/back-button';
@@ -20,7 +21,9 @@ import {
   PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
   PAGE_OUTLINE_SIDE_STYLE_CLASS,
 } from '../constants/pages.editor.contents.constants';
+import { usePagesAppearance } from '../hooks/use.pages.appearance';
 import { usePagesAutosave } from '../hooks/use.pages.autosave';
+import { getPageAppearanceWidthStyleClass } from '../lib/pages.appearance.lib';
 import {
   buildPageAssetInsertOptionsFromAttachment,
   mapAttachmentMimeTypeToPageAssetNodeType,
@@ -28,6 +31,7 @@ import {
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { createEmptyPageContent } from '../lib/pages.editor.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
+import { toPageInfoMetadata } from '../lib/pages.info.lib';
 import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { createPageAction, updatePageAction } from '../server/actions/pages.actions';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
@@ -49,6 +53,7 @@ interface IProps {
   readonly collectionSection?: ReactNode;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
+  readonly isFavorite?: boolean;
   readonly page: PageSummary | null;
   readonly pageId: string | null;
   readonly pages: readonly PageSummary[];
@@ -57,6 +62,7 @@ interface IProps {
   readonly parentSchema?: PageSchema | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly spaceId: string;
+  readonly spaceName?: string;
 }
 
 export const PagesEditor = ({
@@ -66,6 +72,7 @@ export const PagesEditor = ({
   collectionSection = null,
   embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
+  isFavorite,
   page,
   pageId,
   pages,
@@ -74,6 +81,7 @@ export const PagesEditor = ({
   parentSchema = null,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   spaceId,
+  spaceName,
 }: IProps) => {
   const router = useRouter();
   const t = useTranslations('pages');
@@ -91,6 +99,7 @@ export const PagesEditor = ({
   );
   const propertyValuesRef = useRef(propertyValues);
   const [headings, setHeadings] = useState<readonly PageEditorHeading[]>(EMPTY_PAGE_HEADINGS);
+  const appearance = usePagesAppearance(pageId);
 
   const updateCurrentPage = async (): Promise<boolean> => {
     const result = await updatePageAction({
@@ -164,18 +173,27 @@ export const PagesEditor = ({
         </p>
       )}
       <div className={PAGE_OUTLINE_LAYOUT_STYLE_CLASS}>
-        <div className="w-full min-w-0 space-y-8" data-testid="page-editor-workspace">
+        <div
+          className={cn('w-full min-w-0 space-y-8', getPageAppearanceWidthStyleClass(appearance.preferences.fullWidth))}
+          data-testid="page-editor-workspace"
+        >
           <PagesHeader
+            appearance={appearance}
             canEdit={canEdit}
+            content={page?.content}
             displayState={headerDisplayState}
+            info={page === null ? undefined : toPageInfoMetadata(page)}
+            isFavorite={isFavorite}
             onTitleChange={(nextTitle) => {
               titleRef.current = nextTitle;
               setTitle(nextTitle);
               autosave.schedule(nextTitle.trim().length > 0);
             }}
+            pageId={pageId}
             parentPages={parentBreadcrumbPages}
             savedAt={autosave.savedAt}
             spaceId={spaceId}
+            spaceName={spaceName}
             title={title}
             titleInputRef={titleInputRef}
           />
@@ -211,6 +229,8 @@ export const PagesEditor = ({
             personOptions={personOptions}
             ref={editorHandleRef}
             spaceId={spaceId}
+            textSize={appearance.preferences.textSize}
+            typography={appearance.preferences.typography}
           />
           {canEdit && page === null && (
             <FormActions back={<BackButton href={ROUTES.PORTAL_SPACE(spaceId)} />}>

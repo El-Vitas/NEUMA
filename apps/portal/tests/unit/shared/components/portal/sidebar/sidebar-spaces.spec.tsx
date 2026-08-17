@@ -8,7 +8,6 @@ import en from '../../../../../../messages/en.json';
 let pathname = '/spaces/engineering/pages/architecture';
 
 mock.module('next/navigation', () => ({
-  usePathname: () => pathname,
   useRouter: () => ({ refresh: () => undefined }),
 }));
 
@@ -18,11 +17,15 @@ mock.module('@/i18n/navigation', () => ({
       {children}
     </a>
   ),
+  usePathname: () => pathname,
 }));
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   restorePageAction: mock(async () => ({ data: undefined })),
-  trashPageAction: mock(async () => ({ data: undefined })),
+}));
+
+mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
+  PagesTrashConfirmDialog: () => null,
 }));
 
 const { SidebarSpaces } = await import('@/shared/components/portal/sidebar/sidebar-spaces');
@@ -115,12 +118,13 @@ describe('SidebarSpaces', () => {
     unmountViewer();
   });
 
-  it('keeps a trashed-only space browsable so its pages stay reachable for restore', () => {
+  it('does not offer a disclosure toggle for a space whose only pages are in the trash', () => {
     pathname = '/spaces/archive';
     renderSidebarSpaces('ADMIN', [trashedOnlySpace]);
 
-    expect(screen.getByRole('button', { name: 'Collapse Archive' }).getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByRole('link', { name: /Old handbook/ })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Collapse Archive' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Expand Archive' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Old handbook/ })).toBeNull();
   });
 
   it('does not offer a disclosure toggle for a space that genuinely has no pages', () => {

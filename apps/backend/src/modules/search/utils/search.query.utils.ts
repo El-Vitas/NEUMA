@@ -7,8 +7,8 @@ import {
   SEARCH_MAX_TAG_LENGTH,
   SEARCH_MAX_TAGS,
 } from '../../../common/constants/search.constants';
-import type { SearchQuery } from '../../../common/types/search.types';
-import type { SearchQueryParams } from '../types/search.types';
+import { SEARCH_EDITED_RANGE_VALUES, SEARCH_MAX_AUTHOR_QUERY_LENGTH } from '../constants/search.constants';
+import type { SearchEditedRange, SearchQueryParams, SearchQueryWithFilters } from '../types/search.types';
 
 const normalizeOptionalText = (value: string | undefined, maxLength: number): string | undefined => {
   if (value === undefined) return;
@@ -32,17 +32,24 @@ const normalizeLimit = (value: number | string | undefined): number => {
   return Math.min(parsed, SEARCH_MAX_LIMIT);
 };
 
+const normalizeEditedRange = (value: string | undefined): SearchEditedRange | undefined =>
+  SEARCH_EDITED_RANGE_VALUES.find((candidate) => candidate === value);
+
 export const normalizeSearchQuery = (
   params: SearchQueryParams,
-): Omit<SearchQuery, 'userId' | 'userRole' | 'workspaceId'> => {
+): Omit<SearchQueryWithFilters, 'userId' | 'userRole' | 'workspaceId'> => {
   const normalizedQuery = (params.query ?? '').trim().slice(0, SEARCH_MAX_QUERY_LENGTH);
+  const authorQuery = normalizeOptionalText(params.authorQuery, SEARCH_MAX_AUTHOR_QUERY_LENGTH);
   const contentType = normalizeOptionalText(params.contentType, SEARCH_MAX_CONTENT_TYPE_LENGTH);
   const cursor = normalizeOptionalText(params.cursor, SEARCH_MAX_CURSOR_LENGTH);
+  const editedRange = normalizeEditedRange(params.editedRange);
   const spaceId = normalizeOptionalText(params.spaceId, 128);
   const tags = normalizeTags(params.tags);
   return {
+    ...(authorQuery === undefined ? {} : { authorQuery }),
     ...(contentType === undefined ? {} : { contentType }),
     ...(cursor === undefined ? {} : { cursor }),
+    ...(editedRange === undefined ? {} : { editedRange }),
     limit: normalizeLimit(params.limit),
     query: normalizedQuery,
     ...(params.sourceType === undefined ? {} : { sourceType: params.sourceType }),

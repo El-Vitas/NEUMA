@@ -1,5 +1,5 @@
 import type { Result } from '@company-brain/shared';
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
@@ -8,8 +8,10 @@ import { PageAccessDeniedError, type PageLifecycleError } from './domain/page.er
 import { CreatePageDto } from './dto/page.create.dto';
 import { ListPagesDto } from './dto/page.list.dto';
 import { MovePageDto } from './dto/page.move.dto';
+import { RestorePageDto } from './dto/page.restore.dto';
 import { UpdatePageDto } from './dto/page.update.dto';
 import { PagesService } from './pages.service';
+import type { PageDescendantsPreview, PageRestoreOutcome } from './types/page.types';
 
 @Controller('spaces/:spaceId/pages')
 export class PagesController {
@@ -130,12 +132,62 @@ export class PagesController {
   @UseGuards(JwtAuthGuard)
   async restore(
     @Param('pageId') pageId: string,
+    @Body() dto: RestorePageDto,
     @Headers('x-mutation-id') mutationId: string,
     @User('payload') payload: TokenPayload,
-  ) {
-    return this.resolveLifecycleMutation(payload, (workspaceId) =>
-      this.pagesService.restore(pageId, payload.sub, workspaceId, mutationId, payload.role),
+  ): Promise<PageRestoreOutcome> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.restore(
+      pageId,
+      payload.sub,
+      workspace.id,
+      mutationId,
+      payload.role,
+      dto.includeChildren,
     );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Get(':pageId/trash-preview')
+  @UseGuards(JwtAuthGuard)
+  async trashPreview(
+    @Param('pageId') pageId: string,
+    @User('payload') payload: TokenPayload,
+  ): Promise<PageDescendantsPreview> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.previewTrashCascade(pageId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Get(':pageId/restore-preview')
+  @UseGuards(JwtAuthGuard)
+  async restorePreview(
+    @Param('pageId') pageId: string,
+    @User('payload') payload: TokenPayload,
+  ): Promise<PageDescendantsPreview> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.previewRestoreCascade(pageId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Delete(':pageId')
+  @UseGuards(JwtAuthGuard)
+  async deleteForever(@Param('pageId') pageId: string, @User('payload') payload: TokenPayload): Promise<boolean> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.deleteForever(pageId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
   }
 
   private async resolveLifecycleMutation(

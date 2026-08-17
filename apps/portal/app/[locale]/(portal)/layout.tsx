@@ -3,6 +3,7 @@ import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
+import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
@@ -18,8 +19,9 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     return null;
   }
 
-  const spacesResult = await getSpaces();
+  const [spacesResult, favoritesResult] = await Promise.all([getSpaces(), getFavoritePages()]);
   const spaceSummaries = spacesResult.isOk() ? spacesResult.getValue() : [];
+  const favorites = favoritesResult.isOk() ? favoritesResult.getValue() : [];
   const spaces = await Promise.all(
     spaceSummaries.map(async (space) => {
       const pagesResult = await getPages(space.id);
@@ -42,7 +44,7 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
   const theme = await readRequestTheme();
 
   return (
-    <PortalLayout role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
+    <PortalLayout favorites={favorites} role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
       {children}
     </PortalLayout>
   );

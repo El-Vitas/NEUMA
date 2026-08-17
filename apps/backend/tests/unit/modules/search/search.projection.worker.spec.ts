@@ -10,6 +10,8 @@ import type {
 } from '@/modules/search/types/search.types';
 
 const activePage: SearchProjectionPage = {
+  authorId: 'user-1',
+  authorName: 'Ada Lovelace',
   content: {
     content: [{ content: [{ text: 'Prepare launch', type: 'text' }], type: 'paragraph' }],
     schemaVersion: 1,
@@ -85,6 +87,8 @@ describe('SearchProjectionWorker', () => {
   test('projects the current page version and ignores a stale event version', async () => {
     const applied: SearchDocumentInput[] = [];
     const page: SearchProjectionPage = {
+      authorId: 'user-1',
+      authorName: 'Ada Lovelace',
       content: {
         content: [{ content: [{ text: 'Current body', type: 'text' }], type: 'paragraph' }],
         schemaVersion: 1,
@@ -129,7 +133,7 @@ describe('SearchProjectionWorker', () => {
         contentType: 'PAGE',
         extractedText: 'Prepare launch',
         language: null,
-        properties: {},
+        properties: { authorId: 'user-1', authorName: 'Ada Lovelace' },
         sourceId: 'page-1',
         sourceType: 'PAGE',
         spaceId: 'space-1',
@@ -154,6 +158,8 @@ describe('SearchProjectionWorker', () => {
     const source = createSourceStub({
       findPage: () =>
         Promise.resolve({
+          authorId: 'user-1',
+          authorName: 'Ada Lovelace',
           content: {},
           id: 'page-1',
           lifecycle: 'TRASHED',

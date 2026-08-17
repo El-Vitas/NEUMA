@@ -1,5 +1,7 @@
 import { describe, expect, it, spyOn } from 'bun:test';
+import { SEARCH_SOURCE_TYPES } from '@/shared/constants/search.constants';
 import {
+  appendSearchExtraParams,
   buildSearchApiEndpoint,
   formatSearchResultDate,
   mapSearchResponse,
@@ -8,6 +10,10 @@ import {
 import { searchQuerySchema } from '@/shared/schemas/search.schemas';
 
 describe('search.lib', () => {
+  it('offers only source types supported by the search backend', () => {
+    expect(SEARCH_SOURCE_TYPES).toEqual(['PAGE']);
+  });
+
   it('normalizes bounded search parameters once at the URL boundary', () => {
     expect(
       searchQuerySchema.parse({
@@ -37,6 +43,26 @@ describe('search.lib', () => {
     ).toBe(
       '/api/v1/search?contentType=guide&cursor=next-page&limit=20&query=onboarding&sourceType=PAGE&spaceId=space-1&tags=hr%2Csecurity',
     );
+  });
+
+  it('appends extra params callers pass in on top of the supported filters', () => {
+    expect(
+      buildSearchApiEndpoint({ limit: 20, query: 'onboarding' }, { authorQuery: 'Ada', editedRange: 'TODAY' }),
+    ).toBe('/api/v1/search?limit=20&query=onboarding&authorQuery=Ada&editedRange=TODAY');
+  });
+
+  it('leaves a URL untouched when there are no extra params to append', () => {
+    expect(appendSearchExtraParams('/api/v1/search?query=onboarding')).toBe('/api/v1/search?query=onboarding');
+  });
+
+  it('joins extra params onto a URL that already has a query string', () => {
+    expect(appendSearchExtraParams('/api/v1/search?query=onboarding', { authorQuery: 'Ada' })).toBe(
+      '/api/v1/search?query=onboarding&authorQuery=Ada',
+    );
+  });
+
+  it('starts a fresh query string when the URL has none yet', () => {
+    expect(appendSearchExtraParams('/search', { authorQuery: 'Ada' })).toBe('/search?authorQuery=Ada');
   });
 
   it('renders constrained mark snippets as safe text segments', () => {

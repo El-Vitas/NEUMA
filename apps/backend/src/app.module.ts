@@ -27,6 +27,7 @@ import type {
   CollaborationPersistenceAdapter,
   CollaborationTokenAdapter,
 } from './modules/collaboration/types/collaboration.types';
+import { FavoritesModule } from './modules/favorites/favorites.module';
 import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
@@ -74,6 +75,7 @@ import { PrismaModule } from './prisma/prisma.module';
     WorkspacesModule,
     SpacesModule,
     PagesModule,
+    FavoritesModule,
     FilesModule,
     McpModule,
     SearchModule,

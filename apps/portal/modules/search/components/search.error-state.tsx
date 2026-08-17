@@ -17,9 +17,11 @@ export const SearchErrorState = ({ onRetry }: IProps) => {
   return (
     <section aria-live="polite" className="space-y-4">
       <FormErrorBanner message={t('loadError')} />
-      <Button className="min-h-11" disabled={isPending} onClick={() => startTransition(onRetry)} type="button">
-        {isPending ? common('loading') : common('retry')}
-      </Button>
+      <div className="flex justify-end">
+        <Button className="min-h-11" disabled={isPending} onClick={() => startTransition(onRetry)} type="button">
+          {isPending ? common('loading') : common('retry')}
+        </Button>
+      </div>
     </section>
   );
 };

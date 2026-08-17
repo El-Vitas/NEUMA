@@ -9,8 +9,15 @@ import {
   SEARCH_SOURCE_TYPE_VALUES,
 } from '../../../common/constants/search.constants';
 import type { SearchSourceType } from '../../../common/types/search.types';
+import { SEARCH_EDITED_RANGE_VALUES, SEARCH_MAX_AUTHOR_QUERY_LENGTH } from '../constants/search.constants';
+import type { SearchEditedRange } from '../types/search.types';
 
 export class SearchQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(SEARCH_MAX_AUTHOR_QUERY_LENGTH)
+  authorQuery?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(SEARCH_MAX_CONTENT_TYPE_LENGTH)
@@ -20,6 +27,10 @@ export class SearchQueryDto {
   @IsString()
   @MaxLength(SEARCH_MAX_CURSOR_LENGTH)
   cursor?: string;
+
+  @IsOptional()
+  @IsEnum(SEARCH_EDITED_RANGE_VALUES)
+  editedRange?: SearchEditedRange;
 
   @IsOptional()
   @IsInt()

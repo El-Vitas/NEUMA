@@ -1,11 +1,13 @@
 'use client';
 
 import type { UserRole } from '@company-brain/shared';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { restorePageAction, trashPageAction } from '@/modules/pages/server/actions/pages.actions';
+import { usePathname } from '@/i18n/navigation';
+import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
+import { restorePageAction } from '@/modules/pages/server/actions/pages.actions';
 import {
   buildPortalSidebarPageTree,
   getPortalSidebarExpandedPageIds,
@@ -31,6 +33,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [pageToTrash, setPageToTrash] = useState<PortalSidebarPage | null>(null);
   const undoingPageIdRef = useRef<string | null>(null);
   const tree = useMemo(() => buildPortalSidebarPageTree(pages), [pages]);
   const spacePath = ROUTES.PORTAL_SPACE(spaceId);
@@ -78,54 +81,50 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
-  const trashPage = (page: PortalSidebarPage): void => {
-    startTransition(async () => {
-      try {
-        const result = await trashPageAction({ pageId: page.id, spaceId });
-        if (hasActionError(result)) {
-          toast.error(t('permissionError'));
-          return;
-        }
-        toast.success(t('trashed'), {
-          action: {
-            label: t('commands.undo'),
-            onClick: () => restorePage(page),
-          },
-        });
-        router.refresh();
-      } catch {
-        toast.error(t('permissionError'));
-      }
-    });
+  const requestTrash = (page: PortalSidebarPage): void => {
+    setPageToTrash(page);
   };
 
-  const changeLifecycle = (page: PortalSidebarPage): void => {
-    if (page.lifecycle === 'TRASHED') {
-      restorePage(page);
-      return;
-    }
-    trashPage(page);
+  const handlePageTrashed = (): void => {
+    const trashedPage = pageToTrash;
+    setPageToTrash(null);
+    if (trashedPage === null) return;
+    toast.success(t('trashed'), {
+      action: {
+        label: t('commands.undo'),
+        onClick: () => restorePage(trashedPage),
+      },
+    });
+    router.refresh();
   };
 
   const canEdit = canEditContent(role) && !isPending;
 
   return (
-    <ul aria-label={t('pageTree')} className="space-y-px pb-1" data-page-tree="true" id={id}>
-      {tree.map((treeItem) => (
-        <SidebarPageTreeItem
-          canEdit={canEdit}
-          depth={0}
-          expandedPageIds={expandedPageIds}
-          key={treeItem.page.id}
-          onKeyDown={handleSidebarPageTreeKeyDown}
-          onLifecycleChange={changeLifecycle}
-          onNavigate={onNavigate}
-          onToggle={togglePage}
-          selectedPageId={selectedPageId}
-          spaceId={spaceId}
-          treeItem={treeItem}
-        />
-      ))}
-    </ul>
+    <>
+      <ul aria-label={t('pageTree')} className="space-y-px pb-1" data-page-tree="true" id={id}>
+        {tree.map((treeItem) => (
+          <SidebarPageTreeItem
+            canEdit={canEdit}
+            depth={0}
+            expandedPageIds={expandedPageIds}
+            key={treeItem.page.id}
+            onKeyDown={handleSidebarPageTreeKeyDown}
+            onNavigate={onNavigate}
+            onRequestTrash={requestTrash}
+            onToggle={togglePage}
+            selectedPageId={selectedPageId}
+            spaceId={spaceId}
+            treeItem={treeItem}
+          />
+        ))}
+      </ul>
+      <PagesTrashConfirmDialog
+        onClose={() => setPageToTrash(null)}
+        onTrashed={handlePageTrashed}
+        page={pageToTrash === null ? null : { id: pageToTrash.id, title: pageToTrash.title }}
+        spaceId={spaceId}
+      />
+    </>
   );
 };

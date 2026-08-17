@@ -26,6 +26,7 @@ interface IProps {
   readonly collectionSection?: ReactNode;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
+  readonly isFavorite?: boolean;
   readonly isNewPage?: boolean;
   readonly pages: readonly PageSummary[];
   readonly parentId?: string | null;
@@ -33,6 +34,7 @@ interface IProps {
   readonly personOptions?: readonly PagePersonOption[];
   readonly selectedPageId?: string | null;
   readonly spaceId: string;
+  readonly spaceName?: string;
 }
 
 export const PagesWorkspace = ({
@@ -42,6 +44,7 @@ export const PagesWorkspace = ({
   collectionSection = null,
   embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
+  isFavorite,
   isNewPage = false,
   pages,
   parentId = null,
@@ -49,6 +52,7 @@ export const PagesWorkspace = ({
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   selectedPageId = null,
   spaceId,
+  spaceName,
 }: IProps) => {
   const t = useTranslations('pages');
   const selectedPage = pages.find((page) => page.id === selectedPageId) ?? null;
@@ -74,6 +78,7 @@ export const PagesWorkspace = ({
         collectionSection={collectionSection}
         currentUserDisplayName={currentUserDisplayName}
         embeddedCollections={embeddedCollections}
+        isFavorite={isFavorite}
         key={`${selectedPage?.id ?? 'new-page'}:${selectedPage?.lifecycle ?? 'new'}`}
         page={selectedPage}
         pageId={selectedPage?.id ?? null}
@@ -83,6 +88,7 @@ export const PagesWorkspace = ({
         parentSchema={parentSchema}
         personOptions={personOptions}
         spaceId={spaceId}
+        spaceName={spaceName}
       />
     );
   }

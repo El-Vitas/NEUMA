@@ -4,10 +4,16 @@ import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
 import { canReadSpace } from '../../../../common/domain/workspace.domain';
-import type { SearchPage, SearchQuery, SearchResult } from '../../../../common/types/search.types';
+import type { SearchPage, SearchResult } from '../../../../common/types/search.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { SEARCH_TRIGRAM_THRESHOLD } from '../../constants/search.constants';
-import type { SearchDocumentInput, SearchDocumentRemoval, SearchRow } from '../../types/search.types';
+import type {
+  SearchDocumentInput,
+  SearchDocumentRemoval,
+  SearchEditedRange,
+  SearchQueryWithFilters,
+  SearchRow,
+} from '../../types/search.types';
 import { decodeSearchCursor, encodeSearchCursor } from '../../utils/search.cursor.utils';
 
 const searchConfig = Prisma.sql`CASE "searchDocument"."language"
@@ -30,7 +36,7 @@ const mapSearchRow = (row: SearchRow): SearchResult => ({
 });
 
 const buildSearchSql = (
-  query: SearchQuery,
+  query: SearchQueryWithFilters,
   cursor: ReturnType<typeof decodeSearchCursor>,
   rankExpression: Prisma.Sql,
   snippetExpression: Prisma.Sql,
@@ -69,8 +75,24 @@ const buildSearchSql = (
   `;
 };
 
+const buildEditedRangeInterval = (range: SearchEditedRange): Prisma.Sql => {
+  switch (range) {
+    case 'LAST_MONTH':
+      return Prisma.sql`now() - interval '30 days'`;
+    case 'LAST_SEVEN_DAYS':
+      return Prisma.sql`now() - interval '7 days'`;
+    case 'THIS_YEAR':
+      return Prisma.sql`date_trunc('year', now())`;
+    default:
+      return Prisma.sql`date_trunc('day', now())`;
+  }
+};
+
+export const buildEditedRangeFilter = (range: SearchEditedRange): Prisma.Sql =>
+  Prisma.sql`AND "searchDocument"."updatedAt" >= ${buildEditedRangeInterval(range)}`;
+
 const buildFilters = (
-  query: SearchQuery,
+  query: SearchQueryWithFilters,
   cursor: ReturnType<typeof decodeSearchCursor>,
   rankExpression: Prisma.Sql,
 ): Prisma.Sql => {
@@ -82,6 +104,9 @@ const buildFilters = (
     filters.push(Prisma.sql`AND "searchDocument"."contentType" = ${query.contentType}`);
   if (query.tags !== undefined && query.tags.length > 0)
     filters.push(Prisma.sql`AND "searchDocument"."tags" @> ${JSON.stringify(query.tags)}::jsonb`);
+  if (query.authorQuery !== undefined)
+    filters.push(Prisma.sql`AND "searchDocument"."properties"->>'authorName' ILIKE ${`%${query.authorQuery}%`}`);
+  if (query.editedRange !== undefined) filters.push(buildEditedRangeFilter(query.editedRange));
   if (cursor !== null)
     filters.push(Prisma.sql`AND (
       ${rankExpression} < ${cursor.rank}
@@ -132,7 +157,7 @@ export class SearchRepository {
     });
   }
 
-  async search(query: SearchQuery): Promise<SearchPage> {
+  async search(query: SearchQueryWithFilters): Promise<SearchPage> {
     const cursor = decodeSearchCursor(query.cursor);
     const rows = await this.findFullTextMatches(query, cursor);
     const usefulRows = rows.length > 0 ? rows : await this.findTrigramMatches(query, cursor);
@@ -140,7 +165,7 @@ export class SearchRepository {
   }
 
   private async findFullTextMatches(
-    query: SearchQuery,
+    query: SearchQueryWithFilters,
     cursor: ReturnType<typeof decodeSearchCursor>,
   ): Promise<readonly SearchRow[]> {
     const rankExpression = Prisma.sql`ts_rank_cd("searchDocument"."searchVector", ${queryExpression})`;
@@ -161,7 +186,7 @@ export class SearchRepository {
   }
 
   private async findTrigramMatches(
-    query: SearchQuery,
+    query: SearchQueryWithFilters,
     cursor: ReturnType<typeof decodeSearchCursor>,
   ): Promise<readonly SearchRow[]> {
     const rankExpression = Prisma.sql`GREATEST(

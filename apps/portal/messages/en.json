@@ -59,6 +59,7 @@
     "collapseSpace": "Collapse {name}",
     "expandSpace": "Expand {name}",
     "docs": "Documentation",
+    "trash": "Trash",
     "users": "Users",
     "account": "Account",
     "profile": "Profile",
@@ -125,11 +126,31 @@
         "DATABASE_RECORD": "Database record"
       },
       "spaceValue": "Space: {space}",
-      "resultCount": "Showing {count, plural, one {# result} other {# results}}",
+      "resultCount": "{count, plural, one {Showing # result} other {Showing # results}}",
       "nextPage": "Load more results",
       "emptyTitle": "No results found",
       "emptyDescription": "Try a different query or remove a filter.",
       "loadError": "Could not load search results. Check your connection and try again."
+    },
+    "finder": {
+      "label": "Quick finder",
+      "placeholder": "Search a page or type a command",
+      "pagesGroup": "Pages",
+      "actionsGroup": "Actions",
+      "recentGroup": "Recently viewed",
+      "empty": "No results",
+      "actions": {
+        "createPage": "Create a page",
+        "goToSpace": "Go to a space",
+        "openTrash": "Open the trash",
+        "goHome": "Go home"
+      },
+      "keyboardHelp": "Use the arrow keys to move, Enter to open, and Esc to close"
+    },
+    "recents": {
+      "title": "Recent",
+      "empty": "You have not viewed any pages yet",
+      "spaceLabel": "In {space}"
     }
   },
   "account": {
@@ -315,11 +336,110 @@
     "trashPage": "Move to trash",
     "restorePage": "Restore page",
     "empty": "This space does not have any pages yet.",
-    "restoreNamed": "Restore {name}",
     "trashNamed": "Move {name} to the trash",
     "permissionError": "You do not have permission to change this page.",
     "restored": "Page restored",
     "trashed": "Page moved to the trash",
+    "trashScreen": {
+      "description": "Deleted pages in this space. You can restore them or delete them forever.",
+      "empty": "There is nothing in the trash",
+      "searchLabel": "Search the trash",
+      "searchPlaceholder": "Search by page title",
+      "noSearchResults": "No results for “{query}”",
+      "deletedAt": "Deleted at",
+      "deletedBy": "Deleted by",
+      "deleteForever": "Delete forever",
+      "emptyTrash": "Empty the trash",
+      "deleteForeverTitle": "Delete this page forever?",
+      "deleteForeverBody": "This cannot be undone. The page and its content will be deleted forever.",
+      "emptyTrashTitle": "Empty the trash?",
+      "emptyTrashBody": "All pages in the trash will be deleted forever. This cannot be undone.",
+      "attachmentsWarning": "The page's attachments are also deleted forever.",
+      "childPagesWarning": "{count, plural, one {This will also delete # child page} other {This will also delete # child pages}}",
+      "childPagesWillBeTrashedWarning": "{count, plural, one {This will also move # child page to the trash} other {This will also move # child pages to the trash}}",
+      "trashConfirmTitle": "Move this page to the trash?",
+      "trashConfirmBody": "The page will move to the trash. You can restore it later or delete it forever.",
+      "restoredToRoot": "Page restored. Its parent page no longer exists, so it was placed at the root of the space.",
+      "restoreChildPagesQuestion": "Restore its child pages too?",
+      "restoreChildPagesYes": "Restore the child pages too",
+      "restoreChildPagesNo": "Restore only this page",
+      "restoreError": "Could not restore the page. Try again.",
+      "deleteForeverError": "Could not delete the page forever. Try again.",
+      "mentionedPageDeleted": "This page was deleted"
+    },
+    "favorites": {
+      "add": "Add {name} to favorites",
+      "remove": "Remove {name} from favorites",
+      "title": "Favorites",
+      "empty": "You have no favorite pages",
+      "moveUp": "Move {name} up one place",
+      "moveDown": "Move {name} down one place"
+    },
+    "info": {
+      "title": "Info",
+      "createdBy": "Created by",
+      "createdAt": "Created at",
+      "lastEditedBy": "Last edited by",
+      "lastEditedAt": "Edited at",
+      "wordCount": "{count, plural, one {# word} other {# words}}",
+      "characterCount": "{count, plural, one {# character} other {# characters}}"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "fullWidth": "Full width",
+      "textSize": "Text size",
+      "textSizeOptions": {
+        "small": "Small",
+        "normal": "Normal",
+        "large": "Large"
+      },
+      "typography": "Font",
+      "typographyOptions": {
+        "system": "System",
+        "serif": "Serif",
+        "monospace": "Monospace"
+      },
+      "scopeNote": "This only applies to this page"
+    },
+    "preview": {
+      "label": "Page preview",
+      "loading": "Loading the preview...",
+      "empty": "This page has nothing written yet",
+      "noAccess": "This preview cannot be shown because you do not have access"
+    },
+    "searchFilters": {
+      "title": "Filters",
+      "spaceLabel": "Space",
+      "spacePlaceholder": "Filter by space",
+      "authorLabel": "Author",
+      "authorPlaceholder": "Filter by author",
+      "editedLabel": "Edited date",
+      "editedPlaceholder": "Filter by edited date",
+      "dateOptions": {
+        "today": "Today",
+        "lastSevenDays": "Last seven days",
+        "lastMonth": "Last month",
+        "thisYear": "This year",
+        "anyDate": "Any date"
+      },
+      "removeFilter": "Remove the {name} filter",
+      "clearAll": "Clear all filters"
+    },
+    "propertiesPanel": {
+      "showMore": "{count, plural, one {Show # more property} other {Show # more properties}}",
+      "empty": "This page has no properties"
+    },
+    "attachmentsPanel": {
+      "columns": {
+        "name": "Name",
+        "type": "Type",
+        "size": "Size",
+        "uploadedBy": "Uploaded by"
+      },
+      "deleteConfirmTitle": "Delete this attachment?",
+      "deleteConfirmBody": "The file will be deleted forever. This cannot be undone.",
+      "fileTooLarge": "This file is larger than {limit} and cannot be uploaded."
+    },
     "commands": {
       "bold": "Bold",
       "italic": "Italic",

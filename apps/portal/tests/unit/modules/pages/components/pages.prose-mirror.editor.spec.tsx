@@ -7,6 +7,8 @@ import en from '../../../../../messages/en.json';
 
 const collaborationSession = { fragment: null, marker: 'collaboration-session', provider: { awareness: null } };
 
+mock.module('server-only', () => ({}));
+
 mock.module('@/modules/pages/hooks/use.pages.collaboration', () => ({
   usePagesCollaboration: () => ({ participants: [], session: collaborationSession, status: 'connected' }),
 }));
@@ -56,6 +58,9 @@ mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
 }));
 
 mock.module('next/navigation', () => ({
+  permanentRedirect: () => undefined,
+  redirect: () => undefined,
+  usePathname: () => '/',
   useRouter: () => ({ push: () => undefined }),
 }));
 

@@ -12,6 +12,6 @@ import { PAGE_EDITOR_OWN_SURFACES_SELECTOR } from '../constants/pages.editor.att
  */
 export const isTheWritingStillInHand = (tookTheFocus: Element | null, surface: HTMLElement | null): boolean => {
   if (tookTheFocus === null) return true;
-  if (surface !== null && surface.contains(tookTheFocus)) return true;
+  if (surface?.contains(tookTheFocus) === true) return true;
   return tookTheFocus.closest(PAGE_EDITOR_OWN_SURFACES_SELECTOR) !== null;
 };

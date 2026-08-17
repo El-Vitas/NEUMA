@@ -1,7 +1,10 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
+import { PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS } from '@/modules/pages/constants/pages.appearance.constants';
 import en from '../../../../../messages/en.json';
+
+mock.module('server-only', () => ({}));
 
 const replace = mock(() => undefined);
 mock.module('next/navigation', () => ({
@@ -13,6 +16,8 @@ mock.module('next/navigation', () => ({
 const createPageAction = mock(async (_input: unknown) => ({
   data: {
     content: { content: [], schemaVersion: 1, type: 'doc' },
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    createdBy: null,
     id: '22222222-2222-4222-8222-222222222222',
     lifecycle: 'ACTIVE',
     order: 0,
@@ -20,6 +25,8 @@ const createPageAction = mock(async (_input: unknown) => ({
     propertyValues: null,
     spaceId: '33333333-3333-4333-8333-333333333333',
     title: 'New page',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedBy: null,
     version: 1,
   },
 }));
@@ -38,8 +45,8 @@ mock.module('@/modules/pages/components/pages.attachments', () => ({
 const { PagesEditor } = await import('@/modules/pages/components/pages.editor');
 
 describe('PagesEditor creation', () => {
-  it('gives a new document the whole width it has, without a reading column of its own', () => {
-    render(
+  it('holds the whole width it has to fill, applying the same reading width as its own header rather than none at all', () => {
+    const { container } = render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor
           canEdit
@@ -54,9 +61,11 @@ describe('PagesEditor creation', () => {
     );
 
     const workspace = screen.getByTestId('page-editor-workspace');
+    const header = container.querySelector('header');
 
     expect(workspace.classList.contains('w-full')).toBe(true);
-    expect(Array.from(workspace.classList).some((name) => name.startsWith('max-w-'))).toBe(false);
+    expect(workspace.classList.contains(PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS)).toBe(true);
+    expect(header?.classList.contains(PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS)).toBe(true);
   });
 
   it('focuses the title and opens the created page at its stable URL', async () => {

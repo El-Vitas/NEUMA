@@ -64,3 +64,22 @@ describe('apiServer against a genuinely public route', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('apiServer request headers', () => {
+  it('does not declare a JSON body for a delete request without a body', async () => {
+    cookieValue = 'valid-access-token';
+    fetchMock.mockClear();
+    fetchMock.mockImplementationOnce(
+      async (): Promise<Response> =>
+        new Response('{"pageId":"page-1"}', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+
+    await apiServer.del<{ pageId: string }>('/api/v1/favorites/page-1');
+
+    const requestInit = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(requestInit?.headers).has('Content-Type')).toBe(false);
+  });
+});

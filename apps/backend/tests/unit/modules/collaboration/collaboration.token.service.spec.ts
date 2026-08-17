@@ -11,6 +11,8 @@ import type { PageSummary } from '@/modules/pages/types/page.types';
 
 const page: PageSummary = {
   content: {},
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id: 'page-1',
   lifecycle: PageLifecycle.ACTIVE,
   order: 1,
@@ -18,6 +20,8 @@ const page: PageSummary = {
   propertyValues: null,
   spaceId: 'space-1',
   title: 'Page',
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
 };
 

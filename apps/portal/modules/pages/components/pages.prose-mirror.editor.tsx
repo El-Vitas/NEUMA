@@ -21,7 +21,13 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import {
+  PAGE_APPEARANCE_DEFAULT_PREFERENCES,
+  PAGE_APPEARANCE_TEXT_SIZE_STYLE_CLASSES,
+  PAGE_APPEARANCE_TYPOGRAPHY_STYLE_CLASSES,
+} from '../constants/pages.appearance.constants';
 import { EMPTY_PAGE_PERSON_OPTIONS, EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
 import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../constants/pages.editor.constants';
@@ -36,6 +42,7 @@ import { usePagesEditorFind } from '../hooks/use.pages.editor.find';
 import { usePagesEditorPageDrop } from '../hooks/use.pages.editor.page-drop';
 import { usePagesEditorPastedLink } from '../hooks/use.pages.editor.pasted-link';
 import { usePagesEditorTriggerMenu } from '../hooks/use.pages.editor.trigger-menu';
+import { usePagesPreview } from '../hooks/use.pages.preview';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { describeANewCollection, readTheViewToShow } from '../lib/pages.collections.lib';
 import { isTheWritingStillInHand } from '../lib/pages.editor.attention.lib';
@@ -78,6 +85,7 @@ import { createPageTextColorCommand } from '../lib/pages.editor.text-color.lib';
 import { buildRowPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
+import type { PageAppearanceTextSize, PageAppearanceTypography } from '../types/pages.appearance.types';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PageDestination } from '../types/pages.editor.destination.types';
@@ -96,6 +104,7 @@ import { PagesEditorPagePickerDialog } from './pages.editor.page-picker.dialog';
 import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
 import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
 import { PagesEditorToolbar } from './pages.editor.toolbar';
+import { PagesPreviewLayer } from './pages.preview.layer';
 
 interface IProps {
   readonly canEdit: boolean;
@@ -111,6 +120,8 @@ interface IProps {
   /** The members of this space, which is how a named person says who they are once the pointer rests on them. */
   readonly personOptions?: readonly PagePersonOption[];
   readonly spaceId: string;
+  readonly textSize?: PageAppearanceTextSize;
+  readonly typography?: PageAppearanceTypography;
 }
 
 export const PagesProseMirrorEditor = forwardRef(
@@ -127,6 +138,8 @@ export const PagesProseMirrorEditor = forwardRef(
       pages = EMPTY_PAGE_SUMMARIES,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
       spaceId,
+      textSize = PAGE_APPEARANCE_DEFAULT_PREFERENCES.textSize,
+      typography = PAGE_APPEARANCE_DEFAULT_PREFERENCES.typography,
     }: IProps,
     handleRef: ForwardedRef<{
       readonly goToHeading: (position: number) => void;
@@ -286,6 +299,13 @@ export const PagesProseMirrorEditor = forwardRef(
      */
     const pastedLink = usePagesEditorPastedLink(editorViewRef, readSurfaceRect);
     const { handlePastedLink } = pastedLink;
+    /**
+     * Watches the surface on its own, outside the editor's own construction:
+     * a mention or a link is still just a link once it is drawn, so nothing
+     * about how the editor is built has to know that resting on one is asked
+     * about here.
+     */
+    const preview = usePagesPreview(surfaceRef, readSurfaceRect);
 
     /**
      * A picture on the clipboard becomes a picture on the page.
@@ -977,7 +997,11 @@ export const PagesProseMirrorEditor = forwardRef(
             </div>
           )}
           <div
-            className="w-full bg-surface py-4 font-reading text-base leading-[1.6] outline-none"
+            className={cn(
+              'w-full bg-surface py-4 leading-[1.6] outline-none',
+              PAGE_APPEARANCE_TEXT_SIZE_STYLE_CLASSES[textSize],
+              PAGE_APPEARANCE_TYPOGRAPHY_STYLE_CLASSES[typography],
+            )}
             id="page-content"
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}
@@ -1053,6 +1077,7 @@ export const PagesProseMirrorEditor = forwardRef(
               rested={linkUnderPointer}
             />
           )}
+          <PagesPreviewLayer atHand={preview.atHand} outcome={preview.outcome} />
           {/* One floating thing at a time: a bar and a bubble on the same words cover each other. */}
           {canEdit &&
             isWritingInHand &&

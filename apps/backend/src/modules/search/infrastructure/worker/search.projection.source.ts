@@ -8,6 +8,7 @@ import type {
 
 const pageSelection = {
   content: true,
+  createdById: true,
   id: true,
   lifecycle: true,
   spaceId: true,
@@ -22,6 +23,12 @@ export class SearchProjectionSource implements SearchProjectionSourceContract {
   async findPage(pageIdentifier: string): Promise<SearchProjectionPage | null> {
     const page = await this.prisma.page.findUnique({ select: pageSelection, where: { id: pageIdentifier } });
     if (page === null) return null;
-    return { ...page, version: page.versions[0]?.version ?? 0 };
+    const author = await this.prisma.user.findUnique({ select: { name: true }, where: { id: page.createdById } });
+    return {
+      ...page,
+      authorId: page.createdById,
+      authorName: author?.name ?? null,
+      version: page.versions[0]?.version ?? 0,
+    };
   }
 }

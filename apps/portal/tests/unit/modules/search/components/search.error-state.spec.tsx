@@ -17,6 +17,7 @@ describe('SearchErrorState', () => {
     expect(screen.getByRole('alert').textContent).toBe(
       'Could not load search results. Check your connection and try again.',
     );
+    expect(screen.getByRole('button', { name: 'Try again' }).parentElement?.className).toContain('justify-end');
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 

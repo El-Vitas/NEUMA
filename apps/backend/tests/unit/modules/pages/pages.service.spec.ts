@@ -2,9 +2,14 @@ import { describe, expect, it } from 'bun:test';
 import { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { type PageContent, USER_ROLE } from '@company-brain/shared';
+import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { PagesService } from '@/modules/pages/pages.service';
-import type { PageRepositoryContract, UpdatePageInput } from '@/modules/pages/types/page.types';
+import type {
+  PageAttachmentsCleanupRepositoryContract,
+  PageRepositoryContract,
+  UpdatePageInput,
+} from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
 
 const validPageContent: PageContent = {
@@ -15,6 +20,8 @@ const validPageContent: PageContent = {
 
 const page = {
   content: {},
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id: 'page-a',
   lifecycle: PageLifecycle.ACTIVE,
   order: 0,
@@ -22,6 +29,8 @@ const page = {
   propertyValues: null,
   spaceId: 'space-a',
   title: 'Page A',
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
 };
 
@@ -37,7 +46,10 @@ const buildUpdatePageInput = (content: Prisma.InputJsonValue = validPageContent)
 });
 
 const createRepository = (): PageRepositoryContract => ({
+  countDescendantsByLifecycle: () => Promise.resolve(0),
   create: () => Promise.resolve(page),
+  deleteForever: () => Promise.resolve('DELETED'),
+  emptyTrash: () => Promise.resolve([]),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () =>
@@ -50,10 +62,12 @@ const createRepository = (): PageRepositoryContract => ({
       propertyValues: null,
       title: 'Page A',
     }),
+  listTrashed: () => Promise.resolve([]),
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
-  setLifecycle: () => Promise.resolve(true),
+  restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: false }),
+  trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
 });
 
@@ -65,9 +79,25 @@ const createSchemaRepository = (): PageSchemaRepositoryContract => ({
   listWorkspaceMemberIds: () => Promise.resolve([]),
 });
 
+const createAttachmentsCleanupRepository = (): PageAttachmentsCleanupRepositoryContract => ({
+  deleteForPages: () => Promise.resolve(),
+  listStorageKeysForPages: () => Promise.resolve([]),
+});
+
+const createStorageProvider = (): IStorageProvider => ({
+  delete: () => Promise.resolve(),
+  read: () => Promise.resolve(Buffer.from('')),
+  save: () => Promise.resolve('storage-key'),
+});
+
 describe('pages service', () => {
   it('updates a page for an editor', async () => {
-    const service = new PagesService(createRepository(), createSchemaRepository());
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
     const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
@@ -115,7 +145,12 @@ describe('pages service', () => {
         return Promise.resolve(page);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.update(buildUpdatePageInput(content), USER_ROLE.WORKER);
 
@@ -133,7 +168,12 @@ describe('pages service', () => {
         return Promise.resolve(page);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.create(
       {
@@ -164,7 +204,12 @@ describe('pages service', () => {
         return Promise.resolve(page);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.create(
       {
@@ -195,7 +240,12 @@ describe('pages service', () => {
         return Promise.resolve(versionedPage);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
@@ -219,7 +269,12 @@ describe('pages service', () => {
         return Promise.resolve([page]);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER, true);
@@ -228,7 +283,12 @@ describe('pages service', () => {
   });
 
   it('returns an authorized direct page read', async () => {
-    const service = new PagesService(createRepository(), createSchemaRepository());
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
@@ -237,7 +297,12 @@ describe('pages service', () => {
 
   it('returns an inaccessible result for a page the repository cannot authorize', async () => {
     const repository = { ...createRepository(), getAccessible: () => Promise.resolve(null) };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
     const result = await service.getAccessible('private-page', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isFail()).toBe(true);
@@ -245,7 +310,12 @@ describe('pages service', () => {
   });
 
   it('moves a page only after validating the hierarchy', async () => {
-    const service = new PagesService(createRepository(), createSchemaRepository());
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
     const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
@@ -253,7 +323,12 @@ describe('pages service', () => {
 
   it('rejects creating a page under a parent from another space', async () => {
     const repository = { ...createRepository(), parentBelongsToSpace: () => Promise.resolve(false) };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
     const result = await service.create(
       {
         content: validPageContent,
@@ -287,7 +362,12 @@ describe('pages service', () => {
           title: 'Page A',
         }),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
     const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-c', USER_ROLE.WORKER);
 
     expect(result.isFail()).toBe(true);
@@ -295,13 +375,213 @@ describe('pages service', () => {
   });
 
   it('trashes and restores a page through explicit lifecycle use cases', async () => {
-    const service = new PagesService(createRepository(), createSchemaRepository());
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const trashed = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
     const restored = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-b', USER_ROLE.WORKER);
 
     expect(trashed.isOk()).toBe(true);
     expect(restored.isOk()).toBe(true);
+  });
+
+  it('rejects trashing for a client role before touching the repository', async () => {
+    let trashCascadeCalls = 0;
+    const repository = {
+      ...createRepository(),
+      trashCascade: () => {
+        trashCascadeCalls += 1;
+        return Promise.resolve(true);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.CLIENT);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+    expect(trashCascadeCalls).toBe(0);
+  });
+
+  it('reports how many pages would go to the trash together before trashing', async () => {
+    const repository = { ...createRepository(), countDescendantsByLifecycle: () => Promise.resolve(3) };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.previewTrashCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().childPageCount).toBe(3);
+  });
+
+  it('reports how many trashed pages would come back together before restoring', async () => {
+    const repository = { ...createRepository(), countDescendantsByLifecycle: () => Promise.resolve(2) };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.previewRestoreCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().childPageCount).toBe(2);
+  });
+
+  it('forwards the choice of restoring child pages to the repository', async () => {
+    let receivedIncludeChildren: boolean | undefined;
+    const repository = {
+      ...createRepository(),
+      restoreCascade: (
+        _pageId: string,
+        _userId: string,
+        _workspaceId: string,
+        _role: 'ADMIN' | 'WORKER' | 'CLIENT',
+        _mutationId: string,
+        includeChildren: boolean,
+      ) => {
+        receivedIncludeChildren = includeChildren;
+        return Promise.resolve({ restoredChildCount: includeChildren ? 4 : 0, restoredToRoot: false });
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER, true);
+
+    expect(receivedIncludeChildren).toBe(true);
+    expect(result.getValue()).toEqual({ restoredChildCount: 4, restoredToRoot: false });
+  });
+
+  it('explains a restore placed the page at the root because its parent is gone', async () => {
+    const repository = {
+      ...createRepository(),
+      restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: true }),
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
+
+    expect(result.getValue().restoredToRoot).toBe(true);
+  });
+
+  it('lists the pages currently in the trash', async () => {
+    const trashedSummary = {
+      deletedAt: new Date('2026-01-01T00:00:00.000Z'),
+      deletedBy: { id: 'user-a', name: 'Ada Lovelace' },
+      id: 'page-a',
+      parentId: null,
+      spaceId: 'space-a',
+      title: 'Page A',
+      trashedChildCount: 0,
+    };
+    const repository = { ...createRepository(), listTrashed: () => Promise.resolve([trashedSummary]) };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null);
+
+    expect(result).toEqual([trashedSummary]);
+  });
+
+  it('deletes a trashed page forever and cleans up its attachments', async () => {
+    let cleanedUpPageIds: readonly string[] = [];
+    const attachmentsRepository = {
+      ...createAttachmentsCleanupRepository(),
+      deleteForPages: (pageIds: readonly string[]) => {
+        cleanedUpPageIds = pageIds;
+        return Promise.resolve();
+      },
+      listStorageKeysForPages: () => Promise.resolve(['storage-key-a']),
+    };
+    let deletedStorageKeys: readonly string[] = [];
+    const storageProvider = {
+      ...createStorageProvider(),
+      delete: (storageKey: string) => {
+        deletedStorageKeys = [...deletedStorageKeys, storageKey];
+        return Promise.resolve();
+      },
+    };
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      attachmentsRepository,
+      storageProvider,
+    );
+
+    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(cleanedUpPageIds).toEqual(['page-a']);
+    expect(deletedStorageKeys).toEqual(['storage-key-a']);
+  });
+
+  it('rejects deleting forever a page that is not in the trash', async () => {
+    const repository = {
+      ...createRepository(),
+      deleteForever: () => Promise.resolve('NOT_TRASHED' as const),
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_INVALID_LIFECYCLE');
+  });
+
+  it('empties the trash and cleans up every deleted page attachment', async () => {
+    const repository = { ...createRepository(), emptyTrash: () => Promise.resolve(['page-a', 'page-b']) };
+    let cleanedUpPageIds: readonly string[] = [];
+    const attachmentsRepository = {
+      ...createAttachmentsCleanupRepository(),
+      deleteForPages: (pageIds: readonly string[]) => {
+        cleanedUpPageIds = pageIds;
+        return Promise.resolve();
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      attachmentsRepository,
+      createStorageProvider(),
+    );
+
+    const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
+
+    expect(result.getValue()).toEqual({ deletedCount: 2 });
+    expect(cleanedUpPageIds).toEqual(['page-a', 'page-b']);
   });
 });
 
@@ -328,7 +608,12 @@ describe('mention redaction on served page content', () => {
       getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Roadmap 2026']))),
       findReadablePageIds: (pageIds: readonly string[]) => Promise.resolve(pageIds),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -343,7 +628,12 @@ describe('mention redaction on served page content', () => {
         Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']))),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
     const serialized = JSON.stringify(result.getValue().content);
@@ -358,7 +648,12 @@ describe('mention redaction on served page content', () => {
       getAccessible: () => Promise.resolve(buildPageWithContent(buildMentionDocument(['deleted-page', 'Old Title']))),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -376,7 +671,12 @@ describe('mention redaction on served page content', () => {
         ),
       findReadablePageIds: () => Promise.resolve(['target-readable']),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
     const serialized = JSON.stringify(result.getValue().content);
@@ -401,7 +701,12 @@ describe('mention redaction on served page content', () => {
         return Promise.resolve(pageIds);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -423,7 +728,12 @@ describe('mention redaction on served page content', () => {
         return Promise.resolve(pageIds);
       },
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -437,7 +747,12 @@ describe('mention redaction on served page content', () => {
       getAccessible: () => Promise.resolve(storedPage),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -451,7 +766,12 @@ describe('mention redaction on served page content', () => {
         Promise.resolve(buildPageWithContent(buildMentionDocument(['target-a', 'Confidential Salary Review']))),
       findReadablePageIds: () => Promise.resolve([]),
     };
-    const service = new PagesService(repository, createSchemaRepository());
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
 
     const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
     const serialized = JSON.stringify(result.getValue().content);

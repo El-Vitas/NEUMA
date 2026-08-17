@@ -16,6 +16,8 @@ const statusProperty = {
 
 const page: PageSummary = {
   content: {},
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id: 'page-a',
   lifecycle: PageLifecycle.ACTIVE,
   order: 0,
@@ -23,18 +25,25 @@ const page: PageSummary = {
   propertyValues: null,
   spaceId: 'space-a',
   title: 'Collection',
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
 };
 
 const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): PageRepositoryContract => ({
+  countDescendantsByLifecycle: () => Promise.resolve(0),
   create: () => Promise.resolve(page),
+  deleteForever: () => Promise.resolve('DELETED'),
+  emptyTrash: () => Promise.resolve([]),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () => Promise.resolve(null),
+  listTrashed: () => Promise.resolve([]),
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
-  setLifecycle: () => Promise.resolve(true),
+  restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: false }),
+  trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
   ...overrides,
 });

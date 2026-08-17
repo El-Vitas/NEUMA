@@ -44,12 +44,18 @@ mock.module('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+mock.module('next-intl/server', () => ({
+  getLocale: async () => 'en',
+  getTranslations: async () => (key: string) => key,
+}));
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) =>
     createElement('a', { href }, children),
 }));
 mock.module('@/modules/auth/server/lib/get.current.user.server', () => ({ getCurrentUser: currentUser }));
+mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
+  getFavoritePages: async () => ({ getValue: () => [], isOk: () => true }),
+}));
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
 mock.module('@/modules/pages/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));

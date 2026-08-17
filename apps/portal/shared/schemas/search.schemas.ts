@@ -15,8 +15,8 @@ const firstQueryValue = (value: unknown): unknown => (Array.isArray(value) ? val
 
 const optionalText = (maxLength: number) =>
   z
-    .preprocess(firstQueryValue, z.string().trim().max(maxLength).optional())
-    .transform((value) => (value === '' ? undefined : value))
+    .preprocess(firstQueryValue, z.string().trim().optional())
+    .transform((value) => (value === undefined || value === '' ? undefined : value.slice(0, maxLength)))
     .optional();
 
 const tagsSchema = z
@@ -35,11 +35,11 @@ const tagsSchema = z
 export const searchQuerySchema = z.object({
   contentType: optionalText(SEARCH_MAX_CONTENT_TYPE_LENGTH),
   cursor: optionalText(SEARCH_MAX_CURSOR_LENGTH),
-  limit: z.coerce.number().int().min(1).max(SEARCH_MAX_LIMIT).default(SEARCH_DEFAULT_LIMIT),
+  limit: z.coerce.number().int().min(1).max(SEARCH_MAX_LIMIT).catch(SEARCH_DEFAULT_LIMIT),
   query: z
-    .preprocess(firstQueryValue, z.string().trim().max(SEARCH_MAX_QUERY_LENGTH).default(''))
-    .transform((value) => value),
-  sourceType: z.preprocess(firstQueryValue, z.enum(SEARCH_SOURCE_TYPES).optional()),
+    .preprocess(firstQueryValue, z.string().trim().default(''))
+    .transform((value) => value.slice(0, SEARCH_MAX_QUERY_LENGTH)),
+  sourceType: z.preprocess(firstQueryValue, z.enum(SEARCH_SOURCE_TYPES).optional().catch(undefined)),
   spaceId: optionalText(SEARCH_MAX_SPACE_ID_LENGTH),
   tags: tagsSchema,
 });

@@ -23,6 +23,8 @@ const page: PageSummary = {
     schemaVersion: 1,
     type: 'doc',
   },
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdBy: null,
   id: '11111111-1111-4111-8111-111111111111',
   lifecycle: 'ACTIVE',
   order: 0,
@@ -30,6 +32,8 @@ const page: PageSummary = {
   propertyValues: null,
   spaceId: 'space-1',
   title: 'Runbook',
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedBy: null,
   version: 1,
 };
 

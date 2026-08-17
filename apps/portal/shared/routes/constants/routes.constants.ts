@@ -15,6 +15,7 @@ export const ROUTES = {
   PORTAL_ACCOUNT: '/account',
   PORTAL_USERS: '/users',
   PORTAL_SEARCH: '/search',
+  PORTAL_TRASH: '/trash',
   PORTAL_DOCS: '/docs',
   PORTAL_DOC: (slug: string) => `/docs/${slug}`,
 } as const;

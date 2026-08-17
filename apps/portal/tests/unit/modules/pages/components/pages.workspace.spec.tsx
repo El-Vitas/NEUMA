@@ -41,6 +41,8 @@ describe('PagesWorkspace collaboration propagation', () => {
           pages={[
             {
               content: { content: [], schemaVersion: 1, type: 'doc' },
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              createdBy: null,
               id: '11111111-1111-4111-8111-111111111111',
               lifecycle: 'ACTIVE',
               order: 0,
@@ -48,10 +50,14 @@ describe('PagesWorkspace collaboration propagation', () => {
               propertyValues: null,
               spaceId: '33333333-3333-4333-8333-333333333333',
               title: 'Handbook',
+              updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+              updatedBy: null,
               version: 1,
             },
             {
               content: { content: [], schemaVersion: 1, type: 'doc' },
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              createdBy: null,
               id: '22222222-2222-4222-8222-222222222222',
               lifecycle: 'ACTIVE',
               order: 0,
@@ -59,6 +65,8 @@ describe('PagesWorkspace collaboration propagation', () => {
               propertyValues: null,
               spaceId: '33333333-3333-4333-8333-333333333333',
               title: 'Saved page',
+              updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+              updatedBy: null,
               version: 1,
             },
           ]}
@@ -117,6 +125,8 @@ describe('PagesWorkspace collaboration propagation', () => {
           pages={[
             {
               content: { content: [], schemaVersion: 1, type: 'doc' },
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              createdBy: null,
               id: '11111111-1111-4111-8111-111111111111',
               lifecycle: 'ACTIVE',
               order: 0,
@@ -124,6 +134,8 @@ describe('PagesWorkspace collaboration propagation', () => {
               propertyValues: null,
               spaceId: '33333333-3333-4333-8333-333333333333',
               title: 'Handbook',
+              updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+              updatedBy: null,
               version: 1,
             },
           ]}
