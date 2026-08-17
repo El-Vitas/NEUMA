@@ -58,6 +58,36 @@ describe('SearchResults', () => {
     );
   });
 
+  it('draws a word that answers twice in the same line, both times, without confusing one for the other', () => {
+    const complaints: string[] = [];
+    const spoke = console.error;
+    console.error = (...said: readonly unknown[]) => complaints.push(said.map(String).join(' '));
+
+    renderResults({
+      items: [
+        {
+          contentType: 'guide',
+          rank: 0.8,
+          snippet: [
+            { highlighted: true, text: 'hormiga' },
+            { highlighted: false, text: ' sube, la ' },
+            { highlighted: true, text: 'hormiga' },
+            { highlighted: false, text: ' baja' },
+          ],
+          sourceId: 'page-1',
+          sourceType: 'PAGE',
+          spaceId: 'space-1',
+          title: 'Las hormigas',
+          updatedAt: '2026-08-03T12:00:00.000Z',
+        },
+      ],
+    });
+
+    console.error = spoke;
+    expect(screen.getAllByText('hormiga')).toHaveLength(2);
+    expect(complaints).toEqual([]);
+  });
+
   it('announces only the result count as a status update', () => {
     renderResults({ items: [] });
 
