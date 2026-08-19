@@ -4,6 +4,7 @@ import { config } from '@/shared/config';
 import { BEARER_PREFIX } from '@/shared/constants/auth.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { FILES_API_ROUTE } from '../../constants/pages.attachments.constants';
+import { attachmentSummarySchema } from '../../schemas/pages.attachments.schemas';
 import type { AttachmentDownload } from '../../types/pages.attachments.types';
 
 const attachmentFilenamePattern = /filename\*=UTF-8''([^;]+)/iu;
@@ -24,6 +25,27 @@ export const getPageAttachmentResponse = async (
         ? { authorization: `${BEARER_PREFIX}${accessToken}` }
         : { authorization: `${BEARER_PREFIX}${accessToken}`, range },
   });
+
+export const uploadPageAttachmentAsset = async (pageId: string, file: File, accessToken: string): Promise<Response> => {
+  const body = new FormData();
+  body.append('file', file, file.name);
+  return fetch(`${config.backendApiUrl}${FILES_API_ROUTE}?pageId=${encodeURIComponent(pageId)}`, {
+    body,
+    headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
+    method: 'POST',
+  });
+};
+
+export const uploadPageImageAssetId = async (
+  pageId: string,
+  file: File,
+  accessToken: string,
+  failureMessage: string,
+): Promise<string> => {
+  const response = await uploadPageAttachmentAsset(pageId, file, accessToken);
+  if (!response.ok) throw new Error(failureMessage);
+  return attachmentSummarySchema.parse(await response.json()).id;
+};
 
 const decodeFilename = (contentDisposition: string | null): string => {
   const encodedFilename = contentDisposition?.match(attachmentFilenamePattern)?.[1];

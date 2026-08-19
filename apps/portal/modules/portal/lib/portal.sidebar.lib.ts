@@ -1,6 +1,8 @@
 import { PAGE_LIFECYCLE } from '@company-brain/shared';
 import type { KeyboardEvent } from 'react';
 import { buildTree, getTreeExpandedIds } from '@/shared/lib/tree.lib';
+import { PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE } from '../constants/portal.sidebar.drag.constants';
+import type { PortalSidebarPageKeyboardMove } from '../types/portal.sidebar.drag.types';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '../types/portal.types';
 
 /**
@@ -138,4 +140,17 @@ export const handleSidebarPageTreeKeyDown = (event: KeyboardEvent<HTMLAnchorElem
     default:
       return;
   }
+};
+
+/**
+ * The keyboard alternative to dragging a page: held with the arrow keys that
+ * already move focus, so it never steals a shortcut the tree already answers to.
+ */
+export const isPortalSidebarPageMoveShortcut = (
+  event: Pick<KeyboardEvent<HTMLAnchorElement>, 'altKey' | 'key'>,
+): PortalSidebarPageKeyboardMove | null => {
+  if (!event.altKey) return null;
+  if (event.key === 'ArrowRight') return PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE.Indent;
+  if (event.key === 'ArrowLeft') return PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE.Outdent;
+  return null;
 };

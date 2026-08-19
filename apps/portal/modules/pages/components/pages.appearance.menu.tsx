@@ -4,7 +4,6 @@ import { Type } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -24,7 +23,6 @@ import type {
 } from '../types/pages.appearance.types';
 
 interface IProps {
-  readonly onFullWidthChange: (fullWidth: boolean) => void;
   readonly onTextSizeChange: (textSize: PageAppearanceTextSize) => void;
   readonly onTypographyChange: (typography: PageAppearanceTypography) => void;
   readonly preferences: PageAppearancePreferences;
@@ -36,12 +34,7 @@ interface IProps {
  * Every choice here is stored per page, never for the whole product, so what
  * is chosen for one page never leaks into another.
  */
-export const PagesAppearanceMenu = ({
-  onFullWidthChange,
-  onTextSizeChange,
-  onTypographyChange,
-  preferences,
-}: IProps) => {
+export const PagesAppearanceMenu = ({ onTextSizeChange, onTypographyChange, preferences }: IProps) => {
   const t = useTranslations('pages.appearance');
 
   const chooseTextSize = (value: string): void => {
@@ -64,10 +57,6 @@ export const PagesAppearanceMenu = ({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuCheckboxItem checked={preferences.fullWidth} onCheckedChange={onFullWidthChange}>
-          {t('fullWidth')}
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuSeparator />
         <DropdownMenuLabel>{t('textSize')}</DropdownMenuLabel>
         <DropdownMenuRadioGroup onValueChange={chooseTextSize} value={preferences.textSize}>
           {PAGE_APPEARANCE_TEXT_SIZE_VALUES.map((textSize) => (

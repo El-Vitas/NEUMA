@@ -3,7 +3,11 @@ import type { PageContent } from '@company-brain/shared';
 import { PAGE_EDITOR_HEADING_ATTRIBUTE } from '@/modules/pages/constants/pages.editor.contents.constants';
 import { followThePageHeadings, readPageHeadings } from '@/modules/pages/lib/pages.editor.contents.lib';
 import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { readTheWrittenHeadings, readWhichHeading } from '@/modules/pages/lib/pages.outline.lib';
+import {
+  readPageOutlineRailMarkWidthStyleClass,
+  readTheWrittenHeadings,
+  readWhichHeading,
+} from '@/modules/pages/lib/pages.outline.lib';
 import type { PageEditorHeading } from '@/modules/pages/types/pages.editor.contents.types';
 
 const pageWithHeadings = (...titles: readonly string[]): PageContent => ({
@@ -69,5 +73,17 @@ describe('readTheWrittenHeadings', () => {
 
     expect(readWhichHeading(document.querySelector('h1'))).toBeNull();
     expect(readWhichHeading(null)).toBeNull();
+  });
+});
+
+describe('readPageOutlineRailMarkWidthStyleClass', () => {
+  it('draws a longer mark for a shallower heading', () => {
+    expect(readPageOutlineRailMarkWidthStyleClass(1)).toBe('w-4');
+    expect(readPageOutlineRailMarkWidthStyleClass(2)).toBe('w-3');
+    expect(readPageOutlineRailMarkWidthStyleClass(3)).toBe('w-2');
+  });
+
+  it('falls back to the shortest mark for a level the rail never expected', () => {
+    expect(readPageOutlineRailMarkWidthStyleClass(4)).toBe('w-2');
   });
 });

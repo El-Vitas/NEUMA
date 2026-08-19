@@ -3,8 +3,10 @@ import type { SpaceSummary } from '@/modules/spaces/types/spaces.types';
 
 let cookieValue: string | undefined;
 const createdSpace = {
+  icon: null,
   id: '33333333-3333-4333-8333-333333333333',
   name: 'Engineering',
+  order: 0,
   slug: 'engineering',
   visibility: 'PUBLIC_INTERNAL',
 } satisfies SpaceSummary;

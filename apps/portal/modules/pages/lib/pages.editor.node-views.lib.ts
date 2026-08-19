@@ -28,6 +28,7 @@ import {
 import { PAGE_EDITOR_BUTTON_TYPE } from '../constants/pages.editor.button.constants';
 import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
 import type { PagePersonOption } from '../types/pages.schema.types';
+import { resolvePageAssetUrl as getPageAssetUrl } from './pages.attachments.lib';
 import { createPageBookmarkNodeView } from './pages.editor.bookmark.node-view.lib';
 import { createPageButtonNodeView } from './pages.editor.button.node-view.lib';
 import { createPageCalloutNodeView } from './pages.editor.callout.node-view.lib';
@@ -46,8 +47,6 @@ import { createPageSyncedNodeView } from './pages.editor.synced.node-view.lib';
 import { PageTableView } from './pages.editor.table.view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
-
-const getPageAssetUrl = (assetId: string): string => `/api/page-assets/${encodeURIComponent(assetId)}`;
 
 /**
  * Renders a file as what it is: a name, what kind of file it is and how heavy,

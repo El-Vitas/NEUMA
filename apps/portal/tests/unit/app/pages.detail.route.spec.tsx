@@ -51,6 +51,8 @@ mock.module('next-intl/server', () => ({
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) =>
     createElement('a', { href }, children),
+  /** The route sends an address that lost its page to wherever the page went. */
+  redirect: () => undefined,
 }));
 mock.module('@/modules/auth/server/lib/get.current.user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
@@ -59,7 +61,11 @@ mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
 mock.module('@/modules/pages/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
-mock.module('@/modules/pages/server/queries/pages.queries', () => ({ getPages: async () => pagesResult }));
+mock.module('@/modules/pages/server/queries/pages.queries', () => ({
+  getPages: async () => pagesResult,
+  /** The route asks where a page lives when the address does not find it here. */
+  getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
+}));
 mock.module('@/modules/pages/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
   getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),

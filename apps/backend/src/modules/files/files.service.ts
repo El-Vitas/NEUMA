@@ -7,15 +7,9 @@ import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { IStorageProvider } from '../../common/types/storage.types';
 import { FILE_ASSET_REPOSITORY } from './constants/files.constants';
 import { validateFileUpload } from './domain/files.domain';
+import type { FileAssetMetadata, FileAssetSummary } from './domain/files.domain.types';
 import { FileAccessDeniedError, FileStorageError, FileValidationError } from './domain/files.error';
-import type {
-  CreateFileAssetInput,
-  FileAssetMetadata,
-  FileAssetRepository,
-  FileAssetSummary,
-  FileDownload,
-  FileLogger,
-} from './types/files.types';
+import type { CreateFileAssetInput, FileAssetRepository, FileDownload, FileLogger } from './types/files.types';
 
 @Injectable()
 export class FilesService {

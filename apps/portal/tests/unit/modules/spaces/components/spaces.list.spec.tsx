@@ -32,8 +32,8 @@ describe('SpacesList', () => {
 
   it('renders each space as a single clickable row carrying a readable visibility badge', () => {
     renderSpacesList(true, [
-      { id: 'space-1', name: 'Engineering', slug: 'engineering', visibility: 'PUBLIC_INTERNAL' },
-      { id: 'space-2', name: 'Executive', slug: 'executive', visibility: 'RESTRICTED' },
+      { icon: null, id: 'space-1', name: 'Engineering', order: 0, slug: 'engineering', visibility: 'PUBLIC_INTERNAL' },
+      { icon: null, id: 'space-2', name: 'Executive', order: 0, slug: 'executive', visibility: 'RESTRICTED' },
     ]);
 
     const engineeringRow = screen.getByRole('link', { name: /Engineering/ });

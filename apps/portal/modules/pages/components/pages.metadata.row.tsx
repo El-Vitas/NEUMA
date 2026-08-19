@@ -9,8 +9,8 @@ interface IProps {
 }
 
 export const PagesMetadataRow = ({ children, label, labelId }: IProps) => (
-  <div className="flex min-h-11 items-center gap-3">
-    <span className="w-24 shrink-0 truncate text-muted-foreground text-sm sm:w-36" id={labelId}>
+  <div className="flex flex-col gap-1 py-1 sm:min-h-11 sm:flex-row sm:items-center sm:gap-3 sm:py-0">
+    <span className="text-muted-foreground text-sm sm:w-36 sm:shrink-0 sm:truncate" id={labelId}>
       {label}
     </span>
     <div className="min-w-0 flex-1">{children}</div>

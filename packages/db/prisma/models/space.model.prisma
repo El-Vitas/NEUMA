@@ -3,7 +3,9 @@ model Space {
   workspaceId String
   name        String
   slug        String
+  icon        Json?
   visibility  SpaceVisibility @default(PUBLIC_INTERNAL)
+  order       Int             @default(0)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -12,4 +14,5 @@ model Space {
 
   @@unique([workspaceId, slug])
   @@index([workspaceId, visibility])
+  @@index([workspaceId, order])
 }

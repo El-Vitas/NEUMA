@@ -8,84 +8,96 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## PG-01 · Debe permitir crear una página
 
-- [ ] Hay un botón visible para crear una página desde el espacio
-- [ ] Hay un botón para crear una página hija desde cualquier página del árbol
-- [ ] La página nueva se abre lista para escribir, con el cursor en el título
-- [ ] No obliga a completar un formulario antes de empezar a escribir
-- [ ] Aparece de inmediato en el árbol lateral
-- [ ] Se puede crear con un atajo de teclado
+- [x] Hay un botón visible para crear una página desde el espacio
+- [x] Hay un botón para crear una página hija desde cualquier página del árbol — el «+» de la fila y «Crear subpágina» en los tres puntos
+- [x] La página nueva se abre lista para escribir, con el cursor en el título
+- [x] No obliga a completar un formulario antes de empezar a escribir — la página se crea vacía y uno cae dentro; el título se guarda solo (verificado contra PostgreSQL sin apretar nada)
+- [x] Aparece de inmediato en el árbol lateral
+- [ ] Se puede crear con un atajo de teclado — el buscador rápido ofrece la acción, pero no hay atajo directo
 - [ ] Al crearla se puede elegir una plantilla en vez de empezar en blanco
 
 ## PG-02 · Debe permitir anidar páginas sin límite
 
-- [ ] Una página puede contener páginas hijas
-- [ ] Una hija puede tener sus propias hijas, y así sucesivamente
-- [ ] La jerarquía se ve en el árbol lateral con indentación
-- [ ] Cada rama se puede plegar y desplegar
-- [ ] El estado plegado se conserva al navegar entre páginas
-- [ ] Una rama profunda sigue siendo legible, no se corta el texto
+- [x] Una página puede contener páginas hijas
+- [x] Una hija puede tener sus propias hijas, y así sucesivamente — se verificó con una nieta real
+- [x] La jerarquía se ve en el árbol lateral con indentación
+- [x] Cada rama se puede plegar y desplegar
+- [x] El estado plegado se conserva al navegar entre páginas
+- [ ] Una rama profunda sigue siendo legible, no se corta el texto — los nombres largos se truncan con puntos suspensivos; falta juzgarlo con una rama honda de verdad
 
 ## PG-03 · Debe permitir titular la página
 
-- [ ] El título se escribe arriba del contenido, no en un campo aparte
-- [ ] Enter en el título baja al cuerpo
-- [ ] El título se actualiza en el árbol lateral mientras se escribe
-- [ ] Una página sin título muestra un texto de marcador claro
-- [ ] El título aparece en la pestaña del navegador
+- [x] El título se escribe arriba del contenido, no en un campo aparte
+- [x] Enter en el título baja al cuerpo — el cursor entra al editor y lo escrito cae ahí
+- [x] El título se actualiza en el árbol lateral mientras se escribe
+- [x] Una página sin título muestra un texto de marcador claro («Sin título»)
+- [x] El título aparece en la pestaña del navegador — «Nombre de la página · Company Brain», tanto en la carga del servidor como al renombrar en vivo
 
 ## PG-04 · Debe permitir ponerle un ícono a la página
 
 **Cómo debe sentirse la interacción:** el botón aparece al pasar el cursor sobre la cabecera y no ocupa lugar cuando la página no tiene ícono.
 
-- [ ] Hay un botón para agregar un ícono sobre el título
-- [ ] Se puede elegir un emoji
-- [ ] Se puede subir una imagen como ícono
-- [ ] Hay una opción de ícono aleatorio
-- [ ] El ícono se ve en el árbol lateral
+- [x] Hay un botón para agregar un ícono sobre el título
+- [x] Se puede elegir un emoji
+- [x] Se puede subir una imagen como ícono
+- [x] Hay una opción de ícono aleatorio — por pestaña: en Emojis sortea un emoji, en Íconos un símbolo
+- [x] El ícono se ve en el árbol lateral, al mismo tamaño que la marca por omisión
 - [ ] El ícono se ve en los resultados de búsqueda y en las menciones
-- [ ] Se puede quitar
+- [x] Se puede quitar
+
+**Además de lo pedido:** hay 1929 íconos de la biblioteca en una segunda pestaña, buscables por nombre y por
+significado en español e inglés, con un color a elegir. El ícono también se cambia y la página se renombra desde
+el menú de los tres puntos del árbol, sin abrirla.
+
+**Los espacios también llevan ícono** (misma ventana, sin la opción de imagen: a ese tamaño una foto no se lee) y
+se renombran desde el mismo menú. Se ve tanto en el árbol como en la barra plegada.
 
 ## PG-05 · Debe permitir una imagen de portada
 
-**De dónde mirar la interacción:** misma referencia que PG-04 —la portada se cambia y se quita desde botones que solo aparecen sobre ella, y el contenido no salta al ponerla.
+**Retirada el 17/08/2026 y reconstruida el 18/08/2026 a pedido de El-Vitas** —"que funcione bien dado que no
+estaba funcionando"—. Lo que estorbaba y ya no: el botón ocupaba una fila propia sobre el título en **toda**
+página sin portada; la imagen entera era un control deslizante que se movía y guardaba con cualquier arrastre; y
+el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba la página sobre la banda.
 
-- [ ] Hay un botón para agregar una portada
-- [ ] Se puede subir una imagen propia
-- [ ] Se puede reposicionar verticalmente
-- [ ] Se puede cambiar y quitar
-- [ ] No empuja el contenido de forma que estorbe al escribir
+**De dónde mirar la interacción:** misma referencia que PG-04.
+
+- [x] Hay un botón para agregar una portada — vive entre los controles de la derecha, junto a información y tipografía; no reserva espacio propio
+- [x] Se puede subir una imagen propia — verificado con una foto real de 6000×3375 (7,6 MB)
+- [x] Se puede reposicionar verticalmente — es un modo que se entra y se sale; con flechas y arrastre, y **no guarda hasta que se pide**
+- [x] Se puede cambiar y quitar — verificado contra PostgreSQL y contra el disco: la imagen anterior se borra
+- [x] No empuja el contenido de forma que estorbe al escribir — sin portada, el primer elemento es la cabecera: cero espacio reservado
 
 ## PG-06 · Debe mostrar dónde está uno parado
 
-- [ ] Arriba de la página se ve la ruta desde el espacio hasta esta página
-- [ ] Cada tramo de la ruta es navegable con un clic
-- [ ] Una ruta muy profunda se acorta sin perder el último tramo
-- [ ] La ruta se actualiza al mover la página
+- [x] Arriba de la página se ve la ruta desde el espacio hasta esta página
+- [x] Cada tramo de la ruta es navegable con un clic — el tramo actual no es enlace, como corresponde
+- [ ] Una ruta muy profunda se acorta sin perder el último tramo — con 4 tramos se muestran todos; falta ver una honda
+- [x] La ruta se actualiza al mover la página — verificado moviendo a nieta y de vuelta a raíz
 
 ## PG-07 · Debe permitir mover una página
 
-- [ ] Se puede mover a otro padre
-- [ ] Se puede mover a otro espacio
-- [ ] Se puede convertir en página raíz del espacio
-- [ ] El destino se busca escribiendo, no en un desplegable interminable
-- [ ] Las páginas hijas se mueven junto con la madre
-- [ ] No se puede mover una página dentro de sí misma ni de sus descendientes
-- [ ] Después de mover, los enlaces y menciones existentes siguen funcionando
+- [x] Se puede mover a otro padre — desde «Ubicación» en el panel de la página
+- [x] Se puede mover a otro espacio — verificado contra PostgreSQL, de ida y de vuelta
+- [x] Se puede convertir en página raíz del espacio
+- [x] El destino se busca escribiendo, no en un desplegable interminable — lista agrupada por espacio que se reduce al escribir
+- [x] Las páginas hijas se mueven junto con la madre — verificado con una hija real: cambió de espacio con su madre, y el índice recibió su propio aviso
+- [x] No se puede mover una página dentro de sí misma ni de sus descendientes — su propia rama no aparece entre los destinos, no solo se rechaza después
+- [x] Después de mover, los enlaces y menciones existentes siguen funcionando — una dirección con el espacio viejo lleva a la página en su espacio nuevo
 - [ ] Al moverla a un espacio donde alguien pierde acceso, se advierte antes
 
 ## PG-08 · Debe permitir duplicar una página
 
-- [ ] Hay una opción de duplicar
-- [ ] La copia conserva el contenido, las propiedades y el ícono
-- [ ] Se indica en el título que es una copia
-- [ ] Se puede elegir si se duplican también las páginas hijas
-- [ ] La copia queda junto a la original en el árbol
+- [x] Hay una opción de duplicar
+- [x] La copia conserva el contenido, las propiedades y el ícono
+- [x] Se indica en el título que es una copia
+- [x] Se puede elegir si se duplican también las páginas hijas
+- [x] La copia queda junto a la original en el árbol
 
 ## PG-09 · Debe permitir enviar una página a la papelera
 
 - [ ] Hay una opción de eliminar accesible desde la página y desde el árbol
 - [x] Pide confirmación antes de eliminar
-- [ ] La página desaparece del árbol y de los resultados de búsqueda
+- [x] La página desaparece del árbol y de los resultados de búsqueda
 - [x] Las hijas se van a la papelera con ella
 - [x] Se avisa cuántas páginas hijas se van a eliminar
 - [ ] Las menciones a esa página en otras páginas indican que fue eliminada
@@ -104,40 +116,40 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [x] Desde la papelera se puede eliminar una página para siempre
 - [x] La confirmación deja claro que no tiene vuelta atrás
 - [x] Se puede vaciar la papelera completa
-- [ ] Los archivos adjuntos de esa página también se eliminan
+- [x] Los archivos adjuntos de esa página también se eliminan — verificado contra el disco: el archivo desapareció de `uploads/file-assets`, y la confirmación lo advierte
 
 ## PG-12 · Debe permitir marcar páginas como favoritas
 
 - [x] Hay una estrella o similar en la página
 - [x] Las favoritas aparecen en una sección propia arriba del árbol
 - [x] Se pueden reordenar las favoritas
-- [ ] Se puede quitar de favoritas desde ambos lugares
+- [x] Se puede quitar de favoritas desde ambos lugares
 
 ## PG-13 · Debe permitir volver a lo reciente
 
 - [x] Existe una lista de páginas visitadas recientemente
 - [x] Está a un clic o un atajo de distancia
-- [ ] Muestra el espacio al que pertenece cada una
-- [ ] No repite la misma página varias veces
+- [x] Muestra el espacio al que pertenece cada una («En Engineering»)
+- [x] No repite la misma página varias veces — visitada varias veces, aparece una sola
 
 ## PG-14 · Debe mostrar los datos de la página sin estorbar
 
-- [ ] Las propiedades se ven arriba del contenido, compactas
-- [ ] Una página sin propiedades no muestra un panel vacío
+- [ ] Las propiedades se ven arriba del contenido, compactas — el panel existe arriba, pero falta verlo con propiedades reales de una colección
+- [ ] Una página sin propiedades no muestra un panel vacío — hoy muestra «Esta página no tiene propiedades» y el «mostrar más»
 - [ ] Cada propiedad se edita en el mismo lugar donde se ve, sin abrir otra pantalla
-- [ ] Con muchas propiedades se pliegan y hay un "mostrar más"
-- [ ] La ubicación y los adjuntos se ven ahí mismo, no en un panel aparte
-- [ ] El bloque no empuja el contenido tan abajo que haya que desplazarse para escribir
-- [ ] En pantalla angosta sigue siendo usable
+- [x] Con muchas propiedades se pliegan y hay un "mostrar más" — probado con «Mostrar 2 propiedades más»
+- [x] La ubicación y los adjuntos se ven ahí mismo, no en un panel aparte
+- [x] El bloque no empuja el contenido tan abajo que haya que desplazarse para escribir — plegado por omisión
+- [x] En pantalla angosta sigue siendo usable — recorrido a 320 px sin desbordes
 
 ## PG-15 · Debe permitir adjuntar archivos a la página
 
-- [ ] Se pueden subir archivos a la página
-- [ ] Se ve nombre, tipo, peso y quién lo subió
-- [ ] Se pueden descargar
-- [ ] Se pueden eliminar
-- [ ] Se avisa si el archivo excede el tamaño permitido
-- [ ] Se ve el progreso de subida
+- [x] Se pueden subir archivos a la página
+- [x] Se ve nombre, tipo, peso y quién lo subió
+- [x] Se pueden descargar — descarga real ejecutada
+- [x] Se pueden eliminar — con confirmación
+- [x] Se avisa si el archivo excede el tamaño permitido — con 11 MB: «El archivo pesa más de 10 MB y no se puede subir.»
+- [x] Se ve el progreso de subida — una barra sin porcentaje, a propósito: el sistema no conoce uno y no lo inventa
 - [ ] Un archivo insertado en el contenido aparece también en esta lista
 
 ## PG-16 · Debe informar sobre la página
@@ -149,19 +161,19 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## PG-17 · Debe permitir ajustar cómo se ve la página
 
-- [x] Se puede pasar la página a ancho completo
+- [~] Se puede pasar la página a ancho completo — ya no se elige: toda página es ancho completo desde el 18/08/2026, porque la alternativa no aportaba nada
 - [x] Se puede reducir el tamaño del texto
-- [ ] Se puede elegir la tipografía entre unas pocas opciones
+- [x] Se puede elegir la tipografía entre unas pocas opciones — Del sistema / Con remates / De ancho fijo, aplicada sin recargar
 - [x] La elección se guarda por página, no de forma global
 - [x] El cambio se aplica sin recargar
 
 ## PG-18 · Debe permitir bloquear una página
 
-- [ ] Una página se puede bloquear contra ediciones accidentales
-- [ ] Bloqueada, el contenido se lee pero no se edita
-- [ ] Se ve claramente que está bloqueada
-- [ ] Quien tiene permiso la puede desbloquear
-- [ ] El bloqueo aplica también a las propiedades
+- [x] Una página se puede bloquear contra ediciones accidentales
+- [x] Bloqueada, el contenido se lee pero no se edita
+- [x] Se ve claramente que está bloqueada
+- [x] Quien tiene permiso la puede desbloquear
+- [x] El bloqueo aplica también a las propiedades
 
 ## PG-19 · Debe permitir actuar sobre varias páginas a la vez
 
@@ -192,37 +204,37 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## NV-01 · Debe ofrecer un árbol lateral con toda la estructura
 
-- [ ] El árbol muestra los espacios y, dentro, las páginas anidadas
-- [ ] Hay un solo árbol, no varias listas compitiendo
-- [ ] La página abierta se resalta en el árbol
-- [ ] Al abrir una página profunda el árbol se despliega hasta ella
-- [ ] El árbol se puede ocultar para ganar ancho de lectura
-- [ ] El ancho del árbol se puede ajustar arrastrando
-- [ ] Un árbol con muchas páginas se desplaza sin ponerse lento
+- [x] El árbol muestra los espacios y, dentro, las páginas anidadas
+- [x] Hay un solo árbol, no varias listas compitiendo
+- [x] La página abierta se resalta en el árbol
+- [x] Al abrir una página profunda el árbol se despliega hasta ella — recargando directo en una nieta, aparece visible y resaltada
+- [~] El árbol se puede ocultar para ganar ancho de lectura — el control propio se retiró el 18/08/2026 por duplicar el plegado de la barra; plegar la barra es el gesto
+- [x] El ancho del árbol se puede ajustar arrastrando
+- [ ] Un árbol con muchas páginas se desplaza sin ponerse lento — sin medir con volumen real
 
 ## NV-02 · Debe agrupar el contenido en espacios
 
-- [ ] Se puede crear un espacio
-- [ ] Se le puede poner nombre y descripción
-- [ ] Se ven solo los espacios a los que se tiene acceso
-- [ ] Se puede cambiar de espacio sin perder el contexto de navegación
-- [ ] Un espacio vacío explica cómo empezar en vez de mostrar una pantalla en blanco
+- [x] Se puede crear un espacio
+- [ ] Se le puede poner nombre y descripción — hay nombre y slug; no existe la descripción
+- [ ] Se ven solo los espacios a los que se tiene acceso — el filtro existe y está probado en el backend, pero falta verlo con una segunda persona
+- [x] Se puede cambiar de espacio sin perder el contexto de navegación — el árbol conserva su estado
+- [x] Un espacio vacío explica cómo empezar en vez de mostrar una pantalla en blanco
 
 ## NV-03 · Debe permitir reordenar el árbol con el mouse
 
-- [ ] Se puede arrastrar una página para cambiarla de posición entre sus hermanas
-- [ ] Se puede arrastrar una página dentro de otra para anidarla
-- [ ] Se puede arrastrar una página a otro espacio
-- [ ] Mientras se arrastra se ve dónde va a caer
-- [ ] Al soltar, el orden se conserva al recargar
-- [ ] Arrastrar una madre lleva consigo a sus hijas
-- [ ] No se permite soltar una página dentro de su propia descendencia
+- [ ] Se puede arrastrar una página para cambiarla de posición entre sus hermanas — no existe: soltar sobre una página la anida, y el orden entre hermanas no se puede cambiar con el mouse
+- [x] Se puede arrastrar una página dentro de otra para anidarla
+- [x] Se puede arrastrar una página a otro espacio
+- [x] Mientras se arrastra se ve dónde va a caer
+- [x] Al soltar, el orden se conserva al recargar
+- [x] Arrastrar una madre lleva consigo a sus hijas
+- [x] No se permite soltar una página dentro de su propia descendencia
 
 ## NV-04 · Debe permitir buscar contenido
 
 - [x] Se busca por título y por contenido del cuerpo
 - [x] Los resultados muestran un fragmento con el término resaltado
-- [ ] Se ve a qué espacio y a qué página madre pertenece cada resultado
+- [x] Se ve a qué espacio y a qué página madre pertenece cada resultado
 - [ ] Solo aparecen páginas a las que se tiene acceso
 - [ ] El texto de las menciones también es encontrable
 - [x] Una búsqueda sin resultados lo dice claramente
@@ -232,33 +244,33 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 - [x] Un atajo abre el buscador desde cualquier pantalla
 - [x] Encuentra páginas escribiendo parte del título
-- [ ] Se navega con flechas y se abre con Enter
-- [ ] Escape lo cierra
+- [x] Se navega con flechas y se abre con Enter
+- [x] Escape lo cierra
 - [x] Ofrece también acciones, no solo páginas (crear página, ir a un espacio)
-- [ ] Muestra las páginas recientes antes de escribir nada
+- [x] Muestra las páginas recientes antes de escribir nada («Vistas recientemente»)
 
 ## NV-06 · Debe permitir afinar la búsqueda
 
-- [ ] Se puede filtrar por espacio
-- [ ] Se puede filtrar por autor
-- [ ] Se puede filtrar por fecha de edición
-- [ ] Se pueden combinar filtros
-- [ ] Los filtros aplicados se ven y se pueden quitar de a uno
+- [x] Se puede filtrar por espacio
+- [x] Se puede filtrar por autor
+- [x] Se puede filtrar por fecha de edición
+- [x] Se pueden combinar filtros
+- [x] Los filtros aplicados se ven y se pueden quitar de a uno
 
 ## NV-07 · Debe permitir moverse como en cualquier sitio web
 
-- [ ] El botón atrás del navegador funciona
-- [ ] Cada página tiene su propia dirección compartible
-- [ ] Abrir un enlace en pestaña nueva funciona
-- [ ] Recargar mantiene la posición de lectura
-- [ ] Una dirección inexistente muestra un error claro, no una pantalla rota
+- [x] El botón atrás del navegador funciona
+- [x] Cada página tiene su propia dirección compartible
+- [x] Abrir un enlace en pestaña nueva funciona — el árbol usa enlaces reales
+- [x] Recargar mantiene la posición de lectura
+- [x] Una dirección inexistente muestra un error claro, no una pantalla rota — «Esta dirección no existe», con salida al inicio
 
 ## NV-08 · Debe ofrecer una entrada al espacio
 
-- [ ] Cada espacio tiene una pantalla de inicio
-- [ ] Muestra sus páginas principales
-- [ ] Muestra su actividad reciente
-- [ ] Desde ahí se accede a los miembros y a la configuración del espacio
+- [x] Cada espacio tiene una pantalla de inicio
+- [x] Muestra sus páginas principales
+- [x] Muestra su actividad reciente
+- [ ] Desde ahí se accede a los miembros y a la configuración del espacio — los miembros se ven; no existe pantalla de configuración del espacio
 
 ## NV-09 · Debe permitir asomarse a una página sin abrirla
 
@@ -291,11 +303,11 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 
 ## NV-11 · Debe ofrecer un punto de partida personal
 
-- [ ] Existe una pantalla de inicio propia de cada persona
-- [ ] Muestra las páginas visitadas recientemente
-- [ ] Muestra lo que tiene asignado
-- [ ] Muestra las novedades pendientes
-- [ ] Se puede llegar a ella desde cualquier parte
+- [x] Existe una pantalla de inicio propia de cada persona
+- [x] Muestra las páginas visitadas recientemente
+- [x] Muestra lo que tiene asignado
+- [ ] Muestra las novedades pendientes — no existe noción de leído/no leído en el sistema
+- [x] Se puede llegar a ella desde cualquier parte
 
 ## NV-12 · Debe separar lo privado de lo compartido
 
@@ -314,3 +326,10 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 | 2026-08-17 | PG-10/11/12/13/16/17, NV-04/05 | La UI comprobó listado, búsqueda, restauración, eliminación permanente, vaciado, estrella, orden, información, apariencia, recientes, búsqueda y acciones. Se corrigió y volvió a probar quitar favoritas desde el portal; el filtro `sourceType=inventado` se ignora y el buscador rápido no mostró recientes al abrirse. No se ejecutaron los bloques restantes. | Parcial: una falla registrada |
 | 2026-08-17 | PG-09, PG-10, NV-09 | Cascada al enviar a la papelera y restauración con hijas **verificadas contra PostgreSQL** (madre + 3 hijas, ida y vuelta); la confirmación dice el conteo real de hijas. La vista previa al pasar el cursor muestra título y fragmento, y se va al alejarse. Falta: que la página desaparezca del árbol (corregido en consolidación, sin volver a probar), que las menciones digan que fue eliminada, que se pueda eliminar desde el encabezado, y que la restauración explique dónde quedó si el padre ya no existe. | Parcial |
 | 2026-08-17 | NV-05 (corrección de la fila anterior) | El buscador rápido **sí** muestra las recientes: tras visitar una página, Ctrl+K abre el grupo «Vistas recientemente» con ella dentro. La observación anterior se debió al perfil del navegador —las recientes viven en `localStorage` bajo `portal.recent-pages`— y no a un defecto. | Correcto |
+| 2026-08-18 | PG-04, NV-01, NV-02 | Ícono de página y **de espacio** verificados en el navegador contra PostgreSQL: 1929 símbolos buscables por significado, color, azar por pestaña, cambio y renombrado desde los tres puntos del árbol sin abrir la página. El ícono del espacio se ve también con la barra plegada. Falta que el ícono aparezca en resultados de búsqueda y menciones. Se retiró la portada (PG-05) y el botón de ocultar el árbol: decía lo mismo que plegar la barra y usaba su mismo símbolo. | Parcial: una casilla pendiente |
+| 2026-08-18 | Transversal (responsivo) | Recorrido a 320 px de inicio, espacios, espacio, página nueva, página, búsqueda, papelera, usuarios, cuenta y documentación. Corregido: el editor ganó 40 px de escritura (el carril de las manijas responde al ratón y en táctil no aparece), la papelera ya no desborda, el nombre del espacio pasó de 74 a 256 px, las tablas de la documentación se desplazan dentro de su caja, el título en Recientes pasó de 126 a 218 px, el panel móvil ya no deja una franja con la X flotando y esa X pasó de 16 a 44 px. Falta medir el inicio de sesión sin sesión activa. | Parcial: una pantalla sin medir |
+| 2026-08-18 | PG-01/02/03/06/07/11/13/14/15/17, NV-01/02/05/07 | Recorrido de verificación en el navegador con una página QA real: creada, movida a nieta y a raíz (la ruta se actualizó), con adjunto subido, descargado, rechazado por 11 MB, eliminado, y al final página y archivo borrados para siempre —el archivo desapareció del disco—. Tipografía probada en vivo; buscador rápido con flechas, Enter y Escape; 404 claro; plegado del árbol persistente. **Hallazgos abiertos:** Enter en el título no baja al cuerpo; la pestaña del navegador nunca dice el título; crear exige título+botón antes de escribir; el destino de mover es un desplegable (no se busca escribiendo) y no cruza espacios; los resultados de búsqueda no dicen espacio ni madre; NV-06 sin interfaz de filtros; el título duplica `id="page-title"` en un nodo oculto. | Parcial: hallazgos anotados |
+| 2026-08-18 | PG-01, PG-03, PG-05, PG-07 | Recorrido con página real, todo contrastado contra PostgreSQL y contra el disco. **Crear** ya no pide formulario: la página se crea vacía y uno cae en el título, que se guarda solo. **Enter** en el título baja al cuerpo. La **pestaña** dice el nombre de la página. La **portada** volvió y se verificó entera con una foto de 7,6 MB —subir, cambiar, reposicionar sin guardar hasta que se pide, quitar (borra el archivo)—, y sin portada no reserva espacio. **Mover** llega a otro espacio, se busca escribiendo, arrastra la descendencia y deja funcionando las direcciones viejas. Se reprodujo y corrigió el `id` duplicado del título: el enrutador mantiene montada la página anterior, así que dos campos compartían nombre. **Tres defectos nuevos encontrados y corregidos:** las acciones de servidor aceptaban 1 MB cuando la interfaz promete 10 (reventaba cualquier adjunto mediano, no solo la portada); las imágenes privadas daban 401 al pasar por el optimizador de Next, que las pide sin sesión (afectaba también a los íconos de imagen); y mover entre espacios dejaba a la persona en un «Esta dirección no existe». | Correcto |
+| 2026-08-18 | NV-04, NV-06 | Se comprobó **en el código** que ya están construidos (los resultados muestran espacio y madre; hay filtros de espacio, tipo, etiquetas, autor y fecha, combinables y con chips). El recorrido de QA anterior los dio por ausentes contra un servidor de desarrollo viejo. **No se marcan**: falta verlos en el navegador. | Pendiente de verificar |
+| 2026-08-18 | PG-08, PG-18, NV-03, NV-08, NV-11 | **Construido, sin verificar en el navegador.** Duplicar una página (con o sin su descendencia; la copia queda junto a la original). Bloquear una página: el backend **rechaza** escribir y renombrar una bloqueada, no solo se atenúa la pantalla. Arrastrar una página a otro espacio, y **reordenar los espacios arrastrando** (columna `order` nueva; migración aplicada a mano porque una migración anterior fue modificada después de aplicarse y Prisma pedía resetear la base). Pantalla de inicio del espacio con páginas principales, actividad reciente y miembros. «Asignadas a ti» en el inicio personal, leyendo las propiedades que la colección llama persona. Falta de NV-11: las novedades pendientes, que no tienen dónde apoyarse todavía. Falta de NV-08: la configuración del espacio (los miembros sí se ven). | Pendiente de verificar |
+| 2026-08-19 | PG-08, PG-12, PG-18, NV-03, NV-04, NV-06, NV-07, NV-08, NV-11 | Recorrido en el navegador contra PostgreSQL de todo lo construido el día anterior. **Duplicar** conserva contenido, propiedades e ícono, dice «(copia)», pregunta por las hijas solo si las hay y deja la copia pegada a la original. **Bloquear** apaga editor, título y propiedades, se ve, se revierte con el mismo botón, y el backend responde `PAGE_LOCKED` 409. **Filtros** de espacio, autor y fecha combinados, con chips que se quitan de a uno. Los resultados dicen espacio y madre. **Arrastrar** anida, avisa dónde cae, se anuncia por `aria-live`, rechaza soltar en la propia descendencia, cruza espacios y arrastra la descendencia; reordenar espacios persiste. Inicio del espacio y «Asignadas a ti» comprobados con tres personas. **Dos defectos encontrados y corregidos:** la estrella del encabezado no seguía al servidor —quitar la página desde la barra lateral la dejaba diciendo «Quitar de favoritas», y el siguiente clic pedía quitar algo que ya no estaba—; y la posición de lectura nunca se restauró porque se guardaba y pedía sobre `window`, cuando quien se desplaza es la caja de lectura dentro del viewport. **Falta:** orden entre hermanas con el mouse, configuración del espacio y novedades pendientes; ninguna de las tres existe todavía. | Correcto |

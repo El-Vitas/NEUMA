@@ -10,6 +10,9 @@ import {
 import { PageRepository } from './infrastructure/persistence/page.repository';
 import { PageAttachmentsCleanupRepository } from './infrastructure/persistence/page-attachments.cleanup.repository';
 import { PageSchemaRepository } from './infrastructure/persistence/page-schema.repository';
+import { PageAssignedController } from './page.assigned.controller';
+import { PageDestinationsController } from './page.destinations.controller';
+import { PageLocationController } from './page.location.controller';
 import { PageTrashController } from './page.trash.controller';
 import { PageSchemaController } from './page-schema.controller';
 import { PageSchemaService } from './page-schema.service';
@@ -17,7 +20,14 @@ import { PagesController } from './pages.controller';
 import { PagesService } from './pages.service';
 
 @Module({
-  controllers: [PagesController, PageSchemaController, PageTrashController],
+  controllers: [
+    PagesController,
+    PageSchemaController,
+    PageTrashController,
+    PageDestinationsController,
+    PageLocationController,
+    PageAssignedController,
+  ],
   exports: [PagesService, PageSchemaService],
   providers: [
     OutboxRepository,

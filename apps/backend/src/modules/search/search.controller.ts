@@ -5,7 +5,7 @@ import { WorkspaceContextService } from '../../common/infrastructure/persistence
 import type { TokenPayload } from '../../common/types/auth.types';
 import { SearchQueryDto } from './dto/search.query.dto';
 import { SearchService } from './search.service';
-import type { SearchPage } from './types/search.types';
+import type { SearchPageWithContext } from './types/search.types';
 import { normalizeSearchQuery } from './utils/search.query.utils';
 
 @Controller('search')
@@ -17,7 +17,7 @@ export class SearchController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async search(@Query() dto: SearchQueryDto, @User('payload') payload: TokenPayload): Promise<SearchPage> {
+  async search(@Query() dto: SearchQueryDto, @User('payload') payload: TokenPayload): Promise<SearchPageWithContext> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.searchService.search({
       ...normalizeSearchQuery(dto),

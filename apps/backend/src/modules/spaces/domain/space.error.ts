@@ -8,3 +8,12 @@ export class SpaceAccessDeniedError extends DomainError {
     super('Space access denied');
   }
 }
+
+export class SpaceIconValidationError extends DomainError {
+  public readonly code = 'SPACE_ICON_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: unknown) {
+    super('Space icon is invalid', details);
+  }
+}

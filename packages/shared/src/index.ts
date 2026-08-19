@@ -88,6 +88,22 @@ export type {
   PageContentMigrations,
 } from './schemas/page-content.migration.js';
 export { applyPageContentMigrations, readStoredPageContent } from './schemas/page-content.migration.js';
+export type { PageCoverValue } from './schemas/page-cover.schema.js';
+export { pageCoverValueSchema } from './schemas/page-cover.schema.js';
+export type {
+  PageEmojiIcon,
+  PageIcon,
+  PageIconColor,
+  PageImageIcon,
+  PageSymbolIcon,
+} from './schemas/page-icon.schema.js';
+export {
+  PAGE_ICON_COLORS,
+  pageEmojiIconSchema,
+  pageIconSchema,
+  pageImageIconSchema,
+  pageSymbolIconSchema,
+} from './schemas/page-icon.schema.js';
 export type {
   PageBlockAttrs,
   PageBlockColor,

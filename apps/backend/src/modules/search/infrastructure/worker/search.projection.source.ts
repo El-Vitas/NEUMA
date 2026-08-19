@@ -11,6 +11,8 @@ const pageSelection = {
   createdById: true,
   id: true,
   lifecycle: true,
+  parentId: true,
+  space: { select: { name: true } },
   spaceId: true,
   title: true,
   versions: { orderBy: { version: 'desc' as const }, select: { version: true }, take: 1 },
@@ -24,11 +26,21 @@ export class SearchProjectionSource implements SearchProjectionSourceContract {
     const page = await this.prisma.page.findUnique({ select: pageSelection, where: { id: pageIdentifier } });
     if (page === null) return null;
     const author = await this.prisma.user.findUnique({ select: { name: true }, where: { id: page.createdById } });
+    const parentPageTitle = await this.findParentPageTitle(page.parentId);
     return {
       ...page,
       authorId: page.createdById,
       authorName: author?.name ?? null,
+      parentPageId: page.parentId,
+      parentPageTitle,
+      spaceName: page.space.name,
       version: page.versions[0]?.version ?? 0,
     };
+  }
+
+  private async findParentPageTitle(parentId: string | null): Promise<string | null> {
+    if (parentId === null) return null;
+    const parent = await this.prisma.page.findUnique({ select: { title: true }, where: { id: parentId } });
+    return parent?.title ?? null;
   }
 }

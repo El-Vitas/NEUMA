@@ -46,7 +46,6 @@ export const usePagesAppearance = (pageId: string | null): PagesAppearanceResult
 
   return {
     preferences,
-    setFullWidth: (fullWidth: boolean) => updatePreferences({ fullWidth }),
     setTextSize: (textSize: PageAppearanceTextSize) => updatePreferences({ textSize }),
     setTypography: (typography: PageAppearanceTypography) => updatePreferences({ typography }),
   };

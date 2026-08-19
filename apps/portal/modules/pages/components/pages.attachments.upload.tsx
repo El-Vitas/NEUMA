@@ -1,10 +1,12 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
-import { ATTACHMENT_MIME_TYPES } from '../constants/pages.attachments.constants';
+import { ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_SIZE } from '../constants/pages.attachments.constants';
 import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
+import { formatAttachmentSize } from '../lib/pages.attachments.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
+import { PagesAttachmentsUploadProgress } from './pages.attachments.upload.progress';
 
 interface IProps {
   readonly onUploaded: (attachment: AttachmentSummary) => void;
@@ -13,6 +15,8 @@ interface IProps {
 
 export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
   const t = useTranslations('pages.attachments');
+  const tPanel = useTranslations('pages.attachmentsPanel');
+  const locale = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | undefined>(undefined);
   const { clearError, error, isPending, retry, upload } = usePagesAttachmentUpload({
@@ -24,6 +28,10 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
     pageId,
   });
   const isValidationError = error === 'invalid';
+  const isTooLargeError = error === 'tooLarge';
+  const errorMessage = isTooLargeError
+    ? tPanel('fileTooLarge', { limit: formatAttachmentSize(MAX_ATTACHMENT_SIZE, locale) })
+    : t(isValidationError ? 'validationError' : 'uploadError');
 
   return (
     <div className="space-y-2">
@@ -54,15 +62,11 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
           {isPending ? t('uploading') : t('upload')}
         </button>
       </div>
-      {isPending && (
-        <p aria-live="polite" className="text-muted-foreground text-xs" role="status">
-          {t('uploading')}
-        </p>
-      )}
+      {isPending && <PagesAttachmentsUploadProgress />}
       {error !== null && (
         <div className="flex items-center gap-2" id="page-attachment-error">
           <p className="text-destructive text-xs" role="alert">
-            {t(isValidationError ? 'validationError' : 'uploadError')}
+            {errorMessage}
           </p>
           {error === 'request' && (
             <button

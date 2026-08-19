@@ -1,32 +1,60 @@
 'use client';
 
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { PrimaryButton } from '@/shared/components/forms/primary-button';
+import { cn } from '@/lib/utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/shared/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { hasActionError } from '@/shared/lib/action-result';
+import { usePagesMoveDestinations } from '../hooks/use.pages.move.destinations';
+import {
+  buildPageMoveDestinations,
+  findCurrentPageMoveDestination,
+  isSamePageMoveDestination,
+} from '../lib/pages.move.lib';
 import { movePageAction } from '../server/actions/pages.actions';
+import type { PageMoveDestination } from '../types/pages.move.types';
 import type { PageSummary } from '../types/pages.types';
 
 interface IProps {
   readonly ariaLabelledBy: string;
   readonly page: PageSummary;
-  readonly pages: readonly PageSummary[];
   readonly spaceId: string;
 }
 
-export const PagesMoveForm = ({ ariaLabelledBy, page, pages, spaceId }: IProps) => {
+/**
+ * Where the page lives, changed by naming the place rather than by hunting for
+ * it in a list of everything: the destinations of every space one can reach are
+ * narrowed as the name is typed. The page's own branch is not among them, since
+ * a page cannot come to hang from something that hangs from it.
+ */
+export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
   const t = useTranslations('pages');
-  const [parentId, setParentId] = useState(page.parentId ?? 'root');
+  const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const possibleParents = pages.filter((candidate) => candidate.id !== page.id && candidate.lifecycle === 'ACTIVE');
+  const destinations = usePagesMoveDestinations(isOpen, page.id, spaceId);
+  const choices = buildPageMoveDestinations(destinations, t('spaceRoot'), t('untitled'));
+  const current = findCurrentPageMoveDestination(choices, page.spaceId, page.parentId);
 
-  const movePage = () => {
+  const movePage = (destination: PageMoveDestination): void => {
+    setIsOpen(false);
+    if (isSamePageMoveDestination(destination, page.spaceId, page.parentId)) return;
     startTransition(async () => {
       const result = await movePageAction({
         pageId: page.id,
-        parentId: parentId === 'root' ? null : parentId,
+        parentId: destination.pageId,
         spaceId,
+        targetSpaceId: destination.spaceId === page.spaceId ? undefined : destination.spaceId,
       });
       if (hasActionError(result)) {
         toast.error(t('moveError'));
@@ -37,28 +65,45 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, pages, spaceId }: IProps) 
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select
+    <Popover onOpenChange={setIsOpen} open={isOpen}>
+      <PopoverTrigger
         aria-labelledby={ariaLabelledBy}
-        className="min-h-11 min-w-0 flex-1 border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onChange={(event) => setParentId(event.target.value)}
-        value={parentId}
+        className={cn(
+          'flex min-h-11 w-full items-center justify-between gap-2 border border-border bg-background px-3 text-left text-sm',
+          FOCUS_RING_CLASS,
+        )}
+        disabled={isPending}
       >
-        <option value="root">{t('spaceRoot')}</option>
-        {possibleParents.map((candidate) => (
-          <option key={candidate.id} value={candidate.id}>
-            {candidate.title}
-          </option>
-        ))}
-      </select>
-      <PrimaryButton
-        disabled={isPending || parentId === (page.parentId ?? 'root')}
-        onClick={movePage}
-        type="button"
-        variant="secondary"
-      >
-        {isPending ? t('moving') : t('move')}
-      </PrimaryButton>
-    </div>
+        <span className="min-w-0 truncate">
+          {isPending ? t('moving') : (current?.title ?? t('spaceRoot'))}
+          {current !== null && <span className="text-muted-foreground"> · {current.spaceName}</span>}
+        </span>
+        <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] p-0">
+        <Command>
+          <CommandInput placeholder={t('moveSearch')} />
+          <CommandList>
+            <CommandEmpty>{t('noMentionCandidates')}</CommandEmpty>
+            {destinations.spaces.map((space) => (
+              <CommandGroup heading={space.name} key={space.id}>
+                {choices
+                  .filter((choice) => choice.spaceId === space.id)
+                  .map((choice) => (
+                    <CommandItem
+                      key={choice.id}
+                      onSelect={() => movePage(choice)}
+                      value={`${space.name} ${choice.title}`}
+                    >
+                      <Check aria-hidden="true" className={cn('size-4', choice.id !== current?.id && 'opacity-0')} />
+                      {choice.title}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 };

@@ -1,5 +1,5 @@
 import type { Prisma } from '@company-brain/db/generated';
-import type { SearchPage, SearchQuery, SearchSourceType } from '../../../common/types/search.types';
+import type { SearchQuery, SearchResult, SearchSourceType } from '../../../common/types/search.types';
 import type { SEARCH_EDITED_RANGE_VALUES } from '../constants/search.constants';
 
 export type { SearchPage, SearchQuery, SearchReader, SearchResult } from '../../../common/types/search.types';
@@ -42,13 +42,29 @@ export interface SearchQueryParams {
 
 export interface SearchRow {
   readonly contentType: string;
+  readonly parentPageId: string | null;
+  readonly parentPageTitle: string | null;
   readonly rank: number;
   readonly snippet: string;
   readonly sourceId: string;
   readonly sourceType: SearchSourceType;
   readonly spaceId: string;
+  readonly spaceName: string | null;
   readonly title: string;
   readonly updatedAt: Date;
+}
+
+export interface SearchResultContext {
+  readonly parentPageId: string | null;
+  readonly parentPageTitle: string | null;
+  readonly spaceName: string | null;
+}
+
+export type SearchResultWithContext = SearchResult & SearchResultContext;
+
+export interface SearchPageWithContext {
+  readonly items: readonly SearchResultWithContext[];
+  readonly nextCursor?: string;
 }
 
 export interface SearchCursor {
@@ -59,7 +75,7 @@ export interface SearchCursor {
 
 export interface SearchRepositoryContract {
   readonly removeDocument: (input: SearchDocumentRemoval) => Promise<void>;
-  readonly search: (query: SearchQueryWithFilters) => Promise<SearchPage>;
+  readonly search: (query: SearchQueryWithFilters) => Promise<SearchPageWithContext>;
   readonly upsertDocument: (input: SearchDocumentInput) => Promise<void>;
 }
 
@@ -80,7 +96,10 @@ export interface SearchProjectionPage {
   readonly content: Prisma.JsonValue;
   readonly id: string;
   readonly lifecycle: string;
+  readonly parentPageId: string | null;
+  readonly parentPageTitle: string | null;
   readonly spaceId: string;
+  readonly spaceName: string;
   readonly title: string;
   readonly version: number;
 }

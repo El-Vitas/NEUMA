@@ -10,6 +10,7 @@ let pathname = '/spaces/engineering';
 
 const refreshRouter = mock(() => undefined);
 const restorePage = mock(async () => ({ data: undefined }));
+const movePage = mock(async () => ({ data: undefined }));
 
 mock.module('next/navigation', () => ({
   useRouter: () => ({ refresh: refreshRouter }),
@@ -21,9 +22,27 @@ mock.module('@/i18n/navigation', () => ({
     </a>
   ),
   usePathname: () => pathname,
+  useRouter: () => ({ push: () => undefined, refresh: () => undefined }),
 }));
+/** Starting a page reaches a server action, which refuses to load outside a server. */
+mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+  usePagesStart: () => ({ isStarting: false, startPage: () => undefined }),
+}));
+
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  setPageLockAction: async () => ({ data: undefined }),
+  duplicatePageAction: async () => ({ data: undefined }),
+  movePageAction: movePage,
+  /** The rename dialog reachable from the tree pulls this in, so the stand-in offers it too. */
+  renamePageAction: async () => ({ data: undefined }),
   restorePageAction: restorePage,
+}));
+/** The icon dialog reachable from the tree imports these server actions, which refuse to load outside a server. */
+mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+  removePageIconAction: async () => ({ data: undefined }),
+  setPageIconEmojiAction: async () => ({ data: undefined }),
+  setPageIconSymbolAction: async () => ({ data: undefined }),
+  uploadPageIconImageAction: async () => ({ data: undefined }),
 }));
 mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
   PagesTrashConfirmDialog: ({
@@ -76,6 +95,7 @@ const spaceId = 'engineering';
 
 const parentPage: PortalSidebarPage = {
   id: 'parent-page',
+  icon: null,
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: null,
@@ -84,6 +104,7 @@ const parentPage: PortalSidebarPage = {
 
 const childPage: PortalSidebarPage = {
   id: 'child-page',
+  icon: null,
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: 'parent-page',
@@ -92,6 +113,7 @@ const childPage: PortalSidebarPage = {
 
 const siblingPage: PortalSidebarPage = {
   id: 'sibling-page',
+  icon: null,
   lifecycle: 'ACTIVE',
   order: 1,
   parentId: null,
@@ -100,6 +122,7 @@ const siblingPage: PortalSidebarPage = {
 
 const trashedPage: PortalSidebarPage = {
   id: 'trashed-page',
+  icon: null,
   lifecycle: 'TRASHED',
   order: 2,
   parentId: null,
@@ -115,6 +138,20 @@ const renderSidebarPageTree = (pages: readonly PortalSidebarPage[], role: 'ADMIN
       </NextIntlClientProvider>
     </>,
   );
+
+const createDataTransferStub = () => ({
+  dropEffect: '',
+  effectAllowed: '',
+  getData: () => '',
+  setData: () => undefined,
+});
+
+const getDraggableRow = (linkName: string): HTMLElement => {
+  const link = screen.getByRole('link', { name: linkName });
+  const row = link.closest('[draggable]');
+  if (row === null) throw new Error(`No draggable row found for "${linkName}"`);
+  return row as HTMLElement;
+};
 
 describe('SidebarPageTree', () => {
   beforeEach(() => {
@@ -216,6 +253,98 @@ describe('SidebarPageTree', () => {
     await waitFor(() => {
       expect(restorePage).toHaveBeenCalledWith({ pageId: 'parent-page', spaceId });
       expect(refreshRouter).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('announces the page being dragged as soon as the drag starts', () => {
+    renderSidebarPageTree([parentPage, siblingPage]);
+
+    fireEvent.dragStart(getDraggableRow('Sibling page'), { dataTransfer: createDataTransferStub() });
+
+    expect(screen.getByText('Moving Sibling page')).toBeDefined();
+  });
+
+  it('nests a dragged page inside the page it is dropped on, and reports the move', async () => {
+    renderSidebarPageTree([parentPage, siblingPage]);
+
+    const draggedRow = getDraggableRow('Sibling page');
+    const targetRow = getDraggableRow('Parent page');
+
+    fireEvent.dragStart(draggedRow, { dataTransfer: createDataTransferStub() });
+    fireEvent.dragOver(targetRow, { dataTransfer: createDataTransferStub() });
+    expect(screen.getByText('Will drop inside Parent page')).toBeDefined();
+
+    fireEvent.drop(targetRow, { dataTransfer: createDataTransferStub() });
+
+    await waitFor(() => {
+      expect(movePage).toHaveBeenCalledWith({ pageId: 'sibling-page', parentId: 'parent-page', spaceId });
+      expect(refreshRouter).toHaveBeenCalled();
+    });
+  });
+
+  it('refuses to drop a page inside its own descendant', async () => {
+    pathname = '/spaces/engineering/pages/child-page';
+    renderSidebarPageTree([parentPage, childPage]);
+
+    const draggedRow = getDraggableRow('Parent page');
+    const targetRow = getDraggableRow('Child page');
+
+    fireEvent.dragStart(draggedRow, { dataTransfer: createDataTransferStub() });
+    fireEvent.dragOver(targetRow, { dataTransfer: createDataTransferStub() });
+    expect(screen.getByText("Can't drop here")).toBeDefined();
+
+    fireEvent.drop(targetRow, { dataTransfer: createDataTransferStub() });
+
+    expect(movePage).not.toHaveBeenCalled();
+  });
+
+  it('offers a space-root drop zone while dragging, and reports it does not promise a sibling position', async () => {
+    pathname = '/spaces/engineering/pages/child-page';
+    renderSidebarPageTree([parentPage, childPage]);
+
+    expect(screen.queryByText('Space root')).toBeNull();
+
+    fireEvent.dragStart(getDraggableRow('Child page'), { dataTransfer: createDataTransferStub() });
+    const rootZone = screen.getByText('Space root');
+
+    fireEvent.dragOver(rootZone, { dataTransfer: createDataTransferStub() });
+    expect(screen.getByText('Will drop inside Space root')).toBeDefined();
+
+    fireEvent.drop(rootZone, { dataTransfer: createDataTransferStub() });
+
+    await waitFor(() => {
+      expect(movePage).toHaveBeenCalledWith({ pageId: 'child-page', parentId: null, spaceId });
+    });
+  });
+
+  it('does not offer a "drop before" or "drop after" a sibling, since the backend cannot keep that placement', () => {
+    renderSidebarPageTree([parentPage, siblingPage]);
+
+    fireEvent.dragStart(getDraggableRow('Sibling page'), { dataTransfer: createDataTransferStub() });
+    fireEvent.dragOver(getDraggableRow('Parent page'), { dataTransfer: createDataTransferStub() });
+
+    expect(screen.queryByText(/Will drop before/)).toBeNull();
+    expect(screen.queryByText(/Will drop after/)).toBeNull();
+  });
+
+  it('nests a page under its previous sibling with the keyboard, without a mouse', async () => {
+    renderSidebarPageTree([parentPage, siblingPage]);
+
+    fireEvent.keyDown(screen.getByRole('link', { name: 'Sibling page' }), { altKey: true, key: 'ArrowRight' });
+
+    await waitFor(() => {
+      expect(movePage).toHaveBeenCalledWith({ pageId: 'sibling-page', parentId: 'parent-page', spaceId });
+    });
+  });
+
+  it('climbs a nested page out to its parent level with the keyboard', async () => {
+    pathname = '/spaces/engineering/pages/child-page';
+    renderSidebarPageTree([parentPage, childPage]);
+
+    fireEvent.keyDown(screen.getByRole('link', { name: 'Child page' }), { altKey: true, key: 'ArrowLeft' });
+
+    await waitFor(() => {
+      expect(movePage).toHaveBeenCalledWith({ pageId: 'child-page', parentId: null, spaceId });
     });
   });
 });

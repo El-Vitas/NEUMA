@@ -89,3 +89,31 @@ export class PagePropertyConformanceError extends DomainError {
     super('Moving this page would leave its property values non-conforming with the destination schema', details);
   }
 }
+
+export class PageIconValidationError extends DomainError {
+  public readonly code = 'PAGE_ICON_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: unknown) {
+    super('Page icon is invalid', details);
+  }
+}
+
+export class PageCoverValidationError extends DomainError {
+  public readonly code = 'PAGE_COVER_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: unknown) {
+    super('Page cover is invalid', details);
+  }
+}
+
+/** A page somebody locked refuses the edit rather than quietly taking it. */
+export class PageLockedError extends DomainError {
+  public readonly code = 'PAGE_LOCKED';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('This page is locked against edits.');
+  }
+}

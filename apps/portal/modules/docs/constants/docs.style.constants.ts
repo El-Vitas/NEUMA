@@ -15,7 +15,9 @@ export const DOCS_MARKDOWN_STYLE_CLASS = [
   '[&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:ps-5 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:ps-5',
   '[&_strong]:font-semibold [&_strong]:text-foreground',
   '[&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4',
-  '[&_table]:w-full [&_table]:border [&_table]:border-border [&_td]:border [&_td]:border-border [&_td]:p-2',
+  /** A table wider than the screen scrolls inside its own box, like the code and the drawings above it. */
+  '[&_table]:block [&_table]:w-full [&_table]:overflow-x-auto',
+  '[&_table]:border [&_table]:border-border [&_td]:border [&_td]:border-border [&_td]:p-2',
   '[&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:text-start [&_th]:text-foreground',
   '[&_pre]:overflow-auto [&_pre]:border [&_pre]:border-border [&_pre]:bg-surface-low [&_pre]:p-3',
   '[&_pre]:font-mono [&_pre]:text-xs',

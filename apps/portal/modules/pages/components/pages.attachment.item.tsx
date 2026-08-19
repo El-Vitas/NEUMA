@@ -1,12 +1,17 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
-import { formatAttachmentSize, triggerAttachmentBlobDownload } from '../lib/pages.attachments.lib';
+import {
+  formatAttachmentSize,
+  formatAttachmentType,
+  triggerAttachmentBlobDownload,
+} from '../lib/pages.attachments.lib';
 import { deletePageAttachmentAction, downloadPageAttachmentAction } from '../server/actions/pages.attachments.actions';
 import type { AttachmentDownload, AttachmentSummary } from '../types/pages.attachments.types';
+import { PagesAttachmentsDeleteConfirmDialog } from './pages.attachments.delete-confirm.dialog';
 
 interface IProps {
   readonly attachment: AttachmentSummary;
@@ -16,8 +21,11 @@ interface IProps {
 
 export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) => {
   const t = useTranslations('pages.attachments');
+  const tPanel = useTranslations('pages.attachmentsPanel');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const download = () => {
     startTransition(async () => {
@@ -31,6 +39,7 @@ export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) 
   };
 
   const remove = () => {
+    setIsConfirmingDelete(false);
     setIsDeleting(true);
     startTransition(async () => {
       const result = await deletePageAttachmentAction({ attachmentId: attachment.id });
@@ -47,14 +56,30 @@ export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) 
   const isBusy = isPending || isDeleting;
   return (
     <li className="flex min-w-0 flex-wrap items-center justify-between gap-3 border border-border bg-card p-3">
-      <div className="min-w-0">
-        <p className="truncate text-foreground text-sm">{attachment.originalFilename}</p>
-        <p className="text-muted-foreground text-xs">{formatAttachmentSize(attachment.size)}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-foreground text-sm">
+          <span className="sr-only">{tPanel('columns.name')}</span>
+          {attachment.originalFilename}
+        </p>
+        <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground text-xs">
+          <div className="flex gap-1">
+            <dt className="sr-only">{tPanel('columns.type')}</dt>
+            <dd>{formatAttachmentType(attachment.mimeType)}</dd>
+          </div>
+          <div className="flex gap-1">
+            <dt className="sr-only">{tPanel('columns.size')}</dt>
+            <dd>{formatAttachmentSize(attachment.size, locale)}</dd>
+          </div>
+          <div className="flex gap-1">
+            <dt className="sr-only">{tPanel('columns.uploadedBy')}</dt>
+            <dd>{attachment.uploadedBy}</dd>
+          </div>
+        </dl>
       </div>
       <div className="flex flex-wrap gap-2">
         <button
           aria-label={t('downloadNamed', { name: attachment.originalFilename })}
-          className="min-h-10 border border-border px-3 text-foreground text-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-h-11 border border-border px-3 text-foreground text-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
           disabled={isBusy}
           onClick={download}
           type="button"
@@ -64,15 +89,18 @@ export const PagesAttachmentItem = ({ attachment, canEdit, onDeleted }: IProps) 
         {canEdit && (
           <button
             aria-label={t('deleteNamed', { name: attachment.originalFilename })}
-            className="min-h-10 border border-destructive/40 px-3 text-destructive text-xs hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-11 border border-destructive/40 px-3 text-destructive text-xs hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
             disabled={isBusy}
-            onClick={remove}
+            onClick={() => setIsConfirmingDelete(true)}
             type="button"
           >
             {isDeleting ? t('deleting') : t('delete')}
           </button>
         )}
       </div>
+      {isConfirmingDelete && (
+        <PagesAttachmentsDeleteConfirmDialog onCancel={() => setIsConfirmingDelete(false)} onConfirm={remove} />
+      )}
     </li>
   );
 };

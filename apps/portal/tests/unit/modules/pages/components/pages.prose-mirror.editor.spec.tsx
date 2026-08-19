@@ -38,6 +38,7 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
       mimeType: 'image/png',
       originalFilename: 'diagram.png',
       size: 1024,
+      uploadedBy: 'Jane Doe',
     },
   }),
 }));
@@ -48,6 +49,7 @@ mock.module('@/modules/pages/server/actions/pages.collections.actions', () => ({
 }));
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  setPageLockAction: async () => ({ data: undefined }),
   addBlocksToPageAction: async () => ({ data: undefined }),
   createPageAction: async () => ({ data: { id: 'page-2', title: 'Nueva' } }),
   listPageDestinationsAction: async () => ({ data: [] }),
@@ -89,6 +91,7 @@ const renderEditor = (props: {
 }) => {
   const ref = createRef<{
     readonly goToHeading: (position: number) => void;
+    readonly goToWriting: () => void;
     readonly runCommand: (command: (...args: never[]) => boolean) => boolean;
   } | null>();
   render(

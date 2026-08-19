@@ -4,7 +4,9 @@ import { USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import type { FileAssetMetadata, FileAssetRepository, FileAssetSummary } from '../../types/files.types';
+import { FILE_ASSET_METADATA_SELECTION, UNKNOWN_FILE_OWNER_NAME } from '../../constants/files.constants';
+import type { FileAssetMetadata, FileAssetSummary } from '../../domain/files.domain.types';
+import type { FileAssetMetadataRow, FileAssetRepository } from '../../types/files.types';
 
 const fileAssetSelection = {
   checksum: true,
@@ -18,13 +20,6 @@ const fileAssetSelection = {
   size: true,
   storageKey: true,
   workspaceId: true,
-} satisfies Prisma.FileAssetSelect;
-
-const fileAssetMetadataSelection = {
-  id: true,
-  mimeType: true,
-  originalFilename: true,
-  size: true,
 } satisfies Prisma.FileAssetSelect;
 
 @Injectable()
@@ -69,10 +64,11 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
   ): Promise<FileAssetMetadata[] | null> {
     const hasAccess = await this.hasPageAccess(pageId, workspaceId, userId, role);
     if (!hasAccess) return null;
-    return this.prisma.fileAsset.findMany({
-      select: fileAssetMetadataSelection,
+    const assets = await this.prisma.fileAsset.findMany({
+      select: FILE_ASSET_METADATA_SELECTION,
       where: { lifecycle: FileAssetLifecycle.ACTIVE, pageId, workspaceId },
     });
+    return this.withUploaderNames(assets);
   }
 
   async markDeleted(assetId: string, workspaceId: string, _userId: string): Promise<boolean> {
@@ -81,6 +77,22 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
       where: { id: assetId, lifecycle: FileAssetLifecycle.ACTIVE, workspaceId },
     });
     return result.count > 0;
+  }
+
+  private async withUploaderNames(assets: FileAssetMetadataRow[]): Promise<FileAssetMetadata[]> {
+    const ownerIds = [...new Set(assets.map((asset) => asset.ownerId))];
+    const owners = await this.prisma.user.findMany({
+      select: { id: true, name: true },
+      where: { id: { in: ownerIds } },
+    });
+    const ownerNameById = new Map(owners.map((owner) => [owner.id, owner.name] as const));
+    return assets.map((asset) => ({
+      id: asset.id,
+      mimeType: asset.mimeType,
+      originalFilename: asset.originalFilename,
+      size: asset.size,
+      uploadedBy: ownerNameById.get(asset.ownerId) ?? UNKNOWN_FILE_OWNER_NAME,
+    }));
   }
 
   private async hasPageAccess(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<boolean> {

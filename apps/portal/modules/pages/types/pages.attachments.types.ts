@@ -3,6 +3,7 @@ export interface AttachmentSummary {
   readonly mimeType: string;
   readonly originalFilename: string;
   readonly size: number;
+  readonly uploadedBy: string;
 }
 
 export interface AttachmentDownload {
@@ -11,7 +12,7 @@ export interface AttachmentDownload {
   readonly originalFilename: string;
 }
 
-export type AttachmentUploadError = 'invalid' | 'request';
+export type AttachmentUploadError = 'invalid' | 'request' | 'tooLarge';
 
 export interface PagesAttachmentUploadController {
   readonly clearError: () => void;

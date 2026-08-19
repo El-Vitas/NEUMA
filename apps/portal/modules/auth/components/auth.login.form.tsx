@@ -14,6 +14,7 @@ export const LoginForm = () => {
   return (
     <form action={formAction} className="mt-8 space-y-4">
       <FormField
+        autoComplete="email"
         id="login-email"
         label={t('email')}
         name="email"
@@ -22,7 +23,7 @@ export const LoginForm = () => {
         type="email"
       />
 
-      <AuthPasswordField id="login-password" label={t('password')} />
+      <AuthPasswordField autoComplete="current-password" id="login-password" label={t('password')} />
 
       <AuthFormStatus
         errorMessage={state.messageKey ? t(state.messageKey) : state.message}

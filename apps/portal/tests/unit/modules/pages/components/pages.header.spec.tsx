@@ -7,6 +7,14 @@ import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
 import en from '../../../../../messages/en.json';
 
+mock.module('server-only', () => ({}));
+mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+  removePageIconAction: async () => ({ data: undefined }),
+  setPageIconEmojiAction: async () => ({ data: undefined }),
+  setPageIconSymbolAction: async () => ({ data: undefined }),
+  uploadPageIconImageAction: async () => ({ data: undefined }),
+}));
+
 mock.module('@/shared/components/portal/page-favorite-toggle', () => ({
   PageFavoriteToggle: ({
     isFavorite,
@@ -57,7 +65,6 @@ const PARENT_PAGES: readonly PageSummary[] = [
 
 const buildAppearance = (overrides: Partial<PagesAppearanceResult> = {}): PagesAppearanceResult => ({
   preferences: PAGE_APPEARANCE_DEFAULT_PREFERENCES,
-  setFullWidth: () => undefined,
   setTextSize: () => undefined,
   setTypography: () => undefined,
   ...overrides,
@@ -142,5 +149,23 @@ describe('PagesHeader', () => {
 
     expect(screen.getByRole('button', { name: 'favorite:page-1:true' })).toBeDefined();
     expect(screen.getByTestId('recent-recorder:page-1:Handbook space')).toBeDefined();
+  });
+
+  it('keeps the icon control out of a page that was never saved', () => {
+    renderHeader({ pageId: null });
+
+    expect(screen.queryByRole('button', { name: 'Add an icon' })).toBeNull();
+  });
+
+  it('offers the icon control once the page has an id', () => {
+    renderHeader({ pageId: 'page-1' });
+
+    expect(screen.getByRole('button', { name: 'Add an icon' })).toBeDefined();
+  });
+
+  it('shows the page icon once one is set', () => {
+    renderHeader({ icon: { kind: 'emoji', value: '🚀' }, pageId: 'page-1' });
+
+    expect(screen.getByRole('button', { name: 'Icon for Policies' }).textContent).toContain('🚀');
   });
 });

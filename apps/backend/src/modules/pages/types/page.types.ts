@@ -1,6 +1,6 @@
 import type { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
+import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';
@@ -39,10 +39,14 @@ export interface UpdatePageInput {
 
 export interface PageSummary {
   readonly content: Prisma.JsonValue;
+  readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | { readonly id: string; readonly name: string };
+  readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
+  /** When somebody locked the page against edits, and nothing when nobody has. */
+  readonly lockedAt: Date | null;
   readonly order: number;
   readonly parentId: null | string;
   readonly propertyValues: SchemaPropertyValues | null;
@@ -57,7 +61,37 @@ export interface PageMoveContext {
   readonly pageId: string;
   readonly pages: readonly PageParentReference[];
   readonly propertyValues: SchemaPropertyValues | null;
+  /** Where the page lives now, which is not always where it is going. */
+  readonly spaceId: string;
   readonly title: string;
+}
+
+/**
+ * Where a page may be sent: the spaces this reader can reach, and the pages of
+ * those spaces it could hang from. Its own branch is left out, since a page
+ * cannot come to hang from something that hangs from it.
+ */
+export interface PageMoveDestinations {
+  readonly pages: readonly { readonly id: string; readonly spaceId: string; readonly title: string }[];
+  readonly spaces: readonly { readonly id: string; readonly name: string }[];
+}
+
+/** What a page is copied from: everything it wears and everything it says, as it sits in the database. */
+export interface PageCopySource {
+  readonly content: Prisma.JsonValue;
+  readonly cover: Prisma.JsonValue;
+  readonly icon: Prisma.JsonValue;
+  readonly propertyValues: Prisma.JsonValue;
+  readonly spaceId: string;
+}
+
+export interface DuplicatePageInput {
+  readonly includeChildren: boolean;
+  readonly pageId: string;
+  readonly role: UserRole;
+  readonly title: null | string;
+  readonly userId: string;
+  readonly workspaceId: string;
 }
 
 export interface PageListOptions {
@@ -97,6 +131,7 @@ export interface PageRepositoryContract {
     role: UserRole,
   ) => Promise<null | number>;
   readonly create: (input: CreatePageInput) => Promise<PageSummary | null>;
+  readonly duplicate: (input: DuplicatePageInput) => Promise<PageSummary | null>;
   readonly deleteForever: (
     pageId: string,
     workspaceId: string,
@@ -123,10 +158,18 @@ export interface PageRepositoryContract {
   ) => Promise<PageSummary | null>;
   readonly findMoveContext: (
     pageId: string,
+    targetSpaceId: null | string,
     workspaceId: string,
     userId: string,
     role: UserRole,
   ) => Promise<PageMoveContext | null>;
+  readonly listWithProperties: (workspaceId: string, userId: string, role: UserRole) => Promise<readonly PageSummary[]>;
+  readonly listMoveDestinations: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageMoveDestinations | null>;
   readonly listTrashed: (
     workspaceId: string,
     userId: string,
@@ -137,6 +180,7 @@ export interface PageRepositoryContract {
   readonly move: (
     pageId: string,
     parentId: null | string,
+    targetSpaceId: string,
     userId: string,
     workspaceId: string,
     role: UserRole,
@@ -166,4 +210,32 @@ export interface PageRepositoryContract {
     mutationId: string,
   ) => Promise<boolean>;
   readonly update: (input: UpdatePageInput) => Promise<PageSummary | null>;
+  readonly rename: (
+    pageId: string,
+    title: string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly setLocked: (
+    pageId: string,
+    locked: boolean,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly updateCover: (
+    pageId: string,
+    cover: PageCoverValue | null,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly updateIcon: (
+    pageId: string,
+    icon: PageIcon | null,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
 }

@@ -18,10 +18,41 @@ mock.module('@/i18n/navigation', () => ({
     </a>
   ),
   usePathname: () => pathname,
+  useRouter: () => ({ push: () => undefined, refresh: () => undefined }),
+}));
+
+/** Starting a page reaches a server action, which refuses to load outside a server. */
+mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+  usePagesStart: () => ({ isStarting: false, startPage: () => undefined }),
 }));
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  setPageLockAction: async () => ({ data: undefined }),
+  /** The tree beneath a space now reaches the rename dialog, which pulls these in. */
+  duplicatePageAction: mock(async () => ({ data: undefined })),
+  movePageAction: mock(async () => ({ data: undefined })),
+  renamePageAction: mock(async () => ({ data: undefined })),
   restorePageAction: mock(async () => ({ data: undefined })),
+}));
+
+/** The icon and rename dialogs a space now offers import server actions, which refuse to load outside a server. */
+mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+  removePageIconAction: async () => ({ data: undefined }),
+  setPageIconEmojiAction: async () => ({ data: undefined }),
+  setPageIconSymbolAction: async () => ({ data: undefined }),
+  uploadPageIconImageAction: async () => ({ data: undefined }),
+}));
+
+mock.module('@/modules/spaces/server/actions/spaces.icon.actions', () => ({
+  removeSpaceIconAction: async () => ({ data: undefined }),
+  setSpaceIconEmojiAction: async () => ({ data: undefined }),
+  setSpaceIconSymbolAction: async () => ({ data: undefined }),
+}));
+
+mock.module('@/modules/spaces/server/actions/spaces.actions', () => ({
+  createSpaceAction: async () => ({ data: undefined }),
+  renameSpaceAction: async () => ({ data: undefined }),
+  reorderSpaceAction: async () => ({ data: [] }),
 }));
 
 mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
@@ -31,11 +62,13 @@ mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
 const { SidebarSpaces } = await import('@/shared/components/portal/sidebar/sidebar-spaces');
 
 const space: PortalLayoutSpace = {
+  icon: null,
   id: 'engineering',
   name: 'Engineering',
   pages: [
     {
       id: 'handbook',
+      icon: null,
       lifecycle: 'ACTIVE' as const,
       order: 0,
       parentId: null,
@@ -43,6 +76,7 @@ const space: PortalLayoutSpace = {
     },
     {
       id: 'architecture',
+      icon: null,
       lifecycle: 'ACTIVE' as const,
       order: 0,
       parentId: 'handbook',
@@ -52,11 +86,13 @@ const space: PortalLayoutSpace = {
 };
 
 const trashedOnlySpace: PortalLayoutSpace = {
+  icon: null,
   id: 'archive',
   name: 'Archive',
   pages: [
     {
       id: 'old-handbook',
+      icon: null,
       lifecycle: 'TRASHED' as const,
       order: 0,
       parentId: null,
@@ -66,6 +102,7 @@ const trashedOnlySpace: PortalLayoutSpace = {
 };
 
 const emptySpace: PortalLayoutSpace = {
+  icon: null,
   id: 'empty-space',
   name: 'Empty space',
   pages: [],
@@ -107,14 +144,12 @@ describe('SidebarSpaces', () => {
 
   it('offers contextual page creation only to members who can edit content', () => {
     const { unmount } = renderSidebarSpaces();
-    expect(screen.getByRole('link', { name: 'Create a page' }).getAttribute('href')).toBe(
-      '/spaces/engineering/pages/new',
-    );
+    expect(screen.getByRole('button', { name: 'Create a page' })).toBeTruthy();
     unmount();
 
     pathname = '/spaces/engineering';
     const { unmount: unmountViewer } = renderSidebarSpaces('CLIENT');
-    expect(screen.queryByRole('link', { name: 'Create a page' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Create a page' })).toBeNull();
     unmountViewer();
   });
 
@@ -133,5 +168,14 @@ describe('SidebarSpaces', () => {
 
     expect(screen.queryByRole('button', { name: 'Collapse Empty space' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Expand Empty space' })).toBeNull();
+  });
+
+  /** The tree used to have a control of its own for hiding it, which said the same thing as collapsing the sidebar and looked like it too. */
+  it('leaves the whole sidebar as the only thing that folds away', () => {
+    renderSidebarSpaces();
+
+    expect(screen.queryByRole('button', { name: 'Hide tree' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show tree' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Engineering' })).toBeTruthy();
   });
 });

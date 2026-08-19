@@ -10,6 +10,8 @@ This is the only scope that is allowed to receive implementation work in the cur
 - Existing persisted roles mapped to admin/editor/viewer capabilities.
 - Spaces with public-internal and restricted visibility.
 - Hierarchical pages with versioning and trash/restore.
+- Pages and spaces carry a mark — an emoji, an uploaded image, or one of the icon library's symbols in a chosen colour — set from the page header or from the tree's own menu, which also renames without opening. Page covers were built and then withdrawn (18/08/2026) and are not part of this scope.
+- Every screen works from 320px up: one sidebar that folds, and no page that scrolls sideways.
 - Structured ProseMirror editor.
 - Configurable collections with Tasks/Projects templates, contributing a typed property schema and views over pages.
 - Table and board views already delivered. Calendar and timeline are not part of the current completion pass.

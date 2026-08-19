@@ -43,6 +43,7 @@ describe('getPageAttachments with an access token', () => {
               mimeType: 'application/pdf',
               originalFilename: 'handbook.pdf',
               size: 1024,
+              uploadedBy: 'Jane Doe',
             },
           ]),
           { status: 200, headers: { 'content-type': 'application/json' } },
@@ -59,6 +60,7 @@ describe('getPageAttachments with an access token', () => {
           mimeType: 'application/pdf',
           originalFilename: 'handbook.pdf',
           size: 1024,
+          uploadedBy: 'Jane Doe',
         },
       ]);
     }

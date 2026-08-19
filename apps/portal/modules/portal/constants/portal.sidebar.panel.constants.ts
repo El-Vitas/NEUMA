@@ -1,0 +1,6 @@
+export const PORTAL_SIDEBAR_TREE_WIDTH_STORAGE_KEY = 'company-brain-sidebar-tree-width';
+
+export const PORTAL_SIDEBAR_TREE_DEFAULT_WIDTH_PX = 240;
+export const PORTAL_SIDEBAR_TREE_MIN_WIDTH_PX = 220;
+export const PORTAL_SIDEBAR_TREE_MAX_WIDTH_PX = 480;
+export const PORTAL_SIDEBAR_TREE_KEYBOARD_STEP_PX = 16;

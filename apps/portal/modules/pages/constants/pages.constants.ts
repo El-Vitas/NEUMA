@@ -10,6 +10,10 @@ export const PAGES_CACHE_TAG = (spaceId: string): string => `pages:${spaceId}`;
 
 export const PAGE_BACKLINKS_CACHE_TAG = (pageId: string): string => `page-backlinks:${pageId}`;
 
+export const PAGE_LOCATION_CACHE_TAG = (pageId: string): string => `page-location:${pageId}`;
+
+export const PAGES_ASSIGNED_CACHE_TAG = 'pages-assigned';
+
 export const EMPTY_PAGE_BACKLINKS: PageBacklinksResult = { count: 0, items: [] };
 
 export const EMPTY_PAGE_ATTACHMENTS: readonly AttachmentSummary[] = [];
@@ -48,7 +52,13 @@ export const PAGE_API_ROUTES = {
   list: (spaceId: string, includeTrashed = false) =>
     `/api/v1/spaces/${spaceId}/pages?includeTrashed=${String(includeTrashed)}`,
   item: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}`,
+  duplicate: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/duplicate`,
+  lock: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/lock`,
   move: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/move`,
+  assigned: '/api/v1/pages/assigned',
+  moveDestinations: (pageId: string) => `/api/v1/pages/move-destinations/${pageId}`,
+  location: (pageId: string) => `/api/v1/pages/location/${pageId}`,
+  title: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/title`,
   trash: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/trash`,
   restore: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/restore`,
   backlinks: (pageId: string) => `/api/v1/pages/${pageId}/backlinks`,

@@ -1,5 +1,5 @@
 import type { Node as EditorDocument } from 'prosemirror-model';
-import { EditorState } from 'prosemirror-state';
+import { EditorState, TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_LEAF_NODE_TYPES,
@@ -74,6 +74,18 @@ export const readWhatThePageCanKeep = (state: EditorState): PageContent | null =
 };
 
 export const isPageEditorReadOnly = (canEdit: boolean): boolean => !canEdit;
+
+/**
+ * Puts the cursor at the beginning of the writing.
+ *
+ * Leaving the title is arriving at the body, so the writing is taken hold of and
+ * the cursor placed in its first block rather than the page merely scrolled: the
+ * next word typed then lands where the person meant to go.
+ */
+export const goToTheWritingStart = (editorView: EditorView): void => {
+  editorView.focus();
+  editorView.dispatch(editorView.state.tr.setSelection(TextSelection.atStart(editorView.state.doc)).scrollIntoView());
+};
 
 /** A command is handed the view as well: some of them answer with the page around the writing. */
 export const runPageEditorCommand = (editorView: EditorView, command: PageEditorCommand): boolean =>

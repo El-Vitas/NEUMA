@@ -78,8 +78,11 @@ describe('search.lib', () => {
         items: [
           {
             contentType: 'guide',
+            parentPageId: 'page-0',
+            parentPageTitle: 'Guides',
             rank: 0.9,
             spaceId: 'space-1',
+            spaceName: 'Engineering',
             sourceId: 'page-1',
             sourceType: 'PAGE',
             snippet: '<mark>Onboarding</mark> guide',
@@ -93,8 +96,11 @@ describe('search.lib', () => {
       items: [
         {
           contentType: 'guide',
+          parentPageId: 'page-0',
+          parentPageTitle: 'Guides',
           rank: 0.9,
           spaceId: 'space-1',
+          spaceName: 'Engineering',
           sourceId: 'page-1',
           sourceType: 'PAGE',
           snippet: [
@@ -107,6 +113,47 @@ describe('search.lib', () => {
       ],
       nextCursor: 'next-page',
     });
+  });
+
+  it('treats a result not yet reindexed with space and parent context as normal, not an error', () => {
+    const mapped = mapSearchResponse({
+      items: [
+        {
+          contentType: 'guide',
+          rank: 0.9,
+          spaceId: 'space-1',
+          sourceId: 'page-1',
+          sourceType: 'PAGE',
+          snippet: 'Onboarding guide',
+          title: 'Onboarding',
+          updatedAt: '2026-08-03T12:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(mapped.items[0]).toMatchObject({ parentPageId: null, parentPageTitle: null, spaceName: null });
+  });
+
+  it('falls back to unknown space and parent context instead of throwing on a malformed value', () => {
+    const mapped = mapSearchResponse({
+      items: [
+        {
+          contentType: 'guide',
+          parentPageId: 42,
+          parentPageTitle: { unexpected: 'shape' },
+          rank: 0.9,
+          spaceId: 'space-1',
+          spaceName: ['not', 'a', 'string'],
+          sourceId: 'page-1',
+          sourceType: 'PAGE',
+          snippet: 'Onboarding guide',
+          title: 'Onboarding',
+          updatedAt: '2026-08-03T12:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(mapped.items[0]).toMatchObject({ parentPageId: null, parentPageTitle: null, spaceName: null });
   });
 
   it('formats the result date per locale using a hoisted formatter instance', () => {

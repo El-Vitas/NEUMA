@@ -1,4 +1,8 @@
-import { PAGE_EDITOR_HEADING_ATTRIBUTE } from '../constants/pages.editor.contents.constants';
+import {
+  PAGE_EDITOR_HEADING_ATTRIBUTE,
+  PAGE_OUTLINE_RAIL_MARK_FALLBACK_WIDTH_STYLE_CLASS,
+  PAGE_OUTLINE_RAIL_MARK_WIDTH_STYLE_CLASS_BY_LEVEL,
+} from '../constants/pages.editor.contents.constants';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 
 /**
@@ -22,3 +26,7 @@ export const readWhichHeading = (heading: HTMLElement | null): number | null => 
   const which = Number(marked);
   return Number.isInteger(which) ? which : null;
 };
+
+/** How long the rail's mark is drawn for a heading of the given level. */
+export const readPageOutlineRailMarkWidthStyleClass = (level: number): string =>
+  PAGE_OUTLINE_RAIL_MARK_WIDTH_STYLE_CLASS_BY_LEVEL[level] ?? PAGE_OUTLINE_RAIL_MARK_FALLBACK_WIDTH_STYLE_CLASS;

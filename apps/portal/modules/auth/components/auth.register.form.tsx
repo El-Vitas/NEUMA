@@ -27,6 +27,7 @@ export const RegisterForm = () => {
       />
 
       <FormField
+        autoComplete="email"
         id="register-email"
         label={t('email')}
         name="email"
@@ -35,7 +36,7 @@ export const RegisterForm = () => {
         type="email"
       />
 
-      <AuthPasswordField id="register-password" label={t('password')} />
+      <AuthPasswordField autoComplete="new-password" id="register-password" label={t('password')} />
 
       <AuthFormStatus
         errorMessage={state.messageKey ? t(state.messageKey) : state.message}

@@ -1,11 +1,14 @@
 'use client';
 
+import type { PageIcon } from '@company-brain/shared';
 import { BookOpen } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { SidebarTreeIcon } from './sidebar-tree-icon';
 
 interface IProps {
+  readonly icon: null | PageIcon;
   readonly isActiveSpace: boolean;
   readonly isCurrentSpace: boolean;
   readonly onNavigate?: () => void;
@@ -13,7 +16,14 @@ interface IProps {
   readonly spacePath: string;
 }
 
-export const SidebarSpaceCollapsed = ({ isActiveSpace, isCurrentSpace, onNavigate, spaceName, spacePath }: IProps) => (
+export const SidebarSpaceCollapsed = ({
+  icon,
+  isActiveSpace,
+  isCurrentSpace,
+  onNavigate,
+  spaceName,
+  spacePath,
+}: IProps) => (
   <Link
     aria-current={isCurrentSpace ? 'page' : undefined}
     aria-label={spaceName}
@@ -27,6 +37,6 @@ export const SidebarSpaceCollapsed = ({ isActiveSpace, isCurrentSpace, onNavigat
     title={spaceName}
   >
     {isActiveSpace && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 bg-primary" />}
-    <BookOpen aria-hidden="true" className="size-4" />
+    <SidebarTreeIcon className="size-4" fallback={BookOpen} icon={icon} />
   </Link>
 );

@@ -15,7 +15,7 @@ import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.ty
 const principal: McpPrincipal = { role: USER_ROLE.WORKER, userId: 'user-1' };
 const workspace: WorkspaceSummary = { id: 'workspace-1', name: 'Company Brain' };
 const spaces: readonly SpaceSummary[] = [
-  { id: 'space-1', name: 'Engineering', slug: 'engineering', visibility: 'PUBLIC_INTERNAL' },
+  { icon: null, id: 'space-1', name: 'Engineering', order: 0, slug: 'engineering', visibility: 'PUBLIC_INTERNAL' },
 ];
 const page: PageSummary = {
   content: {
@@ -27,6 +27,7 @@ const page: PageSummary = {
   createdBy: null,
   id: '11111111-1111-4111-8111-111111111111',
   lifecycle: 'ACTIVE',
+  lockedAt: null,
   order: 0,
   parentId: null,
   propertyValues: null,
@@ -141,7 +142,10 @@ describe('MCP read contract', () => {
     const result = await client.callTool({ name: 'mcp.listSpaces', arguments: {} });
 
     expect(result.isError).not.toBe(true);
-    expect(result.structuredContent).toEqual({ spaces });
+    /** An agent is told which spaces it may read — not how they are drawn, nor in what order a person arranged them. */
+    expect(result.structuredContent).toEqual({
+      spaces: spaces.map(({ icon: _icon, order: _order, ...readable }) => readable),
+    });
     expect(calls).toEqual(['principal', 'workspace:user-1:WORKER', 'spaces:workspace-1:user-1:WORKER']);
   });
 

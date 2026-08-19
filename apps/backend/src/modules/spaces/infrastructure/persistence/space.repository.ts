@@ -1,5 +1,6 @@
 import { SpaceVisibility } from '@company-brain/db';
-import type { UserRole } from '@company-brain/shared';
+import { Prisma } from '@company-brain/db/generated';
+import { type PageIcon, pageIconSchema, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { canReadSpace } from '../../../../common/domain/workspace.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
@@ -11,6 +12,26 @@ import type { CreateSpaceInput, SpaceRepositoryContract, SpaceSummary } from '..
 
 const prismaOrOperator = 'OR';
 
+const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Prisma.JsonNull => {
+  if (icon === null) return Prisma.JsonNull;
+  switch (icon.kind) {
+    case 'emoji':
+      return { kind: icon.kind, value: icon.value };
+    case 'image':
+      return { assetId: icon.assetId, kind: icon.kind };
+    default:
+      return { color: icon.color, kind: icon.kind, name: icon.name };
+  }
+};
+
+/** A mark stored before its shape was known is dropped rather than handed on as something it is not. */
+const parseIcon = (icon: Prisma.JsonValue): PageIcon | null => {
+  const validation = pageIconSchema.safeParse(icon);
+  return validation.success ? validation.data : null;
+};
+
+const spaceSelection = { icon: true, id: true, name: true, order: true, slug: true, visibility: true } as const;
+
 @Injectable()
 export class SpaceRepository implements SpaceRepositoryContract {
   constructor(
@@ -21,8 +42,8 @@ export class SpaceRepository implements SpaceRepositoryContract {
 
   async listAccessible(workspaceId: string, userId: string, role: UserRole): Promise<readonly SpaceSummary[]> {
     const spaces = await this.prisma.space.findMany({
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, slug: true, visibility: true },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      select: spaceSelection,
       where: {
         workspaceId,
         [prismaOrOperator]: [
@@ -33,7 +54,36 @@ export class SpaceRepository implements SpaceRepositoryContract {
         ],
       },
     });
-    return spaces;
+    return spaces.map((space) => ({ ...space, icon: parseIcon(space.icon) }));
+  }
+
+  /**
+   * Puts a space where somebody dragged it, and writes the whole order down again.
+   *
+   * The list is renumbered from the top rather than nudged: gaps and ties left by
+   * moving one space are what make the next drag land somewhere nobody pointed at.
+   * A space dropped on itself changes nothing.
+   */
+  async reorder(
+    spaceId: string,
+    beforeSpaceId: null | string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<readonly SpaceSummary[] | null> {
+    const visible = await this.listAccessible(workspaceId, userId, role);
+    const moved = visible.find((space) => space.id === spaceId);
+    if (moved === undefined) return null;
+    if (beforeSpaceId !== null && !visible.some((space) => space.id === beforeSpaceId)) return null;
+    const remaining = visible.filter((space) => space.id !== spaceId);
+    const landing = beforeSpaceId === null ? remaining.length : remaining.findIndex((s) => s.id === beforeSpaceId);
+    const reordered = [...remaining.slice(0, landing), moved, ...remaining.slice(landing)];
+    await this.prisma.$transaction(
+      reordered.map((space, position) =>
+        this.prisma.space.update({ data: { order: position }, where: { id: space.id } }),
+      ),
+    );
+    return this.listAccessible(workspaceId, userId, role);
   }
 
   async create(input: CreateSpaceInput): Promise<SpaceSummary> {
@@ -45,7 +95,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
           visibility: input.visibility,
           workspaceId: input.workspaceId,
         },
-        select: { id: true, name: true, slug: true, visibility: true },
+        select: spaceSelection,
       });
       await this.outboxRepository.create(
         {
@@ -58,8 +108,43 @@ export class SpaceRepository implements SpaceRepositoryContract {
         },
         transaction,
       );
-      return space;
+      return { ...space, icon: parseIcon(space.icon) };
     });
+  }
+
+  async rename(
+    spaceId: string,
+    name: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<SpaceSummary | null> {
+    const accessibleSpaceId = await findAccessibleSpaceId(this.prisma, spaceId, workspaceId, userId, role);
+    if (accessibleSpaceId === null) return null;
+    const space = await this.prisma.space.update({
+      data: { name },
+      select: spaceSelection,
+      where: { id: accessibleSpaceId },
+    });
+    return { ...space, icon: parseIcon(space.icon) };
+  }
+
+  async updateIcon(
+    spaceId: string,
+    icon: PageIcon | null,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<SpaceSummary | null> {
+    const accessibleSpaceId = await findAccessibleSpaceId(this.prisma, spaceId, workspaceId, userId, role);
+    if (accessibleSpaceId === null) return null;
+    /** The mark handed back is the one just written, so it is not read out of the row only to be parsed again. */
+    const space = await this.prisma.space.update({
+      data: { icon: toIconInput(icon) },
+      select: { id: true, name: true, order: true, slug: true, visibility: true },
+      where: { id: accessibleSpaceId },
+    });
+    return { ...space, icon };
   }
 
   async listAssignableMembers(

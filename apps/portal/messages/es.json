@@ -49,7 +49,8 @@
     "ascending": "Ascendente",
     "descending": "Descendente",
     "hide": "Ocultar",
-    "actionError": "Ocurrió un error. Intenta de nuevo."
+    "actionError": "Ocurrió un error. Intenta de nuevo.",
+    "spaceLabel": "En {space}"
   },
   "navigation": {
     "general": "General",
@@ -58,6 +59,10 @@
     "spaces": "Espacios",
     "collapseSpace": "Contraer {name}",
     "expandSpace": "Expandir {name}",
+    "spaceActions": "Acciones para {name}",
+    "changeSpaceIcon": "Cambiar el ícono",
+    "renameSpace": "Renombrar espacio",
+    "spaceNameField": "Nombre del espacio",
     "docs": "Documentación",
     "trash": "Papelera",
     "users": "Usuarios",
@@ -125,7 +130,6 @@
         "PAGE": "Página",
         "DATABASE_RECORD": "Registro de base de datos"
       },
-      "spaceValue": "Espacio: {space}",
       "resultCount": "{count, plural, one {Se muestra # resultado} other {Se muestran # resultados}}",
       "nextPage": "Cargar más resultados",
       "emptyTitle": "No se encontraron resultados",
@@ -149,8 +153,11 @@
     },
     "recents": {
       "title": "Recientes",
-      "empty": "Todavía no has visto ninguna página",
-      "spaceLabel": "En {space}"
+      "empty": "Todavía no has visto ninguna página"
+    },
+    "assigned": {
+      "title": "Asignadas a ti",
+      "untitled": "Sin título"
     }
   },
   "account": {
@@ -216,6 +223,21 @@
     "subtitle": "Consulta el conocimiento interno de tu organización.",
     "loadError": "No se pudieron cargar los espacios. Intenta de nuevo.",
     "empty": "Todavía no hay espacios disponibles.",
+    "emptyState": {
+      "description": "Crea la primera página para empezar a organizar el conocimiento de este espacio.",
+      "createFirstPage": "Crear la primera página"
+    },
+    "home": {
+      "mainPages": "Páginas principales",
+      "noPages": "Este espacio todavía no tiene páginas.",
+      "activity": "Actividad reciente",
+      "noActivity": "Todavía no se ha escrito nada aquí.",
+      "editedBy": "{name} · {when}",
+      "members": "Miembros",
+      "noMembers": "Este espacio no tiene miembros asignados.",
+      "moreMembers": "y {count} más",
+      "startPage": "Crear una página"
+    },
     "newSpace": "Nuevo espacio",
     "create": "Crear espacio",
     "creating": "Creando espacio...",
@@ -236,7 +258,8 @@
         "PUBLIC_INTERNAL": "Toda la organización puede explorar este espacio.",
         "RESTRICTED": "Solo los miembros invitados y administradores pueden explorar este espacio."
       }
-    }
+    },
+    "reorderError": "No se pudo cambiar el orden de los espacios."
   },
   "pages": {
     "subtitle": "Páginas y conocimiento estructurado.",
@@ -320,16 +343,28 @@
     },
     "location": "Ubicación",
     "spaceRoot": "Raíz del espacio",
+    "breadcrumb": {
+      "collapsedMark": "…",
+      "expandCollapsed": "Mostrar los tramos intermedios"
+    },
     "move": "Mover página",
     "movePage": "Mover página",
     "moving": "Moviendo...",
     "moveError": "No se pudo mover la página. Comprueba que el destino sea válido.",
     "moved": "Página movida",
+    "moveSearch": "Buscar un espacio o una página",
     "tree": "Árbol de páginas",
     "collapsePage": "Contraer {name}",
     "expandPage": "Expandir {name}",
     "pageActions": "Acciones para {name}",
     "pageTree": "Páginas del espacio",
+    "treePanel": {
+      "resizeHandle": "Ajustar el ancho del árbol de páginas",
+      "resizeHandleHint": "También se ajusta con las flechas del teclado.",
+      "dragging": "Moviendo {name}",
+      "dropInside": "Se soltará dentro de {name}",
+      "dropInvalid": "No se puede soltar aquí"
+    },
     "writeHere": "Escribe, o pulsa / para bloques",
     "blockTooLong": "Hay un bloque demasiado largo y la página no se está guardando. Acórtalo o repártelo en varios bloques.",
     "trash": "Papelera",
@@ -384,9 +419,49 @@
       "wordCount": "{count, plural, one {# palabra} other {# palabras}}",
       "characterCount": "{count, plural, one {# carácter} other {# caracteres}}"
     },
+    "icon": {
+      "add": "Agregar un ícono",
+      "chooseColor": "Elegir un color",
+      "chooseEmoji": "Elegir un emoji",
+      "chooseSymbol": "Elegir un símbolo",
+      "colors": {
+        "blue": "Azul",
+        "brown": "Café",
+        "default": "Por omisión",
+        "gray": "Gris",
+        "green": "Verde",
+        "orange": "Naranja",
+        "pink": "Rosado",
+        "purple": "Morado",
+        "red": "Rojo",
+        "yellow": "Amarillo"
+      },
+      "emojiTab": "Emojis",
+      "label": "Ícono de {name}",
+      "noMatches": "Nada coincide con lo buscado",
+      "random": "Ícono al azar",
+      "remove": "Quitar el ícono",
+      "search": "Buscar por nombre",
+      "symbolTab": "Íconos",
+      "uploadImage": "Subir una imagen"
+    },
+    "cover": {
+      "add": "Agregar una portada",
+      "uploadImage": "Subir una imagen",
+      "change": "Cambiar la portada",
+      "remove": "Quitar la portada",
+      "menuLabel": "Portada",
+      "reposition": "Reposicionar",
+      "repositionHelp": "Arrastra la imagen hacia arriba o hacia abajo para ajustar qué parte se ve.",
+      "repositionCancel": "Cancelar",
+      "repositionSave": "Guardar la posición",
+      "repositionError": "No se pudo guardar la posición de la portada.",
+      "removeError": "No se pudo quitar la portada.",
+      "uploading": "Subiendo la portada...",
+      "uploadError": "No se pudo subir la portada. Intenta de nuevo."
+    },
     "appearance": {
       "title": "Aspecto",
-      "fullWidth": "Ancho completo",
       "textSize": "Tamaño del texto",
       "textSizeOptions": {
         "small": "Pequeño",
@@ -425,9 +500,14 @@
       "removeFilter": "Quitar el filtro {name}",
       "clearAll": "Limpiar todos los filtros"
     },
+    "searchResults": {
+      "parentPageLabel": "En {page}",
+      "atSpaceRoot": "En la raíz del espacio"
+    },
     "propertiesPanel": {
       "showMore": "{count, plural, one {Mostrar # propiedad más} other {Mostrar # propiedades más}}",
-      "empty": "Esta página no tiene propiedades"
+      "empty": "Esta página no tiene propiedades",
+      "narrowScreenHint": "En pantalla angosta, las propiedades se muestran una debajo de otra."
     },
     "attachmentsPanel": {
       "columns": {
@@ -438,7 +518,9 @@
       },
       "deleteConfirmTitle": "¿Eliminar este archivo adjunto?",
       "deleteConfirmBody": "El archivo se eliminará para siempre. Esta acción no se puede deshacer.",
-      "fileTooLarge": "El archivo pesa más de {limit} y no se puede subir."
+      "fileTooLarge": "El archivo pesa más de {limit} y no se puede subir.",
+      "uploadError": "No se pudo subir el archivo. Intenta de nuevo.",
+      "contentFilesNote": "Los archivos que insertas en el contenido de la página también aparecen aquí."
     },
     "commands": {
       "bold": "Negrita",
@@ -502,7 +584,7 @@
     "properties": {
       "title": "Propiedades",
       "empty": "Vacío",
-      "showMore": "Mostrar {count} más",
+      "showMore": "{count, plural, one {Mostrar # propiedad más} other {Mostrar # propiedades más}}",
       "showLess": "Mostrar menos",
       "yes": "Sí",
       "no": "No",
@@ -758,6 +840,28 @@
       "center": "Al centro",
       "right": "A la derecha",
       "full": "Ancho completo"
+    },
+    "renamePage": "Renombrar página",
+    "cancelRename": "Cancelar",
+    "confirmRename": "Renombrar",
+    "changeIcon": "Cambiar el ícono",
+    "duplicate": {
+      "action": "Duplicar",
+      "done": "Página duplicada",
+      "error": "No se pudo duplicar la página.",
+      "copyName": "{title} (copia)",
+      "childrenQuestion": "¿Duplicar también lo que cuelga de «{name}»?",
+      "childrenHelp": "La copia queda junto a la original.",
+      "childrenNo": "Solo esta página",
+      "childrenYes": "También sus subpáginas"
+    },
+    "lock": {
+      "lock": "Bloquear la página",
+      "unlock": "Desbloquear la página",
+      "locked": "Página bloqueada",
+      "unlocked": "Página desbloqueada",
+      "error": "No se pudo cambiar el bloqueo de la página.",
+      "banner": "Esta página está bloqueada. Desbloquéala para editarla."
     }
   },
   "errors": {
@@ -769,6 +873,8 @@
     "reference": "Referencia",
     "retry": "Intentar de nuevo",
     "goHome": "Ir al inicio",
+    "notFoundTitle": "Esta dirección no existe",
+    "notFoundBody": "Comprueba que la escribiste bien o vuelve al inicio.",
     "reasons": {
       "invalid": "Algo de esta página no se puede guardar como está. Deshaz tu último cambio e inténtalo de nuevo.",
       "forbidden": "No tienes permiso para hacer esto.",

@@ -183,7 +183,9 @@ describe('FilesService', () => {
   });
 
   it('returns the page attachments when the repository grants access', async () => {
-    const metadata = [{ id: 'asset-id', mimeType: 'text/plain', originalFilename: 'notes.txt', size: 5 }];
+    const metadata = [
+      { id: 'asset-id', mimeType: 'text/plain', originalFilename: 'notes.txt', size: 5, uploadedBy: 'Notes Owner' },
+    ];
     const service = buildService({ findByPage: () => Promise.resolve(metadata) });
 
     const result = await service.listByPage('page-id', 'workspace-id', 'viewer-id', USER_ROLE.WORKER);

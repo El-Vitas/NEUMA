@@ -19,7 +19,10 @@ const activePage: SearchProjectionPage = {
   },
   id: 'page-1',
   lifecycle: 'ACTIVE',
+  parentPageId: null,
+  parentPageTitle: null,
   spaceId: 'space-1',
+  spaceName: 'Mission Control',
   title: 'Launch plan',
   version: 12,
 };
@@ -96,7 +99,10 @@ describe('SearchProjectionWorker', () => {
       },
       id: 'page-1',
       lifecycle: 'ACTIVE',
+      parentPageId: 'page-parent',
+      parentPageTitle: 'Missions',
       spaceId: 'space-1',
+      spaceName: 'Mission Control',
       title: 'Current title',
       version: 12,
     };
@@ -133,7 +139,13 @@ describe('SearchProjectionWorker', () => {
         contentType: 'PAGE',
         extractedText: 'Prepare launch',
         language: null,
-        properties: { authorId: 'user-1', authorName: 'Ada Lovelace' },
+        properties: {
+          authorId: 'user-1',
+          authorName: 'Ada Lovelace',
+          parentPageId: null,
+          parentPageTitle: null,
+          spaceName: 'Mission Control',
+        },
         sourceId: 'page-1',
         sourceType: 'PAGE',
         spaceId: 'space-1',
@@ -142,6 +154,46 @@ describe('SearchProjectionWorker', () => {
         versionMarker: 12,
       },
     ]);
+  });
+
+  test('projects the space name and parent page found alongside the page itself', async () => {
+    const applied: SearchDocumentInput[] = [];
+    const page: SearchProjectionPage = {
+      authorId: 'user-1',
+      authorName: 'Ada Lovelace',
+      content: {
+        content: [{ content: [{ text: 'Mission checklist', type: 'text' }], type: 'paragraph' }],
+        schemaVersion: 1,
+        type: 'doc',
+      },
+      id: 'page-2',
+      lifecycle: 'ACTIVE',
+      parentPageId: 'page-1',
+      parentPageTitle: 'Launch plan',
+      spaceId: 'space-1',
+      spaceName: 'Mission Control',
+      title: 'Checklist',
+      version: 1,
+    };
+    const outbox = createOutboxStub(() => Promise.resolve([event({ aggregateId: 'page-2' })]));
+    const source = createSourceStub({ findPage: () => Promise.resolve(page) });
+    const projection = createProjectionStub({
+      applyProjection: (input) => {
+        applied.push(input);
+        return Promise.resolve();
+      },
+    });
+    const worker = new SearchProjectionWorker(outbox, source, projection);
+
+    await worker.processBatch(10);
+
+    expect(applied[0]?.properties).toEqual({
+      authorId: 'user-1',
+      authorName: 'Ada Lovelace',
+      parentPageId: 'page-1',
+      parentPageTitle: 'Launch plan',
+      spaceName: 'Mission Control',
+    });
   });
 
   test('does not use process memory as the idempotency source of truth', async () => {
@@ -163,7 +215,10 @@ describe('SearchProjectionWorker', () => {
           content: {},
           id: 'page-1',
           lifecycle: 'TRASHED',
+          parentPageId: null,
+          parentPageTitle: null,
           spaceId: 'space-1',
+          spaceName: 'Mission Control',
           title: 'Deleted page',
           version: 4,
         }),

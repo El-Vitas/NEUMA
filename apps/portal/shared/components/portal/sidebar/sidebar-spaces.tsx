@@ -18,9 +18,11 @@ export const SidebarSpaces = ({ collapsed, onNavigate, role, spaces }: IProps) =
   return (
     <section aria-label={t('spaces')} className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
       {!collapsed && (
-        <h2 className="px-3 py-2 font-semibold text-[11px] text-sidebar-foreground/50 uppercase tracking-[0.12em]">
-          {t('spaces')}
-        </h2>
+        <div className="flex items-center justify-between gap-1 px-1 py-2">
+          <h2 className="px-2 font-semibold text-[11px] text-sidebar-foreground/50 uppercase tracking-[0.12em]">
+            {t('spaces')}
+          </h2>
+        </div>
       )}
       <div className="space-y-0.5">
         {spaces.map((space) => (

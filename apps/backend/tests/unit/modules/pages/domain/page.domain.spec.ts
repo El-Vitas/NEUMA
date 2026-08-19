@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import { collectDescendantIds, isPageMoveAllowed, pageTitleMatchesSearch } from '@/modules/pages/domain/page.domain';
+import {
+  collectDescendantIds,
+  isPageAssignedTo,
+  isPageMoveAllowed,
+  pageTitleMatchesSearch,
+} from '@/modules/pages/domain/page.domain';
 
 const buildTwoRootPages = () => [
   { id: 'page-a', parentId: null, spaceId: 'space-a' },
@@ -8,7 +13,7 @@ const buildTwoRootPages = () => [
 
 describe('page domain rules', () => {
   it('allows a root page to move below another page', () => {
-    expect(isPageMoveAllowed('page-a', 'page-b', buildTwoRootPages())).toBe(true);
+    expect(isPageMoveAllowed('page-a', 'page-b', 'space-a', buildTwoRootPages())).toBe(true);
   });
 
   it('rejects moving a page below itself or one of its descendants', () => {
@@ -18,27 +23,37 @@ describe('page domain rules', () => {
       { id: 'page-c', parentId: 'page-b', spaceId: 'space-a' },
     ];
 
-    expect(isPageMoveAllowed('page-a', 'page-a', pages)).toBe(false);
-    expect(isPageMoveAllowed('page-a', 'page-c', pages)).toBe(false);
+    expect(isPageMoveAllowed('page-a', 'page-a', 'space-a', pages)).toBe(false);
+    expect(isPageMoveAllowed('page-a', 'page-c', 'space-a', pages)).toBe(false);
   });
 
   it('rejects a move to a missing parent', () => {
-    expect(isPageMoveAllowed('page-a', 'missing-page', [{ id: 'page-a', parentId: null, spaceId: 'space-a' }])).toBe(
-      false,
-    );
+    expect(
+      isPageMoveAllowed('page-a', 'missing-page', 'space-a', [{ id: 'page-a', parentId: null, spaceId: 'space-a' }]),
+    ).toBe(false);
   });
 
-  it('rejects moving a page below a parent in another space', () => {
+  it('rejects a parent that does not live in the space the page is going to', () => {
     expect(
-      isPageMoveAllowed('page-a', 'page-b', [
+      isPageMoveAllowed('page-a', 'page-b', 'space-a', [
         { id: 'page-a', parentId: null, spaceId: 'space-a' },
         { id: 'page-b', parentId: null, spaceId: 'space-b' },
       ]),
     ).toBe(false);
   });
 
+  /** A page sent to another space hangs from a page already living there, not from one it leaves behind. */
+  it('allows a page to hang from a parent in the space it is being sent to', () => {
+    expect(
+      isPageMoveAllowed('page-a', 'page-b', 'space-b', [
+        { id: 'page-a', parentId: null, spaceId: 'space-a' },
+        { id: 'page-b', parentId: null, spaceId: 'space-b' },
+      ]),
+    ).toBe(true);
+  });
+
   it('allows moving a page below a same-space parent', () => {
-    expect(isPageMoveAllowed('page-a', 'page-b', buildTwoRootPages())).toBe(true);
+    expect(isPageMoveAllowed('page-a', 'page-b', 'space-a', buildTwoRootPages())).toBe(true);
   });
 });
 
@@ -79,5 +94,32 @@ describe('pageTitleMatchesSearch', () => {
     expect(pageTitleMatchesSearch('Quarterly Roadmap', '')).toBe(true);
     expect(pageTitleMatchesSearch('Quarterly Roadmap', '   ')).toBe(true);
     expect(pageTitleMatchesSearch('Quarterly Roadmap', null)).toBe(true);
+  });
+});
+
+describe('what counts as a page somebody was given', () => {
+  it('reads a person property naming them', () => {
+    expect(isPageAssignedTo({ owner: 'user-a' }, ['owner'], 'user-a')).toBe(true);
+  });
+
+  it('reads a person property holding several people', () => {
+    expect(isPageAssignedTo({ reviewers: ['user-b', 'user-a'] }, ['reviewers'], 'user-a')).toBe(true);
+  });
+
+  /** A page that happens to mention an identifier in some text is not a page somebody was given. */
+  it('ignores a value the schema does not call a person', () => {
+    expect(isPageAssignedTo({ notes: 'user-a' }, ['owner'], 'user-a')).toBe(false);
+  });
+
+  it('says no when the property names somebody else', () => {
+    expect(isPageAssignedTo({ owner: 'user-b' }, ['owner'], 'user-a')).toBe(false);
+  });
+
+  it('says no when the page carries no properties at all', () => {
+    expect(isPageAssignedTo(null, ['owner'], 'user-a')).toBe(false);
+  });
+
+  it('says no when the collection has no person property', () => {
+    expect(isPageAssignedTo({ owner: 'user-a' }, [], 'user-a')).toBe(false);
   });
 });

@@ -5,9 +5,14 @@ import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard'
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageAccessDeniedError, type PageLifecycleError } from './domain/page.error';
+import { UpdatePageCoverDto } from './dto/page.cover.update.dto';
 import { CreatePageDto } from './dto/page.create.dto';
+import { DuplicatePageDto } from './dto/page.duplicate.dto';
+import { UpdatePageIconDto } from './dto/page.icon.update.dto';
 import { ListPagesDto } from './dto/page.list.dto';
+import { SetPageLockDto } from './dto/page.lock.dto';
 import { MovePageDto } from './dto/page.move.dto';
+import { RenamePageDto } from './dto/page.rename.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
 import { UpdatePageDto } from './dto/page.update.dto';
 import { PagesService } from './pages.service';
@@ -93,6 +98,96 @@ export class PagesController {
     return result.getValue();
   }
 
+  @Patch(':pageId/title')
+  @UseGuards(JwtAuthGuard)
+  async rename(@Param('pageId') pageId: string, @Body() dto: RenamePageDto, @User('payload') payload: TokenPayload) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.rename(pageId, dto.title, payload.sub, workspace.id, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':pageId/icon')
+  @UseGuards(JwtAuthGuard)
+  async updateIcon(
+    @Param('pageId') pageId: string,
+    @Body() dto: UpdatePageIconDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.updateIcon(
+      pageId,
+      dto.icon ?? null,
+      payload.sub,
+      workspace.id,
+      payload.role,
+    );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':pageId/cover')
+  @UseGuards(JwtAuthGuard)
+  async updateCover(
+    @Param('pageId') pageId: string,
+    @Body() dto: UpdatePageCoverDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.updateCover(
+      pageId,
+      dto.cover ?? null,
+      payload.sub,
+      workspace.id,
+      payload.role,
+    );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Post(':pageId/duplicate')
+  @UseGuards(JwtAuthGuard)
+  async duplicate(
+    @Param('pageId') pageId: string,
+    @Body() dto: DuplicatePageDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.duplicate(
+      pageId,
+      dto.includeChildren ?? false,
+      dto.title ?? null,
+      payload.sub,
+      workspace.id,
+      payload.role,
+    );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':pageId/lock')
+  @UseGuards(JwtAuthGuard)
+  async setLocked(
+    @Param('pageId') pageId: string,
+    @Body() dto: SetPageLockDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.setLocked(pageId, dto.locked, payload.sub, workspace.id, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
   @Patch(':pageId/move')
   @UseGuards(JwtAuthGuard)
   async move(
@@ -105,6 +200,7 @@ export class PagesController {
     const result = await this.pagesService.move(
       pageId,
       dto.parentId ?? null,
+      dto.targetSpaceId ?? null,
       payload.sub,
       workspace.id,
       mutationId,

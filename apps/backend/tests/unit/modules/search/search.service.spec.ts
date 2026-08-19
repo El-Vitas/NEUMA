@@ -1,11 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 import { SearchService } from '@/modules/search/search.service';
-import type { SearchQuery, SearchRepositoryContract, SearchResult } from '@/modules/search/types/search.types';
+import type {
+  SearchQuery,
+  SearchRepositoryContract,
+  SearchResultWithContext,
+} from '@/modules/search/types/search.types';
 
-const searchResult: SearchResult = {
+const searchResult: SearchResultWithContext = {
   contentType: 'PAGE',
+  parentPageId: null,
+  parentPageTitle: null,
   rank: 0.8,
   spaceId: 'space-1',
+  spaceName: 'Engineering',
   sourceId: 'page-1',
   sourceType: 'PAGE',
   snippet: '<mark>Roadmap</mark>',
@@ -16,7 +23,7 @@ const searchResult: SearchResult = {
 describe('SearchService', () => {
   test('returns no results for an empty normalized query', async () => {
     const repository: SearchRepositoryContract = {
-      search: (): Promise<{ items: readonly SearchResult[] }> => {
+      search: (): Promise<{ items: readonly SearchResultWithContext[] }> => {
         throw new Error('empty queries must not reach the repository');
       },
       removeDocument: (): Promise<void> => Promise.resolve(),
@@ -33,7 +40,7 @@ describe('SearchService', () => {
   test('passes one authorized query contract to the repository', async () => {
     let receivedQuery: SearchQuery | undefined;
     const repository: SearchRepositoryContract = {
-      search: (query): Promise<{ items: readonly SearchResult[] }> => {
+      search: (query): Promise<{ items: readonly SearchResultWithContext[] }> => {
         receivedQuery = query;
         return Promise.resolve({ items: [searchResult] });
       },
@@ -64,7 +71,7 @@ describe('SearchService', () => {
         receivedSourceId = input.sourceId;
         return Promise.resolve();
       },
-      search: (): Promise<{ items: readonly SearchResult[] }> => Promise.resolve({ items: [] }),
+      search: (): Promise<{ items: readonly SearchResultWithContext[] }> => Promise.resolve({ items: [] }),
       upsertDocument: (): Promise<void> => Promise.resolve(),
     };
     const service = new SearchService(repository);

@@ -6,8 +6,10 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { usePathname } from '@/i18n/navigation';
+import { PagesDuplicateChildrenDialog } from '@/modules/pages/components/pages.duplicate.children.dialog';
 import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
-import { restorePageAction } from '@/modules/pages/server/actions/pages.actions';
+import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
+import { duplicatePageAction, restorePageAction } from '@/modules/pages/server/actions/pages.actions';
 import {
   buildPortalSidebarPageTree,
   getPortalSidebarExpandedPageIds,
@@ -16,9 +18,13 @@ import {
 } from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
+import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
 import { hasActionError } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { SidebarPageIconDialog } from './sidebar-page-icon-dialog';
+import { SidebarPageRenameDialog } from './sidebar-page-rename-dialog';
 import { SidebarPageTreeItem } from './sidebar-page-tree-item';
+import { SidebarPageTreeRootDropZone } from './sidebar-page-tree-root-drop-zone';
 
 interface IProps {
   readonly id: string;
@@ -30,11 +36,17 @@ interface IProps {
 
 export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps) => {
   const t = useTranslations('pages');
+  const tDuplicate = useTranslations('pages.duplicate');
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { isStarting, startPage } = usePagesStart();
   const [pageToTrash, setPageToTrash] = useState<PortalSidebarPage | null>(null);
+  const [pageToRename, setPageToRename] = useState<PortalSidebarPage | null>(null);
+  const [pageToMark, setPageToMark] = useState<PortalSidebarPage | null>(null);
+  const [pageToDuplicate, setPageToDuplicate] = useState<PortalSidebarPage | null>(null);
   const undoingPageIdRef = useRef<string | null>(null);
+  const drag = useSidebarPageDrag(pages, spaceId);
   const tree = useMemo(() => buildPortalSidebarPageTree(pages), [pages]);
   const spacePath = ROUTES.PORTAL_SPACE(spaceId);
   const selectedPageId = useMemo(
@@ -81,6 +93,33 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
+  const duplicatePage = (page: PortalSidebarPage, includeChildren: boolean): void => {
+    setPageToDuplicate(null);
+    startTransition(async () => {
+      const result = await duplicatePageAction({
+        includeChildren,
+        pageId: page.id,
+        spaceId,
+        title: tDuplicate('copyName', { title: page.title.length > 0 ? page.title : t('untitled') }),
+      });
+      if (hasActionError(result)) {
+        toast.error(tDuplicate('error'));
+        return;
+      }
+      toast.success(tDuplicate('done'));
+      router.refresh();
+    });
+  };
+
+  /** A page with nothing under it leaves nothing to decide, so nothing is asked. */
+  const requestDuplicate = (page: PortalSidebarPage, hasChildren: boolean): void => {
+    if (hasChildren) {
+      setPageToDuplicate(page);
+      return;
+    }
+    duplicatePage(page, false);
+  };
+
   const requestTrash = (page: PortalSidebarPage): void => {
     setPageToTrash(page);
   };
@@ -98,19 +137,27 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     router.refresh();
   };
 
-  const canEdit = canEditContent(role) && !isPending;
+  const canEdit = canEditContent(role) && !isPending && !isStarting;
 
   return (
     <>
+      <div aria-live="polite" className="sr-only">
+        {drag.announcement}
+      </div>
       <ul aria-label={t('pageTree')} className="space-y-px pb-1" data-page-tree="true" id={id}>
         {tree.map((treeItem) => (
           <SidebarPageTreeItem
             canEdit={canEdit}
             depth={0}
+            drag={drag}
             expandedPageIds={expandedPageIds}
             key={treeItem.page.id}
             onKeyDown={handleSidebarPageTreeKeyDown}
             onNavigate={onNavigate}
+            onRequestChildPage={(page) => startPage(spaceId, page.id)}
+            onRequestDuplicate={requestDuplicate}
+            onRequestIcon={setPageToMark}
+            onRequestRename={setPageToRename}
             onRequestTrash={requestTrash}
             onToggle={togglePage}
             selectedPageId={selectedPageId}
@@ -119,6 +166,33 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
           />
         ))}
       </ul>
+      {canEdit && drag.draggedPageId !== null && (
+        <SidebarPageTreeRootDropZone onDragOver={drag.handleRootDragOver} onDrop={drag.handleRootDrop} />
+      )}
+      {pageToRename !== null && (
+        <SidebarPageRenameDialog
+          onClose={() => setPageToRename(null)}
+          onRenamed={() => router.refresh()}
+          page={{ id: pageToRename.id, title: pageToRename.title }}
+          spaceId={spaceId}
+        />
+      )}
+      {pageToMark !== null && (
+        <SidebarPageIconDialog
+          onChanged={() => router.refresh()}
+          onClose={() => setPageToMark(null)}
+          page={{ icon: pageToMark.icon, id: pageToMark.id, title: pageToMark.title }}
+          spaceId={spaceId}
+        />
+      )}
+      {pageToDuplicate !== null && (
+        <PagesDuplicateChildrenDialog
+          onClose={() => setPageToDuplicate(null)}
+          onConfirm={(includeChildren) => duplicatePage(pageToDuplicate, includeChildren)}
+          open
+          title={pageToDuplicate.title.length > 0 ? pageToDuplicate.title : t('untitled')}
+        />
+      )}
       <PagesTrashConfirmDialog
         onClose={() => setPageToTrash(null)}
         onTrashed={handlePageTrashed}

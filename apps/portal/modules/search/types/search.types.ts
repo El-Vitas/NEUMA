@@ -38,3 +38,12 @@ export interface SearchInstantPageCandidate {
   readonly spaceId: string;
   readonly title: string;
 }
+
+export type SearchResultSpaceDisplay =
+  | { readonly kind: 'known'; readonly spaceName: string }
+  | { readonly kind: 'unknown' };
+
+export type SearchResultParentDisplay =
+  | { readonly kind: 'atSpaceRoot' }
+  | { readonly kind: 'underParentPage'; readonly parentPageTitle: string }
+  | { readonly kind: 'unknown' };

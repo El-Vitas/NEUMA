@@ -66,10 +66,8 @@ export const PagesTrashItem = ({ locale, page }: IProps) => {
           {t('trashScreen.deletedBy')}: {page.deletedBy?.name ?? '—'}
         </p>
       </div>
-      <div className="flex shrink-0 gap-2">
-        <Button className="min-h-11" disabled={isPending} onClick={requestRestore} type="button" variant="outline">
-          {t('restorePage')}
-        </Button>
+      {/* Both names are long in Spanish and never fit on one narrow line. Stacked, they take the same width rather than stepping in and out; side by side, they sit at the end of the row. Either way the eye finishes on the action that restores. */}
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end">
         <Button
           className="min-h-11"
           disabled={isPending}
@@ -78,6 +76,9 @@ export const PagesTrashItem = ({ locale, page }: IProps) => {
           variant="destructive"
         >
           {t('trashScreen.deleteForever')}
+        </Button>
+        <Button className="min-h-11" disabled={isPending} onClick={requestRestore} type="button" variant="outline">
+          {t('restorePage')}
         </Button>
       </div>
       <PagesTrashRestoreChildPagesDialog

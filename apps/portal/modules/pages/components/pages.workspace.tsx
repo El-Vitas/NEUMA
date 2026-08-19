@@ -2,10 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
-import { Link } from '@/i18n/navigation';
-import { PrimaryButton } from '@/shared/components/forms/primary-button';
+import { StartPageButton } from '@/shared/components/portal/start-page-button';
 import { EmptyState } from '@/shared/components/ui/empty-state';
-import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_BACKLINKS,
@@ -27,9 +25,7 @@ interface IProps {
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly isFavorite?: boolean;
-  readonly isNewPage?: boolean;
   readonly pages: readonly PageSummary[];
-  readonly parentId?: string | null;
   readonly parentSchema?: PageSchema | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly selectedPageId?: string | null;
@@ -45,9 +41,7 @@ export const PagesWorkspace = ({
   embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
   isFavorite,
-  isNewPage = false,
   pages,
-  parentId = null,
   parentSchema = null,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   selectedPageId = null,
@@ -58,33 +52,28 @@ export const PagesWorkspace = ({
   const selectedPage = pages.find((page) => page.id === selectedPageId) ?? null;
   const tree = buildPageTree(pages);
   const parentBreadcrumbPages = useMemo(() => {
-    const breadcrumbSelectedPageId = isNewPage ? parentId : (selectedPage?.id ?? null);
-    const breadcrumbPageIds = getPageTreeExpandedIds(tree, breadcrumbSelectedPageId);
-    const parentBreadcrumbPageIds = isNewPage ? breadcrumbPageIds : breadcrumbPageIds.slice(0, -1);
+    const breadcrumbPageIds = getPageTreeExpandedIds(tree, selectedPage?.id ?? null);
 
-    return parentBreadcrumbPageIds.flatMap((pageId) => {
+    return breadcrumbPageIds.slice(0, -1).flatMap((pageId) => {
       const page = pages.find((candidate) => candidate.id === pageId);
       return page === undefined ? [] : [page];
     });
-  }, [isNewPage, pages, parentId, selectedPage?.id, tree]);
-  const canEditSelectedPage = canEditPage(canEditContent, selectedPage?.lifecycle ?? null);
+  }, [pages, selectedPage?.id, tree]);
 
-  if (isNewPage || selectedPage !== null) {
+  if (selectedPage !== null) {
     return (
       <PagesEditor
         attachments={attachments}
         backlinks={backlinks}
-        canEdit={isNewPage ? canEditContent : canEditSelectedPage}
+        canEdit={canEditPage(canEditContent, selectedPage.lifecycle)}
         collectionSection={collectionSection}
         currentUserDisplayName={currentUserDisplayName}
         embeddedCollections={embeddedCollections}
         isFavorite={isFavorite}
-        key={`${selectedPage?.id ?? 'new-page'}:${selectedPage?.lifecycle ?? 'new'}`}
+        key={`${selectedPage.id}:${selectedPage.lifecycle}`}
         page={selectedPage}
-        pageId={selectedPage?.id ?? null}
         pages={pages}
         parentBreadcrumbPages={parentBreadcrumbPages}
-        parentId={parentId}
         parentSchema={parentSchema}
         personOptions={personOptions}
         spaceId={spaceId}
@@ -96,13 +85,7 @@ export const PagesWorkspace = ({
   return (
     <section aria-label={t('editor')} className="bg-surface">
       <EmptyState
-        action={
-          canEditContent ? (
-            <PrimaryButton asChild>
-              <Link href={ROUTES.PORTAL_SPACE_NEW_PAGE(spaceId)}>{t('createPage')}</Link>
-            </PrimaryButton>
-          ) : undefined
-        }
+        action={canEditContent ? <StartPageButton label={t('createPage')} spaceId={spaceId} /> : undefined}
         message={pages.length === 0 ? t('empty') : t('selectPage')}
       />
     </section>

@@ -3,7 +3,7 @@
 import { Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useOptimistic, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { addFavoriteAction, removeFavoriteAction } from '@/modules/favorites/server/actions/favorites.actions';
@@ -20,16 +20,20 @@ interface IProps {
 export const PageFavoriteToggle = ({ isFavorite, pageId, title }: IProps) => {
   const t = useTranslations('pages');
   const router = useRouter();
-  const [favorite, setFavorite] = useState(isFavorite);
   const [isPending, startTransition] = useTransition();
+  /**
+   * The star answers to the server. The click only borrows it while the
+   * mutation travels, so the same page unfavorited from the sidebar leaves no
+   * stale star behind here.
+   */
+  const [favorite, showFavorite] = useOptimistic(isFavorite);
 
   const toggleFavorite = (): void => {
     const nextFavorite = !favorite;
-    setFavorite(nextFavorite);
     startTransition(async () => {
+      showFavorite(nextFavorite);
       const result = nextFavorite ? await addFavoriteAction({ pageId }) : await removeFavoriteAction({ pageId });
       if (hasActionError(result)) {
-        setFavorite(!nextFavorite);
         toast.error(t('permissionError'));
         return;
       }

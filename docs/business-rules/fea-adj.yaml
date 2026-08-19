@@ -11,6 +11,27 @@ rules:
       ese tipo.
     why: Antes de abrir algo se decide si vale la pena, y para eso hay que saber qué es y cuánto va a costar bajarlo.
     context: Un archivo guardado antes de que la página registrara esos datos no dice nada en vez de decir algo falso.
+  - id: BR-860b902
+    status: active
+    title: El sistema acepta lo que su interfaz promete aceptar
+    rule: >-
+      Un archivo dentro del tamaño que la interfaz anuncia debe poder subirse. Uno que lo excede se rechaza con un
+      mensaje antes de enviarlo, nunca fallando a mitad de camino.
+    why: >-
+      Prometer diez megabytes y reventar en uno es mentirle a quien sube el archivo, y hacerlo con un error técnico que
+      tumba la pantalla en vez de decir qué pasó.
+    context: >-
+      El límite del transporte tiene que ir por encima del límite anunciado, porque el envío del archivo cuesta más que
+      el archivo. Aplica a los adjuntos, al ícono de imagen y a la portada por igual.
+    scenarios:
+      - title: Un archivo grande pero permitido
+        given: Un archivo de siete megabytes y un límite anunciado de diez
+        when: Se sube a una página
+        then: Queda guardado
+      - title: Un archivo por encima del límite
+        given: Un archivo de once megabytes y un límite anunciado de diez
+        when: Se intenta subir
+        then: Se rechaza con un mensaje que dice el límite, y nada se envía
   - id: BR-8f2657d
     status: active
     title: Lista explícita de tipos aceptados

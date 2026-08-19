@@ -25,6 +25,7 @@ mock.module('next/navigation', () => ({
   useRouter: () => ({ refresh }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  setPageLockAction: async () => ({ data: undefined }),
   restorePageAction: restorePage,
 }));
 mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
