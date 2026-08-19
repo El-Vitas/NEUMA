@@ -1,8 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { PagesOutline } from '@/modules/pages/components/pages.outline';
-import { PAGE_OUTLINE_VISIBILITY_STORAGE_KEY } from '@/modules/pages/constants/pages.editor.contents.constants';
 import en from '../../../../../messages/en.json';
 
 const headings = [
@@ -10,67 +9,105 @@ const headings = [
   { level: 2, position: 12, title: 'Details' },
 ];
 
-const renderOutline = () =>
+const renderOutline = (onGoToHeading: (position: number) => void = () => undefined) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <PagesOutline headings={headings} onGoToHeading={() => undefined} title="On this page" />
+      <PagesOutline headings={headings} onGoToHeading={onGoToHeading} title="On this page" />
     </NextIntlClientProvider>,
   );
 
+const openTheRail = (): void => {
+  fireEvent.mouseEnter(screen.getByRole('navigation', { name: 'On this page' }));
+};
+
 describe('PagesOutline', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  afterEach(() => {
-    localStorage.clear();
-  });
-
-  it('shows the headings with a control that says it can be hidden', () => {
+  it('keeps every heading reachable by name at rest, before the rail ever opens', () => {
     renderOutline();
 
-    expect(screen.getByText('Introduction')).toBeTruthy();
-    expect(screen.getByText('Details')).toBeTruthy();
-
-    const hideButton = screen.getByRole('button', { name: 'Hide the outline' });
-    expect(hideButton.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Introduction' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Details' })).toBeTruthy();
   });
 
-  it('hides the headings without leaving an empty gap, and keeps a way to bring them back', () => {
+  it('is only as wide as its marks at rest, with no title shown', () => {
     renderOutline();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hide the outline' }));
-
-    expect(screen.queryByText('Introduction')).toBeNull();
-    expect(screen.queryByText('Details')).toBeNull();
-
-    const showButton = screen.getByRole('button', { name: 'Show the outline' });
-    expect(showButton.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('On this page')).toBeNull();
+    const list = screen.getByRole('button', { name: 'Introduction' }).parentElement;
+    expect(list?.className).toContain('w-full');
+    expect(list?.className).not.toContain('w-56');
   });
 
-  it('brings the headings back on request', () => {
+  it('opens into its own wider panel, with a title, once the rail is hovered', () => {
+    renderOutline();
+    openTheRail();
+
+    expect(screen.getByText('On this page')).toBeTruthy();
+    const list = screen.getByRole('button', { name: 'Introduction' }).parentElement;
+    expect(list?.className).toContain('w-56');
+  });
+
+  it('narrows back to just its marks once the pointer leaves and nothing inside is focused', () => {
+    renderOutline();
+    const nav = screen.getByRole('navigation', { name: 'On this page' });
+    fireEvent.mouseEnter(nav);
+    expect(screen.getByText('On this page')).toBeTruthy();
+
+    fireEvent.mouseLeave(nav);
+    expect(screen.queryByText('On this page')).toBeNull();
+    const list = screen.getByRole('button', { name: 'Introduction' }).parentElement;
+    expect(list?.className).toContain('w-full');
+    expect(list?.className).not.toContain('w-56');
+  });
+
+  it('opens the panel on keyboard focus, the same as it does on hover', () => {
     renderOutline();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hide the outline' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Show the outline' }));
+    fireEvent.focusIn(screen.getByRole('button', { name: 'Introduction' }));
 
-    expect(screen.getByText('Introduction')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Hide the outline' })).toBeTruthy();
+    expect(screen.getByText('On this page')).toBeTruthy();
   });
 
-  it('remembers the choice to hide across a reload', async () => {
-    const { unmount } = renderOutline();
-    fireEvent.click(screen.getByRole('button', { name: 'Hide the outline' }));
-    expect(localStorage.getItem(PAGE_OUTLINE_VISIBILITY_STORAGE_KEY)).toBe('true');
-    unmount();
-
+  it('closes the panel once focus moves outside the outline entirely', () => {
     renderOutline();
-    expect(await screen.findByRole('button', { name: 'Show the outline' })).toBeTruthy();
-    expect(screen.queryByText('Introduction')).toBeNull();
+    const introduction = screen.getByRole('button', { name: 'Introduction' });
+    const details = screen.getByRole('button', { name: 'Details' });
+    fireEvent.focusIn(introduction);
+    expect(screen.getByText('On this page')).toBeTruthy();
+
+    fireEvent.focusOut(introduction, { relatedTarget: details });
+    expect(screen.getByText('On this page')).toBeTruthy();
+
+    fireEvent.focusOut(details, { relatedTarget: document.body });
+    expect(screen.queryByText('On this page')).toBeNull();
   });
 
-  it('renders nothing at all when the page has no headings, hidden or not', () => {
-    localStorage.setItem(PAGE_OUTLINE_VISIBILITY_STORAGE_KEY, 'true');
+  it('closes the panel on Escape', () => {
+    renderOutline();
+    const nav = screen.getByRole('navigation', { name: 'On this page' });
+    fireEvent.mouseEnter(nav);
+    expect(screen.getByText('On this page')).toBeTruthy();
+
+    fireEvent.keyDown(nav, { key: 'Escape' });
+    expect(screen.queryByText('On this page')).toBeNull();
+  });
+
+  it('goes to the heading it was given when its control is chosen', () => {
+    const positionsVisited: number[] = [];
+    renderOutline((position) => positionsVisited.push(position));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    expect(positionsVisited).toEqual([12]);
+  });
+
+  it('marks no heading as being read when none of them can be found in the writing', () => {
+    renderOutline();
+
+    expect(screen.getByRole('button', { name: 'Introduction' }).getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Details' }).getAttribute('aria-current')).toBeNull();
+  });
+
+  it('renders nothing at all when the page has no headings', () => {
     const { container } = render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesOutline headings={[]} onGoToHeading={() => undefined} title="On this page" />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { PAGE_API_ROUTES } from '@/modules/pages/constants/pages.constants';
-import { buildPageTree, canEditPage, extractPageText } from '@/modules/pages/lib/pages.lib';
+import { buildPageDocumentTitle, buildPageTree, canEditPage, extractPageText } from '@/modules/pages/lib/pages.lib';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 const page = (id: string, parentId: string | null, order: number): PageSummary => ({
@@ -60,5 +60,15 @@ describe('pages.lib', () => {
     };
 
     expect(extractPageText(content)).toBe('First\n\nSecond');
+  });
+});
+
+describe('what the browser tab says of a page', () => {
+  it('puts the page name before the workspace name', () => {
+    expect(buildPageDocumentTitle('Quarterly plan', 'Untitled')).toBe('Quarterly plan · Company Brain');
+  });
+
+  it('falls back to the untitled label when nothing is written yet', () => {
+    expect(buildPageDocumentTitle('   ', 'Untitled')).toBe('Untitled · Company Brain');
   });
 });

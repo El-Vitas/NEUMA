@@ -8,6 +8,7 @@ const trashPage = mock(async () => ({ data: undefined }));
 const getPageTrashPreview = mock(async () => ({ data: { childPageCount: 0 } }));
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  setPageLockAction: async () => ({ data: undefined }),
   trashPageAction: trashPage,
 }));
 mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({

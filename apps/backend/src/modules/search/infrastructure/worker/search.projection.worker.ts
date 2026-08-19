@@ -22,7 +22,10 @@ const toPageProjection = (page: {
   authorName: string | null;
   content: unknown;
   id: string;
+  parentPageId: string | null;
+  parentPageTitle: string | null;
   spaceId: string;
+  spaceName: string;
   title: string;
   version: number;
 }): SearchDocumentInput | null => {
@@ -32,7 +35,13 @@ const toPageProjection = (page: {
     contentType: 'PAGE',
     extractedText: extractPageContentText(content),
     language: null,
-    properties: { authorId: page.authorId, authorName: page.authorName },
+    properties: {
+      authorId: page.authorId,
+      authorName: page.authorName,
+      parentPageId: page.parentPageId,
+      parentPageTitle: page.parentPageTitle,
+      spaceName: page.spaceName,
+    },
     sourceId: page.id,
     sourceType: SearchSourceType.PAGE,
     spaceId: page.spaceId,

@@ -40,6 +40,15 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
   /**
+   * How much a server action may be handed at once.
+   *
+   * Files reach the server through actions, and the pages promise ten megabytes
+   * of them; the default of one would refuse most of what the interface offers
+   * to accept, and refuse it by throwing rather than by saying so. The margin
+   * above ten is what the encoding of the file itself costs on the way.
+   */
+  experimental: { serverActions: { bodySizeLimit: '12mb' } },
+  /**
    * The manual is written in files rather than in the code, and files nothing
    * imports are not carried into what gets deployed unless they are named here.
    */

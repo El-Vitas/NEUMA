@@ -19,6 +19,7 @@ interface FileAssetMetadataResponse {
   mimeType: string;
   originalFilename: string;
   size: number;
+  uploadedBy: string;
 }
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
@@ -105,6 +106,7 @@ describe('Files (Integration)', () => {
       mimeType: 'text/plain',
       originalFilename: 'attachment.txt',
       size: Buffer.from('attachment contents').length,
+      uploadedBy: 'Files Admin',
     });
     expect(attachments[0]).not.toHaveProperty('storageKey');
     expect(attachments[0]).not.toHaveProperty('checksum');

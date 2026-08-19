@@ -4,10 +4,12 @@ import type { PageSummary } from '@/modules/pages/types/pages.types';
 let cookieValue: string | undefined;
 const createdPage = {
   content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
+  cover: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
   id: '33333333-3333-4333-8333-333333333333',
   lifecycle: 'ACTIVE',
+  lockedAt: null,
   order: 0,
   parentId: null,
   propertyValues: null,

@@ -3,7 +3,7 @@ import { SEARCH_REPOSITORY } from './constants/search.tokens';
 import type {
   SearchDocumentInput,
   SearchDocumentRemoval,
-  SearchPage,
+  SearchPageWithContext,
   SearchQueryWithFilters,
   SearchReader,
   SearchRepositoryContract,
@@ -21,7 +21,7 @@ export class SearchService implements SearchReader {
     await this.searchRepository.removeDocument(input);
   }
 
-  async search(query: SearchQueryWithFilters): Promise<SearchPage> {
+  async search(query: SearchQueryWithFilters): Promise<SearchPageWithContext> {
     if (query.query.trim() === '') return { items: [] };
     return this.searchRepository.search(query);
   }

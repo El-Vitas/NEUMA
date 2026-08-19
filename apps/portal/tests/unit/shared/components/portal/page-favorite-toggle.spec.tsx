@@ -40,15 +40,16 @@ mock.module('next/navigation', () => ({
 
 const { PageFavoriteToggle } = await import('@/shared/components/portal/page-favorite-toggle');
 
-const renderToggle = (isFavorite: boolean) =>
-  render(
-    <>
-      <Toaster />
-      <NextIntlClientProvider locale="en" messages={en}>
-        <PageFavoriteToggle isFavorite={isFavorite} pageId="page-a" spaceId="space-a" title="Handbook" />
-      </NextIntlClientProvider>
-    </>,
-  );
+const toggleTree = (isFavorite: boolean) => (
+  <>
+    <Toaster />
+    <NextIntlClientProvider locale="en" messages={en}>
+      <PageFavoriteToggle isFavorite={isFavorite} pageId="page-a" spaceId="space-a" title="Handbook" />
+    </NextIntlClientProvider>
+  </>
+);
+
+const renderToggle = (isFavorite: boolean) => render(toggleTree(isFavorite));
 
 describe('PageFavoriteToggle', () => {
   afterEach(() => {
@@ -84,6 +85,14 @@ describe('PageFavoriteToggle', () => {
       expect(screen.getByRole('button', { name: 'Add Handbook to favorites' })).toBeDefined();
     });
     expect(refreshRouter).not.toHaveBeenCalled();
+  });
+
+  it('follows the server when the page stops being a favorite somewhere else', () => {
+    const { rerender } = renderToggle(true);
+
+    rerender(toggleTree(false));
+
+    expect(screen.getByRole('button', { name: 'Add Handbook to favorites' })).toBeDefined();
   });
 
   it('removes an already-favorited page', async () => {

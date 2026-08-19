@@ -38,11 +38,14 @@ describe('SearchResults', () => {
       items: [
         {
           contentType: 'guide',
+          parentPageId: null,
+          parentPageTitle: null,
           rank: 0.8,
           snippet: [{ highlighted: true, text: 'Onboarding' }],
           sourceId: 'page-1',
           sourceType: 'PAGE',
           spaceId: 'space-1',
+          spaceName: null,
           title: 'Onboarding page',
           updatedAt: '2026-08-03T12:00:00.000Z',
         },
@@ -67,6 +70,8 @@ describe('SearchResults', () => {
       items: [
         {
           contentType: 'guide',
+          parentPageId: null,
+          parentPageTitle: null,
           rank: 0.8,
           snippet: [
             { highlighted: true, text: 'hormiga' },
@@ -77,6 +82,7 @@ describe('SearchResults', () => {
           sourceId: 'page-1',
           sourceType: 'PAGE',
           spaceId: 'space-1',
+          spaceName: null,
           title: 'Las hormigas',
           updatedAt: '2026-08-03T12:00:00.000Z',
         },
@@ -99,11 +105,14 @@ describe('SearchResults', () => {
       items: [
         {
           contentType: 'guide',
+          parentPageId: null,
+          parentPageTitle: null,
           rank: 0.8,
           snippet: [{ highlighted: false, text: 'Onboarding' }],
           sourceId: 'page-1',
           sourceType: 'PAGE',
           spaceId: 'space-1',
+          spaceName: null,
           title: 'Onboarding page',
           updatedAt: '2026-08-03T12:00:00.000Z',
         },

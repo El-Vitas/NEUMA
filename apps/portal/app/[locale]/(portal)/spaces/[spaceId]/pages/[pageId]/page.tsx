@@ -1,18 +1,22 @@
 import type { PageCollectionReference, Result } from '@company-brain/shared';
 import { extractPageCollectionReferences, USER_ROLE } from '@company-brain/shared';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
+import { redirect } from '@/i18n/navigation';
 import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { PagesCollectionEmbed } from '@/modules/pages/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
+import { buildPageDocumentTitle } from '@/modules/pages/lib/pages.lib';
 import { getEditableSchemaProperties, schemaNeedsPersonOptions } from '@/modules/pages/lib/pages.properties.lib';
 import { getPageAttachments } from '@/modules/pages/server/queries/pages.attachments.queries';
 import { getPageBacklinks } from '@/modules/pages/server/queries/pages.backlinks.queries';
-import { getPages } from '@/modules/pages/server/queries/pages.queries';
+import { getPageSpaceId, getPages } from '@/modules/pages/server/queries/pages.queries';
 import { getPageSchema, getPageView } from '@/modules/pages/server/queries/pages.schema.queries';
 import type {
   PagePersonOption,
@@ -23,11 +27,37 @@ import type {
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
 }
+
+/**
+ * Sends an address that no longer holds the page to the one that does.
+ *
+ * A page moved to another space keeps its own name but changes where it lives,
+ * and everything written before the move still points where it was. Rather than
+ * answering those with nothing, the page is looked for and the reader taken to
+ * it. Not finding it is left alone: the caller says what a missing page means.
+ */
+const followThePageToItsSpace = async (pageId: string, spaceId: string): Promise<void> => {
+  const locationResult = await getPageSpaceId(pageId);
+  if (locationResult.isFail()) return;
+  const currentSpaceId = locationResult.getValue();
+  if (currentSpaceId === spaceId) return;
+  redirect({ href: ROUTES.PORTAL_SPACE_PAGE(currentSpaceId, pageId), locale: await getLocale() });
+};
+
+/** The name the browser tab carries, which is the page's own and not the workspace's. */
+export const generateMetadata = async ({ params }: IProps): Promise<Metadata> => {
+  const { pageId, spaceId } = await params;
+  const [pagesResult, t] = await Promise.all([getPages(spaceId), getTranslations('pages')]);
+  const page = pagesResult.isOk() ? pagesResult.getValue().find((candidate) => candidate.id === pageId) : undefined;
+  if (page === undefined) return {};
+  return { title: buildPageDocumentTitle(page.title, t('untitled')) };
+};
 
 /**
  * A collection looked at from inside another page: one of its views, drawn
@@ -129,6 +159,7 @@ export default async function Page({ params }: IProps) {
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const pages = pagesResult.isOk() ? pagesResult.getValue() : null;
   const selectedPage = pages?.find((page) => page.id === pageId);
+  if (selectedPage === undefined) await followThePageToItsSpace(pageId, spaceId);
   if (space === undefined || pages === null || selectedPage === undefined) notFound();
 
   const parentSchema = await resolveParentSchema(spaceId, selectedPage.parentId);
@@ -147,7 +178,6 @@ export default async function Page({ params }: IProps) {
         currentUserDisplayName={user?.name}
         embeddedCollections={embeddedCollections}
         isFavorite={resolveIsFavorite(favoritesResult, pageId)}
-        isNewPage={false}
         pages={pages}
         parentSchema={parentSchema}
         personOptions={personOptions}

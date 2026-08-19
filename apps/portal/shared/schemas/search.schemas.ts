@@ -44,12 +44,17 @@ export const searchQuerySchema = z.object({
   tags: tagsSchema,
 });
 
+const nullableContextText = z.string().nullable().catch(null);
+
 export const searchResponseSchema = z.object({
   items: z.array(
     z.object({
       contentType: z.string(),
+      parentPageId: nullableContextText,
+      parentPageTitle: nullableContextText,
       rank: z.number(),
       spaceId: z.string(),
+      spaceName: nullableContextText,
       sourceId: z.string(),
       sourceType: z.enum(SEARCH_SOURCE_TYPES),
       snippet: z.string(),

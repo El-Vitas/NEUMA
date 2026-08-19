@@ -10,10 +10,10 @@ import { WorkspaceContextService } from '../../common/infrastructure/persistence
 import type { TokenPayload } from '../../common/types/auth.types';
 import type { UploadedFile } from '../../common/types/fastify-file.types';
 import { FILE_PARTIAL_CONTENT_STATUS, FILE_RANGE_NOT_SATISFIABLE_STATUS } from './constants/files.constants';
-import { describeFileDisposition } from './domain/files.domain';
+import { describeFileDisposition, toUploadedFileAssetResponse } from './domain/files.domain';
+import type { FileAssetMetadata } from './domain/files.domain.types';
 import { FileAssetQueryDto } from './dto/file.asset.query.dto';
 import { FilesService } from './files.service';
-import type { FileAssetMetadata } from './types/files.types';
 import { readRequestedByteRange } from './utils/files.utils';
 
 @Controller('files')
@@ -30,7 +30,7 @@ export class FilesController {
     @Query() query: FileAssetQueryDto,
     @UploadedFastifyFile() file: UploadedFile,
     @User('payload') payload: TokenPayload,
-  ) {
+  ): Promise<FileAssetMetadata> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.filesService.create({
       buffer: file.buffer,
@@ -43,7 +43,7 @@ export class FilesController {
       workspaceId: workspace.id,
     });
     if (result.isFail()) throw result.getError();
-    return result.getValue();
+    return toUploadedFileAssetResponse(result.getValue(), payload.name);
   }
 
   /**

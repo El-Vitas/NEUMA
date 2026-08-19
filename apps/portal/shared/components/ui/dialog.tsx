@@ -93,7 +93,8 @@ const DialogFooter = ({
   const t = useTranslations('common');
   return (
     <div
-      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
+      /** Going back sits before going on, whether that is read left to right or top to bottom. */
+      className={cn('flex flex-col gap-2 sm:flex-row sm:justify-end', className)}
       data-slot="dialog-footer"
       {...props}
     >

@@ -1,4 +1,5 @@
 import { MAX_FILE_SIZE } from '../../../common/domain/file.constants';
+import type { FileAssetMetadata, FileAssetSummary } from './files.domain.types';
 import { FileValidationError } from './files.error';
 
 const unsafeFilenameCharacters = /[^a-zA-Z0-9._-]+/g;
@@ -71,3 +72,12 @@ export const validateFileUpload = (input: { filename: string; mimetype: string; 
     throw new FileValidationError('File MIME type is invalid');
   return normalizedFilename;
 };
+
+/** What a page is told about a freshly uploaded file: never its storage key, owner id, or workspace. */
+export const toUploadedFileAssetResponse = (asset: FileAssetSummary, uploaderName: string): FileAssetMetadata => ({
+  id: asset.id,
+  mimeType: asset.mimeType,
+  originalFilename: asset.originalFilename,
+  size: asset.size,
+  uploadedBy: uploaderName,
+});

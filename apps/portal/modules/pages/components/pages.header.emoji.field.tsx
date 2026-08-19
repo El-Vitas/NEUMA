@@ -14,6 +14,8 @@ interface IProps {
   readonly id: string;
   readonly inputRef: RefObject<HTMLInputElement | null>;
   readonly onChange: (title: string) => void;
+  /** Where Enter goes once the title is written, since a title is not a line one stays on. */
+  readonly onLeave: () => void;
   readonly placeholder: string;
   readonly value: string;
 }
@@ -30,6 +32,7 @@ export const PagesHeaderEmojiField = ({
   id,
   inputRef,
   onChange,
+  onLeave,
   placeholder,
   value,
 }: IProps) => {
@@ -87,7 +90,12 @@ export const PagesHeaderEmojiField = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    if (triggerQuery === null) return;
+    if (triggerQuery === null) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      onLeave();
+      return;
+    }
     switch (event.key) {
       case 'Escape':
         event.preventDefault();

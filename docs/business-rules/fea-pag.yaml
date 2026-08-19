@@ -1,0 +1,82 @@
+id: FEA-PAG
+name: La vida de una página
+purpose: Reúne las reglas de cómo nace una página, cómo se nombra, dónde vive y qué ocurre cuando cambia de sitio.
+scope: pages
+rules:
+  - id: BR-6191a45
+    status: active
+    title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
+    rule: >-
+      Al mover una página a otro espacio, todas las páginas que cuelgan de ella cambian de espacio con ella. Las
+      direcciones escritas antes del traslado siguen llevando a la página, ahora en el espacio donde vive.
+    why: >-
+      Una rama partida entre dos espacios deja hijas que nadie alcanza desde su madre. Y una dirección que deja de
+      responder convierte cada enlace y cada mención escritos antes del traslado en un callejón sin salida.
+    context: >-
+      Cada página arrastrada avisa por su cuenta al índice de búsqueda, porque el índice registra a qué espacio
+      pertenece cada una. Quien arrastra no queda como último editor de las hijas.
+    scenarios:
+      - title: La rama viaja entera
+        given: Una página con hijas en un espacio
+        when: Se mueve la madre a otro espacio
+        then: Las hijas quedan en el espacio nuevo, colgando de su madre
+      - title: La dirección vieja sigue sirviendo
+        given: Una página que cambió de espacio
+        when: Se abre una dirección que nombra el espacio anterior
+        then: Se llega a la página en su espacio actual
+  - id: BR-80536e4
+    status: active
+    title: Una página bloqueada no se escribe, ni por la pantalla ni por la vía de atrás
+    rule: >-
+      Una página bloqueada rechaza cualquier escritura de su contenido, su título y sus propiedades. El rechazo lo
+      decide el servidor, no la pantalla. Quien tiene permiso para escribir en ella es también quien puede bloquearla y
+      desbloquearla.
+    why: >-
+      Un candado que solo apaga los controles se salta con cualquier cliente que no los dibuje, y entonces no era un
+      candado. Y un bloqueo que solo alguien más pudiera abrir dejaría la página congelada cuando quien la bloqueó no
+      está.
+    context: El servidor responde con el error PAGE_LOCKED y estado 409. El bloqueo guarda cuándo y quién lo puso.
+  - id: BR-a096152
+    status: active
+    title: Una copia nace junto a su original y solo ella cambia de nombre
+    rule: >-
+      Al duplicar una página se copian su contenido, sus propiedades y su ícono. La copia queda inmediatamente después
+      de la original entre sus hermanas. Se puede elegir si la descendencia se copia también, y esa pregunta solo
+      aparece cuando la página tiene hijas. De toda la rama copiada, solo la página pedida se renombra.
+    why: >-
+      Una copia que aparece al final de una lista larga obliga a buscarla. Y renombrar también a las hijas ensuciaría
+      cada nombre de la rama con una marca que no dice nada de ellas.
+    context: >-
+      La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Para dejar sitio a
+      la copia se renumeran las hermanas que venían después.
+  - id: BR-b3786ed
+    status: active
+    title: La posición de lectura se guarda por página y dura lo que la pestaña
+    rule: >-
+      Al recargar una página se vuelve al punto donde se estaba leyendo. Cada página recuerda el suyo por separado. En
+      cuanto la persona se desplaza por su cuenta, se deja de restaurar y se empieza a anotar dónde quedó.
+    why: >-
+      Recargar una página larga y aterrizar arriba obliga a buscar de nuevo el párrafo que se estaba leyendo. Y seguir
+      empujando la vista después de que la persona se movió sería pelearle el control.
+    context: >-
+      Se guarda en el almacenamiento de la pestaña, así que no viaja entre dispositivos ni sobrevive a cerrarla. Quien
+      se desplaza es la caja de lectura dentro de la ventana, no el documento.
+  - id: BR-c737a3f
+    status: active
+    title: Una página se hace vacía y se escribe después
+    rule: >-
+      Crear una página no exige nombre ni confirmación. La página se crea vacía, se abre con el cursor en su nombre, y
+      lo que se escribe en ella se guarda solo.
+    why: >-
+      Un formulario antes de escribir obliga a decidir el nombre cuando todavía no se sabe de qué trata la página. El
+      nombre es una de las cosas que se escriben en ella, no un requisito para empezar.
+    context: Implica que el título puede quedar vacío en la base. Donde se lista, una página sin nombre se lee «Sin título».
+    scenarios:
+      - title: Se crea y se escribe
+        given: Alguien con permiso de edición está en un espacio
+        when: Pulsa crear una página
+        then: La página existe de inmediato y se abre con el cursor en el título, sin ningún botón de confirmación
+      - title: El nombre se guarda sin pedirlo
+        given: Una página recién creada y sin nombre
+        when: Se escribe un título y no se pulsa nada más
+        then: El título queda guardado

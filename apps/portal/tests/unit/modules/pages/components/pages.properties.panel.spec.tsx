@@ -6,6 +6,8 @@ import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  setPageLockAction: async () => ({ data: undefined }),
+  listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
 }));
 mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
@@ -119,7 +121,7 @@ describe('PagesPropertiesPanel', () => {
     expect(screen.getByText('Field 4')).toBeDefined();
     expect(screen.queryByText('Field 5')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show 1 more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show 1 more property' }));
 
     expect(screen.getByText('Field 5')).toBeDefined();
   });
@@ -130,7 +132,6 @@ describe('PagesPropertiesPanel', () => {
       canEdit: false,
       page: null,
       pageId: null,
-      pages: [],
     });
 
     expect(container.firstElementChild).toBeNull();
@@ -139,21 +140,40 @@ describe('PagesPropertiesPanel', () => {
   it('reveals Location and Attachments only once expanded', () => {
     const page = buildPage();
     renderPanel(null, {
-      attachments: [{ id: 'attachment-1', mimeType: 'application/pdf', originalFilename: 'handbook.pdf', size: 1024 }],
+      attachments: [
+        {
+          id: 'attachment-1',
+          mimeType: 'application/pdf',
+          originalFilename: 'handbook.pdf',
+          size: 1024,
+          uploadedBy: 'Jane Doe',
+        },
+      ],
       canEdit: true,
       page,
       pageId: page.id,
-      pages: [page],
       spaceId: page.spaceId,
     });
 
     expect(screen.queryByLabelText('Location')).toBeNull();
     expect(screen.queryByRole('list', { name: 'Attachments' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Show 2 more' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Show 2 more properties' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more properties' }));
 
     expect(screen.getByLabelText('Location')).toBeDefined();
     expect(screen.getByRole('list', { name: 'Attachments' })).toBeDefined();
+  });
+
+  it('shows an empty-properties message when the page has no custom properties but other sections exist', () => {
+    const page = buildPage();
+    renderPanel(null, {
+      canEdit: true,
+      page,
+      pageId: page.id,
+      spaceId: page.spaceId,
+    });
+
+    expect(screen.getByText('This page has no properties')).toBeDefined();
   });
 });

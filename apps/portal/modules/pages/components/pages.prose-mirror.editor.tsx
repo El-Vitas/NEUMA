@@ -62,6 +62,7 @@ import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.conv
 import {
   createEmptyPageContent,
   createPageEditorState,
+  goToTheWritingStart,
   isPageEditorReadOnly,
   readWhatThePageCanKeep,
   runPageEditorCommand,
@@ -143,6 +144,7 @@ export const PagesProseMirrorEditor = forwardRef(
     }: IProps,
     handleRef: ForwardedRef<{
       readonly goToHeading: (position: number) => void;
+      readonly goToWriting: () => void;
       readonly runCommand: (command: Command) => boolean;
     }>,
   ) => {
@@ -616,7 +618,8 @@ export const PagesProseMirrorEditor = forwardRef(
           content: createEmptyPageContent(),
           parentId: pageId,
           spaceId,
-          title: subpageLabelsRef.current.untitled,
+          /** Left unnamed rather than named «Untitled»: a page called that is a page lying about its name. */
+          title: '',
         });
         if (!isActionSuccess<PageSummary>(made)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
@@ -624,7 +627,7 @@ export const PagesProseMirrorEditor = forwardRef(
         }
         const insert = createPageSubpageInsertCommand(
           pageEditorSchema,
-          { label: made.data.title, pageId: made.data.id, spaceId },
+          { label: subpageLabelsRef.current.untitled, pageId: made.data.id, spaceId },
           spot,
         );
         insert(editorView.state, editorView.dispatch);
@@ -887,6 +890,11 @@ export const PagesProseMirrorEditor = forwardRef(
           const editorView = editorViewRef.current;
           if (editorView === null) return;
           goToThePageHeading(editorView, position);
+        },
+        goToWriting: () => {
+          const editorView = editorViewRef.current;
+          if (editorView === null) return;
+          goToTheWritingStart(editorView);
         },
         runCommand: (command) => {
           const editorView = editorViewRef.current;

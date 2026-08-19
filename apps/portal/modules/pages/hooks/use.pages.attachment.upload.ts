@@ -1,10 +1,11 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
-import { getAttachmentUploadErrorFromResult } from '../lib/pages.attachments.lib';
+import { MAX_ATTACHMENT_SIZE } from '../constants/pages.attachments.constants';
+import { formatAttachmentSize, getAttachmentUploadErrorFromResult } from '../lib/pages.attachments.lib';
 import { attachmentUploadSchema } from '../schemas/pages.attachments.schemas';
 import { uploadPageAttachmentAction } from '../server/actions/pages.attachments.actions';
 import type {
@@ -19,6 +20,8 @@ export const usePagesAttachmentUpload = ({
   pageId,
 }: PagesAttachmentUploadOptions): PagesAttachmentUploadController => {
   const t = useTranslations('pages.attachments');
+  const tPanel = useTranslations('pages.attachmentsPanel');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [lastFile, setLastFile] = useState<File | undefined>();
   const [error, setError] = useState<AttachmentUploadError | null>(null);
@@ -30,6 +33,13 @@ export const usePagesAttachmentUpload = ({
     (file: File | undefined): void => {
       if (isUploadingRef.current) return;
       const fileToUpload = file ?? lastFile;
+      if (fileToUpload !== undefined && fileToUpload.size > MAX_ATTACHMENT_SIZE) {
+        setLastFile(fileToUpload);
+        setError('tooLarge');
+        const formattedLimit = formatAttachmentSize(MAX_ATTACHMENT_SIZE, locale);
+        toast.error(tPanel('fileTooLarge', { limit: formattedLimit }));
+        return;
+      }
       const parsedUpload = attachmentUploadSchema.safeParse({ file: fileToUpload, pageId });
       if (!parsedUpload.success) {
         setLastFile(fileToUpload);
@@ -52,16 +62,16 @@ export const usePagesAttachmentUpload = ({
           }
           const uploadError = hasActionError(result) ? getAttachmentUploadErrorFromResult(result) : 'request';
           setError(uploadError);
-          toast.error(t(uploadError === 'invalid' ? 'validationError' : 'uploadError'));
+          toast.error(uploadError === 'invalid' ? t('validationError') : tPanel('uploadError'));
         } catch {
           setError('request');
-          toast.error(t('uploadError'));
+          toast.error(tPanel('uploadError'));
         } finally {
           isUploadingRef.current = false;
         }
       });
     },
-    [lastFile, onUploaded, pageId, t],
+    [lastFile, locale, onUploaded, pageId, t, tPanel],
   );
 
   const retry = useCallback((): void => upload(undefined), [upload]);

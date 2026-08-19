@@ -11,6 +11,11 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 
+/** Starting a page reaches a server action, which refuses to load outside a server. */
+mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+  usePagesStart: () => ({ isStarting: false, startPage: () => undefined }),
+}));
+
 mock.module('@/modules/search/server/actions/search.instant.actions', () => ({
   searchInstantPageCandidatesAction: mock(async () => ({ data: [] })),
 }));

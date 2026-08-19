@@ -48,7 +48,13 @@ describe('uploadPageAttachmentAction', () => {
     cookieState.value = 'valid-access-token';
     fetchMock.mockClear();
     updateTagMock.mockClear();
-    const attachment = { id: attachmentId, mimeType: 'text/plain', originalFilename: 'note.txt', size: 7 };
+    const attachment = {
+      id: attachmentId,
+      mimeType: 'text/plain',
+      originalFilename: 'note.txt',
+      size: 7,
+      uploadedBy: 'Jane Doe',
+    };
     fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify(attachment), { status: 200 }));
 
     const result = await uploadPageAttachmentAction({

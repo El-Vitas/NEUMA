@@ -28,6 +28,7 @@ export const SidebarSpace = ({ collapsed, onNavigate, role, space }: IProps) => 
   if (collapsed) {
     return (
       <SidebarSpaceCollapsed
+        icon={space.icon}
         isActiveSpace={isActiveSpace}
         isCurrentSpace={isCurrentSpace}
         onNavigate={onNavigate}

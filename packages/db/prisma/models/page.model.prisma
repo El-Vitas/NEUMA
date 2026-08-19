@@ -5,8 +5,12 @@ model Page {
   title            String
   content          Json
   propertyValues   Json?
+  icon             Json?
+  cover            Json?
   order            Int                  @default(0)
   lifecycle        PageLifecycle        @default(ACTIVE)
+  lockedAt         DateTime?
+  lockedById       String?
   createdById      String
   updatedById      String
   trashedAt        DateTime?

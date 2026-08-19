@@ -1,5 +1,6 @@
 import { Boxes, Search } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { AssignedPagesList } from '@/shared/components/portal/assigned-pages-list';
 import { RecentPagesList } from '@/shared/components/portal/recents-list';
 import { PageHeader } from '@/shared/components/ui/page-header';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
@@ -34,6 +35,7 @@ export const PortalView = async ({ userName }: IProps) => {
           title={navigationT('search')}
         />
       </div>
+      <AssignedPagesList />
       <RecentPagesList />
     </main>
   );

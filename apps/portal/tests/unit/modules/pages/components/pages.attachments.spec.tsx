@@ -31,6 +31,7 @@ describe('PagesAttachments', () => {
         mimeType: 'application/pdf',
         originalFilename: 'handbook.pdf',
         size: 1024,
+        uploadedBy: 'Jane Doe',
       },
     ]);
 
@@ -45,6 +46,12 @@ describe('PagesAttachments', () => {
 
     expect(screen.getByText('No attachments yet.')).toBeDefined();
     expect(screen.queryByRole('list', { name: 'Attachments' })).toBeNull();
+  });
+
+  it('notes that files inserted in the content also appear in this list', () => {
+    renderAttachments([]);
+
+    expect(screen.getByText('Files you insert in the page content also appear here.')).toBeDefined();
   });
 
   it('shows a recoverable inline validation error before uploading an unsupported file', () => {

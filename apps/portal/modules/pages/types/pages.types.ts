@@ -1,5 +1,7 @@
 import type { PageContent, PageLifecycle } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
+import type { PageCoverValue } from './pages.cover.types';
+import type { PageIcon } from './pages.icon.types';
 import type { PagePropertyValues } from './pages.schema.types';
 
 export type { PageContent, PageContentInlineNode, PageContentNode, PageLifecycle } from '@company-brain/shared';
@@ -40,10 +42,14 @@ export interface PageMentionInsertCommandOptions {
 
 export interface PageSummary {
   readonly content: PageContent;
+  readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | PageAuthor;
+  readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
+  /** When somebody locked the page against edits, and nothing when nobody has. */
+  readonly lockedAt?: Date | null;
   readonly order: number;
   readonly parentId: null | string;
   readonly propertyValues: PagePropertyValues | null;

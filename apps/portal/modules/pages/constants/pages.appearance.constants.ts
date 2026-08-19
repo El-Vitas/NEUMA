@@ -36,7 +36,6 @@ export const PAGE_APPEARANCE_TEXT_SIZE_STYLE_CLASSES: Readonly<Record<PageAppear
 };
 
 export const PAGE_APPEARANCE_DEFAULT_PREFERENCES: PageAppearancePreferences = {
-  fullWidth: false,
   textSize: PAGE_APPEARANCE_TEXT_SIZES.Normal,
   typography: PAGE_APPEARANCE_TYPOGRAPHIES.System,
 };
@@ -48,9 +47,18 @@ export const PAGE_APPEARANCE_TYPOGRAPHY_STYLE_CLASSES: Readonly<Record<PageAppea
   system: 'font-reading',
 };
 
-export const PAGE_APPEARANCE_FULL_WIDTH_STYLE_CLASS = 'max-w-none';
+/** A page takes the room it is given: nothing holds its writing to a narrower column. */
+export const PAGE_APPEARANCE_WIDTH_STYLE_CLASS = 'max-w-none';
 
-export const PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS = 'max-w-3xl';
+/**
+ * Writing pressed against the edge of the window is hard to read, so a page keeps a margin of its own.
+ *
+ * The wide left margin is the lane the block grips stand in, and those answer to
+ * a mouse. On a narrow screen there is no mouse to summon them and no room to
+ * spare, so the lane is not reserved: the writing gets that width instead.
+ */
+export const PAGE_APPEARANCE_SECTION_PADDING_STYLE_CLASS =
+  'py-6 pr-4 pl-4 sm:py-8 sm:pr-6 sm:pl-14 lg:py-12 lg:pr-8 lg:pl-16 xl:pr-10';
 
 export const PAGE_APPEARANCE_STORAGE_KEY_PREFIX = 'company-brain-page-appearance:';
 

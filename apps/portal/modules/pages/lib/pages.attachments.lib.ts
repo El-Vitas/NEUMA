@@ -1,20 +1,33 @@
 import type { ActionFailure } from '@/shared/types/action-result.types';
 import {
+  ATTACHMENT_SIZE_UNITS,
+  ATTACHMENT_TYPE_LABELS,
   AUDIO_ATTACHMENT_MIME_TYPE_PREFIX,
   IMAGE_ATTACHMENT_MIME_TYPE_PREFIX,
+  PAGE_ASSET_URL_PREFIX,
   VIDEO_ATTACHMENT_MIME_TYPE_PREFIX,
 } from '../constants/pages.attachments.constants';
 import type { AttachmentDownload, AttachmentSummary, AttachmentUploadError } from '../types/pages.attachments.types';
+import type { PageCoverValue } from '../types/pages.cover.types';
+import type { PageIcon } from '../types/pages.icon.types';
 import type { PageAssetInsertCommandOptions, PageAssetNodeType } from '../types/pages.types';
 
 export const getAttachmentUploadErrorFromResult = (result: ActionFailure): AttachmentUploadError =>
   result.validationErrors === undefined ? 'request' : 'invalid';
 
-export const formatAttachmentSize = (size: number): string => {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
-  return `${Math.round(size / (1024 * 1024))} MB`;
+export const resolvePageAssetUrl = (assetId: string): string =>
+  `${PAGE_ASSET_URL_PREFIX}/${encodeURIComponent(assetId)}`;
+
+export const formatAttachmentSize = (size: number, locale: string): string => {
+  const matchedUnit = ATTACHMENT_SIZE_UNITS.find((entry) => size >= entry.threshold);
+  const unit = matchedUnit?.unit ?? 'byte';
+  const displayValue = matchedUnit === undefined ? size : size / matchedUnit.threshold;
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1, style: 'unit', unit, unitDisplay: 'short' }).format(
+    displayValue,
+  );
 };
+
+export const formatAttachmentType = (mimeType: string): string => ATTACHMENT_TYPE_LABELS[mimeType] ?? mimeType;
 
 /** What a page makes of a file: a picture, something that plays, or a file to take away. */
 export const mapAttachmentMimeTypeToPageAssetNodeType = (mimeType: string): PageAssetNodeType => {
@@ -38,6 +51,18 @@ export const buildPageAssetInsertOptionsFromAttachment = (
     };
   }
   return { assetId: attachment.id, caption: attachment.originalFilename };
+};
+
+/** The pictures a page wears are not files it carries, so the attachment list leaves them out. */
+export const excludePageAssetAttachments = (
+  attachments: readonly AttachmentSummary[],
+  icon: PageIcon | null,
+  cover: PageCoverValue | null = null,
+): readonly AttachmentSummary[] => {
+  const hiddenAssetIds = new Set<string>();
+  if (icon !== null && icon.kind === 'image') hiddenAssetIds.add(icon.assetId);
+  if (cover !== null) hiddenAssetIds.add(cover.assetId);
+  return attachments.filter((attachment) => !hiddenAssetIds.has(attachment.id));
 };
 
 export const triggerAttachmentBlobDownload = (download: AttachmentDownload): void => {

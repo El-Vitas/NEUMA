@@ -15,24 +15,14 @@ import {
   attachmentSummarySchema,
   attachmentUploadSchema,
 } from '../../schemas/pages.attachments.schemas';
-import { getPageAttachmentDownload } from '../lib/pages.attachments.server';
-
-const uploadAttachment = async (pageId: string, file: File, accessToken: string): Promise<Response> => {
-  const body = new FormData();
-  body.append('file', file, file.name);
-  return fetch(`${config.backendApiUrl}${FILES_API_ROUTE}?pageId=${encodeURIComponent(pageId)}`, {
-    body,
-    headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
-    method: 'POST',
-  });
-};
+import { getPageAttachmentDownload, uploadPageAttachmentAsset } from '../lib/pages.attachments.server';
 
 export const uploadPageAttachmentAction = actionClient
   .inputSchema(attachmentUploadSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'uploadPageAttachment' }, async () => {
       const accessToken = await requireAccessTokenCookie();
-      const response = await uploadAttachment(parsedInput.pageId, parsedInput.file, accessToken);
+      const response = await uploadPageAttachmentAsset(parsedInput.pageId, parsedInput.file, accessToken);
       if (!response.ok) throw new Error('Attachment upload request failed');
       const attachment = attachmentSummarySchema.parse(await response.json());
       updateTag(PAGE_ATTACHMENTS_CACHE_TAG);

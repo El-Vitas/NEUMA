@@ -49,7 +49,8 @@
     "ascending": "Ascending",
     "descending": "Descending",
     "hide": "Hide",
-    "actionError": "Something went wrong. Try again."
+    "actionError": "Something went wrong. Try again.",
+    "spaceLabel": "In {space}"
   },
   "navigation": {
     "general": "General",
@@ -58,6 +59,10 @@
     "spaces": "Spaces",
     "collapseSpace": "Collapse {name}",
     "expandSpace": "Expand {name}",
+    "spaceActions": "Actions for {name}",
+    "changeSpaceIcon": "Change the icon",
+    "renameSpace": "Rename space",
+    "spaceNameField": "Space name",
     "docs": "Documentation",
     "trash": "Trash",
     "users": "Users",
@@ -125,7 +130,6 @@
         "PAGE": "Page",
         "DATABASE_RECORD": "Database record"
       },
-      "spaceValue": "Space: {space}",
       "resultCount": "{count, plural, one {Showing # result} other {Showing # results}}",
       "nextPage": "Load more results",
       "emptyTitle": "No results found",
@@ -149,8 +153,11 @@
     },
     "recents": {
       "title": "Recent",
-      "empty": "You have not viewed any pages yet",
-      "spaceLabel": "In {space}"
+      "empty": "You have not viewed any pages yet"
+    },
+    "assigned": {
+      "title": "Assigned to you",
+      "untitled": "Untitled"
     }
   },
   "account": {
@@ -216,6 +223,21 @@
     "subtitle": "Browse your organization's internal knowledge.",
     "loadError": "Could not load spaces. Try again.",
     "empty": "There are no spaces available yet.",
+    "emptyState": {
+      "description": "Create the first page to start organizing this space's knowledge.",
+      "createFirstPage": "Create first page"
+    },
+    "home": {
+      "mainPages": "Main pages",
+      "noPages": "This space has no pages yet.",
+      "activity": "Recent activity",
+      "noActivity": "Nothing has been written here yet.",
+      "editedBy": "{name} · {when}",
+      "members": "Members",
+      "noMembers": "This space has no members assigned.",
+      "moreMembers": "and {count} more",
+      "startPage": "Create a page"
+    },
     "newSpace": "New space",
     "create": "Create space",
     "creating": "Creating space...",
@@ -236,7 +258,8 @@
         "PUBLIC_INTERNAL": "Everyone in your organization can browse this space.",
         "RESTRICTED": "Only invited members and administrators can browse this space."
       }
-    }
+    },
+    "reorderError": "Could not change the order of the spaces."
   },
   "pages": {
     "subtitle": "Structured pages and knowledge.",
@@ -320,16 +343,28 @@
     },
     "location": "Location",
     "spaceRoot": "Space root",
+    "breadcrumb": {
+      "collapsedMark": "…",
+      "expandCollapsed": "Show intermediate segments"
+    },
     "move": "Move page",
     "movePage": "Move page",
     "moving": "Moving...",
     "moveError": "Could not move the page. Check that the destination is valid.",
     "moved": "Page moved",
+    "moveSearch": "Search for a space or a page",
     "tree": "Page tree",
     "collapsePage": "Collapse {name}",
     "expandPage": "Expand {name}",
     "pageActions": "Actions for {name}",
     "pageTree": "Pages in this space",
+    "treePanel": {
+      "resizeHandle": "Resize the page tree",
+      "resizeHandleHint": "You can also resize it with the keyboard arrow keys.",
+      "dragging": "Moving {name}",
+      "dropInside": "Will drop inside {name}",
+      "dropInvalid": "Can't drop here"
+    },
     "writeHere": "Write, or press / for blocks",
     "blockTooLong": "One block is too long and the page is not being saved. Shorten it or split it into several blocks.",
     "trash": "Trash",
@@ -384,9 +419,49 @@
       "wordCount": "{count, plural, one {# word} other {# words}}",
       "characterCount": "{count, plural, one {# character} other {# characters}}"
     },
+    "icon": {
+      "add": "Add an icon",
+      "chooseColor": "Choose a colour",
+      "chooseEmoji": "Choose an emoji",
+      "chooseSymbol": "Choose a symbol",
+      "colors": {
+        "blue": "Blue",
+        "brown": "Brown",
+        "default": "Default",
+        "gray": "Gray",
+        "green": "Green",
+        "orange": "Orange",
+        "pink": "Pink",
+        "purple": "Purple",
+        "red": "Red",
+        "yellow": "Yellow"
+      },
+      "emojiTab": "Emoji",
+      "label": "Icon for {name}",
+      "noMatches": "Nothing matches your search",
+      "random": "Random icon",
+      "remove": "Remove icon",
+      "search": "Search by name",
+      "symbolTab": "Icons",
+      "uploadImage": "Upload an image"
+    },
+    "cover": {
+      "add": "Add a cover",
+      "uploadImage": "Upload an image",
+      "change": "Change cover",
+      "remove": "Remove cover",
+      "menuLabel": "Cover",
+      "reposition": "Reposition",
+      "repositionHelp": "Drag the image up or down to adjust what shows.",
+      "repositionCancel": "Cancel",
+      "repositionSave": "Keep this framing",
+      "repositionError": "Could not save the cover framing.",
+      "removeError": "Could not remove the cover.",
+      "uploading": "Uploading cover...",
+      "uploadError": "Could not upload the cover. Try again."
+    },
     "appearance": {
       "title": "Appearance",
-      "fullWidth": "Full width",
       "textSize": "Text size",
       "textSizeOptions": {
         "small": "Small",
@@ -425,9 +500,14 @@
       "removeFilter": "Remove the {name} filter",
       "clearAll": "Clear all filters"
     },
+    "searchResults": {
+      "parentPageLabel": "In {page}",
+      "atSpaceRoot": "At the space root"
+    },
     "propertiesPanel": {
       "showMore": "{count, plural, one {Show # more property} other {Show # more properties}}",
-      "empty": "This page has no properties"
+      "empty": "This page has no properties",
+      "narrowScreenHint": "On narrow screens, properties are shown stacked."
     },
     "attachmentsPanel": {
       "columns": {
@@ -438,7 +518,9 @@
       },
       "deleteConfirmTitle": "Delete this attachment?",
       "deleteConfirmBody": "The file will be deleted forever. This cannot be undone.",
-      "fileTooLarge": "This file is larger than {limit} and cannot be uploaded."
+      "fileTooLarge": "This file is larger than {limit} and cannot be uploaded.",
+      "uploadError": "Could not upload the file. Try again.",
+      "contentFilesNote": "Files you insert in the page content also appear here."
     },
     "commands": {
       "bold": "Bold",
@@ -502,7 +584,7 @@
     "properties": {
       "title": "Properties",
       "empty": "Empty",
-      "showMore": "Show {count} more",
+      "showMore": "{count, plural, one {Show # more property} other {Show # more properties}}",
       "showLess": "Show less",
       "yes": "Yes",
       "no": "No",
@@ -758,6 +840,28 @@
       "center": "Centre",
       "right": "Right",
       "full": "Full width"
+    },
+    "renamePage": "Rename page",
+    "cancelRename": "Cancel",
+    "confirmRename": "Rename",
+    "changeIcon": "Change the icon",
+    "duplicate": {
+      "action": "Duplicate",
+      "done": "Page duplicated",
+      "error": "Could not duplicate the page.",
+      "copyName": "{title} (copy)",
+      "childrenQuestion": "Duplicate what hangs from “{name}” as well?",
+      "childrenHelp": "The copy is placed next to the original.",
+      "childrenNo": "Only this page",
+      "childrenYes": "Its subpages too"
+    },
+    "lock": {
+      "lock": "Lock this page",
+      "unlock": "Unlock this page",
+      "locked": "Page locked",
+      "unlocked": "Page unlocked",
+      "error": "Could not change the page lock.",
+      "banner": "This page is locked. Unlock it to edit."
     }
   },
   "errors": {
@@ -769,6 +873,8 @@
     "reference": "Reference",
     "retry": "Try again",
     "goHome": "Go to the start",
+    "notFoundTitle": "This address doesn't exist",
+    "notFoundBody": "Check that you typed it correctly, or go back to the start.",
     "reasons": {
       "invalid": "Something in this page cannot be saved as it is. Undo your last change and try again.",
       "forbidden": "You do not have permission to do this.",

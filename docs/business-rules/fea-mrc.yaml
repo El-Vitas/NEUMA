@@ -1,0 +1,86 @@
+id: FEA-MRC
+name: La marca de una página o un espacio
+purpose: >-
+  Define qué puede llevar una página o un espacio como cara visible, quién se la pone y qué ocurre cuando lo guardado no
+  se puede dibujar.
+scope: spaces
+rules:
+  - id: BR-087316a
+    status: active
+    title: A un agente se le dice qué espacios puede leer, no cómo se dibujan
+    rule: La respuesta que el sistema le da a un agente sobre los espacios no incluye la marca.
+    why: Un agente decide dónde buscar, no qué mirar. Mandarle la marca es gastar en algo que no puede usar.
+  - id: BR-0f51e85
+    status: active
+    title: La portada se mueve solo cuando se pide moverla
+    rule: >-
+      La portada de una página es una imagen y nada más hasta que alguien pide reposicionarla. Solo entonces responde al
+      arrastre, y el encuadre se guarda únicamente cuando se confirma.
+    why: >-
+      Una imagen que se reencuadra y se guarda con cualquier arrastre cambia la página por accidente, y en pantalla
+      táctil impide desplazarla con el dedo. Reposicionar es una decisión, no algo que ocurre al pasar por encima.
+    context: También implica que la portada no ocupa espacio cuando no existe. El control vive entre los demás de la página.
+    scenarios:
+      - title: Arrastrar sin haber pedido nada
+        given: Una página con portada
+        when: Se arrastra sobre la imagen
+        then: El encuadre no cambia y la página se desplaza como siempre
+      - title: Reposicionar y descartar
+        given: Alguien reposicionando la portada
+        when: Cambia el encuadre y cancela
+        then: El encuadre guardado sigue siendo el anterior
+  - id: BR-2cb669a
+    status: active
+    title: Quien puede crear un espacio puede renombrarlo y marcarlo
+    rule: >-
+      Cambiar el nombre o la marca de un espacio se le permite a quien podría haber creado uno, y solo sobre espacios
+      que ya puede leer.
+    why: >-
+      El nombre y la marca de un espacio los ve todo el equipo. Quien no tiene voz para crear un espacio tampoco la
+      tiene para cambiar cómo lo ven los demás.
+    scenarios:
+      - title: Alguien que solo lee
+        given: Una persona con permiso de lectura
+        when: Intenta renombrar o marcar un espacio
+        then: Se rechaza y se dice que no tiene acceso
+  - id: BR-74d10b4
+    status: active
+    title: Un espacio se marca igual que una página
+    rule: >-
+      La marca de un espacio sigue el mismo contrato que la de una página: un emoji, una imagen o un símbolo de la
+      biblioteca con color. No existe una segunda forma de describir una marca.
+    why: >-
+      El árbol dibuja páginas y espacios uno junto a otro. Dos contratos distintos dejarían que un espacio llevara algo
+      que ninguna página puede dibujar, y quien lo mirara vería un hueco donde debería haber una cara.
+    context: >-
+      El esquema compartido que valida la marca de una página es el mismo que usa el dominio de espacios; se reutiliza
+      en vez de copiarse.
+    scenarios:
+      - title: Un símbolo con color
+        given: Un espacio sin marca
+        when: Alguien elige un símbolo de la biblioteca y un color
+        then: El espacio queda con esa marca y se dibuja en el árbol al mismo tamaño que la de una página
+      - title: Una forma que no existe
+        given: Un espacio cualquiera
+        when: Llega una marca cuya clase no es emoji, imagen ni símbolo
+        then: Se rechaza el cambio y se dice que la marca no es válida
+  - id: BR-a228876
+    status: active
+    title: Un espacio no lleva una imagen por marca
+    rule: La ventana que marca un espacio no ofrece subir una imagen, aunque el contrato de la marca la admita.
+    why: >-
+      Un espacio se dibuja al tamaño de una línea de texto. Una fotografía ahí no se lee: quien la sube cree haber
+      puesto algo reconocible y ve una mancha.
+    context: >-
+      La ventana es la misma que usa una página; quien la abre decide si ofrece la imagen. Una marca de imagen guardada
+      por otra vía se sigue dibujando.
+  - id: BR-d05039e
+    status: active
+    title: Una marca que no se puede dibujar deja al espacio sin marca, no vacía la lista
+    rule: >-
+      Cuando lo guardado como marca no encaja con el contrato, ese espacio se entrega sin marca y la lista de espacios
+      se entrega completa.
+    why: >-
+      Una marca es un adorno. Que un adorno guardado por una versión anterior deje a alguien sin ver sus espacios
+      convierte un detalle en una caída.
+    context: Ya ocurrió una vez con marcas guardadas antes de que existiera el símbolo, y el árbol quedó vacío.

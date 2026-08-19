@@ -1,27 +1,8 @@
-import type { FileAssetLifecycle } from '@company-brain/db';
+import type { Prisma } from '@company-brain/db/generated';
 import type { Result, UserRole } from '@company-brain/shared';
+import type { FILE_ASSET_METADATA_SELECTION } from '../constants/files.constants';
+import type { FileAssetMetadata, FileAssetSummary } from '../domain/files.domain.types';
 import type { FileAccessDeniedError, FileStorageError, FileValidationError } from '../domain/files.error';
-
-export interface FileAssetSummary {
-  readonly checksum: string;
-  readonly deletedAt: Date | null;
-  readonly id: string;
-  readonly lifecycle: FileAssetLifecycle;
-  readonly mimeType: string;
-  readonly originalFilename: string;
-  readonly ownerId: string;
-  readonly pageId: string | null;
-  readonly size: number;
-  readonly storageKey: string;
-  readonly workspaceId: string;
-}
-
-export interface FileAssetMetadata {
-  readonly id: string;
-  readonly mimeType: string;
-  readonly originalFilename: string;
-  readonly size: number;
-}
 
 export interface CreateFileAssetInput {
   readonly buffer: Buffer;
@@ -33,6 +14,8 @@ export interface CreateFileAssetInput {
   readonly size: number;
   readonly workspaceId: string;
 }
+
+export type FileAssetMetadataRow = Prisma.FileAssetGetPayload<{ select: typeof FILE_ASSET_METADATA_SELECTION }>;
 
 export interface FileAssetRepository {
   readonly canAttachToContent: (

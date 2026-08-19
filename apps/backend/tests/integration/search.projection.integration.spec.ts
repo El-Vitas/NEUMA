@@ -9,7 +9,10 @@ import { loginUser, registerUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SearchResponseItem {
+  parentPageId: string | null;
+  parentPageTitle: string | null;
   sourceId: string;
+  spaceName: string | null;
   title: string;
 }
 
@@ -115,5 +118,15 @@ describe('Search Projection (Integration)', () => {
     const response = await searchAs(testApp, outsiderToken, searchTerm);
 
     expect(response.items.some((item) => item.sourceId === pageId)).toBe(false);
+  });
+
+  it('projects the space name and no parent page for a page created at the space root', async () => {
+    const response = await searchAs(testApp, adminToken, searchTerm);
+
+    const projectedPage = response.items.find((item) => item.sourceId === pageId);
+
+    expect(projectedPage?.spaceName).toBe('Restricted Search Space');
+    expect(projectedPage?.parentPageId).toBeNull();
+    expect(projectedPage?.parentPageTitle).toBeNull();
   });
 });

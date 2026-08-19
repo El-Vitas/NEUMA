@@ -13,11 +13,14 @@ export interface SearchSnippetPart {
 
 export interface SearchResult {
   readonly contentType: string;
+  readonly parentPageId?: string | null;
+  readonly parentPageTitle?: string | null;
   readonly rank: number;
   readonly snippet: readonly SearchSnippetPart[];
   readonly sourceId: string;
   readonly sourceType: SearchSourceType;
   readonly spaceId: string;
+  readonly spaceName?: string | null;
   readonly title: string;
   readonly updatedAt: string;
 }

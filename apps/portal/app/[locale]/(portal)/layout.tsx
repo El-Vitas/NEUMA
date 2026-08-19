@@ -26,10 +26,12 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
     spaceSummaries.map(async (space) => {
       const pagesResult = await getPages(space.id);
       return {
+        icon: space.icon,
         id: space.id,
         name: space.name,
         pages: pagesResult.isOk()
           ? pagesResult.getValue().map((page) => ({
+              icon: page.icon ?? null,
               id: page.id,
               lifecycle: page.lifecycle,
               order: page.order,

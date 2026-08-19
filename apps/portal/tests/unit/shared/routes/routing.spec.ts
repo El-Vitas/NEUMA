@@ -20,7 +20,6 @@ describe('portal routing foundation', () => {
     });
     expect(ROUTES.PORTAL_SPACE('space-1')).toBe('/spaces/space-1');
     expect(ROUTES.PORTAL_SPACE_PAGE('space-1', 'page-1')).toBe('/spaces/space-1/pages/page-1');
-    expect(ROUTES.PORTAL_SPACE_NEW_PAGE('space-1')).toBe('/spaces/space-1/pages/new');
   });
 
   it('does not locale-prefix API, Next internals, static files, or extensions', () => {

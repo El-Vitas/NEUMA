@@ -4,6 +4,7 @@ import { Boxes, FilePlus, History, Home, Search, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
 import {
   CommandDialog,
   CommandEmpty,
@@ -29,6 +30,7 @@ export const PortalCommandBar = ({ onOpenChange, open }: IProps) => {
   const [query, setQuery] = useState('');
   const [wasOpen, setWasOpen] = useState(open);
   const { recentPages, refresh } = useRecentPages();
+  const { startPage } = usePagesStart();
   const { isLoading, pages } = useCommandBarSearch(query);
 
   /**
@@ -50,8 +52,16 @@ export const PortalCommandBar = ({ onOpenChange, open }: IProps) => {
 
   const trimmedQuery = query.trim();
   const mostRecentSpaceId = recentPages[0]?.spaceId;
-  const createPageHref =
-    mostRecentSpaceId === undefined ? ROUTES.PORTAL_SPACES : ROUTES.PORTAL_SPACE_NEW_PAGE(mostRecentSpaceId);
+
+  /** With a space already in mind the page is started there; without one, there is a space to pick first. */
+  const startPageFromFinder = (): void => {
+    onOpenChange(false);
+    if (mostRecentSpaceId === undefined) {
+      router.push(ROUTES.PORTAL_SPACES);
+      return;
+    }
+    startPage(mostRecentSpaceId);
+  };
 
   return (
     <CommandDialog
@@ -109,10 +119,7 @@ export const PortalCommandBar = ({ onOpenChange, open }: IProps) => {
         )}
 
         <CommandGroup heading={t('actionsGroup')}>
-          <CommandItem
-            onSelect={() => navigate(createPageHref)}
-            value={`action create-page ${t('actions.createPage')}`}
-          >
+          <CommandItem onSelect={startPageFromFinder} value={`action create-page ${t('actions.createPage')}`}>
             <FilePlus aria-hidden="true" />
             {t('actions.createPage')}
           </CommandItem>

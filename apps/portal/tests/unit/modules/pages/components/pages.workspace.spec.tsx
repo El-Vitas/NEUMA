@@ -8,25 +8,31 @@ const attachment = {
   mimeType: 'application/pdf',
   originalFilename: 'handbook.pdf',
   size: 1024,
+  uploadedBy: 'Jane Doe',
 };
 
 mock.module('@/modules/pages/components/pages.editor', () => ({
   PagesEditor: ({
     attachments,
-    pageId,
+    page,
     parentBreadcrumbPages,
   }: {
     readonly attachments: readonly (typeof attachment)[];
-    readonly pageId: string | null;
+    readonly page: { readonly id: string };
     readonly parentBreadcrumbPages: readonly { readonly id: string }[];
   }) => (
     <div
       data-attachment-count={attachments.length}
-      data-page-id={pageId ?? 'new-page'}
-      data-parent-page-ids={parentBreadcrumbPages.map((page) => page.id).join(',')}
+      data-page-id={page.id}
+      data-parent-page-ids={parentBreadcrumbPages.map((candidate) => candidate.id).join(',')}
       data-testid="selected-page"
     />
   ),
+}));
+
+/** Starting a page reaches a server action, which refuses to load outside a server. */
+mock.module('@/shared/components/portal/start-page-button', () => ({
+  StartPageButton: ({ label }: { readonly label: string }) => <button type="button">{label}</button>,
 }));
 
 const { PagesWorkspace } = await import('@/modules/pages/components/pages.workspace');
@@ -85,27 +91,12 @@ describe('PagesWorkspace collaboration propagation', () => {
     );
   });
 
-  it('does not render an editor when the route has no selected page', () => {
+  /** There is no route for a page that does not exist yet: a page is made first and written in afterwards. */
+  it('offers to start a page instead of an editor over nothing', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesWorkspace
           canEditContent
-          pages={[]}
-          selectedPageId={null}
-          spaceId="33333333-333333333333-4333-8333-333333333333"
-        />
-      </NextIntlClientProvider>,
-    );
-
-    expect(screen.queryByTestId('selected-page')).toBeNull();
-  });
-
-  it('renders an editor for the explicit new-page route', () => {
-    render(
-      <NextIntlClientProvider locale="en" messages={en}>
-        <PagesWorkspace
-          canEditContent
-          isNewPage
           pages={[]}
           selectedPageId={null}
           spaceId="33333333-3333-4333-8333-333333333333"
@@ -113,7 +104,8 @@ describe('PagesWorkspace collaboration propagation', () => {
       </NextIntlClientProvider>,
     );
 
-    expect(screen.getByTestId('selected-page').getAttribute('data-page-id')).toBe('new-page');
+    expect(screen.queryByTestId('selected-page')).toBeNull();
+    expect(screen.getByRole('button', { name: en.pages.createPage })).toBeDefined();
   });
 
   it('renders the document as the only content, without a duplicated page tree column', () => {

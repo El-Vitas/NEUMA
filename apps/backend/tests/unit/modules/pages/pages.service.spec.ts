@@ -24,6 +24,7 @@ const page = {
   createdBy: null,
   id: 'page-a',
   lifecycle: PageLifecycle.ACTIVE,
+  lockedAt: null,
   order: 0,
   parentId: null,
   propertyValues: null,
@@ -49,6 +50,7 @@ const createRepository = (): PageRepositoryContract => ({
   countDescendantsByLifecycle: () => Promise.resolve(0),
   create: () => Promise.resolve(page),
   deleteForever: () => Promise.resolve('DELETED'),
+  duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
@@ -60,15 +62,22 @@ const createRepository = (): PageRepositoryContract => ({
         { id: 'page-b', parentId: null, spaceId: 'space-a' },
       ],
       propertyValues: null,
+      spaceId: 'space-a',
       title: 'Page A',
     }),
+  listMoveDestinations: () => Promise.resolve({ pages: [], spaces: [] }),
   listTrashed: () => Promise.resolve([]),
+  listWithProperties: () => Promise.resolve([]),
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
   restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: false }),
   trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
+  rename: () => Promise.resolve(page),
+  setLocked: () => Promise.resolve(page),
+  updateCover: () => Promise.resolve(page),
+  updateIcon: () => Promise.resolve(page),
 });
 
 const createSchemaRepository = (): PageSchemaRepositoryContract => ({
@@ -316,7 +325,15 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
     );
-    const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
+    const result = await service.move(
+      'page-a',
+      'page-b',
+      null,
+      'user-a',
+      'workspace-a',
+      'mutation-a',
+      USER_ROLE.WORKER,
+    );
 
     expect(result.isOk()).toBe(true);
   });
@@ -359,6 +376,7 @@ describe('pages service', () => {
             { id: 'page-b', parentId: 'page-a', spaceId: 'space-a' },
           ],
           propertyValues: null,
+          spaceId: 'space-a',
           title: 'Page A',
         }),
     };
@@ -368,7 +386,15 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
     );
-    const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-c', USER_ROLE.WORKER);
+    const result = await service.move(
+      'page-a',
+      'page-b',
+      null,
+      'user-a',
+      'workspace-a',
+      'mutation-c',
+      USER_ROLE.WORKER,
+    );
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_CYCLE');
@@ -583,6 +609,261 @@ describe('pages service', () => {
     expect(result.getValue()).toEqual({ deletedCount: 2 });
     expect(cleanedUpPageIds).toEqual(['page-a', 'page-b']);
   });
+
+  it('refuses to write in a page somebody locked', async () => {
+    let wasWritten = false;
+    const repository = {
+      ...createRepository(),
+      getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date('2026-08-18T00:00:00.000Z') }),
+      update: () => {
+        wasWritten = true;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.update(
+      {
+        content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
+        pageId: 'page-a',
+        propertyValues: null,
+        role: USER_ROLE.WORKER,
+        title: 'Page A',
+        updatedById: 'user-a',
+        userId: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_LOCKED');
+    expect(wasWritten).toBe(false);
+  });
+
+  /** Renaming a page is writing in it, so a lock stops that too. */
+  it('refuses to rename a page somebody locked', async () => {
+    const repository = {
+      ...createRepository(),
+      getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date('2026-08-18T00:00:00.000Z') }),
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.rename('page-a', 'Another name', 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_LOCKED');
+  });
+
+  it('lets a page be locked and let go again', async () => {
+    const asked: boolean[] = [];
+    const repository = {
+      ...createRepository(),
+      setLocked: (_pageId: string, locked: boolean) => {
+        asked.push(locked);
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+    await service.setLocked('page-a', false, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(asked).toEqual([true, false]);
+  });
+
+  it('does not let a reader lock a page', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('keeps a page cover with the framing it was given', async () => {
+    let receivedCover: Parameters<PageRepositoryContract['updateCover']>[1] | undefined;
+    const repository = {
+      ...createRepository(),
+      updateCover: (_pageId: string, cover: Parameters<PageRepositoryContract['updateCover']>[1]) => {
+        receivedCover = cover;
+        return Promise.resolve({ ...page, cover });
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateCover(
+      'page-a',
+      { assetId: '019ff3f9-2bc6-7373-9f81-f4469fa28a36', position: 30 },
+      'user-a',
+      'workspace-a',
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedCover).toEqual({ assetId: '019ff3f9-2bc6-7373-9f81-f4469fa28a36', position: 30 });
+  });
+
+  it('refuses a cover framed outside its own picture, without touching the page', async () => {
+    let wasWritten = false;
+    const repository = {
+      ...createRepository(),
+      updateCover: () => {
+        wasWritten = true;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateCover(
+      'page-a',
+      { assetId: '019ff3f9-2bc6-7373-9f81-f4469fa28a36', position: 400 },
+      'user-a',
+      'workspace-a',
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_COVER_INVALID');
+    expect(wasWritten).toBe(false);
+  });
+
+  it('does not let a reader put a cover on a page', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateCover('page-a', null, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('sets a page icon to an emoji', async () => {
+    let receivedIcon: Parameters<PageRepositoryContract['updateIcon']>[1] | undefined;
+    const repository = {
+      ...createRepository(),
+      updateIcon: (_pageId: string, icon: Parameters<PageRepositoryContract['updateIcon']>[1]) => {
+        receivedIcon = icon;
+        return Promise.resolve({ ...page, icon });
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateIcon(
+      'page-a',
+      { kind: 'emoji', value: '🚀' },
+      'user-a',
+      'workspace-a',
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedIcon).toEqual({ kind: 'emoji', value: '🚀' });
+  });
+
+  it('clears a page icon when given null', async () => {
+    let receivedIcon: Parameters<PageRepositoryContract['updateIcon']>[1] | undefined;
+    const repository = {
+      ...createRepository(),
+      updateIcon: (_pageId: string, icon: Parameters<PageRepositoryContract['updateIcon']>[1]) => {
+        receivedIcon = icon;
+        return Promise.resolve({ ...page, icon: null });
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateIcon('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedIcon).toBeNull();
+  });
+
+  it('rejects a malformed page icon before repository mutation', async () => {
+    let updateIconCalls = 0;
+    const repository = {
+      ...createRepository(),
+      updateIcon: () => {
+        updateIconCalls += 1;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateIcon('page-a', { kind: 'sticker' }, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ICON_INVALID');
+    expect(updateIconCalls).toBe(0);
+  });
+
+  it('rejects setting an icon for a client role', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.updateIcon(
+      'page-a',
+      { kind: 'emoji', value: '🚀' },
+      'user-a',
+      'workspace-a',
+      USER_ROLE.CLIENT,
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
 });
 
 const buildMentionNode = (pageId: string, label: string): Prisma.JsonValue => ({
@@ -773,7 +1054,15 @@ describe('mention redaction on served page content', () => {
       createStorageProvider(),
     );
 
-    const result = await service.move('page-a', 'page-b', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
+    const result = await service.move(
+      'page-a',
+      'page-b',
+      null,
+      'user-a',
+      'workspace-a',
+      'mutation-a',
+      USER_ROLE.WORKER,
+    );
     const serialized = JSON.stringify(result.getValue().content);
 
     expect(result.isOk()).toBe(true);

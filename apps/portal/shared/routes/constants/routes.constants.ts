@@ -9,9 +9,6 @@ export const ROUTES = {
   PORTAL_SPACES_NEW: '/spaces/new',
   PORTAL_SPACE: (spaceId: string) => `/spaces/${spaceId}`,
   PORTAL_SPACE_PAGE: (spaceId: string, pageId: string) => `/spaces/${spaceId}/pages/${pageId}`,
-  PORTAL_SPACE_NEW_PAGE: (spaceId: string) => `/spaces/${spaceId}/pages/new`,
-  PORTAL_SPACE_NEW_CHILD_PAGE: (spaceId: string, parentId: string) =>
-    `/spaces/${spaceId}/pages/new?parentId=${encodeURIComponent(parentId)}`,
   PORTAL_ACCOUNT: '/account',
   PORTAL_USERS: '/users',
   PORTAL_SEARCH: '/search',

@@ -15,12 +15,14 @@ interface IProps {
 
 export const PagesAttachments = ({ attachments, canEdit, onAssetDeleted, onAssetUploaded, pageId }: IProps) => {
   const t = useTranslations('pages.attachments');
+  const tPanel = useTranslations('pages.attachmentsPanel');
 
   const handleUploaded = (attachment: AttachmentSummary): void => onAssetUploaded(attachment);
 
   return (
     <div className="space-y-3">
       {canEdit && pageId !== undefined && <PagesAttachmentsUpload onUploaded={handleUploaded} pageId={pageId} />}
+      <p className="text-muted-foreground text-xs">{tPanel('contentFilesNote')}</p>
       {attachments.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t('empty')}</p>
       ) : (

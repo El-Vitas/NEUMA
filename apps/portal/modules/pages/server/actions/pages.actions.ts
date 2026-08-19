@@ -13,15 +13,20 @@ import { PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import {
   pageBlocksHandoverSchema,
   pageDestinationsSchema,
+  pageDuplicateSchema,
   pageLocatorSchema,
+  pageLockSchema,
+  pageMoveDestinationsSchema,
   pageMoveSchema,
   pageMutationSchema,
+  pageRenameSchema,
   pageRestoreMutationSchema,
   pageSummarySchema,
   pagesListSchema,
 } from '../../schemas/pages.schemas';
 import { trashRestoreOutcomeSchema } from '../../schemas/pages.trash.schemas';
 import type { PageDestination } from '../../types/pages.editor.destination.types';
+import type { PageMoveDestinations } from '../../types/pages.move.types';
 import type { TrashRestoreOutcome } from '../../types/pages.trash.types';
 
 export const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
@@ -61,14 +66,66 @@ export const updatePageAction = actionClient
     }),
   );
 
-export const movePageAction = actionClient.inputSchema(pageMoveSchema).action(async ({ parsedInput }) =>
-  withAction({ action: 'movePage' }, async () => {
-    await authenticatedRequest(PAGE_API_ROUTES.move(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
-      parentId: parsedInput.parentId,
+/** A page's name changed from wherever it is listed, without opening it. */
+export const renamePageAction = actionClient.inputSchema(pageRenameSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'renamePage' }, async () => {
+    await authenticatedRequest(PAGE_API_ROUTES.title(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+      title: parsedInput.title,
     });
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
   }),
 );
+
+/** A page copied whole, with its branch when asked. The copy's own name is decided by whoever asks, in their language. */
+export const duplicatePageAction = actionClient.inputSchema(pageDuplicateSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'duplicatePage' }, async () => {
+    const copy = await authenticatedRequest(
+      PAGE_API_ROUTES.duplicate(parsedInput.spaceId, parsedInput.pageId),
+      'POST',
+      { includeChildren: parsedInput.includeChildren ?? false, title: parsedInput.title },
+    );
+    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    return pageSummarySchema.parse(copy);
+  }),
+);
+
+/** A page closed to edits, or opened again. Whoever may write in it may also decide it should rest. */
+export const setPageLockAction = actionClient.inputSchema(pageLockSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'setPageLock' }, async () => {
+    const page = await authenticatedRequest(PAGE_API_ROUTES.lock(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+      locked: parsedInput.locked,
+    });
+    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    return pageSummarySchema.parse(page);
+  }),
+);
+
+export const movePageAction = actionClient.inputSchema(pageMoveSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'movePage' }, async () => {
+    await authenticatedRequest(PAGE_API_ROUTES.move(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+      parentId: parsedInput.parentId,
+      targetSpaceId: parsedInput.targetSpaceId,
+    });
+    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    /** A page that changed space leaves one tree and joins another, so both have to be read again. */
+    if (parsedInput.targetSpaceId !== undefined) updateTag(PAGES_CACHE_TAG(parsedInput.targetSpaceId));
+  }),
+);
+
+/**
+ * Everywhere this page could go: the spaces its reader reaches and the pages of
+ * those spaces, minus its own branch. Asked of the server rather than worked out
+ * from the space at hand, since the space at hand is only one of the answers.
+ */
+export const listPageMoveDestinationsAction = actionClient
+  .inputSchema(pageLocatorSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'listMoveDestinations' }, async (): Promise<PageMoveDestinations> => {
+      const accessToken = await requireAccessTokenCookie();
+      const response = await apiRequest<unknown>(PAGE_API_ROUTES.moveDestinations(parsedInput.pageId), accessToken);
+      return pageMoveDestinationsSchema.parse(response);
+    }),
+  );
 
 /**
  * The pages of a space a block could be sent to, named so they can be picked.

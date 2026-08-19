@@ -7,10 +7,11 @@ import en from '../../../../../messages/en.json';
 
 interface IHarnessProps {
   readonly initialValue?: string;
+  readonly onLeave?: () => void;
 }
 
 /** A controlled wrapper, since the field itself only ever knows the value it is given. */
-const TitleFieldHarness = ({ initialValue = '' }: IHarnessProps) => {
+const TitleFieldHarness = ({ initialValue = '', onLeave = () => undefined }: IHarnessProps) => {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -22,16 +23,17 @@ const TitleFieldHarness = ({ initialValue = '' }: IHarnessProps) => {
       id="page-title"
       inputRef={inputRef}
       onChange={setValue}
+      onLeave={onLeave}
       placeholder="Untitled"
       value={value}
     />
   );
 };
 
-const renderTitleField = (initialValue = '') =>
+const renderTitleField = (initialValue = '', onLeave: () => void = () => undefined) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <TitleFieldHarness initialValue={initialValue} />
+      <TitleFieldHarness initialValue={initialValue} onLeave={onLeave} />
     </NextIntlClientProvider>,
   );
 
@@ -105,6 +107,35 @@ describe('the emoji finder in the page title', () => {
     fireEvent.change(field, { target: { value: ':grinning' } });
     fireEvent.click(screen.getByRole('option'));
 
+    expect(field.value).toBe('😀');
+  });
+});
+
+describe('leaving the title', () => {
+  it('hands Enter to whoever comes after the title, and does not submit anything', () => {
+    let timesLeft = 0;
+    renderTitleField('Quarterly plan', () => {
+      timesLeft += 1;
+    });
+    const field = screen.getByLabelText('Page title') as HTMLInputElement;
+
+    fireEvent.keyDown(field, { key: 'Enter' });
+
+    expect(timesLeft).toBe(1);
+    expect(field.value).toBe('Quarterly plan');
+  });
+
+  it('keeps Enter for the emoji it is offering while the finder is open', () => {
+    let timesLeft = 0;
+    renderTitleField('', () => {
+      timesLeft += 1;
+    });
+    const field = screen.getByLabelText('Page title') as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: ':grinning' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+
+    expect(timesLeft).toBe(0);
     expect(field.value).toBe('😀');
   });
 });

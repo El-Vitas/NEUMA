@@ -15,6 +15,7 @@ const page: PageSummary = {
   createdBy: null,
   id: 'page-1',
   lifecycle: PageLifecycle.ACTIVE,
+  lockedAt: null,
   order: 1,
   parentId: null,
   propertyValues: null,

@@ -1,4 +1,4 @@
-import type { PageLifecycle, UserRole } from '@company-brain/shared';
+import type { PageIcon, PageLifecycle, UserRole } from '@company-brain/shared';
 import type { LucideIcon } from 'lucide-react';
 
 export interface PortalNavItem {
@@ -14,12 +14,14 @@ export interface PortalNavSection {
 }
 
 export interface PortalLayoutSpace {
+  readonly icon: null | PageIcon;
   readonly id: string;
   readonly name: string;
   readonly pages: readonly PortalSidebarPage[];
 }
 
 export interface PortalSidebarPage {
+  readonly icon: null | PageIcon;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
   readonly order: number;

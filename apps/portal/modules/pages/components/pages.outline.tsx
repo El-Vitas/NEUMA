@@ -1,23 +1,19 @@
 'use client';
 
-import { PanelRightClose, PanelRightOpen } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { type FocusEvent, type KeyboardEvent, type MouseEvent, useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { watchWhatIsBeingRead } from '@/shared/lib/reading.lib';
 import {
-  PAGE_EDITOR_CONTENTS_INDENT_REM,
   PAGE_EDITOR_CONTENTS_TITLE_STYLE_CLASS,
-  PAGE_OUTLINE_COLLAPSED_STYLE_CLASS,
-  PAGE_OUTLINE_ENTRY_STYLE_CLASS,
-  PAGE_OUTLINE_HEADER_STYLE_CLASS,
+  PAGE_OUTLINE_LIST_SCROLL_STYLE_CLASS,
+  PAGE_OUTLINE_PANEL_STYLE_CLASS,
+  PAGE_OUTLINE_RAIL_STYLE_CLASS,
   PAGE_OUTLINE_READING_LINE,
-  PAGE_OUTLINE_READING_STYLE_CLASS,
   PAGE_OUTLINE_STYLE_CLASS,
-  PAGE_OUTLINE_TOGGLE_STYLE_CLASS,
-  PAGE_OUTLINE_VISIBILITY_STORAGE_KEY,
 } from '../constants/pages.editor.contents.constants';
 import { readTheWrittenHeadings, readWhichHeading } from '../lib/pages.outline.lib';
 import type { PageEditorHeading } from '../types/pages.editor.contents.types';
+import { PagesOutlineEntry } from './pages.outline.entry';
 
 interface IProps {
   readonly headings: readonly PageEditorHeading[];
@@ -34,10 +30,8 @@ interface IProps {
  * into a place to stand, and a page with nothing to list shows nothing at all.
  */
 export const PagesOutline = ({ headings, onGoToHeading, title }: IProps) => {
-  const t = useTranslations('pages.outline');
   const [beingRead, setBeingRead] = useState<number | null>(null);
-  const [isHidden, setIsHidden] = useState(false);
-  const hasOwnChoice = useRef(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(
     () =>
@@ -49,67 +43,52 @@ export const PagesOutline = ({ headings, onGoToHeading, title }: IProps) => {
     [headings],
   );
 
-  useEffect(() => {
-    if (!hasOwnChoice.current) setIsHidden(localStorage.getItem(PAGE_OUTLINE_VISIBILITY_STORAGE_KEY) === 'true');
-  }, []);
+  const expand = (): void => setIsExpanded(true);
 
-  useEffect(() => {
-    if (hasOwnChoice.current) localStorage.setItem(PAGE_OUTLINE_VISIBILITY_STORAGE_KEY, String(isHidden));
-  }, [isHidden]);
+  const collapseIfFocusLeaves = (event: FocusEvent<HTMLElement>): void => {
+    if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+    setIsExpanded(false);
+  };
 
-  const toggleHidden = (): void => {
-    hasOwnChoice.current = true;
-    setIsHidden((current) => !current);
+  const collapseIfPointerLeavesAndUnfocused = (event: MouseEvent<HTMLElement>): void => {
+    if (event.currentTarget.contains(document.activeElement)) return;
+    setIsExpanded(false);
+  };
+
+  const collapseOnEscape = (event: KeyboardEvent<HTMLElement>): void => {
+    if (event.key !== 'Escape') return;
+    setIsExpanded(false);
   };
 
   if (headings.length === 0) return null;
 
-  if (isHidden) {
-    return (
-      <div className={PAGE_OUTLINE_COLLAPSED_STYLE_CLASS}>
-        <button
-          aria-expanded="false"
-          aria-label={t('show')}
-          className={PAGE_OUTLINE_TOGGLE_STYLE_CLASS}
-          onClick={toggleHidden}
-          title={t('show')}
-          type="button"
-        >
-          <PanelRightOpen aria-hidden="true" className="size-4" />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <nav aria-label={title} className={PAGE_OUTLINE_STYLE_CLASS}>
-      <div className={PAGE_OUTLINE_HEADER_STYLE_CLASS}>
-        <p className={PAGE_EDITOR_CONTENTS_TITLE_STYLE_CLASS}>{title}</p>
-        <button
-          aria-expanded="true"
-          aria-label={t('hide')}
-          className={PAGE_OUTLINE_TOGGLE_STYLE_CLASS}
-          onClick={toggleHidden}
-          title={t('hide')}
-          type="button"
-        >
-          <PanelRightClose aria-hidden="true" className="size-4" />
-        </button>
+    <nav
+      aria-label={title}
+      className={PAGE_OUTLINE_STYLE_CLASS}
+      onBlur={collapseIfFocusLeaves}
+      onFocus={expand}
+      onKeyDown={collapseOnEscape}
+      onMouseEnter={expand}
+      onMouseLeave={collapseIfPointerLeavesAndUnfocused}
+    >
+      <div
+        className={cn(
+          PAGE_OUTLINE_LIST_SCROLL_STYLE_CLASS,
+          isExpanded ? PAGE_OUTLINE_PANEL_STYLE_CLASS : PAGE_OUTLINE_RAIL_STYLE_CLASS,
+        )}
+      >
+        {isExpanded && <p className={PAGE_EDITOR_CONTENTS_TITLE_STYLE_CLASS}>{title}</p>}
+        {headings.map((heading, which) => (
+          <PagesOutlineEntry
+            heading={heading}
+            isExpanded={isExpanded}
+            isReading={which === beingRead}
+            key={`${String(heading.position)}:${heading.title}`}
+            onSelect={onGoToHeading}
+          />
+        ))}
       </div>
-      {headings.map((heading, which) => (
-        <button
-          aria-current={which === beingRead ? 'true' : undefined}
-          className={which === beingRead ? PAGE_OUTLINE_READING_STYLE_CLASS : PAGE_OUTLINE_ENTRY_STYLE_CLASS}
-          key={`${String(heading.position)}:${heading.title}`}
-          onClick={() => onGoToHeading(heading.position)}
-          /** The writing keeps the cursor while the heading is chosen, so it is the page that moves. */
-          onMouseDown={(event) => event.preventDefault()}
-          style={{ marginInlineStart: `${String((heading.level - 1) * PAGE_EDITOR_CONTENTS_INDENT_REM)}rem` }}
-          type="button"
-        >
-          {heading.title}
-        </button>
-      ))}
     </nav>
   );
 };

@@ -1,9 +1,10 @@
 'use client';
 
 import { Paperclip } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
-import { ATTACHMENT_MIME_TYPES } from '../constants/pages.attachments.constants';
+import { ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_SIZE } from '../constants/pages.attachments.constants';
+import { formatAttachmentSize } from '../lib/pages.attachments.lib';
 import type { AttachmentUploadError } from '../types/pages.attachments.types';
 
 interface IProps {
@@ -15,7 +16,13 @@ interface IProps {
 
 export const PagesEditorAttachmentUpload = ({ error, isPending, onFileSelected, onRetry }: IProps) => {
   const t = useTranslations('pages.attachments');
+  const tPanel = useTranslations('pages.attachmentsPanel');
+  const locale = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
+  const errorMessage =
+    error === 'tooLarge'
+      ? tPanel('fileTooLarge', { limit: formatAttachmentSize(MAX_ATTACHMENT_SIZE, locale) })
+      : t(error === 'invalid' ? 'validationError' : 'uploadError');
 
   return (
     <div className="flex min-w-0 items-center gap-1">
@@ -51,7 +58,7 @@ export const PagesEditorAttachmentUpload = ({ error, isPending, onFileSelected, 
       {error !== null && (
         <div className="flex items-center gap-2">
           <span className="wrap-break-word text-destructive text-xs" role="alert">
-            {t(error === 'invalid' ? 'validationError' : 'uploadError')}
+            {errorMessage}
           </span>
           {error === 'request' && (
             <button

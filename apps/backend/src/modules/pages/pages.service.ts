@@ -11,22 +11,28 @@ import {
   PAGE_SCHEMA_REPOSITORY,
   REDACTED_MENTION_LABEL,
 } from './constants/pages.constants';
-import { hasValidPageParent, isPageMoveAllowed, validatePageContent } from './domain/page.domain';
+import { hasValidPageParent, isPageAssignedTo, isPageMoveAllowed, validatePageContent } from './domain/page.domain';
 import {
   PageAccessDeniedError,
   PageContentValidationError,
+  PageCoverValidationError,
   PageCycleError,
+  PageIconValidationError,
   PageLifecycleError,
+  PageLockedError,
   PageParentError,
   PagePropertyConformanceError,
   PagePropertyValidationError,
 } from './domain/page.error';
+import { validatePageCover } from './domain/page-cover.domain';
+import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
 import { validatePageProperties } from './domain/page-schema.domain';
 import type {
   CreatePageInput,
   PageAttachmentsCleanupRepositoryContract,
   PageDescendantsPreview,
+  PageMoveDestinations,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
@@ -98,7 +104,12 @@ export class PagesService {
   async update(
     input: UpdatePageInput,
     role: UserRole,
-  ): Promise<Result<PageSummary, PageAccessDeniedError | PageContentValidationError | PagePropertyValidationError>> {
+  ): Promise<
+    Result<
+      PageSummary,
+      PageAccessDeniedError | PageContentValidationError | PageLockedError | PagePropertyValidationError
+    >
+  > {
     const content = this.validateWritableContent(role, input.content);
     if (content.isFail()) return Result.fail(content.getError());
     const existingPage = await this.pageRepository.getAccessible(
@@ -108,6 +119,7 @@ export class PagesService {
       input.role,
     );
     if (existingPage === null) return Result.fail(new PageAccessDeniedError());
+    if (existingPage.lockedAt !== null) return Result.fail(new PageLockedError());
     const propertyValues = await this.resolvePropertyValuesForWrite(
       existingPage.parentId,
       input.workspaceId,
@@ -123,9 +135,131 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
+  /**
+   * A page's name changed on its own, without the writing being touched.
+   *
+   * Renaming from a list is not the same act as editing a page: no new version
+   * is cut for it, because nothing anyone wrote has changed.
+   */
+  async rename(
+    pageId: string,
+    title: string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageLockedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const existing = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
+    if (existing === null) return Result.fail(new PageAccessDeniedError());
+    if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
+    const page = await this.pageRepository.rename(pageId, title, userId, workspaceId, role);
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  async updateIcon(
+    pageId: string,
+    icon: unknown,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageIconValidationError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const validatedIcon = validatePageIcon(icon);
+    if (validatedIcon.isFail()) return Result.fail(validatedIcon.getError());
+    const page = await this.pageRepository.updateIcon(pageId, validatedIcon.getValue(), userId, workspaceId, role);
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  async duplicate(
+    pageId: string,
+    includeChildren: boolean,
+    title: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const copy = await this.pageRepository.duplicate({ includeChildren, pageId, role, title, userId, workspaceId });
+    return copy === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(copy);
+  }
+
+  /**
+   * Locks a page against edits, or lets it be written in again.
+   *
+   * Whoever may write in a page may also decide it should stop being written in,
+   * and undo that decision: a lock nobody present can lift is a page lost to the
+   * person who locked it by mistake.
+   */
+  async setLocked(
+    pageId: string,
+    locked: boolean,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.setLocked(pageId, locked, userId, workspaceId, role);
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  async updateCover(
+    pageId: string,
+    cover: unknown,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageCoverValidationError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const validatedCover = validatePageCover(cover);
+    if (validatedCover.isFail()) return Result.fail(validatedCover.getError());
+    const page = await this.pageRepository.updateCover(pageId, validatedCover.getValue(), userId, workspaceId, role);
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  /**
+   * The pages somebody was given, across every space they can reach.
+   *
+   * A page belongs to whoever is named in a property its collection calls a
+   * person; the schema is asked once per collection rather than once per page,
+   * since pages of the same collection answer to the same one.
+   */
+  async listAssignedTo(userId: string, workspaceId: string, role: UserRole): Promise<readonly PageSummary[]> {
+    const pages = await this.pageRepository.listWithProperties(workspaceId, userId, role);
+    const personKeysByParentId = new Map<string, readonly string[]>();
+    const assigned: PageSummary[] = [];
+    for (const page of pages) {
+      const parentId = page.parentId;
+      if (parentId === null) continue;
+      if (!personKeysByParentId.has(parentId)) {
+        const properties = await this.pageSchemaRepository.resolveSchemaProperties(parentId);
+        personKeysByParentId.set(
+          parentId,
+          properties
+            .filter((property) => property.type === DatabasePropertyType.PERSON)
+            .map((property) => property.key),
+        );
+      }
+      const personKeys = personKeysByParentId.get(parentId) ?? [];
+      if (isPageAssignedTo(page.propertyValues, personKeys, userId)) assigned.push(page);
+    }
+    return assigned;
+  }
+
+  async listMoveDestinations(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<PageMoveDestinations, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const destinations = await this.pageRepository.listMoveDestinations(pageId, workspaceId, userId, role);
+    return destinations === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(destinations);
+  }
+
   async move(
     pageId: string,
     parentId: null | string,
+    targetSpaceId: null | string,
     userId: string,
     workspaceId: string,
     mutationId: string,
@@ -134,10 +268,11 @@ export class PagesService {
     Result<PageSummary, PageAccessDeniedError | PageCycleError | PageParentError | PagePropertyConformanceError>
   > {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const context = await this.pageRepository.findMoveContext(pageId, workspaceId, userId, role);
+    const context = await this.pageRepository.findMoveContext(pageId, targetSpaceId, workspaceId, userId, role);
     if (context === null) return Result.fail(new PageAccessDeniedError());
-    if (!hasValidPageParent(pageId, parentId, context.pages)) return Result.fail(new PageParentError());
-    if (!isPageMoveAllowed(pageId, parentId, context.pages)) return Result.fail(new PageCycleError());
+    const destinationSpaceId = targetSpaceId ?? context.spaceId;
+    const allowed = this.validateMove(pageId, parentId, destinationSpaceId, context.pages);
+    if (allowed.isFail()) return Result.fail(allowed.getError());
     const conformance = await this.resolvePropertyValuesForWrite(
       parentId,
       workspaceId,
@@ -145,7 +280,15 @@ export class PagesService {
       context.propertyValues,
     );
     if (conformance.isFail()) return Result.fail(new PagePropertyConformanceError(conformance.getError().details));
-    const page = await this.pageRepository.move(pageId, parentId, userId, workspaceId, role, mutationId);
+    const page = await this.pageRepository.move(
+      pageId,
+      parentId,
+      destinationSpaceId,
+      userId,
+      workspaceId,
+      role,
+      mutationId,
+    );
     return this.toAccessiblePageResult(page, workspaceId, userId, role);
   }
 
@@ -235,13 +378,17 @@ export class PagesService {
     return Result.ok({ deletedCount: deletedPageIds.length });
   }
 
+  /** Whether a page may hang where it is being sent: a real parent there, and not one of its own. */
   validateMove(
     pageId: string,
     parentId: null | string,
+    targetSpaceId: string,
     pages: readonly { id: string; parentId: null | string; spaceId: string }[],
   ): Result<true, PageCycleError | PageParentError> {
-    if (!hasValidPageParent(pageId, parentId, pages)) return Result.fail(new PageParentError());
-    return isPageMoveAllowed(pageId, parentId, pages) ? Result.ok(true) : Result.fail(new PageCycleError());
+    if (!hasValidPageParent(pageId, parentId, targetSpaceId, pages)) return Result.fail(new PageParentError());
+    return isPageMoveAllowed(pageId, parentId, targetSpaceId, pages)
+      ? Result.ok(true)
+      : Result.fail(new PageCycleError());
   }
 
   private validateWritableContent(

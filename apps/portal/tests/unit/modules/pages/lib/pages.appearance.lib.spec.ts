@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS,
   PAGE_APPEARANCE_DEFAULT_PREFERENCES,
-  PAGE_APPEARANCE_FULL_WIDTH_STYLE_CLASS,
+  PAGE_APPEARANCE_SECTION_PADDING_STYLE_CLASS,
+  PAGE_APPEARANCE_WIDTH_STYLE_CLASS,
 } from '@/modules/pages/constants/pages.appearance.constants';
 import {
+  PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
+  PAGE_OUTLINE_SIDE_STYLE_CLASS,
+} from '@/modules/pages/constants/pages.editor.contents.constants';
+import {
   buildPageAppearanceStorageKey,
-  getPageAppearanceWidthStyleClass,
+  getPageAppearanceLayoutStyleClasses,
   isPageAppearanceTextSize,
   isPageAppearanceTypography,
   parsePageAppearancePreferences,
@@ -61,27 +65,44 @@ describe('pages.appearance.lib', () => {
     });
 
     it('falls back to the default when what is stored is not a real preference', () => {
-      const incomplete = JSON.stringify({ fullWidth: true });
-      const wrongShape = JSON.stringify({ fullWidth: 'yes', textSize: 'small', typography: 'system' });
+      const incomplete = JSON.stringify({ typography: 'system' });
+      const wrongShape = JSON.stringify({ textSize: 'enormous', typography: 'system' });
 
       expect(parsePageAppearancePreferences(incomplete)).toEqual(PAGE_APPEARANCE_DEFAULT_PREFERENCES);
       expect(parsePageAppearancePreferences(wrongShape)).toEqual(PAGE_APPEARANCE_DEFAULT_PREFERENCES);
     });
 
     it('reads back exactly what was chosen', () => {
-      const chosen: PageAppearancePreferences = { fullWidth: true, textSize: 'large', typography: 'serif' };
+      const chosen: PageAppearancePreferences = { textSize: 'large', typography: 'serif' };
       expect(parsePageAppearancePreferences(serializePageAppearancePreferences(chosen))).toEqual(chosen);
+    });
+
+    it('keeps the choices still offered when what was stored also remembered a width', () => {
+      const storedBeforeTheWidthWasDropped = JSON.stringify({
+        fullWidth: true,
+        textSize: 'large',
+        typography: 'serif',
+      });
+
+      expect(parsePageAppearancePreferences(storedBeforeTheWidthWasDropped)).toEqual({
+        textSize: 'large',
+        typography: 'serif',
+      });
     });
   });
 
-  describe('getPageAppearanceWidthStyleClass', () => {
-    it('constrains the width by default, the same class a page and its own header share', () => {
-      expect(getPageAppearanceWidthStyleClass(false)).toBe(PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS);
-      expect(PAGE_APPEARANCE_CONSTRAINED_WIDTH_STYLE_CLASS).toBe('max-w-3xl');
+  describe('getPageAppearanceLayoutStyleClasses', () => {
+    it('never holds a page to a narrower column than the room it was given', () => {
+      expect(getPageAppearanceLayoutStyleClasses().width).toBe(PAGE_APPEARANCE_WIDTH_STYLE_CLASS);
+      expect(PAGE_APPEARANCE_WIDTH_STYLE_CLASS).toBe('max-w-none');
     });
 
-    it('lifts the width constraint once full width is chosen', () => {
-      expect(getPageAppearanceWidthStyleClass(true)).toBe(PAGE_APPEARANCE_FULL_WIDTH_STYLE_CLASS);
+    it('keeps the outline in its own reserved column, so it never rests on top of anything', () => {
+      const layout = getPageAppearanceLayoutStyleClasses();
+
+      expect(layout.outlineLayout).toBe(PAGE_OUTLINE_LAYOUT_STYLE_CLASS);
+      expect(layout.outlineSide).toBe(PAGE_OUTLINE_SIDE_STYLE_CLASS);
+      expect(layout.sectionPadding).toBe(PAGE_APPEARANCE_SECTION_PADDING_STYLE_CLASS);
     });
   });
 });

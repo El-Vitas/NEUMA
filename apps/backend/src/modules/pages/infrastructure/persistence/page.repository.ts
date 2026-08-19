@@ -1,6 +1,6 @@
 import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
+import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
@@ -9,12 +9,17 @@ import {
   findAccessibleSpaceId,
 } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { collectDescendantIds, pageTitleMatchesSearch } from '../../domain/page.domain';
+import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
+import { validatePageCover } from '../../domain/page-cover.domain';
+import { validatePageIcon } from '../../domain/page-icon.domain';
 import type {
   CreatePageInput,
+  DuplicatePageInput,
+  PageCopySource,
   PageDeleteForeverOutcome,
   PageHierarchyRow,
   PageMoveContext,
+  PageMoveDestinations,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
@@ -26,12 +31,41 @@ const toPropertyValuesInput = (
   propertyValues: CreatePageInput['propertyValues'],
 ): Prisma.InputJsonValue | typeof Prisma.JsonNull => propertyValues ?? Prisma.JsonNull;
 
+const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Prisma.JsonNull => {
+  if (icon === null) return Prisma.JsonNull;
+  switch (icon.kind) {
+    case 'emoji':
+      return { kind: icon.kind, value: icon.value };
+    case 'image':
+      return { assetId: icon.assetId, kind: icon.kind };
+    default:
+      return { color: icon.color, kind: icon.kind, name: icon.name };
+  }
+};
+
+const parsePageIcon = (icon: Prisma.JsonValue): PageIcon | null => {
+  const validation = validatePageIcon(icon);
+  return validation.isOk() ? validation.getValue() : null;
+};
+
+const toCoverInput = (cover: PageCoverValue | null): Prisma.InputJsonValue | typeof Prisma.JsonNull =>
+  cover === null ? Prisma.JsonNull : { assetId: cover.assetId, position: cover.position };
+
+/** A stored cover nobody can read leaves the page bare rather than unreadable. */
+const parsePageCover = (cover: Prisma.JsonValue): PageCoverValue | null => {
+  const validation = validatePageCover(cover);
+  return validation.isOk() ? validation.getValue() : null;
+};
+
 const pageSelection = {
   content: true,
+  cover: true,
   createdAt: true,
   createdById: true,
+  icon: true,
   id: true,
   lifecycle: true,
+  lockedAt: true,
   order: true,
   parentId: true,
   propertyValues: true,
@@ -40,6 +74,18 @@ const pageSelection = {
   updatedAt: true,
   updatedById: true,
   versions: { orderBy: { version: 'desc' as const }, select: { version: true }, take: 1 },
+} satisfies Prisma.PageSelect;
+
+const pageCopySelection = {
+  content: true,
+  cover: true,
+  icon: true,
+  id: true,
+  order: true,
+  parentId: true,
+  propertyValues: true,
+  spaceId: true,
+  title: true,
 } satisfies Prisma.PageSelect;
 
 const pageHierarchySelection = {
@@ -162,6 +208,40 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
+  /**
+   * Copies a page, and what hangs from it when asked.
+   *
+   * The copy is put right after the original rather than at the end: a copy one
+   * cannot find next to what it was copied from is a copy one has to go looking
+   * for. Its branch keeps its own shape, and only the page one asked to copy is
+   * renamed — the pages under it were not the ones being duplicated.
+   */
+  async duplicate(input: DuplicatePageInput): Promise<PageSummary | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      const original = await transaction.page.findFirst({
+        select: pageSelection,
+        where: { ...this.pageAccessFilter(input.workspaceId, input.userId, input.role), id: input.pageId },
+      });
+      if (original === null) return null;
+      await transaction.page.updateMany({
+        data: { order: { increment: 1 } },
+        where: { order: { gt: original.order }, parentId: original.parentId, spaceId: original.spaceId },
+      });
+      const copy = await this.writeThePageCopy(
+        transaction,
+        original,
+        input.title ?? original.title,
+        original.parentId,
+        original.order + 1,
+        input.userId,
+      );
+      if (copy === null) return null;
+      if (input.includeChildren) await this.copyTheBranchUnder(transaction, original, copy.id, input.userId);
+      const authors = await this.resolvePageAuthors([copy]);
+      return this.toSummary(copy, authors);
+    });
+  }
+
   async update(input: UpdatePageInput): Promise<PageSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
       const current = await transaction.page.findFirst({
@@ -204,8 +284,101 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
+  async rename(
+    pageId: string,
+    title: string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    const existing = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (existing === null) return null;
+    const page = await this.prisma.page.update({
+      data: { title, updatedById: userId },
+      select: pageSelection,
+      where: { id: pageId },
+    });
+    const authors = await this.resolvePageAuthors([page]);
+    return this.toSummary(page, authors);
+  }
+
+  /** Locking is not editing what the page says, so it is recorded without cutting a new version of it. */
+  async setLocked(
+    pageId: string,
+    locked: boolean,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    const existing = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (existing === null) return null;
+    const page = await this.prisma.page.update({
+      data: locked ? { lockedAt: new Date(), lockedById: userId } : { lockedAt: null, lockedById: null },
+      select: pageSelection,
+      where: { id: pageId },
+    });
+    const authors = await this.resolvePageAuthors([page]);
+    return this.toSummary(page, authors);
+  }
+
+  async updateCover(
+    pageId: string,
+    cover: PageCoverValue | null,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    const existing = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (existing === null) return null;
+    const page = await this.prisma.page.update({
+      data: { cover: toCoverInput(cover), updatedById: userId },
+      select: pageSelection,
+      where: { id: pageId },
+    });
+    const authors = await this.resolvePageAuthors([page]);
+    return { ...this.toSummary(page, authors), cover };
+  }
+
+  async updateIcon(
+    pageId: string,
+    icon: PageIcon | null,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    const existing = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (existing === null) return null;
+    const page = await this.prisma.page.update({
+      data: { icon: toIconInput(icon), updatedById: userId },
+      select: pageSelection,
+      where: { id: pageId },
+    });
+    const authors = await this.resolvePageAuthors([page]);
+    return this.toSummary(page, authors);
+  }
+
+  /**
+   * What a move has to be judged against: the page, and the trees of both the
+   * space it leaves and the one it arrives at.
+   *
+   * The destination space is only looked at when it is one this reader may see,
+   * so a page cannot be sent into a space its own author cannot reach.
+   */
   async findMoveContext(
     pageId: string,
+    targetSpaceId: null | string,
     workspaceId: string,
     userId: string,
     role: UserRole,
@@ -215,22 +388,76 @@ export class PageRepository implements PageRepositoryContract {
       where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
     });
     if (page === null) return null;
+    const destinationSpaceId =
+      targetSpaceId === null || targetSpaceId === page.spaceId
+        ? null
+        : await findAccessibleSpaceId(this.prisma, targetSpaceId, workspaceId, userId, role);
+    if (targetSpaceId !== null && targetSpaceId !== page.spaceId && destinationSpaceId === null) return null;
+    const spaceIds = destinationSpaceId === null ? [page.spaceId] : [page.spaceId, destinationSpaceId];
     const pages = await this.prisma.page.findMany({
       orderBy: { order: 'asc' },
       select: { id: true, parentId: true, spaceId: true },
-      where: { spaceId: page.spaceId },
+      where: { spaceId: { in: spaceIds } },
     });
     return {
       pageId: page.id,
       pages,
       propertyValues: parseSchemaPropertyValues(page.propertyValues),
+      spaceId: page.spaceId,
       title: page.title,
+    };
+  }
+
+  /** Every page this reader can see that carries properties at all, which is where an assignment could be written. */
+  async listWithProperties(workspaceId: string, userId: string, role: UserRole): Promise<readonly PageSummary[]> {
+    const pages = await this.prisma.page.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: pageSelection,
+      where: {
+        ...this.pageAccessFilter(workspaceId, userId, role),
+        lifecycle: PageLifecycle.ACTIVE,
+        parentId: { not: null },
+        propertyValues: { not: Prisma.JsonNull },
+      },
+    });
+    const authors = await this.resolvePageAuthors(pages);
+    return pages.map((page) => this.toSummary(page, authors));
+  }
+
+  async listMoveDestinations(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<PageMoveDestinations | null> {
+    const page = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (page === null) return null;
+    const spaces = await this.prisma.space.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+      where: { ...buildSpaceVisibilityFilter(userId, role), workspaceId },
+    });
+    const pages = await this.prisma.page.findMany({
+      orderBy: { title: 'asc' },
+      select: { id: true, parentId: true, spaceId: true, title: true },
+      where: { lifecycle: PageLifecycle.ACTIVE, spaceId: { in: spaces.map((space) => space.id) } },
+    });
+    const ownBranch = new Set([pageId, ...collectDescendantIds(pageId, pages)]);
+    return {
+      pages: pages
+        .filter((candidate) => !ownBranch.has(candidate.id))
+        .map(({ id, spaceId, title }) => ({ id, spaceId, title })),
+      spaces,
     };
   }
 
   async move(
     pageId: string,
     parentId: null | string,
+    targetSpaceId: string,
     userId: string,
     workspaceId: string,
     role: UserRole,
@@ -242,16 +469,19 @@ export class PageRepository implements PageRepositoryContract {
         where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
       });
       if (page === null) return null;
+      const destinationSpaceId = await findAccessibleSpaceId(transaction, targetSpaceId, workspaceId, userId, role);
+      if (destinationSpaceId === null) return null;
       if (parentId !== null) {
         const parent = await transaction.page.findFirst({
           select: { id: true },
-          where: { id: parentId, spaceId: page.spaceId },
+          where: { id: parentId, spaceId: destinationSpaceId },
         });
         if (parent === null) return null;
       }
-      const order = await this.findNextOrder(transaction, page.spaceId, parentId, pageId);
+      await this.carryBranchIntoSpace(transaction, pageId, page.spaceId, destinationSpaceId, mutationId);
+      const order = await this.findNextOrder(transaction, destinationSpaceId, parentId, pageId);
       const moved = await transaction.page.update({
-        data: { order, parentId, updatedById: userId },
+        data: { order, parentId, spaceId: destinationSpaceId, updatedById: userId },
         select: pageSelection,
         where: { id: pageId },
       });
@@ -261,7 +491,7 @@ export class PageRepository implements PageRepositoryContract {
           aggregateType: 'PAGE',
           eventType: 'PAGE_MOVED',
           idempotencyKey: `page:${moved.id}:move:${mutationId}`,
-          payload: { pageId: moved.id, parentId, spaceId: page.spaceId },
+          payload: { pageId: moved.id, parentId, spaceId: destinationSpaceId },
           payloadVersion: 1,
         },
         transaction,
@@ -459,8 +689,11 @@ export class PageRepository implements PageRepositoryContract {
       content: Prisma.JsonValue;
       createdAt: Date;
       createdById: string;
+      cover: Prisma.JsonValue;
+      icon: Prisma.JsonValue;
       id: string;
       lifecycle: PageLifecycle;
+      lockedAt: Date | null;
       order: number;
       parentId: null | string;
       propertyValues: Prisma.JsonValue;
@@ -476,8 +709,11 @@ export class PageRepository implements PageRepositoryContract {
       content: page.content,
       createdAt: page.createdAt,
       createdBy: users.get(page.createdById) ?? null,
+      cover: parsePageCover(page.cover),
+      icon: parsePageIcon(page.icon),
       id: page.id,
       lifecycle: page.lifecycle,
+      lockedAt: page.lockedAt,
       order: page.order,
       parentId: page.parentId,
       propertyValues: parseSchemaPropertyValues(page.propertyValues),
@@ -522,6 +758,133 @@ export class PageRepository implements PageRepositoryContract {
     if (parentId === null) return null;
     const parent = await transaction.page.findFirst({ select: { lifecycle: true }, where: { id: parentId } });
     return parent?.lifecycle ?? null;
+  }
+
+  /**
+   * Takes whatever hangs from a moved page into the space it lands in.
+   *
+   * A page does not travel alone: splitting a branch across two spaces would
+   * leave its own children where nobody can reach them from it. Each one is
+   * announced as moved too, because the index that finds them records the space
+   * they belong to, and an unannounced page keeps answering for the old one.
+   *
+   * Who last edited them is left alone: a page carried along by its mother was
+   * not written by whoever moved her.
+   */
+  private async carryBranchIntoSpace(
+    transaction: Prisma.TransactionClient,
+    pageId: string,
+    sourceSpaceId: string,
+    destinationSpaceId: string,
+    mutationId: string,
+  ): Promise<void> {
+    if (sourceSpaceId === destinationSpaceId) return;
+    const pages = await transaction.page.findMany({
+      select: { id: true, parentId: true, spaceId: true },
+      where: { spaceId: sourceSpaceId },
+    });
+    const descendantIds = collectDescendantIds(pageId, pages);
+    if (descendantIds.length === 0) return;
+    await transaction.page.updateMany({
+      data: { spaceId: destinationSpaceId },
+      where: { id: { in: [...descendantIds] } },
+    });
+    for (const descendantId of descendantIds) {
+      await this.outboxRepository.create(
+        {
+          aggregateId: descendantId,
+          aggregateType: 'PAGE',
+          eventType: 'PAGE_MOVED',
+          idempotencyKey: `page:${descendantId}:move:${mutationId}`,
+          payload: { pageId: descendantId, spaceId: destinationSpaceId },
+          payloadVersion: 1,
+        },
+        transaction,
+      );
+    }
+  }
+
+  /** One page written again under a new parent, with everything it wore and everything it said. */
+  private async writeThePageCopy(
+    transaction: Prisma.TransactionClient,
+    original: PageCopySource,
+    title: string,
+    parentId: null | string,
+    order: number,
+    userId: string,
+  ) {
+    const content = validatePageContent(original.content);
+    if (content.isFail()) return null;
+    const copy = await transaction.page.create({
+      data: {
+        content: content.getValue(),
+        cover: toCoverInput(parsePageCover(original.cover)),
+        createdById: userId,
+        icon: toIconInput(parsePageIcon(original.icon)),
+        order,
+        parentId,
+        propertyValues: toPropertyValuesInput(parseSchemaPropertyValues(original.propertyValues)),
+        spaceId: original.spaceId,
+        title,
+        updatedById: userId,
+        versions: { create: { content: content.getValue(), createdById: userId, title, version: 1 } },
+      },
+      select: pageSelection,
+    });
+    await this.outboxRepository.create(
+      {
+        aggregateId: copy.id,
+        aggregateType: 'PAGE',
+        eventType: 'PAGE_CREATED',
+        idempotencyKey: `page:${copy.id}:version:1`,
+        payload: { pageId: copy.id, spaceId: original.spaceId, version: 1 },
+        payloadVersion: 1,
+      },
+      transaction,
+    );
+    return copy;
+  }
+
+  /**
+   * Writes the branch under a page again, under its copy.
+   *
+   * Walked from the top down so every page finds its new parent already written:
+   * a child copied before its mother would have nowhere to hang from.
+   */
+  private async copyTheBranchUnder(
+    transaction: Prisma.TransactionClient,
+    original: { id: string; spaceId: string },
+    copyId: string,
+    userId: string,
+  ): Promise<void> {
+    const pages = await transaction.page.findMany({
+      orderBy: { order: 'asc' },
+      select: pageCopySelection,
+      where: { lifecycle: PageLifecycle.ACTIVE, spaceId: original.spaceId },
+    });
+    const copyIdByOriginalId = new Map<string, string>([[original.id, copyId]]);
+    let generation = [original.id];
+    while (generation.length > 0) {
+      const nextGeneration: string[] = [];
+      for (const parentOriginalId of generation) {
+        const parentCopyId = copyIdByOriginalId.get(parentOriginalId);
+        if (parentCopyId === undefined) continue;
+        for (const child of pages.filter((page) => page.parentId === parentOriginalId)) {
+          const childCopy = await this.writeThePageCopy(
+            transaction,
+            child,
+            child.title,
+            parentCopyId,
+            child.order,
+            userId,
+          );
+          if (childCopy === null) continue;
+          copyIdByOriginalId.set(child.id, childCopy.id);
+          nextGeneration.push(child.id);
+        }
+      }
+      generation = nextGeneration;
+    }
   }
 
   private async recordLifecycleEvents(
