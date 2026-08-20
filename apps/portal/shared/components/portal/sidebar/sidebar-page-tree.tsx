@@ -9,7 +9,9 @@ import { usePathname } from '@/i18n/navigation';
 import { PagesDuplicateChildrenDialog } from '@/modules/pages/components/pages.duplicate.children.dialog';
 import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
 import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
+import { resolvePageRestoreNotice } from '@/modules/pages/lib/pages.trash.lib';
 import { duplicatePageAction, restorePageAction } from '@/modules/pages/server/actions/pages.actions';
+import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
 import {
   buildPortalSidebarPageTree,
   getPortalSidebarExpandedPageIds,
@@ -19,7 +21,7 @@ import {
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
-import { hasActionError } from '@/shared/lib/action-result';
+import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarPageIconDialog } from './sidebar-page-icon-dialog';
 import { SidebarPageRenameDialog } from './sidebar-page-rename-dialog';
@@ -73,17 +75,30 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
+  const buildRestoreNotice = (page: PortalSidebarPage, outcome: TrashRestoreOutcome): string => {
+    const title = page.title.length > 0 ? page.title : t('untitled');
+    const notice = resolvePageRestoreNotice(outcome);
+    switch (notice.kind) {
+      case 'toRoot':
+        return t('restoreNotice.toRoot', { page: title, space: notice.space });
+      case 'underParent':
+        return t('restoreNotice.underParent', { page: title, parent: notice.parent });
+      default:
+        return t('restored');
+    }
+  };
+
   const restorePage = (page: PortalSidebarPage): void => {
     if (undoingPageIdRef.current === page.id) return;
     undoingPageIdRef.current = page.id;
     startTransition(async () => {
       try {
         const result = await restorePageAction({ pageId: page.id, spaceId });
-        if (hasActionError(result)) {
+        if (!isActionSuccess<TrashRestoreOutcome>(result)) {
           toast.error(t('permissionError'));
           return;
         }
-        toast.success(t('restored'));
+        toast.success(buildRestoreNotice(page, result.data));
         router.refresh();
       } catch {
         toast.error(t('permissionError'));

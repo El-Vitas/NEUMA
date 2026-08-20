@@ -353,6 +353,12 @@
     "moveError": "No se pudo mover la página. Comprueba que el destino sea válido.",
     "moved": "Página movida",
     "moveSearch": "Buscar un espacio o una página",
+    "moveAccessWarning": {
+      "title": "Alguien dejará de ver esta página",
+      "body": "{count, plural, one {Una persona que hoy puede leer esta página no tendrá acceso} other {# personas que hoy pueden leer esta página no tendrán acceso}} en «{space}».",
+      "confirm": "Mover de todos modos",
+      "checkError": "No se pudo comprobar quién perdería acceso, así que la página no se movió."
+    },
     "tree": "Árbol de páginas",
     "collapsePage": "Contraer {name}",
     "expandPage": "Expandir {name}",
@@ -369,12 +375,17 @@
     "blockTooLong": "Hay un bloque demasiado largo y la página no se está guardando. Acórtalo o repártelo en varios bloques.",
     "trash": "Papelera",
     "trashPage": "Enviar a la papelera",
+    "trashHint": "La página queda en la papelera y se puede restaurar.",
     "restorePage": "Restaurar página",
     "empty": "Este espacio aún no tiene páginas.",
     "trashNamed": "Enviar {name} a la papelera",
     "permissionError": "No tienes permisos para cambiar esta página.",
     "restored": "Página restaurada",
     "trashed": "Página enviada a la papelera",
+    "mentionTrashed": {
+      "label": "eliminada",
+      "tooltip": "{name} fue enviada a la papelera"
+    },
     "trashScreen": {
       "description": "Páginas eliminadas de este espacio. Puedes restaurarlas o eliminarlas para siempre.",
       "empty": "No hay nada en la papelera",
@@ -401,6 +412,10 @@
       "restoreError": "No se pudo restaurar la página. Intenta de nuevo.",
       "deleteForeverError": "No se pudo eliminar la página para siempre. Intenta de nuevo.",
       "mentionedPageDeleted": "Esta página se eliminó"
+    },
+    "restoreNotice": {
+      "toRoot": "«{page}» volvió a la raíz de {space}: la página que la contenía ya no está disponible.",
+      "underParent": "«{page}» volvió bajo «{parent}»."
     },
     "favorites": {
       "add": "Agregar {name} a favoritas",

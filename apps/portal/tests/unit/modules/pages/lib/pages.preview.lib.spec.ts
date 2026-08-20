@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_PREVIEW_GAP_PX } from '@/modules/pages/constants/pages.preview.constants';
 import {
   isWithinThePagePreviewCard,
   readInternalPageTarget,
@@ -152,7 +151,7 @@ describe('readPagePreviewLink', () => {
 });
 
 describe('readPagePreviewSpot', () => {
-  it('stands past the gap under the link, measured from the surface', () => {
+  it('begins right under the link, carrying the gap inside its own box', () => {
     const anchor = document.createElement('a');
     anchor.getBoundingClientRect = () => ({
       bottom: 220,
@@ -169,7 +168,7 @@ describe('readPagePreviewSpot', () => {
     const spot = readPagePreviewSpot(anchor, { left: 50, top: 150, width: 800 });
 
     expect(spot.left).toBe(100 - 50);
-    expect(spot.top).toBe(220 - 150 + PAGE_PREVIEW_GAP_PX);
+    expect(spot.top).toBe(220 - 150);
   });
 });
 
@@ -186,5 +185,17 @@ describe('isWithinThePagePreviewCard', () => {
   it('refuses anything drawn outside it', () => {
     expect(isWithinThePagePreviewCard(document.createElement('span'))).toBe(false);
     expect(isWithinThePagePreviewCard(null)).toBe(false);
+  });
+
+  it('does not read the link inside the preview card as one more link to preview', () => {
+    const container = document.createElement('div');
+    const card = document.createElement('div');
+    card.setAttribute('data-page-preview-card', 'true');
+    const anchor = document.createElement('a');
+    anchor.href = '/spaces/space-1/pages/page-1';
+    card.append(anchor);
+    container.append(card);
+
+    expect(readPagePreviewLink(container, anchor)).toBeNull();
   });
 });

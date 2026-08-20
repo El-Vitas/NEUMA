@@ -7,12 +7,7 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
-import {
-  readPagePreviewFragment,
-  readPagePreviewIcon,
-  readPagePreviewProperties,
-  readPagePreviewTitle,
-} from '../../lib/pages.preview.lib';
+import { readPagePreviewFragment, readPagePreviewProperties, readPagePreviewTitle } from '../../lib/pages.preview.lib';
 import { pageLocatorSchema, pageSummarySchema } from '../../schemas/pages.schemas';
 import type { PagePreviewContent } from '../../types/pages.preview.types';
 import type { PageSchema } from '../../types/pages.schema.types';
@@ -50,7 +45,7 @@ export const getPagePreviewAction = actionClient.inputSchema(pageLocatorSchema).
 
     return {
       fragment: readPagePreviewFragment(page.content),
-      icon: readPagePreviewIcon(page.title),
+      icon: page.icon ?? null,
       properties: readPagePreviewProperties(schema, page.propertyValues),
       title: readPagePreviewTitle(page.title),
     };

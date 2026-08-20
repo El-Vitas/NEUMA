@@ -23,7 +23,7 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [x] La jerarquía se ve en el árbol lateral con indentación
 - [x] Cada rama se puede plegar y desplegar
 - [x] El estado plegado se conserva al navegar entre páginas
-- [ ] Una rama profunda sigue siendo legible, no se corta el texto — los nombres largos se truncan con puntos suspensivos; falta juzgarlo con una rama honda de verdad
+- [x] Una rama profunda sigue siendo legible — la sangría deja de crecer a partir de la sexta generación, así que una rama honda conserva el ancho del nombre; los nombres largos se cortan con puntos suspensivos y se leen enteros al pasar el cursor
 
 ## PG-03 · Debe permitir titular la página
 
@@ -42,7 +42,7 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [x] Se puede subir una imagen como ícono
 - [x] Hay una opción de ícono aleatorio — por pestaña: en Emojis sortea un emoji, en Íconos un símbolo
 - [x] El ícono se ve en el árbol lateral, al mismo tamaño que la marca por omisión
-- [ ] El ícono se ve en los resultados de búsqueda y en las menciones
+- [x] El ícono se ve en los resultados de búsqueda y en las menciones
 - [x] Se puede quitar
 
 **Además de lo pedido:** hay 1929 íconos de la biblioteca en una segunda pestaña, buscables por nombre y por
@@ -71,7 +71,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 - [x] Arriba de la página se ve la ruta desde el espacio hasta esta página
 - [x] Cada tramo de la ruta es navegable con un clic — el tramo actual no es enlace, como corresponde
-- [ ] Una ruta muy profunda se acorta sin perder el último tramo — con 4 tramos se muestran todos; falta ver una honda
+- [x] Una ruta muy profunda se acorta sin perder el último tramo — con nueve tramos se muestran el espacio, los dos últimos ancestros y la página; los intermedios se despliegan desde «…»
 - [x] La ruta se actualiza al mover la página — verificado moviendo a nieta y de vuelta a raíz
 
 ## PG-07 · Debe permitir mover una página
@@ -83,7 +83,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Las páginas hijas se mueven junto con la madre — verificado con una hija real: cambió de espacio con su madre, y el índice recibió su propio aviso
 - [x] No se puede mover una página dentro de sí misma ni de sus descendientes — su propia rama no aparece entre los destinos, no solo se rechaza después
 - [x] Después de mover, los enlaces y menciones existentes siguen funcionando — una dirección con el espacio viejo lleva a la página en su espacio nuevo
-- [ ] Al moverla a un espacio donde alguien pierde acceso, se advierte antes
+- [x] Al moverla a un espacio donde alguien pierde acceso, se advierte antes — dice cuántas personas y pide confirmación; si nadie pierde acceso el traslado ocurre sin ningún paso extra
 
 ## PG-08 · Debe permitir duplicar una página
 
@@ -95,12 +95,12 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 ## PG-09 · Debe permitir enviar una página a la papelera
 
-- [ ] Hay una opción de eliminar accesible desde la página y desde el árbol
+- [x] Hay una opción de eliminar accesible desde la página y desde el árbol
 - [x] Pide confirmación antes de eliminar
 - [x] La página desaparece del árbol y de los resultados de búsqueda
 - [x] Las hijas se van a la papelera con ella
 - [x] Se avisa cuántas páginas hijas se van a eliminar
-- [ ] Las menciones a esa página en otras páginas indican que fue eliminada
+- [x] Las menciones a esa página en otras páginas indican que fue eliminada — se tachan, dicen «eliminada» y explican al posar el cursor; una mención a una página que la pantalla no tiene en la mano se dibuja normal, porque no saber no es saber que se eliminó
 
 ## PG-10 · Debe permitir ver y recuperar lo eliminado
 
@@ -108,7 +108,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se ve cuándo se eliminó cada una y quién lo hizo
 - [x] Se puede buscar dentro de la papelera
 - [x] Se puede restaurar una página y vuelve a su lugar original
-- [ ] Si su padre ya no existe, la restauración explica dónde quedó
+- [x] Si su padre ya no existe, la restauración explica dónde quedó — dice si volvió bajo su madre o a la raíz del espacio. Queda fuera el caso de la madre eliminada **para siempre**: `parentId` tiene `ON DELETE SET NULL`, así que al borrarla el vínculo se pierde en ese instante y al restaurar ya no hay nada que distinga a esa hija de una que siempre vivió en la raíz
 - [x] Restaurar una madre ofrece restaurar también sus hijas
 
 ## PG-11 · Debe permitir eliminar definitivamente
@@ -150,7 +150,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se pueden eliminar — con confirmación
 - [x] Se avisa si el archivo excede el tamaño permitido — con 11 MB: «El archivo pesa más de 10 MB y no se puede subir.»
 - [x] Se ve el progreso de subida — una barra sin porcentaje, a propósito: el sistema no conoce uno y no lo inventa
-- [ ] Un archivo insertado en el contenido aparece también en esta lista
+- [x] Un archivo insertado en el contenido aparece también en esta lista — comprobado soltando un archivo sobre el editor: queda en el contenido y en la lista. No estaba roto; estaba sin probar
 
 ## PG-16 · Debe informar sobre la página
 
@@ -210,13 +210,13 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Al abrir una página profunda el árbol se despliega hasta ella — recargando directo en una nieta, aparece visible y resaltada
 - [~] El árbol se puede ocultar para ganar ancho de lectura — el control propio se retiró el 18/08/2026 por duplicar el plegado de la barra; plegar la barra es el gesto
 - [x] El ancho del árbol se puede ajustar arrastrando
-- [ ] Un árbol con muchas páginas se desplaza sin ponerse lento — sin medir con volumen real
+- [x] Un árbol con muchas páginas se desplaza sin ponerse lento — 600 páginas desplegadas: 145 fps de media, peor cuadro 9 ms
 
 ## NV-02 · Debe agrupar el contenido en espacios
 
 - [x] Se puede crear un espacio
 - [ ] Se le puede poner nombre y descripción — hay nombre y slug; no existe la descripción
-- [ ] Se ven solo los espacios a los que se tiene acceso — el filtro existe y está probado en el backend, pero falta verlo con una segunda persona
+- [x] Se ven solo los espacios a los que se tiene acceso — un espacio restringido no aparece para quien no es miembro, ni en el árbol ni en el filtro de la búsqueda
 - [x] Se puede cambiar de espacio sin perder el contexto de navegación — el árbol conserva su estado
 - [x] Un espacio vacío explica cómo empezar en vez de mostrar una pantalla en blanco
 
@@ -235,8 +235,8 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se busca por título y por contenido del cuerpo
 - [x] Los resultados muestran un fragmento con el término resaltado
 - [x] Se ve a qué espacio y a qué página madre pertenece cada resultado
-- [ ] Solo aparecen páginas a las que se tiene acceso
-- [ ] El texto de las menciones también es encontrable
+- [x] Solo aparecen páginas a las que se tiene acceso — su contenido no se encuentra, y su dirección directa responde «Esta dirección no existe» sin delatar que existe
+- [x] El texto de las menciones también es encontrable
 - [x] Una búsqueda sin resultados lo dice claramente
 - [x] Los resultados aparecen rápido y no bloquean la escritura
 
@@ -277,9 +277,9 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 **Cómo probarlo:** pasa el cursor sobre una mención, y después ábrela sin salir de la página actual.
 
 - [x] Al pasar el cursor sobre una mención se ve una vista previa con su título y un fragmento
-- [ ] Lo mismo al pasar el cursor sobre un enlace interno
-- [ ] La vista previa muestra el ícono y las propiedades principales
-- [ ] Aparece con un pequeño retraso, no al rozarla sin querer
+- [x] Lo mismo al pasar el cursor sobre un enlace interno
+- [x] La vista previa muestra el ícono y las propiedades principales — el ícono es el de la página, no un emoji leído del título
+- [x] Aparece con un pequeño retraso, no al rozarla sin querer — al rozar 200 ms no aparece; al descansar sí
 - [x] Desaparece al alejar el cursor
 - [ ] La vista previa no aparece si uno no tiene acceso a esa página
 
@@ -333,3 +333,5 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 | 2026-08-18 | NV-04, NV-06 | Se comprobó **en el código** que ya están construidos (los resultados muestran espacio y madre; hay filtros de espacio, tipo, etiquetas, autor y fecha, combinables y con chips). El recorrido de QA anterior los dio por ausentes contra un servidor de desarrollo viejo. **No se marcan**: falta verlos en el navegador. | Pendiente de verificar |
 | 2026-08-18 | PG-08, PG-18, NV-03, NV-08, NV-11 | **Construido, sin verificar en el navegador.** Duplicar una página (con o sin su descendencia; la copia queda junto a la original). Bloquear una página: el backend **rechaza** escribir y renombrar una bloqueada, no solo se atenúa la pantalla. Arrastrar una página a otro espacio, y **reordenar los espacios arrastrando** (columna `order` nueva; migración aplicada a mano porque una migración anterior fue modificada después de aplicarse y Prisma pedía resetear la base). Pantalla de inicio del espacio con páginas principales, actividad reciente y miembros. «Asignadas a ti» en el inicio personal, leyendo las propiedades que la colección llama persona. Falta de NV-11: las novedades pendientes, que no tienen dónde apoyarse todavía. Falta de NV-08: la configuración del espacio (los miembros sí se ven). | Pendiente de verificar |
 | 2026-08-19 | PG-08, PG-12, PG-18, NV-03, NV-04, NV-06, NV-07, NV-08, NV-11 | Recorrido en el navegador contra PostgreSQL de todo lo construido el día anterior. **Duplicar** conserva contenido, propiedades e ícono, dice «(copia)», pregunta por las hijas solo si las hay y deja la copia pegada a la original. **Bloquear** apaga editor, título y propiedades, se ve, se revierte con el mismo botón, y el backend responde `PAGE_LOCKED` 409. **Filtros** de espacio, autor y fecha combinados, con chips que se quitan de a uno. Los resultados dicen espacio y madre. **Arrastrar** anida, avisa dónde cae, se anuncia por `aria-live`, rechaza soltar en la propia descendencia, cruza espacios y arrastra la descendencia; reordenar espacios persiste. Inicio del espacio y «Asignadas a ti» comprobados con tres personas. **Dos defectos encontrados y corregidos:** la estrella del encabezado no seguía al servidor —quitar la página desde la barra lateral la dejaba diciendo «Quitar de favoritas», y el siguiente clic pedía quitar algo que ya no estaba—; y la posición de lectura nunca se restauró porque se guardaba y pedía sobre `window`, cuando quien se desplaza es la caja de lectura dentro del viewport. **Falta:** orden entre hermanas con el mouse, configuración del espacio y novedades pendientes; ninguna de las tres existe todavía. | Correcto |
+| 2026-08-19 | PG-02, PG-04, PG-06, NV-01, NV-02, NV-04, NV-09 | Verificado con volumen y con una segunda persona. Un espacio **restringido** no aparece para quien no es miembro —ni en el árbol, ni en el filtro de espacios, ni en los resultados—, y su dirección directa responde «Esta dirección no existe» sin delatar que existe. Una rama de **ocho niveles** y un árbol de **600 páginas** desplegadas: 145 fps de media, peor cuadro 9 ms. La ruta de nueve tramos se acorta con «…» y conserva el último. **Cuatro defectos encontrados y corregidos:** la sangría del árbol crecía sin tope y a ocho niveles dejaba 93 px para un título de 354, así que ahora deja de crecer en la sexta generación; **renombrar una página y cambiarle el ícono no avisaban al índice**, de modo que una página renombrada se seguía encontrando por su nombre viejo para siempre; borrar del índice pedía olvidar con `Number.MAX_SAFE_INTEGER` contra una columna `integer`, así que la consulta reventaba, el evento reintentaba sin fin y **una página en la papelera seguía apareciendo en los resultados**; y la vista previa se escapaba al bajar a leerla —entrar en ella no cancelaba el cierre y el hueco de 40 px era tierra de nadie—. La vista previa ahora se alcanza, lleva dentro un enlace a la página, y muestra el ícono de la página en vez de un emoji leído del título. El ícono viaja hasta los resultados de búsqueda y hasta las menciones, donde se dibuja vivo. Se reindexaron las 97 páginas: todas tienen ya espacio y madre. | Correcto |
+| 2026-08-20 | PG-07, PG-09, PG-10, PG-15, NV-09 | Cinco bloques construidos en paralelo por cuatro agentes y verificados **uno a uno en el navegador contra PostgreSQL**. Enviar a la papelera desde la propia página (botón de 44×44 en el encabezado, reutiliza el diálogo que ya existía, saca a la persona de la página y persiste). Las menciones a una página en la papelera se tachan y dicen «eliminada»; una mención a una página que la pantalla no tiene en la mano se dibuja normal. Al restaurar se dice dónde quedó: «volvió bajo Demo ES-01 a ES-07» o «volvió a la raíz de Engineering». Un archivo soltado en el contenido aparece también en la lista de adjuntos. Al mover a un espacio más cerrado avisa con el número de personas y pide confirmación; si nadie pierde acceso, el traslado ocurre sin paso extra. **Hallazgo de fondo:** `Page.parentId` tiene `ON DELETE SET NULL`, así que eliminar la madre para siempre borra el vínculo en el acto y el caso «madre inexistente» no se puede explicar sin recordar de dónde salió la página. **Corregidos dos textos propios:** el plural del aviso de acceso dejaba el verbo en singular, y el aviso de restauración decía «ya no existe» de una madre que sigue en la papelera. **Sin verificar:** que la vista previa no aparezca sin acceso — no se logró un control fiable con la segunda persona, así que la casilla queda sin marcar. | Correcto |

@@ -48,4 +48,11 @@ export interface SpaceRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<readonly AssignableMember[] | null>;
+  readonly countMembersLosingAccess: (
+    sourceSpaceId: string,
+    targetSpaceId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<number | null>;
 }

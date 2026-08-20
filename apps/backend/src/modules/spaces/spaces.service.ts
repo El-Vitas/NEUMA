@@ -79,4 +79,22 @@ export class SpacesService {
     const members = await this.spaceRepository.listAssignableMembers(spaceId, workspaceId, userId, role);
     return members === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(members);
   }
+
+  /** How many people who can read the source space today would not read the destination. */
+  async countMoveAccessLoss(
+    sourceSpaceId: string,
+    targetSpaceId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<number, SpaceAccessDeniedError>> {
+    const count = await this.spaceRepository.countMembersLosingAccess(
+      sourceSpaceId,
+      targetSpaceId,
+      workspaceId,
+      userId,
+      role,
+    );
+    return count === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(count);
+  }
 }

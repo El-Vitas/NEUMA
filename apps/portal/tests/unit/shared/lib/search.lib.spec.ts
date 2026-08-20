@@ -96,6 +96,7 @@ describe('search.lib', () => {
       items: [
         {
           contentType: 'guide',
+          icon: null,
           parentPageId: 'page-0',
           parentPageTitle: 'Guides',
           rank: 0.9,

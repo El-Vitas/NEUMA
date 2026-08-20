@@ -63,6 +63,7 @@ const mountToggle = (open?: boolean): { readonly container: HTMLElement; readonl
       subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
       synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },
       image: { caption: 'Describe the image', resize: 'Resize' },
+      mentionTrashed: { label: 'eliminada', tooltip: (name: string) => `${name} fue enviada a la papelera` },
       person: 'Person',
       task: 'Task',
       media: {

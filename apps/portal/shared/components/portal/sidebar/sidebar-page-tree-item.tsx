@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { isPortalSidebarPageMoveShortcut } from '@/modules/portal/lib/portal.sidebar.lib';
+import { buildSidebarTreeIndent, isPortalSidebarPageMoveShortcut } from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalSidebarPageDragController } from '@/modules/portal/types/portal.sidebar.drag.types';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '@/modules/portal/types/portal.types';
 import {
@@ -83,7 +83,7 @@ export const SidebarPageTreeItem = ({
           'data-[page-drop-over=true]:bg-primary/15 data-[page-drop-over=true]:outline data-[page-drop-over=true]:outline-primary/60',
         )}
         data-page-drop-target={isDraggable ? page.id : undefined}
-        style={{ paddingLeft: `${depth * 10 + 6}px` }}
+        style={{ paddingLeft: `${buildSidebarTreeIndent(depth)}px` }}
       >
         {hasChildren ? (
           <button

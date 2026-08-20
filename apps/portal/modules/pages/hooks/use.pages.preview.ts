@@ -98,7 +98,9 @@ export const usePagesPreview = (
     const followTheAnchorUnderPointer = (target: EventTarget | null): void => {
       const link = readPagePreviewLink(container, target);
       if (link === null) {
-        if (!isWithinThePagePreviewCard(target)) scheduleClose();
+        /** Resting on the card is still resting on the page it speaks for, so the leaving already begun is called off. */
+        if (isWithinThePagePreviewCard(target)) clearCloseTimeout();
+        else scheduleClose();
         return;
       }
       if (link.anchor === anchorRef.current) return;
@@ -135,5 +137,5 @@ export const usePagesPreview = (
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [atHand, close]);
 
-  return { atHand, close, outcome };
+  return { atHand, close, hold: clearCloseTimeout, letGo: scheduleClose, outcome };
 };

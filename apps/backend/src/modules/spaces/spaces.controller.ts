@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { CreateSpaceDto } from './dto/space.create.dto';
 import { UpdateSpaceIconDto } from './dto/space.icon.update.dto';
+import { SpaceMoveAccessLossQueryDto } from './dto/space.move-access-loss.query.dto';
 import { RenameSpaceDto } from './dto/space.rename.dto';
 import { ReorderSpaceDto } from './dto/space.reorder.dto';
 import { SpacesService } from './spaces.service';
@@ -99,5 +100,26 @@ export class SpacesController {
       throw result.getError();
     }
     return result.getValue();
+  }
+
+  @Get(':spaceId/move-access-loss')
+  @UseGuards(JwtAuthGuard)
+  async moveAccessLoss(
+    @Param('spaceId') spaceId: string,
+    @Query() dto: SpaceMoveAccessLossQueryDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.spacesService.countMoveAccessLoss(
+      spaceId,
+      dto.targetSpaceId,
+      workspace.id,
+      payload.sub,
+      payload.role,
+    );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return { count: result.getValue() };
   }
 }

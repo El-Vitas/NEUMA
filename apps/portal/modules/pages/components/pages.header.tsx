@@ -44,6 +44,7 @@ interface IProps {
   readonly spaceName?: string;
   readonly title: string;
   readonly titleInputRef: RefObject<HTMLInputElement | null>;
+  readonly trashControl?: ReactNode;
 }
 
 export const PagesHeader = ({
@@ -66,6 +67,7 @@ export const PagesHeader = ({
   spaceName,
   title,
   titleInputRef,
+  trashControl = null,
 }: IProps) => {
   const t = useTranslations('pages');
   const layoutStyleClasses = getPageAppearanceLayoutStyleClasses();
@@ -114,6 +116,7 @@ export const PagesHeader = ({
           {pageId !== null && isFavorite !== undefined && (
             <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} spaceId={spaceId} title={title} />
           )}
+          {trashControl}
         </div>
       </div>
       {pageId !== null && spaceName !== undefined && (

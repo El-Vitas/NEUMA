@@ -15,6 +15,14 @@ export interface TrashDescendantsPreview {
 }
 
 export interface TrashRestoreOutcome {
+  readonly parentTitle: null | string;
   readonly restoredChildCount: number;
   readonly restoredToRoot: boolean;
+  readonly spaceName: null | string;
 }
+
+/** What a restore outcome means for the page: where it landed, or that nothing more needs saying. */
+export type PageRestoreNotice =
+  | { readonly kind: 'restored' }
+  | { readonly kind: 'toRoot'; readonly space: string }
+  | { readonly kind: 'underParent'; readonly parent: string };

@@ -103,8 +103,10 @@ export interface PageDescendantsPreview {
 }
 
 export interface PageRestoreOutcome {
+  readonly parentTitle: null | string;
   readonly restoredChildCount: number;
   readonly restoredToRoot: boolean;
+  readonly spaceName: null | string;
 }
 
 export interface PageAttachmentsCleanupRepositoryContract {

@@ -492,6 +492,13 @@ export const PAGE_EDITOR_MENTION_STYLE_CLASS = [
 
 export const PAGE_EDITOR_MENTION_MARK_STYLE_CLASS = 'size-3.5 self-center shrink-0';
 
+/** A mention to a page thrown away: still readable, but plainly not where it once led. */
+export const PAGE_EDITOR_MENTION_TRASHED_STYLE_CLASS = 'text-muted-foreground line-through decoration-1';
+
+/** The word that says a mentioned page was thrown away, worn next to its name. */
+export const PAGE_EDITOR_MENTION_TRASHED_TAG_STYLE_CLASS =
+  'rounded bg-surface-low px-1 text-[0.6875rem] text-muted-foreground no-underline';
+
 /** A page in the writing: the line that leads to it, drawn as a line and not as a card. */
 export const PAGE_EDITOR_SUBPAGE_STYLE_CLASS = [
   'group my-1 flex w-full items-center gap-2 rounded px-1 py-1.5 no-underline',

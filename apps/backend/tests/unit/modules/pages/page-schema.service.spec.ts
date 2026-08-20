@@ -46,7 +46,8 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
-  restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: false }),
+  restoreCascade: () =>
+    Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
   rename: () => Promise.resolve(page),

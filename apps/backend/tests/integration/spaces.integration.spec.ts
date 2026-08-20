@@ -136,3 +136,117 @@ describe('Space Members (Integration)', () => {
     await request(testApp.getServer()).get(`/api/v1/spaces/${publicSpaceId}/members`).expect(401);
   });
 });
+
+interface AccessLossResponse {
+  count: number;
+}
+
+const moveAccessLoss = (testApp: TestApp, token: string, sourceSpaceId: string, targetSpaceId: string) =>
+  request(testApp.getServer())
+    .get(`/api/v1/spaces/${sourceSpaceId}/move-access-loss`)
+    .query({ targetSpaceId })
+    .set('Authorization', `Bearer ${token}`);
+
+describe('Space Move Access Loss (Integration)', () => {
+  let testApp: TestApp;
+  let adminToken: string;
+  let editorToken: string;
+  let editorEmail: string;
+  let outsiderToken: string;
+  let publicSpaceId: string;
+  let openRestrictedSpaceId: string;
+  let closedRestrictedSpaceId: string;
+
+  beforeAll(async () => {
+    testApp = await bootstrapTestApp();
+
+    const timestamp = Date.now();
+    const adminEmail = `move-access-admin-${String(timestamp)}@test.com`;
+    editorEmail = `move-access-editor-${String(timestamp)}@test.com`;
+    const outsiderEmail = `move-access-outsider-${String(timestamp)}@test.com`;
+    const password = 'plainPassword123';
+
+    await registerUser(testApp, { email: adminEmail, name: 'Move Access Admin', password });
+    await registerUser(testApp, { email: editorEmail, name: 'Move Access Editor', password });
+    await registerUser(testApp, { email: outsiderEmail, name: 'Move Access Outsider', password });
+    await promoteToRole(testApp, adminEmail, 'ADMIN');
+    await promoteToRole(testApp, editorEmail, 'WORKER');
+
+    adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;
+    editorToken = (await loginUser(testApp, editorEmail, password)).accessToken;
+    outsiderToken = (await loginUser(testApp, outsiderEmail, password)).accessToken;
+
+    publicSpaceId = await createSpace(
+      testApp,
+      adminToken,
+      'Move Access Public',
+      `move-access-public-${String(timestamp)}`,
+      SpaceVisibility.PUBLIC_INTERNAL,
+    );
+    /** The editor can read this one, since it is added as a member below. */
+    openRestrictedSpaceId = await createSpace(
+      testApp,
+      adminToken,
+      'Move Access Open Restricted',
+      `move-access-open-${String(timestamp)}`,
+      SpaceVisibility.RESTRICTED,
+    );
+    /** The editor is never added here, so moving into it is what costs the editor its access. */
+    closedRestrictedSpaceId = await createSpace(
+      testApp,
+      adminToken,
+      'Move Access Closed Restricted',
+      `move-access-closed-${String(timestamp)}`,
+      SpaceVisibility.RESTRICTED,
+    );
+    await addSpaceMember(testApp, openRestrictedSpaceId, editorEmail);
+
+    /** Workspace membership is created lazily on first request, so the editor needs one before it can be counted. */
+    await request(testApp.getServer()).get('/api/v1/spaces').set('Authorization', `Bearer ${editorToken}`).expect(200);
+    await request(testApp.getServer())
+      .get('/api/v1/spaces')
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(200);
+  });
+
+  afterAll(async () => {
+    await testApp.close();
+  });
+
+  it('counts the one member who reads the source but not a restricted destination', async () => {
+    const response = await moveAccessLoss(testApp, adminToken, openRestrictedSpaceId, closedRestrictedSpaceId).expect(
+      200,
+    );
+
+    expect((response.body as AccessLossResponse).count).toBe(1);
+  });
+
+  it('counts nobody when the destination is public, since everyone can already read it', async () => {
+    const response = await moveAccessLoss(testApp, adminToken, openRestrictedSpaceId, publicSpaceId).expect(200);
+
+    expect((response.body as AccessLossResponse).count).toBe(0);
+  });
+
+  it('counts nobody when the source and the destination are the same space', async () => {
+    const response = await moveAccessLoss(testApp, adminToken, openRestrictedSpaceId, openRestrictedSpaceId).expect(
+      200,
+    );
+
+    expect((response.body as AccessLossResponse).count).toBe(0);
+  });
+
+  it('denies a caller who cannot read the source space', async () => {
+    await moveAccessLoss(testApp, outsiderToken, openRestrictedSpaceId, closedRestrictedSpaceId).expect(403);
+  });
+
+  it('denies a caller who cannot read the destination space', async () => {
+    await moveAccessLoss(testApp, editorToken, openRestrictedSpaceId, closedRestrictedSpaceId).expect(403);
+  });
+
+  it('rejects unauthenticated requests', async () => {
+    await request(testApp.getServer())
+      .get(`/api/v1/spaces/${openRestrictedSpaceId}/move-access-loss`)
+      .query({ targetSpaceId: closedRestrictedSpaceId })
+      .expect(401);
+  });
+});

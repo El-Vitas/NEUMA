@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'bun:test';
 import { render } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesIconGlyph } from '@/modules/pages/components/pages.icon.glyph';
 import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
+import { PageIconGlyph } from '@/shared/components/portal/page-icon-glyph';
 import en from '../../../../../messages/en.json';
 
 const renderGlyph = (icon: PageIcon) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <PagesIconGlyph icon={icon} />
+      <PageIconGlyph icon={icon} />
     </NextIntlClientProvider>,
   );
 
-describe('PagesIconGlyph', () => {
+describe('PageIconGlyph', () => {
   it('draws an emoji icon as its character', () => {
     const icon: PageIcon = { kind: 'emoji', value: '🚀' };
 

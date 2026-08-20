@@ -5,6 +5,8 @@ import { PagesPreviewCard } from './pages.preview.card';
 
 interface IProps {
   readonly atHand: PagePreviewAtHand | null;
+  readonly onHold: () => void;
+  readonly onLetGo: () => void;
   readonly outcome: PagePreviewOutcome | null;
 }
 
@@ -16,12 +18,12 @@ interface IProps {
  * over the writing would be in the way of exactly what it is meant to stay
  * out of.
  */
-export const PagesPreviewLayer = ({ atHand, outcome }: IProps) => {
+export const PagesPreviewLayer = ({ atHand, onHold, onLetGo, outcome }: IProps) => {
   if (atHand === null) return null;
 
   return (
     <div className="absolute z-40" style={{ left: `${atHand.spot.left}px`, top: `${atHand.spot.top}px` }}>
-      <PagesPreviewCard outcome={outcome} />
+      <PagesPreviewCard onHold={onHold} onLetGo={onLetGo} outcome={outcome} target={atHand.target} />
     </div>
   );
 };

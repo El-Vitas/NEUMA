@@ -9,6 +9,7 @@ import type {
 const pageSelection = {
   content: true,
   createdById: true,
+  icon: true,
   id: true,
   lifecycle: true,
   parentId: true,

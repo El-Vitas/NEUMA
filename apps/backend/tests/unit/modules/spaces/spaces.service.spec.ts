@@ -16,6 +16,7 @@ const space: SpaceSummary = {
 const member = { email: 'editor@test.com', id: 'user-a', name: 'Editor One' };
 
 const createRepository = (overrides: Partial<SpaceRepositoryContract> = {}): SpaceRepositoryContract => ({
+  countMembersLosingAccess: () => Promise.resolve(0),
   create: () => Promise.resolve(space),
   listAccessible: () => Promise.resolve([space]),
   listAssignableMembers: () => Promise.resolve([member]),
@@ -168,6 +169,43 @@ describe('spaces service — updateIcon', () => {
       'user-a',
       USER_ROLE.WORKER,
     );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('SPACE_ACCESS_DENIED');
+  });
+});
+
+describe('spaces service — countMoveAccessLoss', () => {
+  it('reports how many people the repository says would lose access', async () => {
+    const repository = createRepository({ countMembersLosingAccess: () => Promise.resolve(3) });
+    const service = new SpacesService(repository);
+
+    const result = await service.countMoveAccessLoss('space-a', 'space-b', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue()).toBe(3);
+  });
+
+  it('passes both space ids through to the repository, in order', async () => {
+    let receivedArgs: readonly [string, string] | undefined;
+    const repository = createRepository({
+      countMembersLosingAccess: (sourceSpaceId, targetSpaceId) => {
+        receivedArgs = [sourceSpaceId, targetSpaceId];
+        return Promise.resolve(0);
+      },
+    });
+    const service = new SpacesService(repository);
+
+    await service.countMoveAccessLoss('space-a', 'space-b', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(receivedArgs).toEqual(['space-a', 'space-b']);
+  });
+
+  it('refuses a space the caller cannot reach', async () => {
+    const repository = createRepository({ countMembersLosingAccess: () => Promise.resolve(null) });
+    const service = new SpacesService(repository);
+
+    const result = await service.countMoveAccessLoss('space-a', 'space-b', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('SPACE_ACCESS_DENIED');

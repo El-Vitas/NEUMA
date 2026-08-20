@@ -1,6 +1,6 @@
-import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { PageIconGlyph } from '@/shared/components/portal/page-icon-glyph';
 import { Badge } from '@/shared/components/ui/badge';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { formatSearchResultDate } from '@/shared/lib/search.lib';
@@ -24,7 +24,12 @@ export const SearchResultCard = ({ locale, result }: IProps) => {
   return (
     <article className="space-y-3 border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <FileText aria-hidden="true" className="mt-1 size-5 shrink-0 text-muted-foreground" />
+        <span
+          aria-hidden="true"
+          className="mt-1 grid size-5 shrink-0 place-items-center text-[1.25rem] text-muted-foreground"
+        >
+          <PageIconGlyph icon={result.icon ?? null} />
+        </span>
         <div className="min-w-0 flex-1">
           <h2>
             <Link

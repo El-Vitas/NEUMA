@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { PAGE_APPEARANCE_WIDTH_STYLE_CLASS } from '@/modules/pages/constants/pages.appearance.constants';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
@@ -7,19 +7,25 @@ import en from '../../../../../messages/en.json';
 
 mock.module('server-only', () => ({}));
 
+const push = mock((_href: string) => undefined);
 mock.module('next/navigation', () => ({
   permanentRedirect: () => undefined,
   redirect: () => undefined,
   usePathname: () => '/',
-  useRouter: () => ({ refresh: () => undefined, replace: () => undefined }),
+  useRouter: () => ({ push, refresh: () => undefined, replace: () => undefined }),
 }));
 const updatePageAction = mock(async (_input: unknown) => ({ data: undefined }));
+const trashPageAction = mock(async (_input: unknown) => ({ data: undefined }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   createPageAction: async () => ({ data: undefined }),
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
+  trashPageAction,
   updatePageAction,
+}));
+mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+  getPageTrashPreviewAction: async () => ({ data: { childPageCount: 0 } }),
 }));
 mock.module('@/modules/pages/server/actions/pages.cover.actions', () => ({
   removePageCoverAction: async () => ({ data: undefined }),
@@ -43,12 +49,12 @@ const { PagesEditor } = await import('@/modules/pages/components/pages.editor');
 
 const SPACE_ID = '33333333-3333-4333-8333-333333333333';
 
-const buildPage = (title: string): PageSummary => ({
+const buildPage = (title: string, lifecycle: PageSummary['lifecycle'] = 'ACTIVE'): PageSummary => ({
   content: { content: [], schemaVersion: 1, type: 'doc' },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
   id: '22222222-2222-4222-8222-222222222222',
-  lifecycle: 'ACTIVE',
+  lifecycle,
   order: 0,
   parentId: null,
   propertyValues: null,
@@ -144,6 +150,70 @@ describe('a page hanging from a collection', () => {
     await waitFor(() => expect(updatePageAction).toHaveBeenCalledTimes(1));
     expect(updatePageAction.mock.calls[0]?.[0]).toMatchObject({
       propertyValues: { blocked: true, status: 'todo' },
+    });
+  });
+});
+
+describe('sending the page open in the editor to the trash', () => {
+  it('offers the control to whoever can write the page while it is active', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesEditor canEdit page={buildPage('Handbook')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Move to trash' })).toBeDefined();
+  });
+
+  it('stays away from a reader with no write access', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesEditor
+          canEdit={false}
+          page={buildPage('Handbook')}
+          pages={[]}
+          parentBreadcrumbPages={[]}
+          spaceId={SPACE_ID}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Move to trash' })).toBeNull();
+  });
+
+  it('stays away from a page that is already in the trash', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesEditor
+          canEdit
+          page={buildPage('Handbook', 'TRASHED')}
+          pages={[]}
+          parentBreadcrumbPages={[]}
+          spaceId={SPACE_ID}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Move to trash' })).toBeNull();
+  });
+
+  it('takes whoever confirmed it away from a page that no longer exists there', async () => {
+    push.mockClear();
+    trashPageAction.mockClear();
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesEditor canEdit page={buildPage('Handbook')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move to trash' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Move to trash' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith(`/spaces/${SPACE_ID}`));
+    expect(trashPageAction).toHaveBeenCalledWith({
+      pageId: '22222222-2222-4222-8222-222222222222',
+      spaceId: SPACE_ID,
     });
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
+import { PAGE_CODE_LANGUAGES, type PageLifecycle } from '@company-brain/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Command, EditorState } from 'prosemirror-state';
@@ -79,7 +79,12 @@ import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
 import { createPageShapeCommand } from '../lib/pages.editor.page-shape.lib';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.lib';
-import { createPageSubpageInsertCommand, readPageTitleFrom } from '../lib/pages.editor.subpage.lib';
+import {
+  createPageSubpageInsertCommand,
+  readPageIconFrom,
+  readPageLifecycleFrom,
+  readPageTitleFrom,
+} from '../lib/pages.editor.subpage.lib';
 import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
 import { createPageUnsyncCommand, readBorrowedBlock } from '../lib/pages.editor.synced.lib';
 import { createPageTextColorCommand } from '../lib/pages.editor.text-color.lib';
@@ -93,6 +98,7 @@ import type { PageDestination } from '../types/pages.editor.destination.types';
 import type { PageEditorLinkAtHand } from '../types/pages.editor.link.types';
 import type { PageEditorPageShape } from '../types/pages.editor.page-shape.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
+import type { PageIcon } from '../types/pages.icon.types';
 import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
@@ -191,6 +197,14 @@ export const PagesProseMirrorEditor = forwardRef(
     const collectionSpotRef = useRef(0);
     const pagesRef = useRef(pages);
     const readPageTitleRef = useRef((childId: string): string | null => readPageTitleFrom(pagesRef.current, childId));
+    const readPageIconRef = useRef((childId: string): PageIcon | null => readPageIconFrom(pagesRef.current, childId));
+    const readPageLifecycleRef = useRef((childId: string): PageLifecycle | null =>
+      readPageLifecycleFrom(pagesRef.current, childId),
+    );
+    const mentionTrashedLabelsRef = useRef({
+      label: t('mentionTrashed.label'),
+      tooltip: (name: string) => t('mentionTrashed.tooltip', { name }),
+    });
     const personOptionsRef = useRef(personOptions);
     const findPersonForHoverRef = useRef((userId: string): PagePersonOption | undefined =>
       personOptionsRef.current.find((option) => option.id === userId),
@@ -512,6 +526,7 @@ export const PagesProseMirrorEditor = forwardRef(
             formula: formulaLabelsRef.current,
             image: imageLabelsRef.current,
             media: mediaLabelsRef.current,
+            mentionTrashed: mentionTrashedLabelsRef.current,
             person: personLabelRef.current,
             button: buttonLabelsRef.current,
             subpage: subpageLabelsRef.current,
@@ -524,6 +539,8 @@ export const PagesProseMirrorEditor = forwardRef(
           (borrowedPageId, blockId) => readBorrowedBlock(pagesRef.current, borrowedPageId, blockId),
           (at) => pressTheButtonRef.current(at),
           (userId) => findPersonForHoverRef.current(userId),
+          (mentionedPageId) => readPageIconRef.current(mentionedPageId),
+          (mentionedPageId) => readPageLifecycleRef.current(mentionedPageId),
         ),
         state: editorState,
       });
@@ -1085,7 +1102,12 @@ export const PagesProseMirrorEditor = forwardRef(
               rested={linkUnderPointer}
             />
           )}
-          <PagesPreviewLayer atHand={preview.atHand} outcome={preview.outcome} />
+          <PagesPreviewLayer
+            atHand={preview.atHand}
+            onHold={preview.hold}
+            onLetGo={preview.letGo}
+            outcome={preview.outcome}
+          />
           {/* One floating thing at a time: a bar and a bubble on the same words cover each other. */}
           {canEdit &&
             isWritingInHand &&

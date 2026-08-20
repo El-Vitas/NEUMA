@@ -2,7 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
-import { createPageSubpageInsertCommand, readPageTitleFrom } from '@/modules/pages/lib/pages.editor.subpage.lib';
+import {
+  createPageSubpageInsertCommand,
+  readPageLifecycleFrom,
+  readPageTitleFrom,
+} from '@/modules/pages/lib/pages.editor.subpage.lib';
 
 const emptyPage: PageContent = {
   content: [{ content: [], type: 'paragraph' }],
@@ -40,5 +44,18 @@ describe('readPageTitleFrom', () => {
 
     expect(readPageTitleFrom(pages, 'page-2')).toBe('Hija con nombre');
     expect(readPageTitleFrom(pages, 'page-9')).toBeNull();
+  });
+});
+
+describe('readPageLifecycleFrom', () => {
+  it('says whether a page mentioned here is still one, and says nothing about one it does not know', () => {
+    const pages = [
+      { id: 'page-1', lifecycle: 'ACTIVE' as const },
+      { id: 'page-2', lifecycle: 'TRASHED' as const },
+    ];
+
+    expect(readPageLifecycleFrom(pages, 'page-1')).toBe('ACTIVE');
+    expect(readPageLifecycleFrom(pages, 'page-2')).toBe('TRASHED');
+    expect(readPageLifecycleFrom(pages, 'page-9')).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
 import type { SEARCH_SOURCE_TYPES } from '../constants/search.constants';
 import type { searchQuerySchema } from '../schemas/search.schemas';
 
@@ -13,6 +14,7 @@ export interface SearchSnippetPart {
 
 export interface SearchResult {
   readonly contentType: string;
+  readonly icon?: PageIcon | null;
   readonly parentPageId?: string | null;
   readonly parentPageTitle?: string | null;
   readonly rank: number;
