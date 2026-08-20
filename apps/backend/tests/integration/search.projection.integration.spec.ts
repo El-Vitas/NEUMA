@@ -9,6 +9,7 @@ import { loginUser, registerUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SearchResponseItem {
+  icon: { kind: string; value?: string } | null;
   parentPageId: string | null;
   parentPageTitle: string | null;
   sourceId: string;
@@ -58,6 +59,7 @@ describe('Search Projection (Integration)', () => {
   let outsiderToken: string;
   let searchTerm: string;
   let pageId: string;
+  let spaceId: string;
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
@@ -87,6 +89,7 @@ describe('Search Projection (Integration)', () => {
       })
       .expect(201);
     const space = spaceResponse.body as SpaceResponse;
+    spaceId = space.id;
 
     const content: PageContent = {
       content: [{ content: [{ text: searchTerm, type: 'text' }], type: 'paragraph' }],
@@ -128,5 +131,36 @@ describe('Search Projection (Integration)', () => {
     expect(projectedPage?.spaceName).toBe('Restricted Search Space');
     expect(projectedPage?.parentPageId).toBeNull();
     expect(projectedPage?.parentPageTitle).toBeNull();
+  });
+
+  it('learns the mark a page takes on after it was already indexed', async () => {
+    await request(testApp.getServer())
+      .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}/icon`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ icon: { kind: 'emoji', value: '🛰️' } })
+      .expect(200);
+
+    await drainProjectionOutbox(testApp.get(SearchProjectionWorker));
+
+    const response = await searchAs(testApp, adminToken, searchTerm);
+    const projectedPage = response.items.find((item) => item.sourceId === pageId);
+
+    expect(projectedPage?.icon).toEqual({ kind: 'emoji', value: '🛰️' });
+  });
+
+  it('learns the name a page takes on after it was already indexed', async () => {
+    const renamedTitle = `${searchTerm} renombrada`;
+    await request(testApp.getServer())
+      .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}/title`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: renamedTitle })
+      .expect(200);
+
+    await drainProjectionOutbox(testApp.get(SearchProjectionWorker));
+
+    const response = await searchAs(testApp, adminToken, searchTerm);
+    const projectedPage = response.items.find((item) => item.sourceId === pageId);
+
+    expect(projectedPage?.title).toBe(renamedTitle);
   });
 });

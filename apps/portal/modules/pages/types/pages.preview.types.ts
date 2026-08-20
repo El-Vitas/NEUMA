@@ -1,4 +1,5 @@
 import type { PageEditorSpot } from './pages.editor.surface.types';
+import type { PageIcon } from './pages.icon.types';
 
 /** Which page a mention or an internal link points at. */
 export interface PagePreviewTarget {
@@ -31,7 +32,7 @@ export interface PagePreviewProperty {
 /** What a page says about itself, read for whoever is only glancing at it. */
 export interface PagePreviewContent {
   readonly fragment: string;
-  readonly icon: string | null;
+  readonly icon: PageIcon | null;
   readonly properties: readonly PagePreviewProperty[];
   readonly title: string;
 }
@@ -45,5 +46,8 @@ export type PagePreviewOutcome =
 export interface PagesPreviewState {
   readonly atHand: PagePreviewAtHand | null;
   readonly close: () => void;
+  /** Said by the card itself while the pointer is on it, which the writing underneath cannot see. */
+  readonly hold: () => void;
+  readonly letGo: () => void;
   readonly outcome: PagePreviewOutcome | null;
 }

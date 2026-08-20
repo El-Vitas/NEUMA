@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageIconGlyph } from '@/shared/components/portal/page-icon-glyph';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { hasActionError, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import {
@@ -21,7 +22,6 @@ import {
 import type { PageIcon, PageIconColor } from '../types/pages.icon.types';
 import type { PageSummary } from '../types/pages.types';
 import { PagesIconDisplay } from './pages.icon.display';
-import { PagesIconGlyph } from './pages.icon.glyph';
 import { PagesIconMenu } from './pages.icon.menu';
 
 interface IProps {
@@ -93,7 +93,7 @@ export const PagesIconField = ({ canEdit, icon, onIconChange, pageId, spaceId, t
             disabled={isPending}
             type="button"
           >
-            <PagesIconGlyph icon={icon} />
+            <PageIconGlyph icon={icon} />
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[min(20rem,calc(100vw-2rem))]">

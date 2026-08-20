@@ -8,6 +8,7 @@ import type {
 
 const searchResult: SearchResultWithContext = {
   contentType: 'PAGE',
+  icon: null,
   parentPageId: null,
   parentPageTitle: null,
   rank: 0.8,

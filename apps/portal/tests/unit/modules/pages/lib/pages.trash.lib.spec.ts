@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import { buildPageTrashListQuerySuffix, buildPageTrashUrl } from '@/modules/pages/lib/pages.trash.lib';
+import {
+  buildPageTrashListQuerySuffix,
+  buildPageTrashUrl,
+  resolvePageRestoreNotice,
+} from '@/modules/pages/lib/pages.trash.lib';
+import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
 describe('buildPageTrashUrl', () => {
@@ -31,5 +36,40 @@ describe('buildPageTrashListQuerySuffix', () => {
 
   it('drops an empty search instead of carrying an empty parameter', () => {
     expect(buildPageTrashListQuerySuffix('space-a', '')).toBe('?spaceId=space-a');
+  });
+});
+
+describe('resolvePageRestoreNotice', () => {
+  const buildOutcome = (overrides: Partial<TrashRestoreOutcome> = {}): TrashRestoreOutcome => ({
+    parentTitle: null,
+    restoredChildCount: 0,
+    restoredToRoot: false,
+    spaceName: null,
+    ...overrides,
+  });
+
+  it('names the space when the page landed at its root', () => {
+    expect(resolvePageRestoreNotice(buildOutcome({ spaceName: 'Engineering' }))).toEqual({
+      kind: 'toRoot',
+      space: 'Engineering',
+    });
+  });
+
+  it('names the parent when the page landed under one', () => {
+    expect(resolvePageRestoreNotice(buildOutcome({ parentTitle: 'Product' }))).toEqual({
+      kind: 'underParent',
+      parent: 'Product',
+    });
+  });
+
+  it('prefers the space over the parent when the outcome carries both', () => {
+    expect(resolvePageRestoreNotice(buildOutcome({ parentTitle: 'Product', spaceName: 'Engineering' }))).toEqual({
+      kind: 'toRoot',
+      space: 'Engineering',
+    });
+  });
+
+  it('falls back to a generic notice when the outcome names neither', () => {
+    expect(resolvePageRestoreNotice(buildOutcome())).toEqual({ kind: 'restored' });
   });
 });

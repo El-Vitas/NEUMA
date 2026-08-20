@@ -3,13 +3,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
+import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import en from '../../../../../../messages/en.json';
 
 let pathname = '/spaces/engineering';
 
 const refreshRouter = mock(() => undefined);
-const restorePage = mock(async () => ({ data: undefined }));
+const restorePage = mock(
+  async (): Promise<{ data: TrashRestoreOutcome }> => ({
+    data: { parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null },
+  }),
+);
 const movePage = mock(async () => ({ data: undefined }));
 
 mock.module('next/navigation', () => ({
@@ -254,6 +259,19 @@ describe('SidebarPageTree', () => {
       expect(restorePage).toHaveBeenCalledWith({ pageId: 'parent-page', spaceId });
       expect(refreshRouter).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('names where the page landed once undo restores it, instead of a generic notice', async () => {
+    restorePage.mockImplementationOnce(async () => ({
+      data: { parentTitle: 'Sibling page', restoredChildCount: 0, restoredToRoot: false, spaceName: null },
+    }));
+    renderSidebarPageTree([parentPage]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move Parent page to the trash' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm trash' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+
+    expect(await screen.findByText('"Parent page" went back under "Sibling page".')).toBeDefined();
   });
 
   it('announces the page being dragged as soon as the drag starts', () => {

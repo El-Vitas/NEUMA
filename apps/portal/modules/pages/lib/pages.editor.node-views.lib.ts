@@ -1,3 +1,4 @@
+import { PAGE_LIFECYCLE, type PageLifecycle } from '@company-brain/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
@@ -14,6 +15,8 @@ import {
   PAGE_EDITOR_MARKS,
   PAGE_EDITOR_MENTION_MARK_STYLE_CLASS,
   PAGE_EDITOR_MENTION_STYLE_CLASS,
+  PAGE_EDITOR_MENTION_TRASHED_STYLE_CLASS,
+  PAGE_EDITOR_MENTION_TRASHED_TAG_STYLE_CLASS,
   PAGE_EDITOR_SUBPAGE_TYPE,
   PAGE_EDITOR_SYNCED_TYPE,
   PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH,
@@ -26,7 +29,8 @@ import {
   PAGE_EDITOR_VIDEO_TYPE,
 } from '../constants/pages.editor.blocks.constants';
 import { PAGE_EDITOR_BUTTON_TYPE } from '../constants/pages.editor.button.constants';
-import type { PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import type { PageEditorMentionTrashedLabels, PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
+import type { PageIcon } from '../types/pages.icon.types';
 import type { PagePersonOption } from '../types/pages.schema.types';
 import { resolvePageAssetUrl as getPageAssetUrl } from './pages.attachments.lib';
 import { createPageBookmarkNodeView } from './pages.editor.bookmark.node-view.lib';
@@ -47,6 +51,7 @@ import { createPageSyncedNodeView } from './pages.editor.synced.node-view.lib';
 import { PageTableView } from './pages.editor.table.view.lib';
 import { createPageTaskItemNodeView } from './pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from './pages.editor.toggle.node-view.lib';
+import { resolvePageIconImageUrl } from './pages.icon.lib';
 
 /**
  * Renders a file as what it is: a name, what kind of file it is and how heavy,
@@ -76,17 +81,75 @@ const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView
  * kind of thing is being named, and that it lives in the writing rather than on
  * a line of its own is what tells it apart from a page started here.
  */
-const createPageMentionNodeView = (node: EditorNode, readPageTitle: (pageId: string) => string | null): NodeView => {
+/**
+ * The mark a mentioned page wears where it is named.
+ *
+ * The icon is asked of the pages this one already knows about rather than kept
+ * inside the mention, so a page that changes its mark changes it everywhere it
+ * is named. A page nobody here has in hand — or one wearing a drawn symbol,
+ * which lives in the drawing set and not in a stroke this can copy — keeps the
+ * plain page mark it always had.
+ */
+const createPageMentionMark = (icon: PageIcon | null): HTMLElement | SVGSVGElement => {
+  if (icon?.kind === 'emoji') {
+    const emoji = document.createElement('span');
+    emoji.setAttribute('aria-hidden', 'true');
+    emoji.className = PAGE_EDITOR_MENTION_MARK_STYLE_CLASS;
+    emoji.textContent = icon.value;
+    return emoji;
+  }
+
+  if (icon?.kind === 'image') {
+    const picture = document.createElement('img');
+    picture.alt = '';
+    picture.className = `${PAGE_EDITOR_MENTION_MARK_STYLE_CLASS} object-cover`;
+    picture.src = resolvePageIconImageUrl(icon);
+    return picture;
+  }
+
+  const mark = createPageMark(PAGE_EDITOR_MARKS.page);
+  mark.setAttribute('class', PAGE_EDITOR_MENTION_MARK_STYLE_CLASS);
+  return mark;
+};
+
+/**
+ * Says a mentioned page was thrown away, in words and not only in color.
+ *
+ * Color alone tells nobody who cannot see it apart; the tag next to the name
+ * and the explanation under the pointer say it outright, the same way for
+ * everyone reading.
+ */
+const markPageMentionAsTrashed = (
+  link: HTMLAnchorElement,
+  title: string,
+  labels: PageEditorMentionTrashedLabels,
+): void => {
+  const tag = document.createElement('span');
+  tag.className = PAGE_EDITOR_MENTION_TRASHED_TAG_STYLE_CLASS;
+  tag.textContent = labels.label;
+  link.classList.add(...PAGE_EDITOR_MENTION_TRASHED_STYLE_CLASS.split(' '));
+  link.title = labels.tooltip(title);
+  link.append(tag);
+};
+
+const createPageMentionNodeView = (
+  node: EditorNode,
+  readPageTitle: (pageId: string) => string | null,
+  readPageIcon: (pageId: string) => PageIcon | null,
+  readPageLifecycle: (pageId: string) => PageLifecycle | null,
+  trashedLabels: PageEditorMentionTrashedLabels,
+): NodeView => {
   const link = document.createElement('a');
   const name = document.createElement('span');
-  const mark = createPageMark(PAGE_EDITOR_MARKS.page);
+  const title = readPageTitle(node.attrs.pageId) ?? node.attrs.label;
 
-  mark.setAttribute('class', PAGE_EDITOR_MENTION_MARK_STYLE_CLASS);
   link.className = PAGE_EDITOR_MENTION_STYLE_CLASS;
   link.href = ROUTES.PORTAL_SPACE_PAGE(node.attrs.spaceId, node.attrs.pageId);
   link.dataset.pageMention = node.attrs.pageId;
-  name.textContent = readPageTitle(node.attrs.pageId) ?? node.attrs.label;
-  link.append(mark, name);
+  name.textContent = title;
+  link.append(createPageMentionMark(readPageIcon(node.attrs.pageId)), name);
+  if (readPageLifecycle(node.attrs.pageId) === PAGE_LIFECYCLE.TRASHED)
+    markPageMentionAsTrashed(link, title, trashedLabels);
   return { dom: link };
 };
 
@@ -113,6 +176,10 @@ export const createPageEditorNodeViews = (
   pressTheButton: (at: number) => void = () => undefined,
   /** Who a named person is, once the pointer rests on them and their id is worth looking up. */
   readPersonForHover: (userId: string) => PagePersonOption | undefined = () => undefined,
+  /** What mark a page wears now, asked the same way its name is. */
+  readPageIcon: (pageId: string) => PageIcon | null = () => null,
+  /** Whether a mentioned page is still there, asked the same way its name is. */
+  readPageLifecycle: (pageId: string) => PageLifecycle | null = () => null,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
@@ -129,7 +196,8 @@ export const createPageEditorNodeViews = (
     createPageImageNodeView(node, view, getPosition, labels.image, getPageAssetUrl),
   [PAGE_EDITOR_BOOKMARK_TYPE]: (node) => createPageBookmarkNodeView(node),
   [PAGE_EDITOR_EMBED_TYPE]: (node, view, getPosition) => createPageEmbedNodeView(node, view, getPosition, labels.embed),
-  mention: (node) => createPageMentionNodeView(node, readPageTitle),
+  mention: (node) =>
+    createPageMentionNodeView(node, readPageTitle, readPageIcon, readPageLifecycle, labels.mentionTrashed),
   person: (node) => createPagePersonNodeView(node, labels.person, { findMember: readPersonForHover }),
   date: (node, view, getPosition) => createPageDateNodeView(node, view, getPosition, labels.date),
   formula: (node, view, getPosition) => createPageFormulaNodeView(node, view, getPosition, labels.formula),

@@ -3,7 +3,7 @@
 import type { PageIcon } from '@company-brain/shared';
 import { FileText, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PagesIconGlyph } from '@/modules/pages/components/pages.icon.glyph';
+import { PageIconGlyph } from '@/shared/components/portal/page-icon-glyph';
 
 interface IProps {
   readonly className?: string;
@@ -27,14 +27,14 @@ export const SidebarTreeIcon = ({ className: sizeClass = 'size-3.5', fallback: F
   if (icon.kind === 'image') {
     return (
       <span aria-hidden="true" className={cn('relative shrink-0 overflow-hidden rounded-xs', sizeClass)}>
-        <PagesIconGlyph icon={icon} />
+        <PageIconGlyph icon={icon} />
       </span>
     );
   }
 
   return (
     <span aria-hidden="true" className={cn('grid shrink-0 place-items-center text-sm leading-none', sizeClass)}>
-      <PagesIconGlyph className={sizeClass} icon={icon} />
+      <PageIconGlyph className={sizeClass} icon={icon} />
     </span>
   );
 };

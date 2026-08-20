@@ -1,9 +1,11 @@
 import { PageLifecycle, SearchSourceType } from '@company-brain/db';
+import type { Prisma } from '@company-brain/db/generated';
 import { readStoredPageContent } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
 import type { OutboxProjectionEvent, OutboxProjectionOutbox } from '../../../../common/types/outbox.types';
-import { SEARCH_OUTBOX_MAX_ATTEMPTS } from '../../constants/search.constants';
+import { SEARCH_MAX_VERSION_MARKER, SEARCH_OUTBOX_MAX_ATTEMPTS } from '../../constants/search.constants';
 import {
   SEARCH_PROJECTION_OUTBOX as SEARCH_PROJECTION_OUTBOX_TOKEN,
   SEARCH_PROJECTION_SOURCE as SEARCH_PROJECTION_SOURCE_TOKEN,
@@ -21,6 +23,7 @@ const toPageProjection = (page: {
   authorId: string;
   authorName: string | null;
   content: unknown;
+  icon: Prisma.JsonValue;
   id: string;
   parentPageId: string | null;
   parentPageTitle: string | null;
@@ -38,6 +41,7 @@ const toPageProjection = (page: {
     properties: {
       authorId: page.authorId,
       authorName: page.authorName,
+      icon: parseStoredPageIcon(page.icon),
       parentPageId: page.parentPageId,
       parentPageTitle: page.parentPageTitle,
       spaceName: page.spaceName,
@@ -64,7 +68,7 @@ const readVersionMarker = (event: OutboxProjectionEvent): number => {
   const payload = readPayloadObject(event);
   return typeof payload.version === 'number' && Number.isSafeInteger(payload.version)
     ? payload.version
-    : Number.MAX_SAFE_INTEGER;
+    : SEARCH_MAX_VERSION_MARKER;
 };
 
 @Injectable()

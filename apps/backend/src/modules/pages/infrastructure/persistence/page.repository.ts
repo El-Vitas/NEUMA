@@ -2,6 +2,7 @@ import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import {
@@ -11,7 +12,6 @@ import {
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
 import { validatePageCover } from '../../domain/page-cover.domain';
-import { validatePageIcon } from '../../domain/page-icon.domain';
 import type {
   CreatePageInput,
   DuplicatePageInput,
@@ -41,11 +41,6 @@ const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Pris
     default:
       return { color: icon.color, kind: icon.kind, name: icon.name };
   }
-};
-
-const parsePageIcon = (icon: Prisma.JsonValue): PageIcon | null => {
-  const validation = validatePageIcon(icon);
-  return validation.isOk() ? validation.getValue() : null;
 };
 
 const toCoverInput = (cover: PageCoverValue | null): Prisma.InputJsonValue | typeof Prisma.JsonNull =>
@@ -284,6 +279,31 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
+  /**
+   * Says out loud that a page changed without a new version of it being cut —
+   * its name, or the mark it wears.
+   *
+   * The index keeps both, so a page renamed or re-marked and never written in
+   * again would otherwise be found under what it used to be called. The moment
+   * the change was written is what tells one such change from the next.
+   */
+  private async announceThePageChanged(
+    page: { readonly id: string; readonly updatedAt: Date },
+    transaction: Prisma.TransactionClient,
+  ): Promise<void> {
+    await this.outboxRepository.create(
+      {
+        aggregateId: page.id,
+        aggregateType: 'PAGE',
+        eventType: 'PAGE_UPDATED',
+        idempotencyKey: `page:${page.id}:changed:${page.updatedAt.toISOString()}`,
+        payload: { pageId: page.id },
+        payloadVersion: 1,
+      },
+      transaction,
+    );
+  }
+
   async rename(
     pageId: string,
     title: string,
@@ -296,13 +316,16 @@ export class PageRepository implements PageRepositoryContract {
       where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
     });
     if (existing === null) return null;
-    const page = await this.prisma.page.update({
-      data: { title, updatedById: userId },
-      select: pageSelection,
-      where: { id: pageId },
+    return this.prisma.$transaction(async (transaction) => {
+      const page = await transaction.page.update({
+        data: { title, updatedById: userId },
+        select: pageSelection,
+        where: { id: pageId },
+      });
+      await this.announceThePageChanged(page, transaction);
+      const authors = await this.resolvePageAuthors([page]);
+      return this.toSummary(page, authors);
     });
-    const authors = await this.resolvePageAuthors([page]);
-    return this.toSummary(page, authors);
   }
 
   /** Locking is not editing what the page says, so it is recorded without cutting a new version of it. */
@@ -360,13 +383,16 @@ export class PageRepository implements PageRepositoryContract {
       where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
     });
     if (existing === null) return null;
-    const page = await this.prisma.page.update({
-      data: { icon: toIconInput(icon), updatedById: userId },
-      select: pageSelection,
-      where: { id: pageId },
+    return this.prisma.$transaction(async (transaction) => {
+      const page = await transaction.page.update({
+        data: { icon: toIconInput(icon), updatedById: userId },
+        select: pageSelection,
+        where: { id: pageId },
+      });
+      await this.announceThePageChanged(page, transaction);
+      const authors = await this.resolvePageAuthors([page]);
+      return this.toSummary(page, authors);
     });
-    const authors = await this.resolvePageAuthors([page]);
-    return this.toSummary(page, authors);
   }
 
   /**
@@ -561,9 +587,10 @@ export class PageRepository implements PageRepositoryContract {
         where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
       });
       if (page === null || page.lifecycle !== PageLifecycle.TRASHED) return null;
-      const parentLifecycle = await this.findParentLifecycle(transaction, page.parentId);
-      const restoredToRoot = page.parentId !== null && parentLifecycle !== PageLifecycle.ACTIVE;
+      const parent = await this.findParentInfo(transaction, page.parentId);
+      const restoredToRoot = page.parentId !== null && parent?.lifecycle !== PageLifecycle.ACTIVE;
       const resolvedParentId = restoredToRoot ? null : page.parentId;
+      const spaceName = restoredToRoot ? await this.findSpaceName(transaction, page.spaceId) : null;
 
       const hierarchy = await this.fetchSpaceHierarchy(transaction, page.spaceId);
       const trashedDescendantIds = includeChildren
@@ -588,7 +615,12 @@ export class PageRepository implements PageRepositoryContract {
         page.spaceId,
       );
 
-      return { restoredChildCount: trashedDescendantIds.length, restoredToRoot };
+      return {
+        parentTitle: restoredToRoot ? null : (parent?.title ?? null),
+        restoredChildCount: trashedDescendantIds.length,
+        restoredToRoot,
+        spaceName,
+      };
     });
   }
 
@@ -710,7 +742,7 @@ export class PageRepository implements PageRepositoryContract {
       createdAt: page.createdAt,
       createdBy: users.get(page.createdById) ?? null,
       cover: parsePageCover(page.cover),
-      icon: parsePageIcon(page.icon),
+      icon: parseStoredPageIcon(page.icon),
       id: page.id,
       lifecycle: page.lifecycle,
       lockedAt: page.lockedAt,
@@ -751,13 +783,17 @@ export class PageRepository implements PageRepositoryContract {
     return this.filterDescendantsByLifecycle(pageId, hierarchy, lifecycle).length;
   }
 
-  private async findParentLifecycle(
+  private async findParentInfo(
     transaction: Prisma.TransactionClient,
     parentId: null | string,
-  ): Promise<null | PageLifecycle> {
+  ): Promise<null | { lifecycle: PageLifecycle; title: string }> {
     if (parentId === null) return null;
-    const parent = await transaction.page.findFirst({ select: { lifecycle: true }, where: { id: parentId } });
-    return parent?.lifecycle ?? null;
+    return transaction.page.findFirst({ select: { lifecycle: true, title: true }, where: { id: parentId } });
+  }
+
+  private async findSpaceName(transaction: Prisma.TransactionClient, spaceId: string): Promise<null | string> {
+    const space = await transaction.space.findFirst({ select: { name: true }, where: { id: spaceId } });
+    return space?.name ?? null;
   }
 
   /**
@@ -820,7 +856,7 @@ export class PageRepository implements PageRepositoryContract {
         content: content.getValue(),
         cover: toCoverInput(parsePageCover(original.cover)),
         createdById: userId,
-        icon: toIconInput(parsePageIcon(original.icon)),
+        icon: toIconInput(parseStoredPageIcon(original.icon)),
         order,
         parentId,
         propertyValues: toPropertyValuesInput(parseSchemaPropertyValues(original.propertyValues)),

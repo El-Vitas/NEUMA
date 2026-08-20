@@ -71,7 +71,8 @@ const createRepository = (): PageRepositoryContract => ({
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
-  restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: false }),
+  restoreCascade: () =>
+    Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
   rename: () => Promise.resolve(page),
@@ -481,7 +482,12 @@ describe('pages service', () => {
         includeChildren: boolean,
       ) => {
         receivedIncludeChildren = includeChildren;
-        return Promise.resolve({ restoredChildCount: includeChildren ? 4 : 0, restoredToRoot: false });
+        return Promise.resolve({
+          parentTitle: 'Parent Page',
+          restoredChildCount: includeChildren ? 4 : 0,
+          restoredToRoot: false,
+          spaceName: null,
+        });
       },
     };
     const service = new PagesService(
@@ -494,13 +500,19 @@ describe('pages service', () => {
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER, true);
 
     expect(receivedIncludeChildren).toBe(true);
-    expect(result.getValue()).toEqual({ restoredChildCount: 4, restoredToRoot: false });
+    expect(result.getValue()).toEqual({
+      parentTitle: 'Parent Page',
+      restoredChildCount: 4,
+      restoredToRoot: false,
+      spaceName: null,
+    });
   });
 
   it('explains a restore placed the page at the root because its parent is gone', async () => {
     const repository = {
       ...createRepository(),
-      restoreCascade: () => Promise.resolve({ restoredChildCount: 0, restoredToRoot: true }),
+      restoreCascade: () =>
+        Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: true, spaceName: 'Engineering' }),
     };
     const service = new PagesService(
       repository,
@@ -512,6 +524,7 @@ describe('pages service', () => {
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
 
     expect(result.getValue().restoredToRoot).toBe(true);
+    expect(result.getValue().spaceName).toBe('Engineering');
   });
 
   it('lists the pages currently in the trash', async () => {

@@ -1,3 +1,4 @@
+import type { PageLifecycle } from '@company-brain/shared';
 import type { Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import {
@@ -5,6 +6,7 @@ import {
   PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageSubpageInsert } from '../types/pages.editor.subpage.types';
+import type { PageIcon } from '../types/pages.icon.types';
 import { createPageEditorAskCommand } from './pages.editor.ask.lib';
 import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
 
@@ -60,3 +62,21 @@ export const readPageTitleFrom = (
   pages: readonly { readonly id: string; readonly title: string }[],
   pageId: string,
 ): string | null => pages.find((page) => page.id === pageId)?.title ?? null;
+
+/** What mark a page wears now, asked the same way its name is. */
+export const readPageIconFrom = (
+  pages: readonly { readonly icon?: PageIcon | null; readonly id: string }[],
+  pageId: string,
+): PageIcon | null => pages.find((page) => page.id === pageId)?.icon ?? null;
+
+/**
+ * Whether a page is still there, asked of the pages this one already knows about.
+ *
+ * Nothing is said when the page is not among them — another space, a page
+ * gone from the list — because not knowing is not the same as knowing it was
+ * thrown away.
+ */
+export const readPageLifecycleFrom = (
+  pages: readonly { readonly id: string; readonly lifecycle: PageLifecycle }[],
+  pageId: string,
+): PageLifecycle | null => pages.find((page) => page.id === pageId)?.lifecycle ?? null;

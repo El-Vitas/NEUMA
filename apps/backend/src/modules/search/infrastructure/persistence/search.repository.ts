@@ -3,6 +3,7 @@ import { SearchIndexingState, SpaceVisibility } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
+import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace } from '../../../../common/domain/workspace.domain';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { SEARCH_TRIGRAM_THRESHOLD } from '../../constants/search.constants';
@@ -27,6 +28,7 @@ const queryExpression = Prisma.sql`websearch_to_tsquery(${searchConfig}, public.
 
 const mapSearchRow = (row: SearchRow): SearchResultWithContext => ({
   contentType: row.contentType,
+  icon: parseStoredPageIcon(row.icon),
   parentPageId: row.parentPageId,
   parentPageTitle: row.parentPageTitle,
   rank: row.rank,
@@ -51,6 +53,7 @@ const buildSearchSql = (
   return Prisma.sql`
     SELECT
       "searchDocument"."contentType",
+      "searchDocument"."properties"->'icon' AS "icon",
       "searchDocument"."properties"->>'parentPageId' AS "parentPageId",
       "searchDocument"."properties"->>'parentPageTitle' AS "parentPageTitle",
       ${rankExpression} AS "rank",

@@ -15,6 +15,9 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
 }));
+mock.module('@/shared/server/actions/space-move-access.actions', () => ({
+  getSpaceMoveAccessLossAction: async () => ({ data: { count: 0 } }),
+}));
 
 const { PagesPropertiesPanel } = await import('@/modules/pages/components/pages.properties.panel');
 

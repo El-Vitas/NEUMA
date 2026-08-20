@@ -1,8 +1,14 @@
 /** How long the pointer has to stay before a preview is worth showing, so passing over a link does not flash one. */
 export const PAGE_PREVIEW_OPEN_DELAY_MS = 500;
 
-/** How long a preview is kept once the pointer has left, so crossing the gap to read it does not lose it. */
-export const PAGE_PREVIEW_CLOSE_DELAY_MS = 200;
+/**
+ * How long a preview is kept once the pointer has left.
+ *
+ * Between the link and the card there is writing, and crossing it is how one
+ * gets to read the card. The wait has to outlast that crossing done at a
+ * reading pace, not at the pace of somebody who already knew where to aim.
+ */
+export const PAGE_PREVIEW_CLOSE_DELAY_MS = 400;
 
 /** Long enough to say what a page holds, short enough that a glance is still a glance. */
 export const PAGE_PREVIEW_FRAGMENT_LIMIT = 240;

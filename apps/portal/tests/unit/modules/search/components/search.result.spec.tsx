@@ -11,6 +11,7 @@ mock.module('next/navigation', () => ({
 
 const baseResult: SearchResult = {
   contentType: 'PAGE',
+  icon: null,
   parentPageId: null,
   parentPageTitle: null,
   rank: 0.8,
@@ -62,5 +63,11 @@ describe('SearchResultCard', () => {
 
     expect(screen.getByText('Page')).toBeDefined();
     expect(screen.queryByText('PAGE')).toBeNull();
+  });
+
+  it('wears the page own mark when it chose one', () => {
+    renderResult({ ...baseResult, icon: { kind: 'emoji', value: '🚀' }, spaceName: 'Engineering' });
+
+    expect(screen.getByText('🚀')).toBeDefined();
   });
 });

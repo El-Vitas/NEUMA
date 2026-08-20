@@ -353,6 +353,12 @@
     "moveError": "Could not move the page. Check that the destination is valid.",
     "moved": "Page moved",
     "moveSearch": "Search for a space or a page",
+    "moveAccessWarning": {
+      "title": "Someone will stop seeing this page",
+      "body": "{count, plural, one {One person who can read this page today will lose access} other {# people who can read this page today will lose access}} in \"{space}\".",
+      "confirm": "Move anyway",
+      "checkError": "Could not check who would lose access, so the page was not moved."
+    },
     "tree": "Page tree",
     "collapsePage": "Collapse {name}",
     "expandPage": "Expand {name}",
@@ -369,12 +375,17 @@
     "blockTooLong": "One block is too long and the page is not being saved. Shorten it or split it into several blocks.",
     "trash": "Trash",
     "trashPage": "Move to trash",
+    "trashHint": "The page stays in the trash and can be restored.",
     "restorePage": "Restore page",
     "empty": "This space does not have any pages yet.",
     "trashNamed": "Move {name} to the trash",
     "permissionError": "You do not have permission to change this page.",
     "restored": "Page restored",
     "trashed": "Page moved to the trash",
+    "mentionTrashed": {
+      "label": "deleted",
+      "tooltip": "{name} was moved to the trash"
+    },
     "trashScreen": {
       "description": "Deleted pages in this space. You can restore them or delete them forever.",
       "empty": "There is nothing in the trash",
@@ -401,6 +412,10 @@
       "restoreError": "Could not restore the page. Try again.",
       "deleteForeverError": "Could not delete the page forever. Try again.",
       "mentionedPageDeleted": "This page was deleted"
+    },
+    "restoreNotice": {
+      "toRoot": "\"{page}\" went back to the root of {space}: the page that held it is no longer available.",
+      "underParent": "\"{page}\" went back under \"{parent}\"."
     },
     "favorites": {
       "add": "Add {name} to favorites",

@@ -16,8 +16,10 @@ export const trashedPagesListSchema = z.array(trashedPageSchema);
 export const trashDescendantsPreviewSchema = z.object({ childPageCount: z.number() });
 
 export const trashRestoreOutcomeSchema = z.object({
+  parentTitle: z.string().nullable(),
   restoredChildCount: z.number(),
   restoredToRoot: z.boolean(),
+  spaceName: z.string().nullable(),
 });
 
 export const trashListQuerySchema = z.object({

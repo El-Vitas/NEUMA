@@ -1,0 +1,205 @@
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { SpaceVisibility } from '@company-brain/db';
+import type { PageContent } from '@company-brain/shared';
+import request from 'supertest';
+import { PrismaService } from '@/prisma/prisma.service';
+import { loginUser, registerUser } from '../helpers/auth.helper';
+import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
+
+interface SpaceResponse {
+  id: string;
+}
+
+interface PageResponse {
+  id: string;
+  parentId: null | string;
+  spaceId: string;
+  title: string;
+}
+
+interface PageRestoreOutcomeResponse {
+  parentTitle: null | string;
+  restoredChildCount: number;
+  restoredToRoot: boolean;
+  spaceName: null | string;
+}
+
+const plainContent = (text: string): PageContent => ({
+  content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],
+  schemaVersion: 1,
+  type: 'doc',
+});
+
+const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
+  const prisma = testApp.get(PrismaService);
+  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+};
+
+const createSpace = async (testApp: TestApp, token: string, name: string, slug: string): Promise<string> => {
+  const response = await request(testApp.getServer())
+    .post('/api/v1/spaces')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name, slug, visibility: SpaceVisibility.PUBLIC_INTERNAL })
+    .expect(201);
+  return (response.body as SpaceResponse).id;
+};
+
+const createPage = async (
+  testApp: TestApp,
+  token: string,
+  spaceId: string,
+  title: string,
+  parentId?: string,
+): Promise<PageResponse> => {
+  const response = await request(testApp.getServer())
+    .post(`/api/v1/spaces/${spaceId}/pages`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ content: plainContent(title), parentId, title })
+    .expect(201);
+  return response.body as PageResponse;
+};
+
+const trashPage = (testApp: TestApp, token: string, spaceId: string, pageId: string) =>
+  request(testApp.getServer())
+    .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/trash`)
+    .set('Authorization', `Bearer ${token}`)
+    .set('x-mutation-id', crypto.randomUUID())
+    .expect(201);
+
+const deleteForever = (testApp: TestApp, token: string, spaceId: string, pageId: string) =>
+  request(testApp.getServer())
+    .delete(`/api/v1/spaces/${spaceId}/pages/${pageId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+const restorePage = async (
+  testApp: TestApp,
+  token: string,
+  spaceId: string,
+  pageId: string,
+  includeChildren = false,
+): Promise<PageRestoreOutcomeResponse> => {
+  const response = await request(testApp.getServer())
+    .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/restore`)
+    .set('Authorization', `Bearer ${token}`)
+    .set('x-mutation-id', crypto.randomUUID())
+    .send({ includeChildren })
+    .expect(201);
+  return response.body as PageRestoreOutcomeResponse;
+};
+
+const getPage = async (testApp: TestApp, token: string, spaceId: string, pageId: string): Promise<PageResponse> => {
+  const response = await request(testApp.getServer())
+    .get(`/api/v1/spaces/${spaceId}/pages/${pageId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  return response.body as PageResponse;
+};
+
+describe('Restoring a trashed page (Integration)', () => {
+  let testApp: TestApp;
+  let adminToken: string;
+  let spaceId: string;
+
+  beforeAll(async () => {
+    testApp = await bootstrapTestApp();
+
+    const timestamp = Date.now();
+    const adminEmail = `restore-admin-${String(timestamp)}@test.com`;
+    const password = 'plainPassword123';
+
+    await registerUser(testApp, { email: adminEmail, name: 'Restore Admin', password });
+    await promoteToAdmin(testApp, adminEmail);
+
+    const adminSession = await loginUser(testApp, adminEmail, password);
+    adminToken = adminSession.accessToken;
+
+    spaceId = await createSpace(testApp, adminToken, 'Restore Space', `restore-space-${String(timestamp)}`);
+  });
+
+  afterAll(async () => {
+    await testApp.close();
+  });
+
+  it('restores a page back under its parent when the parent is still active', async () => {
+    const parent = await createPage(testApp, adminToken, spaceId, 'Living Parent');
+    const child = await createPage(testApp, adminToken, spaceId, 'Child Of Living Parent', parent.id);
+    await trashPage(testApp, adminToken, spaceId, child.id);
+
+    const outcome = await restorePage(testApp, adminToken, spaceId, child.id);
+
+    expect(outcome.restoredToRoot).toBe(false);
+    expect(outcome.parentTitle).toBe('Living Parent');
+    expect(outcome.spaceName).toBeNull();
+
+    const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
+    expect(restoredChild.parentId).toBe(parent.id);
+  });
+
+  it('restores a page to the root of its space when its parent stays trashed', async () => {
+    const parent = await createPage(testApp, adminToken, spaceId, 'Still Trashed Parent');
+    const child = await createPage(testApp, adminToken, spaceId, 'Child Of Trashed Parent', parent.id);
+    await trashPage(testApp, adminToken, spaceId, parent.id);
+
+    const outcome = await restorePage(testApp, adminToken, spaceId, child.id);
+
+    expect(outcome.restoredToRoot).toBe(true);
+    expect(outcome.parentTitle).toBeNull();
+    expect(outcome.spaceName).toBe('Restore Space');
+
+    const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
+    expect(restoredChild.parentId).toBeNull();
+  });
+
+  /**
+   * `Page.parentId` has `onDelete: SetNull`, so the instant the mother is deleted
+   * forever, Postgres nulls every reference to her — including a trashed child's,
+   * before restore ever runs. Nothing in the schema is left to say she once had a
+   * mother, so this lands exactly like a page that was always at the root: no
+   * notice, because there is nothing left to name. Restoring still lands the page
+   * somewhere real and reachable; only the explanation is unavailable. Closing
+   * that gap would need a schema change (e.g. keeping the mother's title once she
+   * is gone), which is out of scope here.
+   */
+  it('restores a page to the root of its space when its parent was deleted forever, without a notice to name her by', async () => {
+    const parent = await createPage(testApp, adminToken, spaceId, 'Deleted Forever Parent');
+    const child = await createPage(testApp, adminToken, spaceId, 'Child Of Deleted Parent', parent.id);
+    await trashPage(testApp, adminToken, spaceId, parent.id);
+    await deleteForever(testApp, adminToken, spaceId, parent.id);
+
+    const outcome = await restorePage(testApp, adminToken, spaceId, child.id);
+
+    expect(outcome.restoredToRoot).toBe(false);
+    expect(outcome.parentTitle).toBeNull();
+    expect(outcome.spaceName).toBeNull();
+
+    const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
+    expect(restoredChild.parentId).toBeNull();
+  });
+
+  it('carries no restore notice when the page had no parent to begin with', async () => {
+    const topLevelPage = await createPage(testApp, adminToken, spaceId, 'Already At Root');
+    await trashPage(testApp, adminToken, spaceId, topLevelPage.id);
+
+    const outcome = await restorePage(testApp, adminToken, spaceId, topLevelPage.id);
+
+    expect(outcome.restoredToRoot).toBe(false);
+    expect(outcome.parentTitle).toBeNull();
+    expect(outcome.spaceName).toBeNull();
+  });
+
+  it('still restores trashed descendants alongside their parent', async () => {
+    const parent = await createPage(testApp, adminToken, spaceId, 'Cascade Parent');
+    const child = await createPage(testApp, adminToken, spaceId, 'Cascade Child', parent.id);
+    await trashPage(testApp, adminToken, spaceId, child.id);
+    await trashPage(testApp, adminToken, spaceId, parent.id);
+
+    const outcome = await restorePage(testApp, adminToken, spaceId, parent.id, true);
+
+    expect(outcome.restoredChildCount).toBe(1);
+    expect(outcome.restoredToRoot).toBe(false);
+
+    const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
+    expect(restoredChild.parentId).toBe(parent.id);
+  });
+});

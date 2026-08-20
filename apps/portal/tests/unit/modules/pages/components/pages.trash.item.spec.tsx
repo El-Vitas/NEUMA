@@ -16,7 +16,7 @@ type RestorePageResult = { readonly data: TrashRestoreOutcome } | { readonly ser
 const refresh = mock(() => undefined);
 const restorePage = mock(
   async (_input: RestorePageInput): Promise<RestorePageResult> => ({
-    data: { restoredChildCount: 0, restoredToRoot: false },
+    data: { parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null },
   }),
 );
 const getPageRestorePreview = mock(async () => ({ data: { childPageCount: 0 } }));
@@ -80,18 +80,32 @@ describe('PagesTrashItem', () => {
     });
   });
 
-  it('names the page restored to the root once its own outcome says its parent no longer exists', async () => {
+  it('names the page and its space once the outcome says the page landed at the root', async () => {
     getPageRestorePreview.mockImplementation(async () => ({ data: { childPageCount: 0 } }));
-    restorePage.mockImplementation(async () => ({ data: { restoredChildCount: 0, restoredToRoot: true } }));
+    restorePage.mockImplementation(async () => ({
+      data: { parentTitle: null, restoredChildCount: 0, restoredToRoot: true, spaceName: 'Engineering' },
+    }));
     renderItem();
 
     fireEvent.click(screen.getByRole('button', { name: 'Restore page' }));
 
     expect(
       await screen.findByText(
-        'Page restored. Its parent page no longer exists, so it was placed at the root of the space.',
+        '"Roadmap" went back to the root of Engineering: the page that held it is no longer available.',
       ),
     ).toBeDefined();
+  });
+
+  it('names the parent it was restored under when the outcome reports one', async () => {
+    getPageRestorePreview.mockImplementation(async () => ({ data: { childPageCount: 0 } }));
+    restorePage.mockImplementation(async () => ({
+      data: { parentTitle: 'Product', restoredChildCount: 0, restoredToRoot: false, spaceName: null },
+    }));
+    renderItem();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restore page' }));
+
+    expect(await screen.findByText('"Roadmap" went back under "Product".')).toBeDefined();
   });
 
   it('reports the restore as failed instead of a false success when the action does not answer with an outcome', async () => {

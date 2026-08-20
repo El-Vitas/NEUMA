@@ -3,6 +3,18 @@ name: La vida de una página
 purpose: Reúne las reglas de cómo nace una página, cómo se nombra, dónde vive y qué ocurre cuando cambia de sitio.
 scope: pages
 rules:
+  - id: BR-0d64742
+    status: active
+    title: La vista previa se puede alcanzar y se puede entrar en ella
+    rule: >-
+      La tarjeta que aparece al descansar sobre el nombre de una página se queda mientras el puntero va hacia ella y
+      mientras está encima. Desde la tarjeta se llega a la página que muestra.
+    why: >-
+      Una tarjeta que se va cuando uno baja a leerla no se puede leer, y una que no lleva a ninguna parte obliga a
+      volver a la palabra que la abrió. Lo que se muestra tiene que poder alcanzarse.
+    context: >-
+      El espacio entre el nombre y la tarjeta pertenece a la tarjeta, así que bajar nunca es salir. Por llevar algo
+      dentro que se puede alcanzar, la tarjeta no es un rótulo de ayuda.
   - id: BR-6191a45
     status: active
     title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
@@ -80,3 +92,17 @@ rules:
         given: Una página recién creada y sin nombre
         when: Se escribe un título y no se pulsa nada más
         then: El título queda guardado
+  - id: BR-f033642
+    status: active
+    title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia
+    rule: >-
+      Renombrar una página o cambiarle la marca avisa al índice de búsqueda, igual que escribir en ella. Una página que
+      se tira a la papelera o se borra deja de encontrarse, y ese olvido se pide con una versión que el índice pueda
+      guardar.
+    why: >-
+      Una página renombrada que sigue encontrándose por su nombre viejo es una mentira que nadie corrige, porque nadie
+      sabe que está ahí. Y un olvido que falla no se nota: la página desaparece de la vista y sigue apareciendo en los
+      resultados de cualquiera.
+    context: >-
+      Cada cambio se anuncia una sola vez, distinguido por el momento en que se escribió. El índice proyecta fuera del
+      servidor, así que el aviso viaja por la bandeja de salida.

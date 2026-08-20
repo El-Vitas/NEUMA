@@ -22,3 +22,9 @@ export interface PageMoveDestination {
   readonly spaceName: string;
   readonly title: string;
 }
+
+/** A cross-space move waiting on the person who asked for it, since it would cost someone their access. */
+export interface PendingAccessLossPageMove {
+  readonly count: number;
+  readonly destination: PageMoveDestination;
+}

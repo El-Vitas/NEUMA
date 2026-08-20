@@ -1,7 +1,8 @@
 import { SpaceVisibility } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
-import { type PageIcon, pageIconSchema, type UserRole } from '@company-brain/shared';
+import { type PageIcon, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace } from '../../../../common/domain/workspace.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { findAccessibleSpaceId } from '../../../../common/infrastructure/persistence/space.visibility.filter';
@@ -22,12 +23,6 @@ const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Pris
     default:
       return { color: icon.color, kind: icon.kind, name: icon.name };
   }
-};
-
-/** A mark stored before its shape was known is dropped rather than handed on as something it is not. */
-const parseIcon = (icon: Prisma.JsonValue): PageIcon | null => {
-  const validation = pageIconSchema.safeParse(icon);
-  return validation.success ? validation.data : null;
 };
 
 const spaceSelection = { icon: true, id: true, name: true, order: true, slug: true, visibility: true } as const;
@@ -54,7 +49,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
         ],
       },
     });
-    return spaces.map((space) => ({ ...space, icon: parseIcon(space.icon) }));
+    return spaces.map((space) => ({ ...space, icon: parseStoredPageIcon(space.icon) }));
   }
 
   /**
@@ -108,7 +103,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
         },
         transaction,
       );
-      return { ...space, icon: parseIcon(space.icon) };
+      return { ...space, icon: parseStoredPageIcon(space.icon) };
     });
   }
 
@@ -126,7 +121,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
       select: spaceSelection,
       where: { id: accessibleSpaceId },
     });
-    return { ...space, icon: parseIcon(space.icon) };
+    return { ...space, icon: parseStoredPageIcon(space.icon) };
   }
 
   async updateIcon(
@@ -156,5 +151,49 @@ export class SpaceRepository implements SpaceRepositoryContract {
     const accessibleSpaceId = await findAccessibleSpaceId(this.prisma, spaceId, workspaceId, userId, role);
     if (accessibleSpaceId === null) return null;
     return this.workspaceMemberRepository.listAssignableMembers(workspaceId);
+  }
+
+  /**
+   * Who reads the source space today and would not read the destination — the
+   * question a move across spaces has to answer before it happens. A move that
+   * does not cross spaces, or that lands in a space the whole organization can
+   * already read, costs nothing beyond the two access checks it needed anyway.
+   */
+  async countMembersLosingAccess(
+    sourceSpaceId: string,
+    targetSpaceId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<number | null> {
+    const [accessibleSourceId, accessibleTargetId] = await Promise.all([
+      findAccessibleSpaceId(this.prisma, sourceSpaceId, workspaceId, userId, role),
+      findAccessibleSpaceId(this.prisma, targetSpaceId, workspaceId, userId, role),
+    ]);
+    if (accessibleSourceId === null || accessibleTargetId === null) return null;
+    if (accessibleSourceId === accessibleTargetId) return 0;
+
+    const [sourceSpace, targetSpace] = await Promise.all([
+      this.prisma.space.findUniqueOrThrow({ select: { visibility: true }, where: { id: accessibleSourceId } }),
+      this.prisma.space.findUniqueOrThrow({ select: { visibility: true }, where: { id: accessibleTargetId } }),
+    ]);
+    if (targetSpace.visibility === SpaceVisibility.PUBLIC_INTERNAL) return 0;
+
+    const [members, sourceMembers, targetMembers] = await Promise.all([
+      this.prisma.workspaceMember.findMany({
+        select: { role: true, userId: true },
+        where: { user: { isActive: true }, workspaceId },
+      }),
+      this.prisma.spaceMember.findMany({ select: { userId: true }, where: { spaceId: accessibleSourceId } }),
+      this.prisma.spaceMember.findMany({ select: { userId: true }, where: { spaceId: accessibleTargetId } }),
+    ]);
+    const sourceMemberIds = new Set(sourceMembers.map((member) => member.userId));
+    const targetMemberIds = new Set(targetMembers.map((member) => member.userId));
+
+    return members.filter((member) => {
+      const canReadSource = canReadSpace(member.role, sourceSpace.visibility, sourceMemberIds.has(member.userId));
+      const canReadTarget = canReadSpace(member.role, targetSpace.visibility, targetMemberIds.has(member.userId));
+      return canReadSource && !canReadTarget;
+    }).length;
   }
 }

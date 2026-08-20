@@ -2,6 +2,11 @@ import { PAGE_LIFECYCLE } from '@company-brain/shared';
 import type { KeyboardEvent } from 'react';
 import { buildTree, getTreeExpandedIds } from '@/shared/lib/tree.lib';
 import { PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE } from '../constants/portal.sidebar.drag.constants';
+import {
+  SIDEBAR_TREE_INDENT_BASE_PX,
+  SIDEBAR_TREE_INDENT_STEP_PX,
+  SIDEBAR_TREE_MAX_INDENTED_DEPTH,
+} from '../constants/sidebar.constants';
 import type { PortalSidebarPageKeyboardMove } from '../types/portal.sidebar.drag.types';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '../types/portal.types';
 
@@ -154,3 +159,6 @@ export const isPortalSidebarPageMoveShortcut = (
   if (event.key === 'ArrowLeft') return PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE.Outdent;
   return null;
 };
+
+export const buildSidebarTreeIndent = (depth: number): number =>
+  Math.min(depth, SIDEBAR_TREE_MAX_INDENTED_DEPTH) * SIDEBAR_TREE_INDENT_STEP_PX + SIDEBAR_TREE_INDENT_BASE_PX;

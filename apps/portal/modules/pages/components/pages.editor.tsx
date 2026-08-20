@@ -1,9 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { hasActionError } from '@/shared/lib/action-result';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_BACKLINKS,
@@ -41,6 +43,7 @@ import { PagesLockToggle } from './pages.lock.toggle';
 import { PagesOutline } from './pages.outline';
 import { PagesPropertiesPanel } from './pages.properties.panel';
 import { PagesProseMirrorEditor } from './pages.prose-mirror.editor';
+import { PagesTrashButton } from './pages.trash.button';
 
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
@@ -75,6 +78,7 @@ export const PagesEditor = ({
   spaceId,
   spaceName,
 }: IProps) => {
+  const router = useRouter();
   const t = useTranslations('pages');
   const [title, setTitle] = useState(page.title);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +114,10 @@ export const PagesEditor = ({
   const isLocked = lockedAt !== null;
   const canWrite = canEdit && !isLocked;
   const canAutosave = canWrite && page.lifecycle === 'ACTIVE';
+  const canTrash = canWrite && page.lifecycle === 'ACTIVE';
+
+  /** Whoever sent the page away stops looking at a page that is no longer there. */
+  const handlePageTrashed = (): void => router.push(ROUTES.PORTAL_SPACE(spaceId));
 
   const autosave = usePagesAutosave({
     enabled: canAutosave,
@@ -199,6 +207,11 @@ export const PagesEditor = ({
             spaceName={spaceName}
             title={title}
             titleInputRef={titleInputRef}
+            trashControl={
+              canTrash ? (
+                <PagesTrashButton onTrashed={handlePageTrashed} pageId={page.id} spaceId={spaceId} title={title} />
+              ) : null
+            }
           />
           <PagesPropertiesPanel
             attachments={visiblePageAttachments}

@@ -19,6 +19,13 @@ export interface PageEditorSubpageLabels {
   readonly untitled: string;
 }
 
+/** What a mention says once the page it names has been thrown away. */
+export interface PageEditorMentionTrashedLabels {
+  readonly label: string;
+  /** The explanation under the pointer, formatted with the mentioned page's name. */
+  readonly tooltip: (name: string) => string;
+}
+
 /**
  * What a date is called, the field where another day is picked, and which
  * language's Intl.DateTimeFormat draws its calendar day.
@@ -56,6 +63,7 @@ export interface PageEditorNodeViewLabels {
   readonly formula: PageEditorFormulaLabels;
   readonly image: PageEditorImageLabels;
   readonly media: PageEditorMediaLabels;
+  readonly mentionTrashed: PageEditorMentionTrashedLabels;
   readonly person: string;
   readonly task: string;
   readonly toggle: PageEditorToggleLabels;

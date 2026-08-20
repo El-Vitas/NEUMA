@@ -66,7 +66,25 @@ describe('trashDescendantsPreviewSchema', () => {
 
 describe('trashRestoreOutcomeSchema', () => {
   it('parses a restore outcome', () => {
-    expect(trashRestoreOutcomeSchema.safeParse({ restoredChildCount: 1, restoredToRoot: true }).success).toBe(true);
+    expect(
+      trashRestoreOutcomeSchema.safeParse({
+        parentTitle: null,
+        restoredChildCount: 1,
+        restoredToRoot: true,
+        spaceName: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('parses the parent title and space name it also carries', () => {
+    expect(
+      trashRestoreOutcomeSchema.safeParse({
+        parentTitle: 'Product',
+        restoredChildCount: 0,
+        restoredToRoot: false,
+        spaceName: null,
+      }).success,
+    ).toBe(true);
   });
 });
 

@@ -2,10 +2,10 @@
 
 import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PagesIconSymbol } from '@/modules/pages/components/pages.icon.symbol';
+import { resolvePageIconImageUrl } from '@/modules/pages/lib/pages.icon.lib';
+import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
 import { ImageWithFallback } from '@/shared/components/ui/image-with-fallback';
-import { resolvePageIconImageUrl } from '../lib/pages.icon.lib';
-import type { PageIcon } from '../types/pages.icon.types';
-import { PagesIconSymbol } from './pages.icon.symbol';
 
 interface IProps {
   readonly className?: string;
@@ -21,7 +21,7 @@ interface IProps {
  * looks like is the same thing everywhere rather than an empty space here and a
  * drawing there.
  */
-export const PagesIconGlyph = ({ className, icon }: IProps) => {
+export const PageIconGlyph = ({ className, icon }: IProps) => {
   if (icon === null) return <FileText aria-hidden="true" className={cn('size-[0.7em]', className)} />;
 
   if (icon.kind === 'image') {

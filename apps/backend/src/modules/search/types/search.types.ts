@@ -1,4 +1,5 @@
 import type { Prisma } from '@company-brain/db/generated';
+import type { PageIcon } from '@company-brain/shared';
 import type { SearchQuery, SearchResult, SearchSourceType } from '../../../common/types/search.types';
 import type { SEARCH_EDITED_RANGE_VALUES } from '../constants/search.constants';
 
@@ -42,6 +43,7 @@ export interface SearchQueryParams {
 
 export interface SearchRow {
   readonly contentType: string;
+  readonly icon: Prisma.JsonValue;
   readonly parentPageId: string | null;
   readonly parentPageTitle: string | null;
   readonly rank: number;
@@ -55,6 +57,7 @@ export interface SearchRow {
 }
 
 export interface SearchResultContext {
+  readonly icon: PageIcon | null;
   readonly parentPageId: string | null;
   readonly parentPageTitle: string | null;
   readonly spaceName: string | null;
@@ -94,6 +97,7 @@ export interface SearchProjectionPage {
   readonly authorId: string;
   readonly authorName: string | null;
   readonly content: Prisma.JsonValue;
+  readonly icon: Prisma.JsonValue;
   readonly id: string;
   readonly lifecycle: string;
   readonly parentPageId: string | null;

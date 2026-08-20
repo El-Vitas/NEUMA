@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { OutboxEventRecord } from '@/common/types/outbox.types';
+import { SEARCH_MAX_VERSION_MARKER } from '@/modules/search/constants/search.constants';
 import { SearchProjectionWorker } from '@/modules/search/infrastructure/worker/search.projection.worker';
 import type {
   SearchDocumentInput,
@@ -17,6 +18,7 @@ const activePage: SearchProjectionPage = {
     schemaVersion: 1,
     type: 'doc',
   },
+  icon: null,
   id: 'page-1',
   lifecycle: 'ACTIVE',
   parentPageId: null,
@@ -97,6 +99,7 @@ describe('SearchProjectionWorker', () => {
         schemaVersion: 1,
         type: 'doc',
       },
+      icon: null,
       id: 'page-1',
       lifecycle: 'ACTIVE',
       parentPageId: 'page-parent',
@@ -142,6 +145,7 @@ describe('SearchProjectionWorker', () => {
         properties: {
           authorId: 'user-1',
           authorName: 'Ada Lovelace',
+          icon: null,
           parentPageId: null,
           parentPageTitle: null,
           spaceName: 'Mission Control',
@@ -166,6 +170,7 @@ describe('SearchProjectionWorker', () => {
         schemaVersion: 1,
         type: 'doc',
       },
+      icon: { kind: 'emoji', value: '🚀' },
       id: 'page-2',
       lifecycle: 'ACTIVE',
       parentPageId: 'page-1',
@@ -190,6 +195,7 @@ describe('SearchProjectionWorker', () => {
     expect(applied[0]?.properties).toEqual({
       authorId: 'user-1',
       authorName: 'Ada Lovelace',
+      icon: { kind: 'emoji', value: '🚀' },
       parentPageId: 'page-1',
       parentPageTitle: 'Launch plan',
       spaceName: 'Mission Control',
@@ -213,6 +219,7 @@ describe('SearchProjectionWorker', () => {
           authorId: 'user-1',
           authorName: 'Ada Lovelace',
           content: {},
+          icon: null,
           id: 'page-1',
           lifecycle: 'TRASHED',
           parentPageId: null,
@@ -287,5 +294,22 @@ describe('SearchProjectionWorker', () => {
     await worker.processBatch(10);
 
     expect(failed).toEqual(['event-1']);
+  });
+
+  test('asks to forget a page that no longer exists with a marker the store can hold', async () => {
+    const removals: SearchDocumentRemoval[] = [];
+    const outbox = createOutboxStub(() => Promise.resolve([event({ eventType: 'PAGE_TRASHED' })]));
+    const source = createSourceStub({ findPage: () => Promise.resolve(null) });
+    const projection = createProjectionStub({
+      removeProjection: (input) => {
+        removals.push(input);
+        return Promise.resolve();
+      },
+    });
+    const worker = new SearchProjectionWorker(outbox, source, projection);
+
+    await worker.processBatch(10);
+
+    expect(removals[0]?.versionMarker).toBeLessThanOrEqual(SEARCH_MAX_VERSION_MARKER);
   });
 });
