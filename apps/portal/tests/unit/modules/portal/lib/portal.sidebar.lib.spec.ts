@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'bun:test';
 import { SIDEBAR_TREE_MAX_INDENTED_DEPTH } from '@/modules/portal/constants/sidebar.constants';
-import { buildSidebarTreeIndent } from '@/modules/portal/lib/portal.sidebar.lib';
+import { buildSidebarTreeIndent, resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
+
+describe('resolvePortalSpaceKind', () => {
+  it('calls a private space of one own only when it belongs to whoever is looking', () => {
+    expect(resolvePortalSpaceKind('PRIVATE', 'user-a', 'user-a')).toBe('private');
+  });
+
+  it('calls somebody else private space shared, since being in it means being let in', () => {
+    expect(resolvePortalSpaceKind('PRIVATE', 'user-b', 'user-a')).toBe('shared');
+  });
+
+  it('leaves every other space as one the whole place shares', () => {
+    expect(resolvePortalSpaceKind('PUBLIC_INTERNAL', null, 'user-a')).toBe('own');
+    expect(resolvePortalSpaceKind('RESTRICTED', null, 'user-a')).toBe('own');
+  });
+});
 
 describe('buildSidebarTreeIndent', () => {
   it('steps the indentation in once per generation', () => {

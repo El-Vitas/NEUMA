@@ -4,9 +4,9 @@ import 'server-only';
 
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
+import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
-import { PAGES_CACHE_TAG } from '../../constants/pages.constants';
 import { PAGE_COVER_API_ROUTE, PAGE_COVER_DEFAULT_POSITION } from '../../constants/pages.cover.constants';
 import {
   pageCoverImageUploadSchema,

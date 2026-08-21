@@ -259,7 +259,19 @@
         "RESTRICTED": "Only invited members and administrators can browse this space."
       }
     },
-    "reorderError": "Could not change the order of the spaces."
+    "reorderError": "Could not change the order of the spaces.",
+    "privacy": {
+      "badgeLabel": "Private",
+      "treePrivate": "Your private area",
+      "treeShared": "Shared with you",
+      "shareLabel": "Share with",
+      "sharePlaceholder": "Choose a person",
+      "share": "Share",
+      "sharing": "Sharing...",
+      "shared": "Shared",
+      "shareError": "Could not share this space. Try again.",
+      "shareEmpty": "There is nobody else in the workspace to share this with yet."
+    }
   },
   "pages": {
     "subtitle": "Structured pages and knowledge.",
@@ -370,6 +382,13 @@
       "dragging": "Moving {name}",
       "dropInside": "Will drop inside {name}",
       "dropInvalid": "Can't drop here"
+    },
+    "sidePanel": {
+      "title": "Page side panel",
+      "close": "Close the panel",
+      "openFullPage": "Open in full page",
+      "resizeHandle": "Resize the panel",
+      "resizeHandleHint": "You can also resize it with the keyboard arrow keys."
     },
     "writeHere": "Write, or press / for blocks",
     "blockTooLong": "One block is too long and the page is not being saved. Shorten it or split it into several blocks.",
@@ -513,15 +532,15 @@
         "anyDate": "Any date"
       },
       "removeFilter": "Remove the {name} filter",
-      "clearAll": "Clear all filters"
+      "clearAll": "Clear all filters",
+      "verifiedOnlyLabel": "Verified pages only"
     },
     "searchResults": {
       "parentPageLabel": "In {page}",
       "atSpaceRoot": "At the space root"
     },
     "propertiesPanel": {
-      "showMore": "{count, plural, one {Show # more property} other {Show # more properties}}",
-      "empty": "This page has no properties",
+      "showMore": "{count, plural, one {Show # more} other {Show # more}}",
       "narrowScreenHint": "On narrow screens, properties are shown stacked."
     },
     "attachmentsPanel": {
@@ -877,6 +896,56 @@
       "unlocked": "Page unlocked",
       "error": "Could not change the page lock.",
       "banner": "This page is locked. Unlock it to edit."
+    },
+    "verification": {
+      "title": "Verification",
+      "statusVerified": "Verified · valid",
+      "statusExpired": "Verified · expired",
+      "statusUnverified": "Not verified",
+      "verifiedByLabel": "Verified by",
+      "verifiedAtLabel": "Verified at",
+      "unknownVerifier": "Unknown member",
+      "expiryLabel": "Expiration date",
+      "verify": "Mark as verified",
+      "reVerify": "Verify again",
+      "unverify": "Remove verification",
+      "verified": "Page verified",
+      "unverified": "Verification removed",
+      "error": "Could not update the page verification."
+    },
+    "owner": {
+      "label": "Owner",
+      "placeholder": "Assign an owner",
+      "none": "No owner",
+      "changed": "Owner updated",
+      "error": "Could not update the page owner."
+    },
+    "usage": {
+      "title": "Page views",
+      "trackingToggle": "Record who views this page",
+      "viewCount": "{count, plural, =0 {No views yet} one {# view} other {# views}}",
+      "loading": "Reading the views...",
+      "noViewers": "Nobody has viewed this page yet.",
+      "error": "Could not update the page view setting."
+    },
+    "selection": {
+      "enter": "Select pages",
+      "count": "{count, plural, =0 {No pages selected} one {One page selected} other {# pages selected}}",
+      "selectPage": "Select \"{name}\"",
+      "deselectPage": "Clear the selection of \"{name}\"",
+      "move": "Move",
+      "trash": "Move to trash",
+      "cancel": "Cancel selection",
+      "trashConfirmTitle": "{count, plural, one {Move one page to the trash} other {Move # pages to the trash}}",
+      "trashConfirmBody": "{count, plural, one {One page will be moved to the trash, along with whatever hangs from it.} other {# pages will be moved to the trash, along with whatever hangs from them.}}",
+      "trashDone": "{count, plural, one {One page was moved to the trash} other {# pages were moved to the trash}}",
+      "trashPartial": "{succeeded} pages were moved to the trash; {failed} could not be.",
+      "trashError": "Could not move the selection to the trash.",
+      "moveTitle": "{count, plural, one {Move one page} other {Move # pages}}",
+      "moveDescription": "Choose where they go.",
+      "moveDone": "{count, plural, one {One page was moved} other {# pages were moved}}",
+      "movePartial": "{succeeded} pages were moved; {failed} could not be.",
+      "moveError": "Could not move the selection."
     }
   },
   "errors": {

@@ -63,6 +63,7 @@ export default async function Page({ params }: IProps) {
     <SpacesHomeView
       activity={livePages.map(toSpaceHomeActivity)}
       canCreatePage={canEdit}
+      canShare={space.visibility === 'PRIVATE' && space.ownerId === user?.id}
       locale={locale}
       mainPages={livePages.filter((page) => page.parentId === null).map(toSpaceHomePage)}
       members={membersResult.isOk() ? membersResult.getValue() : []}

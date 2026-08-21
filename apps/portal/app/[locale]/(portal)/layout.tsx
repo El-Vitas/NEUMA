@@ -7,6 +7,7 @@ import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.q
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
+import { resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { readRequestTheme } from '@/shared/server/lib/theme.server';
@@ -28,6 +29,7 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
       return {
         icon: space.icon,
         id: space.id,
+        kind: resolvePortalSpaceKind(space.visibility, space.ownerId, user.id),
         name: space.name,
         pages: pagesResult.isOk()
           ? pagesResult.getValue().map((page) => ({

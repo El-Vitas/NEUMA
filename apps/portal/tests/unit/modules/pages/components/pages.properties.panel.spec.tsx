@@ -15,8 +15,18 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
 }));
-mock.module('@/shared/server/actions/space-move-access.actions', () => ({
-  getSpaceMoveAccessLossAction: async () => ({ data: { count: 0 } }),
+/**
+ * The panel's business here is revealing the location row, not how moving a
+ * page works. Standing in for the whole form keeps this file from reaching the
+ * server-only chain behind it — and out of a fight with the move form's own
+ * spec, which mocks that same chain to answer differently.
+ */
+mock.module('@/modules/pages/components/pages.move.form', () => ({
+  PagesMoveForm: ({ ariaLabelledBy }: { readonly ariaLabelledBy: string }) => (
+    <button aria-labelledby={ariaLabelledBy} type="button">
+      Space root
+    </button>
+  ),
 }));
 
 const { PagesPropertiesPanel } = await import('@/modules/pages/components/pages.properties.panel');
@@ -124,7 +134,7 @@ describe('PagesPropertiesPanel', () => {
     expect(screen.getByText('Field 4')).toBeDefined();
     expect(screen.queryByText('Field 5')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show 1 more property' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show 1 more' }));
 
     expect(screen.getByText('Field 5')).toBeDefined();
   });
@@ -160,15 +170,15 @@ describe('PagesPropertiesPanel', () => {
 
     expect(screen.queryByLabelText('Location')).toBeNull();
     expect(screen.queryByRole('list', { name: 'Attachments' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Show 2 more properties' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Show 2 more' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more properties' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more' }));
 
     expect(screen.getByLabelText('Location')).toBeDefined();
     expect(screen.getByRole('list', { name: 'Attachments' })).toBeDefined();
   });
 
-  it('shows an empty-properties message when the page has no custom properties but other sections exist', () => {
+  it('says nothing about emptiness when the page has no properties but the panel still holds other sections', () => {
     const page = buildPage();
     renderPanel(null, {
       canEdit: true,
@@ -177,6 +187,18 @@ describe('PagesPropertiesPanel', () => {
       spaceId: page.spaceId,
     });
 
-    expect(screen.getByText('This page has no properties')).toBeDefined();
+    expect(screen.queryByText('This page has no properties')).toBeNull();
+  });
+
+  it('offers what is left to see without calling those sections properties', () => {
+    const page = buildPage();
+    renderPanel(null, {
+      canEdit: true,
+      page,
+      pageId: page.id,
+      spaceId: page.spaceId,
+    });
+
+    expect(screen.getByRole('button', { name: 'Show 2 more' })).toBeDefined();
   });
 });

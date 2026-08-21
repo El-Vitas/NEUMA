@@ -4,9 +4,9 @@ import 'server-only';
 
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
+import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
-import { PAGES_CACHE_TAG } from '../../constants/pages.constants';
 import { PAGE_ICON_ACTION_SUBJECT, PAGE_ICON_API_ROUTE } from '../../constants/pages.icon.constants';
 import {
   pageIconEmojiInputSchema,

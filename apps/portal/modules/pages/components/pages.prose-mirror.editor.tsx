@@ -89,6 +89,7 @@ import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
 import { createPageUnsyncCommand, readBorrowedBlock } from '../lib/pages.editor.synced.lib';
 import { createPageTextColorCommand } from '../lib/pages.editor.text-color.lib';
 import { buildRowPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
+import { resolveInternalPageHref } from '../lib/pages.side-panel.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { PageAppearanceTextSize, PageAppearanceTypography } from '../types/pages.appearance.types';
@@ -121,6 +122,8 @@ interface IProps {
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
   readonly onContentChange: (content: PageContent) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
+  /** Where a link to another page of this app is followed, when following it should not leave where it was clicked from. */
+  readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
   readonly pageId: string | null;
   /** The pages this one already knows about, which is how a block says what a page is called now. */
   readonly pages?: readonly PageSummary[];
@@ -141,6 +144,7 @@ export const PagesProseMirrorEditor = forwardRef(
       onAttachmentUploaded,
       onContentChange,
       onHeadingsChange,
+      onNavigateToPage,
       pageId,
       pages = EMPTY_PAGE_SUMMARIES,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
@@ -164,7 +168,24 @@ export const PagesProseMirrorEditor = forwardRef(
     const [isWritingInHand, setIsWritingInHand] = useState(true);
     const [linkInHand, setLinkInHand] = useState<PageEditorLinkAtHand | null>(null);
     const [linkUnderPointer, setLinkUnderPointer] = useState<PageEditorLinkAtHand | null>(null);
-    const goToRef = useRef((href: string) => router.push(href));
+    /**
+     * A link to a page of this app is followed through whoever is asked to
+     * follow it here — the panel that holds this editor when there is one,
+     * the router when there is not — rather than always leaving for a whole
+     * new address.
+     */
+    const followPageHref = useCallback(
+      (href: string): void => {
+        const internalPage = resolveInternalPageHref(href);
+        if (internalPage !== null && onNavigateToPage !== undefined) {
+          onNavigateToPage(internalPage.spaceId, internalPage.pageId);
+          return;
+        }
+        router.push(href);
+      },
+      [onNavigateToPage, router],
+    );
+    const goToRef = useRef(followPageHref);
     const selectBlockLabelRef = useRef(t('selectBlock'));
     const collectionLabelRef = useRef(t('collectionBlock'));
     const taskLabelRef = useRef(t('taskBlock'));
@@ -418,8 +439,8 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [personOptions]);
 
     useEffect(() => {
-      goToRef.current = (href: string) => router.push(href);
-    }, [router]);
+      goToRef.current = followPageHref;
+    }, [followPageHref]);
 
     /**
      * The page keeps what it can keep, and says so when it cannot.

@@ -16,6 +16,8 @@ const restorePage = mock(
   }),
 );
 const movePage = mock(async () => ({ data: undefined }));
+const batchTrashPages = mock(async () => ({ data: { failedIds: [], succeededIds: ['parent-page', 'sibling-page'] } }));
+const batchMovePages = mock(async () => ({ data: { failedIds: [], succeededIds: ['parent-page'] } }));
 
 mock.module('next/navigation', () => ({
   useRouter: () => ({ refresh: refreshRouter }),
@@ -41,6 +43,18 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   /** The rename dialog reachable from the tree pulls this in, so the stand-in offers it too. */
   renamePageAction: async () => ({ data: undefined }),
   restorePageAction: restorePage,
+}));
+/** The batch move dialog reachable from selection mode pulls this in to list destinations. */
+mock.module('@/modules/pages/hooks/use.pages.move.destinations', () => ({
+  usePagesMoveDestinations: () => ({
+    pages: [{ id: 'sibling-page', spaceId: 'engineering', title: 'Sibling page' }],
+    spaces: [{ id: 'engineering', name: 'Engineering' }],
+  }),
+}));
+/** Selection mode reaches these server actions, which refuse to load outside a server. */
+mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', () => ({
+  batchMovePagesAction: batchMovePages,
+  batchTrashPagesAction: batchTrashPages,
 }));
 /** The icon dialog reachable from the tree imports these server actions, which refuse to load outside a server. */
 mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
@@ -363,6 +377,80 @@ describe('SidebarPageTree', () => {
 
     await waitFor(() => {
       expect(movePage).toHaveBeenCalledWith({ pageId: 'child-page', parentId: null, spaceId });
+    });
+  });
+
+  describe('selecting several pages at once', () => {
+    it('offers no way to select a page until selection mode is entered on purpose', () => {
+      renderSidebarPageTree([parentPage, siblingPage]);
+
+      expect(screen.queryByRole('checkbox')).toBeNull();
+    });
+
+    it('counts pages as they are picked, and clicking a row selects it instead of navigating', () => {
+      renderSidebarPageTree([parentPage, siblingPage]);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select pages' }));
+      expect(screen.getAllByText('No pages selected').length).toBeGreaterThan(0);
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select "Parent page"' }));
+      expect(screen.getAllByText('One page selected').length).toBeGreaterThan(0);
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select "Sibling page"' }));
+      expect(screen.getAllByText('2 pages selected').length).toBeGreaterThan(0);
+    });
+
+    it('drops the selection without acting on it when cancelled', () => {
+      renderSidebarPageTree([parentPage, siblingPage]);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select "Parent page"' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel selection' }));
+
+      expect(screen.queryByRole('checkbox')).toBeNull();
+      expect(batchTrashPages).not.toHaveBeenCalled();
+      expect(batchMovePages).not.toHaveBeenCalled();
+    });
+
+    it('sends every selected page to the trash together, and reports how many went through', async () => {
+      renderSidebarPageTree([parentPage, siblingPage]);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select "Parent page"' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select "Sibling page"' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Move to trash' }));
+
+      expect(await screen.findByText('Move 2 pages to the trash')).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: 'Move to trash' }));
+
+      await waitFor(() => {
+        expect(batchTrashPages).toHaveBeenCalledWith({
+          pageIds: expect.arrayContaining(['parent-page', 'sibling-page']),
+          spaceId,
+        });
+      });
+      expect(await screen.findByText('2 pages were moved to the trash')).toBeDefined();
+      expect(screen.queryByRole('checkbox')).toBeNull();
+    });
+
+    it('moves every selected page to the chosen destination at once', async () => {
+      renderSidebarPageTree([parentPage, siblingPage]);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Select "Parent page"' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Move' }));
+
+      fireEvent.click(await screen.findByRole('option', { name: 'Sibling page' }));
+
+      await waitFor(() => {
+        expect(batchMovePages).toHaveBeenCalledWith({
+          pageIds: ['parent-page'],
+          parentId: 'sibling-page',
+          spaceId,
+          targetSpaceId: undefined,
+        });
+      });
+      expect(await screen.findByText('One page was moved')).toBeDefined();
     });
   });
 });

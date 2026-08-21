@@ -48,12 +48,18 @@ export interface PageSummary {
   /** When somebody locked the page against edits, and nothing when nobody has. */
   readonly lockedAt: Date | null;
   readonly order: number;
+  readonly owner: null | { readonly id: string; readonly name: string };
   readonly parentId: null | string;
   readonly propertyValues: SchemaPropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
   readonly updatedAt: Date;
   readonly updatedBy: null | { readonly id: string; readonly name: string };
+  /** When the verification stops counting as valid. Left null, a verified page never goes stale on its own. */
+  readonly verificationExpiresAt: Date | null;
+  /** When somebody last vouched for the page, and nothing when nobody has. Expiring leaves this untouched. */
+  readonly verifiedAt: Date | null;
+  readonly verifiedBy: null | { readonly id: string; readonly name: string };
   readonly version: number;
 }
 
@@ -222,6 +228,21 @@ export interface PageRepositoryContract {
   readonly setLocked: (
     pageId: string,
     locked: boolean,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly setOwner: (
+    pageId: string,
+    ownerId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly setVerification: (
+    pageId: string,
+    verified: boolean,
+    expiresAt: Date | null,
     userId: string,
     workspaceId: string,
     role: UserRole,

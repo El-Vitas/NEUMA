@@ -36,7 +36,11 @@ describe('PagesCollectionBoard', () => {
   it('groups rows under their column and shows an empty message for a column without rows', async () => {
     render(await PagesCollectionBoard({ columns, spaceId: 'space-1' }));
 
-    expect(screen.getByRole('link', { name: 'First task' }).getAttribute('href')).toBe('/spaces/space-1/pages/row-1');
+    expect(screen.getByRole('link', { name: 'First task' }).getAttribute('href')).toBe('?panel=row-1');
+    /** Asked for by where it leads: a server component's words are not translated here. */
+    const fullPage = screen.getAllByRole('link').find((link) => link.getAttribute('href')?.startsWith('/spaces/'));
+
+    expect(fullPage?.getAttribute('href')).toBe('/spaces/space-1/pages/row-1');
     expect(screen.getByText('collection.emptyColumn')).toBeDefined();
   });
 });

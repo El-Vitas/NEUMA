@@ -30,9 +30,16 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   /** The tree beneath a space now reaches the rename dialog, which pulls these in. */
   duplicatePageAction: mock(async () => ({ data: undefined })),
+  /** The batch move dialog reachable from selection mode pulls this in to list destinations. */
+  listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: mock(async () => ({ data: undefined })),
   renamePageAction: mock(async () => ({ data: undefined })),
   restorePageAction: mock(async () => ({ data: undefined })),
+}));
+/** Selection mode reaches these server actions, which refuse to load outside a server. */
+mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', () => ({
+  batchMovePagesAction: async () => ({ data: { failedIds: [], succeededIds: [] } }),
+  batchTrashPagesAction: async () => ({ data: { failedIds: [], succeededIds: [] } }),
 }));
 
 /** The icon and rename dialogs a space now offers import server actions, which refuse to load outside a server. */
@@ -64,6 +71,7 @@ const { SidebarSpaces } = await import('@/shared/components/portal/sidebar/sideb
 const space: PortalLayoutSpace = {
   icon: null,
   id: 'engineering',
+  kind: 'own',
   name: 'Engineering',
   pages: [
     {
@@ -88,6 +96,7 @@ const space: PortalLayoutSpace = {
 const trashedOnlySpace: PortalLayoutSpace = {
   icon: null,
   id: 'archive',
+  kind: 'own',
   name: 'Archive',
   pages: [
     {
@@ -104,6 +113,7 @@ const trashedOnlySpace: PortalLayoutSpace = {
 const emptySpace: PortalLayoutSpace = {
   icon: null,
   id: 'empty-space',
+  kind: 'own',
   name: 'Empty space',
   pages: [],
 };
@@ -118,6 +128,21 @@ const renderSidebarSpaces = (role: 'ADMIN' | 'CLIENT' = 'ADMIN', spaces: readonl
 describe('SidebarSpaces', () => {
   beforeEach(() => {
     pathname = '/spaces/engineering/pages/architecture';
+  });
+
+  it('keeps what somebody else opened up under a heading of its own', () => {
+    const sharedSpace: PortalLayoutSpace = { ...emptySpace, id: 'her-notes', kind: 'shared', name: 'Her notes' };
+
+    renderSidebarSpaces('ADMIN', [space, sharedSpace]);
+
+    expect(screen.getByRole('heading', { name: 'Shared with you' })).toBeDefined();
+    expect(screen.getByRole('link', { name: /Her notes/ })).toBeDefined();
+  });
+
+  it('says nothing about sharing when nobody has shared anything', () => {
+    renderSidebarSpaces('ADMIN', [space]);
+
+    expect(screen.queryByRole('heading', { name: 'Shared with you' })).toBeNull();
   });
 
   it('shows the active space page hierarchy without requiring the pages screen', () => {

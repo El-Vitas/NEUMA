@@ -56,4 +56,19 @@ describe('normalizeSearchQuery', () => {
       query: 'roadmap',
     });
   });
+
+  test('carries an explicit verifiedOnly request through', () => {
+    expect(normalizeSearchQuery({ query: 'roadmap', verifiedOnly: true })).toEqual({
+      limit: 20,
+      query: 'roadmap',
+      verifiedOnly: true,
+    });
+  });
+
+  test('drops verifiedOnly when it is not explicitly true', () => {
+    expect(normalizeSearchQuery({ query: 'roadmap', verifiedOnly: false })).toEqual({
+      limit: 20,
+      query: 'roadmap',
+    });
+  });
 });

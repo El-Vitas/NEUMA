@@ -111,8 +111,8 @@ describe('a file inserted directly in the page content', () => {
       target: { files: [new File(['image'], 'diagram.png', { type: 'image/png' })] },
     });
 
-    await waitFor(() => expect(screen.getByText('Show 2 more properties')).toBeDefined());
-    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more properties' }));
+    await waitFor(() => expect(screen.getByText('Show 2 more')).toBeDefined());
+    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more' }));
 
     await waitFor(() => expect(screen.getByText('diagram.png')).toBeDefined());
   });
@@ -131,8 +131,8 @@ describe('a file inserted directly in the page content', () => {
       dataTransfer: { files: [new File(['image'], 'diagram.png', { type: 'image/png' })] },
     });
 
-    await waitFor(() => expect(screen.getByText('Show 2 more properties')).toBeDefined());
-    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more properties' }));
+    await waitFor(() => expect(screen.getByText('Show 2 more')).toBeDefined());
+    fireEvent.click(screen.getByRole('button', { name: 'Show 2 more' }));
 
     await waitFor(() => expect(screen.getByText('diagram.png')).toBeDefined());
   });

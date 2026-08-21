@@ -259,7 +259,19 @@
         "RESTRICTED": "Solo los miembros invitados y administradores pueden explorar este espacio."
       }
     },
-    "reorderError": "No se pudo cambiar el orden de los espacios."
+    "reorderError": "No se pudo cambiar el orden de los espacios.",
+    "privacy": {
+      "badgeLabel": "Privado",
+      "treePrivate": "Tu área privada",
+      "treeShared": "Compartido contigo",
+      "shareLabel": "Compartir con",
+      "sharePlaceholder": "Elige una persona",
+      "share": "Compartir",
+      "sharing": "Compartiendo...",
+      "shared": "Compartido",
+      "shareError": "No se pudo compartir este espacio. Intenta de nuevo.",
+      "shareEmpty": "Todavía no hay nadie más en el espacio de trabajo con quien compartir esto."
+    }
   },
   "pages": {
     "subtitle": "Páginas y conocimiento estructurado.",
@@ -370,6 +382,13 @@
       "dragging": "Moviendo {name}",
       "dropInside": "Se soltará dentro de {name}",
       "dropInvalid": "No se puede soltar aquí"
+    },
+    "sidePanel": {
+      "title": "Página al costado",
+      "close": "Cerrar el panel",
+      "openFullPage": "Abrir en página completa",
+      "resizeHandle": "Ajustar el ancho del panel",
+      "resizeHandleHint": "También se ajusta con las flechas del teclado."
     },
     "writeHere": "Escribe, o pulsa / para bloques",
     "blockTooLong": "Hay un bloque demasiado largo y la página no se está guardando. Acórtalo o repártelo en varios bloques.",
@@ -513,15 +532,15 @@
         "anyDate": "Cualquier fecha"
       },
       "removeFilter": "Quitar el filtro {name}",
-      "clearAll": "Limpiar todos los filtros"
+      "clearAll": "Limpiar todos los filtros",
+      "verifiedOnlyLabel": "Solo páginas verificadas"
     },
     "searchResults": {
       "parentPageLabel": "En {page}",
       "atSpaceRoot": "En la raíz del espacio"
     },
     "propertiesPanel": {
-      "showMore": "{count, plural, one {Mostrar # propiedad más} other {Mostrar # propiedades más}}",
-      "empty": "Esta página no tiene propiedades",
+      "showMore": "{count, plural, one {Mostrar # más} other {Mostrar # más}}",
       "narrowScreenHint": "En pantalla angosta, las propiedades se muestran una debajo de otra."
     },
     "attachmentsPanel": {
@@ -877,6 +896,56 @@
       "unlocked": "Página desbloqueada",
       "error": "No se pudo cambiar el bloqueo de la página.",
       "banner": "Esta página está bloqueada. Desbloquéala para editarla."
+    },
+    "verification": {
+      "title": "Verificación",
+      "statusVerified": "Verificada · vigente",
+      "statusExpired": "Verificada · caducada",
+      "statusUnverified": "Sin verificar",
+      "verifiedByLabel": "Verificada por",
+      "verifiedAtLabel": "Verificada el",
+      "unknownVerifier": "Miembro desconocido",
+      "expiryLabel": "Fecha de caducidad",
+      "verify": "Marcar como verificada",
+      "reVerify": "Verificar de nuevo",
+      "unverify": "Quitar la verificación",
+      "verified": "Página verificada",
+      "unverified": "Verificación retirada",
+      "error": "No se pudo actualizar la verificación de la página."
+    },
+    "owner": {
+      "label": "Responsable",
+      "placeholder": "Asignar un responsable",
+      "none": "Sin responsable",
+      "changed": "Responsable actualizado",
+      "error": "No se pudo actualizar el responsable de la página."
+    },
+    "usage": {
+      "title": "Vistas de la página",
+      "trackingToggle": "Registrar quién ve esta página",
+      "viewCount": "{count, plural, =0 {Todavía no hay vistas} one {# vista} other {# vistas}}",
+      "loading": "Leyendo las vistas...",
+      "noViewers": "Todavía nadie ha visto esta página.",
+      "error": "No se pudo actualizar la configuración de vistas de la página."
+    },
+    "selection": {
+      "enter": "Seleccionar páginas",
+      "count": "{count, plural, =0 {Ninguna página seleccionada} one {Una página seleccionada} other {# páginas seleccionadas}}",
+      "selectPage": "Seleccionar «{name}»",
+      "deselectPage": "Quitar la selección de «{name}»",
+      "move": "Mover",
+      "trash": "Enviar a la papelera",
+      "cancel": "Cancelar selección",
+      "trashConfirmTitle": "{count, plural, one {Enviar una página a la papelera} other {Enviar # páginas a la papelera}}",
+      "trashConfirmBody": "{count, plural, one {Se enviará una página a la papelera, junto con lo que cuelgue de ella.} other {Se enviarán # páginas a la papelera, junto con lo que cuelgue de ellas.}}",
+      "trashDone": "{count, plural, one {Una página se envió a la papelera} other {# páginas se enviaron a la papelera}}",
+      "trashPartial": "{succeeded} páginas se enviaron a la papelera; {failed} no se pudieron enviar.",
+      "trashError": "No se pudo enviar la selección a la papelera.",
+      "moveTitle": "{count, plural, one {Mover una página} other {Mover # páginas}}",
+      "moveDescription": "Elige a dónde van.",
+      "moveDone": "{count, plural, one {Una página se movió} other {# páginas se movieron}}",
+      "movePartial": "{succeeded} páginas se movieron; {failed} no se pudieron mover.",
+      "moveError": "No se pudo mover la selección."
     }
   },
   "errors": {

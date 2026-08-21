@@ -11,6 +11,8 @@ export const buildSpaceVisibilityFilter = (userId: string, role: UserRole): Pris
     ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
       ? [{ visibility: SpaceVisibility.RESTRICTED }]
       : [{ members: { some: { userId } }, visibility: SpaceVisibility.RESTRICTED }]),
+    { ownerId: userId, visibility: SpaceVisibility.PRIVATE },
+    { members: { some: { userId } }, visibility: SpaceVisibility.PRIVATE },
   ],
 });
 

@@ -30,6 +30,8 @@ const toPageProjection = (page: {
   spaceId: string;
   spaceName: string;
   title: string;
+  verificationExpiresAt: Date | null;
+  verifiedAt: Date | null;
   version: number;
 }): SearchDocumentInput | null => {
   const content = readStoredPageContent(page.content);
@@ -45,6 +47,8 @@ const toPageProjection = (page: {
       parentPageId: page.parentPageId,
       parentPageTitle: page.parentPageTitle,
       spaceName: page.spaceName,
+      verificationExpiresAt: page.verificationExpiresAt?.toISOString() ?? null,
+      verifiedAt: page.verifiedAt?.toISOString() ?? null,
     },
     sourceId: page.id,
     sourceType: SearchSourceType.PAGE,

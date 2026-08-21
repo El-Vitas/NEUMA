@@ -11,6 +11,10 @@ model Page {
   lifecycle        PageLifecycle        @default(ACTIVE)
   lockedAt         DateTime?
   lockedById       String?
+  verifiedAt       DateTime?
+  verifiedById     String?
+  verificationExpiresAt DateTime?
+  ownerId          String?
   createdById      String
   updatedById      String
   trashedAt        DateTime?
@@ -18,6 +22,8 @@ model Page {
   updatedAt        DateTime             @updatedAt
   space            Space                @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   parent           Page?                @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  verifiedBy       User?                @relation("PageVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  owner            User?                @relation("PageOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   children         Page[]               @relation("PageHierarchy")
   versions         PageVersion[]
   linksAsSource    PageLink[]           @relation("PageLinkSource")
@@ -25,7 +31,10 @@ model Page {
   schemaProperties PageSchemaProperty[]
   schemaViews      PageSchemaView[]
   favorites        PageFavorite[]
+  views            PageView[]
 
   @@index([spaceId, lifecycle, order])
   @@index([parentId, order])
+  @@index([ownerId])
+  @@index([verificationExpiresAt])
 }

@@ -1,0 +1,11 @@
+model PageView {
+  id       String   @id @default(uuid(7))
+  pageId   String
+  userId   String
+  viewedAt DateTime @default(now())
+  page     Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, viewedAt])
+  @@index([userId])
+}

@@ -26,6 +26,8 @@ const activePage: SearchProjectionPage = {
   spaceId: 'space-1',
   spaceName: 'Mission Control',
   title: 'Launch plan',
+  verificationExpiresAt: null,
+  verifiedAt: null,
   version: 12,
 };
 
@@ -107,6 +109,8 @@ describe('SearchProjectionWorker', () => {
       spaceId: 'space-1',
       spaceName: 'Mission Control',
       title: 'Current title',
+      verificationExpiresAt: null,
+      verifiedAt: null,
       version: 12,
     };
     const outbox = createOutboxStub(() =>
@@ -149,6 +153,8 @@ describe('SearchProjectionWorker', () => {
           parentPageId: null,
           parentPageTitle: null,
           spaceName: 'Mission Control',
+          verificationExpiresAt: null,
+          verifiedAt: null,
         },
         sourceId: 'page-1',
         sourceType: 'PAGE',
@@ -158,6 +164,31 @@ describe('SearchProjectionWorker', () => {
         versionMarker: 12,
       },
     ]);
+  });
+
+  test('carries the verification stamp into the properties the index filters on', async () => {
+    const verifiedPage: SearchProjectionPage = {
+      ...activePage,
+      verificationExpiresAt: new Date('2026-09-01T00:00:00.000Z'),
+      verifiedAt: new Date('2026-06-01T00:00:00.000Z'),
+    };
+    const applied: SearchDocumentInput[] = [];
+    const outbox = createOutboxStub(() => Promise.resolve([event()]));
+    const source = createSourceStub({ findPage: () => Promise.resolve(verifiedPage) });
+    const projection = createProjectionStub({
+      applyProjection: (input): Promise<void> => {
+        applied.push(input);
+        return Promise.resolve();
+      },
+    });
+    const worker = new SearchProjectionWorker(outbox, source, projection);
+
+    await worker.processBatch(10);
+
+    expect(applied[0]?.properties).toMatchObject({
+      verificationExpiresAt: '2026-09-01T00:00:00.000Z',
+      verifiedAt: '2026-06-01T00:00:00.000Z',
+    });
   });
 
   test('projects the space name and parent page found alongside the page itself', async () => {
@@ -178,6 +209,8 @@ describe('SearchProjectionWorker', () => {
       spaceId: 'space-1',
       spaceName: 'Mission Control',
       title: 'Checklist',
+      verificationExpiresAt: null,
+      verifiedAt: null,
       version: 1,
     };
     const outbox = createOutboxStub(() => Promise.resolve([event({ aggregateId: 'page-2' })]));
@@ -199,6 +232,8 @@ describe('SearchProjectionWorker', () => {
       parentPageId: 'page-1',
       parentPageTitle: 'Launch plan',
       spaceName: 'Mission Control',
+      verificationExpiresAt: null,
+      verifiedAt: null,
     });
   });
 
@@ -227,6 +262,8 @@ describe('SearchProjectionWorker', () => {
           spaceId: 'space-1',
           spaceName: 'Mission Control',
           title: 'Deleted page',
+          verificationExpiresAt: null,
+          verifiedAt: null,
           version: 4,
         }),
     });

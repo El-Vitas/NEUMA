@@ -16,6 +16,8 @@ const pageSelection = {
   space: { select: { name: true } },
   spaceId: true,
   title: true,
+  verificationExpiresAt: true,
+  verifiedAt: true,
   versions: { orderBy: { version: 'desc' as const }, select: { version: true }, take: 1 },
 } satisfies Prisma.PageSelect;
 

@@ -6,11 +6,12 @@ import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
 import { apiServer } from '@/shared/lib/api-server';
 import { withAction } from '@/shared/lib/with-action.lib';
-import { SPACE_API_ROUTES, SPACES_CACHE_TAG } from '../../constants/spaces.constants';
+import { SPACE_API_ROUTES, SPACES_CACHE_TAG, SPACES_SHARED_WITH_ME_CACHE_TAG } from '../../constants/spaces.constants';
 import {
   createSpaceSchema,
   renameSpaceSchema,
   reorderSpaceSchema,
+  shareSpaceSchema,
   spaceSummarySchema,
   spacesListSchema,
 } from '../../schemas/spaces.schemas';
@@ -41,5 +42,14 @@ export const renameSpaceAction = actionClient.inputSchema(renameSpaceSchema).act
     });
     updateTag(SPACES_CACHE_TAG);
     return spaceSummarySchema.parse(renamedSpace);
+  }),
+);
+
+/** Sharing a private space, which changes both what its owner sees and what the invited person now reads. */
+export const shareSpaceAction = actionClient.inputSchema(shareSpaceSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'shareSpace' }, async () => {
+    await apiServer.post<unknown>(SPACE_API_ROUTES.members(parsedInput.spaceId), { userId: parsedInput.userId });
+    updateTag(SPACES_CACHE_TAG);
+    updateTag(SPACES_SHARED_WITH_ME_CACHE_TAG);
   }),
 );

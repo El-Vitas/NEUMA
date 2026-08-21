@@ -4,7 +4,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { canCreateSpace } from '../../common/domain/workspace.domain';
 import type { AssignableMember } from '../../common/types/workspace-member.types';
 import { SPACE_REPOSITORY } from './constants/spaces.constants';
-import { SpaceAccessDeniedError, SpaceIconValidationError } from './domain/space.error';
+import {
+  SpaceAccessDeniedError,
+  SpaceIconValidationError,
+  SpaceMemberNotAssignableError,
+  SpaceShareForbiddenError,
+} from './domain/space.error';
 import { validateSpaceIcon } from './domain/space-icon.domain';
 import type { CreateSpaceInput, SpaceRepositoryContract, SpaceSummary } from './types/space.types';
 
@@ -31,9 +36,6 @@ export class SpacesService {
     userId: string,
     role: UserRole,
   ): Promise<Result<SpaceSummary, SpaceAccessDeniedError>> {
-    if (!canCreateSpace(role)) {
-      return Result.fail(new SpaceAccessDeniedError());
-    }
     const space = await this.spaceRepository.rename(spaceId, name, workspaceId, userId, role);
     return space === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(space);
   }
@@ -96,5 +98,31 @@ export class SpacesService {
       role,
     );
     return count === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(count);
+  }
+
+  /** Sharing a private space is the owner's call alone — nobody else, admin included, grants access to it. */
+  async addMember(
+    spaceId: string,
+    memberUserId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<null, SpaceAccessDeniedError | SpaceMemberNotAssignableError | SpaceShareForbiddenError>> {
+    const outcome = await this.spaceRepository.addMember(spaceId, memberUserId, workspaceId, userId, role);
+    switch (outcome) {
+      case 'not-found':
+        return Result.fail(new SpaceAccessDeniedError());
+      case 'forbidden':
+        return Result.fail(new SpaceShareForbiddenError());
+      case 'not-assignable':
+        return Result.fail(new SpaceMemberNotAssignableError());
+      default:
+        return Result.ok(null);
+    }
+  }
+
+  /** What other people made private and then handed to this caller, distinct from what the caller owns. */
+  async listSharedWithMe(workspaceId: string, userId: string): Promise<readonly SpaceSummary[]> {
+    return this.spaceRepository.listSharedWithMe(workspaceId, userId);
   }
 }

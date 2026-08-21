@@ -51,12 +51,18 @@ export interface PageSummary {
   /** When somebody locked the page against edits, and nothing when nobody has. */
   readonly lockedAt?: Date | null;
   readonly order: number;
+  readonly owner?: null | PageAuthor;
   readonly parentId: null | string;
   readonly propertyValues: PagePropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
   readonly updatedAt: Date;
   readonly updatedBy: null | PageAuthor;
+  /** When the verification stops counting as valid. Left null, a verified page never goes stale on its own. */
+  readonly verificationExpiresAt?: Date | null;
+  /** When somebody last vouched for the page, and nothing when nobody has. Expiring leaves this untouched. */
+  readonly verifiedAt?: Date | null;
+  readonly verifiedBy?: null | PageAuthor;
   readonly version: number;
 }
 

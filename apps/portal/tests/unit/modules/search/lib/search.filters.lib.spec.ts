@@ -18,6 +18,7 @@ const categoryLabels: SearchFilterCategoryLabels = {
   sourceType: 'Content type',
   space: 'Space',
   tags: 'Tags',
+  verifiedOnly: 'Verified only',
 };
 
 describe('buildFilteredSearchPageUrl', () => {
@@ -42,6 +43,10 @@ describe('toSearchExtraFilterParams', () => {
       authorQuery: 'Ada',
       editedRange: 'LAST_SEVEN_DAYS',
     });
+  });
+
+  it('carries the verified-only filter as a string param', () => {
+    expect(toSearchExtraFilterParams({ verifiedOnly: true })).toEqual({ verifiedOnly: 'true' });
   });
 });
 
@@ -96,6 +101,10 @@ describe('hasAnyActiveFilter', () => {
   it('is true when only a base filter is set', () => {
     expect(hasAnyActiveFilter({ ...baseParams, spaceId: 'space-1' }, {})).toBe(true);
   });
+
+  it('is true when only the verified-only filter is set', () => {
+    expect(hasAnyActiveFilter(baseParams, { verifiedOnly: true })).toBe(true);
+  });
 });
 
 describe('buildActiveSearchFilterChips', () => {
@@ -132,5 +141,18 @@ describe('buildActiveSearchFilterChips', () => {
         spaces: [],
       }),
     ).toEqual([]);
+  });
+
+  it('builds a chip for the verified-only filter', () => {
+    const chips = buildActiveSearchFilterChips({
+      categoryLabels,
+      editedRangeValueLabel: '',
+      filters: { verifiedOnly: true },
+      params: baseParams,
+      sourceTypeValueLabel: '',
+      spaces: [],
+    });
+
+    expect(chips.map((chip) => chip.label)).toEqual(['Verified only']);
   });
 });

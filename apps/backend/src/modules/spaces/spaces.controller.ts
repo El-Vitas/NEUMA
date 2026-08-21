@@ -5,6 +5,7 @@ import { WorkspaceContextService } from '../../common/infrastructure/persistence
 import type { TokenPayload } from '../../common/types/auth.types';
 import { CreateSpaceDto } from './dto/space.create.dto';
 import { UpdateSpaceIconDto } from './dto/space.icon.update.dto';
+import { AddSpaceMemberDto } from './dto/space.member.add.dto';
 import { SpaceMoveAccessLossQueryDto } from './dto/space.move-access-loss.query.dto';
 import { RenameSpaceDto } from './dto/space.rename.dto';
 import { ReorderSpaceDto } from './dto/space.reorder.dto';
@@ -22,6 +23,13 @@ export class SpacesController {
   async list(@User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     return this.spacesService.listAccessible(workspace.id, payload.sub, payload.role);
+  }
+
+  @Get('shared-with-me')
+  @UseGuards(JwtAuthGuard)
+  async listSharedWithMe(@User('payload') payload: TokenPayload) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    return this.spacesService.listSharedWithMe(workspace.id, payload.sub);
   }
 
   @Post()
@@ -96,6 +104,21 @@ export class SpacesController {
   async listMembers(@Param('spaceId') spaceId: string, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.spacesService.listAssignableMembers(spaceId, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Post(':spaceId/members')
+  @UseGuards(JwtAuthGuard)
+  async addMember(
+    @Param('spaceId') spaceId: string,
+    @Body() dto: AddSpaceMemberDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.spacesService.addMember(spaceId, dto.userId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) {
       throw result.getError();
     }

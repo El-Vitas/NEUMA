@@ -11,6 +11,7 @@ export const toSearchExtraFilterParams = (filters: SearchExtraFilters): Readonly
   const params: Record<string, string> = {};
   if (filters.authorQuery !== undefined) params.authorQuery = filters.authorQuery;
   if (filters.editedRange !== undefined) params.editedRange = filters.editedRange;
+  if (filters.verifiedOnly === true) params.verifiedOnly = 'true';
   return params;
 };
 
@@ -36,6 +37,8 @@ const withoutExtraFilter = (filters: SearchExtraFilters, key: RemovableSearchFil
       return { ...filters, authorQuery: undefined };
     case 'editedRange':
       return { ...filters, editedRange: undefined };
+    case 'verifiedOnly':
+      return { ...filters, verifiedOnly: undefined };
     default:
       return filters;
   }
@@ -63,7 +66,8 @@ export const hasAnyActiveFilter = (params: SearchQuery, filters: SearchExtraFilt
   params.sourceType !== undefined ||
   params.tags !== undefined ||
   filters.authorQuery !== undefined ||
-  filters.editedRange !== undefined;
+  filters.editedRange !== undefined ||
+  filters.verifiedOnly !== undefined;
 
 const buildSpaceChip = (context: SearchFilterChipContext): ActiveSearchFilterChip | null => {
   const { categoryLabels, filters, params, spaces } = context;
@@ -120,6 +124,17 @@ const buildEditedRangeChip = (context: SearchFilterChipContext): ActiveSearchFil
   };
 };
 
+const buildVerifiedOnlyChip = (context: SearchFilterChipContext): ActiveSearchFilterChip | null => {
+  const { categoryLabels, filters, params } = context;
+  if (filters.verifiedOnly !== true) return null;
+  return {
+    id: 'verifiedOnly',
+    label: categoryLabels.verifiedOnly,
+    name: categoryLabels.verifiedOnly,
+    removeHref: buildSearchPageUrlWithoutFilter(params, filters, 'verifiedOnly'),
+  };
+};
+
 export const buildActiveSearchFilterChips = (context: SearchFilterChipContext): readonly ActiveSearchFilterChip[] => {
   const candidates = [
     buildSpaceChip(context),
@@ -127,6 +142,7 @@ export const buildActiveSearchFilterChips = (context: SearchFilterChipContext): 
     ...buildTagChips(context),
     buildAuthorChip(context),
     buildEditedRangeChip(context),
+    buildVerifiedOnlyChip(context),
   ];
   return candidates.filter((chip): chip is ActiveSearchFilterChip => chip !== null);
 };
