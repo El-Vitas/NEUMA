@@ -250,3 +250,162 @@ describe('Space Move Access Loss (Integration)', () => {
       .expect(401);
   });
 });
+
+interface SpaceListItem {
+  id: string;
+  visibility: SpaceVisibility;
+}
+
+const listSpaces = (testApp: TestApp, token: string) =>
+  request(testApp.getServer()).get('/api/v1/spaces').set('Authorization', `Bearer ${token}`);
+
+const listSharedWithMe = (testApp: TestApp, token: string) =>
+  request(testApp.getServer()).get('/api/v1/spaces/shared-with-me').set('Authorization', `Bearer ${token}`);
+
+const renameSpace = (testApp: TestApp, token: string, spaceId: string, name: string) =>
+  request(testApp.getServer())
+    .patch(`/api/v1/spaces/${spaceId}/name`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name });
+
+const shareSpace = (testApp: TestApp, token: string, spaceId: string, userId: string) =>
+  request(testApp.getServer())
+    .post(`/api/v1/spaces/${spaceId}/members`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ userId });
+
+const findOwnPrivateSpace = (spaces: readonly SpaceListItem[]): SpaceListItem => {
+  const privateSpace = spaces.find((space) => space.visibility === SpaceVisibility.PRIVATE);
+  if (privateSpace === undefined) throw new Error('expected a private space to exist in the list');
+  return privateSpace;
+};
+
+/**
+ * Whether `PRIVATE` truly means private — the most delicate guarantee in this
+ * module. Every visibility already lets an admin through on `canReadSpace`
+ * except this one, so this suite exists to keep that carve-out from creeping
+ * back in through `listAccessible`, `rename`, or `addMember`.
+ */
+describe('Private Spaces (Integration)', () => {
+  let testApp: TestApp;
+  let adminToken: string;
+  let ownerToken: string;
+  let sharedMemberToken: string;
+  let sharedMemberUserId: string;
+  let outsiderToken: string;
+  let outsiderUserId: string;
+
+  beforeAll(async () => {
+    testApp = await bootstrapTestApp();
+
+    const timestamp = Date.now();
+    const adminEmail = `private-spaces-admin-${String(timestamp)}@test.com`;
+    const ownerEmail = `private-spaces-owner-${String(timestamp)}@test.com`;
+    const sharedMemberEmail = `private-spaces-shared-${String(timestamp)}@test.com`;
+    const outsiderEmail = `private-spaces-outsider-${String(timestamp)}@test.com`;
+    const password = 'plainPassword123';
+
+    await registerUser(testApp, { email: adminEmail, name: 'Private Spaces Admin', password });
+    await registerUser(testApp, { email: ownerEmail, name: 'Private Spaces Owner', password });
+    await registerUser(testApp, { email: sharedMemberEmail, name: 'Private Spaces Shared Member', password });
+    await registerUser(testApp, { email: outsiderEmail, name: 'Private Spaces Outsider', password });
+    await promoteToRole(testApp, adminEmail, 'ADMIN');
+
+    adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;
+    ownerToken = (await loginUser(testApp, ownerEmail, password)).accessToken;
+    sharedMemberToken = (await loginUser(testApp, sharedMemberEmail, password)).accessToken;
+    outsiderToken = (await loginUser(testApp, outsiderEmail, password)).accessToken;
+
+    const prisma = testApp.get(PrismaService);
+    sharedMemberUserId = (
+      await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email: sharedMemberEmail } })
+    ).id;
+    outsiderUserId = (await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email: outsiderEmail } }))
+      .id;
+
+    /** Workspace membership — and, for the owner, a private space — are created lazily on first request. */
+    await listSpaces(testApp, adminToken).expect(200);
+    await listSpaces(testApp, ownerToken).expect(200);
+    await listSpaces(testApp, sharedMemberToken).expect(200);
+    await listSpaces(testApp, outsiderToken).expect(200);
+  });
+
+  afterAll(async () => {
+    await testApp.close();
+  });
+
+  it('creates a private space for a person the first time they list spaces, without anyone asking for it', async () => {
+    const response = await listSpaces(testApp, ownerToken).expect(200);
+    const privateSpace = findOwnPrivateSpace(response.body as SpaceListItem[]);
+    expect(privateSpace.visibility).toBe(SpaceVisibility.PRIVATE);
+  });
+
+  it('is idempotent: listing twice does not create a second private space', async () => {
+    const first = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const second = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+
+    const firstPrivateSpaces = first.filter((space) => space.visibility === SpaceVisibility.PRIVATE);
+    const secondPrivateSpaces = second.filter((space) => space.visibility === SpaceVisibility.PRIVATE);
+    expect(firstPrivateSpaces).toHaveLength(1);
+    expect(secondPrivateSpaces).toHaveLength(1);
+    expect(secondPrivateSpaces[0]?.id).toBe(firstPrivateSpaces[0]?.id);
+  });
+
+  it('never lists a private space to anyone but its owner — admin included', async () => {
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+
+    const adminSpaces = (await listSpaces(testApp, adminToken).expect(200)).body as SpaceListItem[];
+    const outsiderSpaces = (await listSpaces(testApp, outsiderToken).expect(200)).body as SpaceListItem[];
+
+    expect(adminSpaces.some((space) => space.id === privateSpace.id)).toBe(false);
+    expect(outsiderSpaces.some((space) => space.id === privateSpace.id)).toBe(false);
+  });
+
+  it('denies an admin who tries to act on a private space directly by id, the same as any other outsider', async () => {
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+
+    await renameSpace(testApp, adminToken, privateSpace.id, 'Admin Was Here').expect(403);
+    await renameSpace(testApp, outsiderToken, privateSpace.id, 'Outsider Was Here').expect(403);
+  });
+
+  it('lets the owner rename their own private space', async () => {
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+
+    await renameSpace(testApp, ownerToken, privateSpace.id, 'My Notes').expect(200);
+  });
+
+  it('refuses an admin who tries to share a private space that is not theirs, exactly like reading it', async () => {
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+
+    await shareSpace(testApp, adminToken, privateSpace.id, outsiderUserId).expect(403);
+  });
+
+  it('lets the owner share a private space, but the shared member cannot re-share it', async () => {
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+
+    await shareSpace(testApp, ownerToken, privateSpace.id, sharedMemberUserId).expect(201);
+
+    const sharedMemberSpaces = (await listSpaces(testApp, sharedMemberToken).expect(200)).body as SpaceListItem[];
+    expect(sharedMemberSpaces.some((space) => space.id === privateSpace.id)).toBe(true);
+
+    const sharedWithSharedMember = (await listSharedWithMe(testApp, sharedMemberToken).expect(200))
+      .body as SpaceListItem[];
+    expect(sharedWithSharedMember.some((space) => space.id === privateSpace.id)).toBe(true);
+
+    const sharedWithOwner = (await listSharedWithMe(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    expect(sharedWithOwner.some((space) => space.id === privateSpace.id)).toBe(false);
+
+    await shareSpace(testApp, sharedMemberToken, privateSpace.id, outsiderUserId).expect(403);
+    const outsiderSpaces = (await listSpaces(testApp, outsiderToken).expect(200)).body as SpaceListItem[];
+    expect(outsiderSpaces.some((space) => space.id === privateSpace.id)).toBe(false);
+  });
+
+  it('rejects unauthenticated requests to list what was shared', async () => {
+    await request(testApp.getServer()).get('/api/v1/spaces/shared-with-me').expect(401);
+  });
+});

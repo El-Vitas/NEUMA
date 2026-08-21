@@ -2,14 +2,10 @@ import 'server-only';
 
 import type { Result } from '@company-brain/shared';
 import { cacheLife, cacheTag } from 'next/cache';
+import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
-import {
-  PAGE_API_ROUTES,
-  PAGE_LOCATION_CACHE_TAG,
-  PAGES_ASSIGNED_CACHE_TAG,
-  PAGES_CACHE_TAG,
-} from '../../constants/pages.constants';
+import { PAGE_API_ROUTES, PAGE_LOCATION_CACHE_TAG, PAGES_ASSIGNED_CACHE_TAG } from '../../constants/pages.constants';
 import { pageLocationSchema, pagesListSchema } from '../../schemas/pages.schemas';
 import type { PageSummary } from '../../types/pages.types';
 

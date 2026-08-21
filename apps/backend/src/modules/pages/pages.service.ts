@@ -20,6 +20,7 @@ import {
   PageIconValidationError,
   PageLifecycleError,
   PageLockedError,
+  PageOwnerInvalidError,
   PageParentError,
   PagePropertyConformanceError,
   PagePropertyValidationError,
@@ -199,6 +200,51 @@ export class PagesService {
   ): Promise<Result<PageSummary, PageAccessDeniedError>> {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const page = await this.pageRepository.setLocked(pageId, locked, userId, workspaceId, role);
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  /**
+   * Vouches for a page, or takes that back — whoever may write in it may also vouch for it.
+   *
+   * Verifying again with a new date is treated as the same act repeated, not a
+   * separate rule: it re-stamps who verified it and when, which is how an
+   * expiration gets pushed out without a second endpoint to keep in sync.
+   */
+  async setVerification(
+    pageId: string,
+    verified: boolean,
+    expiresAt: null | string | undefined,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const resolvedExpiresAt = verified && expiresAt !== undefined && expiresAt !== null ? new Date(expiresAt) : null;
+    const page = await this.pageRepository.setVerification(
+      pageId,
+      verified,
+      resolvedExpiresAt,
+      userId,
+      workspaceId,
+      role,
+    );
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  /** Only somebody who actually belongs to the workspace can be handed a page to answer for. */
+  async setOwner(
+    pageId: string,
+    ownerId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageOwnerInvalidError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    if (ownerId !== null) {
+      const memberIds = await this.pageSchemaRepository.listWorkspaceMemberIds(workspaceId);
+      if (!memberIds.includes(ownerId)) return Result.fail(new PageOwnerInvalidError());
+    }
+    const page = await this.pageRepository.setOwner(pageId, ownerId, userId, workspaceId, role);
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 

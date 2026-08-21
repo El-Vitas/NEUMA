@@ -1,11 +1,13 @@
 'use client';
 
 import type { UserRole } from '@company-brain/shared';
+import { ListChecks } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { usePathname } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
 import { PagesDuplicateChildrenDialog } from '@/modules/pages/components/pages.duplicate.children.dialog';
 import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
 import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
@@ -18,13 +20,20 @@ import {
   getPortalSidebarSelectedPageId,
   handleSidebarPageTreeKeyDown,
 } from '@/modules/portal/lib/portal.sidebar.lib';
+import { summarizePortalSidebarSelectionOutcome } from '@/modules/portal/lib/portal.sidebar.selection.lib';
+import type { PortalPageBatchOutcome } from '@/modules/portal/types/portal.sidebar.selection.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
+import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
+import { useSidebarPageSelection } from '@/shared/hooks/use.sidebar-page-selection.hook';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { SidebarPageBatchMoveDialog } from './sidebar-page-batch-move-dialog';
+import { SidebarPageBatchTrashDialog } from './sidebar-page-batch-trash-dialog';
 import { SidebarPageIconDialog } from './sidebar-page-icon-dialog';
 import { SidebarPageRenameDialog } from './sidebar-page-rename-dialog';
+import { SidebarPageSelectionToolbar } from './sidebar-page-selection-toolbar';
 import { SidebarPageTreeItem } from './sidebar-page-tree-item';
 import { SidebarPageTreeRootDropZone } from './sidebar-page-tree-root-drop-zone';
 
@@ -49,6 +58,8 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const [pageToDuplicate, setPageToDuplicate] = useState<PortalSidebarPage | null>(null);
   const undoingPageIdRef = useRef<string | null>(null);
   const drag = useSidebarPageDrag(pages, spaceId);
+  const selection = useSidebarPageSelection();
+  const [activeBatchDialog, setActiveBatchDialog] = useState<'move' | 'trash' | null>(null);
   const tree = useMemo(() => buildPortalSidebarPageTree(pages), [pages]);
   const spacePath = ROUTES.PORTAL_SPACE(spaceId);
   const selectedPageId = useMemo(
@@ -154,11 +165,49 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
 
   const canEdit = canEditContent(role) && !isPending && !isStarting;
 
+  const handleBatchOutcome = (kind: 'move' | 'trash', outcome: PortalPageBatchOutcome): void => {
+    const summary = summarizePortalSidebarSelectionOutcome(outcome);
+    const doneKey = kind === 'trash' ? 'selection.trashDone' : 'selection.moveDone';
+    const partialKey = kind === 'trash' ? 'selection.trashPartial' : 'selection.movePartial';
+    if (summary.kind === 'success') toast.success(t(doneKey, { count: summary.succeededCount }));
+    else toast.warning(t(partialKey, { failed: summary.failedCount, succeeded: summary.succeededCount }));
+    setActiveBatchDialog(null);
+    selection.stop();
+    router.refresh();
+  };
+
+  const selectedPageIdList = [...selection.selectedIds];
+
   return (
     <>
       <div aria-live="polite" className="sr-only">
         {drag.announcement}
       </div>
+      <div aria-live="polite" className="sr-only">
+        {selection.announcement}
+      </div>
+      {canEdit && !selection.isActive && (
+        <button
+          className={cn(
+            'flex min-h-11 w-full items-center gap-2 px-2 text-sidebar-foreground/55 text-xs hover:text-sidebar-foreground',
+            FOCUS_RING_CLASS,
+          )}
+          onClick={selection.start}
+          type="button"
+        >
+          <ListChecks aria-hidden="true" className="size-3.5" />
+          {t('selection.enter')}
+        </button>
+      )}
+      {selection.isActive && (
+        <SidebarPageSelectionToolbar
+          disabled={isPending}
+          onCancel={selection.stop}
+          onMove={() => setActiveBatchDialog('move')}
+          onTrash={() => setActiveBatchDialog('trash')}
+          selectedCount={selection.selectedIds.size}
+        />
+      )}
       <ul aria-label={t('pageTree')} className="space-y-px pb-1" data-page-tree="true" id={id}>
         {tree.map((treeItem) => (
           <SidebarPageTreeItem
@@ -175,12 +224,34 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
             onRequestRename={setPageToRename}
             onRequestTrash={requestTrash}
             onToggle={togglePage}
+            onToggleSelected={selection.toggle}
             selectedPageId={selectedPageId}
+            selectedPageIds={selection.selectedIds}
+            selectionMode={selection.isActive}
             spaceId={spaceId}
             treeItem={treeItem}
           />
         ))}
       </ul>
+      {activeBatchDialog === 'trash' && (
+        <SidebarPageBatchTrashDialog
+          onClose={() => setActiveBatchDialog(null)}
+          onTrashed={(outcome) => handleBatchOutcome('trash', outcome)}
+          open
+          pageIds={selectedPageIdList}
+          spaceId={spaceId}
+        />
+      )}
+      {activeBatchDialog === 'move' && selectedPageIdList.length > 0 && (
+        <SidebarPageBatchMoveDialog
+          anchorPageId={selectedPageIdList[0]}
+          onClose={() => setActiveBatchDialog(null)}
+          onMoved={(outcome) => handleBatchOutcome('move', outcome)}
+          open
+          pageIds={selectedPageIdList}
+          spaceId={spaceId}
+        />
+      )}
       {canEdit && drag.draggedPageId !== null && (
         <SidebarPageTreeRootDropZone onDragOver={drag.handleRootDragOver} onDrop={drag.handleRootDrop} />
       )}

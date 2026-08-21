@@ -16,12 +16,14 @@ import { PageLocationController } from './page.location.controller';
 import { PageTrashController } from './page.trash.controller';
 import { PageSchemaController } from './page-schema.controller';
 import { PageSchemaService } from './page-schema.service';
+import { PagesBatchController } from './pages.batch.controller';
 import { PagesController } from './pages.controller';
 import { PagesService } from './pages.service';
 
 @Module({
   controllers: [
     PagesController,
+    PagesBatchController,
     PageSchemaController,
     PageTrashController,
     PageDestinationsController,

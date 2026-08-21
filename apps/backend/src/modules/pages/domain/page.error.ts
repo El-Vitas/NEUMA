@@ -117,3 +117,13 @@ export class PageLockedError extends DomainError {
     super('This page is locked against edits.');
   }
 }
+
+/** An owner has to be somebody who actually belongs to the workspace, not any string that arrives. */
+export class PageOwnerInvalidError extends DomainError {
+  public readonly code = 'PAGE_OWNER_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor() {
+    super('Page owner must be an active member of the workspace');
+  }
+}

@@ -62,12 +62,16 @@ const pageSelection = {
   lifecycle: true,
   lockedAt: true,
   order: true,
+  ownerId: true,
   parentId: true,
   propertyValues: true,
   spaceId: true,
   title: true,
   updatedAt: true,
   updatedById: true,
+  verificationExpiresAt: true,
+  verifiedAt: true,
+  verifiedById: true,
   versions: { orderBy: { version: 'desc' as const }, select: { version: true }, take: 1 },
 } satisfies Prisma.PageSelect;
 
@@ -346,6 +350,61 @@ export class PageRepository implements PageRepositoryContract {
       select: pageSelection,
       where: { id: pageId },
     });
+    const authors = await this.resolvePageAuthors([page]);
+    return this.toSummary(page, authors);
+  }
+
+  /**
+   * Vouches for a page, or takes that back.
+   *
+   * Verifying is stamped again every time it is asked, since asking it again
+   * is the same act of vouching repeated — that is also what lets an
+   * expiration be pushed out without a second endpoint. Unverifying clears the
+   * three fields together, because a page that was never vouched for should
+   * not still remember an expiration date. The page is announced as changed so
+   * the search index, which is asked to filter by this, does not go stale.
+   */
+  async setVerification(
+    pageId: string,
+    verified: boolean,
+    expiresAt: Date | null,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    const existing = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (existing === null) return null;
+    return this.prisma.$transaction(async (transaction) => {
+      const page = await transaction.page.update({
+        data: verified
+          ? { verificationExpiresAt: expiresAt, verifiedAt: new Date(), verifiedById: userId }
+          : { verificationExpiresAt: null, verifiedAt: null, verifiedById: null },
+        select: pageSelection,
+        where: { id: pageId },
+      });
+      await this.announceThePageChanged(page, transaction);
+      const authors = await this.resolvePageAuthors([page]);
+      return this.toSummary(page, authors);
+    });
+  }
+
+  /** Assigning is not editing what the page says, so it is recorded without cutting a new version of it. */
+  async setOwner(
+    pageId: string,
+    ownerId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    const existing = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+    if (existing === null) return null;
+    const page = await this.prisma.page.update({ data: { ownerId }, select: pageSelection, where: { id: pageId } });
     const authors = await this.resolvePageAuthors([page]);
     return this.toSummary(page, authors);
   }
@@ -727,12 +786,16 @@ export class PageRepository implements PageRepositoryContract {
       lifecycle: PageLifecycle;
       lockedAt: Date | null;
       order: number;
+      ownerId: null | string;
       parentId: null | string;
       propertyValues: Prisma.JsonValue;
       spaceId: string;
       title: string;
       updatedAt: Date;
       updatedById: string;
+      verificationExpiresAt: Date | null;
+      verifiedAt: Date | null;
+      verifiedById: null | string;
       versions: readonly { version: number }[];
     },
     users: ReadonlyMap<string, { id: string; name: string }>,
@@ -747,12 +810,16 @@ export class PageRepository implements PageRepositoryContract {
       lifecycle: page.lifecycle,
       lockedAt: page.lockedAt,
       order: page.order,
+      owner: page.ownerId === null ? null : (users.get(page.ownerId) ?? null),
       parentId: page.parentId,
       propertyValues: parseSchemaPropertyValues(page.propertyValues),
       spaceId: page.spaceId,
       title: page.title,
       updatedAt: page.updatedAt,
       updatedBy: users.get(page.updatedById) ?? null,
+      verificationExpiresAt: page.verificationExpiresAt,
+      verifiedAt: page.verifiedAt,
+      verifiedBy: page.verifiedById === null ? null : (users.get(page.verifiedById) ?? null),
       version: page.versions[0]?.version ?? 0,
     };
   }
@@ -963,9 +1030,20 @@ export class PageRepository implements PageRepositoryContract {
   }
 
   private async resolvePageAuthors(
-    pages: readonly { createdById: string; updatedById: string }[],
+    pages: readonly {
+      createdById: string;
+      ownerId?: null | string;
+      updatedById: string;
+      verifiedById?: null | string;
+    }[],
   ): Promise<ReadonlyMap<string, { id: string; name: string }>> {
-    return this.findUsersByIds(pages.flatMap((page) => [page.createdById, page.updatedById]));
+    return this.findUsersByIds(
+      pages.flatMap((page) =>
+        [page.createdById, page.updatedById, page.ownerId, page.verifiedById].filter(
+          (userId): userId is string => userId !== null && userId !== undefined,
+        ),
+      ),
+    );
   }
 
   private async findUsersByIds(userIds: readonly string[]): Promise<ReadonlyMap<string, { id: string; name: string }>> {

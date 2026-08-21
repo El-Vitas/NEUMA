@@ -22,12 +22,18 @@ export const pageSummarySchema = z.object({
   /** An older answer that does not mention the lock reads as a page nobody locked. */
   lockedAt: z.coerce.date().nullable().catch(null).default(null),
   order: z.number(),
+  /** An older answer that does not mention an owner reads as a page nobody was handed. */
+  owner: pageAuthorSchema.nullable().catch(null).default(null),
   parentId: z.string().nullable(),
   propertyValues: pagePropertyValuesSchema.nullable(),
   spaceId: z.string(),
   title: z.string(),
   updatedAt: z.coerce.date(),
   updatedBy: pageAuthorSchema.nullable(),
+  /** An older answer that does not mention verification reads as a page nobody has vouched for. */
+  verificationExpiresAt: z.coerce.date().nullable().catch(null).default(null),
+  verifiedAt: z.coerce.date().nullable().catch(null).default(null),
+  verifiedBy: pageAuthorSchema.nullable().catch(null).default(null),
   version: z.number(),
 });
 
@@ -71,6 +77,13 @@ export const pageRenameSchema = pageLocatorSchema.extend({
 });
 
 export const pageLockSchema = pageLocatorSchema.extend({ locked: z.boolean() });
+
+export const pageVerificationSchema = pageLocatorSchema.extend({
+  expiresAt: z.string().nullable().optional(),
+  verified: z.boolean(),
+});
+
+export const pageOwnerSchema = pageLocatorSchema.extend({ ownerId: z.string().nullable() });
 
 export const pageDuplicateSchema = pageLocatorSchema.extend({
   includeChildren: z.boolean().optional(),

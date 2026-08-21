@@ -1,7 +1,8 @@
-import { LockKeyhole, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/shared/components/ui/badge';
+import { resolveSpaceBadgeVariant } from '../lib/spaces.lib';
 import type { SpaceVisibility } from '../types/spaces.types';
+import { SpacesVisibilityIcon } from './spaces.visibility.icon';
 
 interface IProps {
   readonly visibility: SpaceVisibility;
@@ -9,12 +10,22 @@ interface IProps {
 
 export const SpacesVisibilityBadge = ({ visibility }: IProps) => {
   const t = useTranslations('spaces');
-  const isRestricted = visibility === 'RESTRICTED';
+
+  const label = (() => {
+    switch (visibility) {
+      case 'RESTRICTED':
+        return t('visibility.restricted');
+      case 'PRIVATE':
+        return t('privacy.badgeLabel');
+      default:
+        return t('visibility.internal');
+    }
+  })();
 
   return (
-    <Badge className="shrink-0" variant={isRestricted ? 'warning' : 'secondary'}>
-      {isRestricted ? <LockKeyhole aria-hidden="true" /> : <Users aria-hidden="true" />}
-      {isRestricted ? t('visibility.restricted') : t('visibility.internal')}
+    <Badge className="shrink-0" variant={resolveSpaceBadgeVariant(visibility)}>
+      <SpacesVisibilityIcon visibility={visibility} />
+      {label}
     </Badge>
   );
 };

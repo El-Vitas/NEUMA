@@ -55,5 +55,6 @@ export const normalizeSearchQuery = (
     ...(params.sourceType === undefined ? {} : { sourceType: params.sourceType }),
     ...(spaceId === undefined ? {} : { spaceId }),
     ...(tags === undefined ? {} : { tags }),
+    ...(params.verifiedOnly === true ? { verifiedOnly: true } : {}),
   };
 };

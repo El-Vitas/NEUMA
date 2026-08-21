@@ -14,18 +14,22 @@ import { buildPageTree, canEditPage, getPageTreeExpandedIds } from '../lib/pages
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
 import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
+import type { PagesSidePanelBundle } from '../types/pages.side-panel.types';
 import type { PageSummary } from '../types/pages.types';
 import { PagesEditor } from './pages.editor';
+import { PagesSidePanel } from './pages.side-panel';
 
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
   readonly canEditContent: boolean;
+  readonly canSeePageUsage?: boolean;
   readonly collectionSection?: ReactNode;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly isFavorite?: boolean;
   readonly pages: readonly PageSummary[];
+  readonly panelBundle?: PagesSidePanelBundle | null;
   readonly parentSchema?: PageSchema | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly selectedPageId?: string | null;
@@ -37,11 +41,13 @@ export const PagesWorkspace = ({
   attachments = EMPTY_PAGE_ATTACHMENTS,
   backlinks = EMPTY_PAGE_BACKLINKS,
   canEditContent,
+  canSeePageUsage = false,
   collectionSection = null,
   embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
   isFavorite,
   pages,
+  panelBundle = null,
   parentSchema = null,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   selectedPageId = null,
@@ -53,32 +59,53 @@ export const PagesWorkspace = ({
   const tree = buildPageTree(pages);
   const parentBreadcrumbPages = useMemo(() => {
     const breadcrumbPageIds = getPageTreeExpandedIds(tree, selectedPage?.id ?? null);
-
     return breadcrumbPageIds.slice(0, -1).flatMap((pageId) => {
       const page = pages.find((candidate) => candidate.id === pageId);
       return page === undefined ? [] : [page];
     });
   }, [pages, selectedPage?.id, tree]);
+  const panelParentBreadcrumbPages = useMemo(() => {
+    const breadcrumbPageIds = getPageTreeExpandedIds(tree, panelBundle?.page.id ?? null);
+    return breadcrumbPageIds.slice(0, -1).flatMap((pageId) => {
+      const page = pages.find((candidate) => candidate.id === pageId);
+      return page === undefined ? [] : [page];
+    });
+  }, [pages, panelBundle?.page.id, tree]);
 
   if (selectedPage !== null) {
     return (
-      <PagesEditor
-        attachments={attachments}
-        backlinks={backlinks}
-        canEdit={canEditPage(canEditContent, selectedPage.lifecycle)}
-        collectionSection={collectionSection}
-        currentUserDisplayName={currentUserDisplayName}
-        embeddedCollections={embeddedCollections}
-        isFavorite={isFavorite}
-        key={`${selectedPage.id}:${selectedPage.lifecycle}`}
-        page={selectedPage}
-        pages={pages}
-        parentBreadcrumbPages={parentBreadcrumbPages}
-        parentSchema={parentSchema}
-        personOptions={personOptions}
-        spaceId={spaceId}
-        spaceName={spaceName}
-      />
+      <>
+        <PagesEditor
+          attachments={attachments}
+          backlinks={backlinks}
+          canEdit={canEditPage(canEditContent, selectedPage.lifecycle)}
+          canSeeUsage={canSeePageUsage}
+          collectionSection={collectionSection}
+          currentUserDisplayName={currentUserDisplayName}
+          embeddedCollections={embeddedCollections}
+          isFavorite={isFavorite}
+          key={`${selectedPage.id}:${selectedPage.lifecycle}`}
+          page={selectedPage}
+          pages={pages}
+          parentBreadcrumbPages={parentBreadcrumbPages}
+          parentSchema={parentSchema}
+          personOptions={personOptions}
+          spaceId={spaceId}
+          spaceName={spaceName}
+        />
+        {panelBundle !== null && (
+          <PagesSidePanel
+            bundle={panelBundle}
+            canEditContent={canEditContent}
+            currentUserDisplayName={currentUserDisplayName}
+            key={`${panelBundle.page.id}:${panelBundle.page.lifecycle}`}
+            pages={pages}
+            parentBreadcrumbPages={panelParentBreadcrumbPages}
+            spaceId={spaceId}
+            spaceName={spaceName}
+          />
+        )}
+      </>
     );
   }
 

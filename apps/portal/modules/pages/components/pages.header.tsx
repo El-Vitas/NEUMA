@@ -23,6 +23,7 @@ import { PagesEditorSaveState } from './pages.editor.save-state';
 import { PagesHeaderEmojiField } from './pages.header.emoji.field';
 import { PagesIconField } from './pages.icon.field';
 import { PagesInfoPanel } from './pages.info.panel';
+import { PagesUsageRecorder } from './pages.usage.recorder';
 
 interface IProps {
   readonly appearance: PagesAppearanceResult;
@@ -45,6 +46,8 @@ interface IProps {
   readonly title: string;
   readonly titleInputRef: RefObject<HTMLInputElement | null>;
   readonly trashControl?: ReactNode;
+  readonly usageControl?: ReactNode;
+  readonly verificationControl?: ReactNode;
 }
 
 export const PagesHeader = ({
@@ -68,6 +71,8 @@ export const PagesHeader = ({
   title,
   titleInputRef,
   trashControl = null,
+  usageControl = null,
+  verificationControl = null,
 }: IProps) => {
   const t = useTranslations('pages');
   const layoutStyleClasses = getPageAppearanceLayoutStyleClasses();
@@ -108,6 +113,7 @@ export const PagesHeader = ({
           {lockToggle}
           {canEdit && cover !== undefined && <PagesCoverField controller={cover} />}
           {pageId !== null && <PagesInfoPanel content={content ?? createEmptyPageContent()} info={info} />}
+          {pageId !== null && usageControl}
           <PagesAppearanceMenu
             onTextSizeChange={appearance.setTextSize}
             onTypographyChange={appearance.setTypography}
@@ -119,9 +125,12 @@ export const PagesHeader = ({
           {trashControl}
         </div>
       </div>
+      {pageId !== null && verificationControl !== null && <div>{verificationControl}</div>}
       {pageId !== null && spaceName !== undefined && (
         <RecentPageRecorder pageId={pageId} spaceId={spaceId} spaceName={spaceName} title={title} />
       )}
+      {/* Everyone who reads a page marks it read; only whoever runs the workspace gets to look at the tally. */}
+      {pageId !== null && <PagesUsageRecorder pageId={pageId} />}
     </header>
   );
 };

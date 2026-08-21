@@ -2,7 +2,7 @@
 
 import { ChevronRight, Copy, FileText, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { buildSidebarTreeIndent, isPortalSidebarPageMoveShortcut } from '@/modules/portal/lib/portal.sidebar.lib';
@@ -16,6 +16,7 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { SidebarPageTreeItemCheckbox } from './sidebar-page-tree-item-checkbox';
 import { SidebarTreeIcon } from './sidebar-tree-icon';
 
 interface IProps {
@@ -31,7 +32,10 @@ interface IProps {
   readonly onRequestRename: (page: PortalSidebarPage) => void;
   readonly onRequestTrash: (page: PortalSidebarPage) => void;
   readonly onToggle: (pageId: string) => void;
+  readonly onToggleSelected: (pageId: string) => void;
   readonly selectedPageId: string | null;
+  readonly selectedPageIds: ReadonlySet<string>;
+  readonly selectionMode: boolean;
   readonly spaceId: string;
   readonly treeItem: PortalSidebarPageTreeItem;
 }
@@ -49,7 +53,10 @@ export const SidebarPageTreeItem = ({
   onRequestRename,
   onRequestTrash,
   onToggle,
+  onToggleSelected,
   selectedPageId,
+  selectedPageIds,
+  selectionMode,
   spaceId,
   treeItem,
 }: IProps) => {
@@ -62,7 +69,8 @@ export const SidebarPageTreeItem = ({
   const isExpanded = expandedPageIds.has(page.id);
   const isSelected = selectedPageId === page.id;
   const isActive = page.lifecycle === 'ACTIVE';
-  const isDraggable = canEdit && isActive;
+  const isDraggable = canEdit && isActive && !selectionMode;
+  const isPickedForSelection = selectedPageIds.has(page.id);
   const childrenId = `sidebar-page-children-${page.id}`;
 
   const handleLinkKeyDown = (event: KeyboardEvent<HTMLAnchorElement>): void => {
@@ -73,6 +81,15 @@ export const SidebarPageTreeItem = ({
       return;
     }
     onKeyDown(event);
+  };
+
+  const handleLinkClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (selectionMode) {
+      event.preventDefault();
+      onToggleSelected(page.id);
+      return;
+    }
+    onNavigate?.();
   };
 
   return (
@@ -106,6 +123,13 @@ export const SidebarPageTreeItem = ({
         ) : (
           <span aria-hidden="true" className="w-4 shrink-0" />
         )}
+        {selectionMode && isActive && (
+          <SidebarPageTreeItemCheckbox
+            isPicked={isPickedForSelection}
+            onToggle={() => onToggleSelected(page.id)}
+            pageTitle={pageTitle}
+          />
+        )}
         <Link
           aria-current={isSelected ? 'page' : undefined}
           className={cn(
@@ -118,7 +142,7 @@ export const SidebarPageTreeItem = ({
           data-page-tree-link="true"
           draggable={isDraggable}
           href={ROUTES.PORTAL_SPACE_PAGE(spaceId, page.id)}
-          onClick={onNavigate}
+          onClick={handleLinkClick}
           onDragEnd={drag.handleDragEnd}
           onDragOver={(event) => drag.handleRowDragOver(event, page)}
           onDragStart={(event) => drag.handleDragStart(event, page)}
@@ -130,7 +154,7 @@ export const SidebarPageTreeItem = ({
           <SidebarTreeIcon fallback={FileText} icon={page.icon} />
           <span className="min-w-0 truncate">{pageTitle}</span>
         </Link>
-        {canEdit && (
+        {canEdit && !selectionMode && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -190,7 +214,10 @@ export const SidebarPageTreeItem = ({
               onRequestRename={onRequestRename}
               onRequestTrash={onRequestTrash}
               onToggle={onToggle}
+              onToggleSelected={onToggleSelected}
               selectedPageId={selectedPageId}
+              selectedPageIds={selectedPageIds}
+              selectionMode={selectionMode}
               spaceId={spaceId}
               treeItem={child}
             />

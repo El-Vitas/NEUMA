@@ -11,6 +11,7 @@ export const spaceSummarySchema = z.object({
   name: z.string(),
   /** Where the space sits among the others. An older answer without it keeps them in the order they arrived. */
   order: z.number().catch(0).default(0),
+  ownerId: z.string().nullable().catch(null).default(null),
   slug: z.string(),
   visibility: spaceVisibilitySchema,
 });
@@ -31,4 +32,10 @@ export const createSpaceSchema = z.object({
   name: z.string().trim().min(1).max(SPACE_NAME_MAX_LENGTH),
   slug: z.string().trim().min(1).max(SPACE_SLUG_MAX_LENGTH),
   visibility: spaceVisibilitySchema,
+});
+
+/** Sharing a private space, one workspace member at a time. */
+export const shareSpaceSchema = z.object({
+  spaceId: z.string().min(1),
+  userId: z.string().min(1),
 });

@@ -26,12 +26,16 @@ const page = {
   lifecycle: PageLifecycle.ACTIVE,
   lockedAt: null,
   order: 0,
+  owner: null,
   parentId: null,
   propertyValues: null,
   spaceId: 'space-a',
   title: 'Page A',
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedBy: null,
+  verificationExpiresAt: null,
+  verifiedAt: null,
+  verifiedBy: null,
   version: 1,
 };
 
@@ -77,6 +81,8 @@ const createRepository = (): PageRepositoryContract => ({
   update: () => Promise.resolve(page),
   rename: () => Promise.resolve(page),
   setLocked: () => Promise.resolve(page),
+  setOwner: () => Promise.resolve(page),
+  setVerification: () => Promise.resolve(page),
   updateCover: () => Promise.resolve(page),
   updateIcon: () => Promise.resolve(page),
 });
@@ -876,6 +882,147 @@ describe('pages service', () => {
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('verifies a page and stamps who verified it, with an expiration when given one', async () => {
+    let received: Parameters<PageRepositoryContract['setVerification']> | undefined;
+    const repository = {
+      ...createRepository(),
+      setVerification: (...args: Parameters<PageRepositoryContract['setVerification']>) => {
+        received = args;
+        return Promise.resolve({
+          ...page,
+          verificationExpiresAt: new Date('2026-09-01T00:00:00.000Z'),
+          verifiedAt: new Date('2026-06-01T00:00:00.000Z'),
+          verifiedBy: { id: 'user-a', name: 'Ada Lovelace' },
+        });
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setVerification(
+      'page-a',
+      true,
+      '2026-09-01T00:00:00.000Z',
+      'user-a',
+      'workspace-a',
+      USER_ROLE.WORKER,
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().verifiedBy).toEqual({ id: 'user-a', name: 'Ada Lovelace' });
+    expect(received?.[1]).toBe(true);
+    expect(received?.[2]).toEqual(new Date('2026-09-01T00:00:00.000Z'));
+  });
+
+  it('unverifies a page without asking for an expiration', async () => {
+    let receivedExpiresAt: Date | null | undefined;
+    const repository = {
+      ...createRepository(),
+      setVerification: (_pageId: string, _verified: boolean, expiresAt: Date | null) => {
+        receivedExpiresAt = expiresAt;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setVerification('page-a', false, undefined, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedExpiresAt).toBeNull();
+  });
+
+  it('does not let a reader verify a page', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setVerification('page-a', true, undefined, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('assigns an owner who belongs to the workspace', async () => {
+    let receivedOwnerId: null | string | undefined;
+    const repository = {
+      ...createRepository(),
+      setOwner: (_pageId: string, ownerId: null | string) => {
+        receivedOwnerId = ownerId;
+        return Promise.resolve({ ...page, owner: { id: 'user-b', name: 'Grace Hopper' } });
+      },
+    };
+    const schemaRepository = { ...createSchemaRepository(), listWorkspaceMemberIds: () => Promise.resolve(['user-b']) };
+    const service = new PagesService(
+      repository,
+      schemaRepository,
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setOwner('page-a', 'user-b', 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedOwnerId).toBe('user-b');
+  });
+
+  it('rejects an owner who is not a member of the workspace, without touching the repository', async () => {
+    let setOwnerCalls = 0;
+    const repository = {
+      ...createRepository(),
+      setOwner: () => {
+        setOwnerCalls += 1;
+        return Promise.resolve(page);
+      },
+    };
+    const schemaRepository = { ...createSchemaRepository(), listWorkspaceMemberIds: () => Promise.resolve([]) };
+    const service = new PagesService(
+      repository,
+      schemaRepository,
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setOwner('page-a', 'stranger', 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_OWNER_INVALID');
+    expect(setOwnerCalls).toBe(0);
+  });
+
+  it('clears an owner when given null, without checking membership', async () => {
+    let receivedOwnerId: null | string | undefined = 'unset';
+    const repository = {
+      ...createRepository(),
+      setOwner: (_pageId: string, ownerId: null | string) => {
+        receivedOwnerId = ownerId;
+        return Promise.resolve(page);
+      },
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.setOwner('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(receivedOwnerId).toBeNull();
   });
 });
 

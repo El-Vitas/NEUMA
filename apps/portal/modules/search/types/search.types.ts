@@ -7,7 +7,13 @@ export type SearchEditedRange = (typeof SEARCH_EDITED_RANGE_VALUES)[number];
 
 export type SearchExtraFilters = z.infer<typeof searchExtraFiltersSchema>;
 
-export type RemovableSearchFilterKey = 'authorQuery' | 'editedRange' | 'spaceId' | 'sourceType' | 'tags';
+export type RemovableSearchFilterKey =
+  | 'authorQuery'
+  | 'editedRange'
+  | 'spaceId'
+  | 'sourceType'
+  | 'tags'
+  | 'verifiedOnly';
 
 export interface ActiveSearchFilterChip {
   readonly id: string;
@@ -22,6 +28,7 @@ export interface SearchFilterCategoryLabels {
   readonly sourceType: string;
   readonly space: string;
   readonly tags: string;
+  readonly verifiedOnly: string;
 }
 
 export interface SearchFilterChipContext {

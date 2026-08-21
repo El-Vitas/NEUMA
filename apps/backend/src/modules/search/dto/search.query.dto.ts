@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import {
   SEARCH_DEFAULT_LIMIT,
   SEARCH_MAX_CONTENT_TYPE_LENGTH,
@@ -55,4 +55,14 @@ export class SearchQueryDto {
   @IsOptional()
   @IsString()
   tags?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  verifiedOnly?: boolean;
 }

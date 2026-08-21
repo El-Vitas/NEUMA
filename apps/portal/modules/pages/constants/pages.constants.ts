@@ -6,8 +6,6 @@ import type { PageInfoMetadata } from '../types/pages.info.types';
 import type { PagePersonOption } from '../types/pages.schema.types';
 import type { PageSummary } from '../types/pages.types';
 
-export const PAGES_CACHE_TAG = (spaceId: string): string => `pages:${spaceId}`;
-
 export const PAGE_BACKLINKS_CACHE_TAG = (pageId: string): string => `page-backlinks:${pageId}`;
 
 export const PAGE_LOCATION_CACHE_TAG = (pageId: string): string => `page-location:${pageId}`;
@@ -45,6 +43,9 @@ export const PAGE_INFO_WORD_SEPARATOR = /\s+/;
 
 export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
 
+/** Radix refuses an empty `SelectItem` value, so clearing a person field needs a stand-in for "nobody". */
+export const PAGE_PERSON_FIELD_CLEAR_VALUE = '__none__';
+
 export const PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME =
   'h-11 rounded-none border-transparent bg-transparent px-2 shadow-none hover:border-border dark:bg-transparent';
 
@@ -55,6 +56,8 @@ export const PAGE_API_ROUTES = {
   duplicate: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/duplicate`,
   lock: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/lock`,
   move: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/move`,
+  owner: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/owner`,
+  verification: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/verification`,
   assigned: '/api/v1/pages/assigned',
   moveDestinations: (pageId: string) => `/api/v1/pages/move-destinations/${pageId}`,
   location: (pageId: string) => `/api/v1/pages/location/${pageId}`,

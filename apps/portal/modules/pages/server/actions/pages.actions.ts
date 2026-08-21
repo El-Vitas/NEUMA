@@ -5,10 +5,11 @@ import 'server-only';
 import { PAGE_LIFECYCLE } from '@company-brain/shared';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
+import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
-import { PAGE_API_ROUTES, PAGES_CACHE_TAG } from '../../constants/pages.constants';
+import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import {
   pageBlocksHandoverSchema,
@@ -28,15 +29,9 @@ import { trashRestoreOutcomeSchema } from '../../schemas/pages.trash.schemas';
 import type { PageDestination } from '../../types/pages.editor.destination.types';
 import type { PageMoveDestinations } from '../../types/pages.move.types';
 import type { TrashRestoreOutcome } from '../../types/pages.trash.types';
+import { authenticatedRequest } from '../lib/pages.request.server';
 
-export const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
-  const accessToken = await requireAccessTokenCookie();
-  return apiRequest<T>(endpoint, accessToken, {
-    body: JSON.stringify(body),
-    headers: { 'x-mutation-id': crypto.randomUUID() },
-    method,
-  });
-};
+export { authenticatedRequest };
 
 export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))

@@ -12,9 +12,11 @@ import { UpdatePageIconDto } from './dto/page.icon.update.dto';
 import { ListPagesDto } from './dto/page.list.dto';
 import { SetPageLockDto } from './dto/page.lock.dto';
 import { MovePageDto } from './dto/page.move.dto';
+import { SetPageOwnerDto } from './dto/page.owner.dto';
 import { RenamePageDto } from './dto/page.rename.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
 import { UpdatePageDto } from './dto/page.update.dto';
+import { SetPageVerificationDto } from './dto/page.verification.dto';
 import { PagesService } from './pages.service';
 import type { PageDescendantsPreview, PageRestoreOutcome } from './types/page.types';
 
@@ -124,6 +126,43 @@ export class PagesController {
       workspace.id,
       payload.role,
     );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':pageId/verification')
+  @UseGuards(JwtAuthGuard)
+  async setVerification(
+    @Param('pageId') pageId: string,
+    @Body() dto: SetPageVerificationDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.setVerification(
+      pageId,
+      dto.verified,
+      dto.expiresAt,
+      payload.sub,
+      workspace.id,
+      payload.role,
+    );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':pageId/owner')
+  @UseGuards(JwtAuthGuard)
+  async setOwner(
+    @Param('pageId') pageId: string,
+    @Body() dto: SetPageOwnerDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.setOwner(pageId, dto.ownerId, payload.sub, workspace.id, payload.role);
     if (result.isFail()) {
       throw result.getError();
     }

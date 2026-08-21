@@ -26,6 +26,7 @@ export const SearchFilterChips = ({ filters, params, spaces }: IProps) => {
       sourceType: searchT('contentTypeFilter'),
       space: filtersT('spaceLabel'),
       tags: searchT('tagsLabel'),
+      verifiedOnly: filtersT('verifiedOnlyLabel'),
     },
     editedRangeValueLabel:
       filters.editedRange === undefined

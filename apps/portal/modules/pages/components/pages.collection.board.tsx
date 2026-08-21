@@ -1,7 +1,9 @@
+import { Maximize2 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Card } from '@/shared/components/ui/card';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { buildPagesSidePanelQueryHref } from '../lib/pages.side-panel.lib';
 import type { PageBoardColumn } from '../types/pages.schema.types';
 
 interface IProps {
@@ -22,9 +24,17 @@ export const PagesCollectionBoard = async ({ columns, spaceId }: IProps) => {
           <div className="space-y-2">
             {column.rows.length === 0 && <p className="text-muted-foreground text-xs">{t('collection.emptyColumn')}</p>}
             {column.rows.map((row) => (
-              <Card className="gap-0 p-3 text-sm" key={row.id}>
-                <Link className="underline-offset-2 hover:underline" href={ROUTES.PORTAL_SPACE_PAGE(spaceId, row.id)}>
+              <Card className="flex-row items-center justify-between gap-2 p-3 text-sm" key={row.id}>
+                <Link className="underline-offset-2 hover:underline" href={buildPagesSidePanelQueryHref(row.id)}>
                   {row.title.length > 0 ? row.title : t('untitled')}
+                </Link>
+                <Link
+                  aria-label={t('sidePanel.openFullPage')}
+                  className="-m-2 rounded-none p-2 text-muted-foreground hover:text-foreground"
+                  href={ROUTES.PORTAL_SPACE_PAGE(spaceId, row.id)}
+                  title={t('sidePanel.openFullPage')}
+                >
+                  <Maximize2 aria-hidden="true" className="size-3.5" />
                 </Link>
               </Card>
             ))}

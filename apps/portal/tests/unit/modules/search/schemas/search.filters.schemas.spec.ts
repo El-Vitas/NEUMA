@@ -40,4 +40,10 @@ describe('searchExtraFiltersSchema', () => {
       searchExtraFiltersSchema.parse({ authorQuery: ['Ada', 'Grace'], editedRange: 'not-a-real-range' }),
     ).not.toThrow();
   });
+
+  it('reads an explicit verifiedOnly=true, and nothing else, as the filter being on', () => {
+    expect(searchExtraFiltersSchema.parse({ verifiedOnly: 'true' }).verifiedOnly).toBe(true);
+    expect(searchExtraFiltersSchema.parse({ verifiedOnly: 'false' }).verifiedOnly).toBeUndefined();
+    expect(searchExtraFiltersSchema.parse({}).verifiedOnly).toBeUndefined();
+  });
 });

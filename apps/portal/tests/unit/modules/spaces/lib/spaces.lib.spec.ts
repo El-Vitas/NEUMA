@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { USER_ROLE, WORKSPACE_CAPABILITY_BY_ROLE } from '@company-brain/shared';
 import {
   canEditContent,
+  canManageWorkspace,
   getSpaceFieldErrorCode,
   getSpaceVisibilityLabel,
   resolveSpaceFieldErrorMessage,
@@ -9,6 +10,12 @@ import {
 import { createSpaceSchema } from '@/modules/spaces/schemas/spaces.schemas';
 
 describe('spaces.lib', () => {
+  it('leaves managing the workspace to admins alone', () => {
+    expect(canManageWorkspace(USER_ROLE.ADMIN)).toBe(true);
+    expect(canManageWorkspace(USER_ROLE.WORKER)).toBe(false);
+    expect(canManageWorkspace(USER_ROLE.CLIENT)).toBe(false);
+  });
+
   it('allows admins and workers to edit content but not clients', () => {
     expect(canEditContent(USER_ROLE.ADMIN)).toBe(true);
     expect(canEditContent(USER_ROLE.WORKER)).toBe(true);

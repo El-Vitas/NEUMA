@@ -4,11 +4,12 @@ import 'server-only';
 
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
+import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
-import { PAGE_API_ROUTES, PAGES_CACHE_TAG } from '../../constants/pages.constants';
+import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { pageCollectionCreateSchema, pageCollectionReadSchema } from '../../schemas/pages.collections.schemas';
 import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
 import { pageSummarySchema } from '../../schemas/pages.schemas';

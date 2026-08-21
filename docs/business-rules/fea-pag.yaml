@@ -36,6 +36,19 @@ rules:
         given: Una página que cambió de espacio
         when: Se abre una dirección que nombra el espacio anterior
         then: Se llega a la página en su espacio actual
+  - id: BR-6f7f8a7
+    status: active
+    title: Lo privado responde a su dueña, y a nadie por encima de ella
+    rule: >-
+      Un área privada la ve únicamente quien la tiene y quien haya sido invitado a ella. Ningún papel dentro de la
+      organización, ni el de mayor mando, alcanza lo privado ajeno: ni en el árbol, ni en la búsqueda, ni escribiendo la
+      dirección a mano. Compartirla solo puede hacerlo su dueña, y quien la recibe no puede volver a compartirla.
+    why: >-
+      Un área privada que alguien más puede abrir no es privada; es una promesa rota escrita en la interfaz. Y si la
+      excepción es para quien administra, entonces la promesa nunca fue cierta para nadie.
+    context: >-
+      El área de cada persona se crea sola la primera vez que mira sus espacios. Quien decide el acceso es un único
+      punto que el resto del sistema hereda, para que ninguna pantalla pueda contestar distinto que otra.
   - id: BR-80536e4
     status: active
     title: Una página bloqueada no se escribe, ni por la pantalla ni por la vía de atrás
@@ -48,6 +61,19 @@ rules:
       candado. Y un bloqueo que solo alguien más pudiera abrir dejaría la página congelada cuando quien la bloqueó no
       está.
     context: El servidor responde con el error PAGE_LOCKED y estado 409. El bloqueo guarda cuándo y quién lo puso.
+  - id: BR-8d1f5e8
+    status: active
+    title: Registrar quién lee se puede apagar, y apagado no guarda nada
+    rule: >-
+      Se registra quién abre cada página y cuándo, y esa información solo la ve quien administra el espacio de trabajo.
+      El registro se puede apagar; apagado, no se guarda ninguna visita nueva. Una misma persona no cuenta dos veces en
+      la misma página dentro de una ventana corta de tiempo.
+    why: >-
+      Saber quién lee qué es dato sensible, y por eso tiene que poder apagarse de verdad y no solo dejar de mostrarse:
+      una pantalla oculta sobre datos que se siguen guardando es lo contrario de lo que promete el interruptor.
+    context: >-
+      Fallar al registrar una visita nunca impide leer la página; el fallo queda en la bitácora y nada más. La ventana
+      para no contar dos veces es de media hora.
   - id: BR-a096152
     status: active
     title: Una copia nace junto a su original y solo ella cambia de nombre

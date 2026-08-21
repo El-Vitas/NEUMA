@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { SearchIndexingState, SpaceVisibility } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
+import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
@@ -70,15 +71,7 @@ const buildSearchSql = (
     WHERE "searchDocument"."indexingState" = ${SearchIndexingState.INDEXED}::"SearchIndexingState"
       AND ${matchExpression}
       AND "space"."workspaceId" = ${query.workspaceId}
-      AND (
-        "space"."visibility" = ${SpaceVisibility.PUBLIC_INTERNAL}::"SpaceVisibility"
-        OR ${canReadSpace(query.userRole, SpaceVisibility.RESTRICTED, false)}
-        OR EXISTS (
-          SELECT 1 FROM "SpaceMember" AS "spaceMember"
-          WHERE "spaceMember"."spaceId" = "searchDocument"."spaceId"
-            AND "spaceMember"."userId" = ${query.userId}
-        )
-      )
+      AND ${buildSearchSpaceVisibilityFilter(query.userId, query.userRole)}
       ${filters}
     ORDER BY "rank" DESC, "searchDocument"."updatedAt" DESC, "searchDocument"."sourceId" ASC
     LIMIT ${Math.min(query.limit + 1, SEARCH_MAX_LIMIT + 1)}
@@ -98,8 +91,55 @@ const buildEditedRangeInterval = (range: SearchEditedRange): Prisma.Sql => {
   }
 };
 
+/**
+ * Which spaces a reader is allowed to find anything in.
+ *
+ * Every alternative is tied to the one visibility it speaks for. Saying
+ * instead that some role may read restricted spaces, as a bare condition of
+ * its own, does not widen the guard — it dissolves it: an alternative that is
+ * simply true makes every other one moot, and the reader finds pages in every
+ * space there is, private ones included.
+ *
+ * This mirrors `buildSpaceVisibilityFilter`, which the rest of the system
+ * already reads by; written again here because a raw query cannot take a
+ * Prisma `where`.
+ */
+export const buildSearchSpaceVisibilityFilter = (userId: string, role: UserRole): Prisma.Sql => {
+  const belongsToTheReader = Prisma.sql`EXISTS (
+    SELECT 1 FROM "SpaceMember" AS "spaceMember"
+    WHERE "spaceMember"."spaceId" = "space"."id" AND "spaceMember"."userId" = ${userId}
+  )`;
+  const readsEveryRestrictedSpace = canReadSpace(role, SpaceVisibility.RESTRICTED, false);
+
+  return Prisma.sql`(
+    "space"."visibility" = ${SpaceVisibility.PUBLIC_INTERNAL}::"SpaceVisibility"
+    OR (
+      "space"."visibility" = ${SpaceVisibility.RESTRICTED}::"SpaceVisibility"
+      AND ${readsEveryRestrictedSpace ? Prisma.sql`TRUE` : belongsToTheReader}
+    )
+    OR (
+      "space"."visibility" = ${SpaceVisibility.PRIVATE}::"SpaceVisibility"
+      AND ("space"."ownerId" = ${userId} OR ${belongsToTheReader})
+    )
+  )`;
+};
+
 export const buildEditedRangeFilter = (range: SearchEditedRange): Prisma.Sql =>
   Prisma.sql`AND "searchDocument"."updatedAt" >= ${buildEditedRangeInterval(range)}`;
+
+/**
+ * Only pages currently valid: verified, and either with no expiration or one
+ * still in the future. Checked against `now()` at query time rather than a
+ * flag baked in at projection time, so a page does not keep reading as
+ * verified past its own expiration just because nobody has written in it since.
+ */
+export const buildVerifiedOnlyFilter = (): Prisma.Sql => Prisma.sql`AND (
+  "searchDocument"."properties"->>'verifiedAt' IS NOT NULL
+  AND (
+    "searchDocument"."properties"->>'verificationExpiresAt' IS NULL
+    OR ("searchDocument"."properties"->>'verificationExpiresAt')::timestamptz > now()
+  )
+)`;
 
 const buildFilters = (
   query: SearchQueryWithFilters,
@@ -117,6 +157,7 @@ const buildFilters = (
   if (query.authorQuery !== undefined)
     filters.push(Prisma.sql`AND "searchDocument"."properties"->>'authorName' ILIKE ${`%${query.authorQuery}%`}`);
   if (query.editedRange !== undefined) filters.push(buildEditedRangeFilter(query.editedRange));
+  if (query.verifiedOnly === true) filters.push(buildVerifiedOnlyFilter());
   if (cursor !== null)
     filters.push(Prisma.sql`AND (
       ${rankExpression} < ${cursor.rank}

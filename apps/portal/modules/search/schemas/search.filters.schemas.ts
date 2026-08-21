@@ -11,4 +11,8 @@ export const searchExtraFiltersSchema = z.object({
     )
     .optional(),
   editedRange: z.preprocess(firstValue, z.enum(SEARCH_EDITED_RANGE_VALUES).optional().catch(undefined)),
+  verifiedOnly: z
+    .preprocess(firstValue, z.string().optional())
+    .transform((value) => (value === 'true' ? true : undefined))
+    .optional(),
 });

@@ -12,6 +12,8 @@ export type SearchEditedRange = (typeof SEARCH_EDITED_RANGE_VALUES)[number];
 export interface SearchQueryFilters {
   readonly authorQuery?: string;
   readonly editedRange?: SearchEditedRange;
+  /** Only pages currently verified and not past their expiration — expired ones do not count. */
+  readonly verifiedOnly?: boolean;
 }
 
 export type SearchQueryWithFilters = SearchQuery & SearchQueryFilters;
@@ -39,6 +41,7 @@ export interface SearchQueryParams {
   readonly sourceType?: SearchSourceType;
   readonly spaceId?: string;
   readonly tags?: string;
+  readonly verifiedOnly?: boolean;
 }
 
 export interface SearchRow {
@@ -105,6 +108,8 @@ export interface SearchProjectionPage {
   readonly spaceId: string;
   readonly spaceName: string;
   readonly title: string;
+  readonly verificationExpiresAt: Date | null;
+  readonly verifiedAt: Date | null;
   readonly version: number;
 }
 

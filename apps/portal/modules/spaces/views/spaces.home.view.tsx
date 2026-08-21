@@ -6,6 +6,7 @@ import type { SpaceMember } from '@/shared/types/space-members.types';
 import { SpacesHomeActivity } from '../components/spaces.home.activity';
 import { SpacesHomeMembers } from '../components/spaces.home.members';
 import { SpacesHomePages } from '../components/spaces.home.pages';
+import { SpacesShareForm } from '../components/spaces.share.form';
 import { selectSpaceHomeActivity, selectSpaceHomeMainPages } from '../lib/spaces.home.lib';
 import type { SpaceHomeActivity, SpaceHomePage } from '../types/spaces.home.types';
 import type { SpaceSummary } from '../types/spaces.types';
@@ -13,6 +14,8 @@ import type { SpaceSummary } from '../types/spaces.types';
 interface IProps {
   readonly activity: readonly SpaceHomeActivity[];
   readonly canCreatePage: boolean;
+  /** Only whoever owns a private space hands it to anybody else. */
+  readonly canShare?: boolean;
   readonly locale: string;
   readonly mainPages: readonly SpaceHomePage[];
   readonly members: readonly SpaceMember[];
@@ -24,8 +27,17 @@ interface IProps {
  * is in it. A space that opened on «pick a page» asked the question it was
  * supposed to answer.
  */
-export const SpacesHomeView = async ({ activity, canCreatePage, locale, mainPages, members, space }: IProps) => {
+export const SpacesHomeView = async ({
+  activity,
+  canCreatePage,
+  canShare = false,
+  locale,
+  mainPages,
+  members,
+  space,
+}: IProps) => {
   const t = await getTranslations('spaces.home');
+  const tPrivacy = await getTranslations('spaces.privacy');
 
   return (
     <main className="min-h-full space-y-8 p-4 sm:p-6">
@@ -56,6 +68,13 @@ export const SpacesHomeView = async ({ activity, canCreatePage, locale, mainPage
         <h2 className="font-medium text-foreground text-sm">{t('members')}</h2>
         <SpacesHomeMembers members={members} />
       </section>
+
+      {canShare && (
+        <section className="space-y-3">
+          <h2 className="font-medium text-foreground text-sm">{tPrivacy('shareLabel')}</h2>
+          <SpacesShareForm assignableMembers={members} spaceId={space.id} />
+        </section>
+      )}
     </main>
   );
 };

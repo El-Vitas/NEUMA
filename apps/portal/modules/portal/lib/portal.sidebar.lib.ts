@@ -1,4 +1,4 @@
-import { PAGE_LIFECYCLE } from '@company-brain/shared';
+import { PAGE_LIFECYCLE, type SpaceVisibility } from '@company-brain/shared';
 import type { KeyboardEvent } from 'react';
 import { buildTree, getTreeExpandedIds } from '@/shared/lib/tree.lib';
 import { PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE } from '../constants/portal.sidebar.drag.constants';
@@ -8,7 +8,23 @@ import {
   SIDEBAR_TREE_MAX_INDENTED_DEPTH,
 } from '../constants/sidebar.constants';
 import type { PortalSidebarPageKeyboardMove } from '../types/portal.sidebar.drag.types';
-import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '../types/portal.types';
+import type { PortalSidebarPage, PortalSidebarPageTreeItem, PortalSpaceKind } from '../types/portal.types';
+
+/**
+ * What a space is to whoever is looking at it.
+ *
+ * A private space one owns and a private space one was let into look the same
+ * from the database and mean opposite things to a reader: the first is their
+ * own corner, the second is somebody else's, opened to them.
+ */
+export const resolvePortalSpaceKind = (
+  visibility: SpaceVisibility,
+  ownerId: null | string,
+  currentUserId: string,
+): PortalSpaceKind => {
+  if (visibility !== 'PRIVATE') return 'own';
+  return ownerId === currentUserId ? 'private' : 'shared';
+};
 
 /**
  * A trashed page is reachable from `/trash`, not from the space's own tree,

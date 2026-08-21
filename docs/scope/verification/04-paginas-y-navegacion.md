@@ -134,9 +134,9 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 ## PG-14 · Debe mostrar los datos de la página sin estorbar
 
-- [ ] Las propiedades se ven arriba del contenido, compactas — el panel existe arriba, pero falta verlo con propiedades reales de una colección
-- [ ] Una página sin propiedades no muestra un panel vacío — hoy muestra «Esta página no tiene propiedades» y el «mostrar más»
-- [ ] Cada propiedad se edita en el mismo lugar donde se ve, sin abrir otra pantalla
+- [x] Las propiedades se ven arriba del contenido, compactas — comprobado con una fila real de la colección «Tasks»: estado, responsable, prioridad, fecha y descripción, por encima del editor
+- [x] Una página sin propiedades no muestra un panel vacío — ya no se anuncia el vacío, y el botón dejó de llamar «propiedades» a la ubicación y a los adjuntos, que no lo son
+- [x] Cada propiedad se edita en el mismo lugar donde se ve, sin abrir otra pantalla — editado en el campo y persistido en base sin abrir nada
 - [x] Con muchas propiedades se pliegan y hay un "mostrar más" — probado con «Mostrar 2 propiedades más»
 - [x] La ubicación y los adjuntos se ven ahí mismo, no en un panel aparte
 - [x] El bloque no empuja el contenido tan abajo que haya que desplazarse para escribir — plegado por omisión
@@ -177,28 +177,28 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 ## PG-19 · Debe permitir actuar sobre varias páginas a la vez
 
-- [ ] Se pueden seleccionar varias páginas en una lista
-- [ ] Se pueden mover todas juntas a otro padre o espacio
-- [ ] Se pueden enviar todas juntas a la papelera
-- [ ] Se pueden exportar todas juntas
-- [ ] Se ve cuántas hay seleccionadas
-- [ ] La acción se puede cancelar antes de aplicarse
+- [x] Se pueden seleccionar varias páginas en una lista — modo selección explícito en el árbol
+- [x] Se pueden mover todas juntas a otro padre o espacio
+- [x] Se pueden enviar todas juntas a la papelera — seleccionar una madre y una hija no actúa dos veces: la cascada de la madre ya la cubre
+- [ ] Se pueden exportar todas juntas — no existe exportación de ninguna clase; requiere un serializador y una decisión de formato pendiente
+- [x] Se ve cuántas hay seleccionadas — a la vista y anunciado por `aria-live`
+- [x] La acción se puede cancelar antes de aplicarse
 
 ## PG-20 · Debe permitir saber si una página es confiable
 
-- [ ] Una página se puede marcar como verificada
-- [ ] Se ve quién la verificó y cuándo
-- [ ] Se puede definir una fecha en que la verificación caduca
-- [ ] Al caducar, la página lo indica y avisa a quien la mantiene
-- [ ] Se puede asignar una persona responsable de la página
-- [ ] Se puede filtrar la búsqueda por páginas verificadas
+- [x] Una página se puede marcar como verificada
+- [x] Se ve quién la verificó y cuándo
+- [x] Se puede definir una fecha en que la verificación caduca — el día elegido cuenta entero, no caduca a medianoche
+- [ ] Al caducar, la página lo indica y avisa a quien la mantiene — la página **sí** lo indica («Verificada · caducada»), verificado moviendo la fecha al pasado sin tocar la página. El aviso a quien la mantiene no se construyó: no existen notificaciones ni tareas programadas en el sistema
+- [x] Se puede asignar una persona responsable de la página
+- [x] Se puede filtrar la búsqueda por páginas verificadas — el filtro se resuelve contra `now()` en el momento de la consulta, así que una página que caduca deja de aparecer sin que nadie la reescriba
 
 ## PG-21 · Debe informar del uso de la página
 
-- [ ] Se puede ver cuántas veces se ha visto la página
-- [ ] Se puede ver quiénes la vieron y cuándo
-- [ ] Quien no tiene permiso de administrar no ve esta información
-- [ ] Se puede desactivar este registro
+- [x] Se puede ver cuántas veces se ha visto la página — una misma persona no cuenta dos veces dentro de media hora
+- [x] Se puede ver quiénes la vieron y cuándo
+- [x] Quien no tiene permiso de administrar no ve esta información — no se le dibuja el control, y el servidor además rechaza a quien lo pida por su cuenta
+- [x] Se puede desactivar este registro — apagado deja de **guardar**, no solo de mostrar: comprobado visitando páginas con el registro apagado y viendo que la cuenta no se movía
 
 ---
 
@@ -287,19 +287,19 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 **Cómo probarlo:** abre una fila de una colección y comprueba que la colección sigue detrás.
 
-- [ ] Se puede abrir una página en un panel lateral sin perder la que se está leyendo
-- [ ] La página de atrás sigue visible y mantiene su posición de lectura
-- [ ] Dentro del panel se puede editar con normalidad
-- [ ] Dentro del panel se ven y se editan las propiedades
-- [ ] Desde el panel se puede pasar a página completa
-- [ ] Se puede ampliar el ancho del panel
-- [ ] Se puede navegar dentro del panel a otra página y volver atrás
-- [ ] Al abrir una fila de una colección se abre así por defecto
-- [ ] Se puede elegir abrir en página completa en vez de al costado
-- [ ] El panel se cierra con Escape y con un clic afuera
-- [ ] Al cerrarlo, los cambios ya quedaron guardados
-- [ ] Lo editado en el panel se refleja de inmediato en la vista de atrás
-- [ ] En pantalla angosta el panel ocupa la pantalla completa en vez de encogerse
+- [x] Se puede abrir una página en un panel lateral sin perder la que se está leyendo — la dirección lo recuerda (`?panel=`), así que un enlace compartido o una recarga reabren lo mismo
+- [x] La página de atrás sigue visible y mantiene su posición de lectura — dos editores montados a la vez, cada uno con su propia caja de lectura
+- [x] Dentro del panel se puede editar con normalidad
+- [x] Dentro del panel se ven y se editan las propiedades
+- [x] Desde el panel se puede pasar a página completa
+- [x] Se puede ampliar el ancho del panel — de 480 a 952 px, y el ancho se recuerda
+- [x] Se puede navegar dentro del panel a otra página y volver atrás — dentro del mismo espacio; una página de otro espacio no abre el panel (límite conocido)
+- [x] Al abrir una fila de una colección se abre así por defecto
+- [x] Se puede elegir abrir en página completa en vez de al costado
+- [x] El panel se cierra con Escape y con un clic afuera — sin atrapar el foco: no es un diálogo modal, la página de atrás se sigue leyendo
+- [x] Al cerrarlo, los cambios ya quedaron guardados — escrito y cerrado con Escape de inmediato; el cambio estaba en la base
+- [x] Lo editado en el panel se refleja de inmediato en la vista de atrás — la tabla de la colección de atrás mostró el cambio
+- [x] En pantalla angosta el panel ocupa la pantalla completa en vez de encogerse — a 320 px ocupa los 320 sin desbordar
 
 ## NV-11 · Debe ofrecer un punto de partida personal
 
@@ -311,11 +311,11 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 ## NV-12 · Debe separar lo privado de lo compartido
 
-- [ ] Cada persona tiene un área privada que nadie más ve
-- [ ] Una página privada se puede compartir después
-- [ ] Existe una sección con lo que otras personas compartieron con uno
-- [ ] Se distingue en el árbol qué es privado, qué es del espacio y qué es compartido
-- [ ] Una página privada no aparece en las búsquedas de nadie más
+- [x] Cada persona tiene un área privada que nadie más ve — se crea sola la primera vez que alguien mira sus espacios; ni siquiera un administrador ve la ajena
+- [x] Una página privada se puede compartir después — solo su dueña, desde el inicio del propio espacio; quien la recibe no puede volver a compartirla
+- [x] Existe una sección con lo que otras personas compartieron con uno — «Compartido contigo», aparte de los espacios propios y solo cuando hay algo dentro
+- [x] Se distingue en el árbol qué es privado, qué es del espacio y qué es compartido — con marca y con palabra, no solo con un ícono
+- [x] Una página privada no aparece en las búsquedas de nadie más — comprobado en los dos sentidos: invisible para quien no es de la casa, encontrable para su dueña
 
 ---
 
@@ -335,3 +335,6 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 | 2026-08-19 | PG-08, PG-12, PG-18, NV-03, NV-04, NV-06, NV-07, NV-08, NV-11 | Recorrido en el navegador contra PostgreSQL de todo lo construido el día anterior. **Duplicar** conserva contenido, propiedades e ícono, dice «(copia)», pregunta por las hijas solo si las hay y deja la copia pegada a la original. **Bloquear** apaga editor, título y propiedades, se ve, se revierte con el mismo botón, y el backend responde `PAGE_LOCKED` 409. **Filtros** de espacio, autor y fecha combinados, con chips que se quitan de a uno. Los resultados dicen espacio y madre. **Arrastrar** anida, avisa dónde cae, se anuncia por `aria-live`, rechaza soltar en la propia descendencia, cruza espacios y arrastra la descendencia; reordenar espacios persiste. Inicio del espacio y «Asignadas a ti» comprobados con tres personas. **Dos defectos encontrados y corregidos:** la estrella del encabezado no seguía al servidor —quitar la página desde la barra lateral la dejaba diciendo «Quitar de favoritas», y el siguiente clic pedía quitar algo que ya no estaba—; y la posición de lectura nunca se restauró porque se guardaba y pedía sobre `window`, cuando quien se desplaza es la caja de lectura dentro del viewport. **Falta:** orden entre hermanas con el mouse, configuración del espacio y novedades pendientes; ninguna de las tres existe todavía. | Correcto |
 | 2026-08-19 | PG-02, PG-04, PG-06, NV-01, NV-02, NV-04, NV-09 | Verificado con volumen y con una segunda persona. Un espacio **restringido** no aparece para quien no es miembro —ni en el árbol, ni en el filtro de espacios, ni en los resultados—, y su dirección directa responde «Esta dirección no existe» sin delatar que existe. Una rama de **ocho niveles** y un árbol de **600 páginas** desplegadas: 145 fps de media, peor cuadro 9 ms. La ruta de nueve tramos se acorta con «…» y conserva el último. **Cuatro defectos encontrados y corregidos:** la sangría del árbol crecía sin tope y a ocho niveles dejaba 93 px para un título de 354, así que ahora deja de crecer en la sexta generación; **renombrar una página y cambiarle el ícono no avisaban al índice**, de modo que una página renombrada se seguía encontrando por su nombre viejo para siempre; borrar del índice pedía olvidar con `Number.MAX_SAFE_INTEGER` contra una columna `integer`, así que la consulta reventaba, el evento reintentaba sin fin y **una página en la papelera seguía apareciendo en los resultados**; y la vista previa se escapaba al bajar a leerla —entrar en ella no cancelaba el cierre y el hueco de 40 px era tierra de nadie—. La vista previa ahora se alcanza, lleva dentro un enlace a la página, y muestra el ícono de la página en vez de un emoji leído del título. El ícono viaja hasta los resultados de búsqueda y hasta las menciones, donde se dibuja vivo. Se reindexaron las 97 páginas: todas tienen ya espacio y madre. | Correcto |
 | 2026-08-20 | PG-07, PG-09, PG-10, PG-15, NV-09 | Cinco bloques construidos en paralelo por cuatro agentes y verificados **uno a uno en el navegador contra PostgreSQL**. Enviar a la papelera desde la propia página (botón de 44×44 en el encabezado, reutiliza el diálogo que ya existía, saca a la persona de la página y persiste). Las menciones a una página en la papelera se tachan y dicen «eliminada»; una mención a una página que la pantalla no tiene en la mano se dibuja normal. Al restaurar se dice dónde quedó: «volvió bajo Demo ES-01 a ES-07» o «volvió a la raíz de Engineering». Un archivo soltado en el contenido aparece también en la lista de adjuntos. Al mover a un espacio más cerrado avisa con el número de personas y pide confirmación; si nadie pierde acceso, el traslado ocurre sin paso extra. **Hallazgo de fondo:** `Page.parentId` tiene `ON DELETE SET NULL`, así que eliminar la madre para siempre borra el vínculo en el acto y el caso «madre inexistente» no se puede explicar sin recordar de dónde salió la página. **Corregidos dos textos propios:** el plural del aviso de acceso dejaba el verbo en singular, y el aviso de restauración decía «ya no existe» de una madre que sigue en la papelera. **Sin verificar:** que la vista previa no aparezca sin acceso — no se logró un control fiable con la segunda persona, así que la casilla queda sin marcar. | Correcto |
+| 2026-08-20 | PG-14 | El panel de propiedades verificado con una fila real de la colección «Tasks»: cinco propiedades compactas por encima del contenido, cada una editable donde se ve —escribí en la descripción y quedó en base sin abrir ninguna pantalla—. **Corregido:** el panel decía «Esta página no tiene propiedades» mientras seguía mostrando la ubicación y los adjuntos, y el botón de revelar contaba esas dos secciones como si fueran propiedades. Ahora no se anuncia ningún vacío y el botón solo dice cuántas cosas quedan por ver. | Correcto |
+| 2026-08-20 | PG-19, PG-20 | Dos bloques construidos en paralelo y verificados en el navegador contra PostgreSQL. **Confiabilidad:** marcar como verificada guarda quién y cuándo, la insignia dice sin abrir nada si está vigente o caducada, y el filtro de búsqueda discrimina —comprobado en los dos sentidos, no solo el negativo—. El filtro se resuelve en SQL contra `now()`, no contra un booleano congelado al indexar: moví la caducidad al pasado directamente en la base y la insignia se puso al día sola, **sin reescribir la página**. Responsable asignado y persistido. **Acciones masivas:** modo selección explícito con 54 casillas, contador a la vista y anunciado por `aria-live`, y envío en lote que arrastró la cascada de una colección con quince descendientes. El controlador no actúa dos veces sobre una página que ya cubre la cascada de su madre, recorriendo la cadena real de padres. **Corregido durante la revisión:** una etiqueta de caché duplicada en dos módulos —si divergen, la invalidación se rompe en silencio— unificada en `shared/`; un `catch` que se tragaba los errores del lote sin dejar rastro; y el selector de responsable, que no ofrecía a nadie porque las personas solo se pedían cuando el esquema madre tenía una propiedad de tipo persona. **Sin construir, por falta de cimientos:** avisar a quien mantiene una página caducada (no hay notificaciones ni tareas programadas) y exportar (no existe exportación de ninguna clase). | Correcto |
+| 2026-08-20 | NV-10, NV-12, PG-21 | Tres bloques construidos en paralelo y verificados en el navegador contra PostgreSQL. **Panel lateral:** abre al costado sin perder la de atrás, con la dirección como memoria (`?panel=`), se ensancha de 480 a 952 px, se cierra con Escape y con un clic afuera sin atrapar el foco, y lo escrito justo antes de cerrar estaba en la base. A 320 px ocupa la pantalla entera. **Privado:** el área de cada persona se crea sola; ni siquiera un administrador ve la ajena —comprobado en el árbol, en la búsqueda y por dirección directa, y con el control inverso de que su dueña sí la encuentra—. Compartirla la hace aparecer en «Compartido contigo», aparte de los espacios propios. **Uso:** cuenta las visitas con quién y cuándo, se apaga, y apagado **deja de guardar**, no solo de mostrar: se visitaron dos páginas con el registro apagado y la cuenta no se movió; al reactivarlo volvió a contar. Quien no administra no ve el control, y el servidor rechaza a quien lo pida por su cuenta. **Defecto de seguridad corregido:** el buscador no usaba el filtro de visibilidad común y evaluaba en TypeScript si un rol podía leer los espacios restringidos, interpolando el resultado como literal en el SQL — para un administrador la cláusula quedaba en `OR true`, anulando toda la guarda: veía páginas de cualquier espacio, y habría visto las áreas privadas ajenas. Reescrito atando cada rama a su visibilidad, con prueba que falla si alguien vuelve a dejar un `true` suelto. **Corregido también:** la dueña de un área privada no podía renombrarla, porque renombrar exigía permiso de crear espacios. | Correcto |

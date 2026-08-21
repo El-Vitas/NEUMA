@@ -6,6 +6,7 @@ import type { SyntheticEvent } from 'react';
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/shared/components/ui/button';
+import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
@@ -43,6 +44,7 @@ export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) =>
   const [tags, setTags] = useState(() => initialValues.tags?.join(',') ?? '');
   const [authorQuery, setAuthorQuery] = useState(initialFilters.authorQuery ?? '');
   const [editedRange, setEditedRange] = useState<string>(initialFilters.editedRange ?? SEARCH_FILTER_ALL_VALUE);
+  const [verifiedOnly, setVerifiedOnly] = useState(initialFilters.verifiedOnly ?? false);
 
   const submitSearch = (event: SyntheticEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -56,6 +58,7 @@ export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) =>
     const parsedFilters = searchExtraFiltersSchema.parse({
       authorQuery,
       editedRange: editedRange === SEARCH_FILTER_ALL_VALUE ? undefined : editedRange,
+      verifiedOnly: verifiedOnly ? 'true' : undefined,
     });
     router.push(buildFilteredSearchPageUrl(parsed, parsedFilters));
   };
@@ -156,6 +159,16 @@ export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) =>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-end gap-2 pb-2.5">
+            <Checkbox
+              checked={verifiedOnly}
+              id="search-verified-only"
+              onCheckedChange={(checked) => setVerifiedOnly(checked === true)}
+            />
+            <Label className="font-normal" htmlFor="search-verified-only">
+              {filtersT('verifiedOnlyLabel')}
+            </Label>
           </div>
         </div>
         <p className="text-muted-foreground text-sm">{t('filterHint')}</p>

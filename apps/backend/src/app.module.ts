@@ -33,6 +33,7 @@ import { LinksModule } from './modules/links/links.module';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
+import { PageViewsModule } from './modules/page-views/page-views.module';
 import { PagesModule } from './modules/pages/pages.module';
 import { PagesService } from './modules/pages/pages.service';
 import { SearchModule } from './modules/search/search.module';
@@ -75,6 +76,7 @@ import { PrismaModule } from './prisma/prisma.module';
     WorkspacesModule,
     SpacesModule,
     PagesModule,
+    PageViewsModule,
     FavoritesModule,
     FilesModule,
     McpModule,

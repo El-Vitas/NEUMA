@@ -44,7 +44,23 @@ describe('PagesCollectionTable', () => {
       (cell) => cell.textContent === 'Second task' || cell.textContent === 'First task',
     );
     expect(titleCellTexts.map((cell) => cell.textContent)).toEqual(['Second task', 'First task']);
-    expect(screen.getByRole('link', { name: 'Second task' }).getAttribute('href')).toBe('/spaces/space-1/pages/row-2');
+    expect(screen.getByRole('link', { name: 'Second task' }).getAttribute('href')).toBe('?panel=row-2');
+  });
+
+  it('offers a way to open a row in full page instead of at the side', async () => {
+    render(await PagesCollectionTable({ properties, rows, spaceId: 'space-1' }));
+
+    /**
+     * Asked for by where each link leads rather than by what it is called: a
+     * server component's words are not translated here, and what this test is
+     * about is that the full page is reachable at all.
+     */
+    const destinations = screen
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'))
+      .filter((href) => href?.startsWith('/spaces/') === true);
+
+    expect(destinations).toEqual(['/spaces/space-1/pages/row-2', '/spaces/space-1/pages/row-1']);
   });
 
   it('shows an empty state instead of a table when there are no rows', async () => {

@@ -12,7 +12,7 @@ import { PagesCollectionEmbed } from '@/modules/pages/components/pages.collectio
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
-import { buildPageDocumentTitle } from '@/modules/pages/lib/pages.lib';
+import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
 import { getEditableSchemaProperties, schemaNeedsPersonOptions } from '@/modules/pages/lib/pages.properties.lib';
 import { getPageAttachments } from '@/modules/pages/server/queries/pages.attachments.queries';
 import { getPageBacklinks } from '@/modules/pages/server/queries/pages.backlinks.queries';
@@ -24,15 +24,29 @@ import type {
   PageSchemaView,
   PageViewOutcome,
 } from '@/modules/pages/types/pages.schema.types';
+import type { PagesSidePanelBundle } from '@/modules/pages/types/pages.side-panel.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
-import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
+import { canEditContent, canManageWorkspace } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
+  readonly searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
+
+/** The page a shared or reloaded address asks to open beside the one it names, when it names one at all. */
+const resolvePanelPageId = (
+  rawPanelParam: string | string[] | undefined,
+  pages: readonly PageSummary[],
+  pageId: string,
+): string | null => {
+  const candidate = Array.isArray(rawPanelParam) ? rawPanelParam[0] : rawPanelParam;
+  if (candidate === undefined || candidate === pageId) return null;
+  if (!z.uuid().safeParse(candidate).success) return null;
+  return pages.some((page) => page.id === candidate) ? candidate : null;
+};
 
 /**
  * Sends an address that no longer holds the page to the one that does.
@@ -97,12 +111,19 @@ const resolveParentSchema = async (spaceId: string, parentId: string | null): Pr
   return parentSchemaResult.isOk() ? parentSchemaResult.getValue() : null;
 };
 
-/** The space members a schema's own person properties need to name, asked only when one is present. */
-const resolvePersonOptions = async (
+/**
+ * The space members a page's render can put a name to — through a parent
+ * schema's own person properties, or through the owner an editable page can be
+ * handed to answer for it. A page nobody can write in offers neither: its
+ * properties are read-only and its owner cannot be reassigned, so there is
+ * nobody to look up a member list for.
+ */
+const resolvePersonOptionsIfNeeded = async (
   spaceId: string,
   parentSchema: PageSchema | null,
+  canAssignOwner: boolean,
 ): Promise<readonly PagePersonOption[]> => {
-  if (!schemaNeedsPersonOptions(parentSchema)) return [];
+  if (!schemaNeedsPersonOptions(parentSchema) && !canAssignOwner) return [];
   const personOptionsResult = await getSpaceMembers(spaceId);
   return personOptionsResult.isOk() ? personOptionsResult.getValue() : [];
 };
@@ -142,45 +163,91 @@ const buildEmbeddedCollections = async (
   return Object.fromEntries(entries);
 };
 
-export default async function Page({ params }: IProps) {
+/**
+ * Everything a page's own editor needs, fetched for whichever page is being
+ * asked for — the one taking the whole screen or the one riding beside it in
+ * the panel. Both are read the same way, since both are read by the same
+ * editor.
+ */
+const buildPageEditorBundle = async (
+  spaceId: string,
+  targetPage: PageSummary,
+  pages: readonly PageSummary[],
+  canEditRole: boolean,
+  favoritesResult: Result<readonly FavoritePage[], Error>,
+): Promise<PagesSidePanelBundle> => {
+  const [attachmentsResult, backlinksResult, ownSchemaResult] = await Promise.all([
+    getPageAttachments(targetPage.id),
+    getPageBacklinks(targetPage.id),
+    getPageSchema(spaceId, targetPage.id),
+  ]);
+  const parentSchema = await resolveParentSchema(spaceId, targetPage.parentId);
+  const personOptions = await resolvePersonOptionsIfNeeded(
+    spaceId,
+    parentSchema,
+    canEditPage(canEditRole, targetPage.lifecycle),
+  );
+  const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
+  const collectionSection = await buildCollectionSection(ownSchema, spaceId, targetPage.id);
+  const embeddedCollections = await buildEmbeddedCollections(targetPage, pages);
+
+  return {
+    attachments: attachmentsResult.isOk() ? attachmentsResult.getValue() : [],
+    backlinks: backlinksResult.isOk() ? backlinksResult.getValue() : EMPTY_PAGE_BACKLINKS,
+    collectionSection,
+    embeddedCollections,
+    isFavorite: resolveIsFavorite(favoritesResult, targetPage.id),
+    page: targetPage,
+    parentSchema,
+    personOptions,
+  };
+};
+
+export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
   if (!z.uuid().safeParse(pageId).success) notFound();
 
-  const [spacesResult, user, pagesResult, attachmentsResult, backlinksResult, ownSchemaResult, favoritesResult] =
-    await Promise.all([
-      getSpaces(),
-      getCurrentUser(),
-      getPages(spaceId),
-      getPageAttachments(pageId),
-      getPageBacklinks(pageId),
-      getPageSchema(spaceId, pageId),
-      getFavoritePages(),
-    ]);
+  const [spacesResult, user, pagesResult, favoritesResult, resolvedSearchParams] = await Promise.all([
+    getSpaces(),
+    getCurrentUser(),
+    getPages(spaceId),
+    getFavoritePages(),
+    searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({}),
+  ]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const pages = pagesResult.isOk() ? pagesResult.getValue() : null;
   const selectedPage = pages?.find((page) => page.id === pageId);
   if (selectedPage === undefined) await followThePageToItsSpace(pageId, spaceId);
   if (space === undefined || pages === null || selectedPage === undefined) notFound();
 
-  const parentSchema = await resolveParentSchema(spaceId, selectedPage.parentId);
-  const personOptions = await resolvePersonOptions(spaceId, parentSchema);
-  const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
-  const collectionSection = await buildCollectionSection(ownSchema, spaceId, pageId);
-  const embeddedCollections = await buildEmbeddedCollections(selectedPage, pages);
+  const canEditRole = canEditContent(user?.role ?? USER_ROLE.CLIENT);
+  /** Who read a page is kept from everyone but whoever runs the workspace, and that is settled here, not in the browser. */
+  const canSeePageUsage = canManageWorkspace(user?.role ?? USER_ROLE.CLIENT);
+  const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pages, pageId);
+  const panelPage = panelPageId === null ? undefined : pages.find((page) => page.id === panelPageId);
+
+  const [mainBundle, panelBundle] = await Promise.all([
+    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult),
+    panelPage === undefined
+      ? Promise.resolve(null)
+      : buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult),
+  ]);
 
   return (
     <main className="min-h-full">
       <PagesWorkspace
-        attachments={attachmentsResult.isOk() ? attachmentsResult.getValue() : []}
-        backlinks={backlinksResult.isOk() ? backlinksResult.getValue() : EMPTY_PAGE_BACKLINKS}
-        canEditContent={canEditContent(user?.role ?? USER_ROLE.CLIENT)}
-        collectionSection={collectionSection}
+        attachments={mainBundle.attachments}
+        backlinks={mainBundle.backlinks}
+        canEditContent={canEditRole}
+        canSeePageUsage={canSeePageUsage}
+        collectionSection={mainBundle.collectionSection}
         currentUserDisplayName={user?.name}
-        embeddedCollections={embeddedCollections}
-        isFavorite={resolveIsFavorite(favoritesResult, pageId)}
+        embeddedCollections={mainBundle.embeddedCollections}
+        isFavorite={mainBundle.isFavorite}
         pages={pages}
-        parentSchema={parentSchema}
-        personOptions={personOptions}
+        panelBundle={panelBundle}
+        parentSchema={mainBundle.parentSchema}
+        personOptions={mainBundle.personOptions}
         selectedPageId={selectedPage.id}
         spaceId={spaceId}
         spaceName={space.name}

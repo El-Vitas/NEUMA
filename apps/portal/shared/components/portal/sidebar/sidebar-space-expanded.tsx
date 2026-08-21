@@ -20,6 +20,7 @@ import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { useSidebarSpaceDrop } from '@/shared/hooks/use.sidebar-space-drop.hook';
 import { SidebarPageTree } from './sidebar-page-tree';
 import { SidebarSpaceIconDialog } from './sidebar-space-icon-dialog';
+import { SidebarSpaceKindMark } from './sidebar-space-kind-mark';
 import { SidebarSpaceRenameDialog } from './sidebar-space-rename-dialog';
 import { SidebarTreeIcon } from './sidebar-tree-icon';
 
@@ -94,6 +95,7 @@ export const SidebarSpaceExpanded = ({
           {isCurrentSpace && <span aria-hidden="true" className="absolute inset-y-2 -left-8 w-1 bg-primary" />}
           <SidebarTreeIcon fallback={BookOpen} icon={space.icon} />
           <span className="min-w-0 truncate">{space.name}</span>
+          <SidebarSpaceKindMark kind={space.kind} />
         </Link>
         {canCreatePages && (
           <DropdownMenu>

@@ -60,7 +60,6 @@ export const PagesPropertiesPanel = ({
   return (
     <section aria-label={t('properties.title')} className="max-w-336 border-border border-b pb-2">
       <p className="text-muted-foreground text-xs sm:hidden">{t('propertiesPanel.narrowScreenHint')}</p>
-      {properties.length === 0 && <p className="text-muted-foreground text-sm">{t('propertiesPanel.empty')}</p>}
       {visibleProperties.map((property) => (
         <PagesPropertiesRow
           disabled={!canEdit}

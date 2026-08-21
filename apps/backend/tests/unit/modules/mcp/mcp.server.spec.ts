@@ -15,7 +15,15 @@ import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.ty
 const principal: McpPrincipal = { role: USER_ROLE.WORKER, userId: 'user-1' };
 const workspace: WorkspaceSummary = { id: 'workspace-1', name: 'Company Brain' };
 const spaces: readonly SpaceSummary[] = [
-  { icon: null, id: 'space-1', name: 'Engineering', order: 0, slug: 'engineering', visibility: 'PUBLIC_INTERNAL' },
+  {
+    icon: null,
+    id: 'space-1',
+    name: 'Engineering',
+    order: 0,
+    ownerId: null,
+    slug: 'engineering',
+    visibility: 'PUBLIC_INTERNAL',
+  },
 ];
 const page: PageSummary = {
   content: {
@@ -29,12 +37,16 @@ const page: PageSummary = {
   lifecycle: 'ACTIVE',
   lockedAt: null,
   order: 0,
+  owner: null,
   parentId: null,
   propertyValues: null,
   spaceId: 'space-1',
   title: 'Runbook',
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedBy: null,
+  verificationExpiresAt: null,
+  verifiedAt: null,
+  verifiedBy: null,
   version: 1,
 };
 
@@ -142,9 +154,12 @@ describe('MCP read contract', () => {
     const result = await client.callTool({ name: 'mcp.listSpaces', arguments: {} });
 
     expect(result.isError).not.toBe(true);
-    /** An agent is told which spaces it may read — not how they are drawn, nor in what order a person arranged them. */
+    /**
+     * An agent is told which spaces it may read — not how they are drawn, nor
+     * in what order a person arranged them, nor whose private corner each one is.
+     */
     expect(result.structuredContent).toEqual({
-      spaces: spaces.map(({ icon: _icon, order: _order, ...readable }) => readable),
+      spaces: spaces.map(({ icon: _icon, order: _order, ownerId: _ownerId, ...readable }) => readable),
     });
     expect(calls).toEqual(['principal', 'workspace:user-1:WORKER', 'spaces:workspace-1:user-1:WORKER']);
   });

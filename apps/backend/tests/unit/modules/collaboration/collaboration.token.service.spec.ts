@@ -17,12 +17,16 @@ const page: PageSummary = {
   lifecycle: PageLifecycle.ACTIVE,
   lockedAt: null,
   order: 1,
+  owner: null,
   parentId: null,
   propertyValues: null,
   spaceId: 'space-1',
   title: 'Page',
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedBy: null,
+  verificationExpiresAt: null,
+  verifiedAt: null,
+  verifiedBy: null,
   version: 1,
 };
 

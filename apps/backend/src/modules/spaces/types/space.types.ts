@@ -1,5 +1,8 @@
-import type { PageIcon, SpaceVisibility, UserRole } from '@company-brain/shared';
+import type { SpaceVisibility } from '@company-brain/db';
+import type { PageIcon, UserRole } from '@company-brain/shared';
 import type { AssignableMember } from '../../../common/types/workspace-member.types';
+
+export type AddSpaceMemberOutcome = 'forbidden' | 'not-assignable' | 'not-found' | 'shared';
 
 export interface CreateSpaceInput {
   readonly name: string;
@@ -14,6 +17,8 @@ export interface SpaceSummary {
   readonly name: string;
   /** Where the space sits in its workspace's own order, which people set by dragging. */
   readonly order: number;
+  /** Who a `PRIVATE` space belongs to. Null for every other visibility. */
+  readonly ownerId: string | null;
   readonly slug: string;
   readonly visibility: SpaceVisibility;
 }
@@ -55,4 +60,12 @@ export interface SpaceRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<number | null>;
+  readonly addMember: (
+    spaceId: string,
+    memberUserId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<AddSpaceMemberOutcome>;
+  readonly listSharedWithMe: (workspaceId: string, userId: string) => Promise<readonly SpaceSummary[]>;
 }

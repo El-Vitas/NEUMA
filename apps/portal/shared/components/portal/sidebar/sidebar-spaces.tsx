@@ -14,6 +14,18 @@ interface IProps {
 
 export const SidebarSpaces = ({ collapsed, onNavigate, role, spaces }: IProps) => {
   const t = useTranslations('navigation');
+  const tPrivacy = useTranslations('spaces.privacy');
+  /** What somebody else opened up is not one's own place, so it does not sit in the same list. */
+  const ownSpaces = spaces.filter((space) => space.kind !== 'shared');
+  const sharedSpaces = spaces.filter((space) => space.kind === 'shared');
+
+  const renderSpaces = (listed: readonly PortalLayoutSpace[]) => (
+    <div className="space-y-0.5">
+      {listed.map((space) => (
+        <SidebarSpace collapsed={collapsed} key={space.id} onNavigate={onNavigate} role={role} space={space} />
+      ))}
+    </div>
+  );
 
   return (
     <section aria-label={t('spaces')} className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
@@ -24,11 +36,17 @@ export const SidebarSpaces = ({ collapsed, onNavigate, role, spaces }: IProps) =
           </h2>
         </div>
       )}
-      <div className="space-y-0.5">
-        {spaces.map((space) => (
-          <SidebarSpace collapsed={collapsed} key={space.id} onNavigate={onNavigate} role={role} space={space} />
-        ))}
-      </div>
+      {renderSpaces(ownSpaces)}
+      {sharedSpaces.length > 0 && (
+        <>
+          {!collapsed && (
+            <h2 className="px-3 pt-4 pb-2 font-semibold text-[11px] text-sidebar-foreground/50 uppercase tracking-[0.12em]">
+              {tPrivacy('treeShared')}
+            </h2>
+          )}
+          {renderSpaces(sharedSpaces)}
+        </>
+      )}
     </section>
   );
 };
