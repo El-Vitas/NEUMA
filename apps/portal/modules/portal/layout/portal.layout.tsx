@@ -8,9 +8,10 @@ import { PortalCommandBar } from '@/shared/components/portal/command-bar';
 import { Sidebar } from '@/shared/components/portal/sidebar';
 import { Topbar } from '@/shared/components/portal/topbar';
 import { Sheet, SheetContent, SheetTitle } from '@/shared/components/ui/sheet';
+import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 import type { ThemeChoice } from '@/shared/types/theme.types';
-import { isPortalCommandShortcut } from '../lib/portal.keyboard.lib';
+import { isPortalCommandShortcut, isStartPageShortcut, resolveSpaceToStartPageIn } from '../lib/portal.keyboard.lib';
 import type { PortalLayoutSpace, PortalLayoutUser } from '../types/portal.types';
 
 interface PortalLayoutProps {
@@ -29,17 +30,37 @@ export const PortalLayout = ({ children, favorites, role, spaces, themeChoice, u
   const pathname = usePathname();
   const lastPathnameRef = useRef<string | null>(null);
   const t = useTranslations('navigation');
+  const { startPage } = usePagesStart();
+  /** Read when the chord is struck, not when it was bound, so the shortcut never starts a page where one used to be. */
+  const pathnameRef = useRef(pathname);
+  const spacesRef = useRef(spaces);
 
+  useEffect(() => {
+    pathnameRef.current = pathname;
+    spacesRef.current = spaces;
+  }, [pathname, spaces]);
+
+  /**
+   * The chords live here rather than in each screen because they answer
+   * wherever one is: what changes between screens is only which space a new
+   * page would belong to, and the address already says that.
+   */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isPortalCommandShortcut(event)) {
         event.preventDefault();
         setCommandBarOpen(true);
+        return;
       }
+      if (!isStartPageShortcut(event)) return;
+      const spaceId = resolveSpaceToStartPageIn(pathnameRef.current, spacesRef.current);
+      if (spaceId === null) return;
+      event.preventDefault();
+      startPage(spaceId);
     };
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [startPage]);
 
   /**
    * Every arrival puts the reader back at the content, which is what changed

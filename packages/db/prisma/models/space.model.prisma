@@ -2,6 +2,7 @@ model Space {
   id          String          @id @default(uuid(7))
   workspaceId String
   name        String
+  description String?
   slug        String
   icon        Json?
   visibility  SpaceVisibility @default(PUBLIC_INTERNAL)

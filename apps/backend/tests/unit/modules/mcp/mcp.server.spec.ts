@@ -16,6 +16,7 @@ const principal: McpPrincipal = { role: USER_ROLE.WORKER, userId: 'user-1' };
 const workspace: WorkspaceSummary = { id: 'workspace-1', name: 'Company Brain' };
 const spaces: readonly SpaceSummary[] = [
   {
+    description: null,
     icon: null,
     id: 'space-1',
     name: 'Engineering',
@@ -156,10 +157,13 @@ describe('MCP read contract', () => {
     expect(result.isError).not.toBe(true);
     /**
      * An agent is told which spaces it may read — not how they are drawn, nor
-     * in what order a person arranged them, nor whose private corner each one is.
+     * in what order a person arranged them, nor whose private corner each one
+     * is, nor what each one says about itself.
      */
     expect(result.structuredContent).toEqual({
-      spaces: spaces.map(({ icon: _icon, order: _order, ownerId: _ownerId, ...readable }) => readable),
+      spaces: spaces.map(
+        ({ description: _description, icon: _icon, order: _order, ownerId: _ownerId, ...readable }) => readable,
+      ),
     });
     expect(calls).toEqual(['principal', 'workspace:user-1:WORKER', 'spaces:workspace-1:user-1:WORKER']);
   });

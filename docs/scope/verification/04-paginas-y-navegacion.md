@@ -13,7 +13,7 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [x] La página nueva se abre lista para escribir, con el cursor en el título
 - [x] No obliga a completar un formulario antes de empezar a escribir — la página se crea vacía y uno cae dentro; el título se guarda solo (verificado contra PostgreSQL sin apretar nada)
 - [x] Aparece de inmediato en el árbol lateral
-- [ ] Se puede crear con un atajo de teclado — el buscador rápido ofrece la acción, pero no hay atajo directo
+- [x] Se puede crear con un atajo de teclado — `Ctrl`/`Cmd` + `Shift` + `N`, en el espacio donde uno esté; lleva Shift para no pelearse con el atajo del navegador, y calla mientras se escribe
 - [ ] Al crearla se puede elegir una plantilla en vez de empezar en blanco
 
 ## PG-02 · Debe permitir anidar páginas sin límite
@@ -180,7 +180,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se pueden seleccionar varias páginas en una lista — modo selección explícito en el árbol
 - [x] Se pueden mover todas juntas a otro padre o espacio
 - [x] Se pueden enviar todas juntas a la papelera — seleccionar una madre y una hija no actúa dos veces: la cascada de la madre ya la cubre
-- [ ] Se pueden exportar todas juntas — no existe exportación de ninguna clase; requiere un serializador y una decisión de formato pendiente
+- [x] Se pueden exportar todas juntas — a Markdown, eligiendo entre una página, una página con todo lo que cuelga de ella, o el espacio entero; todo en un mismo archivo
 - [x] Se ve cuántas hay seleccionadas — a la vista y anunciado por `aria-live`
 - [x] La acción se puede cancelar antes de aplicarse
 
@@ -215,14 +215,14 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 ## NV-02 · Debe agrupar el contenido en espacios
 
 - [x] Se puede crear un espacio
-- [ ] Se le puede poner nombre y descripción — hay nombre y slug; no existe la descripción
+- [x] Se le puede poner nombre y descripción — ambos en la configuración del espacio; la descripción se lee en su entrada, y borrarla devuelve al espacio a no decir nada
 - [x] Se ven solo los espacios a los que se tiene acceso — un espacio restringido no aparece para quien no es miembro, ni en el árbol ni en el filtro de la búsqueda
 - [x] Se puede cambiar de espacio sin perder el contexto de navegación — el árbol conserva su estado
 - [x] Un espacio vacío explica cómo empezar en vez de mostrar una pantalla en blanco
 
 ## NV-03 · Debe permitir reordenar el árbol con el mouse
 
-- [ ] Se puede arrastrar una página para cambiarla de posición entre sus hermanas — no existe: soltar sobre una página la anida, y el orden entre hermanas no se puede cambiar con el mouse
+- [x] Se puede arrastrar una página para cambiarla de posición entre sus hermanas — el borde de una fila la deja al lado, el centro la mete dentro; la marca dice cuál de las dos va a pasar, y el orden aguanta la recarga
 - [x] Se puede arrastrar una página dentro de otra para anidarla
 - [x] Se puede arrastrar una página a otro espacio
 - [x] Mientras se arrastra se ve dónde va a caer
@@ -270,7 +270,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Cada espacio tiene una pantalla de inicio
 - [x] Muestra sus páginas principales
 - [x] Muestra su actividad reciente
-- [ ] Desde ahí se accede a los miembros y a la configuración del espacio — los miembros se ven; no existe pantalla de configuración del espacio
+- [x] Desde ahí se accede a los miembros y a la configuración del espacio — los miembros se ven en la propia entrada, y «Configuración» lleva a donde se nombra y se describe el espacio
 
 ## NV-09 · Debe permitir asomarse a una página sin abrirla
 
@@ -281,7 +281,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] La vista previa muestra el ícono y las propiedades principales — el ícono es el de la página, no un emoji leído del título
 - [x] Aparece con un pequeño retraso, no al rozarla sin querer — al rozar 200 ms no aparece; al descansar sí
 - [x] Desaparece al alejar el cursor
-- [ ] La vista previa no aparece si uno no tiene acceso a esa página
+- [x] La vista previa no aparece si uno no tiene acceso a esa página — dice «no tienes acceso» sin filtrar ni el título ni un fragmento; comprobado con el control en los dos sentidos, un enlace alcanzable y otro no
 
 ## NV-10 · Debe permitir abrir una página al costado
 
@@ -338,3 +338,5 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 | 2026-08-20 | PG-14 | El panel de propiedades verificado con una fila real de la colección «Tasks»: cinco propiedades compactas por encima del contenido, cada una editable donde se ve —escribí en la descripción y quedó en base sin abrir ninguna pantalla—. **Corregido:** el panel decía «Esta página no tiene propiedades» mientras seguía mostrando la ubicación y los adjuntos, y el botón de revelar contaba esas dos secciones como si fueran propiedades. Ahora no se anuncia ningún vacío y el botón solo dice cuántas cosas quedan por ver. | Correcto |
 | 2026-08-20 | PG-19, PG-20 | Dos bloques construidos en paralelo y verificados en el navegador contra PostgreSQL. **Confiabilidad:** marcar como verificada guarda quién y cuándo, la insignia dice sin abrir nada si está vigente o caducada, y el filtro de búsqueda discrimina —comprobado en los dos sentidos, no solo el negativo—. El filtro se resuelve en SQL contra `now()`, no contra un booleano congelado al indexar: moví la caducidad al pasado directamente en la base y la insignia se puso al día sola, **sin reescribir la página**. Responsable asignado y persistido. **Acciones masivas:** modo selección explícito con 54 casillas, contador a la vista y anunciado por `aria-live`, y envío en lote que arrastró la cascada de una colección con quince descendientes. El controlador no actúa dos veces sobre una página que ya cubre la cascada de su madre, recorriendo la cadena real de padres. **Corregido durante la revisión:** una etiqueta de caché duplicada en dos módulos —si divergen, la invalidación se rompe en silencio— unificada en `shared/`; un `catch` que se tragaba los errores del lote sin dejar rastro; y el selector de responsable, que no ofrecía a nadie porque las personas solo se pedían cuando el esquema madre tenía una propiedad de tipo persona. **Sin construir, por falta de cimientos:** avisar a quien mantiene una página caducada (no hay notificaciones ni tareas programadas) y exportar (no existe exportación de ninguna clase). | Correcto |
 | 2026-08-20 | NV-10, NV-12, PG-21 | Tres bloques construidos en paralelo y verificados en el navegador contra PostgreSQL. **Panel lateral:** abre al costado sin perder la de atrás, con la dirección como memoria (`?panel=`), se ensancha de 480 a 952 px, se cierra con Escape y con un clic afuera sin atrapar el foco, y lo escrito justo antes de cerrar estaba en la base. A 320 px ocupa la pantalla entera. **Privado:** el área de cada persona se crea sola; ni siquiera un administrador ve la ajena —comprobado en el árbol, en la búsqueda y por dirección directa, y con el control inverso de que su dueña sí la encuentra—. Compartirla la hace aparecer en «Compartido contigo», aparte de los espacios propios. **Uso:** cuenta las visitas con quién y cuándo, se apaga, y apagado **deja de guardar**, no solo de mostrar: se visitaron dos páginas con el registro apagado y la cuenta no se movió; al reactivarlo volvió a contar. Quien no administra no ve el control, y el servidor rechaza a quien lo pida por su cuenta. **Defecto de seguridad corregido:** el buscador no usaba el filtro de visibilidad común y evaluaba en TypeScript si un rol podía leer los espacios restringidos, interpolando el resultado como literal en el SQL — para un administrador la cláusula quedaba en `OR true`, anulando toda la guarda: veía páginas de cualquier espacio, y habría visto las áreas privadas ajenas. Reescrito atando cada rama a su visibilidad, con prueba que falla si alguien vuelve a dejar un `true` suelto. **Corregido también:** la dueña de un área privada no podía renombrarla, porque renombrar exigía permiso de crear espacios. | Correcto |
+| 2026-08-21 | PG-19 (exportar) | Exportación a Markdown, verificada en el navegador contra PostgreSQL. Se elige cuánto sale: una página, una página con todo lo que cuelga de ella, o el espacio entero. A una página sin hijas no se le pregunta nada; a una con hijas se le pregunta, y las dos respuestas se comprobaron: «Tasks» sola salió con una sola marca de página, y con sus subpáginas salió con catorce, el número exacto que la base tiene bajo esa madre. El espacio entero de Engineering salió en un archivo de 42 KB con las páginas en el orden del árbol y cada una abierta por la ruta donde vivía. Lo que Markdown ya sabe decir se escribió con su propia sintaxis; lo que no —menciones, personas, fechas, fórmulas, destacados, columnas, colecciones, plegables, marcadores— salió como enlace con su destino o como cerca `:::tipo` con sus datos, incluido un bloque que el esquema no conoce, que se conservó en vez de perderse. **Acceso comprobado en los dos sentidos:** un Worker que no pertenece al espacio restringido «Direccion» recibe 403, y el mismo espacio —que tiene dos páginas, una con una palabra secreta— sale entero para quien sí puede leerlo. Sin sesión, 401; un alcance inventado o una página sin decir cuál, 400. **Defecto encontrado y corregido:** la fórmula salía vacía (`$$`) porque el escritor buscaba `attrs.expression` y el esquema guarda `attrs.latex`; la prueba que tenía escrita repetía el mismo error, así que solo se vio al abrir el archivo real. | Correcto |
+| 2026-08-21 | PG-01, NV-02, NV-03, NV-08, NV-09 | Cinco casillas sueltas cerradas y verificadas en el navegador. **Atajo:** `Ctrl`/`Cmd` + `Shift` + `N` crea una página en el espacio donde uno esté; lleva Shift para no pisar el atajo del navegador, y calla mientras se escribe —comprobado el control—. **Configuración del espacio:** pantalla propia con nombre y descripción, enlazada desde la entrada del espacio; la descripción se lee ahí y borrarla devuelve al espacio a no decir nada. **Orden entre hermanas:** soltar en el borde de una fila deja la página al lado, soltar en el centro la mete dentro, y la marca dice cuál de las dos va a pasar antes de soltar; «Review portal content» pasó de tercera a primera y aguantó la recarga. **Vista previa sin acceso:** dice «no tienes acceso» sin filtrar título ni fragmento, comprobado con control en los dos sentidos —el enlace alcanzable sí muestra su contenido—. La decisión de qué significa soltar se sacó a una función pura, igual que la de recolocar en una lista, que ahora comparten páginas y espacios en vez de tenerla escrita dos veces. | Correcto |

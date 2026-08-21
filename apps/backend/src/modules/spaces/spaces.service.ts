@@ -40,6 +40,18 @@ export class SpacesService {
     return space === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(space);
   }
 
+  /** What a space says it is for, which whoever may name it may also say. */
+  async describeSpace(
+    spaceId: string,
+    description: null | string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<SpaceSummary, SpaceAccessDeniedError>> {
+    const space = await this.spaceRepository.describeSpace(spaceId, description, workspaceId, userId, role);
+    return space === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(space);
+  }
+
   /** The order a workspace keeps its spaces in, which anybody who could make one can rearrange. */
   async reorder(
     spaceId: string,

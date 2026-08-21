@@ -1,10 +1,31 @@
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
-import { PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE } from '../constants/portal.sidebar.drag.constants';
+import {
+  PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE,
+  PORTAL_SIDEBAR_ROW_NESTING_BAND,
+} from '../constants/portal.sidebar.drag.constants';
 import {
   portalSidebarDraggedPageSchema,
   portalSidebarDraggedSpaceSchema,
 } from '../schemas/portal.sidebar.drag.schemas';
-import type { PortalSidebarDraggedPage } from '../types/portal.sidebar.drag.types';
+import type { PortalSidebarDraggedPage, PortalSidebarDropIntent } from '../types/portal.sidebar.drag.types';
+
+/**
+ * What letting go over a row would mean: putting the page inside it, or
+ * setting it down beside it.
+ *
+ * Where in the row the pointer rests is the whole question. The middle is by
+ * far the widest part, because nesting is what a drag usually means; the thin
+ * edges are what let somebody say «here, between these two» instead.
+ */
+export const readPortalSidebarDropIntent = (
+  row: { readonly height: number; readonly top: number },
+  pointerY: number,
+): PortalSidebarDropIntent => {
+  const edge = (row.height * (1 - PORTAL_SIDEBAR_ROW_NESTING_BAND)) / 2;
+  if (pointerY < row.top + edge) return 'before';
+  if (pointerY > row.top + row.height - edge) return 'after';
+  return 'nest';
+};
 
 const findPortalSidebarPage = (pages: readonly PortalSidebarPage[], pageId: string): PortalSidebarPage | undefined =>
   pages.find((page) => page.id === pageId);
@@ -60,11 +81,15 @@ export const resolvePortalSidebarOutdentParentId = (
 };
 
 /** Shows which element the dragged page would land on, and stops showing it wherever it no longer would. */
-export const markPortalSidebarPageDropTarget = (element: Element | null): void => {
+export const markPortalSidebarPageDropTarget = (
+  element: Element | null,
+  intent: PortalSidebarDropIntent = 'nest',
+): void => {
   for (const marked of document.querySelectorAll(`[${PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE}]`)) {
     if (marked !== element) marked.removeAttribute(PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE);
   }
-  element?.setAttribute(PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE, 'true');
+  /** The mark says what would happen, not merely that something would: nesting and slotting in look different. */
+  element?.setAttribute(PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE, intent);
 };
 
 /**

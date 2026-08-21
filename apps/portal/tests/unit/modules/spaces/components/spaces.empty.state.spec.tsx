@@ -5,7 +5,7 @@ import en from '../../../../../messages/en.json';
 
 /** Starting a page reaches a server action, which refuses to load outside a server. */
 const startedSpaceIds: string[] = [];
-mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+mock.module('@/shared/hooks/use.pages-start.hook', () => ({
   usePagesStart: () => ({
     isStarting: false,
     startPage: (spaceId: string) => {

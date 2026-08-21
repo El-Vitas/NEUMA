@@ -194,6 +194,14 @@ export interface PageRepositoryContract {
     role: UserRole,
     mutationId: string,
   ) => Promise<PageSummary | null>;
+  /** `null` for the page it goes before puts it last among its sisters. */
+  readonly reorderAmongSiblings: (
+    pageId: string,
+    beforePageId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<readonly PageSummary[] | null>;
   readonly parentBelongsToSpace: (parentId: string, spaceId: string) => Promise<boolean>;
   readonly listAccessible: (
     spaceId: string,

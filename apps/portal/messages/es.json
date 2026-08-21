@@ -236,7 +236,8 @@
       "members": "Miembros",
       "noMembers": "Este espacio no tiene miembros asignados.",
       "moreMembers": "y {count} más",
-      "startPage": "Crear una página"
+      "startPage": "Crear una página",
+      "settings": "Configuración"
     },
     "newSpace": "Nuevo espacio",
     "create": "Crear espacio",
@@ -260,6 +261,17 @@
       }
     },
     "reorderError": "No se pudo cambiar el orden de los espacios.",
+    "settings": {
+      "title": "Configuración del espacio",
+      "subtitle": "Cómo se llama {space} y qué se guarda aquí.",
+      "nameLabel": "Nombre",
+      "descriptionLabel": "Descripción",
+      "descriptionHint": "Una o dos frases para que quien llegue sepa qué va aquí dentro.",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "saved": "Espacio actualizado",
+      "error": "No se pudo guardar. Intenta de nuevo."
+    },
     "privacy": {
       "badgeLabel": "Privado",
       "treePrivate": "Tu área privada",
@@ -381,6 +393,8 @@
       "resizeHandleHint": "También se ajusta con las flechas del teclado.",
       "dragging": "Moviendo {name}",
       "dropInside": "Se soltará dentro de {name}",
+      "dropBefore": "Se soltará justo antes de {name}",
+      "dropAfter": "Se soltará justo después de {name}",
       "dropInvalid": "No se puede soltar aquí"
     },
     "sidePanel": {
@@ -886,6 +900,16 @@
       "copyName": "{title} (copia)",
       "childrenQuestion": "¿Duplicar también lo que cuelga de «{name}»?",
       "childrenHelp": "La copia queda junto a la original.",
+      "childrenNo": "Solo esta página",
+      "childrenYes": "También sus subpáginas"
+    },
+    "export": {
+      "action": "Exportar a Markdown",
+      "spaceAction": "Exportar el espacio a Markdown",
+      "done": "Se descargó {file}",
+      "untitled": "Sin título",
+      "childrenQuestion": "¿Exportar también lo que cuelga de «{name}»?",
+      "childrenHelp": "Todo queda en un mismo archivo, cada página con el lugar donde vivía.",
       "childrenNo": "Solo esta página",
       "childrenYes": "También sus subpáginas"
     },

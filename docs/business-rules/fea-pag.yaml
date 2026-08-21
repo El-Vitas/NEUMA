@@ -3,6 +3,29 @@ name: La vida de una página
 purpose: Reúne las reglas de cómo nace una página, cómo se nombra, dónde vive y qué ocurre cuando cambia de sitio.
 scope: pages
 rules:
+  - id: BR-03b8e1f
+    status: active
+    title: La exportación no abre una puerta que no existía
+    rule: >-
+      Una exportación entrega exactamente las páginas que quien la pide podría abrir de a una, con las menciones que no
+      puede leer ya tapadas, igual que en pantalla. Pedir exportar una página fuera de su alcance se responde como se
+      responde pedirla: no está disponible.
+    why: >-
+      Una exportación es la manera más barata de sacar un espacio entero de un solo gesto. Si leyera la base por un
+      camino propio, cualquier permiso que se respete en pantalla dejaría de respetarse en el archivo, y nadie lo
+      notaría hasta que el archivo ya salió.
+    context: >-
+      Por eso el servicio lee por la misma puerta que usa el listado del espacio, en vez de consultar el repositorio
+      aparte.
+    scenarios:
+      - title: Un espacio ajeno no se exporta
+        given: Una persona que no pertenece a un espacio restringido
+        when: Pide exportar ese espacio
+        then: No obtiene ningún archivo
+      - title: Las menciones tapadas siguen tapadas
+        given: Una página que menciona otra que quien exporta no puede leer
+        when: Se exporta esa página
+        then: El archivo muestra la mención con la etiqueta tapada, no con el título real
   - id: BR-0d64742
     status: active
     title: La vista previa se puede alcanzar y se puede entrar en ella
@@ -87,6 +110,20 @@ rules:
     context: >-
       La marca de copia la pone el portal, porque el servidor no sabe en qué idioma lee cada persona. Para dejar sitio a
       la copia se renumeran las hermanas que venían después.
+  - id: BR-a2dc75d
+    status: active
+    title: Dónde se suelta una página dice si va dentro o al lado
+    rule: >-
+      Al arrastrar una página sobre otra en el árbol, soltarla en el centro de la fila la mete dentro y soltarla en el
+      borde la deja al lado, antes o después según el borde. La marca dice cuál de las dos cosas va a pasar antes de
+      soltar, y el orden que resulta se conserva al recargar.
+    why: >-
+      Anidar y ordenar son dos intenciones distintas y el mismo gesto tiene que servir para ambas; si soltar siempre
+      significara lo mismo, el orden entre hermanas quedaría fuera del alcance del ratón. El centro es la parte ancha
+      porque anidar es lo que se hace más seguido.
+    context: >-
+      Reordenar renumera la fila completa desde arriba: dos hermanas empatadas harían caer el siguiente arrastre donde
+      nadie apuntó. Una página soltada junto a las hijas de otra madre primero cambia de madre y después se coloca.
   - id: BR-b3786ed
     status: active
     title: La posición de lectura se guarda por página y dura lo que la pestaña
@@ -118,6 +155,67 @@ rules:
         given: Una página recién creada y sin nombre
         when: Se escribe un título y no se pulsa nada más
         then: El título queda guardado
+  - id: BR-cb028f9
+    status: active
+    title: Lo que se exporta se lee como Markdown y sabe volver
+    rule: >-
+      Una página se exporta a Markdown. Lo que Markdown ya sabe decir —párrafos, encabezados, listas, tareas, citas,
+      código, tablas, imágenes, separadores— se escribe con su propia sintaxis. Lo que Markdown no sabe decir se escribe
+      de dos maneras según dónde viva: dentro de una línea, como enlace con su propio destino; como bloque, con una
+      cerca de tres dos puntos que nombra el tipo y lleva sus datos. Exportar varias páginas produce un solo archivo,
+      con cada página abierta por una marca que dice dónde vivía.
+    why: >-
+      Un Markdown que solo conserva el texto plano convierte la exportación en una copia de lectura y nada más: lo que
+      sale no puede volver. Y un formato que se aparta de Markdown para ser reversible deja de leerse en cualquier
+      editor, que es la única razón de elegir Markdown.
+    context: >-
+      Hay cosas que no pueden volver enteras y conviene decirlo: un bloque tomado de otra página sale como el texto que
+      mostraba, no como el vínculo vivo. Un solo archivo en vez de una carpeta comprimida evita una dependencia nueva y
+      hace más simple la lectura de vuelta.
+  - id: BR-de71d1b
+    status: active
+    title: Se exporta una página, una rama o un espacio entero
+    rule: >-
+      Al exportar se elige cuánto sale: solo la página, la página con todo lo que cuelga de ella, o el espacio completo.
+      A una página sin subpáginas no se le pregunta nada, porque no hay nada que decidir. Las páginas salen en el orden
+      del árbol —la madre antes que sus hijas, y una hija antes que su hermana— y cada una lleva escrito el camino donde
+      vivía. Las páginas en la papelera no salen.
+    why: >-
+      Quien exporta casi nunca quiere «todo o nada»: quiere llevarse un manual con sus anexos, o vaciar un espacio antes
+      de cerrarlo. Sin la elección, la primera necesidad obliga a exportar de a una y la segunda obliga a repetir el
+      gesto por cada página. Y un archivo con las páginas en desorden y sin decir de dónde vienen no se puede volver a
+      armar.
+    context: >-
+      El orden y el camino los decide el mismo árbol que se ve en la barra lateral, para que el archivo se lea igual que
+      se leía en pantalla.
+    scenarios:
+      - title: Una página sola no pregunta
+        given: Una página sin subpáginas
+        when: Se pide exportarla
+        then: Se descarga el archivo de inmediato, sin preguntar nada
+      - title: Una página con hijas pregunta
+        given: Una página con subpáginas
+        when: Se pide exportarla
+        then: Se pregunta si salen también sus subpáginas, y la respuesta decide qué contiene el archivo
+      - title: La papelera no sale
+        given: Un espacio con páginas en la papelera
+        when: Se exporta el espacio entero
+        then: El archivo contiene solo las páginas vivas
+  - id: BR-e92b734
+    status: active
+    title: Una página ilegible no se lleva el archivo entero
+    rule: >-
+      Si al exportar el cuerpo de una página no se puede leer, la página sale igual: con su nombre y su lugar en el
+      árbol, y vacía por dentro. El resto del archivo se escribe completo.
+    why: >-
+      Perder un cuerpo es un daño menor que perder todo lo que alguien pidió llevarse. Un fallo que cancela la
+      exportación entera deja a quien la pidió sin nada y sin saber cuál de cien páginas fue la culpable.
+    context: Ocurre con contenido guardado por una versión del esquema que ya no se reconoce.
+    scenarios:
+      - title: El archivo llega igual
+        given: Un espacio donde una página tiene el cuerpo guardado en un formato irreconocible
+        when: Se exporta el espacio entero
+        then: Se descarga el archivo con todas las páginas, y la ilegible aparece con su nombre y sin cuerpo
   - id: BR-f033642
     status: active
     title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia

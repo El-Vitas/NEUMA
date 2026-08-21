@@ -54,6 +54,13 @@ export const pageMoveSchema = z.object({
   targetSpaceId: z.string().min(1).optional(),
 });
 
+export const pageReorderSchema = z.object({
+  /** Left out, the page goes last among its sisters. */
+  beforePageId: z.string().min(1).optional(),
+  pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+});
+
 export const pageLocationSchema = z.object({ spaceId: z.string().min(1) });
 
 export const pageMoveDestinationsSchema = z.object({

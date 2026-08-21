@@ -22,7 +22,7 @@ mock.module('@/i18n/navigation', () => ({
 }));
 
 /** Starting a page reaches a server action, which refuses to load outside a server. */
-mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+mock.module('@/shared/hooks/use.pages-start.hook', () => ({
   usePagesStart: () => ({ isStarting: false, startPage: () => undefined }),
 }));
 
@@ -34,7 +34,12 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: mock(async () => ({ data: undefined })),
   renamePageAction: mock(async () => ({ data: undefined })),
+  reorderPageAction: mock(async () => ({ data: undefined })),
   restorePageAction: mock(async () => ({ data: undefined })),
+}));
+/** The export entries in the space and row menus reach the server; the sidebar only needs them to exist. */
+mock.module('@/modules/pages/server/actions/pages.export.actions', () => ({
+  exportPagesAsMarkdownAction: mock(async () => ({ data: '' })),
 }));
 /** Selection mode reaches these server actions, which refuse to load outside a server. */
 mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', () => ({

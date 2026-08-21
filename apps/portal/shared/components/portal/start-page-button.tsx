@@ -1,7 +1,7 @@
 'use client';
 
-import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
+import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 
 interface IProps {
   readonly label: string;

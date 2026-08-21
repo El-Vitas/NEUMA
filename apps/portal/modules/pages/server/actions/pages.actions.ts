@@ -21,6 +21,7 @@ import {
   pageMoveSchema,
   pageMutationSchema,
   pageRenameSchema,
+  pageReorderSchema,
   pageRestoreMutationSchema,
   pageSummarySchema,
   pagesListSchema,
@@ -92,6 +93,16 @@ export const setPageLockAction = actionClient.inputSchema(pageLockSchema).action
     });
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
     return pageSummarySchema.parse(page);
+  }),
+);
+
+/** Setting a page down among its own sisters, which changes the order and nothing else. */
+export const reorderPageAction = actionClient.inputSchema(pageReorderSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'reorderPage' }, async () => {
+    await authenticatedRequest(PAGE_API_ROUTES.order(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+      beforePageId: parsedInput.beforePageId,
+    });
+    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
   }),
 );
 

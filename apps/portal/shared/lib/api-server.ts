@@ -42,6 +42,28 @@ const sendApiRequest = async <T>(endpoint: string, accessToken: string | undefin
 export const apiRequest = async <T>(endpoint: string, accessToken: string, init: RequestInit = {}): Promise<T> =>
   sendApiRequest<T>(endpoint, accessToken, init);
 
+/**
+ * A response the backend sends as a document rather than as data.
+ *
+ * An export comes back as the file itself, so reading it as JSON would only
+ * fail. This is the door for those, and it stays separate so nothing else
+ * quietly starts skipping the JSON contract.
+ */
+export const apiRequestText = async (endpoint: string, accessToken: string): Promise<string> => {
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(endpoint), { headers: buildHeaders(accessToken, undefined, false) });
+  } catch (error) {
+    throw new NetworkError(error);
+  }
+
+  if (!response.ok) {
+    throw await ApiError.fromResponse(response);
+  }
+
+  return response.text();
+};
+
 const isPublicRequest = (endpoint: string, method: string): boolean =>
   PUBLIC_API_REQUESTS.some((candidate) => candidate.endpoint === endpoint && candidate.method === method);
 

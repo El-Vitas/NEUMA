@@ -32,7 +32,7 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ push: () => undefined, refresh: () => undefined }),
 }));
 /** Starting a page reaches a server action, which refuses to load outside a server. */
-mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+mock.module('@/shared/hooks/use.pages-start.hook', () => ({
   usePagesStart: () => ({ isStarting: false, startPage: () => undefined }),
 }));
 
@@ -42,7 +42,12 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   movePageAction: movePage,
   /** The rename dialog reachable from the tree pulls this in, so the stand-in offers it too. */
   renamePageAction: async () => ({ data: undefined }),
+  reorderPageAction: async () => ({ data: undefined }),
   restorePageAction: restorePage,
+}));
+/** The export entry in the row menu reaches the server; the tree only needs it to exist. */
+mock.module('@/modules/pages/server/actions/pages.export.actions', () => ({
+  exportPagesAsMarkdownAction: async () => ({ data: '' }),
 }));
 /** The batch move dialog reachable from selection mode pulls this in to list destinations. */
 mock.module('@/modules/pages/hooks/use.pages.move.destinations', () => ({

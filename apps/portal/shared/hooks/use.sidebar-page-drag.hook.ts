@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { DragEvent } from 'react';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { movePageAction } from '@/modules/pages/server/actions/pages.actions';
+import { movePageAction, reorderPageAction } from '@/modules/pages/server/actions/pages.actions';
 import {
   PORTAL_SIDEBAR_PAGE_DRAG_TYPE,
   PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE,
@@ -13,6 +13,7 @@ import {
 import {
   isPortalSidebarPageDropAllowed,
   markPortalSidebarPageDropTarget,
+  readPortalSidebarDropIntent,
   resolvePortalSidebarIndentParentId,
   resolvePortalSidebarOutdentParentId,
 } from '@/modules/portal/lib/portal.sidebar.drag.lib';
@@ -25,14 +26,13 @@ import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import { hasActionError } from '@/shared/lib/action-result';
 
 /**
- * Lets a page be dragged onto another to nest, or onto the space's root to
- * leave its parent, and offers the same two moves from the keyboard.
+ * Lets a page be dragged onto another to nest, dropped along a row's edge to
+ * sit beside it, or dropped on the space's root to leave its parent — and
+ * offers nesting and outdenting from the keyboard as well.
  *
- * The one move the API can express is "give this page a new parent"; it
- * always lands last among that parent's children. There is no "drop before"
- * or "drop after" a sibling — `move()` cannot keep that promise, so the row
- * never makes it: every destination offered here is one the backend can
- * actually hold onto past a reload.
+ * Where in a row the pointer lets go is what tells the two apart: the middle
+ * means inside, the edges mean next to. Both survive a reload, because the
+ * order among sisters is kept rather than recomputed on the way out.
  */
 export const useSidebarPageDrag = (
   pages: readonly PortalSidebarPage[],
@@ -68,6 +68,45 @@ export const useSidebarPageDrag = (
     [isMoving, pagesT, router, spaceId],
   );
 
+  /**
+   * Sets the dragged page down beside the row it was dropped on.
+   *
+   * A page dropped next to a sister of a different mother has two things to
+   * settle, not one: whose child it is, and where among that mother's children
+   * it goes. They are asked for in that order, because asking to be third among
+   * children one does not belong to means nothing.
+   */
+  const performReorder = useCallback(
+    (pageId: string, targetPage: PortalSidebarPage, intent: 'after' | 'before'): void => {
+      if (isMoving) return;
+      const dragged = pages.find((page) => page.id === pageId);
+      if (dragged === undefined) return;
+      const sisters = pages
+        .filter((page) => page.parentId === targetPage.parentId && page.id !== pageId)
+        .sort((one, other) => one.order - other.order);
+      const landedAt = sisters.findIndex((page) => page.id === targetPage.id);
+      const beforePageId = intent === 'before' ? targetPage.id : (sisters[landedAt + 1]?.id ?? undefined);
+
+      startTransition(async () => {
+        if (dragged.parentId !== targetPage.parentId) {
+          const moved = await movePageAction({ pageId, parentId: targetPage.parentId, spaceId });
+          if (hasActionError(moved)) {
+            toast.error(pagesT('moveError'));
+            return;
+          }
+        }
+        const result = await reorderPageAction({ beforePageId, pageId, spaceId });
+        if (hasActionError(result)) {
+          toast.error(pagesT('moveError'));
+          return;
+        }
+        toast.success(pagesT('moved'));
+        router.refresh();
+      });
+    },
+    [isMoving, pages, pagesT, router, spaceId],
+  );
+
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLAnchorElement>, page: PortalSidebarPage): void => {
       event.dataTransfer.effectAllowed = 'move';
@@ -93,8 +132,16 @@ export const useSidebarPageDrag = (
         return;
       }
       event.dataTransfer.dropEffect = 'move';
-      markPortalSidebarPageDropTarget(event.currentTarget);
-      announce(`inside:${targetPage.id}`, t('dropInside', { name: targetPage.title }));
+      const intent = readPortalSidebarDropIntent(event.currentTarget.getBoundingClientRect(), event.clientY);
+      markPortalSidebarPageDropTarget(event.currentTarget, intent);
+      if (intent === 'nest') {
+        announce(`inside:${targetPage.id}`, t('dropInside', { name: targetPage.title }));
+        return;
+      }
+      announce(
+        `${intent}:${targetPage.id}`,
+        t(intent === 'before' ? 'dropBefore' : 'dropAfter', { name: targetPage.title }),
+      );
     },
     [announce, dragState, pages, t],
   );
@@ -112,9 +159,14 @@ export const useSidebarPageDrag = (
       }
       setAnnouncement('');
       lastAnnouncedKey.current = '';
-      performMove(draggedPageId, targetPage.id);
+      const intent = readPortalSidebarDropIntent(event.currentTarget.getBoundingClientRect(), event.clientY);
+      if (intent === 'nest') {
+        performMove(draggedPageId, targetPage.id);
+        return;
+      }
+      performReorder(draggedPageId, targetPage, intent);
     },
-    [announce, dragState, pages, performMove, t],
+    [announce, dragState, pages, performMove, performReorder, t],
   );
 
   const handleRootDragOver = useCallback(

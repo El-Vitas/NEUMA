@@ -8,6 +8,7 @@ export const ROUTES = {
   PORTAL_SPACES: '/spaces',
   PORTAL_SPACES_NEW: '/spaces/new',
   PORTAL_SPACE: (spaceId: string) => `/spaces/${spaceId}`,
+  PORTAL_SPACE_SETTINGS: (spaceId: string) => `/spaces/${spaceId}/settings`,
   PORTAL_SPACE_PAGE: (spaceId: string, pageId: string) => `/spaces/${spaceId}/pages/${pageId}`,
   PORTAL_ACCOUNT: '/account',
   PORTAL_USERS: '/users',

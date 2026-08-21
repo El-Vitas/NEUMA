@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Copy, FileText, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react';
+import { ChevronRight, Copy, Download, FileText, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -24,10 +24,12 @@ interface IProps {
   readonly depth: number;
   readonly drag: PortalSidebarPageDragController;
   readonly expandedPageIds: ReadonlySet<string>;
+  readonly isExporting: boolean;
   readonly onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => void;
   readonly onNavigate?: () => void;
   readonly onRequestChildPage: (page: PortalSidebarPage) => void;
   readonly onRequestDuplicate: (page: PortalSidebarPage, hasChildren: boolean) => void;
+  readonly onRequestExport: (page: PortalSidebarPage, hasChildren: boolean) => void;
   readonly onRequestIcon: (page: PortalSidebarPage) => void;
   readonly onRequestRename: (page: PortalSidebarPage) => void;
   readonly onRequestTrash: (page: PortalSidebarPage) => void;
@@ -45,10 +47,12 @@ export const SidebarPageTreeItem = ({
   depth,
   drag,
   expandedPageIds,
+  isExporting,
   onKeyDown,
   onNavigate,
   onRequestChildPage,
   onRequestDuplicate,
+  onRequestExport,
   onRequestIcon,
   onRequestRename,
   onRequestTrash,
@@ -62,6 +66,7 @@ export const SidebarPageTreeItem = ({
 }: IProps) => {
   const t = useTranslations('pages');
   const tDuplicate = useTranslations('pages.duplicate');
+  const tExport = useTranslations('pages.export');
   const { children, page } = treeItem;
   /** A page nobody has named yet is still a row one has to be able to read and point at. */
   const pageTitle = page.title.length > 0 ? page.title : t('untitled');
@@ -136,7 +141,10 @@ export const SidebarPageTreeItem = ({
             'relative flex min-h-11 min-w-0 flex-1 items-center gap-1.5 px-1 text-sidebar-foreground/65 text-sm hover:bg-sidebar-accent hover:text-sidebar-foreground',
             FOCUS_RING_CLASS,
             isSelected && 'bg-sidebar-accent font-medium text-sidebar-foreground',
-            'data-[sidebar-page-drop-target=true]:bg-primary/15 data-[sidebar-page-drop-target=true]:outline data-[sidebar-page-drop-target=true]:outline-primary/60',
+            /* Landing inside a page fills it; landing beside it draws the line the page would slot into. */
+            'data-[sidebar-page-drop-target=nest]:bg-primary/15 data-[sidebar-page-drop-target=nest]:outline data-[sidebar-page-drop-target=nest]:outline-primary/60',
+            'data-[sidebar-page-drop-target=before]:shadow-[inset_0_2px_0_0_var(--color-primary)]',
+            'data-[sidebar-page-drop-target=after]:shadow-[inset_0_-2px_0_0_var(--color-primary)]',
             drag.draggedPageId === page.id && 'opacity-40',
           )}
           data-page-tree-link="true"
@@ -189,6 +197,10 @@ export const SidebarPageTreeItem = ({
                 <Smile aria-hidden="true" className="size-4" />
                 {t('changeIcon')}
               </DropdownMenuItem>
+              <DropdownMenuItem disabled={isExporting} onSelect={() => onRequestExport(page, hasChildren)}>
+                <Download aria-hidden="true" className="size-4" />
+                {tExport('action')}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onRequestTrash(page)}>
                 <Trash2 aria-hidden="true" className="size-4" />
                 {t('trashNamed', { name: pageTitle })}
@@ -205,11 +217,13 @@ export const SidebarPageTreeItem = ({
               depth={depth + 1}
               drag={drag}
               expandedPageIds={expandedPageIds}
+              isExporting={isExporting}
               key={child.page.id}
               onKeyDown={onKeyDown}
               onNavigate={onNavigate}
               onRequestChildPage={onRequestChildPage}
               onRequestDuplicate={onRequestDuplicate}
+              onRequestExport={onRequestExport}
               onRequestIcon={onRequestIcon}
               onRequestRename={onRequestRename}
               onRequestTrash={onRequestTrash}

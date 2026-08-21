@@ -2,6 +2,7 @@ import { SpaceVisibility } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import { type PageIcon, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace, canRenameSpace, canShareSpace } from '../../../../common/domain/workspace.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
@@ -34,6 +35,7 @@ const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Pris
 };
 
 const spaceSelection = {
+  description: true,
   icon: true,
   id: true,
   name: true,
@@ -114,12 +116,8 @@ export class SpaceRepository implements SpaceRepositoryContract {
     role: UserRole,
   ): Promise<readonly SpaceSummary[] | null> {
     const visible = await this.listAccessible(workspaceId, userId, role);
-    const moved = visible.find((space) => space.id === spaceId);
-    if (moved === undefined) return null;
-    if (beforeSpaceId !== null && !visible.some((space) => space.id === beforeSpaceId)) return null;
-    const remaining = visible.filter((space) => space.id !== spaceId);
-    const landing = beforeSpaceId === null ? remaining.length : remaining.findIndex((s) => s.id === beforeSpaceId);
-    const reordered = [...remaining.slice(0, landing), moved, ...remaining.slice(landing)];
+    const reordered = placeBefore(visible, spaceId, beforeSpaceId);
+    if (reordered === null) return null;
     await this.prisma.$transaction(
       reordered.map((space, position) =>
         this.prisma.space.update({ data: { order: position }, where: { id: space.id } }),
@@ -176,6 +174,28 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return { ...space, icon: parseStoredPageIcon(space.icon) };
   }
 
+  /** Saying what a space is for answers to the same hand that names it: the two are one decision. */
+  async describeSpace(
+    spaceId: string,
+    description: null | string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<SpaceSummary | null> {
+    const reachable = await this.prisma.space.findFirst({
+      select: { id: true, ownerId: true, visibility: true },
+      where: { id: spaceId, workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
+    });
+    if (reachable === null) return null;
+    if (!canRenameSpace(role, reachable.visibility, reachable.ownerId, userId)) return null;
+    const space = await this.prisma.space.update({
+      data: { description },
+      select: spaceSelection,
+      where: { id: reachable.id },
+    });
+    return { ...space, icon: parseStoredPageIcon(space.icon) };
+  }
+
   async updateIcon(
     spaceId: string,
     icon: PageIcon | null,
@@ -188,7 +208,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
     /** The mark handed back is the one just written, so it is not read out of the row only to be parsed again. */
     const space = await this.prisma.space.update({
       data: { icon: toIconInput(icon) },
-      select: { id: true, name: true, order: true, ownerId: true, slug: true, visibility: true },
+      select: { description: true, id: true, name: true, order: true, ownerId: true, slug: true, visibility: true },
       where: { id: accessibleSpaceId },
     });
     return { ...space, icon };

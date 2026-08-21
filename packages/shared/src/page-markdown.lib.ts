@@ -1,0 +1,180 @@
+import {
+  MARKDOWN_BLOCK_SEPARATOR,
+  MARKDOWN_DIRECTIVE_FENCE,
+  MARKDOWN_MARK_WRAPPERS,
+} from './constants/page-markdown.constants.js';
+import type { PageContent, PageContentJson, PageMark } from './schemas/page-content.schema.js';
+
+/** Anything a page holds, read by shape rather than by name: a block this version does not know still has to come out. */
+type AnyNode = {
+  readonly attrs?: { readonly [key: string]: PageContentJson };
+  readonly content?: readonly AnyNode[];
+  readonly marks?: readonly PageMark[];
+  readonly text?: string;
+  readonly type: string;
+};
+
+const attr = (node: AnyNode, name: string): string | undefined => {
+  const value = node.attrs?.[name];
+  return typeof value === 'string' ? value : undefined;
+};
+
+/**
+ * A word with whatever it wears written around it.
+ *
+ * A link is the outermost wrapper because that is how Markdown reads it: the
+ * emphasis belongs to the words, and the link belongs to all of them together.
+ */
+const writeText = (node: AnyNode): string => {
+  const marks = node.marks ?? [];
+  const written = marks
+    .filter((mark) => mark.type in MARKDOWN_MARK_WRAPPERS)
+    .reduce((carried, mark) => {
+      const wrapper = MARKDOWN_MARK_WRAPPERS[mark.type as keyof typeof MARKDOWN_MARK_WRAPPERS];
+      return `${wrapper}${carried}${wrapper}`;
+    }, node.text ?? '');
+  const link = marks.find((mark) => mark.type === 'link');
+  return link === undefined ? written : `[${written}](${link.attrs.href})`;
+};
+
+/**
+ * What lives inside a line and is not a word.
+ *
+ * Each one is written as the thing Markdown already has that means the same:
+ * a mention is a link to the page it names, a person is a link to who they
+ * are, a formula is a formula. Nothing here invents syntax, so a plain reader
+ * still reads a sentence.
+ */
+const writeInline = (node: AnyNode): string => {
+  if (node.type === 'text') return writeText(node);
+  if (node.type === 'hard_break') return '\n';
+  if (node.type === 'mention')
+    return `[${attr(node, 'label') ?? ''}](/spaces/${attr(node, 'spaceId') ?? ''}/pages/${attr(node, 'pageId') ?? ''})`;
+  if (node.type === 'person') return `[@${attr(node, 'label') ?? ''}](person:${attr(node, 'userId') ?? ''})`;
+  if (node.type === 'date') {
+    const at = attr(node, 'at') ?? '';
+    return `[${at}](date:${at})`;
+  }
+  if (node.type === 'formula') return `$${attr(node, 'latex') ?? ''}$`;
+  return (node.content ?? []).map(writeInline).join('');
+};
+
+const writeInlines = (nodes: readonly AnyNode[]): string => nodes.map(writeInline).join('');
+
+/** What a block says on its own, with every line of it pushed behind the same marker. */
+const indentEveryLine = (written: string, marker: string): string =>
+  written
+    .split('\n')
+    .map((line) => `${marker}${line}`)
+    .join('\n');
+
+const writeListItems = (node: AnyNode, marker: (at: number) => string): string =>
+  (node.content ?? [])
+    .map((item, at) => {
+      const written = writeBlocks(item.content ?? []);
+      const [head = '', ...rest] = written.split('\n');
+      const lead = marker(at);
+      const tail = rest.map((line) => `${' '.repeat(lead.length)}${line}`);
+      return [`${lead}${head}`, ...tail].join('\n');
+    })
+    .join('\n');
+
+const writeTableRow = (row: AnyNode): string =>
+  `| ${(row.content ?? []).map((cell) => writeBlocks(cell.content ?? [])).join(' | ')} |`;
+
+const writeTable = (node: AnyNode): string => {
+  const rows = node.content ?? [];
+  const header = rows.at(0);
+  if (header === undefined) return '';
+  const body = rows.slice(1);
+  const columns = (header.content ?? []).length;
+  const rule = `| ${Array.from({ length: columns }, () => '---').join(' | ')} |`;
+  return [writeTableRow(header), rule, ...body.map(writeTableRow)].join('\n');
+};
+
+/** The data a block carries, written where a reader can see it and a reader-back can find it. */
+const writeDirectiveAttrs = (node: AnyNode, names: readonly string[]): string => {
+  const written = names
+    .map((name) => [name, attr(node, name)] as const)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([name, value]) => `${name}="${value ?? ''}"`);
+  return written.length === 0 ? '' : `{${written.join(' ')}}`;
+};
+
+const writeDirective = (node: AnyNode, names: readonly string[], inside: string): string =>
+  [`${MARKDOWN_DIRECTIVE_FENCE}${node.type}${writeDirectiveAttrs(node, names)}`, inside, MARKDOWN_DIRECTIVE_FENCE]
+    .filter((part) => part !== '')
+    .join('\n');
+
+/**
+ * The attributes each kind of block is written with.
+ *
+ * Only what a reader-back would need to rebuild the block: an id that says
+ * which page a collection draws from is worth keeping, and the width a column
+ * happened to have is not.
+ */
+const DIRECTIVE_ATTRS: Readonly<Record<string, readonly string[]>> = {
+  bookmark: ['url'],
+  button: ['label'],
+  callout: ['icon'],
+  collection: ['pageId', 'view'],
+  embed: ['url'],
+  file: ['assetId', 'name'],
+  subpage: ['pageId'],
+  synced: ['pageId', 'blockId'],
+  toggle: ['summary'],
+};
+
+const writeBlock = (node: AnyNode): string => {
+  switch (node.type) {
+    case 'paragraph':
+      return writeInlines(node.content ?? []);
+    case 'heading':
+      return `${'#'.repeat(Number(node.attrs?.level ?? 1))} ${writeInlines(node.content ?? [])}`;
+    case 'blockquote':
+      return indentEveryLine(writeBlocks(node.content ?? []), '> ');
+    case 'bullet_list':
+      return writeListItems(node, () => '- ');
+    case 'ordered_list':
+      return writeListItems(node, (at) => `${String(at + 1)}. `);
+    case 'task_list':
+      return (node.content ?? [])
+        .map((item) => `- [${item.attrs?.checked === true ? 'x' : ' '}] ${writeBlocks(item.content ?? [])}`)
+        .join('\n');
+    case 'code_block': {
+      const language = attr(node, 'language') ?? '';
+      return `\`\`\`${language}\n${writeInlines(node.content ?? [])}\n\`\`\``;
+    }
+    case 'divider':
+      return '---';
+    case 'table':
+      return writeTable(node);
+    case 'image':
+    case 'video':
+    case 'audio':
+      return `![${attr(node, 'alt') ?? attr(node, 'name') ?? ''}](${attr(node, 'src') ?? attr(node, 'assetId') ?? ''})`;
+    default:
+      return writeDirective(
+        node,
+        DIRECTIVE_ATTRS[node.type] ?? Object.keys(node.attrs ?? {}),
+        writeBlocks(node.content ?? []),
+      );
+  }
+};
+
+const writeBlocks = (nodes: readonly AnyNode[]): string =>
+  nodes
+    .map(writeBlock)
+    .filter((written) => written !== '')
+    .join(MARKDOWN_BLOCK_SEPARATOR);
+
+/**
+ * A page written as Markdown.
+ *
+ * What Markdown already says is said in Markdown, so the file reads as an
+ * ordinary document anywhere. What it does not say is written as the nearest
+ * thing that carries the same meaning — a link, or a named fence — so what
+ * comes out can be read back in without guessing.
+ */
+export const writePageAsMarkdown = (content: PageContent): string =>
+  writeBlocks((content as unknown as { readonly content: readonly AnyNode[] }).content);

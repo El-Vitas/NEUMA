@@ -236,7 +236,8 @@
       "members": "Members",
       "noMembers": "This space has no members assigned.",
       "moreMembers": "and {count} more",
-      "startPage": "Create a page"
+      "startPage": "Create a page",
+      "settings": "Settings"
     },
     "newSpace": "New space",
     "create": "Create space",
@@ -260,6 +261,17 @@
       }
     },
     "reorderError": "Could not change the order of the spaces.",
+    "settings": {
+      "title": "Space settings",
+      "subtitle": "What {space} is called, and what is kept here.",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "descriptionHint": "A sentence or two so whoever lands here knows what goes inside.",
+      "save": "Save",
+      "saving": "Saving...",
+      "saved": "Space updated",
+      "error": "Could not save. Try again."
+    },
     "privacy": {
       "badgeLabel": "Private",
       "treePrivate": "Your private area",
@@ -381,6 +393,8 @@
       "resizeHandleHint": "You can also resize it with the keyboard arrow keys.",
       "dragging": "Moving {name}",
       "dropInside": "Will drop inside {name}",
+      "dropBefore": "Will drop just before {name}",
+      "dropAfter": "Will drop just after {name}",
       "dropInvalid": "Can't drop here"
     },
     "sidePanel": {
@@ -886,6 +900,16 @@
       "copyName": "{title} (copy)",
       "childrenQuestion": "Duplicate what hangs from “{name}” as well?",
       "childrenHelp": "The copy is placed next to the original.",
+      "childrenNo": "Only this page",
+      "childrenYes": "Its subpages too"
+    },
+    "export": {
+      "action": "Export to Markdown",
+      "spaceAction": "Export the space to Markdown",
+      "done": "{file} was downloaded",
+      "untitled": "Untitled",
+      "childrenQuestion": "Export what hangs from “{name}” as well?",
+      "childrenHelp": "Everything lands in one file, each page carrying where it lived.",
       "childrenNo": "Only this page",
       "childrenYes": "Its subpages too"
     },

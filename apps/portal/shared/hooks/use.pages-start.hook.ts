@@ -4,12 +4,12 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
+import { createEmptyPageContent } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageAction } from '@/modules/pages/server/actions/pages.actions';
+import type { PagesStartResult } from '@/modules/pages/types/pages.start.types';
+import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { createEmptyPageContent } from '../lib/pages.editor.lib';
-import { createPageAction } from '../server/actions/pages.actions';
-import type { PagesStartResult } from '../types/pages.start.types';
-import type { PageSummary } from '../types/pages.types';
 
 /**
  * Starts a page and takes whoever asked for it there.

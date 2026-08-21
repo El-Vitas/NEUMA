@@ -55,6 +55,7 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
   rename: () => Promise.resolve(page),
+  reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
   setOwner: () => Promise.resolve(page),
   setVerification: () => Promise.resolve(page),

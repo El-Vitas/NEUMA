@@ -1,13 +1,13 @@
 'use client';
 
 import type { UserRole } from '@company-brain/shared';
-import { BookOpen, ChevronRight, MoreHorizontal, PenLine, Plus, Smile } from 'lucide-react';
+import { BookOpen, ChevronRight, Download, MoreHorizontal, PenLine, Plus, Smile } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
+import { usePagesExport } from '@/modules/pages/hooks/use.pages.export';
 import { getVisiblePortalSidebarPages } from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
 import {
@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useSidebarSpaceDrop } from '@/shared/hooks/use.sidebar-space-drop.hook';
 import { SidebarPageTree } from './sidebar-page-tree';
 import { SidebarSpaceIconDialog } from './sidebar-space-icon-dialog';
@@ -47,7 +48,9 @@ export const SidebarSpaceExpanded = ({
 }: IProps) => {
   const t = useTranslations('navigation');
   const pagesT = useTranslations('pages');
+  const exportT = useTranslations('pages.export');
   const router = useRouter();
+  const { exportPages, isExporting } = usePagesExport();
   const { isStarting, startPage } = usePagesStart();
   const spaceDrop = useSidebarSpaceDrop();
   const [isIconDialogOpen, setIsIconDialogOpen] = useState(false);
@@ -81,7 +84,7 @@ export const SidebarSpaceExpanded = ({
             'relative flex min-h-11 min-w-0 flex-1 items-center gap-2 text-sidebar-foreground/80 text-sm hover:text-sidebar-foreground',
             FOCUS_RING_CLASS,
             isCurrentSpace && 'font-medium text-sidebar-foreground',
-            'data-[sidebar-page-drop-target=true]:bg-primary/15 data-[sidebar-page-drop-target=true]:outline data-[sidebar-page-drop-target=true]:outline-primary/60',
+            'data-[sidebar-page-drop-target=nest]:bg-primary/15 data-[sidebar-page-drop-target=nest]:outline data-[sidebar-page-drop-target=nest]:outline-primary/60',
             spaceDrop.draggedSpaceId === space.id && 'opacity-40',
           )}
           draggable={canCreatePages}
@@ -116,6 +119,15 @@ export const SidebarSpaceExpanded = ({
               <DropdownMenuItem onSelect={() => setIsIconDialogOpen(true)}>
                 <Smile aria-hidden="true" className="size-4" />
                 {t('changeSpaceIcon')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={isExporting}
+                onSelect={() =>
+                  exportPages({ exportedName: space.name, pageId: null, scope: 'space', spaceId: space.id })
+                }
+              >
+                <Download aria-hidden="true" className="size-4" />
+                {exportT('spaceAction')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

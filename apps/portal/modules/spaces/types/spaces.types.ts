@@ -3,6 +3,8 @@ import type { PageIcon, SpaceVisibility } from '@company-brain/shared';
 export type { SpaceVisibility } from '@company-brain/shared';
 
 export interface SpaceSummary {
+  /** What the space says it is for, in its own words. Null while nobody has said. */
+  readonly description: string | null;
   readonly icon: PageIcon | null;
   readonly id: string;
   readonly name: string;
