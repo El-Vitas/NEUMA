@@ -1,7 +1,10 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Settings } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { SidebarTreeIcon } from '@/shared/components/portal/sidebar/sidebar-tree-icon';
 import { StartPageButton } from '@/shared/components/portal/start-page-button';
+import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { SpaceMember } from '@/shared/types/space-members.types';
 import { SpacesHomeActivity } from '../components/spaces.home.activity';
 import { SpacesHomeMembers } from '../components/spaces.home.members';
@@ -51,8 +54,21 @@ export const SpacesHomeView = async ({
           )}
           <span className="min-w-0 truncate">{space.name}</span>
         </h1>
-        {canCreatePage && <StartPageButton label={t('startPage')} spaceId={space.id} />}
+        <div className="flex items-center gap-2">
+          {canCreatePage && (
+            <Link
+              className={`inline-flex min-h-11 items-center gap-2 px-3 text-muted-foreground text-sm hover:text-foreground ${FOCUS_RING_CLASS}`}
+              href={ROUTES.PORTAL_SPACE_SETTINGS(space.id)}
+            >
+              <Settings aria-hidden="true" className="size-4" />
+              {t('settings')}
+            </Link>
+          )}
+          {canCreatePage && <StartPageButton label={t('startPage')} spaceId={space.id} />}
+        </div>
       </header>
+
+      {space.description !== null && <p className="max-w-prose text-muted-foreground">{space.description}</p>}
 
       <section className="space-y-3">
         <h2 className="font-medium text-foreground text-sm">{t('mainPages')}</h2>

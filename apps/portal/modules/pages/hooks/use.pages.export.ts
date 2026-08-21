@@ -1,0 +1,44 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { useTransition } from 'react';
+import { toast } from 'sonner';
+import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { downloadMarkdownFile } from '../lib/pages.export.download.lib';
+import { buildPagesExportFileName } from '../lib/pages.export.lib';
+import { exportPagesAsMarkdownAction } from '../server/actions/pages.export.actions';
+import type { PagesExportRequest, PagesExportResult } from '../types/pages.export.types';
+
+/**
+ * Writes a page, a page with everything under it, or a whole space out to a
+ * Markdown file the reader keeps.
+ *
+ * What Markdown says on its own is written on its own; what it has no words for
+ * is written as a link or a fenced block that names itself, so the file reads
+ * as a document to a person and still comes back whole on import.
+ */
+export const usePagesExport = (): PagesExportResult => {
+  const t = useTranslations('pages.export');
+  const tErrors = useTranslations('errors');
+  const [isExporting, startTransition] = useTransition();
+
+  const exportPages = ({ exportedName, pageId, scope, spaceId }: PagesExportRequest): void => {
+    startTransition(async () => {
+      const written = await exportPagesAsMarkdownAction({
+        pageId,
+        scope,
+        spaceId,
+        untitledLabel: t('untitled'),
+      });
+      if (!isActionSuccess<string>(written)) {
+        toast.error(tErrors(`reasons.${readActionFailureReason(written)}`));
+        return;
+      }
+      const fileName = buildPagesExportFileName(exportedName);
+      downloadMarkdownFile(fileName, written.data);
+      toast.success(t('done', { file: fileName }));
+    });
+  };
+
+  return { exportPages, isExporting };
+};

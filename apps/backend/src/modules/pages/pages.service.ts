@@ -1,6 +1,6 @@
 import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import { type PageContent, Result, USER_ROLE, type UserRole } from '@company-brain/shared';
+import { type PageContent, Result, USER_ROLE, type UserRole, writePagesAsMarkdownFile } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
@@ -26,6 +26,8 @@ import {
   PagePropertyValidationError,
 } from './domain/page.error';
 import { validatePageCover } from './domain/page-cover.domain';
+import { readExportableContent, selectPagesForExport } from './domain/page-export.domain';
+import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
 import { validatePageProperties } from './domain/page-schema.domain';
@@ -61,6 +63,34 @@ export class PagesService {
   ): Promise<readonly PageSummary[]> {
     const pages = await this.pageRepository.listAccessible(spaceId, workspaceId, userId, role, includeTrashed);
     return this.redactPages(pages, workspaceId, userId, role);
+  }
+
+  /**
+   * A scope of pages written out as one Markdown file.
+   *
+   * Read through the same door as any other listing, so an export never hands
+   * over a page its asker could not have opened one at a time. Pages in the
+   * trash stay out: what is exported is what the space holds, not what it once
+   * held.
+   */
+  async exportAsMarkdown(
+    spaceId: string,
+    scope: PageExportScope,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    untitledLabel: string,
+  ): Promise<Result<string, PageAccessDeniedError>> {
+    const pages = await this.list(spaceId, workspaceId, userId, role, false);
+    const chosen = selectPagesForExport(pages, scope);
+    if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
+
+    return Result.ok(
+      writePagesAsMarkdownFile(
+        chosen.map((page) => ({ content: readExportableContent(page.content), path: page.path, title: page.title })),
+        untitledLabel,
+      ),
+    );
   }
 
   async getAccessible(
@@ -300,6 +330,19 @@ export class PagesService {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const destinations = await this.pageRepository.listMoveDestinations(pageId, workspaceId, userId, role);
     return destinations === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(destinations);
+  }
+
+  /** Rearranging sisters is not moving a page: nothing changes hands, so nobody else has to be told. */
+  async reorderAmongSiblings(
+    pageId: string,
+    beforePageId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<Result<readonly PageSummary[], PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const pages = await this.pageRepository.reorderAmongSiblings(pageId, beforePageId, userId, workspaceId, role);
+    return pages === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(pages);
   }
 
   async move(

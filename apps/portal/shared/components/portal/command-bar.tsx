@@ -4,7 +4,6 @@ import { Boxes, FilePlus, History, Home, Search, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
 import {
   CommandDialog,
   CommandEmpty,
@@ -14,6 +13,7 @@ import {
   CommandList,
 } from '@/shared/components/ui/command';
 import { useCommandBarSearch } from '@/shared/hooks/use.command-bar-search.hook';
+import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useRecentPages } from '@/shared/hooks/use.recents-storage.hook';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 

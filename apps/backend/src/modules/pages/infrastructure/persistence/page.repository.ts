@@ -2,6 +2,7 @@ import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
@@ -537,6 +538,49 @@ export class PageRepository implements PageRepositoryContract {
         .map(({ id, spaceId, title }) => ({ id, spaceId, title })),
       spaces,
     };
+  }
+
+  /**
+   * Sets a page down among its own sisters, in front of one of them.
+   *
+   * Only the order changes: whose child the page is, and which space it lives
+   * in, are a different matter and stay as they were. The whole row is
+   * renumbered from the top so no two sisters end up claiming the same place —
+   * that is what would make the next drag land where nobody aimed.
+   */
+  async reorderAmongSiblings(
+    pageId: string,
+    beforePageId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<readonly PageSummary[] | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      const page = await transaction.page.findFirst({
+        select: { parentId: true, spaceId: true },
+        where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+      });
+      if (page === null) return null;
+
+      const sisters = await transaction.page.findMany({
+        orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+        select: { id: true },
+        where: { lifecycle: PageLifecycle.ACTIVE, parentId: page.parentId, spaceId: page.spaceId },
+      });
+      const reordered = placeBefore(sisters, pageId, beforePageId);
+      if (reordered === null) return null;
+
+      for (const [position, sister] of reordered.entries()) {
+        await transaction.page.update({ data: { order: position }, where: { id: sister.id } });
+      }
+      const rows = await transaction.page.findMany({
+        orderBy: { order: 'asc' },
+        select: pageSelection,
+        where: { parentId: page.parentId, spaceId: page.spaceId },
+      });
+      const authors = await this.resolvePageAuthors(rows);
+      return rows.map((row) => this.toSummary(row, authors));
+    });
   }
 
   async move(

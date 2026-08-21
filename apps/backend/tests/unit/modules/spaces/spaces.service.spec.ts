@@ -5,6 +5,7 @@ import { SpacesService } from '@/modules/spaces/spaces.service';
 import type { SpaceRepositoryContract, SpaceSummary } from '@/modules/spaces/types/space.types';
 
 const space: SpaceSummary = {
+  description: null,
   icon: null,
   id: 'space-a',
   name: 'Engineering',
@@ -23,6 +24,7 @@ const createRepository = (overrides: Partial<SpaceRepositoryContract> = {}): Spa
   listAccessible: () => Promise.resolve([space]),
   listAssignableMembers: () => Promise.resolve([member]),
   listSharedWithMe: () => Promise.resolve([]),
+  describeSpace: () => Promise.resolve(space),
   rename: () => Promise.resolve(space),
   reorder: () => Promise.resolve([space]),
   updateIcon: () => Promise.resolve(space),
@@ -72,6 +74,45 @@ describe('spaces service — listAssignableMembers', () => {
 
     expect(result.isOk()).toBe(true);
     expect(Object.keys(result.getValue()[0] ?? {}).sort()).toEqual(['email', 'id', 'name']);
+  });
+});
+
+describe('spaces service — describeSpace', () => {
+  it('lets a space say what it is for', async () => {
+    const repository = createRepository({
+      describeSpace: (_spaceId, description) => Promise.resolve({ ...space, description }),
+    });
+    const service = new SpacesService(repository);
+
+    const result = await service.describeSpace(
+      'space-a',
+      'Todo lo de la plataforma',
+      'workspace-a',
+      'user-a',
+      'WORKER',
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().description).toBe('Todo lo de la plataforma');
+  });
+
+  it('lets a space go back to saying nothing', async () => {
+    const repository = createRepository({
+      describeSpace: (_spaceId, description) => Promise.resolve({ ...space, description }),
+    });
+    const service = new SpacesService(repository);
+
+    const result = await service.describeSpace('space-a', null, 'workspace-a', 'user-a', 'WORKER');
+
+    expect(result.getValue().description).toBeNull();
+  });
+
+  it('refuses a space the caller cannot reach', async () => {
+    const service = new SpacesService(createRepository({ describeSpace: () => Promise.resolve(null) }));
+
+    const result = await service.describeSpace('space-a', 'Algo', 'workspace-a', 'user-a', 'WORKER');
+
+    expect(result.isFail()).toBe(true);
   });
 });
 

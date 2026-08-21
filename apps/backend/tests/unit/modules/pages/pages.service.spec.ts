@@ -80,6 +80,7 @@ const createRepository = (): PageRepositoryContract => ({
   trashCascade: () => Promise.resolve(true),
   update: () => Promise.resolve(page),
   rename: () => Promise.resolve(page),
+  reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
   setOwner: () => Promise.resolve(page),
   setVerification: () => Promise.resolve(page),
@@ -1228,5 +1229,61 @@ describe('mention redaction on served page content', () => {
     expect(result.isOk()).toBe(true);
     expect(serialized).not.toContain('Confidential Salary Review');
     expect(serialized).toContain(REDACTED_MENTION_LABEL);
+  });
+});
+
+describe('markdown export', () => {
+  it('writes a branch out as one markdown file, mother before daughter', async () => {
+    const body: Prisma.JsonValue = {
+      content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
+      schemaVersion: 1,
+      type: 'doc',
+    };
+    const mother = { ...buildPageWithContent(body), id: 'page-a', title: 'Madre' };
+    const daughter = { ...buildPageWithContent(body), id: 'page-b', parentId: 'page-a', title: 'Hija' };
+    const repository: PageRepositoryContract = {
+      ...createRepository(),
+      listAccessible: () => Promise.resolve([mother, daughter]),
+    };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.exportAsMarkdown(
+      'space-a',
+      { kind: 'branch', pageId: 'page-a' },
+      'workspace-a',
+      'user-a',
+      USER_ROLE.WORKER,
+      'Sin nombre',
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue()).toBe(
+      '<!-- page: Madre -->\n\n# Madre\n\nExample\n\n<!-- page: Madre / Hija -->\n\n# Hija\n\nExample',
+    );
+  });
+
+  it('refuses to write out a page the reader cannot reach', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+    );
+
+    const result = await service.exportAsMarkdown(
+      'space-a',
+      { kind: 'page', pageId: 'somebody-elses-page' },
+      'workspace-a',
+      'user-a',
+      USER_ROLE.WORKER,
+      'Sin nombre',
+    );
+
+    expect(result.isFail()).toBe(true);
   });
 });

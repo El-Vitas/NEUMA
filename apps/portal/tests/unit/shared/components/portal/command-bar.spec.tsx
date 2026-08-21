@@ -12,7 +12,7 @@ mock.module('@/i18n/navigation', () => ({
 }));
 
 /** Starting a page reaches a server action, which refuses to load outside a server. */
-mock.module('@/modules/pages/hooks/use.pages.start', () => ({
+mock.module('@/shared/hooks/use.pages-start.hook', () => ({
   usePagesStart: () => ({ isStarting: false, startPage: () => undefined }),
 }));
 

@@ -1,19 +1,34 @@
 import type { Result } from '@company-brain/shared';
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageAccessDeniedError, type PageLifecycleError } from './domain/page.error';
+import { readExportScope } from './domain/page-export.domain';
 import { UpdatePageCoverDto } from './dto/page.cover.update.dto';
 import { CreatePageDto } from './dto/page.create.dto';
 import { DuplicatePageDto } from './dto/page.duplicate.dto';
+import { ExportPagesQueryDto } from './dto/page.export.query.dto';
 import { UpdatePageIconDto } from './dto/page.icon.update.dto';
 import { ListPagesDto } from './dto/page.list.dto';
 import { SetPageLockDto } from './dto/page.lock.dto';
 import { MovePageDto } from './dto/page.move.dto';
 import { SetPageOwnerDto } from './dto/page.owner.dto';
 import { RenamePageDto } from './dto/page.rename.dto';
+import { ReorderPageDto } from './dto/page.reorder.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
 import { UpdatePageDto } from './dto/page.update.dto';
 import { SetPageVerificationDto } from './dto/page.verification.dto';
@@ -221,6 +236,56 @@ export class PagesController {
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.setLocked(pageId, dto.locked, payload.sub, workspace.id, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  /**
+   * A scope of pages as one Markdown file.
+   *
+   * Answered as text rather than as JSON because what comes back is a file
+   * somebody saves, not a shape a program reads: wrapping it in JSON would
+   * make every reader unwrap it before it were a document again.
+   */
+  @Get('export/markdown')
+  @UseGuards(JwtAuthGuard)
+  async exportAsMarkdown(
+    @Param('spaceId') spaceId: string,
+    @Query() dto: ExportPagesQueryDto,
+    @User('payload') payload: TokenPayload,
+  ): Promise<string> {
+    const scope = readExportScope(dto.scope, dto.pageId ?? null);
+    if (scope === null) {
+      throw new BadRequestException('An export of one page needs to say which page');
+    }
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.exportAsMarkdown(
+      spaceId,
+      scope,
+      workspace.id,
+      payload.sub,
+      payload.role,
+      dto.untitledLabel ?? 'Untitled',
+    );
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':pageId/order')
+  @UseGuards(JwtAuthGuard)
+  async reorder(@Param('pageId') pageId: string, @Body() dto: ReorderPageDto, @User('payload') payload: TokenPayload) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pagesService.reorderAmongSiblings(
+      pageId,
+      dto.beforePageId ?? null,
+      payload.sub,
+      workspace.id,
+      payload.role,
+    );
     if (result.isFail()) {
       throw result.getError();
     }

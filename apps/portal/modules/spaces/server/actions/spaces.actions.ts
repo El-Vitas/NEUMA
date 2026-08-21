@@ -9,6 +9,7 @@ import { withAction } from '@/shared/lib/with-action.lib';
 import { SPACE_API_ROUTES, SPACES_CACHE_TAG, SPACES_SHARED_WITH_ME_CACHE_TAG } from '../../constants/spaces.constants';
 import {
   createSpaceSchema,
+  describeSpaceSchema,
   renameSpaceSchema,
   reorderSpaceSchema,
   shareSpaceSchema,
@@ -42,6 +43,17 @@ export const renameSpaceAction = actionClient.inputSchema(renameSpaceSchema).act
     });
     updateTag(SPACES_CACHE_TAG);
     return spaceSummarySchema.parse(renamedSpace);
+  }),
+);
+
+/** What a space says it is for, so whoever lands in it knows what goes in here before opening anything. */
+export const describeSpaceAction = actionClient.inputSchema(describeSpaceSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'describeSpace' }, async () => {
+    const described = await apiServer.patch<unknown>(SPACE_API_ROUTES.description(parsedInput.spaceId), {
+      description: parsedInput.description,
+    });
+    updateTag(SPACES_CACHE_TAG);
+    return spaceSummarySchema.parse(described);
   }),
 );
 

@@ -25,7 +25,7 @@ export const SidebarPageTreeRootDropZone = ({ onDragOver, onDrop }: IProps) => {
     <button
       className={cn(
         'mx-1 mt-1 flex min-h-11 w-[calc(100%-0.5rem)] items-center justify-center rounded-sm border border-sidebar-border/70 border-dashed px-2 text-center text-[11px] text-sidebar-foreground/50',
-        'data-[sidebar-page-drop-target=true]:border-primary data-[sidebar-page-drop-target=true]:bg-primary/10 data-[sidebar-page-drop-target=true]:text-sidebar-foreground',
+        'data-[sidebar-page-drop-target=nest]:border-primary data-[sidebar-page-drop-target=nest]:bg-primary/10 data-[sidebar-page-drop-target=nest]:text-sidebar-foreground',
       )}
       onDragOver={onDragOver}
       onDrop={onDrop}

@@ -9,8 +9,9 @@ import { toast } from 'sonner';
 import { usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { PagesDuplicateChildrenDialog } from '@/modules/pages/components/pages.duplicate.children.dialog';
+import { PagesExportScopeDialog } from '@/modules/pages/components/pages.export.scope.dialog';
 import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
-import { usePagesStart } from '@/modules/pages/hooks/use.pages.start';
+import { usePagesExport } from '@/modules/pages/hooks/use.pages.export';
 import { resolvePageRestoreNotice } from '@/modules/pages/lib/pages.trash.lib';
 import { duplicatePageAction, restorePageAction } from '@/modules/pages/server/actions/pages.actions';
 import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
@@ -25,6 +26,7 @@ import type { PortalPageBatchOutcome } from '@/modules/portal/types/portal.sideb
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
 import { useSidebarPageSelection } from '@/shared/hooks/use.sidebar-page-selection.hook';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
@@ -56,6 +58,8 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const [pageToRename, setPageToRename] = useState<PortalSidebarPage | null>(null);
   const [pageToMark, setPageToMark] = useState<PortalSidebarPage | null>(null);
   const [pageToDuplicate, setPageToDuplicate] = useState<PortalSidebarPage | null>(null);
+  const [pageToExport, setPageToExport] = useState<PortalSidebarPage | null>(null);
+  const { exportPages, isExporting } = usePagesExport();
   const undoingPageIdRef = useRef<string | null>(null);
   const drag = useSidebarPageDrag(pages, spaceId);
   const selection = useSidebarPageSelection();
@@ -146,6 +150,25 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     duplicatePage(page, false);
   };
 
+  const exportPage = (page: PortalSidebarPage, includeChildren: boolean): void => {
+    setPageToExport(null);
+    exportPages({
+      exportedName: page.title.length > 0 ? page.title : t('untitled'),
+      pageId: page.id,
+      scope: includeChildren ? 'branch' : 'page',
+      spaceId,
+    });
+  };
+
+  /** A page with nothing under it leaves nothing to decide, so nothing is asked. */
+  const requestExport = (page: PortalSidebarPage, hasChildren: boolean): void => {
+    if (hasChildren) {
+      setPageToExport(page);
+      return;
+    }
+    exportPage(page, false);
+  };
+
   const requestTrash = (page: PortalSidebarPage): void => {
     setPageToTrash(page);
   };
@@ -215,11 +238,13 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
             depth={0}
             drag={drag}
             expandedPageIds={expandedPageIds}
+            isExporting={isExporting}
             key={treeItem.page.id}
             onKeyDown={handleSidebarPageTreeKeyDown}
             onNavigate={onNavigate}
             onRequestChildPage={(page) => startPage(spaceId, page.id)}
             onRequestDuplicate={requestDuplicate}
+            onRequestExport={requestExport}
             onRequestIcon={setPageToMark}
             onRequestRename={setPageToRename}
             onRequestTrash={requestTrash}
@@ -269,6 +294,14 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
           onClose={() => setPageToMark(null)}
           page={{ icon: pageToMark.icon, id: pageToMark.id, title: pageToMark.title }}
           spaceId={spaceId}
+        />
+      )}
+      {pageToExport !== null && (
+        <PagesExportScopeDialog
+          onClose={() => setPageToExport(null)}
+          onConfirm={(includeChildren) => exportPage(pageToExport, includeChildren)}
+          open
+          title={pageToExport.title.length > 0 ? pageToExport.title : t('untitled')}
         />
       )}
       {pageToDuplicate !== null && (

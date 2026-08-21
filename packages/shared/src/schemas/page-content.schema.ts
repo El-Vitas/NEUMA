@@ -470,7 +470,7 @@ export const pageEmbedAttrsSchema = z
     }
   });
 
-type PageMark =
+export type PageMark =
   | { readonly type: 'strong' }
   | { readonly type: 'em' }
   | { readonly type: 'code' }

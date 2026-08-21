@@ -53,9 +53,11 @@ export const PAGE_API_ROUTES = {
   list: (spaceId: string, includeTrashed = false) =>
     `/api/v1/spaces/${spaceId}/pages?includeTrashed=${String(includeTrashed)}`,
   item: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}`,
+  exportMarkdown: (spaceId: string, query: string) => `/api/v1/spaces/${spaceId}/pages/export/markdown?${query}`,
   duplicate: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/duplicate`,
   lock: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/lock`,
   move: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/move`,
+  order: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/order`,
   owner: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/owner`,
   verification: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/verification`,
   assigned: '/api/v1/pages/assigned',

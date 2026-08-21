@@ -1,12 +1,17 @@
 /**
  * Marks whichever element — a page row, or the space-root zone — the
  * dragged page would land on if released now.
- *
- * There is no "before" or "after": `move()` always appends, so the only
- * destinations offered are ones the backend can actually keep — inside a
- * page, or at the space's root.
  */
 export const PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE = 'data-sidebar-page-drop-target';
+
+/**
+ * How much of a row means «inside this page» rather than «next to it».
+ *
+ * The middle of a row nests, and only its edges set a page down beside its
+ * sisters. The band is wide on purpose: nesting is the move people make most,
+ * and a thin middle would turn every ordinary drop into a coin toss.
+ */
+export const PORTAL_SIDEBAR_ROW_NESTING_BAND = 0.6;
 
 /** The keyboard alternative to dragging: nest under the sibling above, or climb out to the parent's level. */
 export const PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE = {

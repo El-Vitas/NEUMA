@@ -33,6 +33,7 @@ describe('SpacesList', () => {
   it('renders each space as a single clickable row carrying a readable visibility badge', () => {
     renderSpacesList(true, [
       {
+        description: null,
         icon: null,
         id: 'space-1',
         name: 'Engineering',
@@ -42,6 +43,7 @@ describe('SpacesList', () => {
         visibility: 'PUBLIC_INTERNAL',
       },
       {
+        description: null,
         icon: null,
         id: 'space-2',
         name: 'Executive',

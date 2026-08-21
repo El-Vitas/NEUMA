@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard'
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { CreateSpaceDto } from './dto/space.create.dto';
+import { DescribeSpaceDto } from './dto/space.describe.dto';
 import { UpdateSpaceIconDto } from './dto/space.icon.update.dto';
 import { AddSpaceMemberDto } from './dto/space.member.add.dto';
 import { SpaceMoveAccessLossQueryDto } from './dto/space.move-access-loss.query.dto';
@@ -51,6 +52,30 @@ export class SpacesController {
   async rename(@Param('spaceId') spaceId: string, @Body() dto: RenameSpaceDto, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.spacesService.rename(spaceId, dto.name, workspace.id, payload.sub, payload.role);
+    if (result.isFail()) {
+      throw result.getError();
+    }
+    return result.getValue();
+  }
+
+  @Patch(':spaceId/description')
+  @UseGuards(JwtAuthGuard)
+  async describeSpace(
+    @Param('spaceId') spaceId: string,
+    @Body() dto: DescribeSpaceDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    /** A blank sentence is not something a space says about itself: it goes back to saying nothing. */
+    const said = dto.description?.trim();
+    const description = said === undefined || said === '' ? null : said;
+    const result = await this.spacesService.describeSpace(
+      spaceId,
+      description,
+      workspace.id,
+      payload.sub,
+      payload.role,
+    );
     if (result.isFail()) {
       throw result.getError();
     }
