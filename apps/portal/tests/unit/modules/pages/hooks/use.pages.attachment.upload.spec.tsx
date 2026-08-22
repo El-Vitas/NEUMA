@@ -6,14 +6,14 @@ import en from '../../../../../messages/en.json';
 
 let resolveUpload: ((value: unknown) => void) | undefined;
 
-mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
+mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   uploadPageAttachmentAction: () =>
     new Promise((resolve) => {
       resolveUpload = resolve;
     }),
 }));
 
-const { usePagesAttachmentUpload } = await import('@/modules/pages/hooks/use.pages.attachment.upload');
+const { usePagesAttachmentUpload } = await import('@/modules/pages/attachments/hooks/use.pages.attachment.upload');
 
 const wrapper = ({ children }: { readonly children: ReactNode }) => (
   <NextIntlClientProvider locale="en" messages={en}>

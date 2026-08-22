@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PAGE_APPEARANCE_WIDTH_STYLE_CLASS } from '@/modules/pages/constants/pages.appearance.constants';
+import { PAGE_APPEARANCE_WIDTH_STYLE_CLASS } from '@/modules/pages/appearance/constants/pages.appearance.constants';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
 
@@ -24,15 +24,15 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   trashPageAction,
   updatePageAction,
 }));
-mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   getPageTrashPreviewAction: async () => ({ data: { childPageCount: 0 } }),
 }));
-mock.module('@/modules/pages/server/actions/pages.cover.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.cover.actions', () => ({
   removePageCoverAction: async () => ({ data: undefined }),
   repositionPageCoverAction: async () => ({ data: undefined }),
   uploadPageCoverImageAction: async () => ({ data: undefined }),
 }));
-mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
   setPageIconSymbolAction: async () => ({ data: undefined }),
@@ -41,7 +41,7 @@ mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
 mock.module('@/modules/pages/components/pages.prose-mirror.editor', () => ({
   PagesProseMirrorEditor: () => <div data-testid="page-editor-canvas" />,
 }));
-mock.module('@/modules/pages/components/pages.attachments', () => ({
+mock.module('@/modules/pages/attachments/components/pages.attachments', () => ({
   PagesAttachments: () => <div data-testid="page-attachments" />,
 }));
 

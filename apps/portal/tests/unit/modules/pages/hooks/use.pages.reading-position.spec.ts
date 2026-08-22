@@ -5,8 +5,8 @@ import {
   PAGES_READING_POSITION_RESTORE_ATTEMPT_DELAY_MS,
   PAGES_READING_POSITION_SAVE_DEBOUNCE_MS,
   PAGES_READING_POSITION_STORAGE_KEY_PREFIX,
-} from '@/modules/pages/constants/use.pages.reading-position.constants';
-import { usePagesReadingPosition } from '@/modules/pages/hooks/use.pages.reading-position';
+} from '@/modules/pages/navigation/constants/use.pages.reading-position.constants';
+import { usePagesReadingPosition } from '@/modules/pages/navigation/hooks/use.pages.reading-position';
 
 const PAGE_ID = '11111111-1111-4111-8111-111111111111';
 

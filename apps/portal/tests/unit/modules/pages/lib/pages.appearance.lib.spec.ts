@@ -3,11 +3,7 @@ import {
   PAGE_APPEARANCE_DEFAULT_PREFERENCES,
   PAGE_APPEARANCE_SECTION_PADDING_STYLE_CLASS,
   PAGE_APPEARANCE_WIDTH_STYLE_CLASS,
-} from '@/modules/pages/constants/pages.appearance.constants';
-import {
-  PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
-  PAGE_OUTLINE_SIDE_STYLE_CLASS,
-} from '@/modules/pages/editor/structure/constants/pages.editor.contents.constants';
+} from '@/modules/pages/appearance/constants/pages.appearance.constants';
 import {
   buildPageAppearanceStorageKey,
   getPageAppearanceLayoutStyleClasses,
@@ -15,8 +11,12 @@ import {
   isPageAppearanceTypography,
   parsePageAppearancePreferences,
   serializePageAppearancePreferences,
-} from '@/modules/pages/lib/pages.appearance.lib';
-import type { PageAppearancePreferences } from '@/modules/pages/types/pages.appearance.types';
+} from '@/modules/pages/appearance/lib/pages.appearance.lib';
+import type { PageAppearancePreferences } from '@/modules/pages/appearance/types/pages.appearance.types';
+import {
+  PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
+  PAGE_OUTLINE_SIDE_STYLE_CLASS,
+} from '@/modules/pages/editor/structure/constants/pages.editor.contents.constants';
 
 describe('pages.appearance.lib', () => {
   describe('buildPageAppearanceStorageKey', () => {

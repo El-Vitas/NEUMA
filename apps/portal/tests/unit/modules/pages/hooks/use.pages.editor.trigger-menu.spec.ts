@@ -20,7 +20,7 @@ mock.module('next-intl', () => ({
   useTranslations: () => resolveEnglishTranslation,
 }));
 
-mock.module('@/modules/pages/server/actions/pages.mentions.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.mentions.actions', () => ({
   searchPageMentionCandidatesAction: async () => ({ data: [] }),
 }));
 
@@ -28,7 +28,7 @@ const searchPagePersonCandidatesAction = mock(async (_input: { readonly query: s
   data: [{ email: 'ana@example.com', id: '9f5d6c3a-1b2e-4a3d-8f6b-2c1a9d0e7f4b', name: 'Ana' }],
 }));
 
-mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => ({
   searchPagePersonCandidatesAction,
 }));
 

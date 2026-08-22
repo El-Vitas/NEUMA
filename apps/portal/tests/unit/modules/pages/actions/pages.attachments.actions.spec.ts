@@ -25,7 +25,7 @@ mock.module('@/shared/lib/with-action.lib', () => ({
 globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
 
 const { deletePageAttachmentAction, uploadPageAttachmentAction } = await import(
-  '@/modules/pages/server/actions/pages.attachments.actions'
+  '@/modules/pages/attachments/server/actions/pages.attachments.actions'
 );
 
 const attachmentId = '22222222-2222-4222-8222-222222222222';

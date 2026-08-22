@@ -1,8 +1,8 @@
 import type { Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
-import { foldPageLookingText } from '../../../lib/pages.looking.lib';
-import type { PageMentionCandidate } from '../../../types/pages.mentions.types';
-import type { PagePersonOption } from '../../../types/pages.schema.types';
+import type { PagePersonOption } from '../../../collections/types/pages.schema.types';
+import { foldPageLookingText } from '../../../links/lib/pages.looking.lib';
+import type { PageMentionCandidate } from '../../../links/types/pages.mentions.types';
 import type { PageEditorCommand } from '../../../types/pages.types';
 import { PAGE_EDITOR_MENTION_CREATION_ITEM_ID } from '../../blocks/constants/pages.editor.blocks.constants';
 import { createPageMentionInsertCommand } from '../../lib/pages.editor.commands';

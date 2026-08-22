@@ -1,4 +1,4 @@
-import type { PagePersonOption } from '../../../types/pages.schema.types';
+import type { PagePersonOption } from '../../../collections/types/pages.schema.types';
 
 /** Who is named here, and what they were called at the time. */
 export interface PagePersonInsert {

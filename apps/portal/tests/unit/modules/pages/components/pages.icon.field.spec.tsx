@@ -1,18 +1,18 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
+import type { PageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 import en from '../../../../../messages/en.json';
 
 mock.module('server-only', () => ({}));
-mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
   setPageIconSymbolAction: async () => ({ data: undefined }),
   uploadPageIconImageAction: async () => ({ data: undefined }),
 }));
 
-const { PagesIconField } = await import('@/modules/pages/components/pages.icon.field');
+const { PagesIconField } = await import('@/modules/pages/appearance/components/pages.icon.field');
 
 const renderField = (overrides: Partial<Parameters<typeof PagesIconField>[0]> = {}) =>
   render(

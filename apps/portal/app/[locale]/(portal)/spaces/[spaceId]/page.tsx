@@ -1,8 +1,8 @@
 import { canEditContent, PAGE_LIFECYCLE, USER_ROLE } from '@company-brain/shared';
 import { getLocale, getTranslations } from 'next-intl/server';
+import { PagesView } from '@/modules/pages/collections/views/pages.view';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
-import { PagesView } from '@/modules/pages/views/pages.view';
 import { SpacesEmptyState } from '@/modules/spaces/components/spaces.empty.state';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import type { SpaceHomeActivity, SpaceHomePage } from '@/modules/spaces/types/spaces.home.types';

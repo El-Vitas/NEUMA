@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { render } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
+import type { PageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 import { PageIconGlyph } from '@/shared/components/portal/page-icon-glyph';
 import en from '../../../../../messages/en.json';
 

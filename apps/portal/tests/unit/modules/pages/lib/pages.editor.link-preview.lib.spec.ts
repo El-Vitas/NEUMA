@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { readLinkPreviewFromHtml } from '@/modules/pages/lib/pages.link-preview.lib';
+import { readLinkPreviewFromHtml } from '@/modules/pages/links/lib/pages.link-preview.lib';
 
 const pageSaying = (head: string): string => `<!doctype html><html><head>${head}</head><body>x</body></html>`;
 

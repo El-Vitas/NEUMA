@@ -6,7 +6,7 @@ const searchPageMentionCandidatesAction = mock(async (_input: { readonly query: 
   data: [{ id: 'page-1', label: 'Target Page', spaceId: 'space-1' }],
 }));
 
-mock.module('@/modules/pages/server/actions/pages.mentions.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.mentions.actions', () => ({
   searchPageMentionCandidatesAction,
 }));
 

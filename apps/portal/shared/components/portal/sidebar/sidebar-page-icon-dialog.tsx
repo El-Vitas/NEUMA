@@ -1,20 +1,20 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { PagesIconMenu } from '@/modules/pages/components/pages.icon.menu';
+import { PagesIconMenu } from '@/modules/pages/appearance/components/pages.icon.menu';
 import {
   isPageImageIcon,
   isPageSymbolIcon,
   pickRandomPageEmojiIcon,
   pickRandomPageIconSymbolName,
-} from '@/modules/pages/lib/pages.icon.lib';
+} from '@/modules/pages/appearance/lib/pages.icon.lib';
 import {
   removePageIconAction,
   setPageIconEmojiAction,
   setPageIconSymbolAction,
   uploadPageIconImageAction,
-} from '@/modules/pages/server/actions/pages.icon.actions';
-import type { PageIcon, PageIconColor } from '@/modules/pages/types/pages.icon.types';
+} from '@/modules/pages/appearance/server/actions/pages.icon.actions';
+import type { PageIcon, PageIconColor } from '@/modules/pages/appearance/types/pages.icon.types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { useIconMutation } from '@/shared/hooks/use.icon-mutation.hook';
 

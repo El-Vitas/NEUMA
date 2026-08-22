@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PageSchema, PageSchemaProperty } from '@/modules/pages/types/pages.schema.types';
+import type { PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
 
@@ -10,7 +10,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
 }));
-mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
+mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
@@ -21,7 +21,7 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
  * server-only chain behind it — and out of a fight with the move form's own
  * spec, which mocks that same chain to answer differently.
  */
-mock.module('@/modules/pages/components/pages.move.form', () => ({
+mock.module('@/modules/pages/navigation/components/pages.move.form', () => ({
   PagesMoveForm: ({ ariaLabelledBy }: { readonly ariaLabelledBy: string }) => (
     <button aria-labelledby={ariaLabelledBy} type="button">
       Space root
@@ -29,7 +29,7 @@ mock.module('@/modules/pages/components/pages.move.form', () => ({
   ),
 }));
 
-const { PagesPropertiesPanel } = await import('@/modules/pages/components/pages.properties.panel');
+const { PagesPropertiesPanel } = await import('@/modules/pages/collections/components/pages.properties.panel');
 
 const buildPage = (overrides: Partial<PageSummary> = {}): PageSummary => ({
   content: { content: [], schemaVersion: 1, type: 'doc' },

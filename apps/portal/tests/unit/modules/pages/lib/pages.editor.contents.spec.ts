@@ -11,7 +11,7 @@ import {
   readPageOutlineRailMarkWidthStyleClass,
   readTheWrittenHeadings,
   readWhichHeading,
-} from '@/modules/pages/lib/pages.outline.lib';
+} from '@/modules/pages/navigation/lib/pages.outline.lib';
 
 const pageWithHeadings = (...titles: readonly string[]): PageContent => ({
   content: titles.map((title, level) => ({

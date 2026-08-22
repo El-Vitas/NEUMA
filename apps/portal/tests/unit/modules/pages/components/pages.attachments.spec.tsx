@@ -3,13 +3,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import en from '../../../../../messages/en.json';
 
-mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
+mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
 }));
 
-const { PagesAttachments } = await import('@/modules/pages/components/pages.attachments');
+const { PagesAttachments } = await import('@/modules/pages/attachments/components/pages.attachments');
 
 const renderAttachments = (attachments: Parameters<typeof PagesAttachments>[0]['attachments'] = []) =>
   render(

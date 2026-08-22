@@ -6,7 +6,7 @@ const searchPagePersonCandidatesAction = mock(async (_input: { readonly query: s
   data: [{ email: 'ana@example.com', id: 'person-1', name: 'Ana Pérez' }],
 }));
 
-mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => ({
   searchPagePersonCandidatesAction,
 }));
 

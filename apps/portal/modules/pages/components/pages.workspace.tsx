@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
 import { StartPageButton } from '@/shared/components/portal/start-page-button';
 import { EmptyState } from '@/shared/components/ui/empty-state';
+import type { AttachmentSummary } from '../attachments/types/pages.attachments.types';
+import type { PagePersonOption, PageSchema } from '../collections/types/pages.schema.types';
 import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_BACKLINKS,
@@ -12,12 +14,10 @@ import {
 } from '../constants/pages.constants';
 import { PagesEditor } from '../editor/components/pages.editor';
 import { buildPageTree, canEditPage, getPageTreeExpandedIds } from '../lib/pages.lib';
-import type { AttachmentSummary } from '../types/pages.attachments.types';
-import type { PageBacklinksResult } from '../types/pages.backlinks.types';
-import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
-import type { PagesSidePanelBundle } from '../types/pages.side-panel.types';
+import type { PageBacklinksResult } from '../links/types/pages.backlinks.types';
+import { PagesSidePanel } from '../navigation/components/pages.side-panel';
+import type { PagesSidePanelBundle } from '../navigation/types/pages.side-panel.types';
 import type { PageSummary } from '../types/pages.types';
-import { PagesSidePanel } from './pages.side-panel';
 
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];

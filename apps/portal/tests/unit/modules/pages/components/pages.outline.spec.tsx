@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesOutline } from '@/modules/pages/components/pages.outline';
+import { PagesOutline } from '@/modules/pages/navigation/components/pages.outline';
 import en from '../../../../../messages/en.json';
 
 const headings = [

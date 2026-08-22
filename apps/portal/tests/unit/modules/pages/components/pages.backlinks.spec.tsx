@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesBacklinks } from '@/modules/pages/components/pages.backlinks';
+import { PagesBacklinks } from '@/modules/pages/links/components/pages.backlinks';
 import en from '../../../../../messages/en.json';
 
 describe('PagesBacklinks', () => {

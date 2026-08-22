@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { usePagesExport } from '@/modules/pages/hooks/use.pages.export';
+import { usePagesExport } from '@/modules/pages/export/hooks/use.pages.export';
 import { getVisiblePortalSidebarPages } from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
 import {

@@ -59,14 +59,14 @@ mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
   getFavoritePages: async () => ({ getValue: () => [], isOk: () => true }),
 }));
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
-mock.module('@/modules/pages/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
-mock.module('@/modules/pages/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
+mock.module('@/modules/pages/attachments/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
+mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
   getPages: async () => pagesResult,
   /** The route asks where a page lives when the address does not find it here. */
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
 }));
-mock.module('@/modules/pages/server/queries/pages.schema.queries', () => ({
+mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
   getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),
 }));

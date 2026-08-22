@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { resolveBreadcrumbLabel, splitBreadcrumbParentPages } from '@/modules/pages/lib/pages.breadcrumb.lib';
+import {
+  resolveBreadcrumbLabel,
+  splitBreadcrumbParentPages,
+} from '@/modules/pages/navigation/lib/pages.breadcrumb.lib';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 
 const buildPageSummary = (id: string, title: string): PageSummary => ({

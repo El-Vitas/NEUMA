@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesBreadcrumb } from '@/modules/pages/components/pages.breadcrumb';
+import { PagesBreadcrumb } from '@/modules/pages/navigation/components/pages.breadcrumb';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
 

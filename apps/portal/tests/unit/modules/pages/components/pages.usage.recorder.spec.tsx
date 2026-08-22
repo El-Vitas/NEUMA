@@ -3,11 +3,11 @@ import { cleanup, render, waitFor } from '@testing-library/react';
 
 const recordPageView = mock(async () => ({ data: undefined }));
 
-mock.module('@/modules/pages/server/actions/pages.usage.actions', () => ({
+mock.module('@/modules/pages/trust/server/actions/pages.usage.actions', () => ({
   recordPageViewAction: recordPageView,
 }));
 
-const { PagesUsageRecorder } = await import('@/modules/pages/components/pages.usage.recorder');
+const { PagesUsageRecorder } = await import('@/modules/pages/trust/components/pages.usage.recorder');
 
 describe('PagesUsageRecorder', () => {
   afterEach(() => {

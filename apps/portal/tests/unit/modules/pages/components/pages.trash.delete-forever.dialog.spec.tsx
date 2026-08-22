@@ -6,11 +6,13 @@ import en from '../../../../../messages/en.json';
 
 const deletePageForever = mock(async () => ({ data: undefined }));
 
-mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   deletePageForeverAction: deletePageForever,
 }));
 
-const { PagesTrashDeleteForeverDialog } = await import('@/modules/pages/components/pages.trash.delete-forever.dialog');
+const { PagesTrashDeleteForeverDialog } = await import(
+  '@/modules/pages/trash/components/pages.trash.delete-forever.dialog'
+);
 
 const page = { id: 'page-a', spaceId: 'space-a', title: 'Roadmap' };
 

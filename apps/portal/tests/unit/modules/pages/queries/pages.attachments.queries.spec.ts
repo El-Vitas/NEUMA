@@ -16,7 +16,7 @@ mock.module('@/lib/logger', () => ({ logger: { error: () => undefined, info: () 
 
 globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
 
-const { getPageAttachments } = await import('@/modules/pages/server/queries/pages.attachments.queries');
+const { getPageAttachments } = await import('@/modules/pages/attachments/server/queries/pages.attachments.queries');
 
 describe('getPageAttachments without an access token', () => {
   it('fails closed without making an outbound request', async () => {

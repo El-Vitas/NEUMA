@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { Toaster, toast } from 'sonner';
-import type { TrashedPage, TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
+import type { TrashedPage, TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
 import en from '../../../../../messages/en.json';
 
 interface RestorePageInput {
@@ -28,12 +28,12 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   restorePageAction: restorePage,
 }));
-mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   getPageRestorePreviewAction: getPageRestorePreview,
   deletePageForeverAction: async () => ({ data: undefined }),
 }));
 
-const { PagesTrashItem } = await import('@/modules/pages/components/pages.trash.item');
+const { PagesTrashItem } = await import('@/modules/pages/trash/components/pages.trash.item');
 
 const page: TrashedPage = {
   deletedAt: new Date('2026-01-01T10:00:00.000Z'),

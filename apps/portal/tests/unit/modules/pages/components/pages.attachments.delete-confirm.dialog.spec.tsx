@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import en from '../../../../../messages/en.json';
 
 const { PagesAttachmentsDeleteConfirmDialog } = await import(
-  '@/modules/pages/components/pages.attachments.delete-confirm.dialog'
+  '@/modules/pages/attachments/components/pages.attachments.delete-confirm.dialog'
 );
 
 describe('PagesAttachmentsDeleteConfirmDialog', () => {

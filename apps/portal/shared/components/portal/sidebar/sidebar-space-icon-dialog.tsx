@@ -2,8 +2,8 @@
 
 import type { PageIcon, PageIconColor } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
-import { PagesIconMenu } from '@/modules/pages/components/pages.icon.menu';
-import { pickRandomPageEmojiIcon, pickRandomPageIconSymbolName } from '@/modules/pages/lib/pages.icon.lib';
+import { PagesIconMenu } from '@/modules/pages/appearance/components/pages.icon.menu';
+import { pickRandomPageEmojiIcon, pickRandomPageIconSymbolName } from '@/modules/pages/appearance/lib/pages.icon.lib';
 import {
   removeSpaceIconAction,
   setSpaceIconEmojiAction,

@@ -1,7 +1,7 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import { PluginKey, TextSelection, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { foldPageLookingCharacter, foldPageLookingText } from '../../../lib/pages.looking.lib';
+import { foldPageLookingCharacter, foldPageLookingText } from '../../../links/lib/pages.looking.lib';
 import { PAGE_EDITOR_TOGGLE_TYPE } from '../../blocks/constants/pages.editor.blocks.constants';
 import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';
 import { PAGE_EDITOR_HEADING_TYPE } from '../../text/constants/pages.editor.heading.constants';

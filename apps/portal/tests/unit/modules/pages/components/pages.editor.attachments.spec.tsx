@@ -37,33 +37,33 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   updatePageAction: async () => ({ data: undefined }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   getPageTrashPreviewAction: async () => ({ data: { childPageCount: 0 } }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.cover.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.cover.actions', () => ({
   removePageCoverAction: async () => ({ data: undefined }),
   repositionPageCoverAction: async () => ({ data: undefined }),
   uploadPageCoverImageAction: async () => ({ data: undefined }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
   setPageIconSymbolAction: async () => ({ data: undefined }),
   uploadPageIconImageAction: async () => ({ data: undefined }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.collections.actions', () => ({
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   createPageCollectionAction: async () => ({ data: undefined }),
   readPageCollectionAction: async () => ({ data: null }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => ({
   searchPagePersonCandidatesAction: async () => ({ data: [] }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
+mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({

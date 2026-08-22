@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
+import type { AttachmentSummary } from '../attachments/types/pages.attachments.types';
+import type { PagePersonOption } from '../collections/types/pages.schema.types';
 import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
-import type { AttachmentSummary } from '../types/pages.attachments.types';
-import type { PageBacklinksResult } from '../types/pages.backlinks.types';
-import type { PageInfoMetadata } from '../types/pages.info.types';
-import type { PagePersonOption } from '../types/pages.schema.types';
+import type { PageBacklinksResult } from '../links/types/pages.backlinks.types';
+import type { PageInfoMetadata } from '../trust/types/pages.info.types';
 import type { PageSummary } from '../types/pages.types';
 
 export const PAGE_BACKLINKS_CACHE_TAG = (pageId: string): string => `page-backlinks:${pageId}`;

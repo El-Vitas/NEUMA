@@ -3,7 +3,7 @@ import {
   fromVerificationExpiryInputValue,
   resolvePageVerificationStatus,
   toVerificationExpiryInputValue,
-} from '@/modules/pages/lib/pages.verification.lib';
+} from '@/modules/pages/trust/lib/pages.verification.lib';
 
 const now = new Date('2026-06-15T00:00:00.000Z');
 

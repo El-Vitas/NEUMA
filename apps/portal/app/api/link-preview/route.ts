@@ -2,10 +2,10 @@ import {
   LINK_PREVIEW_MAXIMUM_HOPS,
   PAGE_LINK_PREVIEW_READ_LIMIT,
   PAGE_LINK_PREVIEW_TIMEOUT_MS,
-} from '@/modules/pages/constants/pages.link-preview.constants';
-import { isReachableLinkPreviewAddress } from '@/modules/pages/lib/pages.link-preview.address.lib';
-import { readLinkPreviewFromHtml } from '@/modules/pages/lib/pages.link-preview.lib';
-import { linkPreviewRequestSchema } from '@/modules/pages/schemas/pages.link-preview.schemas';
+} from '@/modules/pages/links/constants/pages.link-preview.constants';
+import { isReachableLinkPreviewAddress } from '@/modules/pages/links/lib/pages.link-preview.address.lib';
+import { readLinkPreviewFromHtml } from '@/modules/pages/links/lib/pages.link-preview.lib';
+import { linkPreviewRequestSchema } from '@/modules/pages/links/schemas/pages.link-preview.schemas';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 
 /**

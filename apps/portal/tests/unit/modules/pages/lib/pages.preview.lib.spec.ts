@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import type { PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import {
   isWithinThePagePreviewCard,
   readInternalPageTarget,
@@ -8,8 +9,7 @@ import {
   readPagePreviewProperties,
   readPagePreviewSpot,
   readPagePreviewTitle,
-} from '@/modules/pages/lib/pages.preview.lib';
-import type { PageSchema, PageSchemaProperty } from '@/modules/pages/types/pages.schema.types';
+} from '@/modules/pages/links/lib/pages.preview.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 
 describe('readInternalPageTarget', () => {

@@ -6,7 +6,7 @@ import {
   resolveInternalPageHref,
   withoutPagesSidePanelParam,
   withPagesSidePanelParam,
-} from '@/modules/pages/lib/pages.side-panel.lib';
+} from '@/modules/pages/navigation/lib/pages.side-panel.lib';
 
 const PAGE_ID = '22222222-2222-4222-8222-222222222222';
 const SPACE_ID = '33333333-3333-4333-8333-333333333333';

@@ -6,7 +6,7 @@ import {
   trashedPagesListSchema,
   trashListQuerySchema,
   trashRestoreOutcomeSchema,
-} from '@/modules/pages/schemas/pages.trash.schemas';
+} from '@/modules/pages/trash/schemas/pages.trash.schemas';
 
 describe('trashedPageSchema', () => {
   it('parses a trashed page carrying who deleted it and when', () => {

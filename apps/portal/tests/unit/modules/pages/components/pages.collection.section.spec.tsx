@@ -1,14 +1,18 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { PageSchemaProperty, PageSchemaView, PageViewOutcome } from '@/modules/pages/types/pages.schema.types';
+import type {
+  PageSchemaProperty,
+  PageSchemaView,
+  PageViewOutcome,
+} from '@/modules/pages/collections/types/pages.schema.types';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) => <a href={href}>{children}</a>,
 }));
 
-const { PagesCollectionSection } = await import('@/modules/pages/components/pages.collection.section');
+const { PagesCollectionSection } = await import('@/modules/pages/collections/components/pages.collection.section');
 
 const properties: PageSchemaProperty[] = [
   { key: 'status', label: 'Status', options: ['todo', 'in_progress', 'done'], required: true, type: 'SELECT' },

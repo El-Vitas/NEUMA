@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageLifecycle } from '@company-brain/shared';
 import { pageContentSchema } from '@company-brain/shared';
+import type { PageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 import { createPageEditorNodeViews } from '@/modules/pages/editor/blocks/lib/pages.editor.node-views.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
-import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
 
 const buildMentionDocument = (spaceId: string, pageId: string, label: string) =>
   pageContentSchema.parse({

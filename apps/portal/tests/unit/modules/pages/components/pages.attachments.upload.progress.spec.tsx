@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesAttachmentsUploadProgress } from '@/modules/pages/components/pages.attachments.upload.progress';
+import { PagesAttachmentsUploadProgress } from '@/modules/pages/attachments/components/pages.attachments.upload.progress';
 import en from '../../../../../messages/en.json';
 
 describe('PagesAttachmentsUploadProgress', () => {

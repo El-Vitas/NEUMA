@@ -1,14 +1,14 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PAGE_APPEARANCE_DEFAULT_PREFERENCES } from '@/modules/pages/constants/pages.appearance.constants';
-import type { PagesAppearanceResult } from '@/modules/pages/types/pages.appearance.types';
+import { PAGE_APPEARANCE_DEFAULT_PREFERENCES } from '@/modules/pages/appearance/constants/pages.appearance.constants';
+import type { PagesAppearanceResult } from '@/modules/pages/appearance/types/pages.appearance.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
 import en from '../../../../../messages/en.json';
 
 mock.module('server-only', () => ({}));
-mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
   setPageIconSymbolAction: async () => ({ data: undefined }),
@@ -43,7 +43,7 @@ mock.module('@/shared/components/portal/recents-recorder', () => ({
   }) => <div data-testid={`recent-recorder:${pageId}:${spaceName}`} />,
 }));
 
-const { PagesHeader } = await import('@/modules/pages/components/pages.header');
+const { PagesHeader } = await import('@/modules/pages/appearance/components/pages.header');
 
 const PARENT_PAGES: readonly PageSummary[] = [
   {

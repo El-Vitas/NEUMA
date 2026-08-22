@@ -27,7 +27,18 @@ import {
   PAGE_APPEARANCE_DEFAULT_PREFERENCES,
   PAGE_APPEARANCE_TEXT_SIZE_STYLE_CLASSES,
   PAGE_APPEARANCE_TYPOGRAPHY_STYLE_CLASSES,
-} from '../constants/pages.appearance.constants';
+} from '../appearance/constants/pages.appearance.constants';
+import type { PageAppearanceTextSize, PageAppearanceTypography } from '../appearance/types/pages.appearance.types';
+import type { PageIcon } from '../appearance/types/pages.icon.types';
+import { usePagesAttachmentUpload } from '../attachments/hooks/use.pages.attachment.upload';
+import type { AttachmentSummary } from '../attachments/types/pages.attachments.types';
+import { describeANewCollection, readTheViewToShow } from '../collections/lib/pages.collections.lib';
+import { buildRowPropertyValues, getEditableSchemaProperties } from '../collections/lib/pages.properties.lib';
+import {
+  createPageCollectionAction,
+  readPageCollectionAction,
+} from '../collections/server/actions/pages.collections.actions';
+import type { PagePersonOption, PageSchema } from '../collections/types/pages.schema.types';
 import { EMPTY_PAGE_PERSON_OPTIONS, EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
 import { PagesEditorBlockActions } from '../editor/blocks/components/pages.editor.block-actions';
 import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../editor/blocks/constants/pages.editor.blocks.constants';
@@ -98,21 +109,13 @@ import {
 } from '../editor/text/lib/pages.editor.link.lib';
 import { createPageTextColorCommand } from '../editor/text/lib/pages.editor.text-color.lib';
 import type { PageEditorLinkAtHand } from '../editor/text/types/pages.editor.link.types';
-import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
-import { usePagesPreview } from '../hooks/use.pages.preview';
 import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
-import { describeANewCollection, readTheViewToShow } from '../lib/pages.collections.lib';
-import { buildRowPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
-import { resolveInternalPageHref } from '../lib/pages.side-panel.lib';
+import { PagesPreviewLayer } from '../links/components/pages.preview.layer';
+import { usePagesPreview } from '../links/hooks/use.pages.preview';
+import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
 import { createPageAction } from '../server/actions/pages.actions';
-import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
-import type { PageAppearanceTextSize, PageAppearanceTypography } from '../types/pages.appearance.types';
-import type { AttachmentSummary } from '../types/pages.attachments.types';
-import type { PageIcon } from '../types/pages.icon.types';
-import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
-import { PagesPreviewLayer } from './pages.preview.layer';
 
 interface IProps {
   readonly canEdit: boolean;
