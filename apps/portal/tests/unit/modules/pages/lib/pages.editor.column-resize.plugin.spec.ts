@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

@@ -45,7 +45,7 @@ mock.module('@/modules/pages/components/pages.attachments', () => ({
   PagesAttachments: () => <div data-testid="page-attachments" />,
 }));
 
-const { PagesEditor } = await import('@/modules/pages/components/pages.editor');
+const { PagesEditor } = await import('@/modules/pages/editor/components/pages.editor');
 
 const SPACE_ID = '33333333-3333-4333-8333-333333333333';
 

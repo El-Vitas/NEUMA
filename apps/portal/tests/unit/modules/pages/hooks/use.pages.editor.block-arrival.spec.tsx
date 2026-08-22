@@ -13,7 +13,9 @@ mock.module('sonner', () => ({
   },
 }));
 
-const { usePagesEditorBlockArrival } = await import('@/modules/pages/hooks/use.pages.editor.block-arrival');
+const { usePagesEditorBlockArrival } = await import(
+  '@/modules/pages/editor/blocks/hooks/use.pages.editor.block-arrival'
+);
 
 const Page = ({
   hostRef,

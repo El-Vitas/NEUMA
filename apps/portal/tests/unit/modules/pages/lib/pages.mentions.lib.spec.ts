@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { PAGE_LIFECYCLE } from '@company-brain/shared';
-import { createEmptyPageContent } from '@/modules/pages/lib/pages.editor.lib';
+import { createEmptyPageContent } from '@/modules/pages/editor/lib/pages.editor.lib';
 import { answersToTheName, gatherThePagesNamed, keepThePagesNamed } from '@/modules/pages/lib/pages.mentions.lib';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 

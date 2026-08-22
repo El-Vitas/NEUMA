@@ -2,10 +2,10 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { PAGE_EDITOR_COMMANDS } from '@/modules/pages/constants/pages.editor.constants';
-import { movePageEditorBlockDown } from '@/modules/pages/lib/pages.editor.block-move.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { indentPageEditorBlock } from '@/modules/pages/lib/pages.editor.nesting.lib';
+import { movePageEditorBlockDown } from '@/modules/pages/editor/blocks/lib/pages.editor.block-move.lib';
+import { indentPageEditorBlock } from '@/modules/pages/editor/blocks/lib/pages.editor.nesting.lib';
+import { PAGE_EDITOR_COMMANDS } from '@/modules/pages/editor/constants/pages.editor.constants';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

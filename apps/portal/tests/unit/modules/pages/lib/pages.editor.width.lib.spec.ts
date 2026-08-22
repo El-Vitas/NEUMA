@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { dragPageBlockWidth, readPageBlockWidth } from '@/modules/pages/lib/pages.editor.width.lib';
+import { dragPageBlockWidth, readPageBlockWidth } from '@/modules/pages/editor/blocks/lib/pages.editor.width.lib';
 
 const measuring = (element: HTMLElement, width: number): HTMLElement => {
   element.getBoundingClientRect = () => ({ width }) as DOMRect;

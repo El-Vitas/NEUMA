@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl';
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { findEmojiCandidates } from '../lib/pages.editor.emoji.lib';
-import { getEmojiMenuQuery } from '../lib/pages.editor.slash-menu.lib';
-import type { PageEmojiEntry } from '../types/pages.editor.emoji.types';
+import { getEmojiMenuQuery } from '../editor/menus/lib/pages.editor.slash-menu.lib';
+import { findEmojiCandidates } from '../editor/text/lib/pages.editor.emoji.lib';
+import type { PageEmojiEntry } from '../editor/text/types/pages.editor.emoji.types';
 
 interface IProps {
   readonly ariaLabel: string;

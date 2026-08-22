@@ -29,36 +29,21 @@ import {
   PAGE_APPEARANCE_TYPOGRAPHY_STYLE_CLASSES,
 } from '../constants/pages.appearance.constants';
 import { EMPTY_PAGE_PERSON_OPTIONS, EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
-import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
-import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../constants/pages.editor.constants';
-import { PAGE_EDITOR_QUIET_SURFACE } from '../constants/pages.editor.surface.constants';
-import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
-import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
-import { usePagesEditorBlockActions } from '../hooks/use.pages.editor.block-actions';
-import { usePagesEditorBlockArrival } from '../hooks/use.pages.editor.block-arrival';
-import { usePagesEditorBlocksToPage } from '../hooks/use.pages.editor.blocks-to-page';
-import { usePagesEditorCollectionHosts } from '../hooks/use.pages.editor.collection-hosts';
-import { usePagesEditorFind } from '../hooks/use.pages.editor.find';
-import { usePagesEditorPageDrop } from '../hooks/use.pages.editor.page-drop';
-import { usePagesEditorPastedLink } from '../hooks/use.pages.editor.pasted-link';
-import { usePagesEditorTriggerMenu } from '../hooks/use.pages.editor.trigger-menu';
-import { usePagesPreview } from '../hooks/use.pages.preview';
-import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
-import { describeANewCollection, readTheViewToShow } from '../lib/pages.collections.lib';
-import { isTheWritingStillInHand } from '../lib/pages.editor.attention.lib';
-import { openPageEditorFragmentComments } from '../lib/pages.editor.block-menu.lib';
-import { findSelectedPageBlocks } from '../lib/pages.editor.block-range.lib';
-import {
-  createPageButtonCollectionCommand,
-  createPageButtonWriteCommand,
-  readThePressedButton,
-  readTheRowContent,
-  readTheRowTitle,
-} from '../lib/pages.editor.button.lib';
-import { createPageCollectionInsertCommand } from '../lib/pages.editor.collection.lib';
-import { appendParagraphAtEnd } from '../lib/pages.editor.commands';
-import { followThePageHeadings, goToThePageHeading } from '../lib/pages.editor.contents.lib';
-import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
+import { PagesEditorBlockActions } from '../editor/blocks/components/pages.editor.block-actions';
+import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../editor/blocks/constants/pages.editor.blocks.constants';
+import { usePagesEditorBlockActions } from '../editor/blocks/hooks/use.pages.editor.block-actions';
+import { usePagesEditorBlockArrival } from '../editor/blocks/hooks/use.pages.editor.block-arrival';
+import { usePagesEditorBlocksToPage } from '../editor/blocks/hooks/use.pages.editor.blocks-to-page';
+import { openPageEditorFragmentComments } from '../editor/blocks/lib/pages.editor.block-menu.lib';
+import { findSelectedPageBlocks } from '../editor/blocks/lib/pages.editor.block-range.lib';
+import { createPageEditorBlockConversionCommand } from '../editor/blocks/lib/pages.editor.convert.lib';
+import { createPageEditorNodeViews } from '../editor/blocks/lib/pages.editor.node-views.lib';
+import { PagesEditorCollaborationStatus } from '../editor/components/pages.editor.collaboration.status';
+import { PagesEditorPagePickerDialog } from '../editor/components/pages.editor.page-picker.dialog';
+import { PagesEditorToolbar } from '../editor/components/pages.editor.toolbar';
+import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../editor/constants/pages.editor.constants';
+import { isTheWritingStillInHand } from '../editor/lib/pages.editor.attention.lib';
+import { appendParagraphAtEnd } from '../editor/lib/pages.editor.commands';
 import {
   createEmptyPageContent,
   createPageEditorState,
@@ -67,51 +52,66 @@ import {
   readWhatThePageCanKeep,
   runPageEditorCommand,
   usesCommandKeyboard,
-} from '../lib/pages.editor.lib';
+} from '../editor/lib/pages.editor.lib';
+import { createPageMentionInsertAtCommand } from '../editor/lib/pages.editor.mention.lib';
+import { pageEditorSchema } from '../editor/lib/pages.editor.schema';
+import { PagesEditorAttachmentUpload } from '../editor/media/components/pages.editor.attachment.upload';
+import { PagesEditorFindPanel } from '../editor/menus/components/pages.editor.find.panel';
+import { PagesEditorLinkShapeMenu } from '../editor/menus/components/pages.editor.link-shape.menu';
+import { PagesEditorShortcutsDialog } from '../editor/menus/components/pages.editor.shortcuts.dialog';
+import { PagesEditorSlashMenu } from '../editor/menus/components/pages.editor.slash-menu';
+import { PAGE_EDITOR_QUIET_SURFACE } from '../editor/menus/constants/pages.editor.surface.constants';
+import { usePagesEditorFind } from '../editor/menus/hooks/use.pages.editor.find';
+import { usePagesEditorPageDrop } from '../editor/menus/hooks/use.pages.editor.page-drop';
+import { usePagesEditorTriggerMenu } from '../editor/menus/hooks/use.pages.editor.trigger-menu';
+import { createPageShapeCommand } from '../editor/menus/lib/pages.editor.page-shape.lib';
+import { describeEditorWithTriggerMenu } from '../editor/menus/lib/pages.editor.slash-menu.lib';
+import { readPageEditorSurface } from '../editor/menus/lib/pages.editor.surface.lib';
+import type { PageDestination } from '../editor/menus/types/pages.editor.destination.types';
+import type { PageEditorPageShape } from '../editor/menus/types/pages.editor.page-shape.types';
+import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../editor/menus/types/pages.editor.surface.types';
+import { usePagesEditorCollectionHosts } from '../editor/structure/hooks/use.pages.editor.collection-hosts';
 import {
-  createPageLinkCommand,
-  isWithinThePages,
-  readTheLinkInHand,
-  readTheLinkUnderPointer,
-} from '../lib/pages.editor.link.lib';
-import { createPageMentionInsertAtCommand } from '../lib/pages.editor.mention.lib';
-import { createPageEditorNodeViews } from '../lib/pages.editor.node-views.lib';
-import { createPageShapeCommand } from '../lib/pages.editor.page-shape.lib';
-import { pageEditorSchema } from '../lib/pages.editor.schema';
-import { describeEditorWithTriggerMenu } from '../lib/pages.editor.slash-menu.lib';
+  createPageButtonCollectionCommand,
+  createPageButtonWriteCommand,
+  readThePressedButton,
+  readTheRowContent,
+  readTheRowTitle,
+} from '../editor/structure/lib/pages.editor.button.lib';
+import { createPageCollectionInsertCommand } from '../editor/structure/lib/pages.editor.collection.lib';
+import { followThePageHeadings, goToThePageHeading } from '../editor/structure/lib/pages.editor.contents.lib';
 import {
   createPageSubpageInsertCommand,
   readPageIconFrom,
   readPageLifecycleFrom,
   readPageTitleFrom,
-} from '../lib/pages.editor.subpage.lib';
-import { readPageEditorSurface } from '../lib/pages.editor.surface.lib';
-import { createPageUnsyncCommand, readBorrowedBlock } from '../lib/pages.editor.synced.lib';
-import { createPageTextColorCommand } from '../lib/pages.editor.text-color.lib';
+} from '../editor/structure/lib/pages.editor.subpage.lib';
+import { createPageUnsyncCommand, readBorrowedBlock } from '../editor/structure/lib/pages.editor.synced.lib';
+import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
+import { PagesEditorLinkLayer } from '../editor/text/components/pages.editor.link.layer';
+import { usePagesEditorPastedLink } from '../editor/text/hooks/use.pages.editor.pasted-link';
+import {
+  createPageLinkCommand,
+  isWithinThePages,
+  readTheLinkInHand,
+  readTheLinkUnderPointer,
+} from '../editor/text/lib/pages.editor.link.lib';
+import { createPageTextColorCommand } from '../editor/text/lib/pages.editor.text-color.lib';
+import type { PageEditorLinkAtHand } from '../editor/text/types/pages.editor.link.types';
+import { usePagesAttachmentUpload } from '../hooks/use.pages.attachment.upload';
+import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
+import { usePagesPreview } from '../hooks/use.pages.preview';
+import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
+import { describeANewCollection, readTheViewToShow } from '../lib/pages.collections.lib';
 import { buildRowPropertyValues, getEditableSchemaProperties } from '../lib/pages.properties.lib';
 import { resolveInternalPageHref } from '../lib/pages.side-panel.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import { createPageCollectionAction, readPageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { PageAppearanceTextSize, PageAppearanceTypography } from '../types/pages.appearance.types';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
-import type { PageEditorHeading } from '../types/pages.editor.contents.types';
-import type { PageDestination } from '../types/pages.editor.destination.types';
-import type { PageEditorLinkAtHand } from '../types/pages.editor.link.types';
-import type { PageEditorPageShape } from '../types/pages.editor.page-shape.types';
-import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../types/pages.editor.surface.types';
 import type { PageIcon } from '../types/pages.icon.types';
 import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
-import { PagesEditorAttachmentUpload } from './pages.editor.attachment.upload';
-import { PagesEditorBlockActions } from './pages.editor.block-actions';
-import { PagesEditorCollaborationStatus } from './pages.editor.collaboration.status';
-import { PagesEditorFindPanel } from './pages.editor.find.panel';
-import { PagesEditorLinkLayer } from './pages.editor.link.layer';
-import { PagesEditorLinkShapeMenu } from './pages.editor.link-shape.menu';
-import { PagesEditorPagePickerDialog } from './pages.editor.page-picker.dialog';
-import { PagesEditorShortcutsDialog } from './pages.editor.shortcuts.dialog';
-import { PagesEditorSlashMenu } from './pages.editor.slash-menu';
-import { PagesEditorToolbar } from './pages.editor.toolbar';
 import { PagesPreviewLayer } from './pages.preview.layer';
 
 interface IProps {

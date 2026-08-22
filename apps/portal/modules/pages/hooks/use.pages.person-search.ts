@@ -2,8 +2,8 @@
 
 import { useCallback } from 'react';
 import { useDebouncedSearch } from '@/shared/hooks/use.debounced-search.hook';
+import type { PagePersonSearchResult } from '../editor/text/types/pages.editor.person.types';
 import { searchPagePersonCandidatesAction } from '../server/actions/pages.person.actions';
-import type { PagePersonSearchResult } from '../types/pages.editor.person.types';
 import type { PagePersonOption } from '../types/pages.schema.types';
 
 /**

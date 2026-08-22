@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { describePageMediaMoment, describePageMediaTime } from '@/modules/pages/lib/pages.editor.media.lib';
+import {
+  describePageMediaMoment,
+  describePageMediaTime,
+} from '@/modules/pages/editor/media/lib/pages.editor.media.lib';
 
 describe('how far along something that plays is', () => {
   it('says it the way a player says it', () => {

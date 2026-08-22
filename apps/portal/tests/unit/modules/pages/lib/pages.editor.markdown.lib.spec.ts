@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { looksLikePageEditorMarkdown, parsePageEditorMarkdown } from '@/modules/pages/lib/pages.editor.markdown.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import {
+  looksLikePageEditorMarkdown,
+  parsePageEditorMarkdown,
+} from '@/modules/pages/editor/text/lib/pages.editor.markdown.lib';
 
 const parse = (text: string) => parsePageEditorMarkdown(pageEditorSchema, text).map((block) => block.toJSON());
 

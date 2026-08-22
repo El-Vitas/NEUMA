@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesEditorSaveState } from '@/modules/pages/components/pages.editor.save-state';
+import { PagesEditorSaveState } from '@/modules/pages/editor/components/pages.editor.save-state';
 import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
 import en from '../../../../../messages/en.json';
 

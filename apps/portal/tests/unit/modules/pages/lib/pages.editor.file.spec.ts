@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { describePageFile, describePageFileSize } from '@/modules/pages/lib/pages.editor.file.lib';
+import { describePageFile, describePageFileSize } from '@/modules/pages/editor/media/lib/pages.editor.file.lib';
 
 describe('how heavy a file is said to be', () => {
   it('counts bytes whole, since half a byte says nothing', () => {

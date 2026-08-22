@@ -11,7 +11,7 @@ const attachment = {
   uploadedBy: 'Jane Doe',
 };
 
-mock.module('@/modules/pages/components/pages.editor', () => ({
+mock.module('@/modules/pages/editor/components/pages.editor', () => ({
   PagesEditor: ({
     attachments,
     page,

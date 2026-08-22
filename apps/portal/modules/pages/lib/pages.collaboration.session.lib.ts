@@ -6,13 +6,13 @@ import { Doc } from 'yjs';
 import { env } from '@/config/env.config';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { MAX_COLLABORATION_RECONNECT_ATTEMPTS } from '../constants/pages.collaboration.constants';
+import { pageEditorSchema } from '../editor/lib/pages.editor.schema';
 import { getPageCollaborationToken } from '../server/actions/pages.collaboration.actions';
 import type {
   PageCollaborationSessionHandle,
   PageCollaborationSessionOptions,
 } from '../types/pages.collaboration.types';
 import { computeCollaborationReconnectDelayMs, mapAwarenessStatesToParticipants } from './pages.collaboration.lib';
-import { pageEditorSchema } from './pages.editor.schema';
 
 export const createPageCollaborationSession = (
   options: PageCollaborationSessionOptions,

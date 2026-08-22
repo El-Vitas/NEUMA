@@ -1,12 +1,12 @@
 import type { IconName } from 'lucide-react/dynamic';
-import { PAGE_EDITOR_EMOJIS } from '../constants/pages.editor.emoji.constants';
 import { PAGE_ICON_EMOJI_GRID_LIMIT } from '../constants/pages.icon.constants';
 import { PAGE_ICON_SYMBOL_WORDS } from '../constants/pages.icon.symbol-words.constants';
 import { PAGE_ICON_SYMBOL_NAMES } from '../constants/pages.icon.symbols.constants';
-import type { PageEmojiEntry } from '../types/pages.editor.emoji.types';
+import { PAGE_EDITOR_EMOJIS } from '../editor/text/constants/pages.editor.emoji.constants';
+import { findEmojiCandidates } from '../editor/text/lib/pages.editor.emoji.lib';
+import type { PageEmojiEntry } from '../editor/text/types/pages.editor.emoji.types';
 import type { PageEmojiIcon, PageIcon, PageImageIcon, PageSymbolIcon } from '../types/pages.icon.types';
 import { resolvePageAssetUrl } from './pages.attachments.lib';
-import { findEmojiCandidates } from './pages.editor.emoji.lib';
 import { foldPageLookingText } from './pages.looking.lib';
 
 export const isPageEmojiIcon = (icon: PageIcon): icon is PageEmojiIcon => icon.kind === 'emoji';

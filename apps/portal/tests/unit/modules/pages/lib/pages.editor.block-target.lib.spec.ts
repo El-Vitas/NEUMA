@@ -6,8 +6,8 @@ import {
   findBlockStartAt,
   holdsPageBlocks,
   offersGrabbableBlocks,
-} from '@/modules/pages/lib/pages.editor.block-target.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-target.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const pageWithATable: PageContent = {
   content: [

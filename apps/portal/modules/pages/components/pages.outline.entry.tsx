@@ -14,9 +14,9 @@ import {
   PAGE_OUTLINE_RAIL_MARK_READING_STYLE_CLASS,
   PAGE_OUTLINE_RAIL_MARK_STYLE_CLASS,
   PAGE_OUTLINE_READING_STYLE_CLASS,
-} from '../constants/pages.editor.contents.constants';
+} from '../editor/structure/constants/pages.editor.contents.constants';
+import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
 import { readPageOutlineRailMarkWidthStyleClass } from '../lib/pages.outline.lib';
-import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 
 interface IProps {
   readonly heading: PageEditorHeading;

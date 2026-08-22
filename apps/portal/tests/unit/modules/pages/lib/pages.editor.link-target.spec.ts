@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DOMSerializer } from 'prosemirror-model';
-import { isPageEditorLinkTarget, pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { isPageEditorLinkTarget, pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 
 const drawLink = (href: string): string => {
   const mark = pageEditorSchema.marks.link.create({ href });

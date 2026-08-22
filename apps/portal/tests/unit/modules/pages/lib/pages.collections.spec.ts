@@ -2,10 +2,13 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { PAGE_PROPERTY_TYPE, PAGE_VIEW_TYPE } from '@company-brain/shared';
 import { NodeSelection } from 'prosemirror-state';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import {
+  createPageShapeCommand,
+  readPageShapeTarget,
+} from '@/modules/pages/editor/menus/lib/pages.editor.page-shape.lib';
 import { describeANewCollection, readTheViewToShow } from '@/modules/pages/lib/pages.collections.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { createPageShapeCommand, readPageShapeTarget } from '@/modules/pages/lib/pages.editor.page-shape.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
 
 const wording = { firstProperty: 'Notas', firstView: 'Tabla', titleProperty: 'Nombre' };
 

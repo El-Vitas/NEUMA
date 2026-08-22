@@ -11,7 +11,7 @@ import {
 import {
   PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
   PAGE_OUTLINE_SIDE_STYLE_CLASS,
-} from '../constants/pages.editor.contents.constants';
+} from '../editor/structure/constants/pages.editor.contents.constants';
 import type {
   PageAppearanceLayoutStyleClasses,
   PageAppearancePreferences,

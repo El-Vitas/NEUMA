@@ -82,6 +82,37 @@ Client (React) → Server Action/Query (Next.js) → API Backend (NestJS)
 
 App-level folders (`config/`, `lib/`, `types/`, `shared/`) follow the same rules but are not per module.
 
+### Submodules
+
+A module that grows past roughly **60 files** is split into submodules. A submodule
+is a module: it has the same folders (`types/`, `constants/`, `lib/`, `hooks/`,
+`components/`, `schemas/`, `server/`), and it holds everything one coherent
+concern needs.
+
+```
+<module>/
+├── types/ constants/ lib/ schemas/ server/   # the module's own shared core
+├── <submodule>/
+│   ├── types/ constants/ lib/ components/ …  # same folders, one concern
+│   └── <sub-submodule>/                      # only when a submodule itself outgrows 60
+└── <submodule>/
+```
+
+Three rules decide what goes where:
+
+- **A submodule is a concern, not a size.** Six files that are all one idea earn
+  their own folder; sixty files that are three ideas do not stay in one. Split by
+  what the code is *about* — the editor, the trash, the attachments — never by
+  what layer it belongs to.
+- **What two submodules both need belongs to the module's core**, not copied into
+  each and not reached for sideways. If `editor/` and `appearance/` both need
+  `PageSummary`, it lives in `<module>/types/`.
+- **Depth is earned.** A second level only exists where a submodule is itself too
+  big to read. Most submodules are one level and should stay that way.
+
+A submodule may import from its own module's core and from `shared/`. Reaching
+into another *module* stays forbidden, exactly as before.
+
 ## Naming Convention
 
 Dot-separated. No kebab-case. Hierarchy reads left to right: broader → narrower.

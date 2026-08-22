@@ -2,8 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { deletePageEditorBlocks } from '@/modules/pages/lib/pages.editor.block-delete.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { deletePageEditorBlocks } from '@/modules/pages/editor/blocks/lib/pages.editor.block-delete.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const pageWithAnUnknownBlock: PageContent = {
   content: [

@@ -7,17 +7,20 @@ import { EditorView } from 'prosemirror-view';
 import {
   PAGE_EDITOR_BLOCK_HANDLE_CLASS,
   PAGE_EDITOR_DROP_INDICATOR_CLASS,
-} from '@/modules/pages/constants/pages.editor.blocks.constants';
-import { createPageEditorDragGhost } from '@/modules/pages/lib/pages.editor.block-drag.ghost.lib';
+} from '@/modules/pages/editor/blocks/constants/pages.editor.blocks.constants';
+import { createPageEditorDragGhost } from '@/modules/pages/editor/blocks/lib/pages.editor.block-drag.ghost.lib';
 import {
   computePageEditorAutoScrollStep,
   createPageEditorBlockMoveCommand,
   getPageEditorDragRange,
   resolvePageEditorDropPosition,
-} from '@/modules/pages/lib/pages.editor.block-drag.lib';
-import { findPageEditorBlockAtPointer } from '@/modules/pages/lib/pages.editor.block-target.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorBlockDragKey, pageEditorBlockHandleKey } from '@/modules/pages/lib/pages.editor.plugin-keys.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-drag.lib';
+import { findPageEditorBlockAtPointer } from '@/modules/pages/editor/blocks/lib/pages.editor.block-target.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import {
+  pageEditorBlockDragKey,
+  pageEditorBlockHandleKey,
+} from '@/modules/pages/editor/lib/pages.editor.plugin-keys.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

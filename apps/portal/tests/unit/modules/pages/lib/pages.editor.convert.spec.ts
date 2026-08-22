@@ -6,8 +6,8 @@ import { NodeSelection, TextSelection } from 'prosemirror-state';
 import {
   createPageEditorBlockConversionCommand,
   listPageEditorBlockConversions,
-} from '@/modules/pages/lib/pages.editor.convert.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.convert.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

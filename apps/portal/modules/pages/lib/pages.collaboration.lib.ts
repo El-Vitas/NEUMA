@@ -6,13 +6,13 @@ import {
   COLLABORATION_RECONNECT_BASE_DELAY_MS,
   COLLABORATION_RECONNECT_MAX_DELAY_MS,
 } from '../constants/pages.collaboration.constants';
+import { createPageEditorPlugins } from '../editor/lib/pages.editor.commands';
+import { pageEditorSchema } from '../editor/lib/pages.editor.schema';
 import type {
   CollaborationStatus,
   PageCollaborationDraft,
   PageCollaborationParticipant,
 } from '../types/pages.collaboration.types';
-import { createPageEditorPlugins } from './pages.editor.commands';
-import { pageEditorSchema } from './pages.editor.schema';
 
 export const computeCollaborationReconnectDelayMs = (attemptNumber: number): number => {
   const clampedAttempt = Math.max(attemptNumber, 1);

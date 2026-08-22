@@ -2,8 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import type { EditorState } from 'prosemirror-state';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { indentPageEditorBlock, outdentPageEditorBlock } from '@/modules/pages/lib/pages.editor.nesting.lib';
+import {
+  indentPageEditorBlock,
+  outdentPageEditorBlock,
+} from '@/modules/pages/editor/blocks/lib/pages.editor.nesting.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

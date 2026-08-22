@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { readPageEmbedFrameUrl, readPageEmbedProvider } from '@/modules/pages/lib/pages.editor.embed.lib';
+import { readPageEmbedFrameUrl, readPageEmbedProvider } from '@/modules/pages/editor/media/lib/pages.editor.embed.lib';
 
 describe('which service a link belongs to', () => {
   it('recognises the four it can show', () => {

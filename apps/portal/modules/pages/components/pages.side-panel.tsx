@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from '@/i18n/navigation';
 import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { PagesEditor } from '../editor/components/pages.editor';
 import { usePagesSidePanel } from '../hooks/use.pages.side-panel';
 import { canEditPage } from '../lib/pages.lib';
 import type { PagesSidePanelBundle } from '../types/pages.side-panel.types';
 import type { PageSummary } from '../types/pages.types';
-import { PagesEditor } from './pages.editor';
 import { PagesSidePanelResizeHandle } from './pages.side-panel.resize-handle';
 
 interface IProps {

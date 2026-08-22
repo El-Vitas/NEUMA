@@ -3,10 +3,10 @@ import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { closeHistory, undo } from 'prosemirror-history';
 import type { Command, EditorState } from 'prosemirror-state';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
-import { duplicatePageEditorBlock } from '@/modules/pages/lib/pages.editor.block-copy.lib';
-import { deletePageEditorBlocks } from '@/modules/pages/lib/pages.editor.block-delete.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { indentPageEditorBlock } from '@/modules/pages/lib/pages.editor.nesting.lib';
+import { duplicatePageEditorBlock } from '@/modules/pages/editor/blocks/lib/pages.editor.block-copy.lib';
+import { deletePageEditorBlocks } from '@/modules/pages/editor/blocks/lib/pages.editor.block-delete.lib';
+import { indentPageEditorBlock } from '@/modules/pages/editor/blocks/lib/pages.editor.nesting.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

@@ -32,8 +32,8 @@ mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
   searchPagePersonCandidatesAction,
 }));
 
-const { usePagesEditorTriggerMenu } = await import('@/modules/pages/hooks/use.pages.editor.trigger-menu');
-const { createPageEditorState } = await import('@/modules/pages/lib/pages.editor.lib');
+const { usePagesEditorTriggerMenu } = await import('@/modules/pages/editor/menus/hooks/use.pages.editor.trigger-menu');
+const { createPageEditorState } = await import('@/modules/pages/editor/lib/pages.editor.lib');
 
 const paragraph = (text: string): PageContentNode => ({
   content: text.length === 0 ? [] : [{ text, type: 'text' }],

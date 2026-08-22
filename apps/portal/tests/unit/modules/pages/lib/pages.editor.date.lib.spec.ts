@@ -4,20 +4,20 @@ import { pageContentSchema } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
 import { EditorState, NodeSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
+import type { PageEditorDateLabels } from '@/modules/pages/editor/blocks/types/pages.editor.node-views.types';
+import {
+  createEmptyPageContent,
+  createPageEditorState,
+  serializePageEditorState,
+} from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   createPageDateInsertCommand,
   createPageDateNodeView,
   createPageDatePickCommand,
   listTheDaysOffered,
   readTheDayNamed,
-} from '@/modules/pages/lib/pages.editor.date.lib';
-import {
-  createEmptyPageContent,
-  createPageEditorState,
-  serializePageEditorState,
-} from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
-import type { PageEditorDateLabels } from '@/modules/pages/types/pages.editor.node-views.types';
+} from '@/modules/pages/editor/text/lib/pages.editor.date.lib';
 
 const createEditorState = (): EditorState =>
   EditorState.create({

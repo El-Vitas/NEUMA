@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import {
   createPageButtonWriteCommand,
   readThePressedButton,
   readTheRowContent,
   readTheRowTitle,
-} from '@/modules/pages/lib/pages.editor.button.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/structure/lib/pages.editor.button.lib';
 
 const pageWithAButton = (place: string): PageContent => ({
   content: [

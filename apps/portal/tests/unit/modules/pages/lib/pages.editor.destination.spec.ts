@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { findPageDestinations } from '@/modules/pages/lib/pages.editor.destination.lib';
-import type { PageDestination } from '@/modules/pages/types/pages.editor.destination.types';
+import { findPageDestinations } from '@/modules/pages/editor/menus/lib/pages.editor.destination.lib';
+import type { PageDestination } from '@/modules/pages/editor/menus/types/pages.editor.destination.types';
 
 const page = (id: string, label: string): PageDestination => ({ id, label, spaceId: 'space-1' });
 

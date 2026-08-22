@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageBlockAlignment } from '@company-brain/shared';
 import { EditorState, NodeSelection } from 'prosemirror-state';
-import { createPageBlockAlignmentCommand, readPageBlockAlignment } from '@/modules/pages/lib/pages.editor.align.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import {
+  createPageBlockAlignmentCommand,
+  readPageBlockAlignment,
+} from '@/modules/pages/editor/lib/pages.editor.align.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 
 const pageHolding = (type: string, attrs: Record<string, unknown>): EditorState =>
   EditorState.create({

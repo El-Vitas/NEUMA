@@ -2,11 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import type { EditorState } from 'prosemirror-state';
 import { NodeSelection } from 'prosemirror-state';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import {
   createPageEditorCalloutIconCommand,
   readPageEditorCalloutIcon,
-} from '@/modules/pages/lib/pages.editor.callout-icon.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/structure/lib/pages.editor.callout-icon.lib';
 
 const calloutPage = (icon?: string): PageContent =>
   ({

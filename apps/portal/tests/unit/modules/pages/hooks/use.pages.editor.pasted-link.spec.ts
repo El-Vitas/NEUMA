@@ -34,11 +34,11 @@ mock.module('sonner', () => ({
   },
 }));
 
-const { usePagesEditorPastedLink } = await import('@/modules/pages/hooks/use.pages.editor.pasted-link');
+const { usePagesEditorPastedLink } = await import('@/modules/pages/editor/text/hooks/use.pages.editor.pasted-link');
 const { PAGE_EDITOR_MAX_CONVERTIBLE_PASTE_LENGTH } = await import(
-  '@/modules/pages/constants/pages.editor.paste.constants'
+  '@/modules/pages/editor/text/constants/pages.editor.paste.constants'
 );
-const { createPageEditorState } = await import('@/modules/pages/lib/pages.editor.lib');
+const { createPageEditorState } = await import('@/modules/pages/editor/lib/pages.editor.lib');
 
 const mountEditor = (): EditorView => {
   const container = document.createElement('div');

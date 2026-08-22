@@ -2,8 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import { pageContentSchema } from '@company-brain/shared';
 import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { DOMParser, DOMSerializer } from 'prosemirror-model';
-import { serializePageEditorDocument } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { serializePageEditorDocument } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   structuredEmbedNodeFixture,
   structuredMentionNodeFixture,

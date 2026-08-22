@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import {
   readPageEditorFoldedRanges,
   togglePageEditorHeadingFold,
-} from '@/modules/pages/lib/pages.editor.heading-fold.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/text/lib/pages.editor.heading-fold.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 
 const heading = (level: number, text: string, collapsed?: boolean) => ({

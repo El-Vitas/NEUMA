@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { pageContentSchema } from '@company-brain/shared';
 import { EditorState } from 'prosemirror-state';
+import { createPageAssetInsertCommand } from '@/modules/pages/editor/lib/pages.editor.commands';
+import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   buildPageAssetInsertOptionsFromAttachment,
   excludePageAssetAttachments,
@@ -8,9 +11,6 @@ import {
   formatAttachmentType,
   mapAttachmentMimeTypeToPageAssetNodeType,
 } from '@/modules/pages/lib/pages.attachments.lib';
-import { createPageAssetInsertCommand } from '@/modules/pages/lib/pages.editor.commands';
-import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
 import type { AttachmentSummary } from '@/modules/pages/types/pages.attachments.types';
 
 describe('formatAttachmentSize', () => {

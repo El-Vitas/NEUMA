@@ -66,9 +66,9 @@ mock.module('next/navigation', () => ({
   useRouter: () => ({ push: () => undefined }),
 }));
 
-const { createEmptyPageContent, createPageEditorState } = await import('@/modules/pages/lib/pages.editor.lib');
-const { createPageAssetInsertCommand } = await import('@/modules/pages/lib/pages.editor.commands');
-const { pageEditorSchema } = await import('@/modules/pages/lib/pages.editor.schema');
+const { createEmptyPageContent, createPageEditorState } = await import('@/modules/pages/editor/lib/pages.editor.lib');
+const { createPageAssetInsertCommand } = await import('@/modules/pages/editor/lib/pages.editor.commands');
+const { pageEditorSchema } = await import('@/modules/pages/editor/lib/pages.editor.schema');
 const { pageContentSchema } = await import('@company-brain/shared');
 
 const collaborationMarkerContent = pageContentSchema.parse({

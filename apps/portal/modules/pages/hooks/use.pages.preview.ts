@@ -3,9 +3,9 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { PAGE_PREVIEW_CLOSE_DELAY_MS, PAGE_PREVIEW_OPEN_DELAY_MS } from '../constants/pages.preview.constants';
+import type { PageEditorSurfaceRect } from '../editor/menus/types/pages.editor.surface.types';
 import { isWithinThePagePreviewCard, readPagePreviewLink, readPagePreviewSpot } from '../lib/pages.preview.lib';
 import { getPagePreviewAction } from '../server/actions/pages.preview.actions';
-import type { PageEditorSurfaceRect } from '../types/pages.editor.surface.types';
 import type {
   PagePreviewAtHand,
   PagePreviewContent,

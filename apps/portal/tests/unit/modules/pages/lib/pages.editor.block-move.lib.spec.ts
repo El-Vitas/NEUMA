@@ -3,8 +3,11 @@ import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { undo } from 'prosemirror-history';
 import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
-import { movePageEditorBlockDown, movePageEditorBlockUp } from '@/modules/pages/lib/pages.editor.block-move.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import {
+  movePageEditorBlockDown,
+  movePageEditorBlockUp,
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-move.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

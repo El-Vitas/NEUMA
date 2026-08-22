@@ -2,8 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import type { EditorState } from 'prosemirror-state';
 import { NodeSelection } from 'prosemirror-state';
-import { createPageBlockAlignmentCommand, readPageBlockAlignment } from '@/modules/pages/lib/pages.editor.align.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import {
+  createPageBlockAlignmentCommand,
+  readPageBlockAlignment,
+} from '@/modules/pages/editor/lib/pages.editor.align.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const imagePage = (attrs: Record<string, unknown> = {}): PageContent =>
   ({
