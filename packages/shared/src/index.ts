@@ -24,8 +24,8 @@ export {
   joinPageContentSegmentsForDisplay,
   joinPageContentSegmentsForSearch,
 } from './page-content.lib.js';
-export type { PageForExport } from './page-export.lib.js';
-export { writePagesAsMarkdownFile } from './page-export.lib.js';
+export type { ExportedPageFile, PageForExport } from './page-export.lib.js';
+export { writePageAsMarkdownFile, writePagesAsMarkdownFiles } from './page-export.lib.js';
 export { writePageAsMarkdown } from './page-markdown.lib.js';
 export {
   canPagePropertyGroupBoard,

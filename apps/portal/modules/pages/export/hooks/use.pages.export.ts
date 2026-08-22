@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
-import { downloadMarkdownFile } from '../lib/pages.export.download.lib';
+import type { DownloadedFile } from '@/shared/types/downloaded-file.types';
+import { downloadExportedFile } from '../lib/pages.export.download.lib';
 import { buildPagesExportFileName } from '../lib/pages.export.lib';
 import { exportPagesAsMarkdownAction } from '../server/actions/pages.export.actions';
 import type { PagesExportRequest, PagesExportResult } from '../types/pages.export.types';
@@ -30,12 +31,12 @@ export const usePagesExport = (): PagesExportResult => {
         spaceId,
         untitledLabel: t('untitled'),
       });
-      if (!isActionSuccess<string>(written)) {
+      if (!isActionSuccess<DownloadedFile>(written)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(written)}`));
         return;
       }
-      const fileName = buildPagesExportFileName(exportedName);
-      downloadMarkdownFile(fileName, written.data);
+      const fileName = buildPagesExportFileName(exportedName, written.data.mediaType);
+      downloadExportedFile(fileName, written.data.base64, written.data.mediaType);
       toast.success(t('done', { file: fileName }));
     });
   };

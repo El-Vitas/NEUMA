@@ -9,13 +9,17 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
+import { buildZipArchive } from '../../common/utils/zip.utils';
+import { EXPORT_ARCHIVE_MEDIA_TYPE, EXPORT_MARKDOWN_MEDIA_TYPE } from './constants/pages.constants';
 import { PageAccessDeniedError, type PageLifecycleError } from './domain/page.error';
 import { readExportScope } from './domain/page-export.domain';
 import { UpdatePageCoverDto } from './dto/page.cover.update.dto';
@@ -255,7 +259,8 @@ export class PagesController {
     @Param('spaceId') spaceId: string,
     @Query() dto: ExportPagesQueryDto,
     @User('payload') payload: TokenPayload,
-  ): Promise<string> {
+    @Res({ passthrough: true }) response: FastifyReply,
+  ): Promise<Buffer | string> {
     const scope = readExportScope(dto.scope, dto.pageId ?? null);
     if (scope === null) {
       throw new BadRequestException('An export of one page needs to say which page');
@@ -272,7 +277,16 @@ export class PagesController {
     if (result.isFail()) {
       throw result.getError();
     }
-    return result.getValue();
+
+    const files = result.getValue();
+    const onlyOne = files.length === 1 ? files[0] : undefined;
+    if (onlyOne !== undefined) {
+      response.header('Content-Type', EXPORT_MARKDOWN_MEDIA_TYPE);
+      return onlyOne.contents;
+    }
+
+    response.header('Content-Type', EXPORT_ARCHIVE_MEDIA_TYPE);
+    return Buffer.from(await buildZipArchive(files));
   }
 
   @Patch(':pageId/order')

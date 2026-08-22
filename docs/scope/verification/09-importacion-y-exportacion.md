@@ -36,22 +36,26 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 > **Un archivo por página.** Varias páginas salen en un comprimido cuyas
 > carpetas son la jerarquía que tenían. Una colección sale siempre comprimida,
 > porque cada fila es una página. Registrado en `docs/business-rules/` (FEA-PAG).
->
-> Lo construido hoy **no cumple esto**: entrega un solo archivo con todas las
-> páginas dentro, separadas por una marca. Es trabajo pendiente, no una decisión.
 
-- [ ] Se puede exportar una página **con todas sus subpáginas**
-- [ ] Se puede exportar un espacio completo
-- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas
-- [ ] Se descarga un comprimido con un archivo por página
-- [ ] Las carpetas del comprimido reflejan la jerarquía que tenían las páginas
-- [ ] Una colección se exporta comprimida, con un archivo por fila
+- [x] Se puede exportar una página **con todas sus subpáginas**
+- [x] Se puede exportar un espacio completo
+- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas — el modo selección ofrece mover y papelera, no exportar
+- [x] Se descarga un comprimido con un archivo por página
+- [x] Las carpetas del comprimido reflejan la jerarquía que tenían las páginas
+- [ ] Una colección se exporta comprimida, con un archivo por fila — sale comprimida por ser varias páginas, pero no hay una acción de exportar desde la colección
 - [ ] Los enlaces entre las páginas exportadas apuntan a los archivos exportados, no a la web
 - [ ] Los archivos adjuntos se incluyen en el comprimido
 - [ ] Se elige si se incluyen los adjuntos o solo el texto
 - [ ] Una exportación grande no bloquea la interfaz: avisa cuando está lista
 - [ ] Se indica el avance mientras se prepara
-- [ ] Solo se exporta lo que uno tiene permiso de ver
+- [x] Solo se exporta lo que uno tiene permiso de ver
+
+> Comprobado el 2026-08-22 contra la API: una página responde `text/markdown`;
+> una rama y un espacio responden `application/zip`. El espacio de Engineering
+> salió con 84 archivos en 10 carpetas, hasta tres niveles de hondo, con
+> integridad correcta según `unzip -t`. Una página madre queda a la vez como
+> archivo y como carpeta de sus hijas. Nueve hermanas llamadas igual reciben un
+> número cada una en vez de pisarse. Un nombre con acento llega con su acento.
 
 ## IO-03 · Debe permitir exportar a otros formatos
 

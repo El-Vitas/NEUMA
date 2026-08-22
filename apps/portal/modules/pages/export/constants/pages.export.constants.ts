@@ -1,7 +1,10 @@
 export const PAGES_EXPORT_FILE_EXTENSION = '.md';
+export const PAGES_EXPORT_ARCHIVE_EXTENSION = '.zip';
 export const PAGES_EXPORT_FALLBACK_FILE_NAME = 'export';
 export const PAGES_EXPORT_MAXIMUM_NAME_LENGTH = 80;
-export const PAGES_EXPORT_MEDIA_TYPE = 'text/markdown;charset=utf-8';
+
+/** What the backend answers with when what it sends is many pages packed together. */
+export const PAGES_EXPORT_ARCHIVE_MEDIA_TYPE = 'application/zip';
 
 /** What a file name keeps of a title: letters and digits, joined by single dashes. */
 export const PAGES_EXPORT_COMBINING_MARKS = /[̀-ͯ]/g;
