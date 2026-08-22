@@ -29,7 +29,7 @@ const insertTextCommand =
     return true;
   };
 
-mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
+mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({
@@ -43,7 +43,7 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.collections.actions', () => ({
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   createPageCollectionAction: async () => ({ data: { id: 'page-3', title: 'Colección' } }),
   readPageCollectionAction: async () => ({ data: null }),
 }));
@@ -55,7 +55,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageDestinationsAction: async () => ({ data: [] }),
 }));
 
-mock.module('@/modules/pages/server/actions/pages.person.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => ({
   searchPagePersonCandidatesAction: async () => ({ data: [] }),
 }));
 

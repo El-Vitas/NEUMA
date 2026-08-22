@@ -39,7 +39,9 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-const { searchPageMentionCandidatesAction } = await import('@/modules/pages/server/actions/pages.mentions.actions');
+const { searchPageMentionCandidatesAction } = await import(
+  '@/modules/pages/links/server/actions/pages.mentions.actions'
+);
 
 describe('searchPageMentionCandidatesAction', () => {
   it('maps search results scoped to pages into mention candidates', async () => {

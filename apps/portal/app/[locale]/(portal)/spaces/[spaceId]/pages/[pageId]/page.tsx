@@ -7,23 +7,26 @@ import type { ReactNode } from 'react';
 import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
-import { PagesCollectionEmbed } from '@/modules/pages/components/pages.collection.embed';
-import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
-import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
-import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
-import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
-import { getEditableSchemaProperties, schemaNeedsPersonOptions } from '@/modules/pages/lib/pages.properties.lib';
-import { getPageAttachments } from '@/modules/pages/server/queries/pages.attachments.queries';
-import { getPageBacklinks } from '@/modules/pages/server/queries/pages.backlinks.queries';
-import { getPageSpaceId, getPages } from '@/modules/pages/server/queries/pages.queries';
-import { getPageSchema, getPageView } from '@/modules/pages/server/queries/pages.schema.queries';
+import { getPageAttachments } from '@/modules/pages/attachments/server/queries/pages.attachments.queries';
+import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
+import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
+import {
+  getEditableSchemaProperties,
+  schemaNeedsPersonOptions,
+} from '@/modules/pages/collections/lib/pages.properties.lib';
+import { getPageSchema, getPageView } from '@/modules/pages/collections/server/queries/pages.schema.queries';
 import type {
   PagePersonOption,
   PageSchema,
   PageSchemaView,
   PageViewOutcome,
-} from '@/modules/pages/types/pages.schema.types';
-import type { PagesSidePanelBundle } from '@/modules/pages/types/pages.side-panel.types';
+} from '@/modules/pages/collections/types/pages.schema.types';
+import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
+import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
+import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
+import { getPageBacklinks } from '@/modules/pages/links/server/queries/pages.backlinks.queries';
+import type { PagesSidePanelBundle } from '@/modules/pages/navigation/types/pages.side-panel.types';
+import { getPageSpaceId, getPages } from '@/modules/pages/server/queries/pages.queries';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';

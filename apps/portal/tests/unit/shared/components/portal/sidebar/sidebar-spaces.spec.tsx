@@ -38,7 +38,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   restorePageAction: mock(async () => ({ data: undefined })),
 }));
 /** The export entries in the space and row menus reach the server; the sidebar only needs them to exist. */
-mock.module('@/modules/pages/server/actions/pages.export.actions', () => ({
+mock.module('@/modules/pages/export/server/actions/pages.export.actions', () => ({
   exportPagesAsMarkdownAction: mock(async () => ({ data: '' })),
 }));
 /** Selection mode reaches these server actions, which refuse to load outside a server. */
@@ -48,7 +48,7 @@ mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', 
 }));
 
 /** The icon and rename dialogs a space now offers import server actions, which refuse to load outside a server. */
-mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
   setPageIconSymbolAction: async () => ({ data: undefined }),
@@ -67,7 +67,7 @@ mock.module('@/modules/spaces/server/actions/spaces.actions', () => ({
   reorderSpaceAction: async () => ({ data: [] }),
 }));
 
-mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
+mock.module('@/modules/pages/trash/components/pages.trash.confirm.dialog', () => ({
   PagesTrashConfirmDialog: () => null,
 }));
 

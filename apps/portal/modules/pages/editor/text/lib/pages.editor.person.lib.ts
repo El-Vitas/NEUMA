@@ -2,8 +2,8 @@ import { pagePersonAttrsSchema } from '@company-brain/shared';
 import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import type { NodeView } from 'prosemirror-view';
-import { foldPageLookingText } from '../../../lib/pages.looking.lib';
-import type { PagePersonOption } from '../../../types/pages.schema.types';
+import type { PagePersonOption } from '../../../collections/types/pages.schema.types';
+import { foldPageLookingText } from '../../../links/lib/pages.looking.lib';
 import {
   PAGE_EDITOR_MENTION_MARK_STYLE_CLASS,
   PAGE_EDITOR_MENTION_STYLE_CLASS,

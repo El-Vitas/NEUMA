@@ -3,8 +3,8 @@ import type { Command } from 'prosemirror-state';
 import {
   PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR,
   PAGE_EDITOR_COLLECTION_VIEW_REQUEST_SELECTOR,
-} from '../../../constants/pages.collections.constants';
-import type { PageCollectionInsert } from '../../../types/pages.collections.types';
+} from '../../../collections/constants/pages.collections.constants';
+import type { PageCollectionInsert } from '../../../collections/types/pages.collections.types';
 import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';
 import { leaveSomewhereToWriteUnder } from '../../lib/pages.editor.write-under.lib';
 

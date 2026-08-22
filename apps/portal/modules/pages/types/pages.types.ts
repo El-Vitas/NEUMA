@@ -1,8 +1,8 @@
 import type { PageContent, PageLifecycle } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
-import type { PageCoverValue } from './pages.cover.types';
-import type { PageIcon } from './pages.icon.types';
-import type { PagePropertyValues } from './pages.schema.types';
+import type { PageCoverValue } from '../appearance/types/pages.cover.types';
+import type { PageIcon } from '../appearance/types/pages.icon.types';
+import type { PagePropertyValues } from '../collections/types/pages.schema.types';
 
 export type { PageContent, PageContentInlineNode, PageContentNode, PageLifecycle } from '@company-brain/shared';
 

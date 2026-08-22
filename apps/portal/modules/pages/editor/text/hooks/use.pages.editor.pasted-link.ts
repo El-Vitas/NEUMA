@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import type { EditorView } from 'prosemirror-view';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { PageLinkPreview } from '../../../types/pages.link-preview.types';
+import type { PageLinkPreview } from '../../../links/types/pages.link-preview.types';
 import { PAGE_LINK_PREVIEW_ROUTE } from '../../menus/constants/pages.editor.link-shape.constants';
 import {
   createPageBookmarkFromLinkCommand,

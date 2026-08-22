@@ -1,5 +1,5 @@
 import type { Command } from 'prosemirror-state';
-import { foldPageLookingText } from '../../../lib/pages.looking.lib';
+import { foldPageLookingText } from '../../../links/lib/pages.looking.lib';
 import type { PagesEditorMenuItem } from '../../menus/types/pages.editor.slash-menu.types';
 import {
   PAGE_EDITOR_EMOJI_MENU_LIMIT,

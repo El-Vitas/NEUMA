@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesIconMenu } from '@/modules/pages/components/pages.icon.menu';
+import { PagesIconMenu } from '@/modules/pages/appearance/components/pages.icon.menu';
 import en from '../../../../../messages/en.json';
 
 const renderMenu = (overrides: Partial<Parameters<typeof PagesIconMenu>[0]> = {}) => {

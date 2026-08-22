@@ -2,9 +2,9 @@
 
 import { useCallback } from 'react';
 import { useDebouncedSearch } from '@/shared/hooks/use.debounced-search.hook';
+import type { PagePersonOption } from '../collections/types/pages.schema.types';
 import type { PagePersonSearchResult } from '../editor/text/types/pages.editor.person.types';
-import { searchPagePersonCandidatesAction } from '../server/actions/pages.person.actions';
-import type { PagePersonOption } from '../types/pages.schema.types';
+import { searchPagePersonCandidatesAction } from '../links/server/actions/pages.person.actions';
 
 /**
  * The members of this space somebody may be naming, as they type.

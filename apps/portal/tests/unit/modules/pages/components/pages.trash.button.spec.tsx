@@ -11,11 +11,11 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   trashPageAction: trashPage,
 }));
-mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   getPageTrashPreviewAction: getPageTrashPreview,
 }));
 
-const { PagesTrashButton } = await import('@/modules/pages/components/pages.trash.button');
+const { PagesTrashButton } = await import('@/modules/pages/trash/components/pages.trash.button');
 
 const renderButton = (onTrashed: () => void = () => undefined) =>
   render(

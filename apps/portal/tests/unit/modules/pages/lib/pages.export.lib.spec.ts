@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { buildPagesExportFileName } from '@/modules/pages/lib/pages.export.lib';
+import { buildPagesExportFileName } from '@/modules/pages/export/lib/pages.export.lib';
 
 describe('buildPagesExportFileName', () => {
   it('names the file after what was exported', () => {

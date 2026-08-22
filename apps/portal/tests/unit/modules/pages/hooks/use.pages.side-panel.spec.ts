@@ -15,9 +15,9 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ push, replace }),
 }));
 
-const { usePagesSidePanel } = await import('@/modules/pages/hooks/use.pages.side-panel');
+const { usePagesSidePanel } = await import('@/modules/pages/navigation/hooks/use.pages.side-panel');
 const { PAGES_SIDE_PANEL_WIDTH_STORAGE_KEY, PAGES_SIDE_PANEL_DEFAULT_WIDTH_PX } = await import(
-  '@/modules/pages/constants/pages.side-panel.constants'
+  '@/modules/pages/navigation/constants/pages.side-panel.constants'
 );
 
 describe('usePagesSidePanel', () => {

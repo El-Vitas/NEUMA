@@ -22,11 +22,11 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 mock.module('@/shared/server/actions/space-move-access.actions', () => ({
   getSpaceMoveAccessLossAction: getSpaceMoveAccessLoss,
 }));
-mock.module('@/modules/pages/hooks/use.pages.move.destinations', () => ({
+mock.module('@/modules/pages/navigation/hooks/use.pages.move.destinations', () => ({
   usePagesMoveDestinations: useMoveDestinations,
 }));
 
-const { PagesMoveForm } = await import('@/modules/pages/components/pages.move.form');
+const { PagesMoveForm } = await import('@/modules/pages/navigation/components/pages.move.form');
 
 const page = { id: 'page-a', parentId: null, spaceId: 'space-a', title: 'Roadmap' } as Parameters<
   typeof PagesMoveForm

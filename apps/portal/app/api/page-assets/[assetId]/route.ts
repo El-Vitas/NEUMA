@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { PAGE_ASSET_PASSED_HEADERS } from '@/modules/pages/constants/pages.attachments.constants';
-import { getPageAttachmentResponse } from '@/modules/pages/server/lib/pages.attachments.server';
+import { PAGE_ASSET_PASSED_HEADERS } from '@/modules/pages/attachments/constants/pages.attachments.constants';
+import { getPageAttachmentResponse } from '@/modules/pages/attachments/server/lib/pages.attachments.server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 
 interface IProps {

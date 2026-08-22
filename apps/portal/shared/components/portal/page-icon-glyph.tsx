@@ -2,9 +2,9 @@
 
 import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PagesIconSymbol } from '@/modules/pages/components/pages.icon.symbol';
-import { resolvePageIconImageUrl } from '@/modules/pages/lib/pages.icon.lib';
-import type { PageIcon } from '@/modules/pages/types/pages.icon.types';
+import { PagesIconSymbol } from '@/modules/pages/appearance/components/pages.icon.symbol';
+import { resolvePageIconImageUrl } from '@/modules/pages/appearance/lib/pages.icon.lib';
+import type { PageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 import { ImageWithFallback } from '@/shared/components/ui/image-with-fallback';
 
 interface IProps {

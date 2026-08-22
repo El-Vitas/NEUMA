@@ -1,8 +1,8 @@
 import { PAGE_LIFECYCLE_VALUES, pageContentSchema as sharedPageContentSchema } from '@company-brain/shared';
 import { z } from 'zod';
-import { pageCoverValueSchema } from './pages.cover.schemas';
-import { pageIconSchema } from './pages.icon.schemas';
-import { pagePropertyValuesSchema } from './pages.schema.schemas';
+import { pageCoverValueSchema } from '../appearance/schemas/pages.cover.schemas';
+import { pageIconSchema } from '../appearance/schemas/pages.icon.schemas';
+import { pagePropertyValuesSchema } from '../collections/schemas/pages.schema.schemas';
 
 export const pageContentSchema = sharedPageContentSchema;
 

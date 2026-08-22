@@ -9,11 +9,11 @@ import { toast } from 'sonner';
 import { usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { PagesChildrenQuestionDialog } from '@/modules/pages/components/pages.children.question.dialog';
-import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
-import { usePagesExport } from '@/modules/pages/hooks/use.pages.export';
-import { resolvePageRestoreNotice } from '@/modules/pages/lib/pages.trash.lib';
+import { usePagesExport } from '@/modules/pages/export/hooks/use.pages.export';
 import { duplicatePageAction, restorePageAction } from '@/modules/pages/server/actions/pages.actions';
-import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
+import { PagesTrashConfirmDialog } from '@/modules/pages/trash/components/pages.trash.confirm.dialog';
+import { resolvePageRestoreNotice } from '@/modules/pages/trash/lib/pages.trash.lib';
+import type { TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
 import {
   buildPortalSidebarPageTree,
   getPortalSidebarExpandedPageIds,

@@ -5,8 +5,8 @@ import {
   isPageImageIcon,
   pickRandomPageEmojiIcon,
   resolvePageIconImageUrl,
-} from '@/modules/pages/lib/pages.icon.lib';
-import type { PageEmojiIcon, PageImageIcon } from '@/modules/pages/types/pages.icon.types';
+} from '@/modules/pages/appearance/lib/pages.icon.lib';
+import type { PageEmojiIcon, PageImageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 
 describe('isPageEmojiIcon / isPageImageIcon', () => {
   it('tells an emoji icon apart from an image icon', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { foldPageLookingCharacter, foldPageLookingText } from '@/modules/pages/lib/pages.looking.lib';
+import { foldPageLookingCharacter, foldPageLookingText } from '@/modules/pages/links/lib/pages.looking.lib';
 
 describe('foldPageLookingCharacter', () => {
   it('reads past capitals and accents, one character at a time', () => {

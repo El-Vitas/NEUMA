@@ -3,8 +3,8 @@ import {
   buildPageTrashListQuerySuffix,
   buildPageTrashUrl,
   resolvePageRestoreNotice,
-} from '@/modules/pages/lib/pages.trash.lib';
-import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
+} from '@/modules/pages/trash/lib/pages.trash.lib';
+import type { TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
 describe('buildPageTrashUrl', () => {

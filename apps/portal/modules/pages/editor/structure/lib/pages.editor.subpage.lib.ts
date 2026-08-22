@@ -1,7 +1,7 @@
 import type { PageLifecycle } from '@company-brain/shared';
 import type { Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
-import type { PageIcon } from '../../../types/pages.icon.types';
+import type { PageIcon } from '../../../appearance/types/pages.icon.types';
 import {
   PAGE_EDITOR_MENTION_TRIGGER,
   PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR,

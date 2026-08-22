@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { Toaster, toast } from 'sonner';
-import type { PageUsageSettings, PageUsageSummary } from '@/modules/pages/types/pages.usage.types';
+import type { PageUsageSettings, PageUsageSummary } from '@/modules/pages/trust/types/pages.usage.types';
 import en from '../../../../../messages/en.json';
 
 /** What each action really answers: what was asked for, or a reason it could not be given. */
@@ -16,12 +16,12 @@ const readUsageReport = mock(
   async (): Promise<UsageReportResult> => ({ data: { settings: { enabled: true }, summary } }),
 );
 
-mock.module('@/modules/pages/server/actions/pages.usage.actions', () => ({
+mock.module('@/modules/pages/trust/server/actions/pages.usage.actions', () => ({
   getPageUsageReportAction: readUsageReport,
   updatePageUsageSettingsAction: updatePageUsageSettings,
 }));
 
-const { PagesUsagePanel } = await import('@/modules/pages/components/pages.usage.panel');
+const { PagesUsagePanel } = await import('@/modules/pages/trust/components/pages.usage.panel');
 
 const summary: PageUsageSummary = {
   viewCount: 2,

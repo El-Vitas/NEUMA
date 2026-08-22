@@ -11,12 +11,12 @@ const downloadResult = {
   },
 };
 
-mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
+mock.module('@/modules/pages/attachments/server/actions/pages.attachments.actions', () => ({
   deletePageAttachmentAction: async () => ({ data: undefined }),
   downloadPageAttachmentAction: async () => downloadResult,
 }));
 
-const { PagesAttachmentItem } = await import('@/modules/pages/components/pages.attachment.item');
+const { PagesAttachmentItem } = await import('@/modules/pages/attachments/components/pages.attachment.item');
 
 const attachment = {
   id: '22222222-2222-4222-8222-222222222222',

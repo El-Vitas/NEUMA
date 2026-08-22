@@ -3,7 +3,7 @@ import {
   countPageContentCharacters,
   countPageContentWords,
   toPageInfoMetadata,
-} from '@/modules/pages/lib/pages.info.lib';
+} from '@/modules/pages/trust/lib/pages.info.lib';
 import type { PageContent, PageSummary } from '@/modules/pages/types/pages.types';
 
 const contentWithParagraphs = (paragraphs: readonly string[]): PageContent => ({

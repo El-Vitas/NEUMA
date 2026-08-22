@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
-import type { TrashRestoreOutcome } from '@/modules/pages/types/pages.trash.types';
+import type { TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import en from '../../../../../../messages/en.json';
 
@@ -46,11 +46,11 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   restorePageAction: restorePage,
 }));
 /** The export entry in the row menu reaches the server; the tree only needs it to exist. */
-mock.module('@/modules/pages/server/actions/pages.export.actions', () => ({
+mock.module('@/modules/pages/export/server/actions/pages.export.actions', () => ({
   exportPagesAsMarkdownAction: async () => ({ data: '' }),
 }));
 /** The batch move dialog reachable from selection mode pulls this in to list destinations. */
-mock.module('@/modules/pages/hooks/use.pages.move.destinations', () => ({
+mock.module('@/modules/pages/navigation/hooks/use.pages.move.destinations', () => ({
   usePagesMoveDestinations: () => ({
     pages: [{ id: 'sibling-page', spaceId: 'engineering', title: 'Sibling page' }],
     spaces: [{ id: 'engineering', name: 'Engineering' }],
@@ -62,13 +62,13 @@ mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', 
   batchTrashPagesAction: batchTrashPages,
 }));
 /** The icon dialog reachable from the tree imports these server actions, which refuse to load outside a server. */
-mock.module('@/modules/pages/server/actions/pages.icon.actions', () => ({
+mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
   setPageIconSymbolAction: async () => ({ data: undefined }),
   uploadPageIconImageAction: async () => ({ data: undefined }),
 }));
-mock.module('@/modules/pages/components/pages.trash.confirm.dialog', () => ({
+mock.module('@/modules/pages/trash/components/pages.trash.confirm.dialog', () => ({
   PagesTrashConfirmDialog: ({
     onClose,
     onTrashed,

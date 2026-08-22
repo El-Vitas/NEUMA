@@ -1,6 +1,6 @@
 'use client';
 
-import { PagesTrashErrorState } from '@/modules/pages/components/pages.trash.error-state';
+import { PagesTrashErrorState } from '@/modules/pages/trash/components/pages.trash.error-state';
 
 interface IProps {
   readonly reset: () => void;

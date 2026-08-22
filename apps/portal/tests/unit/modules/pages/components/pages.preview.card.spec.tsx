@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesPreviewCard } from '@/modules/pages/components/pages.preview.card';
-import type { PagePreviewOutcome } from '@/modules/pages/types/pages.preview.types';
+import { PagesPreviewCard } from '@/modules/pages/links/components/pages.preview.card';
+import type { PagePreviewOutcome } from '@/modules/pages/links/types/pages.preview.types';
 import en from '../../../../../messages/en.json';
 
 const SPACE_ID = '11111111-1111-4111-8111-111111111111';

@@ -7,7 +7,7 @@ fetchMock.mockImplementation(
     new Response(null, { status: 200, headers: { 'content-type': 'text/plain' } }),
 );
 
-const { getPageAttachmentDownload } = await import('@/modules/pages/server/lib/pages.attachments.server');
+const { getPageAttachmentDownload } = await import('@/modules/pages/attachments/server/lib/pages.attachments.server');
 
 describe('getPageAttachmentDownload', () => {
   it('rejects without making an outbound request when there is no access token', async () => {

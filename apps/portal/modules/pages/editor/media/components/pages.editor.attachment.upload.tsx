@@ -3,9 +3,9 @@
 import { Paperclip } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef } from 'react';
-import { ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_SIZE } from '../../../constants/pages.attachments.constants';
-import { formatAttachmentSize } from '../../../lib/pages.attachments.lib';
-import type { AttachmentUploadError } from '../../../types/pages.attachments.types';
+import { ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_SIZE } from '../../../attachments/constants/pages.attachments.constants';
+import { formatAttachmentSize } from '../../../attachments/lib/pages.attachments.lib';
+import type { AttachmentUploadError } from '../../../attachments/types/pages.attachments.types';
 
 interface IProps {
   readonly error: AttachmentUploadError | null;

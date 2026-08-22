@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { usePagesMoveDestinations } from '@/modules/pages/hooks/use.pages.move.destinations';
-import { buildPageMoveDestinations } from '@/modules/pages/lib/pages.move.lib';
-import type { PageMoveDestination } from '@/modules/pages/types/pages.move.types';
+import { usePagesMoveDestinations } from '@/modules/pages/navigation/hooks/use.pages.move.destinations';
+import { buildPageMoveDestinations } from '@/modules/pages/navigation/lib/pages.move.lib';
+import type { PageMoveDestination } from '@/modules/pages/navigation/types/pages.move.types';
 import { batchMovePagesAction } from '@/modules/portal/server/actions/portal.sidebar.selection.actions';
 import type { PortalPageBatchOutcome } from '@/modules/portal/types/portal.sidebar.selection.types';
 import { Button } from '@/shared/components/ui/button';

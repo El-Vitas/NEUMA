@@ -15,16 +15,28 @@ import {
 import { cn } from '@/lib/utils';
 import { hasActionError } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { PagesBacklinks } from '../../components/pages.backlinks';
-import { PagesCover } from '../../components/pages.cover';
-import { PagesHeader } from '../../components/pages.header';
+import { PagesCover } from '../../appearance/components/pages.cover';
+import { PagesHeader } from '../../appearance/components/pages.header';
+import { usePagesAppearance } from '../../appearance/hooks/use.pages.appearance';
+import { usePagesCover } from '../../appearance/hooks/use.pages.cover';
+import { getPageAppearanceLayoutStyleClasses } from '../../appearance/lib/pages.appearance.lib';
+import type { PageIcon } from '../../appearance/types/pages.icon.types';
+import {
+  buildPageAssetInsertOptionsFromAttachment,
+  excludePageAssetAttachments,
+  mapAttachmentMimeTypeToPageAssetNodeType,
+} from '../../attachments/lib/pages.attachments.lib';
+import type { AttachmentSummary } from '../../attachments/types/pages.attachments.types';
+import { PagesPropertiesPanel } from '../../collections/components/pages.properties.panel';
+import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../../collections/lib/pages.properties.lib';
+import type {
+  PagePersonOption,
+  PagePropertyValue,
+  PagePropertyValues,
+  PageSchema,
+} from '../../collections/types/pages.schema.types';
 import { PagesLockToggle } from '../../components/pages.lock.toggle';
-import { PagesOutline } from '../../components/pages.outline';
-import { PagesPropertiesPanel } from '../../components/pages.properties.panel';
 import { PagesProseMirrorEditor } from '../../components/pages.prose-mirror.editor';
-import { PagesTrashButton } from '../../components/pages.trash.button';
-import { PagesUsagePanel } from '../../components/pages.usage.panel';
-import { PagesVerificationPanel } from '../../components/pages.verification.panel';
 import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_BACKLINKS,
@@ -32,31 +44,19 @@ import {
   EMPTY_PAGE_HEADINGS,
   EMPTY_PAGE_PERSON_OPTIONS,
 } from '../../constants/pages.constants';
-import { usePagesAppearance } from '../../hooks/use.pages.appearance';
 import { usePagesAutosave } from '../../hooks/use.pages.autosave';
-import { usePagesCover } from '../../hooks/use.pages.cover';
-import { usePagesReadingPosition } from '../../hooks/use.pages.reading-position';
-import { getPageAppearanceLayoutStyleClasses } from '../../lib/pages.appearance.lib';
-import {
-  buildPageAssetInsertOptionsFromAttachment,
-  excludePageAssetAttachments,
-  mapAttachmentMimeTypeToPageAssetNodeType,
-} from '../../lib/pages.attachments.lib';
-import { toPageInfoMetadata } from '../../lib/pages.info.lib';
 import { resolveReadOnlyMessage } from '../../lib/pages.lib';
-import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../../lib/pages.properties.lib';
-import { resolvePageVerificationStatus } from '../../lib/pages.verification.lib';
+import { PagesBacklinks } from '../../links/components/pages.backlinks';
+import type { PageBacklinksResult } from '../../links/types/pages.backlinks.types';
+import { PagesOutline } from '../../navigation/components/pages.outline';
+import { usePagesReadingPosition } from '../../navigation/hooks/use.pages.reading-position';
 import { updatePageAction } from '../../server/actions/pages.actions';
-import type { AttachmentSummary } from '../../types/pages.attachments.types';
+import { PagesTrashButton } from '../../trash/components/pages.trash.button';
+import { PagesUsagePanel } from '../../trust/components/pages.usage.panel';
+import { PagesVerificationPanel } from '../../trust/components/pages.verification.panel';
+import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
+import { resolvePageVerificationStatus } from '../../trust/lib/pages.verification.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
-import type { PageBacklinksResult } from '../../types/pages.backlinks.types';
-import type { PageIcon } from '../../types/pages.icon.types';
-import type {
-  PagePersonOption,
-  PagePropertyValue,
-  PagePropertyValues,
-  PageSchema,
-} from '../../types/pages.schema.types';
 import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';

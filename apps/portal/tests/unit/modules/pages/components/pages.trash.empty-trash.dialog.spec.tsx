@@ -10,11 +10,11 @@ const emptyTrash = mock(async () => ({ data: undefined }));
 mock.module('next/navigation', () => ({
   useRouter: () => ({ refresh }),
 }));
-mock.module('@/modules/pages/server/actions/pages.trash.actions', () => ({
+mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   emptyTrashAction: emptyTrash,
 }));
 
-const { PagesTrashEmptyTrashDialog } = await import('@/modules/pages/components/pages.trash.empty-trash.dialog');
+const { PagesTrashEmptyTrashDialog } = await import('@/modules/pages/trash/components/pages.trash.empty-trash.dialog');
 
 const renderDialog = (disabled = false) =>
   render(

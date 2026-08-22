@@ -2,10 +2,10 @@
 
 import { useCallback } from 'react';
 import { useDebouncedSearch } from '@/shared/hooks/use.debounced-search.hook';
-import { PAGE_MENTION_SEARCH_LIMIT } from '../constants/pages.mentions.constants';
-import { gatherThePagesNamed } from '../lib/pages.mentions.lib';
-import { searchPageMentionCandidatesAction } from '../server/actions/pages.mentions.actions';
-import type { PageMentionCandidate, PagesMentionSearchResult } from '../types/pages.mentions.types';
+import { PAGE_MENTION_SEARCH_LIMIT } from '../links/constants/pages.mentions.constants';
+import { gatherThePagesNamed } from '../links/lib/pages.mentions.lib';
+import { searchPageMentionCandidatesAction } from '../links/server/actions/pages.mentions.actions';
+import type { PageMentionCandidate, PagesMentionSearchResult } from '../links/types/pages.mentions.types';
 import type { PageSummary } from '../types/pages.types';
 
 /**

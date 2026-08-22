@@ -3,7 +3,7 @@ import {
   clampPageCoverPosition,
   computePageCoverDragPosition,
   resolvePageCoverImageUrl,
-} from '@/modules/pages/lib/pages.cover.lib';
+} from '@/modules/pages/appearance/lib/pages.cover.lib';
 
 describe('where a cover is framed', () => {
   it('keeps the framing inside the picture', () => {

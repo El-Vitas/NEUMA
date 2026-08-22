@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { attachmentIdSchema, attachmentUploadSchema } from '@/modules/pages/schemas/pages.attachments.schemas';
+import {
+  attachmentIdSchema,
+  attachmentUploadSchema,
+} from '@/modules/pages/attachments/schemas/pages.attachments.schemas';
 
 const pageId = '11111111-1111-4111-8111-111111111111';
 const attachmentId = '22222222-2222-4222-8222-222222222222';

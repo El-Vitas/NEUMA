@@ -11,8 +11,8 @@ import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
-import { PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import type { PageDestination } from '../../editor/menus/types/pages.editor.destination.types';
+import type { PageMoveDestinations } from '../../navigation/types/pages.move.types';
 import {
   pageBlocksHandoverSchema,
   pageDestinationsSchema,
@@ -28,9 +28,9 @@ import {
   pageSummarySchema,
   pagesListSchema,
 } from '../../schemas/pages.schemas';
-import { trashRestoreOutcomeSchema } from '../../schemas/pages.trash.schemas';
-import type { PageMoveDestinations } from '../../types/pages.move.types';
-import type { TrashRestoreOutcome } from '../../types/pages.trash.types';
+import { PAGE_TRASH_CACHE_TAG } from '../../trash/constants/pages.trash.constants';
+import { trashRestoreOutcomeSchema } from '../../trash/schemas/pages.trash.schemas';
+import type { TrashRestoreOutcome } from '../../trash/types/pages.trash.types';
 
 export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))

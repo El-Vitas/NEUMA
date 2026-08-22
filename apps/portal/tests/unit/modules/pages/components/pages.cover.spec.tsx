@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesCover } from '@/modules/pages/components/pages.cover';
-import type { PageCoverValue, PagesCoverController } from '@/modules/pages/types/pages.cover.types';
+import { PagesCover } from '@/modules/pages/appearance/components/pages.cover';
+import type { PageCoverValue, PagesCoverController } from '@/modules/pages/appearance/types/pages.cover.types';
 import en from '../../../../../messages/en.json';
 
 const buildController = (

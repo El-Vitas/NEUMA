@@ -1,16 +1,16 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { PageBoardColumn } from '@/modules/pages/types/pages.schema.types';
+import type { PageBoardColumn } from '@/modules/pages/collections/types/pages.schema.types';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) => <a href={href}>{children}</a>,
 }));
 
-const { PagesCollectionBoard } = await import('@/modules/pages/components/pages.collection.board');
+const { PagesCollectionBoard } = await import('@/modules/pages/collections/components/pages.collection.board');
 const { PagesCollectionBoardMissingGrouping } = await import(
-  '@/modules/pages/components/pages.collection.board.missing-grouping'
+  '@/modules/pages/collections/components/pages.collection.board.missing-grouping'
 );
 
 const columns: PageBoardColumn[] = [

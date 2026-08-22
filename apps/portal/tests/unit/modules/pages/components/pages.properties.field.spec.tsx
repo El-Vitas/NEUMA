@@ -1,10 +1,14 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '@/modules/pages/types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PagePropertyValue,
+  PageSchemaProperty,
+} from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 
-const { PagesPropertiesField } = await import('@/modules/pages/components/pages.properties.field');
+const { PagesPropertiesField } = await import('@/modules/pages/collections/components/pages.properties.field');
 
 const renderField = (
   property: PageSchemaProperty,

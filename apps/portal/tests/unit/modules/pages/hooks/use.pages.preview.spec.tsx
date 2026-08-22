@@ -4,14 +4,14 @@ import { useRef } from 'react';
 import {
   PAGE_PREVIEW_CLOSE_DELAY_MS,
   PAGE_PREVIEW_OPEN_DELAY_MS,
-} from '@/modules/pages/constants/pages.preview.constants';
+} from '@/modules/pages/links/constants/pages.preview.constants';
 
-mock.module('@/modules/pages/server/actions/pages.preview.actions', () => ({
+mock.module('@/modules/pages/links/server/actions/pages.preview.actions', () => ({
   getPagePreviewAction: () =>
     Promise.resolve({ data: { fragment: 'Un fragmento', icon: null, properties: [], title: 'Página' } }),
 }));
 
-const { usePagesPreview } = await import('@/modules/pages/hooks/use.pages.preview');
+const { usePagesPreview } = await import('@/modules/pages/links/hooks/use.pages.preview');
 
 const SPACE_ID = '11111111-1111-4111-8111-111111111111';
 const PAGE_ID = '22222222-2222-4222-8222-222222222222';

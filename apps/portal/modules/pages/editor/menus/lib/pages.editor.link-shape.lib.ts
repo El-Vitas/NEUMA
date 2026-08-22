@@ -1,7 +1,7 @@
 import { canPageBlockHold, pageBookmarkAttrsSchema, pageEmbedAttrsSchema } from '@company-brain/shared';
 import type { Node as EditorNode, NodeType, ResolvedPos, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
-import type { PageLinkPreview } from '../../../types/pages.link-preview.types';
+import type { PageLinkPreview } from '../../../links/types/pages.link-preview.types';
 import {
   PAGE_EDITOR_BOOKMARK_TYPE,
   PAGE_EDITOR_EMBED_TYPE,

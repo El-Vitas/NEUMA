@@ -52,7 +52,7 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-const { setPageVerificationAction } = await import('@/modules/pages/server/actions/pages.verification.actions');
+const { setPageVerificationAction } = await import('@/modules/pages/trust/server/actions/pages.verification.actions');
 
 const spaceId = '11111111-1111-4111-8111-111111111111';
 const pageId = '22222222-2222-4222-8222-222222222222';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { isReachableLinkPreviewAddress } from '@/modules/pages/lib/pages.link-preview.address.lib';
+import { isReachableLinkPreviewAddress } from '@/modules/pages/links/lib/pages.link-preview.address.lib';
 
 describe('isReachableLinkPreviewAddress', () => {
   it('lets an ordinary site be asked', () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { useRef, useState } from 'react';
-import { PagesHeaderEmojiField } from '@/modules/pages/components/pages.header.emoji.field';
+import { PagesHeaderEmojiField } from '@/modules/pages/appearance/components/pages.header.emoji.field';
 import en from '../../../../../messages/en.json';
 
 interface IHarnessProps {

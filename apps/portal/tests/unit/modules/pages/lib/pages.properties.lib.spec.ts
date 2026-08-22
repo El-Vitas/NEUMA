@@ -10,8 +10,12 @@ import {
   getPagePersonOptionLabel,
   getStringPropertyValue,
   hasPersonProperty,
-} from '@/modules/pages/lib/pages.properties.lib';
-import type { PagePersonOption, PageSchema, PageSchemaProperty } from '@/modules/pages/types/pages.schema.types';
+} from '@/modules/pages/collections/lib/pages.properties.lib';
+import type {
+  PagePersonOption,
+  PageSchema,
+  PageSchemaProperty,
+} from '@/modules/pages/collections/types/pages.schema.types';
 
 const titleProperty: PageSchemaProperty = {
   key: 'title',
