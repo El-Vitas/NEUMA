@@ -21,7 +21,7 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 - [x] Negrita, cursiva, código y tachado se conservan
 - [x] Los enlaces conservan texto y destino
 - [x] Las menciones a otras páginas salen como enlace con el título
-- [ ] Las imágenes salen referenciadas por su identificador; el archivo en sí no viaja con la exportación
+- [ ] Las imágenes salen referenciadas y el archivo se incluye
 - [x] Los diagramas salen como bloque de código con su lenguaje
 - [ ] Las propiedades de la página salen al inicio del archivo
 - [x] El archivo se llama como la página
@@ -33,20 +33,25 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 
 ## IO-02 · Debe permitir exportar varias páginas de una vez
 
-> **Decidido:** varias páginas salen en **un solo archivo**, no en un comprimido
-> con carpetas. Cada página se abre con una marca que dice dónde vivía. Se
-> eligió así para no traer una dependencia nueva y para que leer de vuelta sea
-> simple. Queda registrado en `docs/business-rules/` (FEA-PAG).
+> **Un archivo por página.** Varias páginas salen en un comprimido cuyas
+> carpetas son la jerarquía que tenían. Una colección sale siempre comprimida,
+> porque cada fila es una página. Registrado en `docs/business-rules/` (FEA-PAG).
+>
+> Lo construido hoy **no cumple esto**: entrega un solo archivo con todas las
+> páginas dentro, separadas por una marca. Es trabajo pendiente, no una decisión.
 
-- [x] Se puede exportar una página **con todas sus subpáginas**
-- [x] Se puede exportar un espacio completo
-- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas — el modo selección ofrece mover y papelera, no exportar
-- [x] Las páginas salen en un mismo archivo, cada una precedida por la ruta donde vivía
-- [ ] Los enlaces entre las páginas exportadas apuntan a las páginas dentro del archivo, no a la web
-- [ ] Los adjuntos salen referenciados por su identificador; el archivo en sí no viaja
+- [ ] Se puede exportar una página **con todas sus subpáginas**
+- [ ] Se puede exportar un espacio completo
+- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas
+- [ ] Se descarga un comprimido con un archivo por página
+- [ ] Las carpetas del comprimido reflejan la jerarquía que tenían las páginas
+- [ ] Una colección se exporta comprimida, con un archivo por fila
+- [ ] Los enlaces entre las páginas exportadas apuntan a los archivos exportados, no a la web
+- [ ] Los archivos adjuntos se incluyen en el comprimido
+- [ ] Se elige si se incluyen los adjuntos o solo el texto
 - [ ] Una exportación grande no bloquea la interfaz: avisa cuando está lista
 - [ ] Se indica el avance mientras se prepara
-- [x] Solo se exporta lo que uno tiene permiso de ver
+- [ ] Solo se exporta lo que uno tiene permiso de ver
 
 ## IO-03 · Debe permitir exportar a otros formatos
 

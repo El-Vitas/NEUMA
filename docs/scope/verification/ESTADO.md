@@ -22,10 +22,15 @@ quedaron ahí.
 - **Nueve de trece títulos no coincidían con el número de su archivo** — fósil
   de cuando se insertaron los tres documentos de bloques al principio y se
   renumeraron los archivos sin tocar los encabezados. Corregidos.
-- **El documento `09` contradecía una decisión ya tomada y registrada.** Pedía
-  «un comprimido con la jerarquía reflejada en carpetas»; la regla de negocio
-  dice un solo archivo, y explica por qué. El documento ahora dice lo decidido,
-  con la razón a la vista.
+- **Se corrigió una regla de negocio que estaba mal, y el error fue de un
+  agente.** Decía que varias páginas salen en un solo archivo. Nadie decidió
+  eso: fue una elección de diseño tomada al construir la exportación y
+  registrada como si fuera decisión de producto. Lo decidido es **un archivo por
+  página**, y varias páginas en un comprimido cuyas carpetas son su jerarquía —
+  una colección siempre comprimida, porque cada fila es una página. La regla
+  vieja queda `superseded`; el documento `09` vuelve a pedir lo correcto.
+  **Lo construido hoy no cumple esto:** entrega un solo archivo. Es trabajo
+  pendiente.
 - **Una casilla del `04` estaba mal marcada, y la marqué yo.** «Se pueden
   exportar todas juntas» vive bajo *actuar sobre varias páginas a la vez*, o
   sea sobre la selección. La exportación existe, pero por página, por rama o
