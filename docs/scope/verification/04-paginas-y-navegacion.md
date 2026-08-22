@@ -1,4 +1,4 @@
-# 02 · Páginas y navegación
+# 04 · Páginas y navegación
 
 Crear páginas, organizarlas, encontrarlas de nuevo.
 
@@ -180,7 +180,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se pueden seleccionar varias páginas en una lista — modo selección explícito en el árbol
 - [x] Se pueden mover todas juntas a otro padre o espacio
 - [x] Se pueden enviar todas juntas a la papelera — seleccionar una madre y una hija no actúa dos veces: la cascada de la madre ya la cubre
-- [x] Se pueden exportar todas juntas — a Markdown, eligiendo entre una página, una página con todo lo que cuelga de ella, o el espacio entero; todo en un mismo archivo
+- [ ] Se pueden exportar todas juntas — la exportación existe y sale a Markdown, pero por página, por rama o por espacio entero; el modo selección todavía ofrece mover y papelera, no exportar
 - [x] Se ve cuántas hay seleccionadas — a la vista y anunciado por `aria-live`
 - [x] La acción se puede cancelar antes de aplicarse
 

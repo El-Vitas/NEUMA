@@ -1,8 +1,17 @@
-# 06 · Agentes y experiencia de uso
+# 08 · Agentes y experiencia de uso
 
 Lo que hace que el cerebro sea operable por una máquina, y que usarlo sea agradable.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
+
+## Cómo está construido hoy
+
+Hay un servidor MCP con herramientas sobre páginas, espacios y búsqueda, y
+respeta los mismos permisos que la pantalla. Hay modo oscuro y atajos de
+teclado.
+
+Nada de eso cuenta como verificado: está escrito aquí para saber por dónde
+empezar a probar, no para ahorrarse la prueba.
 
 ---
 

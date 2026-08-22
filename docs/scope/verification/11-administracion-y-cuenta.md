@@ -1,8 +1,20 @@
-# 09 · Administración y cuenta
+# 11 · Administración y cuenta
 
 Quién entra a la organización, con qué permisos, y qué controla cada persona sobre su propia cuenta.
 
 > Leer `README.md` de esta carpeta antes de usar este documento. Los permisos de espacio y de página se revisan en `06-colaboracion-y-permisos.md`; aquí se revisa el nivel de la organización.
+
+## Cómo está construido hoy
+
+Hay cuentas con tres roles (administra, escribe, lee), una pantalla para
+administrarlas, y cada persona puede cambiar su nombre y su contraseña.
+
+**No hay** grupos, ni invitaciones por correo, ni registro de auditoría: no
+existen en el esquema de la base. Esas partes del documento describen producto
+por construir.
+
+Lo que sí existe no cuenta como verificado: está escrito aquí para saber por
+dónde empezar a probar, no para ahorrarse la prueba.
 
 ---
 

@@ -1,9 +1,19 @@
-# 11 · Rendimiento y límites
+# 13 · Rendimiento y límites
 
 Que sea potente sin exigir una máquina grande. Todo lo de aquí se comprueba usando el producto, no leyendo métricas.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
 >
+## Cómo está construido hoy
+
+Este documento no se poda: se corre. No hay nada aquí que dependa de construir
+producto nuevo — todo se mide sobre lo que ya existe, y por eso se puede empezar
+cuando se quiera.
+
+Hay una medición previa que sirve de referencia: un árbol de 600 páginas
+desplegadas dio 145 fps de media con un peor cuadro de 9 ms (`04-paginas-y-navegacion.md`,
+bitácora del 2026-08-19). El resto está sin medir.
+
 Para probar esto hace falta contenido de volumen: una colección con miles de filas y una página larga. Sembrar esos datos es parte de la verificación.
 
 ---
