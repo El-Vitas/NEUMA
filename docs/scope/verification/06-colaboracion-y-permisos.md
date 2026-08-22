@@ -1,8 +1,18 @@
-# 04 · Colaboración y permisos
+# 06 · Colaboración y permisos
 
 Trabajar varias personas sobre lo mismo, y controlar quién ve qué.
 
 > Leer `README.md` de esta carpeta antes de usar este documento. Varios bloques exigen dos navegadores o dos sesiones distintas para probarse.
+
+## Cómo está construido hoy
+
+Hay edición simultánea sobre Yjs, comentarios sobre un bloque o sobre un
+fragmento, versiones guardadas de cada página, y visibilidad de espacio con tres
+formas: abierto a la empresa, restringido a sus miembros, y privado de una
+persona.
+
+Nada de eso cuenta como verificado: está escrito aquí para saber por dónde
+empezar a probar, no para ahorrarse la prueba.
 
 ---
 

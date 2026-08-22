@@ -1,8 +1,18 @@
-# 10 · Automatización e integraciones
+# 12 · Automatización e integraciones
 
 Que el trabajo repetitivo lo haga el producto, y que el cerebro se conecte con lo que ya se usa afuera.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
+
+## Cómo está construido hoy
+
+Existe **el bloque de botón**, que escribe una fila donde se le dice. Nada más:
+no hay disparadores, ni recurrencia, ni recordatorios, ni integraciones, ni IA.
+No hay tareas programadas de ninguna clase en el producto, que es el cimiento
+que casi todo este documento necesita.
+
+Salvo el botón, este documento describe producto por construir, no producto por
+verificar.
 
 ---
 

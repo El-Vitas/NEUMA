@@ -1,10 +1,20 @@
-# 08 · Plantillas
+# 10 · Plantillas
 
 Crear con estructura desde el primer momento, sin armarla a mano cada vez.
 
 > Leer `README.md` de esta carpeta antes de usar este documento.
 
 Una plantilla es una página cualquiera guardada para repetirse: su contenido, sus propiedades, su ícono y sus subpáginas. No es un tipo aparte de objeto.
+
+## Cómo está construido hoy
+
+**Nada.** No hay plantillas en ninguna forma: ni de fábrica, ni propias, ni de
+fila. Este documento entero describe producto por construir, no producto por
+verificar.
+
+Se deja escrito porque el diseño ya está pensado —una plantilla es una página
+guardada para repetirse, no un objeto nuevo— y porque `04-paginas-y-navegacion.md`
+tiene una casilla (`PG-01`) que espera esto.
 
 ---
 

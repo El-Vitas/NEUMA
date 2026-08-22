@@ -6,6 +6,31 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 >
 > Que la colección se comporte como cualquier otro bloque —arrastrarla, anidarla, duplicarla, insertarla en medio de un texto— se revisa en `01-bloques.md` y `02-tipos-de-bloque.md` (`TB-23`). Aquí se revisa lo que ocurre **dentro** de ella.
 
+## Cómo está construido hoy
+
+Una colección **no es una entidad aparte**: es una página que lleva un esquema,
+y sus filas son sus páginas hijas. Las propiedades de cada fila viven en la
+página misma. Por eso una fila se abre, se mueve y se enlaza como cualquier
+página — porque lo es.
+
+Existen ocho tipos de propiedad (título, texto, selección simple, selección
+múltiple, persona, fecha, casilla y número) y dos vistas (tabla y tablero).
+
+Nada de eso cuenta como verificado: está escrito aquí para saber por dónde
+empezar a probar, no para ahorrarse la prueba.
+
+## Lo que queda para una segunda etapa
+
+Estas cinco capacidades —`PR-10` relaciones, `PR-11` cálculos, `PR-12`
+fórmulas, `VW-05` calendario y `VW-06` línea de tiempo— **no se miden todavía**.
+
+Las tres primeras no son más propiedades: necesitan un grafo de dependencias
+entre colecciones y recálculo cuando algo cambia, que es construir medio motor
+de base de datos. Las dos vistas dependen de tener fechas resueltas primero.
+
+Están escritas aquí para no perderlas, pero cuentan aparte: mientras esta
+sección exista, el documento se da por completo sin ellas.
+
 ---
 
 ## CO-01 · Debe permitir convertir una página en colección
@@ -37,7 +62,7 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] La fila nueva aparece de inmediato, sin recargar
 - [ ] Se puede crear una fila a partir de una plantilla de la colección
 
-## CO-05 · Debe permitir organizar la colección como cualquier página
+## CO-04 · Debe permitir organizar la colección como cualquier página
 
 - [ ] Aparece en el árbol lateral como una página más
 - [ ] Se puede mover a otro espacio
@@ -45,13 +70,13 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Se puede enviar a la papelera, y se advierte que arrastra sus filas
 - [ ] No existe una sección separada de "bases de datos" fuera del árbol
 
-## CO-06 · Debe permitir jerarquía dentro de una colección
+## CO-05 · Debe permitir jerarquía dentro de una colección
 
 - [ ] Una fila puede tener subfilas dentro de la misma colección
 - [ ] La vista de tabla permite plegar y desplegar las subfilas
 - [ ] Se puede convertir una fila en subfila de otra
 
-## CO-07 · Debe permitir mover contenido dentro y fuera de la colección
+## CO-06 · Debe permitir mover contenido dentro y fuera de la colección
 
 - [ ] Se puede arrastrar una página existente dentro de la colección y pasa a ser una fila
 - [ ] Al entrar, se le asignan las propiedades del esquema vacías, sin perder su contenido
@@ -227,20 +252,44 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Se ve el conteo de tarjetas por columna
 - [ ] Si no hay propiedad de agrupación configurada, se explica qué hacer
 
-## VW-03 · Debe ofrecer una vista de lista
+## VW-03 · Debe permitir manejar las columnas del tablero
+
+Arrastrar tarjetas es la mitad de un tablero; la otra mitad es mandar sobre las
+columnas. Una columna **es** un valor de la propiedad por la que se agrupa, así
+que tocarla aquí toca esa propiedad en toda la colección — y eso tiene que verse
+venir antes de que pase.
+
+**Cómo probarlo:** en una colección agrupada por estado, agrega una columna,
+renómbrala, muévela de sitio y borra una que tenga tarjetas dentro.
+
+- [ ] Se puede agregar una columna desde el tablero, y aparece como valor nuevo de la propiedad
+- [ ] Se puede renombrar una columna, y el valor cambia en todas las filas que lo tenían
+- [ ] Se puede reordenar una columna arrastrándola, y el orden persiste
+- [ ] Se puede pintar una columna de un color, y ese color viaja con el valor a las demás vistas
+- [ ] Se puede plegar una columna para dejarla como una franja angosta
+- [ ] Una columna plegada sigue diciendo cuántas tarjetas tiene
+- [ ] Al borrar una columna con tarjetas dentro se avisa cuántas quedarán sin valor
+- [ ] Las filas de una columna borrada quedan sin valor, no se borran
+- [ ] Hay una columna para las filas sin valor, y se puede ocultar
+- [ ] Se puede fijar un tope de tarjetas por columna
+- [ ] Pasado el tope, la columna lo dice sin impedir soltar
+- [ ] Se puede agrupar por una segunda propiedad y ver franjas dentro de cada columna
+- [ ] Lo que se cambia de las columnas es de la vista, y no altera lo que ven las otras vistas de la misma colección
+
+## VW-04 · Debe ofrecer una vista de lista
 
 - [ ] Muestra las filas como lista simple, sin cuadrícula
 - [ ] Se elige qué propiedades acompañan a cada entrada
 - [ ] Es cómoda de leer para páginas de contenido, no solo de datos
 
-## VW-04 · Debe ofrecer una vista de galería
+## VW-05 · Debe ofrecer una vista de galería
 
 - [ ] Muestra las filas como tarjetas grandes
 - [ ] Se elige qué imagen usar como portada
 - [ ] Se elige el tamaño de las tarjetas
 - [ ] Sin imagen, la tarjeta sigue siendo legible
 
-## VW-05 · Debe ofrecer una vista de calendario
+## VW-06 · Debe ofrecer una vista de calendario
 
 - [ ] Las filas se ubican por una propiedad de fecha
 - [ ] Se navega entre meses
@@ -248,14 +297,14 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Se puede crear una fila haciendo clic en un día
 - [ ] Un rango de fechas se ve extendido sobre los días que abarca
 
-## VW-06 · Debe ofrecer una vista de línea de tiempo
+## VW-07 · Debe ofrecer una vista de línea de tiempo
 
 - [ ] Las filas se ven como barras sobre un eje temporal
 - [ ] Se puede cambiar la escala (día, semana, mes)
 - [ ] Se puede arrastrar y estirar una barra para cambiar las fechas
 - [ ] Se puede agrupar por una propiedad
 
-## VW-07 · Debe permitir filtrar
+## VW-08 · Debe permitir filtrar
 
 - [ ] Se puede filtrar por cualquier propiedad
 - [ ] Cada tipo ofrece condiciones que le corresponden (contiene, es, está vacío, antes de)
@@ -266,7 +315,7 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Se ve cuántas filas quedaron de cuántas
 - [ ] Un filtro que no deja nada explica que hay filas ocultas
 
-## VW-08 · Debe permitir ordenar
+## VW-09 · Debe permitir ordenar
 
 - [ ] Se puede ordenar por cualquier propiedad
 - [ ] Ascendente y descendente
@@ -274,7 +323,7 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] El orden se guarda con la vista
 - [ ] Se puede volver al orden manual
 
-## VW-09 · Debe permitir agrupar
+## VW-10 · Debe permitir agrupar
 
 - [ ] Se puede agrupar por una propiedad en cualquier vista
 - [ ] Solo se ofrecen para agrupar las propiedades que tienen sentido agrupar
@@ -288,13 +337,13 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Al arrastrar una fila entre grupos, el valor cambia solo si esa propiedad admite escritura
 - [ ] Si no la admite (por ejemplo un cálculo), no se permite arrastrar y se explica por qué
 
-## VW-10 · Debe permitir elegir qué se muestra
+## VW-11 · Debe permitir elegir qué se muestra
 
 - [ ] Se puede ocultar una propiedad en una vista sin borrarla
 - [ ] Cada vista guarda sus propias propiedades visibles
 - [ ] Se puede reordenar lo que se muestra
 
-## VW-11 · Debe permitir varias vistas de la misma colección
+## VW-12 · Debe permitir varias vistas de la misma colección
 
 - [ ] Se pueden crear varias vistas sobre las mismas filas
 - [ ] Se cambia entre ellas con pestañas
@@ -307,13 +356,13 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Lo que no aplica al tipo nuevo se descarta avisando
 - [ ] Convertir una vista no altera las filas
 
-## VW-12 · Debe permitir buscar dentro de la colección
+## VW-13 · Debe permitir buscar dentro de la colección
 
 - [ ] Hay un buscador propio de la colección
 - [ ] Busca en el título y en las propiedades de texto
 - [ ] Los resultados respetan los filtros aplicados
 
-## VW-13 · Debe ofrecer gráficos sobre los datos de la colección
+## VW-14 · Debe ofrecer gráficos sobre los datos de la colección
 
 - [ ] Se puede crear un gráfico a partir de una colección
 - [ ] Se elige qué propiedad va en cada eje
@@ -324,7 +373,7 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Se puede insertar dentro de otra página
 - [ ] Se lee bien en modo oscuro
 
-## VW-14 · Debe permitir reordenar arrastrando en toda la colección
+## VW-15 · Debe permitir reordenar arrastrando en toda la colección
 
 - [ ] Se pueden reordenar las columnas de la tabla arrastrando
 - [ ] Se pueden reordenar las propiedades en el panel de configuración
@@ -333,7 +382,7 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Se pueden reordenar las columnas del tablero
 - [ ] Cada uno de estos órdenes sobrevive al recargar
 
-## VW-15 · Debe permitir editar varias filas a la vez
+## VW-16 · Debe permitir editar varias filas a la vez
 
 - [ ] Se pueden seleccionar varias filas con casillas
 - [ ] Se puede asignar el mismo valor de propiedad a todas las seleccionadas
@@ -343,7 +392,7 @@ La parte estructurada. Una colección es **un bloque que lleva un esquema**: pro
 - [ ] Seleccionar todo respeta el filtro aplicado
 - [ ] La operación se puede deshacer
 
-## VW-16 · Debe permitir ajustar cómo se ve la tabla
+## VW-17 · Debe permitir ajustar cómo se ve la tabla
 
 - [ ] Se puede elegir la altura de las filas
 - [ ] Se puede hacer que el texto largo se ajuste en varias líneas o se corte

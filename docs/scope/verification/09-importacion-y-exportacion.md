@@ -1,4 +1,4 @@
-# 07 · Importación y exportación
+# 09 · Importación y exportación
 
 Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 
@@ -10,35 +10,43 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 
 **Cómo probarlo:** exporta una página con encabezados, listas, tabla, imagen y una mención.
 
-- [ ] Hay una opción de exportar en el menú de la página
-- [ ] Se descarga un archivo `.md`
-- [ ] Los encabezados salen como `#`, `##`, `###`
-- [ ] Las listas con viñetas y numeradas conservan su anidación
-- [ ] Las tareas salen como `- [ ]` y `- [x]` según su estado
-- [ ] Las citas salen como `>`
-- [ ] Los bloques de código conservan el lenguaje en la marca de apertura
-- [ ] Las tablas salen como tabla Markdown
-- [ ] Negrita, cursiva, código y tachado se conservan
-- [ ] Los enlaces conservan texto y destino
-- [ ] Las menciones a otras páginas salen como enlace con el título
-- [ ] Las imágenes salen referenciadas y el archivo se incluye
-- [ ] Los diagramas salen como bloque de código con su lenguaje
+- [x] Hay una opción de exportar en el menú de la página
+- [x] Se descarga un archivo `.md`
+- [x] Los encabezados salen como `#`, `##`, `###`
+- [x] Las listas con viñetas y numeradas conservan su anidación
+- [x] Las tareas salen como `- [ ]` y `- [x]` según su estado
+- [x] Las citas salen como `>`
+- [x] Los bloques de código conservan el lenguaje en la marca de apertura
+- [x] Las tablas salen como tabla Markdown
+- [x] Negrita, cursiva, código y tachado se conservan
+- [x] Los enlaces conservan texto y destino
+- [x] Las menciones a otras páginas salen como enlace con el título
+- [ ] Las imágenes salen referenciadas por su identificador; el archivo en sí no viaja con la exportación
+- [x] Los diagramas salen como bloque de código con su lenguaje
 - [ ] Las propiedades de la página salen al inicio del archivo
-- [ ] El archivo se llama como la página
-- [ ] Un archivo exportado y vuelto a importar produce la misma página
+- [x] El archivo se llama como la página
+- [ ] Un archivo exportado y vuelto a importar produce la misma página — no hay importación todavía
+
+> Lo que Markdown no sabe decir sale como cerca `:::tipo{datos}` o como enlace
+> con su propio destino, y un bloque que el esquema no conoce se conserva en vez
+> de perderse. Comprobado en el navegador el 2026-08-21.
 
 ## IO-02 · Debe permitir exportar varias páginas de una vez
 
-- [ ] Se puede exportar una página **con todas sus subpáginas**
-- [ ] Se puede exportar un espacio completo
-- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas
-- [ ] Se descarga un comprimido con la jerarquía reflejada en carpetas
-- [ ] Los enlaces entre las páginas exportadas apuntan a los archivos exportados, no a la web
-- [ ] Los archivos adjuntos se incluyen en el comprimido
-- [ ] Se elige si se incluyen los adjuntos o solo el texto
+> **Decidido:** varias páginas salen en **un solo archivo**, no en un comprimido
+> con carpetas. Cada página se abre con una marca que dice dónde vivía. Se
+> eligió así para no traer una dependencia nueva y para que leer de vuelta sea
+> simple. Queda registrado en `docs/business-rules/` (FEA-PAG).
+
+- [x] Se puede exportar una página **con todas sus subpáginas**
+- [x] Se puede exportar un espacio completo
+- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas — el modo selección ofrece mover y papelera, no exportar
+- [x] Las páginas salen en un mismo archivo, cada una precedida por la ruta donde vivía
+- [ ] Los enlaces entre las páginas exportadas apuntan a las páginas dentro del archivo, no a la web
+- [ ] Los adjuntos salen referenciados por su identificador; el archivo en sí no viaja
 - [ ] Una exportación grande no bloquea la interfaz: avisa cuando está lista
 - [ ] Se indica el avance mientras se prepara
-- [ ] Solo se exporta lo que uno tiene permiso de ver
+- [x] Solo se exporta lo que uno tiene permiso de ver
 
 ## IO-03 · Debe permitir exportar a otros formatos
 

@@ -1,8 +1,19 @@
-# 05 · Grafo de conocimiento
+# 07 · Grafo de conocimiento
 
 Lo que convierte un montón de páginas en un cerebro: cómo se conectan entre sí.
 
 > Leer `README.md` de esta carpeta antes de usar este documento. Las plantillas se revisan en `10-plantillas.md`.
+
+## Cómo está construido hoy
+
+Hay menciones entre páginas y retroenlaces, que se rehacen solos cuando una
+página cambia de nombre o se va a la papelera. Una mención a algo que quien lee
+no alcanza sale tapada, no delata el título.
+
+No hay menciones sin enlazar ni grafo visual.
+
+Nada de eso cuenta como verificado: está escrito aquí para saber por dónde
+empezar a probar, no para ahorrarse la prueba.
 
 ---
 
