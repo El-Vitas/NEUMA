@@ -29,8 +29,9 @@ quedaron ahí.
   página**, y varias páginas en un comprimido cuyas carpetas son su jerarquía —
   una colección siempre comprimida, porque cada fila es una página. La regla
   vieja queda `superseded`; el documento `09` vuelve a pedir lo correcto.
-  **Lo construido hoy no cumple esto:** entrega un solo archivo. Es trabajo
-  pendiente.
+  **Y se construyó:** una página sale como Markdown, varias salen comprimidas
+  con un archivo por página y las carpetas como jerarquía. Comprobado contra la
+  API el 2026-08-22.
 - **Una casilla del `04` estaba mal marcada, y la marqué yo.** «Se pueden
   exportar todas juntas» vive bajo *actuar sobre varias páginas a la vez*, o
   sea sobre la selección. La exportación existe, pero por página, por rama o

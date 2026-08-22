@@ -1262,9 +1262,10 @@ describe('markdown export', () => {
     );
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue()).toBe(
-      '<!-- page: Madre -->\n\n# Madre\n\nExample\n\n<!-- page: Madre / Hija -->\n\n# Hija\n\nExample',
-    );
+    expect(result.getValue()).toEqual([
+      { contents: '# Madre\n\nExample', path: 'Madre.md' },
+      { contents: '# Hija\n\nExample', path: 'Madre/Hija.md' },
+    ]);
   });
 
   it('refuses to write out a page the reader cannot reach', async () => {

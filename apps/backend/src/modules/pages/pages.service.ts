@@ -1,6 +1,13 @@
 import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import { type PageContent, Result, USER_ROLE, type UserRole, writePagesAsMarkdownFile } from '@company-brain/shared';
+import {
+  type ExportedPageFile,
+  type PageContent,
+  Result,
+  USER_ROLE,
+  type UserRole,
+  writePagesAsMarkdownFiles,
+} from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
@@ -80,13 +87,13 @@ export class PagesService {
     userId: string,
     role: UserRole,
     untitledLabel: string,
-  ): Promise<Result<string, PageAccessDeniedError>> {
+  ): Promise<Result<readonly ExportedPageFile[], PageAccessDeniedError>> {
     const pages = await this.list(spaceId, workspaceId, userId, role, false);
     const chosen = selectPagesForExport(pages, scope);
     if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
 
     return Result.ok(
-      writePagesAsMarkdownFile(
+      writePagesAsMarkdownFiles(
         chosen.map((page) => ({ content: readExportableContent(page.content), path: page.path, title: page.title })),
         untitledLabel,
       ),

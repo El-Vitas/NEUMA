@@ -3,19 +3,20 @@
 import 'server-only';
 
 import { actionClient } from '@/lib/safe-action';
-import { apiRequestText } from '@/shared/lib/api-server';
+import { apiRequestFile } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import type { DownloadedFile } from '@/shared/types/downloaded-file.types';
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageExportRequestSchema } from '../../schemas/pages.export.schemas';
 
 export const exportPagesAsMarkdownAction = actionClient
   .inputSchema(pageExportRequestSchema)
   .action(async ({ parsedInput }) =>
-    withAction({ action: 'exportPages' }, async (): Promise<string> => {
+    withAction({ action: 'exportPages' }, async (): Promise<DownloadedFile> => {
       const accessToken = await requireAccessTokenCookie();
       const query = new URLSearchParams({ scope: parsedInput.scope, untitledLabel: parsedInput.untitledLabel });
       if (parsedInput.pageId !== null) query.set('pageId', parsedInput.pageId);
-      return apiRequestText(PAGE_API_ROUTES.exportMarkdown(parsedInput.spaceId, query.toString()), accessToken);
+      return apiRequestFile(PAGE_API_ROUTES.exportMarkdown(parsedInput.spaceId, query.toString()), accessToken);
     }),
   );

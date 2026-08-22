@@ -3,6 +3,7 @@ import { getLocale } from 'next-intl/server';
 import { config } from '@/shared/config';
 import { ACCESS_TOKEN_COOKIE, BEARER_PREFIX, PUBLIC_API_REQUESTS } from '@/shared/constants/auth.constants';
 import { API_ROUTES, ROUTES } from '@/shared/routes/constants/routes.constants';
+import type { DownloadedFile } from '@/shared/types/downloaded-file.types';
 import { redirect } from '../../i18n/navigation';
 import { ApiError } from './api';
 import { MissingAccessTokenError, readAccessTokenCookie } from './auth.token.lib';
@@ -49,6 +50,30 @@ export const apiRequest = async <T>(endpoint: string, accessToken: string, init:
  * fail. This is the door for those, and it stays separate so nothing else
  * quietly starts skipping the JSON contract.
  */
+/**
+ * A response the backend sends as a file rather than as data.
+ *
+ * The bytes travel encoded because a server action answers in JSON, and an
+ * archive is not text — sending it as text would quietly corrupt it.
+ */
+export const apiRequestFile = async (endpoint: string, accessToken: string): Promise<DownloadedFile> => {
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(endpoint), { headers: buildHeaders(accessToken, undefined, false) });
+  } catch (error) {
+    throw new NetworkError(error);
+  }
+
+  if (!response.ok) {
+    throw await ApiError.fromResponse(response);
+  }
+
+  return {
+    base64: Buffer.from(await response.arrayBuffer()).toString('base64'),
+    mediaType: response.headers.get('content-type') ?? 'application/octet-stream',
+  };
+};
+
 export const apiRequestText = async (endpoint: string, accessToken: string): Promise<string> => {
   let response: Response;
   try {

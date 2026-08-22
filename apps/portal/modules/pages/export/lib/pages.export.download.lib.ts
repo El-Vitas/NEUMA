@@ -1,14 +1,16 @@
-import { PAGES_EXPORT_MEDIA_TYPE } from '../constants/pages.export.constants';
-
 /**
- * Hands the written file to the browser so it lands on the reader's disk.
+ * Hands the file to the browser so it lands on the reader's disk.
  *
- * The file is built here rather than served from a link because the request
+ * The bytes are built here rather than served from a link because the request
  * carries the session, and an anchor pointing at the backend would travel
  * without it.
  */
-export const downloadMarkdownFile = (fileName: string, markdown: string): void => {
-  const address = URL.createObjectURL(new Blob([markdown], { type: PAGES_EXPORT_MEDIA_TYPE }));
+export const downloadExportedFile = (fileName: string, base64: string, mediaType: string): void => {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let at = 0; at < binary.length; at += 1) bytes[at] = binary.charCodeAt(at);
+
+  const address = URL.createObjectURL(new Blob([bytes], { type: mediaType }));
   const anchor = document.createElement('a');
   anchor.href = address;
   anchor.download = fileName;

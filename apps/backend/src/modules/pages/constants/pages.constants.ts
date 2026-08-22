@@ -22,4 +22,8 @@ export const PAGE_SIBLING_ORDER = [{ order: 'asc' }, { createdAt: 'asc' }] as co
  */
 export const PAGE_BATCH_CONCURRENCY = 5;
 
+/** One page goes out as itself; several go out packed, so the folders can say what hung from what. */
+export const EXPORT_MARKDOWN_MEDIA_TYPE = 'text/markdown; charset=utf-8';
+export const EXPORT_ARCHIVE_MEDIA_TYPE = 'application/zip';
+
 export const PAGE_DELETE_FOREVER_OUTCOMES = ['DELETED', 'NOT_FOUND', 'NOT_TRASHED'] as const;
