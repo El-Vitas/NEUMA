@@ -155,23 +155,40 @@ rules:
         given: Una página recién creada y sin nombre
         when: Se escribe un título y no se pulsa nada más
         then: El título queda guardado
-  - id: BR-cb028f9
+  - id: BR-d829da6
     status: active
     title: Lo que se exporta se lee como Markdown y sabe volver
     rule: >-
       Una página se exporta a Markdown. Lo que Markdown ya sabe decir —párrafos, encabezados, listas, tareas, citas,
       código, tablas, imágenes, separadores— se escribe con su propia sintaxis. Lo que Markdown no sabe decir se escribe
       de dos maneras según dónde viva: dentro de una línea, como enlace con su propio destino; como bloque, con una
-      cerca de tres dos puntos que nombra el tipo y lleva sus datos. Exportar varias páginas produce un solo archivo,
-      con cada página abierta por una marca que dice dónde vivía.
+      cerca de tres dos puntos que nombra el tipo y lleva sus datos. Cada página produce su propio archivo. Exportar
+      varias entrega un comprimido cuya estructura de carpetas es la jerarquía que tenían las páginas. Una colección
+      sale siempre comprimida, porque son muchas páginas a la vez.
     why: >-
       Un Markdown que solo conserva el texto plano convierte la exportación en una copia de lectura y nada más: lo que
       sale no puede volver. Y un formato que se aparta de Markdown para ser reversible deja de leerse en cualquier
-      editor, que es la única razón de elegir Markdown.
+      editor, que es la única razón de elegir Markdown. Un archivo por página es lo que espera cualquier herramienta que
+      lea Markdown, y las carpetas son cómo se dice una jerarquía sin inventar sintaxis.
     context: >-
-      Hay cosas que no pueden volver enteras y conviene decirlo: un bloque tomado de otra página sale como el texto que
-      mostraba, no como el vínculo vivo. Un solo archivo en vez de una carpeta comprimida evita una dependencia nueva y
-      hace más simple la lectura de vuelta.
+      Reemplaza a la regla anterior, que decía que varias páginas salían en un solo archivo con una marca por página.
+      Eso fue una decisión de diseño tomada al construir, no una decisión de producto, y no era la que correspondía.
+      Sigue siendo cierto que hay cosas que no vuelven enteras: un bloque tomado de otra página sale como el texto que
+      mostraba, no como el vínculo vivo.
+    supersedes: BR-cb028f9
+    scenarios:
+      - title: Una página sola
+        given: Una página sin subpáginas
+        when: Se exporta
+        then: Se descarga un archivo Markdown con esa página
+      - title: Una rama
+        given: Una página con subpáginas
+        when: Se exporta con ellas
+        then: Se descarga un comprimido con un archivo por página y las carpetas reflejando la jerarquía
+      - title: Una colección
+        given: Una colección con sus filas
+        when: Se exporta
+        then: Se descarga un comprimido, porque cada fila es una página y son muchas
   - id: BR-de71d1b
     status: active
     title: Se exporta una página, una rama o un espacio entero
@@ -230,3 +247,21 @@ rules:
     context: >-
       Cada cambio se anuncia una sola vez, distinguido por el momento en que se escribió. El índice proyecta fuera del
       servidor, así que el aviso viaja por la bandeja de salida.
+  - id: BR-cb028f9
+    status: superseded
+    title: Lo que se exporta se lee como Markdown y sabe volver
+    rule: >-
+      Una página se exporta a Markdown. Lo que Markdown ya sabe decir —párrafos, encabezados, listas, tareas, citas,
+      código, tablas, imágenes, separadores— se escribe con su propia sintaxis. Lo que Markdown no sabe decir se escribe
+      de dos maneras según dónde viva: dentro de una línea, como enlace con su propio destino; como bloque, con una
+      cerca de tres dos puntos que nombra el tipo y lleva sus datos. Exportar varias páginas produce un solo archivo,
+      con cada página abierta por una marca que dice dónde vivía.
+    why: >-
+      Un Markdown que solo conserva el texto plano convierte la exportación en una copia de lectura y nada más: lo que
+      sale no puede volver. Y un formato que se aparta de Markdown para ser reversible deja de leerse en cualquier
+      editor, que es la única razón de elegir Markdown.
+    context: >-
+      Hay cosas que no pueden volver enteras y conviene decirlo: un bloque tomado de otra página sale como el texto que
+      mostraba, no como el vínculo vivo. Un solo archivo en vez de una carpeta comprimida evita una dependencia nueva y
+      hace más simple la lectura de vuelta.
+    superseded_by: BR-d829da6
