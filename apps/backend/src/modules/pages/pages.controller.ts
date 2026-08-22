@@ -5,13 +5,13 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
@@ -297,7 +297,7 @@ export class PagesController {
   async move(
     @Param('pageId') pageId: string,
     @Body() dto: MovePageDto,
-    @Headers('x-mutation-id') mutationId: string,
+    @MutationId() mutationId: string,
     @User('payload') payload: TokenPayload,
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
@@ -320,7 +320,7 @@ export class PagesController {
   @UseGuards(JwtAuthGuard)
   async trash(
     @Param('pageId') pageId: string,
-    @Headers('x-mutation-id') mutationId: string,
+    @MutationId() mutationId: string,
     @User('payload') payload: TokenPayload,
   ) {
     return this.resolveLifecycleMutation(payload, (workspaceId) =>
@@ -333,7 +333,7 @@ export class PagesController {
   async restore(
     @Param('pageId') pageId: string,
     @Body() dto: RestorePageDto,
-    @Headers('x-mutation-id') mutationId: string,
+    @MutationId() mutationId: string,
     @User('payload') payload: TokenPayload,
   ): Promise<PageRestoreOutcome> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);

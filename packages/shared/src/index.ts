@@ -178,4 +178,4 @@ export type { User } from './types/user.types.js';
 export type { UserRole } from './types/user-role.types.js';
 export { USER_ROLE, USER_ROLE_VALUES } from './types/user-role.types.js';
 export type { WorkspaceCapability } from './types/workspace.types.js';
-export { WORKSPACE_CAPABILITY_BY_ROLE } from './types/workspace.types.js';
+export { canEditContent, canManageWorkspace, WORKSPACE_CAPABILITY_BY_ROLE } from './types/workspace.types.js';

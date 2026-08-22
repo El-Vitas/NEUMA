@@ -1,7 +1,6 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {
-  PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES,
   PAGE_EDITOR_MEDIA_AUDIO_STYLE_CLASS,
   PAGE_EDITOR_MEDIA_FIGURE_STYLE_CLASS,
   PAGE_EDITOR_MEDIA_PLAYER_STYLE_CLASS,
@@ -9,6 +8,7 @@ import {
   PAGE_EDITOR_MEDIA_VIDEO_STYLE_CLASS,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorMediaLabels } from '../types/pages.editor.media.types';
+import { framePageBlockAlignment } from './pages.editor.block-frame.lib';
 import { createPageMediaControls } from './pages.editor.media.controls.lib';
 import { framePageBlockWidth } from './pages.editor.width.lib';
 
@@ -67,11 +67,7 @@ const createPageMediaNodeView = (
    * same clip, only blurred.
    */
   const showMedia = (current: EditorNode): void => {
-    figure.className = `${PAGE_EDITOR_MEDIA_FIGURE_STYLE_CLASS} ${
-      PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES[String(current.attrs.align)] ?? PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES.left
-    }`;
-    if (typeof current.attrs.align === 'string') figure.dataset.align = current.attrs.align;
-    else figure.removeAttribute('data-align');
+    framePageBlockAlignment(figure, PAGE_EDITOR_MEDIA_FIGURE_STYLE_CLASS, current.attrs.align);
     if (typeof current.attrs.width === 'number') {
       showWidth(current.attrs.width);
       return;

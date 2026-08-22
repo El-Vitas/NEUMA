@@ -7,6 +7,7 @@ import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_COVER_API_ROUTE, PAGE_COVER_DEFAULT_POSITION } from '../../constants/pages.cover.constants';
 import {
   pageCoverImageUploadSchema,
@@ -15,7 +16,6 @@ import {
 } from '../../schemas/pages.cover.schemas';
 import { pageSummarySchema } from '../../schemas/pages.schemas';
 import { uploadPageImageAssetId } from '../lib/pages.attachments.server';
-import { authenticatedRequest } from './pages.actions';
 import { deletePageAttachmentAction } from './pages.attachments.actions';
 
 /** The image a cover replaces is let go of, so a page does not hoard the pictures it stopped showing. */

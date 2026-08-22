@@ -154,8 +154,10 @@ const buildFilters = (
     filters.push(Prisma.sql`AND "searchDocument"."contentType" = ${query.contentType}`);
   if (query.tags !== undefined && query.tags.length > 0)
     filters.push(Prisma.sql`AND "searchDocument"."tags" @> ${JSON.stringify(query.tags)}::jsonb`);
-  if (query.authorQuery !== undefined)
-    filters.push(Prisma.sql`AND "searchDocument"."properties"->>'authorName' ILIKE ${`%${query.authorQuery}%`}`);
+  if (query.authorQuery !== undefined) {
+    const anywhereInTheName = `%${query.authorQuery}%`;
+    filters.push(Prisma.sql`AND "searchDocument"."properties"->>'authorName' ILIKE ${anywhereInTheName}`);
+  }
   if (query.editedRange !== undefined) filters.push(buildEditedRangeFilter(query.editedRange));
   if (query.verifiedOnly === true) filters.push(buildVerifiedOnlyFilter());
   if (cursor !== null)

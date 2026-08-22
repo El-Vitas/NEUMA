@@ -12,6 +12,7 @@ import {
 } from './domain/space.error';
 import { validateSpaceIcon } from './domain/space-icon.domain';
 import type { CreateSpaceInput, SpaceRepositoryContract, SpaceSummary } from './types/space.types';
+import { isSpaceSlugAvailableToAsk } from './utils/space.utils';
 
 @Injectable()
 export class SpacesService {
@@ -22,7 +23,7 @@ export class SpacesService {
   }
 
   async create(input: CreateSpaceInput, role: UserRole): Promise<Result<SpaceSummary, SpaceAccessDeniedError>> {
-    if (!canCreateSpace(role)) {
+    if (!canCreateSpace(role) || !isSpaceSlugAvailableToAsk(input.slug)) {
       return Result.fail(new SpaceAccessDeniedError());
     }
     return Result.ok(await this.spaceRepository.create(input));

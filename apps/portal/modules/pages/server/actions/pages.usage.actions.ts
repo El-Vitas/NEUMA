@@ -7,6 +7,7 @@ import { actionClient } from '@/lib/safe-action';
 import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import {
   PAGE_USAGE_API_ROUTES,
   PAGE_USAGE_SETTINGS_CACHE_TAG,
@@ -19,7 +20,6 @@ import {
   pageUsageSummarySchema,
 } from '../../schemas/pages.usage.schemas';
 import type { PageUsageReport, PageUsageSettings } from '../../types/pages.usage.types';
-import { authenticatedRequest } from '../lib/pages.request.server';
 
 export const recordPageViewAction = actionClient.inputSchema(pageUsageRecordSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'recordPageView' }, async (): Promise<void> => {

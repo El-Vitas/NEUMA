@@ -8,12 +8,12 @@ import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { PAGE_TRASH_API_ROUTES, PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import { pageLocatorSchema } from '../../schemas/pages.schemas';
 import { trashDescendantsPreviewSchema, trashEmptySchema } from '../../schemas/pages.trash.schemas';
 import type { TrashDescendantsPreview } from '../../types/pages.trash.types';
-import { authenticatedRequest } from './pages.actions';
 
 export const getPageTrashPreviewAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'getPageTrashPreview' }, async (): Promise<TrashDescendantsPreview> => {

@@ -1,12 +1,12 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {
-  PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES,
   PAGE_EDITOR_IMAGE_CAPTION_STYLE_CLASS,
   PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS,
   PAGE_EDITOR_IMAGE_STYLE_CLASS,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorImageLabels } from '../types/pages.editor.image.types';
+import { framePageBlockAlignment } from './pages.editor.block-frame.lib';
 import { framePageBlockWidth } from './pages.editor.width.lib';
 
 const createCaptionField = (node: EditorNode, label: string): HTMLInputElement => {
@@ -53,11 +53,7 @@ export const createPageImageNodeView = (
   const showState = (current: EditorNode): void => {
     image.alt = typeof current.attrs.alt === 'string' ? current.attrs.alt : '';
     showWidth(current.attrs.width);
-    figure.className = `${PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS} ${
-      PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES[String(current.attrs.align)] ?? PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES.left
-    }`;
-    if (typeof current.attrs.align === 'string') figure.dataset.align = current.attrs.align;
-    else figure.removeAttribute('data-align');
+    framePageBlockAlignment(figure, PAGE_EDITOR_IMAGE_FIGURE_STYLE_CLASS, current.attrs.align);
   };
 
   figure.dataset.pageImage = 'true';

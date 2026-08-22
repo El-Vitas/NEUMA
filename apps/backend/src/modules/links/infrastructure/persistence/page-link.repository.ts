@@ -4,6 +4,7 @@ import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { BACKLINKS_LIST_LIMIT } from '../../constants/links.constants';
 import { resolveLinkTargets } from '../../domain/page-link.domain';
 import type { BacklinksResult, PageLinkReconciliationInput, PageLinkRepositoryContract } from '../../types/links.types';
 
@@ -25,17 +26,21 @@ export class PageLinkRepository implements PageLinkRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<BacklinksResult> {
-    const rows = await this.prisma.pageLink.findMany({
-      orderBy: { createdAt: 'asc' },
-      select: { sourcePage: { select: { id: true, spaceId: true, title: true } } },
-      where: {
-        sourcePage: { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId } },
-        targetPage: { lifecycle: PageLifecycle.ACTIVE },
-        targetPageId,
-      },
-    });
-    const items = rows.map((row) => row.sourcePage);
-    return { count: items.length, items };
+    const where: Prisma.PageLinkWhereInput = {
+      sourcePage: { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId } },
+      targetPage: { lifecycle: PageLifecycle.ACTIVE },
+      targetPageId,
+    };
+    const [rows, count] = await Promise.all([
+      this.prisma.pageLink.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: { sourcePage: { select: { id: true, spaceId: true, title: true } } },
+        take: BACKLINKS_LIST_LIMIT,
+        where,
+      }),
+      this.prisma.pageLink.count({ where }),
+    ]);
+    return { count, items: rows.map((row) => row.sourcePage) };
   }
 
   private async deleteStaleLinks(

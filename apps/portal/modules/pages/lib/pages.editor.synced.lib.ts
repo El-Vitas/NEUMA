@@ -76,7 +76,7 @@ export const createPageUnsyncCommand =
   (schema: Schema, target: PageSyncedReference, borrowed: EditorNode | null): Command =>
   (state, dispatch) => {
     const node = state.doc.nodeAt(target.position);
-    if (node === null || node.type.name !== PAGE_EDITOR_SYNCED_TYPE) return false;
+    if (node?.type.name !== PAGE_EDITOR_SYNCED_TYPE) return false;
     const kept = borrowed === null ? schema.nodes.paragraph.createChecked() : asACopy(borrowed);
     if (dispatch === undefined) return true;
     dispatch(state.tr.replaceWith(target.position, target.position + node.nodeSize, kept));

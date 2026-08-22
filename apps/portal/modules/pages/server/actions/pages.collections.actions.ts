@@ -9,21 +9,13 @@ import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { pageCollectionCreateSchema, pageCollectionReadSchema } from '../../schemas/pages.collections.schemas';
 import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
 import { pageSummarySchema } from '../../schemas/pages.schemas';
 import type { PageSchema } from '../../types/pages.schema.types';
 import type { PageSummary } from '../../types/pages.types';
-
-const authenticatedRequest = async <T>(endpoint: string, method: string, body: unknown): Promise<T> => {
-  const accessToken = await requireAccessTokenCookie();
-  return apiRequest<T>(endpoint, accessToken, {
-    body: JSON.stringify(body),
-    headers: { 'x-mutation-id': crypto.randomUUID() },
-    method,
-  });
-};
 
 /**
  * Starts a collection: a page of its own, and the shape of what it keeps.

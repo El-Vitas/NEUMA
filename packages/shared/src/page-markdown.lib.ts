@@ -8,11 +8,23 @@ import type { PageContent, PageContentJson, PageMark } from './schemas/page-cont
 /** Anything a page holds, read by shape rather than by name: a block this version does not know still has to come out. */
 type AnyNode = {
   readonly attrs?: { readonly [key: string]: PageContentJson };
-  readonly content?: readonly AnyNode[];
+  readonly content?: readonly unknown[];
   readonly marks?: readonly PageMark[];
   readonly text?: string;
   readonly type: string;
 };
+
+const isNode = (value: unknown): value is AnyNode =>
+  typeof value === 'object' && value !== null && 'type' in value && typeof value.type === 'string';
+
+/**
+ * What hangs inside a node, keeping only what is a node.
+ *
+ * A block this version does not know keeps its insides as plain data, and
+ * plain data can be a number or nothing at all. Asking here rather than at
+ * every reader keeps the question in one place.
+ */
+const childrenOf = (node: AnyNode): readonly AnyNode[] => (node.content ?? []).filter(isNode);
 
 const attr = (node: AnyNode, name: string): string | undefined => {
   const value = node.attrs?.[name];
@@ -56,7 +68,7 @@ const writeInline = (node: AnyNode): string => {
     return `[${at}](date:${at})`;
   }
   if (node.type === 'formula') return `$${attr(node, 'latex') ?? ''}$`;
-  return (node.content ?? []).map(writeInline).join('');
+  return writeInlines(childrenOf(node));
 };
 
 const writeInlines = (nodes: readonly AnyNode[]): string => nodes.map(writeInline).join('');
@@ -69,9 +81,9 @@ const indentEveryLine = (written: string, marker: string): string =>
     .join('\n');
 
 const writeListItems = (node: AnyNode, marker: (at: number) => string): string =>
-  (node.content ?? [])
+  childrenOf(node)
     .map((item, at) => {
-      const written = writeBlocks(item.content ?? []);
+      const written = writeBlocks(childrenOf(item));
       const [head = '', ...rest] = written.split('\n');
       const lead = marker(at);
       const tail = rest.map((line) => `${' '.repeat(lead.length)}${line}`);
@@ -80,14 +92,16 @@ const writeListItems = (node: AnyNode, marker: (at: number) => string): string =
     .join('\n');
 
 const writeTableRow = (row: AnyNode): string =>
-  `| ${(row.content ?? []).map((cell) => writeBlocks(cell.content ?? [])).join(' | ')} |`;
+  `| ${childrenOf(row)
+    .map((cell) => writeBlocks(childrenOf(cell)))
+    .join(' | ')} |`;
 
 const writeTable = (node: AnyNode): string => {
-  const rows = node.content ?? [];
+  const rows = childrenOf(node);
   const header = rows.at(0);
   if (header === undefined) return '';
   const body = rows.slice(1);
-  const columns = (header.content ?? []).length;
+  const columns = childrenOf(header).length;
   const rule = `| ${Array.from({ length: columns }, () => '---').join(' | ')} |`;
   return [writeTableRow(header), rule, ...body.map(writeTableRow)].join('\n');
 };
@@ -128,22 +142,22 @@ const DIRECTIVE_ATTRS: Readonly<Record<string, readonly string[]>> = {
 const writeBlock = (node: AnyNode): string => {
   switch (node.type) {
     case 'paragraph':
-      return writeInlines(node.content ?? []);
+      return writeInlines(childrenOf(node));
     case 'heading':
-      return `${'#'.repeat(Number(node.attrs?.level ?? 1))} ${writeInlines(node.content ?? [])}`;
+      return `${'#'.repeat(Number(node.attrs?.level ?? 1))} ${writeInlines(childrenOf(node))}`;
     case 'blockquote':
-      return indentEveryLine(writeBlocks(node.content ?? []), '> ');
+      return indentEveryLine(writeBlocks(childrenOf(node)), '> ');
     case 'bullet_list':
       return writeListItems(node, () => '- ');
     case 'ordered_list':
       return writeListItems(node, (at) => `${String(at + 1)}. `);
     case 'task_list':
-      return (node.content ?? [])
-        .map((item) => `- [${item.attrs?.checked === true ? 'x' : ' '}] ${writeBlocks(item.content ?? [])}`)
+      return childrenOf(node)
+        .map((item) => `- [${item.attrs?.checked === true ? 'x' : ' '}] ${writeBlocks(childrenOf(item))}`)
         .join('\n');
     case 'code_block': {
       const language = attr(node, 'language') ?? '';
-      return `\`\`\`${language}\n${writeInlines(node.content ?? [])}\n\`\`\``;
+      return `\`\`\`${language}\n${writeInlines(childrenOf(node))}\n\`\`\``;
     }
     case 'divider':
       return '---';
@@ -157,7 +171,7 @@ const writeBlock = (node: AnyNode): string => {
       return writeDirective(
         node,
         DIRECTIVE_ATTRS[node.type] ?? Object.keys(node.attrs ?? {}),
-        writeBlocks(node.content ?? []),
+        writeBlocks(childrenOf(node)),
       );
   }
 };
@@ -176,5 +190,4 @@ const writeBlocks = (nodes: readonly AnyNode[]): string =>
  * thing that carries the same meaning — a link, or a named fence — so what
  * comes out can be read back in without guessing.
  */
-export const writePageAsMarkdown = (content: PageContent): string =>
-  writeBlocks((content as unknown as { readonly content: readonly AnyNode[] }).content);
+export const writePageAsMarkdown = (content: PageContent): string => writeBlocks(content.content);

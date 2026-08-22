@@ -44,15 +44,21 @@ export class JwtAuthGuard implements CanActivate {
     (request as FastifyRequest & { user?: RequestUser }).user = user;
   }
 
+  /**
+   * Only from the header.
+   *
+   * A session carried in the address is written down by everything the address
+   * passes through — the access log, the referrer sent to the next site, the
+   * history of the browser — and none of those are places a session should
+   * live.
+   */
   private extractTokenFromHeader(request: FastifyRequest): string | undefined {
     const authHeader = request.headers.authorization;
-    if (authHeader !== undefined && typeof authHeader === 'string') {
-      const [type, token] = authHeader.split(' ');
-      if (type === 'Bearer') return token;
-    }
+    if (typeof authHeader !== 'string') return;
 
-    const queryToken = (request.query as Record<string, string | undefined>).token;
-    return queryToken !== undefined && queryToken.length > 0 ? queryToken : undefined;
+    const [type, token] = authHeader.split(' ');
+    if (type !== 'Bearer') return;
+    return token;
   }
 
   private async getPayloadFromToken(token: string): Promise<TokenPayload> {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
+import { canManageWorkspace, USER_ROLE } from '@company-brain/shared';
 import {
   canCreateSpace,
-  canManageWorkspace,
   canReadSpace,
   canRenameSpace,
+  canRenameUser,
   canShareSpace,
   getWorkspaceCapability,
 } from '@/common/domain/workspace.domain';
@@ -63,5 +63,20 @@ describe('canRenameSpace', () => {
   it('leaves the shared spaces to whoever may make them', () => {
     expect(canRenameSpace('CLIENT', 'PUBLIC_INTERNAL', null, 'user-a')).toBe(false);
     expect(canRenameSpace('WORKER', 'PUBLIC_INTERNAL', null, 'user-a')).toBe(true);
+  });
+});
+
+describe('canRenameUser', () => {
+  it('lets somebody rename their own account', () => {
+    expect(canRenameUser(USER_ROLE.WORKER, 'user-a', 'user-a')).toBe(true);
+  });
+
+  it('refuses somebody who reaches for another account', () => {
+    expect(canRenameUser(USER_ROLE.WORKER, 'user-b', 'user-a')).toBe(false);
+    expect(canRenameUser(USER_ROLE.CLIENT, 'user-b', 'user-a')).toBe(false);
+  });
+
+  it('lets whoever manages the workspace rename another account', () => {
+    expect(canRenameUser(USER_ROLE.ADMIN, 'user-b', 'user-a')).toBe(true);
   });
 });

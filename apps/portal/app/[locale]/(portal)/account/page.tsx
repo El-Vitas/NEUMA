@@ -1,5 +1,5 @@
 import { AccountView } from '@/modules/account/views/account.view';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
 export default async function Page() {
   const user = await getCurrentUser();

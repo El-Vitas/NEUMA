@@ -67,8 +67,17 @@ export class FilesController {
     const size = download.body.length;
     const asked = readRequestedByteRange(range, size);
 
+    /**
+     * The kind of file is what we say it is, not what the browser guesses.
+     *
+     * What a file claims to be is decided by whoever uploaded it, so a file
+     * that says one thing and holds another is always possible. Told not to
+     * guess, the browser hands over what it was given instead of noticing HTML
+     * inside something declared as text and running it.
+     */
     response
       .header('Accept-Ranges', 'bytes')
+      .header('X-Content-Type-Options', 'nosniff')
       .header('Content-Type', download.mimeType)
       .header('Content-Disposition', describeFileDisposition(download.mimeType, download.originalFilename));
 

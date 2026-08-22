@@ -1,7 +1,6 @@
 import type { Server } from 'node:http';
 import multipart from '@fastify/multipart';
 import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Logger } from 'nestjs-pino';
@@ -38,7 +37,6 @@ export const bootstrapTestApp = async (): Promise<TestApp> => {
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), {
     bufferLogs: true,
   });
-  const configService: ConfigService = app.get(ConfigService);
   app.useLogger(silentLogger);
   app.setGlobalPrefix('api/v1');
   await app.register(multipart, {
@@ -52,7 +50,7 @@ export const bootstrapTestApp = async (): Promise<TestApp> => {
       whitelist: true,
     }),
   );
-  app.useGlobalFilters(new GlobalExceptionFilter(silentLogger, configService));
+  app.useGlobalFilters(new GlobalExceptionFilter(silentLogger));
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 

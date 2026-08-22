@@ -1,21 +1,28 @@
 'use server';
 
 import 'server-only';
+import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
+import { CURRENT_USER_CACHE_TAG } from '@/shared/constants/current-user-cache.constants';
 import { apiServer } from '@/shared/lib/api-server';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { API_ROUTES } from '@/shared/routes/constants/routes.constants';
 import { UpdateNameSchema, UpdatePasswordSchema } from '../../schemas/profile.schemas';
+import { requireOwnAccountId } from '../lib/account.owner.server';
 
 export const updateProfileNameAction = actionClient.inputSchema(UpdateNameSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'updateProfileName' }, async () => {
-    await apiServer.patch(`${API_ROUTES.USERS}/${parsedInput.userId}`, { name: parsedInput.name });
+    const userId = await requireOwnAccountId();
+    await apiServer.patch(`${API_ROUTES.USERS}/${userId}`, { name: parsedInput.name });
+    /** The name is kept for a few seconds; without saying so, the account goes on showing the old one. */
+    updateTag(CURRENT_USER_CACHE_TAG);
   }),
 );
 
 export const updatePasswordAction = actionClient.inputSchema(UpdatePasswordSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'updatePassword' }, async () => {
-    await apiServer.patch(`${API_ROUTES.USERS}/${parsedInput.userId}/password`, {
+    const userId = await requireOwnAccountId();
+    await apiServer.patch(`${API_ROUTES.USERS}/${userId}/password`, {
       currentPassword: parsedInput.currentPassword,
       newPassword: parsedInput.newPassword,
     });

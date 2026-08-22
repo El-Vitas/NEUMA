@@ -12,15 +12,19 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
 import { Action, Resource } from '../../common/constants/permission.constants';
+import { canRenameUser } from '../../common/domain/workspace.domain';
 import { Permissions } from '../../common/infrastructure/decorators/permissions.decorator';
 import { Public } from '../../common/infrastructure/decorators/public.decorator';
 import { User as AuthUser } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { PermissionsGuard } from '../../common/infrastructure/guards/permissions.guard';
 import { UserInterceptor } from '../../common/infrastructure/interceptors/user.interceptor';
+import type { TokenPayload } from '../../common/types/auth.types';
+import { UserAccessDeniedError } from './domain/user.error';
 import { CreateUserDto } from './dto/user.create.dto';
 import { ListUsersDto } from './dto/user.list.dto';
 import { UpdatePasswordDto, UpdateUserDto } from './dto/user.update.dto';
@@ -48,6 +52,7 @@ export class UsersController {
   @HttpCode(HTTP_STATUS_CREATED)
   @Post()
   @Public()
+  @UseGuards(ThrottlerGuard)
   async register(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<AuthSession> {
     const result = await this.usersService.createUser(dto);
     if (result.isFail()) {
@@ -63,14 +68,31 @@ export class UsersController {
   async updateProfile(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
+    @AuthUser('payload') payload: TokenPayload,
   ): Promise<{ id: string; email: string; name: string }> {
+    if (!canRenameUser(payload.role, id, payload.sub)) {
+      throw new UserAccessDeniedError();
+    }
     return this.usersService.updateUser(id, dto);
   }
 
+  /**
+   * A password is changed by the person who knows it and nobody else, so the
+   * account is the session's own. Taking the account from the address would
+   * also hand out an oracle: anybody could try a password against any account
+   * and read the answer in the status code.
+   */
   @Patch(':id/password')
   @UseGuards(JwtAuthGuard)
   @HttpCode(204)
-  async changePassword(@Param('id') id: string, @Body() dto: UpdatePasswordDto): Promise<void> {
+  async changePassword(
+    @Param('id') id: string,
+    @Body() dto: UpdatePasswordDto,
+    @AuthUser('payload') payload: TokenPayload,
+  ): Promise<void> {
+    if (id !== payload.sub) {
+      throw new UserAccessDeniedError();
+    }
     await this.usersService.updatePassword(id, dto);
   }
 }

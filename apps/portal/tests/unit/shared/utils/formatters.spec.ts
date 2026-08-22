@@ -1,15 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { formatCurrency, formatDate } from '@/shared/utils/formatters';
-
-describe('formatCurrency', () => {
-  it('formats CLP without decimals and thousands separator', () => {
-    expect(formatCurrency(1500, 'es-CL')).toContain('1.500');
-  });
-
-  it('formats zero', () => {
-    expect(formatCurrency(0, 'en-US')).toContain('0');
-  });
-});
+import { formatDate } from '@/shared/utils/formatters';
 
 describe('formatDate', () => {
   it('formats a date-only string using the requested locale', () => {

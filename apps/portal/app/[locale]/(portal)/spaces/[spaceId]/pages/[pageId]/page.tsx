@@ -1,12 +1,11 @@
 import type { PageCollectionReference, Result } from '@company-brain/shared';
-import { extractPageCollectionReferences, USER_ROLE } from '@company-brain/shared';
+import { canEditContent, canManageWorkspace, extractPageCollectionReferences, USER_ROLE } from '@company-brain/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { PagesCollectionEmbed } from '@/modules/pages/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/components/pages.collection.section';
@@ -26,9 +25,9 @@ import type {
 } from '@/modules/pages/types/pages.schema.types';
 import type { PagesSidePanelBundle } from '@/modules/pages/types/pages.side-panel.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
-import { canEditContent, canManageWorkspace } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import type { FavoritePage } from '@/shared/types/favorites.types';
 
 interface IProps {
@@ -176,20 +175,27 @@ const buildPageEditorBundle = async (
   canEditRole: boolean,
   favoritesResult: Result<readonly FavoritePage[], Error>,
 ): Promise<PagesSidePanelBundle> => {
-  const [attachmentsResult, backlinksResult, ownSchemaResult] = await Promise.all([
+  /**
+   * Two rounds, not five.
+   *
+   * Only one thing here waits on another — who can be named depends on what the
+   * parent's schema asks for — so everything else is asked for at once. They all
+   * knock on the same backend, and any of them failing already took the whole
+   * page down before, so waiting together costs nothing that waiting in turn
+   * did not.
+   */
+  const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
     getPageBacklinks(targetPage.id),
     getPageSchema(spaceId, targetPage.id),
+    resolveParentSchema(spaceId, targetPage.parentId),
   ]);
-  const parentSchema = await resolveParentSchema(spaceId, targetPage.parentId);
-  const personOptions = await resolvePersonOptionsIfNeeded(
-    spaceId,
-    parentSchema,
-    canEditPage(canEditRole, targetPage.lifecycle),
-  );
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
-  const collectionSection = await buildCollectionSection(ownSchema, spaceId, targetPage.id);
-  const embeddedCollections = await buildEmbeddedCollections(targetPage, pages);
+  const [personOptions, collectionSection, embeddedCollections] = await Promise.all([
+    resolvePersonOptionsIfNeeded(spaceId, parentSchema, canEditPage(canEditRole, targetPage.lifecycle)),
+    buildCollectionSection(ownSchema, spaceId, targetPage.id),
+    buildEmbeddedCollections(targetPage, pages),
+  ]);
 
   return {
     attachments: attachmentsResult.isOk() ? attachmentsResult.getValue() : [],

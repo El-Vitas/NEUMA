@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import { canEditContent, type UserRole } from '@company-brain/shared';
 import { ListChecks } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -8,8 +8,7 @@ import { useMemo, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { PagesDuplicateChildrenDialog } from '@/modules/pages/components/pages.duplicate.children.dialog';
-import { PagesExportScopeDialog } from '@/modules/pages/components/pages.export.scope.dialog';
+import { PagesChildrenQuestionDialog } from '@/modules/pages/components/pages.children.question.dialog';
 import { PagesTrashConfirmDialog } from '@/modules/pages/components/pages.trash.confirm.dialog';
 import { usePagesExport } from '@/modules/pages/hooks/use.pages.export';
 import { resolvePageRestoreNotice } from '@/modules/pages/lib/pages.trash.lib';
@@ -24,7 +23,6 @@ import {
 import { summarizePortalSidebarSelectionOutcome } from '@/modules/portal/lib/portal.sidebar.selection.lib';
 import type { PortalPageBatchOutcome } from '@/modules/portal/types/portal.sidebar.selection.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
-import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useSidebarPageDrag } from '@/shared/hooks/use.sidebar-page-drag.hook';
@@ -297,7 +295,8 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
         />
       )}
       {pageToExport !== null && (
-        <PagesExportScopeDialog
+        <PagesChildrenQuestionDialog
+          namespace="pages.export"
           onClose={() => setPageToExport(null)}
           onConfirm={(includeChildren) => exportPage(pageToExport, includeChildren)}
           open
@@ -305,7 +304,8 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
         />
       )}
       {pageToDuplicate !== null && (
-        <PagesDuplicateChildrenDialog
+        <PagesChildrenQuestionDialog
+          namespace="pages.duplicate"
           onClose={() => setPageToDuplicate(null)}
           onConfirm={(includeChildren) => duplicatePage(pageToDuplicate, includeChildren)}
           open

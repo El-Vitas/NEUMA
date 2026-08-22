@@ -1,8 +1,7 @@
-import { USER_ROLE } from '@company-brain/shared';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
-import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
+import { canEditContent, USER_ROLE } from '@company-brain/shared';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { SpacesView } from '@/modules/spaces/views/spaces.view';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
 const SpacesPage = async () => {
   const [spacesResult, user] = await Promise.all([getSpaces(), getCurrentUser()]);

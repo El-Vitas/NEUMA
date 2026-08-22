@@ -19,7 +19,7 @@ export const createPageButtonCollectionCommand =
   (at: number, pageId: string, spaceId: string): Command =>
   (state, dispatch) => {
     const node = state.doc.nodeAt(at);
-    if (node === null || node.type.name !== PAGE_EDITOR_BUTTON_TYPE) return false;
+    if (node?.type.name !== PAGE_EDITOR_BUTTON_TYPE) return false;
     if (dispatch === undefined) return true;
     const written = state.tr.setNodeAttribute(at, 'pageId', pageId);
     dispatch(written.setNodeAttribute(at, 'spaceId', spaceId).setNodeAttribute(at, 'deed', 'row'));
@@ -29,7 +29,7 @@ export const createPageButtonCollectionCommand =
 /** The button that was pressed, and everything it takes to do what it says. */
 export const readThePressedButton = (state: EditorState, at: number): PageButtonPressed | null => {
   const node = state.doc.nodeAt(at);
-  if (node === null || node.type.name !== PAGE_EDITOR_BUTTON_TYPE) return null;
+  if (node?.type.name !== PAGE_EDITOR_BUTTON_TYPE) return null;
   return {
     at,
     content: node.content,

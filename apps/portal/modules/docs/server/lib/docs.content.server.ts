@@ -1,7 +1,12 @@
 import 'server-only';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DOCS_CONTENT_FOLDER, DOCS_FALLBACK_LOCALE, DOCS_FILE_SUFFIX } from '../../constants/docs.reading.constants';
+import {
+  DOCS_CONTENT_FOLDER,
+  DOCS_FALLBACK_LOCALE,
+  DOCS_FILE_SUFFIX,
+  DOCS_SLUG_SHAPE,
+} from '../../constants/docs.reading.constants';
 import { readDocsFrontMatter, readDocsMarkdown } from '../../lib/docs.front-matter.lib';
 import type { DocsDocument, DocsEntry } from '../../types/docs.types';
 
@@ -45,6 +50,7 @@ export const readDocsEntries = async (locale: string): Promise<readonly DocsEntr
 
 /** One document, read in the language asked for and otherwise in the one it was written in. */
 export const readDocsDocument = async (locale: string, slug: string): Promise<DocsDocument | null> => {
+  if (!DOCS_SLUG_SHAPE.test(slug)) return null;
   const file = (await readWritten(locale, slug)) ?? (await readWritten(DOCS_FALLBACK_LOCALE, slug));
   if (file === null) return null;
   return { ...readDocsFrontMatter(file), markdown: readDocsMarkdown(file), slug };

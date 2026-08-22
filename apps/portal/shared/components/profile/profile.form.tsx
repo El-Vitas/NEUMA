@@ -38,7 +38,7 @@ export const ProfileForm = ({ user }: IProps) => {
   }
 
   const handleUpdateName = async () => {
-    const result = await updateProfileNameAction({ userId: user.id, name });
+    const result = await updateProfileNameAction({ name });
     if (result?.serverError) {
       toast.error(t('nameUpdateError'));
     } else {
@@ -48,7 +48,7 @@ export const ProfileForm = ({ user }: IProps) => {
   };
 
   const handleUpdatePassword = async () => {
-    const result = await updatePasswordAction({ userId: user.id, currentPassword, newPassword });
+    const result = await updatePasswordAction({ currentPassword, newPassword });
     if (result?.serverError) {
       toast.error(result.serverError);
     } else {

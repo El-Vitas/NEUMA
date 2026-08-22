@@ -27,11 +27,11 @@ export const PagesAttachmentsUpload = ({ onUploaded, pageId }: IProps) => {
     },
     pageId,
   });
-  const isValidationError = error === 'invalid';
-  const isTooLargeError = error === 'tooLarge';
-  const errorMessage = isTooLargeError
-    ? tPanel('fileTooLarge', { limit: formatAttachmentSize(MAX_ATTACHMENT_SIZE, locale) })
-    : t(isValidationError ? 'validationError' : 'uploadError');
+  const refusalKey = error === 'invalid' ? 'validationError' : 'uploadError';
+  const errorMessage =
+    error === 'tooLarge'
+      ? tPanel('fileTooLarge', { limit: formatAttachmentSize(MAX_ATTACHMENT_SIZE, locale) })
+      : t(refusalKey);
 
   return (
     <div className="space-y-2">

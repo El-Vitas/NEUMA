@@ -1,7 +1,6 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {
-  PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES,
   PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS,
   PAGE_EDITOR_DOCUMENT_ASPECT_RATIO,
   PAGE_EDITOR_DOCUMENT_BAR_STYLE_CLASS,
@@ -17,6 +16,7 @@ import {
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorDocumentLabels } from '../types/pages.editor.document.types';
 import { askForTheWholeScreen } from './pages.editor.asking.lib';
+import { framePageBlockAlignment } from './pages.editor.block-frame.lib';
 import { describePageFile, readPageFileShape } from './pages.editor.file.lib';
 import { createPageMarkButton } from './pages.editor.marks.lib';
 import { framePageBlockWidth } from './pages.editor.width.lib';
@@ -105,11 +105,7 @@ const createPageDocumentNodeView = (
   };
 
   const showDocument = (current: EditorNode): void => {
-    figure.className = `${PAGE_EDITOR_DOCUMENT_FIGURE_STYLE_CLASS} ${
-      PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES[String(current.attrs.align)] ?? PAGE_EDITOR_BLOCK_ALIGN_STYLE_CLASSES.left
-    }`;
-    if (typeof current.attrs.align === 'string') figure.dataset.align = current.attrs.align;
-    else figure.removeAttribute('data-align');
+    framePageBlockAlignment(figure, PAGE_EDITOR_DOCUMENT_FIGURE_STYLE_CLASS, current.attrs.align);
     if (typeof current.attrs.width === 'number') showWidth(current.attrs.width);
     else frame.style.width = PAGE_EDITOR_DOCUMENT_UNSIZED_WIDTH;
   };

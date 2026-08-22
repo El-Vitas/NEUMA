@@ -33,7 +33,7 @@ export const createPageCalloutNodeView = (node: EditorNode): NodeView => {
     mark.textContent = glyph ?? '';
     mark.toggleAttribute('hidden', glyph === null);
     if (typeof kind === 'string' && glyph !== null) callout.dataset.icon = kind;
-    else callout.removeAttribute('data-icon');
+    else delete callout.dataset.icon;
   };
 
   callout.className = PAGE_EDITOR_CALLOUT_CLASS;

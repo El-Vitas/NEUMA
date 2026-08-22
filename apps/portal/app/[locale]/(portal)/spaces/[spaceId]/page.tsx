@@ -1,14 +1,13 @@
-import { PAGE_LIFECYCLE, USER_ROLE } from '@company-brain/shared';
+import { canEditContent, PAGE_LIFECYCLE, USER_ROLE } from '@company-brain/shared';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { PagesView } from '@/modules/pages/views/pages.view';
 import { SpacesEmptyState } from '@/modules/spaces/components/spaces.empty.state';
-import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import type { SpaceHomeActivity, SpaceHomePage } from '@/modules/spaces/types/spaces.home.types';
 import { SpacesHomeView } from '@/modules/spaces/views/spaces.home.view';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
 interface IProps {
   readonly params: Promise<{ spaceId: string }>;
@@ -35,8 +34,7 @@ const toSpaceHomeActivity = (page: PageSummary): SpaceHomeActivity => ({
 
 export default async function Page({ params }: IProps) {
   const { spaceId } = await params;
-  const [spacesResult, user] = await Promise.all([getSpaces(), getCurrentUser()]);
-  const t = await getTranslations('pages');
+  const [spacesResult, user, t] = await Promise.all([getSpaces(), getCurrentUser(), getTranslations('pages')]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const pagesResult = space === undefined ? null : await getPages(spaceId);
   const pages = pagesResult?.isOk() ? pagesResult.getValue() : null;
