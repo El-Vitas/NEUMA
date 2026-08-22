@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesEditorShortcutsDialog } from '@/modules/pages/components/pages.editor.shortcuts.dialog';
-import { PAGE_EDITOR_SHORTCUTS } from '@/modules/pages/constants/pages.editor.shortcuts.constants';
+import { PagesEditorShortcutsDialog } from '@/modules/pages/editor/menus/components/pages.editor.shortcuts.dialog';
+import { PAGE_EDITOR_SHORTCUTS } from '@/modules/pages/editor/menus/constants/pages.editor.shortcuts.constants';
 import en from '../../../../../messages/en.json';
 
 const renderDialog = (usesCommandKey = false) =>

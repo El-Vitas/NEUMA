@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import {
   findPageEditorPageDropTarget,
   markPageEditorPageDropTarget,
-} from '@/modules/pages/lib/pages.editor.page-drop.lib';
+} from '@/modules/pages/editor/menus/lib/pages.editor.page-drop.lib';
 
 /** A row of the page tree, as the sidebar draws it: the row says which page it stands for. */
 const drawPageRow = (pageId: string): HTMLElement => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import {
   closePageEditorFind,
   findPageEditorClosedTogglePositions,
@@ -12,8 +13,7 @@ import {
   searchPageEditorFind,
   stepPageEditorFindMatch,
   unfoldPageEditorHeadingsHiding,
-} from '@/modules/pages/lib/pages.editor.find.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/menus/lib/pages.editor.find.lib';
 
 const text = (value: string): PageContentNode => ({ text: value, type: 'text' }) as PageContentNode;
 

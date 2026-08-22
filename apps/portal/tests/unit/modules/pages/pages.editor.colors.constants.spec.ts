@@ -4,7 +4,7 @@ import {
   PAGE_EDITOR_BACKGROUND_COLOR_CLASSES,
   PAGE_EDITOR_COLOR_SWATCH_CLASSES,
   PAGE_EDITOR_TEXT_COLOR_CLASSES,
-} from '@/modules/pages/constants/pages.editor.colors.constants';
+} from '@/modules/pages/editor/text/constants/pages.editor.colors.constants';
 
 const findRule = (rules: readonly string[], attribute: string, color: string): string | undefined =>
   rules.find((rule) => rule.includes(`[${attribute}=${color}]`));

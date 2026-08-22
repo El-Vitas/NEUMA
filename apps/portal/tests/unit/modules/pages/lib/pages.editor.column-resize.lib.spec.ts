@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   readPageEditorColumnWidths,
   resizePageEditorColumns,
-} from '@/modules/pages/lib/pages.editor.column-resize.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.column-resize.lib';
 
 describe('sharing the width of a row between its columns', () => {
   it('gives every column an equal share when none has a width of its own', () => {

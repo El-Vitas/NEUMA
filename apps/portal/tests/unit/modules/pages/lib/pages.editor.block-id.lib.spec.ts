@@ -2,10 +2,13 @@ import { describe, expect, it } from 'bun:test';
 import { joinBackward, splitBlock } from 'prosemirror-commands';
 import { inputRules } from 'prosemirror-inputrules';
 import { EditorState, TextSelection } from 'prosemirror-state';
-import { createPageEditorBlockIdPlugin, getPageEditorBlockId } from '@/modules/pages/lib/pages.editor.block-id.lib';
-import { createPageAssetInsertCommand } from '@/modules/pages/lib/pages.editor.commands';
-import { createEmptyPageContent } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import {
+  createPageEditorBlockIdPlugin,
+  getPageEditorBlockId,
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-id.lib';
+import { createPageAssetInsertCommand } from '@/modules/pages/editor/lib/pages.editor.commands';
+import { createEmptyPageContent } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 
 /** The rules a page is written by, which the identities plugin carries the memory of. */
 const writingRules = inputRules({ rules: [] });

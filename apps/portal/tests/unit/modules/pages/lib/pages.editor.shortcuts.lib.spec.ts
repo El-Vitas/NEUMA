@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_EDITOR_SHORTCUTS } from '@/modules/pages/constants/pages.editor.shortcuts.constants';
+import { PAGE_EDITOR_SHORTCUTS } from '@/modules/pages/editor/menus/constants/pages.editor.shortcuts.constants';
 import {
   createPageEditorShortcutBindings,
   readPageEditorShortcutKeys,
-} from '@/modules/pages/lib/pages.editor.shortcuts.lib';
+} from '@/modules/pages/editor/menus/lib/pages.editor.shortcuts.lib';
 import en from '../../../../../messages/en.json';
 import es from '../../../../../messages/es.json';
 

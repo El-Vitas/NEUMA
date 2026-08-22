@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { readPageEditorMenuSpot } from '@/modules/pages/lib/pages.editor.surface.lib';
+import { readPageEditorMenuSpot } from '@/modules/pages/editor/menus/lib/pages.editor.surface.lib';
 
 const surface = { left: 100, top: 50, width: 900 };
 

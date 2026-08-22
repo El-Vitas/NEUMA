@@ -10,9 +10,9 @@ import {
   PAGE_OUTLINE_RAIL_STYLE_CLASS,
   PAGE_OUTLINE_READING_LINE,
   PAGE_OUTLINE_STYLE_CLASS,
-} from '../constants/pages.editor.contents.constants';
+} from '../editor/structure/constants/pages.editor.contents.constants';
+import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
 import { readTheWrittenHeadings, readWhichHeading } from '../lib/pages.outline.lib';
-import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import { PagesOutlineEntry } from './pages.outline.entry';
 
 interface IProps {

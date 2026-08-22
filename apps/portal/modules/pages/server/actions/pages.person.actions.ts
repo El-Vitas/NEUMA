@@ -5,8 +5,8 @@ import 'server-only';
 import { actionClient } from '@/lib/safe-action';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { getSpaceMembers } from '@/shared/server/queries/space-members.queries';
-import { PAGE_PERSON_SEARCH_LIMIT } from '../../constants/pages.editor.person.constants';
-import { keepThePeopleNamed } from '../../lib/pages.editor.person.lib';
+import { PAGE_PERSON_SEARCH_LIMIT } from '../../editor/text/constants/pages.editor.person.constants';
+import { keepThePeopleNamed } from '../../editor/text/lib/pages.editor.person.lib';
 import { personMentionSearchInputSchema } from '../../schemas/pages.person.schemas';
 import type { PagePersonOption } from '../../types/pages.schema.types';
 

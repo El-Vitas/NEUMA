@@ -3,9 +3,9 @@ import { baseKeymap } from 'prosemirror-commands';
 import { splitListItem } from 'prosemirror-schema-list';
 import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { splitPageEditorListPoint } from '@/modules/pages/lib/pages.editor.list.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import { splitPageEditorListPoint } from '@/modules/pages/editor/structure/lib/pages.editor.list.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 
 const listOfOnePoint: PageContent = {

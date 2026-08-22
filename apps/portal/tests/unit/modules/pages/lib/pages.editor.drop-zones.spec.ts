@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   findPageEditorColumnSide,
   isPointerAtPageEditorBlockEdge,
-} from '@/modules/pages/lib/pages.editor.block-columns.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-columns.lib';
 
 const block = { height: 100, left: 200, top: 400, width: 600 };
 

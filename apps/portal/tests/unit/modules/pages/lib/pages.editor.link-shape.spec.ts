@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { EditorState } from 'prosemirror-state';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   createPageBookmarkFromLinkCommand,
   createPageEmbedFromLinkCommand,
   readPastedLinkUrl,
-} from '@/modules/pages/lib/pages.editor.link-shape.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+} from '@/modules/pages/editor/menus/lib/pages.editor.link-shape.lib';
 
 const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 

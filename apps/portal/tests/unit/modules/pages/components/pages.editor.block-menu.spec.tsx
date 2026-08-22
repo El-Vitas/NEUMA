@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesEditorBlockMenu } from '@/modules/pages/components/pages.editor.block-menu';
-import type { PageEditorBlockConversion } from '@/modules/pages/types/pages.editor.convert.types';
+import { PagesEditorBlockMenu } from '@/modules/pages/editor/blocks/components/pages.editor.block-menu';
+import type { PageEditorBlockConversion } from '@/modules/pages/editor/blocks/types/pages.editor.convert.types';
 import es from '../../../../../messages/es.json';
 
 const conversion: PageEditorBlockConversion = { id: 'heading1', labelKey: 'heading1', losesContent: false };

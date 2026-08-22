@@ -2,9 +2,9 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { NodeSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { PAGE_EDITOR_BLOCK_HANDLE_CLASS } from '@/modules/pages/constants/pages.editor.blocks.constants';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorBlockHandleKey } from '@/modules/pages/lib/pages.editor.plugin-keys.lib';
+import { PAGE_EDITOR_BLOCK_HANDLE_CLASS } from '@/modules/pages/editor/blocks/constants/pages.editor.blocks.constants';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorBlockHandleKey } from '@/modules/pages/editor/lib/pages.editor.plugin-keys.lib';
 
 const twoBlockContent: PageContent = {
   content: [

@@ -7,7 +7,7 @@ import {
 import {
   PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
   PAGE_OUTLINE_SIDE_STYLE_CLASS,
-} from '@/modules/pages/constants/pages.editor.contents.constants';
+} from '@/modules/pages/editor/structure/constants/pages.editor.contents.constants';
 import {
   buildPageAppearanceStorageKey,
   getPageAppearanceLayoutStyleClasses,

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { NodeSelection } from 'prosemirror-state';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   buildSyncedBlockContent,
   createPageUnsyncCommand,
   readBorrowedBlock,
   readSyncedTarget,
-} from '@/modules/pages/lib/pages.editor.synced.lib';
+} from '@/modules/pages/editor/structure/lib/pages.editor.synced.lib';
 
 const source: PageContent = {
   content: [

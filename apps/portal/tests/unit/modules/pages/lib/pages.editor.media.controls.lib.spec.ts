@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { createPageMediaControls } from '@/modules/pages/lib/pages.editor.media.controls.lib';
-import type { PageEditorMediaLabels } from '@/modules/pages/types/pages.editor.media.types';
+import { createPageMediaControls } from '@/modules/pages/editor/media/lib/pages.editor.media.controls.lib';
+import type { PageEditorMediaLabels } from '@/modules/pages/editor/media/types/pages.editor.media.types';
 
 const LABELS: PageEditorMediaLabels = {
   fullScreen: 'Full screen',

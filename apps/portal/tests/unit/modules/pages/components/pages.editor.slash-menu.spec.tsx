@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesEditorSlashMenu } from '@/modules/pages/components/pages.editor.slash-menu';
-import { buildSlashMenuOptionId } from '@/modules/pages/lib/pages.editor.slash-menu.lib';
-import type { PagesEditorMenuItem } from '@/modules/pages/types/pages.editor.slash-menu.types';
+import { PagesEditorSlashMenu } from '@/modules/pages/editor/menus/components/pages.editor.slash-menu';
+import { buildSlashMenuOptionId } from '@/modules/pages/editor/menus/lib/pages.editor.slash-menu.lib';
+import type { PagesEditorMenuItem } from '@/modules/pages/editor/menus/types/pages.editor.slash-menu.types';
 import es from '../../../../../messages/es.json';
 
 const runCommand = () => true;

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageBlockComment, PageContent, PageContentNode } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
-import { readPageEditorBlockRequest } from '@/modules/pages/lib/pages.editor.block-menu.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { readPageEditorBlockRequest } from '@/modules/pages/editor/blocks/lib/pages.editor.block-menu.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const remark = (id: string): PageBlockComment => ({
   author: 'Admin User',

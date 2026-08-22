@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { createPageEditorNodeViews } from '@/modules/pages/lib/pages.editor.node-views.lib';
+import { createPageEditorNodeViews } from '@/modules/pages/editor/blocks/lib/pages.editor.node-views.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const toggleContent = (open?: boolean): PageContent => ({
   content: [

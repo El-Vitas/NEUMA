@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { TextSelection } from 'prosemirror-state';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 
 const paragraphWithBrokenLine: PageContent = {

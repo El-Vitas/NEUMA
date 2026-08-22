@@ -10,13 +10,13 @@ import {
   EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   EMPTY_PAGE_PERSON_OPTIONS,
 } from '../constants/pages.constants';
+import { PagesEditor } from '../editor/components/pages.editor';
 import { buildPageTree, canEditPage, getPageTreeExpandedIds } from '../lib/pages.lib';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
 import type { PagePersonOption, PageSchema } from '../types/pages.schema.types';
 import type { PagesSidePanelBundle } from '../types/pages.side-panel.types';
 import type { PageSummary } from '../types/pages.types';
-import { PagesEditor } from './pages.editor';
 import { PagesSidePanel } from './pages.side-panel';
 
 interface IProps {

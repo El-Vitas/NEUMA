@@ -9,8 +9,8 @@ import {
   readPageEditorBlockLinkTarget,
   revealPageEditorBlock,
   watchForPageEditorBlock,
-} from '@/modules/pages/lib/pages.editor.block-link.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-link.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string, id?: string): PageContentNode => ({
   attrs: id === undefined ? {} : { id },

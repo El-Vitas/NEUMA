@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { showsPageFileInPlace } from '@/modules/pages/lib/pages.editor.file.lib';
+import { showsPageFileInPlace } from '@/modules/pages/editor/media/lib/pages.editor.file.lib';
 
 describe('which files a page shows where they stand', () => {
   it('shows a document', () => {

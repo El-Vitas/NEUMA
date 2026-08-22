@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import {
   PAGE_EDITOR_EMOJI_MENU_LIMIT,
   PAGE_EDITOR_EMOJI_TRIGGER,
-} from '@/modules/pages/constants/pages.editor.emoji.constants';
+} from '@/modules/pages/editor/text/constants/pages.editor.emoji.constants';
 import {
   askForEmoji,
   buildEmojiTriggerItems,
   createEmojiInsertCommand,
   findEmojiCandidates,
-} from '@/modules/pages/lib/pages.editor.emoji.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/text/lib/pages.editor.emoji.lib';
 
 const emptyPage: PageContent = {
   content: [{ content: [], type: 'paragraph' }],

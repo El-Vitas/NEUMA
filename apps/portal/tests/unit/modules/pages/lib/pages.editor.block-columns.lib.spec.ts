@@ -8,9 +8,12 @@ import {
   canSplitPageEditorBlockIntoColumns,
   createPageEditorColumnDropCommand,
   findPageEditorColumnSide,
-} from '@/modules/pages/lib/pages.editor.block-columns.lib';
-import { acceptsSiblingBlocks, findBlockStartAt } from '@/modules/pages/lib/pages.editor.block-target.lib';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-columns.lib';
+import {
+  acceptsSiblingBlocks,
+  findBlockStartAt,
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-target.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({ content: [{ text, type: 'text' }], type: 'paragraph' });
 

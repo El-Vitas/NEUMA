@@ -2,9 +2,9 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import type { EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
-import { createPageTableCommand } from '@/modules/pages/lib/pages.editor.table.lib';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import { createPageTableCommand } from '@/modules/pages/editor/structure/lib/pages.editor.table.lib';
 
 const cell = (text: string, type = 'table_cell'): Record<string, unknown> => ({
   content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],

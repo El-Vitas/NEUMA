@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { createEmptyPageContent } from '@/modules/pages/lib/pages.editor.lib';
+import { createEmptyPageContent } from '@/modules/pages/editor/lib/pages.editor.lib';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
 
@@ -77,7 +77,7 @@ mock.module('@/modules/pages/server/actions/pages.attachments.actions', () => ({
   }),
 }));
 
-const { PagesEditor } = await import('@/modules/pages/components/pages.editor');
+const { PagesEditor } = await import('@/modules/pages/editor/components/pages.editor');
 
 const SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const PAGE_ID = '22222222-2222-4222-8222-222222222222';

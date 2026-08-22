@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { EditorState, NodeSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { createPageAssetInsertCommand } from '@/modules/pages/lib/pages.editor.commands';
-import { createPageFileDisplayCommand, readPageFileDisplay } from '@/modules/pages/lib/pages.editor.file.display.lib';
-import { createPageFileNodeView } from '@/modules/pages/lib/pages.editor.file.node-view.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { createPageAssetInsertCommand } from '@/modules/pages/editor/lib/pages.editor.commands';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import {
+  createPageFileDisplayCommand,
+  readPageFileDisplay,
+} from '@/modules/pages/editor/media/lib/pages.editor.file.display.lib';
+import { createPageFileNodeView } from '@/modules/pages/editor/media/lib/pages.editor.file.node-view.lib';
 
 const pageHolding = (attrs: Record<string, unknown>): EditorState => {
   const state = EditorState.create({

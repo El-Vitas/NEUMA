@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
-import { createPageEditorState, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   createPageSubpageInsertCommand,
   readPageLifecycleFrom,
   readPageTitleFrom,
-} from '@/modules/pages/lib/pages.editor.subpage.lib';
+} from '@/modules/pages/editor/structure/lib/pages.editor.subpage.lib';
 
 const emptyPage: PageContent = {
   content: [{ content: [], type: 'paragraph' }],

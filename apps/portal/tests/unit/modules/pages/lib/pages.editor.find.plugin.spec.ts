@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
-import { pageEditorFindKey } from '@/modules/pages/lib/pages.editor.find.lib';
-import { createPageEditorFindPlugin } from '@/modules/pages/lib/pages.editor.find.plugin.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorFindKey } from '@/modules/pages/editor/menus/lib/pages.editor.find.lib';
+import { createPageEditorFindPlugin } from '@/modules/pages/editor/menus/lib/pages.editor.find.plugin.lib';
 
 const paragraph = (value: string): PageContentNode =>
   ({ content: [{ text: value, type: 'text' }], type: 'paragraph' }) as PageContentNode;

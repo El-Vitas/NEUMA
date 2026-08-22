@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { nestPageEditorListItem, unnestPageEditorListItem } from '@/modules/pages/lib/pages.editor.list.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import {
+  nestPageEditorListItem,
+  unnestPageEditorListItem,
+} from '@/modules/pages/editor/structure/lib/pages.editor.list.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 
 const point = (text: string): Record<string, unknown> => ({

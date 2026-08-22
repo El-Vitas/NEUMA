@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { EditorState, TextSelection } from 'prosemirror-state';
-import { PAGE_EDITOR_MAX_CONVERTIBLE_PASTE_LENGTH } from '@/modules/pages/constants/pages.editor.paste.constants';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import { PAGE_EDITOR_MAX_CONVERTIBLE_PASTE_LENGTH } from '@/modules/pages/editor/text/constants/pages.editor.paste.constants';
 import {
   buildPageEditorPlainTextParagraphs,
   decidePageEditorPaste,
   dispatchPageEditorLinkOverSelection,
   dispatchPageEditorMarkdownBlocks,
   dispatchPageEditorPlainTextPaste,
-} from '@/modules/pages/lib/pages.editor.paste.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
-import type { PageEditorPasteTarget } from '@/modules/pages/types/pages.editor.paste.types';
+} from '@/modules/pages/editor/text/lib/pages.editor.paste.lib';
+import type { PageEditorPasteTarget } from '@/modules/pages/editor/text/types/pages.editor.paste.types';
 
 const pageSaying = (text: string): EditorState =>
   EditorState.create({

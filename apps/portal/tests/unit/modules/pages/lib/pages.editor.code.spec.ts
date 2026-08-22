@@ -2,8 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import type { EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
-import { indentPageEditorCode, outdentPageEditorCode } from '@/modules/pages/lib/pages.editor.code.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import {
+  indentPageEditorCode,
+  outdentPageEditorCode,
+} from '@/modules/pages/editor/structure/lib/pages.editor.code.lib';
 
 const codePage = (code: string): PageContent =>
   ({

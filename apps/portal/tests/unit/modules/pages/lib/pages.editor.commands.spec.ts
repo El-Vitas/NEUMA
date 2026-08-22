@@ -2,15 +2,15 @@ import { describe, expect, it } from 'bun:test';
 import { pageContentSchema } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
 import { EditorState } from 'prosemirror-state';
-import { DEFAULT_PAGE_TOGGLE_SUMMARY } from '@/modules/pages/constants/pages.editor.constants';
+import { DEFAULT_PAGE_TOGGLE_SUMMARY } from '@/modules/pages/editor/constants/pages.editor.constants';
 import {
   createPageAssetInsertCommand,
   createPageEditorCommands,
   createPageEmbedInsertCommand,
   createPageMentionInsertCommand,
-} from '@/modules/pages/lib/pages.editor.commands';
-import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+} from '@/modules/pages/editor/lib/pages.editor.commands';
+import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 
 const createEditorState = (): EditorState =>
   EditorState.create({

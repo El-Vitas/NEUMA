@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
-import { PAGE_EDITOR_HEADING_ATTRIBUTE } from '@/modules/pages/constants/pages.editor.contents.constants';
-import { followThePageHeadings, readPageHeadings } from '@/modules/pages/lib/pages.editor.contents.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { PAGE_EDITOR_HEADING_ATTRIBUTE } from '@/modules/pages/editor/structure/constants/pages.editor.contents.constants';
+import {
+  followThePageHeadings,
+  readPageHeadings,
+} from '@/modules/pages/editor/structure/lib/pages.editor.contents.lib';
+import type { PageEditorHeading } from '@/modules/pages/editor/structure/types/pages.editor.contents.types';
 import {
   readPageOutlineRailMarkWidthStyleClass,
   readTheWrittenHeadings,
   readWhichHeading,
 } from '@/modules/pages/lib/pages.outline.lib';
-import type { PageEditorHeading } from '@/modules/pages/types/pages.editor.contents.types';
 
 const pageWithHeadings = (...titles: readonly string[]): PageContent => ({
   content: titles.map((title, level) => ({

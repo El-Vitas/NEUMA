@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { PagesEditorFindPanel } from '@/modules/pages/components/pages.editor.find.panel';
+import { PagesEditorFindPanel } from '@/modules/pages/editor/menus/components/pages.editor.find.panel';
 import en from '../../../../../messages/en.json';
 
 interface IPanelOverrides {

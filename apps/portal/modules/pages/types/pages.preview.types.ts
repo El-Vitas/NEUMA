@@ -1,4 +1,4 @@
-import type { PageEditorSpot } from './pages.editor.surface.types';
+import type { PageEditorSpot } from '../editor/menus/types/pages.editor.surface.types';
 import type { PageIcon } from './pages.icon.types';
 
 /** Which page a mention or an internal link points at. */

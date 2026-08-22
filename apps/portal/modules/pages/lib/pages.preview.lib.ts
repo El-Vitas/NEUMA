@@ -12,7 +12,7 @@ import {
   PAGE_PREVIEW_NEW_PAGE_SEGMENT,
   PAGE_PREVIEW_WHITESPACE,
 } from '../constants/pages.preview.constants';
-import type { PageEditorSpot, PageEditorSurfaceRect } from '../types/pages.editor.surface.types';
+import type { PageEditorSpot, PageEditorSurfaceRect } from '../editor/menus/types/pages.editor.surface.types';
 import type { PagePreviewLinkMatch, PagePreviewProperty, PagePreviewTarget } from '../types/pages.preview.types';
 import type { PagePropertyValues, PageSchema } from '../types/pages.schema.types';
 import type { PageContent } from '../types/pages.types';

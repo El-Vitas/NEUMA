@@ -4,7 +4,7 @@ import {
   keepPageDiagramZoomWithinReach,
   readPageDiagramDrawnWidth,
   readPageDiagramView,
-} from '@/modules/pages/lib/pages.editor.diagram.lib';
+} from '@/modules/pages/editor/media/lib/pages.editor.diagram.lib';
 
 describe('which code blocks are drawings', () => {
   it('is the one written in the language of diagrams', () => {

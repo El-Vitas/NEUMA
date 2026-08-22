@@ -2,14 +2,14 @@ import { describe, expect, it } from 'bun:test';
 import { pageContentSchema } from '@company-brain/shared';
 import type { Command } from 'prosemirror-state';
 import { EditorState } from 'prosemirror-state';
-import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   askForAPerson,
   createPagePersonInsertCommand,
   createPagePersonNodeView,
   keepThePeopleNamed,
-} from '@/modules/pages/lib/pages.editor.person.lib';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+} from '@/modules/pages/editor/text/lib/pages.editor.person.lib';
 import type { PagePersonOption } from '@/modules/pages/types/pages.schema.types';
 
 const createEditorState = (): EditorState =>

@@ -12,6 +12,7 @@ import { withAction } from '@/shared/lib/with-action.lib';
 import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
+import type { PageDestination } from '../../editor/menus/types/pages.editor.destination.types';
 import {
   pageBlocksHandoverSchema,
   pageDestinationsSchema,
@@ -28,7 +29,6 @@ import {
   pagesListSchema,
 } from '../../schemas/pages.schemas';
 import { trashRestoreOutcomeSchema } from '../../schemas/pages.trash.schemas';
-import type { PageDestination } from '../../types/pages.editor.destination.types';
 import type { PageMoveDestinations } from '../../types/pages.move.types';
 import type { TrashRestoreOutcome } from '../../types/pages.trash.types';
 

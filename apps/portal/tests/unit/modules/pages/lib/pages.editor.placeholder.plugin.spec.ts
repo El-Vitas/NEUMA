@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { TextSelection } from 'prosemirror-state';
 import { DecorationSet } from 'prosemirror-view';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { createPageEditorPlaceholderPlugin } from '@/modules/pages/lib/pages.editor.placeholder.plugin.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { createPageEditorPlaceholderPlugin } from '@/modules/pages/editor/lib/pages.editor.placeholder.plugin.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 
 const buildState = (content: PageContent) => createPageEditorState(content, 'Select block');

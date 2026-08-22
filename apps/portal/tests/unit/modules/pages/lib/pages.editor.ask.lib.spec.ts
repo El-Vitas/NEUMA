@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { EditorView } from 'prosemirror-view';
-import { createPageEditorAskCommand } from '@/modules/pages/lib/pages.editor.ask.lib';
-import { createEmptyPageContent, createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageEditorAskCommand } from '@/modules/pages/editor/lib/pages.editor.ask.lib';
+import { createEmptyPageContent, createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const DOOR_SELECTOR = '[data-page-ask-test]';
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
+import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
 import type { AttachmentSummary } from '../types/pages.attachments.types';
 import type { PageBacklinksResult } from '../types/pages.backlinks.types';
-import type { PageEditorHeading } from '../types/pages.editor.contents.types';
 import type { PageInfoMetadata } from '../types/pages.info.types';
 import type { PagePersonOption } from '../types/pages.schema.types';
 import type { PageSummary } from '../types/pages.types';

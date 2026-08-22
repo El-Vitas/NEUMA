@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { isTheWritingStillInHand } from '@/modules/pages/lib/pages.editor.attention.lib';
+import { isTheWritingStillInHand } from '@/modules/pages/editor/lib/pages.editor.attention.lib';
 
 const buildSurface = (): HTMLElement => {
   const surface = document.createElement('div');

@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { PAGE_EDITOR_MENTION_CREATION_ITEM_ID } from '@/modules/pages/constants/pages.editor.blocks.constants';
-import { pageEditorSchema } from '@/modules/pages/lib/pages.editor.schema';
+import { PAGE_EDITOR_MENTION_CREATION_ITEM_ID } from '@/modules/pages/editor/blocks/constants/pages.editor.blocks.constants';
+import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {
   buildEditorTriggerItems,
   buildSlashMenuOptionId,
@@ -10,8 +10,8 @@ import {
   getSlashMenuQuery,
   handleSlashMenuKeyDown,
   resolveEditorTrigger,
-} from '@/modules/pages/lib/pages.editor.slash-menu.lib';
-import type { PageEditorDayOffer } from '@/modules/pages/types/pages.editor.date.types';
+} from '@/modules/pages/editor/menus/lib/pages.editor.slash-menu.lib';
+import type { PageEditorDayOffer } from '@/modules/pages/editor/text/types/pages.editor.date.types';
 
 describe('getSlashMenuQuery', () => {
   it('extracts the query right after a slash at the very start of the block', () => {

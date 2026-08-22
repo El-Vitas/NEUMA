@@ -2,8 +2,8 @@ import {
   PAGE_EDITOR_HEADING_ATTRIBUTE,
   PAGE_OUTLINE_RAIL_MARK_FALLBACK_WIDTH_STYLE_CLASS,
   PAGE_OUTLINE_RAIL_MARK_WIDTH_STYLE_CLASS_BY_LEVEL,
-} from '../constants/pages.editor.contents.constants';
-import type { PageEditorHeading } from '../types/pages.editor.contents.types';
+} from '../editor/structure/constants/pages.editor.contents.constants';
+import type { PageEditorHeading } from '../editor/structure/types/pages.editor.contents.types';
 
 /**
  * Each listed heading as it stands in the writing, in the order it is listed.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { EditorView } from 'prosemirror-view';
-import { createPageEditorDragGhost } from '@/modules/pages/lib/pages.editor.block-drag.ghost.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+import { createPageEditorDragGhost } from '@/modules/pages/editor/blocks/lib/pages.editor.block-drag.ghost.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const pageWithATable: PageContent = {
   content: [

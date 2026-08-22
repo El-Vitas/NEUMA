@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import { type EditorState, TextSelection } from 'prosemirror-state';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
 import {
   indentPageEditorBlock,
   outdentPageEditorBlock,
   splitOutOfNestedBlock,
-} from '@/modules/pages/lib/pages.editor.nesting.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.nesting.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const paragraph = (text: string): PageContentNode => ({
   content: [{ text, type: 'text' }],

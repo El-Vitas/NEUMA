@@ -5,13 +5,13 @@ import { EditorView } from 'prosemirror-view';
 import {
   createPageEditorBlockCommentCommand,
   createPageEditorBlockCommentRemovalCommand,
-} from '@/modules/pages/lib/pages.editor.block-comment.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-comment.lib';
 import {
   openPageEditorBlockRequest,
   openPageEditorFragmentComments,
   readPageEditorBlockRequest,
-} from '@/modules/pages/lib/pages.editor.block-menu.lib';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-menu.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
 const remark = (id: string): PageBlockComment => ({
   author: 'Admin User',

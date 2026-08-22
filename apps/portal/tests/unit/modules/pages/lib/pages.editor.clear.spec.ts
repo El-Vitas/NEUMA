@@ -2,8 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent } from '@company-brain/shared';
 import { baseKeymap } from 'prosemirror-commands';
 import type { Command, EditorState } from 'prosemirror-state';
-import { createPageEditorState } from '@/modules/pages/lib/pages.editor.lib';
-import { selectBlockThenDocument } from '@/modules/pages/lib/pages.editor.selection.lib';
+import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
+import { selectBlockThenDocument } from '@/modules/pages/editor/text/lib/pages.editor.selection.lib';
 
 const pageHoldingOnlyARow: PageContent = {
   content: [

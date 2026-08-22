@@ -6,7 +6,7 @@ import {
   isPageEditorReadOnly,
   readWhatThePageCanKeep,
   serializePageEditorState,
-} from '@/modules/pages/lib/pages.editor.lib';
+} from '@/modules/pages/editor/lib/pages.editor.lib';
 import type { PageContent } from '@/modules/pages/types/pages.types';
 import { structuredEmbedNodeFixture, structuredToggleNodeFixture } from './pages.content.fixture';
 
