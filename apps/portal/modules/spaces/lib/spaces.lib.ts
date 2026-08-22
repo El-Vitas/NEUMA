@@ -1,11 +1,6 @@
-import { type SpaceVisibility, type UserRole, WORKSPACE_CAPABILITY_BY_ROLE } from '@company-brain/shared';
+import type { SpaceVisibility } from '@company-brain/shared';
 import type { ZodString } from 'zod';
 import type { BadgeVariant, SpaceFieldErrorCode } from '../types/spaces.types';
-
-export const canEditContent = (role: UserRole): boolean => WORKSPACE_CAPABILITY_BY_ROLE[role] !== 'viewer';
-
-/** Who runs the workspace, and so may see what is kept about the people in it. */
-export const canManageWorkspace = (role: UserRole): boolean => WORKSPACE_CAPABILITY_BY_ROLE[role] === 'admin';
 
 export const getSpaceVisibilityLabel = (visibility: SpaceVisibility): string =>
   visibility === 'RESTRICTED' ? 'Restringido' : 'Visible para empleados';

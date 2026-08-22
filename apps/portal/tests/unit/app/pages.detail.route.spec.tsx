@@ -54,7 +54,7 @@ mock.module('@/i18n/navigation', () => ({
   /** The route sends an address that lost its page to wherever the page went. */
   redirect: () => undefined,
 }));
-mock.module('@/modules/auth/server/lib/get.current.user.server', () => ({ getCurrentUser: currentUser }));
+mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
   getFavoritePages: async () => ({ getValue: () => [], isOk: () => true }),
 }));

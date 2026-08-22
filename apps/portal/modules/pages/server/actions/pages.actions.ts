@@ -9,6 +9,7 @@ import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
 import {
@@ -30,9 +31,6 @@ import { trashRestoreOutcomeSchema } from '../../schemas/pages.trash.schemas';
 import type { PageDestination } from '../../types/pages.editor.destination.types';
 import type { PageMoveDestinations } from '../../types/pages.move.types';
 import type { TrashRestoreOutcome } from '../../types/pages.trash.types';
-import { authenticatedRequest } from '../lib/pages.request.server';
-
-export { authenticatedRequest };
 
 export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))

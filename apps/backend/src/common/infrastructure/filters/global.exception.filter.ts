@@ -1,8 +1,6 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { Logger } from 'nestjs-pino';
-import { NODE_ENV_KEY } from '../../constants/env.constants';
 import { INTERNAL_ERROR_CODE, INTERNAL_ERROR_MESSAGE } from '../../constants/error.constants';
 import { HTTP_STATUS_CODE_MAP } from '../../constants/http.status.constants';
 import { DomainError } from '../../domain/domain.error';
@@ -11,14 +9,7 @@ import type { Envelope, EnvelopeBody } from '../../types/http.exception.types';
 @Catch()
 @Injectable()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly isProduction: boolean;
-
-  constructor(
-    private readonly logger: Logger,
-    configService: ConfigService,
-  ) {
-    this.isProduction = configService.get<string>(NODE_ENV_KEY) === 'production';
-  }
+  constructor(private readonly logger: Logger) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -27,9 +18,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const envelope = this.buildEnvelope(exception);
 
-    if (!this.isProduction) {
-      this.logDebug(exception, request, envelope);
-    }
+    this.logUnhandled(exception, request, envelope);
 
     response.header('Content-Type', 'application/json; charset=utf-8');
     response.status(envelope.status).send({
@@ -92,7 +81,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return Object.keys(rest).length > 0 ? rest : undefined;
   }
 
-  private logDebug(exception: unknown, request: FastifyRequest, envelope: Envelope): void {
+  /**
+   * Only what nobody meant: a business refusal and a deliberate HTTP answer are
+   * the system working, and drown out the ones that are not.
+   */
+  private logUnhandled(exception: unknown, request: FastifyRequest, envelope: Envelope): void {
     const isDomain = exception instanceof DomainError;
     const isHttp = exception instanceof HttpException;
     if (isDomain || isHttp) return;

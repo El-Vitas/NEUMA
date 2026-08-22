@@ -10,8 +10,6 @@ import {
   DEFAULT_ACCESS_TOKEN_LIFETIME_SECONDS,
   DEFAULT_REFRESH_TOKEN_LIFETIME_SECONDS,
   JWT_ACCESS_TOKEN_EXPIRES_IN_KEY,
-  JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN,
-  JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN,
   JWT_REFRESH_TOKEN_EXPIRES_IN_KEY,
   JWT_SECRET_KEY,
   REFRESH_TOKEN_AUDIENCE,
@@ -137,12 +135,11 @@ export class TokenAdapter {
   }
 
   private resolveRefreshExpiration(): string {
-    return this.configService.get<string>(JWT_REFRESH_TOKEN_EXPIRES_IN_KEY) ?? JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN;
+    return this.configService.getOrThrow<string>(JWT_REFRESH_TOKEN_EXPIRES_IN_KEY);
   }
 
   private resolveExpiration(): string {
-    const raw = this.configService.get<string>(JWT_ACCESS_TOKEN_EXPIRES_IN_KEY) ?? JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN;
-    return raw;
+    return this.configService.getOrThrow<string>(JWT_ACCESS_TOKEN_EXPIRES_IN_KEY);
   }
 
   private isCollaborationTokenPayload(payload: Record<string, unknown>): payload is CollaborationTokenPayload {

@@ -1,5 +1,5 @@
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { PortalView } from '@/modules/portal/views/portal.view';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
 export default async function Page() {
   const user = await getCurrentUser();

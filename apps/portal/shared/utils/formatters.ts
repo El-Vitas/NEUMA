@@ -14,11 +14,3 @@ export const formatDate = (
 
   return d.toLocaleDateString(locale, includeTime ? FORMAT_WITH_TIME : FORMAT_DATE_ONLY);
 };
-
-export const formatCurrency = (amount: number, locale = 'en-US', currency = 'CLP'): string => {
-  return new Intl.NumberFormat(locale, {
-    currency,
-    maximumFractionDigits: 0,
-    style: 'currency',
-  }).format(amount);
-};

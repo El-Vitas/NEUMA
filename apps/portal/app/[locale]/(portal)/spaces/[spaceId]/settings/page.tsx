@@ -1,10 +1,9 @@
-import { USER_ROLE } from '@company-brain/shared';
+import { canEditContent, USER_ROLE } from '@company-brain/shared';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { SpacesSettingsForm } from '@/modules/spaces/components/spaces.settings.form';
-import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
 interface IProps {
   readonly params: Promise<{ spaceId: string }>;

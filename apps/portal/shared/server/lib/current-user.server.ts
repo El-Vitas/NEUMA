@@ -1,10 +1,11 @@
 import 'server-only';
+import type { User } from '@company-brain/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_TOKEN_COOKIE } from '@/shared/constants/auth.constants';
+import { CURRENT_USER_CACHE_TAG } from '@/shared/constants/current-user-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { API_ROUTES } from '@/shared/routes/constants/routes.constants';
-import type { User } from '../../types/auth.types';
 
 export const getCurrentUser = async (): Promise<User | null> => {
   const cookieStore = await cookies();
@@ -19,7 +20,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 const getCurrentUserCached = async (accessToken: string): Promise<User | null> => {
   'use cache';
   cacheLife('seconds');
-  cacheTag('current-user');
+  cacheTag(CURRENT_USER_CACHE_TAG);
 
   try {
     return await apiRequest<User>(API_ROUTES.USERS_ME, accessToken);

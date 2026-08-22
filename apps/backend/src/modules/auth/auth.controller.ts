@@ -1,5 +1,6 @@
 import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES } from '@company-brain/shared';
 import { Body, Controller, Delete, HttpCode, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { HTTP_STATUS_CREATED, HTTP_STATUS_NO_CONTENT } from '../../common/constants/http.constants';
 import { Public } from '../../common/infrastructure/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
@@ -12,9 +13,16 @@ import { RefreshSessionDto } from './dto/refresh.session.dto';
 export class AuthController {
   constructor(readonly authService: AuthService) {}
 
+  /**
+   * Counted, because this is a door that opens with a guess.
+   *
+   * Nothing here needs a session to be reached, so nothing but the count
+   * stands between a patient machine and every password it cares to try.
+   */
   @HttpCode(HTTP_STATUS_CREATED)
   @Post(API_SEGMENTS.SESSIONS)
   @Public()
+  @UseGuards(ThrottlerGuard)
   async login(@Body() dto: LoginDto): Promise<AuthSession> {
     const result = await this.authService.loginUser(dto);
     if (result.isFail()) {
@@ -26,6 +34,7 @@ export class AuthController {
   @HttpCode(HTTP_STATUS_CREATED)
   @Post(`${API_SEGMENTS.SESSIONS}/${API_SEGMENTS.REFRESH}`)
   @Public()
+  @UseGuards(ThrottlerGuard)
   async refresh(@Body() dto: RefreshSessionDto): Promise<AuthSession> {
     const result = await this.authService.refreshSession(dto.refreshToken);
     if (result.isFail()) {

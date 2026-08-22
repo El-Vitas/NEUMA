@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { seconds, ThrottlerModule } from '@nestjs/throttler';
 
 import { envSchema } from './common/config/env.schema';
-import { PUBLIC_STATUS_RATE_LIMIT, THROTTLER_NAMES } from './common/constants/throttler.constants';
+import { CREDENTIAL_RATE_LIMIT, THROTTLER_NAMES } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
@@ -55,13 +55,13 @@ import { PrismaModule } from './prisma/prisma.module';
       throttlers: [
         {
           name: THROTTLER_NAMES.perIp,
-          ttl: seconds(PUBLIC_STATUS_RATE_LIMIT.windowSeconds),
-          limit: PUBLIC_STATUS_RATE_LIMIT.perIpLimit,
+          ttl: seconds(CREDENTIAL_RATE_LIMIT.windowSeconds),
+          limit: CREDENTIAL_RATE_LIMIT.perIpLimit,
         },
         {
           name: THROTTLER_NAMES.global,
-          ttl: seconds(PUBLIC_STATUS_RATE_LIMIT.windowSeconds),
-          limit: PUBLIC_STATUS_RATE_LIMIT.globalLimit,
+          ttl: seconds(CREDENTIAL_RATE_LIMIT.windowSeconds),
+          limit: CREDENTIAL_RATE_LIMIT.globalLimit,
         },
       ],
       generateKey: (_context, tracker, throttlerName) =>

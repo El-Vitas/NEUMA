@@ -2,7 +2,6 @@ import { AlertTriangle, Check, Info, X } from 'lucide-react';
 import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
@@ -10,6 +9,7 @@ import { PortalLayout } from '@/modules/portal/layout/portal.layout';
 import { resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import { readRequestTheme } from '@/shared/server/lib/theme.server';
 import { redirect } from '../../../i18n/navigation';
 

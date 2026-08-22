@@ -6,9 +6,9 @@ import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import { pageSummarySchema, pageVerificationSchema } from '../../schemas/pages.schemas';
-import { authenticatedRequest } from '../lib/pages.request.server';
 
 /**
  * Vouches for a page, or takes that back.

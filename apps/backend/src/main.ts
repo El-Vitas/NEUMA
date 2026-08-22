@@ -61,7 +61,7 @@ const bootstrap = async (): Promise<void> => {
       whitelist: true,
     }),
   );
-  app.useGlobalFilters(new GlobalExceptionFilter(logger, configService));
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
 
   const port = configService.get<string>(PORT_KEY) ?? '3000';
   await app.listen(Number(port), '0.0.0.0');

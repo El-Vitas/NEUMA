@@ -12,11 +12,13 @@ export const withAction = async <T>(
     logger.info({ ...meta, status: 'success', durationMs: Date.now() - start });
     return result;
   } catch (error) {
+    /** Anything can be thrown, so what is written down has to be made into an error first. */
+    const wrapped = error instanceof Error ? error : new Error(String(error));
     logger.error({
       ...meta,
       status: 'error',
-      error: (error as Error).message,
-      stack: (error as Error).stack,
+      error: wrapped.message,
+      stack: wrapped.stack,
       durationMs: Date.now() - start,
     });
     throw error;

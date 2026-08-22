@@ -34,29 +34,53 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
+let signedInUser: { readonly id: string; readonly role: string } | null = null;
+mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: async () => signedInUser }));
+
 globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
 
 const { createUserAction, updateUserNameAction } = await import('@/modules/users/server/actions/users.actions');
 
 const userId = '44444444-4444-4444-8444-444444444444';
 
-describe('updateUserNameAction without an access token', () => {
+describe('updateUserNameAction without a session', () => {
   it('rejects without making an outbound request', async () => {
     cookieValue = undefined;
+    signedInUser = null;
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
     const result = await updateUserNameAction({ name: 'Ana', userId });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
 });
 
-describe('updateUserNameAction with an access token', () => {
+/**
+ * The screen that offers this is behind a check, but the screen is not the
+ * door: an action answers to its own address, so somebody signed in as anybody
+ * reaches it without ever loading the screen.
+ */
+describe('updateUserNameAction signed in as somebody who does not run the workspace', () => {
+  it('rejects without making an outbound request', async () => {
+    cookieValue = 'valid-access-token';
+    signedInUser = { id: 'someone-else', role: 'WORKER' };
+    fetchMock.mockClear();
+    updateTagMock.mockClear();
+
+    const result = await updateUserNameAction({ name: 'Ana', userId });
+
+    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateUserNameAction signed in as whoever runs the workspace', () => {
   it('makes the outbound request and invalidates the cache', async () => {
     cookieValue = 'valid-access-token';
+    signedInUser = { id: 'the-admin', role: 'ADMIN' };
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
@@ -68,9 +92,24 @@ describe('updateUserNameAction with an access token', () => {
   });
 });
 
-describe('createUserAction without an access token', () => {
-  it('is an intentionally public registration call and still reaches the backend', async () => {
+describe('createUserAction without a session', () => {
+  it('refuses, since the only screen offering it is the one for whoever runs the workspace', async () => {
     cookieValue = undefined;
+    signedInUser = null;
+    fetchMock.mockClear();
+    updateTagMock.mockClear();
+
+    const result = await createUserAction({ email: 'ana@example.com', name: 'Ana', password: 'super-secret' });
+
+    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('createUserAction signed in as whoever runs the workspace', () => {
+  it('makes the outbound request and invalidates the cache', async () => {
+    cookieValue = 'valid-access-token';
+    signedInUser = { id: 'the-admin', role: 'ADMIN' };
     fetchMock.mockClear();
     updateTagMock.mockClear();
     fetchMock.mockImplementationOnce(

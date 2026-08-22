@@ -11,6 +11,7 @@ import {
   findAccessibleSpaceId,
 } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { PAGE_SIBLING_ORDER } from '../../constants/pages.constants';
 import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
 import { validatePageCover } from '../../domain/page-cover.domain';
 import type {
@@ -481,7 +482,7 @@ export class PageRepository implements PageRepositoryContract {
     if (targetSpaceId !== null && targetSpaceId !== page.spaceId && destinationSpaceId === null) return null;
     const spaceIds = destinationSpaceId === null ? [page.spaceId] : [page.spaceId, destinationSpaceId];
     const pages = await this.prisma.page.findMany({
-      orderBy: { order: 'asc' },
+      orderBy: [...PAGE_SIBLING_ORDER],
       select: { id: true, parentId: true, spaceId: true },
       where: { spaceId: { in: spaceIds } },
     });
@@ -574,7 +575,7 @@ export class PageRepository implements PageRepositoryContract {
         await transaction.page.update({ data: { order: position }, where: { id: sister.id } });
       }
       const rows = await transaction.page.findMany({
-        orderBy: { order: 'asc' },
+        orderBy: [...PAGE_SIBLING_ORDER],
         select: pageSelection,
         where: { parentId: page.parentId, spaceId: page.spaceId },
       });
@@ -689,7 +690,7 @@ export class PageRepository implements PageRepositoryContract {
         select: { id: true, lifecycle: true, parentId: true, spaceId: true },
         where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
       });
-      if (page === null || page.lifecycle !== PageLifecycle.TRASHED) return null;
+      if (page?.lifecycle !== PageLifecycle.TRASHED) return null;
       const parent = await this.findParentInfo(transaction, page.parentId);
       const restoredToRoot = page.parentId !== null && parent?.lifecycle !== PageLifecycle.ACTIVE;
       const resolvedParentId = restoredToRoot ? null : page.parentId;
@@ -1005,7 +1006,7 @@ export class PageRepository implements PageRepositoryContract {
     userId: string,
   ): Promise<void> {
     const pages = await transaction.page.findMany({
-      orderBy: { order: 'asc' },
+      orderBy: [...PAGE_SIBLING_ORDER],
       select: pageCopySelection,
       where: { lifecycle: PageLifecycle.ACTIVE, spaceId: original.spaceId },
     });

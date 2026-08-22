@@ -1,11 +1,26 @@
 import type { SpaceVisibility } from '@company-brain/db';
-import { type UserRole, WORKSPACE_CAPABILITY_BY_ROLE, type WorkspaceCapability } from '@company-brain/shared';
+import {
+  canEditContent,
+  canManageWorkspace,
+  type UserRole,
+  WORKSPACE_CAPABILITY_BY_ROLE,
+  type WorkspaceCapability,
+} from '@company-brain/shared';
 
 export const getWorkspaceCapability = (role: UserRole): WorkspaceCapability => WORKSPACE_CAPABILITY_BY_ROLE[role];
 
-export const canManageWorkspace = (role: UserRole): boolean => getWorkspaceCapability(role) === 'admin';
+export const canCreateSpace = (role: UserRole): boolean => canEditContent(role);
 
-export const canCreateSpace = (role: UserRole): boolean => getWorkspaceCapability(role) !== 'viewer';
+/**
+ * Whether somebody may put a different name on an account.
+ *
+ * One's own account is always one's own to name. Any other account belongs to
+ * whoever manages the workspace, and to nobody else: an identifier travelling
+ * in the address says which account is meant, never that the asker may touch
+ * it.
+ */
+export const canRenameUser = (role: UserRole, targetUserId: string, callerId: string): boolean =>
+  targetUserId === callerId || canManageWorkspace(role);
 
 /**
  * A private space answers only to its owner: no role, including admin, reads it

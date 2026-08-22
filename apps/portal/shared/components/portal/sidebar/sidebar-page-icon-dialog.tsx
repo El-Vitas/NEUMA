@@ -1,8 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useTransition } from 'react';
-import { toast } from 'sonner';
 import { PagesIconMenu } from '@/modules/pages/components/pages.icon.menu';
 import {
   isPageImageIcon,
@@ -18,7 +16,7 @@ import {
 } from '@/modules/pages/server/actions/pages.icon.actions';
 import type { PageIcon, PageIconColor } from '@/modules/pages/types/pages.icon.types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { useIconMutation } from '@/shared/hooks/use.icon-mutation.hook';
 
 interface IProps {
   readonly onChanged: () => void;
@@ -36,24 +34,12 @@ interface IProps {
  */
 export const SidebarPageIconDialog = ({ onChanged, onClose, page, spaceId }: IProps) => {
   const t = useTranslations('pages');
-  const [isPending, startTransition] = useTransition();
+  const { isPending, runIconMutation } = useIconMutation(onChanged, onClose);
 
   if (page === null) return null;
 
   const previousAssetId = page.icon !== null && isPageImageIcon(page.icon) ? page.icon.assetId : undefined;
   const symbolColor: PageIconColor = page.icon !== null && isPageSymbolIcon(page.icon) ? page.icon.color : 'default';
-
-  const runIconMutation = (mutate: () => Promise<unknown>): void => {
-    startTransition(async () => {
-      const result = await mutate();
-      if (!isActionSuccess(result)) {
-        toast.error(t('permissionError'));
-        return;
-      }
-      onChanged();
-      onClose();
-    });
-  };
 
   const chooseEmoji = (value: string): void =>
     runIconMutation(() => setPageIconEmojiAction({ pageId: page.id, spaceId, value }));

@@ -7,7 +7,7 @@ import {
 import type { PageEditorLinkAtHand, PageEditorWrittenLink } from '../types/pages.editor.link.types';
 import type { PageEditorSurfaceRect } from '../types/pages.editor.surface.types';
 import { createPageEditorAskCommand } from './pages.editor.ask.lib';
-import { pageEditorSchema } from './pages.editor.schema';
+import { isPageEditorLinkTarget, pageEditorSchema } from './pages.editor.schema';
 
 /** A page of this app rather than somewhere else, which is what can be opened without leaving. */
 export const isWithinThePages = (href: string): boolean => href.startsWith('/');
@@ -64,6 +64,7 @@ export const createPageLinkCommand =
   (link: PageEditorWrittenLink, href: string | null): Command =>
   (state, dispatch) => {
     if (link.from === link.to) return false;
+    if (href !== null && !isPageEditorLinkTarget(href)) return false;
     if (dispatch === undefined) return true;
     const mark = pageEditorSchema.marks.link;
     const transaction = state.tr.removeMark(link.from, link.to, mark);

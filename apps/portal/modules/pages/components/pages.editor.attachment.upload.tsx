@@ -19,10 +19,11 @@ export const PagesEditorAttachmentUpload = ({ error, isPending, onFileSelected, 
   const tPanel = useTranslations('pages.attachmentsPanel');
   const locale = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
+  const refusalKey = error === 'invalid' ? 'validationError' : 'uploadError';
   const errorMessage =
     error === 'tooLarge'
       ? tPanel('fileTooLarge', { limit: formatAttachmentSize(MAX_ATTACHMENT_SIZE, locale) })
-      : t(error === 'invalid' ? 'validationError' : 'uploadError');
+      : t(refusalKey);
 
   return (
     <div className="flex min-w-0 items-center gap-1">

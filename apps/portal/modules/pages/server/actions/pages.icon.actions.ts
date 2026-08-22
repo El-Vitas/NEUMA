@@ -7,6 +7,7 @@ import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
+import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { PAGE_ICON_ACTION_SUBJECT, PAGE_ICON_API_ROUTE } from '../../constants/pages.icon.constants';
 import {
   pageIconEmojiInputSchema,
@@ -16,7 +17,6 @@ import {
 } from '../../schemas/pages.icon.schemas';
 import { pageSummarySchema } from '../../schemas/pages.schemas';
 import { uploadPageImageAssetId } from '../lib/pages.attachments.server';
-import { authenticatedRequest } from './pages.actions';
 import { deletePageAttachmentAction } from './pages.attachments.actions';
 
 const uploadPageIconImageAsset = (pageId: string, file: File, accessToken: string): Promise<string> =>

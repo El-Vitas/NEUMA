@@ -1,8 +1,7 @@
 import type { UserRole } from '@company-brain/shared';
-import { Result } from '@company-brain/shared';
+import { canManageWorkspace, Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
-import { canManageWorkspace } from '../../common/domain/workspace.domain';
 import { PAGE_VIEW_COOLDOWN_MS, PAGE_VIEW_LIST_LIMIT, PAGE_VIEW_REPOSITORY } from './constants/page-views.constants';
 import { shouldRecordPageView } from './domain/page-view.domain';
 import { PageViewsAccessDeniedError, PageViewsPageNotAccessibleError } from './domain/page-view.error';

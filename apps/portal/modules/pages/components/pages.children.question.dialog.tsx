@@ -12,15 +12,23 @@ import {
 } from '@/shared/components/ui/dialog';
 
 interface IProps {
+  /** Which of the two things is being asked about, since each says it in its own words. */
+  readonly namespace: 'pages.duplicate' | 'pages.export';
   readonly onClose: () => void;
   readonly onConfirm: (includeChildren: boolean) => void;
   readonly open: boolean;
   readonly title: string;
 }
 
-/** Asked only of a page that has pages under it: for one that has none there is nothing to decide. */
-export const PagesDuplicateChildrenDialog = ({ onClose, onConfirm, open, title }: IProps) => {
-  const t = useTranslations('pages.duplicate');
+/**
+ * Asked only of a page that has pages under it: for one that has none there is
+ * nothing to decide.
+ *
+ * Duplicating and exporting ask the same question with different words, so the
+ * question is written once and each of them brings its own wording.
+ */
+export const PagesChildrenQuestionDialog = ({ namespace, onClose, onConfirm, open, title }: IProps) => {
+  const t = useTranslations(namespace);
 
   return (
     <Dialog

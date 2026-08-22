@@ -1,10 +1,9 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import { canEditContent, type UserRole } from '@company-brain/shared';
 import { useState } from 'react';
 import { usePathname } from '@/i18n/navigation';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
-import { canEditContent } from '@/modules/spaces/lib/spaces.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarSpaceCollapsed } from './sidebar-space-collapsed';
 import { SidebarSpaceExpanded } from './sidebar-space-expanded';

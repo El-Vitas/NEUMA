@@ -47,7 +47,7 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
 
 /** What a page says about the file it holds: what kind it is, how heavy, and how it is shown. */
 const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
-  const asset = getPageEditorMediaAttrs(element);
+  const asset = getPageEditorFramedAssetAttrs(element);
   if (asset === false) return false;
   const size = Number.parseInt(element.dataset.size ?? '', 10);
   const display = element.dataset.display;
@@ -59,21 +59,8 @@ const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | n
   };
 };
 
-/** How a player was left standing on the page: where in the column, and how wide. */
-const getPageEditorMediaAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
-  const asset = getPageEditorAssetAttrs(element);
-  if (asset === false) return false;
-  const align = element.dataset.align;
-  const width = Number.parseFloat(element.dataset.width ?? '');
-  return {
-    ...asset,
-    align: PAGE_BLOCK_ALIGNMENTS.find((known) => known === align) ?? null,
-    width: Number.isFinite(width) && width > 0 && width <= 1 ? width : null,
-  };
-};
-
-/** How an image was left standing on the page: where in the column, and how much of it. */
-const getPageEditorImageAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+/** How something that hangs on the page was left standing: where in the column, and how wide. */
+const getPageEditorFramedAssetAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
   const asset = getPageEditorAssetAttrs(element);
   if (asset === false) return false;
   const align = element.dataset.align;
@@ -117,13 +104,12 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   return { open: element.hasAttribute('open'), summary };
 };
 
-const getPageEditorCodeAttrs = (element: Element): Record<string, string | boolean | null> => {
-  const language = element.getAttribute('data-language');
-  const shown = element.getAttribute('data-shown');
+const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | boolean | null> => {
+  const { language, shown, wrapped } = element.dataset;
   return {
-    language: language !== null && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
+    language: language !== undefined && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
     shown: PAGE_DIAGRAM_VIEWS.find((known) => known === shown) ?? null,
-    wrapped: element.getAttribute('data-wrapped') === 'true',
+    wrapped: wrapped === 'true',
   };
 };
 
@@ -153,9 +139,9 @@ const readTableCellDomAttrs = (node: EditorNode): Record<string, string> => ({
 /** A mark that is not one of the few on offer is no mark at all. */
 const isPageCalloutIcon = (value: string): boolean => PAGE_CALLOUT_ICONS.some((icon) => icon === value);
 
-const getPageEditorCalloutAttrs = (element: Element): { readonly icon: string | null } => {
-  const icon = element.getAttribute('data-icon');
-  return { icon: icon !== null && isPageCalloutIcon(icon) ? icon : null };
+const getPageEditorCalloutAttrs = (element: HTMLElement): { readonly icon: string | null } => {
+  const icon = element.dataset.icon;
+  return { icon: icon !== undefined && isPageCalloutIcon(icon) ? icon : null };
 };
 
 const getPageEditorMentionAttrs = (
@@ -352,7 +338,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       },
       atom: true,
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorMediaAttrs, tag: 'video[data-page-video]' }],
+      parseDOM: [{ getAttrs: getPageEditorFramedAssetAttrs, tag: 'video[data-page-video]' }],
       render: (node, blockAttributes) => [
         'video',
         {
@@ -378,7 +364,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       },
       atom: true,
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorMediaAttrs, tag: 'audio[data-page-audio]' }],
+      parseDOM: [{ getAttrs: getPageEditorFramedAssetAttrs, tag: 'audio[data-page-audio]' }],
       render: (node, blockAttributes) => [
         'audio',
         {
@@ -585,7 +571,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       },
       atom: true,
       group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorImageAttrs, tag: 'img[data-page-image]' }],
+      parseDOM: [{ getAttrs: getPageEditorFramedAssetAttrs, tag: 'img[data-page-image]' }],
       render: (node, blockAttributes) => [
         'img',
         {
@@ -875,14 +861,28 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
 const pageEditorNodes: Readonly<Record<string, NodeSpec>> = Object.fromEntries(pageEditorNodeEntries);
 const pageEditorLinkProtocols = new Set(['http:', 'https:', 'mailto:']);
 
+/**
+ * Whether a destination is one a link may point at.
+ *
+ * A page is written by several people at once and travels between them without
+ * passing through the stored schema on the way, so the answer has to be given
+ * again wherever a destination is written and wherever one is drawn.
+ */
+export const isPageEditorLinkTarget = (href: string): boolean => {
+  const trimmed = href.trim();
+  if (trimmed.startsWith('/')) return true;
+  if (!URL.canParse(trimmed)) return false;
+  return pageEditorLinkProtocols.has(new URL(trimmed).protocol);
+};
+
 const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | false => {
   const href = element.getAttribute('href');
-  if (href === null || !URL.canParse(href)) return false;
-
-  const protocol = new URL(href).protocol;
-  if (!pageEditorLinkProtocols.has(protocol)) return false;
-  return { href };
+  return href === null || !isPageEditorLinkTarget(href) ? false : { href };
 };
+
+/** A destination nobody may follow is drawn as text, so the writing survives and the link does not. */
+const drawPageEditorLink = (href: unknown): DOMOutputSpec =>
+  typeof href === 'string' && isPageEditorLinkTarget(href) ? ['a', { href }, 0] : ['span', 0];
 
 const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | false => {
   const id = element.getAttribute(PAGE_EDITOR_COMMENT_ID_ATTRIBUTE);
@@ -911,7 +911,7 @@ export const pageEditorSchema = new Schema({
       attrs: { href: {} },
       inclusive: false,
       parseDOM: [{ getAttrs: getPageEditorLinkAttrs, tag: 'a[href]' }],
-      toDOM: (mark) => ['a', { href: mark.attrs.href }, 0],
+      toDOM: (mark) => drawPageEditorLink(mark.attrs.href),
     },
     /**
      * A stretch of writing painted on its own.

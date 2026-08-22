@@ -19,6 +19,15 @@ export const DOCS_CONTENT_FOLDER = 'content/docs';
 /** What a document is written in. */
 export const DOCS_FILE_SUFFIX = '.md';
 
+/**
+ * What a document may be called.
+ *
+ * The name arrives from the address and ends up in a file path, so anything
+ * that could point somewhere other than the manual — a dot, a slash — is not a
+ * name here.
+ */
+export const DOCS_SLUG_SHAPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 /** The language a document falls back to when it has not been written in the one being read. */
 export const DOCS_FALLBACK_LOCALE = 'es';
 

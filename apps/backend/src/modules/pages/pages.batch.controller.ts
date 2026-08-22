@@ -1,11 +1,14 @@
 import { Result, type UserRole } from '@company-brain/shared';
-import { Body, Controller, Headers, Inject, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Inject, Patch, Post, UseGuards } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import type { DomainError } from '../../common/domain/domain.error';
+import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
+import { mapWithBoundedConcurrency } from '../../common/utils/concurrency.utils';
+import { PAGE_BATCH_CONCURRENCY } from './constants/pages.constants';
 import type { PageBatchOutcome } from './dto/page.batch.dto';
 import { PageBatchMoveDto } from './dto/page.batch.move.dto';
 import { PageBatchTrashDto } from './dto/page.batch.trash.dto';
@@ -32,7 +35,7 @@ export class PagesBatchController {
   @UseGuards(JwtAuthGuard)
   async trash(
     @Body() dto: PageBatchTrashDto,
-    @Headers('x-mutation-id') mutationId: string,
+    @MutationId() mutationId: string,
     @User('payload') payload: TokenPayload,
   ): Promise<PageBatchOutcome> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
@@ -45,7 +48,7 @@ export class PagesBatchController {
   @UseGuards(JwtAuthGuard)
   async move(
     @Body() dto: PageBatchMoveDto,
-    @Headers('x-mutation-id') mutationId: string,
+    @MutationId() mutationId: string,
     @User('payload') payload: TokenPayload,
   ): Promise<PageBatchOutcome> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
@@ -74,12 +77,10 @@ export class PagesBatchController {
     const succeededIds = new Set<string>();
     const failedIds = new Set<string>(selection.unreachableIds);
 
-    await Promise.all(
-      selection.topLevelIds.map(async (pageId) => {
-        if (await this.applySucceeded(pageId, operation, applyToPage)) succeededIds.add(pageId);
-        else failedIds.add(pageId);
-      }),
-    );
+    await mapWithBoundedConcurrency(selection.topLevelIds, PAGE_BATCH_CONCURRENCY, async (pageId) => {
+      if (await this.applySucceeded(pageId, operation, applyToPage)) succeededIds.add(pageId);
+      else failedIds.add(pageId);
+    });
 
     for (const [coveredId, ancestorId] of selection.coveredIdsByAncestor) {
       if (succeededIds.has(ancestorId)) succeededIds.add(coveredId);

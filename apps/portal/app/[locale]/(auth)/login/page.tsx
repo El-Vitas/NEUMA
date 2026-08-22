@@ -1,9 +1,9 @@
 import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { AuthLoading } from '@/modules/auth/components/auth.loading';
-import { getCurrentUser } from '@/modules/auth/server/lib/get.current.user.server';
 import { LoginView } from '@/modules/auth/views/auth.login.view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import { redirect } from '../../../../i18n/navigation';
 
 const LoginPageContent = async () => {

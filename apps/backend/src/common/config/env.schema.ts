@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN } from '../constants/auth.constants';
+import { JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN, JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN } from '../constants/auth.constants';
 import { DEFAULT_PORT } from '../constants/config.constants';
 import { BCRYPT_DEFAULT_SALT_ROUNDS } from '../constants/security.constants';
 
@@ -13,6 +13,7 @@ export const envSchema = z.object({
     .pipe(z.number().int().positive()),
   DATABASE_URL: z.url(),
   JWT_ACCESS_TOKEN_EXPIRES_IN: z.string().default(JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN),
+  JWT_REFRESH_TOKEN_EXPIRES_IN: z.string().default(JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN),
   JWT_SECRET: z.string().min(32),
   MCP_ACCESS_TOKEN: z.string().min(1).optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
