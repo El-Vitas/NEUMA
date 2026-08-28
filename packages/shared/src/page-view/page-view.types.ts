@@ -84,4 +84,9 @@ export interface PageViewConfiguration {
   readonly groupBy: string | null;
   readonly filter: PageFilter | null;
   readonly sorts: readonly PageSort[];
+  /**
+   * Which properties this view shows, in the order it shows them. Nothing means
+   * all of them; an empty list means somebody chose to show none.
+   */
+  readonly visibleProperties: readonly string[] | null;
 }

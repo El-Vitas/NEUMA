@@ -25,11 +25,8 @@ describe('page schema contracts', () => {
     expect(PAGE_VIEW_TYPE_VALUES).toEqual([PAGE_VIEW_TYPE.TABLE, PAGE_VIEW_TYPE.BOARD]);
   });
 
+  /** Named after the shape the rows arrive in, so a view type new tomorrow needs no new kind. */
   test('exposes the canonical view outcome kinds', () => {
-    expect(Object.values(PAGE_VIEW_OUTCOME_KIND)).toEqual([
-      'TABLE_ROWS',
-      'BOARD_COLUMNS',
-      'BOARD_MISSING_GROUPING_PROPERTY',
-    ]);
+    expect(Object.values(PAGE_VIEW_OUTCOME_KIND)).toEqual(['FLAT_ROWS', 'GROUPED_ROWS', 'MISSING_GROUPING_PROPERTY']);
   });
 });

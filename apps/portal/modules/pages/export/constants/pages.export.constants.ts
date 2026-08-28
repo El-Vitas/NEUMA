@@ -3,6 +3,9 @@ export const PAGES_EXPORT_ARCHIVE_EXTENSION = '.zip';
 export const PAGES_EXPORT_FALLBACK_FILE_NAME = 'export';
 export const PAGES_EXPORT_MAXIMUM_NAME_LENGTH = 80;
 
+/** How many pages a selection may send at once, matching what the backend accepts. */
+export const PAGES_EXPORT_SELECTION_LIMIT = 200;
+
 /** What the backend answers with when what it sends is many pages packed together. */
 export const PAGES_EXPORT_ARCHIVE_MEDIA_TYPE = 'application/zip';
 

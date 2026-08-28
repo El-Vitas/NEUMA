@@ -5,6 +5,7 @@ export {
   sanitizeCollaborationPresenceIdentity,
 } from './collaboration-presence.lib.js';
 export type { CollaborationPresenceIdentity, CollaborationPresenceState } from './collaboration-presence.types.js';
+export { UNASSIGNED_GROUP_KEY } from './constants/page-view.constants.js';
 export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
 export {
@@ -40,16 +41,27 @@ export {
   pagePropertyRequiresOptions,
   pagePropertyRequiresPersonDirectory,
 } from './page-property/page-property.lib.js';
+export {
+  pickPageOptionColor,
+  readPagePropertyOptions,
+  readPagePropertyOptionValues,
+} from './page-property/page-property.option.lib.js';
 export type {
+  PageOptionColor,
   PagePropertyCapabilities,
   PagePropertyContext,
   PagePropertyDefinition,
   PagePropertyLogicalType,
+  PagePropertyOption,
   PagePropertyValue,
   PagePropertyValues,
 } from './page-property/page-property.types.js';
-export { PAGE_PROPERTY_LOGICAL_TYPE } from './page-property/page-property.types.js';
-export type { PageViewCapabilities, PageViewDefinition } from './page-view/page-view.definitions.js';
+export {
+  PAGE_OPTION_COLOR,
+  PAGE_OPTION_COLOR_VALUES,
+  PAGE_PROPERTY_LOGICAL_TYPE,
+} from './page-property/page-property.types.js';
+export type { PageViewDefinition } from './page-view/page-view.definitions.js';
 export {
   getPageFilterOperators,
   hasPageFilterPredicate,
@@ -57,6 +69,7 @@ export {
 } from './page-view/page-view.filter.lib.js';
 export {
   getPageViewDefinition,
+  getPageViewShape,
   pageViewRequiresGrouping,
   pageViewSupportsGrouping,
 } from './page-view/page-view.lib.js';
@@ -66,6 +79,7 @@ export {
   readPageViewConfiguration,
 } from './page-view/page-view.schemas.js';
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
+export { readVisiblePropertyKeys } from './page-view/page-view.visibility.lib.js';
 export type {
   PageFilter,
   PageFilterCondition,
@@ -164,11 +178,19 @@ export {
 export type { AuthSession } from './types/auth.types.js';
 export type { PageLifecycle } from './types/page.types.js';
 export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES } from './types/page.types.js';
-export type { PagePropertyType, PageViewOutcomeKind, PageViewType } from './types/page-schema.types.js';
+export type {
+  PagePropertyType,
+  PageViewGrouping,
+  PageViewOutcomeKind,
+  PageViewShape,
+  PageViewType,
+} from './types/page-schema.types.js';
 export {
   PAGE_PROPERTY_TYPE,
   PAGE_PROPERTY_TYPE_VALUES,
+  PAGE_VIEW_GROUPING,
   PAGE_VIEW_OUTCOME_KIND,
+  PAGE_VIEW_SHAPE,
   PAGE_VIEW_TYPE,
   PAGE_VIEW_TYPE_VALUES,
 } from './types/page-schema.types.js';
