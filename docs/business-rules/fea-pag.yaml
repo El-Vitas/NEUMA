@@ -38,6 +38,35 @@ rules:
     context: >-
       El espacio entre el nombre y la tarjeta pertenece a la tarjeta, así que bajar nunca es salir. Por llevar algo
       dentro que se puede alcanzar, la tarjeta no es un rótulo de ayuda.
+  - id: BR-1224d28
+    status: active
+    title: Se exporta también una selección suelta de páginas
+    rule: >-
+      Además de una página, una rama o un espacio entero, se exporta la selección que alguien haya marcado en la barra
+      lateral. Salen exactamente las páginas marcadas y ninguna más: lo que cuelga de una página marcada no viaja si no
+      fue marcado también. Salen en el orden del árbol, cada una con el camino donde vivía. Una selección que no nombra
+      ninguna página se rechaza, y quien no podría abrir una de esas páginas de a una tampoco la recibe aquí.
+    why: >-
+      Quien se lleva material para un informe elige páginas que no forman una rama: tres de un espacio y dos de otra
+      parte del mismo. Sin selección tendría que exportar de a una y armar las carpetas a mano, o exportar el espacio
+      entero y borrar lo que sobra.
+    context: >-
+      El límite es de doscientas páginas por selección, para que una consulta no pueda pedir el mundo. Marcar una página
+      no arrastra a sus hijas porque marcar es un gesto explícito: si alguien quiere la rama completa, la rama ya tiene
+      su propio alcance.
+    scenarios:
+      - title: Dos páginas sueltas
+        given: Dos páginas marcadas en la barra lateral, de ramas distintas
+        when: Se exporta la selección
+        then: Se descarga un comprimido con esas dos páginas y las carpetas donde vivían
+      - title: Marcar una madre no arrastra a las hijas
+        given: Una página con subpáginas, marcada ella sola
+        when: Se exporta la selección
+        then: Sale solo esa página, sin lo que cuelga de ella
+      - title: Una selección vacía no se exporta
+        given: Ninguna página marcada
+        when: Se pide exportar la selección
+        then: No se exporta nada y el botón permanece inactivo
   - id: BR-6191a45
     status: active
     title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
@@ -233,6 +262,37 @@ rules:
         given: Un espacio donde una página tiene el cuerpo guardado en un formato irreconocible
         when: Se exporta el espacio entero
         then: Se descarga el archivo con todas las páginas, y la ilegible aparece con su nombre y sin cuerpo
+  - id: BR-ef13a8b
+    status: active
+    title: Lo exportado se abre sin conexión, con los adjuntos dentro y los enlaces al archivo vecino
+    rule: >-
+      El comprimido de una exportación lleva dentro los archivos que cuelgan de las páginas exportadas, todos en una
+      carpeta común llamada assets. Lo que la página mostraba apunta a ese archivo por un camino relativo, igual que un
+      enlace a otra página que también viajó. Un enlace a una página que se quedó fuera se deja tal como estaba. Un
+      adjunto que el almacenamiento ya no puede entregar se omite del comprimido sin tumbar la exportación, y el texto
+      que lo mencionaba sigue diciendo qué era.
+    why: >-
+      Una exportación que necesita el servidor encendido para verse no es una copia: es un espejo. Quien se lleva un
+      manual lo abre en un computador sin sesión, o lo guarda por años. Con caminos relativos el comprimido funciona en
+      cualquier carpeta donde se descomprima, y con los adjuntos dentro no hay imágenes rotas.
+    context: >-
+      Los adjuntos van en una carpeta común y no junto a cada página porque la misma imagen puede aparecer en varias
+      páginas y hay una sola de ella. Cada archivo lleva por delante su identificador, para que dos adjuntos con el
+      mismo nombre no se pisen. Un bloque de archivo conserva el identificador que ya tenía y gana el camino al lado,
+      para que el comprimido lo abra una persona y siga volviendo entero al importarse.
+    scenarios:
+      - title: Una imagen viaja con la página
+        given: Una página con una imagen subida
+        when: Se exporta junto a otra página
+        then: El comprimido incluye la imagen en assets y el Markdown apunta a ella por camino relativo
+      - title: Un enlace entre dos páginas exportadas
+        given: Dos páginas exportadas juntas, una menciona a la otra
+        when: Se abre el archivo de la primera
+        then: La mención apunta al archivo de la segunda por camino relativo
+      - title: Un enlace a una página que no viajó
+        given: Una página exportada que menciona otra que quedó fuera
+        when: Se abre el archivo exportado
+        then: La mención queda tal como estaba, sin apuntar a un archivo que no existe
   - id: BR-f033642
     status: active
     title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia

@@ -1,0 +1,116 @@
+id: FEA-CLC
+name: Colecciones, propiedades y vistas
+purpose: Reúne las reglas de qué guarda una colección, cómo se define su forma y cómo se mira.
+scope: collections
+rules:
+  - id: BR-12b587f
+    status: active
+    title: Cada opción de una propiedad lleva su nombre y su color
+    rule: >-
+      Una propiedad de selección, simple o múltiple, define sus opciones, y cada opción es un nombre y un color. El
+      color es opcional: una opción sin color se muestra igual que las demás, con el fondo neutro. Los colores son un
+      conjunto cerrado y con nombre, no un valor libre, para que la misma opción se vea igual en la tabla, en la columna
+      de un tablero y en cualquier pantalla que la muestre. Un color que el producto no conoce se descarta al leerlo, y
+      la opción se queda sin color en vez de romper la página.
+    why: >-
+      En un tablero, la columna es un valor de la propiedad por la que se agrupa. Sin color, todas las columnas se ven
+      iguales y hay que leer cada encabezado para saber dónde está uno. El color es lo que hace que un tablero se lea de
+      un vistazo. Y que sea un conjunto cerrado evita que cada quien escriba un color distinto para lo mismo.
+    context: >-
+      Las opciones se guardan como objetos con nombre y color. Las colecciones creadas antes las guardaban como una
+      lista de nombres, y esas se siguen leyendo: llegan sin color. El color nunca es la única señal de nada, porque el
+      nombre de la opción siempre se muestra al lado.
+    scenarios:
+      - title: Una opción con color
+        given: Una propiedad de selección con la opción «hecho» en verde
+        when: Se mira una fila que la tiene
+        then: La opción se muestra con su nombre sobre un fondo verde
+      - title: Una opción sin color
+        given: Una propiedad cuyas opciones no tienen color
+        when: Se mira una fila
+        then: La opción se muestra con el fondo neutro, sin perder su nombre
+      - title: Una colección escrita antes
+        given: Una colección cuyas opciones se guardaron como una lista de nombres
+        when: Se abre
+        then: Las opciones se leen igual, y se muestran sin color
+      - title: Un color que no existe
+        given: Una opción guardada con un color que el producto no conoce
+        when: Se lee
+        then: La opción se muestra sin color, y la página se abre igual
+  - id: BR-37f128e
+    status: active
+    title: La forma de una colección se cambia después de crearla
+    rule: >-
+      Una colección ya creada se puede reconfigurar: agregar propiedades propias del tipo que se quiera, renombrarlas,
+      quitarlas, y decidir qué opciones ofrece una selección y de qué color es cada una. Nada de eso viaja hasta que se
+      guarda, así que una colección nunca queda en una forma a medias. La propiedad de título no se puede quitar, porque
+      es la que abre cada fila. Cambiar el tipo de una propiedad no se ofrece aquí. Solo quien puede escribir la página
+      ve por dónde entrar.
+    why: >-
+      Una colección cuya forma se decide el día que nace obliga a saber de antemano qué se va a necesitar, que es
+      justamente lo que nadie sabe al empezar. Sin esto, agregar una columna significa rehacer la colección entera.
+    context: >-
+      Lo que las filas ya escribieron no se toca: los valores viven en cada fila, no en la forma, así que renombrar una
+      propiedad o cambiar el color de una opción no mueve ninguna fila. Renombrar una opción tampoco cambia lo que las
+      filas guardaron, y eso se avisa antes de hacerlo. Cambiar el tipo de una propiedad queda fuera porque es una
+      pregunta sobre qué pasa con cada fila que ya respondió, y no la resuelve un desplegable de paso.
+    scenarios:
+      - title: Agregar una propiedad
+        given: Una colección ya creada
+        when: Se agrega una propiedad de selección llamada «Familia» y se guarda
+        then: La propiedad aparece en la tabla y en las filas, con la clave que le corresponde
+      - title: Poner color a una opción
+        given: Una propiedad de selección con sus opciones
+        when: Se le da color a una opción y se guarda
+        then: La opción se ve con ese color en la tabla y como columna del tablero
+      - title: Quitar una propiedad sin dejar filas atascadas
+        given: Filas que guardaron un valor bajo una propiedad
+        when: Se quita esa propiedad de la forma
+        then: Las filas se siguen pudiendo mover y guardar, y lo que quedó bajo la propiedad quitada se deja atrás
+      - title: El título no se quita
+        given: La forma de una colección
+        when: Se busca quitar la propiedad de título
+        then: No se ofrece, y se explica que es la que abre cada fila
+      - title: Quien solo puede leer
+        given: Alguien sin permiso de escribir la página
+        when: Abre la colección
+        then: No se le dibuja la manera de entrar a la configuración
+  - id: BR-d7ada57
+    status: active
+    title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
+    rule: >-
+      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta de una columna
+      a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
+      quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
+      asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
+      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas.
+    why: >-
+      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
+      uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
+      exclusión que se nota todos los días.
+    context: >-
+      Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
+      sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
+      uno de los que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque alguien lo pida por su
+      cuenta.
+    scenarios:
+      - title: Mover con el ratón
+        given: Una tarjeta en la columna «por hacer»
+        when: Se arrastra a la columna «hecho»
+        then: La fila pasa a valer «hecho» y la tarjeta se queda ahí al recargar
+      - title: Mover con el teclado
+        given: Una tarjeta con el foco puesto
+        when: Se pulsa Alt y la flecha derecha
+        then: La tarjeta pasa a la columna siguiente y se anuncia a dónde fue
+      - title: Soltar donde ya estaba
+        given: Una tarjeta en «por hacer»
+        when: Se suelta en «por hacer»
+        then: No se escribe nada
+      - title: Quitar el valor
+        given: Una tarjeta con valor
+        when: Se suelta en la columna de las filas sin valor
+        then: La fila deja de tener ese valor
+      - title: Quien solo puede leer
+        given: Alguien sin permiso de escribir la página
+        when: Intenta mover una tarjeta
+        then: Las tarjetas no se pueden arrastrar, y el servidor rechaza el intento hecho por fuera
