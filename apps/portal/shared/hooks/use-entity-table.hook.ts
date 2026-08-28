@@ -1,11 +1,13 @@
-import type { Table as TanstackTable } from '@tanstack/react-table';
+import type { RowData, Table as TanstackTable } from '@tanstack/react-table';
 import { useDataTable } from '@/shared/hooks/use-data-table';
 import { useTableSync } from '@/shared/hooks/use-table-sync';
-import type { EntityTableExportHandlers, UseEntityTableOptions } from '@/shared/types/table.types';
+import type { DataTableFeatures, EntityTableExportHandlers, UseEntityTableOptions } from '@/shared/types/table.types';
 
-export const useNoOpExportHandlers = <TData>(_table: TanstackTable<TData>): EntityTableExportHandlers => ({});
+export const useNoOpExportHandlers = <TData extends RowData>(
+  _table: TanstackTable<DataTableFeatures, TData>,
+): EntityTableExportHandlers => ({});
 
-export const useEntityTable = <TData>({
+export const useEntityTable = <TData extends RowData>({
   data,
   total,
   page,

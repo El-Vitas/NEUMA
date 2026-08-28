@@ -1,15 +1,16 @@
-import type { Table as TanstackTable } from '@tanstack/react-table';
+import type { RowData, Table as TanstackTable } from '@tanstack/react-table';
 import { flexRender } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { getHeaderLabel } from '@/shared/lib/data-table.lib';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface MobileRowCardProps<TData> {
-  readonly row: ReturnType<TanstackTable<TData>['getRowModel']>['rows'][number];
+interface MobileRowCardProps<TData extends RowData> {
+  readonly row: ReturnType<TanstackTable<DataTableFeatures, TData>['getRowModel']>['rows'][number];
 }
 
-export const MobileRowCard = <TData,>({ row }: MobileRowCardProps<TData>) => {
+export const MobileRowCard = <TData extends RowData>({ row }: MobileRowCardProps<TData>) => {
   const t = useTranslations('common');
   const visibleCells = row.getVisibleCells().filter((cell) => cell.column.id !== 'select');
 

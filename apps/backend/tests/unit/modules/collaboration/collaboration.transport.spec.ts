@@ -5,7 +5,7 @@ import { registerCollaborationTransport } from '../../../../src/modules/collabor
 
 describe('collaboration transport', () => {
   test('registers the websocket route and delegates the request without logging it', async () => {
-    const app = Fastify();
+    const app = Fastify({ forceCloseConnections: true });
     let delegatedRequest: Request | undefined;
     let resolveDelegation: (() => void) | undefined;
     const delegation = new Promise<void>((resolve) => {

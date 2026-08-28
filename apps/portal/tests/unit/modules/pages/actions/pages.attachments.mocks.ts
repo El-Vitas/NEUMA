@@ -1,4 +1,5 @@
 import { mock } from 'bun:test';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
 
 export const cookieState: { value: string | undefined } = { value: undefined };
 
@@ -12,5 +13,5 @@ export const registerAttachmentTestMocks = (): void => {
     cookies: async () => ({ get: () => (cookieState.value === undefined ? undefined : { value: cookieState.value }) }),
   }));
   mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-  globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+  installFetchMock(fetchMock);
 };

@@ -20,7 +20,9 @@ import { registerCollaborationTransport } from './modules/collaboration/collabor
 const bootstrap = async (): Promise<void> => {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ trustProxy: getTrustProxy() }),
+    // A collaboration socket never goes idle, so without this the server would
+    // wait forever for it while shutting down.
+    new FastifyAdapter({ forceCloseConnections: true, trustProxy: getTrustProxy() }),
     { bufferLogs: true },
   );
   const logger = app.get(Logger);

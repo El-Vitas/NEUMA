@@ -1,16 +1,17 @@
 'use client';
 
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface MobileSelectFilterProps<TData> {
-  readonly column: Column<TData>;
+interface MobileSelectFilterProps<TData extends RowData> {
+  readonly column: Column<DataTableFeatures, TData, unknown>;
   readonly title: string;
 }
 
-export const MobileSelectFilter = <TData,>({ column, title }: MobileSelectFilterProps<TData>) => {
+export const MobileSelectFilter = <TData extends RowData>({ column, title }: MobileSelectFilterProps<TData>) => {
   const t = useTranslations('common');
   const singleValue = (() => {
     const val = column.getFilterValue();

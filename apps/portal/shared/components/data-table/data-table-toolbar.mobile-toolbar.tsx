@@ -1,15 +1,16 @@
 'use client';
 
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { DataTableExport } from '@/shared/components/data-table/data-table-export';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 import { MobileFilters } from './data-table-toolbar.mobile-filters';
 
-interface MobileToolbarProps<TData> {
-  readonly columns: Column<TData>[];
+interface MobileToolbarProps<TData extends RowData> {
+  readonly columns: Column<DataTableFeatures, TData, unknown>[];
   readonly isFiltered: boolean;
   readonly mobileFiltersOpen: boolean;
   readonly setMobileFiltersOpen: (open: boolean) => void;
@@ -19,7 +20,7 @@ interface MobileToolbarProps<TData> {
   readonly isExportingPdf?: boolean;
 }
 
-export const MobileToolbar = <TData,>({
+export const MobileToolbar = <TData extends RowData>({
   columns,
   isFiltered,
   mobileFiltersOpen,

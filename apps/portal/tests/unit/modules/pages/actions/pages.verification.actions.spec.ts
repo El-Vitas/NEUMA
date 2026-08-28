@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
 const verifiedPage = {
@@ -106,4 +107,4 @@ describe('setPageVerificationAction with an access token', () => {
   });
 });
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
