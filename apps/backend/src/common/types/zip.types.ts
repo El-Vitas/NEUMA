@@ -7,7 +7,8 @@ export interface PreparedZipEntry {
 }
 
 export interface ZipEntry {
-  readonly contents: string;
+  /** Written text, or the bytes of something that was never text — a picture, a document. */
+  readonly contents: string | Uint8Array;
   /** Where it sits inside the archive, folders and all: `Madre/Hija.md`. */
   readonly path: string;
 }

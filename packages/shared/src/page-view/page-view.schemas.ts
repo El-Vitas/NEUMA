@@ -10,6 +10,7 @@ import {
 const maximumFilterDepth = 3;
 const maximumFilterConditions = 20;
 const maximumSorts = 5;
+const maximumVisibleProperties = 50;
 const maximumPropertyKeyLength = 100;
 const maximumFilterTextLength = 500;
 const maximumFilterEntries = 50;
@@ -62,6 +63,7 @@ const configurationShape = {
   filter: rootFilterSchema.nullish(),
   groupBy: propertyKeySchema.nullish(),
   sorts: z.array(sortSchema).max(maximumSorts).optional(),
+  visibleProperties: z.array(propertyKeySchema).max(maximumVisibleProperties).nullish(),
 };
 
 export const pageViewConfigurationSchema = z.object(configurationShape).strict();
@@ -72,9 +74,16 @@ const toConfiguration = (parsed: z.infer<typeof storedConfigurationSchema>): Pag
   filter: parsed.filter ?? null,
   groupBy: parsed.groupBy ?? null,
   sorts: parsed.sorts ?? [],
+  /** Nothing means «all of them»; an empty list means somebody chose to show none. */
+  visibleProperties: parsed.visibleProperties ?? null,
 });
 
-export const EMPTY_PAGE_VIEW_CONFIGURATION: PageViewConfiguration = { filter: null, groupBy: null, sorts: [] };
+export const EMPTY_PAGE_VIEW_CONFIGURATION: PageViewConfiguration = {
+  filter: null,
+  groupBy: null,
+  sorts: [],
+  visibleProperties: null,
+};
 
 export const readPageViewConfiguration = (value: unknown): PageViewConfiguration => {
   const parsed = storedConfigurationSchema.safeParse(value);

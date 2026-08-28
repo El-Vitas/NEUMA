@@ -26,6 +26,7 @@ describe('reading a stored view configuration', () => {
       filter: doingCondition,
       groupBy: 'status',
       sorts: [{ direction: PAGE_SORT_DIRECTION.ASCENDING, propertyKey: 'title' }],
+      visibleProperties: null,
     });
   });
 
@@ -33,6 +34,7 @@ describe('reading a stored view configuration', () => {
     expect(readPageViewConfiguration({ groupBy: 'status' })).toEqual({
       filter: null,
       groupBy: 'status',
+      visibleProperties: null,
       sorts: [],
     });
   });
@@ -68,6 +70,20 @@ describe('validating a view configuration before it is stored', () => {
     expect(
       pageViewConfigurationSchema.safeParse({ filter: { ...doingCondition, operator: 'MATCHES_REGEX' } }).success,
     ).toBe(false);
+  });
+
+  test('accepts the properties a view chooses to show', () => {
+    expect(pageViewConfigurationSchema.safeParse({ visibleProperties: ['status', 'assignee'] }).success).toBe(true);
+  });
+
+  /** Naming none is not the same as naming an empty list: one means «all», the other means «show nothing». */
+  test('tells apart choosing nothing from not choosing', () => {
+    expect(readPageViewConfiguration({}).visibleProperties).toBeNull();
+    expect(readPageViewConfiguration({ visibleProperties: [] }).visibleProperties).toEqual([]);
+  });
+
+  test('reads back the properties a view chose', () => {
+    expect(readPageViewConfiguration({ visibleProperties: ['status'] }).visibleProperties).toEqual(['status']);
   });
 
   test('rejects a filter nested deeper than allowed', () => {

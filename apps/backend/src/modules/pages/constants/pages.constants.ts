@@ -22,8 +22,19 @@ export const PAGE_SIBLING_ORDER = [{ order: 'asc' }, { createdAt: 'asc' }] as co
  */
 export const PAGE_BATCH_CONCURRENCY = 5;
 
+/**
+ * Where the files that hang on pages sit inside an export.
+ *
+ * In one folder of their own rather than beside each page, because the same
+ * picture can be shown on several pages and there is only one of it.
+ */
+export const EXPORT_ATTACHMENTS_FOLDER = 'assets';
+
 /** One page goes out as itself; several go out packed, so the folders can say what hung from what. */
 export const EXPORT_MARKDOWN_MEDIA_TYPE = 'text/markdown; charset=utf-8';
 export const EXPORT_ARCHIVE_MEDIA_TYPE = 'application/zip';
+
+/** How many pages a loose selection may name at once, so a query cannot ask for the world. */
+export const EXPORT_SELECTION_LIMIT = 200;
 
 export const PAGE_DELETE_FOREVER_OUTCOMES = ['DELETED', 'NOT_FOUND', 'NOT_TRASHED'] as const;

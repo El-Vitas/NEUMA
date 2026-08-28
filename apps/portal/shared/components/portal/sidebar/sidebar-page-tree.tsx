@@ -158,6 +158,21 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
+  /**
+   * What was picked goes out and the selection ends, because leaving it up
+   * would invite acting twice on pages that already left.
+   */
+  const exportSelection = (): void => {
+    exportPages({
+      exportedName: t('selection.exportName'),
+      pageId: null,
+      pageIds: [...selection.selectedIds],
+      scope: 'pages',
+      spaceId,
+    });
+    selection.stop();
+  };
+
   /** A page with nothing under it leaves nothing to decide, so nothing is asked. */
   const requestExport = (page: PortalSidebarPage, hasChildren: boolean): void => {
     if (hasChildren) {
@@ -222,8 +237,9 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
       )}
       {selection.isActive && (
         <SidebarPageSelectionToolbar
-          disabled={isPending}
+          disabled={isPending || isExporting}
           onCancel={selection.stop}
+          onExport={exportSelection}
           onMove={() => setActiveBatchDialog('move')}
           onTrash={() => setActiveBatchDialog('trash')}
           selectedCount={selection.selectedIds.size}
