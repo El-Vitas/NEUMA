@@ -1,6 +1,8 @@
 import { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import { Type } from 'class-transformer';
+import type { PageOptionColor } from '@company-brain/shared';
+import { PAGE_OPTION_COLOR_VALUES, readPagePropertyOptions } from '@company-brain/shared';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -12,6 +14,28 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+
+export class PageSchemaPropertyOptionDto {
+  @IsString()
+  @MaxLength(120)
+  @MinLength(1)
+  value!: string;
+
+  @IsIn([...PAGE_OPTION_COLOR_VALUES])
+  @IsOptional()
+  color?: PageOptionColor;
+}
+
+/**
+ * One option as it arrived, whether it was sent as an object or as the plain
+ * name a caller written before colors would send.
+ */
+const toOptionDto = (option: { color: PageOptionColor | null; value: string }): PageSchemaPropertyOptionDto => {
+  const dto = new PageSchemaPropertyOptionDto();
+  dto.value = option.value;
+  if (option.color !== null) dto.color = option.color;
+  return dto;
+};
 
 export class PageSchemaPropertyDto {
   @IsString()
@@ -30,10 +54,12 @@ export class PageSchemaPropertyDto {
   @IsBoolean()
   required!: boolean;
 
+  /** Sent as objects. A plain list of names is still read, so a caller written before colors keeps working. */
   @IsArray()
   @IsOptional()
-  @IsString({ each: true })
-  options?: string[];
+  @ValidateNested({ each: true })
+  @Transform(({ value }) => readPagePropertyOptions(value)?.map(toOptionDto) ?? undefined)
+  options?: PageSchemaPropertyOptionDto[];
 }
 
 export class PageSchemaViewDto {

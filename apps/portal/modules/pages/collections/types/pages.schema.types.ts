@@ -1,4 +1,11 @@
-import type { PageLifecycle, PagePropertyType, PagePropertyValues, PageViewType } from '@company-brain/shared';
+import type {
+  PageLifecycle,
+  PageOptionColor,
+  PagePropertyOption,
+  PagePropertyType,
+  PagePropertyValues,
+  PageViewType,
+} from '@company-brain/shared';
 
 export type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
 
@@ -7,7 +14,7 @@ export interface PageSchemaProperty {
   readonly label: string;
   readonly type: PagePropertyType;
   readonly required: boolean;
-  readonly options: readonly string[] | null;
+  readonly options: readonly PagePropertyOption[] | null;
 }
 
 export interface PagePersonOption {
@@ -40,13 +47,17 @@ export interface PageRow {
   readonly lifecycle: PageLifecycle;
 }
 
-export interface PageBoardColumn {
+export interface PageViewGroup {
+  readonly color: PageOptionColor | null;
   readonly key: string;
   readonly label: string;
   readonly rows: readonly PageRow[];
 }
 
 export type PageViewOutcome =
-  | { readonly kind: 'TABLE_ROWS'; readonly rows: readonly PageRow[] }
-  | { readonly kind: 'BOARD_COLUMNS'; readonly columns: readonly PageBoardColumn[] }
-  | { readonly kind: 'BOARD_MISSING_GROUPING_PROPERTY' };
+  | { readonly kind: 'FLAT_ROWS'; readonly rows: readonly PageRow[] }
+  | { readonly kind: 'GROUPED_ROWS'; readonly groups: readonly PageViewGroup[] }
+  | { readonly kind: 'MISSING_GROUPING_PROPERTY' };
+
+export type PageViewFlatOutcome = Extract<PageViewOutcome, { readonly kind: 'FLAT_ROWS' }>;
+export type PageViewGroupedOutcome = Extract<PageViewOutcome, { readonly kind: 'GROUPED_ROWS' }>;

@@ -11,7 +11,7 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 **Cómo probarlo:** exporta una página con encabezados, listas, tabla, imagen y una mención.
 
 - [x] Hay una opción de exportar en el menú de la página
-- [x] Se descarga un archivo `.md`
+- [x] Se descarga un archivo `.md` cuando la página no tiene adjuntos, y un comprimido cuando sí los tiene
 - [x] Los encabezados salen como `#`, `##`, `###`
 - [x] Las listas con viñetas y numeradas conservan su anidación
 - [x] Las tareas salen como `- [ ]` y `- [x]` según su estado
@@ -21,7 +21,7 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 - [x] Negrita, cursiva, código y tachado se conservan
 - [x] Los enlaces conservan texto y destino
 - [x] Las menciones a otras páginas salen como enlace con el título
-- [ ] Las imágenes salen referenciadas y el archivo se incluye
+- [x] Las imágenes salen referenciadas y el archivo se incluye
 - [x] Los diagramas salen como bloque de código con su lenguaje
 - [ ] Las propiedades de la página salen al inicio del archivo
 - [x] El archivo se llama como la página
@@ -39,15 +39,15 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 
 - [x] Se puede exportar una página **con todas sus subpáginas**
 - [x] Se puede exportar un espacio completo
-- [ ] Se pueden seleccionar varias páginas sueltas y exportarlas juntas — el modo selección ofrece mover y papelera, no exportar
+- [x] Se pueden seleccionar varias páginas sueltas y exportarlas juntas
 - [x] Se descarga un comprimido con un archivo por página
 - [x] Las carpetas del comprimido reflejan la jerarquía que tenían las páginas
 - [ ] Una colección se exporta comprimida, con un archivo por fila — sale comprimida por ser varias páginas, pero no hay una acción de exportar desde la colección
-- [ ] Los enlaces entre las páginas exportadas apuntan a los archivos exportados, no a la web
-- [ ] Los archivos adjuntos se incluyen en el comprimido
-- [ ] Se elige si se incluyen los adjuntos o solo el texto
-- [ ] Una exportación grande no bloquea la interfaz: avisa cuando está lista
-- [ ] Se indica el avance mientras se prepara
+- [x] Los enlaces entre las páginas exportadas apuntan a los archivos exportados, no a la web
+- [x] Los archivos adjuntos se incluyen en el comprimido
+- [ ] Se elige si se incluyen los adjuntos o solo el texto — hoy los adjuntos van siempre
+- [ ] Una exportación grande no bloquea la interfaz: avisa cuando está lista — necesita tareas en segundo plano, que no existen
+- [ ] Se indica el avance mientras se prepara — necesita tareas en segundo plano, que no existen
 - [x] Solo se exporta lo que uno tiene permiso de ver
 
 > Comprobado el 2026-08-22 contra la API: una página responde `text/markdown`;
@@ -56,6 +56,14 @@ Que el contenido pueda salir del producto y volver a entrar sin quedar atrapado.
 > integridad correcta según `unzip -t`. Una página madre queda a la vez como
 > archivo y como carpeta de sus hijas. Nueve hermanas llamadas igual reciben un
 > número cada una en vez de pisarse. Un nombre con acento llega con su acento.
+
+> Comprobado el 2026-08-22 en el navegador: el modo selección tiene un botón de
+> exportar, inactivo mientras no haya nada marcado. Marcadas dos páginas de
+> ramas distintas, se descargó `seleccion.zip` con esas dos y la carpeta
+> `assets` con sus imágenes. Dentro, las imágenes apuntan a `assets/…` por
+> camino relativo, un enlace a una página que también viajó apunta a su archivo,
+> y uno a una página que quedó fuera se dejó tal como estaba. Un bloque de
+> archivo conserva su identificador y suma el camino al archivo del comprimido.
 
 ## IO-03 · Debe permitir exportar a otros formatos
 

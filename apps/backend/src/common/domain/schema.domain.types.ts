@@ -1,6 +1,6 @@
 import type { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
+import type { PageOptionColor, PagePropertyOption, PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
 
 export type SchemaPropertyValue = PagePropertyValue;
 export type SchemaPropertyValues = PagePropertyValues;
@@ -10,7 +10,7 @@ export interface SchemaPropertyDefinition {
   readonly label: string;
   readonly type: DatabasePropertyType;
   readonly required: boolean;
-  readonly options: readonly string[] | null;
+  readonly options: readonly PagePropertyOption[] | null;
 }
 
 export interface SchemaViewDefinition {
@@ -29,7 +29,8 @@ export interface SchemaGroupableRow extends SchemaOrderedRow {
   readonly propertyValues: SchemaPropertyValues;
 }
 
-export interface SchemaBoardColumn<TRow extends SchemaGroupableRow> {
+export interface SchemaRowGroup<TRow extends SchemaGroupableRow> {
+  readonly color: PageOptionColor | null;
   readonly key: string;
   readonly label: string;
   readonly rows: readonly TRow[];

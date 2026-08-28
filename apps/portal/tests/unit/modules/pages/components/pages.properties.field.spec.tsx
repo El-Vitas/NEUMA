@@ -7,6 +7,7 @@ import type {
   PageSchemaProperty,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
+import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 const { PagesPropertiesField } = await import('@/modules/pages/collections/components/pages.properties.field');
 
@@ -32,7 +33,7 @@ const renderField = (
 describe('PagesPropertiesField', () => {
   it('renders a select trigger for a SELECT property', () => {
     renderField(
-      { key: 'status', label: 'Status', options: ['todo', 'done'], required: true, type: 'SELECT' },
+      { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
       undefined,
     );
     expect(screen.getByRole('combobox', { name: 'Status' })).toBeDefined();
@@ -40,7 +41,13 @@ describe('PagesPropertiesField', () => {
 
   it('renders a human label for a SELECT value instead of the raw stored value', () => {
     renderField(
-      { key: 'status', label: 'Status', options: ['todo', 'in_progress', 'done'], required: true, type: 'SELECT' },
+      {
+        key: 'status',
+        label: 'Status',
+        options: asPropertyOptions('todo', 'in_progress', 'done'),
+        required: true,
+        type: 'SELECT',
+      },
       'in_progress',
     );
     expect(screen.getByText('In progress')).toBeDefined();
@@ -49,7 +56,13 @@ describe('PagesPropertiesField', () => {
 
   it('renders a checkbox per option for a MULTI_SELECT property', () => {
     renderField(
-      { key: 'team', label: 'Team', options: ['design', 'engineering'], required: false, type: 'MULTI_SELECT' },
+      {
+        key: 'team',
+        label: 'Team',
+        options: asPropertyOptions('design', 'engineering'),
+        required: false,
+        type: 'MULTI_SELECT',
+      },
       ['design'],
     );
     expect(screen.getByRole('checkbox', { name: 'Design' }).getAttribute('aria-checked')).toBe('true');

@@ -110,7 +110,7 @@ const setLifecycle = async (
   await request(testApp.getServer())
     .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/${action}`)
     .set('Authorization', `Bearer ${token}`)
-    .set('x-mutation-id', `${action}-${pageId}-${String(Date.now())}`)
+    .set('x-mutation-id', crypto.randomUUID())
     .expect(201);
 };
 

@@ -1,4 +1,3 @@
-import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
 import { Maximize2 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -6,8 +5,8 @@ import { EmptyState } from '@/shared/components/ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { buildPagesSidePanelQueryHref } from '../../navigation/lib/pages.side-panel.lib';
-import { formatPropertyValueForDisplay, readCheckboxLabelKey } from '../lib/pages.properties.lib';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
+import { PagesPropertyValue } from './pages.properties.value';
 
 interface IProps {
   readonly properties: readonly PageSchemaProperty[];
@@ -20,7 +19,7 @@ export const PagesCollectionTable = async ({ properties, rows, spaceId }: IProps
   if (rows.length === 0) return <EmptyState message={t('collection.emptyTable')} />;
 
   return (
-    <Table>
+    <Table data-testid="collection-table">
       <TableHeader>
         <TableRow>
           <TableHead>{t('titleField')}</TableHead>
@@ -47,16 +46,11 @@ export const PagesCollectionTable = async ({ properties, rows, spaceId }: IProps
                 </Link>
               </span>
             </TableCell>
-            {properties.map((property) => {
-              const rawValue = row.propertyValues?.[property.key];
-              return (
-                <TableCell key={property.key}>
-                  {property.type === PAGE_PROPERTY_TYPE.CHECKBOX
-                    ? t(readCheckboxLabelKey(rawValue))
-                    : formatPropertyValueForDisplay(property, rawValue)}
-                </TableCell>
-              );
-            })}
+            {properties.map((property) => (
+              <TableCell key={property.key}>
+                <PagesPropertyValue property={property} value={row.propertyValues?.[property.key]} />
+              </TableCell>
+            ))}
           </TableRow>
         ))}
       </TableBody>

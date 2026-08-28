@@ -45,7 +45,7 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [x] El ícono se ve en los resultados de búsqueda y en las menciones
 - [x] Se puede quitar
 
-**Además de lo pedido:** hay 1929 íconos de la biblioteca en una segunda pestaña, buscables por nombre y por
+**Además de lo pedido:** hay 1910 íconos de la biblioteca en una segunda pestaña, buscables por nombre y por
 significado en español e inglés, con un color a elegir. El ícono también se cambia y la página se renombra desde
 el menú de los tres puntos del árbol, sin abrirla.
 
@@ -180,7 +180,7 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se pueden seleccionar varias páginas en una lista — modo selección explícito en el árbol
 - [x] Se pueden mover todas juntas a otro padre o espacio
 - [x] Se pueden enviar todas juntas a la papelera — seleccionar una madre y una hija no actúa dos veces: la cascada de la madre ya la cubre
-- [ ] Se pueden exportar todas juntas — la exportación existe y sale a Markdown, pero por página, por rama o por espacio entero; el modo selección todavía ofrece mover y papelera, no exportar
+- [x] Se pueden exportar todas juntas — salen comprimidas, con sus adjuntos y las carpetas donde vivían
 - [x] Se ve cuántas hay seleccionadas — a la vista y anunciado por `aria-live`
 - [x] La acción se puede cancelar antes de aplicarse
 
@@ -199,6 +199,42 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 - [x] Se puede ver quiénes la vieron y cuándo
 - [x] Quien no tiene permiso de administrar no ve esta información — no se le dibuja el control, y el servidor además rechaza a quien lo pida por su cuenta
 - [x] Se puede desactivar este registro — apagado deja de **guardar**, no solo de mostrar: comprobado visitando páginas con el registro apagado y viendo que la cuenta no se movía
+
+## PG-22 · Debe permitir que una página sea algo más que un documento
+
+> Una página no cambia de naturaleza según cómo se muestre. Es la misma página,
+> con el mismo nombre, el mismo lugar en el árbol y los mismos permisos, y lo
+> único que cambia es qué ocupa la pantalla al abrirla. Por eso pasar de una
+> presentación a otra no puede perder nada.
+>
+> Lo que se ve **dentro** de una página que se presenta como colección se revisa
+> en `05-colecciones-propiedades-vistas.md`.
+
+- [ ] Al crear una página se elige qué será: documento, colección o lienzo
+- [ ] Una página existente se puede pasar de documento a colección
+- [ ] Una página existente vuelve de colección a documento sin perder las filas ni sus valores
+- [ ] Se advierte qué queda fuera de vista antes de cambiar de presentación
+- [ ] El árbol lateral distingue por su ícono qué es cada página
+- [ ] Una página que no es documento conserva nombre, ícono, portada, permisos y papelera igual que cualquier otra
+- [ ] Se puede escribir un texto de entrada arriba, sea cual sea la presentación
+- [ ] Abrir una fila o una tarjeta lleva a una página normal, con su cuerpo editable
+- [ ] Una mención a una página muestra qué es antes de abrirla
+
+## PG-23 · Debe ofrecer una página como lienzo
+
+> El lienzo es la misma página mirada de otra manera, no un archivo aparte. Lo
+> que se escribió como documento sigue estando cuando se mira como lienzo.
+
+- [ ] Una página se puede ver como lienzo de espacio libre
+- [ ] Se alterna entre documento y lienzo sin perder contenido
+- [ ] Se elige cuál de las dos es la forma principal de esa página
+- [ ] En el lienzo se coloca texto, imágenes y formas donde uno quiera
+- [ ] Se puede acercar, alejar y encuadrar todo lo que hay
+- [ ] Se conectan dos elementos con una flecha que los sigue al moverlos
+- [ ] Se puede traer otra página al lienzo y verla dentro
+- [ ] Se puede traer una vista de colección al lienzo
+- [ ] Lo que se hace en el lienzo se guarda solo, igual que el documento
+- [ ] Dos personas en el mismo lienzo se ven trabajar
 
 ---
 
@@ -340,3 +376,4 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 | 2026-08-20 | NV-10, NV-12, PG-21 | Tres bloques construidos en paralelo y verificados en el navegador contra PostgreSQL. **Panel lateral:** abre al costado sin perder la de atrás, con la dirección como memoria (`?panel=`), se ensancha de 480 a 952 px, se cierra con Escape y con un clic afuera sin atrapar el foco, y lo escrito justo antes de cerrar estaba en la base. A 320 px ocupa la pantalla entera. **Privado:** el área de cada persona se crea sola; ni siquiera un administrador ve la ajena —comprobado en el árbol, en la búsqueda y por dirección directa, y con el control inverso de que su dueña sí la encuentra—. Compartirla la hace aparecer en «Compartido contigo», aparte de los espacios propios. **Uso:** cuenta las visitas con quién y cuándo, se apaga, y apagado **deja de guardar**, no solo de mostrar: se visitaron dos páginas con el registro apagado y la cuenta no se movió; al reactivarlo volvió a contar. Quien no administra no ve el control, y el servidor rechaza a quien lo pida por su cuenta. **Defecto de seguridad corregido:** el buscador no usaba el filtro de visibilidad común y evaluaba en TypeScript si un rol podía leer los espacios restringidos, interpolando el resultado como literal en el SQL — para un administrador la cláusula quedaba en `OR true`, anulando toda la guarda: veía páginas de cualquier espacio, y habría visto las áreas privadas ajenas. Reescrito atando cada rama a su visibilidad, con prueba que falla si alguien vuelve a dejar un `true` suelto. **Corregido también:** la dueña de un área privada no podía renombrarla, porque renombrar exigía permiso de crear espacios. | Correcto |
 | 2026-08-21 | PG-19 (exportar) | Exportación a Markdown, verificada en el navegador contra PostgreSQL. Se elige cuánto sale: una página, una página con todo lo que cuelga de ella, o el espacio entero. A una página sin hijas no se le pregunta nada; a una con hijas se le pregunta, y las dos respuestas se comprobaron: «Tasks» sola salió con una sola marca de página, y con sus subpáginas salió con catorce, el número exacto que la base tiene bajo esa madre. El espacio entero de Engineering salió en un archivo de 42 KB con las páginas en el orden del árbol y cada una abierta por la ruta donde vivía. Lo que Markdown ya sabe decir se escribió con su propia sintaxis; lo que no —menciones, personas, fechas, fórmulas, destacados, columnas, colecciones, plegables, marcadores— salió como enlace con su destino o como cerca `:::tipo` con sus datos, incluido un bloque que el esquema no conoce, que se conservó en vez de perderse. **Acceso comprobado en los dos sentidos:** un Worker que no pertenece al espacio restringido «Direccion» recibe 403, y el mismo espacio —que tiene dos páginas, una con una palabra secreta— sale entero para quien sí puede leerlo. Sin sesión, 401; un alcance inventado o una página sin decir cuál, 400. **Defecto encontrado y corregido:** la fórmula salía vacía (`$$`) porque el escritor buscaba `attrs.expression` y el esquema guarda `attrs.latex`; la prueba que tenía escrita repetía el mismo error, así que solo se vio al abrir el archivo real. | Correcto |
 | 2026-08-21 | PG-01, NV-02, NV-03, NV-08, NV-09 | Cinco casillas sueltas cerradas y verificadas en el navegador. **Atajo:** `Ctrl`/`Cmd` + `Shift` + `N` crea una página en el espacio donde uno esté; lleva Shift para no pisar el atajo del navegador, y calla mientras se escribe —comprobado el control—. **Configuración del espacio:** pantalla propia con nombre y descripción, enlazada desde la entrada del espacio; la descripción se lee ahí y borrarla devuelve al espacio a no decir nada. **Orden entre hermanas:** soltar en el borde de una fila deja la página al lado, soltar en el centro la mete dentro, y la marca dice cuál de las dos va a pasar antes de soltar; «Review portal content» pasó de tercera a primera y aguantó la recarga. **Vista previa sin acceso:** dice «no tienes acceso» sin filtrar título ni fragmento, comprobado con control en los dos sentidos —el enlace alcanzable sí muestra su contenido—. La decisión de qué significa soltar se sacó a una función pura, igual que la de recolocar en una lista, que ahora comparten páginas y espacios en vez de tenerla escrita dos veces. | Correcto |
+| 2026-08-28 | PG-04 (íconos) | Al subir la biblioteca de íconos a su versión 1, los **19 símbolos de marcas** (GitHub, Slack, Figma, Twitter, YouTube y demás) dejaron de existir: quien los publica los retiró. Se quitaron del selector, que pasa de 1929 a 1910 símbolos. Ninguna página del ejemplo los usaba. Traerlos de otra biblioteca queda como decisión pendiente. | Correcto |

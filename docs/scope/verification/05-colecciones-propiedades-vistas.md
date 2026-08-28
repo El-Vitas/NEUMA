@@ -16,6 +16,21 @@ página — porque lo es.
 Existen ocho tipos de propiedad (título, texto, selección simple, selección
 múltiple, persona, fecha, casilla y número) y dos vistas (tabla y tablero).
 
+El servidor ya sabe filtrar, ordenar y agrupar. Cada opción de una selección
+lleva su nombre y su color. La forma de una colección se cambia después de
+crearla, desde el botón junto a las pestañas de vistas: agregar propiedades
+propias, renombrarlas, quitarlas, y decidir qué opciones ofrece una selección y
+de qué color es cada una.
+
+Un tablero se mueve: una tarjeta arrastrada a otra columna cambia el valor que
+esa columna representa, y lo mismo se hace con el teclado.
+
+**Lo que falta ahora es mandar sobre las columnas y sobre lo que se ve.** No hay
+dónde elegir por qué propiedad agrupa un tablero, ni ocultar o reordenar
+columnas, ni decidir qué muestra una tarjeta, ni filtrar desde la pantalla. El
+tipo de una propiedad tampoco se cambia, porque es una pregunta sobre qué pasa
+con cada fila que ya respondió.
+
 Nada de eso cuenta como verificado: está escrito aquí para saber por dónde
 empezar a probar, no para ahorrarse la prueba.
 
@@ -38,7 +53,7 @@ sección exista, el documento se da por completo sin ellas.
 - [ ] Desde una página cualquiera se puede agregar un esquema y volverla colección
 - [ ] La acción es encontrable sin saber de antemano dónde está
 - [ ] Al hacerlo se ofrece partir de una plantilla o desde cero
-- [ ] La colección sigue teniendo cuerpo de página: se puede escribir arriba de la tabla
+- [x] La colección sigue teniendo cuerpo de página: se puede escribir arriba de la tabla
 - [ ] Se puede quitar el esquema y volver a ser página normal
 - [ ] Al quitarlo se advierte qué pasa con las filas existentes
 
@@ -85,25 +100,45 @@ sección exista, el documento se da por completo sin ellas.
 - [ ] Se pueden mover varias filas a la vez
 - [ ] Se puede mover una fila a otra colección con el mismo esquema
 
+## CO-07 · Debe verse igual esté donde esté
+
+Una colección se puede mirar en dos sitios: ocupando su propia página, o metida
+dentro de otra página como un bloque más. Es el mismo dato con distinto marco,
+así que lo que se hace en uno se ve en el otro. Que la página en sí pueda ser la
+colección se revisa en `04-paginas-y-navegacion.md` (`PG-22`).
+
+- [ ] Una colección ocupa su propia página, con la barra de vistas arriba
+- [ ] La misma colección se puede insertar dentro de otra página
+- [ ] Editar desde cualquiera de los dos sitios cambia el mismo dato
+- [ ] Los dos sitios ofrecen las mismas acciones sobre las filas
+- [ ] Se pasa de un sitio al otro sin perder vistas, filtros ni valores
+- [ ] Una vista insertada en otra página puede llevar filtro y orden propios, sin tocar los de la colección
+- [ ] Se puede insertar la vista de una colección que vive en otro espacio, si se tiene permiso
+- [ ] Quien no puede leer la colección no ve sus datos donde esté insertada
+
 ---
 
 ## PR-01 · Debe permitir definir las propiedades de la colección
 
-- [ ] Se puede agregar una propiedad
-- [ ] Se puede renombrar
-- [ ] Se puede cambiar su tipo, y se advierte qué pasa con los datos existentes
+> Se llega desde el botón junto a las pestañas de vistas, y solo lo ve quien
+> puede escribir la página. Nada viaja hasta que se guarda. Comprobado en el
+> navegador el 2026-08-25.
+
+- [x] Se puede agregar una propiedad — de cualquier tipo salvo título, con la clave derivada del nombre
+- [x] Se puede renombrar — cambia la etiqueta, no la clave bajo la que las filas guardaron
+- [ ] Se puede cambiar su tipo, y se advierte qué pasa con los datos existentes — el tipo se muestra, no se cambia
 - [ ] Al cambiar de selección a texto, los valores quedan como texto legible
 - [ ] Al cambiar de texto a selección, los valores existentes se convierten en opciones
 - [ ] Al cambiar a número, lo que no es número queda vacío y se avisa cuántas filas se pierden
 - [ ] Un cambio de tipo sin conversión posible se rechaza en vez de vaciar la columna en silencio
 - [ ] El cambio de tipo se puede deshacer
-- [ ] Se puede eliminar, con confirmación
+- [ ] Se puede eliminar, con confirmación — se elimina, pero sin preguntar antes
 - [ ] Se puede reordenar arrastrando
 - [ ] Se puede marcar como obligatoria
 - [ ] Se puede duplicar una propiedad con su configuración
-- [ ] Existe siempre una propiedad de título, y es la que abre la página
-- [ ] La propiedad de título no se puede eliminar ni duplicar
-- [ ] La propiedad de título se puede renombrar
+- [x] Existe siempre una propiedad de título, y es la que abre la página
+- [x] La propiedad de título no se puede eliminar ni duplicar — el panel no lo ofrece y el servidor lo rechazaría
+- [x] La propiedad de título se puede renombrar
 - [ ] Cambiar el título de la fila cambia el título de la página, y al revés
 
 ## PR-02 · Debe ofrecer texto y número
@@ -116,13 +151,17 @@ sección exista, el documento se da por completo sin ellas.
 
 ## PR-03 · Debe ofrecer selección simple y múltiple
 
-- [ ] Se pueden definir las opciones disponibles
-- [ ] Cada opción tiene un color
-- [ ] Se puede crear una opción nueva escribiéndola desde la celda
-- [ ] Se pueden reordenar y renombrar las opciones
-- [ ] Renombrar una opción actualiza todas las filas que la usan
-- [ ] Selección múltiple permite quitar valores de a uno
-- [ ] Las opciones se ven como etiquetas de color, no como texto plano
+> Una opción se guarda con su nombre y su color, de un conjunto cerrado de
+> nueve. El color nunca dice nada por sí solo: el nombre viaja siempre al lado.
+> Registrado en `docs/business-rules/fea-clc.yaml`.
+
+- [x] Se pueden definir las opciones disponibles — desde la configuración de la colección, agregando y quitando
+- [x] Cada opción tiene un color — se elige de una paleta de nueve, con todos a la vista
+- [ ] Se puede crear una opción nueva escribiéndola desde la celda — solo desde la configuración
+- [ ] Se pueden reordenar y renombrar las opciones — el renombrado existe en el dominio, sin pantalla que lo ofrezca
+- [ ] Renombrar una opción actualiza todas las filas que la usan — no las toca, y eso está dicho en la interfaz
+- [x] Selección múltiple permite quitar valores de a uno
+- [x] Las opciones se ven como etiquetas de color, no como texto plano
 
 ## PR-04 · Debe ofrecer estado con fases
 
@@ -237,20 +276,30 @@ sección exista, el documento se da por completo sin ellas.
 
 **Cómo probarlo:** abre una colección en vista tablero y arrastra una tarjeta de una columna a otra.
 
-- [ ] Las filas se ven como tarjetas agrupadas en columnas
-- [ ] Se elige por qué propiedad se agrupa
-- [ ] Se puede arrastrar una tarjeta de una columna a otra
-- [ ] Al soltarla, el valor de la propiedad cambia solo
-- [ ] El cambio persiste al recargar
-- [ ] Se puede reordenar una tarjeta dentro de su misma columna
-- [ ] Mientras se arrastra se ve dónde va a caer
-- [ ] Otra persona viendo el mismo tablero ve el movimiento
+- [x] Las filas se ven como tarjetas agrupadas en columnas
+- [ ] Se elige por qué propiedad se agrupa — se guarda en la vista, pero no hay dónde cambiarlo desde la pantalla
+- [x] Se puede arrastrar una tarjeta de una columna a otra
+- [x] Al soltarla, el valor de la propiedad cambia solo
+- [x] El cambio persiste al recargar — comprobado contra la base, no solo en pantalla
+- [ ] Se puede reordenar una tarjeta dentro de su misma columna — soltar en la misma columna no hace nada
+- [ ] Mientras se arrastra se ve dónde va a caer — la columna se resalta, pero no se marca el sitio entre dos tarjetas
+- [ ] Otra persona viendo el mismo tablero ve el movimiento — no hay tiempo real en las colecciones
 - [ ] Se puede crear una tarjeta directamente en una columna
-- [ ] Se elige qué propiedades se muestran en la tarjeta
+- [ ] Se elige qué propiedades se muestran en la tarjeta — la tarjeta solo muestra el título
 - [ ] Las tarjetas pueden mostrar una imagen de portada
 - [ ] Se pueden ocultar columnas vacías
-- [ ] Se ve el conteo de tarjetas por columna
-- [ ] Si no hay propiedad de agrupación configurada, se explica qué hacer
+- [x] Se ve el conteo de tarjetas por columna
+- [x] Cada columna se ve con el color de la opción que representa
+- [x] Si no hay propiedad de agrupación configurada, se explica qué hacer
+- [x] Una tarjeta se puede mover sin ratón, solo con el teclado — con Alt y las flechas
+- [x] Al moverla con el teclado se anuncia dónde quedó
+- [ ] Arrastrar hacia el borde desplaza el tablero solo
+
+> Comprobado en el navegador el 2026-08-25. Una tarjeta arrastrada de `todo` a
+> `in_progress` cambió el valor en la base, y el tablero se rehízo sin recargar.
+> Lo mismo con el teclado, anunciado por `aria-live`. Soltar una tarjeta en su
+> propia columna no escribe nada. A quien solo puede leer no se le deja arrastrar,
+> y el servidor rechaza el intento hecho por fuera con 403.
 
 ## VW-03 · Debe permitir manejar las columnas del tablero
 
@@ -345,12 +394,12 @@ renómbrala, muévela de sitio y borra una que tenga tarjetas dentro.
 
 ## VW-12 · Debe permitir varias vistas de la misma colección
 
-- [ ] Se pueden crear varias vistas sobre las mismas filas
-- [ ] Se cambia entre ellas con pestañas
-- [ ] Cada vista tiene nombre e ícono
-- [ ] Cada vista conserva su propio filtro, orden y agrupación
+- [x] Se pueden crear varias vistas sobre las mismas filas — al crear la colección; después no hay dónde agregarlas
+- [x] Se cambia entre ellas con pestañas — la vista abierta va en la dirección, así que un tablero se manda por enlace
+- [ ] Cada vista tiene nombre e ícono — nombre sí, ícono no
+- [x] Cada vista conserva su propio filtro, orden y agrupación — guardado en la vista; no hay dónde cambiarlo en pantalla
 - [ ] Se puede duplicar, renombrar y eliminar una vista
-- [ ] Se puede definir cuál es la vista por defecto
+- [x] Se puede definir cuál es la vista por defecto — es la que abre cuando la dirección no nombra ninguna
 - [ ] Se puede convertir una vista de tabla en tablero, y al revés
 - [ ] Al convertir se conserva lo que sigue aplicando: filtros, orden y propiedades visibles
 - [ ] Lo que no aplica al tipo nuevo se descarta avisando

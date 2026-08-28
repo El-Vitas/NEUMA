@@ -15,7 +15,13 @@ describe('schema property domain validation', () => {
 
   it('requires exactly one TITLE property', () => {
     const result = validateSchemaProperties([
-      { key: 'status', label: 'Status', type: DatabasePropertyType.SELECT, required: false, options: ['todo'] },
+      {
+        key: 'status',
+        label: 'Status',
+        type: DatabasePropertyType.SELECT,
+        required: false,
+        options: [{ color: null, value: 'todo' }],
+      },
     ]);
 
     expect(result.isFail()).toBe(true);
@@ -30,7 +36,10 @@ describe('schema property domain validation', () => {
           label: 'Status',
           type: DatabasePropertyType.SELECT,
           required: false,
-          options: ['todo', 'done'],
+          options: [
+            { color: null, value: 'todo' },
+            { color: null, value: 'done' },
+          ],
         },
       ],
       { title: 'Task', status: 'blocked' },

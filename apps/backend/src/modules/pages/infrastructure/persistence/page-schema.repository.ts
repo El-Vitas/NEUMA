@@ -71,7 +71,10 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         data: properties.map((property, order) => ({
           key: property.key,
           label: property.label,
-          options: property.options === null ? Prisma.JsonNull : [...property.options],
+          options:
+            property.options === null
+              ? Prisma.JsonNull
+              : property.options.map((option) => ({ color: option.color, value: option.value })),
           order,
           pageId,
           required: property.required,

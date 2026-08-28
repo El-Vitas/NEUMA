@@ -288,7 +288,8 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
 
   const views = [
     {
-      configuration: { columns: ['status', 'assignee', 'priority', 'dueDate', 'description'] },
+      /** Vacía: una configuración solo admite filtro, agrupación y orden, y el servidor rechaza cualquier otra cosa. */
+      configuration: {},
       id: tasksTableViewId,
       isDefault: true,
       name: 'Table',

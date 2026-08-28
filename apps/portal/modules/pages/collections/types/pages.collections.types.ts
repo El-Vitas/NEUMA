@@ -1,4 +1,4 @@
-import type { PagePropertyType, PageViewType } from '@company-brain/shared';
+import type { PagePropertyOption, PagePropertyType, PageViewType } from '@company-brain/shared';
 
 /** What a collection is called in the language of whoever is making it. */
 export interface PageCollectionWording {
@@ -10,7 +10,7 @@ export interface PageCollectionWording {
 export interface PageCollectionProperty {
   readonly key: string;
   readonly label: string;
-  readonly options: readonly string[] | null;
+  readonly options: readonly PagePropertyOption[] | null;
   readonly required: boolean;
   readonly type: PagePropertyType;
 }

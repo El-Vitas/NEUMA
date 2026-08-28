@@ -10,17 +10,14 @@ import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.q
 import { getPageAttachments } from '@/modules/pages/attachments/server/queries/pages.attachments.queries';
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
+import { PAGE_COLLECTION_VIEW_SEARCH_PARAM } from '@/modules/pages/collections/constants/pages.collections.constants';
+import { resolveActiveCollectionView } from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
 import {
   getEditableSchemaProperties,
   schemaNeedsPersonOptions,
 } from '@/modules/pages/collections/lib/pages.properties.lib';
 import { getPageSchema, getPageView } from '@/modules/pages/collections/server/queries/pages.schema.queries';
-import type {
-  PagePersonOption,
-  PageSchema,
-  PageSchemaView,
-  PageViewOutcome,
-} from '@/modules/pages/collections/types/pages.schema.types';
+import type { PagePersonOption, PageSchema } from '@/modules/pages/collections/types/pages.schema.types';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
 import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
@@ -39,6 +36,12 @@ interface IProps {
 }
 
 /** The page a shared or reloaded address asks to open beside the one it names, when it names one at all. */
+/** The view the address names, or nothing when it names none. A repeated parameter keeps only the first. */
+const resolveRequestedViewName = (rawViewParam: string | string[] | undefined): null | string => {
+  const candidate = Array.isArray(rawViewParam) ? rawViewParam[0] : rawViewParam;
+  return candidate === undefined || candidate === '' ? null : candidate;
+};
+
 const resolvePanelPageId = (
   rawPanelParam: string | string[] | undefined,
   pages: readonly PageSummary[],
@@ -130,25 +133,36 @@ const resolvePersonOptionsIfNeeded = async (
   return personOptionsResult.isOk() ? personOptionsResult.getValue() : [];
 };
 
-/** One view of a page's own schema, rendered with whatever it already holds. */
-const buildOwnCollectionView = async (
-  spaceId: string,
-  pageId: string,
-  view: PageSchemaView,
-): Promise<{ readonly outcome: PageViewOutcome | null; readonly view: PageSchemaView }> => {
-  const outcomeResult = await getPageView(spaceId, pageId, view.name);
-  return { outcome: outcomeResult.isOk() ? outcomeResult.getValue() : null, view };
-};
-
-/** The section a page shows of its own rows, present only when its own schema actually has properties. */
+/**
+ * The collection a page shows of its own rows, present only when its own schema
+ * actually has properties.
+ *
+ * Only the view being looked at is asked for. Reading every view of a
+ * collection to show one of them costs a round trip per view and shows the same
+ * rows over and over.
+ */
 const buildCollectionSection = async (
   ownSchema: PageSchema | null,
   spaceId: string,
   pageId: string,
+  requestedViewName: null | string,
+  canEdit: boolean,
 ): Promise<ReactNode> => {
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
-  const views = await Promise.all(ownSchema.views.map((view) => buildOwnCollectionView(spaceId, pageId, view)));
-  return <PagesCollectionSection properties={getEditableSchemaProperties(ownSchema)} spaceId={spaceId} views={views} />;
+  const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
+  if (activeView === null) return null;
+  const outcomeResult = await getPageView(spaceId, pageId, activeView.name);
+  return (
+    <PagesCollectionSection
+      activeView={activeView}
+      canEdit={canEdit}
+      outcome={outcomeResult.isOk() ? outcomeResult.getValue() : null}
+      properties={getEditableSchemaProperties(ownSchema)}
+      schema={ownSchema}
+      spaceId={spaceId}
+      views={ownSchema.views}
+    />
+  );
 };
 
 /** Every collection this page's own writing points at, drawn where each reference stands. */
@@ -177,6 +191,7 @@ const buildPageEditorBundle = async (
   pages: readonly PageSummary[],
   canEditRole: boolean,
   favoritesResult: Result<readonly FavoritePage[], Error>,
+  requestedViewName: null | string,
 ): Promise<PagesSidePanelBundle> => {
   /**
    * Two rounds, not five.
@@ -196,7 +211,13 @@ const buildPageEditorBundle = async (
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
   const [personOptions, collectionSection, embeddedCollections] = await Promise.all([
     resolvePersonOptionsIfNeeded(spaceId, parentSchema, canEditPage(canEditRole, targetPage.lifecycle)),
-    buildCollectionSection(ownSchema, spaceId, targetPage.id),
+    buildCollectionSection(
+      ownSchema,
+      spaceId,
+      targetPage.id,
+      requestedViewName,
+      canEditPage(canEditRole, targetPage.lifecycle),
+    ),
     buildEmbeddedCollections(targetPage, pages),
   ]);
 
@@ -235,11 +256,13 @@ export default async function Page({ params, searchParams }: IProps) {
   const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pages, pageId);
   const panelPage = panelPageId === null ? undefined : pages.find((page) => page.id === panelPageId);
 
+  /** The address names a view of the page being read, not of whichever page rides beside it. */
+  const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
   const [mainBundle, panelBundle] = await Promise.all([
-    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult),
+    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName),
     panelPage === undefined
       ? Promise.resolve(null)
-      : buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult),
+      : buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null),
   ]);
 
   return (
