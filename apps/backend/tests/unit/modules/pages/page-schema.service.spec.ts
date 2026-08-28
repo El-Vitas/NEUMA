@@ -11,7 +11,10 @@ const statusProperty = {
   label: 'Status',
   type: DatabasePropertyType.SELECT,
   required: false,
-  options: ['todo', 'done'],
+  options: [
+    { color: null, value: 'todo' },
+    { color: null, value: 'done' },
+  ],
 };
 
 const page: PageSummary = {
@@ -306,7 +309,7 @@ describe('page schema service — getView', () => {
     const result = await service.getView('page-a', 'Table', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue()).toEqual({ outcome: { kind: 'TABLE_ROWS', rows: [row] }, spaceId: 'space-a' });
+    expect(result.getValue()).toEqual({ outcome: { kind: 'FLAT_ROWS', rows: [row] }, spaceId: 'space-a' });
   });
 
   it('returns board columns grouped by the configured select property', async () => {
@@ -343,9 +346,9 @@ describe('page schema service — getView', () => {
 
     expect(result.isOk()).toBe(true);
     const outcome = result.getValue().outcome;
-    expect(outcome.kind).toBe('BOARD_COLUMNS');
-    if (outcome.kind !== 'BOARD_COLUMNS') throw new Error('unreachable');
-    expect(outcome.columns.map((column) => column.key)).toEqual(['todo', 'done', 'unassigned']);
+    expect(outcome.kind).toBe('GROUPED_ROWS');
+    if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
+    expect(outcome.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
   });
 
   it('signals a missing grouping property when the board view references a property no longer in the schema', async () => {
@@ -381,6 +384,6 @@ describe('page schema service — getView', () => {
     const result = await service.getView('page-a', 'Board', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue().outcome).toEqual({ kind: 'BOARD_MISSING_GROUPING_PROPERTY' });
+    expect(result.getValue().outcome).toEqual({ kind: 'MISSING_GROUPING_PROPERTY' });
   });
 });

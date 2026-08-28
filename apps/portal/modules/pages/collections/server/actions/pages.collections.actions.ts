@@ -13,7 +13,12 @@ import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema } from '../../../schemas/pages.schemas';
 import type { PageSummary } from '../../../types/pages.types';
-import { pageCollectionCreateSchema, pageCollectionReadSchema } from '../../schemas/pages.collections.schemas';
+import {
+  pageCollectionCreateSchema,
+  pageCollectionReadSchema,
+  pageCollectionUpdateSchema,
+  pageRowPropertiesSchema,
+} from '../../schemas/pages.collections.schemas';
 import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
 import type { PageSchema } from '../../types/pages.schema.types';
 
@@ -40,6 +45,47 @@ export const createPageCollectionAction = actionClient
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
       return page;
+    }),
+  );
+
+/**
+ * Changes what one row holds, without touching what its page says.
+ *
+ * This is what a card dragged across a board does. Only the property that moved
+ * travels: sending the whole page back would overwrite whatever somebody else
+ * wrote in it while the card was in the air.
+ */
+export const updatePageRowPropertiesAction = actionClient
+  .inputSchema(pageRowPropertiesSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'updatePageRowProperties' }, async (): Promise<void> => {
+      await authenticatedRequest(PAGE_API_ROUTES.properties(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+        propertyValues: parsedInput.propertyValues,
+      });
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    }),
+  );
+
+/**
+ * Changes the shape of a collection that already exists.
+ *
+ * What the rows already hold does not travel and does not move: the values live
+ * on each row, not on the shape, so renaming a column or giving an option
+ * another color leaves every row where it was. A property removed from the
+ * shape stops being shown, and what the rows stored under it stays written in
+ * case somebody puts it back.
+ */
+export const updatePageCollectionAction = actionClient
+  .inputSchema(pageCollectionUpdateSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'updatePageCollection' }, async (): Promise<PageSchema> => {
+      const updated = await authenticatedRequest(
+        PAGE_API_ROUTES.schema(parsedInput.spaceId, parsedInput.pageId),
+        'POST',
+        { properties: parsedInput.properties, views: parsedInput.views },
+      );
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSchemaSchema.parse(updated);
     }),
   );
 

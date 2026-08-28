@@ -8,6 +8,12 @@ export const PAGE_COLLECTION_FIRST_PROPERTY_KEY = 'notes';
 /** What every row of a collection has: its name, which is the title of the page that row is. */
 export const PAGE_COLLECTION_TITLE_PROPERTY_KEY = 'title';
 
+/**
+ * Which view of a collection is being looked at, written into the address so a
+ * board can be sent by link and survives a reload.
+ */
+export const PAGE_COLLECTION_VIEW_SEARCH_PARAM = 'view';
+
 /** Where the page keeps whoever knows how to make a collection, and how to be asked for one already written. */
 export const PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR = '[data-page-collection-request]';
 

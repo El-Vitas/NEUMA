@@ -1,6 +1,7 @@
+import { FileAssetLifecycle } from '@company-brain/db';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import type { PageAttachmentsCleanupRepositoryContract } from '../../types/page.types';
+import type { PageAssetForExport, PageAttachmentsCleanupRepositoryContract } from '../../types/page.types';
 
 @Injectable()
 export class PageAttachmentsCleanupRepository implements PageAttachmentsCleanupRepositoryContract {
@@ -13,6 +14,15 @@ export class PageAttachmentsCleanupRepository implements PageAttachmentsCleanupR
       where: { pageId: { in: [...pageIds] } },
     });
     return assets.map((asset) => asset.storageKey);
+  }
+
+  /** What hangs on these pages, named so an export can carry it and point the writing at it. */
+  async listAssetsForPages(pageIds: readonly string[]): Promise<readonly PageAssetForExport[]> {
+    if (pageIds.length === 0) return [];
+    return this.prisma.fileAsset.findMany({
+      select: { id: true, originalFilename: true, storageKey: true },
+      where: { lifecycle: FileAssetLifecycle.ACTIVE, pageId: { in: [...pageIds] } },
+    });
   }
 
   async deleteForPages(pageIds: readonly string[]): Promise<void> {

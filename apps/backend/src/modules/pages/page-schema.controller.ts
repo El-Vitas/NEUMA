@@ -28,7 +28,7 @@ export class PageSchemaController {
       properties: dto.properties.map((property) => ({
         key: property.key,
         label: property.label,
-        options: property.options ?? null,
+        options: property.options?.map((option) => ({ color: option.color ?? null, value: option.value })) ?? null,
         required: property.required,
         type: property.type,
       })),

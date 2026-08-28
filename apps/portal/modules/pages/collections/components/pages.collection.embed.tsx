@@ -2,7 +2,7 @@ import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { PageSchemaProperty, PageSchemaView, PageViewOutcome } from '../types/pages.schema.types';
-import { PagesCollectionViewOutcome } from './pages.collection.view-outcome';
+import { PagesCollectionView } from './pages.collection.view';
 
 interface IProps {
   readonly outcome: PageViewOutcome | null;
@@ -34,6 +34,6 @@ export const PagesCollectionEmbed = async ({ outcome, pageId, properties, spaceI
       </Link>
       <span className="text-muted-foreground text-xs uppercase tracking-wide">{view.name}</span>
     </div>
-    {await PagesCollectionViewOutcome({ outcome, properties, spaceId })}
+    {await PagesCollectionView({ canEdit: false, outcome, properties, spaceId, view })}
   </section>
 );

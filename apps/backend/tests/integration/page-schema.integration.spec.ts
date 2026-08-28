@@ -92,18 +92,11 @@ const getView = (testApp: TestApp, token: string, spaceId: string, pageId: strin
     .get(`/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`)
     .set('Authorization', `Bearer ${token}`);
 
-const movePage = (
-  testApp: TestApp,
-  token: string,
-  spaceId: string,
-  pageId: string,
-  parentId: string,
-  mutationId: string,
-) =>
+const movePage = (testApp: TestApp, token: string, spaceId: string, pageId: string, parentId: string) =>
   request(testApp.getServer())
     .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}/move`)
     .set('Authorization', `Bearer ${token}`)
-    .set('x-mutation-id', mutationId)
+    .set('x-mutation-id', crypto.randomUUID())
     .send({ parentId });
 
 const titleProperty = { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null };
@@ -198,6 +191,42 @@ describe('Page Schema (Integration)', () => {
       expect(row.propertyValues).not.toHaveProperty('title');
     });
 
+    /** What a card dragged across a board does: one value moves and the rest of the page is left alone. */
+    it('changes one property of a row without touching what the page says', async () => {
+      const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board dragged');
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
+        201,
+      );
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row dragged', collection.id, {
+        status: 'todo',
+      });
+
+      const moved = await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ propertyValues: { status: 'done' } })
+        .expect(200);
+
+      expect((moved.body as PageResponse).propertyValues).toEqual({ status: 'done' });
+      expect((moved.body as PageResponse).title).toBe('Row dragged');
+    });
+
+    it('refuses to drop a row into a column the shape does not offer', async () => {
+      const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board refused');
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
+        201,
+      );
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row refused', collection.id, {
+        status: 'todo',
+      });
+
+      await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ propertyValues: { status: 'inventado' } })
+        .expect(400);
+    });
+
     it('rejects property values that violate the schema', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board 2');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
@@ -281,9 +310,7 @@ describe('Page Schema (Integration)', () => {
         status: 'todo',
       });
 
-      await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id, `move-${row.id}`).expect(
-        409,
-      );
+      await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id).expect(409);
 
       const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
       const preserved = (rowsAfter.body as PageResponse[]).find((item) => item.id === row.id);
@@ -301,7 +328,7 @@ describe('Page Schema (Integration)', () => {
         status: 'todo',
       });
 
-      await movePage(testApp, adminToken, sharedSpaceId, row.id, plainDestination.id, `move-${row.id}`).expect(409);
+      await movePage(testApp, adminToken, sharedSpaceId, row.id, plainDestination.id).expect(409);
 
       const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
       const preserved = (rowsAfter.body as PageResponse[]).find((item) => item.id === row.id);
@@ -323,9 +350,7 @@ describe('Page Schema (Integration)', () => {
         status: 'todo',
       });
 
-      await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id, `move-${row.id}`).expect(
-        200,
-      );
+      await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id).expect(200);
 
       const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, destinationCollection.id).expect(200);
       const moved = (rowsAfter.body as PageResponse[]).find((item) => item.id === row.id);
@@ -351,7 +376,7 @@ describe('Page Schema (Integration)', () => {
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Table').expect(200);
 
-      expect((response.body as { kind: string; rows: PageResponse[] }).kind).toBe('TABLE_ROWS');
+      expect((response.body as { kind: string; rows: PageResponse[] }).kind).toBe('FLAT_ROWS');
       expect((response.body as { kind: string; rows: PageResponse[] }).rows.map((row) => row.id)).toEqual([
         first.id,
         second.id,
@@ -374,10 +399,10 @@ describe('Page Schema (Integration)', () => {
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
 
-      const body = response.body as { kind: string; columns: { key: string; rows: PageResponse[] }[] };
-      expect(body.kind).toBe('BOARD_COLUMNS');
-      expect(body.columns.map((column) => column.key)).toEqual(['todo', 'done', 'unassigned']);
-      expect(body.columns.find((column) => column.key === 'todo')?.rows.map((row) => row.id)).toEqual([todoRow.id]);
+      const body = response.body as { kind: string; groups: { key: string; rows: PageResponse[] }[] };
+      expect(body.kind).toBe('GROUPED_ROWS');
+      expect(body.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
+      expect(body.groups.find((group) => group.key === 'todo')?.rows.map((row) => row.id)).toEqual([todoRow.id]);
     });
 
     it('signals a missing grouping property instead of an empty board when the schema no longer has it', async () => {
@@ -395,7 +420,7 @@ describe('Page Schema (Integration)', () => {
       await prisma.pageSchemaProperty.deleteMany({ where: { key: 'status', pageId: collection.id } });
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
-      expect(response.body).toEqual({ kind: 'BOARD_MISSING_GROUPING_PROPERTY' });
+      expect(response.body).toEqual({ kind: 'MISSING_GROUPING_PROPERTY' });
     });
 
     it('returns 404 for a view name that does not exist on the schema', async () => {

@@ -16,6 +16,7 @@ import type {
   PageSchema,
   PageSchemaProperty,
 } from '@/modules/pages/collections/types/pages.schema.types';
+import { asPropertyOptions } from './pages.options.fixture';
 
 const titleProperty: PageSchemaProperty = {
   key: 'title',
@@ -27,14 +28,14 @@ const titleProperty: PageSchemaProperty = {
 const statusProperty: PageSchemaProperty = {
   key: 'status',
   label: 'Status',
-  options: ['todo', 'in_progress', 'done'],
+  options: asPropertyOptions('todo', 'in_progress', 'done'),
   required: true,
   type: 'SELECT',
 };
 const teamProperty: PageSchemaProperty = {
   key: 'team',
   label: 'Team',
-  options: ['design', 'engineering'],
+  options: asPropertyOptions('design', 'engineering'),
   required: false,
   type: 'MULTI_SELECT',
 };

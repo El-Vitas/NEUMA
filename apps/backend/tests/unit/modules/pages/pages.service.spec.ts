@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'bun:test';
-import { PageLifecycle } from '@company-brain/db';
+import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { type PageContent, USER_ROLE } from '@company-brain/shared';
+import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { PagesService } from '@/modules/pages/pages.service';
 import type {
   PageAttachmentsCleanupRepositoryContract,
+  PageLogger,
   PageRepositoryContract,
   UpdatePageInput,
 } from '@/modules/pages/types/page.types';
@@ -98,6 +100,7 @@ const createSchemaRepository = (): PageSchemaRepositoryContract => ({
 
 const createAttachmentsCleanupRepository = (): PageAttachmentsCleanupRepositoryContract => ({
   deleteForPages: () => Promise.resolve(),
+  listAssetsForPages: () => Promise.resolve([]),
   listStorageKeysForPages: () => Promise.resolve([]),
 });
 
@@ -107,6 +110,9 @@ const createStorageProvider = (): IStorageProvider => ({
   save: () => Promise.resolve('storage-key'),
 });
 
+/** Says nothing, so a test that expects a warning reads it from the code and not from the output. */
+const createLogger = (): PageLogger => ({ warn: () => undefined });
+
 describe('pages service', () => {
   it('updates a page for an editor', async () => {
     const service = new PagesService(
@@ -114,6 +120,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
 
@@ -167,6 +174,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.update(buildUpdatePageInput(content), USER_ROLE.WORKER);
@@ -190,6 +198,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.create(
@@ -226,6 +235,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.create(
@@ -262,6 +272,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
@@ -291,6 +302,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -305,6 +317,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -319,6 +332,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.getAccessible('private-page', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -332,6 +346,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.move(
       'page-a',
@@ -353,6 +368,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.create(
       {
@@ -393,6 +409,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.move(
       'page-a',
@@ -414,6 +431,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const trashed = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -437,6 +455,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.CLIENT);
@@ -453,6 +472,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.previewTrashCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -468,6 +488,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.previewRestoreCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -502,6 +523,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER, true);
@@ -526,6 +548,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -550,6 +573,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null);
@@ -580,6 +604,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       attachmentsRepository,
       storageProvider,
+      createLogger(),
     );
 
     const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -599,6 +624,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -622,6 +648,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       attachmentsRepository,
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
@@ -645,6 +672,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.update(
@@ -677,6 +705,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.rename('page-a', 'Another name', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -699,6 +728,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -713,6 +743,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -735,6 +766,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateCover(
@@ -763,6 +795,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateCover(
@@ -784,6 +817,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateCover('page-a', null, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -806,6 +840,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon(
@@ -834,6 +869,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -856,6 +892,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon('page-a', { kind: 'sticker' }, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -871,6 +908,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon(
@@ -904,6 +942,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setVerification(
@@ -935,6 +974,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setVerification('page-a', false, undefined, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -949,6 +989,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setVerification('page-a', true, undefined, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -972,6 +1013,7 @@ describe('pages service', () => {
       schemaRepository,
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setOwner('page-a', 'user-b', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -995,6 +1037,7 @@ describe('pages service', () => {
       schemaRepository,
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setOwner('page-a', 'stranger', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1018,6 +1061,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setOwner('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1055,6 +1099,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1075,6 +1120,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1095,6 +1141,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1118,6 +1165,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1148,6 +1196,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1175,6 +1224,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1194,6 +1244,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1213,6 +1264,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.move(
@@ -1250,6 +1302,7 @@ describe('markdown export', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1274,6 +1327,7 @@ describe('markdown export', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1284,6 +1338,195 @@ describe('markdown export', () => {
       USER_ROLE.WORKER,
       'Sin nombre',
     );
+
+    expect(result.isFail()).toBe(true);
+  });
+});
+
+describe('pages service — updating what a row holds', () => {
+  /** Every collection carries one, and a row is refused without it. */
+  const titleProperty = {
+    key: 'title',
+    label: 'Title',
+    options: null,
+    required: true,
+    type: DatabasePropertyType.TITLE,
+  };
+
+  const statusProperty = {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { color: null, value: 'todo' },
+      { color: null, value: 'done' },
+    ],
+    required: false,
+    type: DatabasePropertyType.SELECT,
+  };
+
+  const buildService = (schemaOverrides: Partial<PageSchemaRepositoryContract> = {}, updated = page) =>
+    new PagesService(
+      { ...createRepository(), update: () => Promise.resolve(updated) },
+      { ...createSchemaRepository(), ...schemaOverrides },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+  const notesProperty = {
+    key: 'notes',
+    label: 'Notes',
+    options: null,
+    required: false,
+    type: DatabasePropertyType.RICH_TEXT,
+  };
+
+  /** Records what reached the store, so a test can tell what travelled from what was merely read. */
+  const buildServiceRecordingWrites = (
+    written: Record<string, unknown>[],
+    storedValues: SchemaPropertyValues,
+    schemaProperties: readonly SchemaPropertyDefinition[],
+  ) =>
+    new PagesService(
+      {
+        ...createRepository(),
+        getAccessible: () => Promise.resolve({ ...page, propertyValues: storedValues }),
+        update: (input) => {
+          written.push({ ...input.propertyValues });
+          return Promise.resolve(page);
+        },
+      },
+      { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve(schemaProperties) },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+  it('writes only what was named, leaving the rest of the row as it was', async () => {
+    const written: Record<string, unknown>[] = [];
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue igual', status: 'todo' }, [
+      titleProperty,
+      statusProperty,
+      notesProperty,
+    ]);
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done' });
+  });
+
+  /**
+   * A row keeps what it wrote under a property somebody later removed from the
+   * shape. Carrying that back would be refused, and the row could never be
+   * saved again — so it is left behind the first time the row is written.
+   */
+  it('leaves behind a value the shape no longer knows, instead of locking the row', async () => {
+    const written: Record<string, unknown>[] = [];
+    const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo' }, [
+      titleProperty,
+      statusProperty,
+    ]);
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(written[0]).toEqual({ status: 'done' });
+  });
+
+  /** Dropping a card on the column of rows without a value means the row stops having one. */
+  it('clears a property when what arrives for it is nothing', async () => {
+    const written: Record<string, unknown>[] = [];
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo' }, [
+      titleProperty,
+      statusProperty,
+      notesProperty,
+    ]);
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: null },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(written[0]).toEqual({ notes: 'Sigue' });
+  });
+
+  it('refuses a value the shape does not allow instead of writing it', async () => {
+    const service = buildService({ resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) });
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'inventado' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isFail()).toBe(true);
+  });
+
+  /** A locked page is locked for everything it holds, not only for what is written in its body. */
+  it('refuses to touch a locked page', async () => {
+    const service = new PagesService(
+      {
+        ...createRepository(),
+        getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date('2026-01-01T00:00:00.000Z') }),
+      },
+      { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isFail()).toBe(true);
+  });
+
+  it('refuses a page this reader could not open', async () => {
+    const service = new PagesService(
+      { ...createRepository(), getAccessible: () => Promise.resolve(null) },
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+    const result = await service.updateProperties({
+      pageId: 'somebody-elses-page',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
 
     expect(result.isFail()).toBe(true);
   });

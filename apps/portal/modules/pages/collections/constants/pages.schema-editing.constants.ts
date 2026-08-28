@@ -1,0 +1,20 @@
+import { PAGE_PROPERTY_TYPE, PAGE_PROPERTY_TYPE_VALUES } from '@company-brain/shared';
+
+/** What a property key may hold, which is what the server accepts: a letter first, then letters, digits or underscores. */
+export const PAGE_PROPERTY_KEY_COMBINING_MARKS = /[̀-ͯ]/g;
+export const PAGE_PROPERTY_KEY_RUNS_OF_ANYTHING_ELSE = /[^a-z0-9]+/g;
+export const PAGE_PROPERTY_KEY_EDGE_UNDERSCORES = /^_+|_+$/g;
+export const PAGE_PROPERTY_KEY_STARTS_WITH_DIGIT = /^\d/;
+
+/** What a key is called when what somebody typed left nothing usable behind. */
+export const PAGE_PROPERTY_KEY_FALLBACK = 'property';
+
+/** What goes in front of a key that would otherwise start with a digit. */
+export const PAGE_PROPERTY_KEY_DIGIT_PREFIX = 'p';
+
+export const PAGE_PROPERTY_KEY_MAX_LENGTH = 60;
+
+/** Every type a property may be added as. The title is left out: a collection already has exactly one. */
+export const PAGE_ADDABLE_PROPERTY_TYPES = PAGE_PROPERTY_TYPE_VALUES.filter(
+  (type) => type !== PAGE_PROPERTY_TYPE.TITLE,
+);

@@ -1,46 +1,84 @@
-import { Maximize2 } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/navigation';
-import { Card } from '@/shared/components/ui/card';
-import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import { buildPagesSidePanelQueryHref } from '../../navigation/lib/pages.side-panel.lib';
-import type { PageBoardColumn } from '../types/pages.schema.types';
+'use client';
+
+import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
+import { usePagesBoardDrag } from '../hooks/use.pages.board-drag';
+import { readPageOptionColorClass } from '../lib/pages.option-color.lib';
+import type { PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
+import { PagesCollectionBoardCard } from './pages.collection.board.card';
 
 interface IProps {
-  readonly columns: readonly PageBoardColumn[];
+  readonly canEdit: boolean;
+  readonly groupByKey: string;
+  readonly groups: readonly PageViewGroup[];
+  /** What each card says besides its title, already narrowed to what this view shows. */
+  readonly properties: readonly PageSchemaProperty[];
   readonly spaceId: string;
 }
 
-export const PagesCollectionBoard = async ({ columns, spaceId }: IProps) => {
-  const t = await getTranslations('pages');
+/**
+ * The rows of a collection as cards in columns, one column per value.
+ *
+ * A card dropped on a column takes that column's value, so moving something
+ * across the board is the whole act of changing it. Every column stays even
+ * when empty, because an empty column is a place to drop something and an
+ * absent one is not.
+ */
+export const PagesCollectionBoard = ({ canEdit, groupByKey, groups, properties, spaceId }: IProps) => {
+  const t = useTranslations('pages');
+  const drag = usePagesBoardDrag(groups, groupByKey, spaceId);
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2" data-testid="collection-board">
-      {columns.map((column) => (
-        <div className="w-64 shrink-0 space-y-3" key={column.key}>
-          <h3 className="font-medium text-foreground text-sm">
-            {column.label} <span className="text-muted-foreground">({column.rows.length})</span>
-          </h3>
-          <div className="space-y-2">
-            {column.rows.length === 0 && <p className="text-muted-foreground text-xs">{t('collection.emptyColumn')}</p>}
-            {column.rows.map((row) => (
-              <Card className="flex-row items-center justify-between gap-2 p-3 text-sm" key={row.id}>
-                <Link className="underline-offset-2 hover:underline" href={buildPagesSidePanelQueryHref(row.id)}>
-                  {row.title.length > 0 ? row.title : t('untitled')}
-                </Link>
-                <Link
-                  aria-label={t('sidePanel.openFullPage')}
-                  className="-m-2 rounded-none p-2 text-muted-foreground hover:text-foreground"
-                  href={ROUTES.PORTAL_SPACE_PAGE(spaceId, row.id)}
-                  title={t('sidePanel.openFullPage')}
-                >
-                  <Maximize2 aria-hidden="true" className="size-3.5" />
-                </Link>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+    <>
+      <output aria-live="polite" className="sr-only">
+        {drag.announcement}
+      </output>
+      <div className="flex gap-4 overflow-x-auto pb-2" data-testid="collection-board">
+        {groups.map((group) => (
+          <section
+            aria-label={group.key === UNASSIGNED_GROUP_KEY ? t('collection.unassignedGroup') : group.label}
+            className={cn(
+              'w-64 shrink-0 space-y-3 rounded-sm p-2 transition-colors',
+              drag.hoveredGroupKey === group.key && 'bg-muted',
+            )}
+            key={group.key}
+            onDragLeave={() => drag.onDragLeave(group.key)}
+            onDragOver={(event) => {
+              if (!canEdit) return;
+              event.preventDefault();
+              drag.onDragOver(group.key);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              drag.onDrop(group.key);
+            }}
+          >
+            <h3 className="flex items-center gap-2 text-sm">
+              <span className={cn('rounded-sm px-2 py-0.5 font-medium', readPageOptionColorClass(group.color))}>
+                {group.key === UNASSIGNED_GROUP_KEY ? t('collection.unassignedGroup') : group.label}
+              </span>
+              <span className="text-muted-foreground">{group.rows.length}</span>
+            </h3>
+            <div className="space-y-2">
+              {group.rows.length === 0 && (
+                <p className="text-muted-foreground text-xs">{t('collection.emptyColumn')}</p>
+              )}
+              {group.rows.map((row) => (
+                <PagesCollectionBoardCard
+                  canEdit={canEdit}
+                  drag={drag}
+                  groupKey={group.key}
+                  key={row.id}
+                  properties={properties}
+                  row={row}
+                  spaceId={spaceId}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </>
   );
 };

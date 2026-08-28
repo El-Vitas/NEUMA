@@ -313,8 +313,8 @@ export const PagesEditor = forwardRef(
               textSize={appearance.preferences.textSize}
               typography={appearance.preferences.typography}
             />
-            <PagesBacklinks backlinks={backlinks} />
             {collectionSection}
+            <PagesBacklinks backlinks={backlinks} />
           </div>
           <aside className={layoutStyleClasses.outlineSide}>
             <PagesOutline headings={headings} onGoToHeading={handleGoToHeading} title={t('pageContents')} />

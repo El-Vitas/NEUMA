@@ -59,6 +59,7 @@ export const PAGE_API_ROUTES = {
   move: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/move`,
   order: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/order`,
   owner: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/owner`,
+  properties: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/properties`,
   verification: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/verification`,
   assigned: '/api/v1/pages/assigned',
   moveDestinations: (pageId: string) => `/api/v1/pages/move-destinations/${pageId}`,

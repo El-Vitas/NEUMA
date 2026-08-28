@@ -1,17 +1,28 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ComponentProps, ReactNode } from 'react';
 import type { PageRow, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
+import en from '../../../../../messages/en.json';
+import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
-  Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) => <a href={href}>{children}</a>,
+  Link: ({ children, ...rest }: ComponentProps<'a'>) => <a {...rest}>{children}</a>,
 }));
 
 const { PagesCollectionTable } = await import('@/modules/pages/collections/components/pages.collection.table');
 
+/** A cell draws a client piece, and a client piece needs the words its own way. */
+const renderWithMessages = (ui: ReactNode) =>
+  render(
+    <NextIntlClientProvider locale="en" messages={en}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: ['todo', 'done'], required: true, type: 'SELECT' },
+  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
 ];
 
 const rows: PageRow[] = [
@@ -37,7 +48,7 @@ const rows: PageRow[] = [
 
 describe('PagesCollectionTable', () => {
   it('renders rows in the order provided by the view outcome', async () => {
-    render(await PagesCollectionTable({ properties, rows, spaceId: 'space-1' }));
+    renderWithMessages(await PagesCollectionTable({ properties, rows, spaceId: 'space-1' }));
 
     const cells = screen.getAllByRole('cell');
     const titleCellTexts = cells.filter(
@@ -48,7 +59,7 @@ describe('PagesCollectionTable', () => {
   });
 
   it('offers a way to open a row in full page instead of at the side', async () => {
-    render(await PagesCollectionTable({ properties, rows, spaceId: 'space-1' }));
+    renderWithMessages(await PagesCollectionTable({ properties, rows, spaceId: 'space-1' }));
 
     /**
      * Asked for by where each link leads rather than by what it is called: a
@@ -64,7 +75,7 @@ describe('PagesCollectionTable', () => {
   });
 
   it('shows an empty state instead of a table when there are no rows', async () => {
-    render(await PagesCollectionTable({ properties, rows: [], spaceId: 'space-1' }));
+    renderWithMessages(await PagesCollectionTable({ properties, rows: [], spaceId: 'space-1' }));
 
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.getByText('collection.emptyTable')).toBeDefined();

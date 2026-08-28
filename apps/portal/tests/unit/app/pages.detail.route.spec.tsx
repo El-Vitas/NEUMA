@@ -68,7 +68,12 @@ mock.module('@/modules/pages/server/queries/pages.queries', () => ({
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
-  getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),
+  getPageView: async () => ({ getValue: () => ({ kind: 'FLAT_ROWS', rows: [] }), isOk: () => true }),
+}));
+/** The collection settings and the board reach server actions, which a browser-shaped test cannot load. */
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  updatePageCollectionAction: async () => ({ data: null }),
+  updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),

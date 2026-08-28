@@ -1,5 +1,6 @@
 import type { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
+import { readPagePropertyOptions } from '@company-brain/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValue,
@@ -7,11 +8,6 @@ import type {
   SchemaViewDefinition,
 } from '../../domain/schema.domain.types';
 import { isPropertyValue } from '../../domain/schema-property.domain';
-
-const getStringOptions = (value: Prisma.JsonValue | null): readonly string[] | null =>
-  Array.isArray(value) && value.every((item) => typeof item === 'string')
-    ? value.filter((item): item is string => typeof item === 'string')
-    : null;
 
 const toInputJsonValue = (value: Prisma.JsonValue): Prisma.InputJsonValue | null => {
   if (value === null) return null;
@@ -35,7 +31,7 @@ export const toSchemaPropertyDefinition = (property: {
 }): SchemaPropertyDefinition => ({
   key: property.key,
   label: property.label,
-  options: getStringOptions(property.options),
+  options: readPagePropertyOptions(property.options),
   required: property.required,
   type: property.type,
 });

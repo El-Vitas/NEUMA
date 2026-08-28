@@ -15,7 +15,7 @@ import type {
 } from '../types/pages.schema.types';
 
 const toPropertyContext = (property: PageSchemaProperty): PagePropertyContext => ({
-  options: property.options,
+  options: property.options?.map((option) => option.value) ?? null,
   personIds: undefined,
 });
 
@@ -60,6 +60,10 @@ export const formatPropertyValueForDisplay = (
   property: PageSchemaProperty,
   value: PagePropertyValue | undefined,
 ): string => formatPagePropertyValue(property.type, value);
+
+/** Whether a row answered a property at all, which is what decides if it takes room on a card. */
+export const hasPropertyValueToShow = (value: PagePropertyValue | undefined): boolean =>
+  value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
 
 export const hasPersonProperty = (properties: readonly PageSchemaProperty[]): boolean =>
   properties.some((property) => pagePropertyRequiresPersonDirectory(property.type));

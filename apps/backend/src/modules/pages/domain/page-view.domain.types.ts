@@ -1,4 +1,4 @@
-import type { SchemaBoardColumn, SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
+import type { SchemaPropertyValues, SchemaRowGroup } from '../../../common/domain/schema.domain.types';
 
 export interface PageViewRow {
   readonly id: string;
@@ -8,9 +8,14 @@ export interface PageViewRow {
 
 type GroupablePageViewRow = PageViewRow & { readonly propertyValues: SchemaPropertyValues };
 
-export type PageBoardColumn = SchemaBoardColumn<GroupablePageViewRow>;
+export type PageViewGroup = SchemaRowGroup<GroupablePageViewRow>;
 
+/**
+ * What a view hands over, named after the shape the rows arrive in rather than
+ * after the view that asked for them. A gallery reads its rows the same way a
+ * table does, so it needs no outcome of its own.
+ */
 export type PageViewOutcome =
-  | { readonly kind: 'TABLE_ROWS'; readonly rows: readonly PageViewRow[] }
-  | { readonly kind: 'BOARD_COLUMNS'; readonly columns: readonly PageBoardColumn[] }
-  | { readonly kind: 'BOARD_MISSING_GROUPING_PROPERTY' };
+  | { readonly kind: 'FLAT_ROWS'; readonly rows: readonly PageViewRow[] }
+  | { readonly kind: 'GROUPED_ROWS'; readonly groups: readonly PageViewGroup[] }
+  | { readonly kind: 'MISSING_GROUPING_PROPERTY' };
