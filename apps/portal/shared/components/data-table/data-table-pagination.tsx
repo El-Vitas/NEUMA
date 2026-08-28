@@ -1,18 +1,19 @@
-import type { Table } from '@tanstack/react-table';
+import type { RowData, Table } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface DataTablePaginationProps<TData> extends React.ComponentProps<'div'> {
-  readonly table: Table<TData>;
+interface DataTablePaginationProps<TData extends RowData> extends React.ComponentProps<'div'> {
+  readonly table: Table<DataTableFeatures, TData>;
   readonly pageSizeOptions?: number[];
   readonly totalCount?: number;
 }
 
-export const DataTablePagination = <TData,>({
+export const DataTablePagination = <TData extends RowData>({
   table,
   pageSizeOptions = [10, 20, 30, 40, 50],
   totalCount,
@@ -20,7 +21,7 @@ export const DataTablePagination = <TData,>({
   ...props
 }: Readonly<DataTablePaginationProps<TData>>) => {
   const t = useTranslations('common');
-  const { pageIndex, pageSize } = table.getState().pagination;
+  const { pageIndex, pageSize } = table.store.state.pagination;
   const rangeStart = pageIndex * pageSize + 1;
   const rangeEnd =
     totalCount === undefined ? rangeStart + pageSize - 1 : Math.min(rangeStart + pageSize - 1, totalCount);
@@ -50,10 +51,10 @@ export const DataTablePagination = <TData,>({
             onValueChange={(value) => {
               table.setPageSize(Number(value));
             }}
-            value={`${table.getState().pagination.pageSize}`}
+            value={`${table.store.state.pagination.pageSize}`}
           >
             <SelectTrigger className="h-8 rounded-none border text-foreground">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectValue placeholder={table.store.state.pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
               {pageSizeOptions.map((pageSize) => (
@@ -65,7 +66,7 @@ export const DataTablePagination = <TData,>({
           </Select>
         </div>
         <div className="flex items-center font-medium text-foreground text-sm">
-          {table.getPageCount() === 0 ? 0 : table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+          {table.getPageCount() === 0 ? 0 : table.store.state.pagination.pageIndex + 1} / {table.getPageCount()}
         </div>
         <div className="flex items-center gap-1">
           <Button

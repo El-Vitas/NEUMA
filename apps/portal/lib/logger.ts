@@ -3,7 +3,12 @@ import pino from 'pino';
 import 'pino-pretty';
 import { env } from '@/config/env.config';
 
-const isProduction = env.NODE_ENV === 'production';
+/**
+ * La salida legible es para quien mira la consola mientras desarrolla. Pedirla
+ * también en las pruebas levanta un hilo aparte que nadie lee y que además
+ * revienta bajo el ejecutor de pruebas.
+ */
+const wantsReadableOutput = env.NODE_ENV === 'development';
 
 export const logger = pino({
   level: env.LOG_LEVEL,
@@ -15,9 +20,8 @@ export const logger = pino({
     paths: ['password', 'token', 'secret', 'email', 'authorization'],
     censor: '[REDACTED]',
   },
-  ...(isProduction
-    ? {}
-    : {
+  ...(wantsReadableOutput
+    ? {
         transport: {
           target: 'pino-pretty',
           options: {
@@ -26,5 +30,6 @@ export const logger = pino({
             translateTime: false,
           },
         },
-      }),
+      }
+    : {}),
 });

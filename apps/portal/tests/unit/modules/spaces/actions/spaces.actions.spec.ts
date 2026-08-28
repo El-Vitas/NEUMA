@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { SpaceSummary } from '@/modules/spaces/types/spaces.types';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
 const createdSpace = {
@@ -45,7 +46,7 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
 
 const { createSpaceAction } = await import('@/modules/spaces/server/actions/spaces.actions');
 

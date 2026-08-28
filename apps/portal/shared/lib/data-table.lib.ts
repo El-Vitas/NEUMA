@@ -1,7 +1,8 @@
-import type { Column, ColumnDef, SortDirection } from '@tanstack/react-table';
-import type { DateRange } from 'react-day-picker';
+import type { DateRange } from '@daypicker/react';
+import type { Column, ColumnDef, RowData, SortDirection } from '@tanstack/react-table';
 
 import type { DateSelection } from '@/shared/components/data-table/types/data-table-date-filter.types';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 export const getAriaSort = (isSorted: false | SortDirection): 'ascending' | 'descending' | 'none' => {
   if (isSorted === 'asc') return 'ascending';
@@ -9,7 +10,10 @@ export const getAriaSort = (isSorted: false | SortDirection): 'ascending' | 'des
   return 'none';
 };
 
-export const getHeaderLabel = <TData>(columnDef: ColumnDef<TData>, columnId: string): string => {
+export const getHeaderLabel = <TData extends RowData>(
+  columnDef: ColumnDef<DataTableFeatures, TData, unknown>,
+  columnId: string,
+): string => {
   const header = columnDef.header;
   if (typeof header === 'string') return header;
   const label = (columnDef.meta as { label?: string } | undefined)?.label;
@@ -68,17 +72,19 @@ export const buildTableEmptyMessage = (
   return hasActiveFilter ? filteredText : emptyText;
 };
 
-export const getStringFilterValue = <TData>(column: Column<TData>): string => {
+export const getStringFilterValue = <TData extends RowData>(
+  column: Column<DataTableFeatures, TData, unknown>,
+): string => {
   const value = column.getFilterValue();
   return typeof value === 'string' ? value : '';
 };
 
 export const getEmptyMessage = <_T>(
-  table: { getState: () => { columnFilters: unknown[] } },
+  table: { store: { state: { columnFilters: readonly unknown[] } } },
   emptyMessage?: string,
   emptyMessageFiltered?: string,
 ): string | undefined => {
-  const hasActiveFilters = table.getState().columnFilters.length > 0;
+  const hasActiveFilters = table.store.state.columnFilters.length > 0;
   if (hasActiveFilters && emptyMessageFiltered) return emptyMessageFiltered;
   return emptyMessage;
 };

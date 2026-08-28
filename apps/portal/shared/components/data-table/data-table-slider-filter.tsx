@@ -1,5 +1,6 @@
 'use client';
 
+import type { RowData } from '@tanstack/react-table';
 import { PlusCircle, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ChangeEvent, type MouseEvent, useCallback, useId, useMemo } from 'react';
@@ -15,7 +16,7 @@ import { computeStep, getIsValidRange, parseValuesAsNumbers } from '@/shared/lib
 
 import type { DataTableSliderFilterProps, Range, RangeValue } from './types/data-table-slider-filter.types';
 
-export const DataTableSliderFilter = <TData,>({ column, title }: DataTableSliderFilterProps<TData>) => {
+export const DataTableSliderFilter = <TData extends RowData>({ column, title }: DataTableSliderFilterProps<TData>) => {
   const t = useTranslations('common');
   const locale = useLocale();
   const id = useId();

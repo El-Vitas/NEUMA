@@ -1,6 +1,6 @@
 'use client';
 
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
 import { Check, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -10,16 +10,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { useColumnFilterSelection } from '@/shared/hooks/use-column-filter-selection';
 import { buildSelectionLabel } from '@/shared/lib/data-table.lib';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 import type { Option } from '@/types/data-table';
 
-interface DataTableMobileFacetedFilterProps<TData, TValue> {
-  readonly column?: Column<TData, TValue>;
+interface DataTableMobileFacetedFilterProps<TData extends RowData, TValue> {
+  readonly column?: Column<DataTableFeatures, TData, TValue>;
   readonly title?: string;
   readonly options: Option[];
 }
 
-export const DataTableMobileFacetedFilter = <TData, TValue>({
+export const DataTableMobileFacetedFilter = <TData extends RowData, TValue>({
   column,
   title,
   options,

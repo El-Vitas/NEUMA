@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
 const fetchMock = mock(
@@ -34,7 +35,7 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
 
 const { getPageCollaborationToken } = await import('@/modules/pages/server/actions/pages.collaboration.actions');
 
