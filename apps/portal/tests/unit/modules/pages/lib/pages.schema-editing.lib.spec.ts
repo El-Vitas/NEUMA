@@ -2,10 +2,16 @@ import { describe, expect, it } from 'bun:test';
 import {
   addSchemaOption,
   addSchemaProperty,
+  addSchemaView,
   buildPropertyKey,
+  changeSchemaPropertyType,
+  makeSchemaViewDefault,
+  moveSchemaView,
   removeSchemaOption,
   removeSchemaProperty,
+  removeSchemaView,
   renameSchemaOption,
+  renameSchemaView,
   toSavableView,
   updateSchemaOptionColor,
   updateSchemaProperty,
@@ -61,6 +67,7 @@ describe('toSavableView', () => {
       filter: null,
       groupBy: 'status',
       sorts: [],
+      subGroupBy: null,
       visibleProperties: null,
     });
   });
@@ -69,7 +76,7 @@ describe('toSavableView', () => {
     const view: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
 
     expect(toSavableView(view)).toEqual({
-      configuration: { filter: null, groupBy: null, sorts: [], visibleProperties: null },
+      configuration: { filter: null, groupBy: null, sorts: [], subGroupBy: null, visibleProperties: null },
       isDefault: true,
       name: 'Table',
       type: 'TABLE',
@@ -119,6 +126,189 @@ describe('updateSchemaProperty', () => {
 
   it('leaves alone a property nobody named', () => {
     expect(updateSchemaProperty([title, status], 'nowhere', { label: 'Estado' })).toEqual([title, status]);
+  });
+});
+
+describe('addSchemaView', () => {
+  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const notes: PageSchemaProperty = { key: 'notes', label: 'Notes', options: null, required: false, type: 'RICH_TEXT' };
+
+  it('adds a view at the end, without touching the one that was already there', () => {
+    const views = addSchemaView([table], { name: 'Second', type: 'TABLE' }, [title, status]);
+
+    expect(views.map((view) => view.name)).toEqual(['Table', 'Second']);
+    expect(views[1]).toEqual({ configuration: {}, isDefault: false, name: 'Second', type: 'TABLE' });
+  });
+
+  /**
+   * Un tablero sin decir por dónde agrupa no dibuja columnas, y el servidor
+   * rechaza la colección entera. Nace agrupado por la primera selección que
+   * haya, y desde ahí se cambia.
+   */
+  it('makes a board group by the first property that can make columns', () => {
+    const views = addSchemaView([table], { name: 'Board', type: 'BOARD' }, [title, status]);
+
+    expect(views[1]?.configuration).toEqual({ groupBy: 'status' });
+  });
+
+  it('leaves a board ungrouped when nothing in the collection can make columns', () => {
+    expect(addSchemaView([table], { name: 'Board', type: 'BOARD' }, [title, notes])[1]?.configuration).toEqual({});
+  });
+
+  it('says nothing about grouping on a view that makes no columns', () => {
+    expect(addSchemaView([table], { name: 'Second', type: 'TABLE' }, [title, status])[1]?.configuration).toEqual({});
+  });
+
+  /** La colección ya lleva a algún sitio al abrirse, y una segunda vista no cambia a cuál. */
+  it('does not make the new view the one the collection leads with', () => {
+    expect(addSchemaView([table], { name: 'Board', type: 'BOARD' }, [title, status])[0]?.isDefault).toBe(true);
+  });
+
+  it('refuses a name another view already has, because the address nombra la vista por su nombre', () => {
+    expect(addSchemaView([table], { name: 'Table', type: 'BOARD' }, [title, status])).toEqual([table]);
+  });
+
+  it('refuses a view with no name', () => {
+    expect(addSchemaView([table], { name: '   ', type: 'BOARD' }, [title, status])).toEqual([table]);
+  });
+
+  it('trims the name, so two views do not differ by a space nobody sees', () => {
+    expect(addSchemaView([table], { name: '  Board  ', type: 'BOARD' }, [title, status])[1]?.name).toBe('Board');
+  });
+});
+
+describe('removeSchemaView', () => {
+  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+
+  it('removes the view somebody pointed at', () => {
+    expect(removeSchemaView([table, board], 'Board').map((view) => view.name)).toEqual(['Table']);
+  });
+
+  /** Sin ninguna vista no hay forma de mirar las filas, y el servidor tampoco lo acepta. */
+  it('refuses to remove the last view', () => {
+    expect(removeSchemaView([table], 'Table')).toEqual([table]);
+  });
+
+  it('hands the lead to another view when the one removed was leading', () => {
+    const views = removeSchemaView([table, board], 'Table');
+
+    expect(views).toEqual([{ ...board, isDefault: true }]);
+  });
+
+  it('leaves alone a view nobody named', () => {
+    expect(removeSchemaView([table, board], 'Calendar')).toEqual([table, board]);
+  });
+});
+
+describe('renameSchemaView', () => {
+  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+
+  it('renames a view without touching what it was set to show', () => {
+    expect(renameSchemaView([table, board], 'Board', 'Tablero')[1]).toEqual({ ...board, name: 'Tablero' });
+  });
+
+  it('refuses a name another view already has', () => {
+    expect(renameSchemaView([table, board], 'Board', 'Table')).toEqual([table, board]);
+  });
+
+  it('refuses to leave a view with no name', () => {
+    expect(renameSchemaView([table, board], 'Board', '  ')).toEqual([table, board]);
+  });
+});
+
+describe('makeSchemaViewDefault', () => {
+  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+
+  /** Abrir la colección lleva a una vista, así que exactamente una la lleva. */
+  it('hands the lead to the view named, and takes it from the one that had it', () => {
+    expect(makeSchemaViewDefault([table, board], 'Board').map((view) => view.isDefault)).toEqual([false, true]);
+  });
+
+  it('leaves alone a view nobody named', () => {
+    expect(makeSchemaViewDefault([table, board], 'Calendar')).toEqual([table, board]);
+  });
+});
+
+describe('moveSchemaView', () => {
+  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+  const calendar: PageSchemaView = { configuration: {}, isDefault: false, name: 'Calendar', type: 'TABLE' };
+
+  it('moves a view one place earlier', () => {
+    expect(moveSchemaView([table, board, calendar], 'Board', 'EARLIER').map((view) => view.name)).toEqual([
+      'Board',
+      'Table',
+      'Calendar',
+    ]);
+  });
+
+  it('moves a view one place later', () => {
+    expect(moveSchemaView([table, board, calendar], 'Board', 'LATER').map((view) => view.name)).toEqual([
+      'Table',
+      'Calendar',
+      'Board',
+    ]);
+  });
+
+  it('does nothing to the first view asked to go earlier', () => {
+    expect(moveSchemaView([table, board], 'Table', 'EARLIER')).toEqual([table, board]);
+  });
+
+  it('does nothing to the last view asked to go later', () => {
+    expect(moveSchemaView([table, board], 'Board', 'LATER')).toEqual([table, board]);
+  });
+
+  /** Moverla de sitio no cambia con cuál se abre la colección: son dos decisiones distintas. */
+  it('does not change which view the collection opens with', () => {
+    expect(moveSchemaView([table, board], 'Board', 'EARLIER').find((view) => view.isDefault)?.name).toBe('Table');
+  });
+
+  it('leaves alone a view nobody named', () => {
+    expect(moveSchemaView([table, board], 'Calendar', 'EARLIER')).toEqual([table, board]);
+  });
+});
+
+describe('changeSchemaPropertyType', () => {
+  it('changes the type without touching the key its rows are stored under', () => {
+    const properties = changeSchemaPropertyType([title, status], 'status', 'RICH_TEXT');
+
+    expect(properties[1]).toEqual({ ...status, options: null, type: 'RICH_TEXT' });
+  });
+
+  /** Una selección y una selección múltiple eligen de la misma lista, así que la lista se queda. */
+  it('keeps the choices when both the old type and the new one are chosen from a list', () => {
+    const properties = changeSchemaPropertyType([title, status], 'status', 'MULTI_SELECT');
+
+    expect(properties[1]).toEqual({ ...status, type: 'MULTI_SELECT' });
+  });
+
+  it('starts an empty list when the new type needs one and the old had none', () => {
+    const notes: PageSchemaProperty = {
+      key: 'notes',
+      label: 'Notes',
+      options: null,
+      required: false,
+      type: 'RICH_TEXT',
+    };
+    const properties = changeSchemaPropertyType([title, notes], 'notes', 'SELECT');
+
+    expect(properties[1]).toEqual({ ...notes, options: [], type: 'SELECT' });
+  });
+
+  /** Sin título no hay forma de abrir una fila, y el servidor no acepta una colección sin él. */
+  it('refuses to change the type of the property that names each row', () => {
+    expect(changeSchemaPropertyType([title, status], 'title', 'NUMBER')).toEqual([title, status]);
+  });
+
+  it('refuses to turn another property into a second title', () => {
+    expect(changeSchemaPropertyType([title, status], 'status', 'TITLE')).toEqual([title, status]);
+  });
+
+  it('leaves alone a property nobody named', () => {
+    expect(changeSchemaPropertyType([title, status], 'nowhere', 'NUMBER')).toEqual([title, status]);
   });
 });
 

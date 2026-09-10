@@ -54,10 +54,20 @@ export interface PageViewGroup {
   readonly rows: readonly PageRow[];
 }
 
+/** Una franja que cruza todas las columnas, con lo que a cada una le toca dentro de ella. */
+export interface PageViewBand {
+  readonly color: PageOptionColor | null;
+  readonly groups: readonly PageViewGroup[];
+  readonly key: string;
+  readonly label: string;
+}
+
 export type PageViewOutcome =
+  | { readonly bands: readonly PageViewBand[]; readonly kind: 'BANDED_ROWS' }
   | { readonly kind: 'FLAT_ROWS'; readonly rows: readonly PageRow[] }
-  | { readonly kind: 'GROUPED_ROWS'; readonly groups: readonly PageViewGroup[] }
+  | { readonly groups: readonly PageViewGroup[]; readonly kind: 'GROUPED_ROWS' }
   | { readonly kind: 'MISSING_GROUPING_PROPERTY' };
 
 export type PageViewFlatOutcome = Extract<PageViewOutcome, { readonly kind: 'FLAT_ROWS' }>;
 export type PageViewGroupedOutcome = Extract<PageViewOutcome, { readonly kind: 'GROUPED_ROWS' }>;
+export type PageViewBandedOutcome = Extract<PageViewOutcome, { readonly kind: 'BANDED_ROWS' }>;

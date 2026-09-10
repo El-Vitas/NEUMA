@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  findBoardWithoutGrouping,
   listGroupablePropertyKeys,
   setViewGroupBy,
   toggleViewProperty,
@@ -26,9 +27,55 @@ const board: PageSchemaView = {
 const table: PageSchemaView = { configuration: {}, isDefault: false, name: 'Table', type: 'TABLE' };
 
 describe('listGroupablePropertyKeys', () => {
-  /** Only a property with a closed list of values makes columns; a date would make one per day. */
+  /** Solo lo que responde un valor y uno solo: el título nombra la fila, no la agrupa. */
   it('offers only the properties a board can make columns from', () => {
-    expect(listGroupablePropertyKeys([title, status, dueDate])).toEqual(['status']);
+    expect(listGroupablePropertyKeys([title, status, dueDate])).toEqual(['status', 'dueDate']);
+  });
+});
+
+describe('findBoardWithoutGrouping', () => {
+  /** El servidor rechaza la colección entera si un tablero no dice por dónde agrupa. */
+  it('finds the board that does not say what makes its columns', () => {
+    const ungrouped: PageSchemaView = { configuration: {}, isDefault: false, name: 'Nuevo', type: 'BOARD' };
+
+    expect(findBoardWithoutGrouping([table, ungrouped], [title, status])?.name).toBe('Nuevo');
+  });
+
+  it('finds nothing when every board says what makes its columns', () => {
+    expect(findBoardWithoutGrouping([table, board], [title, status])).toBeUndefined();
+  });
+
+  /** Una fecha sí hace columnas: una por día de los que las filas nombran. */
+  it('says nothing about a board grouped by a date', () => {
+    const byDate: PageSchemaView = {
+      configuration: { groupBy: 'dueDate' },
+      isDefault: false,
+      name: 'Plazos',
+      type: 'BOARD',
+    };
+
+    expect(findBoardWithoutGrouping([byDate], [title, dueDate])).toBeUndefined();
+  });
+
+  /** El título nombra cada fila, así que agrupar por él haría una columna por fila. */
+  it('counts as ungrouped a board pointing at a property that cannot make columns', () => {
+    const byTitle: PageSchemaView = {
+      configuration: { groupBy: 'title' },
+      isDefault: false,
+      name: 'Por nombre',
+      type: 'BOARD',
+    };
+
+    expect(findBoardWithoutGrouping([byTitle], [title, status])?.name).toBe('Por nombre');
+  });
+
+  /** La propiedad por la que agrupaba se quitó del esquema, y el tablero se quedó apuntando a la nada. */
+  it('counts as ungrouped a board pointing at a property that is no longer there', () => {
+    expect(findBoardWithoutGrouping([board], [title])?.name).toBe('Board');
+  });
+
+  it('says nothing about a table, which makes no columns', () => {
+    expect(findBoardWithoutGrouping([table], [title])).toBeUndefined();
   });
 });
 

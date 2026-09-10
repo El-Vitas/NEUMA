@@ -22,3 +22,47 @@ export const PAGE_OPTION_COLOR_CLASSES: Readonly<Record<PageOptionColor, string>
 
 /** What an option without a color of its own wears, so every option still reads as a label. */
 export const PAGE_OPTION_NO_COLOR_CLASS = 'bg-muted text-foreground';
+
+/**
+ * El mismo color, pero como superficie de una columna entera.
+ *
+ * Mucho más tenue que la etiqueta: aquí el color pinta el fondo de todo lo que
+ * la columna lleva, y al tono de una etiqueta las tarjetas de encima dejarían
+ * de leerse.
+ */
+export const PAGE_OPTION_SURFACE_CLASSES: Readonly<Record<PageOptionColor, string>> = {
+  GRAY: 'bg-neutral-500/8',
+  BROWN: 'bg-amber-800/8',
+  ORANGE: 'bg-orange-500/8',
+  YELLOW: 'bg-yellow-500/10',
+  GREEN: 'bg-green-600/8',
+  BLUE: 'bg-blue-600/8',
+  PURPLE: 'bg-purple-600/8',
+  PINK: 'bg-pink-600/8',
+  RED: 'bg-red-600/8',
+};
+
+/** La superficie de una columna cuyo valor no eligió color. */
+export const PAGE_OPTION_NO_SURFACE_CLASS = 'bg-muted/40';
+
+/**
+ * El color reducido a un punto.
+ *
+ * Donde el color ya está puesto alrededor —el fondo de una columna entera— el
+ * nombre no necesita además ir teñido: bastan un punto que lo repita y el
+ * nombre en su tinta normal, que es lo que se lee.
+ */
+export const PAGE_OPTION_DOT_CLASSES: Readonly<Record<PageOptionColor, string>> = {
+  GRAY: 'bg-neutral-500',
+  BROWN: 'bg-amber-800',
+  ORANGE: 'bg-orange-500',
+  YELLOW: 'bg-yellow-500',
+  GREEN: 'bg-green-600',
+  BLUE: 'bg-blue-600',
+  PURPLE: 'bg-purple-600',
+  PINK: 'bg-pink-500',
+  RED: 'bg-red-600',
+};
+
+/** El punto de un valor que no eligió color. */
+export const PAGE_OPTION_NO_DOT_CLASS = 'bg-muted-foreground/50';

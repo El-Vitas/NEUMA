@@ -60,7 +60,15 @@ export const pageViewGroupSchema = z.object({
   rows: pageRowsSchema,
 });
 
+export const pageViewBandSchema = z.object({
+  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
+  groups: z.array(pageViewGroupSchema),
+  key: z.string(),
+  label: z.string(),
+});
+
 export const pageViewOutcomeSchema = z.discriminatedUnion('kind', [
+  z.object({ bands: z.array(pageViewBandSchema), kind: z.literal('BANDED_ROWS') }),
   z.object({ kind: z.literal('FLAT_ROWS'), rows: pageRowsSchema }),
   z.object({ groups: z.array(pageViewGroupSchema), kind: z.literal('GROUPED_ROWS') }),
   z.object({ kind: z.literal('MISSING_GROUPING_PROPERTY') }),

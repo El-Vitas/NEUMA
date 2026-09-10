@@ -34,6 +34,6 @@ export const PagesCollectionEmbed = async ({ outcome, pageId, properties, spaceI
       </Link>
       <span className="text-muted-foreground text-xs uppercase tracking-wide">{view.name}</span>
     </div>
-    {await PagesCollectionView({ canEdit: false, outcome, properties, spaceId, view })}
+    {await PagesCollectionView({ canEdit: false, collectionPageId: pageId, outcome, properties, spaceId, view })}
   </section>
 );

@@ -1,11 +1,14 @@
-import type { PageOptionColor, PagePropertyOption, PagePropertyType } from '@company-brain/shared';
+import type { PageOptionColor, PagePropertyOption, PagePropertyType, PageViewType } from '@company-brain/shared';
 import {
+  canPagePropertyGroupBoard,
   isTitlePageProperty,
   pagePropertyRequiresOptions,
+  pageViewRequiresGrouping,
   pickPageOptionColor,
   readPageViewConfiguration,
 } from '@company-brain/shared';
 import {
+  PAGE_ADDABLE_PROPERTY_TYPES,
   PAGE_PROPERTY_KEY_COMBINING_MARKS,
   PAGE_PROPERTY_KEY_DIGIT_PREFIX,
   PAGE_PROPERTY_KEY_EDGE_UNDERSCORES,
@@ -60,6 +63,107 @@ export const toSavableView = (view: PageSchemaView): PageSchemaView => ({
   configuration: { ...readPageViewConfiguration(view.configuration) },
 });
 
+/**
+ * Con qué nace una vista dicho.
+ *
+ * Nada, salvo si hace columnas: un tablero que no dice por dónde agrupa no
+ * dibuja ninguna, y el servidor rechaza la colección entera por él —no solo esa
+ * vista—, dejando el panel sin poder guardar nada hasta arreglarlo. Así que
+ * nace agrupado por la primera propiedad que sirva, y desde dentro se cambia.
+ * Cuando la colección no tiene ninguna que sirva no hay nada que elegir, y eso
+ * se dice donde se pueda hacer algo al respecto.
+ */
+const describeANewView = (
+  type: PageViewType,
+  properties: readonly PageSchemaProperty[],
+): PageSchemaView['configuration'] => {
+  if (!pageViewRequiresGrouping(type)) return {};
+  const groupBy = properties.find((property) => canPagePropertyGroupBoard(property.type))?.key;
+  return groupBy === undefined ? {} : { groupBy };
+};
+
+/**
+ * Otra manera de mirar las mismas filas.
+ *
+ * Nace sin quedarse con la delantera: la colección ya lleva a algún sitio al
+ * abrirse, y agregar una vista no es pedir que se cambie a cuál. El nombre es
+ * su dirección, así que dos vistas no pueden llamarse igual ni diferenciarse
+ * por un espacio que nadie ve.
+ */
+export const addSchemaView = (
+  views: readonly PageSchemaView[],
+  added: { readonly name: string; readonly type: PageViewType },
+  properties: readonly PageSchemaProperty[],
+): readonly PageSchemaView[] => {
+  const named = added.name.trim();
+  if (named === '' || views.some((view) => view.name === named)) return views;
+  return [
+    ...views,
+    { configuration: describeANewView(added.type, properties), isDefault: false, name: named, type: added.type },
+  ];
+};
+
+/**
+ * Quita una manera de mirar, salvo que sea la última.
+ *
+ * Sin ninguna vista las filas no se pueden mirar, y el servidor tampoco acepta
+ * una colección así. Si la que se va era la que llevaba la delantera, otra la
+ * toma: si no, abrir la colección no llevaría a ninguna parte.
+ */
+export const removeSchemaView = (views: readonly PageSchemaView[], name: string): readonly PageSchemaView[] => {
+  if (views.length <= 1 || !views.some((view) => view.name === name)) return views;
+  const remaining = views.filter((view) => view.name !== name);
+  if (remaining.some((view) => view.isDefault)) return remaining;
+  return remaining.map((view, position) => (position === 0 ? { ...view, isDefault: true } : view));
+};
+
+/**
+ * Renombra una vista.
+ *
+ * El nombre es su dirección, así que renombrarla deja apuntando a la nada
+ * cualquier enlace escrito con el nombre viejo. No se rompe nada: una dirección
+ * que nombra una vista que ya no existe abre la colección por la suya, que es
+ * mejor que una pantalla vacía. Aun así se avisa antes de hacerlo.
+ */
+export const renameSchemaView = (
+  views: readonly PageSchemaView[],
+  name: string,
+  renamedTo: string,
+): readonly PageSchemaView[] => {
+  const named = renamedTo.trim();
+  if (named === '' || views.some((view) => view.name === named)) return views;
+  return views.map((view) => (view.name === name ? { ...view, name: named } : view));
+};
+
+/** Con cuál se abre la colección. Exactamente una la lleva, porque abrirla lleva a un sitio y no a dos. */
+export const makeSchemaViewDefault = (views: readonly PageSchemaView[], name: string): readonly PageSchemaView[] => {
+  if (!views.some((view) => view.name === name)) return views;
+  return views.map((view) => ({ ...view, isDefault: view.name === name }));
+};
+
+/**
+ * Cambia de sitio una vista entre sus hermanas.
+ *
+ * El orden de aquí es el orden de las pestañas, que es lo que decide qué se ve
+ * primero al mirar la colección. No decide con cuál se abre: eso se dice
+ * aparte, porque poner una vista la primera y abrir por ella son dos cosas que
+ * a veces se quieren por separado.
+ */
+export const moveSchemaView = (
+  views: readonly PageSchemaView[],
+  name: string,
+  direction: 'EARLIER' | 'LATER',
+): readonly PageSchemaView[] => {
+  const from = views.findIndex((view) => view.name === name);
+  const to = direction === 'EARLIER' ? from - 1 : from + 1;
+  if (from === -1 || to < 0 || to >= views.length) return views;
+  const moved = [...views];
+  const [taken] = moved.splice(from, 1);
+  if (taken === undefined) return views;
+  moved.splice(to, 0, taken);
+  return moved;
+};
+
 export const addSchemaProperty = (
   properties: readonly PageSchemaProperty[],
   added: { readonly label: string; readonly type: PagePropertyType },
@@ -87,6 +191,56 @@ export const removeSchemaProperty = (
   const target = properties.find((property) => property.key === key);
   if (target === undefined || isTitlePageProperty(target.type)) return properties;
   return properties.filter((property) => property.key !== key);
+};
+
+/**
+ * El tipo que nombra lo elegido en un desplegable, si nombra uno que se pueda
+ * poner. Un desplegable entrega texto suelto, y de ahí a un tipo del esquema hay
+ * que pasar mirando la lista, no afirmándolo.
+ */
+export const readAddablePropertyType = (chosen: string): PagePropertyType | undefined =>
+  PAGE_ADDABLE_PROPERTY_TYPES.find((candidate) => candidate === chosen);
+
+/**
+ * La lista de opciones que le toca a una propiedad al cambiar de tipo.
+ *
+ * Entre una selección y una selección múltiple la lista es la misma —se elige
+ * de ella igual, una respuesta o varias—, así que se queda tal cual. Hacia un
+ * tipo que no elige de una lista se descarta, y hacia uno que sí, se empieza
+ * vacía para que quien cambió el tipo diga qué se puede elegir.
+ */
+const carryOptionsInto = (
+  property: PageSchemaProperty,
+  type: PagePropertyType,
+): readonly PagePropertyOption[] | null => {
+  if (!pagePropertyRequiresOptions(type)) return null;
+  return property.options ?? [];
+};
+
+/**
+ * Cambia de qué tipo es una propiedad, dejándola donde está.
+ *
+ * La clave no se toca: es donde cada fila tiene escrito lo suyo, y moverla
+ * dejaría esos valores huérfanos. Lo que las filas ya guardaron se queda como
+ * está, igual que al renombrar una opción — alcanzarlas desde aquí costaría un
+ * viaje por fila —, así que quien cambia el tipo vuelve a responder las que
+ * queden con la forma anterior.
+ *
+ * El título queda fuera por los dos lados: ni deja de serlo ni otra propiedad
+ * pasa a serlo, porque el servidor pide exactamente uno y sin él no hay manera
+ * de abrir una fila.
+ */
+export const changeSchemaPropertyType = (
+  properties: readonly PageSchemaProperty[],
+  key: string,
+  type: PagePropertyType,
+): readonly PageSchemaProperty[] => {
+  if (isTitlePageProperty(type)) return properties;
+  const target = properties.find((property) => property.key === key);
+  if (target === undefined || isTitlePageProperty(target.type)) return properties;
+  return properties.map((property) =>
+    property.key === key ? { ...property, options: carryOptionsInto(property, type), type } : property,
+  );
 };
 
 export const updateSchemaProperty = (

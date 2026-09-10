@@ -14,6 +14,15 @@ export const PAGE_COLLECTION_TITLE_PROPERTY_KEY = 'title';
  */
 export const PAGE_COLLECTION_VIEW_SEARCH_PARAM = 'view';
 
+/**
+ * Lo que elige «por ninguna» en el desplegable de la segunda agrupación.
+ *
+ * Un desplegable no puede ofrecer la nada como valor —vacío es lo mismo que no
+ * haber elegido—, así que la ausencia necesita un nombre propio que ninguna
+ * propiedad pueda tener.
+ */
+export const PAGE_VIEW_NO_SUB_GROUP = '__none__';
+
 /** Where the page keeps whoever knows how to make a collection, and how to be asked for one already written. */
 export const PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR = '[data-page-collection-request]';
 

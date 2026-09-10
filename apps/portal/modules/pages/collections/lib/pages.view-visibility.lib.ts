@@ -8,18 +8,21 @@ import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.t
  * first meant to read it first, and reordering it back would undo the choice.
  */
 /**
- * What a card says besides its title, once the board is drawn.
+ * Lo que una tarjeta dice además de su título.
  *
- * The property the board groups by is left out: the column heading already says
- * that value, and repeating it on every card inside is noise in the place where
- * space is scarcest.
+ * Mientras la vista no eligió nada, la propiedad por la que agrupa se queda
+ * fuera: el encabezado de la columna ya dice ese valor y repetirlo en cada
+ * tarjeta de dentro es ruido donde menos espacio hay. Pero si alguien la marcó
+ * a mano, se muestra: eligió verla y sacársela igual sería no hacerle caso.
  */
 export const readShownCardProperties = (
   view: PageSchemaView,
   properties: readonly PageSchemaProperty[],
 ): readonly PageSchemaProperty[] => {
-  const groupBy = readPageViewConfiguration(view.configuration).groupBy;
-  return readShownProperties(view, properties).filter((property) => property.key !== groupBy);
+  const { groupBy, visibleProperties } = readPageViewConfiguration(view.configuration);
+  const shown = readShownProperties(view, properties);
+  if (visibleProperties !== null) return shown;
+  return shown.filter((property) => property.key !== groupBy);
 };
 
 export const readShownProperties = (

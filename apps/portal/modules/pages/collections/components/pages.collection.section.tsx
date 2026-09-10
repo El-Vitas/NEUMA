@@ -1,5 +1,13 @@
 import { getTranslations } from 'next-intl/server';
-import type { PageSchema, PageSchemaProperty, PageSchemaView, PageViewOutcome } from '../types/pages.schema.types';
+import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
+import type {
+  PagePersonOption,
+  PageSchema,
+  PageSchemaProperty,
+  PageSchemaView,
+  PageViewOutcome,
+} from '../types/pages.schema.types';
+import { PagesCollectionFilterBar } from './pages.collection.filter-bar';
 import { PagesCollectionTabs } from './pages.collection.tabs';
 import { PagesCollectionView } from './pages.collection.view';
 import { PagesSchemaSettingsButton } from './pages.schema.settings-button';
@@ -8,6 +16,7 @@ interface IProps {
   readonly activeView: PageSchemaView;
   readonly canEdit: boolean;
   readonly outcome: PageViewOutcome | null;
+  readonly personOptions?: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly schema: PageSchema;
   readonly spaceId: string;
@@ -26,6 +35,7 @@ export const PagesCollectionSection = async ({
   activeView,
   canEdit,
   outcome,
+  personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   properties,
   schema,
   spaceId,
@@ -34,12 +44,27 @@ export const PagesCollectionSection = async ({
   const t = await getTranslations('pages');
 
   return (
-    <section aria-label={t('collection.sectionTitle')} className="space-y-4 pt-6">
-      <div className="flex items-end justify-between gap-2">
+    <section aria-label={t('collection.sectionTitle')} className="space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-2 border-border border-b">
         <PagesCollectionTabs activeViewName={activeView.name} label={t('collection.viewsLabel')} views={views} />
-        {canEdit && <PagesSchemaSettingsButton schema={schema} spaceId={spaceId} />}
+        {canEdit && (
+          <div className="flex items-center gap-1 pb-1">
+            <PagesCollectionFilterBar activeViewName={activeView.name} schema={schema} spaceId={spaceId} />
+            <PagesSchemaSettingsButton schema={schema} spaceId={spaceId} />
+          </div>
+        )}
       </div>
-      {await PagesCollectionView({ canEdit, outcome, properties, spaceId, view: activeView })}
+      {
+        await PagesCollectionView({
+          canEdit,
+          collectionPageId: schema.pageId,
+          outcome,
+          personOptions,
+          properties,
+          spaceId,
+          view: activeView,
+        })
+      }
     </section>
   );
 };
