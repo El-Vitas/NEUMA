@@ -1,6 +1,17 @@
 'use client';
 
-import { ChevronRight, Copy, Download, FileText, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react';
+import {
+  ChevronRight,
+  Copy,
+  Download,
+  FileText,
+  MoreHorizontal,
+  PenLine,
+  Plus,
+  Smile,
+  Table2,
+  Trash2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -27,6 +38,7 @@ interface IProps {
   readonly isExporting: boolean;
   readonly onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => void;
   readonly onNavigate?: () => void;
+  readonly onRequestChildCollection: (page: PortalSidebarPage) => void;
   readonly onRequestChildPage: (page: PortalSidebarPage) => void;
   readonly onRequestDuplicate: (page: PortalSidebarPage, hasChildren: boolean) => void;
   readonly onRequestExport: (page: PortalSidebarPage, hasChildren: boolean) => void;
@@ -50,6 +62,7 @@ export const SidebarPageTreeItem = ({
   isExporting,
   onKeyDown,
   onNavigate,
+  onRequestChildCollection,
   onRequestChildPage,
   onRequestDuplicate,
   onRequestExport,
@@ -183,6 +196,10 @@ export const SidebarPageTreeItem = ({
                     <Plus aria-hidden="true" className="size-4" />
                     {t('createChildPage')}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onRequestChildCollection(page)}>
+                    <Table2 aria-hidden="true" className="size-4" />
+                    {t('createChildCollection')}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => onRequestDuplicate(page, hasChildren)}>
                     <Copy aria-hidden="true" className="size-4" />
                     {tDuplicate('action')}
@@ -221,6 +238,7 @@ export const SidebarPageTreeItem = ({
               key={child.page.id}
               onKeyDown={onKeyDown}
               onNavigate={onNavigate}
+              onRequestChildCollection={onRequestChildCollection}
               onRequestChildPage={onRequestChildPage}
               onRequestDuplicate={onRequestDuplicate}
               onRequestExport={onRequestExport}
