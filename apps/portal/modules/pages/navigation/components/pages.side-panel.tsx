@@ -34,6 +34,10 @@ interface IProps {
  * and nothing more — Escape and an outside click both ask to close it, a
  * menu opened from inside it is not mistaken for the outside, and no
  * overlay is drawn to dim what is still there to be read.
+ *
+ * Entra deslizándose desde el borde del que sale, porque aparecer de golpe no
+ * dice de dónde vino ni que lo de atrás sigue ahí. Quien pidió menos
+ * movimiento no lo ve moverse.
  */
 export const PagesSidePanel = ({
   bundle,
@@ -83,11 +87,12 @@ export const PagesSidePanel = ({
     <DialogPrimitive.Root modal={false} onOpenChange={handleOpenChange} open>
       <DialogPrimitive.Portal container={themeRoot ?? undefined}>
         <DialogPrimitive.Content
-          aria-label={t('title')}
-          className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-border border-l bg-surface shadow-lg outline-none sm:w-(--pages-side-panel-width)"
+          className="data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right fixed inset-y-0 right-0 z-40 flex w-full flex-col border-border border-l bg-surface shadow-lg outline-none duration-200 ease-out data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:duration-0 sm:w-(--pages-side-panel-width)"
           onOpenAutoFocus={(event) => event.preventDefault()}
           style={widthStyle}
         >
+          {/* Quien navega con lector de pantalla llega aquí sin ver el panel: el nombre lo dice el título. */}
+          <DialogPrimitive.Title className="sr-only">{t('title')}</DialogPrimitive.Title>
           <PagesSidePanelResizeHandle
             onChangeWidth={sidePanel.handleWidthChange}
             onPointerDown={sidePanel.startResizing}
