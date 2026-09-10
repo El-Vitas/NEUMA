@@ -51,7 +51,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { isStarting, startPage } = usePagesStart();
+  const { isStarting, startCollection, startPage } = usePagesStart();
   const [pageToTrash, setPageToTrash] = useState<PortalSidebarPage | null>(null);
   const [pageToRename, setPageToRename] = useState<PortalSidebarPage | null>(null);
   const [pageToMark, setPageToMark] = useState<PortalSidebarPage | null>(null);
@@ -256,6 +256,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
             key={treeItem.page.id}
             onKeyDown={handleSidebarPageTreeKeyDown}
             onNavigate={onNavigate}
+            onRequestChildCollection={(page) => startCollection(spaceId, page.id)}
             onRequestChildPage={(page) => startPage(spaceId, page.id)}
             onRequestDuplicate={requestDuplicate}
             onRequestExport={requestExport}

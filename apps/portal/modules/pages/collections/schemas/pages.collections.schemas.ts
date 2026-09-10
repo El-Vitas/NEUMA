@@ -29,7 +29,8 @@ const pageCollectionViewSchema = z.object({
 /** What has to be said to start a collection: a page to keep it in, and the shape it starts with. */
 export const pageCollectionCreateSchema = z.object({
   content: pageContentSchema,
-  parentId: z.string().min(1),
+  /** Sin madre cuando la colección se crea desde el espacio: ahí es una página de raíz como cualquier otra. */
+  parentId: z.string().min(1).optional(),
   properties: z.array(pageCollectionPropertySchema).min(1).max(50).readonly(),
   spaceId: z.string().min(1),
   title: z.string().trim().min(1).max(200),
