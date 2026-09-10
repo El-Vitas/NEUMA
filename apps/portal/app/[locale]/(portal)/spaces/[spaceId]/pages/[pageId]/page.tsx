@@ -117,18 +117,17 @@ const resolveParentSchema = async (spaceId: string, parentId: string | null): Pr
 };
 
 /**
- * The space members a page's render can put a name to — through a parent
- * schema's own person properties, or through the owner an editable page can be
- * handed to answer for it. A page nobody can write in offers neither: its
- * properties are read-only and its owner cannot be reassigned, so there is
- * nobody to look up a member list for.
+ * The space members a page's render can put a name to — through its parent
+ * schema's person properties, through its own, since the rows it shows name
+ * people too, or through the owner an editable page can be handed to answer
+ * for it. A page with none of the three offers nobody to look up.
  */
 const resolvePersonOptionsIfNeeded = async (
   spaceId: string,
-  parentSchema: PageSchema | null,
+  schemas: readonly (PageSchema | null)[],
   canAssignOwner: boolean,
 ): Promise<readonly PagePersonOption[]> => {
-  if (!schemaNeedsPersonOptions(parentSchema) && !canAssignOwner) return [];
+  if (!schemas.some((schema) => schemaNeedsPersonOptions(schema)) && !canAssignOwner) return [];
   const personOptionsResult = await getSpaceMembers(spaceId);
   return personOptionsResult.isOk() ? personOptionsResult.getValue() : [];
 };
@@ -147,6 +146,7 @@ const buildCollectionSection = async (
   pageId: string,
   requestedViewName: null | string,
   canEdit: boolean,
+  personOptions: readonly PagePersonOption[],
 ): Promise<ReactNode> => {
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
   const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
@@ -157,6 +157,7 @@ const buildCollectionSection = async (
       activeView={activeView}
       canEdit={canEdit}
       outcome={outcomeResult.isOk() ? outcomeResult.getValue() : null}
+      personOptions={personOptions}
       properties={getEditableSchemaProperties(ownSchema)}
       schema={ownSchema}
       spaceId={spaceId}
@@ -209,14 +210,19 @@ const buildPageEditorBundle = async (
     resolveParentSchema(spaceId, targetPage.parentId),
   ]);
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
-  const [personOptions, collectionSection, embeddedCollections] = await Promise.all([
-    resolvePersonOptionsIfNeeded(spaceId, parentSchema, canEditPage(canEditRole, targetPage.lifecycle)),
+  const personOptions = await resolvePersonOptionsIfNeeded(
+    spaceId,
+    [ownSchema, parentSchema],
+    canEditPage(canEditRole, targetPage.lifecycle),
+  );
+  const [collectionSection, embeddedCollections] = await Promise.all([
     buildCollectionSection(
       ownSchema,
       spaceId,
       targetPage.id,
       requestedViewName,
       canEditPage(canEditRole, targetPage.lifecycle),
+      personOptions,
     ),
     buildEmbeddedCollections(targetPage, pages),
   ]);
@@ -232,6 +238,13 @@ const buildPageEditorBundle = async (
     personOptions,
   };
 };
+
+/**
+ * Esta página no puede empezar a dibujarse antes de saber quién mira: lo que
+ * muestra depende de la sesión y del espacio, así que se resuelve entera antes
+ * de responder en vez de prometer una navegación instantánea que no existe.
+ */
+export const instant = false;
 
 export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
