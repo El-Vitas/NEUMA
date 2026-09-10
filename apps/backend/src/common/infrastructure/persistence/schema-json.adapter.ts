@@ -9,15 +9,22 @@ import type {
 } from '../../domain/schema.domain.types';
 import { isPropertyValue } from '../../domain/schema-property.domain';
 
+/**
+ * Lo guardado, tal cual, en la forma que Prisma acepta de vuelta.
+ *
+ * Un `null` se conserva: es un valor que quien guardó eligió, no la ausencia de
+ * uno. Una condición de filtro que no compara contra nada guarda `value: null`,
+ * y descartarlo devolvería una condición sin un campo que su propio contrato
+ * exige, con lo que el filtro entero dejaría de leerse.
+ */
 const toInputJsonValue = (value: Prisma.JsonValue): Prisma.InputJsonValue | null => {
   if (value === null) return null;
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
   if (Array.isArray(value)) return value.map((item) => toInputJsonValue(item));
-  const object: Record<string, Prisma.InputJsonValue> = {};
+  const object: Record<string, Prisma.InputJsonValue | null> = {};
   for (const [key, nestedValue] of Object.entries(value)) {
     if (nestedValue === undefined) continue;
-    const converted = toInputJsonValue(nestedValue);
-    if (converted !== null) object[key] = converted;
+    object[key] = toInputJsonValue(nestedValue);
   }
   return object;
 };
@@ -44,11 +51,10 @@ export const toSchemaViewDefinition = (view: {
 }): SchemaViewDefinition | null => {
   if (typeof view.configuration !== 'object' || view.configuration === null || Array.isArray(view.configuration))
     return null;
-  const configuration: Record<string, Prisma.InputJsonValue> = {};
+  const configuration: Record<string, Prisma.InputJsonValue | null> = {};
   for (const [key, value] of Object.entries(view.configuration)) {
     if (value === undefined) continue;
-    const converted = toInputJsonValue(value);
-    if (converted !== null) configuration[key] = converted;
+    configuration[key] = toInputJsonValue(value);
   }
   return { configuration, isDefault: view.isDefault, name: view.name, type: view.type };
 };
