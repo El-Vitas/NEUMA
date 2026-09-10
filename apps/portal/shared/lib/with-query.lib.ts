@@ -19,14 +19,19 @@ export const withQuery = async <T>(
     return Result.fail(logQueryFailure(meta, error));
   }
 
-  const start = Date.now();
+  /**
+   * Cuánto tardó, no qué hora era. Medir con el reloj de pared obliga a resolver
+   * la página en el momento —el marco no puede adelantar nada que dependa de la
+   * hora—, y para una duración el reloj monótono es además el correcto.
+   */
+  const start = performance.now();
   logger.info({ ...meta, status: 'start' });
 
   try {
     const result = await fn(accessToken);
-    logger.info({ ...meta, status: 'success', durationMs: Date.now() - start });
+    logger.info({ ...meta, status: 'success', durationMs: Math.round(performance.now() - start) });
     return Result.ok(result);
   } catch (error) {
-    return Result.fail(logQueryFailure(meta, error, Date.now() - start));
+    return Result.fail(logQueryFailure(meta, error, Math.round(performance.now() - start)));
   }
 };
