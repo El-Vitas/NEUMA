@@ -90,7 +90,8 @@ const personDefinition: PagePropertyDefinition = {
 const dateDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.DATE,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.DATE,
-  capabilities: baseCapabilities,
+  /** Una columna por día de los que las filas nombran: las fechas no se declaran de antemano, se usan. */
+  capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => '',
   isValidValue: (value) => typeof value === 'string' && !Number.isNaN(Date.parse(value)),
   isEmptyValue: isBlankText,
@@ -100,7 +101,8 @@ const dateDefinition: PagePropertyDefinition = {
 const checkboxDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.CHECKBOX,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN,
-  capabilities: baseCapabilities,
+  /** Dos columnas y no más: una casilla solo responde que sí o que no. */
+  capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => false,
   isValidValue: (value) => typeof value === 'boolean',
   isEmptyValue: isNeverEmpty,
@@ -110,7 +112,8 @@ const checkboxDefinition: PagePropertyDefinition = {
 const numberDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.NUMBER,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.NUMBER,
-  capabilities: baseCapabilities,
+  /** Una columna por número que las filas traen puesto: sirve para tallas, puntos o pisos. */
+  capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => 0,
   isValidValue: (value) => typeof value === 'number' && Number.isFinite(value),
   isEmptyValue: isNeverEmpty,

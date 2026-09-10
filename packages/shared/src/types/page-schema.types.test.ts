@@ -27,6 +27,11 @@ describe('page schema contracts', () => {
 
   /** Named after the shape the rows arrive in, so a view type new tomorrow needs no new kind. */
   test('exposes the canonical view outcome kinds', () => {
-    expect(Object.values(PAGE_VIEW_OUTCOME_KIND)).toEqual(['FLAT_ROWS', 'GROUPED_ROWS', 'MISSING_GROUPING_PROPERTY']);
+    expect(Object.values(PAGE_VIEW_OUTCOME_KIND)).toEqual([
+      'BANDED_ROWS',
+      'FLAT_ROWS',
+      'GROUPED_ROWS',
+      'MISSING_GROUPING_PROPERTY',
+    ]);
   });
 });

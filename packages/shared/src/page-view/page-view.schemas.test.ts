@@ -26,6 +26,17 @@ describe('reading a stored view configuration', () => {
       filter: doingCondition,
       groupBy: 'status',
       sorts: [{ direction: PAGE_SORT_DIRECTION.ASCENDING, propertyKey: 'title' }],
+      subGroupBy: null,
+      visibleProperties: null,
+    });
+  });
+
+  test('reads the second grouping, which lays bands across the columns', () => {
+    expect(readPageViewConfiguration({ groupBy: 'status', subGroupBy: 'priority' })).toEqual({
+      filter: null,
+      groupBy: 'status',
+      sorts: [],
+      subGroupBy: 'priority',
       visibleProperties: null,
     });
   });
@@ -34,6 +45,7 @@ describe('reading a stored view configuration', () => {
     expect(readPageViewConfiguration({ groupBy: 'status' })).toEqual({
       filter: null,
       groupBy: 'status',
+      subGroupBy: null,
       visibleProperties: null,
       sorts: [],
     });

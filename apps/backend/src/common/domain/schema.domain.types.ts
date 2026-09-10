@@ -35,3 +35,11 @@ export interface SchemaRowGroup<TRow extends SchemaGroupableRow> {
   readonly label: string;
   readonly rows: readonly TRow[];
 }
+
+/** Una franja que cruza todas las columnas, con lo que a cada una le toca dentro de ella. */
+export interface SchemaRowBand<TRow extends SchemaGroupableRow> {
+  readonly color: PageOptionColor | null;
+  readonly groups: readonly SchemaRowGroup<TRow>[];
+  readonly key: string;
+  readonly label: string;
+}
