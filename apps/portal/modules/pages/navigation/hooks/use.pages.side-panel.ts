@@ -46,7 +46,9 @@ export const usePagesSidePanel = (flushBeforeClose: () => Promise<void>): PagesS
 
   const openPanel = useCallback(
     (pageId: string): void => {
-      router.push(buildAddressWithSearch(pathname, withPagesSidePanelParam(searchParams.toString(), pageId)));
+      router.push(buildAddressWithSearch(pathname, withPagesSidePanelParam(searchParams.toString(), pageId)), {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams],
   );
@@ -55,7 +57,9 @@ export const usePagesSidePanel = (flushBeforeClose: () => Promise<void>): PagesS
 
   const closePanel = useCallback(async (): Promise<void> => {
     await flushBeforeClose();
-    router.replace(buildAddressWithSearch(pathname, withoutPagesSidePanelParam(searchParams.toString())));
+    router.replace(buildAddressWithSearch(pathname, withoutPagesSidePanelParam(searchParams.toString())), {
+      scroll: false,
+    });
   }, [flushBeforeClose, pathname, router, searchParams]);
 
   return {

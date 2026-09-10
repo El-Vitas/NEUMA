@@ -27,8 +27,15 @@ export const withoutPagesSidePanelParam = (search: string): string => {
   return params.toString();
 };
 
-/** A relative address a server-rendered row can point at without knowing the page it stands on. */
-export const buildPagesSidePanelQueryHref = (pageId: string): string => `?${withPagesSidePanelParam('', pageId)}`;
+/**
+ * A relative address a row can point at without knowing the page it stands on.
+ *
+ * Lleva consigo lo que la dirección ya preguntaba: abrir una fila al costado no
+ * es cambiar de vista, y una dirección que solo nombrara el panel devolvería la
+ * colección a su vista de siempre en cuanto se abre una tarjeta del tablero.
+ */
+export const buildPagesSidePanelQueryHref = (search: string, pageId: string): string =>
+  `?${withPagesSidePanelParam(search, pageId)}`;
 
 /** A path with its search attached, without a dangling `?` when there is nothing left to ask. */
 export const buildAddressWithSearch = (pathname: string, search: string): string =>

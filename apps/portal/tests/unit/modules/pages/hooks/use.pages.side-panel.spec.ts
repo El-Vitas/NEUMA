@@ -4,8 +4,11 @@ import { act, renderHook } from '@testing-library/react';
 const PATHNAME = '/spaces/space-1/pages/page-1';
 let currentSearch = '';
 
-const push = mock((_href: string) => undefined);
-const replace = mock((_href: string) => undefined);
+/** El panel sale al costado sin mover lo que hay detrás, así que ninguna de las dos desplaza la página. */
+const STAYS_WHERE_IT_WAS = { scroll: false };
+
+const push = mock((_href: string, _options?: { scroll: boolean }) => undefined);
+const replace = mock((_href: string, _options?: { scroll: boolean }) => undefined);
 
 mock.module('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(currentSearch),
@@ -49,7 +52,7 @@ describe('usePagesSidePanel', () => {
       result.current.openPanel('page-2');
     });
 
-    expect(push).toHaveBeenCalledWith(`${PATHNAME}?search=quarterly&panel=page-2`);
+    expect(push).toHaveBeenCalledWith(`${PATHNAME}?search=quarterly&panel=page-2`, STAYS_WHERE_IT_WAS);
   });
 
   it('navigating within the panel opens the same way as opening it does', () => {
@@ -59,7 +62,7 @@ describe('usePagesSidePanel', () => {
       result.current.navigateWithinPanel('space-1', 'page-3');
     });
 
-    expect(push).toHaveBeenCalledWith(`${PATHNAME}?panel=page-3`);
+    expect(push).toHaveBeenCalledWith(`${PATHNAME}?panel=page-3`, STAYS_WHERE_IT_WAS);
   });
 
   it('waits for whatever the panel still has to save before writing the closed address', async () => {
@@ -77,7 +80,7 @@ describe('usePagesSidePanel', () => {
 
     expect(flushBeforeClose).toHaveBeenCalledTimes(1);
     expect(hasFlushed).toBe(true);
-    expect(replace).toHaveBeenCalledWith(PATHNAME);
+    expect(replace).toHaveBeenCalledWith(PATHNAME, STAYS_WHERE_IT_WAS);
   });
 
   it('starts at the default width when nothing was chosen before', () => {
