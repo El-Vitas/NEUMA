@@ -82,10 +82,11 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         })),
       });
       await transaction.pageSchemaView.createMany({
-        data: views.map((view) => ({
+        data: views.map((view, order) => ({
           configuration: view.configuration,
           isDefault: view.isDefault,
           name: view.name,
+          order,
           pageId,
           type: view.type,
         })),
@@ -134,8 +135,13 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         select: schemaPropertySelection,
         where: { pageId },
       }),
+      /**
+       * En el orden que les dio quien configuró la colección, que es el de sus
+       * pestañas. Leerlas por nombre haría que renombrar una vista la moviera de
+       * sitio, y dejaría el orden en manos del alfabeto.
+       */
       client.pageSchemaView.findMany({
-        orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+        orderBy: { order: 'asc' },
         select: schemaViewSelection,
         where: { pageId },
       }),
