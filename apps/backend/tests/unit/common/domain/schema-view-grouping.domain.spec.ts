@@ -56,6 +56,48 @@ describe('groupRowsForView', () => {
     expect(result.getError().code).toBe('SCHEMA_VIEW_INVALID');
   });
 
+  /**
+   * Una fecha no declara de antemano qué días existen, así que las columnas
+   * salen de los días que las filas nombran, en orden y sin repetirse.
+   */
+  it('makes a column per value the rows carry when the property declares none', () => {
+    const dueDate = {
+      key: 'dueDate',
+      label: 'Due date',
+      options: null,
+      required: false,
+      type: DatabasePropertyType.DATE,
+    };
+    const result = groupRowsForView(
+      DatabaseViewType.BOARD,
+      { groupBy: 'dueDate' },
+      [dueDate],
+      [
+        { id: 'b', order: 1, propertyValues: { dueDate: '2026-09-11' } },
+        { id: 'a', order: 0, propertyValues: { dueDate: '2026-09-10' } },
+        { id: 'c', order: 2, propertyValues: { dueDate: '2026-09-10' } },
+        { id: 'd', order: 3, propertyValues: {} },
+      ],
+    );
+
+    expect(result.getValue().map((group) => group.key)).toEqual(['2026-09-10', '2026-09-11', 'unassigned']);
+    expect(result.getValue()[0]?.rows.map((row) => row.id)).toEqual(['a', 'c']);
+    expect(result.getValue()[2]?.rows.map((row) => row.id)).toEqual(['d']);
+  });
+
+  it('makes the two columns a checkbox has, even when no row answered yet', () => {
+    const done = { key: 'done', label: 'Done', options: null, required: false, type: DatabasePropertyType.CHECKBOX };
+    const result = groupRowsForView(
+      DatabaseViewType.BOARD,
+      { groupBy: 'done' },
+      [done],
+      [{ id: 'a', order: 0, propertyValues: { done: true } }],
+    );
+
+    expect(result.getValue().map((group) => group.key)).toEqual(['true', 'false', 'unassigned']);
+    expect(result.getValue()[0]?.rows.map((row) => row.id)).toEqual(['a']);
+  });
+
   it('rejects a board whose groupBy does not reference a SELECT property', () => {
     const result = groupRowsForView(
       DatabaseViewType.BOARD,

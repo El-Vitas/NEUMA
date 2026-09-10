@@ -60,9 +60,11 @@ export const PAGE_VIEW_GROUPING = {
   UNSUPPORTED: 'UNSUPPORTED',
 } as const satisfies Record<PageViewGrouping, PageViewGrouping>;
 
-export type PageViewOutcomeKind = 'FLAT_ROWS' | 'GROUPED_ROWS' | 'MISSING_GROUPING_PROPERTY';
+export type PageViewOutcomeKind = 'BANDED_ROWS' | 'FLAT_ROWS' | 'GROUPED_ROWS' | 'MISSING_GROUPING_PROPERTY';
 
 export const PAGE_VIEW_OUTCOME_KIND = {
+  /** En rejilla: una banda por valor de la segunda agrupación, y dentro las columnas de la primera. */
+  BANDED_ROWS: 'BANDED_ROWS',
   FLAT_ROWS: 'FLAT_ROWS',
   GROUPED_ROWS: 'GROUPED_ROWS',
   MISSING_GROUPING_PROPERTY: 'MISSING_GROUPING_PROPERTY',

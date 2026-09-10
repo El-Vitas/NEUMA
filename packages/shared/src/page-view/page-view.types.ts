@@ -82,6 +82,15 @@ export interface PageViewProperty {
 
 export interface PageViewConfiguration {
   readonly groupBy: string | null;
+  /**
+   * La segunda agrupación, que cruza a la primera.
+   *
+   * Con las dos puestas, las filas no salen en columnas sino en una rejilla:
+   * `groupBy` hace las columnas y esta hace las bandas que las atraviesan, de
+   * modo que cada cruce es un sitio donde soltar. Cuál va en qué eje lo decide
+   * quién ocupa cada campo, así que intercambiarlos es cambiarlos de sitio.
+   */
+  readonly subGroupBy: string | null;
   readonly filter: PageFilter | null;
   readonly sorts: readonly PageSort[];
   /**

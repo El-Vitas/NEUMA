@@ -63,6 +63,7 @@ const configurationShape = {
   filter: rootFilterSchema.nullish(),
   groupBy: propertyKeySchema.nullish(),
   sorts: z.array(sortSchema).max(maximumSorts).optional(),
+  subGroupBy: propertyKeySchema.nullish(),
   visibleProperties: z.array(propertyKeySchema).max(maximumVisibleProperties).nullish(),
 };
 
@@ -74,6 +75,7 @@ const toConfiguration = (parsed: z.infer<typeof storedConfigurationSchema>): Pag
   filter: parsed.filter ?? null,
   groupBy: parsed.groupBy ?? null,
   sorts: parsed.sorts ?? [],
+  subGroupBy: parsed.subGroupBy ?? null,
   /** Nothing means «all of them»; an empty list means somebody chose to show none. */
   visibleProperties: parsed.visibleProperties ?? null,
 });
@@ -82,6 +84,7 @@ export const EMPTY_PAGE_VIEW_CONFIGURATION: PageViewConfiguration = {
   filter: null,
   groupBy: null,
   sorts: [],
+  subGroupBy: null,
   visibleProperties: null,
 };
 
