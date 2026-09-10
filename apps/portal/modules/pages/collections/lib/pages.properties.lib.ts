@@ -81,6 +81,25 @@ export const getPagePersonOptionLabel = (options: readonly PagePersonOption[], o
   return hasNameCollision ? `${option.name} (${option.email})` : option.name;
 };
 
+/**
+ * Cómo se lee una asignación allí donde solo se muestra: el nombre de quien
+ * está asignado, nunca su identificador.
+ *
+ * Devuelve `null` cuando hay alguien asignado a quien el directorio ya no
+ * reconoce, para que quien lo muestre lo diga con palabras en vez de enseñar
+ * un identificador desnudo. Mientras el directorio no haya llegado no dice
+ * nada, por la misma razón.
+ */
+export const readPagePersonDisplayName = (
+  options: readonly PagePersonOption[],
+  value: PagePropertyValue | undefined,
+): string | null => {
+  if (typeof value !== 'string' || value === '') return '';
+  if (options.length === 0) return '';
+  const person = findPagePersonOption(options, value);
+  return person === undefined ? null : getPagePersonOptionLabel(options, person);
+};
+
 /** Which word a checkbox is read as, so the cell that shows it asks one question and not two. */
 export const readCheckboxLabelKey = (value: PagePropertyValue | undefined): string =>
   getBooleanPropertyValue(value) ? 'properties.yes' : 'properties.no';

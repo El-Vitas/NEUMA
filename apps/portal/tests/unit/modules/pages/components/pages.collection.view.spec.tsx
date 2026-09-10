@@ -12,11 +12,19 @@ import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
-  Link: ({ children, ...rest }: ComponentProps<'a'>) => <a {...rest}>{children}</a>,
+  Link: ({ children, scroll: _scroll, ...rest }: ComponentProps<'a'> & { scroll?: boolean }) => (
+    <a {...rest}>{children}</a>
+  ),
+  useRouter: () => ({ refresh: () => undefined }),
 }));
+mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 /** The board reaches a server action, which cannot be loaded in a browser-shaped test. */
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  createPageAction: async () => ({ data: { id: 'row-new' } }),
+  reorderPageAction: async () => ({ data: null }),
 }));
 
 const { PagesCollectionView } = await import('@/modules/pages/collections/components/pages.collection.view');
@@ -61,7 +69,16 @@ const flatOutcome: PageViewOutcome = {
 const drawView = async (outcome: PageViewOutcome | null, view: PageSchemaView) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      {await PagesCollectionView({ canEdit: false, outcome, properties, spaceId: 'space-1', view })}
+      {
+        await PagesCollectionView({
+          canEdit: false,
+          collectionPageId: 'collection-1',
+          outcome,
+          properties,
+          spaceId: 'space-1',
+          view,
+        })
+      }
     </NextIntlClientProvider>,
   );
 

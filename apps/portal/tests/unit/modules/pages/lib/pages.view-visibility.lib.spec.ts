@@ -50,9 +50,24 @@ describe('readShownCardProperties', () => {
     expect(readShownCardProperties(board, properties)).toEqual([dueDate]);
   });
 
-  it('keeps everything else the view shows', () => {
+  /**
+   * Dejarla fuera es lo que se hace mientras nadie dijo nada. Quien la marcó a
+   * mano la quiere ahí, y sacársela igual sería no hacerle caso.
+   */
+  it('shows the grouping property on the card when somebody asked for it by name', () => {
     const board: PageSchemaView = {
       configuration: { groupBy: 'status', visibleProperties: ['status', 'dueDate'] },
+      isDefault: true,
+      name: 'B',
+      type: 'BOARD',
+    };
+
+    expect(readShownCardProperties(board, properties)).toEqual([status, dueDate]);
+  });
+
+  it('keeps everything else the view shows', () => {
+    const board: PageSchemaView = {
+      configuration: { groupBy: 'status', visibleProperties: ['dueDate'] },
       isDefault: true,
       name: 'B',
       type: 'BOARD',

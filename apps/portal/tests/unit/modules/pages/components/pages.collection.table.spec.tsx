@@ -8,8 +8,11 @@ import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
-  Link: ({ children, ...rest }: ComponentProps<'a'>) => <a {...rest}>{children}</a>,
+  Link: ({ children, scroll: _scroll, ...rest }: ComponentProps<'a'> & { scroll?: boolean }) => (
+    <a {...rest}>{children}</a>
+  ),
 }));
+mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 
 const { PagesCollectionTable } = await import('@/modules/pages/collections/components/pages.collection.table');
 

@@ -1,8 +1,10 @@
 import type { PageViewShape, PageViewType } from '@company-brain/shared';
 import type { ReactNode } from 'react';
 import type {
+  PagePersonOption,
   PageSchemaProperty,
   PageSchemaView,
+  PageViewBandedOutcome,
   PageViewFlatOutcome,
   PageViewGroupedOutcome,
 } from './pages.schema.types';
@@ -10,7 +12,11 @@ import type {
 export interface PageViewRenderInput<TOutcome> {
   /** Whether whoever is looking may also change what the rows hold. */
   readonly canEdit: boolean;
+  /** La página que lleva la colección, de la que cuelgan sus filas. */
+  readonly collectionPageId: string;
   readonly outcome: TOutcome;
+  /** Quiénes son las personas que las filas nombran, para decir su nombre y no su identificador. */
+  readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly spaceId: string;
   readonly view: PageSchemaView;
@@ -31,7 +37,15 @@ export type PageViewRenderer =
       readonly shape: Extract<PageViewShape, 'FLAT'>;
     }
   | {
-      readonly render: (input: PageViewRenderInput<PageViewGroupedOutcome>) => Promise<ReactNode> | ReactNode;
+      /**
+       * Agrupadas en columnas, o en rejilla cuando la vista pide una segunda
+       * agrupación. Las dos son la misma forma de leer: por eso la clase de
+       * vista no cambia según cuántas agrupaciones tenga puestas, que es cosa de
+       * su configuración y no de lo que es.
+       */
+      readonly render: (
+        input: PageViewRenderInput<PageViewBandedOutcome | PageViewGroupedOutcome>,
+      ) => Promise<ReactNode> | ReactNode;
       readonly shape: Extract<PageViewShape, 'GROUPED'>;
     };
 

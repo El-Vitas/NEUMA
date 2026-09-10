@@ -10,6 +10,7 @@ import {
   getPagePersonOptionLabel,
   getStringPropertyValue,
   hasPersonProperty,
+  readPagePersonDisplayName,
 } from '@/modules/pages/collections/lib/pages.properties.lib';
 import type {
   PagePersonOption,
@@ -162,5 +163,26 @@ describe('person option helpers', () => {
   it('disambiguates same-named people with their email', () => {
     expect(getPagePersonOptionLabel(options, gracePrimary)).toBe('Grace Hopper (grace@example.com)');
     expect(getPagePersonOptionLabel(options, graceSecondary)).toBe('Grace Hopper (grace2@example.com)');
+  });
+
+  it('reads an assignment as the name of the person', () => {
+    expect(readPagePersonDisplayName(options, 'ada-id')).toBe('Ada Lovelace');
+  });
+
+  it('reads an assignment to a same-named person with the email that tells them apart', () => {
+    expect(readPagePersonDisplayName(options, 'grace-id-2')).toBe('Grace Hopper (grace2@example.com)');
+  });
+
+  it('says nothing when nobody is assigned', () => {
+    expect(readPagePersonDisplayName(options, undefined)).toBe('');
+    expect(readPagePersonDisplayName(options, '')).toBe('');
+  });
+
+  it('does not name someone the directory no longer knows, so the caller can say so in words', () => {
+    expect(readPagePersonDisplayName(options, 'someone-who-left')).toBeNull();
+  });
+
+  it('says nothing while the directory has not arrived, rather than an identifier', () => {
+    expect(readPagePersonDisplayName([], 'ada-id')).toBe('');
   });
 });

@@ -17,8 +17,15 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   updatePageCollectionAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
+mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  createPageAction: async () => ({ data: { id: 'row-new' } }),
+  reorderPageAction: async () => ({ data: null }),
+}));
 mock.module('@/i18n/navigation', () => ({
-  Link: ({ children, ...rest }: ComponentProps<'a'>) => <a {...rest}>{children}</a>,
+  Link: ({ children, scroll: _scroll, ...rest }: ComponentProps<'a'> & { scroll?: boolean }) => (
+    <a {...rest}>{children}</a>
+  ),
+  useRouter: () => ({ refresh: () => undefined }),
 }));
 
 const { PagesCollectionSection } = await import('@/modules/pages/collections/components/pages.collection.section');

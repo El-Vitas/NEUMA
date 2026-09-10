@@ -1,80 +1,139 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { useRouter } from '@/i18n/navigation';
 import { hasActionError } from '@/shared/lib/action-result';
-import { isBoardDropAllowed, readBoardGroupValue, resolveBoardKeyboardTarget } from '../lib/pages.board-drag.lib';
+import { reorderPageAction } from '../../server/actions/pages.actions';
+import { resolveBoardKeyboardTarget } from '../lib/pages.board-drag.lib';
+import { applyBoardMoveToBands, resolveBoardGridDrop } from '../lib/pages.board-grid.lib';
 import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type {
   PageBoardDragController,
   PageBoardDragState,
+  PageBoardGridDropTarget,
+  PageBoardGridMove,
   PageBoardMoveDirection,
 } from '../types/pages.board-drag.types';
-import type { PageViewGroup } from '../types/pages.schema.types';
+import type { PageViewBand } from '../types/pages.schema.types';
 
 /**
- * Moving a card from one column to another, with the mouse or with the keyboard.
+ * Mover una tarjeta por el tablero, con el ratón o con el teclado.
  *
- * The value the card lands with is the column it lands on, so dropping is the
- * whole act: nobody has to open the row afterwards to say where it went. It is
- * offered from the keyboard as well, because a board that only answers to a
- * pointer leaves out whoever cannot use one.
+ * Soltar dice hasta tres cosas a la vez: en qué columna queda la tarjeta, en
+ * qué banda si el tablero está cruzado, y en qué lugar del cruce. Las dos
+ * primeras son valores de propiedades y viajan juntas, porque una tarjeta que
+ * cruza en diagonal cambia las dos y mandarlas por separado la dejaría a medio
+ * camino si la segunda falla. El lugar es el orden entre hermanas, que es otro
+ * hecho y va aparte.
  */
 export const usePagesBoardDrag = (
-  groups: readonly PageViewGroup[],
+  bands: readonly PageViewBand[],
   groupByKey: string,
   spaceId: string,
+  subGroupByKey = '',
 ): PageBoardDragController => {
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
+  const router = useRouter();
   const [carried, setCarried] = useState<PageBoardDragState | null>(null);
-  const [hoveredGroupKey, setHoveredGroupKey] = useState<null | string>(null);
+  const [target, setTarget] = useState<PageBoardGridDropTarget | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [isMoving, startMoving] = useTransition();
+  const [shownBands, showMoved] = useOptimistic(
+    bands,
+    (current: readonly PageViewBand[], moved: { readonly move: PageBoardGridMove; readonly rowId: string }) =>
+      applyBoardMoveToBands(current, moved.rowId, moved.move, groupByKey, subGroupByKey),
+  );
 
-  const land = (rowId: string, toGroupKey: string): void => {
-    const landed = groups.find((group) => group.key === toGroupKey);
+  /** Las dos propiedades que el cruce significa, escritas de una vez. */
+  const landedPropertyValues = (move: PageBoardGridMove): Readonly<Record<string, null | string>> => ({
+    ...(move.changesGroup ? { [groupByKey]: move.propertyValue } : {}),
+    ...(move.changesBand && subGroupByKey !== '' ? { [subGroupByKey]: move.bandValue } : {}),
+  });
+
+  const write = async (rowId: string, move: PageBoardGridMove): Promise<boolean> => {
+    const propertyValues = landedPropertyValues(move);
+    if (Object.keys(propertyValues).length > 0) {
+      const written = await updatePageRowPropertiesAction({ pageId: rowId, propertyValues, spaceId });
+      if (hasActionError(written)) return false;
+    }
+    if (!move.changesOrder) return true;
+    const reordered = await reorderPageAction({
+      pageId: rowId,
+      spaceId,
+      ...(move.beforeRowId === null ? {} : { beforePageId: move.beforeRowId }),
+    });
+    return !hasActionError(reordered);
+  };
+
+  const land = (rowId: string, move: PageBoardGridMove, columnLabel: string): void => {
     startMoving(async () => {
-      const result = await updatePageRowPropertiesAction({
-        pageId: rowId,
-        propertyValues: { [groupByKey]: readBoardGroupValue(toGroupKey) },
-        spaceId,
-      });
-      if (hasActionError(result)) {
+      /**
+       * Primero se dibuja donde cayó y después se escribe. Esperar a la
+       * respuesta para moverla deja la tarjeta quieta bajo la mano que ya la
+       * soltó, y el gesto se siente roto aunque haya funcionado.
+       */
+      showMoved({ move, rowId });
+      const written = await write(rowId, move);
+      if (!written) {
         toast.error(tErrors('generic'));
         return;
       }
-      /** No reload is asked for: the action invalidates what the board was drawn from, and the tree comes back on its own. */
-      setAnnouncement(t('cardMoved', { column: landed?.label ?? toGroupKey }));
+      /**
+       * La acción invalida la caché del servidor, pero lo ya dibujado no vuelve
+       * a pedirse por su cuenta: sin esto el tablero se queda con lo que tenía
+       * y el movimiento parece perdido.
+       */
+      router.refresh();
+      setAnnouncement(t('cardMoved', { column: columnLabel }));
     });
   };
 
-  const drop = (toGroupKey: string): void => {
+  const columnsOf = (bandKey: string) => bands.find((band) => band.key === bandKey)?.groups ?? bands[0]?.groups ?? [];
+
+  const labelOf = (target: PageBoardGridDropTarget): string =>
+    columnsOf(target.bandKey).find((group) => group.key === target.groupKey)?.label ?? target.groupKey;
+
+  const drop = (): void => {
     const wasCarrying = carried;
+    const wasAiming = target;
     setCarried(null);
-    setHoveredGroupKey(null);
-    if (wasCarrying === null || !isBoardDropAllowed(wasCarrying.fromGroupKey, toGroupKey)) return;
-    land(wasCarrying.rowId, toGroupKey);
+    setTarget(null);
+    if (wasCarrying === null || wasAiming === null) return;
+    const move = resolveBoardGridDrop(bands, wasCarrying.rowId, wasAiming);
+    if (move === null) return;
+    land(wasCarrying.rowId, move, labelOf(wasAiming));
   };
 
   return {
     announcement,
+    bands: shownBands,
     draggingRowId: carried?.rowId ?? null,
-    hoveredGroupKey,
     isMoving,
     moveByKeyboard: (rowId: string, fromGroupKey: string, direction: PageBoardMoveDirection) => {
-      const toGroupKey = resolveBoardKeyboardTarget(groups, fromGroupKey, direction);
+      const bandKey =
+        carried?.fromBandKey ??
+        bands.find((band) => band.groups.some((group) => group.rows.some((row) => row.id === rowId)))?.key ??
+        '';
+      const toGroupKey = resolveBoardKeyboardTarget(columnsOf(bandKey), fromGroupKey, direction);
       if (toGroupKey === null) return;
-      land(rowId, toGroupKey);
+      const aiming = { bandKey, beforeRowId: null, groupKey: toGroupKey };
+      const move = resolveBoardGridDrop(bands, rowId, aiming);
+      if (move === null) return;
+      land(rowId, move, labelOf(aiming));
     },
     onDragEnd: () => {
       setCarried(null);
-      setHoveredGroupKey(null);
+      setTarget(null);
     },
-    onDragLeave: (groupKey: string) => setHoveredGroupKey((current) => (current === groupKey ? null : current)),
-    onDragOver: setHoveredGroupKey,
-    onDragStart: (rowId: string, fromGroupKey: string) => setCarried({ fromGroupKey, rowId }),
+    onDragLeave: (groupKey: string) =>
+      setTarget((current) => (current !== null && current.groupKey === groupKey ? null : current)),
+    onDragOver: (aiming: PageBoardGridDropTarget) => setTarget(aiming),
+    onDragStart: (rowId: string, fromGroupKey: string, fromBandKey: string) =>
+      setCarried({ fromBandKey, fromGroupKey, rowId }),
     onDrop: drop,
+    target,
   };
 };

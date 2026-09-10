@@ -43,6 +43,7 @@ mock.module('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
+  useSearchParams: () => new URLSearchParams(),
 }));
 mock.module('next-intl/server', () => ({
   getLocale: async () => 'en',
@@ -53,6 +54,7 @@ mock.module('@/i18n/navigation', () => ({
     createElement('a', { href }, children),
   /** The route sends an address that lost its page to wherever the page went. */
   redirect: () => undefined,
+  useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
@@ -74,6 +76,11 @@ mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', (
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   updatePageCollectionAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+/** El tablero crea y reordena filas, y esas acciones no se cargan en una prueba con forma de navegador. */
+mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  createPageAction: async () => ({ data: { id: 'row-new' } }),
+  reorderPageAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
