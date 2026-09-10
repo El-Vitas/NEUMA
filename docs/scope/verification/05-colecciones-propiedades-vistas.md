@@ -23,13 +23,19 @@ propias, renombrarlas, quitarlas, y decidir qué opciones ofrece una selección 
 de qué color es cada una.
 
 Un tablero se mueve: una tarjeta arrastrada a otra columna cambia el valor que
-esa columna representa, y lo mismo se hace con el teclado.
+esa columna representa, y lo mismo se hace con el teclado. Por qué propiedad
+agrupa el tablero se elige desde esa misma configuración, y el tablero escribe
+la propiedad que le toca, sea cual sea. Cada vista decide además qué propiedades
+enseña, y esa elección es suya y no de la colección.
 
-**Lo que falta ahora es mandar sobre las columnas y sobre lo que se ve.** No hay
-dónde elegir por qué propiedad agrupa un tablero, ni ocultar o reordenar
-columnas, ni decidir qué muestra una tarjeta, ni filtrar desde la pantalla. El
-tipo de una propiedad tampoco se cambia, porque es una pregunta sobre qué pasa
-con cada fila que ya respondió.
+Sobre las filas hay una barra con dos botones: qué deja pasar la vista y en qué
+orden salen. Cada uno dice cuántas condiciones lleva puestas sin abrirlo, y lo
+que se elige se guarda en la vista, no en quien mira.
+
+**Lo que falta ahora es mandar sobre las columnas.** Una columna no se agrega,
+ni se renombra, ni se reordena, ni se pliega desde el tablero. El tipo de una
+propiedad tampoco se cambia, porque es una pregunta sobre qué pasa con cada fila
+que ya respondió. Y una celda todavía no se edita sin abrir la fila.
 
 Nada de eso cuenta como verificado: está escrito aquí para saber por dónde
 empezar a probar, no para ahorrarse la prueba.
@@ -123,6 +129,12 @@ colección se revisa en `04-paginas-y-navegacion.md` (`PG-22`).
 > Se llega desde el botón junto a las pestañas de vistas, y solo lo ve quien
 > puede escribir la página. Nada viaja hasta que se guarda. Comprobado en el
 > navegador el 2026-08-25.
+>
+> El ciclo entero se rehízo el 2026-08-28 contra PostgreSQL: se agregó «Área»
+> —cuya clave quedó `area`, derivada de un nombre con tilde—, se le dio la
+> opción «Backend» en verde, se asignó ese valor a una fila desde el panel, y
+> después se quitó la propiedad; el esquema volvió a sus seis propiedades sin
+> dejar la fila trabada.
 
 - [x] Se puede agregar una propiedad — de cualquier tipo salvo título, con la clave derivada del nombre
 - [x] Se puede renombrar — cambia la etiqueta, no la clave bajo la que las filas guardaron
@@ -172,13 +184,21 @@ colección se revisa en `04-paginas-y-navegacion.md` (`PG-22`).
 
 ## PR-05 · Debe ofrecer personas
 
-- [ ] Se asigna buscando por nombre
-- [ ] Se muestra el **nombre** de la persona, nunca su identificador
-- [ ] Se ve el nombre correcto tanto en la tabla como en el panel de propiedades
+- [ ] Se asigna buscando por nombre — se elige de una lista, sin escribir para filtrar
+- [x] Se muestra el **nombre** de la persona, nunca su identificador
+- [x] Se ve el nombre correcto tanto en la tabla como en el panel de propiedades
 - [ ] Solo aparecen personas con acceso al espacio
 - [ ] Se pueden asignar varias personas
 - [ ] Se puede quitar una asignación
 - [ ] La persona asignada se entera de alguna forma
+
+> Comprobado en el navegador el 2026-08-28, y corregido ahí mismo. La tabla y las
+> tarjetas mostraban el identificador crudo de la persona —`019fd484-862c-…`—
+> mientras el panel lateral sí decía su nombre: solo el panel recibía el
+> directorio del espacio. Ahora lo reciben también la tabla y el tablero, y las
+> tres dicen «Worker User». A quien el directorio ya no reconoce se le nombra
+> como miembro desconocido, en palabras; mientras el directorio no ha llegado no
+> se dice nada, porque enseñar el identificador es lo único que no puede pasar.
 
 ## PR-06 · Debe ofrecer fechas
 
@@ -277,7 +297,7 @@ colección se revisa en `04-paginas-y-navegacion.md` (`PG-22`).
 **Cómo probarlo:** abre una colección en vista tablero y arrastra una tarjeta de una columna a otra.
 
 - [x] Las filas se ven como tarjetas agrupadas en columnas
-- [ ] Se elige por qué propiedad se agrupa — se guarda en la vista, pero no hay dónde cambiarlo desde la pantalla
+- [x] Se elige por qué propiedad se agrupa — desde la configuración, y solo ofrece las que se pueden agrupar
 - [x] Se puede arrastrar una tarjeta de una columna a otra
 - [x] Al soltarla, el valor de la propiedad cambia solo
 - [x] El cambio persiste al recargar — comprobado contra la base, no solo en pantalla
@@ -285,7 +305,7 @@ colección se revisa en `04-paginas-y-navegacion.md` (`PG-22`).
 - [ ] Mientras se arrastra se ve dónde va a caer — la columna se resalta, pero no se marca el sitio entre dos tarjetas
 - [ ] Otra persona viendo el mismo tablero ve el movimiento — no hay tiempo real en las colecciones
 - [ ] Se puede crear una tarjeta directamente en una columna
-- [ ] Se elige qué propiedades se muestran en la tarjeta — la tarjeta solo muestra el título
+- [x] Se elige qué propiedades se muestran en la tarjeta — y la propiedad por la que agrupa no se repite en ella
 - [ ] Las tarjetas pueden mostrar una imagen de portada
 - [ ] Se pueden ocultar columnas vacías
 - [x] Se ve el conteo de tarjetas por columna
@@ -300,6 +320,16 @@ colección se revisa en `04-paginas-y-navegacion.md` (`PG-22`).
 > Lo mismo con el teclado, anunciado por `aria-live`. Soltar una tarjeta en su
 > propia columna no escribe nada. A quien solo puede leer no se le deja arrastrar,
 > y el servidor rechaza el intento hecho por fuera con 403.
+>
+> Ampliado el 2026-08-28. La agrupación se cambia desde la configuración: la
+> vista pasó de agrupar por `Status` a agrupar por `Priority`, el tablero se
+> rehízo en columnas `low`, `medium`, `high` y sin asignar, y `groupBy` quedó
+> guardado en la base. **El tablero escribe la propiedad por la que agrupa, sea
+> cual sea:** con esa agrupación, mover una tarjeta cambió su `priority` y dejó
+> intacto su `status`. Qué muestra una tarjeta también se elige ahí: quitar
+> `Description` la sacó de las tarjetas y del registro guardado, y la propiedad
+> por la que se agrupa nunca se repite dentro de la tarjeta que ya está en su
+> columna.
 
 ## VW-03 · Debe permitir manejar las columnas del tablero
 
@@ -355,22 +385,40 @@ renómbrala, muévela de sitio y borra una que tenga tarjetas dentro.
 
 ## VW-08 · Debe permitir filtrar
 
-- [ ] Se puede filtrar por cualquier propiedad
-- [ ] Cada tipo ofrece condiciones que le corresponden (contiene, es, está vacío, antes de)
-- [ ] Se pueden combinar varios filtros con "y" / "o"
-- [ ] Se pueden anidar grupos de condiciones
-- [ ] Los filtros aplicados se ven arriba y se quitan de a uno
-- [ ] El filtro se guarda con la vista
+- [x] Se puede filtrar por cualquier propiedad
+- [x] Cada tipo ofrece condiciones que le corresponden (contiene, es, está vacío, antes de)
+- [x] Se pueden combinar varios filtros con "y" / "o"
+- [ ] Se pueden anidar grupos de condiciones — el contrato admite tres niveles; la pantalla ofrece uno
+- [x] Los filtros aplicados se ven arriba y se quitan de a uno — el botón dice cuántos hay puestos
+- [x] El filtro se guarda con la vista
 - [ ] Se ve cuántas filas quedaron de cuántas
-- [ ] Un filtro que no deja nada explica que hay filas ocultas
+- [ ] Un filtro que no deja nada explica que hay filas ocultas — dice «aún no hay filas», que es otra cosa
+
+> Comprobado en el navegador el 2026-08-28 contra PostgreSQL. Una condición
+> `Status es done` dejó 4 filas de 13, y el filtro quedó guardado en la vista.
+> Los operadores que se ofrecen son los de esa clase de propiedad —una fecha no
+> «contiene»—, y el campo del valor desaparece cuando el operador no pregunta
+> por ninguno. Una selección ofrece sus opciones en vez de pedir que se
+> escriban.
+>
+> **Defecto encontrado y corregido en el camino:** el filtro se guardaba pero no
+> volvía. Al leer la configuración, el backend descartaba los `null`, y una
+> condición sin valor —la que se acaba de crear, o cualquiera con «está
+> vacío»— perdía su campo `value`; sin él la condición dejaba de validar y con
+> ella el filtro entero, que volvía como si nadie hubiera filtrado.
 
 ## VW-09 · Debe permitir ordenar
 
-- [ ] Se puede ordenar por cualquier propiedad
-- [ ] Ascendente y descendente
-- [ ] Se puede ordenar por varias propiedades en cadena
-- [ ] El orden se guarda con la vista
-- [ ] Se puede volver al orden manual
+- [x] Se puede ordenar por cualquier propiedad
+- [x] Ascendente y descendente
+- [x] Se puede ordenar por varias propiedades en cadena
+- [x] El orden se guarda con la vista
+- [x] Se puede volver al orden manual — quitando el orden, las filas vuelven al suyo
+
+> Comprobado en el navegador el 2026-08-28. Ordenar por `Due date` puso las
+> filas de la más antigua a la más nueva, invertirlo las dio vuelta, y ambas
+> cosas quedaron guardadas en la vista. Una propiedad ya usada no se ofrece
+> otra vez: ordenar dos veces por lo mismo no ordena más.
 
 ## VW-10 · Debe permitir agrupar
 
@@ -388,9 +436,14 @@ renómbrala, muévela de sitio y borra una que tenga tarjetas dentro.
 
 ## VW-11 · Debe permitir elegir qué se muestra
 
-- [ ] Se puede ocultar una propiedad en una vista sin borrarla
-- [ ] Cada vista guarda sus propias propiedades visibles
-- [ ] Se puede reordenar lo que se muestra
+- [x] Se puede ocultar una propiedad en una vista sin borrarla
+- [x] Cada vista guarda sus propias propiedades visibles
+- [ ] Se puede reordenar lo que se muestra — el orden es el del esquema, y no se puede cambiar por vista
+
+> Comprobado en el navegador el 2026-08-28. Quitar `Description` del tablero la
+> sacó de las tarjetas y dejó la tabla intacta, con cada vista guardando su
+> propia lista. Una vista que nunca eligió muestra todo, que es distinto de
+> elegir no mostrar nada.
 
 ## VW-12 · Debe permitir varias vistas de la misma colección
 
@@ -454,4 +507,5 @@ renómbrala, muévela de sitio y borra una que tenga tarjetas dentro.
 
 | Fecha | Bloque | Qué faltó | Estado |
 |---|---|---|---|
-| | | | |
+| 2026-08-28 | PR-01, PR-05, VW-02, VW-11 | Recorrido en el navegador contra PostgreSQL de lo que ya estaba construido y este documento daba por ausente. **Agrupación:** se cambió desde la configuración de `Status` a `Priority`, el tablero se rehízo y, con esa agrupación, mover una tarjeta escribió `priority` sin tocar `status` — el tablero escribe la propiedad por la que agrupa, no una fija. **Qué muestra cada vista:** quitar `Description` la sacó de las tarjetas y dejó la tabla intacta; la propiedad por la que se agrupa no se repite dentro de su columna. **Esquema:** se agregó «Área» (clave `area`, derivada de un nombre con tilde), con opción «Backend» en verde, se asignó a una fila y se quitó la propiedad, sin trabar la fila. **Defecto encontrado y corregido:** la tabla y las tarjetas mostraban el identificador de la persona asignada mientras el panel decía su nombre, porque solo el panel recibía el directorio del espacio; ahora lo reciben las tres, y a quien el directorio no reconoce se le nombra en palabras en vez de enseñar el identificador. **Sin construir:** manejar las columnas del tablero, y filtrar y ordenar desde la pantalla. | Correcto |
+| 2026-08-28 | VW-08, VW-09 | Filtrar y ordenar desde la pantalla, verificado contra PostgreSQL. `Status es done` dejó 4 filas de 13; ordenar por `Due date` las puso de la más antigua a la más nueva e invertirlo las dio vuelta; ambas cosas quedaron guardadas en la vista y sobrevivieron a la recarga. Cada clase de propiedad ofrece los operadores que le corresponden, el campo del valor desaparece cuando el operador no pregunta por ninguno, y una selección ofrece sus opciones en vez de pedir que se escriban. **Defecto encontrado y corregido:** el filtro se guardaba pero no volvía —al leer, el backend descartaba los `null`, y una condición sin valor perdía el campo `value` que su contrato exige, con lo que el filtro entero dejaba de leerse—. **Falta de estos dos bloques:** anidar grupos de condiciones (el contrato admite tres niveles, la pantalla ofrece uno) y decir cuántas filas quedaron de cuántas. | Correcto |

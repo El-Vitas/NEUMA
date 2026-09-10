@@ -63,6 +63,7 @@ probarlo en pantalla**.
 | `11` administración | usuarios y roles | grupos, invitaciones, auditoría |
 | `12` automatización | el bloque de botón | disparadores, recurrencia, recordatorios, IA |
 | `13` rendimiento | nada medido | todo |
+| `14` revisión y aprobación | los pedazos sueltos: verificar una página, una persona responsable, bloqueo manual, comentarios de bloque | todo lo demás — proteger la página verificada con responsables, proponer en vez de editar, aprobar, rechazar, pedir cambios con comentario, aplicar, rastro |
 
 ## Lo que se ordenó
 
@@ -113,3 +114,15 @@ cableada en un componente que solo sabe dibujarse al final de la página.
    siguiente etapa o si esperan.
 2. **El `13` no se poda, se corre.** Todo lo suyo se mide sobre lo que ya
    existe.
+3. **El `14` ya no tiene nada por decidir.** Sus cuatro preguntas —quién puede
+   saltarse la protección, quién elige a los aprobadores y cuántos hacen falta,
+   qué pasa al caducar el sello, y si aplicar una propuesta lo renueva— se
+   respondieron el 2026-09-10 y quedaron escritas en ese mismo documento. Lo
+   que queda es construirlo, y no se puede empezar sin `CL-10`.
+   **Sus reglas de negocio no se registran todavía.** El registro de
+   `docs/business-rules/` solo admite reglas `active`, y una regla activa sobre
+   algo que nadie construyó le miente a quien consulte el registro. La
+   distinción vale para toda esta carpeta: **estos documentos dicen lo que el
+   producto debe hacer; el registro de reglas dice cómo se comporta**. Cuando
+   un bloque se construye y se verifica, ahí sí sus decisiones pasan a ser
+   reglas.
