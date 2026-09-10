@@ -22,11 +22,20 @@ const toPropertyContext = (
   personIds: ReadonlySet<string> | undefined,
 ): PagePropertyContext => ({ options: property.options?.map((option) => option.value) ?? null, personIds });
 
+/**
+ * Lo que una lista de opciones tiene que cumplir, si la propiedad las admite.
+ *
+ * Puede no ofrecer ninguna: una selección recién creada todavía no dice de
+ * dónde elegir, y llenarla es el paso siguiente. Exigirle una opción para
+ * poder guardarla obliga a inventar una o a perder lo hecho hasta ahí. Lo que
+ * sí se rechaza es una lista que se contradice: dos opciones iguales, o una
+ * sin nombre, que nadie sabría distinguir al elegir.
+ */
 const validatePropertyOptions = (property: SchemaPropertyDefinition): string | null => {
   if (!pagePropertyRequiresOptions(property.type)) {
     return property.options === null || property.options.length === 0 ? null : `${property.key} cannot define options`;
   }
-  if (property.options === null || property.options.length === 0) return `${property.key} requires options`;
+  if (property.options === null) return null;
   const values = property.options.map((option) => option.value);
   if (new Set(values).size !== values.length) return `${property.key} has duplicate options`;
   if (values.some((value) => value.trim().length === 0)) return `${property.key} has an empty option`;
