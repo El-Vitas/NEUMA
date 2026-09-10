@@ -186,6 +186,11 @@ el `touch-none` estaba puesto siempre, así que en táctil el dedo no desplazaba
 
 ## PG-20 · Debe permitir saber si una página es confiable
 
+> Aquí se revisa **si** una página es confiable. Lo que eso obliga —que una
+> página verificada con responsables deje de aceptar edición directa y sus
+> cambios pasen por aprobación— se revisa en
+> `14-revision-y-aprobacion-de-cambios.md`.
+
 - [x] Una página se puede marcar como verificada
 - [x] Se ve quién la verificó y cuándo
 - [x] Se puede definir una fecha en que la verificación caduca — el día elegido cuenta entero, no caduca a medianoche
