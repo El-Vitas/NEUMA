@@ -1,7 +1,10 @@
 import type { PageChartKind, PageChartMeasure, PageDateBucket, PageViewType } from '@company-brain/shared';
 import {
   canPagePropertyGroupBoard,
+  PAGE_CHART_KIND,
+  PAGE_CHART_KIND_VALUES,
   PAGE_CHART_MEASURE,
+  PAGE_CHART_MEASURE_VALUES,
   PAGE_DATE_BUCKET,
   PAGE_DATE_BUCKET_VALUES,
   PAGE_VIEW_OUTCOME_KIND,
@@ -31,6 +34,14 @@ export const readPageViewType = (chosen: string): PageViewType | undefined =>
 /** El tramo que nombra lo elegido, y el día cuando lo elegido no nombra ninguno. */
 export const readPageDateBucket = (chosen: string): PageDateBucket =>
   PAGE_DATE_BUCKET_VALUES.find((candidate) => candidate === chosen) ?? PAGE_DATE_BUCKET.DAY;
+
+/** Cómo se dibuja lo elegido, y barras cuando lo elegido no nombra ninguna manera. */
+export const readPageChartKind = (chosen: string): PageChartKind =>
+  PAGE_CHART_KIND_VALUES.find((candidate) => candidate === chosen) ?? PAGE_CHART_KIND.BAR;
+
+/** Qué mide lo elegido, y contar filas cuando lo elegido no nombra ninguna medida. */
+export const readPageChartMeasure = (chosen: string): PageChartMeasure =>
+  PAGE_CHART_MEASURE_VALUES.find((candidate) => candidate === chosen) ?? PAGE_CHART_MEASURE.COUNT;
 
 /**
  * The properties a board can make columns from.

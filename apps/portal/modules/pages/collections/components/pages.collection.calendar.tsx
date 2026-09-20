@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { PAGE_CALENDAR_WEEKDAY_STARTS } from '../constants/pages.calendar.constants';
 import { usePagesCalendarMoving } from '../hooks/use.pages.calendar-moving';
@@ -50,6 +50,19 @@ export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, s
   });
   const [month, setMonth] = useState(() => resolveCalendarMonth(null, rows, dateProperty, today));
   const [namingOn, setNamingOn] = useState<null | string>(null);
+  /**
+   * Los tres se arman una vez por idioma y no por dibujo: componer un formato
+   * de fecha es caro, y el calendario se vuelve a dibujar con cada arrastre.
+   */
+  const monthOf = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC', year: 'numeric' }),
+    [locale],
+  );
+  const weekdayOf = useMemo(() => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' }), [locale]);
+  const dayLabelOf = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' }),
+    [locale],
+  );
 
   if (dateProperty === null) return <EmptyState message={t('calendarNeedsDate')} />;
 
@@ -57,11 +70,7 @@ export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, s
   const dateOf = (row: PageRow): null | string => moving.dateOf(row, readRowDate(row, dateProperty));
   const cells = buildCalendarCells(month, rows, dateOf);
   const undated = listRowsWithoutDate(rows, dateOf);
-  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC', year: 'numeric' }).format(
-    new Date(`${month}-01T00:00:00.000Z`),
-  );
-  const weekdayOf = new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'short' });
-  const dayLabelOf = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const monthLabel = monthOf.format(new Date(`${month}-01T00:00:00.000Z`));
 
   const createOn = (date: string, title: string): void => {
     setNamingOn(null);

@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { readPropertyLabel } from '../lib/pages.properties.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
 import type { PagesViewFiltering } from '../types/pages.view-filtering.types';
 
@@ -22,7 +23,7 @@ interface IProps {
  */
 export const PagesCollectionSortEditor = ({ filtering, properties }: IProps) => {
   const t = useTranslations('pages.collection');
-  const labelOf = (key: string): string => properties.find((property) => property.key === key)?.label ?? key;
+  const labelOf = (key: string): string => readPropertyLabel(properties, key);
   const available = properties.filter((property) => !filtering.sorts.some((sort) => sort.propertyKey === property.key));
 
   return (

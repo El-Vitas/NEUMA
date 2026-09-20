@@ -1,6 +1,5 @@
 'use client';
 
-import type { PageChartKind, PageChartMeasure } from '@company-brain/shared';
 import {
   listPageChartMeasuresFor,
   PAGE_CHART_KIND_VALUES,
@@ -10,6 +9,8 @@ import {
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { listNumberPropertyKeys } from '../lib/pages.chart-properties.lib';
+import { readPropertyLabel } from '../lib/pages.properties.lib';
+import { readPageChartKind, readPageChartMeasure } from '../lib/pages.view-editing.lib';
 import type { PageSchemaView } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 
@@ -33,7 +34,7 @@ export const PagesSchemaSettingsViewChart = ({ editor, view }: IProps) => {
   const configuration = readPageViewConfiguration(view.configuration);
   const numbers = listNumberPropertyKeys(editor.properties);
   const measures = listPageChartMeasuresFor(numbers.length > 0);
-  const labelOf = (key: string): string => editor.properties.find((property) => property.key === key)?.label ?? key;
+  const labelOf = (key: string): string => readPropertyLabel(editor.properties, key);
 
   return (
     <>
@@ -41,7 +42,7 @@ export const PagesSchemaSettingsViewChart = ({ editor, view }: IProps) => {
         <p className="px-2 text-muted-foreground text-xs uppercase tracking-wide">{t('chartKind')}</p>
         <Select
           disabled={editor.isSaving}
-          onValueChange={(value) => editor.drawViewAs(view.name, value as PageChartKind)}
+          onValueChange={(value) => editor.drawViewAs(view.name, readPageChartKind(value))}
           value={configuration.chartKind}
         >
           <SelectTrigger aria-label={t('chartKindFor', { view: view.name })} className="w-full">
@@ -63,7 +64,7 @@ export const PagesSchemaSettingsViewChart = ({ editor, view }: IProps) => {
           onValueChange={(value) =>
             editor.measureViewBy(
               view.name,
-              value as PageChartMeasure,
+              readPageChartMeasure(value),
               configuration.chartValueProperty ?? numbers[0] ?? null,
             )
           }

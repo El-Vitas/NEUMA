@@ -115,6 +115,11 @@ export const PagesSidePanel = ({
               </Button>
             </DialogPrimitive.Close>
           </div>
+          {/*
+            Navegar dentro del panel cambia de página sin cambiar de dirección,
+            así que el editor no se rehace solo: sin nombrar cuál página es, se
+            quedaría con el título, el ícono y el bloqueo de la anterior.
+          */}
           <div className="min-h-0 flex-1 overflow-y-auto">
             <PagesEditor
               attachments={attachments}
@@ -124,6 +129,7 @@ export const PagesSidePanel = ({
               currentUserDisplayName={currentUserDisplayName}
               embeddedCollections={embeddedCollections}
               isFavorite={isFavorite}
+              key={`${page.id}:${page.lifecycle}`}
               onNavigateToPage={sidePanel.navigateWithinPanel}
               onSaved={handleSaved}
               page={page}

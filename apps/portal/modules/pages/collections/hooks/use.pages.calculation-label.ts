@@ -28,6 +28,7 @@ export const usePagesCalculationLabel = (): ((
     const written = isPageCalculationAPortion(calculation)
       ? format.number(result, { style: 'percent' })
       : format.number(result, { maximumFractionDigits: 2 });
-    return `${t(`calculations.${calculation}`)} ${written}`;
+    const named = t(`calculations.${calculation}`);
+    return `${named} ${written}`;
   };
 };

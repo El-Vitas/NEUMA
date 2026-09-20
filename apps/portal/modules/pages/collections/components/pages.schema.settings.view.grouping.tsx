@@ -13,6 +13,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { PAGE_VIEW_NO_GROUP } from '../constants/pages.collections.constants';
+import { readPropertyLabel } from '../lib/pages.properties.lib';
 import { listGroupablePropertyKeys, readPageDateBucket } from '../lib/pages.view-editing.lib';
 import type { PageSchemaView } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
@@ -35,7 +36,7 @@ export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) 
   const t = useTranslations('pages.collection');
   const configuration = readPageViewConfiguration(view.configuration);
   const groupable = listGroupablePropertyKeys(editor.properties);
-  const labelOf = (key: string): string => editor.properties.find((property) => property.key === key)?.label ?? key;
+  const labelOf = (key: string): string => readPropertyLabel(editor.properties, key);
   const isGroupedByDate =
     editor.properties.find((property) => property.key === configuration.groupBy)?.type === PAGE_PROPERTY_TYPE.DATE;
   const emptyGroupsFieldId = useId();

@@ -1,6 +1,7 @@
 export const THROTTLER_NAMES = {
   perIp: 'credentials-per-ip',
   global: 'credentials-global',
+  exports: 'exports-per-user',
 } as const;
 
 /**
@@ -16,4 +17,20 @@ export const CREDENTIAL_RATE_LIMIT = {
   windowSeconds: 60,
   perIpLimit: 20,
   globalLimit: 300,
+} as const;
+
+/**
+ * Cuántas veces seguidas se puede pedir el espacio entero.
+ *
+ * Exportar lee todas las páginas activas, se trae sus adjuntos y arma el
+ * archivo en memoria, así que es de lo más caro que el servidor hace por una
+ * sola petición. Se cuenta por persona y no por dirección porque hace falta
+ * sesión para pedirlo, y una oficina entera comparte una dirección.
+ *
+ * Cinco por minuto es más de lo que nadie exporta a mano, y corta en seco a una
+ * pestaña que reintente sola.
+ */
+export const EXPORT_RATE_LIMIT = {
+  windowSeconds: 60,
+  perUserLimit: 5,
 } as const;
