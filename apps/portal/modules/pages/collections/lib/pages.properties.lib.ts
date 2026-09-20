@@ -21,6 +21,16 @@ const toPropertyContext = (property: PageSchemaProperty): PagePropertyContext =>
   personIds: undefined,
 });
 
+/**
+ * Cómo se llama una propiedad, o su clave cuando ya no está.
+ *
+ * Una vista puede nombrar una propiedad que la colección dejó de tener, y decir
+ * la clave es decir algo con lo que se puede ir a buscar; callar deja un hueco
+ * que no lleva a ninguna parte.
+ */
+export const readPropertyLabel = (properties: readonly PageSchemaProperty[], key: string): string =>
+  properties.find((property) => property.key === key)?.label ?? key;
+
 export const getEditableSchemaProperties = (schema: PageSchema | null): readonly PageSchemaProperty[] =>
   schema === null ? [] : schema.properties.filter((property) => !isTitlePageProperty(property.type));
 

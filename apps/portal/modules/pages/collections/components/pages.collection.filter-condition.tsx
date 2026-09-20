@@ -1,11 +1,11 @@
 'use client';
 
-import type { PageFilterCondition, PageFilterOperator } from '@company-brain/shared';
+import type { PageFilterCondition } from '@company-brain/shared';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { listFilterOperatorsFor } from '../lib/pages.view-filtering.lib';
+import { listFilterOperatorsFor, readFilterOperatorFor } from '../lib/pages.view-filtering.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
 import type { PageFilterPath, PagesViewFiltering } from '../types/pages.view-filtering.types';
 import { PagesCollectionFilterValue } from './pages.collection.filter-value';
@@ -40,7 +40,7 @@ export const PagesCollectionFilterCondition = ({ condition, filtering, path, pro
       </span>
       <Select
         disabled={filtering.isSaving}
-        onValueChange={(value) => filtering.setConditionOperator(path, value as PageFilterOperator)}
+        onValueChange={(value) => filtering.setConditionOperator(path, readFilterOperatorFor(property, value))}
         value={condition.operator}
       >
         <SelectTrigger aria-label={t('filterOperatorFor', { property: property.label })} className="w-32" size="sm">

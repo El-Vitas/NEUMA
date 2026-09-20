@@ -31,7 +31,11 @@ export const usePagesShapeSaving = (schema: PageSchema, spaceId: string): PagesS
 
   return {
     isSaving,
-    save: (properties: readonly PageSchemaProperty[], views: readonly PageSchemaView[]) => {
+    save: (
+      properties: readonly PageSchemaProperty[],
+      views: readonly PageSchemaView[],
+      onSaved?: (saved: PageSchema) => void,
+    ) => {
       startSaving(async () => {
         const saved = await updatePageCollectionAction({
           pageId: schema.pageId,
@@ -43,6 +47,7 @@ export const usePagesShapeSaving = (schema: PageSchema, spaceId: string): PagesS
           toast.error(tErrors('generic'));
           return;
         }
+        onSaved?.(saved.data);
         toast.success(t('saved'));
       });
     },

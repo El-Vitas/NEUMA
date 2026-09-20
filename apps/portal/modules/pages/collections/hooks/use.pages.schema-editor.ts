@@ -8,10 +8,7 @@ import type {
   PagePropertyType,
   PageViewType,
 } from '@company-brain/shared';
-import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
-import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { useState } from 'react';
 import {
   addSchemaOption,
   addSchemaProperty,
@@ -26,7 +23,6 @@ import {
   removeSchemaProperty,
   removeSchemaView,
   renameSchemaView,
-  toSavableView,
   updateSchemaOptionColor,
   updateSchemaProperty,
 } from '../lib/pages.schema-editing.lib';
@@ -41,9 +37,9 @@ import {
   toggleViewProperty,
 } from '../lib/pages.view-editing.lib';
 import { toggleViewHidesEmptyGroups } from '../lib/pages.view-filtering.lib';
-import { updatePageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { PageSchema, PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
+import { usePagesShapeSaving } from './use.pages.shape-saving';
 
 /**
  * The shape of a collection while somebody is changing it.
@@ -53,11 +49,9 @@ import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
  * sending each one would leave the collection in shapes nobody asked for.
  */
 export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): PagesSchemaEditor => {
-  const t = useTranslations('pages.collection');
-  const tErrors = useTranslations('errors');
   const [properties, setProperties] = useState<readonly PageSchemaProperty[]>(schema.properties);
   const [views, setViews] = useState<readonly PageSchemaView[]>(schema.views);
-  const [isSaving, startSaving] = useTransition();
+  const shape = usePagesShapeSaving(schema, spaceId);
   /**
    * Lo último que llegó a viajar, para poder decir si lo que se ve ya no es
    * eso. Se compara por identidad y no por contenido: cada operación devuelve
@@ -67,21 +61,10 @@ export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): Pages
   const [saved, setSaved] = useState({ properties: schema.properties, views: schema.views });
 
   const save = (): void => {
-    startSaving(async () => {
-      const saved = await updatePageCollectionAction({
-        pageId: schema.pageId,
-        properties,
-        spaceId,
-        views: views.map(toSavableView),
-      });
-      if (!isActionSuccess<PageSchema>(saved)) {
-        toast.error(tErrors('generic'));
-        return;
-      }
-      setProperties(saved.data.properties);
-      setViews(saved.data.views);
-      setSaved({ properties: saved.data.properties, views: saved.data.views });
-      toast.success(t('saved'));
+    shape.save(properties, views, (stored) => {
+      setProperties(stored.properties);
+      setViews(stored.views);
+      setSaved({ properties: stored.properties, views: stored.views });
     });
   };
 
@@ -103,7 +86,7 @@ export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): Pages
     groupViewByDateBucket: (viewName: string, bucket: PageDateBucket) =>
       setViews((current) => setViewDateBucket(current, viewName, bucket)),
     hasUnsavedChanges: properties !== saved.properties || views !== saved.views,
-    isSaving,
+    isSaving: shape.isSaving,
     makeViewDefault: (viewName: string) => setViews((current) => makeSchemaViewDefault(current, viewName)),
     moveProperty: (key: string, direction: 'EARLIER' | 'LATER') =>
       setProperties((current) => moveSchemaProperty(current, key, direction)),

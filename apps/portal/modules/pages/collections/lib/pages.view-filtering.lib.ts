@@ -9,6 +9,7 @@ import type {
   PageRowHeight,
   PageSort,
   PageViewCalculation,
+  PageViewConfiguration,
 } from '@company-brain/shared';
 import {
   getPageFilterOperators,
@@ -16,6 +17,7 @@ import {
   PAGE_COLUMN_ALIGNMENT,
   PAGE_FILTER_GROUP_OPERATOR,
   PAGE_FILTER_MAXIMUM_DEPTH,
+  PAGE_FILTER_OPERATOR,
   PAGE_ROW_HEIGHT,
   PAGE_SORT_DIRECTION,
   PAGE_VIEW_CALCULATION,
@@ -37,18 +39,32 @@ export const listFilterOperatorsFor = (property: PageSchemaProperty): readonly P
   getPageFilterOperators(getPagePropertyLogicalType(property.type));
 
 /**
+ * Cómo compara lo elegido, entre lo que esa propiedad admite.
+ *
+ * Lo elegido en un desplegable llega como texto, así que se busca en la lista
+ * en vez de darlo por bueno: un operador que esa clase de propiedad no admite
+ * no llega a escribirse en la condición.
+ */
+export const readFilterOperatorFor = (property: PageSchemaProperty, chosen: string): PageFilterOperator => {
+  const operators = listFilterOperatorsFor(property);
+  return operators.find((candidate) => candidate === chosen) ?? operators[0] ?? PAGE_FILTER_OPERATOR.IS;
+};
+
+/**
  * Lo que una vista deja pasar, siempre como el grupo que es.
  *
  * Lo guardado puede ser un grupo o una condición suelta —el contrato admite
  * ambos—, y quien lo muestra no debería tener que distinguirlo: una condición
  * sola se lee como el grupo de una condición.
  */
-export const readViewFilterRoot = (view: PageSchemaView): PageFilterGroup => {
-  const { filter } = readPageViewConfiguration(view.configuration);
+const readFilterRootOf = ({ filter }: PageViewConfiguration): PageFilterGroup => {
   if (filter === null) return EMPTY_PAGE_FILTER_GROUP;
   if (filter.kind === 'GROUP') return filter;
   return { conditions: [filter], kind: 'GROUP', operator: PAGE_FILTER_GROUP_OPERATOR.AND };
 };
+
+export const readViewFilterRoot = (view: PageSchemaView): PageFilterGroup =>
+  readFilterRootOf(readPageViewConfiguration(view.configuration));
 
 /** Cuántas condiciones hay puestas en total, estén sueltas o dentro de un grupo. */
 export const countFilterConditions = (filter: PageFilter): number =>
@@ -75,12 +91,23 @@ export const readViewSorts = (view: PageSchemaView): readonly PageSort[] =>
 /** Un filtro sin ninguna condición es una vista que no filtra, y eso se guarda como nada. */
 const toFilter = (root: PageFilterGroup): PageFilter | null => (countFilterConditions(root) === 0 ? null : root);
 
+/**
+ * Lo que una vista dice de sí misma, cambiado en un sitio.
+ *
+ * A quien lo cambia le llega ya leído y no en crudo: lo guardado admite claves
+ * que el contrato no conoce —una vista escrita por una versión más nueva—, y
+ * devolverlas tal cual haría que el servidor rechazara el cambio entero.
+ */
 const rewriteView = (
   views: readonly PageSchemaView[],
   viewName: string,
-  rewrite: (view: PageSchemaView) => PageSchemaView['configuration'],
+  rewrite: (configuration: PageViewConfiguration) => PageViewConfiguration,
 ): readonly PageSchemaView[] =>
-  views.map((view) => (view.name === viewName ? { ...view, configuration: rewrite(view) } : view));
+  views.map((view) =>
+    view.name === viewName
+      ? { ...view, configuration: { ...rewrite(readPageViewConfiguration(view.configuration)) } }
+      : view,
+  );
 
 const rewriteChildAt = (
   group: PageFilterGroup,
@@ -114,9 +141,9 @@ const rewriteFilter = (
   viewName: string,
   rewrite: (root: PageFilterGroup) => PageFilterGroup,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => ({
-    ...readPageViewConfiguration(view.configuration),
-    filter: toFilter(rewrite(readViewFilterRoot(view))),
+  rewriteView(views, viewName, (configuration) => ({
+    ...configuration,
+    filter: toFilter(rewrite(readFilterRootOf(configuration))),
   }));
 
 /**
@@ -208,7 +235,7 @@ export const removeViewFilterNode = (
 ): readonly PageSchemaView[] => rewriteFilter(views, viewName, (root) => rewriteChildAt(root, path, () => null));
 
 export const clearViewFilter = (views: readonly PageSchemaView[], viewName: string): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => ({ ...readPageViewConfiguration(view.configuration), filter: null }));
+  rewriteView(views, viewName, (configuration) => ({ ...configuration, filter: null }));
 
 export const setViewFilterGroupOperator = (
   views: readonly PageSchemaView[],
@@ -223,10 +250,7 @@ const rewriteSorts = (
   viewName: string,
   rewrite: (sorts: readonly PageSort[]) => readonly PageSort[],
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const current = readPageViewConfiguration(view.configuration);
-    return { ...current, sorts: rewrite(current.sorts) };
-  });
+  rewriteView(views, viewName, (configuration) => ({ ...configuration, sorts: rewrite(configuration.sorts) }));
 
 /** Ordenar dos veces por lo mismo no ordena más, así que la segunda vez no hace nada. */
 export const addViewSort = (
@@ -288,9 +312,9 @@ export const toggleViewHidesEmptyGroups = (
   views: readonly PageSchemaView[],
   viewName: string,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => ({
-    ...view.configuration,
-    hidesEmptyGroups: !readPageViewConfiguration(view.configuration).hidesEmptyGroups,
+  rewriteView(views, viewName, (configuration) => ({
+    ...configuration,
+    hidesEmptyGroups: !configuration.hidesEmptyGroups,
   }));
 
 /**
@@ -303,15 +327,12 @@ export const toggleViewCollapsedGroup = (
   viewName: string,
   groupKey: string,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const collapsed = readPageViewConfiguration(view.configuration).collapsedGroups;
-    return {
-      ...view.configuration,
-      collapsedGroups: collapsed.includes(groupKey)
-        ? collapsed.filter((candidate) => candidate !== groupKey)
-        : [...collapsed, groupKey],
-    };
-  });
+  rewriteView(views, viewName, (configuration) => ({
+    ...configuration,
+    collapsedGroups: configuration.collapsedGroups.includes(groupKey)
+      ? configuration.collapsedGroups.filter((candidate) => candidate !== groupKey)
+      : [...configuration.collapsedGroups, groupKey],
+  }));
 
 /**
  * Cuántas tarjetas se espera en una columna, o ninguna espera.
@@ -325,21 +346,18 @@ export const setViewColumnLimit = (
   columnValue: string,
   limit: null | number,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const { [columnValue]: _replaced, ...rest } = readPageViewConfiguration(view.configuration).columnLimits;
-    return {
-      ...view.configuration,
-      columnLimits: limit === null ? rest : { ...rest, [columnValue]: limit },
-    };
+  rewriteView(views, viewName, (configuration) => {
+    const { [columnValue]: _replaced, ...rest } = configuration.columnLimits;
+    return { ...configuration, columnLimits: limit === null ? rest : { ...rest, [columnValue]: limit } };
   });
 
 export const toggleViewHidesUnassignedColumn = (
   views: readonly PageSchemaView[],
   viewName: string,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => ({
-    ...view.configuration,
-    hidesUnassignedColumn: !readPageViewConfiguration(view.configuration).hidesUnassignedColumn,
+  rewriteView(views, viewName, (configuration) => ({
+    ...configuration,
+    hidesUnassignedColumn: !configuration.hidesUnassignedColumn,
   }));
 
 export const readViewColumnWidths = (view: PageSchemaView): Readonly<Record<string, number>> =>
@@ -354,9 +372,9 @@ export const setViewColumnWidth = (
   propertyKey: string,
   width: number,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => ({
-    ...view.configuration,
-    columnWidths: { ...readPageViewConfiguration(view.configuration).columnWidths, [propertyKey]: width },
+  rewriteView(views, viewName, (configuration) => ({
+    ...configuration,
+    columnWidths: { ...configuration.columnWidths, [propertyKey]: width },
   }));
 
 export const setViewFrozenColumns = (
@@ -364,7 +382,7 @@ export const setViewFrozenColumns = (
   viewName: string,
   count: number,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => ({ ...view.configuration, frozenColumns: Math.max(count, 0) }));
+  rewriteView(views, viewName, (configuration) => ({ ...configuration, frozenColumns: Math.max(count, 0) }));
 
 export const readViewRowHeight = (view: PageSchemaView): PageRowHeight =>
   readPageViewConfiguration(view.configuration).rowHeight;
@@ -373,7 +391,7 @@ export const setViewRowHeight = (
   views: readonly PageSchemaView[],
   viewName: string,
   rowHeight: PageRowHeight,
-): readonly PageSchemaView[] => rewriteView(views, viewName, (view) => ({ ...view.configuration, rowHeight }));
+): readonly PageSchemaView[] => rewriteView(views, viewName, (configuration) => ({ ...configuration, rowHeight }));
 
 export const readViewWrapsText = (view: PageSchemaView): boolean =>
   readPageViewConfiguration(view.configuration).wrapsText;
@@ -387,11 +405,10 @@ export const readViewWrapsText = (view: PageSchemaView): boolean =>
  * quererlo alto igual.
  */
 export const toggleViewWrapsText = (views: readonly PageSchemaView[], viewName: string): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const current = readPageViewConfiguration(view.configuration);
-    const wrapsText = !current.wrapsText;
-    const grows = wrapsText && current.rowHeight === PAGE_ROW_HEIGHT.SHORT;
-    return { ...view.configuration, wrapsText, ...(grows ? { rowHeight: PAGE_ROW_HEIGHT.MEDIUM } : {}) };
+  rewriteView(views, viewName, (configuration) => {
+    const wrapsText = !configuration.wrapsText;
+    const grows = wrapsText && configuration.rowHeight === PAGE_ROW_HEIGHT.SHORT;
+    return { ...configuration, wrapsText, ...(grows ? { rowHeight: PAGE_ROW_HEIGHT.MEDIUM } : {}) };
   });
 
 export const readViewColumnAlignments = (view: PageSchemaView): Readonly<Record<string, PageColumnAlignment>> =>
@@ -404,10 +421,10 @@ export const setViewColumnAlignment = (
   columnKey: string,
   alignment: PageColumnAlignment,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const { [columnKey]: _replaced, ...rest } = readPageViewConfiguration(view.configuration).columnAlignments;
+  rewriteView(views, viewName, (configuration) => {
+    const { [columnKey]: _replaced, ...rest } = configuration.columnAlignments;
     return {
-      ...view.configuration,
+      ...configuration,
       columnAlignments: alignment === PAGE_COLUMN_ALIGNMENT.START ? rest : { ...rest, [columnKey]: alignment },
     };
   });
@@ -427,13 +444,13 @@ export const moveViewProperty = (
   propertyKey: string,
   beforeKey: null | string,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const chosen = readPageViewConfiguration(view.configuration).visibleProperties ?? shownKeys;
-    if (propertyKey === beforeKey || !chosen.includes(propertyKey)) return view.configuration;
+  rewriteView(views, viewName, (configuration) => {
+    const chosen = configuration.visibleProperties ?? shownKeys;
+    if (propertyKey === beforeKey || !chosen.includes(propertyKey)) return configuration;
     const rest = chosen.filter((key) => key !== propertyKey);
     const at = beforeKey === null ? rest.length : rest.indexOf(beforeKey);
-    if (at === -1) return view.configuration;
-    return { ...view.configuration, visibleProperties: [...rest.slice(0, at), propertyKey, ...rest.slice(at)] };
+    if (at === -1) return configuration;
+    return { ...configuration, visibleProperties: [...rest.slice(0, at), propertyKey, ...rest.slice(at)] };
   });
 
 /** Un puesto a un lado o al otro, que es como se mueve una columna sin ratón. */
@@ -471,10 +488,10 @@ export const setViewCalculation = (
   propertyKey: string,
   calculation: PageViewCalculation,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (view) => {
-    const { [propertyKey]: _replaced, ...rest } = readPageViewConfiguration(view.configuration).calculations;
+  rewriteView(views, viewName, (configuration) => {
+    const { [propertyKey]: _replaced, ...rest } = configuration.calculations;
     return {
-      ...view.configuration,
+      ...configuration,
       calculations: calculation === PAGE_VIEW_CALCULATION.NONE ? rest : { ...rest, [propertyKey]: calculation },
     };
   });
