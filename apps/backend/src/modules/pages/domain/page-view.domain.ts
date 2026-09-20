@@ -1,10 +1,10 @@
 import type { PageViewConfiguration } from '@company-brain/shared';
 import {
   comparePageRowsBySorts,
-  getPageViewShape,
   matchesPageFilter,
   PAGE_VIEW_SHAPE,
   readPageViewConfiguration,
+  readPageViewShape,
 } from '@company-brain/shared';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../common/domain/schema.domain.types';
 import { bandRowsForView } from '../../../common/domain/schema-view-banding.domain';
@@ -12,6 +12,29 @@ import { compareRowsByOrder, groupRowsForView } from '../../../common/domain/sch
 import type { GroupablePageViewRow, PageViewOutcome, PageViewRow } from './page-view.domain.types';
 
 const toGroupableRow = (row: PageViewRow) => ({ ...row, propertyValues: row.propertyValues ?? {} });
+
+/**
+ * Cuántas filas quedaron a la vista, vengan repartidas como vengan.
+ *
+ * Se cuenta sobre lo que la vista entrega y no sobre lo que se filtró, porque
+ * es lo mismo dicho donde no hay que volver a saber cómo se filtró: quien
+ * reparte en grupos ya decidió qué entra.
+ */
+export const countPageViewRows = (outcome: PageViewOutcome): number => {
+  switch (outcome.kind) {
+    case 'FLAT_ROWS':
+      return outcome.rows.length;
+    case 'GROUPED_ROWS':
+      return outcome.groups.reduce((total, group) => total + group.rows.length, 0);
+    case 'BANDED_ROWS':
+      return outcome.bands.reduce(
+        (total, band) => total + band.groups.reduce((inside, group) => inside + group.rows.length, 0),
+        0,
+      );
+    default:
+      return 0;
+  }
+};
 
 const selectRows = (
   configuration: PageViewConfiguration,
@@ -50,7 +73,8 @@ export const buildPageViewOutcome = (
   const configuration = readPageViewConfiguration(view.configuration);
   const selectedRows = selectRows(configuration, properties, rows);
   const compareRows = createRowComparator(configuration, properties);
-  if (getPageViewShape(view.type) === PAGE_VIEW_SHAPE.FLAT)
+  /** Cuenta lo que la vista tiene puesto: una tabla lee en grupos solo si se lo pidieron. */
+  if (readPageViewShape(view.type, configuration.groupBy) === PAGE_VIEW_SHAPE.FLAT)
     return { kind: 'FLAT_ROWS', rows: [...selectedRows].sort(compareRows) };
   const groupableRows = selectedRows.map(toGroupableRow);
   const compareGroupableRows = (left: GroupablePageViewRow, right: GroupablePageViewRow): number =>

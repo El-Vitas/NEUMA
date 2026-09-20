@@ -1,9 +1,11 @@
-import type { PagePropertyContext } from '@company-brain/shared';
+import type { PagePropertyContext, PagePropertyType } from '@company-brain/shared';
 import {
   formatPagePropertyValue,
   getDefaultPagePropertyValue,
+  getPagePropertyLogicalType,
   isPagePropertyValueEmpty,
   isTitlePageProperty,
+  PAGE_PROPERTY_LOGICAL_TYPE,
   pagePropertyRequiresPersonDirectory,
 } from '@company-brain/shared';
 import type {
@@ -98,6 +100,23 @@ export const readPagePersonDisplayName = (
   if (options.length === 0) return '';
   const person = findPagePersonOption(options, value);
   return person === undefined ? null : getPagePersonOptionLabel(options, person);
+};
+
+/**
+ * Cuándo lo respondido en una celda ya está dicho del todo.
+ *
+ * Lo que se elige de una lista o se marca queda respondido en el mismo gesto:
+ * no hay un después. Lo que se escribe —un texto, un número, una fecha— pasa
+ * por estados a medio escribir que no son la respuesta, así que se guarda al
+ * salir del campo y no en cada tecla.
+ */
+export const pagePropertyAnswersOnPick = (type: PagePropertyType): boolean => {
+  const logicalType = getPagePropertyLogicalType(type);
+  return (
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.TAG ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN
+  );
 };
 
 /** Which word a checkbox is read as, so the cell that shows it asks one question and not two. */

@@ -1,7 +1,9 @@
 'use client';
 
-import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { isTitlePageProperty, PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Button } from '@/shared/components/ui/button';
 import { PAGE_ADDABLE_PROPERTY_TYPES } from '../constants/pages.schema-editing.constants';
 import { buildPropertyKey, readAddablePropertyType } from '../lib/pages.schema-editing.lib';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
@@ -23,6 +25,10 @@ interface IProps {
  */
 export const PagesSchemaSettingsProperties = ({ editor, onGo }: IProps) => {
   const t = useTranslations('pages.collection');
+  /** Entre las que se pueden mover: la del nombre no cuenta, así que la primera de estas ya no tiene sitio arriba. */
+  const movable = editor.properties
+    .filter((property) => !isTitlePageProperty(property.type))
+    .map((property) => property.key);
 
   /**
    * Se entra en la propiedad recién creada: si es una selección, ahí es donde
@@ -39,12 +45,43 @@ export const PagesSchemaSettingsProperties = ({ editor, onGo }: IProps) => {
   return (
     <div className="space-y-1">
       {editor.properties.map((property) => (
-        <PagesSchemaSettingsRow
-          key={property.key}
-          label={property.label}
-          onClick={() => onGo({ level: 'PROPERTY', propertyKey: property.key })}
-          value={t(`types.${property.type}`)}
-        />
+        <div className="flex items-center gap-1" key={property.key}>
+          <PagesSchemaSettingsRow
+            label={property.label}
+            onClick={() => onGo({ level: 'PROPERTY', propertyKey: property.key })}
+            value={t(`types.${property.type}`)}
+          />
+          {/*
+            La del nombre no se mueve: va siempre primera —es la que abre cada
+            fila—, así que ni ella cambia de sitio ni otra se le pone delante.
+          */}
+          {!isTitlePageProperty(property.type) && (
+            <>
+              <Button
+                aria-label={t('movePropertyEarlier', { property: property.label })}
+                className="size-9 shrink-0 text-muted-foreground hover:text-foreground"
+                disabled={editor.isSaving || movable.indexOf(property.key) === 0}
+                onClick={() => editor.moveProperty(property.key, 'EARLIER')}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <ArrowUp aria-hidden="true" className="size-4" />
+              </Button>
+              <Button
+                aria-label={t('movePropertyLater', { property: property.label })}
+                className="size-9 shrink-0 text-muted-foreground hover:text-foreground"
+                disabled={editor.isSaving || movable.indexOf(property.key) === movable.length - 1}
+                onClick={() => editor.moveProperty(property.key, 'LATER')}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <ArrowDown aria-hidden="true" className="size-4" />
+              </Button>
+            </>
+          )}
+        </div>
       ))}
       <PagesSchemaSettingsAddRow
         addLabel={t('addProperty')}

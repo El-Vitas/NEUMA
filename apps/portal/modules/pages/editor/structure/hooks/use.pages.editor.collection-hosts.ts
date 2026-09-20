@@ -9,7 +9,8 @@ const readCollectionHosts = (
 ): readonly PageEditorCollectionHost[] =>
   Array.from(editorHost.querySelectorAll<HTMLElement>('[data-page-collection]')).flatMap((element) => {
     const pageId = element.dataset.pageCollection;
-    return pageId === undefined ? [] : [{ element, name: nameTheHost(element), pageId }];
+    if (pageId === undefined) return [];
+    return [{ element, name: nameTheHost(element), pageId, viewName: element.dataset.viewName ?? null }];
   });
 
 const isSameHosts = (

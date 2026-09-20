@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard'
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageAccessDeniedError } from './domain/page.error';
-import { DefinePageSchemaDto } from './dto/page-schema.define.dto';
+import { DefinePageSchemaDto, RewritePageOptionDto, SetPageViewConfigurationDto } from './dto/page-schema.define.dto';
 import { PageSchemaService } from './page-schema.service';
 
 @Controller('spaces/:spaceId/pages/:pageId')
@@ -40,6 +40,51 @@ export class PageSchemaController {
         name: view.name,
         type: view.type,
       })),
+      workspaceId: workspace.id,
+    });
+    if (result.isFail()) throw result.getError();
+    return this.assertSpaceMatch(result.getValue(), spaceId);
+  }
+
+  @Post('schema/properties/:propertyKey/rewrite-option')
+  @UseGuards(JwtAuthGuard)
+  async rewriteOption(
+    @Param('spaceId') spaceId: string,
+    @Param('pageId') pageId: string,
+    @Param('propertyKey') propertyKey: string,
+    @Body() dto: RewritePageOptionDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pageSchemaService.rewriteOption({
+      from: dto.from,
+      pageId,
+      propertyKey,
+      role: payload.role,
+      to: dto.to ?? null,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
+    if (result.isFail()) throw result.getError();
+    return this.assertSpaceMatch(result.getValue(), spaceId);
+  }
+
+  @Post('schema/views/:viewName/configuration')
+  @UseGuards(JwtAuthGuard)
+  async setViewConfiguration(
+    @Param('spaceId') spaceId: string,
+    @Param('pageId') pageId: string,
+    @Param('viewName') viewName: string,
+    @Body() dto: SetPageViewConfigurationDto,
+    @User('payload') payload: TokenPayload,
+  ) {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pageSchemaService.setViewConfiguration({
+      configuration: dto.configuration,
+      pageId,
+      role: payload.role,
+      userId: payload.sub,
+      viewName,
       workspaceId: workspace.id,
     });
     if (result.isFail()) throw result.getError();
@@ -84,7 +129,8 @@ export class PageSchemaController {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.getView(pageId, viewName, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
-    return this.assertSpaceMatch(result.getValue(), spaceId).outcome;
+    const { outcome, rowCount, totalRowCount } = this.assertSpaceMatch(result.getValue(), spaceId);
+    return { outcome, rowCount, totalRowCount };
   }
 
   private assertSpaceMatch<TValue extends { readonly spaceId: string }>(value: TValue, spaceId: string): TValue {

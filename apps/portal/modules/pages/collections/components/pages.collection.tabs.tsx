@@ -1,3 +1,4 @@
+import { readPageViewConfiguration } from '@company-brain/shared';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
@@ -25,24 +26,33 @@ interface IProps {
 export const PagesCollectionTabs = ({ activeViewName, label, views }: IProps) => (
   <nav aria-label={label}>
     <ul className="-mb-px flex items-center gap-1 overflow-x-auto">
-      {views.map((view) => (
-        <li key={view.name}>
-          <Link
-            aria-current={view.name === activeViewName ? 'page' : undefined}
-            className={cn(
-              'inline-flex min-h-11 items-center rounded-md px-3 text-sm transition-colors',
-              FOCUS_RING_CLASS,
-              view.name === activeViewName
-                ? 'bg-muted font-medium text-foreground'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-            )}
-            href={buildCollectionViewHref(view.name)}
-            scroll={false}
-          >
-            {view.name}
-          </Link>
-        </li>
-      ))}
+      {views.map((view) => {
+        const icon = readPageViewConfiguration(view.configuration).icon;
+        return (
+          <li key={view.name}>
+            <Link
+              aria-current={view.name === activeViewName ? 'page' : undefined}
+              className={cn(
+                'inline-flex min-h-11 items-center rounded-md px-3 text-sm transition-colors',
+                FOCUS_RING_CLASS,
+                view.name === activeViewName
+                  ? 'bg-muted font-medium text-foreground'
+                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+              )}
+              href={buildCollectionViewHref(view.name)}
+              scroll={false}
+            >
+              {/* Acompaña al nombre, no lo sustituye: un emoji solo no dice cuál de tres tableros es. */}
+              {icon !== null && (
+                <span aria-hidden="true" className="mr-1.5">
+                  {icon}
+                </span>
+              )}
+              {view.name}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   </nav>
 );

@@ -3,6 +3,7 @@ import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../../common/domain/schema.domain.types';
+import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
 import {
   parseSchemaPropertyValues,
   toSchemaPropertyDefinition,
@@ -93,6 +94,62 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
       });
       return this.loadSchemaSummary(transaction, pageId);
     });
+  }
+
+  /**
+   * Reescribe la opción y arrastra consigo lo que las filas guardaron.
+   *
+   * Las dos cosas en una transacción: si la forma cambiara y las filas no, todas
+   * las que decían el nombre viejo quedarían diciendo algo que la colección ya
+   * no reconoce, y el tablero las dejaría sin columna.
+   */
+  async rewriteOption(
+    pageId: string,
+    propertyKey: string,
+    rename: { readonly from: string; readonly to: null | string },
+    properties: readonly SchemaPropertyDefinition[],
+  ): Promise<PageSchemaDefinition> {
+    return this.prisma.$transaction(async (transaction) => {
+      const rewritten = properties.find((property) => property.key === propertyKey);
+      await transaction.pageSchemaProperty.updateMany({
+        data: {
+          options:
+            rewritten?.options === null || rewritten?.options === undefined
+              ? Prisma.JsonNull
+              : rewritten.options.map((option) => ({ color: option.color, value: option.value })),
+        },
+        where: { key: propertyKey, pageId },
+      });
+      const rows = await transaction.page.findMany({
+        select: { id: true, propertyValues: true },
+        where: { parentId: pageId },
+      });
+      for (const row of rows) {
+        const stored = parseSchemaPropertyValues(row.propertyValues);
+        if (stored === null || !propertyValueMentions(stored[propertyKey], rename.from)) continue;
+        await transaction.page.update({
+          data: { propertyValues: rewritePropertyValues(stored, propertyKey, rename.from, rename.to) },
+          where: { id: row.id },
+        });
+      }
+      return this.loadSchemaSummary(transaction, pageId);
+    });
+  }
+
+  /**
+   * Cambia lo que una vista dice de sí misma, y nada más.
+   *
+   * Rehacer la forma entera para esto borraría y volvería a crear cada propiedad
+   * y cada vista de la colección: mucho trabajo, y una ventana donde el cambio
+   * de otra persona se perdería, por doblar una franja.
+   */
+  async setViewConfiguration(
+    pageId: string,
+    viewName: string,
+    configuration: Prisma.InputJsonObject,
+  ): Promise<PageSchemaDefinition> {
+    await this.prisma.pageSchemaView.updateMany({ data: { configuration }, where: { name: viewName, pageId } });
+    return this.loadSchemaSummary(this.prisma, pageId);
   }
 
   async listRows(

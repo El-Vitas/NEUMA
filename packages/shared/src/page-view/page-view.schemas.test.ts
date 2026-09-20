@@ -23,32 +23,52 @@ describe('reading a stored view configuration', () => {
     };
 
     expect(readPageViewConfiguration(stored)).toEqual({
+      ...EMPTY_PAGE_VIEW_CONFIGURATION,
       filter: doingCondition,
       groupBy: 'status',
       sorts: [{ direction: PAGE_SORT_DIRECTION.ASCENDING, propertyKey: 'title' }],
-      subGroupBy: null,
-      visibleProperties: null,
     });
   });
 
   test('reads the second grouping, which lays bands across the columns', () => {
     expect(readPageViewConfiguration({ groupBy: 'status', subGroupBy: 'priority' })).toEqual({
-      filter: null,
+      ...EMPTY_PAGE_VIEW_CONFIGURATION,
       groupBy: 'status',
-      sorts: [],
       subGroupBy: 'priority',
-      visibleProperties: null,
     });
   });
 
   test('reads a configuration that only carries grouping', () => {
     expect(readPageViewConfiguration({ groupBy: 'status' })).toEqual({
-      filter: null,
+      ...EMPTY_PAGE_VIEW_CONFIGURATION,
       groupBy: 'status',
-      subGroupBy: null,
-      visibleProperties: null,
-      sorts: [],
     });
+  });
+
+  test('reads what a board keeps about its own columns, which is of the view and not of the values', () => {
+    const stored = { collapsedGroups: ['done'], columnLimits: { todo: 5 }, hidesUnassignedColumn: true };
+
+    expect(readPageViewConfiguration(stored)).toEqual({ ...EMPTY_PAGE_VIEW_CONFIGURATION, ...stored });
+  });
+
+  test('reads what a table keeps about its own columns: how wide, and how many stay put', () => {
+    const stored = { columnWidths: { dueDate: 240 }, frozenColumns: 2 };
+
+    expect(readPageViewConfiguration(stored)).toEqual({ ...EMPTY_PAGE_VIEW_CONFIGURATION, ...stored });
+  });
+
+  test('refuses a width nobody could read, and one that would not fit', () => {
+    expect(pageViewConfigurationSchema.safeParse({ columnWidths: { dueDate: 10 } }).success).toBe(false);
+    expect(pageViewConfigurationSchema.safeParse({ columnWidths: { dueDate: 5000 } }).success).toBe(false);
+  });
+
+  test('reads what each column says at its foot, by the property the column is', () => {
+    expect(readPageViewConfiguration({ calculations: { dueDate: 'COUNT_EMPTY', tokens: 'SUM' } }).calculations).toEqual(
+      {
+        dueDate: 'COUNT_EMPTY',
+        tokens: 'SUM',
+      },
+    );
   });
 
   test('keeps the rest of the configuration when it carries an unknown key', () => {

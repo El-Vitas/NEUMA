@@ -1,5 +1,5 @@
 import type { DatabaseViewType } from '@company-brain/db';
-import { Result } from '@company-brain/shared';
+import { pageViewRequiresGrouping, Result } from '@company-brain/shared';
 import type {
   SchemaGroupableRow,
   SchemaPropertyDefinition,
@@ -41,6 +41,13 @@ export const bandRowsForView = <TRow extends SchemaGroupableRow>(
   rows: readonly TRow[],
   compareRows?: (left: TRow, right: TRow) => number,
 ): Result<readonly SchemaRowBand<TRow>[], SchemaViewValidationError> => {
+  /**
+   * Cruzar es de quien lee sus filas en grupos por lo que es, no de quien puede
+   * agrupar si se lo piden: una tabla dibuja una sola dimensión, y darle bandas
+   * sería pedirle que dibuje una rejilla dentro de una lista.
+   */
+  if (!pageViewRequiresGrouping(viewType))
+    return Result.fail(new SchemaViewValidationError('View does not lay its rows in bands'));
   const subGroupKey = readSubGroupKey(configuration);
   if (subGroupKey === null) return Result.fail(new SchemaViewValidationError('View has no second grouping'));
   const bands = groupRowsForView(viewType, { groupBy: subGroupKey }, properties, rows, compareRows);

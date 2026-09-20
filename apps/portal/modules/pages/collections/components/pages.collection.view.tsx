@@ -4,6 +4,7 @@ import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import type {
   PagePersonOption,
+  PageSchema,
   PageSchemaProperty,
   PageSchemaView,
   PageViewOutcome,
@@ -13,10 +14,10 @@ import { PageViewRenderers } from './pages.collection.view-registry';
 
 interface IProps {
   readonly canEdit: boolean;
-  readonly collectionPageId: string;
   readonly outcome: PageViewOutcome | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
+  readonly schema: PageSchema;
   readonly spaceId: string;
   readonly view: PageSchemaView;
 }
@@ -31,10 +32,10 @@ interface IProps {
  */
 export const PagesCollectionView = async ({
   canEdit,
-  collectionPageId,
   outcome,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   properties,
+  schema,
   spaceId,
   view,
 }: IProps) => {
@@ -46,14 +47,21 @@ export const PagesCollectionView = async ({
 
   const renderer = PageViewRenderers[view.type];
   if (renderer.shape === PAGE_VIEW_SHAPE.FLAT && outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS) {
-    return renderer.render({ canEdit, collectionPageId, outcome, personOptions, properties, spaceId, view });
+    return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
+  }
+  /** Quien lee de las dos maneras recibe lo que llegue: agrupar es algo que se le pide, no lo que es. */
+  if (
+    renderer.shape === 'EITHER' &&
+    (outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS)
+  ) {
+    return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
   /** Un tablero lee sus filas agrupadas, y en rejilla es una forma de estarlo. */
   if (
     renderer.shape === PAGE_VIEW_SHAPE.GROUPED &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.BANDED_ROWS)
   ) {
-    return renderer.render({ canEdit, collectionPageId, outcome, personOptions, properties, spaceId, view });
+    return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
   return <FormErrorBanner message={t('collection.shapeMismatch')} />;
 };

@@ -74,13 +74,18 @@ mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', (
 }));
 /** The collection settings and the board reach server actions, which a browser-shaped test cannot load. */
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
+  updatePageViewConfigurationAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 /** El tablero crea y reordena filas, y esas acciones no se cargan en una prueba con forma de navegador. */
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),
+  duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),
   reorderPageAction: async () => ({ data: null }),
+  restorePageAction: async () => ({ data: null }),
+  trashPageAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),

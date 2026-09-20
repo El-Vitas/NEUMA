@@ -1,6 +1,9 @@
-import type { PageViewType } from '@company-brain/shared';
+import type { PageChartKind, PageChartMeasure, PageDateBucket, PageViewType } from '@company-brain/shared';
 import {
   canPagePropertyGroupBoard,
+  PAGE_CHART_MEASURE,
+  PAGE_DATE_BUCKET,
+  PAGE_DATE_BUCKET_VALUES,
   PAGE_VIEW_OUTCOME_KIND,
   PAGE_VIEW_TYPE_VALUES,
   pageViewRequiresGrouping,
@@ -12,6 +15,8 @@ import type {
   PageSchemaView,
   PageViewBand,
   PageViewBandedOutcome,
+  PageViewFlatOutcome,
+  PageViewGroup,
   PageViewGroupedOutcome,
 } from '../types/pages.schema.types';
 
@@ -22,6 +27,10 @@ import type {
  */
 export const readPageViewType = (chosen: string): PageViewType | undefined =>
   PAGE_VIEW_TYPE_VALUES.find((candidate) => candidate === chosen);
+
+/** El tramo que nombra lo elegido, y el día cuando lo elegido no nombra ninguno. */
+export const readPageDateBucket = (chosen: string): PageDateBucket =>
+  PAGE_DATE_BUCKET_VALUES.find((candidate) => candidate === chosen) ?? PAGE_DATE_BUCKET.DAY;
 
 /**
  * The properties a board can make columns from.
@@ -68,6 +77,19 @@ export const readBoardBands = (outcome: PageViewBandedOutcome | PageViewGroupedO
     ? outcome.bands
     : [{ color: null, groups: outcome.groups, key: '', label: '' }];
 
+/**
+ * Las filas de una vista que lee de las dos maneras, siempre en grupos.
+ *
+ * A la que nadie pidió agrupar le llegan una tras otra, y aquí se le dan como un
+ * único grupo sin nombre: así la tabla —y la lista, y la galería— dibuja de una
+ * sola manera, y agrupar deja de ser otra vista para ser la misma con más de un
+ * grupo.
+ */
+export const readViewGroups = (outcome: PageViewFlatOutcome | PageViewGroupedOutcome): readonly PageViewGroup[] =>
+  outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS
+    ? outcome.groups
+    : [{ color: null, key: '', label: '', rows: outcome.rows }];
+
 const rewriteView = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -75,12 +97,24 @@ const rewriteView = (
 ): readonly PageSchemaView[] =>
   views.map((view) => (view.name === viewName ? { ...view, configuration: rewrite(view.configuration) } : view));
 
+/**
+ * Por qué propiedad agrupa una vista, o por ninguna.
+ *
+ * Dejar de agrupar no tiene sentido en un tablero —sus columnas *son* la
+ * agrupación—, pero sí en una tabla, que sin ella vuelve a ser una lista de
+ * filas. Quitar la agrupación se lleva también las bandas: cruzar lo que ya no
+ * está agrupado no significa nada.
+ */
 export const setViewGroupBy = (
   views: readonly PageSchemaView[],
   viewName: string,
-  groupBy: string,
+  groupBy: null | string,
 ): readonly PageSchemaView[] =>
-  rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), groupBy }));
+  rewriteView(views, viewName, (configuration) => ({
+    ...readPageViewConfiguration(configuration),
+    groupBy,
+    ...(groupBy === null ? { subGroupBy: null } : {}),
+  }));
 
 /**
  * Por qué segunda propiedad se cruza el tablero, o por ninguna.
@@ -98,6 +132,65 @@ export const setViewSubGroupBy = (
     const current = readPageViewConfiguration(configuration);
     return { ...current, subGroupBy: subGroupBy === current.groupBy ? null : subGroupBy };
   });
+
+/**
+ * En qué tramo caen las filas cuando la vista agrupa por una fecha.
+ *
+ * No se toca la agrupación: quien agrupaba por «fecha de entrega» sigue
+ * haciéndolo, y lo único que cambia es cuánto tiempo cabe en cada grupo.
+ */
+export const setViewDateBucket = (
+  views: readonly PageSchemaView[],
+  viewName: string,
+  groupByDateBucket: PageDateBucket,
+): readonly PageSchemaView[] =>
+  rewriteView(views, viewName, (configuration) => ({
+    ...readPageViewConfiguration(configuration),
+    groupByDateBucket,
+  }));
+
+/** Por qué fecha coloca sus filas un calendario, o por ninguna todavía. */
+export const setViewDateProperty = (
+  views: readonly PageSchemaView[],
+  viewName: string,
+  dateProperty: null | string,
+): readonly PageSchemaView[] =>
+  rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), dateProperty }));
+
+/** Cómo dibuja un gráfico lo que mide: barras, línea o pastel. */
+export const setViewChartKind = (
+  views: readonly PageSchemaView[],
+  viewName: string,
+  chartKind: PageChartKind,
+): readonly PageSchemaView[] =>
+  rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), chartKind }));
+
+/**
+ * Qué mide un gráfico de cada grupo, y sobre qué número.
+ *
+ * Van juntos porque no se sostienen por separado: contar filas no pregunta por
+ * ninguna propiedad, y sumar sin decir cuál no es nada. Elegir contar borra la
+ * propiedad, para no dejar guardado un número que ya no se mira.
+ */
+export const setViewChartMeasure = (
+  views: readonly PageSchemaView[],
+  viewName: string,
+  chartMeasure: PageChartMeasure,
+  chartValueProperty: null | string,
+): readonly PageSchemaView[] =>
+  rewriteView(views, viewName, (configuration) => ({
+    ...readPageViewConfiguration(configuration),
+    chartMeasure,
+    chartValueProperty: chartMeasure === PAGE_CHART_MEASURE.COUNT ? null : chartValueProperty,
+  }));
+
+/** El emoji con el que se reconoce la vista en su pestaña, o ninguno. */
+export const setViewIcon = (
+  views: readonly PageSchemaView[],
+  viewName: string,
+  icon: null | string,
+): readonly PageSchemaView[] =>
+  rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), icon }));
 
 /**
  * Shows or hides one property in one view.

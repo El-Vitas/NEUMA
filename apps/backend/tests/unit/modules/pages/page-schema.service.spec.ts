@@ -72,7 +72,9 @@ const createSchemaRepository = (
 ): PageSchemaRepositoryContract => ({
   defineSchema: (pageId, properties, views) => Promise.resolve({ pageId, properties, views }),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
+  rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
   resolveSchemaProperties: () => Promise.resolve([titleProperty]),
+  setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
   listRows: () => Promise.resolve([]),
   listWorkspaceMemberIds: () => Promise.resolve([]),
   ...overrides,
@@ -171,6 +173,86 @@ describe('page schema service — defineSchema', () => {
     expect(result.isOk()).toBe(true);
     expect(result.getValue().spaceId).toBe('space-a');
     expect(result.getValue().properties).toEqual([titleProperty, statusProperty]);
+  });
+});
+
+describe('page schema service — rewriteOption', () => {
+  const renaming = {
+    from: 'todo',
+    pageId: 'page-a',
+    propertyKey: 'status',
+    role: USER_ROLE.WORKER,
+    to: 'pendiente',
+    userId: 'user-a',
+    workspaceId: 'workspace-a',
+  };
+  const schemaWithStatus = () =>
+    createSchemaRepository({
+      getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
+    });
+
+  it('rejects a client role', async () => {
+    const service = new PageSchemaService(createPageRepository(), schemaWithStatus());
+
+    const result = await service.rewriteOption({ ...renaming, role: USER_ROLE.CLIENT });
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('rejects an inaccessible page', async () => {
+    const service = new PageSchemaService(
+      createPageRepository({ getAccessible: () => Promise.resolve(null) }),
+      schemaWithStatus(),
+    );
+
+    const result = await service.rewriteOption(renaming);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('rejects a name another option already answers to', async () => {
+    const service = new PageSchemaService(createPageRepository(), schemaWithStatus());
+
+    const result = await service.rewriteOption({ ...renaming, to: 'done' });
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('SCHEMA_PROPERTY_DEFINITION_INVALID');
+  });
+
+  /** Lo que el repositorio recibe es la forma ya renombrada, y el nombre viejo para las filas. */
+  it('hands the rewritten shape to the repository, together with where the name comes from', async () => {
+    const asked: { properties?: unknown; rename?: unknown }[] = [];
+    const service = new PageSchemaService(
+      createPageRepository(),
+      createSchemaRepository({
+        getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
+        rewriteOption: (pageId, _propertyKey, rename, properties) => {
+          asked.push({ properties, rename });
+          return Promise.resolve({ pageId, properties, views: [] });
+        },
+      }),
+    );
+
+    const result = await service.rewriteOption(renaming);
+
+    expect(result.isOk()).toBe(true);
+    expect(asked[0]?.rename).toEqual({ from: 'todo', to: 'pendiente' });
+    expect(asked).toHaveLength(1);
+    expect(result.getValue().properties[1]?.options).toEqual([
+      { color: null, value: 'pendiente' },
+      { color: null, value: 'done' },
+    ]);
+  });
+
+  it('removes the column when no new name is given, leaving the rest of the options alone', async () => {
+    const service = new PageSchemaService(createPageRepository(), schemaWithStatus());
+
+    const result = await service.rewriteOption({ ...renaming, to: null });
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().properties[1]?.options).toEqual([{ color: null, value: 'done' }]);
   });
 });
 
@@ -309,7 +391,12 @@ describe('page schema service — getView', () => {
     const result = await service.getView('page-a', 'Table', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue()).toEqual({ outcome: { kind: 'FLAT_ROWS', rows: [row] }, spaceId: 'space-a' });
+    expect(result.getValue()).toEqual({
+      outcome: { kind: 'FLAT_ROWS', rows: [row] },
+      rowCount: 1,
+      spaceId: 'space-a',
+      totalRowCount: 1,
+    });
   });
 
   it('returns board columns grouped by the configured select property', async () => {

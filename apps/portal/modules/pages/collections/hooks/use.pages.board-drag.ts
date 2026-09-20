@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { useOptimistic, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { useRouter } from '@/i18n/navigation';
 import { hasActionError } from '@/shared/lib/action-result';
 import { reorderPageAction } from '../../server/actions/pages.actions';
 import { resolveBoardKeyboardTarget } from '../lib/pages.board-drag.lib';
@@ -36,7 +35,6 @@ export const usePagesBoardDrag = (
 ): PageBoardDragController => {
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
-  const router = useRouter();
   const [carried, setCarried] = useState<PageBoardDragState | null>(null);
   const [target, setTarget] = useState<PageBoardGridDropTarget | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -81,12 +79,6 @@ export const usePagesBoardDrag = (
         toast.error(tErrors('generic'));
         return;
       }
-      /**
-       * La acción invalida la caché del servidor, pero lo ya dibujado no vuelve
-       * a pedirse por su cuenta: sin esto el tablero se queda con lo que tenía
-       * y el movimiento parece perdido.
-       */
-      router.refresh();
       setAnnouncement(t('cardMoved', { column: columnLabel }));
     });
   };

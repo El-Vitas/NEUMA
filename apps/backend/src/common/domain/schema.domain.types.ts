@@ -20,6 +20,16 @@ export interface SchemaViewDefinition {
   readonly isDefault: boolean;
 }
 
+/**
+ * De qué nombre viene una opción y a cuál va, que es lo que la forma sola no
+ * puede deducir. Sin nombre nuevo, la opción se quita.
+ */
+export interface SchemaOptionRename {
+  readonly from: string;
+  readonly propertyKey: string;
+  readonly to: null | string;
+}
+
 export interface SchemaOrderedRow {
   readonly id: string;
   readonly order: number;

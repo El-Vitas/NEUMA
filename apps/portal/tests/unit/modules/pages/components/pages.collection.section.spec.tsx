@@ -7,6 +7,7 @@ import type {
   PageSchemaProperty,
   PageSchemaView,
   PageViewOutcome,
+  PageViewReading,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { asPropertyOptions } from '../lib/pages.options.fixture';
@@ -14,12 +15,17 @@ import { asPropertyOptions } from '../lib/pages.options.fixture';
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 /** The settings button and the board reach server actions, which cannot be loaded in a browser-shaped test. */
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
+  updatePageViewConfigurationAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),
+  duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),
   reorderPageAction: async () => ({ data: null }),
+  restorePageAction: async () => ({ data: null }),
+  trashPageAction: async () => ({ data: null }),
 }));
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, scroll: _scroll, ...rest }: ComponentProps<'a'> & { scroll?: boolean }) => (
@@ -67,6 +73,13 @@ const emptyBoard: PageViewOutcome = {
   kind: 'GROUPED_ROWS',
 };
 
+/** Lo que la colección contesta: las filas repartidas, y de cuántas salieron. */
+const asReading = (outcome: PageViewOutcome, rowCount = 0, totalRowCount = 0): PageViewReading => ({
+  outcome,
+  rowCount,
+  totalRowCount,
+});
+
 describe('PagesCollectionSection', () => {
   it('shows only the view being looked at, not every view at once', async () => {
     renderWithMessages(
@@ -74,8 +87,8 @@ describe('PagesCollectionSection', () => {
         activeView: boardView,
         canEdit: false,
         schema,
-        outcome: emptyBoard,
         properties,
+        reading: asReading(emptyBoard),
         spaceId: 'space-1',
         views: [boardView, tableView],
       }),
@@ -91,8 +104,8 @@ describe('PagesCollectionSection', () => {
         activeView: boardView,
         canEdit: false,
         schema,
-        outcome: emptyBoard,
         properties,
+        reading: asReading(emptyBoard),
         spaceId: 'space-1',
         views: [boardView, tableView],
       }),
@@ -109,8 +122,8 @@ describe('PagesCollectionSection', () => {
         await PagesCollectionSection({
           activeView: boardView,
           canEdit,
-          outcome: emptyBoard,
           properties,
+          reading: asReading(emptyBoard),
           schema,
           spaceId: 'space-1',
           views: [boardView],
@@ -132,8 +145,8 @@ describe('PagesCollectionSection', () => {
         activeView: boardView,
         canEdit: false,
         schema,
-        outcome,
         properties,
+        reading: asReading(outcome),
         spaceId: 'space-1',
         views: [boardView],
       }),
@@ -149,13 +162,50 @@ describe('PagesCollectionSection', () => {
         activeView: boardView,
         canEdit: false,
         schema,
-        outcome: null,
         properties,
+        reading: null,
         spaceId: 'space-1',
         views: [boardView],
       }),
     );
 
     expect(screen.getByRole('alert')).toBeDefined();
+  });
+
+  /**
+   * Un filtro que no deja pasar nada no es una colección vacía: decir «aún no
+   * hay filas» manda a agregar una que ya está ahí, escondida.
+   */
+  it('explains that the filter is hiding everything instead of saying the collection is empty', async () => {
+    renderWithMessages(
+      await PagesCollectionSection({
+        activeView: boardView,
+        canEdit: true,
+        properties,
+        reading: asReading(emptyBoard, 0, 13),
+        schema,
+        spaceId: 'space-1',
+        views: [boardView],
+      }),
+    );
+
+    expect(screen.getByText('collection.everythingFiltered')).toBeDefined();
+    expect(screen.queryByTestId('collection-board')).toBeNull();
+  });
+
+  it('says how many rows are being looked at, of how many there are', async () => {
+    renderWithMessages(
+      await PagesCollectionSection({
+        activeView: boardView,
+        canEdit: true,
+        properties,
+        reading: asReading(emptyBoard, 4, 13),
+        schema,
+        spaceId: 'space-1',
+        views: [boardView],
+      }),
+    );
+
+    expect(screen.getByText('collection.rowCount')).toBeDefined();
   });
 });

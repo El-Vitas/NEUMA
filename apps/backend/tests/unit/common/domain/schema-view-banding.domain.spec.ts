@@ -100,7 +100,8 @@ describe('bandRowsForView', () => {
     ).toBe(true);
   });
 
-  it('refuses a view that does not read its rows in groups at all', () => {
+  /** Una tabla agrupa, pero no cruza: dibuja una sola dimensión. */
+  it('refuses a view that does not lay its rows in bands', () => {
     expect(
       bandRowsForView(DatabaseViewType.TABLE, { groupBy: 'status', subGroupBy: 'priority' }, properties, []).isFail(),
     ).toBe(true);

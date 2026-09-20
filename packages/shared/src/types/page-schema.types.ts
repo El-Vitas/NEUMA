@@ -30,14 +30,25 @@ export const PAGE_PROPERTY_TYPE_VALUES = [
   PAGE_PROPERTY_TYPE.NUMBER,
 ] as const;
 
-export type PageViewType = 'TABLE' | 'BOARD';
+export type PageViewType = 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
 
 export const PAGE_VIEW_TYPE = {
   TABLE: 'TABLE',
   BOARD: 'BOARD',
+  LIST: 'LIST',
+  GALLERY: 'GALLERY',
+  CALENDAR: 'CALENDAR',
+  CHART: 'CHART',
 } as const satisfies Record<PageViewType, PageViewType>;
 
-export const PAGE_VIEW_TYPE_VALUES = [PAGE_VIEW_TYPE.TABLE, PAGE_VIEW_TYPE.BOARD] as const;
+export const PAGE_VIEW_TYPE_VALUES = [
+  PAGE_VIEW_TYPE.TABLE,
+  PAGE_VIEW_TYPE.BOARD,
+  PAGE_VIEW_TYPE.LIST,
+  PAGE_VIEW_TYPE.GALLERY,
+  PAGE_VIEW_TYPE.CALENDAR,
+  PAGE_VIEW_TYPE.CHART,
+] as const;
 
 /**
  * How the rows of a view arrive: one after another, or already gathered in
