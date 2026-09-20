@@ -11,7 +11,7 @@ import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schem
 
 const propertyKeyPattern = /^[a-z]\w*$/;
 
-const isStringArray = (value: unknown): value is readonly string[] =>
+export const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
 export const isPropertyValue = (value: unknown): value is SchemaPropertyValue =>

@@ -35,6 +35,32 @@ export interface PageBoardGridMove extends PageBoardMove {
   readonly changesBand: boolean;
 }
 
+/**
+ * Qué se está respondiendo de una columna ahora mismo.
+ *
+ * La cabecera es un sitio pequeño, y el nombre y el tope se escriben en él: por
+ * eso no pueden estar los dos a la vez, y por eso es un modo y no dos
+ * interruptores que podrían contradecirse.
+ */
+export type PageBoardColumnMode = 'NAMED' | 'RENAMING' | 'LIMITING' | 'REMOVING';
+
+/**
+ * Una columna mientras se la lleva de un sitio a otro.
+ *
+ * Es otro gesto que el de las tarjetas y por eso va aparte: mientras se carga
+ * una columna, el tablero no está ofreciendo huecos entre tarjetas, está
+ * ofreciendo huecos entre columnas. `target` es la columna ante la cual caería,
+ * y nada cuando caería al final.
+ */
+export interface PageBoardColumnDrag {
+  readonly carried: null | string;
+  readonly onDropOn: (beforeValue: null | string) => void;
+  readonly onEnd: () => void;
+  readonly onOver: (beforeValue: null | string) => void;
+  readonly onStart: (value: string) => void;
+  readonly target: null | string;
+}
+
 /** Qué cruce de la rejilla está esperando un nombre para su tarjeta nueva. */
 export interface PageBoardNamingCell {
   readonly bandKey: string;

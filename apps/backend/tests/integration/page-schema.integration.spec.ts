@@ -376,11 +376,15 @@ describe('Page Schema (Integration)', () => {
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Table').expect(200);
 
-      expect((response.body as { kind: string; rows: PageResponse[] }).kind).toBe('FLAT_ROWS');
-      expect((response.body as { kind: string; rows: PageResponse[] }).rows.map((row) => row.id)).toEqual([
-        first.id,
-        second.id,
-      ]);
+      const body = response.body as {
+        outcome: { kind: string; rows: PageResponse[] };
+        rowCount: number;
+        totalRowCount: number;
+      };
+      expect(body.outcome.kind).toBe('FLAT_ROWS');
+      expect(body.outcome.rows.map((row) => row.id)).toEqual([first.id, second.id]);
+      /** Cuántas se ven de cuántas hay: sin filtro puesto, las mismas. */
+      expect(body).toMatchObject({ rowCount: 2, totalRowCount: 2 });
     });
 
     it('groups the rows of a board view into columns by the configured select property', async () => {
@@ -399,10 +403,14 @@ describe('Page Schema (Integration)', () => {
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
 
-      const body = response.body as { kind: string; groups: { key: string; rows: PageResponse[] }[] };
-      expect(body.kind).toBe('GROUPED_ROWS');
-      expect(body.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
-      expect(body.groups.find((group) => group.key === 'todo')?.rows.map((row) => row.id)).toEqual([todoRow.id]);
+      const body = response.body as {
+        outcome: { kind: string; groups: { key: string; rows: PageResponse[] }[] };
+      };
+      expect(body.outcome.kind).toBe('GROUPED_ROWS');
+      expect(body.outcome.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
+      expect(body.outcome.groups.find((group) => group.key === 'todo')?.rows.map((row) => row.id)).toEqual([
+        todoRow.id,
+      ]);
     });
 
     it('signals a missing grouping property instead of an empty board when the schema no longer has it', async () => {
@@ -420,7 +428,11 @@ describe('Page Schema (Integration)', () => {
       await prisma.pageSchemaProperty.deleteMany({ where: { key: 'status', pageId: collection.id } });
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
-      expect(response.body).toEqual({ kind: 'MISSING_GROUPING_PROPERTY' });
+      expect(response.body).toEqual({
+        outcome: { kind: 'MISSING_GROUPING_PROPERTY' },
+        rowCount: 0,
+        totalRowCount: 0,
+      });
     });
 
     it('returns 404 for a view name that does not exist on the schema', async () => {

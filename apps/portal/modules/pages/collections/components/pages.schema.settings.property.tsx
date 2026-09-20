@@ -114,7 +114,7 @@ export const PagesSchemaSettingsProperty = ({ editor, onGo, property }: IProps) 
               <Plus aria-hidden="true" className="size-4" />
             </Button>
           </div>
-          <p className="px-2 pt-1 text-muted-foreground text-xs">{t('renameOptionWarning')}</p>
+          <p className="px-2 pt-1 text-muted-foreground text-xs">{t('renameOptionHint')}</p>
         </div>
       )}
 

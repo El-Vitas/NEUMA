@@ -61,7 +61,20 @@ export {
   PAGE_OPTION_COLOR_VALUES,
   PAGE_PROPERTY_LOGICAL_TYPE,
 } from './page-property/page-property.types.js';
+export {
+  computePageCalculation,
+  isPageCalculationAPortion,
+  listPageCalculationsFor,
+} from './page-view/page-view.calculation.lib.js';
+export { listPageChartMeasuresFor, readPageChartValue } from './page-view/page-view.chart.lib.js';
 export type { PageViewDefinition } from './page-view/page-view.definitions.js';
+export {
+  listPageCalendarDays,
+  readPageCalendarMonth,
+  shiftPageCalendarDate,
+  shiftPageCalendarMonth,
+} from './page-view/page-view.calendar.lib.js';
+export { readPageDateBucketKey } from './page-view/page-view.grouping.lib.js';
 export {
   getPageFilterOperators,
   hasPageFilterPredicate,
@@ -72,6 +85,7 @@ export {
   getPageViewShape,
   pageViewRequiresGrouping,
   pageViewSupportsGrouping,
+  readPageViewShape,
 } from './page-view/page-view.lib.js';
 export {
   EMPTY_PAGE_VIEW_CONFIGURATION,
@@ -81,22 +95,42 @@ export {
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
 export { readVisiblePropertyKeys } from './page-view/page-view.visibility.lib.js';
 export type {
+  PageCalendarDay,
+  PageChartKind,
+  PageChartMeasure,
+  PageColumnAlignment,
+  PageDateBucket,
   PageFilter,
   PageFilterCondition,
   PageFilterGroup,
   PageFilterGroupOperator,
   PageFilterOperator,
+  PageRowHeight,
   PageSort,
   PageSortDirection,
+  PageViewCalculation,
   PageViewConfiguration,
   PageViewProperty,
 } from './page-view/page-view.types.js';
 export {
+  PAGE_CHART_KIND,
+  PAGE_CHART_KIND_VALUES,
+  PAGE_CHART_MEASURE,
+  PAGE_CHART_MEASURE_VALUES,
+  PAGE_COLUMN_ALIGNMENT,
+  PAGE_COLUMN_ALIGNMENT_VALUES,
+  PAGE_DATE_BUCKET,
+  PAGE_DATE_BUCKET_VALUES,
   PAGE_FILTER_GROUP_OPERATOR,
+  PAGE_FILTER_MAXIMUM_DEPTH,
   PAGE_FILTER_OPERATOR,
   PAGE_FILTER_OPERATOR_VALUES,
+  PAGE_ROW_HEIGHT,
+  PAGE_ROW_HEIGHT_VALUES,
   PAGE_SORT_DIRECTION,
   PAGE_SORT_DIRECTION_VALUES,
+  PAGE_VIEW_CALCULATION,
+  PAGE_VIEW_CALCULATION_VALUES,
 } from './page-view/page-view.types.js';
 export { Result } from './result.js';
 export type {

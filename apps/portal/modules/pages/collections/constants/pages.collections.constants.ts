@@ -8,6 +8,25 @@ export const PAGE_COLLECTION_FIRST_PROPERTY_KEY = 'notes';
 /** What every row of a collection has: its name, which is the title of the page that row is. */
 export const PAGE_COLLECTION_TITLE_PROPERTY_KEY = 'title';
 
+/** Lo que mide una columna a la que nadie le dio un ancho. */
+export const PAGE_TABLE_DEFAULT_COLUMN_WIDTH = 180;
+
+/** La del nombre nace más ancha: es la que se lee, y casi siempre la más larga. */
+export const PAGE_TABLE_TITLE_COLUMN_WIDTH = 280;
+
+/** Cuánto se ensancha o se angosta una columna por cada pulsación, cuando se hace con el teclado. */
+export const PAGE_TABLE_COLUMN_WIDTH_STEP = 20;
+
+export const PAGE_TABLE_MINIMUM_COLUMN_WIDTH = 80;
+
+export const PAGE_TABLE_MAXIMUM_COLUMN_WIDTH = 960;
+
+/**
+ * Cómo se queda quieta una celda: pegada a la izquierda, por encima de lo que
+ * pasa por debajo, y con fondo propio para que ese paso no se transparente.
+ */
+export const PAGE_TABLE_FROZEN_CELL_CLASS = 'sticky z-10 bg-surface';
+
 /**
  * Which view of a collection is being looked at, written into the address so a
  * board can be sent by link and survives a reload.
@@ -15,13 +34,13 @@ export const PAGE_COLLECTION_TITLE_PROPERTY_KEY = 'title';
 export const PAGE_COLLECTION_VIEW_SEARCH_PARAM = 'view';
 
 /**
- * Lo que elige «por ninguna» en el desplegable de la segunda agrupación.
+ * Lo que elige «por ninguna» en los desplegables de agrupación.
  *
  * Un desplegable no puede ofrecer la nada como valor —vacío es lo mismo que no
  * haber elegido—, así que la ausencia necesita un nombre propio que ninguna
  * propiedad pueda tener.
  */
-export const PAGE_VIEW_NO_SUB_GROUP = '__none__';
+export const PAGE_VIEW_NO_GROUP = '__none__';
 
 /** Where the page keeps whoever knows how to make a collection, and how to be asked for one already written. */
 export const PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR = '[data-page-collection-request]';

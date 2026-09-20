@@ -5,6 +5,7 @@ import {
   pageContentSchema,
 } from '@company-brain/shared';
 import { z } from 'zod';
+import { pagePropertyValueSchema } from './pages.schema.schemas';
 
 const pageCollectionOptionSchema = z.object({
   color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
@@ -51,8 +52,37 @@ export const pageCollectionReadSchema = z.object({
  */
 export const pageRowPropertiesSchema = z.object({
   pageId: z.string().min(1),
-  propertyValues: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()])),
+  propertyValues: z.record(z.string(), z.union([pagePropertyValueSchema, z.null()])),
   spaceId: z.string().min(1),
+});
+
+/**
+ * Lo que hay que decir para cambiar lo que una vista dice de sí misma.
+ *
+ * Solo esa vista y solo su configuración: la forma de la colección no entra, así
+ * que doblar una franja o mover un borde deja de costar rehacer cada propiedad y
+ * cada vista.
+ */
+export const pageViewConfigurationUpdateSchema = z.object({
+  /** Pasa tal cual: quien decide qué cabe en una configuración es el servidor, y lo revisa al recibirla. */
+  configuration: z.record(z.string(), z.unknown()),
+  pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+  viewName: z.string().min(1).max(200),
+});
+
+/**
+ * Lo que hay que decir para renombrar o quitar una columna del tablero.
+ *
+ * De qué nombre viene y a cuál va, porque la forma sola no distingue un
+ * renombrado de un quitar y poner. Sin nombre nuevo, la columna se quita.
+ */
+export const pageOptionRewriteSchema = z.object({
+  from: z.string().min(1).max(120),
+  pageId: z.string().min(1),
+  propertyKey: z.string().min(1).max(80),
+  spaceId: z.string().min(1),
+  to: z.string().trim().min(1).max(120).nullable(),
 });
 
 /**

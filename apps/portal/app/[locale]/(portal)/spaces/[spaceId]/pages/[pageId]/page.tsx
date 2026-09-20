@@ -12,6 +12,7 @@ import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pag
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
 import { PAGE_COLLECTION_VIEW_SEARCH_PARAM } from '@/modules/pages/collections/constants/pages.collections.constants';
 import { resolveActiveCollectionView } from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
+import { readEmbeddedCollectionKey } from '@/modules/pages/collections/lib/pages.collections.lib';
 import {
   getEditableSchemaProperties,
   schemaNeedsPersonOptions,
@@ -89,13 +90,14 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
   const schema = schemaResult.getValue();
   const view = schema.views.find((candidate) => candidate.name === reference.viewName) ?? schema.views[0];
   if (view === undefined) return null;
-  const outcomeResult = await getPageView(reference.spaceId, reference.pageId, view.name);
+  const readingResult = await getPageView(reference.spaceId, reference.pageId, view.name);
+  const reading = readingResult.isOk() ? readingResult.getValue() : null;
 
   return (
     <PagesCollectionEmbed
-      outcome={outcomeResult.isOk() ? outcomeResult.getValue() : null}
-      pageId={reference.pageId}
+      outcome={reading === null ? null : reading.outcome}
       properties={getEditableSchemaProperties(schema)}
+      schema={schema}
       spaceId={reference.spaceId}
       title={title}
       view={view}
@@ -151,14 +153,14 @@ const buildCollectionSection = async (
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
   const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
   if (activeView === null) return null;
-  const outcomeResult = await getPageView(spaceId, pageId, activeView.name);
+  const readingResult = await getPageView(spaceId, pageId, activeView.name);
   return (
     <PagesCollectionSection
       activeView={activeView}
       canEdit={canEdit}
-      outcome={outcomeResult.isOk() ? outcomeResult.getValue() : null}
       personOptions={personOptions}
       properties={getEditableSchemaProperties(ownSchema)}
+      reading={readingResult.isOk() ? readingResult.getValue() : null}
       schema={ownSchema}
       spaceId={spaceId}
       views={ownSchema.views}
@@ -174,7 +176,10 @@ const buildEmbeddedCollections = async (
   const entries = await Promise.all(
     extractPageCollectionReferences(page.content).map(async (reference) => {
       const title = pages.find((candidate) => candidate.id === reference.pageId)?.title ?? reference.pageId;
-      return [reference.pageId, await renderEmbeddedCollection(reference, title)] as const;
+      return [
+        readEmbeddedCollectionKey(reference.pageId, reference.viewName),
+        await renderEmbeddedCollection(reference, title),
+      ] as const;
     }),
   );
   return Object.fromEntries(entries);

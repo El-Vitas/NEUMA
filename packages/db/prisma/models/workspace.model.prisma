@@ -1,10 +1,10 @@
 model Workspace {
-  id           String            @id @default(uuid(7))
-  singletonKey String            @unique @default("default")
-  name         String
-  pageViewsEnabled Boolean       @default(true)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  members      WorkspaceMember[]
-  spaces       Space[]
+  id               String            @id @default(uuid(7))
+  singletonKey     String            @unique @default("default")
+  name             String
+  pageViewsEnabled Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  members          WorkspaceMember[]
+  spaces           Space[]
 }

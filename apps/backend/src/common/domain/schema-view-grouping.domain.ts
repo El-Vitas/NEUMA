@@ -1,8 +1,12 @@
 import { DatabasePropertyType, type DatabaseViewType } from '@company-brain/db';
+import type { PageDateBucket } from '@company-brain/shared';
 import {
   canPagePropertyGroupBoard,
-  pageViewRequiresGrouping,
+  PAGE_DATE_BUCKET,
+  PAGE_DATE_BUCKET_VALUES,
+  pageViewSupportsGrouping,
   Result,
+  readPageDateBucketKey,
   UNASSIGNED_GROUP_KEY,
 } from '@company-brain/shared';
 import type {
@@ -17,6 +21,11 @@ import { UNASSIGNED_GROUP_LABEL } from './schema-view.constants';
 const getGroupKey = (configuration: Readonly<Record<string, unknown>>): string | null => {
   const groupBy = configuration.groupBy;
   return typeof groupBy === 'string' ? groupBy : null;
+};
+
+const getDateBucket = (configuration: Readonly<Record<string, unknown>>): PageDateBucket => {
+  const bucket = configuration.groupByDateBucket;
+  return PAGE_DATE_BUCKET_VALUES.find((candidate) => candidate === bucket) ?? PAGE_DATE_BUCKET.DAY;
 };
 
 const findGroupingProperty = (
@@ -41,6 +50,19 @@ const readGroupKeyFrom = (value: unknown): null | string => {
 };
 
 /**
+ * El nombre del grupo al que va una fila, que en una fecha es el del tramo.
+ *
+ * Agrupar por fecha sin tramo es un grupo por día, y eso está bien para una
+ * semana de trabajo y no para un año. El tramo solo cambia cómo se reparten:
+ * lo que la fila guarda sigue siendo el día exacto.
+ */
+const readGroupKeyOf = (property: SchemaPropertyDefinition, bucket: PageDateBucket, value: unknown): null | string => {
+  const named = readGroupKeyFrom(value);
+  if (named === null || property.type !== DatabasePropertyType.DATE) return named;
+  return readPageDateBucketKey(named, bucket);
+};
+
+/**
  * Las columnas que ofrece una propiedad que no declara sus valores.
  *
  * Una selección dice de antemano qué opciones hay, y sus columnas salen de
@@ -51,12 +73,13 @@ const readGroupKeyFrom = (value: unknown): null | string => {
  */
 const listUndeclaredGroupKeys = (
   property: SchemaPropertyDefinition,
+  bucket: PageDateBucket,
   rows: readonly SchemaGroupableRow[],
 ): readonly string[] => {
   if (property.type === DatabasePropertyType.CHECKBOX) return ['true', 'false'];
   const named = new Set<string>();
   for (const row of rows) {
-    const key = readGroupKeyFrom(row.propertyValues[property.key]);
+    const key = readGroupKeyOf(property, bucket, row.propertyValues[property.key]);
     if (key !== null) named.add(key);
   }
   return [...named].sort((left, right) => left.localeCompare(right));
@@ -79,18 +102,24 @@ export const groupRowsForView = <TRow extends SchemaGroupableRow>(
   rows: readonly TRow[],
   compareRows: (left: TRow, right: TRow) => number = compareRowsByOrder,
 ): Result<readonly SchemaRowGroup<TRow>[], SchemaViewValidationError> => {
-  if (!pageViewRequiresGrouping(viewType))
+  /** Que pueda agrupar, no que tenga que: una tabla agrupa solo cuando se lo piden, y agrupa igual. */
+  if (!pageViewSupportsGrouping(viewType))
     return Result.fail(new SchemaViewValidationError('View does not read its rows in groups'));
   const groupKey = getGroupKey(configuration);
-  if (groupKey === null)
-    return Result.fail(new SchemaViewValidationError('Board groupBy must reference a SELECT property'));
+  if (groupKey === null) return Result.fail(new SchemaViewValidationError('groupBy must name a property'));
   const property = findGroupingProperty(properties, groupKey);
   if (property === null) {
-    return Result.fail(new SchemaViewValidationError('Board groupBy must reference a property that can make columns'));
+    return Result.fail(new SchemaViewValidationError('groupBy must reference a property that can make groups'));
   }
+  const bucket = getDateBucket(configuration);
   const groups =
     property.options === null
-      ? listUndeclaredGroupKeys(property, rows).map((key) => ({ color: null, key, label: key, rows: [] as TRow[] }))
+      ? listUndeclaredGroupKeys(property, bucket, rows).map((key) => ({
+          color: null,
+          key,
+          label: key,
+          rows: [] as TRow[],
+        }))
       : property.options.map((option) => ({
           color: option.color,
           key: option.value,
@@ -100,7 +129,7 @@ export const groupRowsForView = <TRow extends SchemaGroupableRow>(
   const unassigned = { color: null, key: UNASSIGNED_GROUP_KEY, label: UNASSIGNED_GROUP_LABEL, rows: [] as TRow[] };
   const groupsByKey = new Map(groups.map((group) => [group.key, group]));
   for (const row of [...rows].sort(compareRows)) {
-    const value = readGroupKeyFrom(row.propertyValues[groupKey]);
+    const value = readGroupKeyOf(property, bucket, row.propertyValues[groupKey]);
     const group = value === null ? undefined : groupsByKey.get(value);
     (group ?? unassigned).rows.push(row);
   }

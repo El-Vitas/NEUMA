@@ -69,6 +69,12 @@ export const PAGE_API_ROUTES = {
   restore: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/restore`,
   backlinks: (pageId: string) => `/api/v1/pages/${pageId}/backlinks`,
   schema: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/schema`,
+  /** Renombrar o quitar una opción, que es renombrar o quitar una columna del tablero, arrastrando las filas. */
+  rewriteOption: (spaceId: string, pageId: string, propertyKey: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/properties/${propertyKey}/rewrite-option`,
+  /** Lo que una vista dice de sí misma, sin rehacer la forma de la colección. */
+  viewConfiguration: (spaceId: string, pageId: string, viewName: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/views/${encodeURIComponent(viewName)}/configuration`,
   rows: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/rows`,
   view: (spaceId: string, pageId: string, viewName: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,

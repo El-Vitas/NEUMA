@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'bun:test';
+import { EMPTY_PAGE_VIEW_CONFIGURATION, readPageViewConfiguration } from '@company-brain/shared';
 import {
   addSchemaOption,
   addSchemaProperty,
   addSchemaView,
   buildPropertyKey,
   changeSchemaPropertyType,
+  convertSchemaView,
+  duplicateSchemaView,
+  listWhatConvertingDrops,
   makeSchemaViewDefault,
+  moveSchemaOption,
+  moveSchemaProperty,
   moveSchemaView,
   removeSchemaOption,
   removeSchemaProperty,
@@ -63,20 +69,14 @@ describe('toSavableView', () => {
       type: 'BOARD',
     };
 
-    expect(toSavableView(view).configuration).toEqual({
-      filter: null,
-      groupBy: 'status',
-      sorts: [],
-      subGroupBy: null,
-      visibleProperties: null,
-    });
+    expect(toSavableView(view).configuration).toEqual({ ...EMPTY_PAGE_VIEW_CONFIGURATION, groupBy: 'status' });
   });
 
   it('keeps the name, the type and which view is the default', () => {
     const view: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
 
     expect(toSavableView(view)).toEqual({
-      configuration: { filter: null, groupBy: null, sorts: [], subGroupBy: null, visibleProperties: null },
+      configuration: { ...EMPTY_PAGE_VIEW_CONFIGURATION },
       isDefault: true,
       name: 'Table',
       type: 'TABLE',
@@ -271,6 +271,142 @@ describe('moveSchemaView', () => {
   });
 });
 
+describe('moveSchemaProperty', () => {
+  const due: PageSchemaProperty = { key: 'due', label: 'Due', options: null, required: false, type: 'DATE' };
+
+  it('moves a property one place earlier', () => {
+    expect(moveSchemaProperty([title, status, due], 'due', 'EARLIER').map((property) => property.key)).toEqual([
+      'title',
+      'due',
+      'status',
+    ]);
+  });
+
+  it('moves a property one place later', () => {
+    expect(moveSchemaProperty([title, status, due], 'status', 'LATER').map((property) => property.key)).toEqual([
+      'title',
+      'due',
+      'status',
+    ]);
+  });
+
+  /** La columna del nombre va siempre primera, así que moverla no significaría nada. */
+  it('leaves the title where it is', () => {
+    expect(moveSchemaProperty([title, status], 'title', 'LATER')).toEqual([title, status]);
+  });
+
+  it('never pushes a property past the title', () => {
+    expect(moveSchemaProperty([title, status], 'status', 'EARLIER')).toEqual([title, status]);
+  });
+
+  it('does nothing to the last property asked to go later', () => {
+    expect(moveSchemaProperty([title, status], 'status', 'LATER')).toEqual([title, status]);
+  });
+});
+
+describe('duplicateSchemaView', () => {
+  const table: PageSchemaView = {
+    configuration: { groupBy: 'status', sorts: [{ direction: 'ASCENDING', propertyKey: 'status' }] },
+    isDefault: true,
+    name: 'Table',
+    type: 'TABLE',
+  };
+  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+
+  it('leaves the copy right next to the one it came from', () => {
+    expect(duplicateSchemaView([table, board], 'Table').map((view) => view.name)).toEqual([
+      'Table',
+      'Table (2)',
+      'Board',
+    ]);
+  });
+
+  /** Se duplica para cambiarle algo, así que lo que copia es todo lo que la vista dice de sí misma. */
+  it('copies everything the view said about itself', () => {
+    const copy = duplicateSchemaView([table, board], 'Table')[1];
+
+    expect(copy?.configuration).toEqual(table.configuration);
+    expect(copy?.type).toBe('TABLE');
+  });
+
+  /** Abrir la colección lleva a un sitio, no a dos: la copia nace sin la delantera. */
+  it('never takes over as the view the collection opens with', () => {
+    expect(duplicateSchemaView([table, board], 'Table')[1]?.isDefault).toBe(false);
+  });
+
+  it('keeps looking for a free name when the obvious one is taken', () => {
+    const taken: PageSchemaView = { configuration: {}, isDefault: false, name: 'Table (2)', type: 'TABLE' };
+
+    expect(duplicateSchemaView([table, taken], 'Table').map((view) => view.name)).toEqual([
+      'Table',
+      'Table (3)',
+      'Table (2)',
+    ]);
+  });
+
+  it('leaves alone a view nobody named', () => {
+    expect(duplicateSchemaView([table, board], 'Calendar')).toEqual([table, board]);
+  });
+});
+
+describe('convertSchemaView', () => {
+  const board: PageSchemaView = {
+    configuration: { columnWidths: { title: 320 }, groupBy: 'status', subGroupBy: 'priority' },
+    isDefault: false,
+    name: 'Board',
+    type: 'BOARD',
+  };
+
+  it('changes what the view is without touching what it reads', () => {
+    const converted = convertSchemaView([board], 'Board', 'TABLE', [title, status])[0];
+
+    expect(converted?.type).toBe('TABLE');
+    expect(readPageViewConfiguration(converted?.configuration).groupBy).toBe('status');
+  });
+
+  /** Cruzar en bandas es del tablero: una tabla dibuja una sola dimensión. */
+  it('drops the bands when what it becomes cannot draw them', () => {
+    const converted = convertSchemaView([board], 'Board', 'TABLE', [title, status])[0];
+
+    expect(readPageViewConfiguration(converted?.configuration).subGroupBy).toBeNull();
+  });
+
+  /** Ir y volver no cuesta el trabajo hecho: el ancho de las columnas no estorba en un tablero. */
+  it('keeps what the new kind of view simply ignores', () => {
+    const converted = convertSchemaView([board], 'Board', 'TABLE', [title, status])[0];
+
+    expect(readPageViewConfiguration(converted?.configuration).columnWidths).toEqual({ title: 320 });
+  });
+
+  it('gives a grouping to what cannot be drawn without one', () => {
+    const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+    const converted = convertSchemaView([table], 'Table', 'BOARD', [title, status])[0];
+
+    expect(readPageViewConfiguration(converted?.configuration).groupBy).toBe('status');
+  });
+
+  it('leaves the view alone when it already is what it was asked to become', () => {
+    expect(convertSchemaView([board], 'Board', 'BOARD', [title, status])).toEqual([board]);
+  });
+});
+
+describe('listWhatConvertingDrops', () => {
+  const board: PageSchemaView = {
+    configuration: { groupBy: 'status', subGroupBy: 'priority' },
+    isDefault: false,
+    name: 'Board',
+    type: 'BOARD',
+  };
+
+  it('says the bands go when what it becomes cannot draw them', () => {
+    expect(listWhatConvertingDrops(board, 'TABLE')).toEqual(['BANDS']);
+  });
+
+  it('says nothing goes when nothing does', () => {
+    expect(listWhatConvertingDrops({ ...board, configuration: { groupBy: 'status' } }, 'TABLE')).toEqual([]);
+  });
+});
+
 describe('changeSchemaPropertyType', () => {
   it('changes the type without touching the key its rows are stored under', () => {
     const properties = changeSchemaPropertyType([title, status], 'status', 'RICH_TEXT');
@@ -349,6 +485,27 @@ describe('updateSchemaOptionColor', () => {
       { color: null, value: 'todo' },
       { color: 'RED', value: 'done' },
     ]);
+  });
+});
+
+describe('moveSchemaOption', () => {
+  const optionsOf = (properties: readonly PageSchemaProperty[]) => properties[1]?.options?.map((one) => one.value);
+
+  it('puts the option right before the one it was dropped on', () => {
+    expect(optionsOf(moveSchemaOption([title, status], 'status', 'done', 'todo'))).toEqual(['done', 'todo']);
+  });
+
+  it('puts it last when it was dropped after everything', () => {
+    expect(optionsOf(moveSchemaOption([title, status], 'status', 'todo', null))).toEqual(['done', 'todo']);
+  });
+
+  it('leaves the shape alone when it lands where it already was', () => {
+    expect(moveSchemaOption([title, status], 'status', 'todo', 'todo')).toEqual([title, status]);
+  });
+
+  it('leaves the shape alone when either end is not there', () => {
+    expect(moveSchemaOption([title, status], 'status', 'nope', 'todo')).toEqual([title, status]);
+    expect(moveSchemaOption([title, status], 'status', 'todo', 'nope')).toEqual([title, status]);
   });
 });
 

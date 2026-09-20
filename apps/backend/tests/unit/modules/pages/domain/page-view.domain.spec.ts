@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
-import { buildPageViewOutcome } from '@/modules/pages/domain/page-view.domain';
+import { buildPageViewOutcome, countPageViewRows } from '@/modules/pages/domain/page-view.domain';
 import type { PageRowSummary } from '@/modules/pages/types/page-schema.types';
 
 const titleProperty = { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null };
@@ -185,5 +185,31 @@ describe('buildPageViewOutcome — ordering', () => {
     if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
     const todoGroup = outcome.groups.find((group) => group.key === 'todo');
     expect(todoGroup?.rows.map((row) => row.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('countPageViewRows', () => {
+  it('counts the rows of a view that reads them one after another', () => {
+    expect(countPageViewRows({ kind: 'FLAT_ROWS', rows: [buildRow({ id: 'a' }), buildRow({ id: 'b' })] })).toBe(2);
+  });
+
+  /** Una fila está en un grupo y en uno solo, así que sumar los grupos las cuenta a todas una vez. */
+  it('adds up what every group holds', () => {
+    const outcome = buildPageViewOutcome(
+      { configuration: { groupBy: 'status' }, isDefault: true, name: 'Board', type: DatabaseViewType.BOARD },
+      [titleProperty, statusProperty],
+      [
+        buildRow({ id: 'a', propertyValues: { status: 'todo' } }),
+        buildRow({ id: 'b', propertyValues: { status: 'done' } }),
+        buildRow({ id: 'c', propertyValues: {} }),
+      ],
+    );
+
+    expect(countPageViewRows(outcome)).toBe(3);
+  });
+
+  /** Sin la propiedad por la que agrupa no hay filas repartidas, y decir «ninguna» es lo cierto. */
+  it('counts none when the view could not even be read', () => {
+    expect(countPageViewRows({ kind: 'MISSING_GROUPING_PROPERTY' })).toBe(0);
   });
 });

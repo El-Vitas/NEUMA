@@ -73,3 +73,14 @@ export const pageViewOutcomeSchema = z.discriminatedUnion('kind', [
   z.object({ groups: z.array(pageViewGroupSchema), kind: z.literal('GROUPED_ROWS') }),
   z.object({ kind: z.literal('MISSING_GROUPING_PROPERTY') }),
 ]);
+
+/**
+ * Lo que la colección contesta al pedirle una vista: sus filas repartidas, y de
+ * cuántas salieron. Las cuentas vienen de allá porque allá están todas las
+ * filas: aquí solo llegan las que la vista dejó pasar.
+ */
+export const pageViewReadingSchema = z.object({
+  outcome: pageViewOutcomeSchema,
+  rowCount: z.number().int().min(0),
+  totalRowCount: z.number().int().min(0),
+});

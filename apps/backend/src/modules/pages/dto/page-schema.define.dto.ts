@@ -78,6 +78,29 @@ export class PageSchemaViewDto {
   isDefault!: boolean;
 }
 
+/**
+ * De qué nombre viene una opción y a cuál va, que es lo que la forma sola no
+ * puede deducir. Sin nombre nuevo, la opción se quita.
+ */
+export class RewritePageOptionDto {
+  @IsString()
+  @MaxLength(120)
+  @MinLength(1)
+  from!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  @MinLength(1)
+  to?: string;
+}
+
+/** Lo que una vista dice de sí misma, sin tocar la forma de la colección. */
+export class SetPageViewConfigurationDto {
+  @IsObject()
+  configuration!: Prisma.InputJsonObject;
+}
+
 export class DefinePageSchemaDto {
   @IsArray()
   @Type(() => PageSchemaPropertyDto)

@@ -1,4 +1,8 @@
 enum DatabaseViewType {
   TABLE
   BOARD
+  LIST
+  GALLERY
+  CALENDAR
+  CHART
 }

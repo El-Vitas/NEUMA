@@ -66,3 +66,25 @@ export const PAGE_OPTION_DOT_CLASSES: Readonly<Record<PageOptionColor, string>> 
 
 /** El punto de un valor que no eligió color. */
 export const PAGE_OPTION_NO_DOT_CLASS = 'bg-muted-foreground/50';
+
+/**
+ * El mismo color, pero para pintar una figura de un dibujo.
+ *
+ * Un gráfico pinta formas y no cajas, y va a fondo lleno: aquí el color **es**
+ * el dato, no el adorno de una etiqueta. Cada tono se aclara en modo oscuro,
+ * porque un azul que se lee sobre papel se pierde sobre un fondo negro.
+ */
+export const PAGE_OPTION_FILL_CLASSES: Readonly<Record<PageOptionColor, string>> = {
+  GRAY: 'fill-neutral-500 dark:fill-neutral-400',
+  BROWN: 'fill-amber-800 dark:fill-amber-500',
+  ORANGE: 'fill-orange-500 dark:fill-orange-400',
+  YELLOW: 'fill-yellow-500 dark:fill-yellow-400',
+  GREEN: 'fill-green-600 dark:fill-green-400',
+  BLUE: 'fill-blue-600 dark:fill-blue-400',
+  PURPLE: 'fill-purple-600 dark:fill-purple-400',
+  PINK: 'fill-pink-500 dark:fill-pink-400',
+  RED: 'fill-red-600 dark:fill-red-400',
+};
+
+/** Lo que se pinta cuando el valor no eligió color: la tinta del tema, que se da vuelta sola. */
+export const PAGE_OPTION_NO_FILL_CLASS = 'fill-muted-foreground';

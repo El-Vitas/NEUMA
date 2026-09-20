@@ -17,7 +17,9 @@ import {
   pageCollectionCreateSchema,
   pageCollectionReadSchema,
   pageCollectionUpdateSchema,
+  pageOptionRewriteSchema,
   pageRowPropertiesSchema,
+  pageViewConfigurationUpdateSchema,
 } from '../../schemas/pages.collections.schemas';
 import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
 import type { PageSchema } from '../../types/pages.schema.types';
@@ -83,6 +85,51 @@ export const updatePageCollectionAction = actionClient
         PAGE_API_ROUTES.schema(parsedInput.spaceId, parsedInput.pageId),
         'POST',
         { properties: parsedInput.properties, views: parsedInput.views },
+      );
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSchemaSchema.parse(updated);
+    }),
+  );
+
+/**
+ * Cambia lo que una vista dice de sí misma: por qué agrupa, qué filtra, qué
+ * calcula, cómo se la está mirando.
+ *
+ * Va aparte de cambiar la forma porque no la toca. Mandar la colección entera
+ * para doblar una franja o mover un borde reescribe cada propiedad y cada vista,
+ * que es mucho trabajo para un gesto y una ventana donde el cambio de otra
+ * persona se pierde.
+ */
+export const updatePageViewConfigurationAction = actionClient
+  .inputSchema(pageViewConfigurationUpdateSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'updatePageViewConfiguration' }, async (): Promise<PageSchema> => {
+      const updated = await authenticatedRequest(
+        PAGE_API_ROUTES.viewConfiguration(parsedInput.spaceId, parsedInput.pageId, parsedInput.viewName),
+        'POST',
+        { configuration: parsedInput.configuration },
+      );
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSchemaSchema.parse(updated);
+    }),
+  );
+
+/**
+ * Renombra una columna del tablero, o la quita.
+ *
+ * Va por su propio camino y no por el que cambia la forma entera porque solo
+ * aquí se dice de qué nombre viene: sin eso, el servidor no podría reescribir lo
+ * que las filas guardaron y todas las que estaban en esa columna se quedarían
+ * diciendo algo que la colección ya no reconoce.
+ */
+export const rewritePageCollectionOptionAction = actionClient
+  .inputSchema(pageOptionRewriteSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'rewritePageCollectionOption' }, async (): Promise<PageSchema> => {
+      const updated = await authenticatedRequest(
+        PAGE_API_ROUTES.rewriteOption(parsedInput.spaceId, parsedInput.pageId, parsedInput.propertyKey),
+        'POST',
+        { from: parsedInput.from, ...(parsedInput.to === null ? {} : { to: parsedInput.to }) },
       );
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
       return pageSchemaSchema.parse(updated);

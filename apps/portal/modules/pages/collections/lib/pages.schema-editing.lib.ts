@@ -1,9 +1,18 @@
-import type { PageOptionColor, PagePropertyOption, PagePropertyType, PageViewType } from '@company-brain/shared';
+import type {
+  PageOptionColor,
+  PagePropertyOption,
+  PagePropertyType,
+  PageViewConfiguration,
+  PageViewType,
+} from '@company-brain/shared';
 import {
   canPagePropertyGroupBoard,
   isTitlePageProperty,
+  PAGE_PROPERTY_TYPE,
+  PAGE_VIEW_TYPE,
   pagePropertyRequiresOptions,
   pageViewRequiresGrouping,
+  pageViewSupportsGrouping,
   pickPageOptionColor,
   readPageViewConfiguration,
 } from '@company-brain/shared';
@@ -77,6 +86,11 @@ const describeANewView = (
   type: PageViewType,
   properties: readonly PageSchemaProperty[],
 ): PageSchemaView['configuration'] => {
+  /** Un calendario sin fecha no coloca nada, así que nace con la primera que la colección guarde. */
+  if (type === PAGE_VIEW_TYPE.CALENDAR) {
+    const dateProperty = properties.find((property) => property.type === PAGE_PROPERTY_TYPE.DATE)?.key;
+    return dateProperty === undefined ? {} : { dateProperty };
+  }
   if (!pageViewRequiresGrouping(type)) return {};
   const groupBy = properties.find((property) => canPagePropertyGroupBoard(property.type))?.key;
   return groupBy === undefined ? {} : { groupBy };
@@ -102,6 +116,102 @@ export const addSchemaView = (
     { configuration: describeANewView(added.type, properties), isDefault: false, name: named, type: added.type },
   ];
 };
+
+/**
+ * Un nombre libre parecido al que se copió: «Tabla (2)», y si ese ya está, el
+ * siguiente. El nombre es la dirección de la vista, así que dos no pueden
+ * llamarse igual.
+ */
+const nameTheCopyOf = (name: string, views: readonly PageSchemaView[]): string => {
+  const taken = new Set(views.map((view) => view.name));
+  let attempt = 2;
+  while (taken.has(`${name} (${attempt})`)) attempt += 1;
+  return `${name} (${attempt})`;
+};
+
+/**
+ * La misma vista otra vez, para cambiarle algo sin perder la que ya estaba.
+ *
+ * Copia todo lo que la vista dice de sí misma —qué filtra, cómo ordena, qué
+ * enseña— porque quien duplica quiere partir de ahí y no de cero. Queda pegada
+ * a la original, que es donde se la busca, y nunca se lleva la delantera:
+ * abrir la colección lleva a un sitio y no a dos.
+ */
+export const duplicateSchemaView = (views: readonly PageSchemaView[], name: string): readonly PageSchemaView[] => {
+  const from = views.findIndex((view) => view.name === name);
+  const original = views[from];
+  if (original === undefined) return views;
+  const copy: PageSchemaView = {
+    configuration: { ...original.configuration },
+    isDefault: false,
+    name: nameTheCopyOf(name, views),
+    type: original.type,
+  };
+  return [...views.slice(0, from + 1), copy, ...views.slice(from + 1)];
+};
+
+/**
+ * Lo que se pierde al cambiar una vista de clase.
+ *
+ * Solo lo que la clase nueva no sabe dibujar de ninguna manera. Lo que
+ * simplemente no usa —el ancho de las columnas en un tablero— se queda donde
+ * está: ir a tablero y volver no tiene por qué costar el trabajo hecho.
+ */
+export const listWhatConvertingDrops = (view: PageSchemaView, type: PageViewType): readonly string[] => {
+  const configuration = readPageViewConfiguration(view.configuration);
+  const dropped: string[] = [];
+  if (configuration.subGroupBy !== null && type !== PAGE_VIEW_TYPE.BOARD) dropped.push('BANDS');
+  if (configuration.groupBy !== null && !pageViewSupportsGrouping(type)) dropped.push('GROUPING');
+  return dropped;
+};
+
+/**
+ * Por dónde agrupa la vista después de cambiar de clase.
+ *
+ * Se respeta lo que ya decía mientras la clase nueva lo entienda. Si no lo
+ * entiende, se va; si lo necesita y no lo había, se rellena con la primera
+ * propiedad que sirva.
+ */
+const regroupForConversion = (
+  configuration: PageViewConfiguration,
+  type: PageViewType,
+  properties: readonly PageSchemaProperty[],
+  dropped: readonly string[],
+): { readonly groupBy?: null | string } => {
+  if (dropped.includes('GROUPING')) return { groupBy: null };
+  if (configuration.groupBy !== null) return {};
+  return describeANewView(type, properties);
+};
+
+/**
+ * Las mismas filas miradas de otra manera, sin volver a decir cómo mirarlas.
+ *
+ * Cambiar de clase no toca las filas: lo que cambia es qué dibuja la vista. Se
+ * queda todo lo que la clase nueva sigue entendiendo, y lo que no —las bandas
+ * fuera de un tablero— se va. Lo que la clase nueva necesita y no había —la
+ * agrupación de un tablero— se rellena, porque una vista que no se puede
+ * dibujar tumbaría al guardar la colección entera.
+ */
+export const convertSchemaView = (
+  views: readonly PageSchemaView[],
+  name: string,
+  type: PageViewType,
+  properties: readonly PageSchemaProperty[],
+): readonly PageSchemaView[] =>
+  views.map((view) => {
+    if (view.name !== name || view.type === type) return view;
+    const configuration = readPageViewConfiguration(view.configuration);
+    const dropped = listWhatConvertingDrops(view, type);
+    return {
+      ...view,
+      configuration: {
+        ...configuration,
+        ...regroupForConversion(configuration, type, properties, dropped),
+        ...(dropped.includes('BANDS') ? { subGroupBy: null } : {}),
+      },
+      type,
+    };
+  });
 
 /**
  * Quita una manera de mirar, salvo que sea la última.
@@ -177,6 +287,34 @@ export const addSchemaProperty = (
     type: added.type,
   },
 ];
+
+/**
+ * Cambia de sitio una propiedad entre sus hermanas.
+ *
+ * Este orden es el de la colección, así que manda en todas las vistas que no
+ * eligieron el suyo: cambiarlo aquí reordena las columnas de esas tablas y lo
+ * que dicen esas tarjetas, sin tocar a quien sí eligió.
+ *
+ * La del nombre se queda donde está: va siempre primera —es la que abre cada
+ * fila—, así que moverla no significaría nada y llevar otra por delante de ella
+ * tampoco.
+ */
+export const moveSchemaProperty = (
+  properties: readonly PageSchemaProperty[],
+  key: string,
+  direction: 'EARLIER' | 'LATER',
+): readonly PageSchemaProperty[] => {
+  const from = properties.findIndex((property) => property.key === key);
+  const to = direction === 'EARLIER' ? from - 1 : from + 1;
+  const taken = properties[from];
+  const displaced = properties[to];
+  if (taken === undefined || displaced === undefined) return properties;
+  if (isTitlePageProperty(taken.type) || isTitlePageProperty(displaced.type)) return properties;
+  const moved = [...properties];
+  moved.splice(from, 1);
+  moved.splice(to, 0, taken);
+  return moved;
+};
 
 /**
  * Removes a property, unless it is the one that names each row.
@@ -261,6 +399,23 @@ const withOptions = (
     return rewritten === null ? property : { ...property, options: rewritten };
   });
 
+/**
+ * Si ese nombre ya lo lleva otra opción de la misma propiedad.
+ *
+ * Dos opciones con el mismo nombre serían dos columnas respondiendo a lo mismo,
+ * y ninguna fila sabría en cuál está. Se pregunta antes de mandarlo para poder
+ * decir qué pasa, en vez de recibir de vuelta un «algo salió mal».
+ */
+export const isSchemaOptionNameTaken = (
+  properties: readonly PageSchemaProperty[],
+  key: string,
+  name: string,
+): boolean => {
+  const named = name.trim();
+  const options = properties.find((property) => property.key === key)?.options ?? [];
+  return options.some((option) => option.value === named);
+};
+
 /** Adds a choice, with a color of its own so a board tells one column from the next. */
 export const addSchemaOption = (
   properties: readonly PageSchemaProperty[],
@@ -301,6 +456,51 @@ export const updateSchemaOptionColor = (
   withOptions(properties, key, (options) =>
     options.map((option) => (option.value === value ? { ...option, color } : option)),
   );
+
+const placeOptionAt = (
+  options: readonly PagePropertyOption[],
+  value: string,
+  at: number,
+): readonly PagePropertyOption[] | null => {
+  const taken = options.find((option) => option.value === value);
+  if (taken === undefined || at === -1) return null;
+  const rest = options.filter((option) => option.value !== value);
+  return [...rest.slice(0, at), taken, ...rest.slice(at)];
+};
+
+/**
+ * Cambia una opción de sitio, poniéndola justo antes de otra.
+ *
+ * Se dice «antes de cuál» y no «cuántos puestos», porque lo que se hace al
+ * arrastrar es soltar en un hueco entre dos, y ese hueco se nombra por lo que
+ * queda a su derecha. Soltarla al final es no tener nada a la derecha.
+ */
+export const moveSchemaOption = (
+  properties: readonly PageSchemaProperty[],
+  key: string,
+  value: string,
+  beforeValue: null | string,
+): readonly PageSchemaProperty[] =>
+  withOptions(properties, key, (options) => {
+    if (value === beforeValue) return null;
+    const rest = options.filter((option) => option.value !== value);
+    const at = beforeValue === null ? rest.length : rest.findIndex((option) => option.value === beforeValue);
+    return placeOptionAt(options, value, at);
+  });
+
+/** Un puesto a un lado o al otro, que es lo que significa moverla con el teclado. */
+export const moveSchemaOptionSideways = (
+  properties: readonly PageSchemaProperty[],
+  key: string,
+  value: string,
+  direction: 'EARLIER' | 'LATER',
+): readonly PageSchemaProperty[] =>
+  withOptions(properties, key, (options) => {
+    const from = options.findIndex((option) => option.value === value);
+    const at = direction === 'EARLIER' ? from - 1 : from + 1;
+    if (from === -1 || at < 0 || at >= options.length) return null;
+    return placeOptionAt(options, value, at);
+  });
 
 export const removeSchemaOption = (
   properties: readonly PageSchemaProperty[],

@@ -34,3 +34,15 @@ export interface PageCollectionInsert {
   readonly spaceId: string;
   readonly viewName: string | null;
 }
+
+/**
+ * La colección ya elegida mientras se pregunta cuál de sus vistas se muestra.
+ *
+ * Lleva también dónde se había quedado la escritura: elegir en un diálogo se
+ * lleva el cursor, y el bloque tiene que caer donde estaba y no al final.
+ */
+export interface PageEditorCollectionChoice {
+  readonly pageId: string;
+  readonly spot: number;
+  readonly views: readonly PageCollectionView[];
+}

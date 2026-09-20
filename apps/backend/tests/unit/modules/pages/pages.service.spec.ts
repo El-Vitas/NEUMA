@@ -93,7 +93,9 @@ const createRepository = (): PageRepositoryContract => ({
 const createSchemaRepository = (): PageSchemaRepositoryContract => ({
   defineSchema: (pageId, properties, views) => Promise.resolve({ pageId, properties, views }),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
+  rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
   resolveSchemaProperties: () => Promise.resolve([]),
+  setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
   listRows: () => Promise.resolve([]),
   listWorkspaceMemberIds: () => Promise.resolve([]),
 });

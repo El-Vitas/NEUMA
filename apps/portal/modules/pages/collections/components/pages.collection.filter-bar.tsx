@@ -33,10 +33,10 @@ export const PagesCollectionFilterBar = ({ activeViewName, schema, spaceId }: IP
         <PopoverTrigger asChild>
           <Button className="min-h-11 rounded-md text-muted-foreground" size="sm" type="button" variant="ghost">
             <Filter aria-hidden="true" className="size-4" />
-            {filtering.conditions.length === 0 ? t('filter') : t('filterCount', { count: filtering.conditions.length })}
+            {filtering.conditionCount === 0 ? t('filter') : t('filterCount', { count: filtering.conditionCount })}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[min(36rem,calc(100vw-2rem))]">
+        <PopoverContent align="start" className="w-[min(46rem,calc(100vw-2rem))]">
           <PagesCollectionFilterEditor filtering={filtering} properties={schema.properties} />
         </PopoverContent>
       </Popover>
