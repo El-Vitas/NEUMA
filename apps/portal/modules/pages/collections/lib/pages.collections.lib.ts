@@ -41,6 +41,16 @@ export const describeANewCollection = (wording: PageCollectionWording): PageColl
   ],
 });
 
+/**
+ * Cómo se nombra una colección dibujada dentro de otra página.
+ *
+ * Lleva la vista además de la página porque una misma colección se muestra dos
+ * veces en la misma página mirada de dos maneras —un gráfico arriba y su tabla
+ * más abajo—, y nombrándolas solo por la página las dos dibujarían lo mismo.
+ */
+export const readEmbeddedCollectionKey = (pageId: string, viewName: null | string | undefined): string =>
+  `${pageId}|${viewName ?? ''}`;
+
 /** Which view of a collection a block shows: the one it was told, or the one the collection leads with. */
 export const readTheViewToShow = (
   views: readonly { readonly isDefault: boolean; readonly name: string }[],

@@ -12,10 +12,11 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
 import { Action, Resource } from '../../common/constants/permission.constants';
+import { THROTTLER_NAMES } from '../../common/constants/throttler.constants';
 import { canRenameUser } from '../../common/domain/workspace.domain';
 import { Permissions } from '../../common/infrastructure/decorators/permissions.decorator';
 import { Public } from '../../common/infrastructure/decorators/public.decorator';
@@ -52,6 +53,8 @@ export class UsersController {
   @HttpCode(HTTP_STATUS_CREATED)
   @Post()
   @Public()
+  /* Cada cuenta dice bajo qué cuentas está: la de exportar es de otra puerta y no tiene nada que ver con esta. */
+  @SkipThrottle({ [THROTTLER_NAMES.exports]: true })
   @UseGuards(ThrottlerGuard)
   async register(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<AuthSession> {
     const result = await this.usersService.createUser(dto);

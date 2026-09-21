@@ -1,4 +1,9 @@
-import { PAGE_LIFECYCLE_VALUES, PAGE_PROPERTY_TYPE_VALUES, PAGE_VIEW_TYPE_VALUES } from '@company-brain/shared';
+import {
+  PAGE_LIFECYCLE_VALUES,
+  PAGE_OPTION_COLOR_VALUES,
+  PAGE_PROPERTY_TYPE_VALUES,
+  PAGE_VIEW_TYPE_VALUES,
+} from '@company-brain/shared';
 import { z } from 'zod';
 
 export const pagePropertyTypeSchema = z.enum(PAGE_PROPERTY_TYPE_VALUES);
@@ -7,10 +12,15 @@ export const pagePropertyValueSchema = z.union([z.string(), z.number(), z.boolea
 
 export const pagePropertyValuesSchema = z.record(z.string(), pagePropertyValueSchema);
 
+export const pagePropertyOptionSchema = z.object({
+  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
+  value: z.string(),
+});
+
 export const pageSchemaPropertySchema = z.object({
   key: z.string(),
   label: z.string(),
-  options: z.array(z.string()).nullable(),
+  options: z.array(pagePropertyOptionSchema).nullable(),
   required: z.boolean(),
   type: pagePropertyTypeSchema,
 });
@@ -43,14 +53,35 @@ export const pageRowSchema = z.object({
 
 export const pageRowsSchema = z.array(pageRowSchema);
 
-export const pageBoardColumnSchema = z.object({
+export const pageViewGroupSchema = z.object({
+  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
   key: z.string(),
   label: z.string(),
   rows: pageRowsSchema,
 });
 
+export const pageViewBandSchema = z.object({
+  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
+  groups: z.array(pageViewGroupSchema),
+  key: z.string(),
+  label: z.string(),
+});
+
 export const pageViewOutcomeSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('TABLE_ROWS'), rows: pageRowsSchema }),
-  z.object({ columns: z.array(pageBoardColumnSchema), kind: z.literal('BOARD_COLUMNS') }),
-  z.object({ kind: z.literal('BOARD_MISSING_GROUPING_PROPERTY') }),
+  z.object({ bands: z.array(pageViewBandSchema), kind: z.literal('BANDED_ROWS') }),
+  z.object({ kind: z.literal('FLAT_ROWS'), rows: pageRowsSchema }),
+  z.object({ groups: z.array(pageViewGroupSchema), kind: z.literal('GROUPED_ROWS') }),
+  z.object({ kind: z.literal('MISSING_GROUPING_PROPERTY') }),
 ]);
+
+/**
+ * Lo que la colección contesta al pedirle una vista: sus filas repartidas, y de
+ * cuántas salieron. Las cuentas vienen de allá porque allá están todas las
+ * filas: aquí solo llegan las que la vista dejó pasar.
+ */
+export const pageViewReadingSchema = z.object({
+  hasMore: z.boolean(),
+  outcome: pageViewOutcomeSchema,
+  rowCount: z.number().int().min(0),
+  totalRowCount: z.number().int().min(0),
+});

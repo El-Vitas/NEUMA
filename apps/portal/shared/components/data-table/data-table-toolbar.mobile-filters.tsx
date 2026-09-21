@@ -1,6 +1,6 @@
 'use client';
 
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -10,14 +10,15 @@ import { DataTableMobileFacetedFilter } from '@/shared/components/data-table/dat
 import { DataTableToolbarFilter } from '@/shared/components/data-table/data-table-toolbar-filters';
 import { MobileSelectFilter } from '@/shared/components/data-table/mobile-select-filter';
 import { getStringFilterValue } from '@/shared/lib/data-table.lib';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface MobileFiltersProps<TData> {
-  readonly columns: Column<TData>[];
+interface MobileFiltersProps<TData extends RowData> {
+  readonly columns: Column<DataTableFeatures, TData, unknown>[];
   readonly isFiltered: boolean;
   readonly onReset: () => void;
 }
 
-export const MobileFilters = <TData,>({ columns, isFiltered, onReset }: MobileFiltersProps<TData>) => {
+export const MobileFilters = <TData extends RowData>({ columns, isFiltered, onReset }: MobileFiltersProps<TData>) => {
   const t = useTranslations('common');
   return (
     <div className="flex flex-col gap-3 border-border border-t p-3">

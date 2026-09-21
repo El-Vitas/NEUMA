@@ -38,6 +38,35 @@ rules:
     context: >-
       El espacio entre el nombre y la tarjeta pertenece a la tarjeta, así que bajar nunca es salir. Por llevar algo
       dentro que se puede alcanzar, la tarjeta no es un rótulo de ayuda.
+  - id: BR-1224d28
+    status: active
+    title: Se exporta también una selección suelta de páginas
+    rule: >-
+      Además de una página, una rama o un espacio entero, se exporta la selección que alguien haya marcado en la barra
+      lateral. Salen exactamente las páginas marcadas y ninguna más: lo que cuelga de una página marcada no viaja si no
+      fue marcado también. Salen en el orden del árbol, cada una con el camino donde vivía. Una selección que no nombra
+      ninguna página se rechaza, y quien no podría abrir una de esas páginas de a una tampoco la recibe aquí.
+    why: >-
+      Quien se lleva material para un informe elige páginas que no forman una rama: tres de un espacio y dos de otra
+      parte del mismo. Sin selección tendría que exportar de a una y armar las carpetas a mano, o exportar el espacio
+      entero y borrar lo que sobra.
+    context: >-
+      El límite es de doscientas páginas por selección, para que una consulta no pueda pedir el mundo. Marcar una página
+      no arrastra a sus hijas porque marcar es un gesto explícito: si alguien quiere la rama completa, la rama ya tiene
+      su propio alcance.
+    scenarios:
+      - title: Dos páginas sueltas
+        given: Dos páginas marcadas en la barra lateral, de ramas distintas
+        when: Se exporta la selección
+        then: Se descarga un comprimido con esas dos páginas y las carpetas donde vivían
+      - title: Marcar una madre no arrastra a las hijas
+        given: Una página con subpáginas, marcada ella sola
+        when: Se exporta la selección
+        then: Sale solo esa página, sin lo que cuelga de ella
+      - title: Una selección vacía no se exporta
+        given: Ninguna página marcada
+        when: Se pide exportar la selección
+        then: No se exporta nada y el botón permanece inactivo
   - id: BR-6191a45
     status: active
     title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
@@ -97,6 +126,34 @@ rules:
     context: >-
       Fallar al registrar una visita nunca impide leer la página; el fallo queda en la bitácora y nada más. La ventana
       para no contar dos veces es de media hora.
+  - id: BR-93c3fc8
+    status: active
+    title: Una página ilegible no se lleva por delante el espacio entero
+    rule: >-
+      Al leer las páginas de un espacio, la que esta versión no sepa leer se deja fuera de la lista y las demás siguen.
+      Que quedó fuera se registra, diciendo cuántas y desde qué lectura, para que alguien pueda ir a arreglarla. Un
+      espacio no deja de responder por una de sus páginas.
+    why: >-
+      La lista se leía entera o no se leía, así que una sola página guardada por otra versión, arreglada a mano en la
+      base o dejada a medias por una migración hacía fallar la lectura del espacio completo, y entonces ninguna de sus
+      páginas se podía abrir. El daño de una página estropeada tiene que ser esa página, no todo lo que la acompaña. Y
+      dejarla fuera sin decirlo sería perderla igual, solo que en silencio.
+    context: >-
+      Es la misma idea que ya rige al exportar, donde una página ilegible no invalida el archivo entero. Una respuesta
+      que ni siquiera llega como una lista es otra cosa —no una página estropeada— y esa sí corta la lectura.
+    scenarios:
+      - title: Una página que no se deja leer
+        given: Un espacio con varias páginas, una de ellas guardada de una forma que esta versión no entiende
+        when: Se abre cualquier página del espacio
+        then: La página se abre, y en el costado aparecen todas menos la que no se pudo leer
+      - title: Queda dicho lo que faltó
+        given: Una lista de la que quedó fuera una página
+        when: Se termina de leer
+        then: Se registra cuántas quedaron fuera y desde qué lectura
+      - title: Una respuesta que no es una lista
+        given: Una respuesta que no llega como lista de páginas
+        when: Se intenta leer
+        then: La lectura falla, en vez de seguir como si el espacio estuviera vacío
   - id: BR-a096152
     status: active
     title: Una copia nace junto a su original y solo ella cambia de nombre
@@ -124,6 +181,31 @@ rules:
     context: >-
       Reordenar renumera la fila completa desde arriba: dos hermanas empatadas harían caer el siguiente arrastre donde
       nadie apuntó. Una página soltada junto a las hijas de otra madre primero cambia de madre y después se coloca.
+  - id: BR-ac96db4
+    status: active
+    title: Exportar se cuenta por persona, y de a pocas por minuto
+    rule: >-
+      Pedir una exportación tiene un tope de cuántas veces seguidas se admite por minuto. Se cuenta por quien pide y no
+      por desde dónde pide, porque exportar exige sesión y una oficina entera comparte una dirección. Pasado el tope se
+      responde que se pidió demasiado seguido, y ninguna otra puerta del sistema queda afectada por ese tope: entrar,
+      renovar la sesión o crear una cuenta siguen contándose por su cuenta.
+    why: >-
+      Exportar lee todas las páginas activas del alcance pedido, se trae sus adjuntos y arma el archivo en memoria: es
+      de lo más caro que el servidor hace por una sola petición. Una pestaña que reintenta sola, o alguien probando,
+      tumba el servicio para todos los demás. Contar por dirección castigaría a quien comparte oficina y no pidió nada.
+    scenarios:
+      - title: Exportar unas cuantas veces
+        given: Una persona con sesión iniciada
+        when: Pide exportar dentro del tope del minuto
+        then: Cada exportación se entrega
+      - title: Pasarse del tope
+        given: Una persona que ya agotó su tope del minuto
+        when: Pide otra exportación
+        then: Se le responde que pidió demasiado seguido
+      - title: Las demás puertas no se ven afectadas
+        given: Una persona que ya agotó su tope de exportaciones
+        when: Inicia sesión otra vez
+        then: Entra con normalidad
   - id: BR-b3786ed
     status: active
     title: La posición de lectura se guarda por página y dura lo que la pestaña
@@ -233,6 +315,37 @@ rules:
         given: Un espacio donde una página tiene el cuerpo guardado en un formato irreconocible
         when: Se exporta el espacio entero
         then: Se descarga el archivo con todas las páginas, y la ilegible aparece con su nombre y sin cuerpo
+  - id: BR-ef13a8b
+    status: active
+    title: Lo exportado se abre sin conexión, con los adjuntos dentro y los enlaces al archivo vecino
+    rule: >-
+      El comprimido de una exportación lleva dentro los archivos que cuelgan de las páginas exportadas, todos en una
+      carpeta común llamada assets. Lo que la página mostraba apunta a ese archivo por un camino relativo, igual que un
+      enlace a otra página que también viajó. Un enlace a una página que se quedó fuera se deja tal como estaba. Un
+      adjunto que el almacenamiento ya no puede entregar se omite del comprimido sin tumbar la exportación, y el texto
+      que lo mencionaba sigue diciendo qué era.
+    why: >-
+      Una exportación que necesita el servidor encendido para verse no es una copia: es un espejo. Quien se lleva un
+      manual lo abre en un computador sin sesión, o lo guarda por años. Con caminos relativos el comprimido funciona en
+      cualquier carpeta donde se descomprima, y con los adjuntos dentro no hay imágenes rotas.
+    context: >-
+      Los adjuntos van en una carpeta común y no junto a cada página porque la misma imagen puede aparecer en varias
+      páginas y hay una sola de ella. Cada archivo lleva por delante su identificador, para que dos adjuntos con el
+      mismo nombre no se pisen. Un bloque de archivo conserva el identificador que ya tenía y gana el camino al lado,
+      para que el comprimido lo abra una persona y siga volviendo entero al importarse.
+    scenarios:
+      - title: Una imagen viaja con la página
+        given: Una página con una imagen subida
+        when: Se exporta junto a otra página
+        then: El comprimido incluye la imagen en assets y el Markdown apunta a ella por camino relativo
+      - title: Un enlace entre dos páginas exportadas
+        given: Dos páginas exportadas juntas, una menciona a la otra
+        when: Se abre el archivo de la primera
+        then: La mención apunta al archivo de la segunda por camino relativo
+      - title: Un enlace a una página que no viajó
+        given: Una página exportada que menciona otra que quedó fuera
+        when: Se abre el archivo exportado
+        then: La mención queda tal como estaba, sin apuntar a un archivo que no existe
   - id: BR-f033642
     status: active
     title: Lo que la búsqueda sabe de una página se rehace cada vez que la página cambia

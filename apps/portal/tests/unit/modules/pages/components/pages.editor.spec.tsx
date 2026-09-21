@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { PAGE_APPEARANCE_WIDTH_STYLE_CLASS } from '@/modules/pages/appearance/constants/pages.appearance.constants';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
+import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('server-only', () => ({}));
 
@@ -130,7 +131,7 @@ describe('a page hanging from a collection', () => {
               {
                 key: 'status',
                 label: 'Status',
-                options: ['todo', 'in_progress', 'done'],
+                options: asPropertyOptions('todo', 'in_progress', 'done'),
                 required: true,
                 type: 'SELECT',
               },

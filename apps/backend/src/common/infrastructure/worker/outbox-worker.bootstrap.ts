@@ -37,6 +37,11 @@ export const runOutboxProjectionWorkerBootstrap = async <TApplication extends Ou
     requestShutdown('SIGTERM');
   };
 
+  // Los tipos de Bun añaden su propio `off`/`removeListener` a `process`, y esa
+  // sobrecarga tapa la que Node declara para las señales. El emisor de eventos,
+  // que es lo que `process` es, sigue aceptándolas.
+  const processEvents: NodeJS.EventEmitter = process;
+
   process.once('SIGINT', handleSigint);
   process.once('SIGTERM', handleSigterm);
   logger.info(`${workerLabel} started`);
@@ -50,8 +55,8 @@ export const runOutboxProjectionWorkerBootstrap = async <TApplication extends Ou
     logger.error({ err: error }, `${workerLabel} failed`);
     throw error;
   } finally {
-    process.removeListener('SIGINT', handleSigint);
-    process.removeListener('SIGTERM', handleSigterm);
+    processEvents.off('SIGINT', handleSigint);
+    processEvents.off('SIGTERM', handleSigterm);
     await application.close();
     logger.info(`${workerLabel} stopped`);
   }

@@ -1,15 +1,20 @@
 'use client';
 
-import type { ColumnDef, Table as TanstackTable } from '@tanstack/react-table';
+import type { ColumnDef, RowData, Table as TanstackTable } from '@tanstack/react-table';
 import { Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { DataTableCard } from '@/shared/components/data-table/data-table-card';
 import { PageHeader } from '@/shared/components/ui/page-header';
 import { useEntityTable, useNoOpExportHandlers } from '@/shared/hooks/use-entity-table.hook';
-import type { BuildTableUrlParams, EntityTableExportHandlers, UseEntityTableOptions } from '@/shared/types/table.types';
+import type {
+  BuildTableUrlParams,
+  DataTableFeatures,
+  EntityTableExportHandlers,
+  UseEntityTableOptions,
+} from '@/shared/types/table.types';
 
-interface IProps<TData> {
+interface IProps<TData extends RowData> {
   readonly data: TData[];
   readonly total: number;
   readonly page: number;
@@ -17,17 +22,17 @@ interface IProps<TData> {
   readonly title: string;
   readonly subtitle: string | ((total: number) => string);
   readonly buildUrl: (params: BuildTableUrlParams) => string;
-  readonly columns: ColumnDef<TData>[];
+  readonly columns: ColumnDef<DataTableFeatures, TData, unknown>[];
   readonly initialState?: UseEntityTableOptions<TData>['initialState'];
   readonly newButton?: { label: string; href: string };
   readonly headerAction?: ReactNode;
   readonly extraContent?: ReactNode;
   readonly emptyMessage?: string;
   readonly emptyAction?: ReactNode;
-  readonly useExportHandlers?: (table: TanstackTable<TData>) => EntityTableExportHandlers;
+  readonly useExportHandlers?: (table: TanstackTable<DataTableFeatures, TData>) => EntityTableExportHandlers;
 }
 
-export const EntityTable = <TData,>({
+export const EntityTable = <TData extends RowData>({
   data,
   total,
   page,

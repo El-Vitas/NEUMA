@@ -1,7 +1,9 @@
 'use client';
 
 import { humanizeSelectOption } from '@company-brain/shared';
+import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { readPageOptionColorClass } from '../lib/pages.option-color.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
 
 interface IProps {
@@ -33,8 +35,12 @@ export const PagesPropertiesSelectField = ({
     </SelectTrigger>
     <SelectContent>
       {(property.options ?? []).map((option) => (
-        <SelectItem key={option} value={option}>
-          {humanizeSelectOption(option)}
+        <SelectItem key={option.value} value={option.value}>
+          <span
+            className={cn('inline-flex items-center rounded-sm px-2 py-0.5', readPageOptionColorClass(option.color))}
+          >
+            {humanizeSelectOption(option.value)}
+          </span>
         </SelectItem>
       ))}
     </SelectContent>

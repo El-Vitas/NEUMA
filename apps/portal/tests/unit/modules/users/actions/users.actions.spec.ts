@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
 const fetchMock = mock(
@@ -37,7 +38,7 @@ mock.module('@/shared/lib/with-action.lib', () => ({
 let signedInUser: { readonly id: string; readonly role: string } | null = null;
 mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: async () => signedInUser }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
 
 const { createUserAction, updateUserNameAction } = await import('@/modules/users/server/actions/users.actions');
 

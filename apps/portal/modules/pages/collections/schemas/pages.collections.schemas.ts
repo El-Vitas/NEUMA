@@ -1,10 +1,21 @@
-import { PAGE_PROPERTY_TYPE_VALUES, PAGE_VIEW_TYPE_VALUES, pageContentSchema } from '@company-brain/shared';
+import {
+  PAGE_OPTION_COLOR_VALUES,
+  PAGE_PROPERTY_TYPE_VALUES,
+  PAGE_VIEW_TYPE_VALUES,
+  pageContentSchema,
+} from '@company-brain/shared';
 import { z } from 'zod';
+import { pagePropertyValueSchema } from './pages.schema.schemas';
+
+const pageCollectionOptionSchema = z.object({
+  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
+  value: z.string().min(1).max(200),
+});
 
 const pageCollectionPropertySchema = z.object({
   key: z.string().min(1).max(80),
   label: z.string().min(1).max(200),
-  options: z.array(z.string().min(1).max(200)).max(50).readonly().nullable(),
+  options: z.array(pageCollectionOptionSchema).max(50).readonly().nullable(),
   required: z.boolean(),
   type: z.enum(PAGE_PROPERTY_TYPE_VALUES),
 });
@@ -19,7 +30,8 @@ const pageCollectionViewSchema = z.object({
 /** What has to be said to start a collection: a page to keep it in, and the shape it starts with. */
 export const pageCollectionCreateSchema = z.object({
   content: pageContentSchema,
-  parentId: z.string().min(1),
+  /** Sin madre cuando la colección se crea desde el espacio: ahí es una página de raíz como cualquier otra. */
+  parentId: z.string().min(1).optional(),
   properties: z.array(pageCollectionPropertySchema).min(1).max(50).readonly(),
   spaceId: z.string().min(1),
   title: z.string().trim().min(1).max(200),
@@ -30,4 +42,59 @@ export const pageCollectionCreateSchema = z.object({
 export const pageCollectionReadSchema = z.object({
   pageId: z.string().min(1),
   spaceId: z.string().min(1),
+});
+
+/**
+ * What has to be said to change what one row holds.
+ *
+ * Only the properties that moved travel. A value of `null` clears the property,
+ * which is what dropping a card on the column of rows without a value means.
+ */
+export const pageRowPropertiesSchema = z.object({
+  pageId: z.string().min(1),
+  propertyValues: z.record(z.string(), z.union([pagePropertyValueSchema, z.null()])),
+  spaceId: z.string().min(1),
+});
+
+/**
+ * Lo que hay que decir para cambiar lo que una vista dice de sí misma.
+ *
+ * Solo esa vista y solo su configuración: la forma de la colección no entra, así
+ * que doblar una franja o mover un borde deja de costar rehacer cada propiedad y
+ * cada vista.
+ */
+export const pageViewConfigurationUpdateSchema = z.object({
+  /** Pasa tal cual: quien decide qué cabe en una configuración es el servidor, y lo revisa al recibirla. */
+  configuration: z.record(z.string(), z.unknown()),
+  pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+  viewName: z.string().min(1).max(200),
+});
+
+/**
+ * Lo que hay que decir para renombrar o quitar una columna del tablero.
+ *
+ * De qué nombre viene y a cuál va, porque la forma sola no distingue un
+ * renombrado de un quitar y poner. Sin nombre nuevo, la columna se quita.
+ */
+export const pageOptionRewriteSchema = z.object({
+  from: z.string().min(1).max(120),
+  pageId: z.string().min(1),
+  propertyKey: z.string().min(1).max(80),
+  spaceId: z.string().min(1),
+  to: z.string().trim().min(1).max(120).nullable(),
+});
+
+/**
+ * What has to be said to change the shape of a collection that already exists.
+ *
+ * The whole shape travels, not the one thing that changed, because a property
+ * that disappeared from the list is a property somebody removed and there is no
+ * other way to say it.
+ */
+export const pageCollectionUpdateSchema = z.object({
+  pageId: z.string().min(1),
+  properties: z.array(pageCollectionPropertySchema).min(1).max(50).readonly(),
+  spaceId: z.string().min(1),
+  views: z.array(pageCollectionViewSchema).min(1).max(20).readonly(),
 });

@@ -1,16 +1,18 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
+  ColumnVisibilityState,
   OnChangeFn,
   PaginationState,
+  RowData,
   RowSelectionState,
   SortingState,
-  VisibilityState,
 } from '@tanstack/react-table';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-export interface UseDataTableOptions<TData> {
+export interface UseDataTableOptions<TData extends RowData> {
   readonly data: TData[];
-  readonly columns: ColumnDef<TData>[];
+  readonly columns: ColumnDef<DataTableFeatures, TData, unknown>[];
   readonly pageCount?: number;
   readonly manualPagination?: boolean;
   readonly manualSorting?: boolean;
@@ -19,7 +21,7 @@ export interface UseDataTableOptions<TData> {
     readonly sorting?: SortingState;
     readonly pagination?: PaginationState;
     readonly columnFilters?: ColumnFiltersState;
-    readonly columnVisibility?: VisibilityState;
+    readonly columnVisibility?: ColumnVisibilityState;
     readonly rowSelection?: RowSelectionState;
   };
   readonly state?: {

@@ -22,8 +22,6 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
-
 const { deletePageAttachmentAction, uploadPageAttachmentAction } = await import(
   '@/modules/pages/attachments/server/actions/pages.attachments.actions'
 );

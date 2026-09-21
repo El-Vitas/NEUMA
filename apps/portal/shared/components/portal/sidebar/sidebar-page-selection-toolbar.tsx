@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderInput, Trash2, X } from 'lucide-react';
+import { Download, FolderInput, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
@@ -9,17 +9,25 @@ import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 interface IProps {
   readonly disabled: boolean;
   readonly onCancel: () => void;
+  readonly onExport: () => void;
   readonly onMove: () => void;
   readonly onTrash: () => void;
   readonly selectedCount: number;
 }
 
 /**
- * What a selection can do while it is active: move it, trash it, or drop it —
- * always with the count in view, so nobody acts on more or fewer pages than
- * they meant to.
+ * What a selection can do while it is active: take it away, move it, trash it,
+ * or drop it — always with the count in view, so nobody acts on more or fewer
+ * pages than they meant to.
  */
-export const SidebarPageSelectionToolbar = ({ disabled, onCancel, onMove, onTrash, selectedCount }: IProps) => {
+export const SidebarPageSelectionToolbar = ({
+  disabled,
+  onCancel,
+  onExport,
+  onMove,
+  onTrash,
+  selectedCount,
+}: IProps) => {
   const t = useTranslations('pages.selection');
 
   return (
@@ -28,6 +36,18 @@ export const SidebarPageSelectionToolbar = ({ disabled, onCancel, onMove, onTras
         {t('count', { count: selectedCount })}
       </span>
       <div className="flex items-center gap-1">
+        <Button
+          className={cn('min-h-11 min-w-11', FOCUS_RING_CLASS)}
+          disabled={disabled || selectedCount === 0}
+          onClick={onExport}
+          size="icon"
+          title={t('export')}
+          type="button"
+          variant="ghost"
+        >
+          <Download aria-hidden="true" className="size-4" />
+          <span className="sr-only">{t('export')}</span>
+        </Button>
         <Button
           className={cn('min-h-11 min-w-11', FOCUS_RING_CLASS)}
           disabled={disabled || selectedCount === 0}

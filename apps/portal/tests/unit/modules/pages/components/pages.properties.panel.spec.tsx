@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
+import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
@@ -58,7 +59,7 @@ const titleProperty: PageSchemaProperty = {
 const statusProperty: PageSchemaProperty = {
   key: 'status',
   label: 'Status',
-  options: ['todo', 'done'],
+  options: asPropertyOptions('todo', 'done'),
   required: true,
   type: 'SELECT',
 };

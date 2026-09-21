@@ -8,6 +8,7 @@
     "query": "bun rules-cli.mjs query",
     "add": "bun rules-cli.mjs add",
     "dump": "bun rules-cli.mjs dump",
+    "delete": "bun rules-cli.mjs delete",
     "clean": "bun clean-history.mjs"
   },
   "dependencies": {

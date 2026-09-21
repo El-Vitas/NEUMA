@@ -229,6 +229,8 @@ Comments explain **why**, not **what**.
 - To add/modify a rule: pipe YAML to `bun run rules:add` (auto-dumps to YAML files).
 - Never edit YAML files directly if you're an AI — use `rules:add`. Humans can edit YAML directly.
 - After humans edit YAML, run `bun run rules:build` to sync SQLite.
+- To retire a rule, replace it: pass `supersedes: BR-NNN`. The old one is kept, marked and linked — history is never deleted.
+- `bun run rules:delete --id BR-NNN` is only for a material mistake (wrong feature, duplicate, half-written), never to retire a rule that was thought through.
 
 ---
 

@@ -32,12 +32,13 @@ import type { PageAppearanceTextSize, PageAppearanceTypography } from '../appear
 import type { PageIcon } from '../appearance/types/pages.icon.types';
 import { usePagesAttachmentUpload } from '../attachments/hooks/use.pages.attachment.upload';
 import type { AttachmentSummary } from '../attachments/types/pages.attachments.types';
-import { describeANewCollection, readTheViewToShow } from '../collections/lib/pages.collections.lib';
-import { buildRowPropertyValues, getEditableSchemaProperties } from '../collections/lib/pages.properties.lib';
 import {
-  createPageCollectionAction,
-  readPageCollectionAction,
-} from '../collections/server/actions/pages.collections.actions';
+  describeANewCollection,
+  readEmbeddedCollectionKey,
+  readTheViewToShow,
+} from '../collections/lib/pages.collections.lib';
+import { buildRowPropertyValues, getEditableSchemaProperties } from '../collections/lib/pages.properties.lib';
+import { readPageCollectionAction } from '../collections/server/actions/pages.collections.actions';
 import type { PagePersonOption, PageSchema } from '../collections/types/pages.schema.types';
 import { EMPTY_PAGE_PERSON_OPTIONS, EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
 import { PagesEditorBlockActions } from '../editor/blocks/components/pages.editor.block-actions';
@@ -52,6 +53,7 @@ import { createPageEditorNodeViews } from '../editor/blocks/lib/pages.editor.nod
 import { PagesEditorCollaborationStatus } from '../editor/components/pages.editor.collaboration.status';
 import { PagesEditorPagePickerDialog } from '../editor/components/pages.editor.page-picker.dialog';
 import { PagesEditorToolbar } from '../editor/components/pages.editor.toolbar';
+import { PagesEditorViewPickerDialog } from '../editor/components/pages.editor.view-picker.dialog';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../editor/constants/pages.editor.constants';
 import { isTheWritingStillInHand } from '../editor/lib/pages.editor.attention.lib';
 import { appendParagraphAtEnd } from '../editor/lib/pages.editor.commands';
@@ -81,6 +83,7 @@ import { readPageEditorSurface } from '../editor/menus/lib/pages.editor.surface.
 import type { PageDestination } from '../editor/menus/types/pages.editor.destination.types';
 import type { PageEditorPageShape } from '../editor/menus/types/pages.editor.page-shape.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../editor/menus/types/pages.editor.surface.types';
+import { usePagesEditorCollectionEmbedding } from '../editor/structure/hooks/use.pages.editor.collection-embedding';
 import { usePagesEditorCollectionHosts } from '../editor/structure/hooks/use.pages.editor.collection-hosts';
 import {
   createPageButtonCollectionCommand,
@@ -89,7 +92,6 @@ import {
   readTheRowContent,
   readTheRowTitle,
 } from '../editor/structure/lib/pages.editor.button.lib';
-import { createPageCollectionInsertCommand } from '../editor/structure/lib/pages.editor.collection.lib';
 import { followThePageHeadings, goToThePageHeading } from '../editor/structure/lib/pages.editor.contents.lib';
 import {
   createPageSubpageInsertCommand,
@@ -296,6 +298,11 @@ export const PagesProseMirrorEditor = forwardRef(
     const editorHostRef = useRef<HTMLDivElement>(null);
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
+    const embedding = usePagesEditorCollectionEmbedding({
+      editorViewRef,
+      onInserted: () => router.refresh(),
+      spaceId,
+    });
     const contentCallbackRef = useRef(onContentChange);
     const headingsCallbackRef = useRef(onHeadingsChange);
     const followHeadingsRef = useRef(followThePageHeadings((headings) => headingsCallbackRef.current?.(headings)));
@@ -723,35 +730,12 @@ export const PagesProseMirrorEditor = forwardRef(
         toast.error(t('collection.needsPage'));
         return;
       }
-      const spot = editorView.state.selection.from;
-      const shape = describeANewCollection(collectionWordingRef.current);
-      startMakingChild(async () => {
-        const made = await createPageCollectionAction({
-          content: createEmptyPageContent(),
-          parentId: pageId,
-          properties: shape.properties,
-          spaceId,
-          title: newCollectionTitleRef.current,
-          views: shape.views,
-        });
-        if (!isActionSuccess<PageSummary>(made)) {
-          toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
-          return;
-        }
-        showTheCollection(editorView, { pageId: made.data.id, spaceId, viewName: shape.views[0]?.name ?? null }, spot);
-        router.refresh();
+      embedding.create({
+        parentId: pageId,
+        shape: describeANewCollection(collectionWordingRef.current),
+        spot: editorView.state.selection.from,
+        title: newCollectionTitleRef.current,
       });
-    };
-
-    /** Puts the block that looks at a collection where the writing was, and goes on writing under it. */
-    const showTheCollection = (
-      editorView: EditorView,
-      collection: { readonly pageId: string; readonly spaceId: string; readonly viewName: string | null },
-      spot: number,
-    ): void => {
-      const insert = createPageCollectionInsertCommand(pageEditorSchema, collection, spot);
-      insert(editorView.state, editorView.dispatch);
-      editorView.focus();
     };
 
     /**
@@ -762,27 +746,8 @@ export const PagesProseMirrorEditor = forwardRef(
      * not one says so instead of leaving an empty block on the page.
      */
     const showTheChosenCollection = (chosen: PageDestination): void => {
-      const editorView = editorViewRef.current;
       setIsChoosingCollection(false);
-      if (editorView === null) return;
-      const spot = collectionSpotRef.current;
-      startMakingChild(async () => {
-        const asked = await readPageCollectionAction({ pageId: chosen.id, spaceId });
-        if (!isActionSuccess<PageSchema | null>(asked)) {
-          toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
-          return;
-        }
-        if (asked.data === null || asked.data.properties.length === 0) {
-          toast.error(t('collection.notACollection'));
-          return;
-        }
-        showTheCollection(
-          editorView,
-          { pageId: chosen.id, spaceId, viewName: readTheViewToShow(asked.data.views) },
-          spot,
-        );
-        router.refresh();
-      });
+      embedding.show(chosen.id, collectionSpotRef.current);
     };
 
     /**
@@ -1018,6 +983,11 @@ export const PagesProseMirrorEditor = forwardRef(
             title: t('collectionPickTitle'),
           }}
         />
+        <PagesEditorViewPickerDialog
+          onCancel={embedding.cancel}
+          onChoose={embedding.chooseView}
+          views={embedding.choosableViews}
+        />
         {pageId !== null && canEdit && <PagesEditorCollaborationStatus participants={participants} status={status} />}
         {canEdit && pageId !== null && (
           <div className="flex justify-end">
@@ -1055,8 +1025,12 @@ export const PagesProseMirrorEditor = forwardRef(
             onDropCapture={uploadDroppedFile}
             ref={editorHostRef}
           />
-          {collections.hosts.map(({ element, name, pageId: collectionPageId }) =>
-            createPortal(embeddedCollections[collectionPageId] ?? null, element, name),
+          {collections.hosts.map(({ element, name, pageId: collectionPageId, viewName }) =>
+            createPortal(
+              embeddedCollections[readEmbeddedCollectionKey(collectionPageId, viewName)] ?? null,
+              element,
+              name,
+            ),
           )}
           {find.isOpen && (
             <div className="absolute top-2 right-2 z-40 w-[min(20rem,calc(100%-1rem))]">

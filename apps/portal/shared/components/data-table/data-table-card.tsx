@@ -1,13 +1,16 @@
 'use client';
 
-import type { Table as TanstackTable } from '@tanstack/react-table';
+import type { RowData, Table as TanstackTable } from '@tanstack/react-table';
 import type * as React from 'react';
 import { cn } from '@/lib/utils';
 import { DataTable, type DataTableProps } from '@/shared/components/data-table/data-table';
 import { DataTableToolbar } from '@/shared/components/data-table/data-table-toolbar';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface DataTableCardProps<TData> extends Omit<DataTableProps<TData>, 'children'>, React.ComponentProps<'div'> {
-  readonly table: TanstackTable<TData>;
+interface DataTableCardProps<TData extends RowData>
+  extends Omit<DataTableProps<TData>, 'children'>,
+    React.ComponentProps<'div'> {
+  readonly table: TanstackTable<DataTableFeatures, TData>;
   readonly title?: string;
   readonly subTitle?: string;
   readonly onExportCsv?: () => void;
@@ -16,7 +19,7 @@ interface DataTableCardProps<TData> extends Omit<DataTableProps<TData>, 'childre
   readonly isLoading?: boolean;
 }
 
-export const DataTableCard = <TData,>({
+export const DataTableCard = <TData extends RowData>({
   table,
   title,
   subTitle,

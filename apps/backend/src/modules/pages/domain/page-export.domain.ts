@@ -15,9 +15,14 @@ export const readExportableContent = (stored: unknown): PageContent => {
   return understood.success ? understood.data : EMPTY_EXPORTED_DOCUMENT;
 };
 
-/** The scope somebody asked for, or nothing when they asked for a page without saying which. */
-export const readExportScope = (kind: PageExportScope['kind'], pageId: null | string): null | PageExportScope => {
+/** The scope somebody asked for, or nothing when they asked for pages without saying which. */
+export const readExportScope = (
+  kind: PageExportScope['kind'],
+  pageId: null | string,
+  pageIds: readonly string[],
+): null | PageExportScope => {
   if (kind === 'space') return { kind: 'space' };
+  if (kind === 'pages') return pageIds.length === 0 ? null : { kind, pageIds };
   return pageId === null ? null : { kind, pageId };
 };
 
@@ -60,6 +65,11 @@ export const selectPagesForExport = <T extends ExportablePage>(
 ): readonly OrderedExportPage<T>[] => {
   const ordered = orderPagesForExport(pages);
   if (scope.kind === 'space') return ordered;
+
+  if (scope.kind === 'pages') {
+    const asked = new Set(scope.pageIds);
+    return ordered.filter((page) => asked.has(page.id));
+  }
 
   const asked = ordered.find((page) => page.id === scope.pageId);
   if (asked === undefined) return [];

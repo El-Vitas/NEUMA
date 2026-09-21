@@ -1,18 +1,13 @@
 import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import {
-  type ExportedPageFile,
-  type PageContent,
-  Result,
-  USER_ROLE,
-  type UserRole,
-  writePagesAsMarkdownFiles,
-} from '@company-brain/shared';
+import { type PageContent, Result, USER_ROLE, type UserRole, writePagesAsMarkdownFiles } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
 import type { IStorageProvider } from '../../common/types/storage.types';
 import {
+  EXPORT_ATTACHMENTS_FOLDER,
   PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
@@ -37,17 +32,25 @@ import { readExportableContent, selectPagesForExport } from './domain/page-expor
 import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
-import { validatePageProperties } from './domain/page-schema.domain';
+import {
+  keepWhatThePageSchemaKnows,
+  mergePagePropertyValues,
+  validatePageProperties,
+} from './domain/page-schema.domain';
 import type {
+  CarriedAttachment,
   CreatePageInput,
+  ExportedFile,
   PageAttachmentsCleanupRepositoryContract,
   PageDescendantsPreview,
+  PageLogger,
   PageMoveDestinations,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
   TrashedPageSummary,
   UpdatePageInput,
+  UpdatePagePropertiesInput,
 } from './types/page.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
 
@@ -59,6 +62,7 @@ export class PagesService {
     @Inject(PAGE_ATTACHMENTS_CLEANUP_REPOSITORY)
     private readonly pageAttachmentsCleanupRepository: PageAttachmentsCleanupRepositoryContract,
     @Inject(STORAGE_PROVIDER) private readonly storageProvider: IStorageProvider,
+    @Inject(Logger) private readonly logger: PageLogger,
   ) {}
 
   async list(
@@ -87,17 +91,49 @@ export class PagesService {
     userId: string,
     role: UserRole,
     untitledLabel: string,
-  ): Promise<Result<readonly ExportedPageFile[], PageAccessDeniedError>> {
+  ): Promise<Result<readonly ExportedFile[], PageAccessDeniedError>> {
     const pages = await this.list(spaceId, workspaceId, userId, role, false);
     const chosen = selectPagesForExport(pages, scope);
     if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
 
-    return Result.ok(
-      writePagesAsMarkdownFiles(
-        chosen.map((page) => ({ content: readExportableContent(page.content), path: page.path, title: page.title })),
-        untitledLabel,
-      ),
+    const carried = await this.gatherAttachments(chosen.map((page) => page.id));
+    const written = writePagesAsMarkdownFiles(
+      chosen.map((page) => ({
+        content: readExportableContent(page.content),
+        id: page.id,
+        path: page.path,
+        title: page.title,
+      })),
+      untitledLabel,
+      new Map(carried.map((asset) => [asset.id, asset.path])),
     );
+
+    return Result.ok([...written, ...carried.map(({ contents, path }) => ({ contents, path }))]);
+  }
+
+  /**
+   * What hangs on the exported pages, read out of storage so it can travel too.
+   *
+   * They go in a folder of their own rather than beside the pages that use
+   * them, because one picture can be shown on several pages and there is only
+   * one of it. A file that storage can no longer hand over is left behind
+   * rather than taking the whole export down: the writing that mentions it
+   * still says what it was.
+   */
+  private async gatherAttachments(pageIds: readonly string[]): Promise<readonly CarriedAttachment[]> {
+    const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(pageIds);
+    const carried = await Promise.all(
+      assets.map(async (asset) => {
+        try {
+          const contents = await this.storageProvider.read(asset.storageKey);
+          return { contents, id: asset.id, path: `${EXPORT_ATTACHMENTS_FOLDER}/${asset.id}-${asset.originalFilename}` };
+        } catch (error) {
+          this.logger.warn({ assetId: asset.id, err: error, message: 'An attachment could not be carried' });
+          return null;
+        }
+      }),
+    );
+    return carried.filter((asset): asset is CarriedAttachment => asset !== null);
   }
 
   async getAccessible(
@@ -169,6 +205,49 @@ export class PagesService {
       ...input,
       content: content.getValue(),
       propertyValues: propertyValues.getValue(),
+    });
+    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  }
+
+  /**
+   * What a row holds changed, without the writing being touched.
+   *
+   * Only the properties named travel, and they land on top of the ones the row
+   * already had. That is what lets a card be dragged from one column to another
+   * without carrying the whole page along: whoever moves it knows the value that
+   * changed and nothing else, and sending the rest would be sending back a copy
+   * of what it read, stale by however long the drag took.
+   */
+  async updateProperties(
+    input: UpdatePagePropertiesInput,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageLockedError | PagePropertyValidationError>> {
+    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const existing = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
+    if (existing === null) return Result.fail(new PageAccessDeniedError());
+    if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
+
+    const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+    const merged = keepWhatThePageSchemaKnows(
+      schemaProperties,
+      mergePagePropertyValues(existing.propertyValues, input.propertyValues),
+    );
+    const propertyValues = await this.resolvePropertyValuesForWrite(
+      existing.parentId,
+      input.workspaceId,
+      existing.title,
+      merged,
+    );
+    if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
+
+    const page = await this.pageRepository.update({
+      content: existing.content as Prisma.InputJsonValue,
+      pageId: input.pageId,
+      propertyValues: propertyValues.getValue(),
+      role: input.role,
+      title: existing.title,
+      updatedById: input.updatedById,
+      userId: input.userId,
+      workspaceId: input.workspaceId,
     });
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
@@ -523,11 +602,27 @@ export class PagesService {
     return childPageCount === null ? Result.fail(new PageAccessDeniedError()) : Result.ok({ childPageCount });
   }
 
+  /**
+   * Un archivo que no se pudo borrar del almacén queda escrito en la bitácora.
+   *
+   * La página se va igual —la fila ya no está y no se va a volver atrás por
+   * esto—, pero un archivo que sobrevive a su página ocupa sitio sin que nadie
+   * lo sepa, y nadie va a buscarlo si el fallo no dejó rastro.
+   */
   private async cleanupAttachments(pageIds: readonly string[]): Promise<void> {
     if (pageIds.length === 0) return;
     const storageKeys = await this.pageAttachmentsCleanupRepository.listStorageKeysForPages(pageIds);
     await this.pageAttachmentsCleanupRepository.deleteForPages(pageIds);
-    await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
+    const removals = await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
+    for (const [index, removal] of removals.entries()) {
+      if (removal.status === 'rejected') {
+        this.logger.warn({
+          err: removal.reason,
+          message: 'An attachment outlived its page and is still in storage',
+          storageKey: storageKeys[index],
+        });
+      }
+    }
   }
 
   private async resolvePropertyValuesForWrite(

@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
 const fetchMock = mock(
@@ -14,7 +15,7 @@ mock.module('next/headers', () => ({
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
 mock.module('@/lib/logger', () => ({ logger: { error: () => undefined, info: () => undefined } }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
 
 const { getSpaceMembers } = await import('@/modules/spaces/server/queries/spaces.queries');
 

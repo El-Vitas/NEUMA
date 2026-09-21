@@ -37,6 +37,17 @@ export interface UpdatePageInput {
   readonly workspaceId: string;
 }
 
+/** What has to be said to change what a row holds, without touching what it says. */
+export interface UpdatePagePropertiesInput {
+  readonly pageId: string;
+  /** Only the properties that changed. What the row already held stays. */
+  readonly propertyValues: Readonly<Record<string, unknown>>;
+  readonly role: UserRole;
+  readonly updatedById: string;
+  readonly userId: string;
+  readonly workspaceId: string;
+}
+
 export interface PageSummary {
   readonly content: Prisma.JsonValue;
   readonly cover?: PageCoverValue | null;
@@ -115,8 +126,34 @@ export interface PageRestoreOutcome {
   readonly spaceName: null | string;
 }
 
+/** Anything an export hands over: a page written out, or a file that hung on one. */
+export interface ExportedFile {
+  readonly contents: string | Uint8Array;
+  readonly path: string;
+}
+
+/** An attachment already read out of storage, with the place inside the archive it will take. */
+export interface CarriedAttachment {
+  readonly contents: Buffer;
+  readonly id: string;
+  readonly path: string;
+}
+
+/** The little a page needs of a logger: to say that something it expected to read was not there. */
+export interface PageLogger {
+  readonly warn: (context: Record<string, unknown>) => void;
+}
+
+/** Something hung on a page, as an export needs to know it: what to call it, and where to read it from. */
+export interface PageAssetForExport {
+  readonly id: string;
+  readonly originalFilename: string;
+  readonly storageKey: string;
+}
+
 export interface PageAttachmentsCleanupRepositoryContract {
   readonly deleteForPages: (pageIds: readonly string[]) => Promise<void>;
+  readonly listAssetsForPages: (pageIds: readonly string[]) => Promise<readonly PageAssetForExport[]>;
   readonly listStorageKeysForPages: (pageIds: readonly string[]) => Promise<readonly string[]>;
 }
 

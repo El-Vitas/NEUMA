@@ -46,6 +46,19 @@ const openAndSelectBetaRoot = async (): Promise<void> => {
   fireEvent.click(options[options.length - 1] as HTMLElement);
 };
 
+/**
+ * El aviso se abre mientras la comprobación de acceso todavía es una transición
+ * en curso, así que sus botones nacen apagados y se encienden al terminar.
+ * Pulsar antes de eso no hace nada.
+ */
+const clickOnceEnabled = async (name: string): Promise<void> => {
+  const button = await screen.findByRole<HTMLButtonElement>('button', { name });
+  await waitFor(() => {
+    expect(button.disabled).toBe(false);
+  });
+  fireEvent.click(button);
+};
+
 describe('PagesMoveForm — moving across spaces', () => {
   afterEach(() => {
     mock.clearAllMocks();
@@ -109,7 +122,7 @@ describe('PagesMoveForm — moving across spaces', () => {
     renderForm();
 
     await openAndSelectBetaRoot();
-    fireEvent.click(await screen.findByRole('button', { name: 'Move anyway' }));
+    await clickOnceEnabled('Move anyway');
 
     /**
      * What is asked of this test is that confirming moves the page, and the
@@ -129,7 +142,7 @@ describe('PagesMoveForm — moving across spaces', () => {
     renderForm();
 
     await openAndSelectBetaRoot();
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await clickOnceEnabled('Cancel');
 
     await waitFor(() => {
       expect(screen.queryByText('Someone will stop seeing this page')).toBeNull();

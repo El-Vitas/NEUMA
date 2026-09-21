@@ -59,6 +59,7 @@ export const PAGE_API_ROUTES = {
   move: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/move`,
   order: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/order`,
   owner: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/owner`,
+  properties: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/properties`,
   verification: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/verification`,
   assigned: '/api/v1/pages/assigned',
   moveDestinations: (pageId: string) => `/api/v1/pages/move-destinations/${pageId}`,
@@ -68,7 +69,16 @@ export const PAGE_API_ROUTES = {
   restore: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/restore`,
   backlinks: (pageId: string) => `/api/v1/pages/${pageId}/backlinks`,
   schema: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/schema`,
+  /** Renombrar o quitar una opción, que es renombrar o quitar una columna del tablero, arrastrando las filas. */
+  rewriteOption: (spaceId: string, pageId: string, propertyKey: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/properties/${propertyKey}/rewrite-option`,
+  /** Lo que una vista dice de sí misma, sin rehacer la forma de la colección. */
+  viewConfiguration: (spaceId: string, pageId: string, viewName: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/views/${encodeURIComponent(viewName)}/configuration`,
   rows: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/rows`,
   view: (spaceId: string, pageId: string, viewName: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,
 } as const;
+
+/** Lo que se dice cuando la lista de páginas no llegó siquiera como una lista. */
+export const PAGES_LIST_IS_NOT_A_LIST = 'The pages list arrived as something that is not a list';

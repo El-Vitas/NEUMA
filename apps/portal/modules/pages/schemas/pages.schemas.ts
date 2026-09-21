@@ -37,8 +37,6 @@ export const pageSummarySchema = z.object({
   version: z.number(),
 });
 
-export const pagesListSchema = z.array(pageSummarySchema);
-
 export const pageMutationSchema = z.object({
   content: pageContentSchema,
   propertyValues: pagePropertyValuesSchema.nullable().optional(),

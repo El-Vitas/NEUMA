@@ -12,6 +12,14 @@ const HISTORY_DIR = `${RULES_DIR}/history`;
 
 const VALID_STATUSES = ['active', 'superseded', 'inactive'];
 
+/**
+ * El archivo que se copia para empezar un feature nuevo. Declara un id de
+ * relleno, así que indexarlo lo volvería un feature real: el dump lo escribiría
+ * como `fea-xxx.yaml` y el siguiente build chocaría con dos archivos que dicen
+ * ser el mismo feature.
+ */
+const TEMPLATE_FILE = 'fea-template.yaml';
+
 const help = () => {};
 
 const getDb = () => {
@@ -99,7 +107,7 @@ const cmdBuild = () => {
   db.run('DELETE FROM scenarios; DELETE FROM rules; DELETE FROM features;');
 
   const files = readdirSync(RULES_DIR)
-    .filter((f) => f.endsWith('.yaml') && f !== 'DESIGN.md')
+    .filter((f) => f.endsWith('.yaml') && f !== TEMPLATE_FILE)
     .sort();
 
   const insertFeature = db.prepare('INSERT INTO features (id, name, purpose, scope) VALUES (?, ?, ?, ?)');
@@ -383,12 +391,63 @@ const cmdAdd = () => {
   cmdDump();
 };
 
+/**
+ * Borra una regla que nunca debió existir.
+ *
+ * Es para deshacer un error material: un id de feature mal escrito, una regla
+ * duplicada sin querer, un envío a medias. NO es para retirar una regla que se
+ * pensó mal — eso se reemplaza con `supersedes`, que deja la vieja marcada y
+ * enlazada a la nueva. Haber pensado mal es parte de la historia del producto y
+ * se conserva; haberse equivocado de tecla, no.
+ *
+ * Por eso se niega a tocar una regla que ya es parte de una cadena: borrarla
+ * dejaría a otra apuntando al vacío, y el histórico dejaría de leerse entero.
+ */
+const cmdDelete = (args) => {
+  const opts = parseArgs(args);
+  const ruleId = typeof opts.id === 'string' ? opts.id : null;
+  if (ruleId === null) {
+    process.stderr.write('Falta decir qué regla se borra: --id BR-xxx\n');
+    process.exit(1);
+  }
+
+  const db = getDb();
+  initDb(db);
+
+  const rule = db.prepare('SELECT id, status, supersedes, superseded_by FROM rules WHERE id = ?').get(ruleId);
+  if (!rule) {
+    db.close();
+    process.stderr.write(`${ruleId} no existe\n`);
+    process.exit(1);
+  }
+  if (rule.superseded_by) {
+    db.close();
+    process.stderr.write(`${ruleId} ya fue reemplazada por ${rule.superseded_by}: es historia y se conserva\n`);
+    process.exit(1);
+  }
+  if (rule.supersedes) {
+    db.close();
+    process.stderr.write(`${ruleId} reemplazó a ${rule.supersedes}: borrarla dejaría esa regla apuntando al vacío\n`);
+    process.exit(1);
+  }
+
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM scenarios WHERE rule_id = ?').run(ruleId);
+    db.prepare('DELETE FROM rules WHERE id = ?').run(ruleId);
+  });
+  tx();
+  db.close();
+
+  process.stderr.write(`${ruleId} borrada\n`);
+  cmdDump();
+};
+
 const cmdDump = () => {
   const db = getDb();
   initDb(db);
 
   // Backup current YAML files
-  const files = readdirSync(RULES_DIR).filter((f) => f.endsWith('.yaml') && f !== 'DESIGN.md');
+  const files = readdirSync(RULES_DIR).filter((f) => f.endsWith('.yaml') && f !== TEMPLATE_FILE);
   if (files.length > 0 && !existsSync(HISTORY_DIR)) {
     mkdirSync(HISTORY_DIR, { recursive: true });
   }
@@ -465,6 +524,9 @@ const main = () => {
       break;
     case 'dump':
       cmdDump();
+      break;
+    case 'delete':
+      cmdDelete(args);
       break;
     default:
       help();

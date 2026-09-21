@@ -26,6 +26,8 @@ export interface PageEditorCollectionHost {
   /** Which spot on the page this is, told apart from every other one: the same collection may be shown twice. */
   readonly name: string;
   readonly pageId: string;
+  /** Por cuál de sus vistas se la mira aquí, o nada cuando el bloque no dice ninguna. */
+  readonly viewName: null | string;
 }
 
 /** What the page around the editor shows about the blocks in play. */

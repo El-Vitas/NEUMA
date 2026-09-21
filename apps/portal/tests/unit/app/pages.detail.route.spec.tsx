@@ -43,6 +43,7 @@ mock.module('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
+  useSearchParams: () => new URLSearchParams(),
 }));
 mock.module('next-intl/server', () => ({
   getLocale: async () => 'en',
@@ -53,6 +54,7 @@ mock.module('@/i18n/navigation', () => ({
     createElement('a', { href }, children),
   /** The route sends an address that lost its page to wherever the page went. */
   redirect: () => undefined,
+  useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
@@ -68,7 +70,22 @@ mock.module('@/modules/pages/server/queries/pages.queries', () => ({
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
-  getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),
+  getPageView: async () => ({ getValue: () => ({ kind: 'FLAT_ROWS', rows: [] }), isOk: () => true }),
+}));
+/** The collection settings and the board reach server actions, which a browser-shaped test cannot load. */
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  rewritePageCollectionOptionAction: async () => ({ data: null }),
+  updatePageCollectionAction: async () => ({ data: null }),
+  updatePageViewConfigurationAction: async () => ({ data: null }),
+  updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+/** El tablero crea y reordena filas, y esas acciones no se cargan en una prueba con forma de navegador. */
+mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  createPageAction: async () => ({ data: { id: 'row-new' } }),
+  duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),
+  reorderPageAction: async () => ({ data: null }),
+  restorePageAction: async () => ({ data: null }),
+  trashPageAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
