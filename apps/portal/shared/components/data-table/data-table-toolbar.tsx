@@ -1,23 +1,24 @@
 'use client';
 
-import type { Table } from '@tanstack/react-table';
+import type { RowData, Table } from '@tanstack/react-table';
 import { type ComponentProps, useCallback, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import { DataTableExport } from '@/shared/components/data-table/data-table-export';
 import { DataTableViewOptions } from '@/shared/components/data-table/data-table-view-options';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 import { DesktopToolbar } from './data-table-toolbar.desktop-toolbar';
 import { MobileToolbar } from './data-table-toolbar.mobile-toolbar';
 
-interface DataTableToolbarProps<TData> extends ComponentProps<'div'> {
-  readonly table: Table<TData>;
+interface DataTableToolbarProps<TData extends RowData> extends ComponentProps<'div'> {
+  readonly table: Table<DataTableFeatures, TData>;
   readonly onExportCsv?: () => void;
   readonly onExportPdf?: () => void;
   readonly isExportingPdf?: boolean;
 }
 
-export const DataTableToolbar = <TData,>({
+export const DataTableToolbar = <TData extends RowData>({
   table,
   children,
   className,
@@ -26,7 +27,7 @@ export const DataTableToolbar = <TData,>({
   isExportingPdf,
   ...props
 }: Readonly<DataTableToolbarProps<TData>>) => {
-  const isFiltered = table.getState().columnFilters.length > 0;
+  const isFiltered = table.store.state.columnFilters.length > 0;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const columns = useMemo(() => table.getAllColumns().filter((column) => column.getCanFilter()), [table]);

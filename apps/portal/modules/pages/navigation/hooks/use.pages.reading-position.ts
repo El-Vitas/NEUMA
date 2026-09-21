@@ -75,6 +75,8 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
 
     let isRestoring = true;
     let attemptsLeft = PAGES_READING_POSITION_RESTORE_ATTEMPT_COUNT;
+    /** El intento que queda en el aire, para no dejarlo corriendo cuando esto desaparezca. */
+    let nextAttempt: ReturnType<typeof setTimeout> | undefined;
 
     const stopRestoring = (): void => {
       if (!isRestoring) return;
@@ -95,7 +97,7 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
       scrollTo(readingArea, savedScrollTop);
       attemptsLeft -= 1;
       if (attemptsLeft > 0) {
-        setTimeout(restore, PAGES_READING_POSITION_RESTORE_ATTEMPT_DELAY_MS);
+        nextAttempt = setTimeout(restore, PAGES_READING_POSITION_RESTORE_ATTEMPT_DELAY_MS);
         return;
       }
       stopRestoring();
@@ -110,6 +112,7 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
 
     return () => {
       isRestoring = false;
+      clearTimeout(nextAttempt);
       for (const eventName of PAGES_READING_POSITION_POINTER_INTERRUPT_EVENTS) {
         window.removeEventListener(eventName, stopRestoring);
       }

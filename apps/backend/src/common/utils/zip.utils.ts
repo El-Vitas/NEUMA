@@ -31,8 +31,15 @@ const deflate = async (bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array<Array
   return new Uint8Array(await new Response(compressed).arrayBuffer());
 };
 
+const asBytes = (contents: string | Uint8Array): Uint8Array<ArrayBuffer> => {
+  if (typeof contents === 'string') return new TextEncoder().encode(contents);
+  const copied = new Uint8Array(new ArrayBuffer(contents.byteLength));
+  copied.set(contents);
+  return copied;
+};
+
 const prepare = async (entry: ZipEntry): Promise<PreparedZipEntry> => {
-  const contents = new TextEncoder().encode(entry.contents);
+  const contents = asBytes(entry.contents);
   return {
     checksum: crc32(contents),
     compressed: await deflate(contents),

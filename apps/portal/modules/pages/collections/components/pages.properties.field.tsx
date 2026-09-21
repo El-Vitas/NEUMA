@@ -18,7 +18,11 @@ import { PagesPropertiesSelectField } from './pages.properties.select-field';
 
 interface IProps {
   readonly ariaLabelledBy: string;
+  /** El campo es la respuesta a un clic que acaba de abrirlo, y entonces se queda con el foco. */
+  readonly claimsFocus?: boolean;
   readonly disabled: boolean;
+  /** Lo que se escribe se da por respondido al salir del campo; lo que se elige, no lo necesita. */
+  readonly onBlur?: () => void;
   readonly onChange: (value: PagePropertyValue) => void;
   readonly personOptions?: readonly PagePersonOption[];
   readonly property: PageSchemaProperty;
@@ -27,7 +31,9 @@ interface IProps {
 
 export const PagesPropertiesField = ({
   ariaLabelledBy,
+  claimsFocus = false,
   disabled,
+  onBlur,
   onChange,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   property,
@@ -36,6 +42,7 @@ export const PagesPropertiesField = ({
   const t = useTranslations('pages');
   const fieldId = `page-property-${property.key}`;
   const emptyPlaceholder = t('properties.empty');
+  const typedFieldProps = { autoFocus: claimsFocus, onBlur };
 
   switch (property.type) {
     case PAGE_PROPERTY_TYPE.SELECT:
@@ -93,6 +100,7 @@ export const PagesPropertiesField = ({
           onChange={(event) => onChange(event.target.value)}
           type="date"
           value={getStringPropertyValue(value)}
+          {...typedFieldProps}
         />
       );
     case PAGE_PROPERTY_TYPE.NUMBER:
@@ -106,6 +114,7 @@ export const PagesPropertiesField = ({
           placeholder={emptyPlaceholder}
           type="number"
           value={value === undefined ? '' : String(getNumberPropertyValue(value))}
+          {...typedFieldProps}
         />
       );
     default:
@@ -119,6 +128,7 @@ export const PagesPropertiesField = ({
           placeholder={emptyPlaceholder}
           type="text"
           value={getStringPropertyValue(value)}
+          {...typedFieldProps}
         />
       );
   }

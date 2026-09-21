@@ -82,33 +82,19 @@ export const PagesHeader = ({
 
   return (
     <header className={cn('group space-y-4', layoutStyleClasses.width)}>
-      <PagesBreadcrumb parentPages={parentPages} spaceId={spaceId} spaceName={spaceName} title={title} />
-      {pageId !== null && (
-        <PagesIconField
-          canEdit={canEdit}
-          icon={icon}
-          onIconChange={onIconChange}
-          pageId={pageId}
-          spaceId={spaceId}
-          title={title}
-        />
-      )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="sr-only">{title.length > 0 ? title : t('untitled')}</h1>
-          <PagesHeaderEmojiField
-            ariaLabel={t('titleField')}
-            className="w-full border-0 border-transparent border-b bg-transparent px-0 py-2 font-bold font-reading text-4xl text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-0 disabled:cursor-not-allowed disabled:text-foreground sm:text-5xl"
-            disabled={!canEdit}
-            id={titleFieldId}
-            inputRef={titleInputRef}
-            onChange={onTitleChange}
-            onLeave={onTitleLeft}
-            placeholder={t('untitled')}
-            value={title}
-          />
+      {/*
+        Lo que se hace con la página va arriba del todo, en la misma línea que
+        dice dónde está: al costado del título peleaba con él —el título es lo
+        más grande de la página y crece hasta donde llegue—, y una fila de
+        botones a media altura de esa letra no se lee como una barra sino como
+        parte del nombre. Cuando no caben los dos, la fila de botones baja
+        entera en vez de estrujar el rastro de migas.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 basis-48">
+          <PagesBreadcrumb parentPages={parentPages} spaceId={spaceId} spaceName={spaceName} title={title} />
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           <PagesEditorSaveState displayState={displayState} savedAt={savedAt} />
           {lockToggle}
           {canEdit && cover !== undefined && <PagesCoverField controller={cover} />}
@@ -124,6 +110,30 @@ export const PagesHeader = ({
           )}
           {trashControl}
         </div>
+      </div>
+      {pageId !== null && (
+        <PagesIconField
+          canEdit={canEdit}
+          icon={icon}
+          onIconChange={onIconChange}
+          pageId={pageId}
+          spaceId={spaceId}
+          title={title}
+        />
+      )}
+      <div>
+        <h1 className="sr-only">{title.length > 0 ? title : t('untitled')}</h1>
+        <PagesHeaderEmojiField
+          ariaLabel={t('titleField')}
+          className="w-full border-0 border-transparent border-b bg-transparent px-0 py-2 font-bold font-reading text-4xl text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-0 disabled:cursor-not-allowed disabled:text-foreground sm:text-5xl"
+          disabled={!canEdit}
+          id={titleFieldId}
+          inputRef={titleInputRef}
+          onChange={onTitleChange}
+          onLeave={onTitleLeft}
+          placeholder={t('untitled')}
+          value={title}
+        />
       </div>
       {pageId !== null && verificationControl !== null && <div>{verificationControl}</div>}
       {pageId !== null && spaceName !== undefined && (

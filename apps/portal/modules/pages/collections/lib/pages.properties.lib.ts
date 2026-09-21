@@ -1,9 +1,11 @@
-import type { PagePropertyContext } from '@company-brain/shared';
+import type { PagePropertyContext, PagePropertyType } from '@company-brain/shared';
 import {
   formatPagePropertyValue,
   getDefaultPagePropertyValue,
+  getPagePropertyLogicalType,
   isPagePropertyValueEmpty,
   isTitlePageProperty,
+  PAGE_PROPERTY_LOGICAL_TYPE,
   pagePropertyRequiresPersonDirectory,
 } from '@company-brain/shared';
 import type {
@@ -15,9 +17,19 @@ import type {
 } from '../types/pages.schema.types';
 
 const toPropertyContext = (property: PageSchemaProperty): PagePropertyContext => ({
-  options: property.options,
+  options: property.options?.map((option) => option.value) ?? null,
   personIds: undefined,
 });
+
+/**
+ * Cómo se llama una propiedad, o su clave cuando ya no está.
+ *
+ * Una vista puede nombrar una propiedad que la colección dejó de tener, y decir
+ * la clave es decir algo con lo que se puede ir a buscar; callar deja un hueco
+ * que no lleva a ninguna parte.
+ */
+export const readPropertyLabel = (properties: readonly PageSchemaProperty[], key: string): string =>
+  properties.find((property) => property.key === key)?.label ?? key;
 
 export const getEditableSchemaProperties = (schema: PageSchema | null): readonly PageSchemaProperty[] =>
   schema === null ? [] : schema.properties.filter((property) => !isTitlePageProperty(property.type));
@@ -61,6 +73,10 @@ export const formatPropertyValueForDisplay = (
   value: PagePropertyValue | undefined,
 ): string => formatPagePropertyValue(property.type, value);
 
+/** Whether a row answered a property at all, which is what decides if it takes room on a card. */
+export const hasPropertyValueToShow = (value: PagePropertyValue | undefined): boolean =>
+  value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
+
 export const hasPersonProperty = (properties: readonly PageSchemaProperty[]): boolean =>
   properties.some((property) => pagePropertyRequiresPersonDirectory(property.type));
 
@@ -75,6 +91,42 @@ export const findPagePersonOption = (
 export const getPagePersonOptionLabel = (options: readonly PagePersonOption[], option: PagePersonOption): string => {
   const hasNameCollision = options.filter((candidate) => candidate.name === option.name).length > 1;
   return hasNameCollision ? `${option.name} (${option.email})` : option.name;
+};
+
+/**
+ * Cómo se lee una asignación allí donde solo se muestra: el nombre de quien
+ * está asignado, nunca su identificador.
+ *
+ * Devuelve `null` cuando hay alguien asignado a quien el directorio ya no
+ * reconoce, para que quien lo muestre lo diga con palabras en vez de enseñar
+ * un identificador desnudo. Mientras el directorio no haya llegado no dice
+ * nada, por la misma razón.
+ */
+export const readPagePersonDisplayName = (
+  options: readonly PagePersonOption[],
+  value: PagePropertyValue | undefined,
+): string | null => {
+  if (typeof value !== 'string' || value === '') return '';
+  if (options.length === 0) return '';
+  const person = findPagePersonOption(options, value);
+  return person === undefined ? null : getPagePersonOptionLabel(options, person);
+};
+
+/**
+ * Cuándo lo respondido en una celda ya está dicho del todo.
+ *
+ * Lo que se elige de una lista o se marca queda respondido en el mismo gesto:
+ * no hay un después. Lo que se escribe —un texto, un número, una fecha— pasa
+ * por estados a medio escribir que no son la respuesta, así que se guarda al
+ * salir del campo y no en cada tecla.
+ */
+export const pagePropertyAnswersOnPick = (type: PagePropertyType): boolean => {
+  const logicalType = getPagePropertyLogicalType(type);
+  return (
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.TAG ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN
+  );
 };
 
 /** Which word a checkbox is read as, so the cell that shows it asks one question and not two. */

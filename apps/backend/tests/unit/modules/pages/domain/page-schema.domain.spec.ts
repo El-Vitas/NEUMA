@@ -14,7 +14,10 @@ const statusProperty = {
   label: 'Status',
   type: DatabasePropertyType.SELECT,
   required: false,
-  options: ['todo', 'done'],
+  options: [
+    { color: null, value: 'todo' },
+    { color: null, value: 'done' },
+  ],
 };
 
 describe('pageCarriesSchema', () => {

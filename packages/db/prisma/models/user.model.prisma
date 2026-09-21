@@ -11,9 +11,9 @@ model User {
   workspaceMemberships WorkspaceMember[]
   spaceMemberships     SpaceMember[]
   favorites            PageFavorite[]
-  verifiedPages        Page[]               @relation("PageVerifiedBy")
-  ownedPages           Page[]               @relation("PageOwner")
-  ownedSpaces          Space[]              @relation("SpaceOwner")
+  verifiedPages        Page[]            @relation("PageVerifiedBy")
+  ownedPages           Page[]            @relation("PageOwner")
+  ownedSpaces          Space[]           @relation("SpaceOwner")
   pageViews            PageView[]
 
   @@index([email])

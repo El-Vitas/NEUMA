@@ -237,7 +237,7 @@ describe('createPageEditorNodeViews collection', () => {
 
     expect(view?.dom.getAttribute('data-page-collection')).toBe('page-1');
     expect(view?.dom.getAttribute('data-space-id')).toBe('space-1');
-    expect((view?.dom as HTMLElement).contentEditable).toBe('false');
+    expect((view?.dom as HTMLElement | undefined)?.contentEditable).toBe('false');
   });
 
   it('records which view the block points at', () => {

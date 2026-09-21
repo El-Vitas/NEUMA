@@ -1,0 +1,7 @@
+id: FEA-REV
+name: Revisión y aprobación de cambios
+purpose: >-
+  Reúne las reglas de qué protege a una página verificada con responsables, cómo se propone un cambio sobre ella y quién
+  decide que entre.
+scope: pages
+rules: []

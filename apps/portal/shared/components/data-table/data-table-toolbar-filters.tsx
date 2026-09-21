@@ -1,18 +1,19 @@
 'use client';
 
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { DataTableDateFilter } from '@/shared/components/data-table/data-table-date-filter';
 import { DataTableFacetedFilter } from '@/shared/components/data-table/data-table-faceted-filter';
 import { DataTableSliderFilter } from '@/shared/components/data-table/data-table-slider-filter';
 import { getStringFilterValue } from '@/shared/lib/data-table.lib';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface DataTableToolbarFilterProps<TData> {
-  readonly column: Column<TData>;
+interface DataTableToolbarFilterProps<TData extends RowData> {
+  readonly column: Column<DataTableFeatures, TData, unknown>;
 }
 
-export const DataTableToolbarFilter = <TData,>({ column }: DataTableToolbarFilterProps<TData>) => {
+export const DataTableToolbarFilter = <TData extends RowData>({ column }: DataTableToolbarFilterProps<TData>) => {
   const columnMeta = column.columnDef.meta;
   const variant = columnMeta?.variant;
 

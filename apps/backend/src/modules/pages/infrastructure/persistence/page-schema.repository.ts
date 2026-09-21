@@ -1,8 +1,10 @@
 import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
+import { readPagePropertyOptionValues } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../../common/domain/schema.domain.types';
+import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
 import {
   parseSchemaPropertyValues,
   toSchemaPropertyDefinition,
@@ -11,7 +13,8 @@ import {
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import type { PageRowSummary, PageSchemaDefinition, PageSchemaRepositoryContract } from '../../types/page-schema.types';
+import { COLLECTION_ROW_LIMIT, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
+import type { PageRowsPage, PageSchemaDefinition, PageSchemaRepositoryContract } from '../../types/page-schema.types';
 
 const schemaPropertySelection = {
   key: true,
@@ -71,7 +74,10 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         data: properties.map((property, order) => ({
           key: property.key,
           label: property.label,
-          options: property.options === null ? Prisma.JsonNull : [...property.options],
+          options:
+            property.options === null
+              ? Prisma.JsonNull
+              : property.options.map((option) => ({ color: option.color, value: option.value })),
           order,
           pageId,
           required: property.required,
@@ -79,10 +85,11 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         })),
       });
       await transaction.pageSchemaView.createMany({
-        data: views.map((view) => ({
+        data: views.map((view, order) => ({
           configuration: view.configuration,
           isDefault: view.isDefault,
           name: view.name,
+          order,
           pageId,
           type: view.type,
         })),
@@ -91,30 +98,96 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     });
   }
 
-  async listRows(
+  /**
+   * Reescribe la opción y arrastra consigo lo que las filas guardaron.
+   *
+   * Las dos cosas en una transacción: si la forma cambiara y las filas no, todas
+   * las que decían el nombre viejo quedarían diciendo algo que la colección ya
+   * no reconoce, y el tablero las dejaría sin columna.
+   *
+   * De qué nombre viene se comprueba aquí dentro, con la fila tomada: quien
+   * pidió el cambio leyó las opciones hace un rato, y si en ese rato otra
+   * persona tocó esa misma opción, escribir lo leído borraría su cambio. La
+   * opción que ya no está donde se la dejó no se reescribe.
+   */
+  async rewriteOption(
     pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<readonly PageRowSummary[]> {
-    const rows = await this.prisma.page.findMany({
+    propertyKey: string,
+    rename: { readonly from: string; readonly to: null | string },
+    properties: readonly SchemaPropertyDefinition[],
+  ): Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED> {
+    return this.prisma.$transaction(async (transaction) => {
+      const held = await transaction.$queryRaw<{ options: unknown }[]>`
+        SELECT "options" FROM "PageSchemaProperty" WHERE "pageId" = ${pageId} AND "key" = ${propertyKey} FOR UPDATE
+      `;
+      const stillThere = readPagePropertyOptionValues(held[0]?.options)?.includes(rename.from) ?? false;
+      if (!stillThere) return SCHEMA_OPTION_ALREADY_MOVED;
+      const rewritten = properties.find((property) => property.key === propertyKey);
+      await transaction.pageSchemaProperty.updateMany({
+        data: {
+          options:
+            rewritten?.options === null || rewritten?.options === undefined
+              ? Prisma.JsonNull
+              : rewritten.options.map((option) => ({ color: option.color, value: option.value })),
+        },
+        where: { key: propertyKey, pageId },
+      });
+      const rows = await transaction.page.findMany({
+        select: { id: true, propertyValues: true },
+        where: { parentId: pageId },
+      });
+      for (const row of rows) {
+        const stored = parseSchemaPropertyValues(row.propertyValues);
+        if (stored === null || !propertyValueMentions(stored[propertyKey], rename.from)) continue;
+        await transaction.page.update({
+          data: { propertyValues: rewritePropertyValues(stored, propertyKey, rename.from, rename.to) },
+          where: { id: row.id },
+        });
+      }
+      return this.loadSchemaSummary(transaction, pageId);
+    });
+  }
+
+  /**
+   * Cambia lo que una vista dice de sí misma, y nada más.
+   *
+   * Rehacer la forma entera para esto borraría y volvería a crear cada propiedad
+   * y cada vista de la colección: mucho trabajo, y una ventana donde el cambio
+   * de otra persona se perdería, por doblar una franja.
+   */
+  async setViewConfiguration(
+    pageId: string,
+    viewName: string,
+    configuration: Prisma.InputJsonObject,
+  ): Promise<PageSchemaDefinition> {
+    await this.prisma.pageSchemaView.updateMany({ data: { configuration }, where: { name: viewName, pageId } });
+    return this.loadSchemaSummary(this.prisma, pageId);
+  }
+
+  async listRows(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<PageRowsPage> {
+    /* Una de más que el tope: es lo que distingue una colección que cabe justa de una a la que se le cortó la cola. */
+    const found = await this.prisma.page.findMany({
       orderBy: { order: 'asc' },
       select: pageRowSelection,
+      take: COLLECTION_ROW_LIMIT + 1,
       where: {
         lifecycle: PageLifecycle.ACTIVE,
         parentId: pageId,
         space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
       },
     });
-    return rows.map((row) => ({
-      id: row.id,
-      lifecycle: row.lifecycle,
-      order: row.order,
-      parentId: row.parentId,
-      propertyValues: parseSchemaPropertyValues(row.propertyValues),
-      spaceId: row.spaceId,
-      title: row.title,
-    }));
+    return {
+      hasMore: found.length > COLLECTION_ROW_LIMIT,
+      rows: found.slice(0, COLLECTION_ROW_LIMIT).map((row) => ({
+        id: row.id,
+        lifecycle: row.lifecycle,
+        order: row.order,
+        parentId: row.parentId,
+        propertyValues: parseSchemaPropertyValues(row.propertyValues),
+        spaceId: row.spaceId,
+        title: row.title,
+      })),
+    };
   }
 
   async listWorkspaceMemberIds(workspaceId: string): Promise<readonly string[]> {
@@ -131,8 +204,13 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         select: schemaPropertySelection,
         where: { pageId },
       }),
+      /**
+       * En el orden que les dio quien configuró la colección, que es el de sus
+       * pestañas. Leerlas por nombre haría que renombrar una vista la moviera de
+       * sitio, y dejaría el orden en manos del alfabeto.
+       */
       client.pageSchemaView.findMany({
-        orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+        orderBy: { order: 'asc' },
         select: schemaViewSelection,
         where: { pageId },
       }),

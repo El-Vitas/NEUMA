@@ -1,37 +1,37 @@
 model Page {
-  id               String               @id @default(uuid(7))
-  spaceId          String
-  parentId         String?
-  title            String
-  content          Json
-  propertyValues   Json?
-  icon             Json?
-  cover            Json?
-  order            Int                  @default(0)
-  lifecycle        PageLifecycle        @default(ACTIVE)
-  lockedAt         DateTime?
-  lockedById       String?
-  verifiedAt       DateTime?
-  verifiedById     String?
+  id                    String               @id @default(uuid(7))
+  spaceId               String
+  parentId              String?
+  title                 String
+  content               Json
+  propertyValues        Json?
+  icon                  Json?
+  cover                 Json?
+  order                 Int                  @default(0)
+  lifecycle             PageLifecycle        @default(ACTIVE)
+  lockedAt              DateTime?
+  lockedById            String?
+  verifiedAt            DateTime?
+  verifiedById          String?
   verificationExpiresAt DateTime?
-  ownerId          String?
-  createdById      String
-  updatedById      String
-  trashedAt        DateTime?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  space            Space                @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  parent           Page?                @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  verifiedBy       User?                @relation("PageVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
-  owner            User?                @relation("PageOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  children         Page[]               @relation("PageHierarchy")
-  versions         PageVersion[]
-  linksAsSource    PageLink[]           @relation("PageLinkSource")
-  linksAsTarget    PageLink[]           @relation("PageLinkTarget")
-  schemaProperties PageSchemaProperty[]
-  schemaViews      PageSchemaView[]
-  favorites        PageFavorite[]
-  views            PageView[]
+  ownerId               String?
+  createdById           String
+  updatedById           String
+  trashedAt             DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  space                 Space                @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  parent                Page?                @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  verifiedBy            User?                @relation("PageVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  owner                 User?                @relation("PageOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  children              Page[]               @relation("PageHierarchy")
+  versions              PageVersion[]
+  linksAsSource         PageLink[]           @relation("PageLinkSource")
+  linksAsTarget         PageLink[]           @relation("PageLinkTarget")
+  schemaProperties      PageSchemaProperty[]
+  schemaViews           PageSchemaView[]
+  favorites             PageFavorite[]
+  views                 PageView[]
 
   @@index([spaceId, lifecycle, order])
   @@index([parentId, order])

@@ -1,9 +1,11 @@
+import { pointAtExportedFiles } from './page-export.links.lib.js';
 import { writePageAsMarkdown } from './page-markdown.lib.js';
 import type { PageContent } from './schemas/page-content.schema.js';
 
 /** One page on its way out: what it says, what it is called, and who it hung from. */
 export interface PageForExport {
   readonly content: PageContent;
+  readonly id: string;
   /** The names of the pages above it, from the top down. Empty for a page at the root of its space. */
   readonly path: readonly string[];
   readonly title: string;
@@ -60,17 +62,28 @@ export const writePageAsMarkdownFile = (page: PageForExport, untitledLabel = 'Un
 export const writePagesAsMarkdownFiles = (
   pages: readonly PageForExport[],
   untitledLabel = 'Untitled',
+  whereEachAssetWent: ReadonlyMap<string, string> = new Map(),
 ): readonly ExportedPageFile[] => {
   const taken = new Set<string>();
+  const whereEachPageWent = new Map<string, string>();
 
-  return pages.map((page) => {
+  /** Where every page lands is settled first, so a link written later can already point at it. */
+  for (const page of pages) {
     const folder = page.path.map((above) => asFileName(above));
     const base = asFileName(nameOf(page, untitledLabel));
     let candidate = [...folder, `${base}.md`].join('/');
-    for (let repeat = 2; taken.has(candidate.toLowerCase()); repeat += 1) {
+    let repeat = 2;
+    while (taken.has(candidate.toLowerCase())) {
       candidate = [...folder, `${base} (${String(repeat)}).md`].join('/');
+      repeat += 1;
     }
     taken.add(candidate.toLowerCase());
-    return { contents: writePageAsMarkdownFile(page, untitledLabel), path: candidate };
+    whereEachPageWent.set(page.id, candidate);
+  }
+
+  return pages.map((page) => {
+    const path = whereEachPageWent.get(page.id) ?? `${asFileName(nameOf(page, untitledLabel))}.md`;
+    const written = writePageAsMarkdownFile(page, untitledLabel);
+    return { contents: pointAtExportedFiles(written, path, whereEachPageWent, whereEachAssetWent), path };
   });
 };

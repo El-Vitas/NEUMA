@@ -8,7 +8,7 @@ import { Button } from '@/shared/components/ui/button';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { formatDate } from '@/shared/utils/formatters';
 import { restorePageAction } from '../../server/actions/pages.actions';
-import { resolvePageRestoreNotice } from '../lib/pages.trash.lib';
+import { usePageRestoreNotice } from '../hooks/use.pages.trash.restore-notice';
 import { getPageRestorePreviewAction } from '../server/actions/pages.trash.actions';
 import type { TrashDescendantsPreview, TrashedPage, TrashRestoreOutcome } from '../types/pages.trash.types';
 import { PagesTrashDeleteForeverDialog } from './pages.trash.delete-forever.dialog';
@@ -25,20 +25,9 @@ export const PagesTrashItem = ({ locale, page }: IProps) => {
   const [isPending, startTransition] = useTransition();
   const [isRestorePromptOpen, setIsRestorePromptOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const restoreNotice = usePageRestoreNotice();
 
   const title = page.title.length > 0 ? page.title : t('untitled');
-
-  const buildRestoreNotice = (outcome: TrashRestoreOutcome): string => {
-    const notice = resolvePageRestoreNotice(outcome);
-    switch (notice.kind) {
-      case 'toRoot':
-        return t('restoreNotice.toRoot', { page: title, space: notice.space });
-      case 'underParent':
-        return t('restoreNotice.underParent', { page: title, parent: notice.parent });
-      default:
-        return t('restored');
-    }
-  };
 
   const performRestore = async (includeChildren: boolean): Promise<void> => {
     const result = await restorePageAction({ includeChildren, pageId: page.id, spaceId: page.spaceId });
@@ -46,7 +35,7 @@ export const PagesTrashItem = ({ locale, page }: IProps) => {
       toast.error(t('trashScreen.restoreError'));
       return;
     }
-    toast.success(buildRestoreNotice(result.data));
+    toast.success(restoreNotice(page.title, result.data));
     router.refresh();
   };
 

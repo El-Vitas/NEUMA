@@ -9,6 +9,7 @@ import {
   PAGE_EDITOR_MENTION_STYLE_CLASS,
   PAGE_EDITOR_MENTION_TRIGGER,
 } from '../../blocks/constants/pages.editor.blocks.constants';
+import { createPageEditorWriteCommand } from '../../lib/pages.editor.ask.lib';
 import { insertPageNode } from '../../lib/pages.editor.insert.lib';
 import { PAGE_PERSON_HOVER_SEPARATOR } from '../constants/pages.editor.person.constants';
 import type { PagePersonHoverInfo, PagePersonInsert } from '../types/pages.editor.person.types';
@@ -20,11 +21,7 @@ import { createPageMark } from './pages.editor.marks.lib';
  * A person is looked up the same way a page already written is: by writing
  * `@`, so the one picker that answers for a page answers for a person too.
  */
-export const askForAPerson: Command = (state, dispatch) => {
-  if (dispatch === undefined) return true;
-  dispatch(state.tr.insertText(PAGE_EDITOR_MENTION_TRIGGER));
-  return true;
-};
+export const askForAPerson: Command = createPageEditorWriteCommand(PAGE_EDITOR_MENTION_TRIGGER);
 
 /**
  * Builds a ProseMirror command that names a person where the writing is.

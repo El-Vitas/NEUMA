@@ -23,10 +23,11 @@ export const usePagesExport = (): PagesExportResult => {
   const tErrors = useTranslations('errors');
   const [isExporting, startTransition] = useTransition();
 
-  const exportPages = ({ exportedName, pageId, scope, spaceId }: PagesExportRequest): void => {
+  const exportPages = ({ exportedName, pageId, pageIds = [], scope, spaceId }: PagesExportRequest): void => {
     startTransition(async () => {
       const written = await exportPagesAsMarkdownAction({
         pageId,
+        pageIds: [...pageIds],
         scope,
         spaceId,
         untitledLabel: t('untitled'),

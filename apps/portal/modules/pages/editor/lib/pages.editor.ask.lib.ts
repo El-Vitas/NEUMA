@@ -1,6 +1,22 @@
 import type { Command } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 
+/**
+ * Writes a bit of text where the cursor stands, and nada más.
+ *
+ * Es el gesto de teclear: sirve para poner el emoji que se eligió y también
+ * para escribir el `@` o los `:` que abren el buscador que ya los contesta, en
+ * vez de tener un segundo camino para abrirlo desde el menú. Siempre se puede
+ * escribir, así que siempre dice que sí —el contrato de ProseMirror pide
+ * contestar sin actuar cuando no llega `dispatch`.
+ */
+export const createPageEditorWriteCommand =
+  (written: string): Command =>
+  (state, dispatch) => {
+    dispatch?.(state.tr.insertText(written));
+    return true;
+  };
+
 /** Whoever answers, when there is anybody there and they are in a state to act. */
 const findWhoeverAnswers = (selector: string, view: EditorView | undefined): HTMLElement | null => {
   const answering = view?.dom.ownerDocument.querySelector<HTMLElement>(selector);

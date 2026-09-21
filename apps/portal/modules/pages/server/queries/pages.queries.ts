@@ -6,8 +6,9 @@ import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_API_ROUTES, PAGE_LOCATION_CACHE_TAG, PAGES_ASSIGNED_CACHE_TAG } from '../../constants/pages.constants';
-import { pageLocationSchema, pagesListSchema } from '../../schemas/pages.schemas';
+import { pageLocationSchema } from '../../schemas/pages.schemas';
 import type { PageSummary } from '../../types/pages.types';
+import { readPagesThatCanBeRead } from '../lib/pages.reading.server';
 
 export const getPages = async (spaceId: string): Promise<Result<readonly PageSummary[], Error>> =>
   withQuery({ op: 'getPages', params: { includeTrashed: true, spaceId } }, (accessToken) =>
@@ -20,7 +21,7 @@ const getPagesCached = async (accessToken: string, spaceId: string): Promise<rea
   cacheTag(PAGES_CACHE_TAG(spaceId));
 
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
-  return pagesListSchema.parse(response);
+  return readPagesThatCanBeRead(response, 'getPages');
 };
 
 /**
@@ -51,5 +52,5 @@ const getAssignedPagesCached = async (accessToken: string): Promise<readonly Pag
   cacheTag(PAGES_ASSIGNED_CACHE_TAG);
 
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.assigned, accessToken);
-  return pagesListSchema.parse(response);
+  return readPagesThatCanBeRead(response, 'getAssignedPages');
 };

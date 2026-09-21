@@ -1,16 +1,17 @@
-import type { ColumnSort, Row, RowData } from '@tanstack/react-table';
+import type { ColumnSort, Row, RowData, TableFeatures } from '@tanstack/react-table';
 import type { dataTableConfig } from '@/config/data-table';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 export type DataTableConfig = typeof dataTableConfig;
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface TableMeta<TData extends RowData> {
+  interface TableMeta<TFeatures extends TableFeatures, TData extends RowData> {
     queryKeys?: QueryKeys;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData extends RowData, TValue> {
+  interface ColumnMeta<TFeatures extends TableFeatures, TData extends RowData, TValue> {
     label?: string;
     placeholder?: string;
     variant?: FilterVariant;
@@ -50,7 +51,7 @@ export interface ExtendedColumnFilter<TData> {
   value: string;
 }
 
-export interface DataTableRowAction<TData> {
-  row: Row<TData>;
+export interface DataTableRowAction<TData extends RowData> {
+  row: Row<DataTableFeatures, TData>;
   variant: 'update' | 'delete';
 }

@@ -15,7 +15,45 @@ describe('schema property domain validation', () => {
 
   it('requires exactly one TITLE property', () => {
     const result = validateSchemaProperties([
-      { key: 'status', label: 'Status', type: DatabasePropertyType.SELECT, required: false, options: ['todo'] },
+      {
+        key: 'status',
+        label: 'Status',
+        type: DatabasePropertyType.SELECT,
+        required: false,
+        options: [{ color: null, value: 'todo' }],
+      },
+    ]);
+
+    expect(result.isFail()).toBe(true);
+  });
+
+  /**
+   * Una selección recién creada todavía no ofrece nada, y llenarla es el paso
+   * siguiente. Exigirle una opción para poder guardarla obliga a inventar una
+   * o a perder el trabajo.
+   */
+  it('accepts a selection that does not offer anything yet', () => {
+    const result = validateSchemaProperties([
+      { key: 'title', label: 'Title', options: null, required: true, type: DatabasePropertyType.TITLE },
+      { key: 'status', label: 'Status', options: [], required: false, type: DatabasePropertyType.SELECT },
+    ]);
+
+    expect(result.isOk()).toBe(true);
+  });
+
+  it('still refuses two options that say the same thing', () => {
+    const result = validateSchemaProperties([
+      { key: 'title', label: 'Title', options: null, required: true, type: DatabasePropertyType.TITLE },
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { color: null, value: 'todo' },
+          { color: null, value: 'todo' },
+        ],
+        required: false,
+        type: DatabasePropertyType.SELECT,
+      },
     ]);
 
     expect(result.isFail()).toBe(true);
@@ -30,7 +68,10 @@ describe('schema property domain validation', () => {
           label: 'Status',
           type: DatabasePropertyType.SELECT,
           required: false,
-          options: ['todo', 'done'],
+          options: [
+            { color: null, value: 'todo' },
+            { color: null, value: 'done' },
+          ],
         },
       ],
       { title: 'Task', status: 'blocked' },

@@ -22,14 +22,23 @@ describe('page schema contracts', () => {
   });
 
   test('exposes the canonical view type values', () => {
-    expect(PAGE_VIEW_TYPE_VALUES).toEqual([PAGE_VIEW_TYPE.TABLE, PAGE_VIEW_TYPE.BOARD]);
+    expect(PAGE_VIEW_TYPE_VALUES).toEqual([
+      PAGE_VIEW_TYPE.TABLE,
+      PAGE_VIEW_TYPE.BOARD,
+      PAGE_VIEW_TYPE.LIST,
+      PAGE_VIEW_TYPE.GALLERY,
+      PAGE_VIEW_TYPE.CALENDAR,
+      PAGE_VIEW_TYPE.CHART,
+    ]);
   });
 
+  /** Named after the shape the rows arrive in, so a view type new tomorrow needs no new kind. */
   test('exposes the canonical view outcome kinds', () => {
     expect(Object.values(PAGE_VIEW_OUTCOME_KIND)).toEqual([
-      'TABLE_ROWS',
-      'BOARD_COLUMNS',
-      'BOARD_MISSING_GROUPING_PROPERTY',
+      'BANDED_ROWS',
+      'FLAT_ROWS',
+      'GROUPED_ROWS',
+      'MISSING_GROUPING_PROPERTY',
     ]);
   });
 });

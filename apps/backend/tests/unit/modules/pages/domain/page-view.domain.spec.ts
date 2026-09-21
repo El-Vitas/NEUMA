@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
-import { buildPageViewOutcome } from '@/modules/pages/domain/page-view.domain';
+import { buildPageViewOutcome, countPageViewRows } from '@/modules/pages/domain/page-view.domain';
 import type { PageRowSummary } from '@/modules/pages/types/page-schema.types';
 
 const titleProperty = { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null };
@@ -9,7 +9,10 @@ const statusProperty = {
   label: 'Status',
   type: DatabasePropertyType.SELECT,
   required: false,
-  options: ['todo', 'done'],
+  options: [
+    { color: null, value: 'todo' },
+    { color: null, value: 'done' },
+  ],
 };
 
 const buildRow = (overrides: Partial<PageRowSummary>): PageRowSummary => ({
@@ -33,7 +36,7 @@ describe('buildPageViewOutcome — table view', () => {
       rows,
     );
 
-    expect(outcome).toEqual({ kind: 'TABLE_ROWS', rows });
+    expect(outcome).toEqual({ kind: 'FLAT_ROWS', rows });
   });
 });
 
@@ -50,9 +53,9 @@ describe('buildPageViewOutcome — board view', () => {
       rows,
     );
 
-    expect(outcome.kind).toBe('BOARD_COLUMNS');
-    if (outcome.kind !== 'BOARD_COLUMNS') throw new Error('unreachable');
-    expect(outcome.columns.map((column) => column.key)).toEqual(['todo', 'done', 'unassigned']);
+    expect(outcome.kind).toBe('GROUPED_ROWS');
+    if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
+    expect(outcome.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
   });
 
   it('treats a row with no property values as unassigned rather than crashing', () => {
@@ -64,9 +67,9 @@ describe('buildPageViewOutcome — board view', () => {
       rows,
     );
 
-    expect(outcome.kind).toBe('BOARD_COLUMNS');
-    if (outcome.kind !== 'BOARD_COLUMNS') throw new Error('unreachable');
-    const unassigned = outcome.columns.find((column) => column.key === 'unassigned');
+    expect(outcome.kind).toBe('GROUPED_ROWS');
+    if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
+    const unassigned = outcome.groups.find((group) => group.key === 'unassigned');
     expect(unassigned?.rows.map((row) => row.id)).toEqual(['a']);
   });
 
@@ -79,7 +82,7 @@ describe('buildPageViewOutcome — board view', () => {
       rows,
     );
 
-    expect(outcome).toEqual({ kind: 'BOARD_MISSING_GROUPING_PROPERTY' });
+    expect(outcome).toEqual({ kind: 'MISSING_GROUPING_PROPERTY' });
   });
 });
 
@@ -101,8 +104,8 @@ describe('buildPageViewOutcome — filtering', () => {
       rows,
     );
 
-    expect(outcome.kind).toBe('TABLE_ROWS');
-    if (outcome.kind !== 'TABLE_ROWS') throw new Error('unreachable');
+    expect(outcome.kind).toBe('FLAT_ROWS');
+    if (outcome.kind !== 'FLAT_ROWS') throw new Error('unreachable');
     expect(outcome.rows.map((row) => row.id)).toEqual(['a']);
   });
 
@@ -120,8 +123,8 @@ describe('buildPageViewOutcome — filtering', () => {
       rows,
     );
 
-    expect(outcome.kind).toBe('TABLE_ROWS');
-    if (outcome.kind !== 'TABLE_ROWS') throw new Error('unreachable');
+    expect(outcome.kind).toBe('FLAT_ROWS');
+    if (outcome.kind !== 'FLAT_ROWS') throw new Error('unreachable');
     expect(outcome.rows.map((row) => row.id)).toEqual(['a', 'b']);
   });
 
@@ -134,7 +137,7 @@ describe('buildPageViewOutcome — filtering', () => {
       rows,
     );
 
-    expect(outcome).toEqual({ kind: 'TABLE_ROWS', rows });
+    expect(outcome).toEqual({ kind: 'FLAT_ROWS', rows });
   });
 });
 
@@ -156,8 +159,8 @@ describe('buildPageViewOutcome — ordering', () => {
       rows,
     );
 
-    expect(outcome.kind).toBe('TABLE_ROWS');
-    if (outcome.kind !== 'TABLE_ROWS') throw new Error('unreachable');
+    expect(outcome.kind).toBe('FLAT_ROWS');
+    if (outcome.kind !== 'FLAT_ROWS') throw new Error('unreachable');
     expect(outcome.rows.map((row) => row.id)).toEqual(['b', 'a']);
   });
 
@@ -178,9 +181,35 @@ describe('buildPageViewOutcome — ordering', () => {
       rows,
     );
 
-    expect(outcome.kind).toBe('BOARD_COLUMNS');
-    if (outcome.kind !== 'BOARD_COLUMNS') throw new Error('unreachable');
-    const todoColumn = outcome.columns.find((column) => column.key === 'todo');
-    expect(todoColumn?.rows.map((row) => row.id)).toEqual(['b', 'a']);
+    expect(outcome.kind).toBe('GROUPED_ROWS');
+    if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
+    const todoGroup = outcome.groups.find((group) => group.key === 'todo');
+    expect(todoGroup?.rows.map((row) => row.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('countPageViewRows', () => {
+  it('counts the rows of a view that reads them one after another', () => {
+    expect(countPageViewRows({ kind: 'FLAT_ROWS', rows: [buildRow({ id: 'a' }), buildRow({ id: 'b' })] })).toBe(2);
+  });
+
+  /** Una fila está en un grupo y en uno solo, así que sumar los grupos las cuenta a todas una vez. */
+  it('adds up what every group holds', () => {
+    const outcome = buildPageViewOutcome(
+      { configuration: { groupBy: 'status' }, isDefault: true, name: 'Board', type: DatabaseViewType.BOARD },
+      [titleProperty, statusProperty],
+      [
+        buildRow({ id: 'a', propertyValues: { status: 'todo' } }),
+        buildRow({ id: 'b', propertyValues: { status: 'done' } }),
+        buildRow({ id: 'c', propertyValues: {} }),
+      ],
+    );
+
+    expect(countPageViewRows(outcome)).toBe(3);
+  });
+
+  /** Sin la propiedad por la que agrupa no hay filas repartidas, y decir «ninguna» es lo cierto. */
+  it('counts none when the view could not even be read', () => {
+    expect(countPageViewRows({ kind: 'MISSING_GROUPING_PROPERTY' })).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { flexRender, type Table as TanstackTable } from '@tanstack/react-table';
+import { flexRender, type RowData, type Table as TanstackTable } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
 import type * as React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,9 +7,10 @@ import { cn } from '@/lib/utils';
 import { DataTableMobileView } from '@/shared/components/data-table/data-table-mobile-view';
 import { DataTablePagination } from '@/shared/components/data-table/data-table-pagination';
 import { getAriaSort, getEmptyMessage } from '@/shared/lib/data-table.lib';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-export interface DataTableProps<TData> extends React.ComponentProps<'div'> {
-  readonly table: TanstackTable<TData>;
+export interface DataTableProps<TData extends RowData> extends React.ComponentProps<'div'> {
+  readonly table: TanstackTable<DataTableFeatures, TData>;
   readonly actionBar?: React.ReactNode;
   readonly isLoading?: boolean;
   readonly emptyMessage?: string;
@@ -19,7 +20,7 @@ export interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   readonly title?: string;
 }
 
-export const DataTable = <TData,>({
+export const DataTable = <TData extends RowData>({
   table,
   actionBar,
   children,

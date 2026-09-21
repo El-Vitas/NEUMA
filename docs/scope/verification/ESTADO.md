@@ -32,6 +32,13 @@ quedaron ahí.
   **Y se construyó:** una página sale como Markdown, varias salen comprimidas
   con un archivo por página y las carpetas como jerarquía. Comprobado contra la
   API el 2026-08-22.
+- **Se construyó lo que faltaba del `09` y podía construirse.** Exportar una
+  selección suelta de páginas desde la barra lateral; los adjuntos viajan dentro
+  del comprimido, en una carpeta `assets`; y los enlaces entre páginas
+  exportadas apuntan al archivo vecino por camino relativo, dejando intacto el
+  enlace a una página que no viajó. Comprobado en el navegador el 2026-08-22.
+  El aviso de avance de una exportación grande **no se hizo**: necesita tareas
+  en segundo plano, que no existen.
 - **Una casilla del `04` estaba mal marcada, y la marqué yo.** «Se pueden
   exportar todas juntas» vive bajo *actuar sobre varias páginas a la vez*, o
   sea sobre la selección. La exportación existe, pero por página, por rama o
@@ -46,15 +53,17 @@ probarlo en pantalla**.
 
 | Doc | Construido | Sin construir |
 |---|---|---|
-| `05` colecciones | 8 tipos de propiedad (título, texto, selección simple y múltiple, persona, fecha, casilla, número); vista de tabla y tablero; colección incrustada | enlace/correo/teléfono, archivos como propiedad, relaciones, cálculos sobre relaciones, fórmulas, datos automáticos de la página; vistas de lista, galería, calendario y línea de tiempo |
+| `04` páginas | crear, anidar, mover, papelera, portada, ícono, bloqueo, selección múltiple | que una página sea colección o lienzo (`PG-22`, `PG-23`) |
+| `05` colecciones | 8 tipos de propiedad; tabla y tablero con barra de vistas; arrastrar tarjetas entre columnas, también con teclado; configurar la forma después de crear la colección (agregar y quitar propiedades, opciones y colores); filtrar, ordenar y agrupar en el servidor; colección incrustada | manejo de columnas, elegir la agrupación desde la pantalla, filtros en pantalla, qué muestra una tarjeta, cambiar el tipo de una propiedad, enlace/correo/teléfono, archivos como propiedad, relaciones, cálculos, fórmulas, datos automáticos; vistas de lista, galería, calendario y línea de tiempo |
 | `06` colaboración | edición simultánea, comentarios de bloque, versiones, visibilidad de espacio, privado | publicar hacia afuera, historial navegable |
 | `07` grafo | menciones, retroenlaces | menciones sin enlazar, grafo visual |
 | `08` agentes | MCP, modo oscuro, atajos | por medir |
-| `09` importar/exportar | exportar a Markdown (página, rama, espacio) | importar cualquier cosa, PDF, HTML, CSV, copiar como Markdown, imprimir |
+| `09` importar/exportar | exportar a Markdown (página, rama, selección, espacio), con adjuntos y enlaces relativos | importar cualquier cosa, PDF, HTML, CSV, copiar como Markdown, imprimir, aviso de avance |
 | `10` plantillas | nada | todo |
 | `11` administración | usuarios y roles | grupos, invitaciones, auditoría |
 | `12` automatización | el bloque de botón | disparadores, recurrencia, recordatorios, IA |
 | `13` rendimiento | nada medido | todo |
+| `14` revisión y aprobación | los pedazos sueltos: verificar una página, una persona responsable, bloqueo manual, comentarios de bloque | todo lo demás — proteger la página verificada con responsables, proponer en vez de editar, aprobar, rechazar, pedir cambios con comentario, aplicar, rastro |
 
 ## Lo que se ordenó
 
@@ -75,12 +84,45 @@ probarlo en pantalla**.
   que un tablero sea un kanban y no una lista en columnas. Va detrás del tablero,
   no al final.
 
+## La dirección que se tomó el 2026-08-22
+
+El producto apunta a ser componible, como AFFiNE y Notion, y no a sumar
+funciones sueltas. Eso se apoya en tres separaciones:
+
+- **El dato no sabe cómo se ve.** Un conjunto de páginas con propiedades se
+  dibuja como tabla, tablero o calendario sin que el dato cambie.
+- **La vista es una pieza, no un lugar.** En AFFiNE la vista de datos vive en su
+  propio paquete (`blocksuite/affine/data-view`), aparte del bloque que la
+  hospeda, con sus tipos de vista y sus tipos de propiedad enchufables. Agregar
+  un calendario no obliga a tocar el bloque.
+- **Dónde se monta es otra decisión.** La misma vista sirve ocupando una página
+  entera o metida dentro de otra. Notion guarda el mismo dato en los dos casos.
+
+De ahí salieron tres bloques nuevos de verificación: `PG-22` (una página puede
+ser documento, colección o lienzo), `PG-23` (la página como lienzo) y `CO-07`
+(la colección se ve igual esté donde esté).
+
+Nuestro problema es el opuesto al de AFFiNE. Ellos tienen la pieza suelta y no
+tienen página propia para ella; nosotros tenemos el modelo de página correcto
+—una colección **es** una página, y sus filas son sus hijas— con la vista
+cableada en un componente que solo sabe dibujarse al final de la página.
+
 ## Lo que queda por decidir
 
-1. **`IO-02` pide exportar una selección suelta de páginas.** Hoy se exporta por
-   página, rama o espacio. Si esa casilla se queda, es trabajo por hacer.
-2. **Los documentos `10` y `12` describen producto que no existe** salvo el
+1. **Los documentos `10` y `12` describen producto que no existe** salvo el
    bloque de botón. Ya lo dicen en su cabecera, pero hay que decidir si son la
    siguiente etapa o si esperan.
-3. **El `13` no se poda, se corre.** Todo lo suyo se mide sobre lo que ya
+2. **El `13` no se poda, se corre.** Todo lo suyo se mide sobre lo que ya
    existe.
+3. **El `14` ya no tiene nada por decidir.** Sus cuatro preguntas —quién puede
+   saltarse la protección, quién elige a los aprobadores y cuántos hacen falta,
+   qué pasa al caducar el sello, y si aplicar una propuesta lo renueva— se
+   respondieron el 2026-09-10 y quedaron escritas en ese mismo documento. Lo
+   que queda es construirlo, y no se puede empezar sin `CL-10`.
+   **Sus reglas de negocio no se registran todavía.** El registro de
+   `docs/business-rules/` solo admite reglas `active`, y una regla activa sobre
+   algo que nadie construyó le miente a quien consulte el registro. La
+   distinción vale para toda esta carpeta: **estos documentos dicen lo que el
+   producto debe hacer; el registro de reglas dice cómo se comporta**. Cuando
+   un bloque se construye y se verifica, ahí sí sus decisiones pasan a ser
+   reglas.

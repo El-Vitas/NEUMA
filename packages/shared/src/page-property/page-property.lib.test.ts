@@ -51,10 +51,20 @@ describe('page property capabilities', () => {
     expect(typesNeedingDirectory).toEqual([PAGE_PROPERTY_TYPE.PERSON]);
   });
 
-  test('only a single select can group a board', () => {
+  /**
+   * Una columna es un valor, así que agrupa lo que responda un valor y solo
+   * uno. Queda fuera el texto libre, que haría una columna por respuesta, y la
+   * selección múltiple, que pondría la misma fila en varias a la vez.
+   */
+  test('a board groups by whatever answers with a single value', () => {
     const groupableTypes = PAGE_PROPERTY_TYPE_VALUES.filter(canPagePropertyGroupBoard);
 
-    expect(groupableTypes).toEqual([PAGE_PROPERTY_TYPE.SELECT]);
+    expect(groupableTypes).toEqual([
+      PAGE_PROPERTY_TYPE.SELECT,
+      PAGE_PROPERTY_TYPE.DATE,
+      PAGE_PROPERTY_TYPE.CHECKBOX,
+      PAGE_PROPERTY_TYPE.NUMBER,
+    ]);
   });
 
   test('only the title type identifies the page', () => {

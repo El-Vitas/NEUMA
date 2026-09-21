@@ -11,7 +11,7 @@ import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schem
 
 const propertyKeyPattern = /^[a-z]\w*$/;
 
-const isStringArray = (value: unknown): value is readonly string[] =>
+export const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
 export const isPropertyValue = (value: unknown): value is SchemaPropertyValue =>
@@ -20,16 +20,63 @@ export const isPropertyValue = (value: unknown): value is SchemaPropertyValue =>
 const toPropertyContext = (
   property: SchemaPropertyDefinition,
   personIds: ReadonlySet<string> | undefined,
-): PagePropertyContext => ({ options: property.options, personIds });
+): PagePropertyContext => ({ options: property.options?.map((option) => option.value) ?? null, personIds });
 
+/**
+ * Lo que una lista de opciones tiene que cumplir, si la propiedad las admite.
+ *
+ * Puede no ofrecer ninguna: una selección recién creada todavía no dice de
+ * dónde elegir, y llenarla es el paso siguiente. Exigirle una opción para
+ * poder guardarla obliga a inventar una o a perder lo hecho hasta ahí. Lo que
+ * sí se rechaza es una lista que se contradice: dos opciones iguales, o una
+ * sin nombre, que nadie sabría distinguir al elegir.
+ */
 const validatePropertyOptions = (property: SchemaPropertyDefinition): string | null => {
   if (!pagePropertyRequiresOptions(property.type)) {
     return property.options === null || property.options.length === 0 ? null : `${property.key} cannot define options`;
   }
-  if (property.options === null || property.options.length === 0) return `${property.key} requires options`;
-  if (new Set(property.options).size !== property.options.length) return `${property.key} has duplicate options`;
-  if (property.options.some((option) => option.trim().length === 0)) return `${property.key} has an empty option`;
+  if (property.options === null) return null;
+  const values = property.options.map((option) => option.value);
+  if (new Set(values).size !== values.length) return `${property.key} has duplicate options`;
+  if (values.some((value) => value.trim().length === 0)) return `${property.key} has an empty option`;
   return null;
+};
+
+/**
+ * Lo que una fila queda teniendo tras un cambio parcial.
+ *
+ * Una propiedad que llega valiendo nada se quita en vez de guardarse vacía: es
+ * lo que significa soltar una tarjeta en la columna de las filas sin valor, y
+ * una propiedad presente pero vacía no es lo mismo que una ausente.
+ */
+export const mergePropertyValues = (
+  stored: Readonly<Record<string, unknown>> | null,
+  arriving: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> => {
+  const cleared = new Set(
+    Object.entries(arriving)
+      .filter(([, value]) => value === null)
+      .map(([key]) => key),
+  );
+  const merged = { ...stored, ...arriving };
+  return Object.fromEntries(Object.entries(merged).filter(([key]) => !cleared.has(key)));
+};
+
+/**
+ * Lo que la forma todavía reconoce, de todo lo que una fila trae.
+ *
+ * Una propiedad quitada de la forma deja atrás lo que las filas escribieron bajo
+ * ella. Ese resto ya no significa nada y la forma lo rechaza, así que arrastrarlo
+ * al escribir dejaría la fila sin poder volver a guardarse nunca. Se descarta al
+ * escribir, no antes: mientras nadie toque la fila, sigue ahí por si la propiedad
+ * vuelve.
+ */
+export const keepWhatTheSchemaKnows = (
+  properties: readonly SchemaPropertyDefinition[],
+  propertyValues: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> => {
+  const known = new Set(properties.map((property) => property.key));
+  return Object.fromEntries(Object.entries(propertyValues).filter(([key]) => known.has(key)));
 };
 
 export const validateSchemaProperties = (

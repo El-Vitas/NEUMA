@@ -1,5 +1,4 @@
 import path from 'node:path';
-import withBundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -47,7 +46,22 @@ const nextConfig: NextConfig = {
    * to accept, and refuse it by throwing rather than by saying so. The margin
    * above ten is what the encoding of the file itself costs on the way.
    */
-  experimental: { serverActions: { bodySizeLimit: '12mb' } },
+  experimental: {
+    serverActions: { bodySizeLimit: '12mb' },
+    /**
+     * The build stays on Bun, and the persistent Turbopack cache that Next 16.3
+     * turned on by default makes `bun --bun next build` crash with a segfault.
+     * Turned off until the two get along; only the build cache is given up, and
+     * the dev one —which is what keeps memory in check— stays on.
+     */
+    turbopackFileSystemCacheForBuild: false,
+    /**
+     * The type checker Next 16.3 reaches for lives in `typescript/bin/tsc`, and
+     * the compiler this repository installs (`@typescript/typescript6`) does not
+     * ship that file. Typechecking runs on its own through `bun run typecheck`.
+     */
+    useTypeScriptCli: false,
+  },
   /**
    * The manual is written in files rather than in the code, and files nothing
    * imports are not carried into what gets deployed unless they are named here.
@@ -70,7 +84,4 @@ const nextConfig: NextConfig = {
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
-// biome-ignore lint/style/noProcessEnv: next.config.ts needs process.env for conditional bundle analyzer
-const analyzedConfig = process.env.ANALYZE === 'true' ? withBundleAnalyzer({ enabled: true })(nextConfig) : nextConfig;
-
-export default withNextIntl(analyzedConfig);
+export default withNextIntl(nextConfig);

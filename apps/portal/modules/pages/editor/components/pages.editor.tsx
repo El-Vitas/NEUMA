@@ -296,6 +296,13 @@ export const PagesEditor = forwardRef(
               propertyValues={propertyValues}
               spaceId={spaceId}
             />
+            {/*
+              Una página que lleva una colección es, sobre todo, esa colección: va
+              antes que el cuerpo, no al final, para que abrirla sea verla. Lo que
+              se escriba encima queda debajo, como las notas que acompañan a una
+              tabla y no como el motivo de la página.
+            */}
+            {collectionSection}
             <PagesProseMirrorEditor
               canEdit={canWrite}
               content={page.content}
@@ -314,7 +321,6 @@ export const PagesEditor = forwardRef(
               typography={appearance.preferences.typography}
             />
             <PagesBacklinks backlinks={backlinks} />
-            {collectionSection}
           </div>
           <aside className={layoutStyleClasses.outlineSide}>
             <PagesOutline headings={headings} onGoToHeading={handleGoToHeading} title={t('pageContents')} />

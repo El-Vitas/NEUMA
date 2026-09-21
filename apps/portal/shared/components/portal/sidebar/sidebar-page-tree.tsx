@@ -12,7 +12,7 @@ import { PagesChildrenQuestionDialog } from '@/modules/pages/components/pages.ch
 import { usePagesExport } from '@/modules/pages/export/hooks/use.pages.export';
 import { duplicatePageAction, restorePageAction } from '@/modules/pages/server/actions/pages.actions';
 import { PagesTrashConfirmDialog } from '@/modules/pages/trash/components/pages.trash.confirm.dialog';
-import { resolvePageRestoreNotice } from '@/modules/pages/trash/lib/pages.trash.lib';
+import { usePageRestoreNotice } from '@/modules/pages/trash/hooks/use.pages.trash.restore-notice';
 import type { TrashRestoreOutcome } from '@/modules/pages/trash/types/pages.trash.types';
 import {
   buildPortalSidebarPageTree,
@@ -51,7 +51,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { isStarting, startPage } = usePagesStart();
+  const { isStarting, startCollection, startPage } = usePagesStart();
   const [pageToTrash, setPageToTrash] = useState<PortalSidebarPage | null>(null);
   const [pageToRename, setPageToRename] = useState<PortalSidebarPage | null>(null);
   const [pageToMark, setPageToMark] = useState<PortalSidebarPage | null>(null);
@@ -59,6 +59,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
   const [pageToExport, setPageToExport] = useState<PortalSidebarPage | null>(null);
   const { exportPages, isExporting } = usePagesExport();
   const undoingPageIdRef = useRef<string | null>(null);
+  const restoreNotice = usePageRestoreNotice();
   const drag = useSidebarPageDrag(pages, spaceId);
   const selection = useSidebarPageSelection();
   const [activeBatchDialog, setActiveBatchDialog] = useState<'move' | 'trash' | null>(null);
@@ -88,19 +89,6 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
-  const buildRestoreNotice = (page: PortalSidebarPage, outcome: TrashRestoreOutcome): string => {
-    const title = page.title.length > 0 ? page.title : t('untitled');
-    const notice = resolvePageRestoreNotice(outcome);
-    switch (notice.kind) {
-      case 'toRoot':
-        return t('restoreNotice.toRoot', { page: title, space: notice.space });
-      case 'underParent':
-        return t('restoreNotice.underParent', { page: title, parent: notice.parent });
-      default:
-        return t('restored');
-    }
-  };
-
   const restorePage = (page: PortalSidebarPage): void => {
     if (undoingPageIdRef.current === page.id) return;
     undoingPageIdRef.current = page.id;
@@ -111,7 +99,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
           toast.error(t('permissionError'));
           return;
         }
-        toast.success(buildRestoreNotice(page, result.data));
+        toast.success(restoreNotice(page.title, result.data));
         router.refresh();
       } catch {
         toast.error(t('permissionError'));
@@ -156,6 +144,21 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
       scope: includeChildren ? 'branch' : 'page',
       spaceId,
     });
+  };
+
+  /**
+   * What was picked goes out and the selection ends, because leaving it up
+   * would invite acting twice on pages that already left.
+   */
+  const exportSelection = (): void => {
+    exportPages({
+      exportedName: t('selection.exportName'),
+      pageId: null,
+      pageIds: [...selection.selectedIds],
+      scope: 'pages',
+      spaceId,
+    });
+    selection.stop();
   };
 
   /** A page with nothing under it leaves nothing to decide, so nothing is asked. */
@@ -222,8 +225,9 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
       )}
       {selection.isActive && (
         <SidebarPageSelectionToolbar
-          disabled={isPending}
+          disabled={isPending || isExporting}
           onCancel={selection.stop}
+          onExport={exportSelection}
           onMove={() => setActiveBatchDialog('move')}
           onTrash={() => setActiveBatchDialog('trash')}
           selectedCount={selection.selectedIds.size}
@@ -240,6 +244,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
             key={treeItem.page.id}
             onKeyDown={handleSidebarPageTreeKeyDown}
             onNavigate={onNavigate}
+            onRequestChildCollection={(page) => startCollection(spaceId, page.id)}
             onRequestChildPage={(page) => startPage(spaceId, page.id)}
             onRequestDuplicate={requestDuplicate}
             onRequestExport={requestExport}

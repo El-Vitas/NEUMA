@@ -1,19 +1,12 @@
 'use client';
 
-import type { ColumnFiltersState, OnChangeFn, PaginationState, SortingState } from '@tanstack/react-table';
-import {
-  getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
+import type { ColumnFiltersState, OnChangeFn, PaginationState, RowData, SortingState } from '@tanstack/react-table';
+import { useTable } from '@tanstack/react-table';
 import { useCallback } from 'react';
+import { dataTableFeatures } from '@/shared/lib/data-table.features.lib';
 import type { UseDataTableOptions } from './types/use-data-table.types';
 
-export const useDataTable = <TData>({
+export const useDataTable = <TData extends RowData>({
   data,
   columns,
   pageCount,
@@ -47,7 +40,8 @@ export const useDataTable = <TData>({
     [onColumnFiltersChange],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data: data ?? [],
     columns,
     pageCount,
@@ -74,12 +68,6 @@ export const useDataTable = <TData>({
         columnFilters: state.columnFilters,
       }),
     },
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
-    getFacetedRowModel: manualFiltering ? undefined : getFacetedRowModel(),
-    getFacetedUniqueValues: manualFiltering ? undefined : getFacetedUniqueValues(),
     onPaginationChange: handlePaginationChange,
     onSortingChange: handleSortingChange,
     onColumnFiltersChange: handleColumnFiltersChange,
