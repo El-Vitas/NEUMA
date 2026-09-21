@@ -6,10 +6,8 @@ import {
   pageViewRequiresGrouping,
   readPageViewConfiguration,
 } from '@company-brain/shared';
-import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
-import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { PAGE_VIEW_NO_GROUP } from '../constants/pages.collections.constants';
@@ -18,6 +16,7 @@ import { listGroupablePropertyKeys, readPageDateBucket } from '../lib/pages.view
 import type { PageSchemaView } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
+import { PagesSchemaSettingsMissingProperty } from './pages.schema.settings.missing-property';
 
 interface IProps {
   readonly editor: PagesSchemaEditor;
@@ -41,29 +40,15 @@ export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) 
     editor.properties.find((property) => property.key === configuration.groupBy)?.type === PAGE_PROPERTY_TYPE.DATE;
   const emptyGroupsFieldId = useId();
 
-  /*
-    Sin ninguna propiedad que haga columnas no hay nada que elegir, y un
-    desplegable vacío y apagado deja encallado a quien no sepa que lo que falta
-    es una selección. Se dice, y se lleva a donde se arregla.
-  */
+  /* Sin ninguna propiedad que haga columnas no hay nada que elegir aquí. */
   if (groupable.length === 0) {
     return (
-      <div className="space-y-2">
-        <p className="px-2 text-muted-foreground text-xs uppercase tracking-wide">{t('groupBy')}</p>
-        <div className="space-y-2 px-2">
-          <p className="text-muted-foreground text-xs">{t('noGroupableProperty')}</p>
-          <Button
-            className="min-h-11 w-full justify-start"
-            disabled={editor.isSaving}
-            onClick={() => onGo({ level: 'PROPERTIES' })}
-            type="button"
-            variant="outline"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            {t('addProperty')}
-          </Button>
-        </div>
-      </div>
+      <PagesSchemaSettingsMissingProperty
+        heading={t('groupBy')}
+        isSaving={editor.isSaving}
+        message={t('noGroupableProperty')}
+        onAddProperty={() => onGo({ level: 'PROPERTIES' })}
+      />
     );
   }
 

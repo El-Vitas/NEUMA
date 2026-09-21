@@ -79,3 +79,6 @@ export const PAGE_API_ROUTES = {
   view: (spaceId: string, pageId: string, viewName: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,
 } as const;
+
+/** Lo que se dice cuando la lista de páginas no llegó siquiera como una lista. */
+export const PAGES_LIST_IS_NOT_A_LIST = 'The pages list arrived as something that is not a list';

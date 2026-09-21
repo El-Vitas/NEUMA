@@ -705,6 +705,7 @@
       "sectionTitle": "Rows",
       "viewsLabel": "Views of this collection",
       "emptyTable": "No rows yet",
+      "onlyFirstRows": "This collection holds more rows than fit at once. You are seeing the first {shown}; use a filter or a search to reach the rest.",
       "rowCount": "{shown} of {total, plural, one {# row} other {# rows}}",
       "everythingFiltered": "The filter lets none of this collection's {total, plural, one {# row} other {# rows}} through. Remove it or change it to see them again.",
       "emptyColumn": "No rows",

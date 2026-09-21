@@ -29,7 +29,7 @@ import type { PagesSidePanelController } from '../types/pages.side-panel.types';
  *
  * The panel hangs off the right edge, so dragging left is what grows it.
  */
-export const usePagesSidePanel = (flushBeforeClose: () => Promise<void>): PagesSidePanelController => {
+export const usePagesSidePanel = (flushPendingChanges: () => Promise<void>): PagesSidePanelController => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -53,14 +53,26 @@ export const usePagesSidePanel = (flushBeforeClose: () => Promise<void>): PagesS
     [pathname, router, searchParams],
   );
 
-  const navigateWithinPanel = useCallback((_spaceId: string, pageId: string): void => openPanel(pageId), [openPanel]);
+  /**
+   * Cambiar de página dentro del panel deja atrás el editor de la anterior, así
+   * que lo escrito hace un instante se manda antes de irse: el autoguardado
+   * espera un momento entre tecla y tecla, y al desaparecer solo cancela esa
+   * espera en vez de cumplirla.
+   */
+  const navigateWithinPanel = useCallback(
+    async (_spaceId: string, pageId: string): Promise<void> => {
+      await flushPendingChanges();
+      openPanel(pageId);
+    },
+    [flushPendingChanges, openPanel],
+  );
 
   const closePanel = useCallback(async (): Promise<void> => {
-    await flushBeforeClose();
+    await flushPendingChanges();
     router.replace(buildAddressWithSearch(pathname, withoutPagesSidePanelParam(searchParams.toString())), {
       scroll: false,
     });
-  }, [flushBeforeClose, pathname, router, searchParams]);
+  }, [flushPendingChanges, pathname, router, searchParams]);
 
   return {
     closePanel,

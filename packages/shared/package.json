@@ -23,6 +23,7 @@
     "check": "bun run format:check && bun run lint:check && bun run typecheck",
     "format:ramless": "RAYON_NUM_THREADS=1 biome format --write .",
     "check:ramless": "RAYON_NUM_THREADS=1 biome format . && NODE_OPTIONS=--max-old-space-size=1024 node node_modules/.bin/eslint \"src/**/*.ts\" && NODE_OPTIONS=--max-old-space-size=768 node node_modules/.bin/tsc6 --noEmit",
+    "test:cov": "bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage",
     "test:ramless": "bun test --smol"
   },
   "types": "./dist/index.d.ts",

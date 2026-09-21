@@ -68,6 +68,12 @@ export const PagesCollectionSection = async ({
           </div>
         )}
       </div>
+      {/* La colección guardaba más de lo que se trajo: se dice, porque si no, lo que falta no se nota. */}
+      {reading?.hasMore === true && (
+        <p className="text-muted-foreground text-xs" data-testid="collection-partial">
+          {t('collection.onlyFirstRows', { shown: reading.totalRowCount })}
+        </p>
+      )}
       {hidesEverything ? (
         <EmptyState message={t('collection.everythingFiltered', { total: reading.totalRowCount })} />
       ) : (

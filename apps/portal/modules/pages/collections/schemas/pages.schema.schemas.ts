@@ -80,6 +80,7 @@ export const pageViewOutcomeSchema = z.discriminatedUnion('kind', [
  * filas: aquí solo llegan las que la vista dejó pasar.
  */
 export const pageViewReadingSchema = z.object({
+  hasMore: z.boolean(),
   outcome: pageViewOutcomeSchema,
   rowCount: z.number().int().min(0),
   totalRowCount: z.number().int().min(0),

@@ -26,11 +26,11 @@ import {
   pageReorderSchema,
   pageRestoreMutationSchema,
   pageSummarySchema,
-  pagesListSchema,
 } from '../../schemas/pages.schemas';
 import { PAGE_TRASH_CACHE_TAG } from '../../trash/constants/pages.trash.constants';
 import { trashRestoreOutcomeSchema } from '../../trash/schemas/pages.trash.schemas';
 import type { TrashRestoreOutcome } from '../../trash/types/pages.trash.types';
+import { readPagesThatCanBeRead } from '../lib/pages.reading.server';
 
 export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
@@ -143,8 +143,7 @@ export const listPageDestinationsAction = actionClient
     withAction({ action: 'listDestinations' }, async (): Promise<readonly PageDestination[]> => {
       const accessToken = await requireAccessTokenCookie();
       const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(parsedInput.spaceId), accessToken);
-      return pagesListSchema
-        .parse(response)
+      return readPagesThatCanBeRead(response, 'listDestinations')
         .filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE && page.id !== parsedInput.exceptPageId)
         .map((page) => ({ id: page.id, label: page.title, spaceId: page.spaceId }));
     }),

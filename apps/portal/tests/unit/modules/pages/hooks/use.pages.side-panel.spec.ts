@@ -55,14 +55,40 @@ describe('usePagesSidePanel', () => {
     expect(push).toHaveBeenCalledWith(`${PATHNAME}?search=quarterly&panel=page-2`, STAYS_WHERE_IT_WAS);
   });
 
-  it('navigating within the panel opens the same way as opening it does', () => {
+  it('navigating within the panel opens the same way as opening it does', async () => {
     const { result } = renderHook(() => usePagesSidePanel(() => Promise.resolve()));
 
-    act(() => {
-      result.current.navigateWithinPanel('space-1', 'page-3');
+    await act(async () => {
+      await result.current.navigateWithinPanel('space-1', 'page-3');
     });
 
     expect(push).toHaveBeenCalledWith(`${PATHNAME}?panel=page-3`, STAYS_WHERE_IT_WAS);
+  });
+
+  /**
+   * Cambiar de página deja atrás el editor de la anterior, y al desaparecer solo
+   * cancela la espera del autoguardado en vez de cumplirla: lo escrito hace un
+   * instante se perdería sin decir nada.
+   */
+  it('waits for whatever the panel still has to save before going to another page', async () => {
+    currentSearch = 'panel=page-2';
+    const pushedAfterFlush: boolean[] = [];
+    let hasFlushed = false;
+    const flushPendingChanges = mock(() => {
+      hasFlushed = true;
+      return Promise.resolve();
+    });
+    push.mockImplementation(() => {
+      pushedAfterFlush.push(hasFlushed);
+    });
+    const { result } = renderHook(() => usePagesSidePanel(flushPendingChanges));
+
+    await act(async () => {
+      await result.current.navigateWithinPanel('space-1', 'page-3');
+    });
+
+    expect(flushPendingChanges).toHaveBeenCalledTimes(1);
+    expect(pushedAfterFlush).toEqual([true]);
   });
 
   it('waits for whatever the panel still has to save before writing the closed address', async () => {

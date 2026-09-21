@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { ArrayMaxSize, IsIn, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
-import { EXPORT_SELECTION_LIMIT } from '../constants/pages.constants';
+import { EXPORT_SELECTION_LIMIT, EXPORT_UNTITLED_LABEL_MAX_LENGTH } from '../constants/pages.constants';
 
 /** A repeated query parameter reaches the server as one value when it came only once. */
 const asList = (value: unknown): readonly string[] => {
@@ -28,6 +28,6 @@ export class ExportPagesQueryDto {
   /** What a page with no name of its own should be called in the file, in the reader's own language. */
   @IsOptional()
   @IsString()
-  @MaxLength(80)
+  @MaxLength(EXPORT_UNTITLED_LABEL_MAX_LENGTH)
   untitledLabel?: string;
 }

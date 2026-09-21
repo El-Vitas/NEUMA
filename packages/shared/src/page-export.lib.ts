@@ -72,8 +72,10 @@ export const writePagesAsMarkdownFiles = (
     const folder = page.path.map((above) => asFileName(above));
     const base = asFileName(nameOf(page, untitledLabel));
     let candidate = [...folder, `${base}.md`].join('/');
-    for (let repeat = 2; taken.has(candidate.toLowerCase()); repeat += 1) {
+    let repeat = 2;
+    while (taken.has(candidate.toLowerCase())) {
       candidate = [...folder, `${base} (${String(repeat)}).md`].join('/');
+      repeat += 1;
     }
     taken.add(candidate.toLowerCase());
     whereEachPageWent.set(page.id, candidate);

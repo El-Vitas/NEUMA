@@ -126,6 +126,34 @@ rules:
     context: >-
       Fallar al registrar una visita nunca impide leer la página; el fallo queda en la bitácora y nada más. La ventana
       para no contar dos veces es de media hora.
+  - id: BR-93c3fc8
+    status: active
+    title: Una página ilegible no se lleva por delante el espacio entero
+    rule: >-
+      Al leer las páginas de un espacio, la que esta versión no sepa leer se deja fuera de la lista y las demás siguen.
+      Que quedó fuera se registra, diciendo cuántas y desde qué lectura, para que alguien pueda ir a arreglarla. Un
+      espacio no deja de responder por una de sus páginas.
+    why: >-
+      La lista se leía entera o no se leía, así que una sola página guardada por otra versión, arreglada a mano en la
+      base o dejada a medias por una migración hacía fallar la lectura del espacio completo, y entonces ninguna de sus
+      páginas se podía abrir. El daño de una página estropeada tiene que ser esa página, no todo lo que la acompaña. Y
+      dejarla fuera sin decirlo sería perderla igual, solo que en silencio.
+    context: >-
+      Es la misma idea que ya rige al exportar, donde una página ilegible no invalida el archivo entero. Una respuesta
+      que ni siquiera llega como una lista es otra cosa —no una página estropeada— y esa sí corta la lectura.
+    scenarios:
+      - title: Una página que no se deja leer
+        given: Un espacio con varias páginas, una de ellas guardada de una forma que esta versión no entiende
+        when: Se abre cualquier página del espacio
+        then: La página se abre, y en el costado aparecen todas menos la que no se pudo leer
+      - title: Queda dicho lo que faltó
+        given: Una lista de la que quedó fuera una página
+        when: Se termina de leer
+        then: Se registra cuántas quedaron fuera y desde qué lectura
+      - title: Una respuesta que no es una lista
+        given: Una respuesta que no llega como lista de páginas
+        when: Se intenta leer
+        then: La lectura falla, en vez de seguir como si el espacio estuviera vacío
   - id: BR-a096152
     status: active
     title: Una copia nace junto a su original y solo ella cambia de nombre
@@ -153,6 +181,31 @@ rules:
     context: >-
       Reordenar renumera la fila completa desde arriba: dos hermanas empatadas harían caer el siguiente arrastre donde
       nadie apuntó. Una página soltada junto a las hijas de otra madre primero cambia de madre y después se coloca.
+  - id: BR-ac96db4
+    status: active
+    title: Exportar se cuenta por persona, y de a pocas por minuto
+    rule: >-
+      Pedir una exportación tiene un tope de cuántas veces seguidas se admite por minuto. Se cuenta por quien pide y no
+      por desde dónde pide, porque exportar exige sesión y una oficina entera comparte una dirección. Pasado el tope se
+      responde que se pidió demasiado seguido, y ninguna otra puerta del sistema queda afectada por ese tope: entrar,
+      renovar la sesión o crear una cuenta siguen contándose por su cuenta.
+    why: >-
+      Exportar lee todas las páginas activas del alcance pedido, se trae sus adjuntos y arma el archivo en memoria: es
+      de lo más caro que el servidor hace por una sola petición. Una pestaña que reintenta sola, o alguien probando,
+      tumba el servicio para todos los demás. Contar por dirección castigaría a quien comparte oficina y no pidió nada.
+    scenarios:
+      - title: Exportar unas cuantas veces
+        given: Una persona con sesión iniciada
+        when: Pide exportar dentro del tope del minuto
+        then: Cada exportación se entrega
+      - title: Pasarse del tope
+        given: Una persona que ya agotó su tope del minuto
+        when: Pide otra exportación
+        then: Se le responde que pidió demasiado seguido
+      - title: Las demás puertas no se ven afectadas
+        given: Una persona que ya agotó su tope de exportaciones
+        when: Inicia sesión otra vez
+        then: Entra con normalidad
   - id: BR-b3786ed
     status: active
     title: La posición de lectura se guarda por página y dura lo que la pestaña

@@ -602,11 +602,27 @@ export class PagesService {
     return childPageCount === null ? Result.fail(new PageAccessDeniedError()) : Result.ok({ childPageCount });
   }
 
+  /**
+   * Un archivo que no se pudo borrar del almacén queda escrito en la bitácora.
+   *
+   * La página se va igual —la fila ya no está y no se va a volver atrás por
+   * esto—, pero un archivo que sobrevive a su página ocupa sitio sin que nadie
+   * lo sepa, y nadie va a buscarlo si el fallo no dejó rastro.
+   */
   private async cleanupAttachments(pageIds: readonly string[]): Promise<void> {
     if (pageIds.length === 0) return;
     const storageKeys = await this.pageAttachmentsCleanupRepository.listStorageKeysForPages(pageIds);
     await this.pageAttachmentsCleanupRepository.deleteForPages(pageIds);
-    await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
+    const removals = await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
+    for (const [index, removal] of removals.entries()) {
+      if (removal.status === 'rejected') {
+        this.logger.warn({
+          err: removal.reason,
+          message: 'An attachment outlived its page and is still in storage',
+          storageKey: storageKeys[index],
+        });
+      }
+    }
   }
 
   private async resolvePropertyValuesForWrite(

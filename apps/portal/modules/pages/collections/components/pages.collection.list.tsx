@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import type { PagePersonOption, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
-import { PagesCollectionGroupHeading } from './pages.collection.group-heading';
+import { PagesCollectionGroupSection } from './pages.collection.group-section';
 import { PagesCollectionListRow } from './pages.collection.list.row';
 
 interface IProps {
@@ -37,16 +37,12 @@ export const PagesCollectionList = async ({
   return (
     <div className="space-y-4" data-testid="collection-list">
       {groups.map((group) => (
-        <section aria-label={isGrouped ? group.label : undefined} key={group.key}>
-          {isGrouped && (
-            <PagesCollectionGroupHeading
-              color={group.color}
-              groupKey={group.key}
-              label={group.label}
-              rowCount={group.rows.length}
-              unassignedLabel={t('collection.unassignedGroup')}
-            />
-          )}
+        <PagesCollectionGroupSection
+          group={group}
+          isGrouped={isGrouped}
+          key={group.key}
+          unassignedLabel={t('collection.unassignedGroup')}
+        >
           <ul className="m-0 list-none p-0">
             {group.rows.map((row) => (
               <PagesCollectionListRow
@@ -60,7 +56,7 @@ export const PagesCollectionList = async ({
               />
             ))}
           </ul>
-        </section>
+        </PagesCollectionGroupSection>
       ))}
     </div>
   );

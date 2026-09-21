@@ -6,6 +6,7 @@ import type {
   SchemaPropertyValues,
   SchemaViewDefinition,
 } from '../../../common/domain/schema.domain.types';
+import type { SCHEMA_OPTION_ALREADY_MOVED } from '../constants/pages.constants';
 
 export type {
   SchemaPropertyDefinition,
@@ -43,7 +44,19 @@ export interface PageRowSummary {
   readonly lifecycle: PageLifecycle;
 }
 
+/**
+ * Las filas que se trajeron, y si la colección guardaba más de las que caben.
+ *
+ * Las dos cosas viajan juntas porque una lista cortada sin decirlo se lee como
+ * la colección entera.
+ */
+export interface PageRowsPage {
+  readonly hasMore: boolean;
+  readonly rows: readonly PageRowSummary[];
+}
+
 export interface PageRowsSummary {
+  readonly hasMore: boolean;
   readonly spaceId: string;
   readonly rows: readonly PageRowSummary[];
 }
@@ -92,7 +105,7 @@ export interface PageSchemaRepositoryContract {
     propertyKey: string,
     rename: { readonly from: string; readonly to: null | string },
     properties: readonly SchemaPropertyDefinition[],
-  ) => Promise<PageSchemaDefinition>;
+  ) => Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED>;
   /** Solo esa vista, sin tocar la forma de la colección ni las otras vistas. */
   readonly setViewConfiguration: (
     pageId: string,
@@ -101,11 +114,6 @@ export interface PageSchemaRepositoryContract {
   ) => Promise<PageSchemaDefinition>;
   readonly getSchema: (pageId: string) => Promise<PageSchemaDefinition>;
   readonly resolveSchemaProperties: (pageId: null | string) => Promise<readonly SchemaPropertyDefinition[]>;
-  readonly listRows: (
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ) => Promise<readonly PageRowSummary[]>;
+  readonly listRows: (pageId: string, workspaceId: string, userId: string, role: UserRole) => Promise<PageRowsPage>;
   readonly listWorkspaceMemberIds: (workspaceId: string) => Promise<readonly string[]>;
 }

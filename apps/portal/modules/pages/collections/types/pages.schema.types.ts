@@ -89,10 +89,12 @@ export type PageViewOutcome =
  * esa vista las lee, y de cuántas salieron.
  */
 export interface PageViewReading {
+  /** Si la colección guardaba más filas de las que el servidor trajo. */
+  readonly hasMore: boolean;
   readonly outcome: PageViewOutcome;
   /** Las que el filtro dejó pasar. */
   readonly rowCount: number;
-  /** Todas las que la colección guarda, filtre o no la vista. */
+  /** Todas las que llegaron, filtre o no la vista. */
   readonly totalRowCount: number;
 }
 

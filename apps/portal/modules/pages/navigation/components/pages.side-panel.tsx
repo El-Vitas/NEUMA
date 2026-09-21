@@ -63,11 +63,11 @@ export const PagesSidePanel = ({
   const themeRoot = useThemeRoot();
   const editorHandleRef = useRef<ComponentRef<typeof PagesEditor>>(null);
 
-  const flushBeforeClose = useCallback(async (): Promise<void> => {
+  const flushPendingChanges = useCallback(async (): Promise<void> => {
     await editorHandleRef.current?.flushPendingChanges();
   }, []);
 
-  const sidePanel = usePagesSidePanel(flushBeforeClose);
+  const sidePanel = usePagesSidePanel(flushPendingChanges);
 
   const handleOpenChange = (open: boolean): void => {
     if (open) return;
@@ -75,7 +75,7 @@ export const PagesSidePanel = ({
   };
 
   const handleOpenFullPage = async (): Promise<void> => {
-    await flushBeforeClose();
+    await flushPendingChanges();
     router.push(ROUTES.PORTAL_SPACE_PAGE(spaceId, page.id));
   };
 

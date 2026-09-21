@@ -75,6 +75,57 @@ rules:
         given: Alguien sin permiso de escribir la página
         when: Abre la colección
         then: No se le dibuja la manera de entrar a la configuración
+  - id: BR-4fef023
+    status: active
+    title: Una colección se mira de varias formas, y cada una recuerda la suya
+    rule: >-
+      Las mismas filas de una colección se miran como tabla, como tablero, como lista, como galería, como calendario o
+      como avance, y una colección puede tener varias vistas a la vez. Cada vista guarda por su cuenta por dónde agrupa,
+      qué filtra, cómo ordena, qué propiedades enseña y cuánto alto ocupa una fila, así que cambiar una no toca a las
+      demás. Una de ellas queda marcada como principal, y es por la que se abre la colección cuando nadie pide otra.
+    why: >-
+      Las mismas filas responden preguntas distintas según quién las mire: quien reparte trabajo quiere columnas por
+      estado, quien revisa fechas quiere un calendario, y quien busca una nota quiere una lista de nombres. Obligar a
+      todos a mirar la misma tabla hace que cada quien se arme la suya por fuera, y entonces deja de haber una sola
+      colección.
+    context: >-
+      Un tablero y una rejilla agrupan; una tabla, una lista y una galería no. Una vista que necesita agrupar y no tiene
+      por dónde lo dice antes de guardarse, en vez de quedar en blanco.
+    scenarios:
+      - title: Dos vistas de las mismas filas
+        given: Una colección con una vista de tabla y una de tablero
+        when: Se pone un filtro en el tablero
+        then: La tabla sigue enseñando lo que enseñaba
+      - title: La vista con la que se abre
+        given: Una colección cuya vista principal es la galería
+        when: Alguien abre la página de la colección
+        then: Se le enseña la galería
+      - title: Un tablero sin por dónde agrupar
+        given: Una vista de tablero a la que no se le eligió propiedad de agrupación
+        when: Se intenta guardar la configuración
+        then: Se dice qué falta y no se guarda
+  - id: BR-699e037
+    status: active
+    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    rule: >-
+      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
+      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
+      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar una opción de una
+      propiedad: si esa opción ya fue renombrada o quitada por otra persona, el cambio no se aplica y se dice que la
+      opción ya se movió, en lugar de escribir encima.
+    why: >-
+      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
+      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
+      algo que sí se había configurado.
+    scenarios:
+      - title: Una agrupación puesta mientras la configuración estaba abierta
+        given: Una vista que alguien acaba de agrupar por estado
+        when: Desde la configuración abierta de antes se pone un filtro
+        then: La vista queda con el filtro nuevo y con la agrupación por estado
+      - title: Una opción que ya se movió
+        given: Una opción que otra persona acaba de renombrar
+        when: Alguien intenta renombrarla desde lo que había leído antes
+        then: El cambio se rechaza diciendo que la opción ya se movió, y el renombre de la otra persona se conserva
   - id: BR-d7ada57
     status: active
     title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
@@ -114,3 +165,66 @@ rules:
         given: Alguien sin permiso de escribir la página
         when: Intenta mover una tarjeta
         then: Las tarjetas no se pueden arrastrar, y el servidor rechaza el intento hecho por fuera
+  - id: BR-e248700
+    status: active
+    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    rule: >-
+      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Cuando la colección tenía más de las que
+      caben, la respuesta lo declara y la pantalla lo dice junto a las filas, indicando cuántas se están viendo y que
+      hay que filtrar o buscar para llegar al resto. Una colección cortada nunca se presenta como si fuera entera.
+    why: >-
+      Una colección que creció sola —una bandeja de entrada, un registro de incidencias— costaría al abrirse en
+      proporción a todo lo que guardó, y quien la abre espera por filas que no va a mirar. Pero callar el corte es peor
+      que el corte: quinientas de mil sin avisar se leen como las mil, y entonces se decide sobre filas que nadie sabe
+      que faltan.
+    scenarios:
+      - title: Una colección que cabe
+        given: Una colección con menos filas que el tope
+        when: Se abre
+        then: Se ven todas y no se dice nada de ningún corte
+      - title: Una colección que no cabe
+        given: Una colección con más filas que el tope
+        when: Se abre
+        then: Se ven las primeras hasta el tope y se avisa que hay más
+  - id: BR-f707396
+    status: active
+    title: Un filtro se arma con grupos, y cada grupo dice si pide todo o cualquiera
+    rule: >-
+      El filtro de una vista no es una lista plana de condiciones: es un grupo que contiene condiciones y otros grupos,
+      y cada grupo declara si se cumple cuando se cumplen todas las cosas que lleva dentro o cuando se cumple cualquiera
+      de ellas. Así se expresa «vence esta semana y está sin asignar, o está marcada como urgente» sin salir de la
+      pantalla. Una condición que señala una propiedad que la colección ya no tiene se deja de aplicar y no se dibuja,
+      en vez de filtrar por algo que nadie puede ver ni corregir.
+    why: >-
+      Con condiciones sueltas unidas siempre por «y», media pregunta real no se puede escribir, y quien la necesita
+      termina creando una vista por cada caso o exportando a una planilla. Y un filtro que sigue aplicando una propiedad
+      borrada esconde filas por un motivo que ya no aparece en ninguna parte.
+    scenarios:
+      - title: Dos caminos para pasar
+        given: Un filtro cuyo grupo raíz pide cualquiera de sus dos grupos
+        when: Una fila cumple solo el segundo grupo
+        then: La fila pasa el filtro
+      - title: Una propiedad que ya no está
+        given: Un filtro con una condición sobre una propiedad que se quitó
+        when: Se mira la vista
+        then: Esa condición no se aplica ni se dibuja, y el resto del filtro sigue valiendo
+  - id: BR-fb3c415
+    status: active
+    title: Una colección tiene un tope de propiedades y de vistas, lo pida quien lo pida
+    rule: >-
+      La forma de una colección tiene topes: cuántas propiedades puede definir y cuántas vistas puede tener. Los topes
+      los aplica el servidor y no solo la pantalla, así que una petición armada por fuera del portal se rechaza igual
+      que un intento hecho desde la interfaz.
+    why: >-
+      Los topes de la pantalla protegen a quien usa la pantalla. Quien manda mil propiedades de una vez no lo hace desde
+      ahí, y una colección con mil propiedades no se dibuja, no se filtra y no se exporta: deja de ser usable para todos
+      los que comparten el espacio, no solo para quien la mandó.
+    scenarios:
+      - title: Una forma dentro de los topes
+        given: Una petición con menos propiedades y vistas que el tope
+        when: Se manda
+        then: La forma se guarda
+      - title: Una forma que pasa el tope
+        given: Una petición con más propiedades que el tope, armada fuera del portal
+        when: Se manda
+        then: Se rechaza por inválida y la colección se queda como estaba

@@ -23,6 +23,7 @@
     "check:ramless": "NODE_OPTIONS=--max-old-space-size=512 node ../../node_modules/.bin/depcruise . -c .depcruise.json --output-type err && RAYON_NUM_THREADS=1 biome format src tests && RAYON_NUM_THREADS=1 biome check src tests && NODE_OPTIONS=--max-old-space-size=1024 node node_modules/.bin/eslint \"{src,tests}/**/*.ts\" && NODE_OPTIONS=--max-old-space-size=768 node ../../node_modules/.bin/tsc -p tsconfig.json --noEmit --incremental",
     "test:ramless": "bun test tests/unit tests/integration --timeout 30000 --smol",
     "test": "bun test tests/unit tests/integration --timeout 30000",
+    "test:cov": "bun test tests/unit tests/integration --timeout 30000 --coverage --coverage-reporter=lcov --coverage-dir=coverage",
     "test:watch": "bun test tests/unit tests/integration --watch"
   },
   "dependencies": {

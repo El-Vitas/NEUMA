@@ -37,4 +37,53 @@ export const EXPORT_ARCHIVE_MEDIA_TYPE = 'application/zip';
 /** How many pages a loose selection may name at once, so a query cannot ask for the world. */
 export const EXPORT_SELECTION_LIMIT = 200;
 
+/**
+ * Cuánta forma admite una colección.
+ *
+ * Son los mismos topes que el portal ya pone antes de mandar, escritos también
+ * aquí porque el portal no es el único que puede llamar: quien manda mil
+ * propiedades de una vez no lo hace desde la pantalla.
+ */
+export const SCHEMA_PROPERTY_LIMIT = 50;
+export const SCHEMA_VIEW_LIMIT = 20;
+
+/**
+ * Cuánto puede medir cada nombre que llega de fuera.
+ *
+ * Un título es lo que se lee en el costado, en la miga de pan y en el nombre
+ * del archivo al exportar, así que el tope es el del sitio más estrecho. La
+ * clave de una propiedad es un identificador y no una frase, y por eso se
+ * queda corta; su etiqueta, que sí se lee, tiene el largo de un renglón.
+ */
+export const PAGE_TITLE_MAX_LENGTH = 200;
+export const SCHEMA_PROPERTY_KEY_MAX_LENGTH = 64;
+export const SCHEMA_LABEL_MAX_LENGTH = 120;
+
+/** Cómo se llama una página sin nombre en el archivo exportado, dicho en el idioma de quien lo pide. */
+export const EXPORT_UNTITLED_LABEL_MAX_LENGTH = 80;
+
+/**
+ * Cuántas filas de una colección se traen de una vez.
+ *
+ * Leer una colección trae sus filas con lo que cada una responde, las agrupa,
+ * las filtra y las calcula, y todo eso ocurre en una sola petición. Sin tope,
+ * una colección que creció sola —una bandeja de entrada, un registro— pide
+ * memoria y tiempo en proporción a lo que guarda, y quien la abre espera por
+ * filas que no va a mirar.
+ *
+ * El tope se dice en la respuesta en vez de callarse, porque una colección que
+ * enseña quinientas de mil sin avisar miente sobre lo que hay.
+ */
+export const COLLECTION_ROW_LIMIT = 500;
+
+/**
+ * Lo que contesta reescribir una opción que ya no está donde se la dejó.
+ *
+ * Renombrar parte de un nombre y llega a la base un rato después de haberlo
+ * leído. Si en ese rato otra persona renombró o quitó esa misma opción,
+ * escribir encima borraría su cambio sin que nadie se enterara, así que la
+ * escritura se deshace y quien lo pidió vuelve a mirar.
+ */
+export const SCHEMA_OPTION_ALREADY_MOVED = 'SCHEMA_OPTION_ALREADY_MOVED';
+
 export const PAGE_DELETE_FOREVER_OUTCOMES = ['DELETED', 'NOT_FOUND', 'NOT_TRASHED'] as const;
