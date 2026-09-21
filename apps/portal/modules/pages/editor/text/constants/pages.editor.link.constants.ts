@@ -1,3 +1,6 @@
+/** The only kinds of address a link may point at, besides a path inside this product. */
+export const PAGE_EDITOR_LINK_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:', 'mailto:']);
+
 /** Where the page keeps the field that asks where a link goes. */
 export const PAGE_EDITOR_LINK_REQUEST_SELECTOR = '[data-page-link-request]';
 

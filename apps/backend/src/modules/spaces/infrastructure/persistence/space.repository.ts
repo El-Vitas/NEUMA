@@ -43,7 +43,7 @@ const spaceSelection = {
   ownerId: true,
   slug: true,
   visibility: true,
-} as const;
+} satisfies Prisma.SpaceSelect;
 
 @Injectable()
 export class SpaceRepository implements SpaceRepositoryContract {

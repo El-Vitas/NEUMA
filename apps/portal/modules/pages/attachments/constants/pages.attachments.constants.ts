@@ -21,6 +21,11 @@ export const ATTACHMENT_MIME_TYPES = [
   'video/webm',
 ] as const;
 
+export const ATTACHMENT_MIME_TYPE_SET: ReadonlySet<string> = new Set<string>(ATTACHMENT_MIME_TYPES);
+
+/** Where the server writes a file's name in `content-disposition`, already percent-encoded. */
+export const ATTACHMENT_FILENAME_PATTERN = /filename\*=UTF-8''([^;]+)/iu;
+
 export const ATTACHMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
   'application/pdf': 'PDF',
   'application/zip': 'ZIP',

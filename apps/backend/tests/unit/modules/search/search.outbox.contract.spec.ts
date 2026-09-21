@@ -26,10 +26,12 @@ describe('search outbox projection contract', () => {
 
   test('records retry metadata without exposing the raw error object', () => {
     const source = readFileSync(repositoryPath, 'utf8');
+    const constants = readFileSync(resolve(process.cwd(), 'src/common/constants/outbox.constants.ts'), 'utf8');
 
     expect(source).toContain('safeErrorMessage');
     expect(source).toContain('lastError');
-    expect(source).toContain("redactionLabel = 'removed'");
+    expect(constants).toContain("OUTBOX_ERROR_REDACTION_LABEL = 'removed'");
+    expect(source).toContain('OUTBOX_ERROR_REDACTION_LABEL');
     expect(source).toContain('payload: event.payload');
   });
 

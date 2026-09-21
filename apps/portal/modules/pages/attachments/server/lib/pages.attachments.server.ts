@@ -3,11 +3,9 @@ import 'server-only';
 import { config } from '@/shared/config';
 import { BEARER_PREFIX } from '@/shared/constants/auth.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
-import { FILES_API_ROUTE } from '../../constants/pages.attachments.constants';
+import { ATTACHMENT_FILENAME_PATTERN, FILES_API_ROUTE } from '../../constants/pages.attachments.constants';
 import { attachmentSummarySchema } from '../../schemas/pages.attachments.schemas';
 import type { AttachmentDownload } from '../../types/pages.attachments.types';
-
-const attachmentFilenamePattern = /filename\*=UTF-8''([^;]+)/iu;
 
 /**
  * The stretch a player asked for travels with the request: dropping it here
@@ -48,7 +46,7 @@ export const uploadPageImageAssetId = async (
 };
 
 const decodeFilename = (contentDisposition: string | null): string => {
-  const encodedFilename = contentDisposition?.match(attachmentFilenamePattern)?.[1];
+  const encodedFilename = contentDisposition?.match(ATTACHMENT_FILENAME_PATTERN)?.[1];
   return encodedFilename === undefined ? 'download' : decodeURIComponent(encodedFilename);
 };
 
