@@ -11,6 +11,11 @@ export interface SearchQuery {
   readonly sourceType?: SearchSourceType;
   readonly spaceId?: string;
   readonly tags?: readonly string[];
+  /**
+   * Los únicos espacios donde buscar, además de lo que la persona ve. Lo usa
+   * un token que solo tiene dados algunos espacios; vacío no encuentra nada.
+   */
+  readonly withinSpaceIds?: readonly string[];
   readonly userId: string;
   readonly userRole: UserRole;
   readonly workspaceId: string;

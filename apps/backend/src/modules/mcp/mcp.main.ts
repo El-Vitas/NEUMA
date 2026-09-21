@@ -27,10 +27,9 @@ const bootstrapMcp = async (): Promise<void> => {
   const application = await NestFactory.createApplicationContext(AppModule, { logger: false });
   const errorReporter: McpErrorReporter = { report: reportMcpError };
   const dependencies = application.get<McpServerDependencies>(MCP_SERVER_DEPENDENCIES);
-  const server = createMcpServer({
-    ...dependencies,
-    errorReporter,
-  });
+  /* Las herramientas se eligen con lo que el token tiene al arrancar; cada llamada vuelve a preguntar. */
+  const principalAtStart = await dependencies.principalResolver.resolve();
+  const server = createMcpServer({ ...dependencies, errorReporter }, principalAtStart);
   await startMcpStdioServer(server);
 };
 

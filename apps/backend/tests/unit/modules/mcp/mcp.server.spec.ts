@@ -1,8 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { USER_ROLE, type UserRole } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import type { SearchPage, SearchQuery } from '../../../../src/common/types/search.types';
 import type { WorkspaceSummary } from '../../../../src/common/types/workspace.types';
+import {
+  MCP_SERVER_INSTRUCTIONS,
+  MCP_UNAUTHENTICATED_MESSAGE,
+  MCP_UNEXPECTED_MESSAGE,
+  MCP_UNREADABLE_PAGE_MESSAGE,
+} from '../../../../src/modules/mcp/constants/mcp.constants';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type {
   McpPageReadResult,
@@ -12,7 +18,13 @@ import type {
 import type { PageSummary } from '../../../../src/modules/pages/types/page.types';
 import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.types';
 
-const principal: McpPrincipal = { role: USER_ROLE.WORKER, userId: 'user-1' };
+const principal: McpPrincipal = {
+  access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaces: [] },
+  role: USER_ROLE.WORKER,
+  tokenId: 'token-1',
+  userId: 'user-1',
+  workspaceId: 'workspace-1',
+};
 const workspace: WorkspaceSummary = { id: 'workspace-1', name: 'Company Brain' };
 const spaces: readonly SpaceSummary[] = [
   {
@@ -87,7 +99,7 @@ const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResul
 
 const connectClient = async (dependencies: McpServerDependencies): Promise<Client> => {
   const serverTransportPair = InMemoryTransport.createLinkedPair();
-  const server = createMcpServer(dependencies);
+  const server = createMcpServer(dependencies, await dependencies.principalResolver.resolve());
   const client = new Client({ name: 'mcp-contract-test', version: '1.0.0' });
   await server.connect(serverTransportPair[1]);
   await client.connect(serverTransportPair[0]);
@@ -120,7 +132,13 @@ describe('MCP read contract', () => {
 
     const result = await client.listTools();
 
-    expect(result.tools.map((tool) => tool.name)).toEqual(['mcp.listSpaces', 'mcp.getPage', 'search_company_brain']);
+    expect(result.tools.map((tool) => tool.name)).toEqual(['list_spaces', 'read_page', 'search_company_brain']);
+  });
+
+  test('tells the agent what the brain is before it calls anything', async () => {
+    const client = await connectClient(createDependencies());
+
+    expect(client.getInstructions()).toBe(MCP_SERVER_INSTRUCTIONS);
   });
 
   test('lists spaces using the resolved authenticated principal', async () => {
@@ -152,7 +170,7 @@ describe('MCP read contract', () => {
     };
     const client = await connectClient(dependencies);
 
-    const result = await client.callTool({ name: 'mcp.listSpaces', arguments: {} });
+    const result = await client.callTool({ name: 'list_spaces', arguments: {} });
 
     expect(result.isError).not.toBe(true);
     /**
@@ -165,7 +183,8 @@ describe('MCP read contract', () => {
         ({ description: _description, icon: _icon, order: _order, ownerId: _ownerId, ...readable }) => readable,
       ),
     });
-    expect(calls).toEqual(['principal', 'workspace:user-1:WORKER', 'spaces:workspace-1:user-1:WORKER']);
+    /* Una vez al armar el servidor, para elegir las herramientas, y otra en la llamada, para que revocar corte al instante. */
+    expect(calls).toEqual(['principal', 'principal', 'workspace:user-1:WORKER', 'spaces:workspace-1:user-1:WORKER']);
   });
 
   test('gets a page through the direct authorized page read', async () => {
@@ -189,7 +208,7 @@ describe('MCP read contract', () => {
     };
     const client = await connectClient(dependencies);
 
-    const result = await client.callTool({ name: 'mcp.getPage', arguments: { pageId: page.id } });
+    const result = await client.callTool({ name: 'read_page', arguments: { pageId: page.id } });
     const expectedPage = {
       content: page.content,
       id: page.id,
@@ -210,11 +229,11 @@ describe('MCP read contract', () => {
     const client = await connectClient(createDependencies());
 
     const missing = await client.callTool({
-      name: 'mcp.getPage',
+      name: 'read_page',
       arguments: { pageId: '22222222-2222-4222-8222-222222222222' },
     });
     const inaccessible = await client.callTool({
-      name: 'mcp.getPage',
+      name: 'read_page',
       arguments: { pageId: '33333333-3333-4333-8333-333333333333' },
     });
 
@@ -224,13 +243,14 @@ describe('MCP read contract', () => {
     expect(inaccessible.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
   });
 
-  test('rejects requests without an authenticated principal', async () => {
+  /** Una llave vencida no es un recurso inaccesible: decirlo así manda al agente a buscar otra página en vez de pedir otra llave. */
+  test('tells the agent its token no longer works when there is no authenticated principal', async () => {
     const client = await connectClient(createDependencies(null));
 
-    const result = await client.callTool({ name: 'mcp.listSpaces', arguments: {} });
+    const result = await client.callTool({ name: 'list_spaces', arguments: {} });
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(result.content).toEqual([{ type: 'text', text: MCP_UNAUTHENTICATED_MESSAGE }]);
   });
 
   test('searches through SearchService with the authenticated principal and filters', async () => {
@@ -343,7 +363,7 @@ describe('MCP read contract', () => {
     const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(result.content).toEqual([{ type: 'text', text: MCP_UNAUTHENTICATED_MESSAGE }]);
     expect(searchCalled).toBe(false);
   });
 
@@ -351,7 +371,7 @@ describe('MCP read contract', () => {
     const { client, reportedErrors } = await createErrorReportingClient();
 
     const result = await client.callTool({
-      name: 'mcp.getPage',
+      name: 'read_page',
       arguments: { pageId: '22222222-2222-4222-8222-222222222222' },
     });
 
@@ -367,7 +387,7 @@ describe('MCP read contract', () => {
     const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(result.content).toEqual([{ type: 'text', text: MCP_UNEXPECTED_MESSAGE }]);
     expect(reportedErrors).toHaveLength(1);
   });
 
@@ -376,13 +396,14 @@ describe('MCP read contract', () => {
       spacesService: { listAccessible: () => Promise.reject(new Error('database unavailable')) },
     });
 
-    const result = await client.callTool({ name: 'mcp.listSpaces', arguments: {} });
+    const result = await client.callTool({ name: 'list_spaces', arguments: {} });
 
-    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(result.content).toEqual([{ type: 'text', text: MCP_UNEXPECTED_MESSAGE }]);
     expect(reportedErrors).toHaveLength(1);
   });
 
-  test('rejects page content outside the foundation contract', async () => {
+  /** Una página guardada en una forma que esta versión no lee se dice como tal, no como que no existe. */
+  test('says a page cannot be read when its content is outside the foundation contract', async () => {
     const invalidPage = {
       ...page,
       content: {
@@ -396,9 +417,9 @@ describe('MCP read contract', () => {
       pagesService: { getAccessible: () => Promise.resolve(createPageReadResult(invalidPage)) },
     });
 
-    const result = await client.callTool({ name: 'mcp.getPage', arguments: { pageId: page.id } });
+    const result = await client.callTool({ name: 'read_page', arguments: { pageId: page.id } });
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(result.content).toEqual([{ type: 'text', text: MCP_UNREADABLE_PAGE_MESSAGE }]);
   });
 });

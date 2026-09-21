@@ -12,15 +12,14 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
 import { Action, Resource } from '../../common/constants/permission.constants';
-import { THROTTLER_NAMES } from '../../common/constants/throttler.constants';
 import { canRenameUser } from '../../common/domain/workspace.domain';
 import { Permissions } from '../../common/infrastructure/decorators/permissions.decorator';
 import { Public } from '../../common/infrastructure/decorators/public.decorator';
 import { User as AuthUser } from '../../common/infrastructure/decorators/user.decorator';
+import { CredentialsThrottlerGuard } from '../../common/infrastructure/guards/credentials-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { PermissionsGuard } from '../../common/infrastructure/guards/permissions.guard';
 import { UserInterceptor } from '../../common/infrastructure/interceptors/user.interceptor';
@@ -53,9 +52,7 @@ export class UsersController {
   @HttpCode(HTTP_STATUS_CREATED)
   @Post()
   @Public()
-  /* Cada cuenta dice bajo qué cuentas está: la de exportar es de otra puerta y no tiene nada que ver con esta. */
-  @SkipThrottle({ [THROTTLER_NAMES.exports]: true })
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(CredentialsThrottlerGuard)
   async register(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<AuthSession> {
     const result = await this.usersService.createUser(dto);
     if (result.isFail()) {

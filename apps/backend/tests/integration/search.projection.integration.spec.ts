@@ -2,10 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { SpaceVisibility } from '@company-brain/db';
 import type { PageContent } from '@company-brain/shared';
 import request from 'supertest';
-import { OUTBOX_MAX_CLAIM_BATCH_SIZE } from '@/common/constants/outbox.constants';
-import { SearchProjectionWorker } from '@/modules/search/infrastructure/worker/search.projection.worker';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';
+import { drainSearchProjection } from '../helpers/search.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SearchResponseItem {
@@ -28,16 +27,6 @@ interface SpaceResponse {
 interface PageResponse {
   id: string;
 }
-
-const MAX_PROJECTION_DRAIN_BATCHES = 20;
-
-const drainProjectionOutbox = async (projectionWorker: SearchProjectionWorker): Promise<void> => {
-  for (let batchCount = 0; batchCount < MAX_PROJECTION_DRAIN_BATCHES; batchCount += 1) {
-    const processedCount = await projectionWorker.processBatch(OUTBOX_MAX_CLAIM_BATCH_SIZE);
-    if (processedCount === 0) return;
-  }
-  throw new Error(`Outbox did not drain within ${String(MAX_PROJECTION_DRAIN_BATCHES)} batches`);
-};
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
@@ -104,7 +93,7 @@ describe('Search Projection (Integration)', () => {
     const page = pageResponse.body as PageResponse;
     pageId = page.id;
 
-    await drainProjectionOutbox(testApp.get(SearchProjectionWorker));
+    await drainSearchProjection(testApp);
   });
 
   afterAll(async () => {
@@ -140,7 +129,7 @@ describe('Search Projection (Integration)', () => {
       .send({ icon: { kind: 'emoji', value: '🛰️' } })
       .expect(200);
 
-    await drainProjectionOutbox(testApp.get(SearchProjectionWorker));
+    await drainSearchProjection(testApp);
 
     const response = await searchAs(testApp, adminToken, searchTerm);
     const projectedPage = response.items.find((item) => item.sourceId === pageId);
@@ -156,7 +145,7 @@ describe('Search Projection (Integration)', () => {
       .send({ title: renamedTitle })
       .expect(200);
 
-    await drainProjectionOutbox(testApp.get(SearchProjectionWorker));
+    await drainSearchProjection(testApp);
 
     const response = await searchAs(testApp, adminToken, searchTerm);
     const projectedPage = response.items.find((item) => item.sourceId === pageId);

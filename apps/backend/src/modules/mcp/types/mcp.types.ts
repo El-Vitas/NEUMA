@@ -1,5 +1,18 @@
-import type { PageContent, PageLifecycle, SpaceVisibility, UserRole } from '@company-brain/shared';
+import type {
+  AccessTokenPermission,
+  PageContent,
+  PageLifecycle,
+  SpaceVisibility,
+  UserRole,
+} from '@company-brain/shared';
+import type { McpServer } from '@modelcontextprotocol/server';
+import type { z } from 'zod';
+import type { AccessTokenPrincipal } from '../../../common/types/access-token.types';
 import type { SearchReader } from '../../../common/types/search.types';
+import type { searchCompanyBrainInputSchema, searchCompanyBrainOutputSchema } from '../schemas/mcp.schemas';
+
+export type McpSearchInput = z.infer<typeof searchCompanyBrainInputSchema>;
+export type McpSearchOutput = z.infer<typeof searchCompanyBrainOutputSchema>;
 
 export interface McpWorkspace {
   readonly id: string;
@@ -31,24 +44,11 @@ export interface McpPageReadResult {
   readonly isFail: () => boolean;
 }
 
-export interface McpPrincipal {
-  readonly role: UserRole;
-  readonly userId: string;
-}
+/** En nombre de quién actúa el agente, y con qué token entró, para que lo que haga quede a su nombre. */
+export type McpPrincipal = AccessTokenPrincipal;
 
 export interface McpPrincipalResolver {
   readonly resolve: () => Promise<McpPrincipal | null>;
-}
-
-export interface McpTokenVerifier {
-  readonly verifyAccessToken: (token: string) => Promise<McpTokenPayload>;
-}
-
-export interface McpTokenPayload {
-  readonly email: string;
-  readonly name: string;
-  readonly role: UserRole;
-  readonly sub: string;
 }
 
 export interface McpWorkspaceReader {
@@ -79,4 +79,17 @@ export interface McpServerDependencies {
 
 export interface McpErrorReporter {
   readonly report: (error: unknown) => void;
+}
+
+/**
+ * Una herramienta y lo que hace falta para ofrecerla.
+ *
+ * `requires` son los permisos que la abren: basta tener uno en algún espacio.
+ * Que alcance para el espacio concreto de cada llamada lo revisa la
+ * herramienta al correr.
+ */
+export interface McpToolDefinition {
+  readonly name: string;
+  readonly register: (server: McpServer, dependencies: McpServerDependencies) => void;
+  readonly requires: readonly AccessTokenPermission[];
 }

@@ -1,0 +1,13 @@
+/// Lo que un token puede hacer en un espacio concreto. Se suma a lo que el
+/// token tiene en todos los espacios; borrar el espacio borra lo dado en él.
+model AccessTokenGrant {
+  id          String      @id @default(uuid(7))
+  tokenId     String
+  spaceId     String
+  permissions String[]
+  token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  space       Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, spaceId])
+  @@index([spaceId])
+}
