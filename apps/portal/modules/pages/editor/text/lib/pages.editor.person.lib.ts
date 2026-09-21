@@ -11,7 +11,7 @@ import {
 } from '../../blocks/constants/pages.editor.blocks.constants';
 import { createPageEditorWriteCommand } from '../../lib/pages.editor.ask.lib';
 import { insertPageNode } from '../../lib/pages.editor.insert.lib';
-import { PAGE_PERSON_HOVER_SEPARATOR } from '../constants/pages.editor.person.constants';
+import { PAGE_PERSON_HOVER_SEPARATOR, PAGE_PERSON_MARK_STROKES } from '../constants/pages.editor.person.constants';
 import type { PagePersonHoverInfo, PagePersonInsert } from '../types/pages.editor.person.types';
 import { createPageMark } from './pages.editor.marks.lib';
 
@@ -63,12 +63,6 @@ const describePersonOnHover = (name: string, userId: string, hover: PagePersonHo
   return member === undefined ? name : `${name}${PAGE_PERSON_HOVER_SEPARATOR}${member.email}`;
 };
 
-/** Strokes for a small person glyph, drawn the same way every other mark on a line is drawn. */
-const pagePersonMarkStrokes: readonly string[] = [
-  'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
-  'M4 20c1.4-4.2 4.8-6.5 8-6.5s6.6 2.3 8 6.5',
-];
-
 /**
  * A person named in the middle of a sentence.
  *
@@ -79,7 +73,7 @@ const pagePersonMarkStrokes: readonly string[] = [
 export const createPagePersonNodeView = (node: EditorNode, label: string, hover?: PagePersonHoverInfo): NodeView => {
   const host = document.createElement('span');
   const name = document.createElement('span');
-  const mark = createPageMark(pagePersonMarkStrokes);
+  const mark = createPageMark(PAGE_PERSON_MARK_STROKES);
 
   mark.setAttribute('class', PAGE_EDITOR_MENTION_MARK_STYLE_CLASS);
   host.className = PAGE_EDITOR_MENTION_STYLE_CLASS;

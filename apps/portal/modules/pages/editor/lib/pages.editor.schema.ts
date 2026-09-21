@@ -34,6 +34,7 @@ import {
   PAGE_EDITOR_UNSUPPORTED_TYPE,
 } from '../blocks/constants/pages.editor.blocks.constants';
 import { definePageBlock } from '../blocks/lib/pages.editor.block-spec.lib';
+import { PAGE_EDITOR_LINK_PROTOCOLS } from '../text/constants/pages.editor.link.constants';
 
 const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | null> | false => {
   const assetId = element.dataset.assetId;
@@ -859,7 +860,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
 ];
 
 const pageEditorNodes: Readonly<Record<string, NodeSpec>> = Object.fromEntries(pageEditorNodeEntries);
-const pageEditorLinkProtocols = new Set(['http:', 'https:', 'mailto:']);
 
 /**
  * Whether a destination is one a link may point at.
@@ -872,7 +872,7 @@ export const isPageEditorLinkTarget = (href: string): boolean => {
   const trimmed = href.trim();
   if (trimmed.startsWith('/')) return true;
   if (!URL.canParse(trimmed)) return false;
-  return pageEditorLinkProtocols.has(new URL(trimmed).protocol);
+  return PAGE_EDITOR_LINK_PROTOCOLS.has(new URL(trimmed).protocol);
 };
 
 const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | false => {

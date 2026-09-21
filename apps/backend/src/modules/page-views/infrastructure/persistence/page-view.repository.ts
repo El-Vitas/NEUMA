@@ -1,10 +1,11 @@
+import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { PageViewEntry, PageViewRepositoryContract } from '../../types/page-view.types';
 
-const viewerSelect = { user: { select: { id: true, name: true } }, viewedAt: true } as const;
+const viewerSelect = { user: { select: { id: true, name: true } }, viewedAt: true } satisfies Prisma.PageViewSelect;
 
 @Injectable()
 export class PageViewRepository implements PageViewRepositoryContract {

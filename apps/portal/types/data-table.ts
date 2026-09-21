@@ -1,8 +1,6 @@
 import type { ColumnSort, Row, RowData, TableFeatures } from '@tanstack/react-table';
-import type { dataTableConfig } from '@/config/data-table';
+import type { DATA_TABLE_FILTER_VARIANTS } from '@/shared/constants/data-table.constants';
 import type { DataTableFeatures } from '@/shared/types/table.types';
-
-export type DataTableConfig = typeof dataTableConfig;
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -37,9 +35,7 @@ export interface Option {
   icon?: React.FC<React.SVGProps<SVGSVGElement>>;
 }
 
-export type FilterOperator = DataTableConfig['operators'][number];
-export type FilterVariant = DataTableConfig['filterVariants'][number];
-export type JoinOperator = DataTableConfig['joinOperators'][number];
+export type FilterVariant = (typeof DATA_TABLE_FILTER_VARIANTS)[number];
 
 export interface ExtendedColumnSort<TData> extends Omit<ColumnSort, 'id'> {
   id: Extract<keyof TData, string>;

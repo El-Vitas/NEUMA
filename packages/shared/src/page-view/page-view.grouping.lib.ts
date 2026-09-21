@@ -1,9 +1,9 @@
+import { MILLISECONDS_IN_A_DAY } from '../constants/time.constants.js';
 import type { PageDateBucket } from './page-view.types.js';
 import { PAGE_DATE_BUCKET } from './page-view.types.js';
 
 const DATE_LENGTH = 10;
 const MONTH_LENGTH = 7;
-const MILLISECONDS_IN_A_DAY = 86_400_000;
 /** El domingo es el día 0 en el reloj, y la semana empieza el lunes: hay que retroceder seis, no cero. */
 const DAYS_BACK_FROM_SUNDAY = 6;
 

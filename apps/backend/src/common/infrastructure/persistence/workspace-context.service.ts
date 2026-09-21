@@ -4,8 +4,6 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { WORKSPACE_DEFAULT_NAME, WORKSPACE_SINGLETON_KEY } from '../../constants/workspace.constants';
 import type { WorkspaceSummary } from '../../types/workspace.types';
 
-const workspaceMemberUniqueKey = 'workspaceId_userId';
-
 @Injectable()
 export class WorkspaceContextService {
   constructor(private readonly prisma: PrismaService) {}
@@ -53,14 +51,14 @@ export class WorkspaceContextService {
   private async ensureMembership(workspaceId: string, userId: string, role: UserRole): Promise<void> {
     const membership = await this.prisma.workspaceMember.findUnique({
       select: { role: true },
-      where: { [workspaceMemberUniqueKey]: { userId, workspaceId } },
+      where: { workspaceId_userId: { userId, workspaceId } },
     });
     if (membership?.role === role) return;
 
     await this.prisma.workspaceMember.upsert({
       create: { role, userId, workspaceId },
       update: { role },
-      where: { [workspaceMemberUniqueKey]: { userId, workspaceId } },
+      where: { workspaceId_userId: { userId, workspaceId } },
     });
   }
 }

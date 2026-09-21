@@ -519,6 +519,9 @@ export const PAGE_EDITOR_SUBPAGE_NAME_STYLE_CLASS = 'truncate underline-offset-4
 /** A step of indentation inside code: two spaces, written as such rather than as a tab. */
 export const PAGE_EDITOR_CODE_INDENT = '  ';
 
+/** The spaces a line of code starts with, which is how deep it is indented. */
+export const PAGE_EDITOR_CODE_LEADING_SPACES_PATTERN = /^ +/;
+
 /** The controls of a code block sit above it, out of the way of the code itself. */
 /**
  * The bar of a block wraps rather than pushing its first control off the side

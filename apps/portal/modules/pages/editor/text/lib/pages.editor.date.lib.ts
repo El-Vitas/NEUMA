@@ -7,16 +7,10 @@ import type { PageEditorDateLabels } from '../../blocks/types/pages.editor.node-
 import { canInsertPageNode, insertPageNode } from '../../lib/pages.editor.insert.lib';
 import {
   PAGE_EDITOR_DATE_FIELD_STYLE_CLASS,
+  PAGE_EDITOR_DATE_FORMAT_OPTIONS,
   PAGE_EDITOR_DATE_STYLE_CLASS,
 } from '../constants/pages.editor.date.constants';
 import type { PageDateInsert, PageEditorDayOffer } from '../types/pages.editor.date.types';
-
-const pageDateFormatOptions: Intl.DateTimeFormatOptions = {
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-  year: 'numeric',
-};
 
 /**
  * The same insert `insertPageNode` does, but leaves the new node selected —
@@ -66,7 +60,7 @@ export const createPageDatePickCommand = (schema: Schema, date: PageDateInsert):
 
 /** The calendar day, written the way a locale writes it. */
 export const readTheDayNamed = (at: string, locale: string): string =>
-  new Intl.DateTimeFormat(locale, pageDateFormatOptions).format(new Date(`${at}T00:00:00Z`));
+  new Intl.DateTimeFormat(locale, PAGE_EDITOR_DATE_FORMAT_OPTIONS).format(new Date(`${at}T00:00:00Z`));
 
 const asCalendarDayString = (date: Date): string => {
   const year = date.getFullYear();

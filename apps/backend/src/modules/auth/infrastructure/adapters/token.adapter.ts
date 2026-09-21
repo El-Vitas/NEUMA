@@ -14,13 +14,9 @@ import {
   JWT_SECRET_KEY,
   REFRESH_TOKEN_AUDIENCE,
 } from '../../../../common/constants/auth.constants';
+import { UUID_PATTERN } from '../../../../common/constants/validation.constants';
 import type { CollaborationTokenPayload, TokenPayload } from '../../../../common/types/auth.types';
 import { parseTokenLifetimeSeconds } from '../../utils/auth.token.utils';
-
-/** The roles a token may name, read as plain text so a claim can be checked without pretending it is one. */
-const knownRoles: readonly string[] = USER_ROLE_VALUES;
-
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class TokenAdapter {
@@ -150,13 +146,13 @@ export class TokenAdapter {
       this.isUuid(payload.pageId) &&
       payload.purpose === COLLABORATION_TOKEN_PURPOSE &&
       typeof payload.role === 'string' &&
-      knownRoles.includes(payload.role) &&
+      USER_ROLE_VALUES.some((role) => role === payload.role) &&
       typeof payload.sub === 'string' &&
       typeof payload.workspaceId === 'string'
     );
   }
 
   private isUuid(value: string): boolean {
-    return uuidPattern.test(value);
+    return UUID_PATTERN.test(value);
   }
 }

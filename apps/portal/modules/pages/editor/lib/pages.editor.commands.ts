@@ -34,6 +34,20 @@ import { createPageEditorColumnResizePlugin } from '../blocks/lib/pages.editor.c
 import { readCarriedAttrs } from '../blocks/lib/pages.editor.convert.lib';
 import { deletePageEditorBlockKeepingChildren, splitOutOfNestedBlock } from '../blocks/lib/pages.editor.nesting.lib';
 import {
+  PAGE_EDITOR_BLOCKQUOTE_INPUT_PATTERN,
+  PAGE_EDITOR_BOLD_INPUT_PATTERN,
+  PAGE_EDITOR_BULLET_LIST_INPUT_PATTERN,
+  PAGE_EDITOR_CODE_BLOCK_INPUT_PATTERN,
+  PAGE_EDITOR_CODE_INPUT_PATTERN,
+  PAGE_EDITOR_DIVIDER_INPUT_PATTERN,
+  PAGE_EDITOR_HEADING_INPUT_PATTERN,
+  PAGE_EDITOR_ITALIC_INPUT_PATTERN,
+  PAGE_EDITOR_LINK_INPUT_PATTERN,
+  PAGE_EDITOR_ORDERED_LIST_INPUT_PATTERN,
+  PAGE_EDITOR_STRIKE_INPUT_PATTERN,
+  PAGE_EDITOR_TASK_LIST_INPUT_PATTERN,
+} from '../constants/pages.editor.input-rules.constants';
+import {
   PAGE_EDITOR_DIAGRAM_LANGUAGE,
   PAGE_EDITOR_FORMULA_LANGUAGE,
 } from '../media/constants/pages.editor.diagram.constants';
@@ -60,20 +74,6 @@ import { redoPageEditorStep, undoPageEditorStep } from './pages.editor.history.l
 import { canInsertPageNode, insertPageNode } from './pages.editor.insert.lib';
 import { createPageEditorPlaceholderPlugin } from './pages.editor.placeholder.plugin.lib';
 import { leaveSomewhereToWriteUnder } from './pages.editor.write-under.lib';
-
-const headingInputRule = /^(#{1,3})\s$/;
-const bulletListInputRule = /^\s*([-+*])\s$/;
-const orderedListInputRule = /^\s*(\d+)\.\s$/;
-const taskListInputRule = /^\s*\[ ?\]\s$/;
-const blockquoteInputRule = /^\s*>\s$/;
-const dividerInputRule = /^---$/;
-const codeBlockInputRule = /^```(\w+)?\s$/;
-const linkInputRule = /\[([^\]]+)]\((https?:\/\/[^\s)]+)\)$/;
-const boldInputRule = /\*\*([^*]+)\*\*$/;
-/** One asterisk, and not the second of a pair: `**` is bold and must not be read as italic twice. */
-const italicInputRule = /(?<!\*)\*([^*]+)\*$/;
-const codeInputRule = /`([^`]+)`$/;
-const strikeInputRule = /~~([^~]+)~~$/;
 
 /** The language written after the backticks, kept only when it is one this version knows. */
 const readWrittenCodeLanguage = (written: string | undefined): string | null =>
@@ -109,7 +109,7 @@ const insertPageTable =
 
 /** Draws a line where three dashes were written. */
 const drawPageDivider = (schema: Schema): InputRule =>
-  new InputRule(dividerInputRule, (state, _match, start, end) =>
+  new InputRule(PAGE_EDITOR_DIVIDER_INPUT_PATTERN, (state, _match, start, end) =>
     leaveSomewhereToWriteUnder(state.tr.replaceRangeWith(start, end, schema.nodes.divider.createChecked()), schema),
   );
 
@@ -122,7 +122,7 @@ const drawPageDivider = (schema: Schema): InputRule =>
  * the brackets on the page.
  */
 const writePageLink = (schema: Schema): InputRule =>
-  new InputRule(linkInputRule, (state, match, start, end) => {
+  new InputRule(PAGE_EDITOR_LINK_INPUT_PATTERN, (state, match, start, end) => {
     const [, label, url] = match;
     if (label === undefined || url === undefined) return null;
     return state.tr.replaceRangeWith(start, end, schema.text(label, [schema.marks.link.create({ href: url })]));
@@ -402,18 +402,22 @@ const breakTheLineWithoutLeavingTheBlock =
 const createPageEditorWritingRules = (schema: Schema): EditorPlugin =>
   inputRules({
     rules: [
-      turnTheLineInto(headingInputRule, schema.nodes.heading, (match) => ({ level: match[1]?.length ?? 1 })),
-      wrappingInputRule(bulletListInputRule, schema.nodes.bullet_list),
-      wrappingInputRule(orderedListInputRule, schema.nodes.ordered_list, (match) => ({ order: Number(match[1]) })),
-      wrappingInputRule(taskListInputRule, schema.nodes.task_list),
-      wrappingInputRule(blockquoteInputRule, schema.nodes.blockquote),
+      turnTheLineInto(PAGE_EDITOR_HEADING_INPUT_PATTERN, schema.nodes.heading, (match) => ({
+        level: match[1]?.length ?? 1,
+      })),
+      wrappingInputRule(PAGE_EDITOR_BULLET_LIST_INPUT_PATTERN, schema.nodes.bullet_list),
+      wrappingInputRule(PAGE_EDITOR_ORDERED_LIST_INPUT_PATTERN, schema.nodes.ordered_list, (match) => ({
+        order: Number(match[1]),
+      })),
+      wrappingInputRule(PAGE_EDITOR_TASK_LIST_INPUT_PATTERN, schema.nodes.task_list),
+      wrappingInputRule(PAGE_EDITOR_BLOCKQUOTE_INPUT_PATTERN, schema.nodes.blockquote),
       drawPageDivider(schema),
       writePageLink(schema),
-      writeInlineMark(boldInputRule, schema.marks.strong),
-      writeInlineMark(italicInputRule, schema.marks.em),
-      writeInlineMark(codeInputRule, schema.marks.code),
-      writeInlineMark(strikeInputRule, schema.marks.strike),
-      turnTheLineInto(codeBlockInputRule, schema.nodes.code_block, (match) => ({
+      writeInlineMark(PAGE_EDITOR_BOLD_INPUT_PATTERN, schema.marks.strong),
+      writeInlineMark(PAGE_EDITOR_ITALIC_INPUT_PATTERN, schema.marks.em),
+      writeInlineMark(PAGE_EDITOR_CODE_INPUT_PATTERN, schema.marks.code),
+      writeInlineMark(PAGE_EDITOR_STRIKE_INPUT_PATTERN, schema.marks.strike),
+      turnTheLineInto(PAGE_EDITOR_CODE_BLOCK_INPUT_PATTERN, schema.nodes.code_block, (match) => ({
         language: readWrittenCodeLanguage(match[1]),
       })),
     ],

@@ -11,16 +11,17 @@ import { createPageDateInsertCommand, createPageDatePickCommand } from '../../te
 import { buildEmojiTriggerItems } from '../../text/lib/pages.editor.emoji.lib';
 import { createPagePersonInsertCommand } from '../../text/lib/pages.editor.person.lib';
 import type { PageEditorDayOffer } from '../../text/types/pages.editor.date.types';
+import {
+  PAGE_EDITOR_EMOJI_QUERY_PATTERN,
+  PAGE_EDITOR_MENTION_QUERY_PATTERN,
+  PAGE_EDITOR_SLASH_QUERY_PATTERN,
+} from '../constants/pages.editor.slash-menu.constants';
 import type {
   PagesEditorMenuItem,
   PagesEditorTrigger,
   PagesEditorTriggerKind,
   SlashMenuKeyDownOptions,
 } from '../types/pages.editor.slash-menu.types';
-
-const slashQueryPattern = /(?:^|\s)\/([^\s/]*)$/;
-const mentionQueryPattern = /(?:^|\s)@([^\s]*)$/;
-const emojiQueryPattern = /(?:^|\s):(\p{L}+)$/u;
 
 export const buildSlashMenuOptionId = (menuId: string, itemId: string): string => `${menuId}-option-${itemId}`;
 
@@ -45,11 +46,14 @@ export const describeEditorWithTriggerMenu = (
         role: 'combobox',
       };
 
-export const getSlashMenuQuery = (text: string): string | null => slashQueryPattern.exec(text)?.[1] ?? null;
+export const getSlashMenuQuery = (text: string): string | null =>
+  PAGE_EDITOR_SLASH_QUERY_PATTERN.exec(text)?.[1] ?? null;
 
-export const getMentionMenuQuery = (text: string): string | null => mentionQueryPattern.exec(text)?.[1] ?? null;
+export const getMentionMenuQuery = (text: string): string | null =>
+  PAGE_EDITOR_MENTION_QUERY_PATTERN.exec(text)?.[1] ?? null;
 
-export const getEmojiMenuQuery = (text: string): string | null => emojiQueryPattern.exec(text)?.[1] ?? null;
+export const getEmojiMenuQuery = (text: string): string | null =>
+  PAGE_EDITOR_EMOJI_QUERY_PATTERN.exec(text)?.[1] ?? null;
 
 export const resolveEditorTrigger = (text: string): PagesEditorTrigger | null => {
   const slashQuery = getSlashMenuQuery(text);

@@ -7,9 +7,8 @@ const buildSearchFilter = (search: string | undefined) => {
   if (!search) {
     return {};
   }
-  const prismaOrOperator = 'OR';
   return {
-    [prismaOrOperator]: [
+    OR: [
       { email: { contains: search, mode: 'insensitive' as const } },
       { name: { contains: search, mode: 'insensitive' as const } },
     ],
