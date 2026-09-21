@@ -3,7 +3,7 @@ import { EmptyState } from '@/shared/components/ui/empty-state';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import type { PagePersonOption, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
 import { PagesCollectionGalleryCard } from './pages.collection.gallery.card';
-import { PagesCollectionGroupHeading } from './pages.collection.group-heading';
+import { PagesCollectionGroupSection } from './pages.collection.group-section';
 
 interface IProps {
   /** Las filas repartidas en grupos; sin agrupación, un solo grupo sin nombre con todas dentro. */
@@ -35,16 +35,12 @@ export const PagesCollectionGallery = async ({
   return (
     <div className="space-y-4" data-testid="collection-gallery">
       {groups.map((group) => (
-        <section aria-label={isGrouped ? group.label : undefined} key={group.key}>
-          {isGrouped && (
-            <PagesCollectionGroupHeading
-              color={group.color}
-              groupKey={group.key}
-              label={group.label}
-              rowCount={group.rows.length}
-              unassignedLabel={t('collection.unassignedGroup')}
-            />
-          )}
+        <PagesCollectionGroupSection
+          group={group}
+          isGrouped={isGrouped}
+          key={group.key}
+          unassignedLabel={t('collection.unassignedGroup')}
+        >
           <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3">
             {group.rows.map((row) => (
               <PagesCollectionGalleryCard
@@ -58,7 +54,7 @@ export const PagesCollectionGallery = async ({
               />
             ))}
           </div>
-        </section>
+        </PagesCollectionGroupSection>
       ))}
     </div>
   );

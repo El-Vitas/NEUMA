@@ -1,6 +1,7 @@
 import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
+import { readPagePropertyOptionValues } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../../common/domain/schema.domain.types';
 import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
@@ -12,7 +13,8 @@ import {
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import type { PageRowSummary, PageSchemaDefinition, PageSchemaRepositoryContract } from '../../types/page-schema.types';
+import { COLLECTION_ROW_LIMIT, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
+import type { PageRowsPage, PageSchemaDefinition, PageSchemaRepositoryContract } from '../../types/page-schema.types';
 
 const schemaPropertySelection = {
   key: true,
@@ -102,14 +104,24 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
    * Las dos cosas en una transacción: si la forma cambiara y las filas no, todas
    * las que decían el nombre viejo quedarían diciendo algo que la colección ya
    * no reconoce, y el tablero las dejaría sin columna.
+   *
+   * De qué nombre viene se comprueba aquí dentro, con la fila tomada: quien
+   * pidió el cambio leyó las opciones hace un rato, y si en ese rato otra
+   * persona tocó esa misma opción, escribir lo leído borraría su cambio. La
+   * opción que ya no está donde se la dejó no se reescribe.
    */
   async rewriteOption(
     pageId: string,
     propertyKey: string,
     rename: { readonly from: string; readonly to: null | string },
     properties: readonly SchemaPropertyDefinition[],
-  ): Promise<PageSchemaDefinition> {
+  ): Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED> {
     return this.prisma.$transaction(async (transaction) => {
+      const held = await transaction.$queryRaw<{ options: unknown }[]>`
+        SELECT "options" FROM "PageSchemaProperty" WHERE "pageId" = ${pageId} AND "key" = ${propertyKey} FOR UPDATE
+      `;
+      const stillThere = readPagePropertyOptionValues(held[0]?.options)?.includes(rename.from) ?? false;
+      if (!stillThere) return SCHEMA_OPTION_ALREADY_MOVED;
       const rewritten = properties.find((property) => property.key === propertyKey);
       await transaction.pageSchemaProperty.updateMany({
         data: {
@@ -152,30 +164,30 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return this.loadSchemaSummary(this.prisma, pageId);
   }
 
-  async listRows(
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<readonly PageRowSummary[]> {
-    const rows = await this.prisma.page.findMany({
+  async listRows(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<PageRowsPage> {
+    /* Una de más que el tope: es lo que distingue una colección que cabe justa de una a la que se le cortó la cola. */
+    const found = await this.prisma.page.findMany({
       orderBy: { order: 'asc' },
       select: pageRowSelection,
+      take: COLLECTION_ROW_LIMIT + 1,
       where: {
         lifecycle: PageLifecycle.ACTIVE,
         parentId: pageId,
         space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
       },
     });
-    return rows.map((row) => ({
-      id: row.id,
-      lifecycle: row.lifecycle,
-      order: row.order,
-      parentId: row.parentId,
-      propertyValues: parseSchemaPropertyValues(row.propertyValues),
-      spaceId: row.spaceId,
-      title: row.title,
-    }));
+    return {
+      hasMore: found.length > COLLECTION_ROW_LIMIT,
+      rows: found.slice(0, COLLECTION_ROW_LIMIT).map((row) => ({
+        id: row.id,
+        lifecycle: row.lifecycle,
+        order: row.order,
+        parentId: row.parentId,
+        propertyValues: parseSchemaPropertyValues(row.propertyValues),
+        spaceId: row.spaceId,
+        title: row.title,
+      })),
+    };
   }
 
   async listWorkspaceMemberIds(workspaceId: string): Promise<readonly string[]> {

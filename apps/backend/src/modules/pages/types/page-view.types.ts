@@ -9,10 +9,12 @@ import type { PageViewOutcome } from '../domain/page-view.domain.types';
  * hay cuarenta no dice cuántas se están viendo.
  */
 export interface PageViewSummary {
+  /** Si la colección guardaba más filas de las que se trajeron. */
+  readonly hasMore: boolean;
   readonly outcome: PageViewOutcome;
   /** Las que el filtro dejó pasar. */
   readonly rowCount: number;
   readonly spaceId: string;
-  /** Todas las que la colección guarda, filtre o no la vista. */
+  /** Todas las que se trajeron, filtre o no la vista. */
   readonly totalRowCount: number;
 }

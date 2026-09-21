@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { hasActionError } from '@/shared/lib/action-result';
 import { reorderPageAction } from '../../server/actions/pages.actions';
 import { resolveBoardKeyboardTarget } from '../lib/pages.board-drag.lib';
-import { applyBoardMoveToBands, resolveBoardGridDrop } from '../lib/pages.board-grid.lib';
+import { applyBoardMoveToBands, findBandHoldingRow, resolveBoardGridDrop } from '../lib/pages.board-grid.lib';
 import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type {
   PageBoardDragController,
@@ -105,10 +105,7 @@ export const usePagesBoardDrag = (
     draggingRowId: carried?.rowId ?? null,
     isMoving,
     moveByKeyboard: (rowId: string, fromGroupKey: string, direction: PageBoardMoveDirection) => {
-      const bandKey =
-        carried?.fromBandKey ??
-        bands.find((band) => band.groups.some((group) => group.rows.some((row) => row.id === rowId)))?.key ??
-        '';
+      const bandKey = carried?.fromBandKey ?? findBandHoldingRow(bands, rowId)?.key ?? '';
       const toGroupKey = resolveBoardKeyboardTarget(columnsOf(bandKey), fromGroupKey, direction);
       if (toGroupKey === null) return;
       const aiming = { bandKey, beforeRowId: null, groupKey: toGroupKey };

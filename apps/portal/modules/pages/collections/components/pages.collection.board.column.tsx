@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
-import { readPageOptionDotClass, readPageOptionSurfaceClass } from '../lib/pages.option-color.lib';
+import { readPageOptionSurfaceClass } from '../lib/pages.option-color.lib';
 import type { PagesBoardColumns } from '../types/pages.board-columns.types';
 import type {
   PageBoardColumnDrag,
@@ -15,6 +15,7 @@ import type {
 } from '../types/pages.board-drag.types';
 import type { PagePersonOption, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
 import { PagesCollectionBoardCard } from './pages.collection.board.card';
+import { PagesCollectionBoardColumnFolded } from './pages.collection.board.column.folded';
 import { PagesCollectionBoardColumnHeader } from './pages.collection.board.column-header';
 import { PagesCollectionBoardColumnRemoveDialog } from './pages.collection.board.column-remove.dialog';
 import { PagesCollectionNewRow } from './pages.collection.new-row';
@@ -91,38 +92,12 @@ export const PagesCollectionBoardColumn = ({
 
   if (isCollapsed) {
     return (
-      /*
-        Plegada sigue siendo un sitio donde dejar otra columna: si no, una
-        columna doblada partiría el tablero en dos mitades entre las que no se
-        puede pasar nada.
-      */
-      <button
-        aria-label={t('collection.unfoldColumnNamed', { column: label })}
-        className={cn(
-          'flex w-11 shrink-0 flex-col items-center gap-2 rounded-lg py-3',
-          readPageOptionSurfaceClass(group.color),
-          columnDrag.carried === group.key && 'opacity-50',
-          columnDrag.carried !== null && columnDrag.target === group.key && 'ring-2 ring-primary',
-        )}
-        data-testid="board-column-collapsed"
-        onClick={() => columns?.toggleCollapsed(group.key)}
-        onDragOver={(event) => {
-          if (columnDrag.carried === null) return;
-          event.preventDefault();
-          columnDrag.onOver(group.key);
-        }}
-        onDrop={(event) => {
-          if (columnDrag.carried === null) return;
-          event.preventDefault();
-          columnDrag.onDropOn(group.key);
-        }}
-        type="button"
-      >
-        <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-full', readPageOptionDotClass(group.color))} />
-        <span className="font-medium text-muted-foreground text-xs tabular-nums">{group.rows.length}</span>
-        {/* De arriba abajo: una franja de 44px no da para el nombre escrito de lado a lado. */}
-        <span className="truncate font-medium text-foreground text-sm [writing-mode:vertical-rl]">{label}</span>
-      </button>
+      <PagesCollectionBoardColumnFolded
+        columnDrag={columnDrag}
+        group={group}
+        label={label}
+        onUnfold={() => columns?.toggleCollapsed(group.key)}
+      />
     );
   }
 

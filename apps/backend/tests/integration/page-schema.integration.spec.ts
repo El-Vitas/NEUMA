@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@company-brain/db';
 import type { PageContent } from '@company-brain/shared';
 import request from 'supertest';
+import { COLLECTION_ROW_LIMIT } from '@/modules/pages/constants/pages.constants';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
@@ -15,6 +16,11 @@ interface PageResponse {
   parentId: null | string;
   propertyValues: Record<string, unknown> | null;
   title: string;
+}
+
+interface PageRowsResponse {
+  hasMore: boolean;
+  rows: PageResponse[];
 }
 
 interface PageSchemaResponse {
@@ -111,6 +117,7 @@ const statusProperty = {
 describe('Page Schema (Integration)', () => {
   let testApp: TestApp;
   let adminToken: string;
+  let adminUserId: string;
   let outsiderToken: string;
   let sharedSpaceId: string;
   let secretSpaceId: string;
@@ -130,6 +137,7 @@ describe('Page Schema (Integration)', () => {
     const adminSession = await loginUser(testApp, adminEmail, password);
     const outsiderSession = await loginUser(testApp, outsiderEmail, password);
     adminToken = adminSession.accessToken;
+    adminUserId = adminSession.user.id;
     outsiderToken = outsiderSession.accessToken;
 
     sharedSpaceId = await createSpace(
@@ -274,7 +282,37 @@ describe('Page Schema (Integration)', () => {
       });
 
       const asAdmin = await listRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
-      expect((asAdmin.body as PageResponse[]).map((item) => item.id)).toEqual([row.id]);
+      const listed = asAdmin.body as PageRowsResponse;
+      expect(listed.rows.map((item) => item.id)).toEqual([row.id]);
+      expect(listed.hasMore).toBe(false);
+    });
+
+    /**
+     * Una colección que creció sola no puede costar lo que guarde. Se corta en
+     * el tope y se dice que se cortó, porque quinientas de seiscientas sin
+     * avisar se leen como las seiscientas.
+     */
+    it('brings at most the row limit, and says the collection held more', async () => {
+      const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Overgrown Collection');
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
+      const prisma = testApp.get(PrismaService);
+      await prisma.page.createMany({
+        data: Array.from({ length: COLLECTION_ROW_LIMIT + 1 }, (_unused, position) => ({
+          content: plainContent(`Row ${String(position)}`),
+          createdById: adminUserId,
+          order: position,
+          parentId: collection.id,
+          spaceId: sharedSpaceId,
+          title: `Row ${String(position)}`,
+          updatedById: adminUserId,
+        })),
+      });
+
+      const listed = await listRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
+
+      const body = listed.body as PageRowsResponse;
+      expect(body.rows).toHaveLength(COLLECTION_ROW_LIMIT);
+      expect(body.hasMore).toBe(true);
     });
 
     it('rejects listing rows of a page that does not carry a schema', async () => {
@@ -313,7 +351,7 @@ describe('Page Schema (Integration)', () => {
       await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id).expect(409);
 
       const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
-      const preserved = (rowsAfter.body as PageResponse[]).find((item) => item.id === row.id);
+      const preserved = (rowsAfter.body as PageRowsResponse).rows.find((item) => item.id === row.id);
       expect(preserved?.propertyValues).toEqual({ status: 'todo' });
     });
 
@@ -331,7 +369,7 @@ describe('Page Schema (Integration)', () => {
       await movePage(testApp, adminToken, sharedSpaceId, row.id, plainDestination.id).expect(409);
 
       const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
-      const preserved = (rowsAfter.body as PageResponse[]).find((item) => item.id === row.id);
+      const preserved = (rowsAfter.body as PageRowsResponse).rows.find((item) => item.id === row.id);
       expect(preserved?.propertyValues).toEqual({ status: 'todo' });
     });
 
@@ -353,7 +391,7 @@ describe('Page Schema (Integration)', () => {
       await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id).expect(200);
 
       const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, destinationCollection.id).expect(200);
-      const moved = (rowsAfter.body as PageResponse[]).find((item) => item.id === row.id);
+      const moved = (rowsAfter.body as PageRowsResponse).rows.find((item) => item.id === row.id);
       expect(moved?.propertyValues).toEqual({ status: 'todo' });
     });
   });
@@ -429,6 +467,7 @@ describe('Page Schema (Integration)', () => {
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
       expect(response.body).toEqual({
+        hasMore: false,
         outcome: { kind: 'MISSING_GROUPING_PROPERTY' },
         rowCount: 0,
         totalRowCount: 0,

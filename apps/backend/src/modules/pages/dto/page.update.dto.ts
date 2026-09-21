@@ -1,6 +1,7 @@
 import type { PageContent } from '@company-brain/shared';
 import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
+import { PAGE_TITLE_MAX_LENGTH } from '../constants/pages.constants';
 
 export class UpdatePageDto {
   @IsObject()
@@ -11,6 +12,6 @@ export class UpdatePageDto {
   propertyValues?: SchemaPropertyValues;
 
   @IsString()
-  @MaxLength(200)
+  @MaxLength(PAGE_TITLE_MAX_LENGTH)
   title!: string;
 }

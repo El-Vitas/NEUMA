@@ -1,9 +1,10 @@
 import { Result, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import type { SchemaPropertyDefinitionError, SchemaViewValidationError } from '../../common/domain/schema.error';
+import type { SchemaViewValidationError } from '../../common/domain/schema.error';
+import { SchemaPropertyDefinitionError } from '../../common/domain/schema.error';
 import { rewriteSchemaOption } from '../../common/domain/schema-option.domain';
 import { validateSchemaView } from '../../common/domain/schema-view.domain';
-import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY } from './constants/pages.constants';
+import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY, SCHEMA_OPTION_ALREADY_MOVED } from './constants/pages.constants';
 import {
   PageAccessDeniedError,
   type PageSchemaDefinitionError,
@@ -71,6 +72,10 @@ export class PageSchemaService {
       { from: input.from, to: input.to },
       rewritten.getValue(),
     );
+    /* Otra persona tocó esa misma opción entre que se leyó y se fue a escribir: se deshace en vez de borrarle el cambio. */
+    if (written === SCHEMA_OPTION_ALREADY_MOVED) {
+      return Result.fail(new SchemaPropertyDefinitionError({ from: input.from, propertyKey: input.propertyKey }));
+    }
     return Result.ok({ ...written, spaceId: page.spaceId });
   }
 
@@ -124,8 +129,8 @@ export class PageSchemaService {
     if (page === null) return Result.fail(new PageAccessDeniedError());
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(pageId);
     if (!pageCarriesSchema(schemaProperties)) return Result.fail(new PageSchemaNotFoundError());
-    const rows = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
-    return Result.ok({ rows, spaceId: page.spaceId });
+    const found = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
+    return Result.ok({ ...found, spaceId: page.spaceId });
   }
 
   async getView(
@@ -141,9 +146,10 @@ export class PageSchemaService {
     if (!pageCarriesSchema(schema.properties)) return Result.fail(new PageSchemaNotFoundError());
     const view = schema.views.find((candidate) => candidate.name === viewName);
     if (view === undefined) return Result.fail(new PageViewNotFoundError());
-    const rows = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
+    const { hasMore, rows } = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
     const outcome = buildPageViewOutcome(view, schema.properties, rows);
     return Result.ok({
+      hasMore,
       outcome,
       rowCount: countPageViewRows(outcome),
       spaceId: page.spaceId,

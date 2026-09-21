@@ -114,8 +114,9 @@ export class PageSchemaController {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.listRows(pageId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
-    const rows = this.assertSpaceMatch(result.getValue(), spaceId);
-    return rows.rows;
+    const { hasMore, rows } = this.assertSpaceMatch(result.getValue(), spaceId);
+    /* La lista va acompañada de si quedó algo fuera: una lista cortada a secas se lee como la colección entera. */
+    return { hasMore, rows };
   }
 
   @Get('views/:viewName')
@@ -129,8 +130,8 @@ export class PageSchemaController {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.getView(pageId, viewName, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
-    const { outcome, rowCount, totalRowCount } = this.assertSpaceMatch(result.getValue(), spaceId);
-    return { outcome, rowCount, totalRowCount };
+    const { hasMore, outcome, rowCount, totalRowCount } = this.assertSpaceMatch(result.getValue(), spaceId);
+    return { hasMore, outcome, rowCount, totalRowCount };
   }
 
   private assertSpaceMatch<TValue extends { readonly spaceId: string }>(value: TValue, spaceId: string): TValue {

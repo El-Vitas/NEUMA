@@ -4,6 +4,7 @@ import type { PageOptionColor } from '@company-brain/shared';
 import { PAGE_OPTION_COLOR_VALUES, readPagePropertyOptions } from '@company-brain/shared';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsIn,
@@ -14,10 +15,16 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import {
+  SCHEMA_LABEL_MAX_LENGTH,
+  SCHEMA_PROPERTY_KEY_MAX_LENGTH,
+  SCHEMA_PROPERTY_LIMIT,
+  SCHEMA_VIEW_LIMIT,
+} from '../constants/pages.constants';
 
 export class PageSchemaPropertyOptionDto {
   @IsString()
-  @MaxLength(120)
+  @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
   value!: string;
 
@@ -39,12 +46,12 @@ const toOptionDto = (option: { color: PageOptionColor | null; value: string }): 
 
 export class PageSchemaPropertyDto {
   @IsString()
-  @MaxLength(64)
+  @MaxLength(SCHEMA_PROPERTY_KEY_MAX_LENGTH)
   @MinLength(1)
   key!: string;
 
   @IsString()
-  @MaxLength(120)
+  @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
   label!: string;
 
@@ -64,7 +71,7 @@ export class PageSchemaPropertyDto {
 
 export class PageSchemaViewDto {
   @IsString()
-  @MaxLength(120)
+  @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
   name!: string;
 
@@ -84,13 +91,13 @@ export class PageSchemaViewDto {
  */
 export class RewritePageOptionDto {
   @IsString()
-  @MaxLength(120)
+  @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
   from!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(120)
+  @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
   to?: string;
 }
@@ -103,11 +110,13 @@ export class SetPageViewConfigurationDto {
 
 export class DefinePageSchemaDto {
   @IsArray()
+  @ArrayMaxSize(SCHEMA_PROPERTY_LIMIT)
   @Type(() => PageSchemaPropertyDto)
   @ValidateNested({ each: true })
   properties!: PageSchemaPropertyDto[];
 
   @IsArray()
+  @ArrayMaxSize(SCHEMA_VIEW_LIMIT)
   @Type(() => PageSchemaViewDto)
   @ValidateNested({ each: true })
   views!: PageSchemaViewDto[];

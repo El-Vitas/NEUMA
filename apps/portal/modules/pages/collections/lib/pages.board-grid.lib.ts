@@ -3,7 +3,8 @@ import type { PageBoardGridDropTarget, PageBoardGridMove } from '../types/pages.
 import type { PageRow, PageViewBand } from '../types/pages.schema.types';
 import { applyBoardMoveToGroups, readBoardGroupValue, resolveBoardDrop, withLandedValue } from './pages.board-drag.lib';
 
-const findBandOf = (bands: readonly PageViewBand[], rowId: string): PageViewBand | undefined =>
+/** En qué banda está una fila, que es lo primero que hay que saber para moverla a otro sitio. */
+export const findBandHoldingRow = (bands: readonly PageViewBand[], rowId: string): PageViewBand | undefined =>
   bands.find((band) => band.groups.some((group) => group.rows.some((row) => row.id === rowId)));
 
 const findColumnKeyOf = (band: PageViewBand, rowId: string): string | undefined =>
@@ -23,7 +24,7 @@ export const resolveBoardGridDrop = (
   rowId: string,
   target: PageBoardGridDropTarget,
 ): null | PageBoardGridMove => {
-  const from = findBandOf(bands, rowId);
+  const from = findBandHoldingRow(bands, rowId);
   if (from === undefined) return null;
   if (from.key === target.bandKey) {
     const move = resolveBoardDrop(from.groups, rowId, target);
@@ -72,7 +73,7 @@ export const applyBoardMoveToBands = (
   groupByKey: string,
   subGroupByKey: string,
 ): readonly PageViewBand[] => {
-  const from = findBandOf(bands, rowId);
+  const from = findBandHoldingRow(bands, rowId);
   const carried = from?.groups.flatMap((group) => group.rows).find((row) => row.id === rowId);
   if (from === undefined || carried === undefined) return bands;
   if (!move.changesBand) {

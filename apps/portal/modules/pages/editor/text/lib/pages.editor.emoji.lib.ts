@@ -1,5 +1,6 @@
 import type { Command } from 'prosemirror-state';
 import { foldPageLookingText } from '../../../links/lib/pages.looking.lib';
+import { createPageEditorWriteCommand } from '../../lib/pages.editor.ask.lib';
 import type { PagesEditorMenuItem } from '../../menus/types/pages.editor.slash-menu.types';
 import {
   PAGE_EDITOR_EMOJI_MENU_LIMIT,
@@ -25,13 +26,7 @@ export const findEmojiCandidates = (query: string): readonly PageEmojiEntry[] =>
 const describeEmojiCandidate = (entry: PageEmojiEntry): string => `${entry.character} ${entry.names[0] ?? ''}`;
 
 /** Writes the emoji where the cursor stands, as the character it is — no node, no attrs to carry. */
-export const createEmojiInsertCommand =
-  (character: string): Command =>
-  (state, dispatch) => {
-    if (dispatch === undefined) return true;
-    dispatch(state.tr.insertText(character));
-    return true;
-  };
+export const createEmojiInsertCommand = (character: string): Command => createPageEditorWriteCommand(character);
 
 /** The emoji finder's own menu, one entry per emoji that answers to what was typed. */
 export const buildEmojiTriggerItems = (triggerQuery: string | null): readonly PagesEditorMenuItem[] =>
@@ -45,8 +40,4 @@ export const buildEmojiTriggerItems = (triggerQuery: string | null): readonly Pa
  * Asks for an emoji the same way `@` asks for a page: by writing the trigger,
  * so the finder that already answers it opens.
  */
-export const askForEmoji: Command = (state, dispatch) => {
-  if (dispatch === undefined) return true;
-  dispatch(state.tr.insertText(PAGE_EDITOR_EMOJI_TRIGGER));
-  return true;
-};
+export const askForEmoji: Command = createPageEditorWriteCommand(PAGE_EDITOR_EMOJI_TRIGGER);

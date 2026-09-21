@@ -1,3 +1,19 @@
+/**
+ * Cómo se llama cada nivel de la configuración.
+ *
+ * Lo que se está mirando puede no estar —una propiedad recién quitada—, y
+ * entonces el nivel se dice por su nombre general.
+ */
+export interface PagesSchemaSettingsNames {
+  readonly configure: string;
+  readonly option: string | undefined;
+  readonly options: string;
+  readonly properties: string;
+  readonly property: string | undefined;
+  readonly view: string | undefined;
+  readonly views: string;
+}
+
 /** Una clase que se puede elegir al agregar algo: lo que se guarda y lo que se lee. */
 export interface PagesSchemaSettingsKindOption {
   readonly label: string;

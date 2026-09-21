@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { useThemeRoot } from '@/shared/hooks/use.theme-root.hook';
 import { usePagesSchemaEditor } from '../hooks/use.pages.schema-editor';
+import { readSettingsLevel, readSettingsStepBack, readSettingsTitle } from '../lib/pages.schema-settings.lib';
 import { findBoardWithoutGrouping } from '../lib/pages.view-editing.lib';
 import type { PageSchema } from '../types/pages.schema.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
@@ -47,43 +48,30 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
       ? property?.options?.find((candidate) => candidate.value === route.optionValue)
       : undefined;
   const view = route.level === 'VIEW' ? editor.views[route.viewPosition] : undefined;
-  /**
-   * Dónde se está de verdad.
-   *
-   * Una ruta puede quedar señalando algo que ya no está —una vista que no se
-   * llegó a agregar, una propiedad recién quitada— y dibujar ese nivel sería
-   * una pantalla en blanco con un título y nada debajo. En ese caso se está en
-   * el principio, que es donde se puede volver a hacer algo.
-   */
-  const level = ((): PagesSchemaSettingsRoute['level'] => {
-    if (route.level === 'VIEW' && view === undefined) return 'ROOT';
-    if ((route.level === 'PROPERTY' || route.level === 'OPTION') && property === undefined) return 'ROOT';
-    if (route.level === 'OPTION' && option === undefined) return 'PROPERTY';
-    return route.level;
-  })();
+  const level = readSettingsLevel(route, {
+    option: option !== undefined,
+    property: property !== undefined,
+    view: view !== undefined,
+  });
   /**
    * Lo que falta para poder guardar, dicho aquí en vez de dejar que el servidor
    * rechace la colección entera con un error que no señala a nadie.
    */
-  const whatIsMissing = ((): null | string => {
-    const board = findBoardWithoutGrouping(editor.views, editor.properties);
-    return board === undefined ? null : t('boardNeedsGrouping', { view: board.name });
-  })();
+  const boardWithoutGrouping = findBoardWithoutGrouping(editor.views, editor.properties);
+  const whatIsMissing =
+    boardWithoutGrouping === undefined ? null : t('boardNeedsGrouping', { view: boardWithoutGrouping.name });
 
-  /** Un paso atrás, no hasta el principio: quien entró a una opción vuelve a su propiedad, y quien entró a una propiedad vuelve a la lista de propiedades. */
-  const goBack = (): void => {
-    if (route.level === 'OPTION') setRoute({ level: 'PROPERTY', propertyKey: route.propertyKey });
-    else if (route.level === 'PROPERTY') setRoute({ level: 'PROPERTIES' });
-    else setRoute({ level: 'ROOT' });
-  };
+  const goBack = (): void => setRoute(readSettingsStepBack(route));
 
-  const title = ((): string => {
-    if (level === 'PROPERTIES') return t('propertiesTitle');
-    if (level === 'PROPERTY') return property?.label ?? t('propertiesTitle');
-    if (level === 'OPTION') return option?.value ?? t('optionsLabel');
-    if (level === 'VIEW') return view?.name ?? t('viewsTitle');
-    return t('configureTitle');
-  })();
+  const title = readSettingsTitle(level, {
+    configure: t('configureTitle'),
+    option: option?.value,
+    options: t('optionsLabel'),
+    properties: t('propertiesTitle'),
+    property: property?.label,
+    view: view?.name,
+    views: t('viewsTitle'),
+  });
 
   return (
     <DialogPrimitive.Root modal={false} onOpenChange={(open) => !open && onClose()} open>

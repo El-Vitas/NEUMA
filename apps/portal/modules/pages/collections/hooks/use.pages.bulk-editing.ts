@@ -101,14 +101,18 @@ export const usePagesBulkEditing = (
       }),
     trashRows: (rowIds: readonly string[]) =>
       startWorking(async () => {
-        const sent = await Promise.all(rowIds.map((pageId) => trashPageAction({ pageId, spaceId })));
-        if (sent.every(hasActionError)) {
+        const sent = await Promise.all(
+          rowIds.map(async (pageId) => ({ pageId, went: !hasActionError(await trashPageAction({ pageId, spaceId })) })),
+        );
+        /* Se cuenta y se deshace sobre las que de verdad se fueron: devolver una fila que sigue en su sitio no es deshacer nada. */
+        const trashed = sent.filter((one) => one.went).map((one) => one.pageId);
+        if (trashed.length === 0) {
           toast.error(tErrors('generic'));
           return;
         }
         onDone();
-        toast.success(t('bulkTrashed', { count: rowIds.length }), {
-          action: { label: t('bulkUndo'), onClick: () => undoTrash(rowIds) },
+        toast.success(t('bulkTrashed', { count: trashed.length }), {
+          action: { label: t('bulkUndo'), onClick: () => undoTrash(trashed) },
           duration: PAGE_BULK_UNDO_DURATION,
         });
       }),

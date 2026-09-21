@@ -705,6 +705,7 @@
       "sectionTitle": "Filas",
       "viewsLabel": "Vistas de esta colección",
       "emptyTable": "Aún no hay filas",
+      "onlyFirstRows": "Esta colección tiene más filas de las que caben de una vez. Se están viendo las primeras {shown}; usa un filtro o una búsqueda para llegar al resto.",
       "rowCount": "{shown} de {total, plural, one {# fila} other {# filas}}",
       "everythingFiltered": "El filtro no deja pasar ninguna de las {total, plural, one {# fila} other {# filas}} de esta colección. Quítalo o cámbialo para volver a verlas.",
       "emptyColumn": "Sin filas",

@@ -18,7 +18,7 @@
     "test:ramless": "bun test tests/unit/modules --isolate --timeout 20000 --smol && bun test tests/unit/app tests/unit/i18n tests/unit/portal tests/unit/shared tests/unit/users --isolate --timeout 20000 --smol",
     "test": "bun test tests/unit --isolate --timeout 20000",
     "test:watch": "bun test tests/unit --watch",
-    "test:cov": "bun test tests/unit --isolate --coverage",
+    "test:cov": "bun test tests/unit --isolate --timeout 20000 --coverage --coverage-reporter=lcov --coverage-dir=coverage",
     "react:doctor": "npx -y react-doctor@latest ."
   },
   "dependencies": {

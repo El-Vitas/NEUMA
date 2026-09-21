@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
 import { USER_ROLE } from '@company-brain/shared';
+import { SCHEMA_OPTION_ALREADY_MOVED } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import type { PageRepositoryContract, PageSummary } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
@@ -75,7 +76,7 @@ const createSchemaRepository = (
   rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
   resolveSchemaProperties: () => Promise.resolve([titleProperty]),
   setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
-  listRows: () => Promise.resolve([]),
+  listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
   listWorkspaceMemberIds: () => Promise.resolve([]),
   ...overrides,
 });
@@ -221,6 +222,26 @@ describe('page schema service — rewriteOption', () => {
     expect(result.getError().code).toBe('SCHEMA_PROPERTY_DEFINITION_INVALID');
   });
 
+  /**
+   * Entre leer las opciones y escribirlas hay un viaje, y en ese viaje otra
+   * persona puede haber tocado la misma. Escribir lo leído le borraría el
+   * cambio, así que la escritura se deshace y quien lo pidió vuelve a mirar.
+   */
+  it('gives up when somebody else moved that same option first', async () => {
+    const service = new PageSchemaService(
+      createPageRepository(),
+      createSchemaRepository({
+        getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
+        rewriteOption: () => Promise.resolve(SCHEMA_OPTION_ALREADY_MOVED),
+      }),
+    );
+
+    const result = await service.rewriteOption(renaming);
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('SCHEMA_PROPERTY_DEFINITION_INVALID');
+  });
+
   /** Lo que el repositorio recibe es la forma ya renombrada, y el nombre viejo para las filas. */
   it('hands the rewritten shape to the repository, together with where the name comes from', async () => {
     const asked: { properties?: unknown; rename?: unknown }[] = [];
@@ -316,13 +337,26 @@ describe('page schema service — listRows', () => {
     };
     const service = new PageSchemaService(
       createPageRepository(),
-      createSchemaRepository({ listRows: () => Promise.resolve([row]) }),
+      createSchemaRepository({ listRows: () => Promise.resolve({ hasMore: false, rows: [row] }) }),
     );
 
     const result = await service.listRows('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue()).toEqual({ rows: [row], spaceId: 'space-a' });
+    expect(result.getValue()).toEqual({ hasMore: false, rows: [row], spaceId: 'space-a' });
+  });
+
+  /** Una lista cortada sin decirlo se lee como la colección entera, y entonces faltan filas que nadie sabe que faltan. */
+  it('passes on that the collection held more rows than were brought', async () => {
+    const service = new PageSchemaService(
+      createPageRepository(),
+      createSchemaRepository({ listRows: () => Promise.resolve({ hasMore: true, rows: [] }) }),
+    );
+
+    const result = await service.listRows('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().hasMore).toBe(true);
   });
 });
 
@@ -384,7 +418,7 @@ describe('page schema service — getView', () => {
             properties: [titleProperty, statusProperty],
             views: [{ configuration: {}, isDefault: true, name: 'Table', type: DatabaseViewType.TABLE }],
           }),
-        listRows: () => Promise.resolve([row]),
+        listRows: () => Promise.resolve({ hasMore: false, rows: [row] }),
       }),
     );
 
@@ -392,6 +426,7 @@ describe('page schema service — getView', () => {
 
     expect(result.isOk()).toBe(true);
     expect(result.getValue()).toEqual({
+      hasMore: false,
       outcome: { kind: 'FLAT_ROWS', rows: [row] },
       rowCount: 1,
       spaceId: 'space-a',
@@ -425,7 +460,7 @@ describe('page schema service — getView', () => {
               },
             ],
           }),
-        listRows: () => Promise.resolve([rowTodo]),
+        listRows: () => Promise.resolve({ hasMore: false, rows: [rowTodo] }),
       }),
     );
 
@@ -464,7 +499,7 @@ describe('page schema service — getView', () => {
               },
             ],
           }),
-        listRows: () => Promise.resolve([rowTodo]),
+        listRows: () => Promise.resolve({ hasMore: false, rows: [rowTodo] }),
       }),
     );
 

@@ -10,6 +10,16 @@ import { PAGE_PROPERTY_LOGICAL_TYPE } from './page-property.types.js';
 
 const titleMaximumLength = 200;
 
+/**
+ * Cuánto cabe en una celda de texto.
+ *
+ * Una propiedad se responde en una celda que se mira de un vistazo junto a las
+ * demás, no es donde se escribe un documento: para eso está el cuerpo de la
+ * página, que la fila ya tiene. El tope es holgado a propósito —cabe un párrafo
+ * largo— y está para que nadie mande un libro por una celda.
+ */
+const richTextMaximumLength = 2000;
+
 const baseCapabilities: PagePropertyCapabilities = {
   isTitle: false,
   requiresOptions: false,
@@ -51,7 +61,7 @@ const richTextDefinition: PagePropertyDefinition = {
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.TEXT,
   capabilities: baseCapabilities,
   getDefaultValue: () => '',
-  isValidValue: (value) => typeof value === 'string',
+  isValidValue: (value) => typeof value === 'string' && value.length <= richTextMaximumLength,
   isEmptyValue: isBlankText,
   toDisplayString: String,
 };

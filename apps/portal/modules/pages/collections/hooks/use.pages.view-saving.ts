@@ -30,7 +30,19 @@ export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, s
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
   const [views, setViews] = useState<readonly PageSchemaView[]>(schema.views);
+  const [lastRead, setLastRead] = useState<readonly PageSchemaView[]>(schema.views);
   const [isSaving, startSaving] = useTransition();
+
+  /*
+    Lo que la colección dice de sus vistas puede cambiar por otro camino —la
+    configuración, abierta al lado— y esta copia no se enteraría: al guardar un
+    filtro mandaría encima lo que leyó al abrirse y borraría ese cambio. Mientras
+    hay algo viajando no se toca, para no pisar lo que ya se está dibujando.
+  */
+  if (lastRead !== schema.views && !isSaving) {
+    setLastRead(schema.views);
+    setViews(schema.views);
+  }
 
   const apply = (rewrite: (current: readonly PageSchemaView[]) => readonly PageSchemaView[]): void => {
     const next = rewrite(views);

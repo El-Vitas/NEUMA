@@ -6,7 +6,7 @@ import {
   PAGE_EDITOR_MENTION_TRIGGER,
   PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR,
 } from '../../blocks/constants/pages.editor.blocks.constants';
-import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';
+import { createPageEditorAskCommand, createPageEditorWriteCommand } from '../../lib/pages.editor.ask.lib';
 import { leaveSomewhereToWriteUnder } from '../../lib/pages.editor.write-under.lib';
 import type { PageSubpageInsert } from '../types/pages.editor.subpage.types';
 
@@ -47,11 +47,7 @@ export const createPageSubpageInsertCommand =
  * way of looking for a page, whether it was reached from the menu or typed
  * straight into the sentence.
  */
-export const askForAPageAlreadyWritten: Command = (state, dispatch) => {
-  if (dispatch === undefined) return true;
-  dispatch(state.tr.insertText(PAGE_EDITOR_MENTION_TRIGGER));
-  return true;
-};
+export const askForAPageAlreadyWritten: Command = createPageEditorWriteCommand(PAGE_EDITOR_MENTION_TRIGGER);
 
 /** What a page hanging from another is called before anybody has named it. */
 export const nameTheChildPage = (title: string, untitled: string): string =>

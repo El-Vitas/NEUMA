@@ -74,7 +74,8 @@ const emptyBoard: PageViewOutcome = {
 };
 
 /** Lo que la colección contesta: las filas repartidas, y de cuántas salieron. */
-const asReading = (outcome: PageViewOutcome, rowCount = 0, totalRowCount = 0): PageViewReading => ({
+const asReading = (outcome: PageViewOutcome, rowCount = 0, totalRowCount = 0, hasMore = false): PageViewReading => ({
+  hasMore,
   outcome,
   rowCount,
   totalRowCount,
@@ -207,5 +208,38 @@ describe('PagesCollectionSection', () => {
     );
 
     expect(screen.getByText('collection.rowCount')).toBeDefined();
+  });
+
+  /** Ver quinientas de mil sin que nadie lo diga se lee como ver la colección entera. */
+  it('says so when the collection held more rows than were brought', async () => {
+    renderWithMessages(
+      await PagesCollectionSection({
+        activeView: boardView,
+        canEdit: true,
+        properties,
+        reading: asReading(emptyBoard, 500, 500, true),
+        schema,
+        spaceId: 'space-1',
+        views: [boardView],
+      }),
+    );
+
+    expect(screen.getByTestId('collection-partial')).toBeDefined();
+  });
+
+  it('says nothing about a cut when the whole collection fits', async () => {
+    renderWithMessages(
+      await PagesCollectionSection({
+        activeView: boardView,
+        canEdit: true,
+        properties,
+        reading: asReading(emptyBoard, 4, 13),
+        schema,
+        spaceId: 'space-1',
+        views: [boardView],
+      }),
+    );
+
+    expect(screen.queryByTestId('collection-partial')).toBeNull();
   });
 });

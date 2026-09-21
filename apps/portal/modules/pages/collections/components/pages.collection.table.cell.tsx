@@ -88,7 +88,7 @@ export const PagesCollectionTableCell = ({
     if (pagePropertyAnswersOnPick(property.type)) write(answered);
   };
 
-  const answerKey = (event: KeyboardEvent<HTMLDivElement>): void => {
+  const answerKey = (event: KeyboardEvent<HTMLFieldSetElement>): void => {
     if (event.key === 'Enter') {
       event.preventDefault();
       write(draft ?? '');
@@ -130,8 +130,13 @@ export const PagesCollectionTableCell = ({
   }
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: envuelve al campo para escuchar el Enter y el Escape que este no interpreta
-    <div onKeyDown={answerKey}>
+    /*
+      La caja del campo, no un mando: está aquí para oír el Enter y el Escape
+      que suben desde dentro. Quien recibe el foco sigue siendo el campo. El
+      `min-w-0` deshace el ancho mínimo propio del elemento, que si no impide
+      que la celda se estreche.
+    */
+    <fieldset className="min-w-0" onKeyDown={answerKey}>
       <PagesPropertiesField
         ariaLabelledBy={ariaLabelledBy}
         claimsFocus
@@ -142,6 +147,6 @@ export const PagesCollectionTableCell = ({
         property={property}
         value={draft}
       />
-    </div>
+    </fieldset>
   );
 };

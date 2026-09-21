@@ -42,6 +42,22 @@ describe('Users Module (Integration)', () => {
       });
     });
 
+    /**
+     * Cada puerta se cuenta con su propia cuenta. La de exportar es de cinco por
+     * minuto, y si alcanzara también a entrar, la sexta persona de una oficina
+     * se quedaría fuera sin haber exportado nada.
+     */
+    it('does not count signing in against the export allowance', async () => {
+      const timestamp = Date.now();
+      const email = `throttle-${String(timestamp)}@test.com`;
+      const password = 'plainPassword123';
+      await registerUser(testApp, { email, name: 'Throttle User', password });
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await loginUser(testApp, email, password);
+      }
+    });
+
     it('should reject invalid payload with 400', async () => {
       const invalidPayload = {
         email: 'not-an-email',
