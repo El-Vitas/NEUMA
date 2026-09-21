@@ -14,6 +14,7 @@ model Space {
   owner       User?           @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members     SpaceMember[]
   pages       Page[]
+  tokenGrants AccessTokenGrant[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId, visibility])

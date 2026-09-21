@@ -5,9 +5,35 @@ export {
   sanitizeCollaborationPresenceIdentity,
 } from './collaboration-presence.lib.js';
 export type { CollaborationPresenceIdentity, CollaborationPresenceState } from './collaboration-presence.types.js';
+export {
+  ACCESS_TOKEN_LEVEL_VALUES,
+  ACCESS_TOKEN_LEVELS,
+  ACCESS_TOKEN_NAME_MAX_LENGTH,
+  ACCESS_TOKEN_PERMISSION_VALUES,
+  ACCESS_TOKEN_PERMISSIONS,
+  ACCESS_TOKEN_READ_PERMISSIONS,
+  ACCESS_TOKEN_SPACE_GRANT_LIMIT,
+} from './access-token/access-token.definitions.js';
+export {
+  canAccessTokenAct,
+  canRoleGrantAccessTokenPermission,
+  listAccessTokenGrantedPermissions,
+  listAccessTokenLevelPermissions,
+  readAccessTokenLevel,
+  readAccessTokenSpacePermissions,
+} from './access-token/access-token.lib.js';
+export { accessTokenAccessSchema, accessTokenPermissionSchema } from './access-token/access-token.schemas.js';
+export type {
+  AccessTokenAccess,
+  AccessTokenLevel,
+  AccessTokenPermission,
+  AccessTokenPresetLevel,
+  AccessTokenSpaceGrant,
+} from './access-token/access-token.types.js';
 export { UNASSIGNED_GROUP_KEY } from './constants/page-view.constants.js';
 export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
+export { MILLISECONDS_IN_A_DAY } from './constants/time.constants.js';
 export {
   EMAIL_MAX_LENGTH,
   PHONE_INPUT_PATTERN,

@@ -12,9 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
-import { THROTTLER_NAMES } from '../../common/constants/throttler.constants';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { ExportThrottlerGuard } from '../../common/infrastructure/guards/export-throttler.guard';
@@ -289,7 +287,6 @@ export class PagesController {
    * make every reader unwrap it before it were a document again.
    */
   @Get('export/markdown')
-  @SkipThrottle({ [THROTTLER_NAMES.global]: true, [THROTTLER_NAMES.perIp]: true })
   @UseGuards(JwtAuthGuard, ExportThrottlerGuard)
   async exportAsMarkdown(
     @Param('spaceId') spaceId: string,

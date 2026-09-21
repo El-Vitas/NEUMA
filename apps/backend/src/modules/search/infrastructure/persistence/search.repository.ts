@@ -148,6 +148,8 @@ const buildFilters = (
 ): Prisma.Sql => {
   const filters: Prisma.Sql[] = [];
   if (query.spaceId !== undefined) filters.push(Prisma.sql`AND "searchDocument"."spaceId" = ${query.spaceId}`);
+  if (query.withinSpaceIds !== undefined)
+    filters.push(Prisma.sql`AND "searchDocument"."spaceId" = ANY(${[...query.withinSpaceIds]}::text[])`);
   if (query.sourceType !== undefined)
     filters.push(Prisma.sql`AND "searchDocument"."sourceType" = ${query.sourceType}::"SearchSourceType"`);
   if (query.contentType !== undefined)

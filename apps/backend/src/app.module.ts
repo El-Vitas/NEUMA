@@ -5,10 +5,16 @@ import { ConfigModule } from '@nestjs/config';
 import { seconds, ThrottlerModule } from '@nestjs/throttler';
 
 import { envSchema } from './common/config/env.schema';
-import { CREDENTIAL_RATE_LIMIT, EXPORT_RATE_LIMIT, THROTTLER_NAMES } from './common/constants/throttler.constants';
+import {
+  CREDENTIAL_RATE_LIMIT,
+  EXPORT_RATE_LIMIT,
+  MCP_RATE_LIMIT,
+  THROTTLER_NAMES,
+} from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
+import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TokenAdapter } from './modules/auth/infrastructure/adapters/token.adapter';
 import { CollaborationController } from './modules/collaboration/collaboration.controller';
@@ -31,6 +37,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
+import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
 import { PageViewsModule } from './modules/page-views/page-views.module';
@@ -68,6 +75,11 @@ import { PrismaModule } from './prisma/prisma.module';
           ttl: seconds(EXPORT_RATE_LIMIT.windowSeconds),
           limit: EXPORT_RATE_LIMIT.perUserLimit,
         },
+        {
+          name: THROTTLER_NAMES.mcp,
+          ttl: seconds(MCP_RATE_LIMIT.windowSeconds),
+          limit: MCP_RATE_LIMIT.perTokenLimit,
+        },
       ],
       generateKey: (_context, tracker, throttlerName) =>
         throttlerName === THROTTLER_NAMES.global ? THROTTLER_NAMES.global : `${throttlerName}:${tracker}`,
@@ -84,11 +96,12 @@ import { PrismaModule } from './prisma/prisma.module';
     PageViewsModule,
     FavoritesModule,
     FilesModule,
+    AccessTokensModule,
     McpModule,
     SearchModule,
     LinksModule,
   ],
-  controllers: [CollaborationController, HealthController],
+  controllers: [CollaborationController, HealthController, McpController],
   providers: [
     { provide: COLLABORATION_PAGE_SERVICE, useExisting: PagesService },
     { provide: COLLABORATION_TOKEN_SIGNER, useExisting: TokenAdapter },

@@ -148,6 +148,28 @@
       }
     },
     {
+      "includes": ["**/infrastructure/persistence/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": {
+              "level": "warn",
+              "options": {
+                "strictCase": false,
+                "conventions": [
+                  {
+                    "selector": { "kind": "objectLiteralProperty" },
+                    "match": "(AND|OR|NOT)|_?([a-z][a-zA-Z0-9]*)(?:_([a-z][a-zA-Z0-9]*))?",
+                    "formats": ["camelCase", "CONSTANT_CASE"]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/trust-proxy.config.ts"],
       "linter": {
         "rules": {
