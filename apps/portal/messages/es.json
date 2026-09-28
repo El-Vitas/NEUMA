@@ -66,6 +66,7 @@
     "docs": "Documentación",
     "trash": "Papelera",
     "users": "Usuarios",
+    "settings": "Configuración",
     "account": "Cuenta",
     "profile": "Perfil",
     "logout": "Cerrar sesión",
@@ -160,6 +161,15 @@
       "untitled": "Sin título"
     }
   },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Cómo se conectan los agentes con Company Brain.",
+    "nav": {
+      "label": "Secciones de la configuración",
+      "tokens": "Tokens de acceso",
+      "workspaceTokens": "Tokens de agentes"
+    }
+  },
   "account": {
     "title": "Cuenta",
     "subtitle": "Administra tu información personal.",
@@ -178,6 +188,141 @@
     "nameUpdateError": "No se pudo actualizar tu nombre. Intenta de nuevo.",
     "nameUpdated": "Nombre actualizado",
     "passwordUpdated": "Contraseña actualizada"
+  },
+  "accessTokens": {
+    "title": "Tokens de acceso",
+    "description": "Un token deja que un agente, como Claude, use Company Brain en tu nombre, solo en los espacios y páginas y con los permisos que le des. Nunca puede más que tú: si pierdes un acceso, el token también lo pierde.",
+    "connectAt": "Los agentes se conectan por MCP en",
+    "create": "Crear token",
+    "empty": "Aún no tienes tokens. Crea uno para conectar un agente.",
+    "loadError": "No se pudieron cargar tus tokens. Recarga la página para intentarlo de nuevo.",
+    "created": "Creado el {date}",
+    "lastUsed": "Último uso: {date}",
+    "neverUsed": "Nunca usado",
+    "expires": "Vence el {date}",
+    "noExpiry": "Sin vencimiento",
+    "hiddenPlaces": "{count, plural, one {Y # lugar que no ves} other {Y # lugares que no ves}}",
+    "inSpace": "en {space}",
+    "editAccess": "Cambiar acceso",
+    "editAccessOf": "Cambiar acceso de «{name}»",
+    "revoke": "Revocar",
+    "revokeOf": "Revocar «{name}»",
+    "allSpaces": "Todos los espacios",
+    "levels": {
+      "NONE": "Sin acceso",
+      "READ": "Solo lectura",
+      "READ_WRITE": "Lectura y escritura",
+      "FULL": "Completo",
+      "CUSTOM": "Personalizado"
+    },
+    "levelHints": {
+      "NONE": "No ve nada aquí, aunque una regla más amplia lo abra.",
+      "READ": "Lee páginas y colecciones.",
+      "READ_WRITE": "Además crea y edita páginas y filas de colecciones.",
+      "FULL": "Además manda páginas a la papelera y cambia la forma de las colecciones.",
+      "CUSTOM": "Marcas uno por uno los permisos."
+    },
+    "permissions": {
+      "pagesRead": "Leer páginas",
+      "pagesWrite": "Crear y editar páginas",
+      "pagesTrash": "Mandar páginas a la papelera",
+      "collectionsRead": "Leer colecciones",
+      "collectionsWrite": "Crear y editar filas de colecciones",
+      "collectionsConfigure": "Cambiar la forma de las colecciones"
+    },
+    "expiry": {
+      "NEVER": "Sin vencimiento",
+      "MONTH": "30 días",
+      "QUARTER": "90 días",
+      "YEAR": "1 año",
+      "CUSTOM": "Elegir fecha"
+    },
+    "form": {
+      "createTitle": "Crear un token de acceso",
+      "createDescription": "Elige dónde puede entrar el agente y qué puede hacer ahí.",
+      "editDescription": "El cambio vale desde la siguiente llamada del agente.",
+      "name": "Nombre",
+      "nameHint": "Algo que te diga dónde lo usas, por ejemplo «Claude en mi portátil».",
+      "nameTaken": "Ya tienes un token activo con ese nombre. Elige otro para no confundirlos.",
+      "expiry": "Vencimiento",
+      "expiryNeverHint": "Un token sin vencimiento sirve hasta que lo revoques.",
+      "expiryDate": "Último día en que sirve",
+      "expiryDateHint": "Deja de servir cuando termina ese día.",
+      "access": "Qué puede hacer",
+      "accessHint": "Cada fila da un nivel en un lugar. En cada página manda la regla más cercana: la de la página o la de la página que la contiene, después la de su espacio y al final la de todos los espacios. «Sin acceso» cierra el lugar.",
+      "place": "Dónde",
+      "targetKinds": {
+        "ALL": "Todos los espacios",
+        "SPACE": "Un espacio",
+        "PAGE": "Una página"
+      },
+      "space": "Espacio",
+      "page": "Página",
+      "pageHint": "Incluye todo lo que cuelga de ella, también lo que se agregue después.",
+      "choosePage": "Elegir una página",
+      "pageSearchPlaceholder": "Escribe el nombre de la página",
+      "pageSearchResults": "Páginas encontradas",
+      "pageSearchHint": "Escribe al menos dos letras.",
+      "pageSearching": "Buscando…",
+      "pageSearchError": "No se pudo buscar. Intenta de nuevo.",
+      "pageSearchEmpty": "Ninguna página que veas se llama así.",
+      "pageNotChosen": "página sin elegir",
+      "spaceNotChosen": "espacio sin elegir",
+      "level": "Nivel",
+      "permissions": "Permisos",
+      "addRow": "Agregar otro lugar",
+      "removeRow": "Quitar {place}",
+      "customEmpty": "Marca al menos un permiso.",
+      "hiddenPlacesWarning": "{count, plural, one {Al guardar, el token pierde # lugar que ya no ves.} other {Al guardar, el token pierde # lugares que ya no ves.}}",
+      "backToTokens": "Volver a los tokens",
+      "submitCreate": "Crear token",
+      "creating": "Creando…",
+      "submitEdit": "Guardar cambios",
+      "saving": "Guardando…",
+      "updated": "Acceso actualizado"
+    },
+    "secret": {
+      "title": "Copia tu token ahora",
+      "description": "Es la única vez que se muestra completo. Si lo pierdes, revócalo y crea otro.",
+      "token": "Token",
+      "config": "Configuración para el agente",
+      "configHint": "Pégala en la configuración MCP de tu agente, por ejemplo en el archivo .mcp.json de Claude Code.",
+      "copyToken": "Copiar token",
+      "copyConfig": "Copiar configuración",
+      "copied": "Copiado",
+      "copyError": "El navegador no dejó copiar. Selecciona el texto y cópialo a mano.",
+      "done": "Listo, ya lo copié"
+    },
+    "revokeDialog": {
+      "title": "¿Revocar «{name}»?",
+      "description": "El agente que lo usa deja de entrar en su siguiente llamada. No se puede deshacer: para volver a conectarlo hay que crear otro token.",
+      "cancel": "Cancelar",
+      "confirm": "Revocar token",
+      "revoking": "Revocando…",
+      "revoked": "«{name}» fue revocado"
+    },
+    "errors": {
+      "invalid": "Algo de lo que pusiste no se puede guardar. Revisa el nombre y los permisos.",
+      "forbidden": "No puedes dar ese acceso: alguno de esos permisos, espacios o páginas no los tienes tú, o la página está en la papelera.",
+      "missing": "Ese token ya no existe. Puede que alguien lo haya revocado.",
+      "conflict": "Ya tienes un token activo con ese nombre, o llegaste al máximo de tokens activos. Cambia el nombre o revoca uno que no uses.",
+      "offline": "No se pudo conectar con el servidor. Verifica tu conexión.",
+      "unexpected": "Algo salió mal. Inténtalo de nuevo."
+    },
+    "workspace": {
+      "title": "Tokens de agentes",
+      "subtitle": "Los tokens activos de todas las personas del espacio de trabajo. Puedes ver quién creó cada uno y qué permisos tiene, y revocarlo. La clave secreta no aparece aquí, porque solo la ve quien crea el token, y una sola vez.",
+      "count": "{count, plural, one {# token activo} other {# tokens activos}}",
+      "empty": "Nadie tiene tokens activos.",
+      "loadError": "No se pudieron cargar los tokens. Recarga la página para intentarlo de nuevo.",
+      "caption": "Tokens activos del espacio de trabajo",
+      "token": "Token",
+      "ownedBy": "De {name}",
+      "access": "Acceso",
+      "lastUse": "Último uso",
+      "expiry": "Vencimiento",
+      "actions": "Acciones"
+    }
   },
   "users": {
     "title": "Usuarios",

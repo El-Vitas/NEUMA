@@ -1,8 +1,17 @@
 /** Cuánto puede medir el nombre de un token de acceso. Lo validan el portal y el servidor. */
 export const ACCESS_TOKEN_NAME_MAX_LENGTH = 80;
 
+/** Cualquier carácter de control: saltos de línea, tabuladores, escapes de terminal, el nulo. */
+export const ACCESS_TOKEN_NAME_CONTROL_CHARACTERS = /\p{Cc}/u;
+
+/** Una tanda de espacios, que para comparar nombres cuenta como uno solo. */
+export const ACCESS_TOKEN_NAME_WHITESPACE_RUN = /\s+/gu;
+
 /** Cuántos espacios puede nombrar un token uno por uno. Para más, está «todos los espacios». */
 export const ACCESS_TOKEN_SPACE_GRANT_LIMIT = 50;
+
+/** Cuántas páginas puede nombrar un token una por una. Cada una ya incluye todo lo que cuelga de ella. */
+export const ACCESS_TOKEN_PAGE_GRANT_LIMIT = 50;
 
 /**
  * Lo que un token puede hacer, cada cosa por su nombre.
@@ -42,8 +51,10 @@ export const ACCESS_TOKEN_WRITE_PERMISSIONS = [
 /**
  * Los niveles con nombre, para no marcar casilla por casilla en el caso común.
  * Cada uno incluye al anterior; lo que no calza con ninguno es personalizado.
+ * «Sin acceso» no da nada: es la forma de excluir un lugar que otra regla abría.
  */
 export const ACCESS_TOKEN_LEVELS = {
+  none: 'NONE',
   read: 'READ',
   readWrite: 'READ_WRITE',
   full: 'FULL',
@@ -51,6 +62,7 @@ export const ACCESS_TOKEN_LEVELS = {
 } as const;
 
 export const ACCESS_TOKEN_LEVEL_VALUES = [
+  ACCESS_TOKEN_LEVELS.none,
   ACCESS_TOKEN_LEVELS.read,
   ACCESS_TOKEN_LEVELS.readWrite,
   ACCESS_TOKEN_LEVELS.full,
@@ -59,10 +71,13 @@ export const ACCESS_TOKEN_LEVEL_VALUES = [
 
 /** Los niveles que tienen un conjunto fijo de permisos. Personalizado no lo tiene. */
 export const ACCESS_TOKEN_PRESET_LEVELS = [
+  ACCESS_TOKEN_LEVELS.none,
   ACCESS_TOKEN_LEVELS.read,
   ACCESS_TOKEN_LEVELS.readWrite,
   ACCESS_TOKEN_LEVELS.full,
 ] as const;
+
+const ACCESS_TOKEN_NO_PERMISSIONS = [] as const;
 
 /** Los permisos que solo leen. Con cualquiera de ellos, el token ve el espacio. */
 export const ACCESS_TOKEN_READ_PERMISSIONS = [
@@ -77,6 +92,7 @@ const ACCESS_TOKEN_READ_WRITE_PERMISSIONS = [
 ] as const;
 
 export const ACCESS_TOKEN_LEVEL_PERMISSIONS = {
+  [ACCESS_TOKEN_LEVELS.none]: ACCESS_TOKEN_NO_PERMISSIONS,
   [ACCESS_TOKEN_LEVELS.read]: ACCESS_TOKEN_READ_PERMISSIONS,
   [ACCESS_TOKEN_LEVELS.readWrite]: ACCESS_TOKEN_READ_WRITE_PERMISSIONS,
   [ACCESS_TOKEN_LEVELS.full]: ACCESS_TOKEN_PERMISSION_VALUES,

@@ -1,71 +1,92 @@
 import { describe, expect, it } from 'bun:test';
 import { ACCESS_TOKEN_LEVELS, ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
 import {
-  ACCESS_TOKEN_ALL_SPACES,
   ACCESS_TOKEN_EXPIRY_OPTIONS,
+  ACCESS_TOKEN_TARGET_KINDS,
+  MCP_SERVER_KEY,
 } from '@/modules/access-tokens/constants/access-tokens.constants';
 import {
   accessToDraftRows,
+  buildAccessTokenMcpConfig,
   canSubmitAccessDraft,
+  canSubmitAccessTokenCreate,
   draftRowsToAccess,
+  excludePageOptions,
+  findNewRowTarget,
+  formatDateInputValue,
+  hasChoiceHint,
+  isDraftRowMissingPermissions,
+  listAvailableTargetKinds,
   listGrantableLevels,
   listGrantablePermissions,
-  readAccessTokenExpiry,
+  listPagesTakenByOtherRows,
+  listRowSpaceOptions,
+  nameDraftTarget,
+  readDraftTargetForKind,
+  readExpiresAtInput,
+  readLevelMeaningfulFor,
+  readPageSearchState,
+  resolveAccessTokenExpiry,
+  summarizeAccessToken,
 } from '@/modules/access-tokens/lib/access-tokens.lib';
-import type { AccessTokenDraftRow } from '@/modules/access-tokens/types/access-tokens.types';
+import type { AccessTokenDraftRow, AccessTokenPageOption } from '@/modules/access-tokens/types/access-tokens.types';
+
+const read = ACCESS_TOKEN_PERMISSIONS.pagesRead;
+const collectionsRead = ACCESS_TOKEN_PERMISSIONS.collectionsRead;
+const spaces = [
+  { id: 'product', name: 'Producto' },
+  { id: 'sales', name: 'Ventas' },
+];
+const holidays: AccessTokenPageOption = {
+  id: '0199a1c2-0000-7000-8000-000000000001',
+  spaceName: 'RR. HH.',
+  title: 'Vacaciones',
+};
 
 const row = (overrides: Partial<AccessTokenDraftRow>): AccessTokenDraftRow => ({
   customPermissions: [],
   key: 'row',
   level: ACCESS_TOKEN_LEVELS.read,
-  target: ACCESS_TOKEN_ALL_SPACES,
+  target: { kind: 'ALL' },
   ...overrides,
 });
 
 describe('de las filas de la pantalla a lo que se manda', () => {
-  it('turns an everywhere row into permissions for all spaces, and named rows into grants', () => {
+  it('sends each row to its place: all spaces, a space or a page', () => {
     const access = draftRowsToAccess([
-      row({ key: 'a', level: ACCESS_TOKEN_LEVELS.read, target: ACCESS_TOKEN_ALL_SPACES }),
-      row({ key: 'b', level: ACCESS_TOKEN_LEVELS.readWrite, target: 'product' }),
+      row({ key: 'a', target: { kind: 'ALL' } }),
+      row({ key: 'b', level: ACCESS_TOKEN_LEVELS.none, target: { kind: 'SPACE', spaceId: 'sales' } }),
+      row({ key: 'c', target: { kind: 'PAGE', page: holidays } }),
     ]);
 
-    expect(access.allSpaces).toEqual([ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead]);
-    expect(access.spaces).toEqual([
-      {
-        permissions: [
-          ACCESS_TOKEN_PERMISSIONS.pagesRead,
-          ACCESS_TOKEN_PERMISSIONS.collectionsRead,
-          ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-          ACCESS_TOKEN_PERMISSIONS.collectionsWrite,
-        ],
-        spaceId: 'product',
-      },
-    ]);
+    expect(access).toEqual({
+      allSpaces: [read, collectionsRead],
+      pages: [{ pageId: holidays.id, permissions: [read, collectionsRead] }],
+      spaces: [{ permissions: [], spaceId: 'sales' }],
+    });
   });
 
   it('sends the boxes ticked by hand when the level is custom', () => {
     const access = draftRowsToAccess([
-      row({
-        customPermissions: [ACCESS_TOKEN_PERMISSIONS.collectionsWrite],
-        level: ACCESS_TOKEN_LEVELS.custom,
-        target: 'product',
-      }),
+      row({ customPermissions: [ACCESS_TOKEN_PERMISSIONS.collectionsWrite], level: ACCESS_TOKEN_LEVELS.custom }),
     ]);
 
-    expect(access.spaces[0]?.permissions).toEqual([ACCESS_TOKEN_PERMISSIONS.collectionsWrite]);
+    expect(access.allSpaces).toEqual([ACCESS_TOKEN_PERMISSIONS.collectionsWrite]);
   });
 });
 
 describe('de lo guardado a las filas, para editarlo', () => {
-  it('rebuilds one row per place, naming the level when the permissions match one', () => {
+  it('rebuilds one row per place, naming the level, exclusions included', () => {
     const rows = accessToDraftRows({
-      allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead],
+      allSpaces: [read, collectionsRead],
+      pages: [{ pageId: holidays.id, pageTitle: 'Vacaciones', permissions: [], spaceName: 'RR. HH.' }],
       spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsWrite], spaceId: 'product', spaceName: 'Producto' }],
     });
 
     expect(rows.map((one) => [one.target, one.level])).toEqual([
-      [ACCESS_TOKEN_ALL_SPACES, ACCESS_TOKEN_LEVELS.read],
-      ['product', ACCESS_TOKEN_LEVELS.custom],
+      [{ kind: 'ALL' }, ACCESS_TOKEN_LEVELS.read],
+      [{ kind: 'SPACE', spaceId: 'product' }, ACCESS_TOKEN_LEVELS.custom],
+      [{ kind: 'PAGE', page: holidays }, ACCESS_TOKEN_LEVELS.none],
     ]);
     expect(rows[1]?.customPermissions).toEqual([ACCESS_TOKEN_PERMISSIONS.collectionsWrite]);
   });
@@ -73,13 +94,18 @@ describe('de lo guardado a las filas, para editarlo', () => {
 
 describe('lo que alguien puede dar', () => {
   /** Quien solo lee no ve ofrecido lo que no podría dar: no es un botón que después falla. */
-  it('offers someone who only reads the reading level and custom, nothing that writes', () => {
-    expect(listGrantableLevels(USER_ROLE.CLIENT)).toEqual([ACCESS_TOKEN_LEVELS.read, ACCESS_TOKEN_LEVELS.custom]);
+  it('offers someone who only reads the reading level, custom and no access, nothing that writes', () => {
+    expect(listGrantableLevels(USER_ROLE.CLIENT, ACCESS_TOKEN_TARGET_KINDS.space)).toEqual([
+      ACCESS_TOKEN_LEVELS.none,
+      ACCESS_TOKEN_LEVELS.read,
+      ACCESS_TOKEN_LEVELS.custom,
+    ]);
     expect(listGrantablePermissions(USER_ROLE.CLIENT)).not.toContain(ACCESS_TOKEN_PERMISSIONS.pagesWrite);
   });
 
-  it('offers someone who writes every level', () => {
-    expect(listGrantableLevels(USER_ROLE.WORKER)).toEqual([
+  /** «Sin acceso» en todos los espacios es lo mismo que no decir nada: no se ofrece ahí. */
+  it('does not offer no access for all spaces', () => {
+    expect(listGrantableLevels(USER_ROLE.WORKER, ACCESS_TOKEN_TARGET_KINDS.all)).toEqual([
       ACCESS_TOKEN_LEVELS.read,
       ACCESS_TOKEN_LEVELS.readWrite,
       ACCESS_TOKEN_LEVELS.full,
@@ -88,31 +114,220 @@ describe('lo que alguien puede dar', () => {
   });
 });
 
+describe('el nivel al cambiar de lugar', () => {
+  it('turns no access into reading when the row moves to all spaces, and keeps it anywhere else', () => {
+    expect(readLevelMeaningfulFor(ACCESS_TOKEN_LEVELS.none, { kind: 'ALL' })).toBe(ACCESS_TOKEN_LEVELS.read);
+    expect(readLevelMeaningfulFor(ACCESS_TOKEN_LEVELS.none, { kind: 'SPACE', spaceId: 'sales' })).toBe(
+      ACCESS_TOKEN_LEVELS.none,
+    );
+    expect(readLevelMeaningfulFor(ACCESS_TOKEN_LEVELS.full, { kind: 'ALL' })).toBe(ACCESS_TOKEN_LEVELS.full);
+  });
+});
+
+describe('los lugares que ofrece cada fila', () => {
+  /** Un lugar ya elegido en otra fila no se ofrece de nuevo: repetirlo solo deja una fila que no se puede mandar. */
+  it('offers every space except the ones other rows already name', () => {
+    const rows = [
+      row({ key: 'a', target: { kind: 'SPACE', spaceId: 'product' } }),
+      row({ key: 'b', target: { kind: 'SPACE', spaceId: 'sales' } }),
+    ];
+
+    expect(listRowSpaceOptions(rows, 'b', spaces)).toEqual([{ id: 'sales', name: 'Ventas' }]);
+  });
+
+  it('does not offer a page another row already names', () => {
+    const rows = [
+      row({ key: 'a', target: { kind: 'PAGE', page: holidays } }),
+      row({ key: 'b', target: { kind: 'PAGE', page: null } }),
+    ];
+    const other: AccessTokenPageOption = {
+      id: '0199a1c2-0000-7000-8000-000000000002',
+      spaceName: 'RR. HH.',
+      title: 'Sueldos',
+    };
+
+    expect(listPagesTakenByOtherRows(rows, 'b')).toEqual([holidays.id]);
+    expect(listPagesTakenByOtherRows(rows, 'a')).toEqual([]);
+    expect(excludePageOptions([holidays, other], [holidays.id])).toEqual([other]);
+  });
+
+  /** Cuando no hay nada que mostrar, se dice por qué: falta escribir, busca, falló o no encontró. */
+  it('says what the page search is doing when there is nothing to show', () => {
+    const idle = { hasFailed: false, isSearching: false, pages: [] };
+
+    expect(readPageSearchState('a', idle, [])).toBe('TOO_SHORT');
+    expect(readPageSearchState('vaca', { ...idle, isSearching: true }, [])).toBe('SEARCHING');
+    expect(readPageSearchState('vaca', { ...idle, hasFailed: true }, [])).toBe('FAILED');
+    expect(readPageSearchState('vaca', idle, [])).toBe('EMPTY');
+    expect(readPageSearchState('vaca', { ...idle, pages: [holidays] }, [holidays])).toBe('FOUND');
+  });
+
+  it('starts a new row on all spaces, then on the first free space, then on a page to choose', () => {
+    expect(findNewRowTarget([], spaces)).toEqual({ kind: 'ALL' });
+    expect(findNewRowTarget([row({})], spaces)).toEqual({ kind: 'SPACE', spaceId: 'product' });
+    expect(
+      findNewRowTarget(
+        [
+          row({}),
+          row({ target: { kind: 'SPACE', spaceId: 'product' } }),
+          row({ target: { kind: 'SPACE', spaceId: 'sales' } }),
+        ],
+        spaces,
+      ),
+    ).toEqual({ kind: 'PAGE', page: null });
+  });
+
+  it('names the place of a row, and nothing for all spaces or a page still to choose', () => {
+    expect(nameDraftTarget({ kind: 'SPACE', spaceId: 'sales' }, spaces)).toBe('Ventas');
+    expect(nameDraftTarget({ kind: 'PAGE', page: holidays }, spaces)).toBe('Vacaciones');
+    expect(nameDraftTarget({ kind: 'PAGE', page: null }, spaces)).toBeNull();
+    expect(nameDraftTarget({ kind: 'ALL' }, spaces)).toBeNull();
+  });
+
+  it('lists the kinds a row can move to, its own included', () => {
+    const rows = [row({ key: 'a' }), row({ key: 'b', target: { kind: 'SPACE', spaceId: 'product' } })];
+
+    expect(listAvailableTargetKinds(rows, 'a', spaces)).toEqual(['ALL', 'SPACE', 'PAGE']);
+    expect(listAvailableTargetKinds(rows, 'b', spaces)).toEqual(['SPACE', 'PAGE']);
+    expect(listAvailableTargetKinds(rows, 'b', [{ id: 'product', name: 'Producto' }])).toEqual(['SPACE', 'PAGE']);
+  });
+
+  it('switches a row to another kind only when that kind has a free place', () => {
+    const rows = [row({ key: 'a' }), row({ key: 'b', target: { kind: 'SPACE', spaceId: 'product' } })];
+
+    expect(readDraftTargetForKind(rows, 'b', ACCESS_TOKEN_TARGET_KINDS.all, spaces)).toBeNull();
+    expect(readDraftTargetForKind(rows, 'b', ACCESS_TOKEN_TARGET_KINDS.page, spaces)).toEqual({
+      kind: 'PAGE',
+      page: null,
+    });
+    expect(readDraftTargetForKind(rows, 'a', ACCESS_TOKEN_TARGET_KINDS.space, spaces)).toEqual({
+      kind: 'SPACE',
+      spaceId: 'sales',
+    });
+  });
+});
+
+describe('lo que dice un token en su lista', () => {
+  it('names all spaces first, then each space and each page with the level it holds there', () => {
+    const lines = summarizeAccessToken({
+      allSpaces: [read, collectionsRead],
+      pages: [{ pageId: holidays.id, pageTitle: 'Vacaciones', permissions: [], spaceName: 'RR. HH.' }],
+      spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsWrite], spaceId: 'product', spaceName: 'Producto' }],
+    });
+
+    expect(lines).toEqual([
+      { key: 'ALL', level: ACCESS_TOKEN_LEVELS.read, target: { kind: 'ALL' } },
+      { key: 'SPACE:product', level: ACCESS_TOKEN_LEVELS.custom, target: { kind: 'SPACE', spaceName: 'Producto' } },
+      {
+        key: `PAGE:${holidays.id}`,
+        level: ACCESS_TOKEN_LEVELS.none,
+        target: { kind: 'PAGE', pageTitle: 'Vacaciones', spaceName: 'RR. HH.' },
+      },
+    ]);
+  });
+});
+
+describe('cómo se conecta un agente', () => {
+  it('writes the MCP entry with the address and the token as a bearer header', () => {
+    const config: unknown = JSON.parse(buildAccessTokenMcpConfig('https://brain.example/api/v1/mcp', 'cbk_secret'));
+
+    expect(config).toEqual({
+      mcpServers: {
+        [MCP_SERVER_KEY]: {
+          headers: { authorization: 'Bearer cbk_secret' },
+          type: 'http',
+          url: 'https://brain.example/api/v1/mcp',
+        },
+      },
+    });
+  });
+});
+
 describe('hasta cuándo sirve', () => {
   const now = new Date('2026-09-21T12:00:00.000Z');
 
   it('never expires when asked for no date', () => {
-    expect(readAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.never, now)).toBeNull();
+    expect(resolveAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.never, '', now)).toEqual({ kind: 'NEVER' });
   });
 
   it('expires the chosen number of days after now', () => {
-    expect(readAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.month, now)?.toISOString()).toBe(
-      '2026-10-21T12:00:00.000Z',
+    expect(resolveAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.month, '', now)).toEqual({
+      expiresAt: new Date('2026-10-21T12:00:00.000Z'),
+      kind: 'AT',
+    });
+  });
+
+  /** Una fecha elegida vale el día entero: vence cuando ese día termina, donde vive quien lo eligió. */
+  it('expires when the chosen day ends, and asks for a day while none is chosen', () => {
+    const resolution = resolveAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.custom, '2027-03-15', now);
+
+    expect(resolution).toEqual({ expiresAt: new Date(new Date(2027, 2, 16).getTime() - 1), kind: 'AT' });
+    expect(resolveAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.custom, '', now)).toEqual({ kind: 'MISSING' });
+    expect(resolveAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.custom, '2027-02-31', now)).toEqual({
+      kind: 'MISSING',
+    });
+  });
+
+  it('hands the action an instant, nothing for never, and holds back while the day is missing', () => {
+    expect(readExpiresAtInput({ expiresAt: new Date('2027-01-01T03:00:00.000Z'), kind: 'AT' })).toBe(
+      '2027-01-01T03:00:00.000Z',
     );
+    expect(readExpiresAtInput({ kind: 'NEVER' })).toBeNull();
+    expect(readExpiresAtInput({ kind: 'MISSING' })).toBeUndefined();
+  });
+
+  it('writes a day the way a date field reads it', () => {
+    expect(formatDateInputValue(new Date(2027, 0, 5))).toBe('2027-01-05');
+  });
+});
+
+describe('lo que falta en una fila', () => {
+  it('flags a custom row with no box ticked, and not a row that excludes on purpose', () => {
+    expect(isDraftRowMissingPermissions(row({ level: ACCESS_TOKEN_LEVELS.custom }))).toBe(true);
+    expect(isDraftRowMissingPermissions(row({ level: ACCESS_TOKEN_LEVELS.none }))).toBe(false);
   });
 });
 
 describe('cuándo se puede mandar', () => {
-  it('needs at least one row that gives something', () => {
+  it('needs something given somewhere, exclusions alone are not enough', () => {
     expect(canSubmitAccessDraft([])).toBe(false);
-    expect(canSubmitAccessDraft([row({ customPermissions: [], level: ACCESS_TOKEN_LEVELS.custom })])).toBe(false);
+    expect(
+      canSubmitAccessDraft([row({ level: ACCESS_TOKEN_LEVELS.none, target: { kind: 'SPACE', spaceId: 'sales' } })]),
+    ).toBe(false);
     expect(canSubmitAccessDraft([row({})])).toBe(true);
+  });
+
+  it('waits for a page to be chosen in a page row', () => {
+    expect(canSubmitAccessDraft([row({ target: { kind: 'PAGE', page: null } })])).toBe(false);
+    expect(canSubmitAccessDraft([row({ target: { kind: 'PAGE', page: holidays } })])).toBe(true);
   });
 
   /** El mismo lugar dos veces deja sin decir cuál fila manda. */
   it('does not allow the same place twice', () => {
-    expect(canSubmitAccessDraft([row({ key: 'a', target: 'product' }), row({ key: 'b', target: 'product' })])).toBe(
+    const twice = [
+      row({ key: 'a', target: { kind: 'SPACE', spaceId: 'product' } }),
+      row({ key: 'b', target: { kind: 'SPACE', spaceId: 'product' } }),
+    ];
+
+    expect(canSubmitAccessDraft(twice)).toBe(false);
+  });
+
+  it('needs a name that is not in use and a chosen expiry to create one', () => {
+    const at = { expiresAt: new Date('2027-01-01T00:00:00.000Z'), kind: 'AT' } as const;
+
+    expect(canSubmitAccessTokenCreate({ expiry: at, name: 'Claude', rows: [row({})], takenNames: [] })).toBe(true);
+    expect(canSubmitAccessTokenCreate({ expiry: at, name: '   ', rows: [row({})], takenNames: [] })).toBe(false);
+    expect(canSubmitAccessTokenCreate({ expiry: at, name: 'claude', rows: [row({})], takenNames: ['Claude'] })).toBe(
       false,
     );
+    expect(
+      canSubmitAccessTokenCreate({ expiry: { kind: 'MISSING' }, name: 'Claude', rows: [row({})], takenNames: [] }),
+    ).toBe(false);
+  });
+
+  it('tells a choice that explains itself from one that is only a label', () => {
+    expect(hasChoiceHint({ hint: 'Lee páginas.', label: 'Solo lectura', value: 'READ' })).toBe(true);
+    expect(hasChoiceHint({ hint: '', label: 'Sin texto', value: 'EMPTY' })).toBe(false);
+    expect(hasChoiceHint({ label: '30 días', value: 'DAYS_30' })).toBe(false);
   });
 });

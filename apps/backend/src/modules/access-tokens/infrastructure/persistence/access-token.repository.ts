@@ -1,18 +1,26 @@
+import { PageLifecycle } from '@company-brain/db';
 import type { AccessTokenAccess, UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type {
+  AccessTokenCreation,
   AccessTokenOwner,
   AccessTokenRecord,
   AccessTokenWithOwner,
   AccessTokenWorkspaceRecord,
 } from '../../domain/access-token.domain.types';
-import type { AccessTokenRepositoryContract, NewAccessToken } from '../../types/access-token.types';
+import type {
+  AccessTokenCreationLimits,
+  AccessTokenRepositoryContract,
+  NewAccessToken,
+} from '../../types/access-token.types';
 import {
   accessTokenRecordSelectFor,
-  readStoredPermissions,
   toAccessTokenRecord,
+  toPageGrantRows,
+  toSpaceGrantRows,
+  toStoredAccess,
 } from './access-token.persistence.adapter';
 
 /** Vivo es sin revocar y sin vencer: lo que todavía abre la puerta y cuenta para el tope. */
@@ -20,9 +28,6 @@ const liveTokens = (now: Date) => ({
   OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   revokedAt: null,
 });
-
-const toGrantRows = (access: AccessTokenAccess) =>
-  access.spaces.map((grant) => ({ permissions: [...grant.permissions], spaceId: grant.spaceId }));
 
 @Injectable()
 export class AccessTokenRepository implements AccessTokenRepositoryContract {
@@ -40,35 +45,57 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     });
   }
 
+  async countAccessiblePages(
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<number> {
+    if (pageIds.length === 0) return 0;
+    return this.prisma.page.count({
+      where: {
+        id: { in: [...pageIds] },
+        lifecycle: PageLifecycle.ACTIVE,
+        space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
+      },
+    });
+  }
+
   /**
-   * Toma la fila de la persona antes de contar, así dos creaciones a la vez se
-   * ponen en fila y la segunda ve el token de la primera. El token y lo que
-   * tiene dado se guardan juntos: un token a medio dar no existe.
+   * Toma la fila de la persona antes de mirar, así dos creaciones a la vez se
+   * ponen en fila y la segunda ve el token de la primera: ni el tope ni el
+   * nombre se pueden saltar pidiendo dos a la vez. El token y lo que tiene dado
+   * se guardan juntos: un token a medio dar no existe.
    */
   async createWithinLimit(
     token: NewAccessToken,
     ownerRole: UserRole,
-    limit: number,
+    limits: AccessTokenCreationLimits,
     now: Date,
-  ): Promise<AccessTokenRecord | null> {
+  ): Promise<AccessTokenCreation> {
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${token.userId} FOR UPDATE`;
-      const live = await transaction.accessToken.count({ where: { ...liveTokens(now), userId: token.userId } });
-      if (live >= limit) return null;
+      const live = await transaction.accessToken.findMany({
+        select: { name: true },
+        where: { ...liveTokens(now), userId: token.userId },
+      });
+      if (live.length >= limits.maximumLive) return { kind: 'LIMIT_REACHED' };
+      if (limits.isNameTaken(live.map((liveToken) => liveToken.name))) return { kind: 'NAME_TAKEN' };
       const created = await transaction.accessToken.create({
         data: {
           allSpacesPermissions: [...token.access.allSpaces],
           displayPrefix: token.displayPrefix,
           expiresAt: token.expiresAt,
-          grants: { create: toGrantRows(token.access) },
+          grants: { create: toSpaceGrantRows(token.access) },
           name: token.name,
+          pageGrants: { create: toPageGrantRows(token.access) },
           secretHash: token.secretHash,
           userId: token.userId,
           workspaceId: token.workspaceId,
         },
         select: accessTokenRecordSelectFor(token.userId, ownerRole),
       });
-      return toAccessTokenRecord(created);
+      return { kind: 'CREATED', token: toAccessTokenRecord(created) };
     });
   }
 
@@ -80,6 +107,7 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
         grants: { select: { permissions: true, spaceId: true } },
         id: true,
         lastUsedAt: true,
+        pageGrants: { select: { pageId: true, permissions: true } },
         revokedAt: true,
         user: { select: { id: true, isActive: true, role: true } },
         workspaceId: true,
@@ -88,13 +116,7 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     });
     if (found === null) return null;
     return {
-      access: {
-        allSpaces: readStoredPermissions(found.allSpacesPermissions),
-        spaces: found.grants.map((grant) => ({
-          permissions: readStoredPermissions(grant.permissions),
-          spaceId: grant.spaceId,
-        })),
-      },
+      access: toStoredAccess(found),
       expiresAt: found.expiresAt,
       id: found.id,
       lastUsedAt: found.lastUsedAt,
@@ -145,8 +167,13 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
       `;
       if (held.length === 0) return null;
       await transaction.accessTokenGrant.deleteMany({ where: { tokenId } });
+      await transaction.accessTokenPageGrant.deleteMany({ where: { tokenId } });
       const updated = await transaction.accessToken.update({
-        data: { allSpacesPermissions: [...access.allSpaces], grants: { create: toGrantRows(access) } },
+        data: {
+          allSpacesPermissions: [...access.allSpaces],
+          grants: { create: toSpaceGrantRows(access) },
+          pageGrants: { create: toPageGrantRows(access) },
+        },
         select: accessTokenRecordSelectFor(owner.userId, owner.role),
         where: { id: tokenId },
       });

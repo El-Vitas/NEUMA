@@ -1,10 +1,16 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
-import type { SearchQuery } from '../../../common/types/search.types';
+import type { SearchQuery, SearchTokenScope } from '../../../common/types/search.types';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { readMcpSearchSpaces } from '../lib/mcp.access.lib';
+import { buildMcpSearchScope, listMcpPageRuleProbes, permitsPageReading } from '../lib/mcp.access.lib';
 import { requireMcpPrincipal, resolveMcpWorkspace, runMcpTool } from '../lib/mcp.tool.lib';
 import { searchCompanyBrainInputSchema, searchCompanyBrainOutputSchema } from '../schemas/mcp.schemas';
-import type { McpPrincipal, McpSearchInput, McpSearchOutput, McpToolDefinition } from '../types/mcp.types';
+import type {
+  McpPrincipal,
+  McpSearchInput,
+  McpSearchOutput,
+  McpServerDependencies,
+  McpToolDefinition,
+} from '../types/mcp.types';
 
 /** Solo los filtros que se pidieron: uno vacío le diría al buscador que filtre por nada. */
 const readSearchFilters = (input: McpSearchInput): Partial<SearchQuery> => ({
@@ -17,12 +23,19 @@ const readSearchFilters = (input: McpSearchInput): Partial<SearchQuery> => ({
 
 /**
  * El recorte del token, que sale de lo que tiene dado y nunca de lo que pide el
- * agente. El espacio que el agente pida se suma como otro filtro: solo puede
- * achicar la búsqueda, no ampliarla.
+ * agente, resuelto con el árbol de páginas de hoy. El espacio que el agente
+ * pida se suma como otro filtro: solo puede achicar la búsqueda, no ampliarla.
  */
-const readTokenScope = (principal: McpPrincipal): Partial<SearchQuery> => {
-  const withinSpaceIds = readMcpSearchSpaces(principal);
-  return withinSpaceIds === undefined ? {} : { withinSpaceIds };
+const readTokenScope = async (
+  dependencies: McpServerDependencies,
+  principal: McpPrincipal,
+  workspaceId: string,
+): Promise<SearchTokenScope> => {
+  const reach = await dependencies.placeReader.resolvePageReach(
+    listMcpPageRuleProbes(principal, permitsPageReading),
+    workspaceId,
+  );
+  return buildMcpSearchScope(principal, reach);
 };
 
 /** Lo que lee el modelo: cada resultado en dos líneas, y cómo pedir más si hay. */
@@ -53,9 +66,9 @@ export const searchTool: McpToolDefinition = {
             const workspace = await resolveMcpWorkspace(dependencies, principal);
             const searchPage = await dependencies.searchService.search({
               ...readSearchFilters(input),
-              ...readTokenScope(principal),
               limit: input.limit,
               query: input.query,
+              tokenScope: await readTokenScope(dependencies, principal, workspace.id),
               userId: principal.userId,
               userRole: principal.role,
               workspaceId: workspace.id,

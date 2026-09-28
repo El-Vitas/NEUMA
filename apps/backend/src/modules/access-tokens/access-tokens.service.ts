@@ -1,4 +1,4 @@
-import { type AccessTokenAccess, canManageWorkspace, Result } from '@company-brain/shared';
+import { type AccessTokenAccess, canManageWorkspace, isAccessTokenNameTaken, Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AccessTokenPrincipal, AccessTokenPrincipalResolver } from '../../common/types/access-token.types';
 import { ACCESS_TOKEN_LIMIT_PER_USER, ACCESS_TOKEN_REPOSITORY } from './constants/access-tokens.constants';
@@ -6,8 +6,12 @@ import {
   isAccessTokenUsable,
   listPermissionsBeyondRole,
   validateAccessTokenAccess,
+  validateAccessTokenExpiry,
+  validateAccessTokenName,
 } from './domain/access-token.domain';
 import type {
+  AccessTokenCreateRefusal,
+  AccessTokenCreation,
   AccessTokenDraft,
   AccessTokenOwner,
   AccessTokenRecord,
@@ -17,9 +21,10 @@ import type {
 } from './domain/access-token.domain.types';
 import {
   AccessTokenAdminOnlyError,
-  AccessTokenExpiryInPastError,
   AccessTokenLimitReachedError,
+  AccessTokenNameTakenError,
   AccessTokenNotFoundError,
+  AccessTokenPageNotAccessibleError,
   AccessTokenPermissionBeyondOwnerError,
   AccessTokenSpaceNotAccessibleError,
 } from './domain/access-token.error';
@@ -49,31 +54,34 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
   async createToken(
     owner: AccessTokenOwner,
     draft: AccessTokenDraft,
-  ): Promise<
-    Result<CreatedAccessToken, AccessTokenRefusal | AccessTokenExpiryInPastError | AccessTokenLimitReachedError>
-  > {
+  ): Promise<Result<CreatedAccessToken, AccessTokenCreateRefusal>> {
     const now = new Date();
-    if (draft.expiresAt !== null && draft.expiresAt <= now) return Result.fail(new AccessTokenExpiryInPastError());
+    const name = validateAccessTokenName(draft.name);
+    if (name.isFail()) return Result.fail(name.getError());
+    const expiresAt = validateAccessTokenExpiry(draft.expiresAt, now);
+    if (expiresAt.isFail()) return Result.fail(expiresAt.getError());
     const access = await this.validateGrantableAccess(owner, draft.access);
     if (access.isFail()) return Result.fail(access.getError());
 
     const secret = generateAccessTokenSecret();
-    const token = await this.accessTokenRepository.createWithinLimit(
+    const creation = await this.accessTokenRepository.createWithinLimit(
       {
         access: access.getValue(),
         displayPrefix: readAccessTokenDisplayPrefix(secret),
-        expiresAt: draft.expiresAt,
-        name: draft.name,
+        expiresAt: expiresAt.getValue(),
+        name: name.getValue(),
         secretHash: hashAccessTokenSecret(secret),
         userId: owner.userId,
         workspaceId: owner.workspaceId,
       },
       owner.role,
-      ACCESS_TOKEN_LIMIT_PER_USER,
+      {
+        isNameTaken: (liveNames) => isAccessTokenNameTaken(name.getValue(), liveNames),
+        maximumLive: ACCESS_TOKEN_LIMIT_PER_USER,
+      },
       now,
     );
-    if (token === null) return Result.fail(new AccessTokenLimitReachedError());
-    return Result.ok({ secret, token });
+    return this.readCreation(creation, secret);
   }
 
   /** Cambia lo que el token tiene dado, con los mismos límites que al crearlo. La clave no cambia. */
@@ -131,9 +139,25 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     };
   }
 
+  private readCreation(
+    creation: AccessTokenCreation,
+    secret: string,
+  ): Result<CreatedAccessToken, AccessTokenLimitReachedError | AccessTokenNameTakenError> {
+    switch (creation.kind) {
+      case 'LIMIT_REACHED':
+        return Result.fail(new AccessTokenLimitReachedError());
+      case 'NAME_TAKEN':
+        return Result.fail(new AccessTokenNameTakenError());
+      default:
+        return Result.ok({ secret, token: creation.token });
+    }
+  }
+
   /**
    * Lo pedido, si su dueño puede darlo: bien formado, sin permisos que él no
-   * tenga, y sin espacios que él no vea.
+   * tenga, y sin espacios ni páginas que él no vea. Vale igual para una regla
+   * que da y para una que excluye: tampoco se puede nombrar, ni para cerrarlo,
+   * un lugar que no se ve, porque confirmaría que existe.
    */
   private async validateGrantableAccess(
     owner: AccessTokenOwner,
@@ -146,6 +170,16 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     const beyond = listPermissionsBeyondRole(access, owner.role);
     if (beyond.length > 0) return Result.fail(new AccessTokenPermissionBeyondOwnerError(beyond));
 
+    const [areSpacesVisible, arePagesVisible] = await Promise.all([
+      this.areAllSpacesVisible(owner, access),
+      this.areAllPagesVisible(owner, access),
+    ]);
+    if (!areSpacesVisible) return Result.fail(new AccessTokenSpaceNotAccessibleError());
+    if (!arePagesVisible) return Result.fail(new AccessTokenPageNotAccessibleError());
+    return Result.ok(access);
+  }
+
+  private async areAllSpacesVisible(owner: AccessTokenOwner, access: AccessTokenAccess): Promise<boolean> {
     const spaceIds = access.spaces.map((grant) => grant.spaceId);
     const visible = await this.accessTokenRepository.countAccessibleSpaces(
       spaceIds,
@@ -153,6 +187,17 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
       owner.userId,
       owner.role,
     );
-    return visible === spaceIds.length ? Result.ok(access) : Result.fail(new AccessTokenSpaceNotAccessibleError());
+    return visible === spaceIds.length;
+  }
+
+  private async areAllPagesVisible(owner: AccessTokenOwner, access: AccessTokenAccess): Promise<boolean> {
+    const pageIds = access.pages.map((grant) => grant.pageId);
+    const visible = await this.accessTokenRepository.countAccessiblePages(
+      pageIds,
+      owner.workspaceId,
+      owner.userId,
+      owner.role,
+    );
+    return visible === pageIds.length;
   }
 }

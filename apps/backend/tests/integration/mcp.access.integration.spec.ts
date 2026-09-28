@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import type { AddressInfo } from 'node:net';
-import { SpaceVisibility } from '@company-brain/db';
+import { PageLifecycle, SpaceVisibility } from '@company-brain/db';
 import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@company-brain/shared';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import request from 'supertest';
@@ -26,15 +26,26 @@ interface ToolText {
 }
 
 const read = ACCESS_TOKEN_PERMISSIONS.pagesRead;
+const nothing: AccessTokenAccess['allSpaces'] = [];
 
 /** Lo que contesta cada herramienta se lee con forma: si cambiara, la prueba lo dice en vez de leer vacío. */
 const listedSpacesShape = z.object({ spaces: z.array(z.object({ id: z.string() })) });
 const foundPagesShape = z.object({ items: z.array(z.object({ sourceId: z.string() })) });
+const refusalShape = z.object({ error: z.object({ code: z.string() }) });
+
+const access = (rules: Partial<AccessTokenAccess>): AccessTokenAccess => ({
+  allSpaces: [],
+  pages: [],
+  spaces: [],
+  ...rules,
+});
 
 /**
  * Lo que puede y no puede un agente, recorrido de punta a punta: token creado
  * por la API, agente conectado por HTTP con un cliente MCP de verdad, y datos
- * en Postgres. Cada caso intenta saltarse un filtro por un lado distinto.
+ * en Postgres. Cada caso intenta saltarse un filtro por un lado distinto:
+ * leer, buscar y listar tienen que decir lo mismo, porque por el que diga más
+ * es por donde se filtra.
  */
 describe('MCP access (Integration)', () => {
   let testApp: TestApp;
@@ -42,9 +53,36 @@ describe('MCP access (Integration)', () => {
   let admin: Session;
   let worker: Session;
   let reader: Session;
+  let tokenCount = 0;
   const spaces = { open: '', restricted: '', workerPrivate: '' };
-  const pages = { open: '', restricted: '', workerPrivate: '' };
-  const words = { open: '', restricted: '', workerPrivate: '' };
+  const pages = {
+    bonus: '',
+    deep: '',
+    holidays: '',
+    hr: '',
+    open: '',
+    restricted: '',
+    salaries: '',
+    summer: '',
+    workerPrivate: '',
+  };
+
+  /*
+    Palabras sin nada en común. La búsqueda también empareja por parecido, y
+    palabras con el mismo número al final se encontrarían entre sí: un falso
+    resultado que taparía una fuga de verdad o inventaría una.
+  */
+  const words = {
+    bonus: 'Tavrenholm',
+    deep: 'Oxquindrel',
+    holidays: 'Brelmaquist',
+    hr: 'Sclovantide',
+    open: 'Zorbanique',
+    restricted: 'Quelvarth',
+    salaries: 'Yudrecomb',
+    summer: 'Plinzavort',
+    workerPrivate: 'Mipsotrel',
+  };
 
   const signUp = async (label: string, role: 'ADMIN' | 'CLIENT' | 'WORKER'): Promise<Session> => {
     const email = `mcp-access-${label}-${String(Date.now())}@test.com`;
@@ -75,7 +113,7 @@ describe('MCP access (Integration)', () => {
     return privateSpace.id;
   };
 
-  const createPage = async (owner: Session, spaceId: string, word: string): Promise<string> => {
+  const createPage = async (owner: Session, spaceId: string, word: string, parentId?: string): Promise<string> => {
     const content: PageContent = {
       content: [{ content: [{ text: word, type: 'text' }], type: 'paragraph' }],
       schemaVersion: 1,
@@ -84,19 +122,24 @@ describe('MCP access (Integration)', () => {
     const response = await request(testApp.getServer())
       .post(`/api/v1/spaces/${spaceId}/pages`)
       .set('Authorization', `Bearer ${owner.token}`)
-      .send({ content, title: word })
+      .send(parentId === undefined ? { content, title: word } : { content, parentId, title: word })
       .expect(201);
     return (response.body as { id: string }).id;
   };
 
-  const askForToken = (owner: Session, access: AccessTokenAccess) =>
-    request(testApp.getServer())
+  /** Cada token con su propio nombre: dos vivos de la misma persona no pueden llamarse igual. */
+  const askForToken = (owner: Session, rules: AccessTokenAccess, overrides: Record<string, unknown> = {}) => {
+    tokenCount += 1;
+    return request(testApp.getServer())
       .post(TOKENS_PATH)
       .set('Authorization', `Bearer ${owner.token}`)
-      .send({ access, name: 'Agente de prueba' });
+      .send({ access: rules, name: `Agente de prueba ${String(tokenCount)}`, ...overrides });
+  };
 
-  const tokenFor = async (owner: Session, access: AccessTokenAccess): Promise<string> =>
-    ((await askForToken(owner, access).expect(201)).body as { secret: string }).secret;
+  const tokenFor = async (owner: Session, rules: AccessTokenAccess): Promise<string> =>
+    ((await askForToken(owner, rules).expect(201)).body as { secret: string }).secret;
+
+  const refusalCode = (body: unknown): string => refusalShape.parse(body).error.code;
 
   const connect = async (secret: string): Promise<Client> => {
     const client = new Client({ name: 'mcp-access-test', version: '0.0.1' });
@@ -125,6 +168,17 @@ describe('MCP access (Integration)', () => {
     return foundPagesShape.parse(result.structuredContent).items.map((item) => item.sourceId);
   };
 
+  const canRead = async (secret: string, pageId: string): Promise<boolean> =>
+    (await call(secret, 'read_page', { pageId })).isError !== true;
+
+  /** Lo mismo por los tres caminos: si uno de ellos dijera más, por ahí se filtraría. */
+  const reaches = async (secret: string, page: keyof typeof pages): Promise<boolean> => {
+    const isReadable = await canRead(secret, pages[page]);
+    const isFound = (await foundPageIds(secret, words[page])).includes(pages[page]);
+    expect(isFound).toBe(isReadable);
+    return isReadable;
+  };
+
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
     await testApp.app.listen(0, '127.0.0.1');
@@ -134,21 +188,28 @@ describe('MCP access (Integration)', () => {
     worker = await signUp('worker', 'WORKER');
     reader = await signUp('reader', 'CLIENT');
 
-    /*
-      Palabras sin nada en común. La búsqueda también empareja por parecido, y
-      tres palabras con el mismo número al final se encontrarían entre sí: un
-      falso resultado que taparía una fuga de verdad o inventaría una.
-    */
-    words.open = 'Zorbanique';
-    words.restricted = 'Quelvarth';
-    words.workerPrivate = 'Mipsotrel';
-
     spaces.open = await createSpace(admin, 'Abierto', SpaceVisibility.PUBLIC_INTERNAL);
     spaces.restricted = await createSpace(admin, 'Restringido', SpaceVisibility.RESTRICTED);
     spaces.workerPrivate = await privateSpaceOf(worker);
     await testApp.get(PrismaService).spaceMember.create({ data: { spaceId: spaces.restricted, userId: worker.id } });
 
+    /*
+      El árbol del espacio abierto:
+        open
+        hr
+        ├── salaries
+        │   └── bonus
+        │       └── deep
+        └── holidays
+            └── summer
+    */
     pages.open = await createPage(admin, spaces.open, words.open);
+    pages.hr = await createPage(admin, spaces.open, words.hr);
+    pages.salaries = await createPage(admin, spaces.open, words.salaries, pages.hr);
+    pages.bonus = await createPage(admin, spaces.open, words.bonus, pages.salaries);
+    pages.deep = await createPage(admin, spaces.open, words.deep, pages.bonus);
+    pages.holidays = await createPage(admin, spaces.open, words.holidays, pages.hr);
+    pages.summer = await createPage(admin, spaces.open, words.summer, pages.holidays);
     pages.restricted = await createPage(admin, spaces.restricted, words.restricted);
     pages.workerPrivate = await createPage(worker, spaces.workerPrivate, words.workerPrivate);
     await drainSearchProjection(testApp);
@@ -162,7 +223,7 @@ describe('MCP access (Integration)', () => {
     let secret: string;
 
     beforeAll(async () => {
-      secret = await tokenFor(worker, { allSpaces: [], spaces: [{ permissions: [read], spaceId: spaces.open }] });
+      secret = await tokenFor(worker, access({ spaces: [{ permissions: [read], spaceId: spaces.open }] }));
     });
 
     it('lists only that space, although its owner sees more', async () => {
@@ -171,16 +232,12 @@ describe('MCP access (Integration)', () => {
 
     it('finds what is in that space and nothing that is outside it', async () => {
       expect(await foundPageIds(secret, words.open)).toContain(pages.open);
-      const outside = await foundPageIds(secret, words.restricted);
-      expect(outside).not.toContain(pages.restricted);
-      expect(outside).toEqual([]);
+      expect(await foundPageIds(secret, words.restricted)).toEqual([]);
     });
 
     /** El espacio que pide el agente solo achica la búsqueda: nombrar otro no abre la puerta. */
     it('cannot widen the search by naming a space it was not given', async () => {
-      const widened = await foundPageIds(secret, words.restricted, spaces.restricted);
-      expect(widened).not.toContain(pages.restricted);
-      expect(widened).toEqual([]);
+      expect(await foundPageIds(secret, words.restricted, spaces.restricted)).toEqual([]);
     });
 
     /** Pedir la página directo por su id tampoco sirve, y la respuesta no confirma que exista. */
@@ -192,14 +249,15 @@ describe('MCP access (Integration)', () => {
       expect(refused.content).toEqual(missing.content);
     });
 
-    it('reads a page inside that space', async () => {
-      expect((await call(secret, 'read_page', { pageId: pages.open })).isError).not.toBe(true);
+    it('reads a page inside that space, at any depth', async () => {
+      expect(await reaches(secret, 'open')).toBe(true);
+      expect(await reaches(secret, 'deep')).toBe(true);
     });
   });
 
   describe('un token de lectura en todos los espacios', () => {
     it('sees everything its owner sees, own private space included', async () => {
-      const secret = await tokenFor(worker, { allSpaces: [read], spaces: [] });
+      const secret = await tokenFor(worker, access({ allSpaces: [read] }));
 
       const listed = await listedSpaceIds(secret);
 
@@ -210,71 +268,246 @@ describe('MCP access (Integration)', () => {
 
     /** Lo privado responde a su dueña, y a nadie por encima de ella: ni al token de un administrador. */
     it('of an admin never reaches someone else’s private space', async () => {
-      const secret = await tokenFor(admin, { allSpaces: [read], spaces: [] });
+      const secret = await tokenFor(admin, access({ allSpaces: [read] }));
 
       expect(await listedSpaceIds(secret)).not.toContain(spaces.workerPrivate);
-      const found = await foundPageIds(secret, words.workerPrivate);
-      expect(found).not.toContain(pages.workerPrivate);
-      expect(found).toEqual([]);
-      expect((await call(secret, 'read_page', { pageId: pages.workerPrivate })).isError).toBe(true);
+      expect(await foundPageIds(secret, words.workerPrivate)).toEqual([]);
+      expect(await canRead(secret, pages.workerPrivate)).toBe(false);
+    });
+  });
+
+  describe('todo menos un espacio', () => {
+    it('does not list, find or read anything in the excluded space', async () => {
+      const secret = await tokenFor(
+        worker,
+        access({ allSpaces: [read], spaces: [{ permissions: nothing, spaceId: spaces.restricted }] }),
+      );
+
+      expect(await listedSpaceIds(secret)).not.toContain(spaces.restricted);
+      expect(await foundPageIds(secret, words.restricted)).toEqual([]);
+      expect(await canRead(secret, pages.restricted)).toBe(false);
+      expect(await reaches(secret, 'open')).toBe(true);
+    });
+  });
+
+  describe('todo menos una página', () => {
+    let secret: string;
+
+    beforeAll(async () => {
+      secret = await tokenFor(
+        worker,
+        access({ allSpaces: [read], pages: [{ pageId: pages.hr, permissions: nothing }] }),
+      );
+    });
+
+    it('closes the page and everything under it, at any depth, by every path', async () => {
+      expect(await reaches(secret, 'hr')).toBe(false);
+      expect(await reaches(secret, 'salaries')).toBe(false);
+      expect(await reaches(secret, 'bonus')).toBe(false);
+      expect(await reaches(secret, 'deep')).toBe(false);
+      expect(await reaches(secret, 'holidays')).toBe(false);
+    });
+
+    it('keeps everything else, the same space included', async () => {
+      expect(await reaches(secret, 'open')).toBe(true);
+      expect(await listedSpaceIds(secret)).toContain(spaces.open);
+    });
+  });
+
+  describe('excluir y reabrir adentro', () => {
+    /** La regla más cercana manda: se puede cerrar un árbol y volver a abrir una rama suya. */
+    it('reopens a branch inside a closed one, and only that branch', async () => {
+      const secret = await tokenFor(
+        worker,
+        access({
+          allSpaces: [read],
+          pages: [
+            { pageId: pages.hr, permissions: nothing },
+            { pageId: pages.holidays, permissions: [read] },
+          ],
+        }),
+      );
+
+      expect(await reaches(secret, 'holidays')).toBe(true);
+      expect(await reaches(secret, 'summer')).toBe(true);
+      expect(await reaches(secret, 'hr')).toBe(false);
+      expect(await reaches(secret, 'salaries')).toBe(false);
+    });
+  });
+
+  describe('solo una página', () => {
+    let secret: string;
+
+    beforeAll(async () => {
+      secret = await tokenFor(worker, access({ pages: [{ pageId: pages.holidays, permissions: [read] }] }));
+    });
+
+    it('reaches the page and what hangs from it, and nothing else of its space', async () => {
+      expect(await reaches(secret, 'holidays')).toBe(true);
+      expect(await reaches(secret, 'summer')).toBe(true);
+      expect(await reaches(secret, 'hr')).toBe(false);
+      expect(await reaches(secret, 'open')).toBe(false);
+      expect(await reaches(secret, 'salaries')).toBe(false);
+    });
+
+    /** Ve el espacio de su página, para saber dónde está, y ningún otro. */
+    it('lists the space of that page and no other', async () => {
+      expect(await listedSpaceIds(secret)).toEqual([spaces.open]);
+    });
+
+    it('cannot widen the search by naming another space', async () => {
+      expect(await foundPageIds(secret, words.restricted, spaces.restricted)).toEqual([]);
+    });
+  });
+
+  describe('el árbol de hoy manda, no el del día en que se dio', () => {
+    /** Lo que se saca de debajo de una página dada deja de estar dado. */
+    it('loses a page moved out from under the page it was given', async () => {
+      const prisma = testApp.get(PrismaService);
+      const secret = await tokenFor(worker, access({ pages: [{ pageId: pages.holidays, permissions: [read] }] }));
+
+      expect(await canRead(secret, pages.summer)).toBe(true);
+      await prisma.page.update({ data: { parentId: null }, where: { id: pages.summer } });
+      const afterMove = await canRead(secret, pages.summer);
+      await prisma.page.update({ data: { parentId: pages.holidays }, where: { id: pages.summer } });
+
+      expect(afterMove).toBe(false);
+    });
+
+    /** Lo que se mete debajo de una página cerrada queda cerrado, también para la búsqueda. */
+    it('closes a page moved in under a closed one', async () => {
+      const prisma = testApp.get(PrismaService);
+      const secret = await tokenFor(
+        worker,
+        access({ allSpaces: [read], pages: [{ pageId: pages.hr, permissions: nothing }] }),
+      );
+
+      expect(await reaches(secret, 'open')).toBe(true);
+      await prisma.page.update({ data: { parentId: pages.hr }, where: { id: pages.open } });
+      const afterMove = await reaches(secret, 'open');
+      await prisma.page.update({ data: { parentId: null }, where: { id: pages.open } });
+
+      expect(afterMove).toBe(false);
+    });
+
+    /** Lo que el dueño ve se mira en cada llamada: si lo sacan de un espacio, su token pierde ese espacio al instante. */
+    it('loses a space the moment its owner loses it', async () => {
+      const secret = await tokenFor(worker, access({ spaces: [{ permissions: [read], spaceId: spaces.restricted }] }));
+      const prisma = testApp.get(PrismaService);
+
+      expect(await canRead(secret, pages.restricted)).toBe(true);
+      await prisma.spaceMember.deleteMany({ where: { spaceId: spaces.restricted, userId: worker.id } });
+      const afterRemoval = await canRead(secret, pages.restricted);
+      await prisma.spaceMember.create({ data: { spaceId: spaces.restricted, userId: worker.id } });
+
+      expect(afterRemoval).toBe(false);
     });
   });
 
   describe('lo que un dueño no puede dar', () => {
     it('refuses a token naming a private space its creator does not own, even for an admin', async () => {
-      const refused = await askForToken(admin, {
-        allSpaces: [],
-        spaces: [{ permissions: [read], spaceId: spaces.workerPrivate }],
-      }).expect(403);
+      const refused = await askForToken(
+        admin,
+        access({ spaces: [{ permissions: [read], spaceId: spaces.workerPrivate }] }),
+      ).expect(403);
 
-      expect((refused.body as { error: { code: string } }).error.code).toBe('ACCESS_TOKEN_SPACE_NOT_ACCESSIBLE');
+      expect(refusalCode(refused.body)).toBe('ACCESS_TOKEN_SPACE_NOT_ACCESSIBLE');
+    });
+
+    /** Tampoco para cerrarlo: nombrarlo confirmaría que existe. */
+    it('refuses to exclude a space its creator cannot see', async () => {
+      const refused = await askForToken(
+        admin,
+        access({ allSpaces: [read], spaces: [{ permissions: nothing, spaceId: spaces.workerPrivate }] }),
+      ).expect(403);
+
+      expect(refusalCode(refused.body)).toBe('ACCESS_TOKEN_SPACE_NOT_ACCESSIBLE');
     });
 
     it('refuses a token naming a restricted space its creator is not a member of', async () => {
-      await askForToken(reader, {
-        allSpaces: [],
-        spaces: [{ permissions: [read], spaceId: spaces.restricted }],
-      }).expect(403);
+      await askForToken(reader, access({ spaces: [{ permissions: [read], spaceId: spaces.restricted }] })).expect(403);
     });
 
-    /** Quien solo lee no fabrica una llave que escriba por él. */
-    it('refuses writing permissions to someone who can only read', async () => {
-      const refused = await askForToken(reader, {
-        allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesWrite],
-        spaces: [],
-      }).expect(403);
+    it('refuses a page its creator cannot see, a page that does not exist, and one in the trash', async () => {
+      const prisma = testApp.get(PrismaService);
+      const invisible = await askForToken(
+        admin,
+        access({ pages: [{ pageId: pages.workerPrivate, permissions: [read] }] }),
+      ).expect(403);
+      const missing = await askForToken(
+        worker,
+        access({ pages: [{ pageId: '00000000-0000-4000-8000-000000000000', permissions: [read] }] }),
+      ).expect(403);
+      await prisma.page.update({ data: { lifecycle: PageLifecycle.TRASHED }, where: { id: pages.bonus } });
+      const trashed = await askForToken(worker, access({ pages: [{ pageId: pages.bonus, permissions: [read] }] }));
+      await prisma.page.update({ data: { lifecycle: PageLifecycle.ACTIVE }, where: { id: pages.bonus } });
 
-      expect((refused.body as { error: { code: string } }).error.code).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+      expect(refusalCode(invisible.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
+      expect(refusalCode(missing.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
+      expect(trashed.status).toBe(403);
     });
 
-    it('refuses a permission the catalogue does not know', async () => {
+    /** Quien solo lee no fabrica una llave que escriba por él, tampoco escondiendo la escritura en una página. */
+    it('refuses writing permissions to someone who can only read, wherever they are given', async () => {
+      const everywhere = await askForToken(reader, access({ allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesWrite] })).expect(
+        403,
+      );
+      const onePage = await askForToken(
+        reader,
+        access({ pages: [{ pageId: pages.open, permissions: [ACCESS_TOKEN_PERMISSIONS.pagesWrite] }] }),
+      ).expect(403);
+
+      expect(refusalCode(everywhere.body)).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+      expect(refusalCode(onePage.body)).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+    });
+
+    it('refuses a permission the catalogue does not know, and a token that gives nothing', async () => {
+      await askForToken(worker, access({ allSpaces: [] })).expect(400);
       await request(testApp.getServer())
         .post(TOKENS_PATH)
         .set('Authorization', `Bearer ${worker.token}`)
-        .send({ access: { allSpaces: ['pages:everything'], spaces: [] }, name: 'Inventado' })
+        .send({ access: { allSpaces: ['pages:everything'], pages: [], spaces: [] }, name: 'Inventado' })
         .expect(400);
     });
   });
 
-  describe('lo que cambia después de darlo', () => {
-    /** Lo que el dueño ve se mira en cada llamada: si lo sacan de un espacio, su token pierde ese espacio al instante. */
-    it('loses a space the moment its owner loses it', async () => {
-      const secret = await tokenFor(worker, {
-        allSpaces: [],
-        spaces: [{ permissions: [read], spaceId: spaces.restricted }],
-      });
-      const prisma = testApp.get(PrismaService);
+  describe('el nombre y el vencimiento', () => {
+    /** Dos tokens vivos que se leen igual en la lista se confunden al revocar uno. */
+    it('refuses a second live token that reads the same, and allows it once the first is revoked', async () => {
+      const first = (
+        await askForToken(worker, access({ allSpaces: [read] }), { name: 'Claude del equipo' }).expect(201)
+      ).body as { token: { id: string } };
 
-      expect((await call(secret, 'read_page', { pageId: pages.restricted })).isError).not.toBe(true);
-      await prisma.spaceMember.deleteMany({ where: { spaceId: spaces.restricted, userId: worker.id } });
-      const afterRemoval = await call(secret, 'read_page', { pageId: pages.restricted });
-      await prisma.spaceMember.create({ data: { spaceId: spaces.restricted, userId: worker.id } });
+      const twin = await askForToken(worker, access({ allSpaces: [read] }), { name: '  claude   DEL equipo ' }).expect(
+        409,
+      );
+      await request(testApp.getServer())
+        .delete(`${TOKENS_PATH}/${first.token.id}`)
+        .set('Authorization', `Bearer ${worker.token}`)
+        .expect(200);
+      await askForToken(worker, access({ allSpaces: [read] }), { name: 'Claude del equipo' }).expect(201);
 
-      expect(afterRemoval.isError).toBe(true);
+      expect(refusalCode(twin.body)).toBe('ACCESS_TOKEN_NAME_TAKEN');
     });
 
+    it('refuses a name with a line break, and one that is only spaces', async () => {
+      await askForToken(worker, access({ allSpaces: [read] }), { name: 'Claude\nadmin' }).expect(400);
+      await askForToken(worker, access({ allSpaces: [read] }), { name: '    ' }).expect(400);
+    });
+
+    it('accepts any future expiry and refuses one that already passed', async () => {
+      await askForToken(worker, access({ allSpaces: [read] }), { expiresAt: '2099-12-31T03:00:00.000Z' }).expect(201);
+      const past = await askForToken(worker, access({ allSpaces: [read] }), {
+        expiresAt: '2020-01-01T00:00:00.000Z',
+      }).expect(400);
+
+      expect(refusalCode(past.body)).toBe('ACCESS_TOKEN_EXPIRY_IN_PAST');
+    });
+  });
+
+  describe('lo que cambia después de darlo', () => {
     it('stops working the moment it is revoked', async () => {
-      const created = (await askForToken(worker, { allSpaces: [read], spaces: [] }).expect(201)).body as {
+      const created = (await askForToken(worker, access({ allSpaces: [read] })).expect(201)).body as {
         secret: string;
         token: { id: string };
       };
@@ -293,24 +526,46 @@ describe('MCP access (Integration)', () => {
 
     /** Solo su dueño cambia lo que tiene dado: para cualquier otra persona, ese token no existe. */
     it('cannot be changed by anyone but its owner', async () => {
-      const created = (await askForToken(worker, { allSpaces: [read], spaces: [] }).expect(201)).body as {
+      const created = (await askForToken(worker, access({ allSpaces: [read] })).expect(201)).body as {
         token: { id: string };
       };
 
       await request(testApp.getServer())
         .patch(`${TOKENS_PATH}/${created.token.id}/access`)
         .set('Authorization', `Bearer ${admin.token}`)
-        .send({ access: { allSpaces: [read, ACCESS_TOKEN_PERMISSIONS.pagesWrite], spaces: [] } })
+        .send({ access: access({ allSpaces: [read, ACCESS_TOKEN_PERMISSIONS.pagesWrite] }) })
         .expect(404);
+    });
+
+    it('changes to what its owner asks for, with the same checks as creating it', async () => {
+      const created = (await askForToken(worker, access({ allSpaces: [read] })).expect(201)).body as {
+        secret: string;
+        token: { id: string };
+      };
+
+      await request(testApp.getServer())
+        .patch(`${TOKENS_PATH}/${created.token.id}/access`)
+        .set('Authorization', `Bearer ${worker.token}`)
+        .send({ access: access({ pages: [{ pageId: pages.workerPrivate, permissions: [read] }] }) })
+        .expect(200);
+      const refused = await request(testApp.getServer())
+        .patch(`${TOKENS_PATH}/${created.token.id}/access`)
+        .set('Authorization', `Bearer ${worker.token}`)
+        .send({ access: access({ pages: [{ pageId: '00000000-0000-4000-8000-000000000000', permissions: [read] }] }) })
+        .expect(403);
+
+      expect(await canRead(created.secret, pages.workerPrivate)).toBe(true);
+      expect(await canRead(created.secret, pages.open)).toBe(false);
+      expect(refusalCode(refused.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
     });
   });
 
   describe('qué herramientas se le ofrecen al agente', () => {
     it('offers only the tools the token can use somewhere', async () => {
-      const secret = await tokenFor(worker, {
-        allSpaces: [],
-        spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaceId: spaces.open }],
-      });
+      const secret = await tokenFor(
+        worker,
+        access({ spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaceId: spaces.open }] }),
+      );
       const client = await connect(secret);
 
       const tools = await client.listTools();
@@ -322,19 +577,22 @@ describe('MCP access (Integration)', () => {
 
   describe('lo que ve quien administra', () => {
     /**
-     * El administrador ve todos los tokens, pero los espacios que no ve no los
-     * lee ni en la lista de tokens: el privado de otra persona aparece como un
-     * número, sin nombre.
+     * El administrador ve todos los tokens, pero los lugares que no ve no los
+     * lee ni en la lista de tokens: el espacio privado de otra persona, y las
+     * páginas de ese espacio, aparecen como un número, sin nombre ni título.
      */
-    it('sees every token and counts, without naming, a private space it cannot see', async () => {
+    it('sees every token and counts, without naming, the places it cannot see', async () => {
       const created = (
-        await askForToken(worker, {
-          allSpaces: [],
-          spaces: [
-            { permissions: [read], spaceId: spaces.open },
-            { permissions: [read], spaceId: spaces.workerPrivate },
-          ],
-        }).expect(201)
+        await askForToken(
+          worker,
+          access({
+            pages: [{ pageId: pages.workerPrivate, permissions: [read] }],
+            spaces: [
+              { permissions: [read], spaceId: spaces.open },
+              { permissions: [read], spaceId: spaces.workerPrivate },
+            ],
+          }),
+        ).expect(201)
       ).body as { token: { id: string } };
 
       const listed = await request(testApp.getServer())
@@ -342,13 +600,22 @@ describe('MCP access (Integration)', () => {
         .set('Authorization', `Bearer ${admin.token}`)
         .expect(200);
       const seen = (
-        listed.body as { hiddenSpaceCount: number; id: string; owner: { id: string }; spaces: { spaceId: string }[] }[]
+        listed.body as {
+          hiddenPlaceCount: number;
+          id: string;
+          owner: { id: string };
+          pages: unknown[];
+          spaces: { spaceId: string }[];
+        }[]
       ).find((token) => token.id === created.token.id);
 
       expect(seen?.owner.id).toBe(worker.id);
       expect(seen?.spaces.map((grant) => grant.spaceId)).toEqual([spaces.open]);
-      expect(seen?.hiddenSpaceCount).toBe(1);
+      expect(seen?.pages).toEqual([]);
+      expect(seen?.hiddenPlaceCount).toBe(2);
       expect(JSON.stringify(listed.body)).not.toContain(spaces.workerPrivate);
+      expect(JSON.stringify(listed.body)).not.toContain(pages.workerPrivate);
+      expect(JSON.stringify(listed.body)).not.toContain(words.workerPrivate);
     });
 
     it('is refused to anyone who does not run the workspace', async () => {

@@ -59,6 +59,38 @@ export class AccessTokenSpaceNotAccessibleError extends DomainError {
   }
 }
 
+/**
+ * Se nombró una página que su dueño no ve, que está en la papelera o que no
+ * existe. No dice cuál ni por qué, por la misma razón que con los espacios.
+ */
+export class AccessTokenPageNotAccessibleError extends DomainError {
+  public readonly code = 'ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE';
+  public readonly httpStatus = 403;
+
+  constructor() {
+    super('One of the pages asked for is not accessible to the owner');
+  }
+}
+
+export class AccessTokenNameInvalidError extends DomainError {
+  public readonly code = 'ACCESS_TOKEN_NAME_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor() {
+    super('An access token name must say something, fit the limit and carry no control characters');
+  }
+}
+
+/** La persona ya tiene un token vivo que se llama igual. */
+export class AccessTokenNameTakenError extends DomainError {
+  public readonly code = 'ACCESS_TOKEN_NAME_TAKEN';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('A live access token with that name already exists');
+  }
+}
+
 /** Solo quien administra el espacio de trabajo ve y revoca los tokens de los demás. */
 export class AccessTokenAdminOnlyError extends DomainError {
   public readonly code = 'ACCESS_TOKEN_ADMIN_ONLY';

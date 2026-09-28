@@ -18,6 +18,7 @@ model AccessToken {
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace            Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   grants               AccessTokenGrant[]
+  pageGrants           AccessTokenPageGrant[]
 
   @@index([userId])
   @@index([workspaceId])

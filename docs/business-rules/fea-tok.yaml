@@ -1,0 +1,235 @@
+id: FEA-TOK
+name: Tokens de acceso para agentes
+purpose: Reglas de los tokens con que un agente (por MCP) actúa en Company Brain en nombre de una persona.
+scope: access-tokens
+rules:
+  - id: BR-5e36ce0
+    status: active
+    title: Un token nunca puede más que su dueño
+    rule: >-
+      Un token solo puede tener permisos que el rol de su dueño permite, y solo en espacios y páginas que su dueño ve.
+      Se revisa al crearlo, al cambiarlo y en cada llamada del agente, con el rol y los lugares que el dueño tiene en
+      ese momento.
+    why: >-
+      El token actúa en nombre de una persona. Si pudiera más que ella, crear un token sería una forma de saltarse los
+      permisos; y si su dueño pierde un acceso, el agente tiene que perderlo con él.
+    context: >-
+      Niveles Sin acceso, Solo lectura, Lectura y escritura, Completo o Personalizado, en todos los espacios, en un
+      espacio o en una página. Cómo se combinan lo dice la regla de la regla más cercana. El portal solo ofrece lo que
+      el dueño puede dar, pero la decisión es del servidor, y un permiso de escritura escondido en una regla de página
+      se rechaza igual que en cualquier otro lugar.
+    supersedes: BR-d14395a
+    superseded_reason: >-
+      Decía que lo dado en un espacio se suma a lo dado en todos; ahora manda la regla más cercana, y además hay reglas
+      por página. El límite del dueño no cambió, pero ahora alcanza también a las páginas.
+    scenarios:
+      - title: Un cliente pide un token que escribe
+        given: Una persona con rol CLIENT, que solo puede leer
+        when: Pide un token con permiso de crear y editar páginas, en un espacio o en una página
+        then: El servidor lo rechaza y el token no se crea
+      - title: El dueño pierde el acceso a un espacio
+        given: Un token con lectura en un espacio restringido del que su dueño es miembro
+        when: Sacan al dueño del espacio y el agente vuelve a buscar
+        then: El agente ya no ve nada de ese espacio
+      - title: Nombrar una página ajena
+        given: Un administrador y la página del espacio privado de otra persona
+        when: El administrador pide un token con acceso a esa página
+        then: El servidor lo rechaza sin decir si la página existe
+  - id: BR-9687ae3
+    status: active
+    title: Manda el árbol de páginas de hoy
+    rule: >-
+      Las reglas por página se aplican con el árbol como está en el momento de cada llamada, no como estaba cuando se
+      dio el token. Una página que se saca de debajo de una página dada deja de estar dada; una que se mete debajo de
+      una página excluida queda excluida.
+    why: >-
+      El token actúa con lo que su dueño organiza. Si el árbol quedara congelado al dar el token, mover una página no
+      cambiaría quién la ve, y la lista de lo dado dejaría de describir lo que el agente alcanza.
+    context: >-
+      Caso a tener presente: borrar para siempre una página deja a sus hijas sin padre, y una hija que se restaura desde
+      la papelera queda en la raíz del espacio, donde ya no la alcanza la regla de la página borrada y manda la de su
+      espacio. Restaurar lo hace una persona que ve esa página. El recorrido del árbol corta ciclos con el camino ya
+      andado y no con una profundidad máxima, para que ninguna página profunda quede fuera de la exclusión que la cubre.
+    scenarios:
+      - title: Sacar una página de lo dado
+        given: Un token con acceso a «Vacaciones» y a lo que cuelga de ella
+        when: Alguien mueve «Verano», que colgaba de «Vacaciones», a la raíz del espacio
+        then: El agente ya no puede leer «Verano»
+      - title: Meter una página en lo excluido
+        given: Un token que lee todo menos «RR. HH.»
+        when: Alguien mueve una página debajo de «RR. HH.»
+        then: El agente ya no la encuentra ni la puede leer
+  - id: BR-adf07ee
+    status: active
+    title: En cada página manda la regla más cercana
+    rule: >-
+      Un token tiene reglas por lugar: en todos los espacios, en un espacio o en una página (que incluye todo lo que
+      cuelga de ella). Para decidir qué puede en una página se sube desde la página por sus ancestros y se usa la
+      primera regla que aparece; si ninguna página tiene, la de su espacio; si tampoco, la de todos los espacios; si no
+      hay ninguna, nada. La regla más cercana decide sola, sin sumarse a las de arriba. Una regla sin permisos («sin
+      acceso») excluye el lugar.
+    why: >-
+      Tiene que poder decirse «solo esta página», «todo menos esto», «todo menos esto pero sí esta parte» y «escribir en
+      todo pero solo leer en Finanzas» con una sola regla que se pueda auditar: cada página responde a una regla, y se
+      puede mostrar cuál.
+    context: >-
+      Leer, buscar y listar espacios aplican exactamente la misma regla, en el servidor; por el camino que dijera más es
+      por donde se filtraría. Sobre la regla más cercana siguen valiendo los dos límites de siempre: el dueño tiene que
+      ver la página hoy, y el token no pasa de lo que el rol del dueño permite hoy. Un token hecho solo de exclusiones
+      no se puede crear. Tampoco se puede nombrar, ni para cerrarlo, un espacio o una página que el dueño no ve, ni una
+      página en la papelera.
+    scenarios:
+      - title: Todo menos un árbol
+        given: Un token que lee en todos los espacios y tiene «RR. HH.» sin acceso
+        when: El agente busca o lee «Sueldos», que cuelga de «RR. HH.»
+        then: No lo encuentra ni lo puede leer, a cualquier profundidad
+      - title: Reabrir adentro de lo excluido
+        given: El mismo token, con «RR. HH./Vacaciones» en solo lectura
+        when: El agente lee «Vacaciones» o una página que cuelga de ella
+        then: La lee, y «RR. HH.» y «Sueldos» siguen cerradas
+      - title: Solo una página
+        given: Un token con una sola regla, en la página «Vacaciones»
+        when: El agente lista espacios y busca
+        then: Ve el espacio de «Vacaciones» y encuentra solo esa página y lo que cuelga de ella
+  - id: BR-b1e9e21
+    status: active
+    title: Límites, vencimiento y nombre de los tokens
+    rule: >-
+      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
+      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año, cualquier fecha
+      futura (vence cuando termina ese día, en la hora de quien la eligió) o sin vencimiento. Dos tokens vivos de la
+      misma persona no pueden llamarse igual, sin contar mayúsculas ni espacios de más, y el nombre no puede llevar
+      caracteres de control.
+    why: >-
+      Un tope acota el daño de una fuga y el costo de un agente descontrolado; un vencimiento por defecto hace que un
+      token olvidado deje de servir solo. Dos tokens que se leen igual en la lista se confunden al revocar uno.
+    context: >-
+      El tope y el nombre se revisan en la misma transacción que guarda el token, con la fila de la persona tomada:
+      pedir dos a la vez no salta ninguno de los dos. El servidor rechaza un vencimiento que no sea después de ahora.
+    supersedes: BR-b1fcc3a
+    superseded_reason: >-
+      El vencimiento dejó de ser solo un plazo fijo: se puede elegir cualquier fecha futura, y los nombres de los tokens
+      vivos de una persona pasaron a ser únicos.
+    scenarios:
+      - title: Pasar el tope de tokens
+        given: Una persona con 20 tokens vivos
+        when: Pide otro
+        then: El servidor lo rechaza y el portal le dice que revoque uno que no use
+      - title: Un nombre repetido
+        given: Un token vivo llamado «Claude del equipo»
+        when: La misma persona pide otro llamado «claude  DEL equipo»
+        then: El portal lo avisa en el campo antes de enviar, y el servidor lo rechaza si igual llega
+      - title: Una fecha elegida
+        given: Una persona que elige como último día el 15 de marzo
+        when: Crea el token
+        then: El token deja de servir cuando termina el 15 de marzo en su hora
+  - id: BR-e3b419d
+    status: active
+    title: El token se ve una sola vez
+    rule: >-
+      El secreto de un token se muestra completo una sola vez, al crearlo. El servidor guarda solo su hash; en las
+      listas se ve su nombre y su comienzo, nunca el resto.
+    why: Un secreto que se puede volver a leer se puede filtrar desde la base o desde la pantalla de cualquiera.
+    context: >-
+      Si se pierde, se revoca y se crea otro. Los tokens empiezan con un prefijo propio para que un escáner de secretos
+      los reconozca si se pegan donde no deben.
+    scenarios:
+      - title: Crear un token
+        given: Una persona en su cuenta
+        when: Crea un token
+        then: Ve el token completo y la configuración para su agente, y al cerrar el panel ya no lo puede volver a ver
+  - id: BR-e782bed
+    status: active
+    title: Quien administra ve y revoca todos los tokens
+    rule: >-
+      Quien administra el espacio de trabajo ve todos los tokens vivos, con quién lo creó, qué puede hacer y cuándo se
+      usó, y puede revocar cualquiera. No ve ningún secreto, y de los lugares que él mismo no ve (espacios, y páginas de
+      esos espacios) solo se muestra cuántos son, sin nombre ni título.
+    why: >-
+      Un agente conectado es una puerta abierta a la información de la empresa; alguien tiene que poder ver cuáles hay y
+      cerrarlas, sin que eso le dé acceso a lo que no le corresponde.
+    supersedes: BR-b9dbfcb
+    superseded_reason: >-
+      Con las reglas por página, lo que se oculta a quien administra ya no son solo espacios: también las páginas de los
+      espacios que no ve, con su título.
+    scenarios:
+      - title: Un token con un espacio privado ajeno
+        given: Un token de otra persona con reglas en su espacio privado y en una página de ese espacio
+        when: Quien administra abre la página de tokens de agentes
+        then: Ve el token y cuántos lugares tiene que no ve, pero no el nombre del espacio ni el título de la página
+      - title: Revocar desde administración
+        given: Un token vivo de otra persona
+        when: Quien administra lo revoca
+        then: El agente deja de entrar en su siguiente llamada
+  - id: BR-b1fcc3a
+    status: superseded
+    title: Límites de los tokens
+    rule: >-
+      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
+      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año o sin
+      vencimiento.
+    why: >-
+      Un tope acota el daño de una fuga y el costo de un agente descontrolado; un vencimiento por defecto hace que un
+      token olvidado deje de servir solo.
+    superseded_by: BR-b1e9e21
+    superseded_reason: >-
+      El vencimiento dejó de ser solo un plazo fijo: se puede elegir cualquier fecha futura, y los nombres de los tokens
+      vivos de una persona pasaron a ser únicos.
+    scenarios:
+      - title: Pasar el tope de tokens
+        given: Una persona con 20 tokens vivos
+        when: Pide otro
+        then: El servidor lo rechaza y el portal le dice que revoque uno que no use
+      - title: Un agente que llama de más
+        given: Un token que ya hizo 120 llamadas en el último minuto
+        when: Hace otra
+        then: El servidor la rechaza hasta que pase el minuto, sin afectar a otros tokens
+  - id: BR-b9dbfcb
+    status: superseded
+    title: Quien administra ve y revoca todos los tokens
+    rule: >-
+      Quien administra el espacio de trabajo ve todos los tokens vivos, con quién lo creó, qué puede hacer y cuándo se
+      usó, y puede revocar cualquiera. No ve ningún secreto, y de los espacios que él mismo no ve solo se muestra
+      cuántos son.
+    why: >-
+      Un agente conectado es una puerta abierta a la información de la empresa; alguien tiene que poder ver cuáles hay y
+      cerrarlas, sin que eso le dé acceso a lo que no le corresponde.
+    superseded_by: BR-e782bed
+    superseded_reason: >-
+      Con las reglas por página, lo que se oculta a quien administra ya no son solo espacios: también las páginas de los
+      espacios que no ve, con su título.
+    scenarios:
+      - title: Un token con un espacio privado ajeno
+        given: Un token de otra persona con acceso a su espacio privado
+        when: Quien administra abre la página de tokens de agentes
+        then: Ve el token y que tiene un espacio que no ve, pero no el nombre de ese espacio
+      - title: Revocar desde administración
+        given: Un token vivo de otra persona
+        when: Quien administra lo revoca
+        then: El agente deja de entrar en su siguiente llamada
+  - id: BR-d14395a
+    status: superseded
+    title: Un token nunca puede más que su dueño
+    rule: >-
+      Un token solo puede tener permisos que el rol de su dueño permite y solo en espacios que su dueño ve. Se revisa al
+      crearlo, al cambiarlo y en cada llamada del agente, con el rol y los espacios que el dueño tiene en ese momento.
+    why: >-
+      El token actúa en nombre de una persona. Si pudiera más que ella, crear un token sería una forma de saltarse los
+      permisos; y si su dueño pierde un acceso, el agente tiene que perderlo con él.
+    context: >-
+      Permisos por espacio o para todos los espacios, con niveles Solo lectura, Lectura y escritura, Completo o
+      Personalizado. Lo dado en un espacio se suma a lo dado en todos. El portal solo ofrece lo que el dueño puede dar,
+      pero la decisión es del servidor.
+    superseded_by: BR-5e36ce0
+    superseded_reason: >-
+      Decía que lo dado en un espacio se suma a lo dado en todos; ahora manda la regla más cercana, y además hay reglas
+      por página. El límite del dueño no cambió, pero ahora alcanza también a las páginas.
+    scenarios:
+      - title: Un cliente pide un token que escribe
+        given: Una persona con rol CLIENT, que solo puede leer
+        when: Pide un token con permiso de crear y editar páginas
+        then: El servidor lo rechaza y el token no se crea
+      - title: El dueño pierde el acceso a un espacio
+        given: Un token con lectura en un espacio restringido del que su dueño es miembro
+        when: Sacan al dueño del espacio y el agente vuelve a buscar
+        then: El agente ya no ve nada de ese espacio

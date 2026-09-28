@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace } from '../../../../common/domain/workspace.domain';
+import type { SearchTokenScope } from '../../../../common/types/search.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { SEARCH_TRIGRAM_THRESHOLD } from '../../constants/search.constants';
 import type {
@@ -141,6 +142,25 @@ export const buildVerifiedOnlyFilter = (): Prisma.Sql => Prisma.sql`AND (
   )
 )`;
 
+const buildSpaceLevelTokenFilter = (scope: SearchTokenScope): Prisma.Sql =>
+  scope.readsEverywhere
+    ? Prisma.sql`NOT "searchDocument"."spaceId" = ANY(${[...scope.closedSpaceIds]}::text[])`
+    : Prisma.sql`"searchDocument"."spaceId" = ANY(${[...scope.openSpaceIds]}::text[])`;
+
+/**
+ * Lo que un token deja encontrar, con la misma regla que decide al leer: una
+ * página con regla de página propia o heredada la sigue; las demás siguen la
+ * regla de su espacio, o la de todos. Se suma a la visibilidad de la persona,
+ * nunca la reemplaza.
+ */
+const buildTokenScopeFilter = (scope: SearchTokenScope): Prisma.Sql => Prisma.sql`AND (
+  "searchDocument"."sourceId" = ANY(${[...scope.allowedPageIds]}::text[])
+  OR (
+    NOT "searchDocument"."sourceId" = ANY(${[...scope.closedPageIds]}::text[])
+    AND ${buildSpaceLevelTokenFilter(scope)}
+  )
+)`;
+
 const buildFilters = (
   query: SearchQueryWithFilters,
   cursor: ReturnType<typeof decodeSearchCursor>,
@@ -148,8 +168,7 @@ const buildFilters = (
 ): Prisma.Sql => {
   const filters: Prisma.Sql[] = [];
   if (query.spaceId !== undefined) filters.push(Prisma.sql`AND "searchDocument"."spaceId" = ${query.spaceId}`);
-  if (query.withinSpaceIds !== undefined)
-    filters.push(Prisma.sql`AND "searchDocument"."spaceId" = ANY(${[...query.withinSpaceIds]}::text[])`);
+  if (query.tokenScope !== undefined) filters.push(buildTokenScopeFilter(query.tokenScope));
   if (query.sourceType !== undefined)
     filters.push(Prisma.sql`AND "searchDocument"."sourceType" = ${query.sourceType}::"SearchSourceType"`);
   if (query.contentType !== undefined)

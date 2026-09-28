@@ -66,6 +66,7 @@
     "docs": "Documentation",
     "trash": "Trash",
     "users": "Users",
+    "settings": "Settings",
     "account": "Account",
     "profile": "Profile",
     "logout": "Log out",
@@ -160,6 +161,15 @@
       "untitled": "Untitled"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "How agents connect to Company Brain.",
+    "nav": {
+      "label": "Settings sections",
+      "tokens": "Access tokens",
+      "workspaceTokens": "Agent tokens"
+    }
+  },
   "account": {
     "title": "Account",
     "subtitle": "Manage your personal information.",
@@ -178,6 +188,141 @@
     "nameUpdateError": "Could not update your name. Try again.",
     "nameUpdated": "Name updated",
     "passwordUpdated": "Password updated"
+  },
+  "accessTokens": {
+    "title": "Access tokens",
+    "description": "A token lets an agent, like Claude, use Company Brain on your behalf, only in the spaces and pages and with the permissions you give it. It can never do more than you: if you lose some access, the token loses it too.",
+    "connectAt": "Agents connect over MCP at",
+    "create": "Create token",
+    "empty": "You have no tokens yet. Create one to connect an agent.",
+    "loadError": "Your tokens could not be loaded. Reload the page to try again.",
+    "created": "Created on {date}",
+    "lastUsed": "Last used: {date}",
+    "neverUsed": "Never used",
+    "expires": "Expires on {date}",
+    "noExpiry": "No expiration",
+    "hiddenPlaces": "{count, plural, one {And # place you cannot see} other {And # places you cannot see}}",
+    "inSpace": "in {space}",
+    "editAccess": "Change access",
+    "editAccessOf": "Change access of “{name}”",
+    "revoke": "Revoke",
+    "revokeOf": "Revoke “{name}”",
+    "allSpaces": "All spaces",
+    "levels": {
+      "NONE": "No access",
+      "READ": "Read only",
+      "READ_WRITE": "Read and write",
+      "FULL": "Full",
+      "CUSTOM": "Custom"
+    },
+    "levelHints": {
+      "NONE": "Sees nothing here, even if a broader rule opens it.",
+      "READ": "Reads pages and collections.",
+      "READ_WRITE": "Also creates and edits pages and collection rows.",
+      "FULL": "Also moves pages to the trash and changes the shape of collections.",
+      "CUSTOM": "You tick each permission yourself."
+    },
+    "permissions": {
+      "pagesRead": "Read pages",
+      "pagesWrite": "Create and edit pages",
+      "pagesTrash": "Move pages to the trash",
+      "collectionsRead": "Read collections",
+      "collectionsWrite": "Create and edit collection rows",
+      "collectionsConfigure": "Change the shape of collections"
+    },
+    "expiry": {
+      "NEVER": "No expiration",
+      "MONTH": "30 days",
+      "QUARTER": "90 days",
+      "YEAR": "1 year",
+      "CUSTOM": "Choose a date"
+    },
+    "form": {
+      "createTitle": "Create an access token",
+      "createDescription": "Choose where the agent can go and what it can do there.",
+      "editDescription": "The change applies from the agent's next call.",
+      "name": "Name",
+      "nameHint": "Something that tells you where you use it, for example “Claude on my laptop”.",
+      "nameTaken": "You already have an active token with that name. Choose another so you do not mix them up.",
+      "expiry": "Expiration",
+      "expiryNeverHint": "A token with no expiration works until you revoke it.",
+      "expiryDate": "Last day it works",
+      "expiryDateHint": "It stops working when that day ends.",
+      "access": "What it can do",
+      "accessHint": "Each row gives a level in one place. On each page the closest rule wins: the page's own or that of the page it sits in, then its space's, and last the one for all spaces. “No access” closes the place.",
+      "place": "Where",
+      "targetKinds": {
+        "ALL": "All spaces",
+        "SPACE": "A space",
+        "PAGE": "A page"
+      },
+      "space": "Space",
+      "page": "Page",
+      "pageHint": "It includes everything under it, also what is added later.",
+      "choosePage": "Choose a page",
+      "pageSearchPlaceholder": "Type the name of the page",
+      "pageSearchResults": "Pages found",
+      "pageSearchHint": "Type at least two letters.",
+      "pageSearching": "Searching…",
+      "pageSearchError": "The search failed. Try again.",
+      "pageSearchEmpty": "No page you can see goes by that name.",
+      "pageNotChosen": "page not chosen",
+      "spaceNotChosen": "space not chosen",
+      "level": "Level",
+      "permissions": "Permissions",
+      "addRow": "Add another place",
+      "removeRow": "Remove {place}",
+      "customEmpty": "Tick at least one permission.",
+      "hiddenPlacesWarning": "{count, plural, one {When you save, the token loses # place you can no longer see.} other {When you save, the token loses # places you can no longer see.}}",
+      "backToTokens": "Back to tokens",
+      "submitCreate": "Create token",
+      "creating": "Creating…",
+      "submitEdit": "Save changes",
+      "saving": "Saving…",
+      "updated": "Access updated"
+    },
+    "secret": {
+      "title": "Copy your token now",
+      "description": "This is the only time it is shown in full. If you lose it, revoke it and create another one.",
+      "token": "Token",
+      "config": "Agent configuration",
+      "configHint": "Paste it into your agent's MCP configuration, for example the .mcp.json file of Claude Code.",
+      "copyToken": "Copy token",
+      "copyConfig": "Copy configuration",
+      "copied": "Copied",
+      "copyError": "The browser did not allow copying. Select the text and copy it by hand.",
+      "done": "Done, I copied it"
+    },
+    "revokeDialog": {
+      "title": "Revoke “{name}”?",
+      "description": "The agent using it is locked out on its next call. This cannot be undone: to reconnect it you need to create a new token.",
+      "cancel": "Cancel",
+      "confirm": "Revoke token",
+      "revoking": "Revoking…",
+      "revoked": "“{name}” was revoked"
+    },
+    "errors": {
+      "invalid": "Something you entered cannot be saved. Check the name and the permissions.",
+      "forbidden": "You cannot give that access: you do not hold some of those permissions, spaces or pages yourself, or the page is in the trash.",
+      "missing": "That token no longer exists. Someone may have revoked it.",
+      "conflict": "You already have an active token with that name, or you reached the maximum number of active tokens. Change the name or revoke one you no longer use.",
+      "offline": "Could not connect to the server. Check your connection.",
+      "unexpected": "Something went wrong. Try again."
+    },
+    "workspace": {
+      "title": "Agent tokens",
+      "subtitle": "The active tokens of everyone in the workspace. You can see who created each one and what permissions it has, and revoke it. The secret key does not appear here, because only the person who creates the token sees it, and only once.",
+      "count": "{count, plural, one {# active token} other {# active tokens}}",
+      "empty": "Nobody has active tokens.",
+      "loadError": "The tokens could not be loaded. Reload the page to try again.",
+      "caption": "Active tokens of the workspace",
+      "token": "Token",
+      "ownedBy": "By {name}",
+      "access": "Access",
+      "lastUse": "Last use",
+      "expiry": "Expiration",
+      "actions": "Actions"
+    }
   },
   "users": {
     "title": "Users",
