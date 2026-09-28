@@ -1,0 +1,253 @@
+# MCP · Que el agente haga lo que hace una persona
+
+> Estado: propuesta para aprobar. Nada de esto está construido.
+>
+> Ejecuta el nivel 3 de la escalera de `docs/architecture/adr/008-adopt-single-page-primitive-notion-alignment.md`
+> y el contrato de `docs/architecture/mcp-content-authoring.md`. Cierra `AG-01`,
+> `AG-02` y `AG-03` de `docs/scope/verification/08-agentes-y-experiencia.md`.
+
+## Qué se busca
+
+Un agente conectado con un token trabaja en Company Brain como una persona con
+los permisos de ese token:
+
+- encuentra un bloque concreto, sabe en qué página y sección vive, y llega a él;
+- recibe una URL de página o de bloque copiada del portal y la abre;
+- escribe en una página sin pisar a quien la tiene abierta;
+- opera un tablero: crea tareas, cambia sus propiedades, las mueve de estado,
+  crea vistas y cambia columnas.
+
+Hoy tiene tres herramientas de lectura (`list_spaces`, `read_page`,
+`search_company_brain`). Ve cada página como un bulto, la búsqueda contesta
+«está en esta página» y no «está en este bloque», y no puede escribir nada.
+
+## Lo que se encontró al revisar el código
+
+Estos cuatro hallazgos deciden el diseño.
+
+1. **La edición colaborativa no sincroniza nada.** Comprobado en el navegador
+   el 2026-09-23: con la misma página abierta en dos pestañas, lo escrito en una
+   no llega a la otra aunque las dos dicen «Edición colaborativa conectada», y
+   `CollaborationSnapshot` está vacía. En Hocuspocus 4, `handleConnection` ya no
+   escucha el socket: quien lo conecta reenvía cada mensaje con `handleMessage`
+   y el cierre con `handleClose`, como hace el `Server.ts` de la propia librería.
+   `collaboration.transport.ts` solo llama a `handleConnection`, así que el
+   servidor nunca recibe un mensaje. Lo que hoy guarda es el autoguardado, sobre
+   `Page.content`.
+
+   **Arreglarlo destapa el problema siguiente.** El editor siembra el documento
+   colaborativo desde `Page.content` solo cuando está vacío
+   (`pages.collaboration.session.lib.ts`). En cuanto Yjs guarde de verdad, una
+   escritura del servidor directo en `Page.content`, como la de
+   `addBlocksToPageAction`, no aparecerá en el editor y el siguiente autoguardado
+   la borrará. El ADR 008 advierte este caso: «if a Yjs session's state can ever
+   diverge from `Page.content` without an autosave reconciling it, the canonical
+   record is wrong». Por eso el transporte y el escritor del servidor se
+   arreglan juntos, nunca el primero solo.
+2. **El autoguardado manda las propiedades enteras desde la copia local.**
+   `pages.editor.tsx` envía `propertyValues` completo con cada guardado. Si el
+   agente mueve una tarea a «Hecho» mientras alguien la tiene abierta, el
+   próximo autoguardado la devuelve a su estado anterior. Hoy pasa igual entre
+   dos personas.
+3. **El esquema de ProseMirror vive en el portal** (`pages.editor.schema.ts`,
+   949 líneas, con el dibujo en DOM mezclado). Para escribir en Yjs desde el
+   servidor, el backend necesita el esquema.
+4. **La base de bloques ya está.** El editor da un UUID a cada bloque, el enlace
+   a un bloque ya existe en el menú del bloque (`…/pages/<página>#<bloque>`), y
+   hay un exportador a Markdown en `packages/shared`, aunque solo cubre diez
+   tipos de bloque. El `id` es opcional en `pageContentSchema`, así que puede
+   haber contenido sin ids.
+
+## Decisiones de diseño
+
+- **El MCP es un adaptador.** Cada herramienta llama a los mismos servicios que
+  usa el portal, con las mismas validaciones. Nunca consulta Prisma directo.
+- **La referencia es `(página, bloque)`.** Todo bloque tiene id, y toda
+  respuesta nombra la página y el bloque.
+- **Se lee Markdown con anclas; se escriben bloques estructurados.** El modelo
+  lee Markdown mejor y más barato que el JSON del editor. Escribir va en bloques
+  tipados, como fija el contrato de autoría, y el texto dentro de cada bloque
+  admite marcas en línea (negrita, cursiva, código, enlace, mención).
+- **Toda escritura de contenido pasa por el documento colaborativo.** Un escritor
+  del servidor abre una conexión directa de Hocuspocus, aplica el cambio en una
+  sola transacción de Yjs y escribe `Page.content` y su `PageVersion` con el
+  resultado. Quien tenga la página abierta lo ve en vivo, y la lectura
+  siguiente del agente ya lo trae. `addBlocksToPageAction` pasa a usar el mismo
+  escritor.
+- **Las propiedades se guardan por clave.** El servidor mezcla solo las claves
+  que llegaron, de forma atómica, y el autoguardado deja de mandar las que no
+  cambiaron.
+- **Todo lo que el agente referencia pasa por las reglas del token.** Una
+  mención, una subpágina, un bloque sincronizado o una colección incrustada que
+  apunta a una página que el token no alcanza se contesta como inexistente. El
+  ADR 008 exige esto mismo para los títulos de las menciones.
+- **Cada escritura queda registrada** con la persona dueña, el token y el bloque
+  que tocó. Sin registro no hay escritura.
+- **Paridad con una persona, no más.** Una página bloqueada no se escribe. Lo
+  que el documento `14` decida sobre páginas verificadas aplicará igual al
+  agente, sin un camino aparte.
+
+## Enlaces a páginas y bloques
+
+- **Bloque:** ya existe «Copiar enlace» en el menú del bloque.
+- **Página:** falta. Se agrega «Copiar enlace» en el menú de la página y en el
+  menú de la página en el árbol lateral.
+- **Forma:** `https://<portal>/<idioma>/spaces/<espacio>/pages/<página>#<bloque>`.
+  El agente acepta la URL completa, solo la ruta, o los ids sueltos. El idioma
+  y el dominio no cambian el resultado.
+- Un enlace a un bloque que ya no existe contesta «el bloque no existe; esta es
+  la página», no un error mudo (`AG-03`).
+
+## Herramientas
+
+Cada herramienta exige un permiso del token, evaluado en la página donde actúa
+con la regla más cercana.
+
+### Leer (`pages:read`, `collections:read`)
+
+| Herramienta | Entrada | Devuelve |
+|---|---|---|
+| `search` | texto, filtros (espacio, página raíz, tipo), cursor | bloques: fragmento, id del bloque, página, ruta de páginas y encabezado bajo el que está |
+| `fetch` | URL, o id de página, o id de bloque; cursor | **página**: título, ruta, propiedades si es fila, Markdown con el id de cada bloque, subpáginas, retroenlaces y comentarios. **Bloque**: el bloque, su sección y la página a la que pertenece |
+| `list_pages` | espacio o página padre, cursor | el árbol de un nivel, con cuántos hijos tiene cada página |
+| `list_spaces` | — | ya existe |
+| `get_collection` | colección | columnas con sus tipos y opciones, y vistas con su configuración |
+| `query_collection` | colección, una vista o un filtro y orden propios, cursor | filas con sus propiedades tipadas |
+
+El Markdown de `fetch` cubre **todos** los tipos de bloque del esquema, no solo
+los diez de hoy. Un tipo que no se sabe escribir sale como marcador con su id y
+su tipo, nunca desaparece.
+
+### Escribir en páginas (`pages:write`)
+
+| Herramienta | Qué hace |
+|---|---|
+| `create_page` | crea una página en un espacio o bajo otra página, con bloques iniciales opcionales |
+| `insert_blocks` | agrega bloques antes o después de un bloque, dentro de uno (hijos), o al principio o final de la página |
+| `update_block` | reemplaza un bloque y conserva su id |
+| `update_table_cell` | cambia una celda por tabla, fila y columna (contrato de autoría) |
+| `move_blocks` | mueve bloques dentro de la página o a otra |
+| `delete_blocks` | borra bloques por id |
+| `update_page` | título e ícono |
+| `move_page` / `duplicate_page` | igual que en el portal, con la misma advertencia de acceso |
+| `comment_on_block` | deja un comentario en un bloque |
+
+No existe `rewrite_page`. Cada escritura devuelve el estado que quedó guardado,
+para que el agente no tenga que volver a leer.
+
+### Operar colecciones (`collections:write`)
+
+| Herramienta | Qué hace |
+|---|---|
+| `create_row` | crea una fila (una página bajo la colección) con título, propiedades y bloques opcionales |
+| `update_row_properties` | cambia una o varias propiedades. **Mover una tarea de estado es esto** |
+
+Los valores se validan contra el esquema de la colección: una opción que no
+existe se rechaza con las opciones válidas, en vez de guardarse a medias.
+
+### Configurar colecciones (`collections:configure`)
+
+| Herramienta | Qué hace |
+|---|---|
+| `update_collection_schema` | agrega, renombra o quita columnas y opciones (renombrar una opción reescribe las filas, como hoy) |
+| `create_view` / `update_view` / `delete_view` | tabla, tablero, lista, galería, calendario o gráfico, con filtros, orden, agrupación y columnas visibles |
+
+### Papelera (`pages:trash`)
+
+`trash_page` y `restore_page`, con la misma vista previa del portal.
+
+### Fuera, a propósito
+
+Borrar para siempre, vaciar la papelera, administrar miembros y espacios,
+verificar, bloquear y asignar responsable. Son actos de confianza o de
+administración, y ningún permiso del token los cubre.
+
+## Datos nuevos
+
+- **`PageBlock`**, la proyección del nivel 3: id del bloque, página, espacio,
+  bloque padre, orden, tipo, texto, ruta de encabezados y versión de la página.
+  La rellena el mismo proyector de la búsqueda, desde los eventos `PAGE_*`.
+- **La búsqueda indexa bloques.** Cada bloque con texto es una fila de
+  `SearchDocument` que guarda su página. El filtro del token pasa a mirar la
+  página del bloque, así que las exclusiones siguen valiendo sin reescribirse.
+- **Backfill de ids.** Una migración asigna id a todo bloque que no lo tenga, en
+  `Page.content` y en el documento Yjs guardado, usando el mismo escritor. Desde
+  ahí, `id` pasa a ser obligatorio en el esquema.
+- **Registro de acciones del agente.** Una tabla con token, persona, herramienta,
+  página, bloques, resultado y hora.
+
+## Seguridad
+
+Cada caso lleva su prueba de integración, como las 32 de hoy, y se comprueba que
+la prueba falla cuando se rompe el filtro.
+
+- Un bloque de una página excluida no sale en `search` ni se abre con `fetch`,
+  aunque se tenga su id o su URL.
+- Una mención, subpágina, bloque sincronizado o colección incrustada hacia una
+  página inaccesible no revela título ni contenido.
+- Una URL o un id inaccesible contesta lo mismo que uno inexistente.
+- No se escribe en una página sin `pages:write` en ella, ni se crea una fila en
+  una colección con solo `collections:read`.
+- `move_page` y `move_blocks` exigen escritura en el origen y en el destino.
+- Una página bloqueada rechaza toda escritura.
+- Los valores de propiedades se validan contra el esquema. Los bloques, contra
+  `pageContentSchema`. Lo inválido se rechaza entero, nunca se guarda a medias.
+- Hay topes por llamada (bloques, texto y filas), además del límite de
+  frecuencia que ya existe.
+- Si la persona dueña pierde el acceso, el token lo pierde en la llamada
+  siguiente.
+
+## Fases
+
+Cada fase se cierra probándola con Claude conectado de verdad, con sus reglas de
+negocio en `fea-tok` y `fea-mcp`, y con `check` y las pruebas en cero.
+
+**F0 · Cimientos de escritura.** El transporte de la colaboración reenviando
+mensajes y cierres a Hocuspocus, el esquema de ProseMirror en `packages/shared`
+(estructura sin DOM; el portal le agrega el dibujo), el escritor por Yjs,
+`addBlocksToPageAction` sobre el escritor, y propiedades por clave. Arregla los
+hallazgos 1 y 2 también para las personas.
+
+> **Hecho el 2026-09-27**, verificado en el navegador. Además de lo previsto
+> aparecieron y quedaron resueltos:
+>
+> - `UUID_PATTERN` solo aceptaba UUID v1 a v5, y los ids de página son v7: toda
+>   conexión en vivo se rechazaba con `permission-denied`.
+> - Cada navegador sembraba el documento al encontrarlo vacío; dos a la vez lo
+>   duplicaban. Ahora siembra el servidor en `onLoadDocument`.
+> - Con varias pestañas abiertas, cada una guardaba el contenido y cortaba su
+>   propia versión. Ahora guarda el servidor, en `onStoreDocument`, y no corta
+>   versión si nada cambió.
+> - Una página bloqueada se podía escribir por Yjs: el bloqueo solo lo respetaba
+>   el editor.
+> - `updateProperties` reescribía el contenido y leía fuera de la transacción.
+>   Ahora bloquea la fila y toca solo las propiedades.
+> - El autoguardado quedaba marcado como pendiente para siempre en desarrollo
+>   (el doble montaje de React dejaba `isMountedRef` en falso) y avisaba de
+>   «cambios sin guardar» al salir.
+>
+> Se retiró `PATCH /pages/:id`, la única vía que escribía el contenido sin pasar
+> por el documento en vivo. El contenido se escribe con `PUT …/content` y
+> `POST …/blocks`; el título con `PATCH …/title`; las propiedades con
+> `PATCH …/properties`.
+
+**F1 · Leer y ubicarse.** Ids obligatorios y backfill, `PageBlock`, búsqueda por
+bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
+«Copiar enlace» de página. Cierra `AG-01` y `AG-03`.
+
+**F2 · Colecciones.** `get_collection`, `query_collection`, `create_row`,
+`update_row_properties` y la configuración de columnas y vistas.
+
+**F3 · Escribir en páginas.** Las herramientas de `pages:write` y `pages:trash`,
+y el registro de acciones. Cierra `AG-02`.
+
+F0 va primero porque F2 y F3 escriben, y sin F0 esas escrituras se pierden.
+
+## Por decidir
+
+1. **Formato de escritura.** Bloques estructurados con marcas en línea dentro
+   del texto, como propone este plan, o también Markdown completo como atajo.
+   El contrato vigente pide lo primero.
+2. **Propiedades en vivo.** Con la mezcla por clave, nadie pisa a nadie. Que el
+   cambio del agente aparezca en vivo en una tarea abierta exige llevar las
+   propiedades al documento Yjs. Este plan lo deja para después de F3.
