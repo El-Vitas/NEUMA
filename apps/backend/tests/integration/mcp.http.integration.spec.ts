@@ -19,7 +19,7 @@ describe('MCP over HTTP (Integration)', () => {
     const response = await request(testApp.getServer())
       .post('/api/v1/access-tokens')
       .set('Authorization', `Bearer ${sessionToken}`)
-      .send({ access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], spaces: [] }, name })
+      .send({ access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], pages: [], spaces: [] }, name })
       .expect(201);
     return (response.body as { secret: string }).secret;
   };

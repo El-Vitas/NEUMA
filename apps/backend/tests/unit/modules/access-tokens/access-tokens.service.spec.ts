@@ -8,12 +8,25 @@ import type {
   AccessTokenWithOwner,
 } from '@/modules/access-tokens/domain/access-token.domain.types';
 import { hashAccessTokenSecret } from '@/modules/access-tokens/infrastructure/adapters/access-token.secret.adapter';
-import type { AccessTokenRepositoryContract } from '@/modules/access-tokens/types/access-token.types';
+import type {
+  AccessTokenCreationLimits,
+  AccessTokenRepositoryContract,
+} from '@/modules/access-tokens/types/access-token.types';
 
-const readEverywhere: AccessTokenAccess = { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], spaces: [] };
+const read = ACCESS_TOKEN_PERMISSIONS.pagesRead;
+const pageId = '0199a1c2-0000-7000-8000-000000000001';
+
+const readEverywhere: AccessTokenAccess = { allSpaces: [read], pages: [], spaces: [] };
 const writeInProduct: AccessTokenAccess = {
   allSpaces: [],
+  pages: [],
   spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.pagesWrite], spaceId: 'product' }],
+};
+const readOnePage: AccessTokenAccess = { allSpaces: [], pages: [{ pageId, permissions: [read] }], spaces: [] };
+const everythingButHr: AccessTokenAccess = {
+  allSpaces: [read],
+  pages: [],
+  spaces: [{ permissions: [], spaceId: 'hr' }],
 };
 
 const worker: AccessTokenOwner = { role: USER_ROLE.WORKER, userId: 'user-a', workspaceId: 'workspace-a' };
@@ -27,10 +40,11 @@ const record = (overrides: Partial<AccessTokenRecord> = {}): AccessTokenRecord =
   createdAt: new Date('2026-09-01T00:00:00.000Z'),
   displayPrefix: 'cbk_abcdefgh',
   expiresAt: null,
-  hiddenSpaceCount: 0,
+  hiddenPlaceCount: 0,
   id: 'token-a',
   lastUsedAt: null,
   name: 'Claude en mi portátil',
+  pages: [],
   spaces: [],
   ...overrides,
 });
@@ -47,8 +61,10 @@ const withOwner = (overrides: Partial<AccessTokenWithOwner> = {}): AccessTokenWi
 });
 
 const createRepository = (overrides: Partial<AccessTokenRepositoryContract> = {}): AccessTokenRepositoryContract => ({
+  countAccessiblePages: (pageIds) => Promise.resolve(pageIds.length),
   countAccessibleSpaces: (spaceIds) => Promise.resolve(spaceIds.length),
-  createWithinLimit: (input) => Promise.resolve(record({ displayPrefix: input.displayPrefix, name: input.name })),
+  createWithinLimit: (input) =>
+    Promise.resolve({ kind: 'CREATED', token: record({ displayPrefix: input.displayPrefix, name: input.name }) }),
   findBySecretHash: () => Promise.resolve(null),
   listLive: () => Promise.resolve([record()]),
   listLiveInWorkspace: () => Promise.resolve([]),
@@ -59,6 +75,23 @@ const createRepository = (overrides: Partial<AccessTokenRepositoryContract> = {}
   ...overrides,
 });
 
+/** Un repositorio que anota si se llegó a escribir: un rechazo no puede dejar nada a medias. */
+const createWatchedRepository = (overrides: Partial<AccessTokenRepositoryContract> = {}) => {
+  const writes: string[] = [];
+  const repository = createRepository({
+    createWithinLimit: (input) => {
+      writes.push('create');
+      return Promise.resolve({ kind: 'CREATED', token: record({ name: input.name }) });
+    },
+    replaceAccess: () => {
+      writes.push('replace');
+      return Promise.resolve(record());
+    },
+    ...overrides,
+  });
+  return { repository, writes };
+};
+
 describe('crear un token', () => {
   /** El secreto se enseña una sola vez: después solo queda su hash, y nadie puede volver a leerlo. */
   it('hands back the secret once, and stores only its hash', async () => {
@@ -67,78 +100,190 @@ describe('crear un token', () => {
       createRepository({
         createWithinLimit: (input) => {
           storedHash = input.secretHash;
-          return Promise.resolve(record({ displayPrefix: input.displayPrefix, name: input.name }));
+          return Promise.resolve({ kind: 'CREATED', token: record({ name: input.name }) });
         },
       }),
     );
 
     const result = await service.createToken(worker, { access: readEverywhere, expiresAt: null, name: 'Bot' });
 
-    expect(result.isOk()).toBe(true);
     const created = result.getValue();
     expect(created.secret.startsWith(ACCESS_TOKEN_SECRET_PREFIX)).toBe(true);
     expect(storedHash).toBe(hashAccessTokenSecret(created.secret));
     expect(storedHash).not.toContain(created.secret);
   });
 
-  it('refuses an access with nothing in it', async () => {
-    const service = new AccessTokensService(createRepository());
+  it('stores the name without the spaces around it', async () => {
+    let storedName = '';
+    const service = new AccessTokensService(
+      createRepository({
+        createWithinLimit: (input) => {
+          storedName = input.name;
+          return Promise.resolve({ kind: 'CREATED', token: record({ name: input.name }) });
+        },
+      }),
+    );
 
-    const result = await service.createToken(worker, {
-      access: { allSpaces: [], spaces: [] },
-      expiresAt: null,
-      name: 'Bot',
-    });
+    await service.createToken(worker, { access: readEverywhere, expiresAt: null, name: '  Bot del equipo  ' });
 
-    expect(result.getError().code).toBe('ACCESS_TOKEN_ACCESS_INVALID');
+    expect(storedName).toBe('Bot del equipo');
   });
 
-  /** Quien solo lee no fabrica una llave que escriba por él. */
-  it('refuses to give writing to a token whose owner can only read', async () => {
+  it('accepts a page rule and an exclusion of a space its owner sees', async () => {
     const service = new AccessTokensService(createRepository());
 
-    const result = await service.createToken(client, { access: writeInProduct, expiresAt: null, name: 'Bot' });
-
-    expect(result.getError().code).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+    expect((await service.createToken(worker, { access: readOnePage, expiresAt: null, name: 'Uno' })).isOk()).toBe(
+      true,
+    );
+    expect((await service.createToken(worker, { access: everythingButHr, expiresAt: null, name: 'Dos' })).isOk()).toBe(
+      true,
+    );
   });
 
-  /** Un espacio que el dueño no ve no se puede dar, tampoco a un espacio privado ajeno. */
-  it('refuses to name a space its owner cannot see', async () => {
-    const service = new AccessTokensService(createRepository({ countAccessibleSpaces: () => Promise.resolve(0) }));
+  it.each([
+    ['an access with nothing in it', { allSpaces: [], pages: [], spaces: [] }, 'ACCESS_TOKEN_ACCESS_INVALID'],
+    [
+      'an access made only of exclusions',
+      { allSpaces: [], pages: [{ pageId, permissions: [] }], spaces: [] },
+      'ACCESS_TOKEN_ACCESS_INVALID',
+    ],
+    ['an access with no pages list', { allSpaces: [read], spaces: [] }, 'ACCESS_TOKEN_ACCESS_INVALID'],
+    [
+      'a page named by something that is not an id',
+      { allSpaces: [], pages: [{ pageId: 'x', permissions: [read] }], spaces: [] },
+      'ACCESS_TOKEN_ACCESS_INVALID',
+    ],
+  ])('refuses %s before writing anything', async (_label, access, code) => {
+    const { repository, writes } = createWatchedRepository();
+    const service = new AccessTokensService(repository);
 
-    const result = await service.createToken(worker, { access: writeInProduct, expiresAt: null, name: 'Bot' });
+    const result = await service.createToken(worker, { access, expiresAt: null, name: 'Bot' });
+
+    expect(result.getError().code).toBe(code);
+    expect(writes).toEqual([]);
+  });
+
+  /** Quien solo lee no fabrica una llave que escriba por él, tampoco escondiendo la escritura en una página. */
+  it('refuses to give writing to a token whose owner can only read, wherever it is given', async () => {
+    const { repository, writes } = createWatchedRepository();
+    const service = new AccessTokensService(repository);
+    const writeOnePage = {
+      allSpaces: [],
+      pages: [{ pageId, permissions: [ACCESS_TOKEN_PERMISSIONS.pagesWrite] }],
+      spaces: [],
+    };
+
+    expect(
+      (await service.createToken(client, { access: writeInProduct, expiresAt: null, name: 'A' })).getError().code,
+    ).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+    expect(
+      (await service.createToken(client, { access: writeOnePage, expiresAt: null, name: 'B' })).getError().code,
+    ).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+    expect(writes).toEqual([]);
+  });
+
+  /** Un lugar que el dueño no ve no se puede nombrar, ni para darlo ni para cerrarlo: confirmaría que existe. */
+  it('refuses to name a space its owner cannot see, even to close it', async () => {
+    const { repository, writes } = createWatchedRepository({ countAccessibleSpaces: () => Promise.resolve(0) });
+    const service = new AccessTokensService(repository);
+
+    const result = await service.createToken(worker, { access: everythingButHr, expiresAt: null, name: 'Bot' });
 
     expect(result.getError().code).toBe('ACCESS_TOKEN_SPACE_NOT_ACCESSIBLE');
+    expect(writes).toEqual([]);
+  });
+
+  it('refuses to name a page its owner cannot see, is in the trash or does not exist', async () => {
+    const { repository, writes } = createWatchedRepository({ countAccessiblePages: () => Promise.resolve(0) });
+    const service = new AccessTokensService(repository);
+
+    const result = await service.createToken(worker, { access: readOnePage, expiresAt: null, name: 'Bot' });
+
+    expect(result.getError().code).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
+    expect(writes).toEqual([]);
+  });
+
+  it.each([
+    ['empty', '   '],
+    ['with a line break', 'Bot\nadmin'],
+    ['too long', 'a'.repeat(200)],
+  ])('refuses a name that is %s before writing anything', async (_label, name) => {
+    const { repository, writes } = createWatchedRepository();
+    const service = new AccessTokensService(repository);
+
+    const result = await service.createToken(worker, { access: readEverywhere, expiresAt: null, name });
+
+    expect(result.getError().code).toBe('ACCESS_TOKEN_NAME_INVALID');
+    expect(writes).toEqual([]);
+  });
+
+  /** El nombre se compara dentro de la transacción que guarda, con los tokens vivos de ese momento. */
+  it('refuses a name another live token of the person already reads as', async () => {
+    let limitsGiven: AccessTokenCreationLimits | null = null;
+    const service = new AccessTokensService(
+      createRepository({
+        createWithinLimit: (_input, _role, limits) => {
+          limitsGiven = limits;
+          return Promise.resolve(
+            limits.isNameTaken(['BOT  del equipo']) ? { kind: 'NAME_TAKEN' } : { kind: 'CREATED', token: record() },
+          );
+        },
+      }),
+    );
+
+    const result = await service.createToken(worker, {
+      access: readEverywhere,
+      expiresAt: null,
+      name: 'bot del Equipo',
+    });
+
+    expect(result.getError().code).toBe('ACCESS_TOKEN_NAME_TAKEN');
+    expect(limitsGiven).not.toBeNull();
   });
 
   it('refuses a new one once the person already holds as many as allowed', async () => {
-    const service = new AccessTokensService(createRepository({ createWithinLimit: () => Promise.resolve(null) }));
+    const service = new AccessTokensService(
+      createRepository({ createWithinLimit: () => Promise.resolve({ kind: 'LIMIT_REACHED' }) }),
+    );
 
     const result = await service.createToken(worker, { access: readEverywhere, expiresAt: null, name: 'Uno más' });
 
     expect(result.getError().code).toBe('ACCESS_TOKEN_LIMIT_REACHED');
   });
 
-  it('refuses an expiry that has already passed', async () => {
-    const service = new AccessTokensService(createRepository());
+  it('refuses an expiry that has already passed, or that is not a date', async () => {
+    const { repository, writes } = createWatchedRepository();
+    const service = new AccessTokensService(repository);
 
-    const result = await service.createToken(worker, {
+    const past = await service.createToken(worker, {
       access: readEverywhere,
       expiresAt: new Date('2020-01-01T00:00:00.000Z'),
       name: 'Vencido de nacimiento',
     });
+    const invalid = await service.createToken(worker, {
+      access: readEverywhere,
+      expiresAt: new Date('not a date'),
+      name: 'Sin fecha',
+    });
 
-    expect(result.getError().code).toBe('ACCESS_TOKEN_EXPIRY_IN_PAST');
+    expect(past.getError().code).toBe('ACCESS_TOKEN_EXPIRY_IN_PAST');
+    expect(invalid.getError().code).toBe('ACCESS_TOKEN_EXPIRY_IN_PAST');
+    expect(writes).toEqual([]);
   });
 });
 
 describe('cambiar lo que un token tiene dado', () => {
-  it('applies the same limits as creating one', async () => {
-    const service = new AccessTokensService(createRepository());
+  it('applies the same limits as creating one, before writing anything', async () => {
+    const { repository, writes } = createWatchedRepository({ countAccessiblePages: () => Promise.resolve(0) });
+    const service = new AccessTokensService(repository);
 
-    const result = await service.updateAccess(client, 'token-a', writeInProduct);
-
-    expect(result.getError().code).toBe('ACCESS_TOKEN_PERMISSION_BEYOND_OWNER');
+    expect((await service.updateAccess(client, 'token-a', writeInProduct)).getError().code).toBe(
+      'ACCESS_TOKEN_PERMISSION_BEYOND_OWNER',
+    );
+    expect((await service.updateAccess(worker, 'token-a', readOnePage)).getError().code).toBe(
+      'ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE',
+    );
+    expect(writes).toEqual([]);
   });
 
   /** Solo su dueño lo cambia: para cualquier otra persona, ese token no existe. */
@@ -168,13 +313,15 @@ describe('los tokens de todo el espacio de trabajo', () => {
 });
 
 describe('entrar con un token', () => {
-  it('answers who it belongs to and what it holds', async () => {
-    const service = new AccessTokensService(createRepository({ findBySecretHash: () => Promise.resolve(withOwner()) }));
+  it('answers who it belongs to and what it holds, page rules included', async () => {
+    const service = new AccessTokensService(
+      createRepository({ findBySecretHash: () => Promise.resolve(withOwner({ access: readOnePage })) }),
+    );
 
     const principal = await service.resolvePrincipal(someSecret);
 
     expect(principal).toEqual({
-      access: readEverywhere,
+      access: readOnePage,
       role: USER_ROLE.WORKER,
       tokenId: 'token-a',
       userId: 'user-a',
@@ -194,17 +341,24 @@ describe('entrar con un token', () => {
     );
 
     expect(await service.resolvePrincipal('eyJhbGciOiJIUzI1NiJ9.a.b')).toBeNull();
+    expect(await service.resolvePrincipal(`${someSecret}x`)).toBeNull();
     expect(asked).toBe(false);
   });
 
-  it('answers nobody for a revoked token', async () => {
-    const service = new AccessTokensService(
+  it('answers nobody for a revoked token or an expired one', async () => {
+    const revoked = new AccessTokensService(
       createRepository({
         findBySecretHash: () => Promise.resolve(withOwner({ revokedAt: new Date('2026-09-01T00:00:00.000Z') })),
       }),
     );
+    const expired = new AccessTokensService(
+      createRepository({
+        findBySecretHash: () => Promise.resolve(withOwner({ expiresAt: new Date('2020-01-01T00:00:00.000Z') })),
+      }),
+    );
 
-    expect(await service.resolvePrincipal(someSecret)).toBeNull();
+    expect(await revoked.resolvePrincipal(someSecret)).toBeNull();
+    expect(await expired.resolvePrincipal(someSecret)).toBeNull();
   });
 
   /** Desactivar a una persona corta también a los agentes que actuaban por ella. */

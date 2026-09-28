@@ -32,6 +32,7 @@ model Page {
   schemaViews           PageSchemaView[]
   favorites             PageFavorite[]
   views                 PageView[]
+  tokenPageGrants       AccessTokenPageGrant[]
 
   @@index([spaceId, lifecycle, order])
   @@index([parentId, order])

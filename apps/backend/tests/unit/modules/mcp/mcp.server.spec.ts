@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
+import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
 import type { SearchPage, SearchQuery } from '../../../../src/common/types/search.types';
 import type { WorkspaceSummary } from '../../../../src/common/types/workspace.types';
 import {
@@ -19,7 +20,11 @@ import type { PageSummary } from '../../../../src/modules/pages/types/page.types
 import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.types';
 
 const principal: McpPrincipal = {
-  access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaces: [] },
+  access: {
+    allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead],
+    pages: [],
+    spaces: [],
+  },
   role: USER_ROLE.WORKER,
   tokenId: 'token-1',
   userId: 'user-1',
@@ -79,6 +84,12 @@ const searchPage: SearchPage = {
   nextCursor: 'next-page-cursor',
 };
 
+/** El árbol de esta prueba: cada página está sola en la raíz de su espacio, y ninguna regla de página alcanza nada. */
+const placeReader: AccessTokenPlaceReader = {
+  readPlace: (pageId) => Promise.resolve({ lineage: [pageId], spaceId: page.spaceId }),
+  resolvePageReach: () => Promise.resolve({ allowedPageIds: [], closedPageIds: [], spaceIdsWithAllowedPages: [] }),
+};
+
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
   principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
   workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
@@ -87,6 +98,7 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === page.id ? page : null)),
   },
   searchService: { search: () => Promise.resolve(searchPage) },
+  placeReader,
 });
 
 const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult => ({
@@ -155,6 +167,7 @@ describe('MCP read contract', () => {
         getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === page.id ? page : null)),
       },
       searchService: { search: () => Promise.resolve(searchPage) },
+      placeReader,
     };
     resolvePrincipal = () => {
       calls.push('principal');
@@ -288,6 +301,13 @@ describe('MCP read contract', () => {
       sourceType: 'PAGE',
       spaceId: 'space-1',
       tags: ['operations', 'runbook'],
+      tokenScope: {
+        allowedPageIds: [],
+        closedPageIds: [],
+        closedSpaceIds: [],
+        openSpaceIds: [],
+        readsEverywhere: true,
+      },
       userId: 'user-1',
       userRole: USER_ROLE.WORKER,
       workspaceId: 'workspace-1',

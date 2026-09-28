@@ -12,6 +12,7 @@ import {
   THROTTLER_NAMES,
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
+import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
 import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
@@ -140,17 +141,27 @@ import { PrismaModule } from './prisma/prisma.module';
         return new CollaborationGateway(token, authorization, persistence);
       },
     },
+    AccessTokenPlaceRepository,
     {
-      inject: [PagesService, MCP_PRINCIPAL_RESOLVER, SearchService, SpacesService, WorkspacesService],
+      inject: [
+        PagesService,
+        AccessTokenPlaceRepository,
+        MCP_PRINCIPAL_RESOLVER,
+        SearchService,
+        SpacesService,
+        WorkspacesService,
+      ],
       provide: MCP_SERVER_DEPENDENCIES,
       useFactory: (
         pagesService: PagesService,
+        placeReader: AccessTokenPlaceRepository,
         principalResolver: McpPrincipalResolver,
         searchService: SearchService,
         spacesService: SpacesService,
         workspacesService: WorkspacesService,
       ): McpServerDependencies => ({
         pagesService,
+        placeReader,
         principalResolver,
         searchService,
         spacesService,

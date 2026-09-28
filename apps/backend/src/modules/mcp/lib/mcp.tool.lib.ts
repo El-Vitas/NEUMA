@@ -1,4 +1,4 @@
-import { type AccessTokenPermission, canAccessTokenAct } from '@company-brain/shared';
+import { type AccessTokenPermission, type AccessTokenPlace, canAccessTokenAct } from '@company-brain/shared';
 import {
   MCP_INACCESSIBLE_MESSAGE,
   MCP_UNAUTHENTICATED_MESSAGE,
@@ -15,20 +15,34 @@ export const requireMcpPrincipal = async (dependencies: McpServerDependencies): 
 };
 
 /**
- * Corta la llamada si el token no tiene ese permiso en ese espacio, o si su
- * dueño ya no puede hacerlo.
+ * Corta la llamada si la regla más cercana del token no da ese permiso en ese
+ * lugar, o si su dueño ya no puede hacerlo.
  *
  * Se contesta igual que si el recurso no existiera: decir «no tienes permiso»
  * confirmaría que ahí hay algo, y eso ya es contar de más.
  */
-export const requireMcpPermissionIn = (
+export const requireMcpPermissionAt = (
   principal: McpPrincipal,
-  spaceId: string,
+  place: AccessTokenPlace,
   permission: AccessTokenPermission,
 ): void => {
-  if (!canAccessTokenAct(principal.access, principal.role, spaceId, permission)) {
+  if (!canAccessTokenAct(principal.access, principal.role, place, permission)) {
     throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
   }
+};
+
+/**
+ * Dónde está hoy una página del espacio de trabajo del token, con sus
+ * ancestros. Si no está, se contesta como a una página que no se puede ver.
+ */
+export const readMcpPlace = async (
+  dependencies: McpServerDependencies,
+  pageId: string,
+  workspaceId: string,
+): Promise<AccessTokenPlace> => {
+  const place = await dependencies.placeReader.readPlace(pageId, workspaceId);
+  if (place === null) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
+  return place;
 };
 
 /**

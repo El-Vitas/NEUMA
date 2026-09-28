@@ -12,13 +12,31 @@ export interface SearchQuery {
   readonly spaceId?: string;
   readonly tags?: readonly string[];
   /**
-   * Los únicos espacios donde buscar, además de lo que la persona ve. Lo usa
-   * un token que solo tiene dados algunos espacios; vacío no encuentra nada.
+   * Lo que un token deja encontrar, además de lo que la persona ve. Sin él,
+   * manda solo la visibilidad de la persona.
    */
-  readonly withinSpaceIds?: readonly string[];
+  readonly tokenScope?: SearchTokenScope;
   readonly userId: string;
   readonly userRole: UserRole;
   readonly workspaceId: string;
+}
+
+/**
+ * La regla de un token ya resuelta para buscar: para cada página manda su
+ * regla de página más cercana si tiene una; si no, la de su espacio; si no,
+ * la de todos los espacios.
+ */
+export interface SearchTokenScope {
+  /** Páginas cuya regla de página más cercana deja leerlas. */
+  readonly allowedPageIds: readonly string[];
+  /** Páginas cuya regla de página más cercana las cierra. */
+  readonly closedPageIds: readonly string[];
+  /** Espacios cuya regla cierra la lectura. */
+  readonly closedSpaceIds: readonly string[];
+  /** Espacios cuya regla deja leer. */
+  readonly openSpaceIds: readonly string[];
+  /** Si la regla de todos los espacios deja leer. */
+  readonly readsEverywhere: boolean;
 }
 
 export interface SearchResult {

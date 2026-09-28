@@ -7,7 +7,7 @@ import type {
 } from '@company-brain/shared';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { z } from 'zod';
-import type { AccessTokenPrincipal } from '../../../common/types/access-token.types';
+import type { AccessTokenPlaceReader, AccessTokenPrincipal } from '../../../common/types/access-token.types';
 import type { SearchReader } from '../../../common/types/search.types';
 import type { searchCompanyBrainInputSchema, searchCompanyBrainOutputSchema } from '../schemas/mcp.schemas';
 
@@ -71,6 +71,7 @@ export interface McpPageReader {
 export interface McpServerDependencies {
   readonly errorReporter?: McpErrorReporter;
   readonly pagesService: McpPageReader;
+  readonly placeReader: AccessTokenPlaceReader;
   readonly principalResolver: McpPrincipalResolver;
   readonly searchService: SearchReader;
   readonly spacesService: McpSpaceReader;
@@ -84,9 +85,9 @@ export interface McpErrorReporter {
 /**
  * Una herramienta y lo que hace falta para ofrecerla.
  *
- * `requires` son los permisos que la abren: basta tener uno en algún espacio.
- * Que alcance para el espacio concreto de cada llamada lo revisa la
- * herramienta al correr.
+ * `requires` son los permisos que la abren: basta tener uno en algún lugar.
+ * Que alcance para el lugar concreto de cada llamada lo revisa la
+ * herramienta al correr, con la regla más cercana.
  */
 export interface McpToolDefinition {
   readonly name: string;

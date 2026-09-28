@@ -30,7 +30,7 @@ describe('Access tokens (Integration)', () => {
     request(testApp.getServer())
       .post('/api/v1/access-tokens')
       .set('Authorization', `Bearer ${sessionToken}`)
-      .send({ access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], spaces: [] }, name });
+      .send({ access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], pages: [], spaces: [] }, name });
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();

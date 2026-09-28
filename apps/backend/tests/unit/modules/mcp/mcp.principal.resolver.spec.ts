@@ -6,7 +6,7 @@ import type { AccessTokenPrincipal } from '../../../../src/common/types/access-t
 import { McpEnvironmentPrincipalResolver } from '../../../../src/modules/mcp/mcp.principal.resolver';
 
 const principal: AccessTokenPrincipal = {
-  access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], spaces: [] },
+  access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], pages: [], spaces: [] },
   role: USER_ROLE.WORKER,
   tokenId: 'token-1',
   userId: 'user-1',

@@ -9,6 +9,7 @@ export {
   ACCESS_TOKEN_LEVEL_VALUES,
   ACCESS_TOKEN_LEVELS,
   ACCESS_TOKEN_NAME_MAX_LENGTH,
+  ACCESS_TOKEN_PAGE_GRANT_LIMIT,
   ACCESS_TOKEN_PERMISSION_VALUES,
   ACCESS_TOKEN_PERMISSIONS,
   ACCESS_TOKEN_READ_PERMISSIONS,
@@ -17,16 +18,21 @@ export {
 export {
   canAccessTokenAct,
   canRoleGrantAccessTokenPermission,
+  hasAccessTokenAnyPermission,
+  isAccessTokenNameAcceptable,
+  isAccessTokenNameTaken,
   listAccessTokenGrantedPermissions,
   listAccessTokenLevelPermissions,
   readAccessTokenLevel,
-  readAccessTokenSpacePermissions,
+  readAccessTokenPermissionsAt,
 } from './access-token/access-token.lib.js';
 export { accessTokenAccessSchema, accessTokenPermissionSchema } from './access-token/access-token.schemas.js';
 export type {
   AccessTokenAccess,
   AccessTokenLevel,
+  AccessTokenPageGrant,
   AccessTokenPermission,
+  AccessTokenPlace,
   AccessTokenPresetLevel,
   AccessTokenSpaceGrant,
 } from './access-token/access-token.types.js';
