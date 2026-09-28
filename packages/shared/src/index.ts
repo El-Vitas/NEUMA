@@ -1,4 +1,5 @@
 export {
+  COLLABORATION_DOCUMENT_FRAGMENT,
   COLLABORATION_DOCUMENT_PREFIX,
   createCollaborationDocumentName,
   MAX_COLLABORATION_DISPLAY_NAME_LENGTH,
@@ -59,6 +60,22 @@ export {
 } from './page-content.lib.js';
 export type { ExportedPageFile, PageForExport } from './page-export.lib.js';
 export { writePageAsMarkdownFile, writePagesAsMarkdownFiles } from './page-export.lib.js';
+export {
+  holdPageContentThisVersionCannotRead,
+  readPageDocumentJsonAsContent,
+  writePageDocumentJsonAsContent,
+} from './page-document/page-document.content.lib.js';
+export {
+  PAGE_DOCUMENT_MARKS,
+  PAGE_DOCUMENT_NODES,
+  PAGE_DOCUMENT_UNSUPPORTED_NODE,
+} from './page-document/page-document.structure.js';
+export type {
+  PageDocumentAttributes,
+  PageDocumentAttributeStructure,
+  PageDocumentMarkStructure,
+  PageDocumentNodeStructure,
+} from './page-document/page-document.types.js';
 export { writePageAsMarkdown } from './page-markdown.lib.js';
 export {
   canPagePropertyGroupBoard,

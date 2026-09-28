@@ -37,6 +37,22 @@ rules:
         given: Una opción guardada con un color que el producto no conoce
         when: Se lee
         then: La opción se muestra sin color, y la página se abre igual
+  - id: BR-2a96107
+    status: active
+    title: Una propiedad cambia sola, sobre lo que la fila tiene en ese momento
+    rule: >-
+      Cambiar una propiedad de una fila manda solo esa propiedad, y el servidor la funde con las que la fila tiene al
+      momento de escribir, sin tocar lo que la página dice ni cortar una versión. Una fila que todavía no guardó ninguna
+      propiedad manda todas la primera vez.
+    why: >-
+      Mandar todas las propiedades de vuelta devolvía copias viejas de las que no se tocaron: si otra persona cambiaba
+      el estado mientras alguien editaba la prioridad, el estado volvía atrás. Y reescribir el contenido junto con la
+      propiedad podía pisar lo que el documento en vivo acababa de guardar.
+    scenarios:
+      - title: Dos personas cambian propiedades distintas a la vez
+        given: Una tarea con estado «Por hacer» y prioridad «Baja»
+        when: Una la pasa a «Hecho» y otra, al mismo tiempo, sube la prioridad a «Alta»
+        then: La tarea queda en «Hecho» y con prioridad «Alta»
   - id: BR-37f128e
     status: active
     title: La forma de una colección se cambia después de crearla

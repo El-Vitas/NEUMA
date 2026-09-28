@@ -13,7 +13,6 @@ import {
   useState,
 } from 'react';
 import { cn } from '@/lib/utils';
-import { hasActionError } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { PagesCover } from '../../appearance/components/pages.cover';
 import { PagesHeader } from '../../appearance/components/pages.header';
@@ -50,7 +49,6 @@ import { PagesBacklinks } from '../../links/components/pages.backlinks';
 import type { PageBacklinksResult } from '../../links/types/pages.backlinks.types';
 import { PagesOutline } from '../../navigation/components/pages.outline';
 import { usePagesReadingPosition } from '../../navigation/hooks/use.pages.reading-position';
-import { updatePageAction } from '../../server/actions/pages.actions';
 import { PagesTrashButton } from '../../trash/components/pages.trash.button';
 import { PagesUsagePanel } from '../../trust/components/pages.usage.panel';
 import { PagesVerificationPanel } from '../../trust/components/pages.verification.panel';
@@ -58,6 +56,7 @@ import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
 import { resolvePageVerificationStatus } from '../../trust/lib/pages.verification.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
+import { usePagesEditorSaves } from '../hooks/use.pages.editor.saves';
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 import type { PageEditorHeading } from '../structure/types/pages.editor.contents.types';
@@ -129,6 +128,15 @@ export const PagesEditor = forwardRef(
       page.propertyValues ?? buildDefaultPropertyValues(editableProperties),
     );
     const propertyValuesRef = useRef(propertyValues);
+    const saves = usePagesEditorSaves({
+      hasEditableProperties: editableProperties.length > 0,
+      pageId: page.id,
+      readContent: () => contentRef.current,
+      readPropertyValues: () => propertyValuesRef.current,
+      readTitle: () => titleRef.current,
+      spaceId,
+      storedPropertyValues: page.propertyValues,
+    });
     const [headings, setHeadings] = useState<readonly PageEditorHeading[]>(EMPTY_PAGE_HEADINGS);
     const appearance = usePagesAppearance(page.id);
     const cover = usePagesCover(page.cover ?? null, page.id, spaceId);
@@ -136,14 +144,7 @@ export const PagesEditor = forwardRef(
     usePagesReadingPosition(page.id, pageRef);
 
     const updateCurrentPage = async (): Promise<boolean> => {
-      const result = await updatePageAction({
-        content: contentRef.current,
-        pageId: page.id,
-        propertyValues: editableProperties.length > 0 ? propertyValuesRef.current : undefined,
-        spaceId,
-        title: titleRef.current.trim(),
-      });
-      const didSave = !hasActionError(result);
+      const didSave = await saves.saveWhatIsPending();
       if (didSave) onSaved?.();
       return didSave;
     };
@@ -193,12 +194,14 @@ export const PagesEditor = forwardRef(
     const handlePropertyValueChange = (key: string, value: PagePropertyValue): void => {
       const nextPropertyValues = { ...propertyValuesRef.current, [key]: value };
       propertyValuesRef.current = nextPropertyValues;
+      saves.markPropertyChanged(key, value);
       setPropertyValues(nextPropertyValues);
       autosave.schedule();
     };
 
     const handleTitleChange = (nextTitle: string): void => {
       titleRef.current = nextTitle;
+      saves.markTitleChanged();
       setTitle(nextTitle);
       autosave.schedule();
     };
@@ -206,8 +209,10 @@ export const PagesEditor = forwardRef(
     const handleAttachmentDeleted = (attachmentId: string): void =>
       setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId));
 
-    const handleContentChange = (content: PageContent): void => {
+    const handleContentChange = (content: PageContent, isKeptLive: boolean): void => {
       contentRef.current = content;
+      if (isKeptLive) return;
+      saves.markContentChanged();
       autosave.schedule();
     };
 

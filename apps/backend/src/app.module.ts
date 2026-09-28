@@ -13,6 +13,7 @@ import {
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
+import { WorkspaceContextService } from './common/infrastructure/persistence/workspace-context.service';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
 import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
@@ -30,6 +31,7 @@ import {
 import { CollaborationRepository } from './modules/collaboration/infrastructure/persistence/collaboration.repository';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
   CollaborationContext,
   CollaborationPersistenceAdapter,
   CollaborationTokenAdapter,
@@ -42,8 +44,12 @@ import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
 import { PageViewsModule } from './modules/page-views/page-views.module';
+import { PAGE_LIVE_DOCUMENT } from './modules/pages/constants/pages.constants';
+import { PageContentController } from './modules/pages/page.content.controller';
+import { PageContentService } from './modules/pages/page.content.service';
 import { PagesModule } from './modules/pages/pages.module';
 import { PagesService } from './modules/pages/pages.service';
+import type { PageLiveDocument } from './modules/pages/types/page.types';
 import { SearchModule } from './modules/search/search.module';
 import { SearchService } from './modules/search/search.service';
 import { SpacesModule } from './modules/spaces/spaces.module';
@@ -102,8 +108,28 @@ import { PrismaModule } from './prisma/prisma.module';
     SearchModule,
     LinksModule,
   ],
-  controllers: [CollaborationController, HealthController, McpController],
+  controllers: [CollaborationController, HealthController, McpController, PageContentController],
   providers: [
+    PageContentService,
+    WorkspaceContextService,
+    /** El contenido de una página se escribe dentro de su documento en vivo, quien sea que lo escriba. */
+    {
+      inject: [CollaborationGateway],
+      provide: PAGE_LIVE_DOCUMENT,
+      useFactory: (gateway: CollaborationGateway): PageLiveDocument => ({
+        writePageContent: (writer, rewrite) =>
+          gateway.writePageContent(
+            {
+              mode: 'write',
+              pageId: writer.pageId,
+              role: writer.role,
+              userId: writer.userId,
+              workspaceId: writer.workspaceId,
+            },
+            rewrite,
+          ),
+      }),
+    },
     { provide: COLLABORATION_PAGE_SERVICE, useExisting: PagesService },
     { provide: COLLABORATION_TOKEN_SIGNER, useExisting: TokenAdapter },
     { provide: COLLABORATION_WORKSPACE_SERVICE, useExisting: WorkspacesService },
@@ -128,17 +154,21 @@ import { PrismaModule } from './prisma/prisma.module';
             };
           },
         };
+        /** Una página bloqueada se lee en vivo pero no se escribe: el editor lo respeta, y el servidor también. */
         const authorization: CollaborationAuthorizationAdapter = {
           authorize: async (context, pageId, mode): Promise<boolean> => {
             const page = await pagesService.getAccessible(pageId, context.workspaceId, context.userId, context.role);
-            return (
-              page.isOk() &&
-              page.getValue().lifecycle === PageLifecycle.ACTIVE &&
-              (mode === 'read' || context.role !== USER_ROLE.CLIENT)
-            );
+            if (page.isFail() || page.getValue().lifecycle !== PageLifecycle.ACTIVE) return false;
+            return mode === 'read' || (context.role !== USER_ROLE.CLIENT && page.getValue().lockedAt === null);
           },
         };
-        return new CollaborationGateway(token, authorization, persistence);
+        const content: CollaborationContentAdapter = {
+          load: (pageId) => pagesService.readStoredContent(pageId),
+          store: async (context, pageContent) => {
+            await pagesService.storeCollaborativeContent(context.pageId, context.userId, pageContent);
+          },
+        };
+        return new CollaborationGateway(token, authorization, persistence, content);
       },
     },
     AccessTokenPlaceRepository,

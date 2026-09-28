@@ -31,6 +31,16 @@ describe('TokenAdapter collaboration tokens', () => {
     });
   });
 
+  /** Las páginas nacen con UUID v7, así que el token de una página real tiene que servir. */
+  test('verifies the collaboration token of a page whose id is a version 7 uuid', async () => {
+    const adapter = createAdapter();
+    const versionSevenPageId = '019ffc24-f641-739d-bc50-284c896476fc';
+
+    const token = await adapter.signCollaborationToken(user, 'workspace-1', versionSevenPageId, 'write');
+
+    expect((await adapter.verifyCollaborationToken(token)).pageId).toBe(versionSevenPageId);
+  });
+
   test('rejects a normal access token as a collaboration token', async () => {
     const adapter = createAdapter();
     const accessToken = await adapter.signAccessToken(accessUser);

@@ -72,6 +72,9 @@ export const pageBlocksHandoverSchema = z.object({
   spaceId: z.string().min(1),
 });
 
+/** Lo que dice una página, entero, para reemplazar lo que decía. */
+export const pageContentReplacementSchema = pageBlocksHandoverSchema;
+
 export const pageLocatorSchema = z.object({
   pageId: z.string().min(1),
   spaceId: z.string().min(1),

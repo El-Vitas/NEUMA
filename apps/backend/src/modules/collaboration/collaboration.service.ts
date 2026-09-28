@@ -2,6 +2,9 @@ import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { createCollaborationGateway } from './collaboration.gateway';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
+  CollaborationContentRewrite,
+  CollaborationContext,
   CollaborationGateway as CollaborationGatewayContract,
   CollaborationPersistenceAdapter,
   CollaborationTokenAdapter,
@@ -15,8 +18,9 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     token: CollaborationTokenAdapter,
     authorization: CollaborationAuthorizationAdapter,
     persistence: CollaborationPersistenceAdapter,
+    content: CollaborationContentAdapter,
   ) {
-    this.gateway = createCollaborationGateway({ authorization, persistence, token });
+    this.gateway = createCollaborationGateway({ authorization, content, persistence, token });
   }
 
   get server(): CollaborationGatewayContract['server'] {
@@ -51,6 +55,13 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
 
   shutdown(): Promise<void> {
     return this.gateway.shutdown();
+  }
+
+  writePageContent(
+    context: CollaborationContext,
+    rewrite: CollaborationContentRewrite,
+  ): ReturnType<CollaborationGatewayContract['writePageContent']> {
+    return this.gateway.writePageContent(context, rewrite);
   }
 
   onApplicationShutdown(): Promise<void> {

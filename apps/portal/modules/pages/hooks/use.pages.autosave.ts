@@ -182,13 +182,14 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [enabled]);
 
-  useEffect(
-    () => () => {
+  /** Mounted again after being taken down, as React does in development, it is mounted: a save that ends now still counts. */
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
       isMountedRef.current = false;
       cancel();
-    },
-    [cancel],
-  );
+    };
+  }, [cancel]);
 
   return {
     cancel,

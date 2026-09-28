@@ -42,6 +42,8 @@ import type {
   CreatePageInput,
   ExportedFile,
   PageAttachmentsCleanupRepositoryContract,
+  PageContentStoreOutcome,
+  PageContentWriter,
   PageDescendantsPreview,
   PageLogger,
   PageMoveDestinations,
@@ -49,7 +51,6 @@ import type {
   PageRestoreOutcome,
   PageSummary,
   TrashedPageSummary,
-  UpdatePageInput,
   UpdatePagePropertiesInput,
 } from './types/page.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
@@ -175,38 +176,33 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  async update(
-    input: UpdatePageInput,
-    role: UserRole,
-  ): Promise<
-    Result<
-      PageSummary,
-      PageAccessDeniedError | PageContentValidationError | PageLockedError | PagePropertyValidationError
-    >
-  > {
-    const content = this.validateWritableContent(role, input.content);
-    if (content.isFail()) return Result.fail(content.getError());
-    const existingPage = await this.pageRepository.getAccessible(
-      input.pageId,
-      input.workspaceId,
-      input.userId,
-      input.role,
-    );
-    if (existingPage === null) return Result.fail(new PageAccessDeniedError());
-    if (existingPage.lockedAt !== null) return Result.fail(new PageLockedError());
-    const propertyValues = await this.resolvePropertyValuesForWrite(
-      existingPage.parentId,
-      input.workspaceId,
-      input.title,
-      input.propertyValues,
-    );
-    if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
-    const page = await this.pageRepository.update({
-      ...input,
-      content: content.getValue(),
-      propertyValues: propertyValues.getValue(),
-    });
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+  /** La página tal como está guardada, para sembrar su documento colaborativo. */
+  readStoredContent(pageId: string): Promise<PageContent | null> {
+    return this.pageRepository.findStoredContent(pageId);
+  }
+
+  /**
+   * Guarda lo que dice el documento colaborativo como contenido de la página.
+   * Quién lo escribió ya fue autorizado al conectarse al documento.
+   */
+  storeCollaborativeContent(pageId: string, userId: string, content: PageContent): Promise<PageContentStoreOutcome> {
+    return this.pageRepository.storeContent({ content, pageId, updatedById: userId });
+  }
+
+  /**
+   * Si esta persona puede escribir este contenido en esta página: que pueda
+   * escribir, que vea la página, que la página no esté bloqueada y que el
+   * contenido calce con el contrato de una página.
+   */
+  async authorizeContentWrite(
+    writer: PageContentWriter,
+    content: unknown,
+  ): Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLockedError>> {
+    if (writer.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.getAccessible(writer.pageId, writer.workspaceId, writer.userId, writer.role);
+    if (page === null || page.spaceId !== writer.spaceId) return Result.fail(new PageAccessDeniedError());
+    if (page.lockedAt !== null) return Result.fail(new PageLockedError());
+    return validatePageContent(content);
   }
 
   /**
@@ -226,30 +222,18 @@ export class PagesService {
     if (existing === null) return Result.fail(new PageAccessDeniedError());
     if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
 
-    const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
-    const merged = keepWhatThePageSchemaKnows(
-      schemaProperties,
-      mergePagePropertyValues(existing.propertyValues, input.propertyValues),
+    const page = await this.pageRepository.updatePropertyValues(
+      { pageId: input.pageId, updatedById: input.updatedById },
+      async (current) => {
+        const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+        const merged = keepWhatThePageSchemaKnows(
+          schemaProperties,
+          mergePagePropertyValues(current, input.propertyValues),
+        );
+        return this.resolvePropertyValuesForWrite(existing.parentId, input.workspaceId, existing.title, merged);
+      },
     );
-    const propertyValues = await this.resolvePropertyValuesForWrite(
-      existing.parentId,
-      input.workspaceId,
-      existing.title,
-      merged,
-    );
-    if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
-
-    const page = await this.pageRepository.update({
-      content: existing.content as Prisma.InputJsonValue,
-      pageId: input.pageId,
-      propertyValues: propertyValues.getValue(),
-      role: input.role,
-      title: existing.title,
-      updatedById: input.updatedById,
-      userId: input.userId,
-      workspaceId: input.workspaceId,
-    });
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+    return page ?? Result.fail(new PageAccessDeniedError());
   }
 
   /**

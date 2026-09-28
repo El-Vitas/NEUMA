@@ -15,6 +15,7 @@ import type { PageDestination } from '../../editor/menus/types/pages.editor.dest
 import type { PageMoveDestinations } from '../../navigation/types/pages.move.types';
 import {
   pageBlocksHandoverSchema,
+  pageContentReplacementSchema,
   pageDestinationsSchema,
   pageDuplicateSchema,
   pageLocatorSchema,
@@ -47,14 +48,19 @@ export const createPageAction = actionClient
     }),
   );
 
-export const updatePageAction = actionClient
-  .inputSchema(pageMutationSchema.extend({ pageId: pageMoveSchema.shape.pageId }))
+/**
+ * What a page says, sent by whoever is writing it without the live document.
+ *
+ * It still lands in the live document on the server, so anybody who does have
+ * the page open live sees it, and the page is stored from there like any other
+ * change.
+ */
+export const replacePageContentAction = actionClient
+  .inputSchema(pageContentReplacementSchema)
   .action(async ({ parsedInput }) =>
-    withAction({ action: 'updatePage' }, async () => {
-      await authenticatedRequest(PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+    withAction({ action: 'replacePageContent' }, async () => {
+      await authenticatedRequest(PAGE_API_ROUTES.content(parsedInput.spaceId, parsedInput.pageId), 'PUT', {
         content: parsedInput.content,
-        propertyValues: parsedInput.propertyValues,
-        title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
     }),
@@ -152,21 +158,16 @@ export const listPageDestinationsAction = actionClient
 /**
  * Adds blocks at the end of another page.
  *
- * The page that receives them is read first and written back whole, so the
- * blocks join what is already there instead of replacing it.
+ * The server adds them to what the page says at the moment of writing, inside
+ * its live document: reading the page here and writing it back whole lost
+ * whatever somebody else added in between.
  */
 export const addBlocksToPageAction = actionClient
   .inputSchema(pageBlocksHandoverSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'addBlocks' }, async () => {
-      const accessToken = await requireAccessTokenCookie();
-      const endpoint = PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId);
-      const destination = pageSummarySchema.parse(await apiRequest<unknown>(endpoint, accessToken));
-
-      await authenticatedRequest(endpoint, 'PATCH', {
-        content: { ...destination.content, content: [...destination.content.content, ...parsedInput.content.content] },
-        propertyValues: destination.propertyValues,
-        title: destination.title,
+      await authenticatedRequest(PAGE_API_ROUTES.blocks(parsedInput.spaceId, parsedInput.pageId), 'POST', {
+        blocks: parsedInput.content.content,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
     }),

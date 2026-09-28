@@ -1,6 +1,10 @@
 export const PAGE_ATTACHMENTS_CLEANUP_REPOSITORY = 'PAGE_ATTACHMENTS_CLEANUP_REPOSITORY';
 export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';
 export const PAGE_SCHEMA_REPOSITORY = 'PAGE_SCHEMA_REPOSITORY';
+/** El documento en vivo de las páginas, donde se escribe su contenido. Lo provee quien compone la aplicación. */
+export const PAGE_LIVE_DOCUMENT = 'PAGE_LIVE_DOCUMENT';
+/** Cuántos bloques se agregan de una vez; la página entera sigue sujeta a su propio tope. */
+export const MAX_APPENDED_PAGE_BLOCKS = 200;
 export const REDACTED_MENTION_LABEL = 'Restricted page';
 
 /**
@@ -12,6 +16,13 @@ export const REDACTED_MENTION_LABEL = 'Restricted page';
  * running instead of however the database felt like answering.
  */
 export const PAGE_SIBLING_ORDER = [{ order: 'asc' }, { createdAt: 'asc' }] as const;
+
+/** Qué pasó al guardar lo que dice el documento colaborativo de una página. */
+export const PAGE_CONTENT_STORE_OUTCOME = {
+  missing: 'MISSING',
+  stored: 'STORED',
+  unchanged: 'UNCHANGED',
+} as const;
 
 /**
  * How many pages of a batch are worked on at the same time.

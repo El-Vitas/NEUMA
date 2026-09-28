@@ -1,6 +1,7 @@
+import { isDeepStrictEqual } from 'node:util';
 import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
-import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
+import { type PageContent, type PageCoverValue, type PageIcon, Result, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
@@ -11,22 +12,27 @@ import {
   findAccessibleSpaceId,
 } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { PAGE_SIBLING_ORDER } from '../../constants/pages.constants';
+import { PAGE_CONTENT_STORE_OUTCOME, PAGE_SIBLING_ORDER } from '../../constants/pages.constants';
 import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
 import { validatePageCover } from '../../domain/page-cover.domain';
 import type {
   CreatePageInput,
   DuplicatePageInput,
+  PageContentStoreOutcome,
   PageCopySource,
   PageDeleteForeverOutcome,
   PageHierarchyRow,
   PageMoveContext,
   PageMoveDestinations,
+  PagePropertyValuesMerge,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
+  StoredPageContentRow,
+  StoredPagePropertyValuesRow,
+  StorePageContentInput,
   TrashedPageSummary,
-  UpdatePageInput,
+  UpdatePagePropertyValuesInput,
 } from '../../types/page.types';
 
 const toPropertyValuesInput = (
@@ -243,46 +249,91 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  async update(input: UpdatePageInput): Promise<PageSummary | null> {
+  async findStoredContent(pageId: string): Promise<PageContent | null> {
+    const page = await this.prisma.page.findUnique({ select: { content: true }, where: { id: pageId } });
+    if (page === null) return null;
+    const content = validatePageContent(page.content);
+    if (content.isFail()) throw new Error(`stored-page-content-is-invalid:${pageId}`);
+    return content.getValue();
+  }
+
+  /**
+   * Guarda lo que dice el documento colaborativo de una página. La fila queda
+   * bloqueada mientras se compara, así dos guardados seguidos no cortan dos
+   * versiones del mismo texto, y lo que no cambió no corta ninguna.
+   */
+  async storeContent(input: StorePageContentInput): Promise<PageContentStoreOutcome> {
     return this.prisma.$transaction(async (transaction) => {
-      const current = await transaction.page.findFirst({
-        select: { id: true, versions: { orderBy: { version: 'desc' }, select: { version: true }, take: 1 } },
-        where: { ...this.pageAccessFilter(input.workspaceId, input.userId, input.role), id: input.pageId },
+      const [current] = await transaction.$queryRaw<StoredPageContentRow[]>`
+        SELECT content, title FROM "Page" WHERE id = ${input.pageId} FOR UPDATE
+      `;
+      if (current === undefined) return PAGE_CONTENT_STORE_OUTCOME.missing;
+      if (isDeepStrictEqual(current.content, input.content)) return PAGE_CONTENT_STORE_OUTCOME.unchanged;
+      const latest = await transaction.pageVersion.findFirst({
+        orderBy: { version: 'desc' },
+        select: { version: true },
+        where: { pageId: input.pageId },
       });
-      if (current === null) return null;
-      const nextVersion = (current.versions[0]?.version ?? 0) + 1;
-      const page = await transaction.page.update({
+      const nextVersion = (latest?.version ?? 0) + 1;
+      await transaction.page.update({
         data: {
           content: input.content,
-          propertyValues: toPropertyValuesInput(input.propertyValues),
-          title: input.title,
           updatedById: input.updatedById,
           versions: {
             create: {
               content: input.content,
               createdById: input.updatedById,
-              title: input.title,
+              title: current.title,
               version: nextVersion,
             },
           },
         },
+        where: { id: input.pageId },
+      });
+      await this.announceNewVersion(transaction, input.pageId, nextVersion);
+      return PAGE_CONTENT_STORE_OUTCOME.stored;
+    });
+  }
+
+  async updatePropertyValues<TError>(
+    input: UpdatePagePropertyValuesInput,
+    merge: PagePropertyValuesMerge<TError>,
+  ): Promise<Result<PageSummary, TError> | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      const [current] = await transaction.$queryRaw<StoredPagePropertyValuesRow[]>`
+        SELECT "propertyValues" FROM "Page" WHERE id = ${input.pageId} FOR UPDATE
+      `;
+      if (current === undefined) return null;
+      const merged = await merge(parseSchemaPropertyValues(current.propertyValues));
+      if (merged.isFail()) return Result.fail(merged.getError());
+      const page = await transaction.page.update({
+        data: { propertyValues: toPropertyValuesInput(merged.getValue()), updatedById: input.updatedById },
         select: pageSelection,
         where: { id: input.pageId },
       });
-      await this.outboxRepository.create(
-        {
-          aggregateId: page.id,
-          aggregateType: 'PAGE',
-          eventType: 'PAGE_UPDATED',
-          idempotencyKey: `page:${page.id}:version:${String(nextVersion)}`,
-          payload: { pageId: page.id, version: nextVersion },
-          payloadVersion: 1,
-        },
-        transaction,
-      );
+      await this.announceThePageChanged(page, transaction);
       const authors = await this.resolvePageAuthors([page]);
-      return this.toSummary(page, authors);
+      return Result.ok(this.toSummary(page, authors));
     });
+  }
+
+  /** Avisa que la página tiene una versión nueva, para quienes proyectan su contenido. */
+  private async announceNewVersion(
+    transaction: Prisma.TransactionClient,
+    pageId: string,
+    version: number,
+  ): Promise<void> {
+    await this.outboxRepository.create(
+      {
+        aggregateId: pageId,
+        aggregateType: 'PAGE',
+        eventType: 'PAGE_UPDATED',
+        idempotencyKey: `page:${pageId}:version:${String(version)}`,
+        payload: { pageId, version },
+        payloadVersion: 1,
+      },
+      transaction,
+    );
   }
 
   /**

@@ -112,7 +112,12 @@ import {
 import { createPageTextColorCommand } from '../editor/text/lib/pages.editor.text-color.lib';
 import type { PageEditorLinkAtHand } from '../editor/text/types/pages.editor.link.types';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
-import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
+import {
+  createCollaborativePageEditorState,
+  keepClicksAcrossChangesFromOthers,
+  readWhereThisPersonWrites,
+  restoreSelectionIfStillWriting,
+} from '../lib/pages.collaboration.lib';
 import { PagesPreviewLayer } from '../links/components/pages.preview.layer';
 import { usePagesPreview } from '../links/hooks/use.pages.preview';
 import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
@@ -125,7 +130,12 @@ interface IProps {
   readonly currentUserDisplayName?: string;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
-  readonly onContentChange: (content: PageContent) => void;
+  /**
+   * What the page says now, and whether the live document already keeps it.
+   * While it does, the server stores the page from there and nothing has to be
+   * sent from here; without it, the page is only kept by being sent.
+   */
+  readonly onContentChange: (content: PageContent, isKeptLive: boolean) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
   /** Where a link to another page of this app is followed, when following it should not leave where it was clicked from. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
@@ -289,12 +299,12 @@ export const PagesProseMirrorEditor = forwardRef(
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
-    const { participants, session, status } = usePagesCollaboration(
-      pageId,
-      canEdit,
-      content,
-      currentUserDisplayName ?? null,
-    );
+    const { participants, session, status } = usePagesCollaboration(pageId, canEdit, currentUserDisplayName ?? null);
+    const liveSessionRef = useRef(session);
+
+    useEffect(() => {
+      liveSessionRef.current = session;
+    }, [session]);
     const editorHostRef = useRef<HTMLDivElement>(null);
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
@@ -467,7 +477,7 @@ export const PagesProseMirrorEditor = forwardRef(
         return;
       }
       toldOfTooMuchRef.current = false;
-      contentCallbackRef.current(kept);
+      contentCallbackRef.current(kept, liveSessionRef.current !== null);
     });
 
     useEffect(() => {
@@ -595,8 +605,27 @@ export const PagesProseMirrorEditor = forwardRef(
       uploadPastedFile,
     ]);
 
+    /**
+     * Once the live document is given up for good, the writing is no longer
+     * kept by it: what the page says now is handed over to be sent.
+     */
+    const wasLiveRef = useRef(false);
+    useEffect(() => {
+      const view = editorViewRef.current;
+      if (session !== null || view === null || !wasLiveRef.current) return;
+      wasLiveRef.current = false;
+      keepWhatCanBeKeptRef.current(view.state);
+    }, [session]);
+
     useEffect(() => {
       if (session === null || editorViewRef.current === null) return;
+      wasLiveRef.current = true;
+      const { anchor, head } = readWhereThisPersonWrites(editorViewRef.current);
+      const stopKeepingClicks = keepClicksAcrossChangesFromOthers(
+        editorViewRef.current,
+        session.ydoc,
+        session.provider.awareness,
+      );
       editorViewRef.current.updateState(
         createCollaborativePageEditorState(
           { awareness: session.provider.awareness, fragment: session.fragment },
@@ -607,9 +636,11 @@ export const PagesProseMirrorEditor = forwardRef(
           resizeColumnLabelRef.current,
         ),
       );
+      restoreSelectionIfStillWriting(editorViewRef.current, anchor, head);
       followHeadingsRef.current(editorViewRef.current.state);
       resumeFind(editorViewRef.current);
       syncFind(editorViewRef.current);
+      return stopKeepingClicks;
     }, [resumeFind, session, syncFind]);
 
     /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
-import { USER_ROLE } from '@company-brain/shared';
+import { Result, USER_ROLE } from '@company-brain/shared';
 import { SCHEMA_OPTION_ALREADY_MOVED } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import type { PageRepositoryContract, PageSummary } from '@/modules/pages/types/page.types';
@@ -57,7 +57,12 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
-  update: () => Promise.resolve(page),
+  findStoredContent: () => Promise.resolve(null),
+  storeContent: () => Promise.resolve('UNCHANGED'),
+  updatePropertyValues: async (_input, merge) => {
+    const merged = await merge(null);
+    return merged.isOk() ? Result.ok(page) : Result.fail(merged.getError());
+  },
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
