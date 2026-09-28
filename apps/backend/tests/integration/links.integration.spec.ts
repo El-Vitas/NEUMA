@@ -90,13 +90,12 @@ const updatePageContent = async (
   token: string,
   spaceId: string,
   pageId: string,
-  title: string,
   content: PageContent,
 ): Promise<void> => {
   await request(testApp.getServer())
-    .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}`)
+    .put(`/api/v1/spaces/${spaceId}/pages/${pageId}/content`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ content, title })
+    .send({ content })
     .expect(200);
 };
 
@@ -194,25 +193,11 @@ describe('Page Links (Integration)', () => {
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
       expect(await findPageLink(testApp, sourceId, targetId)).not.toBeNull();
 
-      await updatePageContent(
-        testApp,
-        adminToken,
-        sharedSpaceId,
-        sourceId,
-        'Recon Source 2',
-        plainContent('no more links'),
-      );
+      await updatePageContent(testApp, adminToken, sharedSpaceId, sourceId, plainContent('no more links'));
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
       expect(await findPageLink(testApp, sourceId, targetId)).toBeNull();
 
-      await updatePageContent(
-        testApp,
-        adminToken,
-        sharedSpaceId,
-        sourceId,
-        'Recon Source 2',
-        plainContent('no more links'),
-      );
+      await updatePageContent(testApp, adminToken, sharedSpaceId, sourceId, plainContent('no more links'));
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
       expect(await findPageLink(testApp, sourceId, targetId)).toBeNull();
     });
@@ -242,14 +227,7 @@ describe('Page Links (Integration)', () => {
         'Recon Self Reference',
         plainContent('placeholder'),
       );
-      await updatePageContent(
-        testApp,
-        adminToken,
-        sharedSpaceId,
-        sourceId,
-        'Recon Self Reference',
-        mentioningContent(sharedSpaceId, sourceId),
-      );
+      await updatePageContent(testApp, adminToken, sharedSpaceId, sourceId, mentioningContent(sharedSpaceId, sourceId));
 
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
 

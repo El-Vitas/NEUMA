@@ -1,9 +1,10 @@
 import type { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
+import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@company-brain/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
-import { PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
+import { PAGE_CONTENT_STORE_OUTCOME, PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';
+import type { PageAccessDeniedError, PageContentValidationError, PageLockedError } from '../domain/page.error';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
 
@@ -26,13 +27,53 @@ export interface CreatePageInput {
   readonly workspaceId: string;
 }
 
-export interface UpdatePageInput {
-  readonly content: Prisma.InputJsonValue;
+/** Lo que dice el documento colaborativo de una página, para guardarlo como su contenido. */
+export interface StorePageContentInput {
+  readonly content: PageContent;
   readonly pageId: string;
-  readonly propertyValues: SchemaPropertyValues | null;
-  readonly role: UserRole;
-  readonly title: string;
   readonly updatedById: string;
+}
+
+export type PageContentStoreOutcome = (typeof PAGE_CONTENT_STORE_OUTCOME)[keyof typeof PAGE_CONTENT_STORE_OUTCOME];
+
+export interface StoredPageContentRow {
+  readonly content: Prisma.JsonValue;
+  readonly title: string;
+}
+
+export interface UpdatePagePropertyValuesInput {
+  readonly pageId: string;
+  readonly updatedById: string;
+}
+
+/** Lo que la fila tiene ahora, fundido con lo que llega y validado; o por qué no se puede guardar. */
+export type PagePropertyValuesMerge<TError> = (
+  current: SchemaPropertyValues | null,
+) => Promise<Result<SchemaPropertyValues | null, TError>>;
+
+export interface StoredPagePropertyValuesRow {
+  readonly propertyValues: Prisma.JsonValue;
+}
+
+export type PageContentRewrite = (current: PageContent) => PageContent;
+
+export type PageContentWriteError = PageAccessDeniedError | PageContentValidationError | PageLockedError;
+
+/**
+ * El documento en vivo de una página, visto desde las páginas: reescribirla a
+ * partir de lo que dice en el momento de escribir. Quien la tenga abierta lo ve
+ * en vivo, y la página se guarda desde ahí. Devuelve la página tal como quedó.
+ */
+export interface PageLiveDocument {
+  readonly writePageContent: (writer: PageContentWriter, rewrite: PageContentRewrite) => Promise<PageContent>;
+}
+
+/** Quién escribe el contenido de una página, y en cuál. */
+export interface PageContentWriter {
+  readonly pageId: string;
+  readonly role: UserRole;
+  /** El espacio que nombra la dirección: una página de otro espacio no se escribe por esta. */
+  readonly spaceId: string;
   readonly userId: string;
   readonly workspaceId: string;
 }
@@ -262,7 +303,17 @@ export interface PageRepositoryContract {
     role: UserRole,
     mutationId: string,
   ) => Promise<boolean>;
-  readonly update: (input: UpdatePageInput) => Promise<PageSummary | null>;
+  readonly findStoredContent: (pageId: string) => Promise<PageContent | null>;
+  readonly storeContent: (input: StorePageContentInput) => Promise<PageContentStoreOutcome>;
+  /**
+   * Cambia solo las propiedades de una fila: las funde con las que tiene en el
+   * momento de escribir, con la fila bloqueada, sin tocar lo que dice. Nada si
+   * la página no existe.
+   */
+  readonly updatePropertyValues: <TError>(
+    input: UpdatePagePropertyValuesInput,
+    merge: PagePropertyValuesMerge<TError>,
+  ) => Promise<Result<PageSummary, TError> | null>;
   readonly rename: (
     pageId: string,
     title: string,

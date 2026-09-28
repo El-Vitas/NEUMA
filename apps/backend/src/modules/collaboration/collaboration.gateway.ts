@@ -1,3 +1,4 @@
+import { createCollaborationDocumentName, type PageContent, pageContentSchema } from '@company-brain/shared';
 import { Hocuspocus } from '@hocuspocus/server';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import {
@@ -10,10 +11,18 @@ import {
 import { MAX_COLLABORATION_UPDATE_BYTES } from './constants/collaboration.constants';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
+  CollaborationContentRewrite,
   CollaborationContext,
+  CollaborationDirectConnection,
   CollaborationGateway,
   CollaborationGatewayDependencies,
 } from './types/collaboration.types';
+import {
+  encodePageContentAsCollaborationState,
+  readCollaborationDocumentContent,
+  replaceCollaborationDocumentContent,
+} from './utils/collaboration.document.utils';
 
 const createForbiddenError = (): Error => new Error('forbidden');
 
@@ -43,6 +52,36 @@ const validateLoadedState = async (state: Uint8Array): Promise<Uint8Array> => {
   return state;
 };
 
+/**
+ * El estado inicial de un documento que nadie abrió todavía: la página tal
+ * como está guardada. Una página que ya no existe no tiene documento.
+ */
+const seedFromStoredPage = async (content: CollaborationContentAdapter, pageId: string): Promise<Uint8Array> => {
+  const stored = await content.load(pageId);
+  if (stored === null) throw new Error('page-not-found');
+  return encodePageContentAsCollaborationState(stored);
+};
+
+/**
+ * Lee, reescribe y aplica dentro de una sola transacción del documento, así
+ * ningún cambio de otra persona se cuela entre lo leído y lo escrito. La página
+ * nueva se valida antes de tocar nada: una transacción que falla a la mitad
+ * deja escrito lo que alcanzó.
+ */
+const rewriteInsideTheDocument = (
+  connection: CollaborationDirectConnection,
+  rewrite: CollaborationContentRewrite,
+): Promise<PageContent> =>
+  new Promise((resolve, reject) => {
+    connection
+      .transact((document) => {
+        const rewritten = pageContentSchema.parse(rewrite(readCollaborationDocumentContent(document)));
+        replaceCollaborationDocumentContent(document, rewritten);
+        resolve(rewritten);
+      })
+      .catch(reject);
+  });
+
 export const createCollaborationGateway = (dependencies: CollaborationGatewayDependencies): CollaborationGateway => {
   const server = new Hocuspocus<CollaborationContext>({
     debounce: 250,
@@ -61,9 +100,10 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       return context;
     },
     async onLoadDocument({ context, documentName }) {
-      await authorizeDocument(dependencies.authorization, context, documentName, 'read');
+      const pageId = await authorizeDocument(dependencies.authorization, context, documentName, 'read');
       const state = await dependencies.persistence.load(documentName);
-      return state === null ? undefined : await validateLoadedState(state);
+      if (state !== null) return await validateLoadedState(state);
+      return await seedFromStoredPage(dependencies.content, pageId);
     },
     async beforeHandleMessage({ context, documentName, update }) {
       await authorizeUpdate(context, documentName, update);
@@ -86,8 +126,23 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       const state = encodeStateAsUpdate(document);
       await assertStateSize(state);
       await dependencies.persistence.store(documentName, state);
+      await dependencies.content.store(lastContext, readCollaborationDocumentContent(document));
     },
   });
+
+  const writePageContent = async (
+    context: CollaborationContext,
+    rewrite: CollaborationContentRewrite,
+  ): Promise<PageContent> => {
+    const documentName = createCollaborationDocumentName(context.pageId);
+    await authorizeDocument(dependencies.authorization, context, documentName, 'write');
+    const connection = await server.openDirectConnection(documentName, context);
+    try {
+      return await rewriteInsideTheDocument(connection, rewrite);
+    } finally {
+      await connection.disconnect();
+    }
+  };
 
   const authorizeUpdate = async (
     context: CollaborationContext,
@@ -115,5 +170,6 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       return Promise.resolve();
     },
     validateDocumentName: (documentName) => parsePageId(documentName),
+    writePageContent,
   };
 };

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import { type PageContent, USER_ROLE } from '@company-brain/shared';
+import { type PageContent, Result, USER_ROLE } from '@company-brain/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { PagesService } from '@/modules/pages/pages.service';
 import type {
   PageAttachmentsCleanupRepositoryContract,
+  PageContentWriter,
   PageLogger,
   PageRepositoryContract,
-  UpdatePageInput,
 } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
 
@@ -41,16 +41,13 @@ const page = {
   version: 1,
 };
 
-const buildUpdatePageInput = (content: Prisma.InputJsonValue = validPageContent): UpdatePageInput => ({
-  content,
+const contentWriter: PageContentWriter = {
   pageId: 'page-a',
-  propertyValues: null,
   role: USER_ROLE.WORKER,
-  title: 'Updated',
-  updatedById: 'user-a',
+  spaceId: 'space-a',
   userId: 'user-a',
   workspaceId: 'workspace-a',
-});
+};
 
 const createRepository = (): PageRepositoryContract => ({
   countDescendantsByLifecycle: () => Promise.resolve(0),
@@ -80,7 +77,12 @@ const createRepository = (): PageRepositoryContract => ({
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
-  update: () => Promise.resolve(page),
+  findStoredContent: () => Promise.resolve(null),
+  storeContent: () => Promise.resolve('UNCHANGED'),
+  updatePropertyValues: async (_input, merge) => {
+    const merged = await merge(null);
+    return merged.isOk() ? Result.ok(page) : Result.fail(merged.getError());
+  },
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
@@ -116,7 +118,7 @@ const createStorageProvider = (): IStorageProvider => ({
 const createLogger = (): PageLogger => ({ warn: () => undefined });
 
 describe('pages service', () => {
-  it('updates a page for an editor', async () => {
+  it('lets an editor write content in a page they can open', async () => {
     const service = new PagesService(
       createRepository(),
       createSchemaRepository(),
@@ -124,9 +126,37 @@ describe('pages service', () => {
       createStorageProvider(),
       createLogger(),
     );
-    const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
+    const result = await service.authorizeContentWrite(contentWriter, validPageContent);
 
     expect(result.isOk()).toBe(true);
+    expect(result.getValue()).toEqual(validPageContent);
+  });
+
+  it('refuses content from someone who may only read', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+    const result = await service.authorizeContentWrite({ ...contentWriter, role: USER_ROLE.CLIENT }, validPageContent);
+
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  /** La dirección nombra un espacio: una página de otro espacio no se escribe por ella. */
+  it('refuses a page reached through the address of another space', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+    const result = await service.authorizeContentWrite({ ...contentWriter, spaceId: 'space-b' }, validPageContent);
+
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
   });
 
   const invalidPageContents: { content: Prisma.InputJsonObject; name: string }[] = [
@@ -162,28 +192,19 @@ describe('pages service', () => {
     },
   ];
 
-  it.each(invalidPageContents)('rejects update content with $name before repository mutation', async ({ content }) => {
-    let updateCalls = 0;
-    const repository = {
-      ...createRepository(),
-      update: () => {
-        updateCalls += 1;
-        return Promise.resolve(page);
-      },
-    };
+  it.each(invalidPageContents)('refuses content with $name before anything is written', async ({ content }) => {
     const service = new PagesService(
-      repository,
+      createRepository(),
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
     );
 
-    const result = await service.update(buildUpdatePageInput(content), USER_ROLE.WORKER);
+    const result = await service.authorizeContentWrite(contentWriter, content);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_CONTENT_INVALID');
-    expect(updateCalls).toBe(0);
   });
 
   it('rejects invalid create content before repository mutation', async () => {
@@ -257,31 +278,6 @@ describe('pages service', () => {
 
     expect(result.isOk()).toBe(true);
     expect(receivedContent).toEqual(validPageContent);
-  });
-
-  it('forwards valid update content and preserves the repository version', async () => {
-    const versionedPage = { ...page, version: 2 };
-    let receivedContent: Prisma.InputJsonValue | undefined;
-    const repository = {
-      ...createRepository(),
-      update: (input: Parameters<PageRepositoryContract['update']>[0]) => {
-        receivedContent = input.content;
-        return Promise.resolve(versionedPage);
-      },
-    };
-    const service = new PagesService(
-      repository,
-      createSchemaRepository(),
-      createAttachmentsCleanupRepository(),
-      createStorageProvider(),
-      createLogger(),
-    );
-
-    const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
-
-    expect(result.isOk()).toBe(true);
-    expect(receivedContent).toEqual(validPageContent);
-    expect(result.getValue().version).toBe(2);
   });
 
   it('defaults page listing to active pages and forwards explicit trash inclusion', async () => {
@@ -660,14 +656,9 @@ describe('pages service', () => {
   });
 
   it('refuses to write in a page somebody locked', async () => {
-    let wasWritten = false;
     const repository = {
       ...createRepository(),
       getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date('2026-08-18T00:00:00.000Z') }),
-      update: () => {
-        wasWritten = true;
-        return Promise.resolve(page);
-      },
     };
     const service = new PagesService(
       repository,
@@ -677,23 +668,10 @@ describe('pages service', () => {
       createLogger(),
     );
 
-    const result = await service.update(
-      {
-        content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
-        pageId: 'page-a',
-        propertyValues: null,
-        role: USER_ROLE.WORKER,
-        title: 'Page A',
-        updatedById: 'user-a',
-        userId: 'user-a',
-        workspaceId: 'workspace-a',
-      },
-      USER_ROLE.WORKER,
-    );
+    const result = await service.authorizeContentWrite(contentWriter, validPageContent);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_LOCKED');
-    expect(wasWritten).toBe(false);
   });
 
   /** Renaming a page is writing in it, so a lock stops that too. */
@@ -1368,7 +1346,13 @@ describe('pages service — updating what a row holds', () => {
 
   const buildService = (schemaOverrides: Partial<PageSchemaRepositoryContract> = {}, updated = page) =>
     new PagesService(
-      { ...createRepository(), update: () => Promise.resolve(updated) },
+      {
+        ...createRepository(),
+        updatePropertyValues: async (_input, merge) => {
+          const merged = await merge(page.propertyValues);
+          return merged.isOk() ? Result.ok(updated) : Result.fail(merged.getError());
+        },
+      },
       { ...createSchemaRepository(), ...schemaOverrides },
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
@@ -1393,9 +1377,11 @@ describe('pages service — updating what a row holds', () => {
       {
         ...createRepository(),
         getAccessible: () => Promise.resolve({ ...page, propertyValues: storedValues }),
-        update: (input) => {
-          written.push({ ...input.propertyValues });
-          return Promise.resolve(page);
+        updatePropertyValues: async (_input, merge) => {
+          const merged = await merge(storedValues);
+          if (merged.isFail()) return Result.fail(merged.getError());
+          written.push({ ...merged.getValue() });
+          return Result.ok(page);
         },
       },
       { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve(schemaProperties) },

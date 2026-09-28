@@ -219,6 +219,66 @@ describe('Page Schema (Integration)', () => {
       expect((moved.body as PageResponse).title).toBe('Row dragged');
     });
 
+    /**
+     * Leer la fila, fundirle lo nuevo y guardarla entera perdía lo que otra
+     * persona cambiaba al mismo tiempo en otra columna.
+     */
+    it('keeps both of two property changes that arrive at the same time', async () => {
+      const priorityProperty = {
+        key: 'priority',
+        label: 'Priority',
+        options: ['low', 'high'],
+        required: false,
+        type: DatabasePropertyType.SELECT,
+      };
+      const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board at once');
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [
+        titleProperty,
+        statusProperty,
+        priorityProperty,
+      ]).expect(201);
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row at once', collection.id, {
+        priority: 'low',
+        status: 'todo',
+      });
+      const changeProperty = (propertyValues: Record<string, string>) =>
+        request(testApp.getServer())
+          .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ propertyValues })
+          .expect(200);
+
+      await Promise.all([changeProperty({ status: 'done' }), changeProperty({ priority: 'high' })]);
+
+      const prisma = testApp.get(PrismaService);
+      const stored = await prisma.page.findUniqueOrThrow({ select: { propertyValues: true }, where: { id: row.id } });
+      expect(stored.propertyValues).toEqual({ priority: 'high', status: 'done' });
+    });
+
+    /** Cambiar una propiedad no es escribir en la página: ni su contenido ni sus versiones se mueven. */
+    it('leaves the content and the versions of the row alone when a property changes', async () => {
+      const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board untouched');
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
+        201,
+      );
+      const row = await createPage(testApp, adminToken, sharedSpaceId, 'Row untouched', collection.id, {
+        status: 'todo',
+      });
+      const prisma = testApp.get(PrismaService);
+      const before = await prisma.page.findUniqueOrThrow({ select: { content: true }, where: { id: row.id } });
+      const versionsBefore = await prisma.pageVersion.count({ where: { pageId: row.id } });
+
+      await request(testApp.getServer())
+        .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ propertyValues: { status: 'done' } })
+        .expect(200);
+
+      const after = await prisma.page.findUniqueOrThrow({ select: { content: true }, where: { id: row.id } });
+      expect(after.content).toEqual(before.content);
+      expect(await prisma.pageVersion.count({ where: { pageId: row.id } })).toBe(versionsBefore);
+    });
+
     it('refuses to drop a row into a column the shape does not offer', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board refused');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(

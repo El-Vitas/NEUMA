@@ -1,6 +1,6 @@
 import websocket, { type WebsocketHandler } from '@fastify/websocket';
-import type { WebSocketLike } from '@hocuspocus/server';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { CollaborationConnectionOpener, CollaborationSocketMessage } from './types/collaboration.types';
 
 const createWebRequest = (request: FastifyRequest): Request => {
   const headers = new Headers();
@@ -14,16 +14,32 @@ const createWebRequest = (request: FastifyRequest): Request => {
   return new Request(url, { headers, method: request.raw.method ?? 'GET' });
 };
 
+const readMessageBytes = (message: CollaborationSocketMessage): Uint8Array => {
+  if (Array.isArray(message)) return Buffer.concat(message);
+  return message instanceof ArrayBuffer ? new Uint8Array(message) : message;
+};
+
+/**
+ * Abre la conexión en Hocuspocus y le pasa todo lo que llega por el socket,
+ * como hace el servidor propio de la librería: sin esto, la conexión se ve
+ * abierta pero nunca recibe un mensaje.
+ */
 const createCollaborationHandler =
-  (handleConnection: (socket: WebSocketLike, request: Request) => void): WebsocketHandler =>
+  (openConnection: CollaborationConnectionOpener): WebsocketHandler =>
   (socket, request): void => {
-    handleConnection(socket, createWebRequest(request));
+    const connection = openConnection(socket, createWebRequest(request));
+    socket.on('message', (message: CollaborationSocketMessage) => {
+      connection.handleMessage(readMessageBytes(message));
+    });
+    socket.on('close', (code: number, reason: Buffer) => {
+      connection.handleClose({ code, reason: reason.toString() });
+    });
   };
 
 export const registerCollaborationTransport = async (
   fastify: FastifyInstance,
-  handleConnection: (socket: WebSocketLike, request: Request) => void,
+  openConnection: CollaborationConnectionOpener,
 ): Promise<void> => {
   await fastify.register(websocket);
-  fastify.get('/api/v1/collaboration', { websocket: true }, createCollaborationHandler(handleConnection));
+  fastify.get('/api/v1/collaboration', { websocket: true }, createCollaborationHandler(openConnection));
 };
