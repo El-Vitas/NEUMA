@@ -140,6 +140,19 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     expect(found.items.some((item) => item.pageId === rootPageId)).toBe(true);
   });
 
+  /** Un pedazo de palabra en común no es un error de tipeo: «vendor» no es «Venn». */
+  it('does not take a word that merely shares a few letters for a typo', async () => {
+    const lookalikePageId = await createPage(
+      'Parecida',
+      pageWithoutIds({ content: [text(`Venn ${term}`)], type: 'paragraph' }),
+    );
+    await drainSearchProjection(testApp);
+
+    const found = await searchBlocks(admin, 'vendor');
+
+    expect(found.items.some((item) => item.pageId === lookalikePageId)).toBe(false);
+  });
+
   it('hides the blocks of a space the reader cannot see', async () => {
     const found = await searchBlocks(outsider, term);
 

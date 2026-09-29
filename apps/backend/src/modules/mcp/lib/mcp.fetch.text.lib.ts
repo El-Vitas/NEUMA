@@ -1,18 +1,33 @@
+import { DatabasePropertyType } from '@company-brain/db';
 import type {
   McpFetchedBlock as FetchedBlock,
   McpFetchedPage as FetchedPage,
+  McpFetchedProperty as FetchedProperty,
   McpFetchOutput,
 } from '../types/mcp.types';
 
 const describePath = (page: FetchedPage): string => [...page.path.map((step) => step.title), page.title].join(' › ');
 
+/**
+ * Una página del árbol en una línea. De una colección se dice cuántas filas
+ * tiene, no cuántas páginas: leído como «4 debajo», un tablero de cuatro
+ * tareas se entendía como uno de cuatro columnas.
+ */
+export const describeMcpOutlinePage = (page: {
+  readonly childCount: number;
+  readonly id: string;
+  readonly isCollection: boolean;
+  readonly title: string;
+  readonly url: string;
+}): string => {
+  const kind = page.isCollection ? 'collection' : 'page';
+  const holds = page.isCollection ? 'rows' : 'pages under it';
+  return `- ${page.title} (${kind} ${page.id}, ${String(page.childCount)} ${holds}) ${page.url}`;
+};
+
 const describeChildren = (page: FetchedPage): string => {
   if (page.children === undefined || page.children.length === 0) return '';
-  const lines = page.children.map((child) => {
-    const kind = child.isCollection ? 'collection' : 'page';
-    return `- ${child.title} (${kind} ${child.id}, ${String(child.childCount)} under it) ${child.url}`;
-  });
-  return `Pages under this one:\n${lines.join('\n')}`;
+  return `Pages under this one:\n${page.children.map(describeMcpOutlinePage).join('\n')}`;
 };
 
 const describeBacklinks = (page: FetchedPage): string => {
@@ -20,15 +35,28 @@ const describeBacklinks = (page: FetchedPage): string => {
   return `Linked from:\n${page.backlinks.map((link) => `- ${link.title} ${link.url}`).join('\n')}`;
 };
 
-const describePropertyValue = (value: NonNullable<FetchedPage['properties']>[number]['value']): string => {
-  if (value === null) return '(empty)';
-  return Array.isArray(value) ? value.join(', ') : String(value);
+/** Lo que dice una propiedad: las personas por su nombre, lo demás tal cual. */
+const describePropertyValue = (property: FetchedProperty): string => {
+  if (property.people !== undefined && property.people.length > 0)
+    return property.people.map((person) => `${person.name} (${person.id})`).join(', ');
+  if (property.value === null) return '(empty)';
+  return Array.isArray(property.value) ? property.value.join(', ') : String(property.value);
 };
+
+/**
+ * Las propiedades de una fila en una línea, sin la del título, que ya va como
+ * nombre de la fila. Es lo que se lee al recorrer un tablero, fila por fila.
+ */
+export const describeMcpRowPropertiesInOneLine = (properties: readonly FetchedProperty[]): string =>
+  properties
+    .filter((property) => property.type !== DatabasePropertyType.TITLE)
+    .map((property) => `${property.label}: ${describePropertyValue(property)}`)
+    .join(' · ');
 
 const describeProperties = (page: FetchedPage): string => {
   if (page.properties === undefined || page.properties.length === 0) return '';
   const lines = page.properties.map(
-    (property) => `- ${property.label} (${property.key}, ${property.type}): ${describePropertyValue(property.value)}`,
+    (property) => `- ${property.label} (${property.key}, ${property.type}): ${describePropertyValue(property)}`,
   );
   return `Properties:\n${lines.join('\n')}`;
 };

@@ -28,6 +28,9 @@ export const MCP_REDACTED_REFERENCE_LABEL = '[unavailable page]';
 /** Lo que apunta a otra página dentro de una línea. */
 export const MCP_INLINE_REFERENCE_TYPES: readonly string[] = ['mention'];
 
+/** Lo que muestra el nombre de la página a la que apunta, guardado cuando se escribió. */
+export const MCP_LABELED_REFERENCE_TYPES: readonly string[] = ['mention', 'subpage'];
+
 /** Bloques que muestran otra página: su título, un bloque suyo o sus filas. */
 export const MCP_BLOCK_REFERENCE_TYPES: readonly string[] = ['collection', 'subpage', 'synced'];
 
@@ -64,17 +67,23 @@ export const MCP_UNREADABLE_PAGE_MESSAGE =
 export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Company Brain side. Try again in a moment.';
 
 /**
- * Lo que el agente lee al conectarse, antes de llamar a nada.
+ * Lo que el agente lee al conectarse, antes de llamar a nada, salvo la línea
+ * que dice dónde vive el portal, que depende de dónde corre.
  *
  * Es corto a propósito: cada palabra se paga en cada conversación. Dice qué es
  * cada cosa y por dónde empezar, y deja el cómo de cada herramienta a su propia
- * descripción, que el agente lee solo cuando la necesita.
+ * descripción, que el agente lee solo cuando la necesita. Dice también qué se
+ * guarda aquí, tareas incluidas: un agente que trabaja en código piensa en su
+ * propia lista de tareas si nadie le dice que las del equipo viven aquí.
  */
-export const MCP_SERVER_INSTRUCTIONS = [
-  'Company Brain is a team knowledge base. Content lives in spaces; a space holds a tree of pages, and a page is made of blocks.',
-  'A collection is a page whose child pages are rows with properties (a table or kanban board).',
+export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
+  "Company Brain is the team's knowledge base: its documentation, notes, processes, projects, and its tasks and boards.",
+  'When the person asks about the company, the team, its work or its tasks, look in Company Brain before saying there is nothing.',
+  'When the person names a page, manual, gallery or document without a link, search for it by name here before asking them for more.',
+  'Content lives in spaces; a space holds a tree of pages, and a page is made of blocks.',
+  'A collection is a page whose child pages are rows with properties (a table or kanban board of tasks, for instance).',
   'To find information, start with search: it returns the exact blocks that match, with their page and section.',
-  'To open something, use fetch with a Company Brain link, a page id or a block id. When the person gives you a link, fetch it.',
+  'To open something, use fetch with a Company Brain link, a page id or a block id.',
   'Pages come back as Markdown; the comment before each block carries its id. To browse, use list_spaces and list_pages.',
   'You act as the person who created your access token and see exactly what they can see.',
-].join('\n');
+];

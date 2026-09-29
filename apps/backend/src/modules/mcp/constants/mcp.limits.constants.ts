@@ -16,6 +16,14 @@ export const MCP_FETCH_COMMENT_LIMIT = 200;
 /** El largo del nombre de un tipo de bloque, para filtrar la búsqueda por él. */
 export const MCP_BLOCK_TYPE_MAX_LENGTH = 64;
 
+/**
+ * De a cuántas páginas lista `list_pages`, y hasta cuántas se le pueden pedir.
+ * Un espacio con cientos de páginas en la raíz, entregado de una vez, pasa el
+ * tope de lo que el agente recibe de una herramienta y lo pierde entero.
+ */
+export const MCP_LISTED_PAGE_PART_DEFAULT = 50;
+export const MCP_LISTED_PAGE_PART_MAX = 200;
+
 /** Cuántas páginas se listan de una vez desde un mismo padre. */
 export const MCP_LISTED_PAGE_LIMIT = 1000;
 

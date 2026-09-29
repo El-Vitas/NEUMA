@@ -16,6 +16,7 @@ import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
 import { OutboxRepository } from './common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from './common/infrastructure/persistence/workspace-context.service';
+import { WorkspaceMemberRepository } from './common/infrastructure/persistence/workspace-member.repository';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
 import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
@@ -190,12 +191,14 @@ import { PrismaModule } from './prisma/prisma.module';
       },
     },
     AccessTokenPlaceRepository,
+    WorkspaceMemberRepository,
     {
       inject: [
         PagesService,
         PageSchemaService,
         PageOutlineService,
         LinksService,
+        WorkspaceMemberRepository,
         AccessTokenPlaceRepository,
         MCP_PRINCIPAL_RESOLVER,
         SearchService,
@@ -209,6 +212,7 @@ import { PrismaModule } from './prisma/prisma.module';
         schemas: PageSchemaService,
         outline: PageOutlineService,
         backlinks: LinksService,
+        people: WorkspaceMemberRepository,
         placeReader: AccessTokenPlaceRepository,
         principalResolver: McpPrincipalResolver,
         searchService: SearchService,
@@ -219,6 +223,7 @@ import { PrismaModule } from './prisma/prisma.module';
         backlinks,
         outline,
         pagesService,
+        people,
         placeReader,
         portalUrl: configService.getOrThrow<string>(PORTAL_URL_KEY),
         principalResolver,
