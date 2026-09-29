@@ -1,6 +1,6 @@
 # MCP · Que el agente haga lo que hace una persona
 
-> Estado: propuesta para aprobar. Nada de esto está construido.
+> Estado: aprobado. F0 y F1 hechos; F2 y F3 pendientes.
 >
 > Ejecuta el nivel 3 de la escalera de `docs/architecture/adr/008-adopt-single-page-primitive-notion-alignment.md`
 > y el contrato de `docs/architecture/mcp-content-authoring.md`. Cierra `AG-01`,
@@ -234,6 +234,44 @@ hallazgos 1 y 2 también para las personas.
 **F1 · Leer y ubicarse.** Ids obligatorios y backfill, `PageBlock`, búsqueda por
 bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
 «Copiar enlace» de página. Cierra `AG-01` y `AG-03`.
+
+> **Hecho el 2026-09-28**, probado con un cliente MCP real contra el servidor de
+> desarrollo y en el navegador. Quedó así:
+>
+> - Las herramientas son `search`, `fetch`, `list_spaces` y `list_pages`. Las de
+>   antes, `read_page` y `search_company_brain`, se retiraron.
+> - `fetch` abre un enlace del portal (con o sin idioma), un id de página o un id
+>   de bloque. Una página llega en Markdown con el id de cada bloque, sus
+>   propiedades si es una fila, sus comentarios, lo que cuelga de ella y quién la
+>   enlaza; una página larga llega de a tramos, con un cursor. Un bloque llega con
+>   su sección y su página.
+> - `search` devuelve bloques con su página, su sección y su enlace, más las
+>   páginas que coinciden por título, y se puede filtrar por espacio, por página
+>   raíz y por tipo de bloque. Tolera errores de tipeo.
+> - «Copiar enlace» está en el encabezado de la página, para todos, y en su menú
+>   del árbol.
+>
+> Se apartó del plan en tres puntos:
+>
+> - **Los bloques no van a `SearchDocument`.** Un id de bloque solo es único
+>   dentro de su página, porque duplicar una página o mover bloques conserva los
+>   ids, y `SearchDocument` exige un id de origen único en toda la base. `PageBlock`
+>   tiene la clave (página, bloque) y su propio índice de texto. La búsqueda del
+>   portal sigue siendo por página.
+> - **El relleno no es una migración.** Un proceso aparte pisaría el documento en
+>   vivo de quien tenga la página abierta. Es un mantenimiento que corre dentro del
+>   backend quien administra el espacio de trabajo (`POST /maintenance/pages/blocks`):
+>   da ids a las páginas que no los tienen y proyecta todas. Se puede correr las
+>   veces que haga falta.
+> - **`id` sigue siendo opcional en el esquema.** El servidor lo asigna en toda
+>   escritura (crear, sembrar el documento en vivo y escribir en él), así que ya no
+>   entra contenido sin ids. Volverlo obligatorio al leer rompería contenido
+>   guardado que el relleno todavía no tocó, sin ganar nada.
+>
+> Queda anotado para después: una propiedad de persona se entrega como el id de la
+> persona, no su nombre; y la búsqueda y los retroenlaces leen la misma bandeja de
+> eventos, así que con los dos proyectores corriendo uno le puede quitar eventos al
+> otro.
 
 **F2 · Colecciones.** `get_collection`, `query_collection`, `create_row`,
 `update_row_properties` y la configuración de columnas y vistas.
