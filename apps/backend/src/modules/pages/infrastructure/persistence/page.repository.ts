@@ -307,7 +307,11 @@ export class PageRepository implements PageRepositoryContract {
       const merged = await merge(parseSchemaPropertyValues(current.propertyValues));
       if (merged.isFail()) return Result.fail(merged.getError());
       const page = await transaction.page.update({
-        data: { propertyValues: toPropertyValuesInput(merged.getValue()), updatedById: input.updatedById },
+        data: {
+          propertyValues: toPropertyValuesInput(merged.getValue()),
+          ...(input.title === undefined ? {} : { title: input.title }),
+          updatedById: input.updatedById,
+        },
         select: pageSelection,
         where: { id: input.pageId },
       });

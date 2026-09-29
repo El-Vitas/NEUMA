@@ -24,6 +24,22 @@ export const MCP_BLOCK_TYPE_MAX_LENGTH = 64;
 export const MCP_LISTED_PAGE_PART_DEFAULT = 50;
 export const MCP_LISTED_PAGE_PART_MAX = 200;
 
+/** Cuántos cambios de una misma clase —columnas, opciones, valores— se piden en una llamada. */
+export const MCP_COLLECTION_CHANGE_LIMIT = 50;
+
+/** Cuántas condiciones y cuántos órdenes lleva una consulta o una vista: los mismos que acepta una vista. */
+export const MCP_WHERE_CONDITION_LIMIT = 20;
+export const MCP_SORT_RULE_LIMIT = 5;
+
+/** El largo del nombre de una columna, una opción o una clave. */
+export const MCP_COLUMN_NAME_MAX_LENGTH = 100;
+
+/** El largo de un valor de texto en una celda. */
+export const MCP_VALUE_TEXT_MAX_LENGTH = 500;
+
+/** El largo de lo que dice la página de una fila al crearla. */
+export const MCP_ROW_TEXT_MAX_LENGTH = 20_000;
+
 /** Cuántas páginas se listan de una vez desde un mismo padre. */
 export const MCP_LISTED_PAGE_LIMIT = 1000;
 

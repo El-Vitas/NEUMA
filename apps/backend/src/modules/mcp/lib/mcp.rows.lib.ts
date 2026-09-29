@@ -19,7 +19,7 @@ export const loadMcpRowDescriber = async (
   if (collectionId === null) return describesNothing;
   const { principal, workspace } = call;
   const [schema, members] = await Promise.all([
-    dependencies.schemas.getSchema(collectionId, workspace.id, principal.userId, principal.role),
+    dependencies.collections.getSchema(collectionId, workspace.id, principal.userId, principal.role),
     dependencies.people.listAssignableMembers(workspace.id),
   ]);
   if (schema.isFail()) return describesNothing;

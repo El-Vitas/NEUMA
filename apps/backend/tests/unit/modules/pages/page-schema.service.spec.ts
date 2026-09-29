@@ -514,3 +514,99 @@ describe('page schema service — getView', () => {
     expect(result.getValue().outcome).toEqual({ kind: 'MISSING_GROUPING_PROPERTY' });
   });
 });
+
+describe('page schema service — queryRows', () => {
+  const rowOf = (id: string, status: string, order: number) => ({
+    id,
+    lifecycle: PageLifecycle.ACTIVE,
+    order,
+    parentId: 'page-a',
+    propertyValues: { status },
+    spaceId: 'space-a',
+    title: `Row ${id}`,
+  });
+  const rows = [rowOf('a', 'todo', 0), rowOf('b', 'done', 1), rowOf('c', 'todo', 2)];
+  const todoFilter = { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo' };
+
+  const queryWith = (schemaOverrides: Partial<PageSchemaRepositoryContract> = {}) =>
+    new PageSchemaService(
+      createPageRepository(),
+      createSchemaRepository({
+        getSchema: (pageId) =>
+          Promise.resolve({
+            pageId,
+            properties: [titleProperty, statusProperty],
+            views: [
+              {
+                configuration: { filter: todoFilter, groupBy: 'status' },
+                isDefault: true,
+                name: 'Pendientes',
+                type: DatabaseViewType.BOARD,
+              },
+            ],
+          }),
+        listRows: () => Promise.resolve({ hasMore: false, rows }),
+        ...schemaOverrides,
+      }),
+    );
+
+  const reader = { role: USER_ROLE.WORKER, userId: 'user-a', workspaceId: 'workspace-a' };
+
+  it('reads the rows as a view reads them, in one list, with each row whole', async () => {
+    const result = await queryWith().queryRows({
+      ...reader,
+      configuration: null,
+      pageId: 'page-a',
+      viewName: 'Pendientes',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(result.getValue().rows.map((row) => row.id)).toEqual(['a', 'c']);
+    expect(result.getValue().rows[0]).toEqual(rowOf('a', 'todo', 0));
+  });
+
+  it('reads the rows with a filter of its own, not the one of any view', async () => {
+    const result = await queryWith().queryRows({
+      ...reader,
+      configuration: { filter: { ...todoFilter, operator: 'IS_NOT' } },
+      pageId: 'page-a',
+      viewName: null,
+    });
+
+    expect(result.getValue().rows.map((row) => row.id)).toEqual(['b']);
+  });
+
+  it('reads every row when asked for nothing in particular', async () => {
+    const result = await queryWith().queryRows({ ...reader, configuration: null, pageId: 'page-a', viewName: null });
+
+    expect(result.getValue().rows.map((row) => row.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('refuses a filter on a column the collection does not have', async () => {
+    const result = await queryWith().queryRows({
+      ...reader,
+      configuration: { filter: { ...todoFilter, propertyKey: 'ghost' } },
+      pageId: 'page-a',
+      viewName: null,
+    });
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('SCHEMA_VIEW_INVALID');
+    expect(String(result.getError().details)).toContain('no column ghost');
+    expect(String(result.getError().details)).toContain('title, status');
+  });
+
+  it('says a view the collection does not have is not there', async () => {
+    const result = await queryWith().queryRows({ ...reader, configuration: null, pageId: 'page-a', viewName: 'Otra' });
+
+    expect(result.getError().code).toBe('PAGE_VIEW_NOT_FOUND');
+  });
+
+  it('refuses a page that is not a collection', async () => {
+    const result = await queryWith({
+      getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
+    }).queryRows({ ...reader, configuration: null, pageId: 'page-a', viewName: null });
+
+    expect(result.getError().code).toBe('PAGE_SCHEMA_NOT_FOUND');
+  });
+});

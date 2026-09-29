@@ -231,14 +231,19 @@ export class PagesService {
     if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
 
     const page = await this.pageRepository.updatePropertyValues(
-      { pageId: input.pageId, updatedById: input.updatedById },
+      {
+        pageId: input.pageId,
+        ...(input.title === undefined ? {} : { title: input.title }),
+        updatedById: input.updatedById,
+      },
       async (current) => {
         const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
         const merged = keepWhatThePageSchemaKnows(
           schemaProperties,
           mergePagePropertyValues(current, input.propertyValues),
         );
-        return this.resolvePropertyValuesForWrite(existing.parentId, input.workspaceId, existing.title, merged);
+        const title = input.title ?? existing.title;
+        return this.resolvePropertyValuesForWrite(existing.parentId, input.workspaceId, title, merged);
       },
     );
     return page ?? Result.fail(new PageAccessDeniedError());

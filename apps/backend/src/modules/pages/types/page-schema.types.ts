@@ -55,6 +55,20 @@ export interface PageRowsPage {
   readonly rows: readonly PageRowSummary[];
 }
 
+/**
+ * Qué filas de una colección se piden: las que deja ver una de sus vistas, o
+ * las que deja ver un filtro y un orden propios. Sin ninguno de los dos, todas.
+ */
+export interface QueryPageRowsInput {
+  /** Filtro y orden propios, con la forma de la configuración de una vista. */
+  readonly configuration: unknown;
+  readonly pageId: string;
+  readonly role: UserRole;
+  readonly userId: string;
+  readonly viewName: string | null;
+  readonly workspaceId: string;
+}
+
 export interface PageRowsSummary {
   readonly hasMore: boolean;
   readonly spaceId: string;

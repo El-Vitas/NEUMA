@@ -43,6 +43,8 @@ export interface StoredPageContentRow {
 
 export interface UpdatePagePropertyValuesInput {
   readonly pageId: string;
+  /** Un nombre nuevo que se guarda en la misma escritura; sin él, el nombre no se toca. */
+  readonly title?: string;
   readonly updatedById: string;
 }
 
@@ -86,6 +88,8 @@ export interface UpdatePagePropertiesInput {
   /** Only the properties that changed. What the row already held stays. */
   readonly propertyValues: Readonly<Record<string, unknown>>;
   readonly role: UserRole;
+  /** A new name for the row, saved in the same write as its properties so both land or neither does. */
+  readonly title?: string;
   readonly updatedById: string;
   readonly userId: string;
   readonly workspaceId: string;

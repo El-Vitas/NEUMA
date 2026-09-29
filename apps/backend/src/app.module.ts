@@ -44,6 +44,7 @@ import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
 import { LinksService } from './modules/links/links.service';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
+import { McpActionRepository } from './modules/mcp/infrastructure/persistence/mcp.action.repository';
 import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
@@ -192,8 +193,10 @@ import { PrismaModule } from './prisma/prisma.module';
     },
     AccessTokenPlaceRepository,
     WorkspaceMemberRepository,
+    McpActionRepository,
     {
       inject: [
+        McpActionRepository,
         PagesService,
         PageSchemaService,
         PageOutlineService,
@@ -208,8 +211,9 @@ import { PrismaModule } from './prisma/prisma.module';
       ],
       provide: MCP_SERVER_DEPENDENCIES,
       useFactory: (
+        actionLog: McpActionRepository,
         pagesService: PagesService,
-        schemas: PageSchemaService,
+        collections: PageSchemaService,
         outline: PageOutlineService,
         backlinks: LinksService,
         people: WorkspaceMemberRepository,
@@ -220,14 +224,16 @@ import { PrismaModule } from './prisma/prisma.module';
         workspacesService: WorkspacesService,
         configService: ConfigService,
       ): McpServerDependencies => ({
+        actionLog,
         backlinks,
+        collections,
         outline,
         pagesService,
         people,
         placeReader,
         portalUrl: configService.getOrThrow<string>(PORTAL_URL_KEY),
         principalResolver,
-        schemas,
+        rows: pagesService,
         searchService,
         spacesService,
         workspacesService,

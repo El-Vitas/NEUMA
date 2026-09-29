@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE, type UserRole } from '@company-brain/shared';
+import {
+  ACCESS_TOKEN_PERMISSIONS,
+  type PagePropertyType,
+  Result,
+  USER_ROLE,
+  type UserRole,
+} from '@company-brain/shared';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { z } from 'zod';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
@@ -22,12 +28,11 @@ import {
 } from '../../../../src/modules/mcp/constants/mcp.constants';
 import { writeMcpServerInstructions } from '../../../../src/modules/mcp/lib/mcp.instructions.lib';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
+import type { McpCollectionService, McpColumn } from '../../../../src/modules/mcp/types/mcp.collections.types';
 import type {
   McpOutlineReader,
   McpPageReadResult,
   McpPrincipal,
-  McpSchemaColumn,
-  McpSchemaReadResult,
   McpServerDependencies,
 } from '../../../../src/modules/mcp/types/mcp.types';
 import type { PageSummary } from '../../../../src/modules/pages/types/page.types';
@@ -166,7 +171,9 @@ const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResul
 });
 
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
+  actionLog: { record: () => Promise.resolve() },
   backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
+  collections: collectionWith([]),
   outline,
   pagesService: {
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === PAGE ? page : null)),
@@ -175,7 +182,7 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   placeReader,
   portalUrl: PORTAL,
   principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
-  schemas: { getSchema: () => Promise.resolve(schemaReadResult([])) },
+  rows: { create: notUsedHere, rename: notUsedHere, updateProperties: notUsedHere },
   searchService: {
     locateBlock: (blockId) => Promise.resolve(blockId === BLOCK ? [PAGE] : []),
     search: () => Promise.resolve(pageHits),
@@ -185,9 +192,23 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
 });
 
-const schemaReadResult = (properties: readonly McpSchemaColumn[]): McpSchemaReadResult => ({
-  getValue: () => ({ properties }),
-  isFail: () => false,
+const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
+
+const column = (key: string, label: string, type: PagePropertyType): McpColumn => ({
+  key,
+  label,
+  options: null,
+  required: false,
+  type,
+});
+
+/** Una colección con esas columnas, que solo se lee. */
+const collectionWith = (properties: readonly McpColumn[]): McpCollectionService => ({
+  defineSchema: notUsedHere,
+  getSchema: () => Promise.resolve(Result.ok({ properties, views: [] })),
+  queryRows: notUsedHere,
+  rewriteOption: notUsedHere,
+  setViewConfiguration: notUsedHere,
 });
 
 /** Otras dependencias con otra página en lugar de la de siempre. */
@@ -232,12 +253,20 @@ const fetchAddress = async (address: string, dependencies = createDependencies()
   (await connectClient(dependencies)).callTool({ arguments: { address }, name: 'fetch' });
 
 describe('MCP read contract', () => {
-  test('offers the read tools, starting with the one to use first', async () => {
+  /** Un token que solo lee no ve herramientas que escriben: ofrecerlas sería invitar a un fallo seguro. */
+  test('offers a read-only token the read tools only, starting with the one to use first', async () => {
     const client = await connectClient(createDependencies());
 
     const result = await client.listTools();
 
-    expect(result.tools.map((tool) => tool.name)).toEqual(['search', 'fetch', 'list_spaces', 'list_pages']);
+    expect(result.tools.map((tool) => tool.name)).toEqual([
+      'search',
+      'fetch',
+      'list_spaces',
+      'list_pages',
+      'get_collection',
+      'query_collection',
+    ]);
   });
 
   test('tells the agent what the brain is before it calls anything', async () => {
@@ -556,16 +585,11 @@ describe('MCP fetch — rows, comments and long pages', () => {
     const result = await fetchAddress(
       PAGE,
       servingPage(row, {
-        schemas: {
-          getSchema: () =>
-            Promise.resolve(
-              schemaReadResult([
-                { key: 'status', label: 'Estado', type: 'SELECT' },
-                { key: 'owner', label: 'Responsable', type: 'TEXT' },
-                { key: 'tags', label: 'Etiquetas', type: 'MULTI_SELECT' },
-              ]),
-            ),
-        },
+        collections: collectionWith([
+          column('status', 'Estado', 'SELECT'),
+          column('owner', 'Responsable', 'RICH_TEXT'),
+          column('tags', 'Etiquetas', 'MULTI_SELECT'),
+        ]),
       }),
     );
 
@@ -573,13 +597,13 @@ describe('MCP fetch — rows, comments and long pages', () => {
       page: {
         properties: [
           { key: 'status', label: 'Estado', type: 'SELECT', value: 'En curso' },
-          { key: 'owner', label: 'Responsable', type: 'TEXT', value: null },
+          { key: 'owner', label: 'Responsable', type: 'RICH_TEXT', value: null },
           { key: 'tags', label: 'Etiquetas', type: 'MULTI_SELECT', value: ['a', 'b'] },
         ],
       },
     });
     expect(textOf(result)).toContain('- Estado (status, SELECT): En curso');
-    expect(textOf(result)).toContain('- Responsable (owner, TEXT): (empty)');
+    expect(textOf(result)).toContain('- Responsable (owner, RICH_TEXT): (empty)');
   });
 
   test('names the person a row is assigned to, not just their id', async () => {
@@ -587,10 +611,7 @@ describe('MCP fetch — rows, comments and long pages', () => {
     const result = await fetchAddress(
       PAGE,
       servingPage(row, {
-        schemas: {
-          getSchema: () =>
-            Promise.resolve(schemaReadResult([{ key: 'assignee', label: 'Asignada a', type: 'PERSON' }])),
-        },
+        collections: collectionWith([column('assignee', 'Asignada a', 'PERSON')]),
       }),
     );
 
@@ -699,16 +720,11 @@ describe('MCP list_pages', () => {
     const client = await connectClient({
       ...createDependencies(),
       outline: { ...outline, listChildren: () => Promise.resolve([task(1, 'todo'), task(2, 'done')]) },
-      schemas: {
-        getSchema: () =>
-          Promise.resolve(
-            schemaReadResult([
-              { key: 'title', label: 'Título', type: 'TITLE' },
-              { key: 'status', label: 'Estado', type: 'SELECT' },
-              { key: 'assignee', label: 'Asignada a', type: 'PERSON' },
-            ]),
-          ),
-      },
+      collections: collectionWith([
+        column('title', 'Título', 'TITLE'),
+        column('status', 'Estado', 'SELECT'),
+        column('assignee', 'Asignada a', 'PERSON'),
+      ]),
     });
 
     const result = await client.callTool({ arguments: { parentPageId: PAGE }, name: 'list_pages' });
