@@ -1,6 +1,7 @@
 import { DatabasePropertyType } from '@company-brain/db';
 import type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
-import type { McpPerson, McpRowProperty, McpSchemaColumn } from '../types/mcp.types';
+import type { McpSchemaColumn } from '../types/mcp.collections.types';
+import type { McpPerson, McpRowProperty } from '../types/mcp.types';
 
 /** Un valor tal como sale hacia el agente: una lista, copiada; nada, si la fila no tiene valor. */
 const copyValue = (value: PagePropertyValue | undefined): McpRowProperty['value'] => {

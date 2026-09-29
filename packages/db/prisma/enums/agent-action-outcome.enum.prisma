@@ -1,0 +1,9 @@
+/// Cómo terminó una escritura de un agente.
+enum AgentActionOutcome {
+  /// Se hizo.
+  DONE
+  /// No se hizo porque no le tocaba: permiso, página bloqueada, valor inválido.
+  REFUSED
+  /// No se hizo por algo que falló por dentro.
+  FAILED
+}

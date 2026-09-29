@@ -16,11 +16,67 @@ export const MCP_SERVER_INFO = { name: 'company-brain', version: '0.1.0' } as co
  * usa, así que se eligen una vez.
  */
 export const MCP_TOOL_NAMES = {
+  createRow: 'create_row',
+  createView: 'create_view',
+  deleteView: 'delete_view',
   fetch: 'fetch',
+  getCollection: 'get_collection',
   listPages: 'list_pages',
   listSpaces: 'list_spaces',
+  queryCollection: 'query_collection',
   search: 'search',
+  updateCollectionColumns: 'update_collection_columns',
+  updateRow: 'update_row',
+  updateView: 'update_view',
 } as const;
+
+/** Un salto de línea dentro de un párrafo de una página. */
+export const MCP_HARD_BREAK_NODE = { type: 'hard_break' } as const;
+
+/** El párrafo vacío con que nace una página sin texto, igual que en el portal. */
+export const MCP_EMPTY_PARAGRAPH_NODE = { content: [], type: 'paragraph' } as const;
+
+/** Lo que separa dos párrafos en el texto que el agente escribe: una línea en blanco. */
+export const MCP_PARAGRAPH_SEPARATOR = /\n\s*\n/;
+
+/** Un salto de línea dentro de un párrafo. */
+export const MCP_LINE_SEPARATOR = /\r?\n/;
+
+/** Un cursor que dice desde qué posición seguir una lista o una página larga. */
+export const MCP_OFFSET_CURSOR_PATTERN = /^\d{1,6}$/;
+
+/** Lo que se le dice cuando pasó una página que no tiene columnas. */
+export const MCP_NOT_A_COLLECTION_MESSAGE =
+  'This page is not a collection: it has no columns. To find the collections, list the spaces with list_spaces and the pages at their top with list_pages: collections are marked as such.';
+
+/** Lo que se le dice cuando pasó, como fila, una página que no cuelga de una colección. */
+export const MCP_NOT_A_ROW_MESSAGE =
+  'This page is not a row of a collection. A row is a page right under a collection; list_pages or query_collection give their ids.';
+
+/** Lo que se le dice cuando la página está bloqueada contra cambios. */
+export const MCP_PAGE_LOCKED_MESSAGE =
+  'This page is locked against edits. Ask a person to unlock it in Company Brain before changing it.';
+
+/** Lo que se le dice cuando otra persona cambió lo mismo mientras tanto. */
+export const MCP_CONCURRENT_CHANGE_MESSAGE =
+  'Somebody changed the same thing a moment ago. Read the collection again with get_collection and retry.';
+
+/** Lo que se le dice cuando pide cambiar algo sin decir qué. */
+export const MCP_NOTHING_TO_CHANGE_MESSAGE = 'Nothing to change: say what should change.';
+
+/** Los rechazos que se contestan como un recurso que no está: decir más confirmaría que existe. */
+export const MCP_INACCESSIBLE_REFUSAL_CODES: readonly string[] = ['PAGE_ACCESS_DENIED', 'PAGE_SCHEMA_NOT_FOUND'];
+
+export const MCP_LOCKED_REFUSAL_CODE = 'PAGE_LOCKED';
+
+/** Lo que otra persona movió entre que el agente leyó y escribió: una vista que ya no está, una opción ya renombrada. */
+export const MCP_CONCURRENT_REFUSAL_CODES: readonly string[] = [
+  'PAGE_VIEW_NOT_FOUND',
+  'SCHEMA_PROPERTY_DEFINITION_INVALID',
+];
+
+/** Cómo empieza lo que se le dice cuando Company Brain rechazó el cambio por lo que pedía. */
+export const MCP_REFUSED_CHANGE_PREFIX = 'Company Brain refused the change:';
 
 /** Lo que aparece en lugar de una página que el agente no puede ver: nombrarla ya diría demasiado. */
 export const MCP_REDACTED_REFERENCE_LABEL = '[unavailable page]';
@@ -40,6 +96,12 @@ export const MCP_BLOCK_NOT_FOUND_NOTE =
 
 /** La palabra que queda en lugar de una mención a una página que el agente no puede ver. */
 export const MCP_REDACTED_REFERENCE_WORD = { text: MCP_REDACTED_REFERENCE_LABEL, type: 'text' } as const;
+
+/** Las condiciones que no comparan con un valor: preguntan si la celda está vacía o no. */
+export const MCP_VALUELESS_FILTER_OPERATORS: readonly string[] = ['IS_EMPTY', 'IS_NOT_EMPTY'];
+
+/** Los acentos, que no cuentan al comparar lo que escribe el agente con un nombre: «Titulo» es «Título». */
+export const MCP_ACCENT_MARKS = /\p{M}/gu;
 
 /** Dónde dice la página en la ruta de un enlace del portal: `/spaces/<espacio>/pages/<página>`. */
 export const MCP_PAGE_IN_PATH_PATTERN = /\/pages\/([^/?#\s]+)/;
@@ -85,5 +147,8 @@ export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
   'To find information, start with search: it returns the exact blocks that match, with their page and section.',
   'To open something, use fetch with a Company Brain link, a page id or a block id.',
   'Pages come back as Markdown; the comment before each block carries its id. To browse, use list_spaces and list_pages.',
+  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status.',
+  'When the person asks to add, note or change a task of the team or of "our board", do it on a Company Brain collection, never in your own session\'s task list.',
+  'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',
   'You act as the person who created your access token and see exactly what they can see.',
 ];

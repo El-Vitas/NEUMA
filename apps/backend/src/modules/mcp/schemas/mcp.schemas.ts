@@ -7,6 +7,7 @@ import {
   SEARCH_MAX_LIMIT,
   SEARCH_MAX_QUERY_LENGTH,
 } from '../../../common/constants/search.constants';
+import { MCP_OFFSET_CURSOR_PATTERN } from '../constants/mcp.constants';
 import {
   MCP_ADDRESS_MAX_LENGTH,
   MCP_BLOCK_TYPE_MAX_LENGTH,
@@ -111,7 +112,7 @@ export const searchOutputSchema = z.object({
 export const fetchInputSchema = z.object({
   cursor: z
     .string()
-    .regex(/^\d{1,6}$/)
+    .regex(MCP_OFFSET_CURSOR_PATTERN)
     .optional()
     .describe('To read the next part of a long page: the cursor the previous part returned.'),
   address: z
@@ -175,7 +176,7 @@ export const fetchOutputSchema = z.object({
 export const listPagesInputSchema = z.object({
   cursor: z
     .string()
-    .regex(/^\d{1,6}$/)
+    .regex(MCP_OFFSET_CURSOR_PATTERN)
     .optional()
     .describe('To list the next part: the cursor the previous part returned.'),
   limit: z.number().int().min(1).max(MCP_LISTED_PAGE_PART_MAX).default(MCP_LISTED_PAGE_PART_DEFAULT),

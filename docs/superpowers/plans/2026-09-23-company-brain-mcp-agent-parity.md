@@ -1,6 +1,6 @@
 # MCP · Que el agente haga lo que hace una persona
 
-> Estado: aprobado. F0 y F1 hechos; F2 y F3 pendientes.
+> Estado: aprobado. F0, F1 y F2 hechos; F3 pendiente.
 >
 > Ejecuta el nivel 3 de la escalera de `docs/architecture/adr/008-adopt-single-page-primitive-notion-alignment.md`
 > y el contrato de `docs/architecture/mcp-content-authoring.md`. Cierra `AG-01`,
@@ -276,8 +276,27 @@ bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
 **F2 · Colecciones.** `get_collection`, `query_collection`, `create_row`,
 `update_row_properties` y la configuración de columnas y vistas.
 
-**F3 · Escribir en páginas.** Las herramientas de `pages:write` y `pages:trash`,
-y el registro de acciones. Cierra `AG-02`.
+> **Hecho.** Se apartó del plan en cuatro puntos:
+>
+> - El registro de acciones (`AgentAction`) llegó en F2 y no en F3, porque F2 es la
+>   primera fase que escribe. Anota lo hecho, lo rechazado y lo fallido.
+> - `update_row_properties` quedó como `update_row`, que cambia también el título.
+>   Mover una tarea de columna es cambiar su estado ahí.
+> - La configuración quedó en cuatro herramientas: `update_collection_columns`,
+>   `create_view`, `update_view` y `delete_view`.
+> - Para que el agente siga las mismas reglas que el portal, pasaron a `shared` la
+>   clave de una columna nueva (`buildPagePropertyKey`) y dos reglas de vistas
+>   (`removeSchemaView` y `makeSchemaViewDefault`).
+>
+> Lo probaron agentes haiku con preguntas naturales y solo el MCP. Hicieron falta
+> dos instrucciones más: anotar las tareas del equipo en Company Brain y no en la
+> lista propia del agente, y que un tablero puede tener su nombre en otro idioma.
+>
+> El título y las propiedades de una fila se guardan en una sola escritura
+> (`updateProperties` acepta el título), así que quedan las dos cosas o ninguna.
+
+**F3 · Escribir en páginas.** Las herramientas de `pages:write` y `pages:trash`.
+Cierra `AG-02`.
 
 F0 va primero porque F2 y F3 escriben, y sin F0 esas escrituras se pierden.
 

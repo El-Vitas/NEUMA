@@ -1,7 +1,13 @@
-import { Result, USER_ROLE, type UserRole } from '@company-brain/shared';
+import {
+  type PageViewConfiguration,
+  pageViewConfigurationSchema,
+  Result,
+  readPageViewConfiguration,
+  USER_ROLE,
+  type UserRole,
+} from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import type { SchemaViewValidationError } from '../../common/domain/schema.error';
-import { SchemaPropertyDefinitionError } from '../../common/domain/schema.error';
+import { SchemaPropertyDefinitionError, SchemaViewValidationError } from '../../common/domain/schema.error';
 import { rewriteSchemaOption } from '../../common/domain/schema-option.domain';
 import { validateSchemaView } from '../../common/domain/schema-view.domain';
 import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY, SCHEMA_OPTION_ALREADY_MOVED } from './constants/pages.constants';
@@ -12,17 +18,47 @@ import {
   PageViewNotFoundError,
 } from './domain/page.error';
 import { pageCarriesSchema, validatePageSchemaDefinition, validatePageSchemaViews } from './domain/page-schema.domain';
-import { buildPageViewOutcome, countPageViewRows } from './domain/page-view.domain';
+import {
+  buildPageViewOutcome,
+  countPageViewRows,
+  findUnknownViewColumns,
+  listPageViewRowsInReadingOrder,
+} from './domain/page-view.domain';
 import type { PageRepositoryContract } from './types/page.types';
 import type {
   DefinePageSchemaInput,
   PageRowsSummary,
+  PageSchemaDefinition,
   PageSchemaRepositoryContract,
   PageSchemaSummary,
+  QueryPageRowsInput,
   RewritePageOptionInput,
   SetPageViewConfigurationInput,
 } from './types/page-schema.types';
 import type { PageViewSummary } from './types/page-view.types';
+
+/** El filtro y el orden de la vista nombrada, o los propios, ya validados contra la colección. */
+const resolveQueryConfiguration = (
+  schema: PageSchemaDefinition,
+  input: QueryPageRowsInput,
+): Result<PageViewConfiguration, PageViewNotFoundError | SchemaViewValidationError> => {
+  if (input.viewName !== null) {
+    const view = schema.views.find((candidate) => candidate.name === input.viewName);
+    return view === undefined
+      ? Result.fail(new PageViewNotFoundError())
+      : Result.ok(readPageViewConfiguration(view.configuration));
+  }
+  const ownConfiguration = input.configuration ?? {};
+  if (!pageViewConfigurationSchema.safeParse(ownConfiguration).success)
+    return Result.fail(new SchemaViewValidationError('The filter or sort is not valid'));
+  const configuration = readPageViewConfiguration(ownConfiguration);
+  const unknown = findUnknownViewColumns(configuration, schema.properties);
+  if (unknown.length === 0) return Result.ok(configuration);
+  const known = schema.properties.map((property) => property.key).join(', ');
+  return Result.fail(
+    new SchemaViewValidationError(`The collection has no column ${unknown.join(', ')}. Its columns are: ${known}.`),
+  );
+};
 
 @Injectable()
 export class PageSchemaService {
@@ -131,6 +167,35 @@ export class PageSchemaService {
     if (!pageCarriesSchema(schemaProperties)) return Result.fail(new PageSchemaNotFoundError());
     const found = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
     return Result.ok({ ...found, spaceId: page.spaceId });
+  }
+
+  /**
+   * Las filas de una colección que deja ver una de sus vistas, o un filtro y un
+   * orden propios, en una sola lista y cada una entera.
+   *
+   * Un filtro propio se valida igual que el de una vista, y además tiene que
+   * nombrar columnas que la colección tenga: si no, se dice cuáles no están.
+   */
+  async queryRows(
+    input: QueryPageRowsInput,
+  ): Promise<
+    Result<
+      PageRowsSummary,
+      PageAccessDeniedError | PageSchemaNotFoundError | PageViewNotFoundError | SchemaViewValidationError
+    >
+  > {
+    const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const schema = await this.pageSchemaRepository.getSchema(input.pageId);
+    if (!pageCarriesSchema(schema.properties)) return Result.fail(new PageSchemaNotFoundError());
+    const configuration = resolveQueryConfiguration(schema, input);
+    if (configuration.isFail()) return Result.fail(configuration.getError());
+    const found = await this.pageSchemaRepository.listRows(input.pageId, input.workspaceId, input.userId, input.role);
+    return Result.ok({
+      hasMore: found.hasMore,
+      rows: listPageViewRowsInReadingOrder(configuration.getValue(), schema.properties, found.rows),
+      spaceId: page.spaceId,
+    });
   }
 
   async getView(

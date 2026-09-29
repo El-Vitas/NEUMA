@@ -11,6 +11,7 @@ import type {
   PageContentWriter,
   PageLogger,
   PageRepositoryContract,
+  UpdatePagePropertyValuesInput,
 } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
 
@@ -1412,6 +1413,39 @@ describe('pages service — updating what a row holds', () => {
 
     expect(result.isOk()).toBe(true);
     expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done' });
+  });
+
+  /** Nombre y propiedades en dos escrituras dejarían la fila a medias si la segunda falla. */
+  it('renames the row in the same write as its properties, so both land or neither does', async () => {
+    const received: UpdatePagePropertyValuesInput[] = [];
+    const service = new PagesService(
+      {
+        ...createRepository(),
+        getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo' } }),
+        updatePropertyValues: async (input, merge) => {
+          received.push(input);
+          const merged = await merge({ status: 'todo' });
+          return merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page);
+        },
+      },
+      { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      title: 'Informe entregado',
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(received).toEqual([{ pageId: 'page-a', title: 'Informe entregado', updatedById: 'user-a' }]);
   });
 
   /**

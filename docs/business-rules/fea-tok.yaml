@@ -3,6 +3,30 @@ name: Tokens de acceso para agentes
 purpose: Reglas de los tokens con que un agente (por MCP) actúa en Company Brain en nombre de una persona.
 scope: access-tokens
 rules:
+  - id: BR-1dca2a0
+    status: active
+    title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
+    rule: >-
+      El agente nombra columnas, opciones, personas y vistas como las ve la gente, sin importar mayúsculas ni acentos, y
+      Company Brain las traduce a lo que guarda. Lo que no calza se rechaza entero antes de escribir, diciendo qué sí
+      vale. Las escrituras pasan por los mismos servicios que usa el portal, con sus validaciones, sus candados y sus
+      reglas de vistas.
+    why: >-
+      Un agente que adivina claves internas escribe valores que el tablero no muestra. Uno que pasara por otro camino
+      que el portal podría dejar una colección en un estado que el portal no permite, como sin vistas o con dos vistas
+      por defecto.
+    context: >-
+      Renombrar o quitar una opción reescribe las filas que la tenían. Una columna nueva recibe la clave que le daría el
+      portal. La última vista de una colección no se quita, y exactamente una es con la que se abre.
+    scenarios:
+      - title: Mover una tarea
+        given: Un tablero con la columna Estado y las opciones Por hacer y Hecho
+        when: El agente cambia el estado de una tarea a «hecho»
+        then: La tarea queda en Hecho, escrito como lo tiene el tablero
+      - title: La última vista
+        given: Una colección con una sola vista
+        when: El agente pide quitarla
+        then: Se rechaza explicando que una colección conserva al menos una vista
   - id: BR-5e36ce0
     status: active
     title: Un token nunca puede más que su dueño
@@ -58,6 +82,29 @@ rules:
         given: Un token que cierra una subpágina de una página que sí puede leer
         when: El agente lista las páginas bajo la página abierta
         then: No ve la subpágina cerrada ni se la cuenta
+  - id: BR-65519fe
+    status: active
+    title: Toda escritura de un agente queda anotada, termine como termine
+    rule: >-
+      Cada vez que un agente intenta escribir en Company Brain queda una anotación con quién es su dueño, con qué token
+      entró, qué herramienta usó, sobre qué página y qué pidió, y si se hizo, se rechazó o falló. Sin esa anotación no
+      hay escritura.
+    why: >-
+      Un agente actúa en nombre de una persona y a su velocidad. Para responder qué cambió, quién lo pidió y qué intentó
+      sin lograrlo hace falta el rastro completo, incluidos los intentos rechazados, que son los que muestran un token
+      mal configurado o un agente que insiste.
+    context: >-
+      La anotación no guarda llaves hacia la página ni hacia el token, para seguir diciendo qué pasó aunque ya no
+      existan.
+    scenarios:
+      - title: Una opción que no existe
+        given: Un token que puede escribir en un tablero
+        when: El agente crea una fila con un estado que el tablero no tiene
+        then: No se crea nada, el agente recibe las opciones que sí existen y la anotación queda como rechazada
+      - title: Una fila bloqueada
+        given: Una fila que una persona bloqueó contra cambios
+        when: El agente intenta cambiarla
+        then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
   - id: BR-75580a6
     status: active
     title: Lo que apunta a una página cerrada no la nombra
@@ -218,6 +265,29 @@ rules:
         given: Un token vivo de otra persona
         when: Quien administra lo revoca
         then: El agente deja de entrar en su siguiente llamada
+  - id: BR-ff39e6a
+    status: active
+    title: En una colección, cada fila responde a su propia regla
+    rule: >-
+      Leer, filtrar o cambiar las filas de una colección se decide fila por fila con la regla más cercana del token: una
+      regla puesta en una fila manda sobre la de su colección. Leer una colección pide collections:read, cambiar sus
+      filas collections:write y cambiar sus columnas o vistas collections:configure, cada uno en el lugar donde está
+      hoy.
+    why: >-
+      Un tablero abierto puede tener una fila cerrada, por ejemplo una tarea con información sensible. Si la colección
+      decidiera por todas sus filas, consultar el tablero entregaría lo que el token cierra.
+    context: >-
+      Una consulta cuenta solo las filas que el token deja leer. A un token que solo lee no se le ofrecen herramientas
+      que escriben.
+    scenarios:
+      - title: Una fila cerrada en un tablero abierto
+        given: Un token que lee y escribe en un tablero, salvo en una de sus filas
+        when: El agente consulta el tablero o intenta cambiar esa fila
+        then: La fila no aparece ni se cuenta, y cambiarla se contesta igual que si no existiera
+      - title: Un token que solo escribe filas
+        given: Un token con collections:read y collections:write, sin collections:configure
+        when: El agente se conecta
+        then: Puede crear y cambiar filas, pero no se le ofrecen las herramientas de columnas ni de vistas
   - id: BR-b1fcc3a
     status: superseded
     title: Límites de los tokens

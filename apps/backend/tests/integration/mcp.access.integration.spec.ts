@@ -680,7 +680,7 @@ describe('MCP access (Integration)', () => {
       const tools = await client.listTools();
       await client.close();
 
-      expect(tools.tools.map((tool) => tool.name)).toEqual(['list_spaces']);
+      expect(tools.tools.map((tool) => tool.name)).toEqual(['list_spaces', 'get_collection', 'query_collection']);
     });
   });
 
