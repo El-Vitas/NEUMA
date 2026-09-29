@@ -65,6 +65,8 @@ export type PageContentWriteError = PageAccessDeniedError | PageContentValidatio
  * en vivo, y la página se guarda desde ahí. Devuelve la página tal como quedó.
  */
 export interface PageLiveDocument {
+  /** Lo que dice el documento en vivo de una página si alguien lo tiene abierto; nada si no. */
+  readonly readLoadedPageContent: (pageId: string) => PageContent | null;
   readonly writePageContent: (writer: PageContentWriter, rewrite: PageContentRewrite) => Promise<PageContent>;
 }
 

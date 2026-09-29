@@ -35,6 +35,63 @@ rules:
         given: Un administrador y la página del espacio privado de otra persona
         when: El administrador pide un token con acceso a esa página
         then: El servidor lo rechaza sin decir si la página existe
+  - id: BR-5fc8214
+    status: active
+    title: El agente ve lo mismo por cada camino
+    rule: >-
+      Buscar, abrir y recorrer el árbol responden con la misma regla del token: lo que no se puede abrir tampoco aparece
+      en la búsqueda ni en el árbol, y un enlace o un id de una página o un bloque que el agente no puede ver se
+      contesta igual que uno que no existe.
+    why: >-
+      Si un camino dijera más que otro, por ahí se filtraría lo que el token cierra: un id sacado de un resultado, un
+      enlace pegado en la conversación o un conteo de subpáginas bastarían para saber que algo existe.
+    context: >-
+      La búsqueda devuelve bloques con su página y su sección. Abrir acepta un enlace copiado del portal, un id de
+      página o un id de bloque. Recorrer el árbol lista las páginas de un nivel con cuántas tiene debajo, contando solo
+      las que el agente puede ver.
+    scenarios:
+      - title: El id de un bloque de una página cerrada
+        given: Un token que lee todo menos una página
+        when: El agente abre un bloque de esa página por su id o por su enlace
+        then: Recibe la misma respuesta que por un id que no existe
+      - title: Una subpágina cerrada
+        given: Un token que cierra una subpágina de una página que sí puede leer
+        when: El agente lista las páginas bajo la página abierta
+        then: No ve la subpágina cerrada ni se la cuenta
+  - id: BR-75580a6
+    status: active
+    title: Lo que apunta a una página cerrada no la nombra
+    rule: >-
+      Cuando el agente abre una página que puede leer, cada mención, subpágina, bloque sincronizado o colección que
+      apunta a una página que su token no alcanza aparece como una marca que no nombra nada, sin título ni id. Lo mismo
+      vale para los ancestros cerrados en la ruta de una página y para las páginas que la enlazan.
+    why: >-
+      Un título ya es información. Si una página abierta dejara ver el nombre de otra cerrada, cerrar una página no
+      alcanzaría para que el agente no supiera de ella.
+    context: La marca conserva el id del bloque que la tenía, así el agente todavía puede señalar ese bloque.
+    scenarios:
+      - title: Una mención a una página cerrada
+        given: Un token que cierra la página Sueldos y una página abierta que la menciona
+        when: El agente abre la página abierta
+        then: Ve una marca en lugar de la mención, sin el título ni el id de Sueldos
+      - title: Un ancestro cerrado
+        given: Un token que cierra una página y vuelve a abrir una de sus hijas
+        when: El agente abre una página bajo esa hija
+        then: La ruta muestra la hija abierta y, en lugar de la cerrada, un paso sin nombre
+  - id: BR-7cca1e0
+    status: active
+    title: Un enlace a un bloque que ya no está entrega su página
+    rule: >-
+      Si el agente abre el enlace de un bloque que ya no está en su página, recibe la página tal como está ahora, con un
+      aviso de que el bloque ya no está. Si la página tampoco se puede ver, la respuesta es la de algo que no existe.
+    why: >-
+      Un enlace copiado hace días sigue diciendo dónde estaba la información. Contestar solo con un error dejaría al
+      agente sin nada, cuando lo que buscaba probablemente sigue en esa página, movido o reescrito.
+    scenarios:
+      - title: El bloque se borró
+        given: Un enlace a un bloque que alguien borró de su página
+        when: El agente lo abre
+        then: Recibe la página entera y el aviso de que el bloque ya no está
   - id: BR-9687ae3
     status: active
     title: Manda el árbol de páginas de hoy

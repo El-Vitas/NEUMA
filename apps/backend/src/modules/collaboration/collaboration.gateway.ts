@@ -1,4 +1,10 @@
-import { createCollaborationDocumentName, type PageContent, pageContentSchema } from '@company-brain/shared';
+import { randomUUID } from 'node:crypto';
+import {
+  createCollaborationDocumentName,
+  givePageBlocksTheirIds,
+  type PageContent,
+  pageContentSchema,
+} from '@company-brain/shared';
 import { Hocuspocus } from '@hocuspocus/server';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import {
@@ -54,19 +60,21 @@ const validateLoadedState = async (state: Uint8Array): Promise<Uint8Array> => {
 
 /**
  * El estado inicial de un documento que nadie abrió todavía: la página tal
- * como está guardada. Una página que ya no existe no tiene documento.
+ * como está guardada, con un id en cada bloque. Una página que ya no existe no
+ * tiene documento.
  */
 const seedFromStoredPage = async (content: CollaborationContentAdapter, pageId: string): Promise<Uint8Array> => {
   const stored = await content.load(pageId);
   if (stored === null) throw new Error('page-not-found');
-  return encodePageContentAsCollaborationState(stored);
+  return encodePageContentAsCollaborationState(givePageBlocksTheirIds(stored, randomUUID));
 };
 
 /**
  * Lee, reescribe y aplica dentro de una sola transacción del documento, así
  * ningún cambio de otra persona se cuela entre lo leído y lo escrito. La página
  * nueva se valida antes de tocar nada: una transacción que falla a la mitad
- * deja escrito lo que alcanzó.
+ * deja escrito lo que alcanzó. Todo bloque que llegue sin id sale con uno,
+ * así se lo puede señalar desde que existe.
  */
 const rewriteInsideTheDocument = (
   connection: CollaborationDirectConnection,
@@ -75,7 +83,10 @@ const rewriteInsideTheDocument = (
   new Promise((resolve, reject) => {
     connection
       .transact((document) => {
-        const rewritten = pageContentSchema.parse(rewrite(readCollaborationDocumentContent(document)));
+        const rewritten = givePageBlocksTheirIds(
+          pageContentSchema.parse(rewrite(readCollaborationDocumentContent(document))),
+          randomUUID,
+        );
         replaceCollaborationDocumentContent(document, rewritten);
         resolve(rewritten);
       })
@@ -144,6 +155,11 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
     }
   };
 
+  const readLoadedPageContent = (pageId: string): PageContent | null => {
+    const document = server.documents.get(createCollaborationDocumentName(pageId));
+    return document === undefined ? null : readCollaborationDocumentContent(document);
+  };
+
   const authorizeUpdate = async (
     context: CollaborationContext,
     documentName: string,
@@ -169,6 +185,7 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       server.closeConnections();
       return Promise.resolve();
     },
+    readLoadedPageContent,
     validateDocumentName: (documentName) => parsePageId(documentName),
     writePageContent,
   };

@@ -1,23 +1,44 @@
 import { describe, expect, test } from 'bun:test';
 import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
+import { z } from 'zod';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
-import type { SearchPage, SearchQuery } from '../../../../src/common/types/search.types';
+import type {
+  PageBlockSearchPage,
+  PageBlockSearchQuery,
+  SearchPage,
+  SearchQuery,
+} from '../../../../src/common/types/search.types';
 import type { WorkspaceSummary } from '../../../../src/common/types/workspace.types';
 import {
+  MCP_BLOCK_NOT_FOUND_NOTE,
+  MCP_INACCESSIBLE_MESSAGE,
+  MCP_LIST_PAGES_PLACE_MESSAGE,
+  MCP_REDACTED_REFERENCE_LABEL,
   MCP_SERVER_INSTRUCTIONS,
   MCP_UNAUTHENTICATED_MESSAGE,
   MCP_UNEXPECTED_MESSAGE,
+  MCP_UNREADABLE_ADDRESS_MESSAGE,
   MCP_UNREADABLE_PAGE_MESSAGE,
 } from '../../../../src/modules/mcp/constants/mcp.constants';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type {
+  McpOutlineReader,
   McpPageReadResult,
   McpPrincipal,
+  McpSchemaColumn,
+  McpSchemaReadResult,
   McpServerDependencies,
 } from '../../../../src/modules/mcp/types/mcp.types';
 import type { PageSummary } from '../../../../src/modules/pages/types/page.types';
 import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.types';
+
+const PORTAL = 'https://brain.example.com';
+const SPACE = '00000000-0000-4000-8000-00000000000a';
+const PAGE = '11111111-1111-4111-8111-111111111111';
+const BLOCK = '44444444-4444-4444-8444-444444444444';
+const HIDDEN_PAGE = '55555555-5555-4555-8555-555555555555';
+const MISSING = '22222222-2222-4222-8222-222222222222';
 
 const principal: McpPrincipal = {
   access: {
@@ -35,7 +56,7 @@ const spaces: readonly SpaceSummary[] = [
   {
     description: null,
     icon: null,
-    id: 'space-1',
+    id: SPACE,
     name: 'Engineering',
     order: 0,
     ownerId: null,
@@ -45,61 +66,94 @@ const spaces: readonly SpaceSummary[] = [
 ];
 const page: PageSummary = {
   content: {
-    content: [{ content: [{ text: 'Run this first', type: 'text' }], type: 'paragraph' }],
+    content: [
+      { attrs: { id: 'heading-1', level: 1 }, content: [{ text: 'Setup', type: 'text' }], type: 'heading' },
+      {
+        attrs: { id: BLOCK },
+        content: [
+          { text: 'Run this first, see ', type: 'text' },
+          { attrs: { label: 'Salaries', pageId: HIDDEN_PAGE, spaceId: SPACE }, type: 'mention' },
+        ],
+        type: 'paragraph',
+      },
+    ],
     schemaVersion: 1,
     type: 'doc',
   },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
-  id: '11111111-1111-4111-8111-111111111111',
+  id: PAGE,
   lifecycle: 'ACTIVE',
   lockedAt: null,
   order: 0,
   owner: null,
   parentId: null,
   propertyValues: null,
-  spaceId: 'space-1',
+  spaceId: SPACE,
   title: 'Runbook',
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedBy: null,
   verificationExpiresAt: null,
   verifiedAt: null,
   verifiedBy: null,
-  version: 1,
+  version: 3,
 };
 
-const searchPage: SearchPage = {
+const blockHits: PageBlockSearchPage = {
+  items: [
+    {
+      blockId: BLOCK,
+      blockType: 'paragraph',
+      headingPath: ['Setup'],
+      pageId: PAGE,
+      pageTitle: 'Runbook',
+      parentPageTitle: null,
+      rank: 0.9,
+      snippet: '<mark>Run</mark> this first',
+      spaceId: SPACE,
+      spaceName: 'Engineering',
+    },
+  ],
+  nextCursor: 'next-block-cursor',
+};
+
+const pageHits: SearchPage = {
   items: [
     {
       contentType: 'PAGE',
-      rank: 0.91,
-      spaceId: 'space-1',
-      sourceId: page.id,
+      rank: 0.5,
+      spaceId: SPACE,
+      sourceId: PAGE,
       sourceType: 'PAGE',
-      snippet: '<mark>Runbook</mark> content',
+      snippet: '<mark>Runbook</mark>',
       title: 'Runbook',
       updatedAt: '2026-08-02T12:00:00.000Z',
     },
+    {
+      contentType: 'PAGE',
+      rank: 0.4,
+      spaceId: SPACE,
+      sourceId: MISSING,
+      sourceType: 'PAGE',
+      snippet: '<mark>Runbooks</mark> index',
+      title: 'Runbooks',
+      updatedAt: '2026-08-02T12:00:00.000Z',
+    },
   ],
-  nextCursor: 'next-page-cursor',
 };
 
-/** El árbol de esta prueba: cada página está sola en la raíz de su espacio, y ninguna regla de página alcanza nada. */
+/** El árbol de esta prueba: la página está sola en la raíz de su espacio, y ninguna regla de página alcanza nada. */
 const placeReader: AccessTokenPlaceReader = {
-  readPlace: (pageId) => Promise.resolve({ lineage: [pageId], spaceId: page.spaceId }),
+  readPlace: (pageId) => Promise.resolve({ lineage: [pageId], spaceId: SPACE }),
   resolvePageReach: () => Promise.resolve({ allowedPageIds: [], closedPageIds: [], spaceIdsWithAllowedPages: [] }),
 };
 
-const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
-  principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
-  workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
-  spacesService: { listAccessible: () => Promise.resolve(spaces) },
-  pagesService: {
-    getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === page.id ? page : null)),
-  },
-  searchService: { search: () => Promise.resolve(searchPage) },
-  placeReader,
-});
+/** La página se ve; la que menciona, no. */
+const outline: McpOutlineReader = {
+  listAncestors: () => Promise.resolve([]),
+  listChildren: () => Promise.resolve([{ childCount: 2, id: MISSING, isCollection: true, title: 'Incidents' }]),
+  listReadable: (pageIds) => Promise.resolve(pageIds.filter((id) => id === PAGE).map((id) => ({ id, spaceId: SPACE }))),
+};
 
 const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult => ({
   getValue: () => {
@@ -107,6 +161,37 @@ const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResul
     return pageSummary;
   },
   isFail: () => pageSummary === null,
+});
+
+const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
+  backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
+  outline,
+  pagesService: {
+    getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === PAGE ? page : null)),
+  },
+  placeReader,
+  portalUrl: PORTAL,
+  principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
+  schemas: { getSchema: () => Promise.resolve(schemaReadResult([])) },
+  searchService: {
+    locateBlock: (blockId) => Promise.resolve(blockId === BLOCK ? [PAGE] : []),
+    search: () => Promise.resolve(pageHits),
+    searchBlocks: () => Promise.resolve(blockHits),
+  },
+  spacesService: { listAccessible: () => Promise.resolve(spaces) },
+  workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
+});
+
+const schemaReadResult = (properties: readonly McpSchemaColumn[]): McpSchemaReadResult => ({
+  getValue: () => ({ properties }),
+  isFail: () => false,
+});
+
+/** Otras dependencias con otra página en lugar de la de siempre. */
+const servingPage = (served: PageSummary, overrides: Partial<McpServerDependencies> = {}): McpServerDependencies => ({
+  ...createDependencies(),
+  pagesService: { getAccessible: () => Promise.resolve(createPageReadResult(served)) },
+  ...overrides,
 });
 
 const connectClient = async (dependencies: McpServerDependencies): Promise<Client> => {
@@ -132,19 +217,24 @@ const createErrorReportingClient = async (
 
 type ToolResult = { readonly content: readonly unknown[]; readonly isError?: boolean | undefined };
 
+const textOf = (result: ToolResult): string => (result.content[0] as { text: string }).text;
+
 const expectInputValidationError = (result: ToolResult): void => {
   expect(result.isError).toBe(true);
   expect(result.content[0]).toMatchObject({ type: 'text' });
-  expect((result.content[0] as { text: string }).text).toContain('Input validation error');
+  expect(textOf(result)).toContain('Input validation error');
 };
 
+const fetchAddress = async (address: string, dependencies = createDependencies()) =>
+  (await connectClient(dependencies)).callTool({ arguments: { address }, name: 'fetch' });
+
 describe('MCP read contract', () => {
-  test('registers only authorized read tools', async () => {
+  test('offers the read tools, starting with the one to use first', async () => {
     const client = await connectClient(createDependencies());
 
     const result = await client.listTools();
 
-    expect(result.tools.map((tool) => tool.name)).toEqual(['list_spaces', 'read_page', 'search_company_brain']);
+    expect(result.tools.map((tool) => tool.name)).toEqual(['search', 'fetch', 'list_spaces', 'list_pages']);
   });
 
   test('tells the agent what the brain is before it calls anything', async () => {
@@ -155,35 +245,30 @@ describe('MCP read contract', () => {
 
   test('lists spaces using the resolved authenticated principal', async () => {
     const calls: string[] = [];
-    let resolvePrincipal = (): Promise<McpPrincipal | null> => Promise.resolve(principal);
-    let resolveWorkspace = (_userId: string, _role: UserRole): Promise<WorkspaceSummary> => Promise.resolve(workspace);
-    let listSpaces = (_workspaceId: string, _userId: string, _role: UserRole): Promise<readonly SpaceSummary[]> =>
-      Promise.resolve(spaces);
     const dependencies: McpServerDependencies = {
-      principalResolver: { resolve: () => resolvePrincipal() },
-      workspacesService: { resolveForUser: (userId, role) => resolveWorkspace(userId, role) },
-      spacesService: { listAccessible: (workspaceId, userId, role) => listSpaces(workspaceId, userId, role) },
-      pagesService: {
-        getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === page.id ? page : null)),
+      ...createDependencies(),
+      principalResolver: {
+        resolve: () => {
+          calls.push('principal');
+          return Promise.resolve(principal);
+        },
       },
-      searchService: { search: () => Promise.resolve(searchPage) },
-      placeReader,
-    };
-    resolvePrincipal = () => {
-      calls.push('principal');
-      return Promise.resolve(principal);
-    };
-    resolveWorkspace = (userId: string, role: UserRole) => {
-      calls.push(`workspace:${userId}:${role}`);
-      return Promise.resolve(workspace);
-    };
-    listSpaces = (workspaceId: string, userId: string, role: UserRole) => {
-      calls.push(`spaces:${workspaceId}:${userId}:${role}`);
-      return Promise.resolve(spaces);
+      spacesService: {
+        listAccessible: (workspaceId, userId, role) => {
+          calls.push(`spaces:${workspaceId}:${userId}:${role}`);
+          return Promise.resolve(spaces);
+        },
+      },
+      workspacesService: {
+        resolveForUser: (userId: string, role: UserRole) => {
+          calls.push(`workspace:${userId}:${role}`);
+          return Promise.resolve(workspace);
+        },
+      },
     };
     const client = await connectClient(dependencies);
 
-    const result = await client.callTool({ name: 'list_spaces', arguments: {} });
+    const result = await client.callTool({ arguments: {}, name: 'list_spaces' });
 
     expect(result.isError).not.toBe(true);
     /**
@@ -197,218 +282,17 @@ describe('MCP read contract', () => {
       ),
     });
     /* Una vez al armar el servidor, para elegir las herramientas, y otra en la llamada, para que revocar corte al instante. */
-    expect(calls).toEqual(['principal', 'principal', 'workspace:user-1:WORKER', 'spaces:workspace-1:user-1:WORKER']);
-  });
-
-  test('gets a page through the direct authorized page read', async () => {
-    const calls: string[] = [];
-    let getPage = (
-      _pageId: string,
-      _workspaceId: string,
-      _userId: string,
-      _role: UserRole,
-    ): Promise<McpPageReadResult> => Promise.resolve(createPageReadResult(page));
-    const dependencies: McpServerDependencies = {
-      ...createDependencies(),
-      pagesService: {
-        getAccessible: (pageId, workspaceId, userId, role) => getPage(pageId, workspaceId, userId, role),
-      },
-      searchService: { search: () => Promise.resolve(searchPage) },
-    };
-    getPage = (pageId: string, workspaceId: string, userId: string, role: UserRole) => {
-      calls.push(`${pageId}:${workspaceId}:${userId}:${role}`);
-      return Promise.resolve(createPageReadResult(page));
-    };
-    const client = await connectClient(dependencies);
-
-    const result = await client.callTool({ name: 'read_page', arguments: { pageId: page.id } });
-    const expectedPage = {
-      content: page.content,
-      id: page.id,
-      lifecycle: page.lifecycle,
-      order: page.order,
-      parentId: page.parentId,
-      spaceId: page.spaceId,
-      title: page.title,
-      version: page.version,
-    };
-
-    expect(result.isError).not.toBe(true);
-    expect(result.structuredContent).toEqual({ page: expectedPage });
-    expect(calls).toEqual(['11111111-1111-4111-8111-111111111111:workspace-1:user-1:WORKER']);
-  });
-
-  test('does not reveal whether an inaccessible page exists', async () => {
-    const client = await connectClient(createDependencies());
-
-    const missing = await client.callTool({
-      name: 'read_page',
-      arguments: { pageId: '22222222-2222-4222-8222-222222222222' },
-    });
-    const inaccessible = await client.callTool({
-      name: 'read_page',
-      arguments: { pageId: '33333333-3333-4333-8333-333333333333' },
-    });
-
-    expect(missing.isError).toBe(true);
-    expect(inaccessible.isError).toBe(true);
-    expect(missing.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
-    expect(inaccessible.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
+    expect(calls).toEqual(['principal', 'principal', 'workspace:user-1:WORKER', `spaces:workspace-1:user-1:WORKER`]);
   });
 
   /** Una llave vencida no es un recurso inaccesible: decirlo así manda al agente a buscar otra página en vez de pedir otra llave. */
   test('tells the agent its token no longer works when there is no authenticated principal', async () => {
     const client = await connectClient(createDependencies(null));
 
-    const result = await client.callTool({ name: 'list_spaces', arguments: {} });
+    const result = await client.callTool({ arguments: {}, name: 'list_spaces' });
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: MCP_UNAUTHENTICATED_MESSAGE }]);
-  });
-
-  test('searches through SearchService with the authenticated principal and filters', async () => {
-    let receivedQuery: SearchQuery | undefined;
-    const client = await connectClient({
-      ...createDependencies(),
-      searchService: {
-        search: (query) => {
-          receivedQuery = query;
-          return Promise.resolve(searchPage);
-        },
-      },
-    });
-
-    const result = await client.callTool({
-      name: 'search_company_brain',
-      arguments: {
-        query: 'runbook',
-        limit: 10,
-        spaceId: 'space-1',
-        sourceType: 'PAGE',
-        contentType: 'PAGE',
-        tags: ['operations', 'runbook'],
-        cursor: 'cursor-1',
-      },
-    });
-
-    expect(result.isError).not.toBe(true);
-    expect(result.structuredContent).toEqual(searchPage);
-    expect(receivedQuery).toEqual({
-      contentType: 'PAGE',
-      cursor: 'cursor-1',
-      limit: 10,
-      query: 'runbook',
-      sourceType: 'PAGE',
-      spaceId: 'space-1',
-      tags: ['operations', 'runbook'],
-      tokenScope: {
-        allowedPageIds: [],
-        closedPageIds: [],
-        closedSpaceIds: [],
-        openSpaceIds: [],
-        readsEverywhere: true,
-      },
-      userId: 'user-1',
-      userRole: USER_ROLE.WORKER,
-      workspaceId: 'workspace-1',
-    });
-  });
-
-  test('returns concise text and the next cursor for search results', async () => {
-    const client = await connectClient(createDependencies());
-
-    const result = await client.callTool({
-      name: 'search_company_brain',
-      arguments: { query: 'runbook' },
-    });
-
-    expect(result.content).toEqual([
-      {
-        type: 'text',
-        text: 'Runbook [PAGE/PAGE] in space-1\n<mark>Runbook</mark> content\nNext cursor: next-page-cursor',
-      },
-    ]);
-    expect(result.structuredContent).toEqual(searchPage);
-  });
-
-  test('returns parsed search output rather than raw service data', async () => {
-    const rawSearchPage = { ...searchPage, internalDebugValue: 'must not cross MCP boundary' };
-    const client = await connectClient({
-      ...createDependencies(),
-      searchService: { search: () => Promise.resolve(rawSearchPage) },
-    });
-
-    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
-
-    expect(result.structuredContent).toEqual(searchPage);
-    expect(result.content).toEqual([
-      {
-        type: 'text',
-        text: 'Runbook [PAGE/PAGE] in space-1\n<mark>Runbook</mark> content\nNext cursor: next-page-cursor',
-      },
-    ]);
-  });
-
-  test('rejects an empty search query', async () => {
-    const client = await connectClient(createDependencies());
-
-    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: '' } });
-
-    expectInputValidationError(result);
-  });
-
-  test('rejects an oversized search query', async () => {
-    const client = await connectClient(createDependencies());
-
-    const result = await client.callTool({
-      name: 'search_company_brain',
-      arguments: { query: 'x'.repeat(201) },
-    });
-
-    expectInputValidationError(result);
-  });
-
-  test('does not search without an authenticated principal', async () => {
-    let searchCalled = false;
-    const client = await connectClient({
-      ...createDependencies(null),
-      searchService: {
-        search: () => {
-          searchCalled = true;
-          return Promise.resolve(searchPage);
-        },
-      },
-    });
-
-    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
-
-    expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: MCP_UNAUTHENTICATED_MESSAGE }]);
-    expect(searchCalled).toBe(false);
-  });
-
-  test('does not report expected inaccessible errors', async () => {
-    const { client, reportedErrors } = await createErrorReportingClient();
-
-    const result = await client.callTool({
-      name: 'read_page',
-      arguments: { pageId: '22222222-2222-4222-8222-222222222222' },
-    });
-
-    expect(result.content).toEqual([{ type: 'text', text: 'Resource not accessible.' }]);
-    expect(reportedErrors).toHaveLength(0);
-  });
-
-  test('reports unexpected search failures without exposing details', async () => {
-    const { client, reportedErrors } = await createErrorReportingClient({
-      searchService: { search: () => Promise.reject(new Error('database unavailable')) },
-    });
-
-    const result = await client.callTool({ name: 'search_company_brain', arguments: { query: 'runbook' } });
-
-    expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: MCP_UNEXPECTED_MESSAGE }]);
-    expect(reportedErrors).toHaveLength(1);
+    expect(result.content).toEqual([{ text: MCP_UNAUTHENTICATED_MESSAGE, type: 'text' }]);
   });
 
   test('reports operational failures without exposing them to the client', async () => {
@@ -416,30 +300,379 @@ describe('MCP read contract', () => {
       spacesService: { listAccessible: () => Promise.reject(new Error('database unavailable')) },
     });
 
-    const result = await client.callTool({ name: 'list_spaces', arguments: {} });
+    const result = await client.callTool({ arguments: {}, name: 'list_spaces' });
 
-    expect(result.content).toEqual([{ type: 'text', text: MCP_UNEXPECTED_MESSAGE }]);
+    expect(result.content).toEqual([{ text: MCP_UNEXPECTED_MESSAGE, type: 'text' }]);
     expect(reportedErrors).toHaveLength(1);
+  });
+});
+
+describe('MCP search', () => {
+  test('searches blocks and page titles as the person, within what the token reads, with the filters asked for', async () => {
+    const blockQueries: PageBlockSearchQuery[] = [];
+    const pageQueries: SearchQuery[] = [];
+    const client = await connectClient({
+      ...createDependencies(),
+      searchService: {
+        ...createDependencies().searchService,
+        search: (query) => {
+          pageQueries.push(query);
+          return Promise.resolve(pageHits);
+        },
+        searchBlocks: (query) => {
+          blockQueries.push(query);
+          return Promise.resolve(blockHits);
+        },
+      },
+    });
+
+    const result = await client.callTool({ arguments: { limit: 10, query: 'run', spaceId: SPACE }, name: 'search' });
+
+    expect(result.isError).not.toBe(true);
+    const readsEverywhere = {
+      allowedPageIds: [],
+      closedPageIds: [],
+      closedSpaceIds: [],
+      openSpaceIds: [],
+      readsEverywhere: true,
+    };
+    expect(blockQueries).toEqual([
+      {
+        limit: 10,
+        query: 'run',
+        spaceId: SPACE,
+        tokenScope: readsEverywhere,
+        userId: 'user-1',
+        userRole: USER_ROLE.WORKER,
+        workspaceId: 'workspace-1',
+      },
+    ]);
+    expect(pageQueries[0]).toMatchObject({ sourceType: 'PAGE', spaceId: SPACE, tokenScope: readsEverywhere });
+  });
+
+  test('answers with each block, its page, section and link, and the pages that only matched by title', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({ arguments: { query: 'run' }, name: 'search' });
+
+    expect(result.structuredContent).toEqual({
+      blocks: [
+        {
+          blockId: BLOCK,
+          blockType: 'paragraph',
+          pageId: PAGE,
+          pageTitle: 'Runbook',
+          parentPageTitle: null,
+          section: ['Setup'],
+          snippet: '<mark>Run</mark> this first',
+          spaceId: SPACE,
+          spaceName: 'Engineering',
+          url: `${PORTAL}/spaces/${SPACE}/pages/${PAGE}#${BLOCK}`,
+        },
+      ],
+      nextCursor: 'next-block-cursor',
+      pages: [
+        {
+          pageId: MISSING,
+          snippet: '<mark>Runbooks</mark> index',
+          spaceId: SPACE,
+          title: 'Runbooks',
+          url: `${PORTAL}/spaces/${SPACE}/pages/${MISSING}`,
+        },
+      ],
+    });
+    expect(textOf(result)).toContain(`Runbook › Setup (paragraph, block ${BLOCK})`);
+    expect(textOf(result)).toContain('More blocks with cursor: next-block-cursor');
+  });
+
+  test('searches under a page only when the agent can see that page, and says nothing about it otherwise', async () => {
+    const client = await connectClient(createDependencies());
+
+    const refused = await client.callTool({ arguments: { pageId: HIDDEN_PAGE, query: 'run' }, name: 'search' });
+
+    expect(refused.content).toEqual([{ text: MCP_INACCESSIBLE_MESSAGE, type: 'text' }]);
+  });
+
+  test('rejects an empty or oversized query', async () => {
+    const client = await connectClient(createDependencies());
+
+    expectInputValidationError(await client.callTool({ arguments: { query: '' }, name: 'search' }));
+    expectInputValidationError(await client.callTool({ arguments: { query: 'x'.repeat(201) }, name: 'search' }));
+  });
+
+  test('does not search without an authenticated principal', async () => {
+    let searched = false;
+    const client = await connectClient({
+      ...createDependencies(null),
+      searchService: {
+        ...createDependencies().searchService,
+        searchBlocks: () => {
+          searched = true;
+          return Promise.resolve(blockHits);
+        },
+      },
+    });
+
+    const result = await client.callTool({ arguments: { query: 'run' }, name: 'search' });
+
+    expect(result.content).toEqual([{ text: MCP_UNAUTHENTICATED_MESSAGE, type: 'text' }]);
+    expect(searched).toBe(false);
+  });
+
+  test('reports an unexpected search failure without exposing it', async () => {
+    const { client, reportedErrors } = await createErrorReportingClient({
+      searchService: {
+        ...createDependencies().searchService,
+        searchBlocks: () => Promise.reject(new Error('database unavailable')),
+      },
+    });
+
+    const result = await client.callTool({ arguments: { query: 'run' }, name: 'search' });
+
+    expect(result.content).toEqual([{ text: MCP_UNEXPECTED_MESSAGE, type: 'text' }]);
+    expect(reportedErrors).toHaveLength(1);
+  });
+});
+
+describe('MCP fetch', () => {
+  test('opens a page by its link as Markdown, each block with its id, with what hangs under it', async () => {
+    const result = await fetchAddress(`${PORTAL}/es/spaces/${SPACE}/pages/${PAGE}`);
+
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      page: {
+        backlinks: [],
+        children: [
+          {
+            childCount: 2,
+            id: MISSING,
+            isCollection: true,
+            title: 'Incidents',
+            url: `${PORTAL}/spaces/${SPACE}/pages/${MISSING}`,
+          },
+        ],
+        id: PAGE,
+        path: [],
+        title: 'Runbook',
+        url: `${PORTAL}/spaces/${SPACE}/pages/${PAGE}`,
+        version: 3,
+      },
+    });
+    expect(textOf(result)).toContain(`<!-- block:${BLOCK} -->\nRun this first`);
+  });
+
+  test('never names a page the agent cannot see, even when the page it opened mentions it', async () => {
+    const result = await fetchAddress(PAGE);
+
+    expect(textOf(result)).toContain(MCP_REDACTED_REFERENCE_LABEL);
+    expect(JSON.stringify(result)).not.toContain('Salaries');
+    expect(JSON.stringify(result)).not.toContain(HIDDEN_PAGE);
+  });
+
+  test('opens the block a link points at, with its section and its page', async () => {
+    const result = await fetchAddress(`/spaces/${SPACE}/pages/${PAGE}#${BLOCK}`);
+
+    expect(result.structuredContent).toMatchObject({
+      block: {
+        id: BLOCK,
+        section: ['Setup'],
+        type: 'paragraph',
+        url: `${PORTAL}/spaces/${SPACE}/pages/${PAGE}#${BLOCK}`,
+      },
+      page: { id: PAGE, title: 'Runbook' },
+    });
+    expect(textOf(result)).toContain(`Block ${BLOCK} (paragraph) in Runbook › Setup`);
+  });
+
+  test('opens a block by its id alone, finding the page it is on', async () => {
+    const result = await fetchAddress(BLOCK);
+
+    expect(result.structuredContent).toMatchObject({ block: { id: BLOCK }, page: { id: PAGE } });
+  });
+
+  test('says when the linked block is gone, and hands over the page it was on', async () => {
+    const result = await fetchAddress(`${PAGE}#${MISSING}`);
+
+    expect(result.structuredContent).toMatchObject({ note: MCP_BLOCK_NOT_FOUND_NOTE, page: { id: PAGE } });
+    expect(textOf(result).startsWith(MCP_BLOCK_NOT_FOUND_NOTE)).toBe(true);
+  });
+
+  test('does not reveal whether an inaccessible page exists', async () => {
+    const missing = await fetchAddress(MISSING);
+    const inaccessible = await fetchAddress(`/spaces/${SPACE}/pages/33333333-3333-4333-8333-333333333333`);
+
+    expect(missing.content).toEqual([{ text: MCP_INACCESSIBLE_MESSAGE, type: 'text' }]);
+    expect(inaccessible.content).toEqual(missing.content);
+  });
+
+  test('refuses a page the token does not reach, though its owner could open it', async () => {
+    const elsewhere = { permissions: [ACCESS_TOKEN_PERMISSIONS.pagesRead], spaceId: 'another-space' };
+    const closed = { ...principal, access: { allSpaces: [], pages: [], spaces: [elsewhere] } };
+    const result = await fetchAddress(PAGE, createDependencies(closed));
+
+    expect(result.content).toEqual([{ text: MCP_INACCESSIBLE_MESSAGE, type: 'text' }]);
+  });
+
+  test('says what it takes when the address is not a Company Brain link or id', async () => {
+    const result = await fetchAddress('https://example.com/whatever');
+
+    expect(result.content).toEqual([{ text: MCP_UNREADABLE_ADDRESS_MESSAGE, type: 'text' }]);
+  });
+
+  test('does not report expected inaccessible errors', async () => {
+    const { client, reportedErrors } = await createErrorReportingClient();
+
+    await client.callTool({ arguments: { address: MISSING }, name: 'fetch' });
+
+    expect(reportedErrors).toHaveLength(0);
   });
 
   /** Una página guardada en una forma que esta versión no lee se dice como tal, no como que no existe. */
   test('says a page cannot be read when its content is outside the foundation contract', async () => {
-    const invalidPage = {
+    const unreadable = { ...page, content: { content: [], schemaVersion: 2, type: 'doc' } };
+    const result = await fetchAddress(PAGE, {
+      ...createDependencies(),
+      pagesService: { getAccessible: () => Promise.resolve(createPageReadResult(unreadable)) },
+    });
+
+    expect(result.content).toEqual([{ text: MCP_UNREADABLE_PAGE_MESSAGE, type: 'text' }]);
+  });
+});
+
+describe('MCP fetch — rows, comments and long pages', () => {
+  test('gives a row its properties, named by the columns of its collection, empty ones included', async () => {
+    const row = { ...page, parentId: MISSING, propertyValues: { status: 'En curso', tags: ['a', 'b'] } };
+    const result = await fetchAddress(
+      PAGE,
+      servingPage(row, {
+        schemas: {
+          getSchema: () =>
+            Promise.resolve(
+              schemaReadResult([
+                { key: 'status', label: 'Estado', type: 'SELECT' },
+                { key: 'owner', label: 'Responsable', type: 'TEXT' },
+                { key: 'tags', label: 'Etiquetas', type: 'MULTI_SELECT' },
+              ]),
+            ),
+        },
+      }),
+    );
+
+    expect(result.structuredContent).toMatchObject({
+      page: {
+        properties: [
+          { key: 'status', label: 'Estado', type: 'SELECT', value: 'En curso' },
+          { key: 'owner', label: 'Responsable', type: 'TEXT', value: null },
+          { key: 'tags', label: 'Etiquetas', type: 'MULTI_SELECT', value: ['a', 'b'] },
+        ],
+      },
+    });
+    expect(textOf(result)).toContain('- Estado (status, SELECT): En curso');
+    expect(textOf(result)).toContain('- Responsable (owner, TEXT): (empty)');
+  });
+
+  test('says nothing of properties for a page that is not a row', async () => {
+    const result = await fetchAddress(PAGE);
+
+    expect(result.structuredContent).not.toHaveProperty('page.properties');
+  });
+
+  test('hands over what was said on each block', async () => {
+    const comment = { author: 'Ana', body: 'Revisar', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' };
+    const commented: PageSummary = {
       ...page,
       content: {
-        content: [{ content: [{ text: 'Still a paragraph', type: 'text' }], type: 'paragraph' }],
-        schemaVersion: 2,
+        content: [
+          { attrs: { comments: [comment], id: BLOCK }, content: [{ text: 'Uno', type: 'text' }], type: 'paragraph' },
+        ],
+        schemaVersion: 1,
         type: 'doc',
       },
     };
+
+    const result = await fetchAddress(PAGE, servingPage(commented));
+
+    expect(result.structuredContent).toMatchObject({
+      page: { comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt: comment.createdAt }] },
+    });
+    expect(textOf(result)).toContain(`- Ana on block ${BLOCK}`);
+  });
+
+  test('hands a long page over in parts, and the cursor leads to the next one', async () => {
+    const paragraph = (at: number) => ({
+      attrs: { id: `44444444-4444-4444-8444-${String(at).padStart(12, '0')}` },
+      content: [{ text: 'x'.repeat(10_000), type: 'text' }],
+      type: 'paragraph',
+    });
+    const long: PageSummary = {
+      ...page,
+      content: { content: Array.from({ length: 12 }, (_unused, at) => paragraph(at)), schemaVersion: 1, type: 'doc' },
+    };
+    const client = await connectClient(servingPage(long));
+
+    const first = await client.callTool({ arguments: { address: PAGE }, name: 'fetch' });
+    const cursor = z.object({ page: z.object({ nextCursor: z.string() }) }).parse(first.structuredContent)
+      .page.nextCursor;
+    const second = await client.callTool({ arguments: { address: PAGE, cursor }, name: 'fetch' });
+
+    expect(textOf(first)).toContain(`fetch it again with cursor ${cursor}`);
+    expect(textOf(second)).toContain(`<!-- block:${paragraph(Number(cursor)).attrs.id} -->`);
+    expect(textOf(second)).not.toContain(`<!-- block:${paragraph(0).attrs.id} -->`);
+  });
+});
+
+describe('MCP search — by block type', () => {
+  test('passes the block type asked for to the block search', async () => {
+    const received: PageBlockSearchQuery[] = [];
     const client = await connectClient({
       ...createDependencies(),
-      pagesService: { getAccessible: () => Promise.resolve(createPageReadResult(invalidPage)) },
+      searchService: {
+        ...createDependencies().searchService,
+        searchBlocks: (query) => {
+          received.push(query);
+          return Promise.resolve(blockHits);
+        },
+      },
     });
 
-    const result = await client.callTool({ name: 'read_page', arguments: { pageId: page.id } });
+    await client.callTool({ arguments: { blockType: 'task_item', query: 'run' }, name: 'search' });
 
-    expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: MCP_UNREADABLE_PAGE_MESSAGE }]);
+    expect(received[0]?.blockType).toBe('task_item');
+  });
+});
+
+describe('MCP list_pages', () => {
+  test('lists the pages under a page the agent can see, with links', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({ arguments: { parentPageId: PAGE }, name: 'list_pages' });
+
+    expect(result.structuredContent).toEqual({
+      pages: [
+        {
+          childCount: 2,
+          id: MISSING,
+          isCollection: true,
+          title: 'Incidents',
+          url: `${PORTAL}/spaces/${SPACE}/pages/${MISSING}`,
+        },
+      ],
+    });
+  });
+
+  test('answers a page it cannot see as if it did not exist', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({ arguments: { parentPageId: HIDDEN_PAGE }, name: 'list_pages' });
+
+    expect(result.content).toEqual([{ text: MCP_INACCESSIBLE_MESSAGE, type: 'text' }]);
+  });
+
+  test('asks where to list from when told nowhere', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({ arguments: {}, name: 'list_pages' });
+
+    expect(result.content).toEqual([{ text: MCP_LIST_PAGES_PLACE_MESSAGE, type: 'text' }]);
   });
 });

@@ -142,22 +142,29 @@ export const buildVerifiedOnlyFilter = (): Prisma.Sql => Prisma.sql`AND (
   )
 )`;
 
-const buildSpaceLevelTokenFilter = (scope: SearchTokenScope): Prisma.Sql =>
+const buildSpaceLevelTokenFilter = (scope: SearchTokenScope, spaceColumn: Prisma.Sql): Prisma.Sql =>
   scope.readsEverywhere
-    ? Prisma.sql`NOT "searchDocument"."spaceId" = ANY(${[...scope.closedSpaceIds]}::text[])`
-    : Prisma.sql`"searchDocument"."spaceId" = ANY(${[...scope.openSpaceIds]}::text[])`;
+    ? Prisma.sql`NOT ${spaceColumn} = ANY(${[...scope.closedSpaceIds]}::text[])`
+    : Prisma.sql`${spaceColumn} = ANY(${[...scope.openSpaceIds]}::text[])`;
 
 /**
  * Lo que un token deja encontrar, con la misma regla que decide al leer: una
  * página con regla de página propia o heredada la sigue; las demás siguen la
  * regla de su espacio, o la de todos. Se suma a la visibilidad de la persona,
  * nunca la reemplaza.
+ *
+ * Se le dice qué columna nombra la página y cuál el espacio, porque se busca
+ * tanto en páginas como en bloques, y un bloque sigue la regla de su página.
  */
-const buildTokenScopeFilter = (scope: SearchTokenScope): Prisma.Sql => Prisma.sql`AND (
-  "searchDocument"."sourceId" = ANY(${[...scope.allowedPageIds]}::text[])
+export const buildTokenScopeFilter = (
+  scope: SearchTokenScope,
+  pageColumn: Prisma.Sql,
+  spaceColumn: Prisma.Sql,
+): Prisma.Sql => Prisma.sql`AND (
+  ${pageColumn} = ANY(${[...scope.allowedPageIds]}::text[])
   OR (
-    NOT "searchDocument"."sourceId" = ANY(${[...scope.closedPageIds]}::text[])
-    AND ${buildSpaceLevelTokenFilter(scope)}
+    NOT ${pageColumn} = ANY(${[...scope.closedPageIds]}::text[])
+    AND ${buildSpaceLevelTokenFilter(scope, spaceColumn)}
   )
 )`;
 
@@ -168,7 +175,14 @@ const buildFilters = (
 ): Prisma.Sql => {
   const filters: Prisma.Sql[] = [];
   if (query.spaceId !== undefined) filters.push(Prisma.sql`AND "searchDocument"."spaceId" = ${query.spaceId}`);
-  if (query.tokenScope !== undefined) filters.push(buildTokenScopeFilter(query.tokenScope));
+  if (query.tokenScope !== undefined)
+    filters.push(
+      buildTokenScopeFilter(
+        query.tokenScope,
+        Prisma.sql`"searchDocument"."sourceId"`,
+        Prisma.sql`"searchDocument"."spaceId"`,
+      ),
+    );
   if (query.sourceType !== undefined)
     filters.push(Prisma.sql`AND "searchDocument"."sourceType" = ${query.sourceType}::"SearchSourceType"`);
   if (query.contentType !== undefined)

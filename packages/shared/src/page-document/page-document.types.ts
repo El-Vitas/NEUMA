@@ -1,3 +1,17 @@
+import type { PageContentJson, PageMark } from '../schemas/page-content.schema.js';
+
+/**
+ * Cualquier nodo de una página, leído por su forma y no por su nombre: un
+ * bloque que esta versión no conoce también tiene que poder leerse.
+ */
+export interface PageDocumentNodeShape {
+  readonly attrs?: { readonly [key: string]: PageContentJson };
+  readonly content?: readonly unknown[];
+  readonly marks?: readonly PageMark[];
+  readonly text?: string;
+  readonly type: string;
+}
+
 /** Un atributo de un nodo o una marca. Sin valor por defecto, es obligatorio. */
 export interface PageDocumentAttributeStructure {
   readonly default?: unknown;

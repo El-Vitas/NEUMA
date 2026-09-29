@@ -5,7 +5,8 @@ import {
   MCP_UNEXPECTED_MESSAGE,
 } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import type { McpPrincipal, McpServerDependencies, McpWorkspace } from '../types/mcp.types';
+import type { McpCall, McpPrincipal, McpServerDependencies, McpWorkspace } from '../types/mcp.types';
+import { buildMcpSearchScope, listMcpPageRuleProbes, permitsPageReading } from './mcp.access.lib';
 
 /** Quién llama, o un fallo que el agente entiende. Se pregunta en cada llamada para que revocar corte al instante. */
 export const requireMcpPrincipal = async (dependencies: McpServerDependencies): Promise<McpPrincipal> => {
@@ -58,6 +59,32 @@ export const resolveMcpWorkspace = async (
   const workspace = await dependencies.workspacesService.resolveForUser(principal.userId, principal.role);
   if (workspace.id !== principal.workspaceId) throw new McpToolError(MCP_UNAUTHENTICATED_MESSAGE);
   return workspace;
+};
+
+/**
+ * Lo que toda llamada que lee necesita: quién llama, su espacio de trabajo, y
+ * lo que su token deja leer, resuelto con el árbol de páginas de hoy.
+ *
+ * El recorte sale de lo que el token tiene dado y nunca de lo que pide el
+ * agente: lo que el agente pida se suma como otro filtro, que solo achica.
+ */
+export const openMcpCall = async (dependencies: McpServerDependencies): Promise<McpCall> => {
+  const principal = await requireMcpPrincipal(dependencies);
+  const workspace = await resolveMcpWorkspace(dependencies, principal);
+  const reach = await dependencies.placeReader.resolvePageReach(
+    listMcpPageRuleProbes(principal, permitsPageReading),
+    workspace.id,
+  );
+  return {
+    principal,
+    viewer: {
+      role: principal.role,
+      tokenScope: buildMcpSearchScope(principal, reach),
+      userId: principal.userId,
+      workspaceId: workspace.id,
+    },
+    workspace,
+  };
 };
 
 /**

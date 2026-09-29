@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { writePageAsMarkdown } from './page-markdown.lib.js';
+import { writePageAsAnchoredMarkdown, writePageAsMarkdown } from './page-markdown.lib.js';
 import type { PageContent } from './schemas/page-content.schema.js';
 
 const doc = (...content: readonly unknown[]): PageContent =>
@@ -21,12 +21,7 @@ describe('writePageAsMarkdown — what Markdown already says', () => {
 
   it('carries the marks a word wears', () => {
     const content = doc(
-      paragraph(
-        text('normal '),
-        text('fuerte', [{ type: 'bold' }]),
-        text(' y '),
-        text('torcido', [{ type: 'italic' }]),
-      ),
+      paragraph(text('normal '), text('fuerte', [{ type: 'strong' }]), text(' y '), text('torcido', [{ type: 'em' }])),
     );
 
     expect(writePageAsMarkdown(content)).toBe('normal **fuerte** y *torcido*');
@@ -164,5 +159,52 @@ describe('writePageAsMarkdown — what Markdown does not say', () => {
     const content = doc({ attrs: { flavour: 'nuevo' }, content: [], type: 'someday_block' });
 
     expect(writePageAsMarkdown(content)).toContain(':::someday_block');
+  });
+});
+
+const withId = <TNode extends object>(id: string, node: TNode) => ({
+  ...node,
+  attrs: { ...('attrs' in node && typeof node.attrs === 'object' ? node.attrs : {}), id },
+});
+
+describe('writePageAsAnchoredMarkdown — every block says which one it is', () => {
+  it('puts each block id right before the block', () => {
+    const content = doc(
+      withId('b-1', { attrs: { level: 2 }, content: [text('Título')], type: 'heading' }),
+      withId('b-2', paragraph(text('Un párrafo'))),
+    );
+
+    expect(writePageAsAnchoredMarkdown(content)).toBe(
+      '<!-- block:b-1 -->\n## Título\n\n<!-- block:b-2 -->\nUn párrafo',
+    );
+  });
+
+  it('names a list item by the item, not by the line inside it', () => {
+    const item = (id: string, words: string) =>
+      withId(id, { content: [withId(`${id}-line`, paragraph(text(words)))], type: 'list_item' });
+    const content = doc(withId('list', { content: [item('i-1', 'uno'), item('i-2', 'dos')], type: 'bullet_list' }));
+
+    expect(writePageAsAnchoredMarkdown(content)).toBe(
+      '<!-- block:list -->\n<!-- block:i-1 -->\n- uno\n<!-- block:i-2 -->\n- dos',
+    );
+  });
+
+  it('leaves the cells of a table unanchored, so the table still reads as one', () => {
+    const cell = (words: string) =>
+      withId(`c-${words}`, { content: [withId(`p-${words}`, paragraph(text(words)))], type: 'table_cell' });
+    const row = (id: string, ...cells: readonly unknown[]) => withId(id, { content: cells, type: 'table_row' });
+    const content = doc(
+      withId('t', { content: [row('r-1', cell('a'), cell('b')), row('r-2', cell('c'), cell('d'))], type: 'table' }),
+    );
+
+    expect(writePageAsAnchoredMarkdown(content)).toBe('<!-- block:t -->\n| a | b |\n| --- | --- |\n| c | d |');
+  });
+
+  it('writes a block without an id as it is, since there is nothing to name it by', () => {
+    expect(writePageAsAnchoredMarkdown(doc(paragraph(text('Suelto'))))).toBe('Suelto');
+  });
+
+  it('writes the plain export without anchors, as always', () => {
+    expect(writePageAsMarkdown(doc(withId('b-1', paragraph(text('Hola')))))).toBe('Hola');
   });
 });

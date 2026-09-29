@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { JWT_DEFAULT_ACCESS_TOKEN_EXPIRES_IN, JWT_DEFAULT_REFRESH_TOKEN_EXPIRES_IN } from '../constants/auth.constants';
-import { DEFAULT_PORT } from '../constants/config.constants';
+import { DEFAULT_PORT, DEFAULT_PORTAL_URL } from '../constants/config.constants';
 import { BCRYPT_DEFAULT_SALT_ROUNDS } from '../constants/security.constants';
 
 export const envSchema = z.object({
@@ -22,6 +22,7 @@ export const envSchema = z.object({
     .default(DEFAULT_PORT)
     .transform((val) => Number.parseInt(val, 10))
     .pipe(z.number().int().positive()),
+  PORTAL_URL: z.url().default(DEFAULT_PORTAL_URL),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
   TRUST_PROXY: z.string().default('false'),

@@ -2,6 +2,7 @@ import type { Prisma } from '@company-brain/db/generated';
 import type { PageIcon } from '@company-brain/shared';
 import type { SearchQuery, SearchResult, SearchSourceType } from '../../../common/types/search.types';
 import type { SEARCH_EDITED_RANGE_VALUES } from '../constants/search.constants';
+import type { PageBlocksProjection, PageBlocksRemoval } from './page-block.types';
 
 export type { SearchPage, SearchQuery, SearchReader, SearchResult } from '../../../common/types/search.types';
 
@@ -92,7 +93,9 @@ export interface SearchDocumentRemoval {
 }
 
 export interface SearchDocumentProjection {
+  readonly applyBlocksProjection: (input: PageBlocksProjection) => Promise<void>;
   readonly applyProjection: (input: SearchDocumentInput) => Promise<void>;
+  readonly removeBlocksProjection: (input: PageBlocksRemoval) => Promise<void>;
   readonly removeProjection: (input: SearchDocumentRemoval) => Promise<void>;
 }
 

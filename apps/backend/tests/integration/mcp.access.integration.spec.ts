@@ -30,7 +30,10 @@ const nothing: AccessTokenAccess['allSpaces'] = [];
 
 /** Lo que contesta cada herramienta se lee con forma: si cambiara, la prueba lo dice en vez de leer vacío. */
 const listedSpacesShape = z.object({ spaces: z.array(z.object({ id: z.string() })) });
-const foundPagesShape = z.object({ items: z.array(z.object({ sourceId: z.string() })) });
+const foundShape = z.object({
+  blocks: z.array(z.object({ pageId: z.string() })),
+  pages: z.array(z.object({ pageId: z.string() })),
+});
 const refusalShape = z.object({ error: z.object({ code: z.string() }) });
 
 const access = (rules: Partial<AccessTokenAccess>): AccessTokenAccess => ({
@@ -163,13 +166,15 @@ describe('MCP access (Integration)', () => {
     return listedSpacesShape.parse(result.structuredContent).spaces.map((space) => space.id);
   };
 
+  /** Las páginas que la búsqueda deja ver, por sus bloques o por su título. */
   const foundPageIds = async (secret: string, query: string, spaceId?: string): Promise<readonly string[]> => {
-    const result = await call(secret, 'search_company_brain', spaceId === undefined ? { query } : { query, spaceId });
-    return foundPagesShape.parse(result.structuredContent).items.map((item) => item.sourceId);
+    const result = await call(secret, 'search', spaceId === undefined ? { query } : { query, spaceId });
+    const found = foundShape.parse(result.structuredContent);
+    return [...new Set([...found.blocks, ...found.pages].map((item) => item.pageId))];
   };
 
   const canRead = async (secret: string, pageId: string): Promise<boolean> =>
-    (await call(secret, 'read_page', { pageId })).isError !== true;
+    (await call(secret, 'fetch', { address: pageId })).isError !== true;
 
   /** Lo mismo por los tres caminos: si uno de ellos dijera más, por ahí se filtraría. */
   const reaches = async (secret: string, page: keyof typeof pages): Promise<boolean> => {
@@ -242,8 +247,8 @@ describe('MCP access (Integration)', () => {
 
     /** Pedir la página directo por su id tampoco sirve, y la respuesta no confirma que exista. */
     it('cannot read a page outside that space by its id, and is not told the page exists', async () => {
-      const refused = await call(secret, 'read_page', { pageId: pages.restricted });
-      const missing = await call(secret, 'read_page', { pageId: '00000000-0000-4000-8000-000000000000' });
+      const refused = await call(secret, 'fetch', { address: pages.restricted });
+      const missing = await call(secret, 'fetch', { address: '00000000-0000-4000-8000-000000000000' });
 
       expect(refused.isError).toBe(true);
       expect(refused.content).toEqual(missing.content);
@@ -332,6 +337,110 @@ describe('MCP access (Integration)', () => {
       expect(await reaches(secret, 'summer')).toBe(true);
       expect(await reaches(secret, 'hr')).toBe(false);
       expect(await reaches(secret, 'salaries')).toBe(false);
+    });
+  });
+
+  describe('bloques, enlaces y el árbol de una página cerrada', () => {
+    let secret: string;
+    let salariesBlockId: string;
+    let mentioningPageId: string;
+
+    const firstBlockIdOf = async (pageId: string): Promise<string> => {
+      const page = await testApp.get(PrismaService).page.findUniqueOrThrow({ where: { id: pageId } });
+      const blockId = (page.content as PageContent).content[0]?.attrs?.id;
+      if (typeof blockId !== 'string') throw new Error('the page was stored without block ids');
+      return blockId;
+    };
+
+    const listedUnder = async (parentPageId: string) =>
+      z
+        .object({ pages: z.array(z.object({ childCount: z.number(), id: z.string() })) })
+        .parse((await call(secret, 'list_pages', { parentPageId })).structuredContent).pages;
+
+    beforeAll(async () => {
+      secret = await tokenFor(
+        worker,
+        access({ allSpaces: [read], pages: [{ pageId: pages.salaries, permissions: nothing }] }),
+      );
+      salariesBlockId = await firstBlockIdOf(pages.salaries);
+      const content = {
+        content: [
+          {
+            content: [
+              { text: 'Ver ', type: 'text' },
+              { attrs: { label: words.salaries, pageId: pages.salaries, spaceId: spaces.open }, type: 'mention' },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      };
+      const response = await request(testApp.getServer())
+        .post(`/api/v1/spaces/${spaces.open}/pages`)
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ content, title: 'Menciona' })
+        .expect(201);
+      mentioningPageId = (response.body as { id: string }).id;
+    });
+
+    /** Tener el id de un bloque o su enlace no abre la página donde está. */
+    it('cannot open a block of a closed page by its id or its link, and is not told it exists', async () => {
+      const missing = await call(secret, 'fetch', { address: '00000000-0000-4000-8000-000000000000' });
+      const byId = await call(secret, 'fetch', { address: salariesBlockId });
+      const byLink = await call(secret, 'fetch', {
+        address: `https://brain.example.com/es/spaces/${spaces.open}/pages/${pages.salaries}#${salariesBlockId}`,
+      });
+
+      expect(byId.isError).toBe(true);
+      expect(byId.content).toEqual(missing.content);
+      expect(byLink.content).toEqual(missing.content);
+    });
+
+    it('opens a block of a page it can read, by its id alone', async () => {
+      const result = await call(secret, 'fetch', { address: await firstBlockIdOf(pages.open) });
+
+      expect(result.isError).not.toBe(true);
+      expect(JSON.stringify(result.content)).toContain(words.open);
+    });
+
+    it('does not name a closed page mentioned from a page it can read', async () => {
+      const result = await call(secret, 'fetch', { address: mentioningPageId });
+
+      expect(result.isError).not.toBe(true);
+      expect(JSON.stringify(result)).not.toContain(words.salaries);
+      expect(JSON.stringify(result)).not.toContain(pages.salaries);
+    });
+
+    /** Contar una hija cerrada ya diría que existe. */
+    it('neither lists nor counts a closed page under one it can read', async () => {
+      const underHr = await listedUnder(pages.hr);
+      const atTheTop = z
+        .object({ pages: z.array(z.object({ childCount: z.number(), id: z.string() })) })
+        .parse((await call(secret, 'list_pages', { spaceId: spaces.open })).structuredContent).pages;
+
+      expect(underHr.map((page) => page.id)).toEqual([pages.holidays]);
+      expect(atTheTop.find((page) => page.id === pages.hr)?.childCount).toBe(1);
+    });
+
+    it('does not name a closed ancestor in the path of a page reopened under it', async () => {
+      const reopened = await tokenFor(
+        worker,
+        access({
+          allSpaces: [read],
+          pages: [
+            { pageId: pages.hr, permissions: nothing },
+            { pageId: pages.holidays, permissions: [read] },
+          ],
+        }),
+      );
+
+      const result = await call(reopened, 'fetch', { address: pages.summer });
+
+      expect(result.isError).not.toBe(true);
+      expect(JSON.stringify(result.structuredContent)).toContain(words.holidays);
+      expect(JSON.stringify(result.structuredContent)).not.toContain(words.hr);
+      expect(JSON.stringify(result.structuredContent)).not.toContain(pages.hr);
     });
   });
 
