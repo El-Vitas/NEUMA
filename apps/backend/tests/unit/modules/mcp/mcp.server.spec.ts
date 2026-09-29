@@ -15,12 +15,12 @@ import {
   MCP_INACCESSIBLE_MESSAGE,
   MCP_LIST_PAGES_PLACE_MESSAGE,
   MCP_REDACTED_REFERENCE_LABEL,
-  MCP_SERVER_INSTRUCTIONS,
   MCP_UNAUTHENTICATED_MESSAGE,
   MCP_UNEXPECTED_MESSAGE,
   MCP_UNREADABLE_ADDRESS_MESSAGE,
   MCP_UNREADABLE_PAGE_MESSAGE,
 } from '../../../../src/modules/mcp/constants/mcp.constants';
+import { writeMcpServerInstructions } from '../../../../src/modules/mcp/lib/mcp.instructions.lib';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type {
   McpOutlineReader,
@@ -151,8 +151,10 @@ const placeReader: AccessTokenPlaceReader = {
 /** La página se ve; la que menciona, no. */
 const outline: McpOutlineReader = {
   listAncestors: () => Promise.resolve([]),
-  listChildren: () => Promise.resolve([{ childCount: 2, id: MISSING, isCollection: true, title: 'Incidents' }]),
-  listReadable: (pageIds) => Promise.resolve(pageIds.filter((id) => id === PAGE).map((id) => ({ id, spaceId: SPACE }))),
+  listChildren: () =>
+    Promise.resolve([{ childCount: 2, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' }]),
+  listReadable: (pageIds) =>
+    Promise.resolve(pageIds.filter((id) => id === PAGE).map((id) => ({ id, spaceId: SPACE, title: 'Runbook' }))),
 };
 
 const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult => ({
@@ -169,6 +171,7 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   pagesService: {
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === PAGE ? page : null)),
   },
+  people: { listAssignableMembers: () => Promise.resolve([{ id: 'u-1', name: 'Ana Pérez' }]) },
   placeReader,
   portalUrl: PORTAL,
   principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
@@ -240,7 +243,15 @@ describe('MCP read contract', () => {
   test('tells the agent what the brain is before it calls anything', async () => {
     const client = await connectClient(createDependencies());
 
-    expect(client.getInstructions()).toBe(MCP_SERVER_INSTRUCTIONS);
+    expect(client.getInstructions()).toBe(writeMcpServerInstructions(PORTAL));
+  });
+
+  /** Un agente que no sabe que el enlace es de Company Brain intenta abrirlo con un navegador. */
+  test('tells the agent which links are Company Brain links, and that its tasks live there', async () => {
+    const client = await connectClient(createDependencies());
+
+    expect(client.getInstructions()).toContain(`Links that start with ${PORTAL}`);
+    expect(client.getInstructions()).toContain('tasks');
   });
 
   test('lists spaces using the resolved authenticated principal', async () => {
@@ -571,6 +582,21 @@ describe('MCP fetch — rows, comments and long pages', () => {
     expect(textOf(result)).toContain('- Responsable (owner, TEXT): (empty)');
   });
 
+  test('names the person a row is assigned to, not just their id', async () => {
+    const row = { ...page, parentId: MISSING, propertyValues: { assignee: 'u-1' } };
+    const result = await fetchAddress(
+      PAGE,
+      servingPage(row, {
+        schemas: {
+          getSchema: () =>
+            Promise.resolve(schemaReadResult([{ key: 'assignee', label: 'Asignada a', type: 'PERSON' }])),
+        },
+      }),
+    );
+
+    expect(textOf(result)).toContain('- Asignada a (assignee, PERSON): Ana Pérez (u-1)');
+  });
+
   test('says nothing of properties for a page that is not a row', async () => {
     const result = await fetchAddress(PAGE);
 
@@ -657,7 +683,69 @@ describe('MCP list_pages', () => {
           url: `${PORTAL}/spaces/${SPACE}/pages/${MISSING}`,
         },
       ],
+      total: 1,
     });
+  });
+
+  /** Qué tareas hay y de quién es cada una se contesta listando el tablero, sin abrir cada tarea. */
+  test('gives each row of a collection its properties, people by name', async () => {
+    const task = (at: number, status: string) => ({
+      childCount: 0,
+      id: `task-${String(at)}`,
+      isCollection: false,
+      propertyValues: { assignee: 'u-1', status },
+      title: `Tarea ${String(at)}`,
+    });
+    const client = await connectClient({
+      ...createDependencies(),
+      outline: { ...outline, listChildren: () => Promise.resolve([task(1, 'todo'), task(2, 'done')]) },
+      schemas: {
+        getSchema: () =>
+          Promise.resolve(
+            schemaReadResult([
+              { key: 'title', label: 'Título', type: 'TITLE' },
+              { key: 'status', label: 'Estado', type: 'SELECT' },
+              { key: 'assignee', label: 'Asignada a', type: 'PERSON' },
+            ]),
+          ),
+      },
+    });
+
+    const result = await client.callTool({ arguments: { parentPageId: PAGE }, name: 'list_pages' });
+
+    expect(textOf(result)).toContain('Tarea 1');
+    expect(textOf(result)).toContain('Estado: todo · Asignada a: Ana Pérez (u-1)');
+    expect(textOf(result)).toContain('Estado: done');
+  });
+
+  /** Cientos de páginas de una vez pasan el tope de lo que el agente recibe, y las pierde todas. */
+  test('lists a long level in parts, and the cursor leads to the rest', async () => {
+    const many = Array.from({ length: 7 }, (_unused, at) => ({
+      childCount: 0,
+      id: `p-${String(at)}`,
+      isCollection: false,
+      propertyValues: null,
+      title: `Página ${String(at)}`,
+    }));
+    const client = await connectClient({
+      ...createDependencies(),
+      outline: { ...outline, listChildren: () => Promise.resolve(many) },
+    });
+
+    const first = await client.callTool({ arguments: { limit: 3, spaceId: SPACE }, name: 'list_pages' });
+    const firstPart = z
+      .object({ nextCursor: z.string(), pages: z.array(z.object({ id: z.string() })), total: z.number() })
+      .parse(first.structuredContent);
+    const rest = await client.callTool({
+      arguments: { cursor: firstPart.nextCursor, limit: 10, spaceId: SPACE },
+      name: 'list_pages',
+    });
+
+    expect(firstPart.pages.map((page) => page.id)).toEqual(['p-0', 'p-1', 'p-2']);
+    expect(firstPart.total).toBe(7);
+    expect(textOf(first)).toContain(`list the rest with cursor ${firstPart.nextCursor}`);
+    expect(rest.structuredContent).not.toHaveProperty('nextCursor');
+    expect(textOf(rest)).toContain('Página 6');
   });
 
   test('answers a page it cannot see as if it did not exist', async () => {

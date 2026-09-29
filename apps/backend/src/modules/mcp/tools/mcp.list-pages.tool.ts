@@ -2,6 +2,8 @@ import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_INACCESSIBLE_MESSAGE, MCP_LIST_PAGES_PLACE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl } from '../lib/mcp.address.lib';
+import { describeMcpOutlinePage, describeMcpRowPropertiesInOneLine } from '../lib/mcp.fetch.text.lib';
+import { loadMcpRowDescriber } from '../lib/mcp.rows.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { listPagesInputSchema, listPagesOutputSchema } from '../schemas/mcp.schemas';
 import type {
@@ -29,17 +31,24 @@ const resolveListingPlace = async (
 
 const formatListText = (output: McpListPagesOutput): string => {
   if (output.pages.length === 0) return 'No pages here that you can access.';
-  return output.pages
-    .map((page) => {
-      const kind = page.isCollection ? 'collection' : 'page';
-      return `- ${page.title} (${kind} ${page.id}, ${String(page.childCount)} under it) ${page.url}`;
-    })
-    .join('\n');
+  const lines = output.pages.map((page) => {
+    const properties = page.properties === undefined ? '' : `\n  ${describeMcpRowPropertiesInOneLine(page.properties)}`;
+    return `${describeMcpOutlinePage(page)}${properties}`;
+  });
+  const more =
+    output.nextCursor === undefined
+      ? ''
+      : `\n${String(output.total)} in all; list the rest with cursor ${output.nextCursor}.`;
+  return `${lines.join('\n')}${more}`;
 };
 
 /**
  * Un nivel del árbol: las páginas que cuelgan de un padre, cada una con cuántas
  * tiene debajo. Solo las que el agente puede ver, y solo esas se cuentan.
+ *
+ * Bajo una colección, cada fila trae sus propiedades: preguntar qué tareas hay
+ * pendientes y de quién es cada una se contesta con una sola llamada, sin abrir
+ * las tareas una por una. Van de a tramos, con un cursor para el siguiente.
  */
 export const listPagesTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.listPages,
@@ -48,7 +57,7 @@ export const listPagesTool: McpToolDefinition = {
       MCP_TOOL_NAMES.listPages,
       {
         description:
-          'Browse the page tree one level at a time: the pages at the top of a space, or the pages right under a page. Each comes with how many pages are under it.',
+          'Browse the page tree one level at a time: the pages at the top of a space, or the pages right under a page, each with how many pages are under it. Under a collection (a table or board of tasks), each row comes with its properties, such as status, assignee and due date. Long lists come in parts, with a cursor for the next one.',
         inputSchema: listPagesInputSchema,
         outputSchema: listPagesOutputSchema,
       },
@@ -58,12 +67,26 @@ export const listPagesTool: McpToolDefinition = {
           async () => {
             const call = await openMcpCall(dependencies);
             const place = await resolveListingPlace(dependencies, call, input);
-            const children = await dependencies.outline.listChildren(place.spaceId, place.parentId, call.viewer);
+            const [children, describeRow] = await Promise.all([
+              dependencies.outline.listChildren(place.spaceId, place.parentId, call.viewer),
+              loadMcpRowDescriber(dependencies, call, place.parentId),
+            ]);
+            const start = input.cursor === undefined ? 0 : Number(input.cursor);
+            const end = start + input.limit;
             return listPagesOutputSchema.parse({
-              pages: children.map((child) => ({
-                ...child,
-                url: buildMcpPageUrl(dependencies.portalUrl, place.spaceId, child.id, null),
-              })),
+              ...(end < children.length ? { nextCursor: String(end) } : {}),
+              pages: children.slice(start, end).map((child) => {
+                const properties = describeRow(child.propertyValues, child.title);
+                return {
+                  childCount: child.childCount,
+                  id: child.id,
+                  isCollection: child.isCollection,
+                  ...(properties.length === 0 ? {} : { properties }),
+                  title: child.title,
+                  url: buildMcpPageUrl(dependencies.portalUrl, place.spaceId, child.id, null),
+                };
+              }),
+              total: children.length,
             });
           },
           formatListText,

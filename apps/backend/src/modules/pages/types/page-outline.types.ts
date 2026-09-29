@@ -1,4 +1,5 @@
 import type { UserRole } from '@company-brain/shared';
+import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import type { SearchTokenScope } from '../../../common/types/search.types';
 
 /** Una página vista desde el árbol: lo justo para recorrerlo, sin cargar lo que dice. */
@@ -8,6 +9,8 @@ export interface PageOutlineEntry {
   readonly id: string;
   /** Si sus hijas son filas con propiedades: una tabla o un tablero. */
   readonly isCollection: boolean;
+  /** Lo que tiene en cada columna, si es una fila de una colección. */
+  readonly propertyValues: SchemaPropertyValues | null;
   readonly title: string;
 }
 
@@ -22,10 +25,11 @@ export interface PageAncestor {
 /** Un ancestro tal como sale de subir por el árbol, antes de saber si quien mira lo puede ver. */
 export type PageAncestorRow = Omit<PageAncestor, 'isReadable'>;
 
-/** Una página que quien mira puede ver, y dónde está hoy. */
+/** Una página que quien mira puede ver, dónde está hoy y cómo se llama hoy. */
 export interface PageOutlinePlace {
   readonly id: string;
   readonly spaceId: string;
+  readonly title: string;
 }
 
 /**

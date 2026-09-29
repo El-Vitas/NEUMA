@@ -111,7 +111,7 @@ export const searchTool: McpToolDefinition = {
       MCP_TOOL_NAMES.search,
       {
         description:
-          'Search everything in Company Brain you can access. Returns the blocks that match, each with its page, section and link, and pages whose title matches. Start here to find information; open a result with fetch.',
+          "Search everything in Company Brain you can access: the team's documentation, notes, processes, projects, and its tasks. Returns the blocks that match, each with its page, section and link, and pages whose title matches. Start here to find information; open a result with fetch. To go through a board or task list, find it and list the pages under it.",
         inputSchema: searchInputSchema,
         outputSchema: searchOutputSchema,
       },

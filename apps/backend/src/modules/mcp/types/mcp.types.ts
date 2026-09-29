@@ -24,6 +24,7 @@ export type McpSearchOutput = z.infer<typeof searchOutputSchema>;
 export type McpFetchOutput = z.infer<typeof fetchOutputSchema>;
 export type McpFetchedPage = McpFetchOutput['page'];
 export type McpFetchedBlock = NonNullable<McpFetchOutput['block']>;
+export type McpFetchedProperty = NonNullable<McpFetchedPage['properties']>[number];
 export type McpListPagesInput = z.infer<typeof listPagesInputSchema>;
 export type McpListPagesOutput = z.infer<typeof listPagesOutputSchema>;
 
@@ -36,8 +37,13 @@ export interface McpSchemaColumn {
 
 /** Una propiedad de una fila: la columna y lo que la fila tiene en ella, o nada. */
 export interface McpRowProperty extends McpSchemaColumn {
+  /** Si la columna es de personas, quiénes son, con su nombre en el espacio de trabajo. */
+  readonly people?: McpPerson[];
   readonly value: Exclude<PagePropertyValue, readonly string[]> | string[] | null;
 }
+
+/** Describe una fila de una colección ya conocida: sus valores y su título, como propiedades con nombre. */
+export type McpRowDescriber = (values: PagePropertyValues | null, title: string) => McpRowProperty[];
 
 export interface McpSchemaReadResult {
   readonly getValue: () => { readonly properties: readonly McpSchemaColumn[] };
@@ -87,6 +93,8 @@ export interface McpOutlineEntry {
   readonly childCount: number;
   readonly id: string;
   readonly isCollection: boolean;
+  /** Lo que tiene en cada columna, si es una fila de una colección. */
+  readonly propertyValues: PagePropertyValues | null;
   readonly title: string;
 }
 
@@ -104,10 +112,25 @@ export interface McpOutlineReader {
     parentId: string | null,
     viewer: McpOutlineViewer,
   ) => Promise<readonly McpOutlineEntry[]>;
-  readonly listReadable: (
-    pageIds: readonly string[],
-    viewer: McpOutlineViewer,
-  ) => Promise<readonly { readonly id: string; readonly spaceId: string }[]>;
+  readonly listReadable: (pageIds: readonly string[], viewer: McpOutlineViewer) => Promise<readonly McpPagePlace[]>;
+}
+
+/** Una página que el agente puede ver: dónde está hoy y cómo se llama hoy. */
+export interface McpPagePlace {
+  readonly id: string;
+  readonly spaceId: string;
+  readonly title: string;
+}
+
+/** Una persona del espacio de trabajo, con su nombre. */
+export interface McpPerson {
+  readonly id: string;
+  readonly name: string;
+}
+
+/** Las personas del espacio de trabajo, para nombrar a quien una propiedad de persona apunta. */
+export interface McpPeopleReader {
+  readonly listAssignableMembers: (workspaceId: string) => Promise<readonly McpPerson[]>;
 }
 
 export interface McpBacklink {
@@ -198,6 +221,7 @@ export interface McpServerDependencies {
   readonly errorReporter?: McpErrorReporter;
   readonly outline: McpOutlineReader;
   readonly pagesService: McpPageReader;
+  readonly people: McpPeopleReader;
   readonly schemas: McpSchemaReader;
   readonly placeReader: AccessTokenPlaceReader;
   /** Dónde vive el portal, para armar los enlaces que una persona puede abrir. */

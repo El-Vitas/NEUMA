@@ -13,6 +13,8 @@ import {
   MCP_FETCH_BACKLINK_LIMIT,
   MCP_FETCH_COMMENT_LIMIT,
   MCP_LISTED_PAGE_LIMIT,
+  MCP_LISTED_PAGE_PART_DEFAULT,
+  MCP_LISTED_PAGE_PART_MAX,
   MCP_PATH_MAX_DEPTH,
   MCP_SEARCH_PAGE_TITLE_LIMIT,
   MCP_TEXT_MAX_LENGTH,
@@ -36,11 +38,30 @@ export const listSpacesOutputSchema = z.object({
   spaces: z.array(mcpSpaceSchema).max(1000),
 });
 
+/** Las propiedades de una fila: cada columna con su valor, y las personas por su nombre. */
+const mcpRowPropertiesSchema = z
+  .array(
+    z.object({
+      key: z.string().max(128),
+      label: z.string().max(MCP_TITLE_MAX_LENGTH),
+      people: z
+        .array(z.object({ id: idSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) }))
+        .max(MCP_LISTED_PAGE_LIMIT)
+        .optional(),
+      type: z.string().max(64),
+      value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
+    }),
+  )
+  .max(MCP_LISTED_PAGE_LIMIT)
+  .optional();
+
 /** Una página vista desde el árbol, como la entregan `list_pages` y las hijas de `fetch`. */
 const mcpOutlinePageSchema = z.object({
   childCount: z.number().int().nonnegative(),
   id: idSchema,
   isCollection: z.boolean(),
+  /** Si es una fila de una colección, lo que tiene en cada columna. */
+  properties: mcpRowPropertiesSchema,
   title: titleSchema,
   url: urlSchema,
 });
@@ -130,17 +151,7 @@ const mcpFetchedPageSchema = z.object({
   /** Si la página sigue: el cursor para pedir el tramo siguiente. */
   nextCursor: z.string().optional(),
   path: z.array(mcpPathStepSchema).max(MCP_PATH_MAX_DEPTH),
-  properties: z
-    .array(
-      z.object({
-        key: z.string().max(128),
-        label: z.string().max(MCP_TITLE_MAX_LENGTH),
-        type: z.string().max(64),
-        value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
-      }),
-    )
-    .max(MCP_LISTED_PAGE_LIMIT)
-    .optional(),
+  properties: mcpRowPropertiesSchema,
   spaceId: idSchema,
   title: titleSchema,
   url: urlSchema,
@@ -162,10 +173,21 @@ export const fetchOutputSchema = z.object({
 });
 
 export const listPagesInputSchema = z.object({
-  parentPageId: z.uuid().optional().describe('List the pages right under this page.'),
+  cursor: z
+    .string()
+    .regex(/^\d{1,6}$/)
+    .optional()
+    .describe('To list the next part: the cursor the previous part returned.'),
+  limit: z.number().int().min(1).max(MCP_LISTED_PAGE_PART_MAX).default(MCP_LISTED_PAGE_PART_DEFAULT),
+  parentPageId: z
+    .uuid()
+    .optional()
+    .describe('List the pages right under this page. Under a collection, each row comes with its properties.'),
   spaceId: z.uuid().optional().describe('List the pages at the top of this space.'),
 });
 
 export const listPagesOutputSchema = z.object({
-  pages: z.array(mcpOutlinePageSchema).max(MCP_LISTED_PAGE_LIMIT),
+  nextCursor: z.string().optional(),
+  pages: z.array(mcpOutlinePageSchema).max(MCP_LISTED_PAGE_PART_MAX),
+  total: z.number().int().nonnegative(),
 });

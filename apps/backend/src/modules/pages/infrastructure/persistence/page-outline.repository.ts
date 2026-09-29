@@ -1,6 +1,7 @@
 import { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
+import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { buildTokenScopeWhere } from '../../../../common/infrastructure/persistence/token-scope.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -39,10 +40,11 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     reader: PageOutlineReader,
   ): Promise<readonly PageOutlineEntry[]> {
     const pages = await this.prisma.page.findMany({
-      orderBy: { order: 'asc' },
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
       select: {
         _count: { select: { children: { where: readableBy(reader) }, schemaProperties: true } },
         id: true,
+        propertyValues: true,
         title: true,
       },
       where: { ...readableBy(reader), parentId, spaceId },
@@ -51,6 +53,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       childCount: page._count.children,
       id: page.id,
       isCollection: page._count.schemaProperties > 0,
+      propertyValues: parseSchemaPropertyValues(page.propertyValues),
       title: page.title,
     }));
   }
@@ -86,7 +89,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
   async listReadable(pageIds: readonly string[], reader: PageOutlineReader): Promise<readonly PageOutlinePlace[]> {
     if (pageIds.length === 0) return [];
     return this.prisma.page.findMany({
-      select: { id: true, spaceId: true },
+      select: { id: true, spaceId: true, title: true },
       where: { ...readableBy(reader), id: { in: [...pageIds] } },
     });
   }

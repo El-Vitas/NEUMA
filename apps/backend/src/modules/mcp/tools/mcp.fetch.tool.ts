@@ -22,8 +22,8 @@ import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl, readMcpAddress } from '../lib/mcp.address.lib';
 import { findMcpBlockNode, listMcpBlockComments, takeMcpPagePart } from '../lib/mcp.blocks.lib';
 import { formatMcpFetchText } from '../lib/mcp.fetch.text.lib';
-import { describeMcpRowProperties } from '../lib/mcp.properties.lib';
 import { hideUnreachableReferences, listReferencedPageIds } from '../lib/mcp.references.lib';
+import { loadMcpRowDescriber } from '../lib/mcp.rows.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { fetchInputSchema, fetchOutputSchema } from '../schemas/mcp.schemas';
 import type {
@@ -32,6 +32,7 @@ import type {
   McpFetchedPage,
   McpFetchOutput,
   McpPage,
+  McpPagePlace,
   McpRowProperty,
   McpServerDependencies,
   McpToolDefinition,
@@ -77,15 +78,15 @@ const findPageHoldingBlock = async (
   return null;
 };
 
-/** De las páginas a las que apunta el contenido, las que el agente puede ver. */
+/** De las páginas a las que apunta el contenido, las que el agente puede ver, con su nombre y su espacio de hoy. */
 const listReachableReferences = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   page: McpPage,
-): Promise<ReadonlySet<string>> => {
+): Promise<ReadonlyMap<string, McpPagePlace>> => {
   const referenced = listReferencedPageIds(page.content.content);
   const reachable = await dependencies.outline.listReadable(referenced, call.viewer);
-  return new Set(reachable.map((reference) => reference.id));
+  return new Map(reachable.map((reference) => [reference.id, reference]));
 };
 
 const listReachableBacklinks = async (dependencies: McpServerDependencies, call: McpCall, page: McpPage) => {
@@ -133,11 +134,8 @@ const describeRowProperties = async (
   call: McpCall,
   page: McpPage,
 ): Promise<McpRowProperty[]> => {
-  if (page.parentId === null) return [];
-  const { principal, workspace } = call;
-  const schema = await dependencies.schemas.getSchema(page.parentId, workspace.id, principal.userId, principal.role);
-  if (schema.isFail()) return [];
-  return describeMcpRowProperties(schema.getValue().properties, page.propertyValues, page.title);
+  const describeRow = await loadMcpRowDescriber(dependencies, call, page.parentId);
+  return describeRow(page.propertyValues, page.title);
 };
 
 /**
@@ -149,7 +147,7 @@ const describePage = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   page: McpPage,
-  reachable: ReadonlySet<string>,
+  reachable: ReadonlyMap<string, McpPagePlace>,
   start: number,
 ): Promise<McpFetchedPage> => {
   const visible = hideUnreachableReferences(page.content.content, reachable);
@@ -260,7 +258,8 @@ export const fetchTool: McpToolDefinition = {
       MCP_TOOL_NAMES.fetch,
       {
         description:
-          'Open a page or a block you can access. Pass a Company Brain link (as a person copies it), a page id, or a block id. A page comes back as Markdown with each block id in the comment before it, plus its properties if it is a row of a collection, its comments, the pages under it and the pages linking to it; a long page comes in parts, with a cursor for the next one. A block comes back with its section and its page.',
+          `Open a page or a block you can access. Pass a Company Brain link (they start with ${dependencies.portalUrl}; pass it as the person gave it), a page id, or a block id.` +
+          ' A page comes back as Markdown with each block id in the comment before it, plus its properties if it is a row of a collection, its comments, the pages under it and the pages linking to it; a long page comes in parts, with a cursor for the next one. A block comes back with its section and its page.',
         inputSchema: fetchInputSchema,
         outputSchema: fetchOutputSchema,
       },

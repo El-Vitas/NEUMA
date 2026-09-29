@@ -1,15 +1,17 @@
 export const SEARCH_TRIGRAM_THRESHOLD = 0.18;
 
 /**
- * Qué tan parecida tiene que ser una palabra buscada a alguna del bloque para
- * contar como un error de tipeo.
+ * Qué tan parecida tiene que ser una palabra buscada a una palabra entera del
+ * bloque para contar como un error de tipeo.
  *
- * Se compara contra la palabra más parecida del bloque, que es más generoso que
- * comparar contra todo el texto: con el umbral de las páginas, dos palabras
- * inventadas sin nada en común ya coincidían (0,2). Medido en Postgres: una
- * letra de menos da 0,64 y dos letras cruzadas 0,375; al azar queda por debajo.
+ * Se compara palabra contra palabra entera, no contra un pedazo cualquiera del
+ * texto: así «vendor» no se confunde con «Venn» ni «proveedor» con «editor».
+ * Medido en Postgres sobre los bloques reales: lo que no tenía nada que ver
+ * quedó en 0,33 o menos, y una letra de más o de menos («despliege»,
+ * «arquitectra», «lanzamento») entre 0,62 y 0,67. El costo: dos letras cruzadas
+ * («raodmap») dan 0,33, igual que el ruido, y ya no se encuentran.
  */
-export const PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD = 0.3;
+export const PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD = 0.45;
 export const SEARCH_OUTBOX_MAX_ATTEMPTS = 5;
 export const SEARCH_WORKER_IDLE_DELAY_MS = 1000;
 export const SEARCH_EDITED_RANGE_VALUES = ['TODAY', 'LAST_SEVEN_DAYS', 'LAST_MONTH', 'THIS_YEAR'] as const;

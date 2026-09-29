@@ -195,7 +195,7 @@ export class PageBlockRepository implements PageBlockRepositoryContract {
   }
 
   private findTrigramMatches(query: PageBlockSearchQuery, cursor: SearchCursor | null): Promise<PageBlockSearchRow[]> {
-    const rank = Prisma.sql`word_similarity(public.immutable_unaccent("input"."queryText"), public.immutable_unaccent("block"."text"))`;
+    const rank = Prisma.sql`strict_word_similarity(public.immutable_unaccent("input"."queryText"), public.immutable_unaccent("block"."text"))`;
     return this.prisma.$queryRaw<PageBlockSearchRow[]>(
       buildBlockSearchSql(query, cursor, {
         match: Prisma.sql`${rank} >= ${PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD}`,
