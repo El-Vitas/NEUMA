@@ -1,3 +1,4 @@
+import type { PageContent } from '@company-brain/shared';
 import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { createCollaborationGateway } from './collaboration.gateway';
 import type {
@@ -62,6 +63,10 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     rewrite: CollaborationContentRewrite,
   ): ReturnType<CollaborationGatewayContract['writePageContent']> {
     return this.gateway.writePageContent(context, rewrite);
+  }
+
+  readLoadedPageContent(pageId: string): PageContent | null {
+    return this.gateway.readLoadedPageContent(pageId);
   }
 
   onApplicationShutdown(): Promise<void> {

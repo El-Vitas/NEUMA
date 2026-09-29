@@ -108,6 +108,16 @@ export class PageCoverValidationError extends DomainError {
   }
 }
 
+/** El mantenimiento de las páginas de todo el espacio de trabajo lo corre solo quien lo administra. */
+export class PageMaintenanceAdminOnlyError extends DomainError {
+  public readonly code = 'PAGE_MAINTENANCE_ADMIN_ONLY';
+  public readonly httpStatus = 403;
+
+  constructor() {
+    super('Only a workspace admin can run page maintenance.');
+  }
+}
+
 /** A page somebody locked refuses the edit rather than quietly taking it. */
 export class PageLockedError extends DomainError {
   public readonly code = 'PAGE_LOCKED';

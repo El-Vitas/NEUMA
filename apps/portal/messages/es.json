@@ -1176,6 +1176,8 @@
     "copyBlockLink": "Copiar enlace",
     "blockLinkCopied": "Enlace del bloque copiado",
     "blockLinkCopyFailed": "No se pudo copiar el enlace",
+    "copyPageLink": "Copiar enlace",
+    "pageLinkCopied": "Enlace de la página copiado",
     "blockLinkMissing": "Ese bloque ya no está en la página",
     "moveBlocks": "Mover a…",
     "moveBlocksTitle": "Mover los bloques a otra página",

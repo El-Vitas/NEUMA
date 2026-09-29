@@ -1,10 +1,11 @@
 import { PageLifecycle } from '@company-brain/db';
 import { USER_ROLE } from '@company-brain/shared';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { seconds, ThrottlerModule } from '@nestjs/throttler';
 
 import { envSchema } from './common/config/env.schema';
+import { PORTAL_URL_KEY } from './common/constants/env.constants';
 import {
   CREDENTIAL_RATE_LIMIT,
   EXPORT_RATE_LIMIT,
@@ -13,6 +14,7 @@ import {
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
+import { OutboxRepository } from './common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from './common/infrastructure/persistence/workspace-context.service';
 import { StorageModule } from './common/infrastructure/storage/storage.module';
 import { HealthController } from './health/health.controller';
@@ -39,14 +41,20 @@ import type {
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
+import { LinksService } from './modules/links/links.service';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
 import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
 import { PageViewsModule } from './modules/page-views/page-views.module';
-import { PAGE_LIVE_DOCUMENT } from './modules/pages/constants/pages.constants';
+import { PAGE_LIVE_DOCUMENT, PAGE_MAINTENANCE_REPOSITORY } from './modules/pages/constants/pages.constants';
+import { PageMaintenanceRepository } from './modules/pages/infrastructure/persistence/page-maintenance.repository';
 import { PageContentController } from './modules/pages/page.content.controller';
 import { PageContentService } from './modules/pages/page.content.service';
+import { PageMaintenanceController } from './modules/pages/page.maintenance.controller';
+import { PageMaintenanceService } from './modules/pages/page.maintenance.service';
+import { PageOutlineService } from './modules/pages/page.outline.service';
+import { PageSchemaService } from './modules/pages/page-schema.service';
 import { PagesModule } from './modules/pages/pages.module';
 import { PagesService } from './modules/pages/pages.service';
 import type { PageLiveDocument } from './modules/pages/types/page.types';
@@ -108,15 +116,25 @@ import { PrismaModule } from './prisma/prisma.module';
     SearchModule,
     LinksModule,
   ],
-  controllers: [CollaborationController, HealthController, McpController, PageContentController],
+  controllers: [
+    CollaborationController,
+    HealthController,
+    McpController,
+    PageContentController,
+    PageMaintenanceController,
+  ],
   providers: [
     PageContentService,
+    PageMaintenanceService,
+    { provide: PAGE_MAINTENANCE_REPOSITORY, useClass: PageMaintenanceRepository },
+    OutboxRepository,
     WorkspaceContextService,
     /** El contenido de una página se escribe dentro de su documento en vivo, quien sea que lo escriba. */
     {
       inject: [CollaborationGateway],
       provide: PAGE_LIVE_DOCUMENT,
       useFactory: (gateway: CollaborationGateway): PageLiveDocument => ({
+        readLoadedPageContent: (pageId) => gateway.readLoadedPageContent(pageId),
         writePageContent: (writer, rewrite) =>
           gateway.writePageContent(
             {
@@ -175,24 +193,36 @@ import { PrismaModule } from './prisma/prisma.module';
     {
       inject: [
         PagesService,
+        PageSchemaService,
+        PageOutlineService,
+        LinksService,
         AccessTokenPlaceRepository,
         MCP_PRINCIPAL_RESOLVER,
         SearchService,
         SpacesService,
         WorkspacesService,
+        ConfigService,
       ],
       provide: MCP_SERVER_DEPENDENCIES,
       useFactory: (
         pagesService: PagesService,
+        schemas: PageSchemaService,
+        outline: PageOutlineService,
+        backlinks: LinksService,
         placeReader: AccessTokenPlaceRepository,
         principalResolver: McpPrincipalResolver,
         searchService: SearchService,
         spacesService: SpacesService,
         workspacesService: WorkspacesService,
+        configService: ConfigService,
       ): McpServerDependencies => ({
+        backlinks,
+        outline,
         pagesService,
         placeReader,
+        portalUrl: configService.getOrThrow<string>(PORTAL_URL_KEY),
         principalResolver,
+        schemas,
         searchService,
         spacesService,
         workspacesService,

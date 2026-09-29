@@ -33,6 +33,7 @@ model Page {
   favorites             PageFavorite[]
   views                 PageView[]
   tokenPageGrants       AccessTokenPageGrant[]
+  blocks                PageBlock[]
 
   @@index([spaceId, lifecycle, order])
   @@index([parentId, order])

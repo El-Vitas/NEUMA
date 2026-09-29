@@ -58,3 +58,45 @@ export interface SearchPage {
 export interface SearchReader {
   readonly search: (query: SearchQuery) => Promise<SearchPage>;
 }
+
+/** Buscar bloques: lo mismo que buscar páginas, y además dentro de una página y todo lo que cuelga de ella. */
+export interface PageBlockSearchQuery {
+  /** Solo bloques de este tipo. */
+  readonly blockType?: string;
+  readonly cursor?: string;
+  readonly limit: number;
+  readonly query: string;
+  /** Solo en esta página y sus descendientes. */
+  readonly rootPageId?: string;
+  readonly spaceId?: string;
+  readonly tokenScope?: SearchTokenScope;
+  readonly userId: string;
+  readonly userRole: UserRole;
+  readonly workspaceId: string;
+}
+
+/** Un bloque encontrado, con lo que hace falta para saber dónde está y llegar a él. */
+export interface PageBlockSearchResult {
+  readonly blockId: string;
+  readonly blockType: string;
+  /** Los encabezados bajo los que está, del más externo al más cercano. */
+  readonly headingPath: readonly string[];
+  readonly pageId: string;
+  readonly pageTitle: string;
+  readonly parentPageTitle: string | null;
+  readonly rank: number;
+  readonly snippet: string;
+  readonly spaceId: string;
+  readonly spaceName: string;
+}
+
+export interface PageBlockSearchPage {
+  readonly items: readonly PageBlockSearchResult[];
+  readonly nextCursor?: string;
+}
+
+export interface PageBlockSearchReader {
+  /** En qué páginas del espacio de trabajo hay un bloque con ese id, sin decir si se pueden ver. */
+  readonly locateBlock: (blockId: string, workspaceId: string) => Promise<readonly string[]>;
+  readonly searchBlocks: (query: PageBlockSearchQuery) => Promise<PageBlockSearchPage>;
+}

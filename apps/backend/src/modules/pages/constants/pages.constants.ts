@@ -1,6 +1,12 @@
 export const PAGE_ATTACHMENTS_CLEANUP_REPOSITORY = 'PAGE_ATTACHMENTS_CLEANUP_REPOSITORY';
 export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';
 export const PAGE_SCHEMA_REPOSITORY = 'PAGE_SCHEMA_REPOSITORY';
+export const PAGE_OUTLINE_REPOSITORY = 'PAGE_OUTLINE_REPOSITORY';
+export const PAGE_MAINTENANCE_REPOSITORY = 'PAGE_MAINTENANCE_REPOSITORY';
+/** De a cuántas páginas se revisa el espacio de trabajo al rellenar, para no cargarlo entero en memoria. */
+export const PAGE_MAINTENANCE_BATCH_SIZE = 100;
+/** Hasta dónde se sube buscando ancestros: más de lo que un árbol real tiene, y un tope si alguno se enredara. */
+export const PAGE_OUTLINE_MAX_DEPTH = 64;
 /** El documento en vivo de las páginas, donde se escribe su contenido. Lo provee quien compone la aplicación. */
 export const PAGE_LIVE_DOCUMENT = 'PAGE_LIVE_DOCUMENT';
 /** Cuántos bloques se agregan de una vez; la página entera sigue sujeta a su propio tope. */

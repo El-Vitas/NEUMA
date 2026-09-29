@@ -76,7 +76,21 @@ export type {
   PageDocumentMarkStructure,
   PageDocumentNodeStructure,
 } from './page-document/page-document.types.js';
-export { writePageAsMarkdown } from './page-markdown.lib.js';
+export {
+  isPageDocumentNode,
+  listPageDocumentChildren,
+  readPageDocumentBlockId,
+  readPageDocumentText,
+} from './page-document/page-document.node.lib.js';
+export type { PageDocumentNodeShape } from './page-document/page-document.types.js';
+export { givePageBlocksTheirIds } from './page-block/page-block.identity.lib.js';
+export { listPageBlocks } from './page-block/page-block.lib.js';
+export type { PageBlockEntry } from './page-block/page-block.types.js';
+export {
+  writeBlocksAsAnchoredMarkdown,
+  writePageAsAnchoredMarkdown,
+  writePageAsMarkdown,
+} from './page-markdown.lib.js';
 export {
   canPagePropertyGroupBoard,
   formatPagePropertyValue,

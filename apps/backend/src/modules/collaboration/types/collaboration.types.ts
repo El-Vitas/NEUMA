@@ -118,4 +118,9 @@ export interface CollaborationGateway {
     context: CollaborationContext,
     rewrite: CollaborationContentRewrite,
   ) => Promise<PageContent>;
+  /**
+   * Lo que dice ahora el documento en vivo de una página, si alguien lo tiene
+   * abierto; nada si no. No lo abre: leer no tiene por qué cargarlo.
+   */
+  readonly readLoadedPageContent: (pageId: string) => PageContent | null;
 }

@@ -1,6 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import { type PageContent, Result, USER_ROLE, type UserRole, writePagesAsMarkdownFiles } from '@company-brain/shared';
+import {
+  givePageBlocksTheirIds,
+  type PageContent,
+  Result,
+  USER_ROLE,
+  type UserRole,
+  writePagesAsMarkdownFiles,
+} from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
@@ -170,7 +178,7 @@ export class PagesService {
     if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
     const page = await this.pageRepository.create({
       ...input,
-      content: content.getValue(),
+      content: givePageBlocksTheirIds(content.getValue(), randomUUID),
       propertyValues: propertyValues.getValue(),
     });
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);

@@ -2,14 +2,26 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Client } from 'pg';
 
-const MIGRATION_PATH = resolve(
-  process.cwd(),
-  '../../packages/db/prisma/migrations/20260802020000_search_storage_foundation/migration.sql',
-);
+/** Una tabla con columna de búsqueda generada, que `db push` no sabe crear, y la migración que la define. */
+interface SearchableTable {
+  readonly expectedGinIndexCount: number;
+  readonly migration: string;
+  readonly table: string;
+}
 
-const SEARCH_VECTOR_COLUMN_PATTERN = /ALTER TABLE "SearchDocument"\s+ADD COLUMN "searchVector"[\s\S]*?\) STORED;/;
-const GIN_INDEX_PATTERN = /CREATE INDEX[\s\S]*?ON "SearchDocument" USING GIN\s*\([\s\S]*?\);/g;
-const EXPECTED_GIN_INDEX_COUNT = 2;
+const SEARCHABLE_TABLES: readonly SearchableTable[] = [
+  { expectedGinIndexCount: 2, migration: '20260802020000_search_storage_foundation', table: 'SearchDocument' },
+  { expectedGinIndexCount: 2, migration: '20260928120000_page_blocks', table: 'PageBlock' },
+];
+
+const migrationPath = (migration: string): string =>
+  resolve(process.cwd(), `../../packages/db/prisma/migrations/${migration}/migration.sql`);
+
+const searchVectorColumnPattern = (table: string): RegExp =>
+  new RegExp(`ALTER TABLE "${table}"\\s+ADD COLUMN "searchVector"[\\s\\S]*?\\) STORED;`);
+
+const ginIndexPattern = (table: string): RegExp =>
+  new RegExp(`CREATE INDEX[^;]*?ON "${table}" USING GIN\\s*\\([\\s\\S]*?\\);`, 'g');
 
 const EXTENSION_AND_FUNCTION_SQL = `
   CREATE EXTENSION IF NOT EXISTS "unaccent" WITH SCHEMA public;
@@ -23,45 +35,47 @@ const EXTENSION_AND_FUNCTION_SQL = `
   AS $$
     SELECT public.unaccent('public.unaccent'::regdictionary, $1);
   $$;
-
-  ALTER TABLE "SearchDocument" DROP COLUMN IF EXISTS "searchVector";
 `;
 
-const readMigrationSql = (): string => readFileSync(MIGRATION_PATH, 'utf8');
-
-const extractSearchVectorColumnStatement = (migrationSql: string): string => {
-  const match = migrationSql.match(SEARCH_VECTOR_COLUMN_PATTERN);
+const extractSearchVectorColumnStatement = (migrationSql: string, searchable: SearchableTable): string => {
+  const match = migrationSql.match(searchVectorColumnPattern(searchable.table));
   if (match === null)
     throw new Error(
-      `Could not find the generated "searchVector" column statement in ${MIGRATION_PATH}. ` +
-        'The migration was restructured — update SEARCH_VECTOR_COLUMN_PATTERN in ' +
+      `Could not find the generated "searchVector" column statement for "${searchable.table}" in ` +
+        `${migrationPath(searchable.migration)}. The migration was restructured — update ` +
         'tests/helpers/search-projection.fixture.ts to match its new shape.',
     );
   return match[0];
 };
 
-const extractGinIndexStatements = (migrationSql: string): readonly string[] => {
-  const matches = [...migrationSql.matchAll(GIN_INDEX_PATTERN)].map((match) => match[0]);
-  if (matches.length !== EXPECTED_GIN_INDEX_COUNT)
+const extractGinIndexStatements = (migrationSql: string, searchable: SearchableTable): readonly string[] => {
+  const matches = [...migrationSql.matchAll(ginIndexPattern(searchable.table))].map((match) => match[0]);
+  if (matches.length !== searchable.expectedGinIndexCount)
     throw new Error(
-      `Expected exactly ${String(EXPECTED_GIN_INDEX_COUNT)} "USING GIN" index statements for "SearchDocument" in ` +
-        `${MIGRATION_PATH}, found ${String(matches.length)}. The migration was restructured — update ` +
-        'GIN_INDEX_PATTERN in tests/helpers/search-projection.fixture.ts to match its new shape.',
+      `Expected exactly ${String(searchable.expectedGinIndexCount)} "USING GIN" index statements for ` +
+        `"${searchable.table}" in ${migrationPath(searchable.migration)}, found ${String(matches.length)}. ` +
+        'The migration was restructured — update tests/helpers/search-projection.fixture.ts to match its new shape.',
     );
   return matches;
 };
 
-export const applySearchDocumentGeneratedColumn = async (schemaScopedDatabaseUrl: string): Promise<void> => {
-  const migrationSql = readMigrationSql();
-  const searchVectorColumnStatement = extractSearchVectorColumnStatement(migrationSql);
-  const ginIndexStatements = extractGinIndexStatements(migrationSql);
+/** Lo que hay que correr para que una tabla quede con su columna de búsqueda, como en la migración. */
+const listSearchableTableStatements = (searchable: SearchableTable): readonly string[] => {
+  const migrationSql = readFileSync(migrationPath(searchable.migration), 'utf8');
+  return [
+    `ALTER TABLE "${searchable.table}" DROP COLUMN IF EXISTS "searchVector";`,
+    extractSearchVectorColumnStatement(migrationSql, searchable),
+    ...extractGinIndexStatements(migrationSql, searchable),
+  ];
+};
 
+export const applySearchDocumentGeneratedColumn = async (schemaScopedDatabaseUrl: string): Promise<void> => {
+  const statements = SEARCHABLE_TABLES.flatMap(listSearchableTableStatements);
   const client = new Client({ connectionString: schemaScopedDatabaseUrl });
   await client.connect();
   try {
     await client.query(EXTENSION_AND_FUNCTION_SQL);
-    await client.query(searchVectorColumnStatement);
-    for (const statement of ginIndexStatements) await client.query(statement);
+    for (const statement of statements) await client.query(statement);
   } finally {
     await client.end();
   }

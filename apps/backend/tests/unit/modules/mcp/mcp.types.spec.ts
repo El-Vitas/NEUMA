@@ -11,6 +11,7 @@ const page: McpPage = {
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: null,
+  propertyValues: null,
   spaceId: 'space-1',
   title: 'Runbook',
   version: 1,

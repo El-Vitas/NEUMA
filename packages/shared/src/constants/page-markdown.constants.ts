@@ -1,9 +1,9 @@
 /** What Markdown puts around a word to mark it, by the name the page calls that mark. */
 export const MARKDOWN_MARK_WRAPPERS = {
-  bold: '**',
   code: '`',
-  italic: '*',
+  em: '*',
   strike: '~~',
+  strong: '**',
 } as const;
 
 /**
@@ -20,3 +20,12 @@ export const MARKDOWN_BLOCK_SEPARATOR = '\n\n';
 
 /** What opens each page when several are written into one file, so a reader-back knows where it lived. */
 export const MARKDOWN_PAGE_MARKER = '<!-- page:';
+
+/**
+ * Lo que va antes de un bloque para decir cuál es, y lo que lo cierra.
+ *
+ * Un comentario de HTML porque Markdown no lo muestra: quien lo lee ve el
+ * documento de siempre, y quien necesita nombrar un bloque tiene su id a mano.
+ */
+export const MARKDOWN_BLOCK_ANCHOR_OPEN = '<!-- block:';
+export const MARKDOWN_BLOCK_ANCHOR_CLOSE = ' -->';

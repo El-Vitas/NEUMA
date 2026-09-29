@@ -508,6 +508,29 @@ rules:
     why: >-
       Un dibujo dejado en los colores de la noche es ilegible de día, y nadie va a reescribir un diagrama para arreglar
       eso.
+  - id: BR-d44883b
+    status: active
+    title: Todo bloque tiene su propio id
+    rule: >-
+      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
+      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si dos bloques llegan con
+      el mismo id, el segundo recibe uno nuevo.
+    why: >-
+      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
+      apuntan a él y no a la página entera. Sin id, un bloque no se puede señalar.
+    context: >-
+      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
+      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
+      administra el espacio de trabajo.
+    scenarios:
+      - title: Un bloque escrito por la API sin id
+        given: Una página creada por la API con párrafos sin id
+        when: Se guarda
+        then: Cada párrafo queda con un id propio
+      - title: Dos bloques con el mismo id
+        given: Un contenido que trae dos bloques con el mismo id
+        when: Se escribe en la página
+        then: El primero conserva su id y el segundo recibe uno nuevo
   - id: BR-d8c9964
     status: active
     title: Una fecha nombrada es una palabra de la frase

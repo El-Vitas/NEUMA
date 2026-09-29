@@ -5,6 +5,7 @@ import {
   Copy,
   Download,
   FileText,
+  Link2,
   MoreHorizontal,
   PenLine,
   Plus,
@@ -26,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { useCopyPageLink } from '@/shared/hooks/use.copy-page-link.hook';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarPageTreeItemCheckbox } from './sidebar-page-tree-item-checkbox';
 import { SidebarTreeIcon } from './sidebar-tree-icon';
@@ -80,6 +82,7 @@ export const SidebarPageTreeItem = ({
   const t = useTranslations('pages');
   const tDuplicate = useTranslations('pages.duplicate');
   const tExport = useTranslations('pages.export');
+  const copyPageLink = useCopyPageLink();
   const { children, page } = treeItem;
   /** A page nobody has named yet is still a row one has to be able to read and point at. */
   const pageTitle = page.title.length > 0 ? page.title : t('untitled');
@@ -203,6 +206,10 @@ export const SidebarPageTreeItem = ({
                   <DropdownMenuItem onSelect={() => onRequestDuplicate(page, hasChildren)}>
                     <Copy aria-hidden="true" className="size-4" />
                     {tDuplicate('action')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => copyPageLink(spaceId, page.id)}>
+                    <Link2 aria-hidden="true" className="size-4" />
+                    {t('copyPageLink')}
                   </DropdownMenuItem>
                 </>
               )}
