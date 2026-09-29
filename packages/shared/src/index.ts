@@ -104,6 +104,7 @@ export {
   pagePropertyRequiresOptions,
   pagePropertyRequiresPersonDirectory,
 } from './page-property/page-property.lib.js';
+export { buildPagePropertyKey } from './page-property/page-property.key.lib.js';
 export {
   pickPageOptionColor,
   readPagePropertyOptions,
@@ -155,6 +156,7 @@ export {
   pageViewConfigurationSchema,
   readPageViewConfiguration,
 } from './page-view/page-view.schemas.js';
+export { makeSchemaViewDefault, removeSchemaView } from './page-view/page-view.editing.lib.js';
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
 export { readVisiblePropertyKeys } from './page-view/page-view.visibility.lib.js';
 export type {

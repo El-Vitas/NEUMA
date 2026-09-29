@@ -6,6 +6,7 @@ import type {
   PageViewType,
 } from '@company-brain/shared';
 import {
+  buildPagePropertyKey,
   canPagePropertyGroupBoard,
   isTitlePageProperty,
   PAGE_PROPERTY_TYPE,
@@ -16,46 +17,8 @@ import {
   pickPageOptionColor,
   readPageViewConfiguration,
 } from '@company-brain/shared';
-import {
-  PAGE_ADDABLE_PROPERTY_TYPES,
-  PAGE_PROPERTY_KEY_COMBINING_MARKS,
-  PAGE_PROPERTY_KEY_DIGIT_PREFIX,
-  PAGE_PROPERTY_KEY_EDGE_UNDERSCORES,
-  PAGE_PROPERTY_KEY_FALLBACK,
-  PAGE_PROPERTY_KEY_MAX_LENGTH,
-  PAGE_PROPERTY_KEY_RUNS_OF_ANYTHING_ELSE,
-  PAGE_PROPERTY_KEY_STARTS_WITH_DIGIT,
-} from '../constants/pages.schema-editing.constants';
+import { PAGE_ADDABLE_PROPERTY_TYPES } from '../constants/pages.schema-editing.constants';
 import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
-
-const toBareKey = (label: string): string => {
-  const plain = label
-    .normalize('NFD')
-    .replace(PAGE_PROPERTY_KEY_COMBINING_MARKS, '')
-    .toLowerCase()
-    .replace(PAGE_PROPERTY_KEY_RUNS_OF_ANYTHING_ELSE, '_')
-    .replace(PAGE_PROPERTY_KEY_EDGE_UNDERSCORES, '')
-    .slice(0, PAGE_PROPERTY_KEY_MAX_LENGTH);
-  if (plain === '') return PAGE_PROPERTY_KEY_FALLBACK;
-  return PAGE_PROPERTY_KEY_STARTS_WITH_DIGIT.test(plain) ? `${PAGE_PROPERTY_KEY_DIGIT_PREFIX}${plain}` : plain;
-};
-
-/**
- * The key a property is stored under, made from the name somebody typed.
- *
- * The key never changes once a row has written something under it, so it is
- * built to survive: no accents, no spaces, nothing the server would refuse. A
- * name already taken gets a number rather than landing on somebody else's
- * values.
- */
-export const buildPropertyKey = (label: string, properties: readonly PageSchemaProperty[]): string => {
-  const bare = toBareKey(label);
-  const taken = new Set(properties.map((property) => property.key));
-  if (!taken.has(bare)) return bare;
-  let attempt = 2;
-  while (taken.has(`${bare}_${String(attempt)}`)) attempt += 1;
-  return `${bare}_${String(attempt)}`;
-};
 
 /**
  * A view as it can be sent back, keeping only what its configuration is allowed
@@ -214,20 +177,6 @@ export const convertSchemaView = (
   });
 
 /**
- * Quita una manera de mirar, salvo que sea la última.
- *
- * Sin ninguna vista las filas no se pueden mirar, y el servidor tampoco acepta
- * una colección así. Si la que se va era la que llevaba la delantera, otra la
- * toma: si no, abrir la colección no llevaría a ninguna parte.
- */
-export const removeSchemaView = (views: readonly PageSchemaView[], name: string): readonly PageSchemaView[] => {
-  if (views.length <= 1 || !views.some((view) => view.name === name)) return views;
-  const remaining = views.filter((view) => view.name !== name);
-  if (remaining.some((view) => view.isDefault)) return remaining;
-  return remaining.map((view, position) => (position === 0 ? { ...view, isDefault: true } : view));
-};
-
-/**
  * Renombra una vista.
  *
  * El nombre es su dirección, así que renombrarla deja apuntando a la nada
@@ -243,12 +192,6 @@ export const renameSchemaView = (
   const named = renamedTo.trim();
   if (named === '' || views.some((view) => view.name === named)) return views;
   return views.map((view) => (view.name === name ? { ...view, name: named } : view));
-};
-
-/** Con cuál se abre la colección. Exactamente una la lleva, porque abrirla lleva a un sitio y no a dos. */
-export const makeSchemaViewDefault = (views: readonly PageSchemaView[], name: string): readonly PageSchemaView[] => {
-  if (!views.some((view) => view.name === name)) return views;
-  return views.map((view) => ({ ...view, isDefault: view.name === name }));
 };
 
 /**
@@ -280,7 +223,7 @@ export const addSchemaProperty = (
 ): readonly PageSchemaProperty[] => [
   ...properties,
   {
-    key: buildPropertyKey(added.label, properties),
+    key: buildPagePropertyKey(added.label, properties),
     label: added.label,
     options: pagePropertyRequiresOptions(added.type) ? [] : null,
     required: false,
