@@ -2,6 +2,7 @@ import {
   isPageDocumentNode,
   listPageDocumentChildren,
   type PageDocumentNodeShape,
+  Result,
   readPageDocumentBlockId,
   readPageDocumentText,
 } from '@company-brain/shared';
@@ -10,11 +11,14 @@ import {
   MCP_INLINE_REFERENCE_TYPES,
   MCP_LABELED_REFERENCE_TYPES,
   MCP_REDACTED_REFERENCE_WORD,
+  MCP_UNREACHABLE_REFERENCE_MESSAGE,
 } from '../constants/mcp.constants';
-import type { McpPagePlace } from '../types/mcp.types';
+import type { McpPagePlace, McpPerson } from '../types/mcp.types';
+import { collectMcpResults } from './mcp.results.lib';
 
 const pointsAtAPage = (node: PageDocumentNodeShape): boolean =>
-  MCP_INLINE_REFERENCE_TYPES.includes(node.type) || MCP_BLOCK_REFERENCE_TYPES.includes(node.type);
+  (MCP_INLINE_REFERENCE_TYPES.includes(node.type) || MCP_BLOCK_REFERENCE_TYPES.includes(node.type)) &&
+  readPageDocumentText(node, 'pageId') !== undefined;
 
 const collectReferencedPageIds = (nodes: readonly unknown[]): readonly string[] =>
   nodes.filter(isPageDocumentNode).flatMap((node) => {
@@ -80,3 +84,50 @@ export const hideUnreachableReferences = (
   nodes: readonly unknown[],
   reachable: ReadonlyMap<string, McpPagePlace>,
 ): readonly unknown[] => nodes.map((node) => hideNode(node, reachable));
+
+const settleReference = (node: PageDocumentNodeShape, reachable: ReadonlyMap<string, McpPagePlace>) => {
+  const place = reachable.get(readPageDocumentText(node, 'pageId') ?? '');
+  return place === undefined
+    ? Result.fail<PageDocumentNodeShape, string>(MCP_UNREACHABLE_REFERENCE_MESSAGE)
+    : Result.ok<PageDocumentNodeShape, string>(bringUpToDate(node, place));
+};
+
+const settlePerson = (node: PageDocumentNodeShape, people: readonly McpPerson[]) => {
+  const userId = readPageDocumentText(node, 'userId') ?? '';
+  const person = people.find((candidate) => candidate.id === userId);
+  return person === undefined
+    ? Result.fail<unknown, string>(`There is nobody with id ${userId} in the workspace.`)
+    : Result.ok<unknown, string>({ ...node, attrs: { ...node.attrs, label: person.name } });
+};
+
+const settleNode = (
+  node: unknown,
+  reachable: ReadonlyMap<string, McpPagePlace>,
+  people: readonly McpPerson[],
+): Result<unknown, string> => {
+  if (!isPageDocumentNode(node)) return Result.ok(node);
+  if (node.type === 'person') return settlePerson(node, people);
+  const settled = pointsAtAPage(node)
+    ? settleReference(node, reachable)
+    : Result.ok<PageDocumentNodeShape, string>(node);
+  if (settled.isFail() || settled.getValue().content === undefined) return settled;
+  const own = settled.getValue();
+  const inside = settleWrittenReferences(own.content ?? [], reachable, people);
+  return inside.isFail() ? inside : Result.ok({ ...own, content: inside.getValue() });
+};
+
+/**
+ * Lo que el agente escribió, con cada mención, cada bloque que muestra otra
+ * página y cada persona como son hoy.
+ *
+ * Solo se puede apuntar a una página que el token alcanza: escribir una
+ * mención, una subpágina o una colección incrustada de una página cerrada
+ * dejaría su nombre o sus filas a la vista de quien lea esta. Se rechaza igual
+ * que una página que no existe, sin repetir el nombre que el agente le puso.
+ * Una persona tiene que estar en el espacio de trabajo.
+ */
+export const settleWrittenReferences = (
+  nodes: readonly unknown[],
+  reachable: ReadonlyMap<string, McpPagePlace>,
+  people: readonly McpPerson[],
+): Result<unknown[], string> => collectMcpResults(nodes.map((node) => settleNode(node, reachable, people)));

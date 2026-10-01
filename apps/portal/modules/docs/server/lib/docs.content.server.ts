@@ -5,12 +5,17 @@ import {
   DOCS_CONTENT_FOLDER,
   DOCS_FALLBACK_LOCALE,
   DOCS_FILE_SUFFIX,
+  DOCS_NOT_WRITTEN_CODE,
   DOCS_SLUG_SHAPE,
 } from '../../constants/docs.reading.constants';
 import { readDocsFrontMatter, readDocsMarkdown } from '../../lib/docs.front-matter.lib';
 import type { DocsDocument, DocsEntry } from '../../types/docs.types';
 
 const folderOf = (locale: string): string => join(process.cwd(), DOCS_CONTENT_FOLDER, locale);
+
+/** A document or a language nobody wrote is expected; anything else that fails reading them is not, and is let through. */
+const isNotWritten = (error: unknown): boolean =>
+  error instanceof Error && 'code' in error && error.code === DOCS_NOT_WRITTEN_CODE;
 
 /**
  * Reads a document as it was written, or nothing when nobody wrote it.
@@ -22,8 +27,9 @@ const folderOf = (locale: string): string => join(process.cwd(), DOCS_CONTENT_FO
 const readWritten = async (locale: string, slug: string): Promise<string | null> => {
   try {
     return await readFile(join(folderOf(locale), `${slug}${DOCS_FILE_SUFFIX}`), 'utf8');
-  } catch {
-    return null;
+  } catch (error) {
+    if (isNotWritten(error)) return null;
+    throw error;
   }
 };
 
@@ -33,8 +39,9 @@ const readNames = async (locale: string): Promise<readonly string[]> => {
     return files
       .filter((file) => file.endsWith(DOCS_FILE_SUFFIX))
       .map((file) => file.slice(0, -DOCS_FILE_SUFFIX.length));
-  } catch {
-    return [];
+  } catch (error) {
+    if (isNotWritten(error)) return [];
+    throw error;
   }
 };
 

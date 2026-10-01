@@ -3,8 +3,9 @@ import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { recordMcpWrite } from '../lib/mcp.actions.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import { describeMcpRow, openMcpRow, requireMcpInput, requireMcpSuccess } from '../lib/mcp.collections.lib';
+import { describeMcpRow, openMcpRow } from '../lib/mcp.collections.lib';
 import { normalizeMcpCellValues } from '../lib/mcp.columns.lib';
+import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { rowOutputSchema, updateRowInputSchema } from '../schemas/mcp.collections.schemas';
 import type { McpCollectionShape, McpUpdateRowInput, McpWrittenRow } from '../types/mcp.collections.types';
@@ -81,6 +82,7 @@ export const updateRowTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.updateRow,
           async () => {
             if (input.title === undefined && input.properties === undefined)
               throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);

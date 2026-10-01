@@ -1,5 +1,6 @@
 'use client';
 
+import type { PageVerificationStatus } from '@company-brain/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -15,7 +16,7 @@ import { setPageOwnerAction } from '../../server/actions/pages.owner.actions';
 import type { PageAuthor, PageSummary } from '../../types/pages.types';
 import { fromVerificationExpiryInputValue, toVerificationExpiryInputValue } from '../lib/pages.verification.lib';
 import { setPageVerificationAction } from '../server/actions/pages.verification.actions';
-import type { PageVerificationChange, PageVerificationStatus } from '../types/pages.verification.types';
+import type { PageVerificationChange } from '../types/pages.verification.types';
 import { PagesVerificationBadge } from './pages.verification.badge';
 
 interface IProps {

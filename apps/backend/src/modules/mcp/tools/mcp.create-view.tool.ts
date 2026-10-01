@@ -2,7 +2,8 @@ import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { recordMcpWrite } from '../lib/mcp.actions.lib';
 import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import { openMcpCollection, requireMcpInput, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { openMcpCollection, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { requireMcpInput } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { addMcpView } from '../lib/mcp.views.lib';
@@ -42,6 +43,7 @@ export const createViewTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.createView,
           async () => {
             const call = await openMcpCall(dependencies);
             const [collection, people] = await Promise.all([

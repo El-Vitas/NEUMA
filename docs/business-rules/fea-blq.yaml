@@ -135,6 +135,31 @@ rules:
     why: >-
       Con lo que el editor tiene no hay forma de distinguir «esta persona se fue» de «nadie cargó la lista», y decir lo
       primero es afirmar algo falso sobre alguien que está ahí.
+  - id: BR-41e9452
+    status: active
+    title: El marco de un diagrama es de la página y el zoom es de quien mira
+    rule: >-
+      Un diagrama se muestra en un marco que no pasa del alto de la pantalla, y si el diagrama es más chico, el marco se
+      ajusta a él. Quien edita la página puede agrandar o achicar el marco, y ese alto se guarda en la página, así todos
+      ven el diagrama en el mismo marco. Acercar, alejar, ajustar el diagrama al marco y verlo a su tamaño real es de
+      cada persona que mira y no se guarda. Un diagrama más grande que su marco se abre ajustado a él, y al verlo a
+      pantalla completa se ajusta a la pantalla.
+    why: >-
+      Un marco del alto del diagrama empuja la página fuera de la pantalla aunque el diagrama igual no se vea entero.
+      Separar el marco, que es parte de la página, del zoom, que es de quien lee, deja que cada uno recorra el diagrama
+      sin cambiárselo a los demás.
+    context: >-
+      El marco se ajusta arrastrando su borde inferior o con las flechas del teclado, y con doble clic vuelve al tamaño
+      automático. Tiene un alto mínimo y uno máximo. El texto dentro de un diagrama nunca se corta dentro de su caja.
+    scenarios:
+      - title: Ajustar el marco
+        given: Un diagrama grande en una página
+        when: Una persona agranda su marco
+        then: Todos los que abren la página lo ven en el marco agrandado
+      - title: Acercar el diagrama
+        given: Dos personas mirando el mismo diagrama
+        when: Una lo acerca
+        then: Solo cambia lo que ve esa persona
   - id: BR-42fc687
     status: active
     title: El día se cuenta en el huso de quien lee

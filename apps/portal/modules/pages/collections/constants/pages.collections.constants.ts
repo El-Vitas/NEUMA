@@ -5,9 +5,6 @@
  */
 export const PAGE_COLLECTION_FIRST_PROPERTY_KEY = 'notes';
 
-/** What every row of a collection has: its name, which is the title of the page that row is. */
-export const PAGE_COLLECTION_TITLE_PROPERTY_KEY = 'title';
-
 /** Lo que mide una columna a la que nadie le dio un ancho. */
 export const PAGE_TABLE_DEFAULT_COLUMN_WIDTH = 180;
 

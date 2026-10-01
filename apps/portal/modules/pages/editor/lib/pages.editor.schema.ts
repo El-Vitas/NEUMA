@@ -7,6 +7,8 @@ import {
   PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
   PAGE_DIAGRAM_VIEWS,
   PAGE_DOCUMENT_MARKS,
   PAGE_DOCUMENT_NODES,
@@ -106,9 +108,18 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   return { open: element.hasAttribute('open'), summary };
 };
 
-const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | boolean | null> => {
-  const { language, shown, wrapped } = element.dataset;
+/** A frame height read from the page, kept only when it is one a drawing's frame may have. */
+const readPageEditorFrameHeight = (said: string | undefined): number | null => {
+  const height = Number(said);
+  const isAllowed =
+    Number.isInteger(height) && height >= PAGE_DIAGRAM_FRAME_HEIGHT_LEAST && height <= PAGE_DIAGRAM_FRAME_HEIGHT_MOST;
+  return isAllowed ? height : null;
+};
+
+const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | number | boolean | null> => {
+  const { frameHeight, language, shown, wrapped } = element.dataset;
   return {
+    frameHeight: readPageEditorFrameHeight(frameHeight),
     language: language !== undefined && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
     shown: PAGE_DIAGRAM_VIEWS.find((known) => known === shown) ?? null,
     wrapped: wrapped === 'true',
@@ -315,6 +326,9 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
           ...(typeof node.attrs.language === 'string' ? { 'data-language': node.attrs.language } : {}),
           ...(typeof node.attrs.shown === 'string' ? { 'data-shown': node.attrs.shown } : {}),
           ...(node.attrs.wrapped === true ? { 'data-wrapped': 'true' } : {}),
+          ...(typeof node.attrs.frameHeight === 'number'
+            ? { 'data-frame-height': String(node.attrs.frameHeight) }
+            : {}),
         },
         ['code', 0],
       ],

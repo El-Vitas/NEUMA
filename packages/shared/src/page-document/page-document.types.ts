@@ -32,6 +32,16 @@ export interface PageDocumentNodeStructure {
   readonly marks?: string;
 }
 
+/**
+ * Dónde van unos bloques: al principio o al final de la página, antes o después
+ * de un bloque, o al principio o al final de lo que un bloque lleva dentro.
+ */
+export type PageBlockPlace =
+  | { readonly at: 'end' | 'start' }
+  | { readonly after: string }
+  | { readonly before: string }
+  | { readonly at: 'end' | 'start'; readonly inside: string };
+
 export interface PageDocumentMarkStructure {
   readonly attrs?: PageDocumentAttributes;
   readonly inclusive?: boolean;

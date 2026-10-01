@@ -2,8 +2,9 @@ import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { recordMcpWrite } from '../lib/mcp.actions.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import { describeMcpRow, openMcpCollection, requireMcpInput, requireMcpSuccess } from '../lib/mcp.collections.lib';
+import { describeMcpRow, openMcpCollection } from '../lib/mcp.collections.lib';
 import { keepFilledMcpCells, normalizeMcpCellValues } from '../lib/mcp.columns.lib';
+import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { buildMcpRowContent } from '../lib/mcp.row-content.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { createRowInputSchema, rowOutputSchema } from '../schemas/mcp.collections.schemas';
@@ -59,6 +60,7 @@ export const createRowTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.createRow,
           async () => {
             const call = await openMcpCall(dependencies);
             const [collection, people] = await Promise.all([

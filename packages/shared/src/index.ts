@@ -82,7 +82,14 @@ export {
   readPageDocumentBlockId,
   readPageDocumentText,
 } from './page-document/page-document.node.lib.js';
-export type { PageDocumentNodeShape } from './page-document/page-document.types.js';
+export type { PageBlockPlace, PageDocumentNodeShape } from './page-document/page-document.types.js';
+export {
+  insertPageBlocks,
+  movePageBlocks,
+  removePageBlocks,
+  replacePageBlock,
+} from './page-document/page-document.edit.lib.js';
+export { PAGE_BLOCK_ITEM_TYPES } from './page-block/page-block.constants.js';
 export { givePageBlocksTheirIds } from './page-block/page-block.identity.lib.js';
 export { listPageBlocks } from './page-block/page-block.lib.js';
 export type { PageBlockEntry } from './page-block/page-block.types.js';
@@ -91,6 +98,7 @@ export {
   writePageAsAnchoredMarkdown,
   writePageAsMarkdown,
 } from './page-markdown.lib.js';
+export { readMarkdownInline } from './page-markdown.inline.lib.js';
 export {
   canPagePropertyGroupBoard,
   formatPagePropertyValue,
@@ -104,6 +112,7 @@ export {
   pagePropertyRequiresOptions,
   pagePropertyRequiresPersonDirectory,
 } from './page-property/page-property.lib.js';
+export { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from './page-property/page-property.key.constants.js';
 export { buildPagePropertyKey } from './page-property/page-property.key.lib.js';
 export {
   pickPageOptionColor,
@@ -242,6 +251,7 @@ export type {
   PageContentText,
   PageContentUnknownNode,
   PageEmbedProvider,
+  PageMark,
 } from './schemas/page-content.schema.js';
 export {
   canPageBlockHold,
@@ -256,6 +266,12 @@ export {
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
   PAGE_DIAGRAM_VIEWS,
+  PAGE_BLOCK_COMMENT_BODY_MOST,
+  PAGE_BLOCK_COMMENTS_MOST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
+  PAGE_DIAGRAM_LANGUAGE,
+  PAGE_FORMULA_LANGUAGE,
   PAGE_BLOCK_ALIGNMENTS,
   PAGE_FILE_DISPLAYS,
   PAGE_CONTENT_NODE_TYPES,
@@ -295,6 +311,9 @@ export {
 } from './types/page-schema.types.js';
 export type { SpaceVisibility } from './types/space.types.js';
 export { SPACE_VISIBILITY, SPACE_VISIBILITY_VALUES } from './types/space.types.js';
+export type { PageVerificationStatus } from './page-verification/page-verification.definitions.js';
+export { PAGE_VERIFICATION_STATUSES } from './page-verification/page-verification.definitions.js';
+export { resolvePageVerificationStatus } from './page-verification/page-verification.lib.js';
 export type { User } from './types/user.types.js';
 export type { UserRole } from './types/user-role.types.js';
 export { USER_ROLE, USER_ROLE_VALUES } from './types/user-role.types.js';

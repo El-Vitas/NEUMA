@@ -29,6 +29,7 @@ import type {
   McpPrincipal,
   McpServerDependencies,
 } from '../../../../src/modules/mcp/types/mcp.types';
+import { createUnusedPageManager } from '../../../helpers/mcp.page-manager.helper';
 
 const SPACE = '00000000-0000-4000-8000-00000000000a';
 const OTHER_SPACE = '00000000-0000-4000-8000-00000000000b';
@@ -57,11 +58,16 @@ const pageSource = (id: string, title: string, parentId: string | null, values: 
   content: { content: [], schemaVersion: 1, type: 'doc' },
   id,
   lifecycle: 'ACTIVE' as const,
+  lockedAt: null,
   order: 0,
+  owner: null,
   parentId,
   propertyValues: values,
   spaceId: SPACE,
   title,
+  verificationExpiresAt: null,
+  verifiedAt: null,
+  verifiedBy: null,
   version: 1,
 });
 
@@ -161,8 +167,13 @@ const createRowStore = (refusal: McpRefusal | null = null) => {
 
 const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
 
+/** Una acción anotada por el registro falso, con cómo terminó. */
+interface LoggedAction extends McpActionEntry {
+  readonly outcome: string;
+}
+
 interface Harness {
-  readonly actions: McpActionEntry[];
+  readonly actions: LoggedAction[];
   readonly client: Client;
   readonly collections: ReturnType<typeof createCollectionStore>;
   readonly rows: ReturnType<typeof createRowStore>;
@@ -173,17 +184,27 @@ const connect = async (
   rows = createRowStore(),
   principal = principalWith(permissions),
 ): Promise<Harness> => {
-  const actions: McpActionEntry[] = [];
+  const actions: LoggedAction[] = [];
   const collections = createCollectionStore();
   const dependencies: McpServerDependencies = {
     actionLog: {
-      record: (entry) => {
-        actions.push(entry);
+      finish: (actionId, outcome) => {
+        const index = Number(actionId);
+        const action = actions[index];
+        if (action !== undefined) actions[index] = { ...action, outcome };
         return Promise.resolve();
+      },
+      start: (entry) => {
+        actions.push({ ...entry, outcome: 'PENDING' });
+        return Promise.resolve(String(actions.length - 1));
       },
     },
     backlinks: { listBacklinks: notUsedHere },
     collections: collections.service,
+    content: { edit: notUsedHere },
+    drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
+    pages: createUnusedPageManager(),
+    observer: { callFinished: () => undefined, unexpected: () => undefined },
     outline: { listAncestors: notUsedHere, listChildren: notUsedHere, listReadable: notUsedHere },
     pagesService: {
       getAccessible: (pageId) => {
@@ -216,7 +237,7 @@ const connect = async (
 type ToolResult = Awaited<ReturnType<Client['callTool']>>;
 
 /** Lo anotado de cada escritura, sin quién la hizo: qué herramienta, sobre qué página y cómo terminó. */
-const summarizeActions = (actions: readonly McpActionEntry[]) =>
+const summarizeActions = (actions: readonly LoggedAction[]) =>
   actions.map(({ outcome, pageId, tool }) => ({ outcome, pageId, tool }));
 
 const textOf = (result: ToolResult): string => (result.content[0] as { text: string }).text;

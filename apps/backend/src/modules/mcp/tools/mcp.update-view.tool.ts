@@ -4,13 +4,8 @@ import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { recordMcpWrite } from '../lib/mcp.actions.lib';
 import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import {
-  openMcpCollection,
-  requireMcpInput,
-  requireMcpSuccess,
-  requireMcpView,
-  saveMcpCollectionShape,
-} from '../lib/mcp.collections.lib';
+import { openMcpCollection, requireMcpView, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { changeMcpView } from '../lib/mcp.views.lib';
@@ -89,6 +84,7 @@ export const updateViewTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.updateView,
           async () => {
             if (!asksForAnyChange(input)) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
             const call = await openMcpCall(dependencies);

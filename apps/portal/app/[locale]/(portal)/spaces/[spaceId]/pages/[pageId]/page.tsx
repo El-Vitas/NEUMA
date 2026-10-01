@@ -24,7 +24,7 @@ import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants'
 import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
 import { getPageBacklinks } from '@/modules/pages/links/server/queries/pages.backlinks.queries';
 import type { PagesSidePanelBundle } from '@/modules/pages/navigation/types/pages.side-panel.types';
-import { getPageSpaceId, getPages } from '@/modules/pages/server/queries/pages.queries';
+import { getPageSpaceId, getPages, getPagesHolding } from '@/modules/pages/server/queries/pages.queries';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
@@ -70,11 +70,25 @@ const followThePageToItsSpace = async (pageId: string, spaceId: string): Promise
   redirect({ href: ROUTES.PORTAL_SPACE_PAGE(currentSpaceId, pageId), locale: await getLocale() });
 };
 
+/**
+ * The pages of the space, sure to hold this one if it exists.
+ *
+ * The kept list can predate a page just written from outside the portal, by an
+ * agent; such a page is read again rather than answered as missing.
+ */
+const readPagesHolding = async (spaceId: string, pageId: string): Promise<readonly PageSummary[] | null> => {
+  const listedResult = await getPages(spaceId);
+  const listed = listedResult.isOk() ? listedResult.getValue() : null;
+  if (listed === null || listed.some((page) => page.id === pageId)) return listed;
+  const rereadResult = await getPagesHolding(spaceId, pageId);
+  return rereadResult.isOk() ? rereadResult.getValue() : listed;
+};
+
 /** The name the browser tab carries, which is the page's own and not the workspace's. */
 export const generateMetadata = async ({ params }: IProps): Promise<Metadata> => {
   const { pageId, spaceId } = await params;
-  const [pagesResult, t] = await Promise.all([getPages(spaceId), getTranslations('pages')]);
-  const page = pagesResult.isOk() ? pagesResult.getValue().find((candidate) => candidate.id === pageId) : undefined;
+  const [pages, t] = await Promise.all([readPagesHolding(spaceId, pageId), getTranslations('pages')]);
+  const page = pages?.find((candidate) => candidate.id === pageId);
   if (page === undefined) return {};
   return { title: buildPageDocumentTitle(page.title, t('untitled')) };
 };
@@ -255,15 +269,14 @@ export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
   if (!z.uuid().safeParse(pageId).success) notFound();
 
-  const [spacesResult, user, pagesResult, favoritesResult, resolvedSearchParams] = await Promise.all([
+  const [spacesResult, user, pages, favoritesResult, resolvedSearchParams] = await Promise.all([
     getSpaces(),
     getCurrentUser(),
-    getPages(spaceId),
+    readPagesHolding(spaceId, pageId),
     getFavoritePages(),
     searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({}),
   ]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
-  const pages = pagesResult.isOk() ? pagesResult.getValue() : null;
   const selectedPage = pages?.find((page) => page.id === pageId);
   if (selectedPage === undefined) await followThePageToItsSpace(pageId, spaceId);
   if (space === undefined || pages === null || selectedPage === undefined) notFound();

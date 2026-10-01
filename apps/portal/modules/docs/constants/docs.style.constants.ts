@@ -38,13 +38,16 @@ export const DOCS_DRAWING_STYLE_CLASS = [
 ].join(' ');
 
 /**
- * The way out of a drawing that does not fit: offered above it and only when it
- * is needed, never on top of it — a drawing writes its own title up there.
+ * The buttons that bring a drawing closer or push it away: offered above it,
+ * never on top of it — a drawing writes its own title up there.
  */
 export const DOCS_SIZE_BUTTON_STYLE_CLASS = [
   'border border-border bg-surface px-2 py-1 text-muted-foreground text-xs',
   'transition-colors hover:text-foreground',
 ].join(' ');
+
+/** How big the marks on the zoom buttons of an example are drawn, in pixels. */
+export const DOCS_ZOOM_ICON_SIZE = 14;
 
 /** A picture shown with the name it is called by. */
 export const DOCS_ICON_STYLE_CLASS = 'flex flex-col items-center gap-2 border border-border bg-surface-low p-3';

@@ -54,7 +54,12 @@ export const PAGE_DOCUMENT_NODES = {
   blockquote: { attrs: withBlockAttributes(), content: 'block+', group: 'block' },
   bullet_list: { attrs: withBlockAttributes(), content: 'list_item+', group: 'block' },
   code_block: {
-    attrs: withBlockAttributes({ language: OPTIONAL, shown: OPTIONAL, wrapped: { default: false } }),
+    attrs: withBlockAttributes({
+      frameHeight: OPTIONAL,
+      language: OPTIONAL,
+      shown: OPTIONAL,
+      wrapped: { default: false },
+    }),
     content: 'text*',
     group: 'block',
     marks: '',

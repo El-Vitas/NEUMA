@@ -1,20 +1,23 @@
 /// Lo que un agente hizo, o intentó hacer, al escribir en Company Brain.
 /// Una fila por escritura: quién la hizo, con qué token, con qué herramienta,
-/// dónde y qué tocó, y cómo terminó. Sin fila no hay escritura.
+/// dónde y qué tocó, y cómo terminó. La fila se anota antes de escribir: sin
+/// fila no hay escritura.
 /// No apunta con llaves a la página ni al token: el registro tiene que seguir
 /// diciendo qué pasó aunque la página o el token ya no existan.
 model AgentAction {
-  id          String              @id @default(uuid(7))
+  id          String             @id @default(uuid(7))
   workspaceId String
   userId      String
   tokenId     String
   tool        String
   pageId      String?
-  blockIds    String[]            @default([])
+  blockIds    String[]           @default([])
   outcome     AgentActionOutcome
   /// Qué pidió el agente, en corto: las columnas que cambió, la vista que creó.
   detail      Json
-  createdAt   DateTime            @default(now())
+  createdAt   DateTime           @default(now())
+  /// Cuándo se supo cómo terminó; nada mientras siga pendiente.
+  finishedAt  DateTime?
 
   @@index([workspaceId, createdAt])
   @@index([tokenId, createdAt])

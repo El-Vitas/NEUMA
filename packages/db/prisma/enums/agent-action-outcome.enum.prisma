@@ -1,5 +1,8 @@
 /// Cómo terminó una escritura de un agente.
 enum AgentActionOutcome {
+  /// Anotada antes de escribir y todavía sin cerrar. Si queda así, la escritura
+  /// pudo haberse hecho sin que se supiera cómo terminó: hay que mirarla.
+  PENDING
   /// Se hizo.
   DONE
   /// No se hizo porque no le tocaba: permiso, página bloqueada, valor inválido.

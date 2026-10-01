@@ -103,6 +103,7 @@ export const ACCESS_TOKEN_PERMISSION_MESSAGE_KEYS: Readonly<Record<AccessTokenPe
   [ACCESS_TOKEN_PERMISSIONS.pagesRead]: 'pagesRead',
   [ACCESS_TOKEN_PERMISSIONS.pagesWrite]: 'pagesWrite',
   [ACCESS_TOKEN_PERMISSIONS.pagesTrash]: 'pagesTrash',
+  [ACCESS_TOKEN_PERMISSIONS.pagesManage]: 'pagesManage',
   [ACCESS_TOKEN_PERMISSIONS.collectionsRead]: 'collectionsRead',
   [ACCESS_TOKEN_PERMISSIONS.collectionsWrite]: 'collectionsWrite',
   [ACCESS_TOKEN_PERMISSIONS.collectionsConfigure]: 'collectionsConfigure',

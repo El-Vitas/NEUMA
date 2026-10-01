@@ -7,6 +7,14 @@ import { foldMcpName } from './mcp.columns.lib';
 const findViewNamed = (views: readonly McpView[], name: string, except: string | null): McpView | undefined =>
   views.find((view) => view.name !== except && foldMcpName(view.name) === foldMcpName(name));
 
+/** Una vista por su nombre, como sea que venga escrito, o por qué no está y cuáles hay. */
+export const pickMcpView = (views: readonly McpView[], name: string): Result<McpView, string> => {
+  const view = findViewNamed(views, name, null);
+  if (view !== undefined) return Result.ok(view);
+  const names = views.map((candidate) => candidate.name).join(', ');
+  return Result.fail(`The collection has no view "${name}". Its views are: ${names}.`);
+};
+
 const refuseTakenName = (taken: McpView): Result<McpView[], string> =>
   Result.fail(`The collection already has a view called "${taken.name}". Choose another name.`);
 

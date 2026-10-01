@@ -1,7 +1,9 @@
 import type { AgentActionOutcome } from '@company-brain/db';
 import type {
   AccessTokenPermission,
+  AccessTokenPlace,
   PageContent,
+  PageDocumentNodeShape,
   PageLifecycle,
   PagePropertyValue,
   PagePropertyValues,
@@ -12,6 +14,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import type { z } from 'zod';
 import type { AccessTokenPlaceReader, AccessTokenPrincipal } from '../../../common/types/access-token.types';
 import type { PageBlockSearchReader, SearchReader, SearchTokenScope } from '../../../common/types/search.types';
+import type { MCP_CALL_OUTCOMES, MCP_REFUSAL_REASONS } from '../constants/mcp.constants';
 import type {
   fetchOutputSchema,
   listPagesInputSchema,
@@ -20,6 +23,8 @@ import type {
   searchOutputSchema,
 } from '../schemas/mcp.schemas';
 import type { McpCollectionService, McpRowWriter, McpSchemaColumn } from './mcp.collections.types';
+import type { McpPageManager } from './mcp.page-management.types';
+import type { McpContentEditor, McpDrawingValidator } from './mcp.pages.types';
 
 export type McpSearchInput = z.infer<typeof searchInputSchema>;
 export type McpSearchOutput = z.infer<typeof searchOutputSchema>;
@@ -27,6 +32,7 @@ export type McpFetchOutput = z.infer<typeof fetchOutputSchema>;
 export type McpFetchedPage = McpFetchOutput['page'];
 export type McpFetchedBlock = NonNullable<McpFetchOutput['block']>;
 export type McpFetchedProperty = NonNullable<McpFetchedPage['properties']>[number];
+export type McpPageState = NonNullable<McpFetchedPage['state']>;
 export type McpListPagesInput = z.infer<typeof listPagesInputSchema>;
 export type McpListPagesOutput = z.infer<typeof listPagesOutputSchema>;
 
@@ -46,9 +52,16 @@ export interface McpBlockComment {
   readonly blockId: string;
   readonly body: string;
   readonly createdAt: string;
+  readonly id: string;
 }
 
 /** Un tramo de una página larga: sus bloques de arriba y desde cuál sigue, si sigue. */
+/** Un bloque y el bloque que lo lleva dentro, o nada si está arriba del todo en la página. */
+export interface McpHeldBlock {
+  readonly holder: PageDocumentNodeShape | null;
+  readonly node: PageDocumentNodeShape;
+}
+
 export interface McpPagePart {
   readonly nextStart: number | null;
   readonly nodes: readonly unknown[];
@@ -59,7 +72,6 @@ export interface McpActionEntry {
   readonly blockIds: readonly string[];
   /** Qué pidió, en corto: las columnas que cambió, la vista que creó. */
   readonly detail: Readonly<Record<string, string | number | boolean | readonly string[] | null>>;
-  readonly outcome: AgentActionOutcome;
   readonly pageId: string | null;
   readonly tokenId: string;
   readonly tool: string;
@@ -70,9 +82,20 @@ export interface McpActionEntry {
 /** Lo que el agente pide al escribir, antes de saber cómo termina. */
 export type McpActionRequest = Pick<McpActionEntry, 'blockIds' | 'detail' | 'pageId' | 'tool'>;
 
-/** Dónde queda anotado lo que escriben los agentes. */
+/** Lo que hace falta para anotar una escritura: el registro, y a quién contarle si el registro falla. */
+export type McpActionDependencies = Pick<McpServerDependencies, 'actionLog' | 'observer'>;
+
+/** Cómo se cierra una acción anotada: todo resultado salvo seguir pendiente. */
+export type McpActionClosing = Exclude<AgentActionOutcome, 'PENDING'>;
+
+/**
+ * Dónde queda anotado lo que escriben los agentes: la acción se abre antes de
+ * escribir y se cierra con su resultado.
+ */
 export interface McpActionLog {
-  readonly record: (entry: McpActionEntry) => Promise<void>;
+  readonly finish: (actionId: string, outcome: McpActionClosing) => Promise<void>;
+  /** Anota la acción como pendiente y devuelve su id. */
+  readonly start: (entry: McpActionEntry) => Promise<string>;
 }
 
 /** Con qué corre una llamada: quién llama, en qué espacio de trabajo, y lo que su token deja leer. */
@@ -177,12 +200,20 @@ export interface McpPage {
   readonly content: PageContent;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
+  /** Cuándo la bloquearon contra cambios; nada si no está bloqueada. */
+  readonly lockedAt: Date | null;
   readonly order: number;
+  /** Quién responde por la página, si alguien. */
+  readonly owner: null | McpPerson;
   readonly parentId: null | string;
   /** Lo que la página tiene en cada columna, si es una fila de una colección. */
   readonly propertyValues: PagePropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
+  /** Hasta cuándo vale la verificación; nada si vale sin plazo o no la hay. */
+  readonly verificationExpiresAt: Date | null;
+  readonly verifiedAt: Date | null;
+  readonly verifiedBy: null | McpPerson;
   readonly version: number;
 }
 
@@ -208,6 +239,12 @@ export interface McpSpaceReader {
   readonly listAccessible: (workspaceId: string, userId: string, role: UserRole) => Promise<readonly McpSpace[]>;
 }
 
+/** Una página donde el token tiene una regla propia, con el lugar donde está. */
+export interface McpGrantPlace {
+  readonly pageId: string;
+  readonly place: AccessTokenPlace;
+}
+
 export interface McpPageReader {
   readonly getAccessible: (
     pageId: string,
@@ -221,8 +258,11 @@ export interface McpServerDependencies {
   readonly actionLog: McpActionLog;
   readonly backlinks: McpBacklinkReader;
   readonly collections: McpCollectionService;
-  readonly errorReporter?: McpErrorReporter;
+  readonly content: McpContentEditor;
+  readonly drawings: McpDrawingValidator;
+  readonly observer: McpObserver;
   readonly outline: McpOutlineReader;
+  readonly pages: McpPageManager;
   readonly pagesService: McpPageReader;
   readonly people: McpPeopleReader;
   readonly placeReader: AccessTokenPlaceReader;
@@ -235,8 +275,39 @@ export interface McpServerDependencies {
   readonly workspacesService: McpWorkspaceReader;
 }
 
-export interface McpErrorReporter {
-  readonly report: (error: unknown) => void;
+/** Cómo terminó una llamada: hecha, rechazada con un motivo para el agente, o fallida sin que nadie lo esperara. */
+export type McpCallOutcome = (typeof MCP_CALL_OUTCOMES)[keyof typeof MCP_CALL_OUTCOMES];
+
+/** Una llamada que terminó, para medir qué herramientas se usan, cuánto tardan y cuánto fallan. */
+/** Lo único que necesita la revisión de diagramas y fórmulas. */
+export type McpDrawingDependencies = Pick<McpServerDependencies, 'drawings'>;
+
+/** Por qué se rechazó una llamada, en una etiqueta fija que puede ir al log sin copiar lo que el agente escribió. */
+export type McpRefusalReason = (typeof MCP_REFUSAL_REASONS)[keyof typeof MCP_REFUSAL_REASONS];
+
+export interface McpFinishedCall {
+  readonly durationMs: number;
+  readonly outcome: McpCallOutcome;
+  readonly refusal?: McpRefusalReason;
+  readonly tool: string;
+}
+
+/** Lo que el MCP necesita de un logger: escribir un hecho o un error con sus campos. Lo cumplen Pino y el de Nest. */
+export interface McpLogger {
+  readonly error: (fields: object, message: string) => void;
+  readonly info: (fields: object, message: string) => void;
+}
+
+/**
+ * A quién se le cuenta lo que pasa dentro del MCP.
+ *
+ * Es obligatorio a propósito: cada puerta de entrada (HTTP, terminal) tiene
+ * que decir dónde van sus fallos, así ninguno se pierde en silencio.
+ */
+export interface McpObserver {
+  readonly callFinished: (call: McpFinishedCall) => void;
+  /** Un fallo que nadie esperaba, entero y con su traza, y dónde pasó. */
+  readonly unexpected: (error: unknown, where: string) => void;
 }
 
 /**

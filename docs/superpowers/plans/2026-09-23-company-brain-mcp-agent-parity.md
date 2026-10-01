@@ -158,9 +158,10 @@ existe se rechaza con las opciones válidas, en vez de guardarse a medias.
 
 ### Fuera, a propósito
 
-Borrar para siempre, vaciar la papelera, administrar miembros y espacios,
-verificar, bloquear y asignar responsable. Son actos de confianza o de
-administración, y ningún permiso del token los cubre.
+Borrar para siempre, vaciar la papelera y administrar miembros y espacios. Son
+actos de administración, y ningún permiso del token los cubre. Verificar,
+bloquear y asignar responsable empezaron aquí y entraron en F3, con su propio
+permiso (`pages:manage`).
 
 ## Datos nuevos
 
@@ -297,6 +298,57 @@ bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
 
 **F3 · Escribir en páginas.** Las herramientas de `pages:write` y `pages:trash`.
 Cierra `AG-02`.
+
+> **Hecho el 2026-09-30**, probado con pruebas de integración contra la base real,
+> con agentes haiku que reciben pedidos vagos y solo el MCP, y en el navegador.
+> Quedó así:
+>
+> - **Bloques.** `create_page`, `insert_blocks`, `update_block`, `move_blocks` y
+>   `delete_blocks` escriben todo el menú de bloques: texto, títulos, listas,
+>   tareas, citas, destacados, código, diagramas, fórmulas, tablas, desplegables,
+>   índice, subpáginas, colecciones incrustadas, botones, columnas, tarjetas de
+>   enlace, videos incrustados y bloques sincronizados. Todo pasa por el documento
+>   en vivo, así que quien tiene la página abierta lo ve al momento.
+> - **Formato.** El texto lleva negrita, cursiva, código, tachado, subrayado,
+>   color y resaltado, y `update_block` pinta un bloque entero. `fetch` devuelve
+>   lo mismo que se escribe: el subrayado y los colores en HTML en línea, y los
+>   colores de un bloque en su ancla.
+> - **Tablas.** `update_table` cambia celdas, agrega filas y las quita, sin tocar
+>   la identidad ni los comentarios de lo demás.
+> - **Comentarios.** `comment_on_block` comenta un bloque o unas palabras suyas,
+>   firmado por la persona dueña del token; `delete_comment` lo quita. `fetch`
+>   muestra cada comentario con su id.
+> - **Páginas enteras.** `update_page` (título, emoji, quitar la portada,
+>   bloquear, verificar y dueño), `move_page`, `duplicate_page`, `trash_page` y
+>   `restore_page`.
+> - **Dibujos revisados en el servidor.** Antes de guardar, el backend lee cada
+>   diagrama con el mismo Mermaid del portal (en un worker aparte), cada fórmula
+>   con KaTeX y cada ícono contra los paquetes que dibuja el portal, y revisa que
+>   un diagrama de arquitectura agrupe bien. Si algo falla, no se escribe nada y
+>   el agente recibe el error con el número de bloque.
+>
+> Se apartó del plan en cinco puntos:
+>
+> - `update_table_cell` quedó como `update_table`, que además agrega y quita filas.
+> - **Verificar, bloquear y asignar dueño entraron**, en `update_page`, aunque este
+>   plan los dejaba fuera como actos de confianza. Por eso piden un permiso propio
+>   del token, `pages:manage`, aparte de escribir: lo trae el nivel completo y no
+>   el de lectura y escritura, y solo lo da quien puede escribir.
+> - Mandar a la papelera, mover y copiar con hijas piden el permiso en todo el
+>   árbol: si una página de abajo tiene su propia regla que no lo permite, no se
+>   hace nada y se nombra esa página.
+> - El registro de acciones abre la acción como pendiente antes de escribir y la
+>   cierra después, así no queda una escritura sin anotar.
+> - Lo que el agente no puede: subir imágenes, videos, audios y archivos, ni
+>   poner una portada nueva, por el riesgo de que el servidor pida direcciones que
+>   le dé el agente. Los íconos de página son solo emojis; los símbolos del
+>   portal quedan para después.
+>
+> En el camino se arreglaron en el portal: el texto de varias líneas que se
+> cortaba dentro de las cajas de un diagrama, un marco de diagrama que se salía de
+> la pantalla (ahora acotado, con alto ajustable que se guarda y zoom de quien
+> mira), un diagrama o una fórmula sincronizados que se veían como código, y el
+> «no existe» de la primera visita a una página creada fuera del portal.
 
 F0 va primero porque F2 y F3 escriben, y sin F0 esas escrituras se pierden.
 

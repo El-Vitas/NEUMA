@@ -25,6 +25,7 @@ export interface PageBlockSearchRow {
   readonly blockId: string;
   readonly blockType: string;
   readonly headingPath: string[] | null;
+  readonly isPageVerified: boolean;
   readonly pageId: string;
   readonly pageTitle: string;
   readonly parentPageTitle: string | null;

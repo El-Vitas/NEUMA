@@ -113,6 +113,7 @@ export const keepClicksAcrossChangesFromOthers = (
   awareness: PageCollaborationDraft['awareness'],
 ): (() => void) => {
   const readPendingClick = (): void => {
+    if (view.isDestroyed) return;
     const clicked = readBrowserSelection(view);
     if (clicked === null) return;
     const { selection } = view.state;

@@ -37,6 +37,7 @@ import type {
 } from '../../../../src/modules/mcp/types/mcp.types';
 import type { PageSummary } from '../../../../src/modules/pages/types/page.types';
 import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.types';
+import { createUnusedPageManager } from '../../../helpers/mcp.page-manager.helper';
 
 const PORTAL = 'https://brain.example.com';
 const SPACE = '00000000-0000-4000-8000-00000000000a';
@@ -110,6 +111,7 @@ const blockHits: PageBlockSearchPage = {
       blockId: BLOCK,
       blockType: 'paragraph',
       headingPath: ['Setup'],
+      isPageVerified: true,
       pageId: PAGE,
       pageTitle: 'Runbook',
       parentPageTitle: null,
@@ -126,6 +128,7 @@ const pageHits: SearchPage = {
   items: [
     {
       contentType: 'PAGE',
+      isVerified: true,
       rank: 0.5,
       spaceId: SPACE,
       sourceId: PAGE,
@@ -136,6 +139,7 @@ const pageHits: SearchPage = {
     },
     {
       contentType: 'PAGE',
+      isVerified: false,
       rank: 0.4,
       spaceId: SPACE,
       sourceId: MISSING,
@@ -171,9 +175,13 @@ const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResul
 });
 
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
-  actionLog: { record: () => Promise.resolve() },
+  actionLog: { finish: () => Promise.resolve(), start: () => Promise.resolve('action-1') },
   backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
   collections: collectionWith([]),
+  content: { edit: notUsedHere },
+  drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
+  pages: createUnusedPageManager(),
+  observer: { callFinished: () => undefined, unexpected: () => undefined },
   outline,
   pagesService: {
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === PAGE ? page : null)),
@@ -233,7 +241,7 @@ const createErrorReportingClient = async (
   const reportedErrors: unknown[] = [];
   const client = await connectClient({
     ...createDependencies(),
-    errorReporter: { report: (error) => reportedErrors.push(error) },
+    observer: { callFinished: () => undefined, unexpected: (error) => reportedErrors.push(error) },
     ...overrides,
   });
   return { client, reportedErrors };
@@ -264,6 +272,7 @@ describe('MCP read contract', () => {
       'fetch',
       'list_spaces',
       'list_pages',
+      'list_trash',
       'get_collection',
       'query_collection',
     ]);
@@ -345,6 +354,22 @@ describe('MCP read contract', () => {
     expect(result.content).toEqual([{ text: MCP_UNEXPECTED_MESSAGE, type: 'text' }]);
     expect(reportedErrors).toHaveLength(1);
   });
+
+  /** Sin esto no se sabe qué herramientas se usan, cuánto tardan ni cuánto fallan. */
+  test('tells how every call ended, whether it went through, was refused or failed', async () => {
+    const finished: string[] = [];
+    const client = await connectClient({
+      ...createDependencies(),
+      observer: { callFinished: (call) => finished.push(`${call.tool}:${call.outcome}`), unexpected: () => undefined },
+      spacesService: { listAccessible: () => Promise.reject(new Error('database unavailable')) },
+    });
+
+    await client.callTool({ arguments: { address: PAGE }, name: 'fetch' });
+    await client.callTool({ arguments: { address: MISSING }, name: 'fetch' });
+    await client.callTool({ arguments: {}, name: 'list_spaces' });
+
+    expect(finished).toEqual(['fetch:DONE', 'fetch:REFUSED', 'list_spaces:FAILED']);
+  });
 });
 
 describe('MCP search', () => {
@@ -400,6 +425,7 @@ describe('MCP search', () => {
         {
           blockId: BLOCK,
           blockType: 'paragraph',
+          isPageVerified: true,
           pageId: PAGE,
           pageTitle: 'Runbook',
           parentPageTitle: null,
@@ -413,6 +439,7 @@ describe('MCP search', () => {
       nextCursor: 'next-block-cursor',
       pages: [
         {
+          isVerified: false,
           pageId: MISSING,
           snippet: '<mark>Runbooks</mark> index',
           spaceId: SPACE,
@@ -421,7 +448,7 @@ describe('MCP search', () => {
         },
       ],
     });
-    expect(textOf(result)).toContain(`Runbook › Setup (paragraph, block ${BLOCK})`);
+    expect(textOf(result)).toContain(`Runbook › Setup (paragraph, block ${BLOCK}, verified page)`);
     expect(textOf(result)).toContain('More blocks with cursor: next-block-cursor');
   });
 
@@ -579,6 +606,62 @@ describe('MCP fetch', () => {
   });
 });
 
+/** Lo que dice si una página es de fiar: si alguien respondió por ella, si está bloqueada y quién la cuida. */
+describe('MCP fetch — whether a page can be trusted', () => {
+  const ana = { id: 'u-1', name: 'Ana Pérez' };
+
+  test('says who vouched for a page, when, and until when', async () => {
+    const verified = {
+      ...page,
+      verificationExpiresAt: new Date('2099-01-31T23:59:59.999Z'),
+      verifiedAt: new Date('2026-09-01T12:00:00.000Z'),
+      verifiedBy: ana,
+    };
+    const result = await fetchAddress(PAGE, servingPage(verified));
+
+    expect(result.structuredContent).toMatchObject({
+      page: {
+        state: {
+          locked: false,
+          owner: null,
+          verification: { by: ana, on: '2026-09-01', status: 'VERIFIED', until: '2099-01-31' },
+        },
+      },
+    });
+    expect(textOf(result)).toContain('Verified by Ana Pérez (u-1) on 2026-09-01, valid until 2099-01-31.');
+  });
+
+  /** Vencida no es lo mismo que nunca verificada: se sabe quién respondió, pero ya no vale. */
+  test('tells an expired verification apart from none, so the agent reads the page as possibly out of date', async () => {
+    const expired = {
+      ...page,
+      verificationExpiresAt: new Date('2026-03-31T23:59:59.999Z'),
+      verifiedAt: new Date('2026-01-10T12:00:00.000Z'),
+      verifiedBy: ana,
+    };
+    const [expiredResult, plainResult] = await Promise.all([
+      fetchAddress(PAGE, servingPage(expired)),
+      fetchAddress(PAGE),
+    ]);
+
+    expect(textOf(expiredResult)).toContain(
+      'Verification expired on 2026-03-31 (Ana Pérez (u-1) vouched for it on 2026-01-10): it may be out of date.',
+    );
+    expect(textOf(plainResult)).toContain('Not verified.');
+  });
+
+  test('says a page is locked and who owns it', async () => {
+    const result = await fetchAddress(
+      PAGE,
+      servingPage({ ...page, lockedAt: new Date('2026-09-02T00:00:00.000Z'), owner: ana }),
+    );
+
+    expect(result.structuredContent).toMatchObject({ page: { state: { locked: true, owner: ana } } });
+    expect(textOf(result)).toContain('Locked: nobody can change it until someone unlocks it.');
+    expect(textOf(result)).toContain('Owner: Ana Pérez (u-1).');
+  });
+});
+
 describe('MCP fetch — rows, comments and long pages', () => {
   test('gives a row its properties, named by the columns of its collection, empty ones included', async () => {
     const row = { ...page, parentId: MISSING, propertyValues: { status: 'En curso', tags: ['a', 'b'] } };
@@ -640,9 +723,9 @@ describe('MCP fetch — rows, comments and long pages', () => {
     const result = await fetchAddress(PAGE, servingPage(commented));
 
     expect(result.structuredContent).toMatchObject({
-      page: { comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt: comment.createdAt }] },
+      page: { comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt: comment.createdAt, id: 'c1' }] },
     });
-    expect(textOf(result)).toContain(`- Ana on block ${BLOCK}`);
+    expect(textOf(result)).toContain(`- Comment c1 by Ana on block ${BLOCK}`);
   });
 
   test('hands a long page over in parts, and the cursor leads to the next one', async () => {
@@ -685,6 +768,50 @@ describe('MCP search — by block type', () => {
     await client.callTool({ arguments: { blockType: 'task_item', query: 'run' }, name: 'search' });
 
     expect(received[0]?.blockType).toBe('task_item');
+  });
+});
+
+/** Los filtros de la búsqueda del portal, y cuáles páginas están verificadas, para preferir lo revisado. */
+describe('MCP search — verified pages, author and when it was edited', () => {
+  test('passes the same filters to the search of blocks and of titles', async () => {
+    const blockQueries: PageBlockSearchQuery[] = [];
+    const pageQueries: SearchQuery[] = [];
+    const client = await connectClient({
+      ...createDependencies(),
+      searchService: {
+        ...createDependencies().searchService,
+        search: (query) => {
+          pageQueries.push(query);
+          return Promise.resolve(pageHits);
+        },
+        searchBlocks: (query) => {
+          blockQueries.push(query);
+          return Promise.resolve(blockHits);
+        },
+      },
+    });
+
+    await client.callTool({
+      arguments: { author: 'Ana', editedWithin: 'LAST_SEVEN_DAYS', query: 'run', verifiedOnly: true },
+      name: 'search',
+    });
+
+    const filters = { authorQuery: 'Ana', editedRange: 'LAST_SEVEN_DAYS', verifiedOnly: true };
+    expect(blockQueries[0]).toMatchObject(filters);
+    expect(pageQueries[0]).toMatchObject(filters);
+  });
+
+  test('marks what comes from a verified page', async () => {
+    const result = await (await connectClient(createDependencies())).callTool({
+      arguments: { query: 'run' },
+      name: 'search',
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      blocks: [{ blockId: BLOCK, isPageVerified: true }],
+      pages: [{ isVerified: false, pageId: MISSING }],
+    });
+    expect(textOf(result)).toContain(`(paragraph, block ${BLOCK}, verified page)`);
   });
 });
 

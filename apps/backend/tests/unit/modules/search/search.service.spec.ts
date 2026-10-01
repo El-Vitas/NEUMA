@@ -10,6 +10,7 @@ import type {
 const searchResult: SearchResultWithContext = {
   contentType: 'PAGE',
   icon: null,
+  isVerified: false,
   parentPageId: null,
   parentPageTitle: null,
   rank: 0.8,

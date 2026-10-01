@@ -1,21 +1,23 @@
 import type { Prisma } from '@company-brain/db/generated';
 import type { PageIcon } from '@company-brain/shared';
-import type { SearchQuery, SearchResult, SearchSourceType } from '../../../common/types/search.types';
-import type { SEARCH_EDITED_RANGE_VALUES } from '../constants/search.constants';
+import type {
+  SearchQuery,
+  SearchQueryFilters,
+  SearchResult,
+  SearchSourceType,
+} from '../../../common/types/search.types';
 import type { PageBlocksProjection, PageBlocksRemoval } from './page-block.types';
 
-export type { SearchPage, SearchQuery, SearchReader, SearchResult } from '../../../common/types/search.types';
+export type {
+  SearchEditedRange,
+  SearchPage,
+  SearchQuery,
+  SearchQueryFilters,
+  SearchReader,
+  SearchResult,
+} from '../../../common/types/search.types';
 
 export type SearchLanguage = 'en' | 'es';
-
-export type SearchEditedRange = (typeof SEARCH_EDITED_RANGE_VALUES)[number];
-
-export interface SearchQueryFilters {
-  readonly authorQuery?: string;
-  readonly editedRange?: SearchEditedRange;
-  /** Only pages currently verified and not past their expiration — expired ones do not count. */
-  readonly verifiedOnly?: boolean;
-}
 
 export type SearchQueryWithFilters = SearchQuery & SearchQueryFilters;
 
@@ -48,6 +50,7 @@ export interface SearchQueryParams {
 export interface SearchRow {
   readonly contentType: string;
   readonly icon: Prisma.JsonValue;
+  readonly isVerified: boolean;
   readonly parentPageId: string | null;
   readonly parentPageTitle: string | null;
   readonly rank: number;

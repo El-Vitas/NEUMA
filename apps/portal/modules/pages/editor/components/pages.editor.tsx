@@ -1,5 +1,6 @@
 'use client';
 
+import { resolvePageVerificationStatus } from '@company-brain/shared';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -53,7 +54,6 @@ import { PagesTrashButton } from '../../trash/components/pages.trash.button';
 import { PagesUsagePanel } from '../../trust/components/pages.usage.panel';
 import { PagesVerificationPanel } from '../../trust/components/pages.verification.panel';
 import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
-import { resolvePageVerificationStatus } from '../../trust/lib/pages.verification.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
 import { usePagesEditorSaves } from '../hooks/use.pages.editor.saves';

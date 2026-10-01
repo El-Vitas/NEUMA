@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from './page-content.schema.js';
+import {
+  PAGE_CONTENT_SCHEMA_VERSION,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
+  pageContentSchema,
+} from './page-content.schema.js';
 
 describe('pageContentSchema', () => {
   test('accepts an existing document with no block ids anywhere (id-less regression)', () => {
@@ -127,6 +132,22 @@ describe('pageContentSchema', () => {
         type: 'doc',
       }).success,
     ).toBe(true);
+  });
+
+  test('keeps how tall the frame of a drawing was made, within what a screen can show', () => {
+    const withFrame = (frameHeight: number) =>
+      pageContentSchema.safeParse({
+        content: [
+          { attrs: { frameHeight, language: 'mermaid' }, content: [{ text: 'pie', type: 'text' }], type: 'code_block' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success;
+
+    expect(withFrame(480)).toBe(true);
+    expect(withFrame(PAGE_DIAGRAM_FRAME_HEIGHT_LEAST - 1)).toBe(false);
+    expect(withFrame(PAGE_DIAGRAM_FRAME_HEIGHT_MOST + 1)).toBe(false);
+    expect(withFrame(480.5)).toBe(false);
   });
 
   test('rejects a code block written in a language this version does not know', () => {

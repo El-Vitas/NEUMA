@@ -1,11 +1,19 @@
 import { type AccessTokenPermission, type AccessTokenPlace, canAccessTokenAct } from '@company-brain/shared';
 import {
+  MCP_CALL_OUTCOMES,
   MCP_INACCESSIBLE_MESSAGE,
   MCP_UNAUTHENTICATED_MESSAGE,
   MCP_UNEXPECTED_MESSAGE,
 } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import type { McpCall, McpPrincipal, McpServerDependencies, McpWorkspace } from '../types/mcp.types';
+import type {
+  McpCall,
+  McpCallOutcome,
+  McpPrincipal,
+  McpRefusalReason,
+  McpServerDependencies,
+  McpWorkspace,
+} from '../types/mcp.types';
 import { buildMcpSearchScope, listMcpPageRuleProbes, permitsPageReading } from './mcp.access.lib';
 
 /** Quién llama, o un fallo que el agente entiende. Se pregunta en cada llamada para que revocar corte al instante. */
@@ -93,20 +101,33 @@ export const openMcpCall = async (dependencies: McpServerDependencies): Promise<
  * Lo que sale bien viaja dos veces: como texto, que es lo que lee el modelo, y
  * como estructura, que es lo que lee el programa que lo aloja. Lo que falla
  * nunca revienta la conversación: vuelve como un resultado marcado de error,
- * con un mensaje que el agente puede leer. Solo lo inesperado se reporta, y su
- * detalle se queda del lado del servidor.
+ * con un mensaje que el agente puede leer. Lo inesperado se cuenta entero, con
+ * su traza, y su detalle se queda del lado del servidor. Toda llamada, termine
+ * como termine, se cuenta con su herramienta, cómo terminó y cuánto tardó.
  */
 export const runMcpTool = async <TOutput extends Record<string, unknown>>(
-  dependencies: McpServerDependencies,
+  dependencies: Pick<McpServerDependencies, 'observer'>,
+  tool: string,
   action: () => Promise<TOutput>,
   formatText: (output: TOutput) => string = (output) => JSON.stringify(output),
 ) => {
+  const startedAt = performance.now();
+  const finish = (outcome: McpCallOutcome, refusal?: McpRefusalReason): void => {
+    const durationMs = Math.round(performance.now() - startedAt);
+    dependencies.observer.callFinished({ durationMs, outcome, ...(refusal === undefined ? {} : { refusal }), tool });
+  };
   try {
     const output = await action();
-    return { content: [{ text: formatText(output), type: 'text' as const }], structuredContent: output };
+    const answer = { content: [{ text: formatText(output), type: 'text' as const }], structuredContent: output };
+    finish(MCP_CALL_OUTCOMES.done);
+    return answer;
   } catch (error) {
-    if (!(error instanceof McpToolError)) dependencies.errorReporter?.report(error);
-    const message = error instanceof McpToolError ? error.message : MCP_UNEXPECTED_MESSAGE;
-    return { content: [{ text: message, type: 'text' as const }], isError: true };
+    if (error instanceof McpToolError) {
+      finish(MCP_CALL_OUTCOMES.refused, error.reason);
+      return { content: [{ text: error.message, type: 'text' as const }], isError: true };
+    }
+    dependencies.observer.unexpected(error, tool);
+    finish(MCP_CALL_OUTCOMES.failed);
+    return { content: [{ text: MCP_UNEXPECTED_MESSAGE, type: 'text' as const }], isError: true };
   }
 };

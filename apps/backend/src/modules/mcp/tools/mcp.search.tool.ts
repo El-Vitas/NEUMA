@@ -1,6 +1,6 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
-import type { PageBlockSearchPage, SearchPage } from '../../../common/types/search.types';
-import { MCP_INACCESSIBLE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import type { PageBlockSearchPage, SearchPage, SearchQueryFilters } from '../../../common/types/search.types';
+import { MCP_INACCESSIBLE_MESSAGE, MCP_TOOL_NAMES, MCP_VERIFIED_HIT_MARK } from '../constants/mcp.constants';
 import { MCP_SEARCH_PAGE_TITLE_LIMIT } from '../constants/mcp.limits.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl } from '../lib/mcp.address.lib';
@@ -25,8 +25,16 @@ const requireReachableRoot = async (
   if (readable.length === 0) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
 };
 
+/** Lo que acota por la página, igual para bloques y para títulos. */
+const readPageFilters = (input: McpSearchInput): SearchQueryFilters => ({
+  ...(input.author === undefined ? {} : { authorQuery: input.author }),
+  ...(input.editedWithin === undefined ? {} : { editedRange: input.editedWithin }),
+  ...(input.verifiedOnly === true ? { verifiedOnly: true } : {}),
+});
+
 const findBlocks = (dependencies: McpServerDependencies, call: McpCall, input: McpSearchInput) =>
   dependencies.searchService.searchBlocks({
+    ...readPageFilters(input),
     ...(input.blockType === undefined ? {} : { blockType: input.blockType }),
     ...(input.cursor === undefined ? {} : { cursor: input.cursor }),
     ...(input.pageId === undefined ? {} : { rootPageId: input.pageId }),
@@ -50,6 +58,7 @@ const findPages = async (
 ): Promise<SearchPage> => {
   if (input.cursor !== undefined || input.pageId !== undefined) return { items: [] };
   return dependencies.searchService.search({
+    ...readPageFilters(input),
     ...(input.spaceId === undefined ? {} : { spaceId: input.spaceId }),
     limit: MCP_SEARCH_PAGE_TITLE_LIMIT,
     query: input.query,
@@ -67,6 +76,7 @@ const toSearchOutput = (portalUrl: string, blocks: PageBlockSearchPage, pages: S
     blocks: blocks.items.map((item) => ({
       blockId: item.blockId,
       blockType: item.blockType,
+      isPageVerified: item.isPageVerified,
       pageId: item.pageId,
       pageTitle: item.pageTitle,
       parentPageTitle: item.parentPageTitle,
@@ -80,6 +90,7 @@ const toSearchOutput = (portalUrl: string, blocks: PageBlockSearchPage, pages: S
     pages: pages.items
       .filter((item) => !pagesWithBlocks.has(item.sourceId))
       .map((item) => ({
+        isVerified: item.isVerified,
         pageId: item.sourceId,
         snippet: item.snippet,
         spaceId: item.spaceId,
@@ -93,9 +104,12 @@ const toSearchOutput = (portalUrl: string, blocks: PageBlockSearchPage, pages: S
 const formatSearchText = (output: McpSearchOutput): string => {
   const blocks = output.blocks.map((block) => {
     const where = [block.pageTitle, ...block.section].join(' › ');
-    return `- ${where} (${block.blockType}, block ${block.blockId})\n  ${block.snippet}\n  ${block.url}`;
+    const verified = block.isPageVerified ? MCP_VERIFIED_HIT_MARK : '';
+    return `- ${where} (${block.blockType}, block ${block.blockId}${verified})\n  ${block.snippet}\n  ${block.url}`;
   });
-  const pages = output.pages.map((page) => `- ${page.title} (page ${page.pageId})\n  ${page.url}`);
+  const pages = output.pages.map(
+    (page) => `- ${page.title} (page ${page.pageId}${page.isVerified ? MCP_VERIFIED_HIT_MARK : ''})\n  ${page.url}`,
+  );
   const sections = [
     blocks.length === 0 ? '' : `Blocks:\n${blocks.join('\n')}`,
     pages.length === 0 ? '' : `Pages:\n${pages.join('\n')}`,
@@ -111,13 +125,14 @@ export const searchTool: McpToolDefinition = {
       MCP_TOOL_NAMES.search,
       {
         description:
-          "Search everything in Company Brain you can access: the team's documentation, notes, processes, projects, and its tasks. Returns the blocks that match, each with its page, section and link, and pages whose title matches. Start here to find information; open a result with fetch. To go through a board or task list, find it and list the pages under it.",
+          "Search everything in Company Brain you can access: the team's documentation, notes, processes, projects, and its tasks. Returns the blocks that match, each with its page, section and link, and pages whose title matches. Start here to find information; open a result with fetch. What comes from a page someone vouched for as up to date is marked as verified: prefer it when results disagree, or keep only those with verifiedOnly. To go through a board or task list, find it and list the pages under it.",
         inputSchema: searchInputSchema,
         outputSchema: searchOutputSchema,
       },
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.search,
           async () => {
             const call = await openMcpCall(dependencies);
             await requireReachableRoot(dependencies, call, input.pageId);

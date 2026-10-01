@@ -36,7 +36,35 @@ export const DIAGRAM_MENDED_STYLE_CLASS = [
   'text-foreground',
   '[&_.treeView-node-label]:fill-current!',
   '[&_.treeView-node-line]:stroke-current!',
+  /**
+   * The engine measures a label's lines away from the page and sizes its box by
+   * them; the page's own paragraph spacing, reaching into the label, makes every
+   * line taller than measured and pushes the last ones out of the box.
+   */
+  '[&_svg_p]:m-0! [&_svg_p]:leading-[inherit]!',
 ].join(' ');
+
+/** How far a drawing can be pushed away and how close it can be brought. */
+export const DIAGRAM_ZOOM_LEAST = 0.25;
+export const DIAGRAM_ZOOM_MOST = 4;
+
+/** How much closer one turn of the wheel brings a drawing. */
+export const DIAGRAM_ZOOM_WHEEL_STEP = 1.1;
+
+/** How much closer one press of a zoom button brings a drawing: more than a turn of the wheel, since it is one press. */
+export const DIAGRAM_ZOOM_BUTTON_STEP = 1.25;
+
+/** How the zoom is written beside its buttons: as a share of the drawing's own size. */
+export const DIAGRAM_ZOOM_PERCENT = 100;
+
+/** What a drawing that reaches past its box says it can be: taken hold of and moved. */
+export const DIAGRAM_MOVABLE_STYLE_CLASS = 'cursor-grab';
+
+/**
+ * A frame nobody sized is kept within the screen: a drawing taller than that is
+ * gone through inside its frame instead of pushing the page down past it.
+ */
+export const DIAGRAM_BOUNDED_STYLE_CLASS = 'max-h-[70vh]';
 
 /** Every drawing on a page needs a name of its own, or two of them draw over each other. */
 export const DIAGRAM_NAME_PREFIX = 'drawn-diagram-';

@@ -44,3 +44,26 @@ export const PAGE_DOCUMENT_ONLY_WHEN_TRUE_ATTRIBUTES: readonly string[] = ['coll
  * que escribirlo no diría nada y cambiaría cada tabla ya guardada.
  */
 export const PAGE_DOCUMENT_ONLY_WHEN_BEYOND_ONE_ATTRIBUTES: readonly string[] = ['colspan', 'rowspan'];
+
+/** Qué ítem lleva dentro cada clase de lista: en una lista solo caben sus ítems. */
+export const PAGE_DOCUMENT_LIST_ITEMS: Readonly<Partial<Record<string, string>>> = {
+  bullet_list: 'list_item',
+  ordered_list: 'list_item',
+  task_list: 'task_item',
+};
+
+/** Bloques que llevan otros bloques dentro, y donde por eso se puede poner algo. */
+export const PAGE_DOCUMENT_BLOCK_HOLDERS: readonly string[] = [
+  'blockquote',
+  'bullet_list',
+  'callout',
+  'column',
+  'list_item',
+  'ordered_list',
+  'task_item',
+  'task_list',
+  'toggle',
+];
+
+/** Lo que queda en una página a la que se le quitó todo: una línea vacía donde seguir escribiendo, como en el editor. */
+export const PAGE_DOCUMENT_EMPTY_PARAGRAPH = { content: [], type: 'paragraph' } as const;

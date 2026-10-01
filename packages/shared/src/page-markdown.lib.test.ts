@@ -155,6 +155,51 @@ describe('writePageAsMarkdown — what Markdown does not say', () => {
     expect(writePageAsMarkdown(content)).toBe(':::synced{pageId="page-b" blockId="block-a"}\n:::');
   });
 
+  it('writes underlined, coloured and highlighted words with the tags a reader-back understands', () => {
+    const content = doc(
+      paragraph(
+        { marks: [{ type: 'underline' }], text: 'subrayado', type: 'text' },
+        { marks: [{ attrs: { color: 'red' }, type: 'text_color' }, { type: 'strong' }], text: 'rojo', type: 'text' },
+        { marks: [{ attrs: { color: 'yellow' }, type: 'background_color' }], text: 'clave', type: 'text' },
+      ),
+    );
+
+    expect(writePageAsMarkdown(content)).toBe(
+      '<u>subrayado</u><span color="red">**rojo**</span><mark color="yellow">clave</mark>',
+    );
+  });
+
+  it('names a sub-page by its title, a collection by the view it shows, and a link card by its words', () => {
+    const content = doc(
+      { attrs: { label: 'Runbook', pageId: 'page-a', spaceId: 'space-a' }, type: 'subpage' },
+      { attrs: { pageId: 'page-b', spaceId: 'space-a', viewName: 'Tablero' }, type: 'collection' },
+      { attrs: { description: 'La guía', title: 'Docs', url: 'https://example.com' }, type: 'bookmark' },
+    );
+
+    expect(writePageAsMarkdown(content)).toBe(
+      [
+        ':::subpage{pageId="page-a" label="Runbook"}\n:::',
+        ':::collection{pageId="page-b" viewName="Tablero"}\n:::',
+        ':::bookmark{url="https://example.com" title="Docs" description="La guía"}\n:::',
+      ].join('\n\n'),
+    );
+  });
+
+  it('writes columns with what they hold, and the width of a column only when it was given one', () => {
+    const content = doc({
+      attrs: { id: 'cols' },
+      content: [
+        { attrs: { id: 'c-1', width: 0.3 }, content: [paragraph(text('Izquierda'))], type: 'column' },
+        { attrs: { id: 'c-2' }, content: [paragraph(text('Derecha'))], type: 'column' },
+      ],
+      type: 'column_list',
+    });
+
+    expect(writePageAsMarkdown(content)).toBe(
+      ':::column_list\n:::column{width="0.3"}\nIzquierda\n:::\n\n:::column\nDerecha\n:::\n:::',
+    );
+  });
+
   it('leaves a block it does not know as itself rather than dropping it', () => {
     const content = doc({ attrs: { flavour: 'nuevo' }, content: [], type: 'someday_block' });
 
@@ -176,6 +221,18 @@ describe('writePageAsAnchoredMarkdown — every block says which one it is', () 
 
     expect(writePageAsAnchoredMarkdown(content)).toBe(
       '<!-- block:b-1 -->\n## Título\n\n<!-- block:b-2 -->\nUn párrafo',
+    );
+  });
+
+  it('says in the anchor the colours a whole block is painted with', () => {
+    const content = doc({
+      attrs: { backgroundColor: 'yellow', id: 'b-1', textColor: 'red' },
+      content: [text('Aviso')],
+      type: 'paragraph',
+    });
+
+    expect(writePageAsAnchoredMarkdown(content)).toBe(
+      '<!-- block:b-1 textColor="red" backgroundColor="yellow" -->\nAviso',
     );
   });
 

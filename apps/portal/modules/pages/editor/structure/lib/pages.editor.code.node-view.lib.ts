@@ -51,7 +51,7 @@ export const createPageCodeBlockNodeView = (
   const code = document.createElement('code');
   let codeBlock = node;
 
-  const writeAttribute = (name: string, value: boolean | string | null): void => {
+  const writeAttribute = (name: string, value: boolean | number | string | null): void => {
     const position = getPosition();
     if (position === undefined) return;
     view.dispatch(view.state.tr.setNodeAttribute(position, name, value));

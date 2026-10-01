@@ -1,73 +1,18 @@
-import {
-  type AccessTokenPermission,
-  type AccessTokenPlace,
-  canAccessTokenAct,
-  type Result,
-} from '@company-brain/shared';
-import {
-  MCP_CONCURRENT_CHANGE_MESSAGE,
-  MCP_CONCURRENT_REFUSAL_CODES,
-  MCP_INACCESSIBLE_MESSAGE,
-  MCP_INACCESSIBLE_REFUSAL_CODES,
-  MCP_LOCKED_REFUSAL_CODE,
-  MCP_NOT_A_COLLECTION_MESSAGE,
-  MCP_NOT_A_ROW_MESSAGE,
-  MCP_PAGE_LOCKED_MESSAGE,
-  MCP_REFUSED_CHANGE_PREFIX,
-  MCP_UNREADABLE_ADDRESS_MESSAGE,
-} from '../constants/mcp.constants';
+import { type AccessTokenPermission, canAccessTokenAct } from '@company-brain/shared';
+import { MCP_NOT_A_COLLECTION_MESSAGE, MCP_NOT_A_ROW_MESSAGE } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type {
   McpCollectionShape,
   McpOpenCollection,
-  McpRefusal,
   McpRowOutput,
   McpView,
   McpWrittenRow,
 } from '../types/mcp.collections.types';
 import type { McpCall, McpPageSource, McpPerson, McpServerDependencies } from '../types/mcp.types';
-import { buildMcpPageUrl, readMcpAddress } from './mcp.address.lib';
-import { foldMcpName } from './mcp.columns.lib';
+import { buildMcpPageUrl } from './mcp.address.lib';
+import { openMcpPage, readMcpPageId, requireMcpInput, requireMcpSuccess } from './mcp.page-access.lib';
 import { describeMcpRowProperties } from './mcp.properties.lib';
-import { readMcpPlace, requireMcpPermissionAt } from './mcp.tool.lib';
-
-/** La página de un enlace o de un id; si no es ninguno de los dos, un fallo que dice qué pasar. */
-export const readMcpPageId = (address: string): string => {
-  const read = readMcpAddress(address);
-  switch (read.kind) {
-    case 'page':
-      return read.pageId;
-    case 'id':
-      return read.id;
-    default:
-      throw new McpToolError(MCP_UNREADABLE_ADDRESS_MESSAGE);
-  }
-};
-
-/**
- * Por qué el servicio no hizo lo pedido, dicho para que el agente sepa qué
- * hacer: lo que no ve suena igual que lo que no existe, lo bloqueado pide a
- * una persona, y lo que alguien cambió mientras tanto pide volver a leer.
- */
-const explainRefusal = (refusal: McpRefusal): string => {
-  if (MCP_INACCESSIBLE_REFUSAL_CODES.includes(refusal.code)) return MCP_INACCESSIBLE_MESSAGE;
-  if (refusal.code === MCP_LOCKED_REFUSAL_CODE) return MCP_PAGE_LOCKED_MESSAGE;
-  if (typeof refusal.details === 'string') return `${MCP_REFUSED_CHANGE_PREFIX} ${refusal.details}`;
-  if (MCP_CONCURRENT_REFUSAL_CODES.includes(refusal.code)) return MCP_CONCURRENT_CHANGE_MESSAGE;
-  return `${MCP_REFUSED_CHANGE_PREFIX} ${refusal.details === undefined ? refusal.code : JSON.stringify(refusal.details)}`;
-};
-
-/** Lo que devolvió el servicio, o un fallo que el agente puede leer. */
-export const requireMcpSuccess = <TValue>(result: Result<TValue, McpRefusal>): TValue => {
-  if (result.isFail()) throw new McpToolError(explainRefusal(result.getError()));
-  return result.getValue();
-};
-
-/** Un texto que el agente escribió y que Company Brain rechazaría, dicho antes de llegar a escribir. */
-export const requireMcpInput = <TValue>(result: Result<TValue, string>): TValue => {
-  if (result.isFail()) throw new McpToolError(result.getError());
-  return result.getValue();
-};
+import { pickMcpView } from './mcp.views.lib';
 
 /** Las columnas y las vistas de una página, si su dueño la ve. Una página sin columnas no es una colección. */
 const readShape = async (
@@ -83,23 +28,6 @@ const readShape = async (
 };
 
 const isCollectionShape = (shape: McpCollectionShape): boolean => shape.properties.length > 0;
-
-/** Una página que su dueño ve, con el permiso del token revisado donde está hoy. */
-const openMcpPage = async (
-  dependencies: McpServerDependencies,
-  call: McpCall,
-  pageId: string,
-  permission: AccessTokenPermission,
-): Promise<{ readonly page: McpPageSource; readonly place: AccessTokenPlace }> => {
-  const { principal, workspace } = call;
-  const [page, place] = await Promise.all([
-    dependencies.pagesService.getAccessible(pageId, workspace.id, principal.userId, principal.role),
-    readMcpPlace(dependencies, pageId, workspace.id),
-  ]);
-  if (page.isFail()) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
-  requireMcpPermissionAt(principal, place, permission);
-  return { page: page.getValue(), place };
-};
 
 /**
  * La colección que el agente nombró, si su dueño la ve y la regla más cercana
@@ -164,12 +92,8 @@ export const saveMcpCollectionShape = async (
 };
 
 /** Una vista de la colección por su nombre, como sea que venga escrito, o por qué no está y cuáles sí. */
-export const requireMcpView = (collection: McpOpenCollection, name: string): McpView => {
-  const view = collection.shape.views.find((candidate) => foldMcpName(candidate.name) === foldMcpName(name));
-  if (view !== undefined) return view;
-  const names = collection.shape.views.map((candidate) => candidate.name).join(', ');
-  throw new McpToolError(`The collection has no view "${name}". Its views are: ${names}.`);
-};
+export const requireMcpView = (collection: McpOpenCollection, name: string): McpView =>
+  requireMcpInput(pickMcpView(collection.shape.views, name));
 
 /**
  * Si el token deja hacer eso en una fila de la colección. La fila cuelga de la

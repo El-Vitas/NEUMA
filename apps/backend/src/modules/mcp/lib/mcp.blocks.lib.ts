@@ -1,11 +1,16 @@
 import {
   isPageDocumentNode,
   listPageDocumentChildren,
+  PAGE_BLOCK_ITEM_TYPES,
   type PageDocumentNodeShape,
   readPageDocumentBlockId,
   writeBlocksAsAnchoredMarkdown,
 } from '@company-brain/shared';
-import type { McpBlockComment, McpPagePart } from '../types/mcp.types';
+import type { McpBlockComment, McpHeldBlock, McpPagePart } from '../types/mcp.types';
+
+/** Lo que se le dice al agente cuando el bloque que nombró ya no está en la página. */
+export const describeMcpMissingBlock = (blockId: string): string =>
+  `The page has no block ${blockId}. Read the page again with fetch to see its blocks as they are now.`;
 
 /** El bloque de una página con ese id, donde sea que esté, o nada si ya no está. */
 export const findMcpBlockNode = (nodes: readonly unknown[], blockId: string): PageDocumentNodeShape | null => {
@@ -17,6 +22,33 @@ export const findMcpBlockNode = (nodes: readonly unknown[], blockId: string): Pa
   return null;
 };
 
+const findHeldBlock = (
+  nodes: readonly unknown[],
+  blockId: string,
+  holder: PageDocumentNodeShape | null,
+): McpHeldBlock | null => {
+  for (const node of nodes.filter(isPageDocumentNode)) {
+    if (readPageDocumentBlockId(node) === blockId) return { holder, node };
+    const inside = findHeldBlock(listPageDocumentChildren(node), blockId, node);
+    if (inside !== null) return inside;
+  }
+  return null;
+};
+
+/**
+ * Un bloque como se lee solo. Un ítem suelto no se escribe como ítem, así que
+ * va dentro de una lista como la suya; la lista no lleva id, porque no es lo
+ * que se nombró.
+ */
+export const readMcpBlockInContext = (nodes: readonly unknown[], blockId: string): PageDocumentNodeShape | null => {
+  const found = findHeldBlock(nodes, blockId, null);
+  if (found === null) return null;
+  const { holder, node } = found;
+  if (holder === null || !PAGE_BLOCK_ITEM_TYPES.includes(node.type)) return node;
+  const { id: _holderId, ...holderAttrs } = holder.attrs ?? {};
+  return { ...holder, attrs: holderAttrs, content: [node] };
+};
+
 const isComment = (value: unknown): value is Omit<McpBlockComment, 'blockId'> =>
   typeof value === 'object' &&
   value !== null &&
@@ -25,15 +57,21 @@ const isComment = (value: unknown): value is Omit<McpBlockComment, 'blockId'> =>
   'body' in value &&
   typeof value.body === 'string' &&
   'createdAt' in value &&
-  typeof value.createdAt === 'string';
+  typeof value.createdAt === 'string' &&
+  'id' in value &&
+  typeof value.id === 'string';
 
 const readComments = (node: PageDocumentNodeShape): readonly McpBlockComment[] => {
   const blockId = readPageDocumentBlockId(node);
   const comments = node.attrs?.comments;
   if (blockId === null || !Array.isArray(comments)) return [];
-  return comments
-    .filter(isComment)
-    .map((comment) => ({ author: comment.author, blockId, body: comment.body, createdAt: comment.createdAt }));
+  return comments.filter(isComment).map((comment) => ({
+    author: comment.author,
+    blockId,
+    body: comment.body,
+    createdAt: comment.createdAt,
+    id: comment.id,
+  }));
 };
 
 /** Lo que se dijo sobre cada bloque de una página, con el bloque sobre el que se dijo, en el orden de la página. */
