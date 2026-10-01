@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import { findMcpBlockNode, listMcpBlockComments, takeMcpPagePart } from '@/modules/mcp/lib/mcp.blocks.lib';
+import {
+  findMcpBlockNode,
+  listMcpBlockComments,
+  readMcpBlockInContext,
+  takeMcpPagePart,
+} from '@/modules/mcp/lib/mcp.blocks.lib';
 
 const paragraph = (id: string, words: string) => ({
   attrs: { id },
@@ -31,6 +36,25 @@ describe('findMcpBlockNode', () => {
   });
 });
 
+describe('readMcpBlockInContext', () => {
+  it('gives a block that stands on its own as it is', () => {
+    expect(readMcpBlockInContext(nodes, 'top')).toEqual(paragraph('top', 'Arriba'));
+  });
+
+  /** Un ítem suelto no se escribe como ítem: dentro de una lista como la suya se lee como se ve. */
+  it('gives an item inside a list like its own, without naming that list', () => {
+    expect(readMcpBlockInContext(nodes, 'item')).toEqual({
+      attrs: {},
+      content: [{ attrs: { id: 'item' }, content: [paragraph('line', 'Ítem')], type: 'list_item' }],
+      type: 'bullet_list',
+    });
+  });
+
+  it('says nothing of a block that is not there', () => {
+    expect(readMcpBlockInContext(nodes, 'gone')).toBeNull();
+  });
+});
+
 describe('listMcpBlockComments', () => {
   it('lists what was said on each block, with the block it was said on, however deep', () => {
     const comment = { author: 'Ana', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' };
@@ -44,8 +68,8 @@ describe('listMcpBlockComments', () => {
     ];
 
     expect(listMcpBlockComments(withComments)).toEqual([
-      { author: 'Ana', blockId: 'a', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z' },
-      { author: 'Ana', blockId: 'b', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z' },
+      { author: 'Ana', blockId: 'a', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' },
+      { author: 'Ana', blockId: 'b', body: 'Revisar la fecha', createdAt: '2026-09-01T10:00:00.000Z', id: 'c2' },
     ]);
   });
 

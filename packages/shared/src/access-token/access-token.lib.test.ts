@@ -58,6 +58,16 @@ describe('lo que alguien puede dar', () => {
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, ACCESS_TOKEN_PERMISSIONS.pagesWrite)).toBe(false);
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.WORKER, ACCESS_TOKEN_PERMISSIONS.pagesWrite)).toBe(true);
   });
+
+  /** Bloquear, verificar y dar dueño son actos de confianza: ni lectura y escritura los trae, ni quien solo lee los da. */
+  test('keeps managing pages apart from writing them, given only by someone who writes and only in full access', () => {
+    const { pagesManage } = ACCESS_TOKEN_PERMISSIONS;
+
+    expect(canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, pagesManage)).toBe(false);
+    expect(canRoleGrantAccessTokenPermission(USER_ROLE.WORKER, pagesManage)).toBe(true);
+    expect(readWrite).not.toContain(pagesManage);
+    expect(listAccessTokenLevelPermissions(ACCESS_TOKEN_LEVELS.full)).toContain(pagesManage);
+  });
 });
 
 describe('el nombre de un token', () => {

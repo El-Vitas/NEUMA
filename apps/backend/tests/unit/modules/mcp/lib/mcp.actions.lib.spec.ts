@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
 import { McpToolError } from '@/modules/mcp/infrastructure/errors/mcp.tool.error';
 import { recordMcpWrite } from '@/modules/mcp/lib/mcp.actions.lib';
-import type { McpActionEntry, McpCall, McpServerDependencies } from '@/modules/mcp/types/mcp.types';
+import type { McpCall, McpServerDependencies } from '@/modules/mcp/types/mcp.types';
 
 const call: McpCall = {
   principal: {
@@ -23,47 +23,69 @@ const call: McpCall = {
 
 const request = { blockIds: [], detail: {}, pageId: 'page-1', tool: 'update_row' };
 
-/** Un registro que guarda lo que se le anota, y que puede fallar al anotar. */
-const createLog = (failsToRecord: boolean) => {
-  const recorded: McpActionEntry[] = [];
-  const dependencies: Pick<McpServerDependencies, 'actionLog'> = {
+/** Un registro que anota en memoria, y que puede fallar al abrir o al cerrar una acción. */
+const createLog = (fails: { readonly finishing?: boolean; readonly starting?: boolean } = {}) => {
+  const history: string[] = [];
+  const unexpected: string[] = [];
+  const dependencies: Pick<McpServerDependencies, 'actionLog' | 'observer'> = {
     actionLog: {
-      record: (entry) => {
-        recorded.push(entry);
-        return failsToRecord ? Promise.reject(new Error('The log is down')) : Promise.resolve();
+      finish: (actionId, outcome) => {
+        if (fails.finishing === true) return Promise.reject(new Error('The log is down'));
+        history.push(`${actionId}:${outcome}`);
+        return Promise.resolve();
+      },
+      start: () => {
+        if (fails.starting === true) return Promise.reject(new Error('The log is down'));
+        history.push('action-1:PENDING');
+        return Promise.resolve('action-1');
       },
     },
+    observer: { callFinished: () => undefined, unexpected: (_error, where) => unexpected.push(where) },
   };
-  return { dependencies, recorded };
+  return { dependencies, history, unexpected };
 };
 
-const outcomes = (recorded: readonly McpActionEntry[]) => recorded.map((entry) => entry.outcome);
-
 describe('recordMcpWrite', () => {
-  it('records a write that went through as done', async () => {
-    const { dependencies, recorded } = createLog(false);
+  it('writes the action down before writing, and closes it as done', async () => {
+    const { dependencies, history } = createLog();
 
     await recordMcpWrite(dependencies, call, request, () => Promise.resolve('written'));
 
-    expect(outcomes(recorded)).toEqual(['DONE']);
+    expect(history).toEqual(['action-1:PENDING', 'action-1:DONE']);
   });
 
-  it('records a refusal the agent can read, and lets it reach the agent', async () => {
-    const { dependencies, recorded } = createLog(false);
+  it('closes a refusal the agent can read as refused, and lets it reach the agent', async () => {
+    const { dependencies, history } = createLog();
 
     const attempt = recordMcpWrite(dependencies, call, request, () => Promise.reject(new McpToolError('No.')));
 
     expect(attempt).rejects.toThrow('No.');
     await attempt.catch(() => undefined);
-    expect(outcomes(recorded)).toEqual(['REFUSED']);
+    expect(history).toEqual(['action-1:PENDING', 'action-1:REFUSED']);
   });
 
-  /** La escritura ya se hizo: anotarla después como fallida diría lo contrario de lo que pasó. */
-  it('never records a write that went through as failed when the log itself fails', async () => {
-    const { dependencies, recorded } = createLog(true);
+  /** Sin anotación no hay escritura. */
+  it('never writes when the action cannot be written down first', async () => {
+    const { dependencies } = createLog({ starting: true });
+    let wasWritten = false;
 
-    await recordMcpWrite(dependencies, call, request, () => Promise.resolve('written')).catch(() => undefined);
+    const attempt = recordMcpWrite(dependencies, call, request, () => {
+      wasWritten = true;
+      return Promise.resolve('written');
+    });
 
-    expect(outcomes(recorded)).toEqual(['DONE']);
+    expect(attempt).rejects.toThrow('The log is down');
+    await attempt.catch(() => undefined);
+    expect(wasWritten).toBe(false);
+  });
+
+  /** La escritura ya se hizo: decirle al agente que falló lo haría repetirla. Queda pendiente y se avisa. */
+  it('hands back a write that went through when its action cannot be closed, and reports it', async () => {
+    const { dependencies, unexpected } = createLog({ finishing: true });
+
+    const result = await recordMcpWrite(dependencies, call, request, () => Promise.resolve('written'));
+
+    expect(result).toBe('written');
+    expect(unexpected).toEqual(['closing agent action action-1 as DONE']);
   });
 });

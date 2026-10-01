@@ -1,9 +1,11 @@
 import {
   MARKDOWN_BLOCK_ANCHOR_CLOSE,
   MARKDOWN_BLOCK_ANCHOR_OPEN,
+  MARKDOWN_BLOCK_COLOR_ATTRIBUTES,
   MARKDOWN_BLOCK_SEPARATOR,
   MARKDOWN_DIRECTIVE_FENCE,
   MARKDOWN_MARK_WRAPPERS,
+  MARKDOWN_TAG_MARKS,
 } from './constants/page-markdown.constants.js';
 import {
   isPageDocumentNode,
@@ -12,7 +14,7 @@ import {
   readPageDocumentText,
 } from './page-document/page-document.node.lib.js';
 import type { PageDocumentNodeShape } from './page-document/page-document.types.js';
-import type { PageContent } from './schemas/page-content.schema.js';
+import type { PageContent, PageMark } from './schemas/page-content.schema.js';
 
 type AnyNode = PageDocumentNodeShape;
 
@@ -24,10 +26,31 @@ const attr = readPageDocumentText;
 
 const leaveUnanchored: BlockAnchor = (_node, written) => written;
 
+/** Los colores con que está pintado un bloque entero, como atributos del ancla. */
+const writeBlockColors = (node: AnyNode): string =>
+  MARKDOWN_BLOCK_COLOR_ATTRIBUTES.map((name) => [name, attr(node, name)] as const)
+    .filter(([, color]) => color !== undefined)
+    .map(([name, color]) => ` ${name}="${color ?? ''}"`)
+    .join('');
+
 const anchorBlock: BlockAnchor = (node, written) => {
   const blockId = readPageDocumentBlockId(node);
   if (blockId === null || written === '') return written;
-  return `${MARKDOWN_BLOCK_ANCHOR_OPEN}${blockId}${MARKDOWN_BLOCK_ANCHOR_CLOSE}\n${written}`;
+  return `${MARKDOWN_BLOCK_ANCHOR_OPEN}${blockId}${writeBlockColors(node)}${MARKDOWN_BLOCK_ANCHOR_CLOSE}\n${written}`;
+};
+
+/** A mark Markdown has no sign for, written as the HTML tag that means it, around what it already wraps. */
+const writeTagMark = (carried: string, mark: PageMark): string => {
+  switch (mark.type) {
+    case 'underline':
+      return `<${MARKDOWN_TAG_MARKS.underline}>${carried}</${MARKDOWN_TAG_MARKS.underline}>`;
+    case 'text_color':
+      return `<${MARKDOWN_TAG_MARKS.text_color} color="${mark.attrs.color}">${carried}</${MARKDOWN_TAG_MARKS.text_color}>`;
+    case 'background_color':
+      return `<${MARKDOWN_TAG_MARKS.background_color} color="${mark.attrs.color}">${carried}</${MARKDOWN_TAG_MARKS.background_color}>`;
+    default:
+      return carried;
+  }
 };
 
 /**
@@ -38,12 +61,13 @@ const anchorBlock: BlockAnchor = (node, written) => {
  */
 const writeText = (node: AnyNode): string => {
   const marks = node.marks ?? [];
-  const written = marks
+  const wrapped = marks
     .filter((mark) => mark.type in MARKDOWN_MARK_WRAPPERS)
     .reduce((carried, mark) => {
       const wrapper = MARKDOWN_MARK_WRAPPERS[mark.type as keyof typeof MARKDOWN_MARK_WRAPPERS];
       return `${wrapper}${carried}${wrapper}`;
     }, node.text ?? '');
+  const written = marks.reduce(writeTagMark, wrapped);
   const link = marks.find((mark) => mark.type === 'link');
   return link === undefined ? written : `[${written}](${link.attrs.href})`;
 };
@@ -126,9 +150,15 @@ const writeTable = (node: AnyNode): string => {
 };
 
 /** The data a block carries, written where a reader can see it and a reader-back can find it. */
+/** Lo que dice un atributo que se puede escribir tal cual: un texto o un número, como el ancho de una columna. */
+const readWritableAttr = (node: AnyNode, name: string): string | undefined => {
+  const value = node.attrs?.[name];
+  return typeof value === 'number' ? String(value) : attr(node, name);
+};
+
 const writeDirectiveAttrs = (node: AnyNode, names: readonly string[]): string => {
   const written = names
-    .map((name) => [name, attr(node, name)] as const)
+    .map((name) => [name, readWritableAttr(node, name)] as const)
     .filter(([, value]) => value !== undefined && value !== '')
     .map(([name, value]) => `${name}="${value ?? ''}"`);
   return written.length === 0 ? '' : `{${written.join(' ')}}`;
@@ -147,13 +177,15 @@ const writeDirective = (node: AnyNode, names: readonly string[], inside: string)
  * happened to have is not.
  */
 const DIRECTIVE_ATTRS: Readonly<Record<string, readonly string[]>> = {
-  bookmark: ['url'],
+  bookmark: ['url', 'title', 'description'],
   button: ['label'],
   callout: ['icon'],
-  collection: ['pageId', 'view'],
+  collection: ['pageId', 'viewName'],
+  column: ['width'],
+  column_list: [],
   embed: ['url'],
   file: ['assetId', 'name'],
-  subpage: ['pageId'],
+  subpage: ['pageId', 'label'],
   synced: ['pageId', 'blockId'],
   toggle: ['summary'],
 };

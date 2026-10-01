@@ -206,11 +206,19 @@ export class PagesService {
     writer: PageContentWriter,
     content: unknown,
   ): Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLockedError>> {
+    const allowed = await this.authorizeWrite(writer);
+    return allowed.isFail() ? Result.fail(allowed.getError()) : validatePageContent(content);
+  }
+
+  /** Si esta persona puede escribir en esta página: que pueda escribir, que la vea y que no esté bloqueada. */
+  async authorizeWrite(
+    writer: PageContentWriter,
+  ): Promise<Result<PageContentWriter, PageAccessDeniedError | PageLockedError>> {
     if (writer.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const page = await this.pageRepository.getAccessible(writer.pageId, writer.workspaceId, writer.userId, writer.role);
     if (page === null || page.spaceId !== writer.spaceId) return Result.fail(new PageAccessDeniedError());
     if (page.lockedAt !== null) return Result.fail(new PageLockedError());
-    return validatePageContent(content);
+    return Result.ok(writer);
   }
 
   /**

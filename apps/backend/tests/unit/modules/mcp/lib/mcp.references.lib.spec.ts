@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { MCP_REDACTED_REFERENCE_LABEL } from '@/modules/mcp/constants/mcp.constants';
-import { hideUnreachableReferences, listReferencedPageIds } from '@/modules/mcp/lib/mcp.references.lib';
+import {
+  hideUnreachableReferences,
+  listReferencedPageIds,
+  settleWrittenReferences,
+} from '@/modules/mcp/lib/mcp.references.lib';
 import type { McpPagePlace } from '@/modules/mcp/types/mcp.types';
 
 const text = (value: string) => ({ text: value, type: 'text' });
@@ -67,5 +71,71 @@ describe('hideUnreachableReferences', () => {
       type: 'paragraph',
     });
     expect(JSON.stringify(hidden)).not.toContain('"hidden"');
+  });
+});
+
+describe('settleWrittenReferences', () => {
+  const person = (userId: string, label: string) => ({ attrs: { label, userId }, type: 'person' });
+  const people = [{ id: 'u-1', name: 'Ana Pérez' }];
+  const written = (...inline: readonly unknown[]) => [{ content: inline, type: 'paragraph' }];
+
+  it('stores a mention with the name and space the page has today', () => {
+    const settled = settleWrittenReferences(written(mention('seen', 'Como lo escribió el agente')), reachable, people);
+
+    expect(settled.getValue()).toEqual(written(mention('seen', 'Nombre de hoy', 'new-space')));
+  });
+
+  /** Escribir una mención a una página cerrada dejaría su nombre a la vista de quien lea esta. */
+  it('refuses a mention of a page the token cannot reach, the same as one that does not exist', () => {
+    const settled = settleWrittenReferences(written(mention('hidden', 'Secreta')), reachable, people);
+
+    expect(settled.getError()).toContain('not accessible');
+    expect(settled.getError()).not.toContain('Secreta');
+  });
+
+  it('stores a sub-page with the name and space of the page it shows', () => {
+    const settled = settleWrittenReferences(
+      [{ attrs: { label: '', pageId: 'seen', spaceId: '' }, type: 'subpage' }],
+      reachable,
+      people,
+    );
+
+    expect(settled.getValue()).toEqual([
+      { attrs: { label: 'Nombre de hoy', pageId: 'seen', spaceId: 'new-space' }, type: 'subpage' },
+    ]);
+  });
+
+  /** Un botón que agrega filas a una colección cerrada la delataría a quien lo aprieta. */
+  it('refuses a button that adds rows to a page the token cannot reach, and checks what the button writes', () => {
+    const rowButton = (pageId: string, inline: readonly unknown[]) => ({
+      attrs: { deed: 'row', label: 'Nueva', pageId, spaceId: '' },
+      content: [{ content: inline, type: 'paragraph' }],
+      type: 'button',
+    });
+
+    expect(settleWrittenReferences([rowButton('hidden', [])], reachable, people).getError()).toContain(
+      'not accessible',
+    );
+    expect(
+      settleWrittenReferences([rowButton('seen', [mention('hidden', 'Secreta')])], reachable, people).getError(),
+    ).toContain('not accessible');
+  });
+
+  it('leaves alone a button that only writes text, when reading and when writing', () => {
+    const textButton = {
+      attrs: { deed: 'blocks', label: 'Otra vez' },
+      content: [{ content: [text('Hola')], type: 'paragraph' }],
+      type: 'button',
+    };
+
+    expect(hideUnreachableReferences([textButton], reachable)).toEqual([textButton]);
+    expect(settleWrittenReferences([textButton], reachable, people).getValue()).toEqual([textButton]);
+  });
+
+  it('names a person as the workspace names them, and refuses somebody who is not there', () => {
+    expect(settleWrittenReferences(written(person('u-1', 'ana')), reachable, people).getValue()).toEqual(
+      written(person('u-1', 'Ana Pérez')),
+    );
+    expect(settleWrittenReferences(written(person('u-9', 'Nadie')), reachable, people).getError()).toContain('u-9');
   });
 });

@@ -5,6 +5,7 @@ import type {
   McpFetchedProperty as FetchedProperty,
   McpFetchOutput,
 } from '../types/mcp.types';
+import { formatMcpPageState } from './mcp.page-state.lib';
 
 const describePath = (page: FetchedPage): string => [...page.path.map((step) => step.title), page.title].join(' › ');
 
@@ -64,7 +65,8 @@ const describeProperties = (page: FetchedPage): string => {
 const describeComments = (page: FetchedPage): string => {
   if (page.comments === undefined || page.comments.length === 0) return '';
   const lines = page.comments.map(
-    (comment) => `- ${comment.author} on block ${comment.blockId} (${comment.createdAt}): ${comment.body}`,
+    (comment) =>
+      `- Comment ${comment.id} by ${comment.author} on block ${comment.blockId} (${comment.createdAt}): ${comment.body}`,
   );
   return `Comments:\n${lines.join('\n')}`;
 };
@@ -75,6 +77,7 @@ const describeNextPart = (page: FetchedPage): string =>
 const writePage = (page: FetchedPage): readonly string[] => [
   `# ${page.title}`,
   `Page ${page.id} · ${describePath(page)}\n${page.url}`,
+  page.state === undefined ? '' : formatMcpPageState(page.state),
   describeProperties(page),
   page.markdown ?? '',
   describeNextPart(page),

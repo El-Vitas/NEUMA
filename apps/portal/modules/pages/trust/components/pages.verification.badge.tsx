@@ -1,3 +1,4 @@
+import type { PageVerificationStatus } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {
@@ -5,7 +6,6 @@ import {
   PAGE_VERIFICATION_STATUS_LABEL_KEY,
   PAGE_VERIFICATION_STATUS_TEXT_CLASS,
 } from '../constants/pages.verification.constants';
-import type { PageVerificationStatus } from '../types/pages.verification.types';
 
 interface IProps {
   readonly status: PageVerificationStatus;

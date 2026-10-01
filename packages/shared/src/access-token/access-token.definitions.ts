@@ -26,6 +26,11 @@ export const ACCESS_TOKEN_PERMISSIONS = {
   pagesRead: 'pages:read',
   pagesWrite: 'pages:write',
   pagesTrash: 'pages:trash',
+  /**
+   * Bloquear una página, responder por ella como verificada y darle un dueño:
+   * actos de confianza sobre la página, aparte de escribir en ella.
+   */
+  pagesManage: 'pages:manage',
   collectionsRead: 'collections:read',
   collectionsWrite: 'collections:write',
   collectionsConfigure: 'collections:configure',
@@ -35,6 +40,7 @@ export const ACCESS_TOKEN_PERMISSION_VALUES = [
   ACCESS_TOKEN_PERMISSIONS.pagesRead,
   ACCESS_TOKEN_PERMISSIONS.pagesWrite,
   ACCESS_TOKEN_PERMISSIONS.pagesTrash,
+  ACCESS_TOKEN_PERMISSIONS.pagesManage,
   ACCESS_TOKEN_PERMISSIONS.collectionsRead,
   ACCESS_TOKEN_PERMISSIONS.collectionsWrite,
   ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
@@ -44,6 +50,7 @@ export const ACCESS_TOKEN_PERMISSION_VALUES = [
 export const ACCESS_TOKEN_WRITE_PERMISSIONS = [
   ACCESS_TOKEN_PERMISSIONS.pagesWrite,
   ACCESS_TOKEN_PERMISSIONS.pagesTrash,
+  ACCESS_TOKEN_PERMISSIONS.pagesManage,
   ACCESS_TOKEN_PERMISSIONS.collectionsWrite,
   ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
 ] as const;

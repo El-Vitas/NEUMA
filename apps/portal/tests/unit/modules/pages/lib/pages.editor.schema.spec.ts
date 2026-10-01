@@ -375,6 +375,17 @@ describe('block identity in the DOM', () => {
 
     expect(parsed.firstChild?.attrs.id).toBe('block-9');
   });
+
+  /** Copied and pasted, a diagram keeps the frame it was given, or it comes back at another size. */
+  it('reads back how tall the frame of a drawing was made, and nothing that is not a height it may have', () => {
+    const drawn = (frameHeight: number) =>
+      renderBlock(
+        pageEditorSchema.nodes.code_block.create({ frameHeight, language: 'mermaid' }, pageEditorSchema.text('pie')),
+      );
+
+    expect(DOMParser.fromSchema(pageEditorSchema).parse(drawn(480)).firstChild?.attrs.frameHeight).toBe(480);
+    expect(DOMParser.fromSchema(pageEditorSchema).parse(drawn(99_999)).firstChild?.attrs.frameHeight).toBeNull();
+  });
 });
 
 describe('the default block type', () => {

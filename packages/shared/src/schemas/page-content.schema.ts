@@ -18,9 +18,11 @@ const maximumMentionSpaceIdLength = 200;
 const maximumPersonLabelLength = 200;
 const maximumFormulaLatexLength = 4_000;
 const maximumCommentAuthorLength = 200;
-const maximumCommentBodyLength = 2_000;
 const maximumCommentDateLength = 40;
-const maximumCommentsPerBlock = 50;
+
+/** Cuánto puede decir un comentario, y cuántos puede llevar un bloque: quien los escribe tiene que saberlo antes. */
+export const PAGE_BLOCK_COMMENT_BODY_MOST = 2000;
+export const PAGE_BLOCK_COMMENTS_MOST = 50;
 const maximumUnknownTypeLength = 80;
 const maximumBookmarkTextLength = 300;
 
@@ -85,6 +87,12 @@ export const PAGE_CODE_LANGUAGES = [
 ] as const;
 export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
 
+/** El lenguaje de un bloque de código que se dibuja como diagrama. */
+export const PAGE_DIAGRAM_LANGUAGE = 'mermaid' satisfies PageCodeLanguage;
+
+/** El lenguaje de un bloque de código que se dibuja como fórmula. */
+export const PAGE_FORMULA_LANGUAGE = 'latex' satisfies PageCodeLanguage;
+
 /**
  * What is shown of a block that draws: what was written, what it draws, or both at once.
  *
@@ -94,6 +102,14 @@ export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
  */
 export const PAGE_DIAGRAM_VIEWS = ['drawing', 'code', 'both'] as const;
 export type PageDiagramView = (typeof PAGE_DIAGRAM_VIEWS)[number];
+
+/**
+ * How tall the frame of a drawing may be made, in pixels: low enough to still
+ * show something, and no taller than a tall screen, which is where a frame that
+ * reaches past the page stops helping anyone read what is inside it.
+ */
+export const PAGE_DIAGRAM_FRAME_HEIGHT_LEAST = 120;
+export const PAGE_DIAGRAM_FRAME_HEIGHT_MOST = 2400;
 
 /**
  * What a button does when it is pressed: write what it holds into the page, or
@@ -188,7 +204,7 @@ const pageCodeTextSchema = z
 const pageBlockCommentSchema = z
   .object({
     author: z.string().min(1).max(maximumCommentAuthorLength),
-    body: z.string().min(1).max(maximumCommentBodyLength),
+    body: z.string().min(1).max(PAGE_BLOCK_COMMENT_BODY_MOST),
     createdAt: z.string().min(1).max(maximumCommentDateLength),
     id: pageBlockIdSchema,
   })
@@ -197,7 +213,7 @@ const pageBlockCommentSchema = z
 /** What every block may carry, whatever its type. Block types add their own on top of these. */
 const pageBlockAttrsShape = {
   backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
-  comments: z.array(pageBlockCommentSchema).max(maximumCommentsPerBlock).optional(),
+  comments: z.array(pageBlockCommentSchema).max(PAGE_BLOCK_COMMENTS_MOST).optional(),
   id: pageBlockIdSchema.optional(),
   textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
 };
@@ -591,7 +607,11 @@ export type PageContentKnownNode =
       readonly type: 'block_children';
     }
   | {
-      readonly attrs?: PageBlockAttrs & { readonly language?: PageCodeLanguage; readonly wrapped?: boolean };
+      readonly attrs?: PageBlockAttrs & {
+        readonly frameHeight?: number;
+        readonly language?: PageCodeLanguage;
+        readonly wrapped?: boolean;
+      };
       readonly content: readonly PageContentText[];
       readonly type: 'code_block';
     }
@@ -781,6 +801,12 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
         attrs: z
           .object({
             ...pageBlockAttrsShape,
+            frameHeight: z
+              .number()
+              .int()
+              .min(PAGE_DIAGRAM_FRAME_HEIGHT_LEAST)
+              .max(PAGE_DIAGRAM_FRAME_HEIGHT_MOST)
+              .optional(),
             language: z.enum(PAGE_CODE_LANGUAGES).optional(),
             shown: z.enum(PAGE_DIAGRAM_VIEWS).optional(),
             wrapped: z.boolean().optional(),

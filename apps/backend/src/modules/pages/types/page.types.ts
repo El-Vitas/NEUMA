@@ -59,6 +59,20 @@ export interface StoredPagePropertyValuesRow {
 
 export type PageContentRewrite = (current: PageContent) => PageContent;
 
+/** Un cambio sobre lo que la página dice al escribir: la página que queda, o por qué no se puede. */
+export type PageContentEdit = (current: PageContent) => Result<PageContent, string>;
+
+/** Quién decide si alguien puede escribir en una página, y si lo que escribe calza con una página. */
+export interface PageWriteAuthorizer {
+  readonly authorizeContentWrite: (
+    writer: PageContentWriter,
+    content: unknown,
+  ) => Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLockedError>>;
+  readonly authorizeWrite: (
+    writer: PageContentWriter,
+  ) => Promise<Result<PageContentWriter, PageAccessDeniedError | PageLockedError>>;
+}
+
 export type PageContentWriteError = PageAccessDeniedError | PageContentValidationError | PageLockedError;
 
 /**

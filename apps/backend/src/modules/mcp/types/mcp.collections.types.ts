@@ -11,6 +11,7 @@ import type {
 import type { z } from 'zod';
 import type {
   collectionOutputSchema,
+  createCollectionInputSchema,
   createRowInputSchema,
   createViewInputSchema,
   deleteViewInputSchema,
@@ -24,6 +25,7 @@ import type {
 } from '../schemas/mcp.collections.schemas';
 
 export type McpGetCollectionInput = z.infer<typeof getCollectionInputSchema>;
+export type McpCreateCollectionInput = z.infer<typeof createCollectionInputSchema>;
 export type McpQueryCollectionInput = z.infer<typeof queryCollectionInputSchema>;
 export type McpCreateRowInput = z.infer<typeof createRowInputSchema>;
 export type McpUpdateRowInput = z.infer<typeof updateRowInputSchema>;
@@ -166,7 +168,8 @@ export interface McpRowWriter {
     input: McpActor & {
       readonly content: Prisma.InputJsonValue;
       readonly createdById: string;
-      readonly parentId: string;
+      /** Nada cuando la página va arriba del todo en su espacio. */
+      readonly parentId: string | null;
       readonly propertyValues: PagePropertyValues | null;
       readonly spaceId: string;
       readonly title: string;

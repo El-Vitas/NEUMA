@@ -1,6 +1,8 @@
 import type { PageEmbedProvider } from '@company-brain/shared';
 import {
   PAGE_CODE_LANGUAGES,
+  PAGE_DIAGRAM_LANGUAGE,
+  PAGE_FORMULA_LANGUAGE,
   pageAssetAttrsSchema,
   pageEmbedAttrsSchema,
   pageFileAttrsSchema,
@@ -47,10 +49,6 @@ import {
   PAGE_EDITOR_STRIKE_INPUT_PATTERN,
   PAGE_EDITOR_TASK_LIST_INPUT_PATTERN,
 } from '../constants/pages.editor.input-rules.constants';
-import {
-  PAGE_EDITOR_DIAGRAM_LANGUAGE,
-  PAGE_EDITOR_FORMULA_LANGUAGE,
-} from '../media/constants/pages.editor.diagram.constants';
 import { askForPageImage } from '../media/lib/pages.editor.image.lib';
 import { PAGE_EDITOR_SHORTCUTS } from '../menus/constants/pages.editor.shortcuts.constants';
 import { createPageEditorFindPlugin } from '../menus/lib/pages.editor.find.plugin.lib';
@@ -281,7 +279,7 @@ export const createPageEditorCommands = (
     group: 'advanced',
     kind: 'block',
     labelKey: 'diagram',
-    run: setBlockType(schema.nodes.code_block, { language: PAGE_EDITOR_DIAGRAM_LANGUAGE, shown: 'both' }),
+    run: setBlockType(schema.nodes.code_block, { language: PAGE_DIAGRAM_LANGUAGE, shown: 'both' }),
   },
   /** What the page holds, listed by the page itself: it is asked for, never written. */
   tableOfContents: {
@@ -295,7 +293,7 @@ export const createPageEditorCommands = (
     group: 'advanced',
     kind: 'block',
     labelKey: 'formula',
-    run: setBlockType(schema.nodes.code_block, { language: PAGE_EDITOR_FORMULA_LANGUAGE, shown: 'both' }),
+    run: setBlockType(schema.nodes.code_block, { language: PAGE_FORMULA_LANGUAGE, shown: 'both' }),
   },
   /** The same formula, written inside a line instead of on one of its own. */
   formulaInline: {

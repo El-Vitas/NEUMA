@@ -3,12 +3,7 @@ import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { recordMcpWrite } from '../lib/mcp.actions.lib';
 import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import {
-  openMcpCollection,
-  requireMcpInput,
-  requireMcpSuccess,
-  saveMcpCollectionShape,
-} from '../lib/mcp.collections.lib';
+import { openMcpCollection, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
 import {
   applyMcpColumnChanges,
   describeMcpColumnChanges,
@@ -16,6 +11,7 @@ import {
   hasMcpShapeChanges,
   withoutMcpOptionRewrites,
 } from '../lib/mcp.column-changes.lib';
+import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { collectionOutputSchema, updateCollectionColumnsInputSchema } from '../schemas/mcp.collections.schemas';
 import type { McpColumnChanges, McpOpenCollection, McpOptionRewrite } from '../types/mcp.collections.types';
@@ -99,6 +95,7 @@ export const updateCollectionColumnsTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.updateCollectionColumns,
           async () => {
             const { collection: address, ...changes } = input;
             if (!hasMcpColumnChanges(changes)) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);

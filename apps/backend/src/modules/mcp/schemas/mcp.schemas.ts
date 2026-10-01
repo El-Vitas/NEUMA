@@ -1,8 +1,10 @@
-import { SPACE_VISIBILITY_VALUES } from '@company-brain/shared';
+import { PAGE_VERIFICATION_STATUSES, SPACE_VISIBILITY_VALUES } from '@company-brain/shared';
 import { z } from 'zod';
 
 import {
   SEARCH_DEFAULT_LIMIT,
+  SEARCH_EDITED_RANGE_VALUES,
+  SEARCH_MAX_AUTHOR_QUERY_LENGTH,
   SEARCH_MAX_CURSOR_LENGTH,
   SEARCH_MAX_LIMIT,
   SEARCH_MAX_QUERY_LENGTH,
@@ -39,16 +41,33 @@ export const listSpacesOutputSchema = z.object({
   spaces: z.array(mcpSpaceSchema).max(1000),
 });
 
+const mcpPersonSchema = z.object({ id: idSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) });
+
+/** Un día, como `YYYY-MM-DD`. */
+const daySchema = z.iso.date();
+
+/**
+ * Si la página es de fiar: si alguien respondió por ella y si eso sigue
+ * valiendo, si está bloqueada contra cambios y quién la cuida.
+ */
+const mcpPageStateSchema = z.object({
+  locked: z.boolean(),
+  owner: mcpPersonSchema.nullable(),
+  verification: z.object({
+    by: mcpPersonSchema.nullable(),
+    on: daySchema.nullable(),
+    status: z.enum(PAGE_VERIFICATION_STATUSES),
+    until: daySchema.nullable(),
+  }),
+});
+
 /** Las propiedades de una fila: cada columna con su valor, y las personas por su nombre. */
 const mcpRowPropertiesSchema = z
   .array(
     z.object({
       key: z.string().max(128),
       label: z.string().max(MCP_TITLE_MAX_LENGTH),
-      people: z
-        .array(z.object({ id: idSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) }))
-        .max(MCP_LISTED_PAGE_LIMIT)
-        .optional(),
+      people: z.array(mcpPersonSchema).max(MCP_LISTED_PAGE_LIMIT).optional(),
       type: z.string().max(64),
       value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
     }),
@@ -68,6 +87,13 @@ const mcpOutlinePageSchema = z.object({
 });
 
 export const searchInputSchema = z.object({
+  author: z
+    .string()
+    .trim()
+    .min(1)
+    .max(SEARCH_MAX_AUTHOR_QUERY_LENGTH)
+    .optional()
+    .describe('Only pages created by someone whose name contains this.'),
   blockType: z
     .string()
     .trim()
@@ -76,15 +102,25 @@ export const searchInputSchema = z.object({
     .optional()
     .describe('Only blocks of this type, as they appear in results: paragraph, heading, list_item, task_item, table…'),
   cursor: z.string().trim().min(1).max(SEARCH_MAX_CURSOR_LENGTH).optional(),
+  editedWithin: z
+    .enum(SEARCH_EDITED_RANGE_VALUES)
+    .optional()
+    .describe('Only pages edited today, in the last seven days, in the last month, or this year.'),
   limit: z.number().int().min(1).max(SEARCH_MAX_LIMIT).default(SEARCH_DEFAULT_LIMIT),
   pageId: z.uuid().optional().describe('Search only in this page and the pages under it.'),
   query: z.string().trim().min(1).max(SEARCH_MAX_QUERY_LENGTH),
   spaceId: z.uuid().optional().describe('Search only in this space.'),
+  verifiedOnly: z
+    .boolean()
+    .optional()
+    .describe('Only pages someone vouched for as up to date, and whose vouching has not run out.'),
 });
 
 const mcpBlockHitSchema = z.object({
   blockId: idSchema,
   blockType: z.string().max(64),
+  /** Si su página está verificada y la verificación sigue valiendo. */
+  isPageVerified: z.boolean(),
   pageId: idSchema,
   pageTitle: titleSchema,
   parentPageTitle: titleSchema.nullable(),
@@ -96,6 +132,7 @@ const mcpBlockHitSchema = z.object({
 });
 
 const mcpPageHitSchema = z.object({
+  isVerified: z.boolean(),
   pageId: idSchema,
   snippet: z.string().max(MCP_TEXT_MAX_LENGTH),
   spaceId: idSchema,
@@ -143,6 +180,7 @@ const mcpFetchedPageSchema = z.object({
         blockId: idSchema,
         body: z.string().max(MCP_TEXT_MAX_LENGTH),
         createdAt: z.string().max(64),
+        id: idSchema,
       }),
     )
     .max(MCP_FETCH_COMMENT_LIMIT)
@@ -154,6 +192,8 @@ const mcpFetchedPageSchema = z.object({
   path: z.array(mcpPathStepSchema).max(MCP_PATH_MAX_DEPTH),
   properties: mcpRowPropertiesSchema,
   spaceId: idSchema,
+  /** Solo al abrir la página entera, no al abrir uno de sus bloques. */
+  state: mcpPageStateSchema.optional(),
   title: titleSchema,
   url: urlSchema,
   version: z.number().int().nonnegative(),

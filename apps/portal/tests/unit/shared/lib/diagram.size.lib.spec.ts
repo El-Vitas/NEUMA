@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { fitTheDrawingToItsBox, readDrawnWidth, showTheDrawingAtItsSize } from '@/shared/lib/diagram.size.lib';
+import { readDrawnHeight, readDrawnWidth, showTheDrawingAtItsSize } from '@/shared/lib/diagram.size.lib';
 
 const drawingOf = (viewBox: string): HTMLElement => {
   const drawing = document.createElement('div');
@@ -20,10 +20,17 @@ describe('how wide a drawing was drawn', () => {
   });
 });
 
+describe('how tall a drawing was drawn', () => {
+  it('reads the height out of the same box, and nothing when it does not say', () => {
+    expect(readDrawnHeight('0 0 1858.4 94')).toBe(94);
+    expect(readDrawnHeight('0 0 640')).toBe(0);
+  });
+});
+
 /**
  * Squeezed into the column a diagram is drawn at a fraction of its size and
- * stops being readable long before it stops being wide, so it keeps the size it
- * was drawn at — and is fitted only when somebody asks to see the whole of it.
+ * stops being readable long before it stops being wide, so it is shown at the
+ * size it was drawn at, times however much closer it has been brought.
  */
 describe('the size a drawing is shown at', () => {
   it('shows it at the size it was drawn, and lets it be brought closer', () => {
@@ -42,15 +49,5 @@ describe('the size a drawing is shown at', () => {
 
     expect(showTheDrawingAtItsSize(drawing)).toBe(false);
     expect(drawing.querySelector('svg')?.style.width).toBe('');
-  });
-
-  it('fits it to the box when the whole of it is what somebody wants to see', () => {
-    const drawing = drawingOf('0 0 1200 400');
-
-    showTheDrawingAtItsSize(drawing);
-    fitTheDrawingToItsBox(drawing);
-
-    expect(drawing.querySelector('svg')?.style.width).toBe('auto');
-    expect(drawing.querySelector('svg')?.style.maxWidth).toBe('100%');
   });
 });

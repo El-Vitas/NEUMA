@@ -219,13 +219,14 @@
       "NONE": "Sees nothing here, even if a broader rule opens it.",
       "READ": "Reads pages and collections.",
       "READ_WRITE": "Also creates and edits pages and collection rows.",
-      "FULL": "Also moves pages to the trash and changes the shape of collections.",
+      "FULL": "Also moves pages to the trash, locks, verifies and gives owners to pages, and changes the shape of collections.",
       "CUSTOM": "You tick each permission yourself."
     },
     "permissions": {
       "pagesRead": "Read pages",
       "pagesWrite": "Create and edit pages",
       "pagesTrash": "Move pages to the trash",
+      "pagesManage": "Lock, verify and give owners to pages",
       "collectionsRead": "Read collections",
       "collectionsWrite": "Create and edit collection rows",
       "collectionsConfigure": "Change the shape of collections"
@@ -1237,6 +1238,11 @@
     "diagramLine": "line",
     "diagramDownload": "Download the drawing",
     "diagramFullScreen": "See it full screen",
+    "diagramZoomIn": "Zoom in on the drawing",
+    "diagramZoomOut": "Zoom out of the drawing",
+    "diagramFitToFrame": "Fit the drawing to its frame",
+    "diagramActualSize": "Show the drawing at its real size",
+    "diagramFrameHeight": "Frame height. Drag or use the arrow keys to change it; double click returns it to the automatic size",
     "calloutIcon": "Callout mark",
     "noCalloutIcon": "No mark",
     "calloutIcons": {
@@ -1426,7 +1432,9 @@
     "back": "← Back to documentation",
     "contents": "On this page",
     "drawingActualSize": "Actual size",
-    "drawingFit": "Fit",
+    "drawingFit": "Fit to the frame",
+    "drawingZoomIn": "Zoom in on the drawing",
+    "drawingZoomOut": "Zoom out of the drawing",
     "empty": "No documents have been written yet."
   }
 }

@@ -20,7 +20,7 @@ export const listSpacesTool: McpToolDefinition = {
         outputSchema: listSpacesOutputSchema,
       },
       async () =>
-        runMcpTool(dependencies, async () => {
+        runMcpTool(dependencies, MCP_TOOL_NAMES.listSpaces, async () => {
           const principal = await requireMcpPrincipal(dependencies);
           const workspace = await resolveMcpWorkspace(dependencies, principal);
           const [spaces, reach] = await Promise.all([

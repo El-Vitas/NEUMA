@@ -269,10 +269,13 @@ export const PagesProseMirrorEditor = forwardRef(
       copied: t('codeCopied'),
       copy: t('copyCode'),
       diagram: {
+        actualSize: t('diagramActualSize'),
         both: t('diagramView.both'),
         code: t('diagramView.code'),
         download: t('diagramDownload'),
         drawing: t('diagramView.drawing'),
+        fitToFrame: t('diagramFitToFrame'),
+        frameHeight: t('diagramFrameHeight'),
         formula: {
           both: t('formulaView.both'),
           code: t('formulaView.code'),
@@ -281,6 +284,8 @@ export const PagesProseMirrorEditor = forwardRef(
         fullScreen: t('diagramFullScreen'),
         line: t('diagramLine'),
         unknown: t('diagramUnknown'),
+        zoomIn: t('diagramZoomIn'),
+        zoomOut: t('diagramZoomOut'),
       },
       language: t('codeLanguage'),
       languages: Object.fromEntries(PAGE_CODE_LANGUAGES.map((language) => [language, t(`codeLanguages.${language}`)])),
@@ -308,6 +313,12 @@ export const PagesProseMirrorEditor = forwardRef(
     const editorHostRef = useRef<HTMLDivElement>(null);
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
+    /**
+     * El editor armado ahora. Se vuelve a armar cuando cambia algo de lo que
+     * depende, y lo que se ató al anterior —el documento en vivo— tiene que
+     * volver a atarse al nuevo: si no, sigue hablándole a uno que ya no existe.
+     */
+    const [mountedEditorView, setMountedEditorView] = useState<EditorView | null>(null);
     const embedding = usePagesEditorCollectionEmbedding({
       editorViewRef,
       onInserted: () => router.refresh(),
@@ -499,6 +510,12 @@ export const PagesProseMirrorEditor = forwardRef(
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
+          /*
+            Un editor ya desarmado no tiene dónde aplicar nada. Lo que llega en
+            el instante entre desarmarlo y atar el documento en vivo al nuevo no
+            se pierde: vive en el documento, y el editor nuevo parte de él.
+          */
+          if (editorView.isDestroyed) return;
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
           syncFind(editorView);
@@ -586,6 +603,7 @@ export const PagesProseMirrorEditor = forwardRef(
         state: editorState,
       });
       editorViewRef.current = editorView;
+      setMountedEditorView(editorView);
       syncCollectionHosts();
       followHeadingsRef.current(editorView.state);
 
@@ -618,15 +636,15 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [session]);
 
     useEffect(() => {
-      if (session === null || editorViewRef.current === null) return;
+      if (session === null || mountedEditorView === null || mountedEditorView.isDestroyed) return;
       wasLiveRef.current = true;
-      const { anchor, head } = readWhereThisPersonWrites(editorViewRef.current);
+      const { anchor, head } = readWhereThisPersonWrites(mountedEditorView);
       const stopKeepingClicks = keepClicksAcrossChangesFromOthers(
-        editorViewRef.current,
+        mountedEditorView,
         session.ydoc,
         session.provider.awareness,
       );
-      editorViewRef.current.updateState(
+      mountedEditorView.updateState(
         createCollaborativePageEditorState(
           { awareness: session.provider.awareness, fragment: session.fragment },
           selectBlockLabelRef.current,
@@ -636,12 +654,12 @@ export const PagesProseMirrorEditor = forwardRef(
           resizeColumnLabelRef.current,
         ),
       );
-      restoreSelectionIfStillWriting(editorViewRef.current, anchor, head);
-      followHeadingsRef.current(editorViewRef.current.state);
-      resumeFind(editorViewRef.current);
-      syncFind(editorViewRef.current);
+      restoreSelectionIfStillWriting(mountedEditorView, anchor, head);
+      followHeadingsRef.current(mountedEditorView.state);
+      resumeFind(mountedEditorView);
+      syncFind(mountedEditorView);
       return stopKeepingClicks;
-    }, [resumeFind, session, syncFind]);
+    }, [mountedEditorView, resumeFind, session, syncFind]);
 
     /**
      * Does what a button says when it is pressed.

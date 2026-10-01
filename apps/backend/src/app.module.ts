@@ -3,6 +3,7 @@ import { USER_ROLE } from '@company-brain/shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { seconds, ThrottlerModule } from '@nestjs/throttler';
+import { PinoLogger } from 'nestjs-pino';
 
 import { envSchema } from './common/config/env.schema';
 import { PORTAL_URL_KEY } from './common/constants/env.constants';
@@ -44,7 +45,9 @@ import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
 import { LinksService } from './modules/links/links.service';
 import { MCP_PRINCIPAL_RESOLVER, MCP_SERVER_DEPENDENCIES } from './modules/mcp/constants/mcp.constants';
+import { McpDrawingValidatorAdapter } from './modules/mcp/infrastructure/adapters/mcp.drawing.validator';
 import { McpActionRepository } from './modules/mcp/infrastructure/persistence/mcp.action.repository';
+import { createMcpObserver } from './modules/mcp/lib/mcp.observer.lib';
 import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
@@ -194,11 +197,14 @@ import { PrismaModule } from './prisma/prisma.module';
     AccessTokenPlaceRepository,
     WorkspaceMemberRepository,
     McpActionRepository,
+    McpDrawingValidatorAdapter,
     {
       inject: [
         McpActionRepository,
+        McpDrawingValidatorAdapter,
         PagesService,
         PageSchemaService,
+        PageContentService,
         PageOutlineService,
         LinksService,
         WorkspaceMemberRepository,
@@ -208,12 +214,15 @@ import { PrismaModule } from './prisma/prisma.module';
         SpacesService,
         WorkspacesService,
         ConfigService,
+        PinoLogger,
       ],
       provide: MCP_SERVER_DEPENDENCIES,
       useFactory: (
         actionLog: McpActionRepository,
+        drawings: McpDrawingValidatorAdapter,
         pagesService: PagesService,
         collections: PageSchemaService,
+        content: PageContentService,
         outline: PageOutlineService,
         backlinks: LinksService,
         people: WorkspaceMemberRepository,
@@ -223,11 +232,16 @@ import { PrismaModule } from './prisma/prisma.module';
         spacesService: SpacesService,
         workspacesService: WorkspacesService,
         configService: ConfigService,
+        logger: PinoLogger,
       ): McpServerDependencies => ({
         actionLog,
         backlinks,
         collections,
+        content,
+        drawings,
+        observer: createMcpObserver(logger),
         outline,
+        pages: pagesService,
         pagesService,
         people,
         placeReader,

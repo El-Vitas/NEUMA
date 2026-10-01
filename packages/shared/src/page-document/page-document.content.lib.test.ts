@@ -50,7 +50,7 @@ describe('writePageDocumentJsonAsContent', () => {
           type: 'paragraph',
         },
         {
-          attrs: { id: 'codigo', language: null, shown: null, wrapped: false },
+          attrs: { frameHeight: null, id: 'codigo', language: null, shown: null, wrapped: false },
           content: [{ text: 'bun test', type: 'text' }],
           type: 'code_block',
         },
@@ -66,6 +66,25 @@ describe('writePageDocumentJsonAsContent', () => {
       ],
       schemaVersion: 1,
       type: 'doc',
+    });
+  });
+
+  it('keeps how tall the frame of a drawing was made', () => {
+    const documentJson = {
+      content: [
+        {
+          attrs: { frameHeight: 480, id: 'diagrama', language: 'mermaid', shown: null, wrapped: false },
+          content: [{ text: 'pie', type: 'text' }],
+          type: 'code_block',
+        },
+      ],
+      type: 'doc',
+    };
+
+    expect(writePageDocumentJsonAsContent(documentJson).content[0]).toEqual({
+      attrs: { frameHeight: 480, id: 'diagrama', language: 'mermaid' },
+      content: [{ text: 'pie', type: 'text' }],
+      type: 'code_block',
     });
   });
 

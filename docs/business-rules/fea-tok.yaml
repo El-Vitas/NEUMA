@@ -3,6 +3,32 @@ name: Tokens de acceso para agentes
 purpose: Reglas de los tokens con que un agente (por MCP) actúa en Company Brain en nombre de una persona.
 scope: access-tokens
 rules:
+  - id: BR-04b7bf1
+    status: active
+    title: El agente sabe si una página es de fiar y qué hay en la papelera
+    rule: >-
+      Al abrir una página entera, el agente recibe si está verificada, quién la verificó y hasta cuándo, si la
+      verificación ya venció, si está bloqueada y quién es su dueño. En la búsqueda puede quedarse solo con páginas
+      verificadas y vigentes, filtrar por quién creó la página y por cuándo se editó, y cada resultado dice si su página
+      está verificada. Puede listar la papelera para recuperar una página sin conocer su id, y ve solo las páginas que
+      su token puede leer donde estaban.
+    why: >-
+      Un agente que responde preguntas debe poder preferir la información que alguien revisó y avisar cuando lo que
+      encontró puede estar desactualizado. Sin ver la papelera, no podía recuperar una página que alguien borró por
+      error, salvo que ya supiera su id.
+    context: >-
+      Una verificación vencida no es lo mismo que una página sin verificar. Se sabe quién respondió por ella, pero eso
+      ya no vale. El vencimiento se compara con el momento en que se lee, así una verificación vencida se informa aunque
+      nadie haya tocado la página desde entonces.
+    scenarios:
+      - title: Verificación vencida
+        given: Una página verificada cuyo plazo de verificación ya pasó
+        when: El agente la abre
+        then: Se le dice que la verificación venció, quién la había verificado y que la página puede estar desactualizada
+      - title: Papelera con una página cerrada al token
+        given: Una página en la papelera con una regla de página que cierra su lectura al token
+        when: El agente lista la papelera
+        then: Esa página no aparece
   - id: BR-1dca2a0
     status: active
     title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
@@ -163,6 +189,32 @@ rules:
         given: Un token que lee todo menos «RR. HH.»
         when: Alguien mueve una página debajo de «RR. HH.»
         then: El agente ya no la encuentra ni la puede leer
+  - id: BR-9ee3326
+    status: active
+    title: Bloquear, verificar y dar dueño a una página piden su propio permiso
+    rule: >-
+      Bloquear o desbloquear una página, responder por ella como verificada y darle un dueño son actos de confianza
+      sobre la página, separados de escribir en ella. Un token solo puede hacerlos si tiene el permiso de gestionar
+      páginas en esa página, según la regla más cercana. Poder escribir la página no alcanza. Si un pedido mezcla esos
+      cambios con otros que el token sí puede hacer, como cambiar el título, no se cambia nada y el agente recibe el
+      motivo. Solo puede dar este permiso quien puede escribir, y lo trae el nivel de acceso completo, no el de lectura
+      y escritura.
+    why: >-
+      Un bloqueo, una verificación o un dueño dicen a los demás que la página está cuidada y por quién. Si cualquier
+      token que escribe pudiera hacerlo, un agente podría bloquear páginas por error o dar por verificada información
+      que nadie revisó, en nombre de una persona.
+    context: >-
+      El permiso se guarda como los demás permisos del token, por lugar. Una regla puesta en una página que no lo
+      incluye lo quita en esa página aunque el token lo tenga en todo el espacio.
+    scenarios:
+      - title: Token que solo escribe
+        given: Un token que puede escribir una página pero no gestionarla
+        when: El agente pide bloquearla y cambiarle el título en el mismo pedido
+        then: No se cambia nada y se le explica que falta el permiso de gestionar páginas
+      - title: Regla de la página
+        given: Un token que puede gestionar páginas en todo el espacio, con una regla en una página que no lo incluye
+        when: El agente pide verificar esa página
+        then: Se rechaza y la página queda sin verificar
   - id: BR-adf07ee
     status: active
     title: En cada página manda la regla más cercana
@@ -227,6 +279,32 @@ rules:
         given: Una persona que elige como último día el 15 de marzo
         when: Crea el token
         then: El token deja de servir cuando termina el 15 de marzo en su hora
+  - id: BR-d2011f8
+    status: active
+    title: Lo que una página va a dibujar se revisa antes de guardarlo
+    rule: >-
+      Antes de guardar un diagrama o una fórmula que escribe un agente, el sistema comprueba que se pueda dibujar tal
+      como lo dibujará la página. Revisa que el diagrama se pueda leer, que cada ícono que nombra exista entre los que
+      la página dibuja y que en un diagrama de arquitectura cada grupo contenga algo y ningún elemento quede fuera del
+      grupo al que apunta su sangría. En una fórmula revisa que se pueda componer. Si algo falla, no se guarda nada y el
+      agente recibe el motivo exacto con el número de bloque, para corregirlo y volver a intentar.
+    why: >-
+      Un diagrama roto o con íconos que no existen, guardado en silencio, solo lo descubre después la persona que abre
+      la página. Rechazarlo en el momento, con el motivo, deja que el agente lo corrija solo.
+    context: >-
+      La revisión ocurre en el servidor, nunca en el navegador. Si el revisor de diagramas no responde a tiempo o se
+      cae, la escritura no se hace, el fallo queda registrado y el revisor se vuelve a levantar para la siguiente. Nunca
+      se da por bueno un diagrama que no se pudo revisar. El registro de fallos guarda un motivo corto, nunca lo que el
+      agente escribió.
+    scenarios:
+      - title: Diagrama que no se puede leer
+        given: Un agente que escribe un diagrama con un error de sintaxis
+        when: Intenta guardarlo en una página
+        then: No se guarda nada y recibe el error con la línea y el número de bloque
+      - title: Ícono inexistente
+        given: Un diagrama que nombra un ícono que la página no tiene
+        when: El agente intenta guardarlo
+        then: Se rechaza nombrando el ícono y cómo encontrar uno que exista
   - id: BR-e3b419d
     status: active
     title: El token se ve una sola vez
@@ -242,6 +320,38 @@ rules:
         given: Una persona en su cuenta
         when: Crea un token
         then: Ve el token completo y la configuración para su agente, y al cerrar el panel ya no lo puede volver a ver
+  - id: BR-e608867
+    status: active
+    title: El agente edita páginas como una persona, con todo lo que ofrece el editor
+    rule: >-
+      Un agente con permiso de escribir páginas puede hacer en ellas lo mismo que una persona desde el editor, por los
+      mismos caminos y con las mismas reglas. Puede crear páginas, escribir, cambiar, mover y quitar bloques de
+      cualquier tipo del menú de bloques. Puede dar formato al texto (negrita, cursiva, código, tachado, subrayado,
+      color y resaltado) y pintar un bloque entero. Puede cambiar una tabla celda por celda, agregarle y quitarle filas,
+      y comentar un bloque o unas palabras de él, o quitar un comentario. Puede cambiar el título, el emoji, la portada,
+      el bloqueo, la verificación y el dueño de una página, y moverla o duplicarla. Todo lo que escribe llega al momento
+      a quien tiene la página abierta.
+    why: >-
+      Un agente que solo lee, o que escribe texto plano, obliga a una persona a terminar el trabajo a mano. Si puede lo
+      mismo que una persona y bajo las mismas reglas, se le puede encargar la tarea completa sin abrir una puerta que la
+      persona no tiene.
+    context: >-
+      El agente no sube imágenes ni archivos, así que puede quitar una portada pero no poner una nueva. Un comentario
+      lleva el nombre de la persona dueña del token. Lo que no se toca de una tabla conserva su identidad, sus
+      comentarios y los enlaces que apuntan a sus celdas.
+    scenarios:
+      - title: Comentar unas palabras
+        given: Un agente con permiso de escribir en una página
+        when: Comenta un bloque citando unas palabras que el bloque dice
+        then: El comentario queda en el bloque firmado por la persona dueña del token, y esas palabras quedan marcadas
+      - title: Cambiar una celda
+        given: Una página con una tabla que tiene comentarios en sus celdas
+        when: El agente cambia el texto de una celda
+        then: Solo cambia esa celda y las demás conservan su identidad y sus comentarios
+      - title: Página bloqueada
+        given: Una página bloqueada
+        when: El agente intenta escribir en ella
+        then: No se escribe nada y se le explica que la página está bloqueada
   - id: BR-e782bed
     status: active
     title: Quien administra ve y revoca todos los tokens
@@ -265,6 +375,32 @@ rules:
         given: Un token vivo de otra persona
         when: Quien administra lo revoca
         then: El agente deja de entrar en su siguiente llamada
+  - id: BR-fabc7c6
+    status: active
+    title: Lo que alcanza a un árbol de páginas pide permiso en todo el árbol
+    rule: >-
+      Cuando un agente hace algo que alcanza también a las páginas que cuelgan de una, como mandarla a la papelera,
+      moverla o copiarla con sus hijas, el token necesita el permiso en esa página y en cada página de abajo que tenga
+      su propia regla. Si alguna de abajo no lo permite, no se hace nada y se nombra esa página. Mandar a la papelera y
+      restaurar piden su propio permiso, distinto del de escribir. Mover pide poder escribir donde está la página y
+      donde va, y copiar pide poder escribir junto a la original. Nada se borra para siempre desde un agente, y lo que
+      manda a la papelera se puede restaurar.
+    why: >-
+      Una regla que cierra una página a un token no debe poder saltarse actuando sobre la página de arriba. Si se
+      pudiera, el token terminaría haciendo con la página cerrada lo que su regla prohíbe, y una copia podría sacar a la
+      luz una página que el token no puede leer.
+    context: >-
+      Solo importan las páginas de abajo que tienen una regla propia; las demás heredan la de arriba, que ya se revisó
+      en la página misma. Una página en la papelera que el token no alcanza se contesta igual que una que no existe.
+    scenarios:
+      - title: Hija protegida
+        given: Un token que puede mandar páginas a la papelera en todo el espacio, salvo una página que cuelga de otra
+        when: El agente manda a la papelera la página de arriba
+        then: No se manda nada a la papelera y se le nombra la página protegida
+      - title: Restaurar con las hijas
+        given: Una página que se fue a la papelera con su hija
+        when: El agente la restaura pidiendo también sus hijas
+        then: Vuelven las dos
   - id: BR-ff39e6a
     status: active
     title: En una colección, cada fila responde a su propia regla

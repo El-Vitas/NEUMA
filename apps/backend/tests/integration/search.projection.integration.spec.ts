@@ -152,4 +152,31 @@ describe('Search Projection (Integration)', () => {
 
     expect(projectedPage?.title).toBe(renamedTitle);
   });
+
+  /** «safe» encuentra «ÜSAFE», aunque otra página tenga la palabra entera, que va primero. */
+  it('finds what is searched for inside a longer word in a title, after the pages that have it as a whole word', async () => {
+    const wanted = `safe${String(Date.now())}`;
+    const createPage = async (title: string): Promise<string> => {
+      const response = await request(testApp.getServer())
+        .post(`/api/v1/spaces/${spaceId}/pages`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          content: {
+            content: [{ content: [{ text: 'Notas', type: 'text' }], type: 'paragraph' }],
+            schemaVersion: 1,
+            type: 'doc',
+          },
+          title,
+        })
+        .expect(201);
+      return (response.body as PageResponse).id;
+    };
+    const insidePageId = await createPage(`Ü${wanted} - Arquitectura`);
+    const wholePageId = await createPage(`Modo ${wanted}`);
+    await drainSearchProjection(testApp);
+
+    const response = await searchAs(testApp, adminToken, wanted);
+
+    expect(response.items.map((item) => item.sourceId)).toEqual([wholePageId, insidePageId]);
+  });
 });

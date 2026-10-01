@@ -2,7 +2,8 @@ import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { recordMcpWrite } from '../lib/mcp.actions.lib';
 import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import { openMcpCollection, requireMcpInput, requireMcpView, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { openMcpCollection, requireMcpView, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { requireMcpInput } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { removeMcpView } from '../lib/mcp.views.lib';
 import { collectionOutputSchema, deleteViewInputSchema } from '../schemas/mcp.collections.schemas';
@@ -35,6 +36,7 @@ export const deleteViewTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.deleteView,
           async () => {
             const call = await openMcpCall(dependencies);
             const collection = await openMcpCollection(

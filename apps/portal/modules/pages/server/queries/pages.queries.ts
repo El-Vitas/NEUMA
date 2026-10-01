@@ -25,6 +25,35 @@ const getPagesCached = async (accessToken: string, spaceId: string): Promise<rea
 };
 
 /**
+ * The pages of a space, read again for one page the kept list did not have.
+ *
+ * A page written from outside the portal — by an agent, through the MCP —
+ * reaches the kept list only once that list refreshes, and the first visit to
+ * it would otherwise be told it does not exist. Keyed by that page, so the read
+ * is a fresh one; tagged like the list, so whatever clears the list clears it.
+ */
+export const getPagesHolding = async (
+  spaceId: string,
+  pageId: string,
+): Promise<Result<readonly PageSummary[], Error>> =>
+  withQuery({ op: 'getPagesHolding', params: { pageId, spaceId } }, (accessToken) =>
+    getPagesHoldingCached(accessToken, spaceId, pageId),
+  );
+
+const getPagesHoldingCached = async (
+  accessToken: string,
+  spaceId: string,
+  pageId: string,
+): Promise<readonly PageSummary[]> => {
+  'use cache';
+  cacheLife('seconds');
+  cacheTag(PAGES_CACHE_TAG(spaceId), PAGE_LOCATION_CACHE_TAG(pageId));
+
+  const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
+  return readPagesThatCanBeRead(response, 'getPagesHolding');
+};
+
+/**
  * Which space a page lives in now.
  *
  * Asked when an address does not find it where it says: a page that changed

@@ -77,6 +77,35 @@ const cursorSchema = z
 
 const addableColumnTypes = PAGE_PROPERTY_TYPE_VALUES.filter((type) => type !== PAGE_PROPERTY_TYPE.TITLE);
 
+/** Una columna nueva: su nombre como lo verá la gente, su tipo y, si elige entre opciones, cuáles. */
+const newColumnSchema = z.object({
+  name: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH),
+  options: z
+    .array(z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH))
+    .max(MCP_COLLECTION_CHANGE_LIMIT)
+    .optional(),
+  type: z.enum(addableColumnTypes),
+});
+
+const namedInTheirLanguageSchema = z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH);
+
+export const createCollectionInputSchema = z.object({
+  columns: z
+    .array(newColumnSchema)
+    .max(MCP_COLLECTION_CHANGE_LIMIT)
+    .optional()
+    .describe('Its columns besides the one that names each row, such as a status with its options or a due date.'),
+  parent: collectionSchema.optional().describe('Create it under this page (a link or id).'),
+  space: z.uuid().optional().describe('Create it at the top of this space.'),
+  title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH),
+  titleColumn: namedInTheirLanguageSchema.describe(
+    'The name of the column that names each row, in the language of the people who use it, such as "Name" or "Nombre".',
+  ),
+  viewName: namedInTheirLanguageSchema.describe(
+    'The name of its first view, a table, in the language of the people who use it, such as "Table" or "Tabla".',
+  ),
+});
+
 export const getCollectionInputSchema = z.object({ collection: collectionSchema });
 
 export const queryCollectionInputSchema = z.object({
@@ -111,19 +140,7 @@ export const updateRowInputSchema = z.object({
 });
 
 export const updateCollectionColumnsInputSchema = z.object({
-  addColumns: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH),
-        options: z
-          .array(z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH))
-          .max(MCP_COLLECTION_CHANGE_LIMIT)
-          .optional(),
-        type: z.enum(addableColumnTypes),
-      }),
-    )
-    .max(MCP_COLLECTION_CHANGE_LIMIT)
-    .optional(),
+  addColumns: z.array(newColumnSchema).max(MCP_COLLECTION_CHANGE_LIMIT).optional(),
   addOptions: z
     .array(
       z.object({

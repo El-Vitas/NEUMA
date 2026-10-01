@@ -14,7 +14,14 @@ import type {
 } from '../../types/page-block.types';
 import type { SearchCursor } from '../../types/search.types';
 import { decodeSearchCursor, encodeSearchCursor } from '../../utils/search.cursor.utils';
-import { buildSearchSpaceVisibilityFilter, buildTokenScopeFilter } from './search.repository';
+import { buildSearchInsideWordPattern } from '../../utils/search.pattern.utils';
+import {
+  buildEditedRangeFilter,
+  buildInsideWordMatch,
+  buildSearchSpaceVisibilityFilter,
+  buildTokenScopeFilter,
+  buildWordRank,
+} from './search.repository';
 
 const blockQueryExpression = Prisma.sql`websearch_to_tsquery('simple'::regconfig, public.immutable_unaccent("input"."queryText"))`;
 
@@ -38,12 +45,36 @@ const buildCursorFilter = (cursor: SearchCursor, rankExpression: Prisma.Sql): Pr
     AND ${blockKey} > ${cursor.sourceId})
 )`;
 
+/** La página del bloque está verificada y su verificación no venció; la misma regla que con las páginas. */
+const pageIsVerified = Prisma.sql`(
+  "page"."verifiedAt" IS NOT NULL
+  AND ("page"."verificationExpiresAt" IS NULL OR "page"."verificationExpiresAt" > now())
+)`;
+
+/** Quien creó la página tiene eso en su nombre, sin mirar mayúsculas. */
+const buildAuthorFilter = (authorQuery: string): Prisma.Sql => {
+  const anywhereInTheName = `%${authorQuery}%`;
+  return Prisma.sql`AND EXISTS (
+    SELECT 1 FROM "User" AS "author"
+    WHERE "author"."id" = "page"."createdById" AND "author"."name" ILIKE ${anywhereInTheName}
+  )`;
+};
+
+/** Lo que acota por la página: verificada, quién la creó y cuándo se editó. */
+const buildPageFilters = (query: PageBlockSearchQuery): Prisma.Sql[] => [
+  ...(query.verifiedOnly === true ? [Prisma.sql`AND ${pageIsVerified}`] : []),
+  ...(query.authorQuery === undefined ? [] : [buildAuthorFilter(query.authorQuery)]),
+  ...(query.editedRange === undefined
+    ? []
+    : [buildEditedRangeFilter(query.editedRange, Prisma.sql`"page"."updatedAt"`)]),
+];
+
 const buildBlockFilters = (
   query: PageBlockSearchQuery,
   cursor: SearchCursor | null,
   rankExpression: Prisma.Sql,
 ): Prisma.Sql => {
-  const filters: Prisma.Sql[] = [];
+  const filters: Prisma.Sql[] = [...buildPageFilters(query)];
   if (query.spaceId !== undefined) filters.push(Prisma.sql`AND "page"."spaceId" = ${query.spaceId}`);
   if (query.blockType !== undefined) filters.push(Prisma.sql`AND "block"."type" = ${query.blockType}`);
   if (query.rootPageId !== undefined) filters.push(buildRootPageFilter(query.rootPageId));
@@ -67,6 +98,7 @@ const buildBlockSearchSql = (
     "block"."blockId",
     "block"."type" AS "blockType",
     "block"."headingPath",
+    ${pageIsVerified} AS "isPageVerified",
     "block"."pageId",
     "page"."title" AS "pageTitle",
     "parent"."title" AS "parentPageTitle",
@@ -95,6 +127,7 @@ const toBlockSearchPage = (rows: readonly PageBlockSearchRow[], limit: number): 
     blockId: row.blockId,
     blockType: row.blockType,
     headingPath: row.headingPath ?? [],
+    isPageVerified: row.isPageVerified,
     pageId: row.pageId,
     pageTitle: row.pageTitle,
     parentPageTitle: row.parentPageTitle,
@@ -178,11 +211,21 @@ export class PageBlockRepository implements PageBlockRepositoryContract {
     return toBlockSearchPage(usefulRows, query.limit);
   }
 
+  /** Los bloques con lo buscado como palabra entera o dentro de una palabra más larga, enteras primero. */
   private findFullTextMatches(query: PageBlockSearchQuery, cursor: SearchCursor | null): Promise<PageBlockSearchRow[]> {
-    const rank = Prisma.sql`ts_rank_cd("block"."searchVector", ${blockQueryExpression})`;
+    const vector = Prisma.sql`"block"."searchVector"`;
+    const wholeWord = Prisma.sql`${vector} @@ ${blockQueryExpression}`;
+    const insideText = buildInsideWordMatch(Prisma.sql`"block"."text"`, buildSearchInsideWordPattern(query.query));
+    const rank = buildWordRank({
+      insideText,
+      insideTitle: Prisma.sql`FALSE`,
+      vector,
+      wholeWord,
+      wordQuery: blockQueryExpression,
+    });
     return this.prisma.$queryRaw<PageBlockSearchRow[]>(
       buildBlockSearchSql(query, cursor, {
-        match: Prisma.sql`"block"."searchVector" @@ ${blockQueryExpression}`,
+        match: Prisma.sql`(${wholeWord} OR ${insideText})`,
         rank,
         snippet: Prisma.sql`ts_headline(
           'simple'::regconfig,

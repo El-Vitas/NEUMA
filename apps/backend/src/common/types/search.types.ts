@@ -1,7 +1,18 @@
 import type { UserRole } from '@company-brain/shared';
-import { SEARCH_SOURCE_TYPE_VALUES } from '../constants/search.constants';
+import type { SEARCH_EDITED_RANGE_VALUES, SEARCH_SOURCE_TYPE_VALUES } from '../constants/search.constants';
 
 export type SearchSourceType = (typeof SEARCH_SOURCE_TYPE_VALUES)[number];
+
+export type SearchEditedRange = (typeof SEARCH_EDITED_RANGE_VALUES)[number];
+
+/** Lo que acota una búsqueda por la página, igual se busquen páginas o bloques. */
+export interface SearchQueryFilters {
+  /** Parte del nombre de quien creó la página. */
+  readonly authorQuery?: string;
+  readonly editedRange?: SearchEditedRange;
+  /** Only pages currently verified and not past their expiration — expired ones do not count. */
+  readonly verifiedOnly?: boolean;
+}
 
 export interface SearchQuery {
   readonly contentType?: string;
@@ -41,6 +52,8 @@ export interface SearchTokenScope {
 
 export interface SearchResult {
   readonly contentType: string;
+  /** Si la página está verificada y la verificación no venció. */
+  readonly isVerified: boolean;
   readonly rank: number;
   readonly spaceId: string;
   readonly sourceId: string;
@@ -56,11 +69,11 @@ export interface SearchPage {
 }
 
 export interface SearchReader {
-  readonly search: (query: SearchQuery) => Promise<SearchPage>;
+  readonly search: (query: SearchQuery & SearchQueryFilters) => Promise<SearchPage>;
 }
 
 /** Buscar bloques: lo mismo que buscar páginas, y además dentro de una página y todo lo que cuelga de ella. */
-export interface PageBlockSearchQuery {
+export interface PageBlockSearchQuery extends SearchQueryFilters {
   /** Solo bloques de este tipo. */
   readonly blockType?: string;
   readonly cursor?: string;
@@ -81,6 +94,8 @@ export interface PageBlockSearchResult {
   readonly blockType: string;
   /** Los encabezados bajo los que está, del más externo al más cercano. */
   readonly headingPath: readonly string[];
+  /** Si su página está verificada y la verificación no venció. */
+  readonly isPageVerified: boolean;
   readonly pageId: string;
   readonly pageTitle: string;
   readonly parentPageTitle: string | null;

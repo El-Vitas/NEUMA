@@ -153,6 +153,65 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     expect(found.items.some((item) => item.pageId === lookalikePageId)).toBe(false);
   });
 
+  /**
+   * Lo buscado puede estar dentro de una palabra más larga, como «safe» en
+   * «ÜSAFE». Se encuentra aunque otra página tenga la palabra entera, y esa
+   * va primero.
+   */
+  it('finds what is searched for inside a longer word, after the blocks that have it as a whole word', async () => {
+    const wanted = `safe${String(Date.now())}`;
+    const insidePageId = await createPage(
+      'ÜSAFE',
+      pageWithoutIds({ content: [text(`Arquitectura de Ü${wanted}`)], type: 'paragraph' }),
+    );
+    const wholePageId = await createPage(
+      'Entera',
+      pageWithoutIds({ content: [text(`Modo ${wanted}`)], type: 'paragraph' }),
+    );
+    await drainSearchProjection(testApp);
+
+    const found = await searchBlocks(admin, wanted);
+
+    expect(found.items.map((item) => item.pageId)).toEqual([wholePageId, insidePageId]);
+  });
+
+  /** Los mismos filtros que la búsqueda del portal: verificadas, por quién la creó y por cuándo se editó. */
+  it('keeps only the blocks of verified pages when asked, and says which pages are verified', async () => {
+    const prisma = testApp.get(PrismaService);
+    await prisma.page.update({
+      data: { verifiedAt: new Date(), verifiedById: admin.userId },
+      where: { id: childPageId },
+    });
+    await prisma.page.update({
+      data: {
+        verificationExpiresAt: new Date('2020-01-01T00:00:00.000Z'),
+        verifiedAt: new Date('2019-01-01T00:00:00.000Z'),
+      },
+      where: { id: otherPageId },
+    });
+
+    const [all, verifiedOnly] = await Promise.all([
+      searchBlocks(admin, term),
+      searchBlocks(admin, term, { verifiedOnly: true }),
+    ]);
+
+    expect(verifiedOnly.items.map((item) => item.pageId)).toEqual([childPageId]);
+    expect(all.items.find((item) => item.pageId === childPageId)?.isPageVerified).toBe(true);
+    expect(all.items.find((item) => item.pageId === otherPageId)?.isPageVerified).toBe(false);
+  });
+
+  it('filters by who created the page and by when it was last edited', async () => {
+    const [byAuthor, byNobody, editedToday] = await Promise.all([
+      searchBlocks(admin, term, { authorQuery: 'blocks adm' }),
+      searchBlocks(admin, term, { authorQuery: 'Nadie Conocido' }),
+      searchBlocks(admin, term, { editedRange: 'TODAY' }),
+    ]);
+
+    expect(byAuthor.items.some((item) => item.pageId === rootPageId)).toBe(true);
+    expect(byNobody.items).toEqual([]);
+    expect(editedToday.items.some((item) => item.pageId === rootPageId)).toBe(true);
+  });
+
   it('hides the blocks of a space the reader cannot see', async () => {
     const found = await searchBlocks(outsider, term);
 

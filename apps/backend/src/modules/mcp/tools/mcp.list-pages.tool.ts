@@ -64,6 +64,7 @@ export const listPagesTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.listPages,
           async () => {
             const call = await openMcpCall(dependencies);
             const place = await resolveListingPlace(dependencies, call, input);

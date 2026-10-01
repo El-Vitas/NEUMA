@@ -22,6 +22,7 @@ import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl, readMcpAddress } from '../lib/mcp.address.lib';
 import { findMcpBlockNode, listMcpBlockComments, takeMcpPagePart } from '../lib/mcp.blocks.lib';
 import { formatMcpFetchText } from '../lib/mcp.fetch.text.lib';
+import { describeMcpPageState } from '../lib/mcp.page-state.lib';
 import { hideUnreachableReferences, listReferencedPageIds } from '../lib/mcp.references.lib';
 import { loadMcpRowDescriber } from '../lib/mcp.rows.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
@@ -169,6 +170,7 @@ const describePage = async (
     markdown: writeBlocksAsAnchoredMarkdown(part.nodes),
     ...(part.nextStart === null ? {} : { nextCursor: String(part.nextStart) }),
     ...(properties.length === 0 ? {} : { properties }),
+    state: describeMcpPageState(page, new Date()),
   };
 };
 
@@ -266,6 +268,7 @@ export const fetchTool: McpToolDefinition = {
       async ({ address, cursor }) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.fetch,
           async () => {
             const call = await openMcpCall(dependencies);
             const start = cursor === undefined ? 0 : Number(cursor);

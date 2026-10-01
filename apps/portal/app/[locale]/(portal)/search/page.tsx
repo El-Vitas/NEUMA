@@ -10,6 +10,12 @@ interface IProps {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/**
+ * Los resultados dependen de lo que se buscó: se resuelven enteros antes de
+ * responder, en vez de prometer una navegación instantánea que no existe.
+ */
+export const instant = false;
+
 export default async function Page({ searchParams }: IProps) {
   const resolvedSearchParams = await searchParams;
   const params = searchQuerySchema.parse(resolvedSearchParams);

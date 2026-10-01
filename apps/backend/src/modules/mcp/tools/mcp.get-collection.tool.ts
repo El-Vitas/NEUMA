@@ -27,6 +27,7 @@ export const getCollectionTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.getCollection,
           async () => {
             const call = await openMcpCall(dependencies);
             const collection = await openMcpCollection(

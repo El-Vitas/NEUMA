@@ -219,13 +219,14 @@
       "NONE": "No ve nada aquí, aunque una regla más amplia lo abra.",
       "READ": "Lee páginas y colecciones.",
       "READ_WRITE": "Además crea y edita páginas y filas de colecciones.",
-      "FULL": "Además manda páginas a la papelera y cambia la forma de las colecciones.",
+      "FULL": "Además manda páginas a la papelera, las bloquea, las verifica y les da dueño, y cambia la forma de las colecciones.",
       "CUSTOM": "Marcas uno por uno los permisos."
     },
     "permissions": {
       "pagesRead": "Leer páginas",
       "pagesWrite": "Crear y editar páginas",
       "pagesTrash": "Mandar páginas a la papelera",
+      "pagesManage": "Bloquear, verificar y dar dueño a páginas",
       "collectionsRead": "Leer colecciones",
       "collectionsWrite": "Crear y editar filas de colecciones",
       "collectionsConfigure": "Cambiar la forma de las colecciones"
@@ -1237,6 +1238,11 @@
     "diagramLine": "línea",
     "diagramDownload": "Descargar el dibujo",
     "diagramFullScreen": "Ver a pantalla completa",
+    "diagramZoomIn": "Acercar el dibujo",
+    "diagramZoomOut": "Alejar el dibujo",
+    "diagramFitToFrame": "Ajustar el dibujo al marco",
+    "diagramActualSize": "Ver el dibujo a su tamaño real",
+    "diagramFrameHeight": "Alto del marco. Arrastra o usa las flechas para cambiarlo; doble clic lo devuelve al tamaño automático",
     "calloutIcon": "Marca del destacado",
     "noCalloutIcon": "Sin marca",
     "calloutIcons": {
@@ -1426,7 +1432,9 @@
     "back": "← Volver a la documentación",
     "contents": "En esta página",
     "drawingActualSize": "Tamaño real",
-    "drawingFit": "Ajustar",
+    "drawingFit": "Ajustar al marco",
+    "drawingZoomIn": "Acercar el dibujo",
+    "drawingZoomOut": "Alejar el dibujo",
     "empty": "Todavía no hay documentos escritos."
   }
 }

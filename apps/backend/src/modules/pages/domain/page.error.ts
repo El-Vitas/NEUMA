@@ -45,6 +45,16 @@ export class PageContentValidationError extends DomainError {
   }
 }
 
+/** Un cambio de bloques que no se puede hacer sobre lo que la página dice ahora: un bloque que ya no está, un lugar donde no cabe. */
+export class PageBlockEditError extends DomainError {
+  public readonly code = 'PAGE_BLOCK_EDIT_INVALID';
+  public readonly httpStatus = 409;
+
+  constructor(details: string) {
+    super('The blocks cannot be changed that way', details);
+  }
+}
+
 export class PageSchemaDefinitionError extends DomainError {
   public readonly code = 'PAGE_SCHEMA_DEFINITION_INVALID';
   public readonly httpStatus = 400;

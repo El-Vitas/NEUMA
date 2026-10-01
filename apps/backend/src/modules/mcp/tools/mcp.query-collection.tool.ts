@@ -2,14 +2,8 @@ import type { Prisma } from '@company-brain/db/generated';
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import {
-  canMcpActOnRow,
-  describeMcpRow,
-  openMcpCollection,
-  requireMcpInput,
-  requireMcpSuccess,
-  requireMcpView,
-} from '../lib/mcp.collections.lib';
+import { canMcpActOnRow, describeMcpRow, openMcpCollection, requireMcpView } from '../lib/mcp.collections.lib';
+import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { queryCollectionInputSchema, queryCollectionOutputSchema } from '../schemas/mcp.collections.schemas';
@@ -71,6 +65,7 @@ export const queryCollectionTool: McpToolDefinition = {
       async (input) =>
         runMcpTool(
           dependencies,
+          MCP_TOOL_NAMES.queryCollection,
           async () => {
             const call = await openMcpCall(dependencies);
             const { principal, workspace } = call;

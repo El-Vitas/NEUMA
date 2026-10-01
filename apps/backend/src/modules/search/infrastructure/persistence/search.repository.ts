@@ -8,7 +8,13 @@ import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain'
 import { canReadSpace } from '../../../../common/domain/workspace.domain';
 import type { SearchTokenScope } from '../../../../common/types/search.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { SEARCH_TRIGRAM_THRESHOLD } from '../../constants/search.constants';
+import {
+  SEARCH_INSIDE_TEXT_RANK,
+  SEARCH_INSIDE_TITLE_RANK,
+  SEARCH_TEXT_RANK_NORMALIZATION,
+  SEARCH_TRIGRAM_THRESHOLD,
+  SEARCH_WHOLE_WORD_RANK,
+} from '../../constants/search.constants';
 import type {
   SearchDocumentInput,
   SearchDocumentRemoval,
@@ -19,6 +25,7 @@ import type {
   SearchRow,
 } from '../../types/search.types';
 import { decodeSearchCursor, encodeSearchCursor } from '../../utils/search.cursor.utils';
+import { buildSearchInsideWordPattern } from '../../utils/search.pattern.utils';
 
 const searchConfig = Prisma.sql`CASE "searchDocument"."language"
   WHEN 'en' THEN 'english'::regconfig
@@ -28,9 +35,40 @@ END`;
 
 const queryExpression = Prisma.sql`websearch_to_tsquery(${searchConfig}, public.immutable_unaccent("input"."queryText"))`;
 
+/**
+ * Si una columna tiene lo buscado dentro de alguna palabra, sin mirar tildes
+ * ni mayúsculas. Sin patrón —lo buscado es muy corto—, nunca.
+ */
+export const buildInsideWordMatch = (column: Prisma.Sql, pattern: string | null): Prisma.Sql =>
+  pattern === null
+    ? Prisma.sql`FALSE`
+    : Prisma.sql`public.immutable_unaccent(${column}) ILIKE public.immutable_unaccent(${pattern})`;
+
+/**
+ * El orden de lo encontrado, en escalones: palabra entera primero (y entre
+ * ellas, la más parecida), después dentro de una palabra del título, y al
+ * final dentro de una palabra del texto.
+ */
+export const buildWordRank = (matches: {
+  readonly insideText: Prisma.Sql;
+  readonly insideTitle: Prisma.Sql;
+  readonly vector: Prisma.Sql;
+  readonly wholeWord: Prisma.Sql;
+  readonly wordQuery: Prisma.Sql;
+}): Prisma.Sql => {
+  const { insideText, insideTitle, vector, wholeWord, wordQuery } = matches;
+  return Prisma.sql`(CASE
+    WHEN ${wholeWord} THEN ${SEARCH_WHOLE_WORD_RANK} + ts_rank_cd(${vector}, ${wordQuery}, ${SEARCH_TEXT_RANK_NORMALIZATION})
+    WHEN ${insideTitle} THEN ${SEARCH_INSIDE_TITLE_RANK}
+    WHEN ${insideText} THEN ${SEARCH_INSIDE_TEXT_RANK}
+    ELSE 0
+  END)::real`;
+};
+
 const mapSearchRow = (row: SearchRow): SearchResultWithContext => ({
   contentType: row.contentType,
   icon: parseStoredPageIcon(row.icon),
+  isVerified: row.isVerified,
   parentPageId: row.parentPageId,
   parentPageTitle: row.parentPageTitle,
   rank: row.rank,
@@ -60,6 +98,7 @@ const buildSearchSql = (
       "searchDocument"."properties"->>'parentPageTitle' AS "parentPageTitle",
       ${rankExpression} AS "rank",
       ${snippetExpression} AS "snippet",
+      ${documentIsVerified} AS "isVerified",
       "searchDocument"."sourceId",
       "searchDocument"."sourceType",
       "searchDocument"."spaceId",
@@ -125,8 +164,11 @@ export const buildSearchSpaceVisibilityFilter = (userId: string, role: UserRole)
   )`;
 };
 
-export const buildEditedRangeFilter = (range: SearchEditedRange): Prisma.Sql =>
-  Prisma.sql`AND "searchDocument"."updatedAt" >= ${buildEditedRangeInterval(range)}`;
+/** Lo editado desde el comienzo del período; la columna es la de la página o la de su copia en el índice. */
+export const buildEditedRangeFilter = (
+  range: SearchEditedRange,
+  updatedAtColumn: Prisma.Sql = Prisma.sql`"searchDocument"."updatedAt"`,
+): Prisma.Sql => Prisma.sql`AND ${updatedAtColumn} >= ${buildEditedRangeInterval(range)}`;
 
 /**
  * Only pages currently valid: verified, and either with no expiration or one
@@ -134,13 +176,15 @@ export const buildEditedRangeFilter = (range: SearchEditedRange): Prisma.Sql =>
  * flag baked in at projection time, so a page does not keep reading as
  * verified past its own expiration just because nobody has written in it since.
  */
-export const buildVerifiedOnlyFilter = (): Prisma.Sql => Prisma.sql`AND (
+const documentIsVerified = Prisma.sql`(
   "searchDocument"."properties"->>'verifiedAt' IS NOT NULL
   AND (
     "searchDocument"."properties"->>'verificationExpiresAt' IS NULL
     OR ("searchDocument"."properties"->>'verificationExpiresAt')::timestamptz > now()
   )
 )`;
+
+export const buildVerifiedOnlyFilter = (): Prisma.Sql => Prisma.sql`AND ${documentIsVerified}`;
 
 const buildSpaceLevelTokenFilter = (scope: SearchTokenScope, spaceColumn: Prisma.Sql): Prisma.Sql =>
   scope.readsEverywhere
@@ -252,11 +296,17 @@ export class SearchRepository {
     return this.toSearchPage(usefulRows, query.limit);
   }
 
+  /** Lo que tiene lo buscado como palabra entera o dentro de una palabra más larga, ordenado por `buildWordRank`. */
   private async findFullTextMatches(
     query: SearchQueryWithFilters,
     cursor: ReturnType<typeof decodeSearchCursor>,
   ): Promise<readonly SearchRow[]> {
-    const rankExpression = Prisma.sql`ts_rank_cd("searchDocument"."searchVector", ${queryExpression})`;
+    const vector = Prisma.sql`"searchDocument"."searchVector"`;
+    const wholeWord = Prisma.sql`${vector} @@ ${queryExpression}`;
+    const pattern = buildSearchInsideWordPattern(query.query);
+    const insideTitle = buildInsideWordMatch(Prisma.sql`"searchDocument"."title"`, pattern);
+    const insideText = buildInsideWordMatch(Prisma.sql`"searchDocument"."extractedText"`, pattern);
+    const rankExpression = buildWordRank({ insideText, insideTitle, vector, wholeWord, wordQuery: queryExpression });
     const sql = buildSearchSql(
       query,
       cursor,
@@ -267,7 +317,7 @@ export class SearchRepository {
         ${queryExpression},
         'StartSel=<mark>,StopSel=</mark>,MaxFragments=2,MaxWords=30,MinWords=8'
       )`,
-      Prisma.sql`"searchDocument"."searchVector" @@ ${queryExpression}`,
+      Prisma.sql`(${wholeWord} OR ${insideTitle} OR ${insideText})`,
       Prisma.sql`CROSS JOIN (SELECT ${query.query}::text AS "queryText") AS "input"`,
     );
     return this.prisma.$queryRaw<SearchRow[]>(sql);

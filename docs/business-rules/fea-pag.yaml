@@ -67,6 +67,31 @@ rules:
         given: Ninguna página marcada
         when: Se pide exportar la selección
         then: No se exporta nada y el botón permanece inactivo
+  - id: BR-2a1ce65
+    status: active
+    title: Lo buscado se encuentra también dentro de una palabra más larga
+    rule: >-
+      Una búsqueda de tres letras o más encuentra las páginas y los bloques que tienen lo buscado como palabra entera y
+      también los que lo tienen dentro de una palabra más larga, sin mirar tildes, diéresis ni mayúsculas. Primero van
+      los que lo tienen como palabra entera, después los que lo tienen dentro de una palabra del título y al final los
+      que lo tienen dentro de una palabra del texto. Los signos que el buscador usa como comodines se buscan como las
+      letras que son. Con menos de tres letras se busca solo la palabra entera.
+    why: >-
+      La gente busca por el pedazo que recuerda de un nombre. Quien busca "safe" espera encontrar "ÜSAFE", y antes no lo
+      encontraba. Además, bastaba que otra página tuviera la palabra entera para que las demás quedaran ocultas.
+    context: >-
+      Los errores de tipeo se siguen perdonando como antes, solo cuando no aparece nada de ninguna de las dos formas.
+      Buscar dentro de las palabras recorre el texto de cada página del espacio de trabajo; si el volumen crece, hará
+      falta un índice sobre el texto sin tildes.
+    scenarios:
+      - title: Un pedazo del nombre
+        given: Una página llamada "ÜSAFE - Arquitectura"
+        when: Alguien busca "safe"
+        then: La página aparece en los resultados
+      - title: La palabra entera primero
+        given: Una página con la palabra "safe" y otra con "ÜSAFE"
+        when: Alguien busca "safe"
+        then: Aparecen las dos, y la que tiene la palabra entera va primero
   - id: BR-6191a45
     status: active
     title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando
