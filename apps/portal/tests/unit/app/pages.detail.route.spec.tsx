@@ -63,8 +63,11 @@ mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/attachments/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
 mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
+const getPages = mock(async () => pagesResult);
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
-  getPages: async () => pagesResult,
+  getPages,
+  /** Read when the kept list does not have the page yet, as with a page an agent just wrote. */
+  getPagesHolding: async () => pagesResult,
   /** The route asks where a page lives when the address does not find it here. */
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
 }));
@@ -101,5 +104,18 @@ describe('page detail route attachments', () => {
     render(result);
 
     expect(screen.getByTestId('page-workspace').getAttribute('data-attachment-count')).toBe('0');
+  });
+});
+
+describe('page detail route freshness', () => {
+  /** A page written from outside the portal, by an agent, is not in the kept list until it refreshes. */
+  it('opens a page the kept list does not have yet, instead of saying it does not exist', async () => {
+    getPages.mockImplementationOnce(async () => ({ ...pagesResult, getValue: () => [] }));
+
+    const result = await Page({ params: Promise.resolve({ pageId, spaceId }) });
+
+    render(result);
+
+    expect(screen.getAllByTestId('page-workspace').length).toBeGreaterThan(0);
   });
 });

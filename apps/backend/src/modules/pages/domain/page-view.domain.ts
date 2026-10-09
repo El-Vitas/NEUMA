@@ -1,4 +1,4 @@
-import type { PageViewConfiguration } from '@company-brain/shared';
+import type { PageFilter, PageViewConfiguration } from '@company-brain/shared';
 import {
   comparePageRowsBySorts,
   matchesPageFilter,
@@ -36,11 +36,11 @@ export const countPageViewRows = (outcome: PageViewOutcome): number => {
   }
 };
 
-const selectRows = (
+const selectRows = <TRow extends PageViewRow>(
   configuration: PageViewConfiguration,
   properties: readonly SchemaPropertyDefinition[],
-  rows: readonly PageViewRow[],
-): readonly PageViewRow[] => {
+  rows: readonly TRow[],
+): readonly TRow[] => {
   const filter = configuration.filter;
   if (filter === null) return rows;
   return rows.filter((row) => matchesPageFilter(filter, row.propertyValues ?? {}, properties));
@@ -57,6 +57,47 @@ const createRowComparator =
     );
     return bySorts === 0 ? compareRowsByOrder(left, right) : bySorts;
   };
+
+const listFilterKeys = (filter: PageFilter | null): readonly string[] => {
+  if (filter === null) return [];
+  return filter.kind === 'CONDITION' ? [filter.propertyKey] : filter.conditions.flatMap(listFilterKeys);
+};
+
+/**
+ * Las columnas que una configuración nombra y la colección no tiene.
+ *
+ * El portal solo ofrece las columnas que existen, pero quien escribe la
+ * configuración a mano —un agente— puede nombrar otra: un filtro sobre una
+ * columna que no está deja la lista vacía sin decir por qué.
+ */
+export const findUnknownViewColumns = (
+  configuration: PageViewConfiguration,
+  properties: readonly SchemaPropertyDefinition[],
+): readonly string[] => {
+  const known = new Set(properties.map((property) => property.key));
+  const named = [
+    ...listFilterKeys(configuration.filter),
+    ...configuration.sorts.map((sort) => sort.propertyKey),
+    ...(configuration.visibleProperties ?? []),
+    configuration.groupBy,
+    configuration.subGroupBy,
+    configuration.dateProperty,
+    configuration.chartValueProperty,
+  ].filter((key): key is string => key !== null);
+  return [...new Set(named.filter((key) => !known.has(key)))];
+};
+
+/**
+ * Las filas que una vista deja ver, en el orden en que las lee, en una sola
+ * lista: su filtro y su orden, sin agrupar. Cada fila llega entera, como
+ * entró; agrupar es cosa de quien la lee, que tiene los valores de cada una.
+ */
+export const listPageViewRowsInReadingOrder = <TRow extends PageViewRow>(
+  configuration: PageViewConfiguration,
+  properties: readonly SchemaPropertyDefinition[],
+  rows: readonly TRow[],
+): readonly TRow[] =>
+  [...selectRows(configuration, properties, rows)].sort(createRowComparator(configuration, properties));
 
 /**
  * The rows a view hands over, read the way that kind of view reads them.

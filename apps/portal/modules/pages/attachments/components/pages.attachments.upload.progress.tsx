@@ -13,7 +13,8 @@ export const PagesAttachmentsUploadProgress = () => {
 
   return (
     <div className="space-y-1">
-      <div aria-label={t('uploadProgress')} className="h-2 w-full overflow-hidden bg-muted" role="progressbar">
+      <progress aria-label={t('uploadProgress')} className="sr-only" />
+      <div aria-hidden="true" className="h-2 w-full overflow-hidden bg-muted">
         <div className="size-full animate-pulse bg-primary motion-reduce:animate-none" />
       </div>
       <p aria-live="polite" className="text-muted-foreground text-xs" role="status">

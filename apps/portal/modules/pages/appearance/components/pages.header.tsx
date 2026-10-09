@@ -23,6 +23,7 @@ import type { PageIcon } from '../types/pages.icon.types';
 import { PagesAppearanceMenu } from './pages.appearance.menu';
 import { PagesCoverField } from './pages.cover.field';
 import { PagesHeaderEmojiField } from './pages.header.emoji.field';
+import { PagesHeaderLinkButton } from './pages.header.link.button';
 import { PagesIconField } from './pages.icon.field';
 
 interface IProps {
@@ -105,8 +106,9 @@ export const PagesHeader = ({
             onTypographyChange={appearance.setTypography}
             preferences={appearance.preferences}
           />
+          {pageId !== null && <PagesHeaderLinkButton pageId={pageId} spaceId={spaceId} />}
           {pageId !== null && isFavorite !== undefined && (
-            <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} spaceId={spaceId} title={title} />
+            <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} title={title} />
           )}
           {trashControl}
         </div>

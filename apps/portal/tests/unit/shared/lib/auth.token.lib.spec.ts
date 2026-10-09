@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { MissingAccessTokenError } from '@/shared/lib/auth.token.error';
 
 let cookieValue: string | undefined;
 
@@ -6,9 +7,7 @@ mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
 }));
 
-const { MissingAccessTokenError, readAccessTokenCookie, requireAccessTokenCookie } = await import(
-  '@/shared/lib/auth.token.lib'
-);
+const { readAccessTokenCookie, requireAccessTokenCookie } = await import('@/shared/lib/auth.token.lib');
 
 describe('readAccessTokenCookie', () => {
   it('returns undefined when there is no access token cookie', async () => {

@@ -15,6 +15,7 @@ model User {
   ownedPages           Page[]            @relation("PageOwner")
   ownedSpaces          Space[]           @relation("SpaceOwner")
   pageViews            PageView[]
+  accessTokens         AccessToken[]
 
   @@index([email])
   @@index([role])

@@ -20,7 +20,18 @@ export interface ExportedPageFile {
 /** What a file name cannot carry: a slash would turn one page into a folder, and the rest some system refuses. */
 const UNSAFE_IN_A_FILE_NAME = /[/\\:*?"<>|]/g;
 const REPEATED_BLANKS = /\s+/g;
-const TRAILING_DOTS_OR_BLANKS = /[\s.]+$/;
+const DOT_OR_BLANK = /^[\s.]$/;
+
+/**
+ * El nombre sin los puntos ni espacios del final, recorrido una vez desde
+ * atrás: buscarlos con un patrón probaría cada tanda de puntos desde cada uno
+ * de sus puntos, y un título lleno de ellos tardaría el cuadrado de su largo.
+ */
+const trimTrailingDotsAndBlanks = (name: string): string => {
+  let end = name.length;
+  while (end > 0 && DOT_OR_BLANK.test(name.charAt(end - 1))) end -= 1;
+  return name.slice(0, end);
+};
 
 const nameOf = (page: PageForExport, untitledLabel: string): string => {
   const written = page.title.trim();
@@ -36,11 +47,9 @@ const nameOf = (page: PageForExport, untitledLabel: string): string => {
  * systems, so that ending is trimmed.
  */
 const asFileName = (name: string): string => {
-  const plain = name
-    .replaceAll(UNSAFE_IN_A_FILE_NAME, ' ')
-    .replaceAll(REPEATED_BLANKS, ' ')
-    .trim()
-    .replace(TRAILING_DOTS_OR_BLANKS, '');
+  const plain = trimTrailingDotsAndBlanks(
+    name.replaceAll(UNSAFE_IN_A_FILE_NAME, ' ').replaceAll(REPEATED_BLANKS, ' ').trim(),
+  );
   return plain === '' ? '-' : plain.slice(0, 120);
 };
 

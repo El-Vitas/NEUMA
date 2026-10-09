@@ -1,11 +1,5 @@
 import { DIAGRAM_MENDED_STYLE_CLASS } from '@/shared/constants/diagram.constants';
 
-/** The language a diagram is written in, which is what tells a code block to draw. */
-export const PAGE_EDITOR_DIAGRAM_LANGUAGE = 'mermaid';
-
-/** What separates the four numbers of the box a drawing was drawn inside. */
-export const PAGE_EDITOR_DIAGRAM_BOX_GAP = /\s+/;
-
 /** A drawing that no longer matches the writing beside it, kept while it is being fixed. */
 export const PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS = 'opacity-40';
 
@@ -27,15 +21,23 @@ export const PAGE_EDITOR_DIAGRAM_DRAWING_STYLE_CLASS = [
   DIAGRAM_MENDED_STYLE_CLASS,
 ].join(' ');
 
-/** What a drawing that reaches past its box says it can be: taken hold of and moved. */
-export const PAGE_EDITOR_DIAGRAM_MOVABLE_STYLE_CLASS = 'cursor-grab';
+export const PAGE_EDITOR_DIAGRAM_ZOOM_LEVEL_STYLE_CLASS = 'min-w-12 px-1 text-xs tabular-nums';
 
-/** How much closer one turn of the wheel brings a drawing. */
-export const PAGE_EDITOR_DIAGRAM_ZOOM_STEP = 1.1;
+/** The edge a frame is made taller or lower by, drawn as a line that shows it can be taken hold of. */
+export const PAGE_EDITOR_DIAGRAM_FRAME_HANDLE_STYLE_CLASS = [
+  'flex h-3 w-full shrink-0 cursor-row-resize touch-none items-center justify-center',
+  'border-border border-t bg-surface-low hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
+  'after:h-0.5 after:w-10 after:rounded-full after:bg-muted-foreground/40',
+].join(' ');
 
-/** How far a drawing can be pushed away and how close it can be brought. */
-export const PAGE_EDITOR_DIAGRAM_ZOOM_LEAST = 0.25;
-export const PAGE_EDITOR_DIAGRAM_ZOOM_MOST = 4;
+/** How much taller or lower one press of an arrow makes a frame. */
+export const PAGE_EDITOR_DIAGRAM_FRAME_KEY_STEPS: Readonly<Partial<Record<string, number>>> = {
+  ArrowDown: 40,
+  ArrowUp: -40,
+};
+
+/** The key that gives the frame back to the drawing, as a double click does: the restore key of a splitter. */
+export const PAGE_EDITOR_DIAGRAM_FRAME_RESET_KEY = 'Enter';
 
 /** What went wrong is said in the page's own words, without taking the page down with it. */
 export const PAGE_EDITOR_DIAGRAM_FAULT_STYLE_CLASS =
@@ -45,10 +47,17 @@ export const PAGE_EDITOR_DIAGRAM_FAULT_STYLE_CLASS =
 export const PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS = [
   '[&:fullscreen]:bg-surface',
   '[&:fullscreen_[data-page-diagram]]:grow',
+  /** The whole screen is the frame then, whatever height the frame on the page was given. */
+  '[&:fullscreen_[data-page-diagram]]:h-auto! [&:fullscreen_[data-page-diagram]]:max-h-none!',
+  '[&:fullscreen_[data-diagram-frame-handle]]:hidden',
 ].join(' ');
 
-/** The language a formula is written in, which is what tells a code block to set it out. */
-export const PAGE_EDITOR_FORMULA_LANGUAGE = 'latex';
+/**
+ * How long a saved drawing keeps its address before it is let go. Some
+ * browsers only start saving a moment after the click; letting it go on the
+ * next turn could leave them with nothing to save.
+ */
+export const PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS = 40_000;
 
 /** A formula is set out in the middle of its box, like the line of a book it stands in for. */
 export const PAGE_EDITOR_FORMULA_STYLE_CLASS = 'flex w-full justify-center overflow-auto p-4 text-foreground';

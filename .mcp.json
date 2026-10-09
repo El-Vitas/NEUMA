@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "company-brain": {
+      "type": "http",
+      "url": "${COMPANY_BRAIN_MCP_URL:-http://localhost:3000/api/v1/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${COMPANY_BRAIN_MCP_TOKEN}"
+      }
+    }
+  }
+}

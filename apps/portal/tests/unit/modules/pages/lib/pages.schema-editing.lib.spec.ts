@@ -4,18 +4,15 @@ import {
   addSchemaOption,
   addSchemaProperty,
   addSchemaView,
-  buildPropertyKey,
   changeSchemaPropertyType,
   convertSchemaView,
   duplicateSchemaView,
   listWhatConvertingDrops,
-  makeSchemaViewDefault,
   moveSchemaOption,
   moveSchemaProperty,
   moveSchemaView,
   removeSchemaOption,
   removeSchemaProperty,
-  removeSchemaView,
   renameSchemaOption,
   renameSchemaView,
   toSavableView,
@@ -33,28 +30,6 @@ const status: PageSchemaProperty = {
   required: false,
   type: 'SELECT',
 };
-
-describe('buildPropertyKey', () => {
-  it('turns what somebody typed into a key the schema accepts', () => {
-    expect(buildPropertyKey('Fecha de entrega', [])).toBe('fecha_de_entrega');
-  });
-
-  it('drops accents and punctuation, because a key is not what the reader sees', () => {
-    expect(buildPropertyKey('¿Año?', [])).toBe('ano');
-  });
-
-  it('never starts with a digit, since the schema refuses it', () => {
-    expect(buildPropertyKey('2024', [])).toBe('p2024');
-  });
-
-  it('gives a name already taken a number of its own instead of overwriting it', () => {
-    expect(buildPropertyKey('Status', [title, status])).toBe('status_2');
-  });
-
-  it('falls back to a readable name when nothing usable was typed', () => {
-    expect(buildPropertyKey('«»', [])).toBe('property');
-  });
-});
 
 describe('toSavableView', () => {
   /**
@@ -177,30 +152,6 @@ describe('addSchemaView', () => {
   });
 });
 
-describe('removeSchemaView', () => {
-  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
-
-  it('removes the view somebody pointed at', () => {
-    expect(removeSchemaView([table, board], 'Board').map((view) => view.name)).toEqual(['Table']);
-  });
-
-  /** Sin ninguna vista no hay forma de mirar las filas, y el servidor tampoco lo acepta. */
-  it('refuses to remove the last view', () => {
-    expect(removeSchemaView([table], 'Table')).toEqual([table]);
-  });
-
-  it('hands the lead to another view when the one removed was leading', () => {
-    const views = removeSchemaView([table, board], 'Table');
-
-    expect(views).toEqual([{ ...board, isDefault: true }]);
-  });
-
-  it('leaves alone a view nobody named', () => {
-    expect(removeSchemaView([table, board], 'Calendar')).toEqual([table, board]);
-  });
-});
-
 describe('renameSchemaView', () => {
   const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
   const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
@@ -215,20 +166,6 @@ describe('renameSchemaView', () => {
 
   it('refuses to leave a view with no name', () => {
     expect(renameSchemaView([table, board], 'Board', '  ')).toEqual([table, board]);
-  });
-});
-
-describe('makeSchemaViewDefault', () => {
-  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
-
-  /** Abrir la colección lleva a una vista, así que exactamente una la lleva. */
-  it('hands the lead to the view named, and takes it from the one that had it', () => {
-    expect(makeSchemaViewDefault([table, board], 'Board').map((view) => view.isDefault)).toEqual([false, true]);
-  });
-
-  it('leaves alone a view nobody named', () => {
-    expect(makeSchemaViewDefault([table, board], 'Calendar')).toEqual([table, board]);
   });
 });
 

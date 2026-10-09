@@ -1,9 +1,9 @@
 'use client';
 
+import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@company-brain/shared';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Table, TableHeader, TableRow } from '@/shared/components/ui/table';
-import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '../constants/pages.collections.constants';
 import { usePagesTableColumns } from '../hooks/use.pages.table-columns';
 import {
   listTableColumnKeys,

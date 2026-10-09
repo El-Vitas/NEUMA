@@ -1,3 +1,4 @@
+import { isPageWebAddress } from '@company-brain/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { NodeView } from 'prosemirror-view';
 import {
@@ -29,12 +30,12 @@ export const createPageBookmarkNodeView = (node: EditorNode): NodeView => {
 
   card.className = PAGE_EDITOR_BOOKMARK_STYLE_CLASS;
   card.dataset.pageBookmark = 'true';
-  card.href = node.attrs.url;
+  if (isPageWebAddress(node.attrs.url)) card.href = node.attrs.url;
   card.rel = 'noopener noreferrer';
   card.target = '_blank';
   card.contentEditable = 'false';
 
-  if (typeof node.attrs.icon === 'string' && node.attrs.icon.length > 0) {
+  if (isPageWebAddress(node.attrs.icon)) {
     const mark = document.createElement('img');
     mark.className = PAGE_EDITOR_BOOKMARK_ICON_STYLE_CLASS;
     mark.src = node.attrs.icon;

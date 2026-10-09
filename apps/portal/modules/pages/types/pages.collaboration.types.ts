@@ -1,7 +1,6 @@
 import type { CollaborationPresenceIdentity } from '@company-brain/shared';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
 import type { Doc, XmlFragment } from 'yjs';
-import type { PageContent } from './pages.types';
 
 export type CollaborationStatus = 'connected' | 'connecting' | 'disconnected' | 'error' | 'exhausted' | 'reconnecting';
 
@@ -42,7 +41,6 @@ export interface PageCollaborationSessionCallbacks {
 export interface PageCollaborationSessionOptions {
   readonly callbacks: PageCollaborationSessionCallbacks;
   readonly getDisplayName: () => string | null;
-  readonly initialContent: PageContent;
   readonly pageId: string;
 }
 

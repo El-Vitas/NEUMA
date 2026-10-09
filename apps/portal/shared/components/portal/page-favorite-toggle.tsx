@@ -13,7 +13,6 @@ import { hasActionError } from '@/shared/lib/action-result';
 interface IProps {
   readonly isFavorite: boolean;
   readonly pageId: string;
-  readonly spaceId: string;
   readonly title: string;
 }
 

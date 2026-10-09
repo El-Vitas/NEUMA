@@ -1,13 +1,46 @@
 export {
+  COLLABORATION_DOCUMENT_FRAGMENT,
   COLLABORATION_DOCUMENT_PREFIX,
   createCollaborationDocumentName,
   MAX_COLLABORATION_DISPLAY_NAME_LENGTH,
   sanitizeCollaborationPresenceIdentity,
 } from './collaboration-presence.lib.js';
 export type { CollaborationPresenceIdentity, CollaborationPresenceState } from './collaboration-presence.types.js';
+export {
+  ACCESS_TOKEN_LEVEL_VALUES,
+  ACCESS_TOKEN_LEVELS,
+  ACCESS_TOKEN_NAME_MAX_LENGTH,
+  ACCESS_TOKEN_PAGE_GRANT_LIMIT,
+  ACCESS_TOKEN_PERMISSION_VALUES,
+  ACCESS_TOKEN_PERMISSIONS,
+  ACCESS_TOKEN_READ_PERMISSIONS,
+  ACCESS_TOKEN_SPACE_GRANT_LIMIT,
+} from './access-token/access-token.definitions.js';
+export {
+  canAccessTokenAct,
+  canRoleGrantAccessTokenPermission,
+  hasAccessTokenAnyPermission,
+  isAccessTokenNameAcceptable,
+  isAccessTokenNameTaken,
+  listAccessTokenGrantedPermissions,
+  listAccessTokenLevelPermissions,
+  readAccessTokenLevel,
+  readAccessTokenPermissionsAt,
+} from './access-token/access-token.lib.js';
+export { accessTokenAccessSchema, accessTokenPermissionSchema } from './access-token/access-token.schemas.js';
+export type {
+  AccessTokenAccess,
+  AccessTokenLevel,
+  AccessTokenPageGrant,
+  AccessTokenPermission,
+  AccessTokenPlace,
+  AccessTokenPresetLevel,
+  AccessTokenSpaceGrant,
+} from './access-token/access-token.types.js';
 export { UNASSIGNED_GROUP_KEY } from './constants/page-view.constants.js';
 export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
+export { MILLISECONDS_IN_A_DAY } from './constants/time.constants.js';
 export {
   EMAIL_MAX_LENGTH,
   PHONE_INPUT_PATTERN,
@@ -27,7 +60,47 @@ export {
 } from './page-content.lib.js';
 export type { ExportedPageFile, PageForExport } from './page-export.lib.js';
 export { writePageAsMarkdownFile, writePagesAsMarkdownFiles } from './page-export.lib.js';
-export { writePageAsMarkdown } from './page-markdown.lib.js';
+export {
+  holdPageContentThisVersionCannotRead,
+  readPageDocumentJsonAsContent,
+  writePageDocumentJsonAsContent,
+} from './page-document/page-document.content.lib.js';
+export {
+  PAGE_DOCUMENT_MARKS,
+  PAGE_DOCUMENT_NODES,
+  PAGE_DOCUMENT_UNSUPPORTED_NODE,
+} from './page-document/page-document.structure.js';
+export type {
+  PageDocumentAttributes,
+  PageDocumentAttributeStructure,
+  PageDocumentMarkStructure,
+  PageDocumentNodeStructure,
+} from './page-document/page-document.types.js';
+export {
+  isPageDocumentNode,
+  listPageDocumentChildren,
+  readPageDocumentBlockId,
+  readPageDocumentText,
+} from './page-document/page-document.node.lib.js';
+export type { PageBlockPlace, PageDocumentNodeShape } from './page-document/page-document.types.js';
+export {
+  describeMissingPageBlock,
+  findPageBlock,
+  insertPageBlocks,
+  movePageBlocks,
+  removePageBlocks,
+  replacePageBlock,
+} from './page-document/page-document.edit.lib.js';
+export { PAGE_BLOCK_ITEM_TYPES } from './page-block/page-block.constants.js';
+export { givePageBlocksTheirIds } from './page-block/page-block.identity.lib.js';
+export { listPageBlocks } from './page-block/page-block.lib.js';
+export type { PageBlockEntry } from './page-block/page-block.types.js';
+export {
+  writeBlocksAsAnchoredMarkdown,
+  writePageAsAnchoredMarkdown,
+  writePageAsMarkdown,
+} from './page-markdown.lib.js';
+export { readMarkdownInline, readPageLinkAddress } from './page-markdown.inline.lib.js';
 export {
   canPagePropertyGroupBoard,
   formatPagePropertyValue,
@@ -41,6 +114,11 @@ export {
   pagePropertyRequiresOptions,
   pagePropertyRequiresPersonDirectory,
 } from './page-property/page-property.lib.js';
+export {
+  PAGE_COLLECTION_TITLE_PROPERTY_KEY,
+  PAGE_PROPERTY_KEY_MAX_LENGTH,
+} from './page-property/page-property.key.constants.js';
+export { buildPagePropertyKey } from './page-property/page-property.key.lib.js';
 export {
   pickPageOptionColor,
   readPagePropertyOptions,
@@ -92,6 +170,7 @@ export {
   pageViewConfigurationSchema,
   readPageViewConfiguration,
 } from './page-view/page-view.schemas.js';
+export { makeSchemaViewDefault, removeSchemaView } from './page-view/page-view.editing.lib.js';
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
 export { readVisiblePropertyKeys } from './page-view/page-view.visibility.lib.js';
 export type {
@@ -177,6 +256,7 @@ export type {
   PageContentText,
   PageContentUnknownNode,
   PageEmbedProvider,
+  PageMark,
 } from './schemas/page-content.schema.js';
 export {
   canPageBlockHold,
@@ -184,6 +264,7 @@ export {
   isKnownPageContentNode,
   isPageCalendarDay,
   isPageLinkTarget,
+  isPageWebAddress,
   PAGE_LINK_PROTOCOLS,
   PAGE_BLOCK_COLORS,
   PAGE_CALLOUT_ICONS,
@@ -191,11 +272,24 @@ export {
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
   PAGE_DIAGRAM_VIEWS,
+  PAGE_BLOCK_COMMENT_BODY_MOST,
+  PAGE_BLOCK_COMMENTS_MOST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
+  PAGE_DIAGRAM_LANGUAGE,
+  PAGE_FORMULA_LANGUAGE,
   PAGE_BLOCK_ALIGNMENTS,
   PAGE_FILE_DISPLAYS,
   PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
+  maximumBookmarkTextLength,
+  maximumFormulaLatexLength,
+  maximumPageTextLength,
+  maximumTableColumns,
+  maximumTableRows,
+  maximumToggleSummaryLength,
+  isPageBlockComment,
   pageAssetAttrsSchema,
   pageCollectionAttrsSchema,
   pageContentSchema,
@@ -230,8 +324,12 @@ export {
 } from './types/page-schema.types.js';
 export type { SpaceVisibility } from './types/space.types.js';
 export { SPACE_VISIBILITY, SPACE_VISIBILITY_VALUES } from './types/space.types.js';
+export type { PageVerificationStatus } from './page-verification/page-verification.definitions.js';
+export { PAGE_VERIFICATION_STATUSES } from './page-verification/page-verification.definitions.js';
+export { resolvePageVerificationStatus } from './page-verification/page-verification.lib.js';
 export type { User } from './types/user.types.js';
 export type { UserRole } from './types/user-role.types.js';
 export { USER_ROLE, USER_ROLE_VALUES } from './types/user-role.types.js';
 export type { WorkspaceCapability } from './types/workspace.types.js';
 export { canEditContent, canManageWorkspace, WORKSPACE_CAPABILITY_BY_ROLE } from './types/workspace.types.js';
+export { isOneOf } from './value-list.lib.js';

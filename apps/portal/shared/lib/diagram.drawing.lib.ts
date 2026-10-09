@@ -51,8 +51,12 @@ const teachTheEngine = async (): Promise<void> => {
   await mermaid.registerExternalDiagrams([zenumlDiagram]);
 };
 
+/** Teaching that failed is forgotten, so the next diagram tries again instead of every one failing for the session. */
 const teachTheEngineOnce = (): Promise<void> => {
-  taught ??= teachTheEngine();
+  taught ??= teachTheEngine().catch((reason: unknown) => {
+    taught = null;
+    throw reason;
+  });
   return taught;
 };
 
@@ -93,6 +97,26 @@ const nameTheShareColours = (): Record<string, string> =>
   Object.fromEntries(DIAGRAM_SHARE_COLOURS.map((colour, index) => [`pie${String(index + 1)}`, colour]));
 
 /**
+ * The engine told how the page looks right now, before each drawing.
+ *
+ * Labels are laid out as little pages of their own, which is how a word is
+ * measured instead of guessed at — guessing is what leaves writing hanging out
+ * of its own box — and what could be smuggled into one of those pages was
+ * already taken out of the writing before it got here.
+ */
+const dressTheEngine = (): void => {
+  const look = readLook();
+  mermaid.initialize({
+    fontFamily: look.fontFamily,
+    securityLevel: 'strict',
+    startOnLoad: false,
+    theme: readGround(),
+    themeVariables: { edgeLabelBackground: look.edgeLabelBackground, ...nameTheShareColours() },
+  });
+  hideWhatIsHungOnTheRoot();
+};
+
+/**
  * Draws what was written, or says why it could not be drawn.
  *
  * Nothing the writing says is trusted with the page: links are disarmed, tags
@@ -120,33 +144,16 @@ export const drawDiagram = async (source: string): Promise<Drawn> => {
  * it is exactly that, thirty times over.
  */
 const drawInTurn = async (source: string): Promise<Drawn> => {
-  await teachTheEngineOnce();
-
-  const look = readLook();
-  /**
-   * Labels are laid out as little pages of their own, which is how a word is
-   * measured instead of guessed at — guessing is what leaves writing hanging
-   * out of its own box — and what could be smuggled into one of those pages was
-   * already taken out of the writing before it got here.
-   */
-  mermaid.initialize({
-    fontFamily: look.fontFamily,
-    securityLevel: 'strict',
-    startOnLoad: false,
-    theme: readGround(),
-    themeVariables: { edgeLabelBackground: look.edgeLabelBackground, ...nameTheShareColours() },
-  });
-
-  hideWhatIsHungOnTheRoot();
-
   try {
+    await teachTheEngineOnce();
+    dressTheEngine();
     named += 1;
     const { svg } = await mermaid.render(
       `${DIAGRAM_NAME_PREFIX}${String(named)}`,
       keepTheDiagramSourceToItself(source),
     );
-    return { fault: null, html: mendTheDrawing(keepTheDrawingToItself(svg)) };
-  } catch (fault) {
-    return { fault: describeDiagramFault(fault), html: null };
+    return { fault: null, html: keepTheDrawingToItself(mendTheDrawing(svg)) };
+  } catch (error) {
+    return { fault: describeDiagramFault(error), html: null };
   }
 };

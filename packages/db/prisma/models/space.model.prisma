@@ -1,19 +1,20 @@
 model Space {
-  id          String          @id @default(uuid(7))
+  id          String             @id @default(uuid(7))
   workspaceId String
   name        String
   description String?
   slug        String
   icon        Json?
-  visibility  SpaceVisibility @default(PUBLIC_INTERNAL)
-  order       Int             @default(0)
+  visibility  SpaceVisibility    @default(PUBLIC_INTERNAL)
+  order       Int                @default(0)
   ownerId     String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  owner       User?           @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner       User?              @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members     SpaceMember[]
   pages       Page[]
+  tokenGrants AccessTokenGrant[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId, visibility])

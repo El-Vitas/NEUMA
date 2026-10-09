@@ -1,11 +1,11 @@
 'use client';
 
-import { isTitlePageProperty, PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { buildPagePropertyKey, isTitlePageProperty, PAGE_PROPERTY_TYPE } from '@company-brain/shared';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';
 import { PAGE_ADDABLE_PROPERTY_TYPES } from '../constants/pages.schema-editing.constants';
-import { buildPropertyKey, readAddablePropertyType } from '../lib/pages.schema-editing.lib';
+import { readAddablePropertyType } from '../lib/pages.schema-editing.lib';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
 import { PagesSchemaSettingsAddRow } from './pages.schema.settings.add-row';
@@ -37,7 +37,7 @@ export const PagesSchemaSettingsProperties = ({ editor, onGo }: IProps) => {
   const addAndOpen = (label: string, chosen: string): void => {
     const type = readAddablePropertyType(chosen);
     if (type === undefined) return;
-    const propertyKey = buildPropertyKey(label, editor.properties);
+    const propertyKey = buildPagePropertyKey(label, editor.properties);
     editor.addProperty(label, type);
     onGo({ level: 'PROPERTY', propertyKey });
   };

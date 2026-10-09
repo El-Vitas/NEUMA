@@ -12,9 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
-import { THROTTLER_NAMES } from '../../common/constants/throttler.constants';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { ExportThrottlerGuard } from '../../common/infrastructure/guards/export-throttler.guard';
@@ -38,7 +36,6 @@ import { UpdatePagePropertiesDto } from './dto/page.properties.dto';
 import { RenamePageDto } from './dto/page.rename.dto';
 import { ReorderPageDto } from './dto/page.reorder.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
-import { UpdatePageDto } from './dto/page.update.dto';
 import { SetPageVerificationDto } from './dto/page.verification.dto';
 import { PagesService } from './pages.service';
 import type { PageDescendantsPreview, PageRestoreOutcome } from './types/page.types';
@@ -89,29 +86,6 @@ export class PagesController {
         role: payload.role,
         spaceId,
         title: dto.title,
-        userId: payload.sub,
-        workspaceId: workspace.id,
-      },
-      payload.role,
-    );
-    if (result.isFail()) {
-      throw result.getError();
-    }
-    return result.getValue();
-  }
-
-  @Patch(':pageId')
-  @UseGuards(JwtAuthGuard)
-  async update(@Param('pageId') pageId: string, @Body() dto: UpdatePageDto, @User('payload') payload: TokenPayload) {
-    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.update(
-      {
-        content: dto.content,
-        pageId,
-        propertyValues: dto.propertyValues ?? null,
-        role: payload.role,
-        title: dto.title,
-        updatedById: payload.sub,
         userId: payload.sub,
         workspaceId: workspace.id,
       },
@@ -289,7 +263,6 @@ export class PagesController {
    * make every reader unwrap it before it were a document again.
    */
   @Get('export/markdown')
-  @SkipThrottle({ [THROTTLER_NAMES.global]: true, [THROTTLER_NAMES.perIp]: true })
   @UseGuards(JwtAuthGuard, ExportThrottlerGuard)
   async exportAsMarkdown(
     @Param('spaceId') spaceId: string,

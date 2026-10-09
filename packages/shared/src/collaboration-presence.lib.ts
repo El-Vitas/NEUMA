@@ -1,6 +1,8 @@
 import type { CollaborationPresenceIdentity } from './collaboration-presence.types.js';
 
 export const COLLABORATION_DOCUMENT_PREFIX = 'page:';
+/** Dónde vive el texto de la página dentro del documento colaborativo, para el editor y para el servidor. */
+export const COLLABORATION_DOCUMENT_FRAGMENT = 'prosemirror';
 export const MAX_COLLABORATION_DISPLAY_NAME_LENGTH = 80;
 
 const hexColorPattern = /^#[0-9a-fA-F]{6}$/;

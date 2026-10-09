@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { Command } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 import { createRef } from 'react';
 import en from '../../../../../messages/en.json';
 
@@ -80,6 +81,12 @@ const collaborationMarkerContent = pageContentSchema.parse({
 mock.module('@/modules/pages/lib/pages.collaboration.lib', () => ({
   createCollaborativePageEditorState: () => createPageEditorState(collaborationMarkerContent, 'Select block'),
   getCollaborationStatusLabelKey: (status: string) => `collaboration.${status}`,
+  keepClicksAcrossChangesFromOthers: () => () => undefined,
+  readWhereThisPersonWrites: (view: EditorView) => ({
+    anchor: view.state.selection.anchor,
+    head: view.state.selection.head,
+  }),
+  restoreSelectionIfStillWriting: () => undefined,
 }));
 
 const { PagesProseMirrorEditor } = await import('@/modules/pages/components/pages.prose-mirror.editor');

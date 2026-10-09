@@ -3,6 +3,7 @@ import type { Node as EditorNode } from 'prosemirror-model';
 import { drawDiagram } from '@/shared/lib/diagram.drawing.lib';
 import { isDiagramUnknown } from '@/shared/lib/diagram.fault.lib';
 import { watchTheDiagramGround } from '@/shared/lib/diagram.ground.lib';
+import { letTheDrawingBeHandled } from '@/shared/lib/diagram.handling.lib';
 import { drawFormula } from '@/shared/lib/formula.drawing.lib';
 import type { Drawn } from '@/shared/types/diagram.types';
 import {
@@ -19,11 +20,13 @@ import {
   PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS,
+  PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS,
   PAGE_EDITOR_FORMULA_STYLE_CLASS,
 } from '../constants/pages.editor.diagram.constants';
 import type { PageEditorDiagramLabels } from '../types/pages.editor.diagram.types';
-import { letTheDrawingBeHandled } from './pages.editor.diagram.handling.lib';
+import { attachPageDiagramFrame } from './pages.editor.diagram.frame.lib';
 import { isPageDiagram, isPageDrawn, isPageFormula, readPageDiagramView } from './pages.editor.diagram.lib';
+import { createPageDiagramZoomControls } from './pages.editor.diagram.zoom.lib';
 
 const createViewChoice = (labels: PageEditorDiagramLabels): HTMLSelectElement => {
   const choice = document.createElement('select');
@@ -51,13 +54,23 @@ const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels
   }
 };
 
-/** What a drawing is saved as: the drawing itself, which is a picture that never blurs. */
-const takeDrawingAway = (svg: string): void => {
+/**
+ * What a drawing is saved as: the drawing itself, which is a picture that never
+ * blurs, at its own size and not at whatever closeness it is looked at now. The
+ * address is let go a while later, once the browser has surely started saving it.
+ */
+const takeDrawingAway = (drawing: HTMLElement): void => {
+  const picture = drawing.querySelector('svg')?.cloneNode(true);
+  if (!(picture instanceof SVGElement)) return;
+  picture.style.removeProperty('width');
+  picture.style.removeProperty('max-width');
   const kept = document.createElement('a');
-  kept.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  kept.href = URL.createObjectURL(new Blob([picture.outerHTML], { type: 'image/svg+xml' }));
   kept.download = 'diagram.svg';
   kept.click();
-  URL.revokeObjectURL(kept.href);
+  setTimeout(() => {
+    URL.revokeObjectURL(kept.href);
+  }, PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS);
 };
 
 /**
@@ -76,7 +89,7 @@ export const attachPageDrawing = (parts: {
   readonly container: HTMLElement;
   readonly labels: PageEditorDiagramLabels;
   readonly pre: HTMLElement;
-  readonly writeAttribute: (name: string, value: string | null) => void;
+  readonly writeAttribute: (name: string, value: number | string | null) => void;
 }): { readonly show: (node: EditorNode) => void; readonly stop: () => void } => {
   const drawing = document.createElement('div');
   const fault = document.createElement('div');
@@ -92,20 +105,31 @@ export const attachPageDrawing = (parts: {
     PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS,
   );
 
+  const zooming = createPageDiagramZoomControls(parts.labels);
+  const frame = attachPageDiagramFrame({
+    drawing,
+    hint: parts.labels.frameHeightHint,
+    label: parts.labels.frameHeight,
+    writeHeight: (height) => parts.writeAttribute('frameHeight', height),
+  });
+
   drawing.className = PAGE_EDITOR_DIAGRAM_DRAWING_STYLE_CLASS;
   drawing.dataset.pageDiagram = 'true';
   drawing.contentEditable = 'false';
   fault.className = PAGE_EDITOR_DIAGRAM_FAULT_STYLE_CLASS;
   fault.dataset.diagramFault = 'true';
   fault.hidden = true;
-  parts.container.append(drawing, fault);
+  parts.container.append(drawing, frame.handle, fault);
   parts.bar.prepend(view);
-  parts.bar.append(keep, wide);
+  parts.bar.append(...zooming.controls, keep, wide);
 
-  const handling = letTheDrawingBeHandled(drawing);
+  const handling = letTheDrawingBeHandled(drawing, zooming.showZoom);
+  zooming.connect(handling);
   let drawn = '';
   let language = '';
   let settling: ReturnType<typeof setTimeout> | null = null;
+  /** A block taken off the page draws nothing more: neither what was waiting nor what was already on its way. */
+  let isStopped = false;
 
   /**
    * What went wrong, and — when the parser said so — the line it went wrong on.
@@ -145,9 +169,11 @@ export const attachPageDrawing = (parts: {
       return;
     }
     void askForTheDrawing(source).then((made) => {
+      if (isStopped || source !== drawn) return;
       if (made.html !== null) {
         drawing.innerHTML = made.html;
         if (!isPageFormula(language)) handling.showAtItsSize();
+        frame.refresh();
       }
       showFault(made.fault?.said ?? null, made.fault?.line ?? null);
     });
@@ -162,10 +188,11 @@ export const attachPageDrawing = (parts: {
 
   view.addEventListener('change', () => parts.writeAttribute('shown', view.value));
   keep.addEventListener('click', () => {
-    const svg = drawing.innerHTML;
-    if (svg.length > 0) takeDrawingAway(svg);
+    takeDrawingAway(drawing);
   });
   wide.addEventListener('click', () => askForTheWholeScreen(parts.container));
+  /** Taken to the whole screen or brought back, the frame is another size, so the drawing is fitted to it again. */
+  parts.container.addEventListener('fullscreenchange', handling.fitToFrame);
 
   /** A drawing is coloured for the ground it is read on, so it is drawn again when that ground changes. */
   const stopWatchingTheGround = watchTheDiagramGround(() => {
@@ -173,20 +200,36 @@ export const attachPageDrawing = (parts: {
     draw(drawn);
   });
 
+  /**
+   * A formula is set out, not drawn: there is no picture of it to bring closer
+   * or frame, and a diagram shown only as its writing has none either.
+   */
+  const showTheDiagramTools = (node: EditorNode, shown: string): void => {
+    const isDiagramShown = isPageDiagram(language) && shown !== 'code';
+    for (const control of zooming.controls) control.hidden = !isDiagramShown;
+    frame.handle.hidden = !isDiagramShown;
+    if (isPageDiagram(language)) frame.show(node.attrs.frameHeight);
+  };
+
   return {
-    stop: stopWatchingTheGround,
+    stop: () => {
+      isStopped = true;
+      if (settling !== null) clearTimeout(settling);
+      stopWatchingTheGround();
+      handling.release();
+    },
     show: (node) => {
       language = typeof node.attrs.language === 'string' ? node.attrs.language : '';
       const draws = isPageDrawn(language);
       const shown = readPageDiagramView(node.attrs.shown);
       view.hidden = !draws;
-      /** A formula is set out, not drawn: there is no picture of it to take away. */
       keep.hidden = !isPageDiagram(language);
       wide.hidden = !draws;
       drawing.hidden = !draws || shown === 'code';
       drawing.className = isPageFormula(language)
         ? PAGE_EDITOR_FORMULA_STYLE_CLASS
         : PAGE_EDITOR_DIAGRAM_DRAWING_STYLE_CLASS;
+      showTheDiagramTools(node, shown);
       fault.hidden = fault.hidden || !draws;
       parts.pre.hidden = draws && shown === 'drawing';
       parts.container.className = draws

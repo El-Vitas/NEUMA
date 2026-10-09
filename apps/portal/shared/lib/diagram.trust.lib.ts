@@ -1,9 +1,12 @@
+import DOMPurify from 'dompurify';
 import {
   DIAGRAM_FETCHING_ATTRIBUTES,
   DIAGRAM_FETCHING_ELEMENTS,
   DIAGRAM_FETCHING_TAG,
   DIAGRAM_HARDCODED_GREY,
   DIAGRAM_OUTSIDE_URL,
+  DIAGRAM_SANITIZE_OPTIONS,
+  DIAGRAM_SHEET_IMPORT,
 } from '@/shared/constants/diagram.constants';
 
 /**
@@ -22,7 +25,9 @@ const staysInside = (address: string): boolean => {
   return said.startsWith('#') || said.startsWith('data:');
 };
 
-const forgetWhatIsAskedOfOthers = (painted: string): string => painted.replace(DIAGRAM_OUTSIDE_URL, 'none');
+/** A style with every address it asks of somebody else taken out: whole sheets it imports, and pictures by url(). */
+export const forgetWhatIsAskedOfOthers = (painted: string): string =>
+  painted.replace(DIAGRAM_SHEET_IMPORT, '').replace(DIAGRAM_OUTSIDE_URL, 'none');
 
 const dropAddressesOutside = (piece: Element): void => {
   for (const asked of DIAGRAM_FETCHING_ATTRIBUTES) {
@@ -46,7 +51,7 @@ const holdsAnAddressOutside = (piece: Element): boolean =>
  * cleaning the finished drawing is too late, and the writing is cleaned first.
  */
 export const keepTheDiagramSourceToItself = (source: string): string =>
-  source.replace(DIAGRAM_OUTSIDE_URL, 'none').replace(DIAGRAM_FETCHING_TAG, '');
+  forgetWhatIsAskedOfOthers(source).replace(DIAGRAM_FETCHING_TAG, '');
 
 /**
  * Keeps a drawing to itself.
@@ -57,6 +62,10 @@ export const keepTheDiagramSourceToItself = (source: string): string =>
  * that the stranger learns who is reading and from where — so a drawing may
  * point at its own pieces and at what it carries inside it, and at nothing
  * else, whatever the writing asked for.
+ *
+ * The last word is a sanitiser's, and what it hands back goes on the page as it
+ * is: the engine already cleans what it draws, and this keeps a second line if
+ * that cleaning ever lets something through.
  */
 export const keepTheDrawingToItself = (svg: string): string => {
   const drawing = new DOMParser().parseFromString(svg, 'text/html');
@@ -74,5 +83,5 @@ export const keepTheDrawingToItself = (svg: string): string => {
     dropAddressesOutside(piece);
   }
 
-  return drawing.body.innerHTML;
+  return DOMPurify.sanitize(drawing.body.innerHTML, DIAGRAM_SANITIZE_OPTIONS);
 };

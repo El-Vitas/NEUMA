@@ -1,0 +1,15 @@
+/// Lo que un token puede hacer en una página y en todo lo que cuelga de ella.
+/// Sin permisos, excluye esa página y lo que cuelga de ella. Para cada página
+/// manda la regla más cercana, así que una regla más adentro puede volver a
+/// abrir o achicar. Borrar la página borra la regla.
+model AccessTokenPageGrant {
+  id          String      @id @default(uuid(7))
+  tokenId     String
+  pageId      String
+  permissions String[]
+  token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, pageId])
+  @@index([pageId])
+}

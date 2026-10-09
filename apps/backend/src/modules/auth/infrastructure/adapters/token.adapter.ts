@@ -1,9 +1,10 @@
-import { type AuthSession, USER_ROLE_VALUES, type User } from '@company-brain/shared';
+import { type AuthSession, isOneOf, USER_ROLE_VALUES, type User } from '@company-brain/shared';
 
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
+  ACCESS_TOKEN_AUDIENCE,
   COLLABORATION_TOKEN_AUDIENCE,
   COLLABORATION_TOKEN_EXPIRES_IN,
   COLLABORATION_TOKEN_PURPOSE,
@@ -14,13 +15,9 @@ import {
   JWT_SECRET_KEY,
   REFRESH_TOKEN_AUDIENCE,
 } from '../../../../common/constants/auth.constants';
+import { UUID_PATTERN } from '../../../../common/constants/validation.constants';
 import type { CollaborationTokenPayload, TokenPayload } from '../../../../common/types/auth.types';
 import { parseTokenLifetimeSeconds } from '../../utils/auth.token.utils';
-
-/** The roles a token may name, read as plain text so a claim can be checked without pretending it is one. */
-const knownRoles: readonly string[] = USER_ROLE_VALUES;
-
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class TokenAdapter {
@@ -29,17 +26,15 @@ export class TokenAdapter {
     private readonly configService: ConfigService,
   ) {}
 
+  /** Signs the short-lived token that opens the API, marked with its own audience so no other token does. */
   async signAccessToken(user: User): Promise<string> {
-    const payload: TokenPayload = {
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      sub: user.id,
-    };
-    return this.jwtService.signAsync(payload, {
-      expiresIn: this.resolveExpiration() as `${number}${'d' | 'h' | 'm' | 's'}`,
-      secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
-    });
+    return this.jwtService.signAsync(
+      { ...this.toTokenPayload(user), aud: ACCESS_TOKEN_AUDIENCE },
+      {
+        expiresIn: this.resolveExpiration() as `${number}${'d' | 'h' | 'm' | 's'}`,
+        secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
+      },
+    );
   }
 
   /**
@@ -48,14 +43,8 @@ export class TokenAdapter {
    * used to renew a session, nor a refresh token to reach the API.
    */
   async signRefreshToken(user: User): Promise<string> {
-    const payload: TokenPayload = {
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      sub: user.id,
-    };
     return this.jwtService.signAsync(
-      { ...payload, aud: REFRESH_TOKEN_AUDIENCE },
+      { ...this.toTokenPayload(user), aud: REFRESH_TOKEN_AUDIENCE },
       {
         expiresIn: this.resolveRefreshExpiration() as `${number}${'d' | 'h' | 'm' | 's'}`,
         secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
@@ -94,12 +83,6 @@ export class TokenAdapter {
     return parseTokenLifetimeSeconds(this.resolveRefreshExpiration(), DEFAULT_REFRESH_TOKEN_LIFETIME_SECONDS);
   }
 
-  async verifyAccessToken(token: string): Promise<TokenPayload> {
-    return this.jwtService.verifyAsync<TokenPayload>(token, {
-      secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
-    });
-  }
-
   async signCollaborationToken(
     user: Pick<User, 'id' | 'role'>,
     workspaceId: string,
@@ -134,6 +117,11 @@ export class TokenAdapter {
     }
   }
 
+  /** Who a session belongs to, the same in every token it is issued with. */
+  private toTokenPayload(user: User): TokenPayload {
+    return { email: user.email, name: user.name, role: user.role, sub: user.id };
+  }
+
   private resolveRefreshExpiration(): string {
     return this.configService.getOrThrow<string>(JWT_REFRESH_TOKEN_EXPIRES_IN_KEY);
   }
@@ -150,13 +138,13 @@ export class TokenAdapter {
       this.isUuid(payload.pageId) &&
       payload.purpose === COLLABORATION_TOKEN_PURPOSE &&
       typeof payload.role === 'string' &&
-      knownRoles.includes(payload.role) &&
+      isOneOf(USER_ROLE_VALUES, payload.role) &&
       typeof payload.sub === 'string' &&
       typeof payload.workspaceId === 'string'
     );
   }
 
   private isUuid(value: string): boolean {
-    return uuidPattern.test(value);
+    return UUID_PATTERN.test(value);
   }
 }

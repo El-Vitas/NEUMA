@@ -1,8 +1,8 @@
+import { MILLISECONDS_IN_A_DAY } from '../constants/time.constants.js';
 import type { PageCalendarDay } from './page-view.types.js';
 
 const MONTH_LENGTH = 7;
 const DATE_LENGTH = 10;
-const MILLISECONDS_IN_A_DAY = 86_400_000;
 /** Seis semanas enteras: es lo que ocupa el mes más largo que empieza en domingo. */
 const DAYS_DRAWN = 42;
 /** El domingo es el día 0 del reloj, y la semana empieza el lunes: hay que retroceder seis, no cero. */

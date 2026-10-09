@@ -1,0 +1,160 @@
+import {
+  isPageDocumentNode,
+  listPageDocumentChildren,
+  type PageDocumentNodeShape,
+  type PageMark,
+  Result,
+  readPageDocumentBlockId,
+  readPageDocumentText,
+  readPageLinkAddress,
+} from '@company-brain/shared';
+import {
+  MCP_BLOCK_REFERENCE_TYPES,
+  MCP_INLINE_REFERENCE_TYPES,
+  MCP_LABELED_REFERENCE_TYPES,
+  MCP_REDACTED_REFERENCE_WORD,
+  MCP_UNREACHABLE_REFERENCE_MESSAGE,
+} from '../constants/mcp.constants';
+import type { McpPagePlace, McpPerson } from '../types/mcp.types';
+import { collectMcpResults } from './mcp.results.lib';
+
+const pointsAtAPage = (node: PageDocumentNodeShape): boolean =>
+  (MCP_INLINE_REFERENCE_TYPES.includes(node.type) || MCP_BLOCK_REFERENCE_TYPES.includes(node.type)) &&
+  readPageDocumentText(node, 'pageId') !== undefined;
+
+/** La página a la que lleva una marca de enlace, si lleva a una de Company Brain. */
+const readLinkedPageId = (mark: PageMark): string | null => {
+  const href = mark.type === 'link' ? mark.attrs.href : undefined;
+  return typeof href === 'string' ? (readPageLinkAddress(href)?.pageId ?? null) : null;
+};
+
+const listLinkedPageIds = (node: PageDocumentNodeShape): readonly string[] =>
+  (node.marks ?? []).map(readLinkedPageId).filter((pageId) => pageId !== null);
+
+const collectReferencedPageIds = (nodes: readonly unknown[]): readonly string[] =>
+  nodes.filter(isPageDocumentNode).flatMap((node) => {
+    const pageId = pointsAtAPage(node) ? readPageDocumentText(node, 'pageId') : undefined;
+    const inside = collectReferencedPageIds(listPageDocumentChildren(node));
+    return [...(pageId === undefined ? [] : [pageId]), ...listLinkedPageIds(node), ...inside];
+  });
+
+/** Las páginas a las que apunta un contenido, una vez cada una, en el orden en que aparecen. */
+export const listReferencedPageIds = (nodes: readonly unknown[]): readonly string[] => [
+  ...new Set(collectReferencedPageIds(nodes)),
+];
+
+/** Un bloque que mostraba una página que no se puede ver: queda una línea que no la nombra, con el mismo id. */
+const redactedBlock = (node: PageDocumentNodeShape): PageDocumentNodeShape => {
+  const blockId = readPageDocumentBlockId(node);
+  return {
+    ...(blockId === null ? {} : { attrs: { id: blockId } }),
+    content: [MCP_REDACTED_REFERENCE_WORD],
+    type: 'paragraph',
+  };
+};
+
+/**
+ * Lo que apunta a una página que el agente puede ver, con la página como es hoy.
+ *
+ * Una mención y una subpágina guardan el nombre y el espacio de cuando se
+ * escribieron; si la página cambió de nombre o de espacio, el agente leería un
+ * nombre que ya no existe y un enlace a un espacio donde ya no está.
+ */
+const bringUpToDate = (node: PageDocumentNodeShape, place: McpPagePlace): PageDocumentNodeShape => ({
+  ...node,
+  attrs: {
+    ...node.attrs,
+    ...(MCP_LABELED_REFERENCE_TYPES.includes(node.type) ? { label: place.title } : {}),
+    spaceId: place.spaceId,
+  },
+});
+
+const rewriteReference = (node: PageDocumentNodeShape, reachable: ReadonlyMap<string, McpPagePlace>): unknown => {
+  const place = reachable.get(readPageDocumentText(node, 'pageId') ?? '');
+  if (place !== undefined) return bringUpToDate(node, place);
+  return MCP_INLINE_REFERENCE_TYPES.includes(node.type) ? MCP_REDACTED_REFERENCE_WORD : redactedBlock(node);
+};
+
+/** Un texto con un enlace a una página que no se puede ver conserva sus palabras, pero no adónde llevaba. */
+const dropUnreachableLinks = (
+  node: PageDocumentNodeShape,
+  reachable: ReadonlyMap<string, McpPagePlace>,
+): PageDocumentNodeShape => {
+  const marks = node.marks ?? [];
+  const kept = marks.filter((mark) => {
+    const pageId = readLinkedPageId(mark);
+    return pageId === null || reachable.has(pageId);
+  });
+  if (kept.length === marks.length) return node;
+  const { marks: _marks, ...rest } = node;
+  return kept.length === 0 ? rest : { ...rest, marks: kept };
+};
+
+const hideNode = (node: unknown, reachable: ReadonlyMap<string, McpPagePlace>): unknown => {
+  if (!isPageDocumentNode(node)) return node;
+  if (pointsAtAPage(node)) return rewriteReference(node, reachable);
+  const withoutLinks = dropUnreachableLinks(node, reachable);
+  if (withoutLinks.content === undefined) return withoutLinks;
+  return { ...withoutLinks, content: hideUnreachableReferences(withoutLinks.content, reachable) };
+};
+
+/**
+ * El contenido sin rastro de las páginas que el agente no puede ver, y con las
+ * que sí puede ver nombradas como son hoy.
+ *
+ * Una mención, una subpágina, un bloque sincronizado o una colección que
+ * apunta a una página que el token no alcanza dirían su título, su id o lo que
+ * dice. En su lugar queda una marca que no nombra nada, y un bloque conserva su
+ * id, así el agente todavía puede señalarlo.
+ */
+export const hideUnreachableReferences = (
+  nodes: readonly unknown[],
+  reachable: ReadonlyMap<string, McpPagePlace>,
+): readonly unknown[] => nodes.map((node) => hideNode(node, reachable));
+
+const settleReference = (node: PageDocumentNodeShape, reachable: ReadonlyMap<string, McpPagePlace>) => {
+  const place = reachable.get(readPageDocumentText(node, 'pageId') ?? '');
+  return place === undefined
+    ? Result.fail<PageDocumentNodeShape, string>(MCP_UNREACHABLE_REFERENCE_MESSAGE)
+    : Result.ok<PageDocumentNodeShape, string>(bringUpToDate(node, place));
+};
+
+const settlePerson = (node: PageDocumentNodeShape, people: readonly McpPerson[]) => {
+  const userId = readPageDocumentText(node, 'userId') ?? '';
+  const person = people.find((candidate) => candidate.id === userId);
+  return person === undefined
+    ? Result.fail<unknown, string>(`There is nobody with id ${userId} in the workspace.`)
+    : Result.ok<unknown, string>({ ...node, attrs: { ...node.attrs, label: person.name } });
+};
+
+const settleNode = (
+  node: unknown,
+  reachable: ReadonlyMap<string, McpPagePlace>,
+  people: readonly McpPerson[],
+): Result<unknown, string> => {
+  if (!isPageDocumentNode(node)) return Result.ok(node);
+  if (node.type === 'person') return settlePerson(node, people);
+  const settled = pointsAtAPage(node)
+    ? settleReference(node, reachable)
+    : Result.ok<PageDocumentNodeShape, string>(node);
+  if (settled.isFail() || settled.getValue().content === undefined) return settled;
+  const own = settled.getValue();
+  const inside = settleWrittenReferences(own.content ?? [], reachable, people);
+  return inside.isFail() ? inside : Result.ok({ ...own, content: inside.getValue() });
+};
+
+/**
+ * Lo que el agente escribió, con cada mención, cada bloque que muestra otra
+ * página y cada persona como son hoy.
+ *
+ * Solo se puede apuntar a una página que el token alcanza: escribir una
+ * mención, una subpágina o una colección incrustada de una página cerrada
+ * dejaría su nombre o sus filas a la vista de quien lea esta. Se rechaza igual
+ * que una página que no existe, sin repetir el nombre que el agente le puso.
+ * Una persona tiene que estar en el espacio de trabajo.
+ */
+export const settleWrittenReferences = (
+  nodes: readonly unknown[],
+  reachable: ReadonlyMap<string, McpPagePlace>,
+  people: readonly McpPerson[],
+): Result<unknown[], string> => collectMcpResults(nodes.map((node) => settleNode(node, reachable, people)));

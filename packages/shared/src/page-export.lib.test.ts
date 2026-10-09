@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { type PageForExport, writePageAsMarkdownFile, writePagesAsMarkdownFiles } from './page-export.lib.js';
-import type { PageContent } from './schemas/page-content.schema.js';
+import { type PageContent, pageContentSchema } from './schemas/page-content.schema.js';
 
 const saying = (words: string): PageContent =>
-  ({
+  pageContentSchema.parse({
     content: [{ content: [{ text: words, type: 'text' }], type: 'paragraph' }],
     schemaVersion: 1,
     type: 'doc',
-  }) as unknown as PageContent;
+  });
 
 let nextId = 0;
 const page = (title: string, words: string, above: readonly string[] = []): PageForExport => {
@@ -30,6 +30,21 @@ describe('writePagesAsMarkdownFiles', () => {
     const files = writePagesAsMarkdownFiles([page('Primera', 'uno'), page('Segunda', 'dos')]);
 
     expect(files.map((file) => file.path)).toEqual(['Primera.md', 'Segunda.md']);
+  });
+
+  /** Algunos sistemas no aceptan un archivo que termina en punto o en espacio. */
+  it('trims the dots and blanks a name ends in, and keeps the ones inside it', () => {
+    const files = writePagesAsMarkdownFiles([page('Notas . . ...', 'uno'), page('v1.2 final', 'dos')]);
+
+    expect(files.map((file) => file.path)).toEqual(['Notas.md', 'v1.2 final.md']);
+  });
+
+  /** Un título lleno de puntos que no terminan el nombre no puede tardar el cuadrado de su largo. */
+  it('names a page full of dots at once', () => {
+    const startedAt = performance.now();
+    writePagesAsMarkdownFiles([page(`${'.'.repeat(50_000)}x`, 'uno')]);
+
+    expect(performance.now() - startedAt).toBeLessThan(100);
   });
 
   /** A page with pages under it is both the file that holds its writing and the folder that holds its daughters. */

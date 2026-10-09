@@ -3,8 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { FastifyRequest } from 'fastify';
-import { IS_PUBLIC_KEY, JWT_SECRET_KEY } from '../../constants/auth.constants';
+import { ACCESS_TOKEN_AUDIENCE, IS_PUBLIC_KEY, JWT_SECRET_KEY } from '../../constants/auth.constants';
 import type { RequestUser, TokenPayload } from '../../types/auth.types';
+import { readBearerToken } from '../../utils/auth.utils';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -24,7 +25,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<FastifyRequest>();
-    const token = this.extractTokenFromHeader(request);
+    const token = readBearerToken(request.headers.authorization);
     if (token === undefined) {
       throw new UnauthorizedException('Autenticación requerida');
     }
@@ -44,25 +45,9 @@ export class JwtAuthGuard implements CanActivate {
     (request as FastifyRequest & { user?: RequestUser }).user = user;
   }
 
-  /**
-   * Only from the header.
-   *
-   * A session carried in the address is written down by everything the address
-   * passes through — the access log, the referrer sent to the next site, the
-   * history of the browser — and none of those are places a session should
-   * live.
-   */
-  private extractTokenFromHeader(request: FastifyRequest): string | undefined {
-    const authHeader = request.headers.authorization;
-    if (typeof authHeader !== 'string') return;
-
-    const [type, token] = authHeader.split(' ');
-    if (type !== 'Bearer') return;
-    return token;
-  }
-
+  /** Solo la llave de acceso: la de renovar y la del documento en vivo llevan otra audiencia y no abren la API. */
   private async getPayloadFromToken(token: string): Promise<TokenPayload> {
     const secret = this.configService.getOrThrow<string>(JWT_SECRET_KEY);
-    return this.jwtService.verifyAsync<TokenPayload>(token, { secret });
+    return this.jwtService.verifyAsync<TokenPayload>(token, { audience: ACCESS_TOKEN_AUDIENCE, secret });
   }
 }

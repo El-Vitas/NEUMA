@@ -100,6 +100,17 @@ const readFoldStateOfRequestedBlock = (state: EditorState): { readonly isFolded:
 const readCalloutIconChoice = (state: EditorState): PageEditorCalloutIconChoice | null =>
   isPageEditorCalloutSelected(state) ? { chosen: readPageEditorCalloutIcon(state) } : null;
 
+/**
+ * The surface already on screen when the new one says the same, so the editor
+ * is not drawn again for a keystroke that changed nothing it shows. Both are
+ * plain data built field by field in the same order, so their written form is a
+ * faithful comparison.
+ */
+export const keepPageEditorSurfaceIfSame = (
+  previous: PageEditorSurfaceState,
+  next: PageEditorSurfaceState,
+): PageEditorSurfaceState => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
+
 export const readPageEditorSurface = (
   view: EditorView,
   state: EditorState,

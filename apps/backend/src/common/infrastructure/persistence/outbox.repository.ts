@@ -2,6 +2,7 @@ import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
+  OUTBOX_ERROR_REDACTION_LABEL,
   OUTBOX_LEASE_SECONDS,
   OUTBOX_MAX_CLAIM_BATCH_SIZE,
   OUTBOX_RETRY_BASE_SECONDS,
@@ -10,14 +11,13 @@ import type { OutboxEventContract, OutboxEventInput, OutboxEventRecord } from '.
 
 const retryDelaySeconds = (attemptCount: number): number =>
   Math.min(OUTBOX_LEASE_SECONDS, OUTBOX_RETRY_BASE_SECONDS * 2 ** Math.max(0, attemptCount - 1));
-const redactionLabel = 'removed';
 
 const safeErrorMessage = (error: unknown): string => {
   const message = error instanceof Error ? error.message : 'Unknown outbox processing error';
   return message
     .replaceAll(
       /(authorization|password|secret|token|api[_-]?key)\s*[:=]\s*[^\s,;]+/gi,
-      (_match, key: string) => `${key}=${redactionLabel}`,
+      (_match, key: string) => `${key}=${OUTBOX_ERROR_REDACTION_LABEL}`,
     )
     .slice(0, 500);
 };
@@ -75,13 +75,10 @@ export class OutboxRepository implements OutboxEventContract {
     error: unknown,
     nextAttemptAt: Date,
   ): Promise<void> {
-    const event = await this.prisma.outboxEvent.findUnique({ select: { payload: true }, where: { id } });
-    if (event === null) return;
-    await this.prisma.outboxEvent.update({
+    await this.prisma.outboxEvent.updateMany({
       data: {
         nextAttemptAt,
         lastError: { message: safeErrorMessage(error), recordedAt: new Date().toISOString() },
-        payload: event.payload ?? Prisma.JsonNull,
         status,
       },
       where: { id },

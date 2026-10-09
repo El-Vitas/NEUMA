@@ -9,18 +9,14 @@ import type {
   PageCollaborationSession,
   PageCollaborationSessionHandle,
 } from '../types/pages.collaboration.types';
-import type { PageContent } from '../types/pages.types';
-
 export const usePagesCollaboration = (
   pageId: string | null,
   canEdit: boolean,
-  content: PageContent,
   displayName: string | null = null,
 ): PageCollaborationResult => {
   const [session, setSession] = useState<PageCollaborationSession | null>(null);
   const [status, setStatus] = useState<CollaborationStatus | null>(null);
   const [participants, setParticipants] = useState<readonly PageCollaborationParticipant[]>([]);
-  const initialContentRef = useRef(content);
   const displayNameRef = useRef(displayName);
   const sessionHandleRef = useRef<PageCollaborationSessionHandle | null>(null);
 
@@ -39,7 +35,6 @@ export const usePagesCollaboration = (
         onStatusChange: setStatus,
       },
       getDisplayName: () => displayNameRef.current,
-      initialContent: initialContentRef.current,
       pageId,
     });
     sessionHandleRef.current = sessionHandle;

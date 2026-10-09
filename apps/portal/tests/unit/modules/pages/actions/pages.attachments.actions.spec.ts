@@ -1,23 +1,12 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 import { cookieState, fetchMock, registerAttachmentTestMocks } from './pages.attachments.mocks';
 
 const updateTagMock = mock(() => undefined);
 
 registerAttachmentTestMocks();
 mock.module('next/cache', () => ({ updateTag: updateTagMock }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
@@ -38,7 +27,7 @@ describe('uploadPageAttachmentAction', () => {
       pageId: attachmentId,
     });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -74,7 +63,7 @@ describe('deletePageAttachmentAction', () => {
 
     const result = await deletePageAttachmentAction({ attachmentId });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -83,6 +72,13 @@ describe('deletePageAttachmentAction', () => {
     cookieState.value = 'valid-access-token';
     fetchMock.mockClear();
     updateTagMock.mockClear();
+    fetchMock.mockImplementationOnce(
+      async () =>
+        new Response(JSON.stringify({ deleted: true }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        }),
+    );
 
     const result = await deletePageAttachmentAction({ attachmentId });
 

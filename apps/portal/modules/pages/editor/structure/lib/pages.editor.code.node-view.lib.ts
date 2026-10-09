@@ -2,6 +2,7 @@ import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { toast } from 'sonner';
+import { copyTextToClipboard } from '@/shared/lib/clipboard.lib';
 import {
   PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS,
   PAGE_EDITOR_CODE_BAR_STYLE_CLASS,
@@ -9,7 +10,6 @@ import {
   PAGE_EDITOR_CODE_WRAPPED_STYLE_CLASS,
   PAGE_EDITOR_MARKS,
 } from '../../blocks/constants/pages.editor.blocks.constants';
-import { askTheBrowser } from '../../lib/pages.editor.asking.lib';
 import { attachPageDrawing } from '../../media/lib/pages.editor.drawing.node-view.lib';
 import { createPageMarkButton } from '../../text/lib/pages.editor.marks.lib';
 import type { PageEditorCodeLabels } from '../types/pages.editor.code.types';
@@ -51,7 +51,7 @@ export const createPageCodeBlockNodeView = (
   const code = document.createElement('code');
   let codeBlock = node;
 
-  const writeAttribute = (name: string, value: boolean | string | null): void => {
+  const writeAttribute = (name: string, value: boolean | number | string | null): void => {
     const position = getPosition();
     if (position === undefined) return;
     view.dispatch(view.state.tr.setNodeAttribute(position, name, value));
@@ -85,7 +85,10 @@ export const createPageCodeBlockNodeView = (
   copy.addEventListener('mousedown', (event) => event.preventDefault());
   /** Nothing visible happens when writing is copied, so the page says that it was. */
   copy.addEventListener('click', () => {
-    askTheBrowser(navigator.clipboard.writeText(codeBlock.textContent), () => toast.success(labels.copied));
+    void copyTextToClipboard(codeBlock.textContent).then((isCopied) => {
+      if (isCopied) toast.success(labels.copied);
+      else toast.error(labels.copyFailed);
+    });
   });
 
   return {

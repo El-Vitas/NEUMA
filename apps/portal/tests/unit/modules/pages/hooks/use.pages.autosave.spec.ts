@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest, mock } from 'bun:test';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactElement } from 'react';
-import { createElement } from 'react';
+import { createElement, StrictMode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { usePagesAutosave } from '@/modules/pages/hooks/use.pages.autosave';
 import { DEFAULT_DEBOUNCE_MS } from '@/shared/constants/use-table-action.constants';
@@ -129,6 +129,28 @@ describe('usePagesAutosave', () => {
     expect(result.current.displayState).toBe('saved');
     expect(result.current.hasUnsavedChanges).toBe(false);
     expect(result.current.savedAt).not.toBeNull();
+  });
+
+  /**
+   * React may mount an effect, take it down and mount it again, as it does in
+   * development. A save that finishes after that still has to clear what was
+   * waiting, or leaving the page warns about changes that were already kept.
+   */
+  it('clears what was waiting after a save even when it was mounted twice', async () => {
+    const save = mock(() => Promise.resolve(true));
+    const { result } = renderHook(() => usePagesAutosave({ enabled: true, onSave: save }), { wrapper: StrictMode });
+
+    act(() => {
+      result.current.schedule();
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_MS);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(result.current.hasUnsavedChanges).toBe(false);
+    expect(result.current.displayState).toBe('saved');
   });
 
   it('flags the offline state when the connection drops, and clears it once it returns', () => {

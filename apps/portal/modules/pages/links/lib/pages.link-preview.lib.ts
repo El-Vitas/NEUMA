@@ -31,7 +31,6 @@ const readMeta = (html: string, name: string): string | undefined => {
     const said = readText(content);
     if (said !== undefined) return said;
   }
-  return;
 };
 
 const readIcon = (html: string, url: string): string | undefined => {
@@ -46,7 +45,6 @@ const readIcon = (html: string, url: string): string | undefined => {
     if (mark.protocol !== 'https:' && mark.protocol !== 'http:') continue;
     return mark.toString();
   }
-  return;
 };
 
 /**

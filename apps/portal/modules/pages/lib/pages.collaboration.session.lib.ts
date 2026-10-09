@@ -1,12 +1,10 @@
-import { createCollaborationDocumentName } from '@company-brain/shared';
+import { COLLABORATION_DOCUMENT_FRAGMENT, createCollaborationDocumentName } from '@company-brain/shared';
 import type { onStatusParameters } from '@hocuspocus/provider';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
-import { prosemirrorToYXmlFragment } from 'y-prosemirror';
 import { Doc } from 'yjs';
 import { env } from '@/config/env.config';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { MAX_COLLABORATION_RECONNECT_ATTEMPTS } from '../constants/pages.collaboration.constants';
-import { pageEditorSchema } from '../editor/lib/pages.editor.schema';
 import { getPageCollaborationToken } from '../server/actions/pages.collaboration.actions';
 import type {
   PageCollaborationSessionHandle,
@@ -17,14 +15,22 @@ import { computeCollaborationReconnectDelayMs, mapAwarenessStatesToParticipants 
 export const createPageCollaborationSession = (
   options: PageCollaborationSessionOptions,
 ): PageCollaborationSessionHandle => {
-  const { callbacks, getDisplayName, initialContent, pageId } = options;
+  const { callbacks, getDisplayName, pageId } = options;
 
   let isActive = true;
   let provider: HocuspocusProvider | null = null;
   let websocketProvider: HocuspocusProviderWebsocket | null = null;
-  let ydoc: Doc | null = null;
   let attemptsMade = 0;
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * The page as this person has it, for as long as the session lasts.
+   *
+   * Only the connection is rebuilt after a cut. What was written while it was
+   * down lives in this document, and reconnecting hands it to the server;
+   * starting the document over on each reconnection threw it away.
+   */
+  const ydoc = new Doc();
+  const fragment = ydoc.getXmlFragment(COLLABORATION_DOCUMENT_FRAGMENT);
 
   const clearScheduledReconnect = (): void => {
     if (reconnectTimeoutId === null) return;
@@ -32,15 +38,12 @@ export const createPageCollaborationSession = (
     reconnectTimeoutId = null;
   };
 
-  const teardownSession = (): void => {
-    callbacks.onSessionChange(null);
+  const teardownConnection = (): void => {
     callbacks.onParticipantsChange([]);
     provider?.destroy();
     websocketProvider?.destroy();
-    ydoc?.destroy();
     provider = null;
     websocketProvider = null;
-    ydoc = null;
   };
 
   const setAwarenessDisplayName = (targetProvider: HocuspocusProvider): void => {
@@ -59,8 +62,9 @@ export const createPageCollaborationSession = (
    */
   const handleConnectionFailure = (): void => {
     if (reconnectTimeoutId !== null) return;
-    teardownSession();
+    teardownConnection();
     if (attemptsMade >= MAX_COLLABORATION_RECONNECT_ATTEMPTS) {
+      callbacks.onSessionChange(null);
       callbacks.onStatusChange('exhausted');
       return;
     }
@@ -90,8 +94,6 @@ export const createPageCollaborationSession = (
       throw new Error('collaboration-token-request-failed');
     }
 
-    ydoc = new Doc();
-    const fragment = ydoc.getXmlFragment('prosemirror');
     websocketProvider = new HocuspocusProviderWebsocket({
       maxAttempts: 1,
       url: env.NEXT_PUBLIC_COLLABORATION_WS_URL,
@@ -115,15 +117,17 @@ export const createPageCollaborationSession = (
         if (isActive) handleConnectionFailure();
       },
       onAwarenessUpdate: ({ states }) => {
-        if (!isActive || ydoc === null) return;
+        if (!isActive) return;
         callbacks.onParticipantsChange(mapAwarenessStatesToParticipants(states, ydoc.clientID));
       },
       onStatus: setProviderStatus,
+      /**
+       * The document arrives already holding the page: the server seeds it once,
+       * the first time anybody opens it. Seeding it here, from each browser that
+       * found it empty, wrote the page twice when two opened it at once.
+       */
       onSynced: ({ state }) => {
-        if (!isActive || !state || provider === null || ydoc === null) return;
-        if (fragment.length === 0) {
-          prosemirrorToYXmlFragment(pageEditorSchema.nodeFromJSON(initialContent), fragment);
-        }
+        if (!isActive || !state || provider === null) return;
         setAwarenessDisplayName(provider);
         callbacks.onSessionChange({ fragment, pageId, provider, ydoc });
       },
@@ -147,7 +151,9 @@ export const createPageCollaborationSession = (
     destroy: (): void => {
       isActive = false;
       clearScheduledReconnect();
-      teardownSession();
+      callbacks.onSessionChange(null);
+      teardownConnection();
+      ydoc.destroy();
     },
     updateDisplayName: (): void => {
       if (provider !== null) setAwarenessDisplayName(provider);

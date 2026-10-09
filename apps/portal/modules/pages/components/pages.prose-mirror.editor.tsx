@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_CODE_LANGUAGES, type PageLifecycle } from '@company-brain/shared';
+import type { PageLifecycle } from '@company-brain/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Command, EditorState } from 'prosemirror-state';
@@ -22,7 +22,7 @@ import {
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import {
   PAGE_APPEARANCE_DEFAULT_PREFERENCES,
   PAGE_APPEARANCE_TEXT_SIZE_STYLE_CLASSES,
@@ -55,8 +55,10 @@ import { PagesEditorPagePickerDialog } from '../editor/components/pages.editor.p
 import { PagesEditorToolbar } from '../editor/components/pages.editor.toolbar';
 import { PagesEditorViewPickerDialog } from '../editor/components/pages.editor.view-picker.dialog';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../editor/constants/pages.editor.constants';
+import { usePagesEditorLiveBinding } from '../editor/hooks/use.pages.editor.live-binding';
 import { isTheWritingStillInHand } from '../editor/lib/pages.editor.attention.lib';
 import { appendParagraphAtEnd } from '../editor/lib/pages.editor.commands';
+import { buildPageEditorLabels } from '../editor/lib/pages.editor.labels.lib';
 import {
   createEmptyPageContent,
   createPageEditorState,
@@ -79,7 +81,7 @@ import { usePagesEditorPageDrop } from '../editor/menus/hooks/use.pages.editor.p
 import { usePagesEditorTriggerMenu } from '../editor/menus/hooks/use.pages.editor.trigger-menu';
 import { createPageShapeCommand } from '../editor/menus/lib/pages.editor.page-shape.lib';
 import { describeEditorWithTriggerMenu } from '../editor/menus/lib/pages.editor.slash-menu.lib';
-import { readPageEditorSurface } from '../editor/menus/lib/pages.editor.surface.lib';
+import { keepPageEditorSurfaceIfSame, readPageEditorSurface } from '../editor/menus/lib/pages.editor.surface.lib';
 import type { PageDestination } from '../editor/menus/types/pages.editor.destination.types';
 import type { PageEditorPageShape } from '../editor/menus/types/pages.editor.page-shape.types';
 import type { PageEditorSurfaceRect, PageEditorSurfaceState } from '../editor/menus/types/pages.editor.surface.types';
@@ -112,7 +114,6 @@ import {
 import { createPageTextColorCommand } from '../editor/text/lib/pages.editor.text-color.lib';
 import type { PageEditorLinkAtHand } from '../editor/text/types/pages.editor.link.types';
 import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
-import { createCollaborativePageEditorState } from '../lib/pages.collaboration.lib';
 import { PagesPreviewLayer } from '../links/components/pages.preview.layer';
 import { usePagesPreview } from '../links/hooks/use.pages.preview';
 import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
@@ -125,7 +126,12 @@ interface IProps {
   readonly currentUserDisplayName?: string;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
-  readonly onContentChange: (content: PageContent) => void;
+  /**
+   * What the page says now, and whether the live document already keeps it.
+   * While it does, the server stores the page from there and nothing has to be
+   * sent from here; without it, the page is only kept by being sent.
+   */
+  readonly onContentChange: (content: PageContent, isKeptLive: boolean) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
   /** Where a link to another page of this app is followed, when following it should not leave where it was clicked from. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
@@ -191,35 +197,7 @@ export const PagesProseMirrorEditor = forwardRef(
       [onNavigateToPage, router],
     );
     const goToRef = useRef(followPageHref);
-    const selectBlockLabelRef = useRef(t('selectBlock'));
-    const collectionLabelRef = useRef(t('collectionBlock'));
-    const taskLabelRef = useRef(t('taskBlock'));
-    const blockCommentsLabelRef = useRef(t('blockComments'));
-    const unsupportedLabelRef = useRef(t('unsupportedBlock'));
-    const insertBlockLabelRef = useRef(t('insertBlock'));
-    const writeHereLabelRef = useRef(t('writeHere'));
-    const foldHeadingLabelRef = useRef(t('foldHeading'));
-    const blockTooLongLabelRef = useRef(t('blockTooLong'));
-    const buttonEmptyLabelRef = useRef(t('buttonEmpty'));
-    const untitledLabelRef = useRef(t('untitled'));
-    const resizeColumnLabelRef = useRef(t('resizeColumn'));
-    const subpageLabelsRef = useRef({ subpage: t('subpageBlock'), untitled: t('untitled') });
-    const syncedLabelsRef = useRef({ lost: t('syncedLost'), source: t('syncedSource'), synced: t('syncedBlock') });
-    const buttonLabelsRef = useRef({
-      deed: t('buttonDeed'),
-      deeds: { blocks: t('buttonDeedBlocks'), row: t('buttonDeedRow') },
-      name: t('buttonName'),
-      needsCollection: t('buttonNeedsCollection'),
-      place: t('buttonPlace'),
-      places: { below: t('buttonPlaceBelow'), bottom: t('buttonPlaceBottom'), top: t('buttonPlaceTop') },
-      setup: t('buttonSetup'),
-    });
-    const collectionWordingRef = useRef({
-      firstProperty: t('collection.firstProperty'),
-      firstView: t('collection.firstView'),
-      titleProperty: t('collection.titleProperty'),
-    });
-    const newCollectionTitleRef = useRef(t('collection.newTitle'));
+    const [labels] = useState(() => buildPageEditorLabels(t, locale));
     const collectionSpotRef = useRef(0);
     const pagesRef = useRef(pages);
     const readPageTitleRef = useRef((childId: string): string | null => readPageTitleFrom(pagesRef.current, childId));
@@ -227,77 +205,30 @@ export const PagesProseMirrorEditor = forwardRef(
     const readPageLifecycleRef = useRef((childId: string): PageLifecycle | null =>
       readPageLifecycleFrom(pagesRef.current, childId),
     );
-    const mentionTrashedLabelsRef = useRef({
-      label: t('mentionTrashed.label'),
-      tooltip: (name: string) => t('mentionTrashed.tooltip', { name }),
-    });
     const personOptionsRef = useRef(personOptions);
     const findPersonForHoverRef = useRef((userId: string): PagePersonOption | undefined =>
       personOptionsRef.current.find((option) => option.id === userId),
     );
-    const contentsLabelsRef = useRef({ empty: t('pageContentsEmpty'), title: t('pageContents') });
     /** Said once, and again only after the page has managed to keep something. */
     const toldOfTooMuchRef = useRef(false);
-    const toggleLabelsRef = useRef({ open: t('openToggle'), title: t('toggleTitle') });
-    const embedLabelsRef = useRef({
-      providers: { figma: 'Figma', loom: 'Loom', vimeo: 'Vimeo', youtube: 'YouTube' },
-      refused: t('embedRefused'),
-      resize: t('resizeEmbed'),
-    });
-    const fileLabelsRef = useRef({ fullScreen: t('mediaFullScreen'), resize: t('resizeFile') });
-    const imageLabelsRef = useRef({ caption: t('imageCaption'), resize: t('resizeImage') });
-    const mediaLabelsRef = useRef({
-      fullScreen: t('mediaFullScreen'),
-      mute: t('mediaMute'),
-      pause: t('mediaPause'),
-      play: t('mediaPlay'),
-      resize: t('resizeMedia'),
-      seek: t('mediaSeek'),
-      unmute: t('mediaUnmute'),
-    });
-    const codeLabelsRef = useRef({
-      copied: t('codeCopied'),
-      copy: t('copyCode'),
-      diagram: {
-        both: t('diagramView.both'),
-        code: t('diagramView.code'),
-        download: t('diagramDownload'),
-        drawing: t('diagramView.drawing'),
-        formula: {
-          both: t('formulaView.both'),
-          code: t('formulaView.code'),
-          drawing: t('formulaView.drawing'),
-        },
-        fullScreen: t('diagramFullScreen'),
-        line: t('diagramLine'),
-        unknown: t('diagramUnknown'),
-      },
-      language: t('codeLanguage'),
-      languages: Object.fromEntries(PAGE_CODE_LANGUAGES.map((language) => [language, t(`codeLanguages.${language}`)])),
-      wrap: t('wrapCode'),
-    });
-    const personLabelRef = useRef(t('personBlock'));
-    const dateLabelsRef = useRef({ field: t('date.field'), label: t('dateBlock'), locale });
-    const formulaLabelsRef = useRef({
-      done: t('formula.done'),
-      empty: t('formulaEmpty'),
-      field: t('formula.field'),
-      help: t('formula.help'),
-      inline: t('commands.formulaInline'),
-      unreadable: t('formulaUnreadable'),
-    });
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
-    const { participants, session, status } = usePagesCollaboration(
-      pageId,
-      canEdit,
-      content,
-      currentUserDisplayName ?? null,
-    );
+    const { participants, session, status } = usePagesCollaboration(pageId, canEdit, currentUserDisplayName ?? null);
+    const liveSessionRef = useRef(session);
+
+    useEffect(() => {
+      liveSessionRef.current = session;
+    }, [session]);
     const editorHostRef = useRef<HTMLDivElement>(null);
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
+    /**
+     * El editor armado ahora. Se vuelve a armar cuando cambia algo de lo que
+     * depende, y lo que se ató al anterior —el documento en vivo— tiene que
+     * volver a atarse al nuevo: si no, sigue hablándole a uno que ya no existe.
+     */
+    const [mountedEditorView, setMountedEditorView] = useState<EditorView | null>(null);
     const embedding = usePagesEditorCollectionEmbedding({
       editorViewRef,
       onInserted: () => router.refresh(),
@@ -462,12 +393,12 @@ export const PagesProseMirrorEditor = forwardRef(
     const keepWhatCanBeKeptRef = useRef((state: EditorState): void => {
       const kept = readWhatThePageCanKeep(state);
       if (kept === null) {
-        if (!toldOfTooMuchRef.current) toast.error(blockTooLongLabelRef.current);
+        if (!toldOfTooMuchRef.current) toast.error(labels.blockTooLong);
         toldOfTooMuchRef.current = true;
         return;
       }
       toldOfTooMuchRef.current = false;
-      contentCallbackRef.current(kept);
+      contentCallbackRef.current(kept, liveSessionRef.current !== null);
     });
 
     useEffect(() => {
@@ -480,15 +411,21 @@ export const PagesProseMirrorEditor = forwardRef(
 
       const editorState = createPageEditorState(
         initialContentRef.current,
-        selectBlockLabelRef.current,
-        insertBlockLabelRef.current,
-        blockCommentsLabelRef.current,
-        writeHereLabelRef.current,
-        foldHeadingLabelRef.current,
-        resizeColumnLabelRef.current,
+        labels.selectBlock,
+        labels.insertBlock,
+        labels.blockComments,
+        labels.writeHere,
+        labels.foldHeading,
+        labels.resizeColumn,
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
+          /*
+            Un editor ya desarmado no tiene dónde aplicar nada. Lo que llega en
+            el instante entre desarmarlo y atar el documento en vivo al nuevo no
+            se pierde: vive en el documento, y el editor nuevo parte de él.
+          */
+          if (editorView.isDestroyed) return;
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
           syncFind(editorView);
@@ -504,7 +441,8 @@ export const PagesProseMirrorEditor = forwardRef(
           rememberTriggerMenuPosition(
             trigger === null ? null : computeMenuPosition(editorView, selection.from, selection.from),
           );
-          setSurface(readPageEditorSurface(editorView, nextState, readSurfaceRect()));
+          const next = readPageEditorSurface(editorView, nextState, readSurfaceRect());
+          setSurface((previous) => keepPageEditorSurfaceIfSame(previous, next));
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleDOMEvents: {
@@ -547,25 +485,7 @@ export const PagesProseMirrorEditor = forwardRef(
         handleKeyDown: answerKeyPress,
         handlePaste: uploadPastedFile,
         nodeViews: createPageEditorNodeViews(
-          {
-            code: codeLabelsRef.current,
-            collection: collectionLabelRef.current,
-            contents: contentsLabelsRef.current,
-            date: dateLabelsRef.current,
-            embed: embedLabelsRef.current,
-            file: fileLabelsRef.current,
-            formula: formulaLabelsRef.current,
-            image: imageLabelsRef.current,
-            media: mediaLabelsRef.current,
-            mentionTrashed: mentionTrashedLabelsRef.current,
-            person: personLabelRef.current,
-            button: buttonLabelsRef.current,
-            subpage: subpageLabelsRef.current,
-            synced: syncedLabelsRef.current,
-            task: taskLabelRef.current,
-            toggle: toggleLabelsRef.current,
-            unsupported: unsupportedLabelRef.current,
-          },
+          labels.nodeViews,
           (childId) => readPageTitleRef.current(childId),
           (borrowedPageId, blockId) => readBorrowedBlock(pagesRef.current, borrowedPageId, blockId),
           (at) => pressTheButtonRef.current(at),
@@ -576,6 +496,7 @@ export const PagesProseMirrorEditor = forwardRef(
         state: editorState,
       });
       editorViewRef.current = editorView;
+      setMountedEditorView(editorView);
       syncCollectionHosts();
       followHeadingsRef.current(editorView.state);
 
@@ -585,6 +506,7 @@ export const PagesProseMirrorEditor = forwardRef(
       };
     }, [
       answerKeyPress,
+      labels,
       canEdit,
       computeMenuPosition,
       readSurfaceRect,
@@ -595,22 +517,16 @@ export const PagesProseMirrorEditor = forwardRef(
       uploadPastedFile,
     ]);
 
-    useEffect(() => {
-      if (session === null || editorViewRef.current === null) return;
-      editorViewRef.current.updateState(
-        createCollaborativePageEditorState(
-          { awareness: session.provider.awareness, fragment: session.fragment },
-          selectBlockLabelRef.current,
-          insertBlockLabelRef.current,
-          writeHereLabelRef.current,
-          foldHeadingLabelRef.current,
-          resizeColumnLabelRef.current,
-        ),
-      );
-      followHeadingsRef.current(editorViewRef.current.state);
-      resumeFind(editorViewRef.current);
-      syncFind(editorViewRef.current);
-    }, [resumeFind, session, syncFind]);
+    usePagesEditorLiveBinding({
+      editorViewRef,
+      followHeadingsRef,
+      keepWhatCanBeKeptRef,
+      labels,
+      mountedEditorView,
+      resumeFind,
+      session,
+      syncFind,
+    });
 
     /**
      * Does what a button says when it is pressed.
@@ -625,7 +541,7 @@ export const PagesProseMirrorEditor = forwardRef(
       const pressed = readThePressedButton(editorView.state, at);
       if (pressed === null) return;
       if (pressed.content.childCount === 0) {
-        toast.error(buttonEmptyLabelRef.current);
+        toast.error(labels.buttonEmpty);
         return;
       }
       if (pressed.deed !== 'row') {
@@ -633,13 +549,13 @@ export const PagesProseMirrorEditor = forwardRef(
         return;
       }
       if (pressed.pageId === null || pressed.spaceId === null) {
-        toast.error(buttonLabelsRef.current.needsCollection);
+        toast.error(labels.nodeViews.button.needsCollection);
         return;
       }
       addTheRow(
         pressed.pageId,
         pressed.spaceId,
-        readTheRowTitle(pressed.content, untitledLabelRef.current),
+        readTheRowTitle(pressed.content, labels.untitled),
         readTheRowContent(pressed.content),
       );
     });
@@ -662,20 +578,22 @@ export const PagesProseMirrorEditor = forwardRef(
       /** Where the writing is now, said before the making begins, because it will not be there after. */
       const spot = editorView.state.selection.from;
       startMakingChild(async () => {
-        const made = await createPageAction({
-          content: createEmptyPageContent(),
-          parentId: pageId,
-          spaceId,
-          /** Left unnamed rather than named «Untitled»: a page called that is a page lying about its name. */
-          title: '',
-        });
+        const made = await callAction(() =>
+          createPageAction({
+            content: createEmptyPageContent(),
+            parentId: pageId,
+            spaceId,
+            /** Left unnamed rather than named «Untitled»: a page called that is a page lying about its name. */
+            title: '',
+          }),
+        );
         if (!isActionSuccess<PageSummary>(made)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
           return;
         }
         const insert = createPageSubpageInsertCommand(
           pageEditorSchema,
-          { label: subpageLabelsRef.current.untitled, pageId: made.data.id, spaceId },
+          { label: labels.nodeViews.subpage.untitled, pageId: made.data.id, spaceId },
           spot,
         );
         insert(editorView.state, editorView.dispatch);
@@ -695,12 +613,9 @@ export const PagesProseMirrorEditor = forwardRef(
       /** Where the writing is now, said before the making begins, because it will not be there after. */
       const spot = editorView.state.selection.from;
       startMakingChild(async () => {
-        const made = await createPageAction({
-          content: createEmptyPageContent(),
-          parentId: pageId,
-          spaceId,
-          title,
-        });
+        const made = await callAction(() =>
+          createPageAction({ content: createEmptyPageContent(), parentId: pageId, spaceId, title }),
+        );
         if (!isActionSuccess<PageSummary>(made)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
           return;
@@ -732,9 +647,9 @@ export const PagesProseMirrorEditor = forwardRef(
       }
       embedding.create({
         parentId: pageId,
-        shape: describeANewCollection(collectionWordingRef.current),
+        shape: describeANewCollection(labels.collectionWording),
         spot: editorView.state.selection.from,
-        title: newCollectionTitleRef.current,
+        title: labels.newCollectionTitle,
       });
     };
 
@@ -767,7 +682,9 @@ export const PagesProseMirrorEditor = forwardRef(
         return;
       }
       startMakingChild(async () => {
-        const asked = await readPageCollectionAction({ pageId: target.pageId, spaceId: target.spaceId });
+        const asked = await callAction(() =>
+          readPageCollectionAction({ pageId: target.pageId, spaceId: target.spaceId }),
+        );
         if (!isActionSuccess<PageSchema | null>(asked)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
           return;
@@ -810,7 +727,7 @@ export const PagesProseMirrorEditor = forwardRef(
       if (editorView === null || at === null) return;
       blockActions.close('button');
       startMakingChild(async () => {
-        const asked = await readPageCollectionAction({ pageId: chosen.id, spaceId });
+        const asked = await callAction(() => readPageCollectionAction({ pageId: chosen.id, spaceId }));
         if (!isActionSuccess<PageSchema | null>(asked)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
           return;
@@ -834,7 +751,9 @@ export const PagesProseMirrorEditor = forwardRef(
      */
     const addTheRow = (collectionId: string, collectionSpaceId: string, title: string, content: PageContent): void => {
       startMakingChild(async () => {
-        const asked = await readPageCollectionAction({ pageId: collectionId, spaceId: collectionSpaceId });
+        const asked = await callAction(() =>
+          readPageCollectionAction({ pageId: collectionId, spaceId: collectionSpaceId }),
+        );
         if (!isActionSuccess<PageSchema | null>(asked)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(asked)}`));
           return;
@@ -843,13 +762,16 @@ export const PagesProseMirrorEditor = forwardRef(
           toast.error(t('collection.notACollection'));
           return;
         }
-        const made = await createPageAction({
-          content,
-          parentId: collectionId,
-          propertyValues: buildRowPropertyValues(getEditableSchemaProperties(asked.data)),
-          spaceId: collectionSpaceId,
-          title,
-        });
+        const schema = asked.data;
+        const made = await callAction(() =>
+          createPageAction({
+            content,
+            parentId: collectionId,
+            propertyValues: buildRowPropertyValues(getEditableSchemaProperties(schema)),
+            spaceId: collectionSpaceId,
+            title,
+          }),
+        );
         if (!isActionSuccess<PageSummary>(made)) {
           toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
           return;

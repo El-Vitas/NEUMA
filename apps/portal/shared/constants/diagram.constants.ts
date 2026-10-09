@@ -1,3 +1,5 @@
+import type { Config } from 'dompurify';
+
 /** What separates the four numbers of the box a drawing was drawn inside. */
 export const DIAGRAM_BOX_GAP = /\s+/;
 
@@ -36,7 +38,38 @@ export const DIAGRAM_MENDED_STYLE_CLASS = [
   'text-foreground',
   '[&_.treeView-node-label]:fill-current!',
   '[&_.treeView-node-line]:stroke-current!',
+  /**
+   * The engine measures a label's lines away from the page and sizes its box by
+   * them; the page's own paragraph spacing, reaching into the label, makes every
+   * line taller than measured and pushes the last ones out of the box.
+   */
+  '[&_svg_p]:m-0! [&_svg_p]:leading-[inherit]!',
 ].join(' ');
+
+/** How far a drawing can be pushed away and how close it can be brought. */
+export const DIAGRAM_ZOOM_LEAST = 0.25;
+export const DIAGRAM_ZOOM_MOST = 4;
+
+/** How much closer one turn of the wheel brings a drawing. */
+export const DIAGRAM_ZOOM_WHEEL_STEP = 1.1;
+
+/** How far a pressed pointer moves before the drawing is held and dragged, rather than clicked. */
+export const DIAGRAM_GRIP_THRESHOLD_PX = 4;
+
+/** How much closer one press of a zoom button brings a drawing: more than a turn of the wheel, since it is one press. */
+export const DIAGRAM_ZOOM_BUTTON_STEP = 1.25;
+
+/** How the zoom is written beside its buttons: as a share of the drawing's own size. */
+export const DIAGRAM_ZOOM_PERCENT = 100;
+
+/** What a drawing that reaches past its box says it can be: taken hold of and moved. */
+export const DIAGRAM_MOVABLE_STYLE_CLASS = 'cursor-grab';
+
+/**
+ * A frame nobody sized is kept within the screen: a drawing taller than that is
+ * gone through inside its frame instead of pushing the page down past it.
+ */
+export const DIAGRAM_BOUNDED_STYLE_CLASS = 'max-h-[70vh]';
 
 /** Every drawing on a page needs a name of its own, or two of them draw over each other. */
 export const DIAGRAM_NAME_PREFIX = 'drawn-diagram-';
@@ -70,8 +103,30 @@ export const DIAGRAM_FETCHING_ATTRIBUTES = ['src', 'href', 'xlink:href', 'data',
 /** What a drawing carries that exists only to fetch something, and is worth nothing without it. */
 export const DIAGRAM_FETCHING_ELEMENTS = 'img, image, iframe, object, embed, link, script, use, audio, video';
 
-/** An address asked of somewhere else, written the way a style asks for one. */
-export const DIAGRAM_OUTSIDE_URL = /url\(\s*['"]?(?!#|data:)[^)]*\)/gi;
+/**
+ * What the last cleaning lets a drawing keep: a picture, its filters, and the
+ * little pages its labels are laid out in. Nothing that runs, and nothing that
+ * opens another page inside this one.
+ */
+export const DIAGRAM_SANITIZE_OPTIONS: Config = {
+  ADD_TAGS: ['foreignobject'],
+  FORBID_TAGS: ['embed', 'iframe', 'object', 'script'],
+  HTML_INTEGRATION_POINTS: { foreignobject: true },
+  USE_PROFILES: { html: true, svg: true, svgFilters: true },
+};
+
+/**
+ * An address asked of somewhere else, written the way a style asks for one.
+ * What it points at is looked at once, ahead, so a long run of spaces costs one
+ * pass and not one pass per space.
+ */
+export const DIAGRAM_OUTSIDE_URL = /url\((?!\s*['"]?(?:#|data:))[^)]*\)/gi;
+
+/**
+ * A style asking for a whole other sheet, which needs no url() around its
+ * address: `@import "https://…";`. It goes whole, up to its semicolon.
+ */
+export const DIAGRAM_SHEET_IMPORT = /@import\b[^;]*;?/gi;
 
 /**
  * A tag whose whole purpose is to fetch something, written inside a label.
@@ -82,7 +137,7 @@ export const DIAGRAM_OUTSIDE_URL = /url\(\s*['"]?(?!#|data:)[^)]*\)/gi;
  * drawn, and the rest of what a label may say is left alone.
  */
 export const DIAGRAM_FETCHING_TAG =
-  /<\s*\/?\s*(?:img|image|iframe|object|embed|link|script|source|track|audio|video)\b[^>]*>/gi;
+  /<\s*(?:\/\s*)?(?:img|image|iframe|object|embed|link|script|source|track|audio|video)\b[^>]*>/gi;
 
 /**
  * The ground a drawing sits on, which is the ground a label on a line has to

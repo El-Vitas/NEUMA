@@ -1,4 +1,3 @@
-import { DatabasePropertyType } from '@company-brain/db';
 import type { PagePropertyContext } from '@company-brain/shared';
 import {
   isTitlePageProperty,
@@ -8,8 +7,7 @@ import {
 } from '@company-brain/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValue, SchemaPropertyValues } from './schema.domain.types';
 import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schema.error';
-
-const propertyKeyPattern = /^[a-z]\w*$/;
+import { SCHEMA_PROPERTY_KEY_PATTERN } from './schema-property.constants';
 
 export const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -84,7 +82,7 @@ export const validateSchemaProperties = (
 ): Result<readonly SchemaPropertyDefinition[], SchemaPropertyDefinitionError> => {
   const keys = new Set<string>();
   for (const property of properties) {
-    if (!propertyKeyPattern.test(property.key) || property.label.trim().length === 0) {
+    if (!SCHEMA_PROPERTY_KEY_PATTERN.test(property.key) || property.label.trim().length === 0) {
       return Result.fail(new SchemaPropertyDefinitionError(`Invalid property ${property.key}`));
     }
     if (keys.has(property.key))
@@ -97,17 +95,6 @@ export const validateSchemaProperties = (
   return titleProperties.length === 1
     ? Result.ok(properties)
     : Result.fail(new SchemaPropertyDefinitionError('Exactly one TITLE property is required'));
-};
-
-export const validateSchemaProperty = (
-  property: SchemaPropertyDefinition,
-): Result<SchemaPropertyDefinition, SchemaPropertyDefinitionError> => {
-  const result = validateSchemaProperties(
-    isTitlePageProperty(property.type)
-      ? [property]
-      : [{ key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null }, property],
-  );
-  return result.isFail() ? Result.fail(result.getError()) : Result.ok(property);
 };
 
 const findMissingRequiredProperty = (

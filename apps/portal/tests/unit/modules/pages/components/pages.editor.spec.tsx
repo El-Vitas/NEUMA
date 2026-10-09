@@ -15,15 +15,21 @@ mock.module('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({ push, refresh: () => undefined, replace: () => undefined }),
 }));
-const updatePageAction = mock(async (_input: unknown) => ({ data: undefined }));
+const renamePageAction = mock(async (_input: unknown) => ({ data: undefined }));
+const replacePageContentAction = mock(async (_input: unknown) => ({ data: undefined }));
 const trashPageAction = mock(async (_input: unknown) => ({ data: undefined }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   createPageAction: async () => ({ data: undefined }),
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
+  renamePageAction,
+  replacePageContentAction,
   trashPageAction,
-  updatePageAction,
+}));
+const updatePageRowPropertiesAction = mock(async (_input: unknown) => ({ data: undefined }));
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  updatePageRowPropertiesAction,
 }));
 mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
   getPageTrashPreviewAction: async () => ({ data: { childPageCount: 0 } }),
@@ -96,7 +102,8 @@ describe('a page that nobody has named yet', () => {
 
   /** Nothing is asked for before writing: naming it is already a change the page keeps by itself. */
   it('keeps what is written without anybody pressing anything', async () => {
-    updatePageAction.mockClear();
+    renamePageAction.mockClear();
+    replacePageContentAction.mockClear();
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor canEdit page={buildPage('')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
@@ -106,17 +113,19 @@ describe('a page that nobody has named yet', () => {
     expect(screen.queryByRole('button', { name: 'Create page' })).toBeNull();
     fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Quarterly plan' } });
 
-    await waitFor(() => expect(updatePageAction).toHaveBeenCalledTimes(1));
-    expect(updatePageAction.mock.calls[0]?.[0]).toMatchObject({
+    await waitFor(() => expect(renamePageAction).toHaveBeenCalledTimes(1));
+    expect(renamePageAction.mock.calls[0]?.[0]).toMatchObject({
       pageId: '22222222-2222-4222-8222-222222222222',
       title: 'Quarterly plan',
     });
+    /** Only the name changed: the writing is not sent back with it. */
+    expect(replacePageContentAction).not.toHaveBeenCalled();
   });
 });
 
 describe('a page hanging from a collection', () => {
   it('seeds default property values from the parent schema and keeps them with the page', async () => {
-    updatePageAction.mockClear();
+    updatePageRowPropertiesAction.mockClear();
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor
@@ -148,9 +157,58 @@ describe('a page hanging from a collection', () => {
     expect(screen.getAllByLabelText('Title')).toHaveLength(1);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Blocked' }));
 
-    await waitFor(() => expect(updatePageAction).toHaveBeenCalledTimes(1));
-    expect(updatePageAction.mock.calls[0]?.[0]).toMatchObject({
+    await waitFor(() => expect(updatePageRowPropertiesAction).toHaveBeenCalledTimes(1));
+    expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).toMatchObject({
       propertyValues: { blocked: true, status: 'todo' },
+    });
+  });
+
+  /**
+   * Once the row keeps its properties, a change sends only itself: sending the
+   * rest back would overwrite what somebody else changed in the meantime.
+   */
+  it('sends only the property that changed once the row already keeps its properties', async () => {
+    updatePageRowPropertiesAction.mockClear();
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesEditor
+          canEdit
+          page={{ ...buildPage('Kept row'), propertyValues: { blocked: false, status: 'in_progress' } }}
+          pages={[]}
+          parentBreadcrumbPages={[]}
+          parentSchema={{
+            pageId: 'collection-1',
+            properties: [
+              { key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' },
+              {
+                key: 'status',
+                label: 'Status',
+                options: asPropertyOptions('todo', 'in_progress', 'done'),
+                required: true,
+                type: 'SELECT',
+              },
+              { key: 'blocked', label: 'Blocked', options: null, required: false, type: 'CHECKBOX' },
+            ],
+            spaceId: SPACE_ID,
+            views: [],
+          }}
+          spaceId={SPACE_ID}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Blocked' }));
+
+    await waitFor(() => expect(updatePageRowPropertiesAction).toHaveBeenCalledTimes(1));
+    expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).toMatchObject({ propertyValues: { blocked: true } });
+    expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).not.toMatchObject({
+      propertyValues: { status: 'in_progress' },
+    });
+    /** Once it arrived, nothing is left waiting: leaving the page asks nothing. */
+    await waitFor(() => {
+      const leaving = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(leaving);
+      expect(leaving.defaultPrevented).toBe(false);
     });
   });
 });

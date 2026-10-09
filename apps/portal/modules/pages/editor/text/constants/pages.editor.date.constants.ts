@@ -11,5 +11,13 @@ export const PAGE_EDITOR_DATE_STYLE_CLASS = [
   'focus-within:outline-none focus-within:ring-2 focus-within:ring-ring',
 ].join(' ');
 
+/** How a day named in a page reads. It is kept in UTC because a calendar day has no hour to shift. */
+export const PAGE_EDITOR_DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+  year: 'numeric',
+};
+
 /** Laid over the day, invisible, so a click on what is read is a click on the calendar itself. */
 export const PAGE_EDITOR_DATE_FIELD_STYLE_CLASS = 'absolute inset-0 h-full w-full cursor-pointer opacity-0';

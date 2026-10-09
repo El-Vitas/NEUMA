@@ -1,13 +1,15 @@
 import { z } from 'zod';
+import { isOneOf } from '../value-list.lib.js';
 
 export const PAGE_CONTENT_SCHEMA_VERSION = 1;
 const maximumPageContentDepth = 10;
 const maximumPageContentNodes = 500;
-const maximumPageTextLength = 20_000;
-const maximumTableRows = 50;
-const maximumTableColumns = 10;
+/** Los topes de lo que se escribe en una página que quien escribe por fuera del editor tiene que respetar antes de mandar. */
+export const maximumPageTextLength = 20_000;
+export const maximumTableRows = 50;
+export const maximumTableColumns = 10;
 const maximumTableColumnWidth = 2_000;
-const maximumToggleSummaryLength = 500;
+export const maximumToggleSummaryLength = 500;
 const maximumAssetIdLength = 200;
 const maximumAssetMetadataLength = 500;
 const maximumEmbedUrlLength = 2_048;
@@ -16,24 +18,33 @@ const maximumMentionPageIdLength = 200;
 const maximumMentionLabelLength = 200;
 const maximumMentionSpaceIdLength = 200;
 const maximumPersonLabelLength = 200;
-const maximumFormulaLatexLength = 4_000;
+export const maximumFormulaLatexLength = 4_000;
 const maximumCommentAuthorLength = 200;
-const maximumCommentBodyLength = 2_000;
 const maximumCommentDateLength = 40;
-const maximumCommentsPerBlock = 50;
+
+/** Cuánto puede decir un comentario, y cuántos puede llevar un bloque: quien los escribe tiene que saberlo antes. */
+export const PAGE_BLOCK_COMMENT_BODY_MOST = 2000;
+export const PAGE_BLOCK_COMMENTS_MOST = 50;
 const maximumUnknownTypeLength = 80;
-const maximumBookmarkTextLength = 300;
+/** How deep what an unknown block keeps may go: far beyond any real block, far short of the stack. */
+const maximumUnknownJsonDepth = 32;
+export const maximumBookmarkTextLength = 300;
 
 export const PAGE_EMBED_PROVIDERS = ['figma', 'loom', 'vimeo', 'youtube'] as const;
 export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
 
-/**
- * The colours a block may be painted with, kept short on purpose: a page reads
- * as one document, and every colour here is chosen to be legible on both a
- * light and a dark background.
- */
 /** Where a link written in a page may lead, other than to a place within this app. */
 export const PAGE_LINK_PROTOCOLS: readonly string[] = ['http:', 'https:', 'mailto:'];
+
+/** Una dirección que empieza con dos barras lleva a otro sitio con el protocolo de la página, aunque parezca un camino propio. */
+const PAGE_LINK_PROTOCOL_RELATIVE_PATTERN = /^[/\\]{2}/;
+
+/**
+ * Caracteres de control dentro de una dirección. El navegador quita los tabs y
+ * los saltos antes de leerla, así que "/\t/otro.sitio" termina siendo
+ * "//otro.sitio": ninguna dirección verdadera los lleva.
+ */
+const PAGE_LINK_CONTROL_CHARACTERS = /\p{Cc}/u;
 
 /**
  * Whether an address is somewhere a link may take a reader: a page of this app,
@@ -41,11 +52,18 @@ export const PAGE_LINK_PROTOCOLS: readonly string[] = ['http:', 'https:', 'mailt
  */
 export const isPageLinkTarget = (href: string): boolean => {
   const trimmed = href.trim();
+  if (PAGE_LINK_CONTROL_CHARACTERS.test(trimmed)) return false;
+  if (PAGE_LINK_PROTOCOL_RELATIVE_PATTERN.test(trimmed)) return false;
   if (trimmed.startsWith('/')) return true;
   if (!URL.canParse(trimmed)) return false;
   return PAGE_LINK_PROTOCOLS.includes(new URL(trimmed).protocol);
 };
 
+/**
+ * The colours a block may be painted with, kept short on purpose: a page reads
+ * as one document, and every colour here is chosen to be legible on both a
+ * light and a dark background.
+ */
 export const PAGE_BLOCK_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'red'] as const;
 export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
 
@@ -85,6 +103,12 @@ export const PAGE_CODE_LANGUAGES = [
 ] as const;
 export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
 
+/** El lenguaje de un bloque de código que se dibuja como diagrama. */
+export const PAGE_DIAGRAM_LANGUAGE = 'mermaid' satisfies PageCodeLanguage;
+
+/** El lenguaje de un bloque de código que se dibuja como fórmula. */
+export const PAGE_FORMULA_LANGUAGE = 'latex' satisfies PageCodeLanguage;
+
 /**
  * What is shown of a block that draws: what was written, what it draws, or both at once.
  *
@@ -94,6 +118,14 @@ export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
  */
 export const PAGE_DIAGRAM_VIEWS = ['drawing', 'code', 'both'] as const;
 export type PageDiagramView = (typeof PAGE_DIAGRAM_VIEWS)[number];
+
+/**
+ * How tall the frame of a drawing may be made, in pixels: low enough to still
+ * show something, and no taller than a tall screen, which is where a frame that
+ * reaches past the page stops helping anyone read what is inside it.
+ */
+export const PAGE_DIAGRAM_FRAME_HEIGHT_LEAST = 120;
+export const PAGE_DIAGRAM_FRAME_HEIGHT_MOST = 2400;
 
 /**
  * What a button does when it is pressed: write what it holds into the page, or
@@ -166,14 +198,20 @@ const pageMarkSchema = z.discriminatedUnion('type', [
   z.object({ attrs: z.object({ id: pageBlockIdSchema }).strict(), type: z.literal('comment') }).strict(),
 ]);
 
+/** An HTML tag written as words: a page never stores one, so markup cannot ride in as text. */
+export const PAGE_TEXT_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
+
+/** How many marks the same words can carry at once. */
+export const PAGE_TEXT_MARKS_MOST = 5;
+
 const pageTextSchema = z
   .object({
-    marks: z.array(pageMarkSchema).max(5).optional(),
+    marks: z.array(pageMarkSchema).max(PAGE_TEXT_MARKS_MOST).optional(),
     text: z
       .string()
       .min(1)
       .max(maximumPageTextLength)
-      .refine((text) => !/<\/?[a-z][^>]*>/i.test(text)),
+      .refine((text) => !PAGE_TEXT_TAG_PATTERN.test(text)),
     type: z.literal('text'),
   })
   .strict();
@@ -188,16 +226,20 @@ const pageCodeTextSchema = z
 const pageBlockCommentSchema = z
   .object({
     author: z.string().min(1).max(maximumCommentAuthorLength),
-    body: z.string().min(1).max(maximumCommentBodyLength),
+    body: z.string().min(1).max(PAGE_BLOCK_COMMENT_BODY_MOST),
     createdAt: z.string().min(1).max(maximumCommentDateLength),
     id: pageBlockIdSchema,
   })
   .strict();
 
+/** Whether something stored among a block's comments really is one, with the shape a page accepts. */
+export const isPageBlockComment = (value: unknown): value is PageBlockComment =>
+  pageBlockCommentSchema.safeParse(value).success;
+
 /** What every block may carry, whatever its type. Block types add their own on top of these. */
 const pageBlockAttrsShape = {
   backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
-  comments: z.array(pageBlockCommentSchema).max(maximumCommentsPerBlock).optional(),
+  comments: z.array(pageBlockCommentSchema).max(PAGE_BLOCK_COMMENTS_MOST).optional(),
   id: pageBlockIdSchema.optional(),
   textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
 };
@@ -438,6 +480,19 @@ export const pageImageAttrsSchema = pageAssetAttrsSchema
   .strict();
 
 /**
+ * A web address a card opens or shows. A card opens with a click, so anything
+ * but http or https (a `javascript:` that runs code, a `data:` page) is refused.
+ */
+const pageWebAddressSchema = z.url({ protocol: /^https?$/ }).max(maximumEmbedUrlLength);
+
+/**
+ * Whether something is a web address a card may open or show. What arrives over
+ * the live connection has not passed through the stored schema, so this is
+ * asked again where a card is drawn.
+ */
+export const isPageWebAddress = (value: unknown): value is string => pageWebAddressSchema.safeParse(value).success;
+
+/**
  * A link kept on the page as a card: what it is called, what it says about
  * itself, and the mark the site is known by.
  *
@@ -449,9 +504,9 @@ export const pageBookmarkAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
     description: z.string().max(maximumBookmarkTextLength).optional(),
-    icon: z.url().max(maximumEmbedUrlLength).optional(),
+    icon: pageWebAddressSchema.optional(),
     title: z.string().max(maximumBookmarkTextLength).optional(),
-    url: z.url().max(maximumEmbedUrlLength),
+    url: pageWebAddressSchema,
   })
   .strict();
 
@@ -591,7 +646,11 @@ export type PageContentKnownNode =
       readonly type: 'block_children';
     }
   | {
-      readonly attrs?: PageBlockAttrs & { readonly language?: PageCodeLanguage; readonly wrapped?: boolean };
+      readonly attrs?: PageBlockAttrs & {
+        readonly frameHeight?: number;
+        readonly language?: PageCodeLanguage;
+        readonly wrapped?: boolean;
+      };
       readonly content: readonly PageContentText[];
       readonly type: 'code_block';
     }
@@ -781,6 +840,12 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
         attrs: z
           .object({
             ...pageBlockAttrsShape,
+            frameHeight: z
+              .number()
+              .int()
+              .min(PAGE_DIAGRAM_FRAME_HEIGHT_LEAST)
+              .max(PAGE_DIAGRAM_FRAME_HEIGHT_MOST)
+              .optional(),
             language: z.enum(PAGE_CODE_LANGUAGES).optional(),
             shown: z.enum(PAGE_DIAGRAM_VIEWS).optional(),
             wrapped: z.boolean().optional(),
@@ -860,6 +925,33 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
   ]),
 );
 
+/** What a list or an object holds, in order; nothing for a plain value. */
+const readPageJsonChildren = (value: unknown): readonly unknown[] | null =>
+  typeof value === 'object' && value !== null ? Object.values(value) : null;
+
+const isPageJsonLeaf = (value: unknown): boolean =>
+  value === null ||
+  typeof value === 'boolean' ||
+  (typeof value === 'number' && Number.isFinite(value)) ||
+  (typeof value === 'string' && value.length <= maximumPageTextLength);
+
+/**
+ * Whether a value is JSON a page may keep without reading: plain values, lists
+ * and objects, never deeper than a real block and no text longer than a page
+ * allows. It is walked with a list instead of recursion, so a value nested
+ * thousands of levels deep is refused instead of exhausting the stack.
+ */
+const isBoundedPageJson = (value: unknown): value is PageContentJson => {
+  const pending = [{ depth: 0, value }];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    const children = readPageJsonChildren(next.value);
+    if (children === null && !isPageJsonLeaf(next.value)) return false;
+    if (children !== null && next.depth >= maximumUnknownJsonDepth) return false;
+    for (const child of children ?? []) pending.push({ depth: next.depth + 1, value: child });
+  }
+  return true;
+};
+
 /**
  * A block written by a version that knows more than this one.
  *
@@ -869,16 +961,9 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
  * block this version does know stays out of here even when it is malformed:
  * being wrong is not the same as being new.
  */
-const pageJsonSchema: z.ZodType<PageContentJson> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(pageJsonSchema),
-    z.record(z.string(), pageJsonSchema),
-  ]),
-);
+const pageJsonSchema = z.custom<PageContentJson>(isBoundedPageJson, {
+  message: 'Unknown block holds something nested too deep, or a text too long',
+});
 
 const pageUnknownNodeSchema = z
   .object({
@@ -1002,9 +1087,7 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
  * out when the page fails to save.
  */
 export const canPageBlockHold = (parent: string, child: string): boolean =>
-  parent in pageBlockParentChildTypes
-    ? pageBlockParentChildTypes[parent as PageBlockParentType].some((allowed) => allowed === child)
-    : true;
+  parent in pageBlockParentChildTypes ? isOneOf(pageBlockParentChildTypes[parent as PageBlockParentType], child) : true;
 
 const validateBlockChildren = (
   nodes: readonly PageContentNode[],

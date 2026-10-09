@@ -1,0 +1,28 @@
+/// Lo que un agente hizo, o intentó hacer, al escribir en Company Brain.
+/// Una fila por escritura: quién la hizo, con qué token, con qué herramienta,
+/// dónde y qué tocó, y cómo terminó. La fila se anota antes de escribir: sin
+/// fila no hay escritura.
+/// No apunta con llaves a la página ni al token: el registro tiene que seguir
+/// diciendo qué pasó aunque la página o el token ya no existan.
+model AgentAction {
+  id          String             @id @default(uuid(7))
+  workspaceId String
+  userId      String
+  tokenId     String
+  tool        String
+  pageId      String?
+  blockIds    String[]           @default([])
+  outcome     AgentActionOutcome
+  /// Qué pidió el agente, en corto: las columnas que cambió, la vista que creó.
+  detail      Json
+  createdAt   DateTime           @default(now())
+  /// Cuándo se supo cómo terminó; nada mientras siga pendiente.
+  finishedAt  DateTime?
+  /// El id que el agente le dio a su pedido, si le dio uno: el mismo id no se hace dos veces con el mismo token.
+  /// Lo cuida un índice único parcial, solo sobre las acciones pendientes o hechas (ver la migración que lo crea).
+  requestId   String?
+
+  @@index([workspaceId, createdAt])
+  @@index([tokenId, createdAt])
+  @@index([pageId])
+}

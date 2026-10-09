@@ -31,11 +31,11 @@
     "check": "bun run format:check"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7",
-    "@prisma/client": "^7",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "dotenv": "^16.4.7",
     "pg": "^8.14.1",
-    "prisma": "^7.9.1"
+    "prisma": "^7.10.0"
   },
   "devDependencies": {
     "@types/pg": "^8.11.11",

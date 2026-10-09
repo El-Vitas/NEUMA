@@ -9,6 +9,16 @@ export class PageAccessDeniedError extends DomainError {
   }
 }
 
+/** La forma de la colección ya no es la que se leyó antes de guardarla entera. */
+export class PageSchemaChangedError extends DomainError {
+  public readonly code = 'PAGE_SCHEMA_CHANGED';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('The collection changed since it was read');
+  }
+}
+
 export class PageCycleError extends DomainError {
   public readonly code = 'PAGE_CYCLE';
   public readonly httpStatus = 409;
@@ -42,6 +52,16 @@ export class PageContentValidationError extends DomainError {
 
   constructor(details: unknown) {
     super('Page content is invalid', details);
+  }
+}
+
+/** Un cambio de bloques que no se puede hacer sobre lo que la página dice ahora: un bloque que ya no está, un lugar donde no cabe. */
+export class PageBlockEditError extends DomainError {
+  public readonly code = 'PAGE_BLOCK_EDIT_INVALID';
+  public readonly httpStatus = 409;
+
+  constructor(details: string) {
+    super('The blocks cannot be changed that way', details);
   }
 }
 
@@ -105,6 +125,26 @@ export class PageCoverValidationError extends DomainError {
 
   constructor(details: unknown) {
     super('Page cover is invalid', details);
+  }
+}
+
+/** El mantenimiento de las páginas de todo el espacio de trabajo lo corre solo quien lo administra. */
+export class PageMaintenanceAdminOnlyError extends DomainError {
+  public readonly code = 'PAGE_MAINTENANCE_ADMIN_ONLY';
+  public readonly httpStatus = 403;
+
+  constructor() {
+    super('Only a workspace admin can run page maintenance.');
+  }
+}
+
+/** El mantenimiento ya está corriendo en este espacio de trabajo: dos a la vez se pisarían los ids que dan. */
+export class PageMaintenanceAlreadyRunningError extends DomainError {
+  public readonly code = 'PAGE_MAINTENANCE_ALREADY_RUNNING';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('Page maintenance is already running in this workspace. Try again when it finishes.');
   }
 }
 

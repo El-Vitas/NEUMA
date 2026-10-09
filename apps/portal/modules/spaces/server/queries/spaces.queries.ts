@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Result } from '@company-brain/shared';
+import { Result } from '@company-brain/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
@@ -33,6 +33,18 @@ const getSharedWithMeSpacesCached = async (accessToken: string): Promise<readonl
 
   const response = await apiRequest<unknown>(SPACE_API_ROUTES.sharedWithMe, accessToken);
   return spacesListSchema.parse(response);
+};
+
+/**
+ * Every space the caller reaches: the ones listed as theirs and the private
+ * ones others shared with them. Fails whole when either list fails, so a
+ * caller never mistakes half the spaces for all of them.
+ */
+export const getReachableSpaces = async (): Promise<Result<readonly SpaceSummary[], Error>> => {
+  const [spaces, sharedSpaces] = await Promise.all([getSpaces(), getSharedWithMeSpaces()]);
+  if (spaces.isFail()) return spaces;
+  if (sharedSpaces.isFail()) return sharedSpaces;
+  return Result.ok([...spaces.getValue(), ...sharedSpaces.getValue()]);
 };
 
 /** The members of a space, read through the query `shared/` also hands the pages module — a space belongs to the spaces module, but neither module may import the other directly. */

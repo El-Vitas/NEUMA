@@ -1,3 +1,4 @@
+import { isOneOf } from '@company-brain/shared';
 import { readJsonSafely } from '@/shared/lib/json.lib';
 import {
   PAGE_OUTLINE_LAYOUT_STYLE_CLASS,
@@ -39,10 +40,10 @@ export const getPageAppearanceLayoutStyleClasses = (): PageAppearanceLayoutStyle
 });
 
 export const isPageAppearanceTextSize = (value: unknown): value is PageAppearanceTextSize =>
-  typeof value === 'string' && PAGE_APPEARANCE_TEXT_SIZE_VALUES.some((textSize) => textSize === value);
+  typeof value === 'string' && isOneOf(PAGE_APPEARANCE_TEXT_SIZE_VALUES, value);
 
 export const isPageAppearanceTypography = (value: unknown): value is PageAppearanceTypography =>
-  typeof value === 'string' && PAGE_APPEARANCE_TYPOGRAPHY_VALUES.some((typography) => typography === value);
+  typeof value === 'string' && isOneOf(PAGE_APPEARANCE_TYPOGRAPHY_VALUES, value);
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 

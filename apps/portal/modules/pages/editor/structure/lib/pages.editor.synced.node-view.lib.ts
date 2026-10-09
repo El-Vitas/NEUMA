@@ -10,6 +10,7 @@ import {
 } from '../../blocks/constants/pages.editor.blocks.constants';
 import { pageEditorSchema } from '../../lib/pages.editor.schema';
 import type { PageEditorSyncedLabels } from '../types/pages.editor.synced.types';
+import { drawBorrowedBlock, isBorrowedDrawing } from './pages.editor.synced.drawing.lib';
 
 /**
  * Shows a block that lives in another page.
@@ -46,15 +47,18 @@ export const createPageSyncedNodeView = (
 
   body.className = PAGE_EDITOR_SYNCED_BODY_STYLE_CLASS;
   const borrowed = readBorrowed(node.attrs.pageId, node.attrs.blockId);
+  let letGo = (): void => undefined;
   if (borrowed === null) {
     const lost = document.createElement('p');
     lost.className = PAGE_EDITOR_SYNCED_LOST_STYLE_CLASS;
     lost.textContent = labels.lost;
     body.append(lost);
+  } else if (isBorrowedDrawing(borrowed)) {
+    letGo = drawBorrowedBlock(borrowed, body);
   } else {
     body.append(DOMSerializer.fromSchema(pageEditorSchema).serializeNode(borrowed));
   }
 
   container.append(mark, body);
-  return { dom: container, ignoreMutation: () => true, stopEvent: () => true };
+  return { destroy: () => letGo(), dom: container, ignoreMutation: () => true, stopEvent: () => true };
 };
