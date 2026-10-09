@@ -5,9 +5,10 @@ import { SearchView } from '@/modules/search/views/search.view';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { searchQuerySchema } from '@/shared/schemas/search.schemas';
 import { getSearchResults } from '@/shared/server/queries/search.queries';
+import type { RouteSearchParams } from '@/shared/types/route-search-params.types';
 
 interface IProps {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<RouteSearchParams>;
 }
 
 /**

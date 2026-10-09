@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { Result } from '@company-brain/shared';
 import { cacheLife, cacheTag } from 'next/cache';
+import { cache } from 'react';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
@@ -29,29 +30,22 @@ const getPagesCached = async (accessToken: string, spaceId: string): Promise<rea
  *
  * A page written from outside the portal — by an agent, through the MCP —
  * reaches the kept list only once that list refreshes, and the first visit to
- * it would otherwise be told it does not exist. Keyed by that page, so the read
- * is a fresh one; tagged like the list, so whatever clears the list clears it.
+ * it would otherwise be told it does not exist. The read is fresh, kept only
+ * for the request that asked: the page and its title share it, and an address
+ * nobody has leaves nothing behind.
  */
 export const getPagesHolding = async (
   spaceId: string,
   pageId: string,
 ): Promise<Result<readonly PageSummary[], Error>> =>
   withQuery({ op: 'getPagesHolding', params: { pageId, spaceId } }, (accessToken) =>
-    getPagesHoldingCached(accessToken, spaceId, pageId),
+    readPagesFresh(accessToken, spaceId),
   );
 
-const getPagesHoldingCached = async (
-  accessToken: string,
-  spaceId: string,
-  pageId: string,
-): Promise<readonly PageSummary[]> => {
-  'use cache';
-  cacheLife('seconds');
-  cacheTag(PAGES_CACHE_TAG(spaceId), PAGE_LOCATION_CACHE_TAG(pageId));
-
+const readPagesFresh = cache(async (accessToken: string, spaceId: string): Promise<readonly PageSummary[]> => {
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
   return readPagesThatCanBeRead(response, 'getPagesHolding');
-};
+});
 
 /**
  * Which space a page lives in now.

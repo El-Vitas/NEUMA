@@ -15,7 +15,6 @@ import type {
   createRowInputSchema,
   createViewInputSchema,
   deleteViewInputSchema,
-  getCollectionInputSchema,
   queryCollectionInputSchema,
   queryCollectionOutputSchema,
   rowOutputSchema,
@@ -24,7 +23,6 @@ import type {
   updateViewInputSchema,
 } from '../schemas/mcp.collections.schemas';
 
-export type McpGetCollectionInput = z.infer<typeof getCollectionInputSchema>;
 export type McpCreateCollectionInput = z.infer<typeof createCollectionInputSchema>;
 export type McpQueryCollectionInput = z.infer<typeof queryCollectionInputSchema>;
 export type McpCreateRowInput = z.infer<typeof createRowInputSchema>;
@@ -39,6 +37,26 @@ export type McpRowOutput = z.infer<typeof rowOutputSchema>;
 
 /** Lo que el agente pone en una celda: texto, un número, sí o no, varios valores, o nada. */
 export type McpCellInput = string | number | boolean | readonly string[] | null;
+
+/**
+ * Cómo se nombran, en un rechazo, las columnas, opciones o vistas que sí hay:
+ * todas, para que el agente corrija, o ninguna, para un token que puede
+ * cambiar la colección pero no leerla.
+ */
+export type McpNameLister = (names: readonly string[]) => string | null;
+
+/** Un paso sobre las columnas de una colección: parte de las que dejó el anterior. */
+export type McpColumnStep = (
+  columns: readonly McpColumn[],
+  changes: McpColumnChanges,
+  listNames: McpNameLister,
+) => Result<McpColumn[], string>;
+
+/** Las columnas de una colección, y cómo se nombran en un rechazo. */
+export interface McpColumnsInHand {
+  readonly columns: readonly McpColumn[];
+  readonly listNames: McpNameLister;
+}
 
 /** Lo que se guarda en una celda. */
 export type McpCellValue = string | number | boolean | string[] | null;
@@ -98,6 +116,8 @@ export interface McpCollectionShape {
 /** Una colección que el agente abrió: dónde está, cómo se llama y su forma. */
 export interface McpOpenCollection {
   readonly id: string;
+  /** Cómo se nombran sus columnas, opciones y vistas en un rechazo, según lo que el token lee. */
+  readonly listNames: McpNameLister;
   /** Dónde está hoy, con sus ancestros: de ahí cuelgan sus filas. */
   readonly place: AccessTokenPlace;
   readonly shape: McpCollectionShape;
@@ -125,8 +145,9 @@ export interface McpActor {
  * validaciones, las mismas reglas de acceso y los mismos candados.
  */
 export interface McpCollectionService {
+  /** Si llega la forma que se leyó, solo guarda si sigue siendo la de ahora. */
   readonly defineSchema: (
-    input: McpActor & McpCollectionShape & { readonly pageId: string },
+    input: McpActor & McpCollectionShape & { readonly pageId: string; readonly readShape?: McpCollectionShape },
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
   readonly getSchema: (
     pageId: string,
@@ -164,17 +185,16 @@ export interface McpWrittenRow {
 
 /** Lo que el agente puede escribir en una fila: crearla, renombrarla y cambiar sus propiedades. */
 export interface McpRowWriter {
+  /** Crea la página a nombre de quien escribe: es su autor. */
   readonly create: (
     input: McpActor & {
       readonly content: Prisma.InputJsonValue;
-      readonly createdById: string;
       /** Nada cuando la página va arriba del todo en su espacio. */
       readonly parentId: string | null;
       readonly propertyValues: PagePropertyValues | null;
       readonly spaceId: string;
       readonly title: string;
     },
-    role: UserRole,
   ) => Promise<Result<McpWrittenRow, McpRefusal>>;
   /** En el orden del servicio de páginas: quien pide va antes que su espacio de trabajo. */
   readonly rename: (

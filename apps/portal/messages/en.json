@@ -307,6 +307,8 @@
       "forbidden": "You cannot give that access: you do not hold some of those permissions, spaces or pages yourself, or the page is in the trash.",
       "missing": "That token no longer exists. Someone may have revoked it.",
       "conflict": "You already have an active token with that name, or you reached the maximum number of active tokens. Change the name or revoke one you no longer use.",
+      "tooLarge": "The access you put together is too large to save. Remove some places.",
+      "rateLimited": "You made too many attempts in a row. Wait a moment and try again.",
       "offline": "Could not connect to the server. Check your connection.",
       "unexpected": "Something went wrong. Try again."
     },
@@ -1179,6 +1181,7 @@
     "blockLinkCopyFailed": "The link could not be copied",
     "copyPageLink": "Copy link",
     "pageLinkCopied": "Page link copied",
+    "pageLinkCopyFailed": "The page link could not be copied. Copy it from the address bar.",
     "blockLinkMissing": "That block is no longer on the page",
     "moveBlocks": "Move to…",
     "moveBlocksTitle": "Move the blocks to another page",
@@ -1188,6 +1191,7 @@
     "moveBlocksDone": "Blocks moved to {page}",
     "moveBlocksVisit": "Go to the page",
     "moveBlocksError": "The blocks could not be moved",
+    "moveBlocksKept": "The blocks were copied to {page}, but they changed here while moving, so they stayed on this page too",
     "unsupportedBlock": "Unsupported block",
     "blockToPage": "Turn into a page",
     "blocksMadePage": "Blocks turned into the page {page}",
@@ -1203,6 +1207,7 @@
     "openToggle": "Open or close this toggle",
     "toggleTitle": "Toggle title",
     "codeCopied": "Code copied",
+    "codeCopyFailed": "The code could not be copied. Select it and copy it by hand.",
     "copyCode": "Copy the code",
     "codeLanguage": "Code language",
     "wrapCode": "Wrap long lines",
@@ -1242,7 +1247,8 @@
     "diagramZoomOut": "Zoom out of the drawing",
     "diagramFitToFrame": "Fit the drawing to its frame",
     "diagramActualSize": "Show the drawing at its real size",
-    "diagramFrameHeight": "Frame height. Drag or use the arrow keys to change it; double click returns it to the automatic size",
+    "diagramFrameHeight": "Frame height",
+    "diagramFrameHeightHint": "Drag or use the arrow keys to change it; double click or Enter returns it to the automatic size",
     "calloutIcon": "Callout mark",
     "noCalloutIcon": "No mark",
     "calloutIcons": {
@@ -1399,6 +1405,8 @@
       "forbidden": "You do not have permission to do this.",
       "missing": "This no longer exists. It may have been deleted.",
       "conflict": "Someone else changed this first. Reload to see how it stands.",
+      "tooLarge": "This is too large to save at once. Split it into smaller parts.",
+      "rateLimited": "You made too many changes in a row. Wait a moment and try again.",
       "offline": "Could not reach the server. Check your connection.",
       "unexpected": "Something went wrong on our side. Try again."
     }
@@ -1433,6 +1441,8 @@
     "contents": "On this page",
     "drawingActualSize": "Actual size",
     "drawingFit": "Fit to the frame",
+    "drawingRegion": "Drawing of the example",
+    "drawingTools": "Drawing size",
     "drawingZoomIn": "Zoom in on the drawing",
     "drawingZoomOut": "Zoom out of the drawing",
     "empty": "No documents have been written yet."

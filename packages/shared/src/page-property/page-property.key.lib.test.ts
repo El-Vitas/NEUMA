@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { PAGE_PROPERTY_KEY_MAX_LENGTH } from './page-property.key.constants.js';
 import { buildPagePropertyKey } from './page-property.key.lib.js';
 
 describe('buildPagePropertyKey', () => {
@@ -20,5 +21,20 @@ describe('buildPagePropertyKey', () => {
 
   it('falls back to a readable name when nothing usable was typed', () => {
     expect(buildPagePropertyKey('«»', [])).toBe('property');
+  });
+
+  /** El servidor guarda claves de hasta 64 caracteres: una más larga se rechazaría al guardar la columna. */
+  it('keeps a long name within what the server stores, prefix and number included', () => {
+    const long = 'a'.repeat(100);
+    const taken = [{ key: buildPagePropertyKey(long, []) }];
+
+    expect(buildPagePropertyKey(long, [])).toHaveLength(PAGE_PROPERTY_KEY_MAX_LENGTH);
+    expect(buildPagePropertyKey(`1${long}`, [])).toHaveLength(PAGE_PROPERTY_KEY_MAX_LENGTH);
+    expect(buildPagePropertyKey(long, taken)).toHaveLength(PAGE_PROPERTY_KEY_MAX_LENGTH);
+    expect(buildPagePropertyKey(long, taken).endsWith('_2')).toBe(true);
+  });
+
+  it('counts up past every number already taken', () => {
+    expect(buildPagePropertyKey('2024', [{ key: 'p2024' }, { key: 'p2024_2' }])).toBe('p2024_3');
   });
 });

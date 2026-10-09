@@ -1,17 +1,24 @@
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPlace, canAccessTokenAct } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPlace, type PageIcon, pageIconSchema } from '@company-brain/shared';
 import {
   MCP_NOTHING_TO_CHANGE_MESSAGE,
+  MCP_PAGE_ICON_INVALID_MESSAGE,
   MCP_PAGE_MANAGE_REFUSED_MESSAGE,
   MCP_TOOL_NAMES,
 } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
-import { explainMcpRefusal, openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
+import { requireMcpRowChangeAllowed } from '../lib/mcp.collections.lib';
+import { canMcpAct, explainMcpRefusal, openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';
 import { describeMcpManagedPage, findMcpPerson, formatMcpManagedPageText } from '../lib/mcp.page-management.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
+import { readMcpActor } from '../lib/mcp.tool.lib';
 import { managedPageOutputSchema, updatePageInputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpManagedPage, McpPageStep, McpUpdatePageInput } from '../types/mcp.page-management.types';
-import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type {
+  McpManagedPage,
+  McpManagedPageOutput,
+  McpPageStep,
+  McpUpdatePageInput,
+} from '../types/mcp.page-management.types';
+import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
 const readOwnerId = async (
   dependencies: McpServerDependencies,
@@ -30,9 +37,19 @@ const asksToManage = (input: McpUpdatePageInput): boolean =>
  */
 const requireManaging = (call: McpCall, place: AccessTokenPlace, input: McpUpdatePageInput): void => {
   if (!asksToManage(input)) return;
-  const { principal } = call;
-  if (!canAccessTokenAct(principal.access, principal.role, place, ACCESS_TOKEN_PERMISSIONS.pagesManage))
+  if (!canMcpAct(call, place, ACCESS_TOKEN_PERMISSIONS.pagesManage))
     throw new McpToolError(MCP_PAGE_MANAGE_REFUSED_MESSAGE);
+};
+
+/**
+ * El emoji pedido, revisado con la misma regla que aplica la página antes de
+ * cambiar nada: si se revisara al llegar a su paso, el título ya habría cambiado.
+ */
+const readIcon = (icon: string | null | undefined): PageIcon | null | undefined => {
+  if (icon === undefined || icon === null) return icon;
+  const parsed = pageIconSchema.safeParse({ kind: 'emoji', value: icon });
+  if (!parsed.success) throw new McpToolError(MCP_PAGE_ICON_INVALID_MESSAGE);
+  return parsed.data;
 };
 
 /**
@@ -46,38 +63,28 @@ const planSteps = async (
   input: McpUpdatePageInput,
 ): Promise<McpPageStep[]> => {
   const { pages } = dependencies;
-  const { role, userId } = call.principal;
-  const workspaceId = call.workspace.id;
+  const onPage = { ...readMcpActor(call), pageId };
+  const { title } = input;
   if (input.verifiedUntil !== undefined && input.verified !== true)
     throw new McpToolError('verifiedUntil goes with verified: true.');
+  const icon = readIcon(input.icon);
   const ownerId = input.owner === undefined ? undefined : await readOwnerId(dependencies, call, input.owner);
-  const icon = input.icon === undefined || input.icon === null ? input.icon : { kind: 'emoji', value: input.icon };
   const steps: (McpPageStep | null)[] = [
-    input.locked === false
-      ? { apply: () => pages.setLocked(pageId, false, userId, workspaceId, role), name: 'unlocked' }
-      : null,
-    input.title === undefined
-      ? null
-      : { apply: () => pages.rename(pageId, input.title ?? '', userId, workspaceId, role), name: 'title' },
-    icon === undefined
-      ? null
-      : { apply: () => pages.updateIcon(pageId, icon, userId, workspaceId, role), name: 'icon' },
+    input.locked === false ? { apply: () => pages.setLocked({ ...onPage, locked: false }), name: 'unlocked' } : null,
+    title === undefined ? null : { apply: () => pages.rename({ ...onPage, title }), name: 'title' },
+    icon === undefined ? null : { apply: () => pages.updateIcon({ ...onPage, icon }), name: 'icon' },
     input.removeCover === true
-      ? { apply: () => pages.updateCover(pageId, null, userId, workspaceId, role), name: 'cover removed' }
+      ? { apply: () => pages.updateCover({ ...onPage, cover: null }), name: 'cover removed' }
       : null,
     input.verified === undefined
       ? null
       : {
           apply: () =>
-            pages.setVerification(pageId, input.verified === true, input.verifiedUntil, userId, workspaceId, role),
+            pages.setVerification({ ...onPage, expiresAt: input.verifiedUntil, verified: input.verified === true }),
           name: input.verified ? 'verified' : 'verification removed',
         },
-    ownerId === undefined
-      ? null
-      : { apply: () => pages.setOwner(pageId, ownerId, userId, workspaceId, role), name: 'owner' },
-    input.locked === true
-      ? { apply: () => pages.setLocked(pageId, true, userId, workspaceId, role), name: 'locked' }
-      : null,
+    ownerId === undefined ? null : { apply: () => pages.setOwner({ ...onPage, ownerId }), name: 'owner' },
+    input.locked === true ? { apply: () => pages.setLocked({ ...onPage, locked: true }), name: 'locked' } : null,
   ];
   return steps.filter((step) => step !== null);
 };
@@ -102,6 +109,32 @@ const applySteps = async (steps: readonly McpPageStep[]): Promise<{ changed: str
   return { changed, page };
 };
 
+const updatePage = async (
+  dependencies: McpServerDependencies,
+  input: McpUpdatePageInput,
+  { call, record }: McpWriteSession,
+): Promise<McpManagedPageOutput> => {
+  const { page, place } = await openMcpPage(
+    dependencies,
+    call,
+    readMcpPageId(input.page),
+    ACCESS_TOKEN_PERMISSIONS.pagesWrite,
+  );
+  requireManaging(call, place, input);
+  if (input.title !== undefined)
+    await requireMcpRowChangeAllowed(dependencies, call, { parentId: page.parentId, place });
+  const steps = await planSteps(dependencies, call, page.id, input);
+  if (steps.length === 0) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
+  const request = {
+    blockIds: [],
+    detail: { changes: steps.map((step) => step.name) },
+    pageId: page.id,
+    tool: MCP_TOOL_NAMES.updatePage,
+  };
+  const done = await record(request, () => applySteps(steps));
+  return { changed: done.changed, page: describeMcpManagedPage(dependencies, call, { page: done.page, place }) };
+};
+
 /**
  * Cambia una página entera, como se cambia desde su menú: el título, el
  * emoji, quitar la portada, bloquearla, verificarla o darle un dueño.
@@ -118,29 +151,10 @@ export const updatePageTool: McpToolDefinition = {
         outputSchema: managedPageOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.updatePage,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page, place } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            requireManaging(call, place, input);
-            const steps = await planSteps(dependencies, call, page.id, input);
-            if (steps.length === 0) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
-            const request = {
-              blockIds: [],
-              detail: { changes: steps.map((step) => step.name) },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.updatePage,
-            };
-            const done = await recordMcpWrite(dependencies, call, request, () => applySteps(steps));
-            return { changed: done.changed, page: describeMcpManagedPage(dependencies, done.page) };
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.updatePage },
+          (session) => updatePage(dependencies, input, session),
           formatMcpManagedPageText,
         ),
     );

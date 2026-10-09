@@ -58,3 +58,17 @@ rules:
     title: Payload del JWT
     rule: El token de sesión debe contener el id, email, nombre y rol del usuario autenticado.
     why: La aplicación necesita estos datos del usuario sin hacer una llamada adicional al servidor.
+  - id: BR-ea307b3
+    status: active
+    title: Un token de sesión solo sirve como sesión
+    rule: >-
+      El token que abre una sesión dice que es de sesión, y la API solo acepta como sesión un token que lo diga. Un
+      token firmado para otra cosa, como el que deja editar una página en vivo, no abre la API aunque esté vigente y sea
+      del mismo usuario.
+    why: Un token de alcance corto que sirviera como sesión daría más de lo que se pidió al emitirlo.
+    context: Una sesión iniciada antes de este cambio deja de valer y hay que volver a entrar.
+    scenarios:
+      - title: El token de edición en vivo no abre la API
+        given: Un usuario con un token de edición en vivo vigente
+        when: Lo usa para llamar a la API
+        then: La API responde que no está autenticado

@@ -1,4 +1,6 @@
 import {
+  describeMissingPageBlock,
+  findPageBlock,
   isPageDocumentNode,
   listPageDocumentChildren,
   type PageDocumentNodeShape,
@@ -7,8 +9,15 @@ import {
 } from '@company-brain/shared';
 import { MCP_EMPTY_PARAGRAPH_NODE } from '../constants/mcp.constants';
 import type { McpContentEdit, McpTableCellChange, McpTableChange } from '../types/mcp.pages.types';
-import { describeMcpMissingBlock, findMcpBlockNode } from './mcp.blocks.lib';
 import { collectMcpResults } from './mcp.results.lib';
+
+/** Las celdas de una fila con una de ellas cambiada: conserva lo que es —su id, su tipo, cuánto abarca— y cambia solo su párrafo. */
+const replaceCellParagraph = (
+  cells: readonly PageDocumentNodeShape[],
+  column: number,
+  paragraph: unknown,
+): PageDocumentNodeShape[] =>
+  cells.map((cell, index) => (index === column - 1 ? { ...cell, content: [paragraph] } : cell));
 
 const changeCell = (rows: readonly unknown[], change: McpTableCellChange): Result<unknown[], string> => {
   const row = rows[change.row - 1];
@@ -19,11 +28,7 @@ const changeCell = (rows: readonly unknown[], change: McpTableCellChange): Resul
   const cells = listPageDocumentChildren(row);
   if (change.column > cells.length)
     return Result.fail(`The table has no column ${String(change.column)}: it has ${String(cells.length)}.`);
-  /** La celda conserva lo que es —su id, su tipo, cuánto abarca— y cambia solo su párrafo. */
-  const content = cells.map((cell, index) =>
-    index === change.column - 1 ? { ...cell, content: [change.paragraph] } : cell,
-  );
-  const changed = { ...row, content };
+  const changed = { ...row, content: replaceCellParagraph(cells, change.column, change.paragraph) };
   return Result.ok(rows.with(change.row - 1, changed));
 };
 
@@ -78,8 +83,8 @@ const rebuildRows = (table: PageDocumentNodeShape, change: McpTableChange): Resu
 export const editMcpTable =
   (tableId: string, change: McpTableChange): McpContentEdit =>
   (content) => {
-    const table = findMcpBlockNode(content.content, tableId);
-    if (table === null) return Result.fail(describeMcpMissingBlock(tableId));
+    const table = findPageBlock(content.content, tableId);
+    if (table === null) return Result.fail(describeMissingPageBlock(tableId));
     if (table.type !== 'table') return Result.fail(`Block ${tableId} is not a table: change it with update_block.`);
     const rows = rebuildRows(table, change);
     return rows.isFail()

@@ -1,5 +1,6 @@
 import { type AccessTokenAccess, canManageWorkspace, isAccessTokenNameTaken, Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import type { AccessTokenPrincipal, AccessTokenPrincipalResolver } from '../../common/types/access-token.types';
 import { ACCESS_TOKEN_LIMIT_PER_USER, ACCESS_TOKEN_REPOSITORY } from './constants/access-tokens.constants';
 import {
@@ -32,8 +33,10 @@ import {
   generateAccessTokenSecret,
   hashAccessTokenSecret,
 } from './infrastructure/adapters/access-token.secret.adapter';
-import type { AccessTokenRepositoryContract } from './types/access-token.types';
+import type { AccessTokenLogger, AccessTokenRepositoryContract } from './types/access-token.types';
 import {
+  describeAccess,
+  describeOwner,
   isLastUseWorthRecording,
   looksLikeAccessTokenSecret,
   readAccessTokenDisplayPrefix,
@@ -49,7 +52,10 @@ import {
  */
 @Injectable()
 export class AccessTokensService implements AccessTokenPrincipalResolver {
-  constructor(@Inject(ACCESS_TOKEN_REPOSITORY) private readonly accessTokenRepository: AccessTokenRepositoryContract) {}
+  constructor(
+    @Inject(ACCESS_TOKEN_REPOSITORY) private readonly accessTokenRepository: AccessTokenRepositoryContract,
+    @Inject(PinoLogger) private readonly logger: AccessTokenLogger,
+  ) {}
 
   async createToken(
     owner: AccessTokenOwner,
@@ -81,7 +87,13 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
       },
       now,
     );
-    return this.readCreation(creation, secret);
+    const created = this.readCreation(creation, secret);
+    if (created.isOk())
+      this.logger.info(
+        { ...describeAccess(access.getValue()), ...describeOwner(owner), tokenId: created.getValue().token.id },
+        'access token created',
+      );
+    return created;
   }
 
   /** Cambia lo que el token tiene dado, con los mismos límites que al crearlo. La clave no cambia. */
@@ -93,7 +105,12 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     const access = await this.validateGrantableAccess(owner, requested);
     if (access.isFail()) return Result.fail(access.getError());
     const token = await this.accessTokenRepository.replaceAccess(owner, tokenId, access.getValue(), new Date());
-    return token === null ? Result.fail(new AccessTokenNotFoundError()) : Result.ok(token);
+    if (token === null) return Result.fail(new AccessTokenNotFoundError());
+    this.logger.info(
+      { ...describeAccess(access.getValue()), ...describeOwner(owner), tokenId },
+      'access token access replaced',
+    );
+    return Result.ok(token);
   }
 
   async listTokens(owner: AccessTokenOwner): Promise<readonly AccessTokenRecord[]> {
@@ -109,7 +126,9 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
 
   async revokeToken(userId: string, tokenId: string): Promise<Result<void, AccessTokenNotFoundError>> {
     const revoked = await this.accessTokenRepository.revoke(userId, tokenId, new Date());
-    return revoked ? Result.ok(undefined) : Result.fail(new AccessTokenNotFoundError());
+    if (!revoked) return Result.fail(new AccessTokenNotFoundError());
+    this.logger.info({ tokenId, userId }, 'access token revoked by its owner');
+    return Result.ok(undefined);
   }
 
   async revokeWorkspaceToken(
@@ -118,7 +137,9 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
   ): Promise<Result<void, AccessTokenAdminOnlyError | AccessTokenNotFoundError>> {
     if (!canManageWorkspace(viewer.role)) return Result.fail(new AccessTokenAdminOnlyError());
     const revoked = await this.accessTokenRepository.revokeInWorkspace(viewer.workspaceId, tokenId, new Date());
-    return revoked ? Result.ok(undefined) : Result.fail(new AccessTokenNotFoundError());
+    if (!revoked) return Result.fail(new AccessTokenNotFoundError());
+    this.logger.info({ ...describeOwner(viewer), tokenId }, 'access token revoked by a workspace admin');
+    return Result.ok(undefined);
   }
 
   /** En nombre de quién actúa quien presenta este secreto, y con qué, o nadie. Nunca dice por qué no. */
@@ -129,7 +150,7 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     const now = new Date();
     if (token === null || !token.owner.isActive || !isAccessTokenUsable(token, now)) return null;
 
-    if (isLastUseWorthRecording(token.lastUsedAt, now)) await this.accessTokenRepository.touch(token.id, now);
+    if (isLastUseWorthRecording(token.lastUsedAt, now)) await this.recordUse(token.id, now);
     return {
       access: token.access,
       role: token.owner.role,
@@ -137,6 +158,19 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
       userId: token.owner.id,
       workspaceId: token.workspaceId,
     };
+  }
+
+  /**
+   * Anota cuándo se usó el token por última vez. Es un dato de consulta, no
+   * parte de entrar: si no se puede anotar, se cuenta en el log y quien trajo
+   * el token igual entra.
+   */
+  private async recordUse(tokenId: string, now: Date): Promise<void> {
+    try {
+      await this.accessTokenRepository.touch(tokenId, now);
+    } catch (error) {
+      this.logger.error({ err: error, tokenId }, 'could not record the last use of an access token');
+    }
   }
 
   private readCreation(

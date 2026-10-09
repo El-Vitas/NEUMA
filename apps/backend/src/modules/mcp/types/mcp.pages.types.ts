@@ -12,7 +12,6 @@ import type {
   diagramCheckAnswerSchema,
   insertBlocksInputSchema,
   moveBlocksInputSchema,
-  searchDiagramIconsInputSchema,
   searchDiagramIconsOutputSchema,
   updateBlockInputSchema,
   updateTableInputSchema,
@@ -93,7 +92,6 @@ export interface McpRankedIcon {
   readonly rank: number;
 }
 
-export type McpSearchDiagramIconsInput = z.infer<typeof searchDiagramIconsInputSchema>;
 export type McpSearchDiagramIconsOutput = z.infer<typeof searchDiagramIconsOutputSchema>;
 
 /** Dónde van unos bloques, como lo pide el agente. */
@@ -143,7 +141,16 @@ export interface McpBlockChange {
   readonly checked?: boolean;
   readonly colors?: McpBlockColors;
   readonly replacement?: unknown;
-  readonly words?: { readonly inline: readonly unknown[]; readonly text: string };
+  readonly summary?: string;
+  /**
+   * Las palabras nuevas, de las dos formas en que un bloque las guarda: en una
+   * sola línea, o en párrafos separados por líneas en blanco.
+   */
+  readonly words?: {
+    readonly inline: readonly unknown[];
+    readonly paragraphs: readonly unknown[];
+    readonly text: string;
+  };
 }
 
 /** Unos bloques listos para una página, el id que quedó en cada uno de los de arriba, y una página que solo los tiene a ellos. */

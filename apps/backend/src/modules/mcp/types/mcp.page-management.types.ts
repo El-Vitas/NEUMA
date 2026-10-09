@@ -1,4 +1,4 @@
-import type { Result, UserRole } from '@company-brain/shared';
+import type { Result } from '@company-brain/shared';
 import type { z } from 'zod';
 import type {
   duplicatePageInputSchema,
@@ -9,7 +9,7 @@ import type {
   trashPageInputSchema,
   updatePageInputSchema,
 } from '../schemas/mcp.pages.schemas';
-import type { McpRefusal } from './mcp.collections.types';
+import type { McpActor, McpRefusal } from './mcp.collections.types';
 import type { McpPerson } from './mcp.types';
 
 export type McpUpdatePageInput = z.infer<typeof updatePageInputSchema>;
@@ -47,98 +47,36 @@ export interface McpPageStep {
   readonly name: string;
 }
 
+/** Quién actúa sobre qué página. */
+type McpOnPage = McpActor & { readonly pageId: string };
+
 /**
  * Lo que el agente hace con una página entera, por el mismo servicio que el
  * portal: así valen las mismas reglas —quién puede, qué está bloqueado, a dónde
- * se puede mover— sin repetirlas. En el orden de argumentos del servicio.
+ * se puede mover— sin repetirlas. Cada cambio dice por su nombre qué es cada
+ * cosa: dos ids en el orden equivocado no se confunden en silencio.
  */
 export interface McpPageManager {
   readonly duplicate: (
-    pageId: string,
-    includeChildren: boolean,
-    title: string | null,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
+    input: McpOnPage & { readonly includeChildren: boolean; readonly title: string | null },
   ) => McpPageAnswer<McpManagedPage>;
   readonly listTrashed: (
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-    spaceId: string | null,
-    search: string | null,
+    input: McpActor & { readonly search: string | null; readonly spaceId: string | null },
   ) => Promise<readonly McpTrashedPage[]>;
   readonly move: (
-    pageId: string,
-    parentId: string | null,
-    targetSpaceId: string | null,
-    userId: string,
-    workspaceId: string,
-    mutationId: string,
-    role: UserRole,
+    input: McpOnPage & { readonly parentId: string | null; readonly spaceId: string | null },
   ) => McpPageAnswer<McpManagedPage>;
-  readonly previewTrashCascade: (
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ) => McpPageAnswer<{ readonly childPageCount: number }>;
-  readonly rename: (
-    pageId: string,
-    title: string,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-  ) => McpPageAnswer<McpManagedPage>;
+  readonly previewTrashCascade: (input: McpOnPage) => McpPageAnswer<{ readonly childPageCount: number }>;
+  readonly rename: (input: McpOnPage & { readonly title: string }) => McpPageAnswer<McpManagedPage>;
   readonly restore: (
-    pageId: string,
-    userId: string,
-    workspaceId: string,
-    mutationId: string,
-    role: UserRole,
-    includeChildren?: boolean,
+    input: McpOnPage & { readonly includeChildren: boolean },
   ) => McpPageAnswer<{ readonly restoredChildCount: number }>;
-  readonly setLocked: (
-    pageId: string,
-    locked: boolean,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-  ) => McpPageAnswer<McpManagedPage>;
-  readonly setOwner: (
-    pageId: string,
-    ownerId: string | null,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-  ) => McpPageAnswer<McpManagedPage>;
+  readonly setLocked: (input: McpOnPage & { readonly locked: boolean }) => McpPageAnswer<McpManagedPage>;
+  readonly setOwner: (input: McpOnPage & { readonly ownerId: string | null }) => McpPageAnswer<McpManagedPage>;
   readonly setVerification: (
-    pageId: string,
-    verified: boolean,
-    expiresAt: string | null | undefined,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
+    input: McpOnPage & { readonly expiresAt: string | null | undefined; readonly verified: boolean },
   ) => McpPageAnswer<McpManagedPage>;
-  readonly trash: (
-    pageId: string,
-    userId: string,
-    workspaceId: string,
-    mutationId: string,
-    role: UserRole,
-  ) => McpPageAnswer<boolean>;
-  readonly updateCover: (
-    pageId: string,
-    cover: unknown,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-  ) => McpPageAnswer<McpManagedPage>;
-  readonly updateIcon: (
-    pageId: string,
-    icon: unknown,
-    userId: string,
-    workspaceId: string,
-    role: UserRole,
-  ) => McpPageAnswer<McpManagedPage>;
+  readonly trash: (input: McpOnPage) => McpPageAnswer<boolean>;
+  readonly updateCover: (input: McpOnPage & { readonly cover: unknown }) => McpPageAnswer<McpManagedPage>;
+  readonly updateIcon: (input: McpOnPage & { readonly icon: unknown }) => McpPageAnswer<McpManagedPage>;
 }

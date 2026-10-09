@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test';
-import { keepTheDiagramSourceToItself, keepTheDrawingToItself, mendTheDrawing } from '@/shared/lib/diagram.trust.lib';
+import {
+  forgetWhatIsAskedOfOthers,
+  keepTheDiagramSourceToItself,
+  keepTheDrawingToItself,
+  mendTheDrawing,
+} from '@/shared/lib/diagram.trust.lib';
 
 /**
  * One family writes what a line means in a grey it carries in its own code,
@@ -41,6 +46,26 @@ describe('what the writing of a diagram is allowed to reach', () => {
 
     expect(keepTheDiagramSourceToItself(written)).toBe(written);
   });
+
+  it('leaves alone a piece pointed at inside the drawing, even with a space before it', () => {
+    const written = 'flowchart TD\n  classDef x fill:url( #degradado)';
+
+    expect(keepTheDiagramSourceToItself(written)).toBe(written);
+  });
+
+  it('takes out a fetching tag closed with spaces around its slash', () => {
+    expect(keepTheDiagramSourceToItself('A[<img src=x>< / img>] --> B')).toBe('A[] --> B');
+  });
+
+  /** Lo escribe quien escribe en la página, y lo lee cada persona que la abre: no puede trabar al navegador. */
+  it('reads a long run of spaces in one pass', () => {
+    const startedAt = performance.now();
+
+    keepTheDiagramSourceToItself(`url(${' '.repeat(20_000)}`);
+    keepTheDiagramSourceToItself(`<${' '.repeat(20_000)}`);
+
+    expect(performance.now() - startedAt).toBeLessThan(200);
+  });
 });
 
 /**
@@ -72,12 +97,35 @@ describe('what a drawing is allowed to reach', () => {
     expect(kept).not.toContain('ajeno.example');
   });
 
+  /*
+   * The style a drawing carries is cleaned on its own: the simulated page these
+   * tests run in drops a whole drawing that holds a style, so asking it would
+   * prove nothing.
+   */
   it('drops an address hidden in the style the drawing carries', () => {
-    const kept = keepTheDrawingToItself(
-      '<svg><style>.node rect{background:url("https://ajeno.example/fondo.gif")}</style><rect/></svg>',
+    const kept = forgetWhatIsAskedOfOthers('.node rect{background:url("https://ajeno.example/fondo.gif")}');
+
+    expect(kept).not.toContain('ajeno.example');
+    expect(kept).toContain('.node rect{background:none}');
+  });
+
+  /** A style can ask for a whole other sheet by its address alone, with no url() around it. */
+  it('drops a whole other sheet a style asks for, however its address is written', () => {
+    const kept = forgetWhatIsAskedOfOthers(
+      '@import "https://ajeno.example/a.css"; @import \'//ajeno.example/b.css\' screen; .node{fill:red}',
     );
 
     expect(kept).not.toContain('ajeno.example');
+    expect(kept).toContain('.node{fill:red}');
+  });
+
+  it('takes a sheet asked for out of the writing too, before anything is drawn', () => {
+    const kept = keepTheDiagramSourceToItself(
+      '---\nconfig:\n  themeCSS: \'@import "https://ajeno.example/a.css";\'\n---\nflowchart LR\n  A --> B',
+    );
+
+    expect(kept).not.toContain('ajeno.example');
+    expect(kept).toContain('A --> B');
   });
 
   /** A drawing points at its own pieces all the time, and that is the whole of how it is drawn. */
@@ -96,5 +144,28 @@ describe('what a drawing is allowed to reach', () => {
     const kept = keepTheDrawingToItself('<svg><image href="data:image/png;base64,iVBORw0KGgo="/></svg>');
 
     expect(kept).toContain('data:image/png;base64');
+  });
+});
+
+/**
+ * Lo que escribe un agente también se dibuja delante de todos. Si la limpieza
+ * del motor dejara pasar algo, esta es la segunda línea.
+ */
+describe('a drawing that tries to run something', () => {
+  it('drops a script, a handler on a piece, and a page opened inside a label', () => {
+    const kept = keepTheDrawingToItself(
+      '<svg onload="alert(1)"><script>alert(2)</script><g onclick="alert(3)"><rect/></g><foreignObject><div><iframe src="data:text/html,x"></iframe></div></foreignObject></svg>',
+    );
+
+    expect(kept).not.toContain('alert');
+    expect(kept).not.toContain('<script');
+    expect(kept).not.toContain('<iframe');
+  });
+
+  it('drops a link that would run something when followed', () => {
+    const kept = keepTheDrawingToItself('<svg><a href="javascript:alert(1)"><text>Ir</text></a></svg>');
+
+    expect(kept).not.toContain('javascript:');
+    expect(kept).toContain('Ir');
   });
 });

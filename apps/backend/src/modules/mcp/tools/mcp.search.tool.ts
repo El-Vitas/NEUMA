@@ -79,7 +79,6 @@ const toSearchOutput = (portalUrl: string, blocks: PageBlockSearchPage, pages: S
       isPageVerified: item.isPageVerified,
       pageId: item.pageId,
       pageTitle: item.pageTitle,
-      parentPageTitle: item.parentPageTitle,
       section: item.headingPath,
       snippet: item.snippet,
       spaceId: item.spaceId,

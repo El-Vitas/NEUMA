@@ -132,6 +132,16 @@ export const PAGE_DOCUMENT_NODES = {
   nested_block: { attrs: withBlockAttributes(), content: 'block block_children', group: 'block' },
 } as const satisfies Readonly<Record<string, PageDocumentNodeStructure>>;
 
+/**
+ * Los nodos que no contienen nada: los que su forma no dice qué llevan dentro.
+ * Darle a uno de estos un `content` vacío al escribirlo sería una forma que el
+ * contrato guardado rechaza. Sale de la forma misma, así un nodo nuevo no
+ * queda fuera por olvido.
+ */
+export const PAGE_DOCUMENT_LEAF_NODES: readonly string[] = Object.entries(PAGE_DOCUMENT_NODES)
+  .filter(([, structure]) => !('content' in structure))
+  .map(([name]) => name);
+
 export const PAGE_DOCUMENT_MARKS = {
   code: {},
   comment: { attrs: { id: REQUIRED }, inclusive: false },

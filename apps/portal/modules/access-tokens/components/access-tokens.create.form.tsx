@@ -2,9 +2,9 @@
 
 import { isAccessTokenNameTaken, type UserRole } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useState, useTransition } from 'react';
+import { type SubmitEvent, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ACCESS_TOKEN_DEFAULT_EXPIRY } from '../constants/access-tokens.constants';
 import { useAccessTokensDraft } from '../hooks/use.access-tokens.draft';
 import {
@@ -37,12 +37,14 @@ export const AccessTokensCreateForm = ({ onCreated, role, spaces, takenNames }: 
   const [isPending, startTransition] = useTransition();
   const resolvedExpiry = resolveAccessTokenExpiry(expiry, customDate, new Date());
 
-  const submit = (event: FormEvent<HTMLFormElement>): void => {
+  const submit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const expiresAt = readExpiresAtInput(resolveAccessTokenExpiry(expiry, customDate, new Date()));
     if (expiresAt === undefined) return;
     startTransition(async () => {
-      const result = await createAccessTokenAction({ access: draftRowsToAccess(draft.rows), expiresAt, name });
+      const result = await callAction(() =>
+        createAccessTokenAction({ access: draftRowsToAccess(draft.rows), expiresAt, name }),
+      );
       if (!isActionSuccess<CreatedAccessToken>(result)) {
         toast.error(t(`errors.${readActionFailureReason(result)}`));
         return;

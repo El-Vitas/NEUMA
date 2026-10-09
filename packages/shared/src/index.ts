@@ -84,6 +84,8 @@ export {
 } from './page-document/page-document.node.lib.js';
 export type { PageBlockPlace, PageDocumentNodeShape } from './page-document/page-document.types.js';
 export {
+  describeMissingPageBlock,
+  findPageBlock,
   insertPageBlocks,
   movePageBlocks,
   removePageBlocks,
@@ -98,7 +100,7 @@ export {
   writePageAsAnchoredMarkdown,
   writePageAsMarkdown,
 } from './page-markdown.lib.js';
-export { readMarkdownInline } from './page-markdown.inline.lib.js';
+export { readMarkdownInline, readPageLinkAddress } from './page-markdown.inline.lib.js';
 export {
   canPagePropertyGroupBoard,
   formatPagePropertyValue,
@@ -112,7 +114,10 @@ export {
   pagePropertyRequiresOptions,
   pagePropertyRequiresPersonDirectory,
 } from './page-property/page-property.lib.js';
-export { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from './page-property/page-property.key.constants.js';
+export {
+  PAGE_COLLECTION_TITLE_PROPERTY_KEY,
+  PAGE_PROPERTY_KEY_MAX_LENGTH,
+} from './page-property/page-property.key.constants.js';
 export { buildPagePropertyKey } from './page-property/page-property.key.lib.js';
 export {
   pickPageOptionColor,
@@ -259,6 +264,7 @@ export {
   isKnownPageContentNode,
   isPageCalendarDay,
   isPageLinkTarget,
+  isPageWebAddress,
   PAGE_LINK_PROTOCOLS,
   PAGE_BLOCK_COLORS,
   PAGE_CALLOUT_ICONS,
@@ -277,6 +283,13 @@ export {
   PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
+  maximumBookmarkTextLength,
+  maximumFormulaLatexLength,
+  maximumPageTextLength,
+  maximumTableColumns,
+  maximumTableRows,
+  maximumToggleSummaryLength,
+  isPageBlockComment,
   pageAssetAttrsSchema,
   pageCollectionAttrsSchema,
   pageContentSchema,
@@ -319,3 +332,4 @@ export type { UserRole } from './types/user-role.types.js';
 export { USER_ROLE, USER_ROLE_VALUES } from './types/user-role.types.js';
 export type { WorkspaceCapability } from './types/workspace.types.js';
 export { canEditContent, canManageWorkspace, WORKSPACE_CAPABILITY_BY_ROLE } from './types/workspace.types.js';
+export { isOneOf } from './value-list.lib.js';

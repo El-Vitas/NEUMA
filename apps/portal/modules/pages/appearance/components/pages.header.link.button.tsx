@@ -25,7 +25,7 @@ export const PagesHeaderLinkButton = ({ pageId, spaceId }: IProps) => {
     <button
       aria-label={t('copyPageLink')}
       className={cn('grid size-11 place-items-center text-muted-foreground hover:text-foreground', FOCUS_RING_CLASS)}
-      onClick={() => copyPageLink(spaceId, pageId)}
+      onClick={() => void copyPageLink(spaceId, pageId)}
       title={t('copyPageLink')}
       type="button"
     >

@@ -10,9 +10,17 @@ import { Inject, Injectable } from '@nestjs/common';
 import { SchemaPropertyDefinitionError, SchemaViewValidationError } from '../../common/domain/schema.error';
 import { rewriteSchemaOption } from '../../common/domain/schema-option.domain';
 import { validateSchemaView } from '../../common/domain/schema-view.domain';
-import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY, SCHEMA_OPTION_ALREADY_MOVED } from './constants/pages.constants';
+import {
+  COLLECTION_QUERY_ROW_LIMIT,
+  COLLECTION_ROW_LIMIT,
+  PAGE_REPOSITORY,
+  PAGE_SCHEMA_REPOSITORY,
+  SCHEMA_CHANGED_MEANWHILE,
+  SCHEMA_OPTION_ALREADY_MOVED,
+} from './constants/pages.constants';
 import {
   PageAccessDeniedError,
+  PageSchemaChangedError,
   type PageSchemaDefinitionError,
   PageSchemaNotFoundError,
   PageViewNotFoundError,
@@ -69,7 +77,7 @@ export class PageSchemaService {
 
   async defineSchema(
     input: DefinePageSchemaInput,
-  ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | PageSchemaDefinitionError>> {
+  ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | PageSchemaChangedError | PageSchemaDefinitionError>> {
     if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
     if (page === null) return Result.fail(new PageAccessDeniedError());
@@ -77,7 +85,12 @@ export class PageSchemaService {
     if (properties.isFail()) return Result.fail(properties.getError());
     const views = validatePageSchemaViews(input.views, properties.getValue());
     if (views.isFail()) return Result.fail(views.getError());
-    const schema = await this.pageSchemaRepository.defineSchema(input.pageId, properties.getValue(), views.getValue());
+    const schema = await this.pageSchemaRepository.defineSchema(
+      input.pageId,
+      { properties: properties.getValue(), views: views.getValue() },
+      input.readShape,
+    );
+    if (schema === SCHEMA_CHANGED_MEANWHILE) return Result.fail(new PageSchemaChangedError());
     return Result.ok({ ...schema, spaceId: page.spaceId });
   }
 
@@ -165,7 +178,7 @@ export class PageSchemaService {
     if (page === null) return Result.fail(new PageAccessDeniedError());
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(pageId);
     if (!pageCarriesSchema(schemaProperties)) return Result.fail(new PageSchemaNotFoundError());
-    const found = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
+    const found = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role, COLLECTION_ROW_LIMIT);
     return Result.ok({ ...found, spaceId: page.spaceId });
   }
 
@@ -190,7 +203,13 @@ export class PageSchemaService {
     if (!pageCarriesSchema(schema.properties)) return Result.fail(new PageSchemaNotFoundError());
     const configuration = resolveQueryConfiguration(schema, input);
     if (configuration.isFail()) return Result.fail(configuration.getError());
-    const found = await this.pageSchemaRepository.listRows(input.pageId, input.workspaceId, input.userId, input.role);
+    const found = await this.pageSchemaRepository.listRows(
+      input.pageId,
+      input.workspaceId,
+      input.userId,
+      input.role,
+      COLLECTION_QUERY_ROW_LIMIT,
+    );
     return Result.ok({
       hasMore: found.hasMore,
       rows: listPageViewRowsInReadingOrder(configuration.getValue(), schema.properties, found.rows),
@@ -211,7 +230,13 @@ export class PageSchemaService {
     if (!pageCarriesSchema(schema.properties)) return Result.fail(new PageSchemaNotFoundError());
     const view = schema.views.find((candidate) => candidate.name === viewName);
     if (view === undefined) return Result.fail(new PageViewNotFoundError());
-    const { hasMore, rows } = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role);
+    const { hasMore, rows } = await this.pageSchemaRepository.listRows(
+      pageId,
+      workspaceId,
+      userId,
+      role,
+      COLLECTION_ROW_LIMIT,
+    );
     const outcome = buildPageViewOutcome(view, schema.properties, rows);
     return Result.ok({
       hasMore,

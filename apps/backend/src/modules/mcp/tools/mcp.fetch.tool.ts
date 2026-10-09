@@ -1,12 +1,15 @@
+import { PageLifecycle } from '@company-brain/db';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   canAccessTokenAct,
+  findPageBlock,
   listPageBlocks,
   pageContentSchema,
   writeBlocksAsAnchoredMarkdown,
 } from '@company-brain/shared';
 import {
   MCP_BLOCK_NOT_FOUND_NOTE,
+  MCP_FETCHED_IN_TRASH_NOTE,
   MCP_INACCESSIBLE_MESSAGE,
   MCP_REDACTED_REFERENCE_LABEL,
   MCP_TOOL_NAMES,
@@ -15,12 +18,13 @@ import {
 } from '../constants/mcp.constants';
 import {
   MCP_FETCH_BACKLINK_LIMIT,
+  MCP_FETCH_CHILD_LIMIT,
   MCP_FETCH_COMMENT_LIMIT,
   MCP_FETCH_PART_MAX_CHARACTERS,
 } from '../constants/mcp.limits.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { buildMcpPageUrl, readMcpAddress } from '../lib/mcp.address.lib';
-import { findMcpBlockNode, listMcpBlockComments, takeMcpPagePart } from '../lib/mcp.blocks.lib';
+import { buildMcpPageUrl, readMcpAddress, readMcpOffset } from '../lib/mcp.address.lib';
+import { listMcpBlockComments, takeMcpPagePart } from '../lib/mcp.blocks.lib';
 import { formatMcpFetchText } from '../lib/mcp.fetch.text.lib';
 import { describeMcpPageState } from '../lib/mcp.page-state.lib';
 import { hideUnreachableReferences, listReferencedPageIds } from '../lib/mcp.references.lib';
@@ -50,11 +54,12 @@ const findReadablePage = async (
   pageId: string,
 ): Promise<McpPage | null> => {
   const { principal, workspace } = call;
-  const result = await dependencies.pagesService.getAccessible(pageId, workspace.id, principal.userId, principal.role);
-  if (result.isFail()) return null;
+  const [result, place] = await Promise.all([
+    dependencies.pagesService.getAccessible(pageId, workspace.id, principal.userId, principal.role),
+    dependencies.placeReader.readPlace(pageId, workspace.id),
+  ]);
+  if (result.isFail() || place === null) return null;
   const page = result.getValue();
-  const place = await dependencies.placeReader.readPlace(page.id, workspace.id);
-  if (place === null) return null;
   if (!canAccessTokenAct(principal.access, principal.role, place, ACCESS_TOKEN_PERMISSIONS.pagesRead)) return null;
   const content = pageContentSchema.safeParse(page.content);
   if (!content.success) throw new McpToolError(MCP_UNREADABLE_PAGE_MESSAGE);
@@ -136,7 +141,32 @@ const describeRowProperties = async (
   page: McpPage,
 ): Promise<McpRowProperty[]> => {
   const describeRow = await loadMcpRowDescriber(dependencies, call, page.parentId);
-  return describeRow(page.propertyValues, page.title);
+  return describeRow(page);
+};
+
+/**
+ * Las páginas que cuelgan de esta, hasta un tope: una colección grande tiene
+ * miles de filas, y entregarlas todas pasaría lo que el agente puede recibir
+ * de una vez. Las que siguen se recorren con list_pages.
+ */
+const describeChildren = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  page: McpPage,
+): Promise<Pick<McpFetchedPage, 'children' | 'moreChildren'>> => {
+  const children = await dependencies.outline.listChildren(page.spaceId, page.id, call.viewer, {
+    skip: 0,
+    take: MCP_FETCH_CHILD_LIMIT,
+  });
+  const shown = children.entries.map((child) => ({
+    childCount: child.childCount,
+    id: child.id,
+    isCollection: child.isCollection,
+    title: child.title,
+    url: buildMcpPageUrl(dependencies.portalUrl, page.spaceId, child.id, null),
+  }));
+  const more = children.total - shown.length;
+  return { children: shown, ...(more > 0 ? { moreChildren: more } : {}) };
 };
 
 /**
@@ -155,17 +185,14 @@ const describePage = async (
   const part = takeMcpPagePart(visible, start, MCP_FETCH_PART_MAX_CHARACTERS);
   const [place, children, backlinks, properties] = await Promise.all([
     describePlace(dependencies, call, page),
-    dependencies.outline.listChildren(page.spaceId, page.id, call.viewer),
+    describeChildren(dependencies, call, page),
     listReachableBacklinks(dependencies, call, page),
     describeRowProperties(dependencies, call, page),
   ]);
   return {
     ...place,
+    ...children,
     backlinks,
-    children: children.map((child) => ({
-      ...child,
-      url: buildMcpPageUrl(dependencies.portalUrl, page.spaceId, child.id, null),
-    })),
     comments: listMcpBlockComments(visible).slice(0, MCP_FETCH_COMMENT_LIMIT),
     markdown: writeBlocksAsAnchoredMarkdown(part.nodes),
     ...(part.nextStart === null ? {} : { nextCursor: String(part.nextStart) }),
@@ -181,7 +208,7 @@ const presentBlock = async (
   page: McpPage,
   blockId: string,
 ): Promise<McpFetchOutput> => {
-  const node = findMcpBlockNode(page.content.content, blockId);
+  const node = findPageBlock(page.content.content, blockId);
   const reachable = await listReachableReferences(dependencies, call, page);
   if (node === null)
     return { note: MCP_BLOCK_NOT_FOUND_NOTE, page: await describePage(dependencies, call, page, reachable, 0) };
@@ -198,7 +225,7 @@ const presentBlock = async (
   };
 };
 
-const present = async (
+const presentInLifecycle = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   page: McpPage,
@@ -208,6 +235,20 @@ const present = async (
   if (blockId !== null) return presentBlock(dependencies, call, page, blockId);
   const reachable = await listReachableReferences(dependencies, call, page);
   return { page: await describePage(dependencies, call, page, reachable, start) };
+};
+
+/** Una página en la papelera se puede leer, pero se dice primero dónde está: lo que dice ya no rige. */
+const present = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  page: McpPage,
+  blockId: string | null,
+  start: number,
+): Promise<McpFetchOutput> => {
+  const output = await presentInLifecycle(dependencies, call, page, blockId, start);
+  if (page.lifecycle === PageLifecycle.ACTIVE) return output;
+  const note = output.note === undefined ? MCP_FETCHED_IN_TRASH_NOTE : `${MCP_FETCHED_IN_TRASH_NOTE} ${output.note}`;
+  return { ...output, note };
 };
 
 /** Un id suelto se prueba primero como página y después como bloque. */
@@ -271,8 +312,9 @@ export const fetchTool: McpToolDefinition = {
           MCP_TOOL_NAMES.fetch,
           async () => {
             const call = await openMcpCall(dependencies);
-            const start = cursor === undefined ? 0 : Number(cursor);
-            return fetchOutputSchema.parse(await fetchAddress(dependencies, call, readMcpAddress(address), start));
+            return fetchOutputSchema.parse(
+              await fetchAddress(dependencies, call, readMcpAddress(address), readMcpOffset(cursor)),
+            );
           },
           formatMcpFetchText,
         ),

@@ -31,6 +31,7 @@ const toPageProjection = (page: {
   spaceId: string;
   spaceName: string;
   title: string;
+  updatedAt: Date;
   verificationExpiresAt: Date | null;
   verifiedAt: Date | null;
   version: number;
@@ -39,6 +40,7 @@ const toPageProjection = (page: {
   if (content === null) return null;
   return {
     contentType: 'PAGE',
+    editedAt: page.updatedAt,
     extractedText: extractPageContentText(content),
     language: null,
     properties: {

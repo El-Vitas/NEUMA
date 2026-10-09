@@ -32,7 +32,8 @@ export const hasMcpDiagramIcon = (packs: readonly McpIconPack[], icon: string): 
   if (!icon.includes(':')) return MCP_DIAGRAM_BUILT_IN_ICONS.includes(icon);
   const [prefix, name] = icon.split(':');
   const pack = packs.find((candidate) => candidate.prefix === prefix);
-  return pack !== undefined && name !== undefined && listNames(pack).includes(name);
+  if (pack === undefined || name === undefined) return false;
+  return Object.hasOwn(pack.icons, name) || Object.hasOwn(pack.aliases ?? {}, name);
 };
 
 /**
@@ -55,7 +56,7 @@ export const searchMcpDiagramIcons = (packs: readonly McpIconPack[], query: stri
     }),
   );
   return ranked
-    .sort(compareIcons)
+    .toSorted(compareIcons)
     .slice(0, limit)
     .map((icon) => icon.name);
 };

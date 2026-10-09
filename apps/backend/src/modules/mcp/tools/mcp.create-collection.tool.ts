@@ -6,21 +6,30 @@ import {
 } from '@company-brain/shared';
 import { MCP_EMPTY_PAGE_CONTENT, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { buildMcpPageUrl } from '../lib/mcp.address.lib';
 import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
+import { requireMcpRowChangeAllowed } from '../lib/mcp.collections.lib';
 import { applyMcpColumnChanges } from '../lib/mcp.column-changes.lib';
+import { listMcpNames } from '../lib/mcp.columns.lib';
 import { requireMcpInput, requireMcpSuccess, resolveMcpCreationPlace } from '../lib/mcp.page-access.lib';
-import { openMcpCall, readMcpPlace, runMcpTool } from '../lib/mcp.tool.lib';
+import { readMcpActor } from '../lib/mcp.tool.lib';
 import { collectionOutputSchema, createCollectionInputSchema } from '../schemas/mcp.collections.schemas';
 import type {
+  McpCollectionOutput,
   McpCollectionShape,
   McpColumn,
   McpCreateCollectionInput,
   McpOpenCollection,
   McpWrittenRow,
 } from '../types/mcp.collections.types';
-import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type {
+  McpCall,
+  McpCreationPlace,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
 /** La columna que nombra cada fila, que toda colección tiene y que no se puede quitar. */
 const writeTitleColumn = (name: string): McpColumn => ({
@@ -34,7 +43,10 @@ const writeTitleColumn = (name: string): McpColumn => ({
 /** La forma con que nace la colección: sus columnas y una tabla sin filtros. Se revisa antes de crear nada. */
 const planShape = (input: McpCreateCollectionInput): McpCollectionShape => {
   const plan = requireMcpInput(
-    applyMcpColumnChanges([writeTitleColumn(input.titleColumn)], { addColumns: input.columns ?? [] }),
+    applyMcpColumnChanges(
+      { columns: [writeTitleColumn(input.titleColumn)], listNames: listMcpNames },
+      { addColumns: input.columns ?? [] },
+    ),
   );
   const table = { configuration: {}, isDefault: true, name: input.viewName, type: PAGE_VIEW_TYPE.TABLE };
   return { properties: plan.properties, views: [table] };
@@ -48,55 +60,117 @@ const createPage = async (
 ): Promise<McpWrittenRow> => {
   const { principal, workspace } = call;
   return requireMcpSuccess(
-    await dependencies.rows.create(
-      {
-        content: MCP_EMPTY_PAGE_CONTENT,
-        createdById: principal.userId,
-        parentId: place.parentId,
-        propertyValues: null,
-        role: principal.role,
-        spaceId: place.spaceId,
-        title,
-        userId: principal.userId,
-        workspaceId: workspace.id,
-      },
-      principal.role,
-    ),
+    await dependencies.rows.create({
+      content: MCP_EMPTY_PAGE_CONTENT,
+      parentId: place.parentId,
+      propertyValues: null,
+      role: principal.role,
+      spaceId: place.spaceId,
+      title,
+      userId: principal.userId,
+      workspaceId: workspace.id,
+    }),
+  );
+};
+
+/**
+ * Guarda la forma de la página recién creada. Su lugar sale de donde se creó,
+ * sin volver a preguntarlo: una lectura de más después de escribir solo podría
+ * fallar y deshacer una colección que quedó bien.
+ */
+const saveShape = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  created: { readonly page: McpWrittenRow; readonly where: McpCreationPlace },
+  shape: McpCollectionShape,
+): Promise<McpOpenCollection> => {
+  const { principal, workspace } = call;
+  const { page, where } = created;
+  const saved = requireMcpSuccess(
+    await dependencies.collections.defineSchema({
+      pageId: page.id,
+      properties: shape.properties,
+      role: principal.role,
+      userId: principal.userId,
+      views: shape.views,
+      workspaceId: workspace.id,
+    }),
+  );
+  const place = { lineage: [page.id, ...where.parentPlace.lineage], spaceId: where.spaceId };
+  return { id: page.id, listNames: listMcpNames, place, shape: saved, spaceId: page.spaceId, title: page.title };
+};
+
+/**
+ * Deshace la página que esta misma llamada acaba de crear, cuando no se le
+ * pudo dar su forma: una colección a medias, sin columnas, confunde más de lo
+ * que sirve. Si no se puede deshacer, se dice cuál quedó para que una persona
+ * la termine o la quite.
+ */
+const trashPage = async (dependencies: McpServerDependencies, call: McpCall, page: McpWrittenRow): Promise<boolean> => {
+  try {
+    const trashed = await dependencies.pages.trash({ ...readMcpActor(call), pageId: page.id });
+    return trashed.isOk();
+  } catch (error) {
+    dependencies.observer.unexpected(error, `taking back page ${page.id} that create_collection left without columns`);
+    return false;
+  }
+};
+
+const takeBackPage = async (dependencies: McpServerDependencies, call: McpCall, page: McpWrittenRow): Promise<void> => {
+  if (await trashPage(dependencies, call, page)) return;
+  const url = buildMcpPageUrl(dependencies.portalUrl, page.spaceId, page.id, null);
+  throw new McpToolError(
+    `The page ${url} was created, but its columns could not be set. Tell the person, so they can finish it or remove it.`,
   );
 };
 
 /**
  * Le da a la página recién creada su forma de colección. La forma ya se revisó,
- * así que solo un fallo por dentro la deja sin columnas: entonces se cuenta
- * entero, nombrando la página, y el agente sabe qué quedó y dónde.
+ * así que solo un fallo por dentro la deja sin columnas: entonces la página se
+ * deshace y el motivo sigue su camino.
  */
 const giveItsShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
-  page: McpWrittenRow,
+  created: { readonly page: McpWrittenRow; readonly where: McpCreationPlace },
   shape: McpCollectionShape,
 ): Promise<McpOpenCollection> => {
-  const { principal, workspace } = call;
   try {
-    const saved = requireMcpSuccess(
-      await dependencies.collections.defineSchema({
-        pageId: page.id,
-        properties: shape.properties,
-        role: principal.role,
-        userId: principal.userId,
-        views: shape.views,
-        workspaceId: workspace.id,
-      }),
-    );
-    const place = await readMcpPlace(dependencies, page.id, workspace.id);
-    return { id: page.id, place, shape: saved, spaceId: page.spaceId, title: page.title };
+    return await saveShape(dependencies, call, created, shape);
   } catch (error) {
-    dependencies.observer.unexpected(error, `create_collection left page ${page.id} without its columns`);
-    const url = buildMcpPageUrl(dependencies.portalUrl, page.spaceId, page.id, null);
-    throw new McpToolError(
-      `The page ${url} was created, but its columns could not be set. Tell the person, so they can finish it or remove it.`,
-    );
+    await takeBackPage(dependencies, call, created.page);
+    throw error;
   }
+};
+
+const createCollection = async (
+  dependencies: McpServerDependencies,
+  input: McpCreateCollectionInput,
+  { call, record }: McpWriteSession,
+): Promise<McpCollectionOutput> => {
+  const place = await resolveMcpCreationPlace(dependencies, call, input, [
+    ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
+  ]);
+  await requireMcpRowChangeAllowed(dependencies, call, { parentId: place.parentId, place: place.parentPlace });
+  const shape = planShape(input);
+  const request = {
+    blockIds: [],
+    detail: { parentId: place.parentId, spaceId: place.spaceId, title: input.title },
+    pageId: place.parentId,
+    tool: MCP_TOOL_NAMES.createCollection,
+  };
+  const collection = await record(
+    request,
+    async () =>
+      giveItsShape(
+        dependencies,
+        call,
+        { page: await createPage(dependencies, call, place, input.title), where: place },
+        shape,
+      ),
+    (created) => created.id,
+  );
+  return describeMcpCollection(dependencies.portalUrl, collection);
 };
 
 /**
@@ -116,26 +190,14 @@ export const createCollectionTool: McpToolDefinition = {
         outputSchema: collectionOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.createCollection,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const place = await resolveMcpCreationPlace(dependencies, call, input, [
-              ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
-            ]);
-            const shape = planShape(input);
-            const request = {
-              blockIds: [],
-              detail: { title: input.title },
-              pageId: place.parentId,
-              tool: MCP_TOOL_NAMES.createCollection,
-            };
-            const collection = await recordMcpWrite(dependencies, call, request, async () =>
-              giveItsShape(dependencies, call, await createPage(dependencies, call, place, input.title), shape),
-            );
-            return describeMcpCollection(dependencies.portalUrl, collection);
+          {
+            requestId: input.requestId,
+            target: input.parent ?? input.space ?? null,
+            tool: MCP_TOOL_NAMES.createCollection,
           },
+          (session) => createCollection(dependencies, input, session),
           (output) => `Collection created.\n${formatMcpCollectionText(output)}`,
         ),
     );

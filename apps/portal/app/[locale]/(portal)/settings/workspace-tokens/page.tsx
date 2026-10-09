@@ -1,4 +1,4 @@
-import { USER_ROLE } from '@company-brain/shared';
+import { canManageWorkspace } from '@company-brain/shared';
 import { notFound } from 'next/navigation';
 import { getWorkspaceAccessTokens } from '@/modules/access-tokens/server/queries/access-tokens.queries';
 import { AccessTokensWorkspaceView } from '@/modules/access-tokens/views/access-tokens.workspace.view';
@@ -13,7 +13,7 @@ export const instant = false;
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (user?.role !== USER_ROLE.ADMIN) notFound();
+  if (user === null || !canManageWorkspace(user.role)) notFound();
 
   const tokens = await getWorkspaceAccessTokens();
 

@@ -1,7 +1,8 @@
+import { isPageLinkTarget } from '@company-brain/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';
-import { isPageEditorLinkTarget, pageEditorSchema } from '../../lib/pages.editor.schema';
+import { pageEditorSchema } from '../../lib/pages.editor.schema';
 import type { PageEditorSurfaceRect } from '../../menus/types/pages.editor.surface.types';
 import {
   PAGE_EDITOR_LINK_BUBBLE_GAP_PX,
@@ -64,7 +65,7 @@ export const createPageLinkCommand =
   (link: PageEditorWrittenLink, href: string | null): Command =>
   (state, dispatch) => {
     if (link.from === link.to) return false;
-    if (href !== null && !isPageEditorLinkTarget(href)) return false;
+    if (href !== null && !isPageLinkTarget(href)) return false;
     if (dispatch === undefined) return true;
     const mark = pageEditorSchema.marks.link;
     const transaction = state.tr.removeMark(link.from, link.to, mark);

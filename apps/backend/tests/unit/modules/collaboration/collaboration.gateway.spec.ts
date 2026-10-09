@@ -175,6 +175,40 @@ describe('collaboration gateway', () => {
     expect(gateway.authorizeUpdate(payload.context, documentName, new Uint8Array([1]))).rejects.toThrow('forbidden');
   });
 
+  /**
+   * Toda conexión manda mensajes aunque no escriba: el primero pide el estado
+   * del documento. A quien solo lee se le pide poder leer, no escribir; lo que
+   * intente cambiar ya lo descarta la conexión de solo lectura.
+   */
+  test('lets a read-only viewer sync the document, asking it only to be able to read', async () => {
+    const adapters = createAdapters({ canWrite: false, mode: 'read' });
+    const gateway = createCollaborationGateway(adapters);
+    const payload = authenticatedPayload(gateway.server, 'valid-token');
+    payload.context = (await Promise.resolve(
+      gateway.server.configuration.onAuthenticate?.(payload),
+    )) as CollaborationContext;
+
+    const handled = gateway.authorizeMessage(payload.context, documentName, new Uint8Array([0]), { readOnly: true });
+
+    expect(handled).resolves.toBeUndefined();
+  });
+
+  test('still asks a connection that writes to be able to write, message by message', () => {
+    const adapters = createAdapters({ canWrite: false });
+    const gateway = createCollaborationGateway(adapters);
+    const context: CollaborationContext = {
+      mode: 'write',
+      pageId,
+      role: USER_ROLE.WORKER,
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+    };
+
+    const handled = gateway.authorizeMessage(context, documentName, new Uint8Array([0]), { readOnly: false });
+
+    expect(handled).rejects.toThrow('forbidden');
+  });
+
   test('accepts only stable page document names', () => {
     const gateway = createCollaborationGateway(createAdapters());
 

@@ -52,6 +52,7 @@ describe('Access tokens (Integration)', () => {
     const created = await createToken(ownerToken, 'Claude en mi portátil').expect(201);
     const body = created.body as CreatedTokenResponse;
     expect(body.secret.startsWith('cbk_')).toBe(true);
+    expect(created.headers['cache-control']).toBe('no-store');
 
     const listed = await request(testApp.getServer())
       .get('/api/v1/access-tokens')

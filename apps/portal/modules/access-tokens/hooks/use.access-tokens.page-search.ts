@@ -38,7 +38,7 @@ export const useAccessTokensPageSearch = (query: string): AccessTokenPageSearch 
     };
 
     const timeoutId = setTimeout(() => {
-      void searchGrantablePagesAction({ query: trimmedQuery }).then(receivePages);
+      void searchGrantablePagesAction({ query: trimmedQuery }).then(receivePages, () => receivePages(undefined));
     }, DEFAULT_DEBOUNCE_MS);
 
     return () => {

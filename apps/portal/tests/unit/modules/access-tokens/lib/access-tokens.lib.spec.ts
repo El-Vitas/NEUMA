@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_LEVELS, ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
+import {
+  ACCESS_TOKEN_LEVELS,
+  ACCESS_TOKEN_PAGE_GRANT_LIMIT,
+  ACCESS_TOKEN_PERMISSIONS,
+  ACCESS_TOKEN_SPACE_GRANT_LIMIT,
+  USER_ROLE,
+} from '@company-brain/shared';
 import {
   ACCESS_TOKEN_EXPIRY_OPTIONS,
   ACCESS_TOKEN_TARGET_KINDS,
@@ -8,6 +14,7 @@ import {
 import {
   accessToDraftRows,
   buildAccessTokenMcpConfig,
+  canAddDraftRow,
   canSubmitAccessDraft,
   canSubmitAccessTokenCreate,
   draftRowsToAccess,
@@ -295,6 +302,19 @@ describe('cuándo se puede mandar', () => {
       canSubmitAccessDraft([row({ level: ACCESS_TOKEN_LEVELS.none, target: { kind: 'SPACE', spaceId: 'sales' } })]),
     ).toBe(false);
     expect(canSubmitAccessDraft([row({})])).toBe(true);
+  });
+
+  /** El servidor no acepta más lugares que estos: mejor no ofrecer mandar lo que va a rechazar. */
+  it('stops at the most spaces a token can name, and offers no row past what fits', () => {
+    const spaces = (count: number) =>
+      Array.from({ length: count }, (_unused, index) =>
+        row({ key: `s${String(index)}`, target: { kind: 'SPACE', spaceId: `space-${String(index)}` } }),
+      );
+
+    expect(canSubmitAccessDraft(spaces(ACCESS_TOKEN_SPACE_GRANT_LIMIT))).toBe(true);
+    expect(canSubmitAccessDraft(spaces(ACCESS_TOKEN_SPACE_GRANT_LIMIT + 1))).toBe(false);
+    expect(canAddDraftRow(spaces(ACCESS_TOKEN_SPACE_GRANT_LIMIT))).toBe(true);
+    expect(canAddDraftRow(spaces(ACCESS_TOKEN_SPACE_GRANT_LIMIT + ACCESS_TOKEN_PAGE_GRANT_LIMIT + 1))).toBe(false);
   });
 
   it('waits for a page to be chosen in a page row', () => {

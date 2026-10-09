@@ -7,8 +7,7 @@
  */
 export const downloadExportedFile = (fileName: string, base64: string, mediaType: string): void => {
   const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let at = 0; at < binary.length; at += 1) bytes[at] = binary.charCodeAt(at);
+  const bytes = Uint8Array.from(binary, (character) => character.codePointAt(0) ?? 0);
 
   const address = URL.createObjectURL(new Blob([bytes], { type: mediaType }));
   const anchor = document.createElement('a');

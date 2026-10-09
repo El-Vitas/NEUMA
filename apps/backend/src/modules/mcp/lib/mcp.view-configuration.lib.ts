@@ -1,14 +1,14 @@
 import type { Prisma } from '@company-brain/db/generated';
 import { PAGE_FILTER_GROUP_OPERATOR, Result } from '@company-brain/shared';
-import type { McpColumn, McpViewShapeInput } from '../types/mcp.collections.types';
+import type { McpColumnsInHand, McpViewShapeInput } from '../types/mcp.collections.types';
 import type { McpPerson } from '../types/mcp.types';
 import { readMcpConditionValue, requireMcpColumn } from './mcp.columns.lib';
 
 /** Las claves de unas columnas nombradas como las ve la gente, o la primera que no está. */
-const requireKeys = (columns: readonly McpColumn[], references: readonly string[]): Result<string[], string> => {
+const requireKeys = (known: McpColumnsInHand, references: readonly string[]): Result<string[], string> => {
   const keys: string[] = [];
   for (const reference of references) {
-    const column = requireMcpColumn(columns, reference);
+    const column = requireMcpColumn(known.columns, reference, known.listNames);
     if (column.isFail()) return Result.fail(column.getError());
     keys.push(column.getValue().key);
   }
@@ -16,16 +16,16 @@ const requireKeys = (columns: readonly McpColumn[], references: readonly string[
 };
 
 const buildFilter = (
-  columns: readonly McpColumn[],
+  known: McpColumnsInHand,
   where: NonNullable<McpViewShapeInput['where']>,
   people: readonly McpPerson[],
 ): Result<Prisma.InputJsonObject | null, string> => {
   if (where.length === 0) return Result.ok(null);
   const conditions: Prisma.InputJsonObject[] = [];
   for (const condition of where) {
-    const column = requireMcpColumn(columns, condition.column);
+    const column = requireMcpColumn(known.columns, condition.column, known.listNames);
     if (column.isFail()) return Result.fail(column.getError());
-    const value = readMcpConditionValue(column.getValue(), condition.operator, condition.value, people);
+    const value = readMcpConditionValue(column.getValue(), condition, people, known.listNames);
     if (value.isFail()) return Result.fail(value.getError());
     conditions.push({
       kind: 'CONDITION',
@@ -38,20 +38,20 @@ const buildFilter = (
 };
 
 const buildSorts = (
-  columns: readonly McpColumn[],
+  known: McpColumnsInHand,
   sort: NonNullable<McpViewShapeInput['sort']>,
 ): Result<Prisma.InputJsonObject[], string> => {
   const keys = requireKeys(
-    columns,
+    known,
     sort.map((rule) => rule.column),
   );
   if (keys.isFail()) return Result.fail(keys.getError());
   return Result.ok(sort.map((rule, at) => ({ direction: rule.direction, propertyKey: keys.getValue()[at] ?? '' })));
 };
 
-const buildGroupBy = (columns: readonly McpColumn[], groupBy: string | null): Result<string | null, string> => {
+const buildGroupBy = (known: McpColumnsInHand, groupBy: string | null): Result<string | null, string> => {
   if (groupBy === null) return Result.ok(null);
-  const column = requireMcpColumn(columns, groupBy);
+  const column = requireMcpColumn(known.columns, groupBy, known.listNames);
   return column.isFail() ? Result.fail(column.getError()) : Result.ok(column.getValue().key);
 };
 
@@ -64,15 +64,15 @@ const buildGroupBy = (columns: readonly McpColumn[], groupBy: string | null): Re
  * no pidió cambiar queda como estaba.
  */
 export const buildMcpViewConfiguration = (
-  columns: readonly McpColumn[],
+  known: McpColumnsInHand,
   shape: McpViewShapeInput,
   people: readonly McpPerson[],
   base: Prisma.InputJsonObject,
 ): Result<Prisma.InputJsonObject, string> => {
-  const filter = shape.where === undefined ? null : buildFilter(columns, shape.where, people);
-  const sorts = shape.sort === undefined ? null : buildSorts(columns, shape.sort);
-  const groupBy = shape.groupBy === undefined ? null : buildGroupBy(columns, shape.groupBy);
-  const visible = shape.visibleColumns === undefined ? null : requireKeys(columns, shape.visibleColumns);
+  const filter = shape.where === undefined ? null : buildFilter(known, shape.where, people);
+  const sorts = shape.sort === undefined ? null : buildSorts(known, shape.sort);
+  const groupBy = shape.groupBy === undefined ? null : buildGroupBy(known, shape.groupBy);
+  const visible = shape.visibleColumns === undefined ? null : requireKeys(known, shape.visibleColumns);
   const failed = [filter, sorts, groupBy, visible].find((part) => part?.isFail() === true);
   if (failed !== undefined && failed !== null) return Result.fail(failed.getError());
   return Result.ok({

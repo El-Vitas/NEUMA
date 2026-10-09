@@ -1,12 +1,31 @@
 import { ACCESS_TOKEN_PERMISSIONS, movePageBlocks } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { readMcpBlockPlace } from '../lib/mcp.block-update.lib';
 import { openMcpPage, readMcpPageId, requireMcpInput } from '../lib/mcp.page-access.lib';
 import { describeMcpWrittenBlocks, formatMcpWrittenBlocksText, writeMcpContent } from '../lib/mcp.page-writes.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { moveBlocksInputSchema, writtenBlocksOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpMoveBlocksInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+const moveBlocks = async (
+  dependencies: McpServerDependencies,
+  input: McpMoveBlocksInput,
+  { call, record }: McpWriteSession,
+): Promise<McpWrittenBlocksOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const place = requireMcpInput(readMcpBlockPlace(input));
+  const request = {
+    blockIds: input.blocks,
+    detail: { place: JSON.stringify(place) },
+    pageId: opened.page.id,
+    tool: MCP_TOOL_NAMES.moveBlocks,
+  };
+  const content = await record(request, () =>
+    writeMcpContent(dependencies, call, opened.page, (current) => movePageBlocks(current, input.blocks, place)),
+  );
+  return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, input.blocks);
+};
 
 /**
  * Lleva bloques a otro lugar de la misma página, con su id y todo lo que
@@ -24,29 +43,10 @@ export const moveBlocksTool: McpToolDefinition = {
         outputSchema: writtenBlocksOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.moveBlocks,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            const place = requireMcpInput(readMcpBlockPlace(input));
-            const request = {
-              blockIds: input.blocks,
-              detail: { place: JSON.stringify(place) },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.moveBlocks,
-            };
-            const content = await recordMcpWrite(dependencies, call, request, () =>
-              writeMcpContent(dependencies, call, page, (current) => movePageBlocks(current, input.blocks, place)),
-            );
-            return describeMcpWrittenBlocks(dependencies, call, page, content, input.blocks);
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.moveBlocks },
+          (session) => moveBlocks(dependencies, input, session),
           formatMcpWrittenBlocksText,
         ),
     );

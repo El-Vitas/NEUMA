@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '../schemas/page-content.schema.js';
+import { type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
 import { listPageBlocks } from './page-block.lib.js';
 
 const doc = (...content: readonly unknown[]): PageContent =>
-  ({ content, schemaVersion: 1, type: 'doc' }) as unknown as PageContent;
+  pageContentSchema.parse({ content, schemaVersion: 1, type: 'doc' });
 
 const text = (value: string) => ({ text: value, type: 'text' });
 const paragraph = (id: string, ...content: readonly unknown[]) => ({ attrs: { id }, content, type: 'paragraph' });
@@ -86,7 +86,7 @@ describe('listPageBlocks', () => {
           text('Ver '),
           { attrs: { label: 'Plan', pageId: 'x', spaceId: 'y' }, type: 'mention' },
           text(' con '),
-          { attrs: { label: 'Ana', userId: 'u' }, type: 'person' },
+          { attrs: { label: 'Ana', userId: '01a10000-0000-7000-8000-0000000000a1' }, type: 'person' },
           text(' el '),
           { attrs: { at: '2026-10-01' }, type: 'date' },
         ),

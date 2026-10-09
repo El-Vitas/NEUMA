@@ -74,6 +74,6 @@ describe('the days a month is drawn with', () => {
     expect(new Set(days).size).toBe(days.length);
     /** Marzo de 2026 abre en domingo, así que la rejilla empieza el lunes anterior y termina seis semanas después. */
     expect(days[0]).toBe('2026-02-23');
-    expect(days[days.length - 1]).toBe('2026-04-05');
+    expect(days.at(-1)).toBe('2026-04-05');
   });
 });

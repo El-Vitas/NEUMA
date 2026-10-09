@@ -1,4 +1,8 @@
-import { DIAGRAM_MOVABLE_STYLE_CLASS, DIAGRAM_ZOOM_WHEEL_STEP } from '@/shared/constants/diagram.constants';
+import {
+  DIAGRAM_GRIP_THRESHOLD_PX,
+  DIAGRAM_MOVABLE_STYLE_CLASS,
+  DIAGRAM_ZOOM_WHEEL_STEP,
+} from '@/shared/constants/diagram.constants';
 import { readDrawnHeight, readDrawnWidth, showTheDrawingAtItsSize } from '@/shared/lib/diagram.size.lib';
 import { keepDiagramZoomWithinReach, measureDiagramFitZoom } from '@/shared/lib/diagram.zoom.lib';
 import type { DiagramGrip, DiagramHandling, DiagramSize } from '@/shared/types/diagram.types';
@@ -78,18 +82,27 @@ export const letTheDrawingBeHandled = (drawing: HTMLElement, tellZoom: (zoom: nu
     'pointerdown',
     (event) => {
       if (event.button !== 0 || !reachesPastItsBox()) return;
-      event.preventDefault();
       event.stopPropagation();
       grip = { left: drawing.scrollLeft, top: drawing.scrollTop, x: event.clientX, y: event.clientY };
-      drawing.setPointerCapture(event.pointerId);
     },
     { signal },
   );
 
+  /**
+   * The drawing is held only once the pointer has really moved: a press that
+   * stays put is a click, and a click on a link or on a word in the drawing
+   * must reach it.
+   */
   drawing.addEventListener(
     'pointermove',
     (event) => {
       if (grip === null) return;
+      const moved = Math.hypot(event.clientX - grip.x, event.clientY - grip.y);
+      if (!drawing.hasPointerCapture(event.pointerId)) {
+        if (moved < DIAGRAM_GRIP_THRESHOLD_PX) return;
+        drawing.setPointerCapture(event.pointerId);
+      }
+      event.preventDefault();
       drawing.scrollLeft = grip.left - (event.clientX - grip.x);
       drawing.scrollTop = grip.top - (event.clientY - grip.y);
     },

@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import {
+  ACCESS_TOKEN_PERMISSIONS,
+  type AccessTokenPlace,
+  findPageBlock,
   givePageBlocksTheirIds,
   isPageDocumentNode,
   PAGE_CONTENT_SCHEMA_VERSION,
@@ -9,6 +12,7 @@ import {
   readPageDocumentBlockId,
   writeBlocksAsAnchoredMarkdown,
 } from '@company-brain/shared';
+import { MCP_REDACTED_REFERENCE_LABEL, MCP_WRITTEN_UNREADABLE_NOTE } from '../constants/mcp.constants';
 import type {
   McpBlockInput,
   McpContentEdit,
@@ -18,10 +22,10 @@ import type {
 import type { McpCall, McpPagePlace, McpPageSource, McpServerDependencies } from '../types/mcp.types';
 import { buildMcpPageUrl } from './mcp.address.lib';
 import { buildMcpBlockNodes } from './mcp.block-input.lib';
-import { findMcpBlockNode, readMcpBlockInContext } from './mcp.blocks.lib';
+import { readMcpBlockInContext } from './mcp.blocks.lib';
 import { settleMcpCollectionTargets } from './mcp.collection-targets.lib';
 import { checkMcpDrawings } from './mcp.drawing-checks.lib';
-import { requireMcpInput, requireMcpSuccess } from './mcp.page-access.lib';
+import { canMcpAct, requireMcpInput, requireMcpSuccess } from './mcp.page-access.lib';
 import { hideUnreachableReferences, listReferencedPageIds, settleWrittenReferences } from './mcp.references.lib';
 import { checkMcpSyncedTargets } from './mcp.synced-targets.lib';
 
@@ -123,7 +127,7 @@ export const writeMcpContent = async (
 export const listMcpWrittenBlockIds = (content: PageContent, nodes: readonly unknown[]): readonly string[] =>
   nodes.filter(isPageDocumentNode).flatMap((node) => {
     const blockId = readPageDocumentBlockId(node);
-    if (blockId !== null && findMcpBlockNode(content.content, blockId) !== null) return [blockId];
+    if (blockId !== null && findPageBlock(content.content, blockId) !== null) return [blockId];
     return listMcpWrittenBlockIds(content, node.content ?? []);
   });
 
@@ -131,14 +135,21 @@ export const listMcpWrittenBlockIds = (content: PageContent, nodes: readonly unk
  * Lo que devuelve una escritura: la página y los bloques tocados como quedaron,
  * con sus ids, así el agente no tiene que volver a leer. Lo que apunta a una
  * página que el token no alcanza se oculta igual que al leer.
+ *
+ * Un token que escribe pero no lee donde está la página recibe solo los ids y
+ * el enlace: devolverle lo que el bloque dice sería dejarlo leer por la puerta
+ * de la escritura.
  */
 export const describeMcpWrittenBlocks = async (
   dependencies: McpServerDependencies,
   call: McpCall,
-  page: McpPageSource,
-  content: PageContent,
+  written: { readonly content: PageContent; readonly page: McpPageSource; readonly place: AccessTokenPlace },
   blockIds: readonly string[],
 ): Promise<McpWrittenBlocksOutput> => {
+  const { content, page, place } = written;
+  const url = buildMcpPageUrl(dependencies.portalUrl, page.spaceId, page.id, null);
+  if (!canMcpAct(call, place, ACCESS_TOKEN_PERMISSIONS.pagesRead))
+    return { blockIds: [...blockIds], markdown: '', page: { id: page.id, title: MCP_REDACTED_REFERENCE_LABEL, url } };
   const nodes = blockIds
     .map((blockId) => readMcpBlockInContext(content.content, blockId))
     .filter((node) => node !== null);
@@ -146,10 +157,12 @@ export const describeMcpWrittenBlocks = async (
   return {
     blockIds: [...blockIds],
     markdown: writeBlocksAsAnchoredMarkdown(hideUnreachableReferences(nodes, reachable)),
-    page: { id: page.id, title: page.title, url: buildMcpPageUrl(dependencies.portalUrl, page.spaceId, page.id, null) },
+    page: { id: page.id, title: page.title, url },
   };
 };
 
-/** Una escritura de bloques en texto: dónde quedó y cómo quedó. */
+/** Una escritura de bloques en texto: dónde quedó y cómo quedó, o solo dónde, si el token no lee ahí. */
 export const formatMcpWrittenBlocksText = (output: McpWrittenBlocksOutput): string =>
-  `${output.page.title} — ${output.page.url}\n\n${output.markdown}`;
+  output.page.title === MCP_REDACTED_REFERENCE_LABEL
+    ? `${MCP_WRITTEN_UNREADABLE_NOTE} ${output.page.url}\nBlocks: ${output.blockIds.join(', ')}`
+    : `${output.page.title} — ${output.page.url}\n\n${output.markdown}`;

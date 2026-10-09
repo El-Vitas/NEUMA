@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
-import { NODE_ENV_KEY } from '../constants/env.constants';
+import { LOG_LEVEL_KEY, NODE_ENV_KEY } from '../constants/env.constants';
 import { buildLogOptions } from './logger.options';
 
 @Module({
@@ -12,11 +12,10 @@ import { buildLogOptions } from './logger.options';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const isProduction = configService.get<string>(NODE_ENV_KEY) === 'production';
-        const logLevel = configService.get<string>('LOG_LEVEL');
 
         return {
           pinoHttp: {
-            ...buildLogOptions(logLevel ?? (isProduction ? 'info' : 'debug')),
+            ...buildLogOptions(configService.getOrThrow<string>(LOG_LEVEL_KEY)),
             ...(isProduction
               ? {}
               : {

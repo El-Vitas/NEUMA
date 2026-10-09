@@ -9,10 +9,11 @@ import { PAGE_OUTLINE_MAX_DEPTH } from '../../constants/pages.constants';
 import type {
   PageAncestor,
   PageAncestorRow,
-  PageOutlineEntry,
+  PageOutlineChildren,
   PageOutlinePlace,
   PageOutlineReader,
   PageOutlineRepositoryContract,
+  PageOutlineWindow,
 } from '../../types/page-outline.types';
 
 /** Las páginas activas que quien mira puede ver: las de sus espacios, y con un token, solo las que el token deja. */
@@ -38,24 +39,32 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     spaceId: string,
     parentId: string | null,
     reader: PageOutlineReader,
-  ): Promise<readonly PageOutlineEntry[]> {
-    const pages = await this.prisma.page.findMany({
-      orderBy: [{ order: 'asc' }, { id: 'asc' }],
-      select: {
-        _count: { select: { children: { where: readableBy(reader) }, schemaProperties: true } },
-        id: true,
-        propertyValues: true,
-        title: true,
-      },
-      where: { ...readableBy(reader), parentId, spaceId },
-    });
-    return pages.map((page) => ({
+    window: PageOutlineWindow,
+  ): Promise<PageOutlineChildren> {
+    const where = { ...readableBy(reader), parentId, spaceId };
+    const [pages, total] = await Promise.all([
+      this.prisma.page.findMany({
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+        select: {
+          _count: { select: { children: { where: readableBy(reader) }, schemaProperties: true } },
+          id: true,
+          propertyValues: true,
+          title: true,
+        },
+        skip: window.skip,
+        take: window.take,
+        where,
+      }),
+      this.prisma.page.count({ where }),
+    ]);
+    const entries = pages.map((page) => ({
       childCount: page._count.children,
       id: page.id,
       isCollection: page._count.schemaProperties > 0,
       propertyValues: parseSchemaPropertyValues(page.propertyValues),
       title: page.title,
     }));
+    return { entries, total };
   }
 
   async listAncestors(pageId: string, reader: PageOutlineReader): Promise<readonly PageAncestor[]> {
@@ -83,7 +92,12 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
         )
       ).map((place) => place.id),
     );
-    return rows.map((row) => ({ id: row.id, isReadable: readable.has(row.id), title: row.title }));
+    return rows.map(
+      (row): PageAncestor =>
+        readable.has(row.id)
+          ? { id: row.id, isReadable: true, title: row.title }
+          : { id: null, isReadable: false, title: null },
+    );
   }
 
   async listReadable(pageIds: readonly string[], reader: PageOutlineReader): Promise<readonly PageOutlinePlace[]> {

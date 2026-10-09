@@ -25,6 +25,11 @@ export interface AccessTokenPrincipalResolver {
 
 export type AccessTokenRequest = FastifyRequest & { accessTokenPrincipal?: AccessTokenPrincipal };
 
+/** Lo que el guardia de tokens necesita de un logger: avisar de un rechazo. Lo cumple Pino. */
+export interface AccessTokenRefusalLogger {
+  readonly warn: (fields: Record<string, unknown>, message: string) => void;
+}
+
 /** Una regla de página y si deja hacer lo que se está preguntando, para bajarla por su árbol. */
 export interface AccessTokenPageRuleProbe {
   readonly allows: boolean;
@@ -49,6 +54,11 @@ export interface AccessTokenLineageRow {
   readonly spaceId: string;
 }
 
+/** Un paso de la subida por el árbol de una de varias páginas, con la página de donde salió. */
+export interface AccessTokenOriginLineageRow extends AccessTokenLineageRow {
+  readonly originId: string;
+}
+
 /** Una página alcanzada por una regla de página, con lo que dice su regla más cercana. */
 export interface AccessTokenReachRow {
   readonly allows: boolean;
@@ -60,6 +70,11 @@ export interface AccessTokenReachRow {
 export interface AccessTokenPlaceReader {
   /** La página con sus ancestros, de la más cercana a la raíz, o nada si no es de ese espacio de trabajo. */
   readonly readPlace: (pageId: string, workspaceId: string) => Promise<AccessTokenPlace | null>;
+  /** El lugar de varias páginas a la vez; las que no son de ese espacio de trabajo no aparecen. */
+  readonly readPlaces: (
+    pageIds: readonly string[],
+    workspaceId: string,
+  ) => Promise<ReadonlyMap<string, AccessTokenPlace>>;
   readonly resolvePageReach: (
     rules: readonly AccessTokenPageRuleProbe[],
     workspaceId: string,

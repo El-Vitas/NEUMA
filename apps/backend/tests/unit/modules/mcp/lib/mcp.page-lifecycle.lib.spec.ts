@@ -24,9 +24,9 @@ describe('findMcpProtectedDescendant', () => {
   it('names a page under the target whose own rule does not let the token do it', () => {
     const principal = principalWith([{ pageId: 'child', permissions: [pagesRead] }]);
 
-    expect(findMcpProtectedDescendant(principal, 'target', [placeOf('child', 'middle', 'target')], pagesTrash)).toBe(
-      'child',
-    );
+    expect(
+      findMcpProtectedDescendant(principal, 'target', [placeOf('child', 'middle', 'target')], pagesTrash)?.pageId,
+    ).toBe('child');
   });
 
   it('lets it through when the rules below allow it, or are about pages elsewhere', () => {

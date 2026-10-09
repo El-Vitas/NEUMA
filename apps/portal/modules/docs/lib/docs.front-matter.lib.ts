@@ -1,7 +1,7 @@
 import { DOCS_FRONT_MATTER_FENCE, DOCS_FRONT_MATTER_LINE, DOCS_LAST_ORDER } from '../constants/docs.reading.constants';
 import type { DocsFrontMatter } from '../types/docs.types';
 
-const readValue = (said: string): string => said.trim().replace(/^["']|["']$/g, '');
+const readValue = (said: string): string => said.trim().replaceAll(/^["']|["']$/g, '');
 
 /**
  * What a document says about itself, written at the top of its own file.

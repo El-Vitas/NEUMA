@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { pageContentSchema, pageLocatorSchema, pageRestoreMutationSchema } from '@/modules/pages/schemas/pages.schemas';
 
+const PAGE_ID = '01a10000-0000-7000-8000-000000000001';
+const SPACE_ID = '01a10000-0000-7000-8000-000000000002';
+
 describe('pageContentSchema', () => {
   it('accepts the approved versioned ProseMirror contract', () => {
     const result = pageContentSchema.safeParse({
@@ -40,16 +43,22 @@ describe('pageContentSchema', () => {
 
 describe('pageLocatorSchema', () => {
   it('requires both pageId and spaceId', () => {
-    expect(pageLocatorSchema.safeParse({ pageId: 'page-a' }).success).toBe(false);
-    expect(pageLocatorSchema.safeParse({ pageId: 'page-a', spaceId: 'space-a' }).success).toBe(true);
+    expect(pageLocatorSchema.safeParse({ pageId: PAGE_ID }).success).toBe(false);
+    expect(pageLocatorSchema.safeParse({ pageId: PAGE_ID, spaceId: SPACE_ID }).success).toBe(true);
+  });
+
+  /** El id termina escrito en la dirección de un pedido al backend: algo que no es un id no sale de aquí. */
+  it('refuses an id that is not one, a path that climbs out included', () => {
+    expect(pageLocatorSchema.safeParse({ pageId: PAGE_ID, spaceId: '../../users' }).success).toBe(false);
+    expect(pageLocatorSchema.safeParse({ pageId: 'page-a', spaceId: SPACE_ID }).success).toBe(false);
   });
 });
 
 describe('pageRestoreMutationSchema', () => {
   it('makes includeChildren optional', () => {
-    expect(pageRestoreMutationSchema.safeParse({ pageId: 'page-a', spaceId: 'space-a' }).success).toBe(true);
+    expect(pageRestoreMutationSchema.safeParse({ pageId: PAGE_ID, spaceId: SPACE_ID }).success).toBe(true);
     expect(
-      pageRestoreMutationSchema.safeParse({ includeChildren: true, pageId: 'page-a', spaceId: 'space-a' }).success,
+      pageRestoreMutationSchema.safeParse({ includeChildren: true, pageId: PAGE_ID, spaceId: SPACE_ID }).success,
     ).toBe(true);
   });
 });

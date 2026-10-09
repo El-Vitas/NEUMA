@@ -5,10 +5,11 @@ import { getUsers } from '@/modules/users/server/queries/users.queries';
 import { UsersView } from '@/modules/users/views/users.view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
+import type { RouteSearchParams } from '@/shared/types/route-search-params.types';
 import { redirect } from '../../../../i18n/navigation';
 
 interface IProps {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<RouteSearchParams>;
 }
 
 export default async function Page({ searchParams }: IProps) {

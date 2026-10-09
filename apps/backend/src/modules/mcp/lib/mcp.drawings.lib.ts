@@ -8,7 +8,10 @@ import {
 import {
   MCP_ARCHITECTURE_DIAGRAM_START,
   MCP_ARCHITECTURE_GROUP,
+  MCP_ARCHITECTURE_IN_WORD,
   MCP_ARCHITECTURE_MEMBER_LINE,
+  MCP_ARCHITECTURE_NAME,
+  MCP_ARCHITECTURE_WORD_SEPARATOR,
   MCP_DIAGRAM_ICON_PATTERNS,
   MCP_DRAWING_KINDS,
 } from '../constants/mcp.constants';
@@ -52,11 +55,20 @@ export const listMcpDiagramIcons = (source: string): string[] => [
   ),
 ];
 
+/** El grupo que nombra una línea al terminar en `in <grupo>`, leído palabra por palabra. */
+const readArchitectureParent = (line: string): string | null => {
+  const words = line.trim().split(MCP_ARCHITECTURE_WORD_SEPARATOR);
+  const [before, last] = words.slice(-2);
+  return before === MCP_ARCHITECTURE_IN_WORD && last !== undefined && MCP_ARCHITECTURE_NAME.test(last) ? last : null;
+};
+
 const readArchitectureMember = (line: string): McpArchitectureMember[] => {
   const match = MCP_ARCHITECTURE_MEMBER_LINE.exec(line);
   if (match === null) return [];
-  const [, indent = '', kind, name = '', parent] = match;
-  return [{ indent: indent.length, isGroup: kind === MCP_ARCHITECTURE_GROUP, name, parent: parent ?? null }];
+  const [, indent = '', kind, name = ''] = match;
+  return [
+    { indent: indent.length, isGroup: kind === MCP_ARCHITECTURE_GROUP, name, parent: readArchitectureParent(line) },
+  ];
 };
 
 /** El grupo escrito más cerca por encima de un miembro, que es donde lo pone la sangría. */

@@ -1,16 +1,20 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
-import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import { openMcpCollection, requireMcpView, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
+import { formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
+import {
+  describeMcpCollectionAsSeen,
+  openMcpCollection,
+  requireMcpView,
+  saveMcpCollectionShape,
+} from '../lib/mcp.collections.lib';
 import { requireMcpInput } from '../lib/mcp.page-access.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { removeMcpView } from '../lib/mcp.views.lib';
 import { collectionOutputSchema, deleteViewInputSchema } from '../schemas/mcp.collections.schemas';
-import type { McpDeleteViewInput, McpOpenCollection } from '../types/mcp.collections.types';
-import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type { McpCollectionOutput, McpDeleteViewInput, McpOpenCollection } from '../types/mcp.collections.types';
+import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-const deleteView = (
+const removeView = (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
@@ -19,6 +23,27 @@ const deleteView = (
   const { properties, views } = collection.shape;
   const remaining = requireMcpInput(removeMcpView(views, requireMcpView(collection, input.view)));
   return saveMcpCollectionShape(dependencies, call, collection, { properties, views: remaining });
+};
+
+const deleteView = async (
+  dependencies: McpServerDependencies,
+  input: McpDeleteViewInput,
+  { call, record }: McpWriteSession,
+): Promise<McpCollectionOutput> => {
+  const collection = await openMcpCollection(
+    dependencies,
+    call,
+    input.collection,
+    ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
+  );
+  const request = {
+    blockIds: [],
+    detail: { view: input.view },
+    pageId: collection.id,
+    tool: MCP_TOOL_NAMES.deleteView,
+  };
+  const saved = await record(request, () => removeView(dependencies, call, collection, input));
+  return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
 /** Quita una vista de una colección. Las filas no se tocan: solo deja de existir esa manera de mirarlas. */
@@ -34,28 +59,10 @@ export const deleteViewTool: McpToolDefinition = {
         outputSchema: collectionOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.deleteView,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const collection = await openMcpCollection(
-              dependencies,
-              call,
-              input.collection,
-              ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
-            );
-            const request = {
-              blockIds: [],
-              detail: { view: input.view },
-              pageId: collection.id,
-              tool: MCP_TOOL_NAMES.deleteView,
-            };
-            const saved = await recordMcpWrite(dependencies, call, request, () =>
-              deleteView(dependencies, call, collection, input),
-            );
-            return describeMcpCollection(dependencies.portalUrl, saved);
-          },
+          { target: input.collection, tool: MCP_TOOL_NAMES.deleteView },
+          (session) => deleteView(dependencies, input, session),
           (output) => `View removed.\n${formatMcpCollectionText(output)}`,
         ),
     );

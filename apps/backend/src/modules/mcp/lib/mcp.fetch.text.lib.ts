@@ -28,12 +28,17 @@ export const describeMcpOutlinePage = (page: {
 
 const describeChildren = (page: FetchedPage): string => {
   if (page.children === undefined || page.children.length === 0) return '';
-  return `Pages under this one:\n${page.children.map(describeMcpOutlinePage).join('\n')}`;
+  const more =
+    page.moreChildren === undefined
+      ? ''
+      : `\n…and ${String(page.moreChildren)} more: list_pages with parentPageId ${page.id} goes through all of them.`;
+  return `Pages under this one:\n${page.children.map(describeMcpOutlinePage).join('\n')}${more}`;
 };
 
 const describeBacklinks = (page: FetchedPage): string => {
   if (page.backlinks === undefined || page.backlinks.length === 0) return '';
-  return `Linked from:\n${page.backlinks.map((link) => `- ${link.title} ${link.url}`).join('\n')}`;
+  const lines = page.backlinks.map((link) => `- ${link.title} ${link.url}`);
+  return `Linked from:\n${lines.join('\n')}`;
 };
 
 /** Lo que dice una propiedad: las personas por su nombre, lo demás tal cual. */

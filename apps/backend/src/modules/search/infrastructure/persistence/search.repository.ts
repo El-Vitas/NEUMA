@@ -11,6 +11,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   SEARCH_INSIDE_TEXT_RANK,
   SEARCH_INSIDE_TITLE_RANK,
+  SEARCH_SIMILARITY_SETTING,
   SEARCH_TEXT_RANK_NORMALIZATION,
   SEARCH_TRIGRAM_THRESHOLD,
   SEARCH_WHOLE_WORD_RANK,
@@ -25,7 +26,7 @@ import type {
   SearchRow,
 } from '../../types/search.types';
 import { decodeSearchCursor, encodeSearchCursor } from '../../utils/search.cursor.utils';
-import { buildSearchInsideWordPattern } from '../../utils/search.pattern.utils';
+import { buildSearchAnywherePattern, buildSearchInsideWordPattern } from '../../utils/search.pattern.utils';
 
 const searchConfig = Prisma.sql`CASE "searchDocument"."language"
   WHEN 'en' THEN 'english'::regconfig
@@ -34,6 +35,31 @@ const searchConfig = Prisma.sql`CASE "searchDocument"."language"
 END`;
 
 const queryExpression = Prisma.sql`websearch_to_tsquery(${searchConfig}, public.immutable_unaccent("input"."queryText"))`;
+
+const queryIn = (config: Prisma.Sql): Prisma.Sql =>
+  Prisma.sql`websearch_to_tsquery(${config}, public.immutable_unaccent("input"."queryText"))`;
+
+/**
+ * Si un documento tiene lo buscado como palabra entera, leído en su idioma.
+ *
+ * Va en un tramo por idioma, cada uno con su configuración fija: una consulta
+ * cuya configuración sale de una columna de cada fila no puede usar el índice
+ * del vector y recorre la tabla entera. Así cada tramo usa el índice, y los
+ * tramos se juntan. Los idiomas son los mismos con que se arma el vector.
+ */
+const buildWholeWordMatch = (vector: Prisma.Sql): Prisma.Sql => Prisma.sql`(
+  ("searchDocument"."language" = 'en' AND ${vector} @@ ${queryIn(Prisma.sql`'english'::regconfig`)})
+  OR ("searchDocument"."language" = 'es' AND ${vector} @@ ${queryIn(Prisma.sql`'spanish'::regconfig`)})
+  OR (
+    "searchDocument"."language" IS DISTINCT FROM 'en'
+    AND "searchDocument"."language" IS DISTINCT FROM 'es'
+    AND ${vector} @@ ${queryIn(Prisma.sql`'simple'::regconfig`)}
+  )
+)`;
+
+/** Fija un umbral de pg_trgm solo para la transacción en curso, para que sus operadores usen el índice con ese umbral. */
+export const buildTrigramThresholdSetting = (setting: string, threshold: number): Prisma.Sql =>
+  Prisma.sql`SELECT set_config(${setting}, ${String(threshold)}, true)`;
 
 /**
  * Si una columna tiene lo buscado dentro de alguna palabra, sin mirar tildes
@@ -233,10 +259,10 @@ const buildFilters = (
     filters.push(Prisma.sql`AND "searchDocument"."contentType" = ${query.contentType}`);
   if (query.tags !== undefined && query.tags.length > 0)
     filters.push(Prisma.sql`AND "searchDocument"."tags" @> ${JSON.stringify(query.tags)}::jsonb`);
-  if (query.authorQuery !== undefined) {
-    const anywhereInTheName = `%${query.authorQuery}%`;
-    filters.push(Prisma.sql`AND "searchDocument"."properties"->>'authorName' ILIKE ${anywhereInTheName}`);
-  }
+  if (query.authorQuery !== undefined)
+    filters.push(
+      Prisma.sql`AND "searchDocument"."properties"->>'authorName' ILIKE ${buildSearchAnywherePattern(query.authorQuery)}`,
+    );
   if (query.editedRange !== undefined) filters.push(buildEditedRangeFilter(query.editedRange));
   if (query.verifiedOnly === true) filters.push(buildVerifiedOnlyFilter());
   if (cursor !== null)
@@ -262,7 +288,7 @@ export class SearchRepository {
         ${randomUUID()}, ${input.sourceType}::"SearchSourceType", ${input.sourceId}, ${input.spaceId}, ${input.title},
         ${input.extractedText}, ${input.language}, ${JSON.stringify(input.tags)}::jsonb,
         ${JSON.stringify(input.properties)}::jsonb, ${input.contentType}, ${input.versionMarker},
-        ${SearchIndexingState.INDEXED}::"SearchIndexingState", now(), now()
+        ${SearchIndexingState.INDEXED}::"SearchIndexingState", now(), ${input.editedAt}
       )
       ON CONFLICT ("sourceType", "sourceId") DO UPDATE SET
         "spaceId" = EXCLUDED."spaceId",
@@ -274,7 +300,7 @@ export class SearchRepository {
         "contentType" = EXCLUDED."contentType",
         "versionMarker" = EXCLUDED."versionMarker",
         "indexingState" = EXCLUDED."indexingState",
-        "updatedAt" = now()
+        "updatedAt" = EXCLUDED."updatedAt"
       WHERE "SearchDocument"."versionMarker" <= EXCLUDED."versionMarker"
     `);
   }
@@ -302,7 +328,7 @@ export class SearchRepository {
     cursor: ReturnType<typeof decodeSearchCursor>,
   ): Promise<readonly SearchRow[]> {
     const vector = Prisma.sql`"searchDocument"."searchVector"`;
-    const wholeWord = Prisma.sql`${vector} @@ ${queryExpression}`;
+    const wholeWord = buildWholeWordMatch(vector);
     const pattern = buildSearchInsideWordPattern(query.query);
     const insideTitle = buildInsideWordMatch(Prisma.sql`"searchDocument"."title"`, pattern);
     const insideText = buildInsideWordMatch(Prisma.sql`"searchDocument"."extractedText"`, pattern);
@@ -323,23 +349,32 @@ export class SearchRepository {
     return this.prisma.$queryRaw<SearchRow[]>(sql);
   }
 
+  /**
+   * Las páginas parecidas a lo buscado, para perdonar un error de tipeo. El
+   * operador usa el índice de trigramas con el umbral fijado solo para esta
+   * transacción; la comparación con el umbral queda escrita igual.
+   */
   private async findTrigramMatches(
     query: SearchQueryWithFilters,
     cursor: ReturnType<typeof decodeSearchCursor>,
   ): Promise<readonly SearchRow[]> {
-    const rankExpression = Prisma.sql`GREATEST(
-      similarity(public.immutable_unaccent("searchDocument"."title"), public.immutable_unaccent(${query.query})),
-      similarity(public.immutable_unaccent("searchDocument"."extractedText"), public.immutable_unaccent(${query.query}))
-    )`;
+    const searched = Prisma.sql`public.immutable_unaccent(${query.query})`;
+    const title = Prisma.sql`public.immutable_unaccent("searchDocument"."title")`;
+    const text = Prisma.sql`public.immutable_unaccent("searchDocument"."extractedText")`;
+    const rankExpression = Prisma.sql`GREATEST(similarity(${title}, ${searched}), similarity(${text}, ${searched}))`;
     const sql = buildSearchSql(
       query,
       cursor,
       rankExpression,
       Prisma.sql`left(concat_ws(E'\\n', "searchDocument"."title", "searchDocument"."extractedText"), 280)`,
-      Prisma.sql`${rankExpression} >= ${SEARCH_TRIGRAM_THRESHOLD}`,
+      Prisma.sql`(${title} % ${searched} OR ${text} % ${searched}) AND ${rankExpression} >= ${SEARCH_TRIGRAM_THRESHOLD}`,
       Prisma.empty,
     );
-    return this.prisma.$queryRaw<SearchRow[]>(sql);
+    const [, rows] = await this.prisma.$transaction([
+      this.prisma.$queryRaw(buildTrigramThresholdSetting(SEARCH_SIMILARITY_SETTING, SEARCH_TRIGRAM_THRESHOLD)),
+      this.prisma.$queryRaw<SearchRow[]>(sql),
+    ]);
+    return rows;
   }
 
   private toSearchPage(rows: readonly SearchRow[], limit: number): SearchPageWithContext {

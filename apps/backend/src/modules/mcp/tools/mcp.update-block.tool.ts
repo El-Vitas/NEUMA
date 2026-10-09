@@ -1,10 +1,9 @@
-import { ACCESS_TOKEN_PERMISSIONS, isPageDocumentNode } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, findPageBlock, isPageDocumentNode } from '@company-brain/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { buildMcpBlockNodes } from '../lib/mcp.block-input.lib';
 import { buildMcpBlockUpdate } from '../lib/mcp.block-update.lib';
-import { findMcpBlockNode } from '../lib/mcp.blocks.lib';
 import { checkMcpDrawings } from '../lib/mcp.drawing-checks.lib';
 import { openMcpPage, readMcpPageId, requireMcpInput } from '../lib/mcp.page-access.lib';
 import {
@@ -14,17 +13,37 @@ import {
   settleMcpWrittenNodes,
   writeMcpContent,
 } from '../lib/mcp.page-writes.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { updateBlockInputSchema, writtenBlocksOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpBlockChange, McpUpdateBlockInput } from '../types/mcp.pages.types';
-import type { McpCall, McpPageSource, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type { McpBlockChange, McpUpdateBlockInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
+import type {
+  McpCall,
+  McpPageSource,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
-/** Las palabras nuevas de un bloque, leídas como las de un párrafo, con sus menciones revisadas. */
-const prepareWords = async (dependencies: McpServerDependencies, call: McpCall, text: string) => {
-  const built = requireMcpInput(buildMcpBlockNodes([{ text, type: 'paragraph' }]));
+const readChildren = (node: unknown): readonly unknown[] => (isPageDocumentNode(node) ? (node.content ?? []) : []);
+
+/**
+ * Las palabras nuevas de un bloque, con sus menciones revisadas: leídas como
+ * las de un párrafo, y como las de una cita, que las parte en párrafos igual
+ * que al insertarla.
+ */
+const prepareWords = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  text: string,
+): Promise<NonNullable<McpBlockChange['words']>> => {
+  const built = requireMcpInput(
+    buildMcpBlockNodes([
+      { text, type: 'paragraph' },
+      { text, type: 'blockquote' },
+    ]),
+  );
   await checkMcpDrawings(dependencies, built);
-  const [paragraph] = await settleMcpWrittenNodes(dependencies, call, built);
-  return { inline: isPageDocumentNode(paragraph) ? (paragraph.content ?? []) : [], text };
+  const [paragraph, quote] = await settleMcpWrittenNodes(dependencies, call, built);
+  return { inline: readChildren(paragraph), paragraphs: readChildren(quote), text };
 };
 
 /**
@@ -38,7 +57,7 @@ const checkChangedDrawing = async (
   text: string,
 ): Promise<void> => {
   const nodes = isPageDocumentNode(page.content) ? (page.content.content ?? []) : [];
-  const target = findMcpBlockNode(nodes, blockId);
+  const target = findPageBlock(nodes, blockId);
   if (target?.type !== 'code_block') return;
   await checkMcpDrawings(dependencies, [{ ...target, content: [{ text, type: 'text' }] }]);
 };
@@ -58,10 +77,10 @@ const prepareChange = async (
   call: McpCall,
   input: McpUpdateBlockInput,
 ): Promise<McpBlockChange> => {
-  const asksForWordsOrCheck = input.text !== undefined || input.checked !== undefined;
+  const asksForWordsOrCheck = input.text !== undefined || input.checked !== undefined || input.summary !== undefined;
   const colors = readColors(input);
   if (input.replacement !== undefined && asksForWordsOrCheck)
-    throw new McpToolError('Send either a replacement block, or new text and checked, not both.');
+    throw new McpToolError('Send either a replacement block, or new text, summary and checked, not both.');
   if (input.replacement !== undefined) {
     const prepared = await prepareMcpBlocks(dependencies, call, [input.replacement]);
     return { replacement: prepared.nodes[0], ...colors };
@@ -69,9 +88,30 @@ const prepareChange = async (
   if (!asksForWordsOrCheck && colors.colors === undefined) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
   return {
     ...(input.checked === undefined ? {} : { checked: input.checked }),
+    ...(input.summary === undefined ? {} : { summary: input.summary }),
     ...(input.text === undefined ? {} : { words: await prepareWords(dependencies, call, input.text) }),
     ...colors,
   };
+};
+
+const updateBlock = async (
+  dependencies: McpServerDependencies,
+  input: McpUpdateBlockInput,
+  { call, record }: McpWriteSession,
+): Promise<McpWrittenBlocksOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const change = await prepareChange(dependencies, call, input);
+  if (input.text !== undefined) await checkChangedDrawing(dependencies, opened.page, input.block, input.text);
+  const request = {
+    blockIds: [input.block],
+    detail: { checked: input.checked ?? null, replaced: input.replacement !== undefined },
+    pageId: opened.page.id,
+    tool: MCP_TOOL_NAMES.updateBlock,
+  };
+  const content = await record(request, () =>
+    writeMcpContent(dependencies, call, opened.page, buildMcpBlockUpdate(input.block, change)),
+  );
+  return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.block]);
 };
 
 /**
@@ -91,30 +131,10 @@ export const updateBlockTool: McpToolDefinition = {
         outputSchema: writtenBlocksOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.updateBlock,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            const change = await prepareChange(dependencies, call, input);
-            if (input.text !== undefined) await checkChangedDrawing(dependencies, page, input.block, input.text);
-            const request = {
-              blockIds: [input.block],
-              detail: { checked: input.checked ?? null, replaced: input.replacement !== undefined },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.updateBlock,
-            };
-            const content = await recordMcpWrite(dependencies, call, request, () =>
-              writeMcpContent(dependencies, call, page, buildMcpBlockUpdate(input.block, change)),
-            );
-            return describeMcpWrittenBlocks(dependencies, call, page, content, [input.block]);
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.updateBlock },
+          (session) => updateBlock(dependencies, input, session),
           formatMcpWrittenBlocksText,
         ),
     );

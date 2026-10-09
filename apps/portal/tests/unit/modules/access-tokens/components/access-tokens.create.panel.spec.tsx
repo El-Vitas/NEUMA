@@ -1,12 +1,15 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { ACCESS_TOKEN_PERMISSIONS, MILLISECONDS_IN_A_DAY, USER_ROLE } from '@company-brain/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 import en from '../../../../../messages/en.json';
+import { createAccessTokensActionsMock } from '../../../../mocks/access-tokens.actions.mock';
 
 const secret = 'cbk_only-shown-once';
+/** Cuánto puede correrse el vencimiento: una hora de cambio de horario, y lo que tarda la prueba. */
+const EXPIRY_TOLERANCE_MS = 2 * 60 * 60 * 1000;
 const tokensPath = '/settings/tokens';
 const sentShape = z.object({
   access: z.unknown(),
@@ -32,13 +35,9 @@ const createAccessTokenAction = mock(async (_input: unknown) => ({
   },
 }));
 
-mock.module('@/modules/access-tokens/server/actions/access-tokens.actions', () => ({
-  createAccessTokenAction,
-  revokeAccessTokenAction: mock(async () => ({ data: undefined })),
-  revokeWorkspaceAccessTokenAction: mock(async () => ({ data: undefined })),
-  searchGrantablePagesAction: mock(async () => ({ data: [] })),
-  updateAccessTokenAccessAction: mock(async () => ({ data: undefined })),
-}));
+mock.module('@/modules/access-tokens/server/actions/access-tokens.actions', () =>
+  createAccessTokensActionsMock({ createAccessTokenAction }),
+);
 
 /** La navegación del portal necesita el enrutador de Next, que no existe fuera de una página. */
 mock.module('@/i18n/navigation', () => ({
@@ -71,6 +70,10 @@ const submitButton = (): HTMLButtonElement => {
 };
 
 describe('AccessTokensCreatePanel', () => {
+  beforeEach(() => {
+    createAccessTokenAction.mockClear();
+  });
+
   it('sends the name, an expiry thirty days away and read access everywhere by default', async () => {
     const before = Date.now();
     renderPanel();
@@ -86,7 +89,7 @@ describe('AccessTokensCreatePanel', () => {
       spaces: [],
     });
     const expiresIn = new Date(sent.expiresAt ?? '').getTime() - before;
-    expect(Math.round(expiresIn / MILLISECONDS_IN_A_DAY)).toBe(30);
+    expect(Math.abs(expiresIn - 30 * MILLISECONDS_IN_A_DAY)).toBeLessThan(EXPIRY_TOLERANCE_MS);
   });
 
   /** Dos tokens activos que se leen igual se confunden al revocar: se avisa antes de enviar. */
@@ -107,7 +110,7 @@ describe('AccessTokensCreatePanel', () => {
     fireEvent.change(screen.getByLabelText('Last day it works'), { target: { value: '2099-03-15' } });
     fireEvent.click(submitButton());
 
-    await waitFor(() => expect(createAccessTokenAction.mock.calls.length).toBeGreaterThan(1));
+    await waitFor(() => expect(createAccessTokenAction).toHaveBeenCalledTimes(1));
     const sent = sentShape.parse(createAccessTokenAction.mock.calls.at(-1)?.[0]);
     expect(sent.expiresAt).toBe(new Date(new Date(2099, 2, 16).getTime() - 1).toISOString());
   });
@@ -118,7 +121,7 @@ describe('AccessTokensCreatePanel', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'No expiration' }));
     fireEvent.click(submitButton());
 
-    await waitFor(() => expect(createAccessTokenAction.mock.calls.length).toBeGreaterThan(2));
+    await waitFor(() => expect(createAccessTokenAction).toHaveBeenCalledTimes(1));
     expect(sentShape.parse(createAccessTokenAction.mock.calls.at(-1)?.[0]).expiresAt).toBeNull();
   });
 

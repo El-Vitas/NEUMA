@@ -1,15 +1,20 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import { describeMcpRow, openMcpRow } from '../lib/mcp.collections.lib';
+import { describeMcpRowAsSeen, openMcpRow } from '../lib/mcp.collections.lib';
 import { normalizeMcpCellValues } from '../lib/mcp.columns.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { rowOutputSchema, updateRowInputSchema } from '../schemas/mcp.collections.schemas';
-import type { McpCollectionShape, McpUpdateRowInput, McpWrittenRow } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type {
+  McpCollectionShape,
+  McpNameLister,
+  McpRowOutput,
+  McpUpdateRowInput,
+  McpWrittenRow,
+} from '../types/mcp.collections.types';
+import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
 /** Las propiedades, y el título si viene, en una sola escritura: o quedan las dos cosas o ninguna. */
 const writeProperties = async (
@@ -52,13 +57,37 @@ const renameRow = async (
 const writeRowChanges = (
   dependencies: McpServerDependencies,
   call: McpCall,
-  target: { readonly row: McpWrittenRow; readonly shape: McpCollectionShape },
+  target: { readonly listNames: McpNameLister; readonly row: McpWrittenRow; readonly shape: McpCollectionShape },
   people: readonly McpPerson[],
   input: McpUpdateRowInput,
 ): Promise<McpWrittenRow> => {
-  if (input.properties === undefined) return renameRow(dependencies, call, target.row, input.title ?? target.row.title);
-  const values = requireMcpInput(normalizeMcpCellValues(target.shape.properties, input.properties, people));
-  return writeProperties(dependencies, call, target.row, values, input.title);
+  if (input.properties !== undefined) {
+    const values = requireMcpInput(
+      normalizeMcpCellValues(target.shape.properties, input.properties, people, target.listNames),
+    );
+    return writeProperties(dependencies, call, target.row, values, input.title);
+  }
+  if (input.title === undefined) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
+  return renameRow(dependencies, call, target.row, input.title);
+};
+
+const updateRow = async (
+  dependencies: McpServerDependencies,
+  input: McpUpdateRowInput,
+  { call, record }: McpWriteSession,
+): Promise<McpRowOutput> => {
+  const [target, people] = await Promise.all([
+    openMcpRow(dependencies, call, input.row, ACCESS_TOKEN_PERMISSIONS.collectionsWrite),
+    dependencies.people.listAssignableMembers(call.workspace.id),
+  ]);
+  const request = {
+    blockIds: [],
+    detail: { columns: Object.keys(input.properties ?? {}), title: input.title ?? null },
+    pageId: target.row.id,
+    tool: MCP_TOOL_NAMES.updateRow,
+  };
+  const written = await record(request, () => writeRowChanges(dependencies, call, target, people, input));
+  return rowOutputSchema.parse(describeMcpRowAsSeen(dependencies.portalUrl, call, target, written, people));
 };
 
 /**
@@ -80,28 +109,10 @@ export const updateRowTool: McpToolDefinition = {
         outputSchema: rowOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.updateRow,
-          async () => {
-            if (input.title === undefined && input.properties === undefined)
-              throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
-            const call = await openMcpCall(dependencies);
-            const [target, people] = await Promise.all([
-              openMcpRow(dependencies, call, input.row, ACCESS_TOKEN_PERMISSIONS.collectionsWrite),
-              dependencies.people.listAssignableMembers(call.workspace.id),
-            ]);
-            const request = {
-              blockIds: [],
-              detail: { columns: Object.keys(input.properties ?? {}), title: input.title ?? null },
-              pageId: target.row.id,
-              tool: MCP_TOOL_NAMES.updateRow,
-            };
-            const written = await recordMcpWrite(dependencies, call, request, () =>
-              writeRowChanges(dependencies, call, target, people, input),
-            );
-            return rowOutputSchema.parse(describeMcpRow(dependencies.portalUrl, target.shape, written, people));
-          },
+          { target: input.row, tool: MCP_TOOL_NAMES.updateRow },
+          (session) => updateRow(dependencies, input, session),
           (output) => `Row updated.\n${formatMcpRowText(output)}`,
         ),
     );

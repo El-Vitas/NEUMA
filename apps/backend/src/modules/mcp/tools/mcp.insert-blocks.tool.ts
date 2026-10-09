@@ -1,6 +1,6 @@
 import { ACCESS_TOKEN_PERMISSIONS, insertPageBlocks } from '@company-brain/shared';
 import { MCP_DIAGRAM_LOGOS_NOTE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { readMcpBlockPlace } from '../lib/mcp.block-update.lib';
 import { openMcpPage, readMcpPageId, requireMcpInput } from '../lib/mcp.page-access.lib';
 import {
@@ -10,9 +10,30 @@ import {
   prepareMcpBlocks,
   writeMcpContent,
 } from '../lib/mcp.page-writes.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { insertBlocksInputSchema, writtenBlocksOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpInsertBlocksInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+const insertBlocks = async (
+  dependencies: McpServerDependencies,
+  input: McpInsertBlocksInput,
+  { call, record }: McpWriteSession,
+): Promise<McpWrittenBlocksOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const place = requireMcpInput(readMcpBlockPlace(input));
+  const prepared = await prepareMcpBlocks(dependencies, call, input.blocks);
+  const request = {
+    blockIds: prepared.blockIds,
+    detail: { place: JSON.stringify(place) },
+    pageId: opened.page.id,
+    tool: MCP_TOOL_NAMES.insertBlocks,
+  };
+  const content = await record(request, () =>
+    writeMcpContent(dependencies, call, opened.page, (current) => insertPageBlocks(current, place, prepared.nodes)),
+  );
+  const written = listMcpWrittenBlockIds(content, prepared.nodes);
+  return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, written);
+};
 
 /**
  * Escribe bloques nuevos en una página: al final, al principio, junto a un
@@ -30,31 +51,10 @@ export const insertBlocksTool: McpToolDefinition = {
         outputSchema: writtenBlocksOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.insertBlocks,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            const place = requireMcpInput(readMcpBlockPlace(input));
-            const prepared = await prepareMcpBlocks(dependencies, call, input.blocks);
-            const request = {
-              blockIds: prepared.blockIds,
-              detail: { place: JSON.stringify(place) },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.insertBlocks,
-            };
-            const content = await recordMcpWrite(dependencies, call, request, () =>
-              writeMcpContent(dependencies, call, page, (current) => insertPageBlocks(current, place, prepared.nodes)),
-            );
-            const written = listMcpWrittenBlockIds(content, prepared.nodes);
-            return describeMcpWrittenBlocks(dependencies, call, page, content, written);
-          },
+          { requestId: input.requestId, target: input.page, tool: MCP_TOOL_NAMES.insertBlocks },
+          (session) => insertBlocks(dependencies, input, session),
           formatMcpWrittenBlocksText,
         ),
     );

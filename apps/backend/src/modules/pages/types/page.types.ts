@@ -4,7 +4,12 @@ import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@c
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_CONTENT_STORE_OUTCOME, PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';
-import type { PageAccessDeniedError, PageContentValidationError, PageLockedError } from '../domain/page.error';
+import type {
+  PageAccessDeniedError,
+  PageContentValidationError,
+  PageLifecycleError,
+  PageLockedError,
+} from '../domain/page.error';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
 
@@ -49,9 +54,14 @@ export interface UpdatePagePropertyValuesInput {
 }
 
 /** Lo que la fila tiene ahora, fundido con lo que llega y validado; o por qué no se puede guardar. */
+/**
+ * Cómo quedan las propiedades a partir de las que la fila tiene al bloquearla.
+ * Es puro a propósito: corre con la fila bloqueada, y cualquier consulta que
+ * hiciera tomaría otra conexión mientras la transacción retiene la suya.
+ */
 export type PagePropertyValuesMerge<TError> = (
   current: SchemaPropertyValues | null,
-) => Promise<Result<SchemaPropertyValues | null, TError>>;
+) => Result<SchemaPropertyValues | null, TError>;
 
 export interface StoredPagePropertyValuesRow {
   readonly propertyValues: Prisma.JsonValue;
@@ -67,13 +77,17 @@ export interface PageWriteAuthorizer {
   readonly authorizeContentWrite: (
     writer: PageContentWriter,
     content: unknown,
-  ) => Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLockedError>>;
+  ) => Promise<Result<PageContent, PageContentWriteError>>;
   readonly authorizeWrite: (
     writer: PageContentWriter,
-  ) => Promise<Result<PageContentWriter, PageAccessDeniedError | PageLockedError>>;
+  ) => Promise<Result<PageContentWriter, PageAccessDeniedError | PageLifecycleError | PageLockedError>>;
 }
 
-export type PageContentWriteError = PageAccessDeniedError | PageContentValidationError | PageLockedError;
+export type PageContentWriteError =
+  | PageAccessDeniedError
+  | PageContentValidationError
+  | PageLifecycleError
+  | PageLockedError;
 
 /**
  * El documento en vivo de una página, visto desde las páginas: reescribirla a
@@ -172,10 +186,6 @@ export interface DuplicatePageInput {
   readonly workspaceId: string;
 }
 
-export interface PageListOptions {
-  readonly includeTrashed: boolean;
-}
-
 export interface PageDescendantsPreview {
   readonly childPageCount: number;
 }
@@ -228,6 +238,12 @@ export interface TrashedPageSummary {
   readonly trashedChildCount: number;
 }
 
+/** Lo justo para decidir si una página se lee o se escribe ahora: si sigue viva y si está bloqueada. */
+export interface PageAccessState {
+  readonly lifecycle: PageLifecycle;
+  readonly lockedAt: Date | null;
+}
+
 export interface PageRepositoryContract {
   readonly countDescendantsByLifecycle: (
     pageId: string,
@@ -250,6 +266,12 @@ export interface PageRepositoryContract {
     role: UserRole,
     spaceId: null | string,
   ) => Promise<readonly string[]>;
+  readonly findAccessState: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageAccessState | null>;
   readonly findReadablePageIds: (
     pageIds: readonly string[],
     workspaceId: string,

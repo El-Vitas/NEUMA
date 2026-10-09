@@ -102,4 +102,27 @@ describe('findMcpArchitectureGroupingFault', () => {
 
     expect(findMcpArchitectureGroupingFault(source)).toBeNull();
   });
+
+  it('reads the group a line ends in even when its label has spaces and parentheses', () => {
+    const source = [
+      'architecture-beta',
+      'group api(cloud)[API]',
+      'service db(logos:postgresql)["Base de datos (principal)"] in api',
+    ].join('\n');
+
+    expect(findMcpArchitectureGroupingFault(source)).toBeNull();
+  });
+});
+
+/** Un texto escrito para trabar la revisión no la traba: lo que se busca en él se busca línea por línea. */
+describe('diagram text written to slow the check down', () => {
+  it('checks a diagram padded with thousands of empty lines at once', () => {
+    const source = `flowchart TD\n A-->B${'\n'.repeat(20_000)}x`;
+    const startedAt = performance.now();
+
+    listMcpDiagramIcons(source);
+    findMcpArchitectureGroupingFault(source);
+
+    expect(performance.now() - startedAt).toBeLessThan(50);
+  });
 });

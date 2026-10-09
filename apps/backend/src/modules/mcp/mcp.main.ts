@@ -26,6 +26,8 @@ const bootstrapMcp = async (): Promise<void> => {
   await startMcpStdioServer(server);
 };
 
+/* Si no arranca, el proceso termina con un código de error: el programa que aloja al agente tiene que ver una falla, no una salida limpia. */
 void bootstrapMcp().catch((error: unknown) => {
   observer.unexpected(error, 'MCP stdio start');
+  process.exitCode = 1;
 });

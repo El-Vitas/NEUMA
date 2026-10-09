@@ -1,6 +1,6 @@
 import type { AuthInfo } from '@modelcontextprotocol/server';
 import type { FastifyRequest } from 'fastify';
-import { MCP_ACCESS_TOKEN_CLIENT_ID } from '../constants/mcp.constants';
+import { MCP_ACCESS_TOKEN_CLIENT_ID, MCP_WEB_REQUEST_ORIGIN } from '../constants/mcp.constants';
 import { mcpPrincipalSchema } from '../schemas/mcp.principal.schemas';
 import type { McpPrincipal } from '../types/mcp.types';
 
@@ -32,9 +32,14 @@ const toWebHeaders = (request: FastifyRequest): Headers => {
   return headers;
 };
 
-/** La petición de Fastify como petición web. El cuerpo no se copia: ya viene leído y va aparte. */
+/**
+ * La petición de Fastify como petición web. El cuerpo no se copia: ya viene
+ * leído y va aparte. El origen es fijo porque el manejador del MCP solo mira la
+ * ruta, y el `Host` lo escribe quien llama: uno mal formado no debe romper la
+ * petición.
+ */
 export const toWebRequest = (request: FastifyRequest): Request =>
-  new Request(`${request.protocol}://${request.hostname}${request.url}`, {
+  new Request(new URL(request.url, MCP_WEB_REQUEST_ORIGIN), {
     headers: toWebHeaders(request),
     method: request.method,
   });

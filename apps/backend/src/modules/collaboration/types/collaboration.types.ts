@@ -108,6 +108,16 @@ export interface CollaborationGateway {
   readonly assertUpdateSize: (update: Uint8Array) => Promise<void>;
   readonly assertStateSize: (state: Uint8Array) => Promise<void>;
   readonly authorizeUpdate: (context: CollaborationContext, documentName: string, update: Uint8Array) => Promise<void>;
+  /**
+   * Un mensaje de una conexión, del tipo que sea: a la de solo lectura se le
+   * pide poder leer, a la que escribe, poder escribir.
+   */
+  readonly authorizeMessage: (
+    context: CollaborationContext,
+    documentName: string,
+    message: Uint8Array,
+    connection: { readonly readOnly: boolean },
+  ) => Promise<void>;
   readonly shutdown: () => Promise<void>;
   /**
    * Reescribe la página a partir de lo que dice ahora, dentro del documento

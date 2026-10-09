@@ -15,6 +15,27 @@ export const MARKDOWN_MARK_WRAPPERS = {
  */
 export const MARKDOWN_DIRECTIVE_FENCE = ':::';
 
+/**
+ * The attributes each kind of block is written with.
+ *
+ * Only what a reader-back would need to rebuild the block: an id that says
+ * which page a collection draws from is worth keeping, and the width a column
+ * happened to have is not.
+ */
+export const MARKDOWN_DIRECTIVE_ATTRIBUTES: Readonly<Record<string, readonly string[]>> = {
+  bookmark: ['url', 'title', 'description'],
+  button: ['label'],
+  callout: ['icon'],
+  collection: ['pageId', 'viewName'],
+  column: ['width'],
+  column_list: [],
+  embed: ['url'],
+  file: ['assetId', 'name'],
+  subpage: ['pageId', 'label'],
+  synced: ['pageId', 'blockId'],
+  toggle: ['summary'],
+};
+
 /** A blank line between blocks, which is what tells Markdown one block ended and another began. */
 export const MARKDOWN_BLOCK_SEPARATOR = '\n\n';
 
@@ -30,6 +51,13 @@ export const MARKDOWN_PAGE_MARKER = '<!-- page:';
 export const MARKDOWN_BLOCK_ANCHOR_OPEN = '<!-- block:';
 export const MARKDOWN_BLOCK_ANCHOR_CLOSE = ' -->';
 
+/**
+ * Un id que se puede escribir en el ancla: letras, dígitos, guiones y guiones
+ * bajos, como los que da el editor. Uno con espacios o signos podría cerrar el
+ * comentario y abrir el ancla de otro bloque, así que ese bloque va sin ancla.
+ */
+export const MARKDOWN_BLOCK_ANCHOR_ID = /^[\w-]+$/;
+
 /** Cómo se escribe, dentro de un enlace, una persona y una fecha: igual que como la página las escribe al leerse. */
 export const MARKDOWN_PERSON_TARGET = 'person:';
 export const MARKDOWN_DATE_TARGET = 'date:';
@@ -37,12 +65,86 @@ export const MARKDOWN_DATE_TARGET = 'date:';
 /** Lo que antecede al nombre de una persona en el texto de su enlace. */
 export const MARKDOWN_PERSON_PREFIX = '@';
 
-/** Dónde dice un enlace a qué página de Company Brain lleva, con o sin dominio e idioma delante. */
-export const MARKDOWN_PAGE_PATH_PATTERN =
-  /^(?:[a-z]+:\/\/[^/]+)?(?:\/[a-z]{2}(?:-[A-Za-z]{2})?)?\/spaces\/([^/?#\s]+)\/pages\/([^/?#\s]+)/;
+/** Dónde dice el camino de un enlace a qué página de Company Brain lleva, con o sin idioma delante. */
+export const MARKDOWN_PAGE_PATH_PATTERN = /^(?:\/[a-z]{2}(?:-[A-Za-z]{2})?)?\/spaces\/([^/?#\s]+)\/pages\/([^/?#\s]+)/;
 
-/** Los caracteres que se escriben con una barra delante para que se lean tal cual. */
-export const MARKDOWN_ESCAPABLE_CHARACTERS: readonly string[] = ['\\', '*', '_', '`', '[', ']', '(', ')', '~', '$'];
+/**
+ * Los caracteres que, con una barra delante, se leen tal cual: todos los signos
+ * de ASCII, como en CommonMark. Así lo que la página escribe con su barra se lee
+ * de vuelta sin perder nada.
+ */
+export const MARKDOWN_ESCAPABLE_CHARACTERS: readonly string[] = [
+  '!',
+  '"',
+  '#',
+  '$',
+  '%',
+  '&',
+  "'",
+  '(',
+  ')',
+  '*',
+  '+',
+  ',',
+  '-',
+  '.',
+  '/',
+  ':',
+  ';',
+  '<',
+  '=',
+  '>',
+  '?',
+  '@',
+  '[',
+  '\\',
+  ']',
+  '^',
+  '_',
+  '`',
+  '{',
+  '|',
+  '}',
+  '~',
+];
+
+/**
+ * Los signos que, dentro de unas palabras, el lector tomaría por formato, y
+ * que la página escribe con su barra: una marca, un enlace, una fórmula, o un
+ * comentario de HTML que se haría pasar por el ancla de un bloque.
+ */
+export const MARKDOWN_TEXT_ESCAPED_PATTERN = /[\\*`[\]~$<]/g;
+
+/**
+ * Cómo empieza una línea que Markdown leería como otro bloque: un título, una
+ * cita, una lista, una tabla, una cerca o una raya. Unas palabras que empiezan
+ * así se escriben con la barra delante del signo.
+ */
+export const MARKDOWN_LINE_START_MARKER = /^(?:#|>|:::|\||[-+](?= |$)|---)/;
+
+/** Un número seguido de punto al empezar una línea, que Markdown leería como lista numerada. */
+export const MARKDOWN_LINE_START_NUMBER = /^(\d+)\./;
+
+/** Lo que un enlace no puede llevar tal cual entre sus paréntesis, con cómo se escribe. */
+export const MARKDOWN_LINK_TARGET_PATTERN = /[ ()<>]/g;
+export const MARKDOWN_LINK_TARGET_ESCAPES: Readonly<Record<string, string>> = {
+  ' ': '%20',
+  '(': '%28',
+  ')': '%29',
+  '<': '%3C',
+  '>': '%3E',
+};
+
+/** Lo que el valor de un atributo de una cerca no puede llevar tal cual entre sus comillas, con cómo se escribe. */
+export const MARKDOWN_DIRECTIVE_VALUE_PATTERN = /[\n"&]/g;
+export const MARKDOWN_DIRECTIVE_VALUE_ESCAPES: Readonly<Record<string, string>> = {
+  '\n': '&#10;',
+  '"': '&quot;',
+  '&': '&amp;',
+};
+
+/** Cuántos acentos graves abren, como mínimo, un bloque de código. */
+export const MARKDOWN_CODE_FENCE_LEAST = 3;
 
 /** Lo que encierra una fórmula dentro de una línea, igual que la página la escribe al leerse. */
 export const MARKDOWN_FORMULA_DELIMITER = '$';
@@ -63,6 +165,12 @@ export const MARKDOWN_TAG_MARKS = {
 
 /** Cómo abre una de esas etiquetas: su nombre y, si pinta, el color. */
 export const MARKDOWN_TAG_OPENING = /^<(u|span|mark)(?: color="([^"]*)")?>/;
+
+/** Lo más que puede medir una etiqueta que abre: se mira solo eso, no el resto del texto. */
+export const MARKDOWN_TAG_OPENING_MAX_LENGTH = 64;
+
+/** Cuántos enlaces y marcas pueden ir uno dentro de otro; más que eso es un texto hecho para trabar la lectura. */
+export const MARKDOWN_MAX_NESTING = 32;
 
 /** Los colores de un bloque entero, escritos en su ancla con el nombre que tienen en la página. */
 export const MARKDOWN_BLOCK_COLOR_ATTRIBUTES = ['textColor', 'backgroundColor'] as const;

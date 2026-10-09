@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  findMcpBlockNode,
-  listMcpBlockComments,
-  readMcpBlockInContext,
-  takeMcpPagePart,
-} from '@/modules/mcp/lib/mcp.blocks.lib';
+import { listMcpBlockComments, readMcpBlockInContext, takeMcpPagePart } from '@/modules/mcp/lib/mcp.blocks.lib';
 
 const paragraph = (id: string, words: string) => ({
   attrs: { id },
@@ -20,21 +15,6 @@ const nodes = [
     type: 'bullet_list',
   },
 ];
-
-describe('findMcpBlockNode', () => {
-  it('finds a block at the top of the page', () => {
-    expect(findMcpBlockNode(nodes, 'top')).toEqual(paragraph('top', 'Arriba'));
-  });
-
-  it('finds a block however deep it sits', () => {
-    expect(findMcpBlockNode(nodes, 'item')).toMatchObject({ attrs: { id: 'item' }, type: 'list_item' });
-    expect(findMcpBlockNode(nodes, 'line')).toEqual(paragraph('line', 'Ítem'));
-  });
-
-  it('finds nothing when no block has that id', () => {
-    expect(findMcpBlockNode(nodes, 'gone')).toBeNull();
-  });
-});
 
 describe('readMcpBlockInContext', () => {
   it('gives a block that stands on its own as it is', () => {

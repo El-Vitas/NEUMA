@@ -1,15 +1,28 @@
 import { ACCESS_TOKEN_PERMISSIONS, removePageBlocks } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';
 import { describeMcpWrittenBlocks, writeMcpContent } from '../lib/mcp.page-writes.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { deleteBlocksInputSchema, writtenBlocksOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpWrittenBlocksOutput } from '../types/mcp.pages.types';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpDeleteBlocksInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
 const formatDeletedText = (output: McpWrittenBlocksOutput): string =>
   `Removed ${String(output.blockIds.length)} block(s) from ${output.page.title} — ${output.page.url}`;
+
+const deleteBlocks = async (
+  dependencies: McpServerDependencies,
+  input: McpDeleteBlocksInput,
+  { call, record }: McpWriteSession,
+): Promise<McpWrittenBlocksOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const request = { blockIds: input.blocks, detail: {}, pageId: opened.page.id, tool: MCP_TOOL_NAMES.deleteBlocks };
+  const content = await record(request, () =>
+    writeMcpContent(dependencies, call, opened.page, (current) => removePageBlocks(current, input.blocks)),
+  );
+  const described = await describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, []);
+  return { ...described, blockIds: input.blocks };
+};
 
 /**
  * Quita bloques de una página, con todo lo que llevan dentro. Si alguno ya no
@@ -27,24 +40,10 @@ export const deleteBlocksTool: McpToolDefinition = {
         outputSchema: writtenBlocksOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.deleteBlocks,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            const request = { blockIds: input.blocks, detail: {}, pageId: page.id, tool: MCP_TOOL_NAMES.deleteBlocks };
-            const content = await recordMcpWrite(dependencies, call, request, () =>
-              writeMcpContent(dependencies, call, page, (current) => removePageBlocks(current, input.blocks)),
-            );
-            const described = await describeMcpWrittenBlocks(dependencies, call, page, content, []);
-            return { ...described, blockIds: input.blocks };
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.deleteBlocks },
+          (session) => deleteBlocks(dependencies, input, session),
           formatDeletedText,
         ),
     );

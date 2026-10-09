@@ -3,7 +3,13 @@ import { SpaceVisibility } from '@company-brain/db';
 import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@company-brain/shared';
 import request from 'supertest';
 import { z } from 'zod';
-import { MCP_PAGE_LOCKED_MESSAGE, MCP_PAGE_MANAGE_REFUSED_MESSAGE } from '@/modules/mcp/constants/mcp.constants';
+import {
+  MCP_PAGE_LOCKED_MESSAGE,
+  MCP_PAGE_MANAGE_REFUSED_MESSAGE,
+  MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE,
+  MCP_REQUEST_ALREADY_DONE_MESSAGE,
+  MCP_WRITTEN_UNREADABLE_NOTE,
+} from '@/modules/mcp/constants/mcp.constants';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, readMcpText } from '../helpers/mcp.helper';
@@ -336,6 +342,52 @@ describe('MCP page management (Integration)', () => {
       expect((await prisma().page.findUniqueOrThrow({ where: { id: pageId } })).trashedAt).toBeNull();
     });
 
+    /** Nombrar una página cerrada a la lectura diría que existe: se rechaza sin decir cuál. */
+    it('refuses without naming a page under it that the token may not even read', async () => {
+      const pageId = await freshPage('Con hija cerrada');
+      const childId = await freshPage('Cerrada', pageId);
+      const secret = await tokenFor({
+        allSpaces: [pagesRead, pagesWrite, pagesTrash],
+        pages: [{ pageId: childId, permissions: [] }],
+      });
+
+      const answer = await call(secret, 'trash_page', { page: pageId });
+
+      expect(readMcpText(answer)).toBe(MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE);
+      expect((await prisma().page.findUniqueOrThrow({ where: { id: pageId } })).trashedAt).toBeNull();
+    });
+
+    /** Escribir no da derecho a leer: lo que contesta una escritura no muestra lo que la página dice. */
+    it('answers a token that writes but cannot read with ids and the link only', async () => {
+      const pageId = await freshPage('Solo escritura');
+      const writeOnly = await tokenFor({ allSpaces: [pagesWrite] });
+
+      const answer = await call(writeOnly, 'comment_on_block', { block: 'intro', page: pageId, text: 'Revisado' });
+
+      const text = readMcpText(answer);
+      expect(text).toContain(MCP_WRITTEN_UNREADABLE_NOTE);
+      expect(text).not.toContain('Revisar la fecha de entrega');
+      expect(text).not.toContain('Solo escritura');
+    });
+
+    /** Un intento negado antes de escribir también queda anotado, a nombre del token. */
+    it('writes down an attempt the token was refused before writing', async () => {
+      const pageId = await freshPage('Intento negado');
+      const closedHere = await tokenFor({
+        allSpaces: [pagesRead, pagesWrite],
+        pages: [{ pageId, permissions: [pagesRead] }],
+      });
+      const tokenId = (
+        await prisma().accessToken.findFirstOrThrow({ orderBy: { createdAt: 'desc' }, select: { id: true } })
+      ).id;
+
+      await call(closedHere, 'insert_blocks', { blocks: [{ text: 'Hola', type: 'paragraph' }], page: pageId });
+
+      const action = await prisma().agentAction.findFirstOrThrow({ where: { tokenId, tool: 'insert_blocks' } });
+      expect(action.outcome).toBe('REFUSED');
+      expect(action.detail).toEqual({ target: pageId });
+    });
+
     /** Lo que está en la papelera, para traerlo de vuelta sin saber su id; lo que el token no lee no aparece. */
     it('lists the pages in the trash the token may read, with who trashed them and how many went along', async () => {
       const secret = await fullToken();
@@ -358,6 +410,48 @@ describe('MCP page management (Integration)', () => {
       expect(kept).toMatchObject({ deletedBy: { name: 'Ana Pérez' }, title: 'Para recuperar', trashedChildCount: 1 });
       expect(trash.pages.some((page) => page.id === hiddenId)).toBe(true);
       expect(trashShape.parse(closedListing.structuredContent).pages).toEqual([]);
+    });
+  });
+
+  /** Si la respuesta no le llega al agente y reintenta con el mismo id, no se crea dos veces. */
+  describe('reintentos con el mismo id de pedido', () => {
+    const countTitled = (title: string): Promise<number> =>
+      prisma().page.count({ where: { spaceId, title, trashedAt: null } });
+
+    it('creates the page once and tells the retry where it is', async () => {
+      const secret = await fullToken();
+      const title = `Reintento ${String(Date.now())}`;
+      const args = { requestId: 'pedido-1', space: spaceId, title };
+
+      await call(secret, 'create_page', args);
+      const retry = await call(secret, 'create_page', args);
+
+      const created = await prisma().page.findFirstOrThrow({ select: { id: true }, where: { spaceId, title } });
+      expect(await countTitled(title)).toBe(1);
+      expect(readMcpText(retry)).toContain(MCP_REQUEST_ALREADY_DONE_MESSAGE);
+      expect(readMcpText(retry)).toContain(created.id);
+    });
+
+    /** El índice parcial separa dos llamadas que llegan juntas: una escribe, la otra no. */
+    it('creates the page once when two calls with the same id arrive together', async () => {
+      const secret = await fullToken();
+      const title = `A la vez ${String(Date.now())}`;
+      const args = { requestId: 'pedido-junto', space: spaceId, title };
+
+      await Promise.all([call(secret, 'create_page', args), call(secret, 'create_page', args)]);
+
+      expect(await countTitled(title)).toBe(1);
+    });
+
+    it('lets another token use the same id, and the same token use another id', async () => {
+      const [first, second] = await Promise.all([fullToken(), fullToken()]);
+      const title = `Por token ${String(Date.now())}`;
+
+      await call(first, 'create_page', { requestId: 'pedido-x', space: spaceId, title });
+      await call(second, 'create_page', { requestId: 'pedido-x', space: spaceId, title });
+      await call(first, 'create_page', { requestId: 'pedido-y', space: spaceId, title });
+
+      expect(await countTitled(title)).toBe(3);
     });
   });
 });

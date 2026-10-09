@@ -1,8 +1,7 @@
-import { isPageDocumentNode, readPageDocumentText } from '@company-brain/shared';
+import { findPageBlock, isPageDocumentNode, readPageDocumentText } from '@company-brain/shared';
 import { MCP_INACCESSIBLE_MESSAGE } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type { McpCall, McpServerDependencies } from '../types/mcp.types';
-import { findMcpBlockNode } from './mcp.blocks.lib';
 
 const checkSource = async (
   dependencies: McpServerDependencies,
@@ -15,7 +14,7 @@ const checkSource = async (
   if (source.isFail()) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
   const { content } = source.getValue();
   const blocks = isPageDocumentNode(content) ? (content.content ?? []) : [];
-  if (findMcpBlockNode(blocks, blockId) === null)
+  if (findPageBlock(blocks, blockId) === null)
     throw new McpToolError(
       `The page ${pageId} has no block ${blockId}. Read that page with fetch to find the block to show.`,
     );

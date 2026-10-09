@@ -1,5 +1,7 @@
 import { afterAll, describe, expect, it } from 'bun:test';
+import { MCP_DIAGRAM_CHECKS_WAITING_MAX } from '@/modules/mcp/constants/mcp.limits.constants';
 import { McpDrawingValidatorAdapter } from '@/modules/mcp/infrastructure/adapters/mcp.drawing.validator';
+import { McpDiagramCheckerBusyError } from '@/modules/mcp/infrastructure/errors/mcp.diagram-busy.error';
 
 const STARTING_MERMAID_MS = 60_000;
 
@@ -45,6 +47,30 @@ describe('McpDrawingValidatorAdapter', () => {
     expect(validator.checkFormula('\\frac{a}{b}', true).isOk()).toBe(true);
     expect(validator.checkFormula('\\frac{a}{', false).getError()).toContain('KaTeX parse error');
   });
+
+  /** El revisor es uno para todos: con la fila llena, el que llega se va enseguida en vez de esperar sin fin. */
+  it(
+    'turns a diagram away at once when the line of diagrams waiting is full, and checks the rest',
+    async () => {
+      const crowded = new McpDrawingValidatorAdapter();
+      const diagram = 'pie title Tareas\n  "Hechas" : 7';
+
+      const checkOne = async (): Promise<unknown> => {
+        try {
+          return (await crowded.checkDiagram(diagram)).getValue();
+        } catch (error: unknown) {
+          return error;
+        }
+      };
+      const checks = Array.from({ length: MCP_DIAGRAM_CHECKS_WAITING_MAX + 1 }, checkOne);
+      const answers = await Promise.all(checks);
+      crowded.onModuleDestroy();
+
+      expect(answers.slice(0, MCP_DIAGRAM_CHECKS_WAITING_MAX).every((answer) => answer === 'pie')).toBe(true);
+      expect(answers.at(-1)).toBeInstanceOf(McpDiagramCheckerBusyError);
+    },
+    STARTING_MERMAID_MS,
+  );
 
   it(
     'starts a new checker when the last one was stopped',

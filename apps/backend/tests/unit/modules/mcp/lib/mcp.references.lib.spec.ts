@@ -38,6 +38,32 @@ describe('listReferencedPageIds', () => {
   });
 });
 
+/** Un enlace escrito a mano a una página también la nombra por su id. */
+describe('links to pages', () => {
+  const linked = (pageId: string, words: string) => ({
+    marks: [{ attrs: { href: `/spaces/s/pages/${pageId}` }, type: 'link' }, { type: 'strong' }],
+    text: words,
+    type: 'text',
+  });
+  const page = [
+    { attrs: { id: 'p' }, content: [linked('seen', 'abierta'), linked('hidden', 'cerrada')], type: 'paragraph' },
+  ];
+
+  it('counts the pages a link leads to among the ones the content points at', () => {
+    expect(listReferencedPageIds(page)).toEqual(['seen', 'hidden']);
+  });
+
+  it('keeps the words of a link to a page it cannot see, but not where the link led', () => {
+    expect(hideUnreachableReferences(page, reachable)).toEqual([
+      {
+        attrs: { id: 'p' },
+        content: [linked('seen', 'abierta'), { marks: [{ type: 'strong' }], text: 'cerrada', type: 'text' }],
+        type: 'paragraph',
+      },
+    ]);
+  });
+});
+
 describe('hideUnreachableReferences', () => {
   const hidden = hideUnreachableReferences(nodes, reachable);
 

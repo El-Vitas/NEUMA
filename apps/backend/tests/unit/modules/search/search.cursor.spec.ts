@@ -12,4 +12,13 @@ describe('search cursor', () => {
     expect(decodeSearchCursor('not-a-cursor')).toBeNull();
     expect(decodeSearchCursor(undefined)).toBeNull();
   });
+
+  /** «1» es una fecha para JavaScript y no para Postgres: un cursor así terminaba en un error del servidor. */
+  test('rejects a cursor whose date is not a full timestamp', () => {
+    const forged = Buffer.from(JSON.stringify({ rank: 0.4, sourceId: 'page-2', updatedAt: '1' }), 'utf8').toString(
+      'base64url',
+    );
+
+    expect(decodeSearchCursor(forged)).toBeNull();
+  });
 });

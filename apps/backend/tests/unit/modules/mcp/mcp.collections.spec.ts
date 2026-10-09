@@ -78,11 +78,14 @@ const pages: ReadonlyMap<string, McpPageSource> = new Map([
   [PLAIN_PAGE, pageSource(PLAIN_PAGE, 'Notas', null, null)],
 ]);
 
+const placeOf = (pageId: string) => {
+  const parentId = pages.get(pageId)?.parentId ?? null;
+  return { lineage: parentId === null ? [pageId] : [pageId, parentId], spaceId: SPACE };
+};
+
 const placeReader: AccessTokenPlaceReader = {
-  readPlace: (pageId) => {
-    const parentId = pages.get(pageId)?.parentId ?? null;
-    return Promise.resolve({ lineage: parentId === null ? [pageId] : [pageId, parentId], spaceId: SPACE });
-  },
+  readPlace: (pageId) => Promise.resolve(placeOf(pageId)),
+  readPlaces: (pageIds) => Promise.resolve(new Map(pageIds.map((pageId) => [pageId, placeOf(pageId)]))),
   resolvePageReach: () => Promise.resolve({ allowedPageIds: [], closedPageIds: [], spaceIdsWithAllowedPages: [] }),
 };
 
@@ -105,12 +108,14 @@ const initialShape: McpCollectionShape = {
 };
 
 /** Una colección en memoria que guarda lo que se le pide, para ver qué llegó al servicio. */
-const createCollectionStore = () => {
+const createCollectionStore = (refusesTheShape = false) => {
   let shape = initialShape;
   const received: Record<string, unknown[]> = { defineSchema: [], queryRows: [], rewriteOption: [], setView: [] };
   const service: McpCollectionService = {
     defineSchema: (input) => {
       received.defineSchema?.push(input);
+      if (refusesTheShape)
+        return Promise.resolve(Result.fail({ code: 'SCHEMA_PROPERTY_DEFINITION_INVALID', details: undefined }));
       shape = { properties: input.properties, views: input.views };
       return Promise.resolve(Result.ok(shape));
     },
@@ -183,9 +188,9 @@ const connect = async (
   permissions: readonly AccessTokenPermission[] = everyCollectionPermission,
   rows = createRowStore(),
   principal = principalWith(permissions),
+  collections = createCollectionStore(),
 ): Promise<Harness> => {
   const actions: LoggedAction[] = [];
-  const collections = createCollectionStore();
   const dependencies: McpServerDependencies = {
     actionLog: {
       finish: (actionId, outcome) => {
@@ -194,6 +199,7 @@ const connect = async (
         if (action !== undefined) actions[index] = { ...action, outcome };
         return Promise.resolve();
       },
+      findLiveRequest: () => Promise.resolve(null),
       start: (entry) => {
         actions.push({ ...entry, outcome: 'PENDING' });
         return Promise.resolve(String(actions.length - 1));
@@ -209,13 +215,7 @@ const connect = async (
     pagesService: {
       getAccessible: (pageId) => {
         const found = pages.get(pageId);
-        return Promise.resolve({
-          getValue: () => {
-            if (found === undefined) throw new Error('No page');
-            return found;
-          },
-          isFail: () => found === undefined,
-        });
+        return Promise.resolve(found === undefined ? Result.fail(new Error('No page')) : Result.ok(found));
       },
     },
     people: { listAssignableMembers: () => Promise.resolve([{ id: 'u-1', name: 'Ana Pérez' }]) },
@@ -376,7 +376,7 @@ describe('MCP collections — rows', () => {
 
     expect(textOf(result)).toBe(MCP_INACCESSIBLE_MESSAGE);
     expect(rows.received.updateProperties).toEqual([]);
-    expect(actions).toEqual([]);
+    expect(summarizeActions(actions)).toEqual([{ outcome: 'REFUSED', pageId: null, tool: 'update_row' }]);
   });
 
   test('says a page outside any collection is not a row', async () => {
@@ -421,6 +421,29 @@ describe('MCP collections — columns and views', () => {
     expect(collections.received.defineSchema?.[0]).toMatchObject({
       properties: [{ key: 'title' }, { key: 'status' }, { key: 'owner' }, { key: 'prioridad', label: 'Prioridad' }],
     });
+  });
+
+  /** Las opciones ya reescribieron sus filas: si la forma no se guarda, el agente tiene que saberlo para no repetirlo. */
+  test('says which options were already renamed when the new columns could not be saved afterwards', async () => {
+    const permissions = everyCollectionPermission;
+    const { client } = await connect(
+      permissions,
+      createRowStore(),
+      principalWith(permissions),
+      createCollectionStore(true),
+    );
+
+    const answer = await client.callTool({
+      arguments: {
+        addColumns: [{ name: 'Prioridad', type: 'RICH_TEXT' }],
+        collection: COLLECTION,
+        renameOptions: [{ column: 'Estado', from: 'hecho', to: 'Listo' }],
+      },
+      name: 'update_collection_columns',
+    });
+
+    expect(answer.isError).toBe(true);
+    expect(textOf(answer)).toContain('Already done before it stopped: renamed "Hecho" to "Listo"');
   });
 
   test('refuses to change columns with a token that can only write rows', async () => {

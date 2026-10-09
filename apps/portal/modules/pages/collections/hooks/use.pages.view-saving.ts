@@ -45,7 +45,8 @@ export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, s
   }
 
   const apply = (rewrite: (current: readonly PageSchemaView[]) => readonly PageSchemaView[]): void => {
-    const next = rewrite(views);
+    const before = views;
+    const next = rewrite(before);
     const changed = next.find((view) => view.name === activeViewName);
     if (changed === undefined) return;
     setViews(next);
@@ -57,7 +58,7 @@ export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, s
         viewName: activeViewName,
       });
       if (!isActionSuccess<PageSchema>(saved)) {
-        setViews(views);
+        setViews(before);
         toast.error(tErrors('generic'));
         return;
       }

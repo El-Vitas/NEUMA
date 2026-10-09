@@ -1,21 +1,30 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
-import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES, MCP_UNEXPECTED_MESSAGE } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
-import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import { openMcpCollection, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
+import { formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
+import {
+  describeMcpCollectionAsSeen,
+  openMcpCollection,
+  readMcpColumnsInHand,
+  saveMcpCollectionShape,
+} from '../lib/mcp.collections.lib';
 import {
   applyMcpColumnChanges,
   describeMcpColumnChanges,
   hasMcpColumnChanges,
   hasMcpShapeChanges,
-  withoutMcpOptionRewrites,
 } from '../lib/mcp.column-changes.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { collectionOutputSchema, updateCollectionColumnsInputSchema } from '../schemas/mcp.collections.schemas';
-import type { McpColumnChanges, McpOpenCollection, McpOptionRewrite } from '../types/mcp.collections.types';
-import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type {
+  McpCollectionOutput,
+  McpColumnChanges,
+  McpOpenCollection,
+  McpOptionRewrite,
+  McpUpdateCollectionColumnsInput,
+} from '../types/mcp.collections.types';
+import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
 /** Renombra o quita una opción y reescribe en el mismo movimiento las filas que la tenían. */
 const rewriteOption = async (
@@ -37,42 +46,92 @@ const rewriteOption = async (
   return { ...collection, shape: { properties: saved.properties, views: saved.views } };
 };
 
-/** Las opciones una tras otra: cada una parte de lo que dejó la anterior. */
-const rewriteOptions = (
+const describeRewrite = (rewrite: McpOptionRewrite): string =>
+  rewrite.to === null ? `removed "${rewrite.from}"` : `renamed "${rewrite.from}" to "${rewrite.to}"`;
+
+/** Las opciones una tras otra: cada una parte de lo que dejó la anterior, y queda anotada al hacerse. */
+const rewriteOptions = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  rewrites: readonly McpOptionRewrite[],
-): Promise<McpOpenCollection> =>
-  rewrites.reduce(
-    async (latest, rewrite) => rewriteOption(dependencies, call, await latest, rewrite),
-    Promise.resolve(collection),
-  );
+  plan: { readonly done: string[]; readonly rewrites: readonly McpOptionRewrite[] },
+): Promise<McpOpenCollection> => {
+  let latest = collection;
+  for (const rewrite of plan.rewrites) {
+    latest = await rewriteOption(dependencies, call, latest, rewrite);
+    plan.done.push(describeRewrite(rewrite));
+  }
+  return latest;
+};
+
+/**
+ * Un fallo a mitad de camino, con lo que ya quedó hecho. Cada opción es su
+ * propia escritura y ya reescribió sus filas: si el agente no sabe cuáles
+ * quedaron, las repite o cree que nada cambió. Un fallo que no es del agente se
+ * cuenta en el log antes de decírselo.
+ */
+const sayWhatWasAlreadyDone = (
+  dependencies: McpServerDependencies,
+  error: unknown,
+  done: readonly string[],
+): unknown => {
+  if (done.length === 0) return error;
+  if (!(error instanceof McpToolError))
+    dependencies.observer.unexpected(error, `changing columns after some options were already rewritten`);
+  const said = error instanceof McpToolError ? error.message : MCP_UNEXPECTED_MESSAGE;
+  const reason = error instanceof McpToolError ? error.reason : undefined;
+  return new McpToolError(`${said} Already done before it stopped: ${done.join(', ')}.`, reason);
+};
 
 /**
  * Hace los cambios de columnas que pidió el agente.
  *
- * Todo lo pedido se revisa contra la colección antes de la primera escritura.
- * Las opciones que se renombran o se quitan van primero, porque reescriben las
- * filas que las tenían; el resto se aplica después sobre la forma que dejaron,
- * así guardarla no devuelve los nombres viejos.
+ * Todo lo pedido se revisa junto, contra la forma final, antes de la primera
+ * escritura. Las opciones que se renombran o se quitan van primero, porque
+ * reescriben las filas que las tenían; después se guarda la forma final ya
+ * revisada.
  */
-const updateColumns = async (
+const changeColumns = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
   changes: McpColumnChanges,
 ): Promise<McpOpenCollection> => {
-  const plan = requireMcpInput(applyMcpColumnChanges(collection.shape.properties, changes));
-  const rewritten = await rewriteOptions(dependencies, call, collection, plan.optionRewrites);
-  if (!hasMcpShapeChanges(changes)) return rewritten;
-  const reshaped = requireMcpInput(
-    applyMcpColumnChanges(rewritten.shape.properties, withoutMcpOptionRewrites(changes)),
+  const plan = requireMcpInput(applyMcpColumnChanges(readMcpColumnsInHand(collection), changes));
+  const done: string[] = [];
+  try {
+    const rewritten = await rewriteOptions(dependencies, call, collection, { done, rewrites: plan.optionRewrites });
+    if (!hasMcpShapeChanges(changes)) return rewritten;
+    return await saveMcpCollectionShape(dependencies, call, rewritten, {
+      properties: plan.properties,
+      views: rewritten.shape.views,
+    });
+  } catch (error) {
+    throw sayWhatWasAlreadyDone(dependencies, error, done);
+  }
+};
+
+const updateColumns = async (
+  dependencies: McpServerDependencies,
+  input: McpUpdateCollectionColumnsInput,
+  { call, record }: McpWriteSession,
+): Promise<McpCollectionOutput> => {
+  const { collection: address, ...changes } = input;
+  if (!hasMcpColumnChanges(changes)) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
+  const collection = await openMcpCollection(
+    dependencies,
+    call,
+    address,
+    ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
   );
-  return saveMcpCollectionShape(dependencies, call, rewritten, {
-    properties: reshaped.properties,
-    views: rewritten.shape.views,
-  });
+  const request = {
+    blockIds: [],
+    detail: describeMcpColumnChanges(changes),
+    pageId: collection.id,
+    tool: MCP_TOOL_NAMES.updateCollectionColumns,
+  };
+  const saved = await record(request, () => changeColumns(dependencies, call, collection, changes));
+  return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
 /**
@@ -93,30 +152,10 @@ export const updateCollectionColumnsTool: McpToolDefinition = {
         outputSchema: collectionOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.updateCollectionColumns,
-          async () => {
-            const { collection: address, ...changes } = input;
-            if (!hasMcpColumnChanges(changes)) throw new McpToolError(MCP_NOTHING_TO_CHANGE_MESSAGE);
-            const call = await openMcpCall(dependencies);
-            const collection = await openMcpCollection(
-              dependencies,
-              call,
-              address,
-              ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
-            );
-            const request = {
-              blockIds: [],
-              detail: describeMcpColumnChanges(changes),
-              pageId: collection.id,
-              tool: MCP_TOOL_NAMES.updateCollectionColumns,
-            };
-            const saved = await recordMcpWrite(dependencies, call, request, () =>
-              updateColumns(dependencies, call, collection, changes),
-            );
-            return describeMcpCollection(dependencies.portalUrl, saved);
-          },
+          { target: input.collection, tool: MCP_TOOL_NAMES.updateCollectionColumns },
+          (session) => updateColumns(dependencies, input, session),
           (output) => `Columns updated.\n${formatMcpCollectionText(output)}`,
         ),
     );

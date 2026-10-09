@@ -12,10 +12,10 @@ export const findMcpProtectedDescendant = (
   targetId: string,
   grantPlaces: readonly McpGrantPlace[],
   permission: AccessTokenPermission,
-): string | null =>
+): McpGrantPlace | null =>
   grantPlaces.find(
     ({ pageId, place }) =>
       pageId !== targetId &&
       place.lineage.includes(targetId) &&
       !canAccessTokenAct(principal.access, principal.role, place, permission),
-  )?.pageId ?? null;
+  ) ?? null;

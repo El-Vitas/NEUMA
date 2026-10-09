@@ -2,10 +2,10 @@
 
 import type { UserRole } from '@company-brain/shared';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useTransition } from 'react';
+import { type SubmitEvent, useTransition } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
-import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { useAccessTokensDraft } from '../hooks/use.access-tokens.draft';
 import { accessToDraftRows, canSubmitAccessDraft, draftRowsToAccess } from '../lib/access-tokens.lib';
@@ -32,10 +32,12 @@ export const AccessTokensEditForm = ({ role, spaces, token }: IProps) => {
   const draft = useAccessTokensDraft(accessToDraftRows(token));
   const [isPending, startTransition] = useTransition();
 
-  const submit = (event: FormEvent<HTMLFormElement>): void => {
+  const submit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     startTransition(async () => {
-      const result = await updateAccessTokenAccessAction({ access: draftRowsToAccess(draft.rows), tokenId: token.id });
+      const result = await callAction(() =>
+        updateAccessTokenAccessAction({ access: draftRowsToAccess(draft.rows), tokenId: token.id }),
+      );
       if (!isActionSuccess<AccessToken>(result)) {
         toast.error(t(`errors.${readActionFailureReason(result)}`));
         return;

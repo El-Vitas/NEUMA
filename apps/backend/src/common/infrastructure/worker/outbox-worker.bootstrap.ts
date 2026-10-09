@@ -1,19 +1,15 @@
 import pino from 'pino';
-import { OUTBOX_WORKER_LOG_REDACT_PATHS } from '../../constants/outbox.constants';
+import { OUTBOX_WORKER_LOG_LEVEL } from '../../constants/outbox.constants';
 import type {
   OutboxWorkerApplicationContext,
   OutboxWorkerBootstrapOptions,
   OutboxWorkerLogger,
 } from '../../types/outbox-worker.types';
+import { buildLogOptions } from '../logger.options';
 
+/** El log de los proyectores, con el mismo formato y lo mismo oculto que el del servidor. */
 export const createOutboxWorkerLogger = (): OutboxWorkerLogger =>
-  pino(
-    {
-      level: 'info',
-      redact: { paths: [...OUTBOX_WORKER_LOG_REDACT_PATHS], remove: true },
-    },
-    pino.destination(2),
-  );
+  pino(buildLogOptions(OUTBOX_WORKER_LOG_LEVEL), pino.destination(2));
 
 const waitForIdleDelay = async (delayMs: number): Promise<void> => {
   await new Promise<void>((resolve) => setTimeout(resolve, delayMs));

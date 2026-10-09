@@ -17,6 +17,19 @@ describe('buildPagesExportFileName', () => {
     expect(buildPagesExportFileName('¿?¡!', MARKDOWN)).toBe('export.md');
   });
 
+  it('leaves no dash at either end, even when the cut falls right after one', () => {
+    expect(buildPagesExportFileName('--¡Hola!--', MARKDOWN)).toBe('hola.md');
+    expect(buildPagesExportFileName(`${'a'.repeat(79)} b`, MARKDOWN)).toBe(`${'a'.repeat(79)}.md`);
+  });
+
+  /** El nombre llega del backend: uno lleno de signos no puede tardar el cuadrado de su largo. */
+  it('names what was exported at once, however many signs it carries', () => {
+    const startedAt = performance.now();
+    buildPagesExportFileName(`${'-'.repeat(50_000)}x`, MARKDOWN);
+
+    expect(performance.now() - startedAt).toBeLessThan(100);
+  });
+
   it('keeps the name short enough for any file system', () => {
     const veryLong = 'a'.repeat(200);
 

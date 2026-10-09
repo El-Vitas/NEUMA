@@ -46,7 +46,7 @@ export const isReachableLinkPreviewAddress = (address: string): boolean => {
   const url = new URL(address);
   if (url.protocol !== LINK_PREVIEW_ALLOWED_PROTOCOL) return false;
 
-  const host = url.hostname.toLowerCase().replace(/^\[|]$/g, '');
+  const host = url.hostname.toLowerCase().replaceAll(/^\[|]$/g, '');
   if (LINK_PREVIEW_CLOSED_HOSTS.includes(host)) return false;
   if (LINK_PREVIEW_CLOSED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))) return false;
 

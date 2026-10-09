@@ -24,19 +24,19 @@ export const watchWhatIsBeingRead = (
   let looking = 0;
   const lookOnce = (): void => {
     if (looking !== 0) return;
-    looking = window.requestAnimationFrame(() => {
+    looking = globalThis.requestAnimationFrame(() => {
       looking = 0;
       look();
     });
   };
 
   look();
-  window.addEventListener('scroll', lookOnce, { capture: true, passive: true });
-  window.addEventListener('resize', lookOnce, { passive: true });
+  globalThis.addEventListener('scroll', lookOnce, { capture: true, passive: true });
+  globalThis.addEventListener('resize', lookOnce, { passive: true });
 
   return () => {
-    if (looking !== 0) window.cancelAnimationFrame(looking);
-    window.removeEventListener('scroll', lookOnce, { capture: true });
-    window.removeEventListener('resize', lookOnce);
+    if (looking !== 0) globalThis.cancelAnimationFrame(looking);
+    globalThis.removeEventListener('scroll', lookOnce, { capture: true });
+    globalThis.removeEventListener('resize', lookOnce);
   };
 };

@@ -3,7 +3,10 @@ import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD } from '../../constants/search.constants';
+import {
+  PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD,
+  SEARCH_STRICT_WORD_SIMILARITY_SETTING,
+} from '../../constants/search.constants';
 import type {
   PageBlockRepositoryContract,
   PageBlockSearchPage,
@@ -14,12 +17,13 @@ import type {
 } from '../../types/page-block.types';
 import type { SearchCursor } from '../../types/search.types';
 import { decodeSearchCursor, encodeSearchCursor } from '../../utils/search.cursor.utils';
-import { buildSearchInsideWordPattern } from '../../utils/search.pattern.utils';
+import { buildSearchAnywherePattern, buildSearchInsideWordPattern } from '../../utils/search.pattern.utils';
 import {
   buildEditedRangeFilter,
   buildInsideWordMatch,
   buildSearchSpaceVisibilityFilter,
   buildTokenScopeFilter,
+  buildTrigramThresholdSetting,
   buildWordRank,
 } from './search.repository';
 
@@ -28,11 +32,15 @@ const blockQueryExpression = Prisma.sql`websearch_to_tsquery('simple'::regconfig
 /** Lo que ordena un bloque entre los que empatan: su página y su id, que juntos no se repiten. */
 const blockKey = Prisma.sql`("block"."pageId" || ':' || "block"."blockId")`;
 
-/** Solo dentro de una página y todo lo que cuelga de ella. */
+/**
+ * Solo dentro de una página y todo lo que cuelga de ella. `UNION` en vez de
+ * `UNION ALL`: si una fila mala dejara un ciclo en el árbol, la consulta igual
+ * termina en vez de dar vueltas hasta que la corten.
+ */
 const buildRootPageFilter = (rootPageId: string): Prisma.Sql => Prisma.sql`AND "block"."pageId" IN (
   WITH RECURSIVE "subtree" AS (
     SELECT "id" FROM "Page" WHERE "id" = ${rootPageId}
-    UNION ALL
+    UNION
     SELECT "child"."id" FROM "Page" AS "child" INNER JOIN "subtree" ON "child"."parentId" = "subtree"."id"
   )
   SELECT "id" FROM "subtree"
@@ -52,13 +60,10 @@ const pageIsVerified = Prisma.sql`(
 )`;
 
 /** Quien creó la página tiene eso en su nombre, sin mirar mayúsculas. */
-const buildAuthorFilter = (authorQuery: string): Prisma.Sql => {
-  const anywhereInTheName = `%${authorQuery}%`;
-  return Prisma.sql`AND EXISTS (
-    SELECT 1 FROM "User" AS "author"
-    WHERE "author"."id" = "page"."createdById" AND "author"."name" ILIKE ${anywhereInTheName}
-  )`;
-};
+const buildAuthorFilter = (authorQuery: string): Prisma.Sql => Prisma.sql`AND EXISTS (
+  SELECT 1 FROM "User" AS "author"
+  WHERE "author"."id" = "page"."createdById" AND "author"."name" ILIKE ${buildSearchAnywherePattern(authorQuery)}
+)`;
 
 /** Lo que acota por la página: verificada, quién la creó y cuándo se editó. */
 const buildPageFilters = (query: PageBlockSearchQuery): Prisma.Sql[] => [
@@ -237,14 +242,31 @@ export class PageBlockRepository implements PageBlockRepositoryContract {
     );
   }
 
-  private findTrigramMatches(query: PageBlockSearchQuery, cursor: SearchCursor | null): Promise<PageBlockSearchRow[]> {
-    const rank = Prisma.sql`strict_word_similarity(public.immutable_unaccent("input"."queryText"), public.immutable_unaccent("block"."text"))`;
-    return this.prisma.$queryRaw<PageBlockSearchRow[]>(
-      buildBlockSearchSql(query, cursor, {
-        match: Prisma.sql`${rank} >= ${PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD}`,
-        rank,
-        snippet: Prisma.sql`left("block"."text", 280)`,
-      }),
-    );
+  /**
+   * Los bloques con una palabra parecida a lo buscado, para perdonar un error
+   * de tipeo. El operador usa el índice de trigramas con el umbral fijado solo
+   * para esta transacción; la comparación con el umbral queda escrita igual,
+   * así el resultado no depende de cómo esté configurada la base.
+   */
+  private async findTrigramMatches(
+    query: PageBlockSearchQuery,
+    cursor: SearchCursor | null,
+  ): Promise<PageBlockSearchRow[]> {
+    const searched = Prisma.sql`public.immutable_unaccent("input"."queryText")`;
+    const text = Prisma.sql`public.immutable_unaccent("block"."text")`;
+    const rank = Prisma.sql`strict_word_similarity(${searched}, ${text})`;
+    const [, rows] = await this.prisma.$transaction([
+      this.prisma.$queryRaw(
+        buildTrigramThresholdSetting(SEARCH_STRICT_WORD_SIMILARITY_SETTING, PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD),
+      ),
+      this.prisma.$queryRaw<PageBlockSearchRow[]>(
+        buildBlockSearchSql(query, cursor, {
+          match: Prisma.sql`${searched} <<% ${text} AND ${rank} >= ${PAGE_BLOCK_WORD_SIMILARITY_THRESHOLD}`,
+          rank,
+          snippet: Prisma.sql`left("block"."text", 280)`,
+        }),
+      ),
+    ]);
+    return rows;
   }
 }

@@ -1,12 +1,30 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { removeMcpBlockComment } from '../lib/mcp.comments.lib';
 import { openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';
 import { describeMcpWrittenBlocks, formatMcpWrittenBlocksText, writeMcpContent } from '../lib/mcp.page-writes.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { deleteCommentInputSchema, writtenBlocksOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpDeleteCommentInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+const deleteComment = async (
+  dependencies: McpServerDependencies,
+  input: McpDeleteCommentInput,
+  { call, record }: McpWriteSession,
+): Promise<McpWrittenBlocksOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const request = {
+    blockIds: [input.block],
+    detail: { comment: input.comment },
+    pageId: opened.page.id,
+    tool: MCP_TOOL_NAMES.deleteComment,
+  };
+  const content = await record(request, () =>
+    writeMcpContent(dependencies, call, opened.page, removeMcpBlockComment(input.block, input.comment)),
+  );
+  return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.block]);
+};
 
 /**
  * Quita un comentario de un bloque y de las palabras que marcaba, como lo
@@ -24,28 +42,10 @@ export const deleteCommentTool: McpToolDefinition = {
         outputSchema: writtenBlocksOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.deleteComment,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            const request = {
-              blockIds: [input.block],
-              detail: { comment: input.comment },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.deleteComment,
-            };
-            const content = await recordMcpWrite(dependencies, call, request, () =>
-              writeMcpContent(dependencies, call, page, removeMcpBlockComment(input.block, input.comment)),
-            );
-            return describeMcpWrittenBlocks(dependencies, call, page, content, [input.block]);
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.deleteComment },
+          (session) => deleteComment(dependencies, input, session),
           formatMcpWrittenBlocksText,
         ),
     );

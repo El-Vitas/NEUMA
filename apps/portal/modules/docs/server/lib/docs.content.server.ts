@@ -47,7 +47,8 @@ const readNames = async (locale: string): Promise<readonly string[]> => {
 
 /** Everything there is to read, in the order the documents themselves ask for. */
 export const readDocsEntries = async (locale: string): Promise<readonly DocsEntry[]> => {
-  const names = new Set([...(await readNames(locale)), ...(await readNames(DOCS_FALLBACK_LOCALE))]);
+  const [own, fallback] = await Promise.all([readNames(locale), readNames(DOCS_FALLBACK_LOCALE)]);
+  const names = new Set([...own, ...fallback]);
   const written = await Promise.all([...names].map((slug) => readDocsDocument(locale, slug)));
   return written
     .filter((document): document is DocsDocument => document !== null)

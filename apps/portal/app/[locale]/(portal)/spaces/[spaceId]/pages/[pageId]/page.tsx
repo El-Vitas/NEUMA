@@ -30,21 +30,26 @@ import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spac
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 import type { FavoritePage } from '@/shared/types/favorites.types';
+import type { RouteSearchParams, RouteSearchParamValue } from '@/shared/types/route-search-params.types';
 
 interface IProps {
   readonly params: Promise<{ pageId: string; spaceId: string }>;
-  readonly searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams?: Promise<RouteSearchParams>;
 }
 
-/** The page a shared or reloaded address asks to open beside the one it names, when it names one at all. */
+/** Whether what the address names are ids at all: they end up written into the backend's addresses. */
+const areRecordIds = (...candidates: readonly string[]): boolean =>
+  candidates.every((candidate) => z.uuid().safeParse(candidate).success);
+
 /** The view the address names, or nothing when it names none. A repeated parameter keeps only the first. */
-const resolveRequestedViewName = (rawViewParam: string | string[] | undefined): null | string => {
+const resolveRequestedViewName = (rawViewParam: RouteSearchParamValue): null | string => {
   const candidate = Array.isArray(rawViewParam) ? rawViewParam[0] : rawViewParam;
   return candidate === undefined || candidate === '' ? null : candidate;
 };
 
+/** The page a shared or reloaded address asks to open beside the one it names, when it names one at all. */
 const resolvePanelPageId = (
-  rawPanelParam: string | string[] | undefined,
+  rawPanelParam: RouteSearchParamValue,
   pages: readonly PageSummary[],
   pageId: string,
 ): string | null => {
@@ -87,6 +92,7 @@ const readPagesHolding = async (spaceId: string, pageId: string): Promise<readon
 /** The name the browser tab carries, which is the page's own and not the workspace's. */
 export const generateMetadata = async ({ params }: IProps): Promise<Metadata> => {
   const { pageId, spaceId } = await params;
+  if (!areRecordIds(pageId, spaceId)) return {};
   const [pages, t] = await Promise.all([readPagesHolding(spaceId, pageId), getTranslations('pages')]);
   const page = pages?.find((candidate) => candidate.id === pageId);
   if (page === undefined) return {};
@@ -267,14 +273,14 @@ export const instant = false;
 
 export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
-  if (!z.uuid().safeParse(pageId).success) notFound();
+  if (!areRecordIds(pageId, spaceId)) notFound();
 
   const [spacesResult, user, pages, favoritesResult, resolvedSearchParams] = await Promise.all([
     getSpaces(),
     getCurrentUser(),
     readPagesHolding(spaceId, pageId),
     getFavoritePages(),
-    searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({}),
+    searchParams ?? Promise.resolve<RouteSearchParams>({}),
   ]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const selectedPage = pages?.find((page) => page.id === pageId);

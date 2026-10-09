@@ -1,12 +1,32 @@
-import { randomUUID } from 'node:crypto';
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { openMcpPage, readMcpPageId, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { describeMcpManagedPage, formatMcpManagedPageText, requireMcpWholeTree } from '../lib/mcp.page-management.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
+import { readMcpActor } from '../lib/mcp.tool.lib';
 import { managedPageOutputSchema, trashPageInputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpManagedPageOutput, McpTrashPageInput } from '../types/mcp.page-management.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+const trashPage = async (
+  dependencies: McpServerDependencies,
+  input: McpTrashPageInput,
+  { call, record }: McpWriteSession,
+): Promise<McpManagedPageOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesTrash);
+  const pageId = opened.page.id;
+  await requireMcpWholeTree(dependencies, call, pageId, ACCESS_TOKEN_PERMISSIONS.pagesTrash);
+  const onPage = { ...readMcpActor(call), pageId };
+  const preview = requireMcpSuccess(await dependencies.pages.previewTrashCascade(onPage));
+  const request = {
+    blockIds: [],
+    detail: { childPages: preview.childPageCount },
+    pageId,
+    tool: MCP_TOOL_NAMES.trashPage,
+  };
+  await record(request, async () => requireMcpSuccess(await dependencies.pages.trash(onPage)));
+  return { childPages: preview.childPageCount, page: describeMcpManagedPage(dependencies, call, opened) };
+};
 
 /**
  * Manda una página a la papelera, con todo lo que cuelga de ella, como lo hace
@@ -26,34 +46,10 @@ export const trashPageTool: McpToolDefinition = {
         outputSchema: managedPageOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.trashPage,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesTrash,
-            );
-            await requireMcpWholeTree(dependencies, call, page.id, ACCESS_TOKEN_PERMISSIONS.pagesTrash);
-            const { role, userId } = call.principal;
-            const workspaceId = call.workspace.id;
-            const preview = requireMcpSuccess(
-              await dependencies.pages.previewTrashCascade(page.id, workspaceId, userId, role),
-            );
-            const request = {
-              blockIds: [],
-              detail: { childPages: preview.childPageCount },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.trashPage,
-            };
-            await recordMcpWrite(dependencies, call, request, async () =>
-              requireMcpSuccess(await dependencies.pages.trash(page.id, userId, workspaceId, randomUUID(), role)),
-            );
-            return { childPages: preview.childPageCount, page: describeMcpManagedPage(dependencies, page) };
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.trashPage },
+          (session) => trashPage(dependencies, input, session),
           formatMcpManagedPageText,
         ),
     );

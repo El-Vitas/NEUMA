@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/components/ui/dialog';
-import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
+import { callAction, hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
 
 interface IProps {
   readonly revoke: (input: { readonly tokenId: string }) => Promise<unknown>;
@@ -33,7 +33,7 @@ export const AccessTokensRevokeDialog = ({ revoke, tokenId, tokenName }: IProps)
 
   const confirmRevoke = (): void => {
     startTransition(async () => {
-      const result = await revoke({ tokenId });
+      const result = await callAction(() => revoke({ tokenId }));
       if (hasActionError(result)) {
         toast.error(t(`errors.${readActionFailureReason(result)}`));
         return;

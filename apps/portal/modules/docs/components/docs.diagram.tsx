@@ -1,7 +1,9 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { DIAGRAM_BOUNDED_STYLE_CLASS, DIAGRAM_ZOOM_BUTTON_STEP } from '@/shared/constants/diagram.constants';
+import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { drawDiagram } from '@/shared/lib/diagram.drawing.lib';
 import { watchTheDiagramGround } from '@/shared/lib/diagram.ground.lib';
 import { letTheDrawingBeHandled } from '@/shared/lib/diagram.handling.lib';
@@ -25,7 +27,8 @@ interface IProps {
  * inside it the same way a diagram on a page is.
  */
 export const DocsDiagram = ({ source }: IProps) => {
-  const drawingRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations('docs');
+  const drawingRef = useRef<HTMLElement>(null);
   const handlingRef = useRef<DiagramHandling | null>(null);
   const [zoom, setZoom] = useState(1);
 
@@ -71,7 +74,11 @@ export const DocsDiagram = ({ source }: IProps) => {
         onZoomOut={() => handlingRef.current?.zoomBy(1 / DIAGRAM_ZOOM_BUTTON_STEP)}
         zoom={zoom}
       />
-      <div className={`${DOCS_DRAWING_STYLE_CLASS} ${DIAGRAM_BOUNDED_STYLE_CLASS}`} ref={drawingRef} />
+      <section
+        aria-label={t('drawingRegion')}
+        className={`${DOCS_DRAWING_STYLE_CLASS} ${DIAGRAM_BOUNDED_STYLE_CLASS} ${FOCUS_RING_CLASS}`}
+        ref={drawingRef}
+      />
     </div>
   );
 };

@@ -163,11 +163,11 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
       updateOfflineState(false);
       triggerResumeAfterOffline();
     };
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
+    globalThis.addEventListener('offline', handleOffline);
+    globalThis.addEventListener('online', handleOnline);
     return () => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
+      globalThis.removeEventListener('offline', handleOffline);
+      globalThis.removeEventListener('online', handleOnline);
     };
   }, [triggerResumeAfterOffline, updateOfflineState]);
 
@@ -176,10 +176,9 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
     const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
       if (!hasUnsavedChangesRef.current) return;
       event.preventDefault();
-      event.returnValue = '';
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    globalThis.addEventListener('beforeunload', handleBeforeUnload);
+    return () => globalThis.removeEventListener('beforeunload', handleBeforeUnload);
   }, [enabled]);
 
   /** Mounted again after being taken down, as React does in development, it is mounted: a save that ends now still counts. */

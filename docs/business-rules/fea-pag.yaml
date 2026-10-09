@@ -262,6 +262,23 @@ rules:
         given: Una página recién creada y sin nombre
         when: Se escribe un título y no se pulsa nada más
         then: El título queda guardado
+  - id: BR-c9aaeaa
+    status: active
+    title: Una página en la papelera no se escribe, ni por la pantalla ni por la vía de atrás
+    rule: >-
+      Una página en la papelera rechaza cualquier escritura de su contenido, su título y sus propiedades, venga del
+      editor, de la API o de un agente. Para cambiarla, primero se la trae de vuelta. El rechazo lo decide el servidor.
+    why: >-
+      Lo que está en la papelera está saliendo: nadie lo ve en el árbol ni lo encuentra al buscar. Un cambio ahí no lo
+      lee nadie, y al restaurarla aparecería algo que nadie revisó.
+    context: >-
+      El servidor responde con el error PAGE_INVALID_LIFECYCLE y estado 409. Al agente se le dice que la restaure
+      primero o que le pida a una persona.
+    scenarios:
+      - title: Un agente escribe en una página borrada
+        given: Una página en la papelera
+        when: Un agente le agrega un bloque
+        then: No se escribe nada y se le dice que la traiga de vuelta primero
   - id: BR-d829da6
     status: active
     title: Lo que se exporta se lee como Markdown y sabe volver

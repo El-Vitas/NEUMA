@@ -1,4 +1,5 @@
 import { USER_ROLE_VALUES, type User, type UserRole } from '@company-brain/shared';
+import { BEARER_AUTHORIZATION_PATTERN } from '../constants/auth.constants';
 import { ADMIN_PERMISSIONS, WORKER_PERMISSIONS } from '../constants/role.permissions';
 import type { PermissionEntry } from '../types/auth.types';
 
@@ -21,8 +22,7 @@ export const getPermissionsForRole = (role: string): readonly PermissionEntry[] 
  */
 export const readBearerToken = (authorization: string | undefined): string | undefined => {
   if (typeof authorization !== 'string') return undefined;
-  const [scheme, token] = authorization.split(' ');
-  return scheme === 'Bearer' ? token : undefined;
+  return BEARER_AUTHORIZATION_PATTERN.exec(authorization)?.[1];
 };
 
 export const toUser = (row: { email: string; id: string; name: string; role: UserRole }): User => ({

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { PAGE_OPTION_COLOR, type PagePropertyType } from '@company-brain/shared';
 import { describeMcpCollection, formatMcpCollectionText } from '@/modules/mcp/lib/mcp.collection-output.lib';
+import { listMcpNames } from '@/modules/mcp/lib/mcp.columns.lib';
 import type { McpColumn } from '@/modules/mcp/types/mcp.collections.types';
 
 const column = (
@@ -18,6 +19,7 @@ const column = (
 
 const collection = {
   id: '11111111-1111-4111-8111-111111111111',
+  listNames: listMcpNames,
   place: { lineage: ['11111111-1111-4111-8111-111111111111'], spaceId: '00000000-0000-4000-8000-00000000000a' },
   shape: {
     properties: [column('title', 'Título', 'TITLE'), column('status', 'Estado', 'SELECT', ['Por hacer', 'Hecho'])],
@@ -80,5 +82,16 @@ describe('formatMcpCollectionText', () => {
     expect(text).toContain('- Estado (status, SELECT): Por hacer, Hecho');
     expect(text).toContain('- Tabla (TABLE, default)');
     expect(text).toContain('- Tablero (BOARD): grouped by Estado; where Estado IS "Hecho" AND Título IS_NOT_EMPTY');
+  });
+
+  /** Una colección se describe sin columnas solo a un token que la cambió sin poder leerla. */
+  it('says the change was saved, and only where, when the columns are kept from the agent', () => {
+    const described = describeMcpCollection('https://brain.example.com', collection);
+
+    const text = formatMcpCollectionText({ ...described, columns: [], title: '[closed]', views: [] });
+
+    expect(text).toContain('not read it');
+    expect(text).toContain(described.url);
+    expect(text).not.toContain('Columns:');
   });
 });

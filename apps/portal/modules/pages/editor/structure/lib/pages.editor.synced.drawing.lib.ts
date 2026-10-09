@@ -1,6 +1,7 @@
 import type { Node as EditorNode } from 'prosemirror-model';
 import { DIAGRAM_BOUNDED_STYLE_CLASS } from '@/shared/constants/diagram.constants';
 import { drawDiagram } from '@/shared/lib/diagram.drawing.lib';
+import { watchTheDiagramGround } from '@/shared/lib/diagram.ground.lib';
 import { letTheDrawingBeHandled } from '@/shared/lib/diagram.handling.lib';
 import { drawFormula } from '@/shared/lib/formula.drawing.lib';
 import type { Drawn } from '@/shared/types/diagram.types';
@@ -48,5 +49,10 @@ export const drawBorrowedBlock = (borrowed: EditorNode, body: HTMLElement): (() 
     if (!isFormula) handling.showAtItsSize();
   };
   void show();
-  return handling.release;
+  /** A diagram is coloured for the ground it is read on, the borrowed one as much as its own. */
+  const stopWatchingTheGround = isFormula ? () => undefined : watchTheDiagramGround(() => void show());
+  return () => {
+    stopWatchingTheGround();
+    handling.release();
+  };
 };

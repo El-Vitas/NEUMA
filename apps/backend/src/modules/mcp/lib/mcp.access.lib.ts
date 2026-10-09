@@ -3,6 +3,7 @@ import {
   ACCESS_TOKEN_READ_PERMISSIONS,
   type AccessTokenPermission,
   canRoleGrantAccessTokenPermission,
+  isOneOf,
   listAccessTokenGrantedPermissions,
   readAccessTokenPermissionsAt,
 } from '@company-brain/shared';
@@ -16,7 +17,7 @@ export const permitsPageReading = (permissions: readonly AccessTokenPermission[]
 
 /** Si unos permisos dejan leer algo, páginas o colecciones: lo que hace falta para ver un espacio. */
 export const permitsListing = (permissions: readonly AccessTokenPermission[]): boolean =>
-  permissions.some((permission) => ACCESS_TOKEN_READ_PERMISSIONS.some((reading) => reading === permission));
+  permissions.some((permission) => isOneOf(ACCESS_TOKEN_READ_PERMISSIONS, permission));
 
 /** Cada regla de página del token, con si deja lo que se pregunta. */
 export const listMcpPageRuleProbes = (

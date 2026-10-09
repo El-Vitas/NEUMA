@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '../schemas/page-content.schema.js';
+import { type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
 import { givePageBlocksTheirIds } from './page-block.identity.lib.js';
 
 const doc = (...content: readonly unknown[]): PageContent =>
-  ({ content, schemaVersion: 1, type: 'doc' }) as unknown as PageContent;
+  pageContentSchema.parse({ content, schemaVersion: 1, type: 'doc' });
 
 const text = (value: string) => ({ text: value, type: 'text' });
 

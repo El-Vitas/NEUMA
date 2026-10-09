@@ -1,3 +1,8 @@
+/**
+ * Va primero y sin nombres: arma el DOM que Mermaid necesita antes de que
+ * Mermaid se cargue, y el orden de las importaciones no mueve una así. Lo que
+ * se usa de ese archivo se importa aparte, más abajo.
+ */
 import './mcp.diagram.dom';
 import zenuml from '@mermaid-js/mermaid-zenuml';
 import mermaid from 'mermaid';

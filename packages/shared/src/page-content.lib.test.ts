@@ -118,7 +118,7 @@ describe('extractPageContentSegments', () => {
         {
           content: [
             { text: 'Solve ', type: 'text' },
-            { attrs: { latex: '\\frac{1}{2}' }, type: 'formula' },
+            { attrs: { latex: String.raw`\frac{1}{2}` }, type: 'formula' },
           ],
           type: 'paragraph',
         },

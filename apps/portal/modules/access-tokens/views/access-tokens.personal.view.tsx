@@ -6,7 +6,6 @@ import { SectionHeader } from '@/shared/components/ui/section-header';
 import { config } from '@/shared/config';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { AccessTokensList } from '../components/access-tokens.list';
-import { MCP_HTTP_PATH } from '../constants/access-tokens.constants';
 import type { AccessToken } from '../types/access-tokens.types';
 
 interface IProps {
@@ -35,8 +34,7 @@ export const AccessTokensPersonalView = async ({ tokens }: IProps) => {
         title={t('title')}
       />
       <p className="text-muted-foreground text-sm">
-        {t('connectAt')}{' '}
-        <code className="break-all font-mono text-foreground">{`${config.backendApiUrl}${MCP_HTTP_PATH}`}</code>
+        {t('connectAt')} <code className="break-all font-mono text-foreground">{config.mcpPublicUrl}</code>
       </p>
       <AccessTokensList tokens={tokens} />
     </section>

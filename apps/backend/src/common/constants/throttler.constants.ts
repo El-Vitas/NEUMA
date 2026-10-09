@@ -3,6 +3,7 @@ export const THROTTLER_NAMES = {
   global: 'credentials-global',
   exports: 'exports-per-user',
   mcp: 'mcp-per-token',
+  mcpPerIp: 'mcp-per-ip',
 } as const;
 
 /**
@@ -48,4 +49,11 @@ export const EXPORT_RATE_LIMIT = {
 export const MCP_RATE_LIMIT = {
   windowSeconds: 60,
   perTokenLimit: 120,
+  /**
+   * Lo que se cuenta por dirección antes de mirar el token: así un cliente que
+   * prueba llaves, o un agente con un token revocado que reintenta sin parar,
+   * no consulta la base sin límite. Es holgado porque una oficina entera, con
+   * varios agentes, sale por una sola dirección.
+   */
+  perIpLimit: 600,
 } as const;

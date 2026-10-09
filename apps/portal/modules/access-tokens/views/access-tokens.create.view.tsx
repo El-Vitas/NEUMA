@@ -4,7 +4,6 @@ import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
 import { SectionHeader } from '@/shared/components/ui/section-header';
 import { config } from '@/shared/config';
 import { AccessTokensCreatePanel } from '../components/access-tokens.create.panel';
-import { MCP_HTTP_PATH } from '../constants/access-tokens.constants';
 import type { AccessTokenSpaceOption } from '../types/access-tokens.types';
 
 interface IProps {
@@ -28,12 +27,7 @@ export const AccessTokensCreateView = async ({ role, spaces, takenNames }: IProp
       {spaces === null || takenNames === null ? (
         <FormErrorBanner message={t('loadError')} />
       ) : (
-        <AccessTokensCreatePanel
-          mcpUrl={`${config.backendApiUrl}${MCP_HTTP_PATH}`}
-          role={role}
-          spaces={spaces}
-          takenNames={takenNames}
-        />
+        <AccessTokensCreatePanel mcpUrl={config.mcpPublicUrl} role={role} spaces={spaces} takenNames={takenNames} />
       )}
     </section>
   );

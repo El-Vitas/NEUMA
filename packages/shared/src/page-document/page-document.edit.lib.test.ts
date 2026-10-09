@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import type { PageContent } from '../schemas/page-content.schema.js';
-import { insertPageBlocks, movePageBlocks, removePageBlocks, replacePageBlock } from './page-document.edit.lib.js';
+import { type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
+import {
+  findPageBlock,
+  insertPageBlocks,
+  movePageBlocks,
+  removePageBlocks,
+  replacePageBlock,
+} from './page-document.edit.lib.js';
 
 const paragraph = (id: string, text: string) => ({
   attrs: { id },
@@ -18,7 +24,7 @@ const bulletList = (id: string, ...items: readonly unknown[]) => ({
   type: 'bullet_list',
 });
 const page = (...content: readonly unknown[]): PageContent =>
-  ({ content, schemaVersion: 1, type: 'doc' }) as unknown as PageContent;
+  pageContentSchema.parse({ content, schemaVersion: 1, type: 'doc' });
 
 const ids = (content: PageContent): readonly string[] =>
   content.content.map((node) => (node as { attrs: { id: string } }).attrs.id);
@@ -26,6 +32,40 @@ const ids = (content: PageContent): readonly string[] =>
 const intro = paragraph('intro', 'Intro');
 const outro = paragraph('outro', 'Cierre');
 const list = bulletList('list', item('one', 'Uno'), item('two', 'Dos'));
+
+describe('findPageBlock', () => {
+  test('finds a block at the top of the page', () => {
+    expect(findPageBlock([intro, list], 'intro')).toEqual(intro);
+  });
+
+  test('finds a block however deep it sits', () => {
+    expect(findPageBlock([intro, list], 'two')).toEqual(item('two', 'Dos'));
+    expect(findPageBlock([intro, list], 'two-line')).toEqual(paragraph('two-line', 'Dos'));
+  });
+
+  test('finds nothing when no block has that id', () => {
+    expect(findPageBlock([intro, list], 'gone')).toBeNull();
+  });
+});
+
+/** Dos bloques con el mismo id no se distinguen: el que llega no puede traer uno que la página ya usa. */
+describe('the ids a page already uses', () => {
+  test('refuses to insert a block with an id another block already has', () => {
+    expect(insertPageBlocks(page(intro), { at: 'end' }, [paragraph('intro', 'Otra')]).getError()).toContain(
+      'already has a block intro',
+    );
+  });
+
+  test('refuses a replacement that brings inside it the id of another block', () => {
+    const replacement = bulletList('x', item('intro', 'Repetido'));
+
+    expect(replacePageBlock(page(intro, list), 'list', replacement).getError()).toContain('already has a block intro');
+  });
+
+  test('lets a replacement keep the ids of what it replaces', () => {
+    expect(replacePageBlock(page(intro, list), 'list', list).isOk()).toBe(true);
+  });
+});
 
 describe('insertPageBlocks', () => {
   test('puts blocks after the one named, in the order given', () => {
@@ -124,5 +164,13 @@ describe('movePageBlocks', () => {
 
   test('refuses to move a block into itself', () => {
     expect(movePageBlocks(page(list), ['list'], { after: 'one' }).getError()).toContain('inside');
+  });
+
+  /** Nombrar un bloque y uno de los que lleva dentro no lo copia: el de dentro viaja una vez, con su padre. */
+  test('moves a block named together with one inside it only once', () => {
+    const moved = movePageBlocks(page(intro, list, outro), ['list', 'two'], { after: 'outro' }).getValue();
+
+    expect(ids(moved)).toEqual(['intro', 'outro', 'list']);
+    expect(JSON.stringify(moved).match(/"id":"two"/g)).toHaveLength(1);
   });
 });

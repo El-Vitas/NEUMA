@@ -11,6 +11,8 @@ import type {
   SearchProjectionSource,
 } from '@/modules/search/types/search.types';
 
+const EDITED_AT = new Date('2026-09-01T10:00:00.000Z');
+
 const activePage: SearchProjectionPage = {
   authorId: 'user-1',
   authorName: 'Ada Lovelace',
@@ -27,6 +29,7 @@ const activePage: SearchProjectionPage = {
   spaceId: 'space-1',
   spaceName: 'Mission Control',
   title: 'Launch plan',
+  updatedAt: EDITED_AT,
   verificationExpiresAt: null,
   verifiedAt: null,
   version: 12,
@@ -162,6 +165,7 @@ describe('SearchProjectionWorker', () => {
       spaceId: 'space-1',
       spaceName: 'Mission Control',
       title: 'Current title',
+      updatedAt: EDITED_AT,
       verificationExpiresAt: null,
       verifiedAt: null,
       version: 12,
@@ -197,6 +201,7 @@ describe('SearchProjectionWorker', () => {
     expect(applied).toEqual([
       {
         contentType: 'PAGE',
+        editedAt: EDITED_AT,
         extractedText: 'Prepare launch',
         language: null,
         properties: {
@@ -262,6 +267,7 @@ describe('SearchProjectionWorker', () => {
       spaceId: 'space-1',
       spaceName: 'Mission Control',
       title: 'Checklist',
+      updatedAt: EDITED_AT,
       verificationExpiresAt: null,
       verifiedAt: null,
       version: 1,
@@ -315,6 +321,7 @@ describe('SearchProjectionWorker', () => {
           spaceId: 'space-1',
           spaceName: 'Mission Control',
           title: 'Deleted page',
+          updatedAt: EDITED_AT,
           verificationExpiresAt: null,
           verifiedAt: null,
           version: 4,

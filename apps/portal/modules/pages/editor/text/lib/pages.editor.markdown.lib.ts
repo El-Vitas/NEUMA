@@ -66,7 +66,8 @@ const readPageEditorCodeFence = (schema: Schema, lines: readonly string[], start
     index += 1;
   }
   const next = index < lines.length ? index + 1 : index;
-  const content = body.length === 0 ? null : schema.text(body.join('\n'));
+  const written = body.join('\n');
+  const content = written.length === 0 ? null : schema.text(written);
   return { block: schema.nodes.code_block.createChecked({ language }, content), next };
 };
 
