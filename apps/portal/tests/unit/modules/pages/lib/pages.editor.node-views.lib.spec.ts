@@ -4,6 +4,7 @@ import { pageContentSchema } from '@company-brain/shared';
 import type { PageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 import { createPageEditorNodeViews } from '@/modules/pages/editor/blocks/lib/pages.editor.node-views.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import { pageEditorTestLabels } from '../../../../mocks/pages.editor.labels.mock';
 
 const buildMentionDocument = (spaceId: string, pageId: string, label: string) =>
   pageContentSchema.parse({
@@ -27,64 +28,7 @@ const renderMentionLink = (
   if (mentionNode === undefined || mentionNode === null) throw new Error('mention node missing');
 
   const nodeViews = createPageEditorNodeViews(
-    {
-      code: {
-        copied: 'Copied',
-        copy: 'Copy',
-        diagram: {
-          both: 'Both',
-          code: 'Code',
-          download: 'Download',
-          drawing: 'Drawing',
-          fullScreen: 'Full screen',
-          line: 'line',
-          unknown: 'no es un diagrama',
-          formula: { both: 'código y fórmula', code: 'solo el código', drawing: 'solo la fórmula' },
-        },
-        language: 'Language',
-        languages: { plain: 'No language' },
-        wrap: 'Wrap',
-      },
-      date: { field: 'Which day', label: 'Date', locale: 'en' },
-      embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
-      file: { fullScreen: 'Full screen', resize: 'Resize the document' },
-      formula: {
-        done: 'Done',
-        empty: 'Formula not written yet',
-        field: 'The formula',
-        help: 'Written in LaTeX.',
-        inline: 'Formula',
-        unreadable: 'This formula cannot be drawn, so it is shown exactly as it was written.',
-      },
-      collection: 'Collection',
-      contents: { empty: 'sin encabezados', title: 'en esta página' },
-      button: {
-        deed: 'Qué hace',
-        deeds: { blocks: 'Escribir', row: 'Fila' },
-        name: 'Lo que dice',
-        needsCollection: 'Elige la colección',
-        place: 'Dónde',
-        places: { below: 'Debajo', bottom: 'Al final', top: 'Al principio' },
-        setup: 'Configurar',
-      },
-      subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
-      synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },
-      image: { caption: 'Describe the image', resize: 'Resize' },
-      mentionTrashed: { label: 'eliminada', tooltip: (name: string) => `${name} fue enviada a la papelera` },
-      person: 'Person',
-      task: 'Task',
-      media: {
-        fullScreen: 'Full screen',
-        mute: 'Mute',
-        pause: 'Pause',
-        play: 'Play',
-        resize: 'Resize',
-        seek: 'Position',
-        unmute: 'Unmute',
-      },
-      toggle: { open: 'Toggle', title: 'Toggle title' },
-      unsupported: 'Unsupported block',
-    },
+    pageEditorTestLabels,
     undefined,
     undefined,
     undefined,
@@ -171,64 +115,7 @@ describe('createPageEditorNodeViews mention', () => {
 });
 
 describe('createPageEditorNodeViews collection', () => {
-  const nodeViews = createPageEditorNodeViews({
-    code: {
-      copied: 'Copied',
-      copy: 'Copy',
-      diagram: {
-        both: 'Both',
-        code: 'Code',
-        download: 'Download',
-        drawing: 'Drawing',
-        fullScreen: 'Full screen',
-        line: 'line',
-        unknown: 'no es un diagrama',
-        formula: { both: 'código y fórmula', code: 'solo el código', drawing: 'solo la fórmula' },
-      },
-      language: 'Language',
-      languages: { plain: 'No language' },
-      wrap: 'Wrap',
-    },
-    date: { field: 'Which day', label: 'Date', locale: 'en' },
-    embed: { providers: { youtube: 'YouTube' }, refused: 'Nothing to show:', resize: 'Resize' },
-    file: { fullScreen: 'Full screen', resize: 'Resize the document' },
-    formula: {
-      done: 'Done',
-      empty: 'Formula not written yet',
-      field: 'The formula',
-      help: 'Written in LaTeX.',
-      inline: 'Formula',
-      unreadable: 'This formula cannot be drawn, so it is shown exactly as it was written.',
-    },
-    collection: 'Collection',
-    contents: { empty: 'sin encabezados', title: 'en esta página' },
-    button: {
-      deed: 'Qué hace',
-      deeds: { blocks: 'Escribir', row: 'Fila' },
-      name: 'Lo que dice',
-      needsCollection: 'Elige la colección',
-      place: 'Dónde',
-      places: { below: 'Debajo', bottom: 'Al final', top: 'Al principio' },
-      setup: 'Configurar',
-    },
-    subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
-    synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },
-    image: { caption: 'Describe the image', resize: 'Resize' },
-    mentionTrashed: { label: 'eliminada', tooltip: (name: string) => `${name} fue enviada a la papelera` },
-    person: 'Person',
-    task: 'Task',
-    media: {
-      fullScreen: 'Full screen',
-      mute: 'Mute',
-      pause: 'Pause',
-      play: 'Play',
-      resize: 'Resize',
-      seek: 'Position',
-      unmute: 'Unmute',
-    },
-    toggle: { open: 'Toggle', title: 'Toggle title' },
-    unsupported: 'Unsupported block',
-  });
+  const nodeViews = createPageEditorNodeViews(pageEditorTestLabels);
 
   it('leaves a host in the content where the collection will be rendered', () => {
     const node = pageEditorSchema.nodes.collection.create({ pageId: 'page-1', spaceId: 'space-1' });

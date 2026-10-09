@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest, mock } from 'bun:test';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { MAX_COLLABORATION_RECONNECT_ATTEMPTS } from '@/modules/pages/constants/pages.collaboration.constants';
-import type { PageContent } from '@/modules/pages/types/pages.types';
 
 type MockStatusHandler = (payload: { readonly status: string }) => void;
 
@@ -66,12 +65,6 @@ const emitStatus = (index: number, status: string): void => {
   providerConfigurations[index]?.onStatus({ status });
 };
 
-const samplePageContent: PageContent = {
-  content: [{ content: [{ text: 'placeholder', type: 'text' }], type: 'paragraph' }],
-  schemaVersion: 1,
-  type: 'doc',
-};
-
 describe('usePagesCollaboration reconnect policy', () => {
   beforeEach(() => {
     providerConfigurations.length = 0;
@@ -87,7 +80,7 @@ describe('usePagesCollaboration reconnect policy', () => {
   });
 
   it('attaches every provider it creates so the caller-owned websocket delivers status and sync events', async () => {
-    const { unmount } = renderHook(() => usePagesCollaboration('page-0', true, samplePageContent));
+    const { unmount } = renderHook(() => usePagesCollaboration('page-0', true));
 
     await waitFor(() => expect(providerConfigurations.length).toBe(1));
     await waitFor(() => expect(attachCalls.length).toBe(1));
@@ -106,7 +99,7 @@ describe('usePagesCollaboration reconnect policy', () => {
   });
 
   it('reaches the exhausted terminal state after the reconnect attempt cap and stops creating new providers', async () => {
-    const { result, unmount } = renderHook(() => usePagesCollaboration('page-1', true, samplePageContent));
+    const { result, unmount } = renderHook(() => usePagesCollaboration('page-1', true));
 
     await waitFor(() => expect(providerConfigurations.length).toBe(1));
 
@@ -136,7 +129,7 @@ describe('usePagesCollaboration reconnect policy', () => {
   });
 
   it('recovers to connected without exhausting when a reconnect attempt succeeds', async () => {
-    const { result, unmount } = renderHook(() => usePagesCollaboration('page-2', true, samplePageContent));
+    const { result, unmount } = renderHook(() => usePagesCollaboration('page-2', true));
 
     await waitFor(() => expect(providerConfigurations.length).toBe(1));
 
@@ -150,7 +143,7 @@ describe('usePagesCollaboration reconnect policy', () => {
   });
 
   it('destroys the provider and websocket on unmount without leaking pending reconnect timers', async () => {
-    const { unmount } = renderHook(() => usePagesCollaboration('page-3', true, samplePageContent));
+    const { unmount } = renderHook(() => usePagesCollaboration('page-3', true));
 
     await waitFor(() => expect(providerConfigurations.length).toBe(1));
 
@@ -170,8 +163,7 @@ describe('usePagesCollaboration reconnect policy', () => {
 
   it('updates the live awareness field on display name changes without rebuilding the session', async () => {
     const { rerender, unmount } = renderHook(
-      ({ displayName }: { readonly displayName: string | null }) =>
-        usePagesCollaboration('page-4', true, samplePageContent, displayName),
+      ({ displayName }: { readonly displayName: string | null }) => usePagesCollaboration('page-4', true, displayName),
       { initialProps: { displayName: 'Alice' } },
     );
 

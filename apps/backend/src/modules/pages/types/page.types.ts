@@ -1,9 +1,15 @@
 import type { PageLifecycle } from '@company-brain/db';
 import type { Prisma } from '@company-brain/db/generated';
-import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
+import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@company-brain/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
-import { PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
+import { PAGE_CONTENT_STORE_OUTCOME, PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';
+import type {
+  PageAccessDeniedError,
+  PageContentValidationError,
+  PageLifecycleError,
+  PageLockedError,
+} from '../domain/page.error';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
 
@@ -26,13 +32,80 @@ export interface CreatePageInput {
   readonly workspaceId: string;
 }
 
-export interface UpdatePageInput {
-  readonly content: Prisma.InputJsonValue;
+/** Lo que dice el documento colaborativo de una página, para guardarlo como su contenido. */
+export interface StorePageContentInput {
+  readonly content: PageContent;
   readonly pageId: string;
-  readonly propertyValues: SchemaPropertyValues | null;
-  readonly role: UserRole;
-  readonly title: string;
   readonly updatedById: string;
+}
+
+export type PageContentStoreOutcome = (typeof PAGE_CONTENT_STORE_OUTCOME)[keyof typeof PAGE_CONTENT_STORE_OUTCOME];
+
+export interface StoredPageContentRow {
+  readonly content: Prisma.JsonValue;
+  readonly title: string;
+}
+
+export interface UpdatePagePropertyValuesInput {
+  readonly pageId: string;
+  /** Un nombre nuevo que se guarda en la misma escritura; sin él, el nombre no se toca. */
+  readonly title?: string;
+  readonly updatedById: string;
+}
+
+/** Lo que la fila tiene ahora, fundido con lo que llega y validado; o por qué no se puede guardar. */
+/**
+ * Cómo quedan las propiedades a partir de las que la fila tiene al bloquearla.
+ * Es puro a propósito: corre con la fila bloqueada, y cualquier consulta que
+ * hiciera tomaría otra conexión mientras la transacción retiene la suya.
+ */
+export type PagePropertyValuesMerge<TError> = (
+  current: SchemaPropertyValues | null,
+) => Result<SchemaPropertyValues | null, TError>;
+
+export interface StoredPagePropertyValuesRow {
+  readonly propertyValues: Prisma.JsonValue;
+}
+
+export type PageContentRewrite = (current: PageContent) => PageContent;
+
+/** Un cambio sobre lo que la página dice al escribir: la página que queda, o por qué no se puede. */
+export type PageContentEdit = (current: PageContent) => Result<PageContent, string>;
+
+/** Quién decide si alguien puede escribir en una página, y si lo que escribe calza con una página. */
+export interface PageWriteAuthorizer {
+  readonly authorizeContentWrite: (
+    writer: PageContentWriter,
+    content: unknown,
+  ) => Promise<Result<PageContent, PageContentWriteError>>;
+  readonly authorizeWrite: (
+    writer: PageContentWriter,
+  ) => Promise<Result<PageContentWriter, PageAccessDeniedError | PageLifecycleError | PageLockedError>>;
+}
+
+export type PageContentWriteError =
+  | PageAccessDeniedError
+  | PageContentValidationError
+  | PageLifecycleError
+  | PageLockedError;
+
+/**
+ * El documento en vivo de una página, visto desde las páginas: reescribirla a
+ * partir de lo que dice en el momento de escribir. Quien la tenga abierta lo ve
+ * en vivo, y la página se guarda desde ahí. Devuelve la página tal como quedó.
+ */
+export interface PageLiveDocument {
+  /** Lo que dice el documento en vivo de una página si alguien lo tiene abierto; nada si no. */
+  readonly readLoadedPageContent: (pageId: string) => PageContent | null;
+  readonly writePageContent: (writer: PageContentWriter, rewrite: PageContentRewrite) => Promise<PageContent>;
+}
+
+/** Quién escribe el contenido de una página, y en cuál. */
+export interface PageContentWriter {
+  readonly pageId: string;
+  readonly role: UserRole;
+  /** El espacio que nombra la dirección: una página de otro espacio no se escribe por esta. */
+  readonly spaceId: string;
   readonly userId: string;
   readonly workspaceId: string;
 }
@@ -43,6 +116,8 @@ export interface UpdatePagePropertiesInput {
   /** Only the properties that changed. What the row already held stays. */
   readonly propertyValues: Readonly<Record<string, unknown>>;
   readonly role: UserRole;
+  /** A new name for the row, saved in the same write as its properties so both land or neither does. */
+  readonly title?: string;
   readonly updatedById: string;
   readonly userId: string;
   readonly workspaceId: string;
@@ -111,10 +186,6 @@ export interface DuplicatePageInput {
   readonly workspaceId: string;
 }
 
-export interface PageListOptions {
-  readonly includeTrashed: boolean;
-}
-
 export interface PageDescendantsPreview {
   readonly childPageCount: number;
 }
@@ -167,6 +238,12 @@ export interface TrashedPageSummary {
   readonly trashedChildCount: number;
 }
 
+/** Lo justo para decidir si una página se lee o se escribe ahora: si sigue viva y si está bloqueada. */
+export interface PageAccessState {
+  readonly lifecycle: PageLifecycle;
+  readonly lockedAt: Date | null;
+}
+
 export interface PageRepositoryContract {
   readonly countDescendantsByLifecycle: (
     pageId: string,
@@ -189,6 +266,12 @@ export interface PageRepositoryContract {
     role: UserRole,
     spaceId: null | string,
   ) => Promise<readonly string[]>;
+  readonly findAccessState: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageAccessState | null>;
   readonly findReadablePageIds: (
     pageIds: readonly string[],
     workspaceId: string,
@@ -262,7 +345,17 @@ export interface PageRepositoryContract {
     role: UserRole,
     mutationId: string,
   ) => Promise<boolean>;
-  readonly update: (input: UpdatePageInput) => Promise<PageSummary | null>;
+  readonly findStoredContent: (pageId: string) => Promise<PageContent | null>;
+  readonly storeContent: (input: StorePageContentInput) => Promise<PageContentStoreOutcome>;
+  /**
+   * Cambia solo las propiedades de una fila: las funde con las que tiene en el
+   * momento de escribir, con la fila bloqueada, sin tocar lo que dice. Nada si
+   * la página no existe.
+   */
+  readonly updatePropertyValues: <TError>(
+    input: UpdatePagePropertyValuesInput,
+    merge: PagePropertyValuesMerge<TError>,
+  ) => Promise<Result<PageSummary, TError> | null>;
   readonly rename: (
     pageId: string,
     title: string,

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { OutboxEventRecord } from '@/common/types/outbox.types';
 import { SEARCH_MAX_VERSION_MARKER } from '@/modules/search/constants/search.constants';
 import { SearchProjectionWorker } from '@/modules/search/infrastructure/worker/search.projection.worker';
+import type { PageBlocksProjection, PageBlocksRemoval } from '@/modules/search/types/page-block.types';
 import type {
   SearchDocumentInput,
   SearchDocumentProjection,
@@ -9,6 +10,8 @@ import type {
   SearchProjectionPage,
   SearchProjectionSource,
 } from '@/modules/search/types/search.types';
+
+const EDITED_AT = new Date('2026-09-01T10:00:00.000Z');
 
 const activePage: SearchProjectionPage = {
   authorId: 'user-1',
@@ -26,6 +29,7 @@ const activePage: SearchProjectionPage = {
   spaceId: 'space-1',
   spaceName: 'Mission Control',
   title: 'Launch plan',
+  updatedAt: EDITED_AT,
   verificationExpiresAt: null,
   verifiedAt: null,
   version: 12,
@@ -66,7 +70,9 @@ const createSourceStub = (overrides: Partial<SearchProjectionSource> = {}): Sear
 });
 
 const createProjectionStub = (overrides: Partial<SearchDocumentProjection> = {}): SearchDocumentProjection => ({
+  applyBlocksProjection: () => Promise.resolve(),
   applyProjection: () => Promise.resolve(),
+  removeBlocksProjection: () => Promise.resolve(),
   removeProjection: () => Promise.resolve(),
   ...overrides,
 });
@@ -90,6 +96,56 @@ const createWorker = (events: readonly OutboxEventRecord[]) => {
   return { applied, worker };
 };
 
+describe('SearchProjectionWorker — blocks', () => {
+  test('projects the blocks of the page at its current version, alongside the page', async () => {
+    const projected: PageBlocksProjection[] = [];
+    const page: SearchProjectionPage = {
+      ...activePage,
+      content: {
+        content: [
+          { attrs: { id: 'h', level: 1 }, content: [{ text: 'Plan', type: 'text' }], type: 'heading' },
+          { attrs: { id: 'p' }, content: [{ text: 'Prepare launch', type: 'text' }], type: 'paragraph' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      },
+    };
+    const outbox = createOutboxStub(() => Promise.resolve([event()]));
+    const source = createSourceStub({ findPage: () => Promise.resolve(page) });
+    const projection = createProjectionStub({
+      applyBlocksProjection: (input) => {
+        projected.push(input);
+        return Promise.resolve();
+      },
+    });
+
+    await new SearchProjectionWorker(outbox, source, projection).processBatch(10);
+
+    expect(projected).toHaveLength(1);
+    expect(projected[0]).toMatchObject({ pageId: 'page-1', pageVersion: 12, spaceId: 'space-1' });
+    expect(projected[0]?.blocks.map((block) => [block.id, block.text, block.headingPath])).toEqual([
+      ['h', 'Plan', []],
+      ['p', 'Prepare launch', ['Plan']],
+    ]);
+  });
+
+  test('forgets the blocks of a page that is no longer active', async () => {
+    const removed: PageBlocksRemoval[] = [];
+    const outbox = createOutboxStub(() => Promise.resolve([event()]));
+    const source = createSourceStub({ findPage: () => Promise.resolve({ ...activePage, lifecycle: 'TRASHED' }) });
+    const projection = createProjectionStub({
+      removeBlocksProjection: (input) => {
+        removed.push(input);
+        return Promise.resolve();
+      },
+    });
+
+    await new SearchProjectionWorker(outbox, source, projection).processBatch(10);
+
+    expect(removed).toEqual([{ pageId: 'page-1', pageVersion: 12 }]);
+  });
+});
+
 describe('SearchProjectionWorker', () => {
   test('projects the current page version and ignores a stale event version', async () => {
     const applied: SearchDocumentInput[] = [];
@@ -109,6 +165,7 @@ describe('SearchProjectionWorker', () => {
       spaceId: 'space-1',
       spaceName: 'Mission Control',
       title: 'Current title',
+      updatedAt: EDITED_AT,
       verificationExpiresAt: null,
       verifiedAt: null,
       version: 12,
@@ -144,6 +201,7 @@ describe('SearchProjectionWorker', () => {
     expect(applied).toEqual([
       {
         contentType: 'PAGE',
+        editedAt: EDITED_AT,
         extractedText: 'Prepare launch',
         language: null,
         properties: {
@@ -209,6 +267,7 @@ describe('SearchProjectionWorker', () => {
       spaceId: 'space-1',
       spaceName: 'Mission Control',
       title: 'Checklist',
+      updatedAt: EDITED_AT,
       verificationExpiresAt: null,
       verifiedAt: null,
       version: 1,
@@ -262,6 +321,7 @@ describe('SearchProjectionWorker', () => {
           spaceId: 'space-1',
           spaceName: 'Mission Control',
           title: 'Deleted page',
+          updatedAt: EDITED_AT,
           verificationExpiresAt: null,
           verifiedAt: null,
           version: 4,

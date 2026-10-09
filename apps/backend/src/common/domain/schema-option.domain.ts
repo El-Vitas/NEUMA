@@ -96,7 +96,7 @@ export const rewritePropertyValue = (
     return to === null ? value.filter((entry) => entry !== from) : value.map((entry) => (entry === from ? to : entry));
   }
   if (value !== from) return value;
-  return to === null ? undefined : to;
+  return to ?? undefined;
 };
 
 /**

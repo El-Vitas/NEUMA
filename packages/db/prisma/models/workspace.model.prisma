@@ -7,4 +7,5 @@ model Workspace {
   updatedAt        DateTime          @updatedAt
   members          WorkspaceMember[]
   spaces           Space[]
+  accessTokens     AccessToken[]
 }

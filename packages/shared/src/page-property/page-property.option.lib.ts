@@ -1,8 +1,9 @@
 import type { PageOptionColor, PagePropertyOption } from './page-property.types.js';
+import { isOneOf } from '../value-list.lib.js';
 import { PAGE_OPTION_COLOR, PAGE_OPTION_COLOR_VALUES } from './page-property.types.js';
 
 const isKnownColor = (candidate: unknown): candidate is PageOptionColor =>
-  typeof candidate === 'string' && PAGE_OPTION_COLOR_VALUES.some((known) => known === candidate);
+  typeof candidate === 'string' && isOneOf(PAGE_OPTION_COLOR_VALUES, candidate);
 
 const readOption = (stored: unknown): PagePropertyOption | null => {
   if (typeof stored === 'string') return stored === '' ? null : { color: null, value: stored };

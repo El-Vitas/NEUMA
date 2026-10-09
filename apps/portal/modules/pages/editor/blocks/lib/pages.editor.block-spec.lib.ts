@@ -4,9 +4,6 @@ import {
   PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE,
   PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
   PAGE_EDITOR_BLOCK_ID_ATTRIBUTE,
-  PAGE_EDITOR_OPTIONAL_BLOCK_COLOR,
-  PAGE_EDITOR_OPTIONAL_BLOCK_COMMENTS,
-  PAGE_EDITOR_OPTIONAL_BLOCK_ID,
   PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE,
 } from '../constants/pages.editor.blocks.constants';
 import type { PageBlockDefinition } from '../types/pages.editor.block-spec.types';
@@ -44,22 +41,16 @@ const withBlockAttrParsing = (rule: TagParseRule): TagParseRule =>
   rule.getAttrs === undefined && rule.attrs === undefined ? { ...rule, getAttrs: getPageBlockAttrs } : rule;
 
 /**
- * Declares a block type: it adds what every block carries — its identity and
- * its colours — writes it into the rendered page and reads it back when
+ * Declares how a block type is drawn: what every block carries — its identity
+ * and its colours — is written into the rendered page and read back when
  * parsing, so a change to what all blocks share is made here once instead of in
- * every block type.
+ * every block type. What the block holds comes from the shared page document
+ * structure, which the server reads too.
  */
 export const definePageBlock = (definition: PageBlockDefinition): NodeSpec => {
   const { parseDOM, render, ...rest } = definition;
   return {
     ...rest,
-    attrs: {
-      ...definition.attrs,
-      backgroundColor: PAGE_EDITOR_OPTIONAL_BLOCK_COLOR,
-      [PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE]: PAGE_EDITOR_OPTIONAL_BLOCK_COMMENTS,
-      id: PAGE_EDITOR_OPTIONAL_BLOCK_ID,
-      textColor: PAGE_EDITOR_OPTIONAL_BLOCK_COLOR,
-    },
     parseDOM: parseDOM.map(withBlockAttrParsing),
     toDOM: (node: EditorNode) => render(node, getPageBlockDomAttributes(node)),
   };

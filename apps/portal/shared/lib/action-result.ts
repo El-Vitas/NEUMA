@@ -1,5 +1,5 @@
 import type { ActionFailure } from '@/shared/types/action-result.types';
-import { ACTION_FAILURE_REASONS } from '../constants/action-failure.constants';
+import { ACTION_FAILURE_REASONS, ACTION_OFFLINE_REASON } from '../constants/action-failure.constants';
 import type { ActionFailureReason } from '../types/action-failure.types';
 
 export const hasActionError = (result: unknown): result is ActionFailure => {
@@ -15,6 +15,20 @@ export const isActionSuccess = <T>(result: unknown): result is { readonly data: 
   if (typeof result !== 'object' || result === null) return false;
   const candidate = result as Record<string, unknown>;
   return 'data' in candidate && candidate.data !== undefined;
+};
+
+/**
+ * Calls an action from a screen. One that never reaches the server — the
+ * connection dropped, a new version was being put up — does not answer, it
+ * rejects; it is told apart as being offline, so the screen says so instead of
+ * falling over.
+ */
+export const callAction = async <TResult>(send: () => Promise<TResult>): Promise<TResult | ActionFailure> => {
+  try {
+    return await send();
+  } catch {
+    return { serverError: ACTION_OFFLINE_REASON };
+  }
 };
 
 /**

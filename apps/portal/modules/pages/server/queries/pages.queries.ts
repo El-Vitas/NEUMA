@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { Result } from '@company-brain/shared';
 import { cacheLife, cacheTag } from 'next/cache';
+import { cache } from 'react';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
@@ -23,6 +24,28 @@ const getPagesCached = async (accessToken: string, spaceId: string): Promise<rea
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
   return readPagesThatCanBeRead(response, 'getPages');
 };
+
+/**
+ * The pages of a space, read again for one page the kept list did not have.
+ *
+ * A page written from outside the portal — by an agent, through the MCP —
+ * reaches the kept list only once that list refreshes, and the first visit to
+ * it would otherwise be told it does not exist. The read is fresh, kept only
+ * for the request that asked: the page and its title share it, and an address
+ * nobody has leaves nothing behind.
+ */
+export const getPagesHolding = async (
+  spaceId: string,
+  pageId: string,
+): Promise<Result<readonly PageSummary[], Error>> =>
+  withQuery({ op: 'getPagesHolding', params: { pageId, spaceId } }, (accessToken) =>
+    readPagesFresh(accessToken, spaceId),
+  );
+
+const readPagesFresh = cache(async (accessToken: string, spaceId: string): Promise<readonly PageSummary[]> => {
+  const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
+  return readPagesThatCanBeRead(response, 'getPagesHolding');
+});
 
 /**
  * Which space a page lives in now.

@@ -48,13 +48,13 @@ const joinPageEditorFindSpans = (
 
   for (const span of spans) {
     if (expected !== null && span.at !== expected) {
-      folded += String.fromCharCode(0);
+      folded += String.fromCodePoint(0);
       positions.push(expected);
     }
     for (let index = 0; index < span.text.length; index += 1) {
       const foldedCharacter = foldPageLookingCharacter(span.text[index] ?? '');
       folded += foldedCharacter;
-      for (let unit = 0; unit < foldedCharacter.length; unit += 1) positions.push(span.at + index);
+      positions.push(...Array.from({ length: foldedCharacter.length }, () => span.at + index));
     }
     expected = span.at + span.text.length;
   }

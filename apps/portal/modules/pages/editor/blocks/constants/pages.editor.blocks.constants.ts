@@ -1,20 +1,13 @@
-import type { PageCalloutIcon } from '@company-brain/shared';
-import type { AttributeSpec } from 'prosemirror-model';
+import { PAGE_DOCUMENT_UNSUPPORTED_NODE, type PageCalloutIcon } from '@company-brain/shared';
 import type { PageEditorBlockDragState } from '../types/pages.editor.block-drag.types';
 
 export const PAGE_EDITOR_BLOCK_ID_ATTRIBUTE = 'data-block-id';
-
-export const PAGE_EDITOR_OPTIONAL_BLOCK_ID: AttributeSpec = { default: null };
 
 export const PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE = 'data-text-color';
 
 export const PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE = 'data-background-color';
 
-export const PAGE_EDITOR_OPTIONAL_BLOCK_COLOR: AttributeSpec = { default: null };
-
 export const PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE = 'comments';
-
-export const PAGE_EDITOR_OPTIONAL_BLOCK_COMMENTS: AttributeSpec = { default: null };
 
 /** A block that has been talked about says so, so a comment is never invisible. */
 export const PAGE_EDITOR_BLOCK_COMMENTED_ATTRIBUTE = 'data-commented';
@@ -34,7 +27,7 @@ export const PAGE_EDITOR_COMMENT_ID_ATTRIBUTE = 'data-comment-id';
 /** The block type this version does not know, named on the placeholder that stands in for it. */
 export const PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE = 'data-unsupported-block';
 
-export const PAGE_EDITOR_UNSUPPORTED_TYPE = 'unsupported';
+export const PAGE_EDITOR_UNSUPPORTED_TYPE = PAGE_DOCUMENT_UNSUPPORTED_NODE;
 
 /** A placeholder that reads as held rather than broken: quiet, outlined, and named. */
 export const PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS =
@@ -105,52 +98,6 @@ export const PAGE_EDITOR_GUTTER_BLOCK_GAP_PX = 5;
  */
 export const PAGE_EDITOR_BLOCK_GUTTER_STYLE_CLASS =
   'pointer-events-auto absolute flex -translate-x-full items-center gap-1 pr-1.5';
-
-/**
- * The nodes that hold nothing inside them.
- *
- * Handing one of these an empty `content` on the way out would be a shape the
- * shared contract refuses, and the refusal lands in the middle of a keystroke.
- */
-export const PAGE_EDITOR_LEAF_NODE_TYPES: readonly string[] = [
-  'audio',
-  'bookmark',
-  'code',
-  'collection',
-  'date',
-  'divider',
-  'em',
-  'embed',
-  'file',
-  'formula',
-  'hard_break',
-  'image',
-  'link',
-  'mention',
-  'person',
-  'strong',
-  'subpage',
-  'synced',
-  'table_of_contents',
-  'text',
-  'video',
-];
-
-/**
- * Attributes that only mean something when they are true.
- *
- * Written when they are, absent when they are not, so a page full of headings
- * nobody folded reads exactly as it did before folding existed.
- */
-export const PAGE_EDITOR_ONLY_WHEN_TRUE_ATTRIBUTES: readonly string[] = ['collapsed'];
-
-/**
- * Attributes that only mean something when they are more than one.
- *
- * A cell that reaches exactly one column and one row is every cell there is, so
- * writing it down would say nothing and would change every table already saved.
- */
-export const PAGE_EDITOR_ONLY_WHEN_BEYOND_ONE_ATTRIBUTES: readonly string[] = ['colspan', 'rowspan'];
 
 /** What a folded heading is holding: kept in the page, taken out of sight. */
 export const PAGE_EDITOR_FOLDED_STYLE_CLASS = 'hidden';
@@ -261,13 +208,6 @@ export const PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH = 60;
 /** What is too wide travels within the table, never taking the page with it. */
 export const PAGE_EDITOR_TABLE_SCROLL_STYLE_CLASS = 'overflow-x-auto';
 
-/** What a cell of a table carries beyond what it says, in the shape a table expects to find. */
-export const PAGE_EDITOR_TABLE_CELL_ATTRS: Readonly<Record<string, AttributeSpec>> = {
-  colspan: { default: 1 },
-  colwidth: { default: null },
-  rowspan: { default: 1 },
-};
-
 export const PAGE_EDITOR_TOGGLE_TYPE = 'toggle';
 
 export const PAGE_EDITOR_CALLOUT_TYPE = 'callout';
@@ -334,6 +274,9 @@ export const PAGE_EDITOR_MARKS = {
   copy: ['M9 9h10v10H9z', 'M5 15V5h10'],
   download: ['M12 4v11', 'M8 11l4 4 4-4', 'M5 19h14'],
   fullScreen: ['M9 4H4v5', 'M15 4h5v5', 'M15 20h5v-5', 'M9 20H4v-5'],
+  fitToFrame: ['M4 8V4h4', 'M16 4h4v4', 'M20 16v4h-4', 'M8 20H4v-4', 'M9 9h6v6H9z'],
+  zoomIn: ['M11 4a7 7 0 1 0 0 14 7 7 0 1 0 0-14', 'm20 20-4-4', 'M11 8v6', 'M8 11h6'],
+  zoomOut: ['M11 4a7 7 0 1 0 0 14 7 7 0 1 0 0-14', 'm20 20-4-4', 'M8 11h6'],
   pause: ['M9 5v14', 'M15 5v14'],
   play: ['M8 5.5v13l11-6.5z'],
   silent: ['M11 5 6.5 9H3v6h3.5L11 19z', 'm17 10 4 4', 'm21 10-4 4'],
@@ -518,6 +461,9 @@ export const PAGE_EDITOR_SUBPAGE_NAME_STYLE_CLASS = 'truncate underline-offset-4
 
 /** A step of indentation inside code: two spaces, written as such rather than as a tab. */
 export const PAGE_EDITOR_CODE_INDENT = '  ';
+
+/** The spaces a line of code starts with, which is how deep it is indented. */
+export const PAGE_EDITOR_CODE_LEADING_SPACES_PATTERN = /^ +/;
 
 /** The controls of a code block sit above it, out of the way of the code itself. */
 /**
@@ -707,6 +653,13 @@ export const PAGE_EDITOR_EMBED_REFUSED_STYLE_CLASS = [
 ].join(' ');
 
 export const PAGE_EDITOR_BOOKMARK_TYPE = 'bookmark';
+
+/**
+ * Cuánto pesa la regla que lee una tarjeta pegada frente a la de un enlace
+ * común. Las dos se fijan en un `<a href>` y las marcas se prueban antes que
+ * los bloques: sin esto, copiar y pegar una tarjeta la volvía un enlace.
+ */
+export const PAGE_EDITOR_CARD_PARSE_PRIORITY = 60;
 
 /** A card: the mark of the site, what it is called, what it says, and where it points. */
 export const PAGE_EDITOR_BOOKMARK_STYLE_CLASS = [

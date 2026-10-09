@@ -2,7 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import type { PageContent, PageContentNode } from '@company-brain/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
-import { readSelectedPageBlocksContent } from '@/modules/pages/editor/blocks/lib/pages.editor.block-travel.lib';
+import { createDeleteSentPageBlocksCommand } from '@/modules/pages/editor/blocks/lib/pages.editor.block-delete.lib';
+import {
+  readSelectedPageBlocks,
+  readSelectedPageBlocksContent,
+} from '@/modules/pages/editor/blocks/lib/pages.editor.block-travel.lib';
 import { indentPageEditorBlock } from '@/modules/pages/editor/blocks/lib/pages.editor.nesting.lib';
 import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 
@@ -59,6 +63,32 @@ describe('taking blocks to another page', () => {
 
     expect(travelling?.content.length).toBe(1);
     expect(travelling?.content[0]?.type).toBe('nested_block');
+  });
+
+  /**
+   * Lo que se borra al volver la respuesta es lo que se mandó, no lo que esté
+   * seleccionado en ese momento: entre medio la persona pudo hacer clic en otro
+   * bloque, y ese no se fue a ninguna parte.
+   */
+  it('takes off this page the blocks that were sent, wherever the selection went meanwhile', () => {
+    const state = selectFromTo(createState([paragraph('Uno'), paragraph('Dos'), paragraph('Tres')]), 'Uno', 'Dos');
+    const sent = readSelectedPageBlocks(state);
+    const meanwhile = putCursorIn(state, 'Tres');
+
+    const after = applyCommand(meanwhile, createDeleteSentPageBlocksCommand(sent ?? []));
+
+    expect(after.doc.textContent).toBe('Tres');
+  });
+
+  /** Un bloque que alguien cambió mientras viajaba ya no es el que llegó: se queda, y nada escrito se pierde. */
+  it('leaves the blocks where they are when one of them changed while they travelled', () => {
+    const state = selectFromTo(createState([paragraph('Uno'), paragraph('Dos'), paragraph('Tres')]), 'Uno', 'Dos');
+    const sent = readSelectedPageBlocks(state);
+    const edited = state.apply(state.tr.insertText('!', findTextPosition(state, 'Dos') + 1));
+
+    const deleted = createDeleteSentPageBlocksCommand(sent ?? [])(edited);
+
+    expect(deleted).toBe(false);
   });
 
   it('reads a block with nothing to write in, such as an image', () => {

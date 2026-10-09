@@ -1,12 +1,14 @@
 'use client';
 
-import type {
-  PageChartKind,
-  PageChartMeasure,
-  PageDateBucket,
-  PageOptionColor,
-  PagePropertyType,
-  PageViewType,
+import {
+  makeSchemaViewDefault,
+  type PageChartKind,
+  type PageChartMeasure,
+  type PageDateBucket,
+  type PageOptionColor,
+  type PagePropertyType,
+  type PageViewType,
+  removeSchemaView,
 } from '@company-brain/shared';
 import { useState } from 'react';
 import {
@@ -16,12 +18,10 @@ import {
   changeSchemaPropertyType,
   convertSchemaView,
   duplicateSchemaView,
-  makeSchemaViewDefault,
   moveSchemaProperty,
   moveSchemaView,
   removeSchemaOption,
   removeSchemaProperty,
-  removeSchemaView,
   renameSchemaView,
   updateSchemaOptionColor,
   updateSchemaProperty,

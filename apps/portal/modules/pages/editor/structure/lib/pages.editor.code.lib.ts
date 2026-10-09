@@ -1,7 +1,9 @@
 import type { Command, EditorState } from 'prosemirror-state';
-import { PAGE_EDITOR_CODE_INDENT, PAGE_EDITOR_CODE_TYPE } from '../../blocks/constants/pages.editor.blocks.constants';
-
-const leadingSpaces = /^ +/;
+import {
+  PAGE_EDITOR_CODE_INDENT,
+  PAGE_EDITOR_CODE_LEADING_SPACES_PATTERN,
+  PAGE_EDITOR_CODE_TYPE,
+} from '../../blocks/constants/pages.editor.blocks.constants';
 
 const isWritingCode = (state: EditorState): boolean => state.selection.$from.parent.type.name === PAGE_EDITOR_CODE_TYPE;
 
@@ -27,7 +29,7 @@ const readLineIndent = (state: EditorState): { readonly at: number; readonly wid
   const { $from } = state.selection;
   const written = $from.parent.textContent;
   const lineStart = written.lastIndexOf('\n', $from.parentOffset - 1) + 1;
-  const indent = leadingSpaces.exec(written.slice(lineStart))?.[0].length ?? 0;
+  const indent = PAGE_EDITOR_CODE_LEADING_SPACES_PATTERN.exec(written.slice(lineStart))?.[0].length ?? 0;
   return { at: $from.start() + lineStart, width: Math.min(indent, PAGE_EDITOR_CODE_INDENT.length) };
 };
 

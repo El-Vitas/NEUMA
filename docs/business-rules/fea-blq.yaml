@@ -56,6 +56,32 @@ rules:
     why: >-
       El código se consulta para copiarlo y para leerlo; si tabular saca el foco o las líneas se cortan, deja de poder
       trabajarse ahí.
+  - id: BR-1557ee4
+    status: active
+    title: Todo bloque tiene su propio id
+    rule: >-
+      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
+      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si una página llega entera
+      con dos bloques del mismo id, el segundo recibe uno nuevo. Un cambio que inserta o reemplaza bloques no puede
+      traer el id de otro bloque que ya está en la página: se rechaza diciendo cuál. Mover un bloque junto con otro que
+      lleva dentro lo mueve una sola vez, con lo que lleva.
+    why: >-
+      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
+      apuntan a él y no a la página entera. Dos bloques con un id son un enlace que no se sabe adónde lleva.
+    context: >-
+      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
+      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
+      administra el espacio de trabajo, de a una corrida por espacio de trabajo: dos a la vez darían ids distintos a la
+      misma página.
+    supersedes: BR-d44883b
+    superseded_reason: >-
+      Un cambio podía traer un bloque con el id de otro de la misma página, y mover un bloque junto con uno de los que
+      lleva dentro lo copiaba. Ahora lo primero se rechaza y lo segundo se mueve una vez.
+    scenarios:
+      - title: Mover una lista con uno de sus ítems
+        given: Una lista y uno de sus ítems, nombrados juntos
+        when: Se mueven al final de la página
+        then: La lista se mueve una vez, con el ítem dentro, y ningún id queda repetido
   - id: BR-2693dd5
     status: active
     title: Un enlace a esta app no recarga el navegador
@@ -135,6 +161,31 @@ rules:
     why: >-
       Con lo que el editor tiene no hay forma de distinguir «esta persona se fue» de «nadie cargó la lista», y decir lo
       primero es afirmar algo falso sobre alguien que está ahí.
+  - id: BR-41e9452
+    status: active
+    title: El marco de un diagrama es de la página y el zoom es de quien mira
+    rule: >-
+      Un diagrama se muestra en un marco que no pasa del alto de la pantalla, y si el diagrama es más chico, el marco se
+      ajusta a él. Quien edita la página puede agrandar o achicar el marco, y ese alto se guarda en la página, así todos
+      ven el diagrama en el mismo marco. Acercar, alejar, ajustar el diagrama al marco y verlo a su tamaño real es de
+      cada persona que mira y no se guarda. Un diagrama más grande que su marco se abre ajustado a él, y al verlo a
+      pantalla completa se ajusta a la pantalla.
+    why: >-
+      Un marco del alto del diagrama empuja la página fuera de la pantalla aunque el diagrama igual no se vea entero.
+      Separar el marco, que es parte de la página, del zoom, que es de quien lee, deja que cada uno recorra el diagrama
+      sin cambiárselo a los demás.
+    context: >-
+      El marco se ajusta arrastrando su borde inferior o con las flechas del teclado, y con doble clic vuelve al tamaño
+      automático. Tiene un alto mínimo y uno máximo. El texto dentro de un diagrama nunca se corta dentro de su caja.
+    scenarios:
+      - title: Ajustar el marco
+        given: Un diagrama grande en una página
+        when: Una persona agranda su marco
+        then: Todos los que abren la página lo ven en el marco agrandado
+      - title: Acercar el diagrama
+        given: Dos personas mirando el mismo diagrama
+        when: Una lo acerca
+        then: Solo cambia lo que ve esa persona
   - id: BR-42fc687
     status: active
     title: El día se cuenta en el huso de quien lee
@@ -680,3 +731,30 @@ rules:
     why: >-
       Es la forma en que la gente ya escribe enlaces a mano en otras herramientas, y un enlace que no se distingue del
       texto no invita a seguirlo.
+  - id: BR-d44883b
+    status: superseded
+    title: Todo bloque tiene su propio id
+    rule: >-
+      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
+      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si dos bloques llegan con
+      el mismo id, el segundo recibe uno nuevo.
+    why: >-
+      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
+      apuntan a él y no a la página entera. Sin id, un bloque no se puede señalar.
+    context: >-
+      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
+      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
+      administra el espacio de trabajo.
+    superseded_by: BR-1557ee4
+    superseded_reason: >-
+      Un cambio podía traer un bloque con el id de otro de la misma página, y mover un bloque junto con uno de los que
+      lleva dentro lo copiaba. Ahora lo primero se rechaza y lo segundo se mueve una vez.
+    scenarios:
+      - title: Un bloque escrito por la API sin id
+        given: Una página creada por la API con párrafos sin id
+        when: Se guarda
+        then: Cada párrafo queda con un id propio
+      - title: Dos bloques con el mismo id
+        given: Un contenido que trae dos bloques con el mismo id
+        when: Se escribe en la página
+        then: El primero conserva su id y el segundo recibe uno nuevo

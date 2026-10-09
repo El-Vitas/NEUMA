@@ -1,3 +1,4 @@
+import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
@@ -11,9 +12,12 @@ import type {
 } from '../../domain/favorite.domain.types';
 import type { FavoriteRepositoryContract } from '../../types/favorite.types';
 
-const favoriteOrderBy = [{ order: 'asc' }, { createdAt: 'asc' }] as const;
-const favoriteRowSelect = { id: true, order: true, pageId: true } as const;
-const accessiblePageSelect = { id: true, lifecycle: true, spaceId: true, title: true } as const;
+const favoriteOrderBy = [
+  { order: 'asc' },
+  { createdAt: 'asc' },
+] satisfies Prisma.PageFavoriteOrderByWithRelationInput[];
+const favoriteRowSelect = { id: true, order: true, pageId: true } satisfies Prisma.PageFavoriteSelect;
+const accessiblePageSelect = { id: true, lifecycle: true, spaceId: true, title: true } satisfies Prisma.PageSelect;
 
 @Injectable()
 export class FavoriteRepository implements FavoriteRepositoryContract {

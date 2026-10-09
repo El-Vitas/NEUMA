@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { installFetchMock } from '../../../../mocks/global-fetch.mock';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const verifiedPage = {
@@ -36,19 +37,7 @@ mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
 }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
@@ -66,7 +55,7 @@ describe('setPageVerificationAction without an access token', () => {
 
     const result = await setPageVerificationAction({ pageId, spaceId, verified: true });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });

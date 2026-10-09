@@ -20,7 +20,7 @@ export const drawFormula = (source: string): Drawn => {
       fault: null,
       html: katex.renderToString(source, { displayMode: true, output: 'htmlAndMathml', trust: false }),
     };
-  } catch (fault) {
-    return { fault: describeDiagramFault(fault), html: null };
+  } catch (error) {
+    return { fault: describeDiagramFault(error), html: null };
   }
 };

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test';
-import { pageContentSchema } from '@company-brain/shared';
-import type { Node as ProseMirrorNode } from 'prosemirror-model';
+import {
+  PAGE_DOCUMENT_MARKS,
+  PAGE_DOCUMENT_NODES,
+  type PageDocumentMarkStructure,
+  type PageDocumentNodeStructure,
+  pageContentSchema,
+} from '@company-brain/shared';
+import type { AttributeSpec, MarkSpec, NodeSpec, Node as ProseMirrorNode } from 'prosemirror-model';
 import { DOMParser, DOMSerializer } from 'prosemirror-model';
 import { serializePageEditorDocument } from '@/modules/pages/editor/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
@@ -369,6 +375,17 @@ describe('block identity in the DOM', () => {
 
     expect(parsed.firstChild?.attrs.id).toBe('block-9');
   });
+
+  /** Copied and pasted, a diagram keeps the frame it was given, or it comes back at another size. */
+  it('reads back how tall the frame of a drawing was made, and nothing that is not a height it may have', () => {
+    const drawn = (frameHeight: number) =>
+      renderBlock(
+        pageEditorSchema.nodes.code_block.create({ frameHeight, language: 'mermaid' }, pageEditorSchema.text('pie')),
+      );
+
+    expect(DOMParser.fromSchema(pageEditorSchema).parse(drawn(480)).firstChild?.attrs.frameHeight).toBe(480);
+    expect(DOMParser.fromSchema(pageEditorSchema).parse(drawn(99_999)).firstChild?.attrs.frameHeight).toBeNull();
+  });
 });
 
 describe('the default block type', () => {
@@ -388,5 +405,60 @@ describe('the default block type', () => {
       const type = pageEditorSchema.nodes[container];
       expect(type?.contentMatch.defaultType?.name).toBe('paragraph');
     }
+  });
+});
+
+const readAttributeStructure = (attrs: Readonly<Record<string, AttributeSpec>> | undefined) =>
+  Object.fromEntries(
+    Object.entries(attrs ?? {}).map(([name, spec]) => [name, 'default' in spec ? { default: spec.default } : {}]),
+  );
+
+const readNodeStructure = (spec: NodeSpec) => ({
+  attrs: readAttributeStructure(spec.attrs),
+  content: spec.content,
+  group: spec.group,
+  inline: spec.inline,
+  marks: spec.marks,
+});
+
+const readSharedNodeStructure = (structure: PageDocumentNodeStructure) => ({
+  attrs: readAttributeStructure(structure.attrs),
+  content: structure.content,
+  group: structure.group,
+  inline: structure.inline,
+  marks: structure.marks,
+});
+
+const readMarkStructure = (spec: MarkSpec | PageDocumentMarkStructure) => ({
+  attrs: readAttributeStructure(spec.attrs),
+  inclusive: spec.inclusive,
+});
+
+/**
+ * El servidor arma su esquema con la estructura compartida para leer y escribir
+ * el documento colaborativo. Si el editor y el servidor no ven la misma forma,
+ * lo que escribe uno lo rompe el otro.
+ */
+describe('pageEditorSchema and the shared page document structure', () => {
+  it('declares the same nodes, in the same order, with the same shape', () => {
+    const editorNodes: [string, ReturnType<typeof readNodeStructure>][] = [];
+    pageEditorSchema.spec.nodes.forEach((name, spec) => {
+      editorNodes.push([name, readNodeStructure(spec)]);
+    });
+
+    expect(editorNodes).toEqual(
+      Object.entries(PAGE_DOCUMENT_NODES).map(([name, structure]) => [name, readSharedNodeStructure(structure)]),
+    );
+  });
+
+  it('declares the same marks, in the same order, with the same shape', () => {
+    const editorMarks: [string, ReturnType<typeof readMarkStructure>][] = [];
+    pageEditorSchema.spec.marks.forEach((name, spec) => {
+      editorMarks.push([name, readMarkStructure(spec)]);
+    });
+
+    expect(editorMarks).toEqual(
+      Object.entries(PAGE_DOCUMENT_MARKS).map(([name, structure]) => [name, readMarkStructure(structure)]),
+    );
   });
 });

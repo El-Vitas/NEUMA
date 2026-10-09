@@ -7,8 +7,13 @@ import { DIAGRAM_BOX_GAP } from '@/shared/constants/diagram.constants';
  * of the column is drawn at whatever fraction of its size fits there, and what
  * it says stops being readable long before it stops being wide.
  */
-export const readDrawnWidth = (viewBox: string | null): number => {
-  const drawn = Number(viewBox?.trim().split(DIAGRAM_BOX_GAP)[2]);
+export const readDrawnWidth = (viewBox: string | null): number => readDrawnSide(viewBox, 2);
+
+/** How tall the drawing was drawn, taken from the same box. */
+export const readDrawnHeight = (viewBox: string | null): number => readDrawnSide(viewBox, 3);
+
+const readDrawnSide = (viewBox: string | null, place: number): number => {
+  const drawn = Number(viewBox?.trim().split(DIAGRAM_BOX_GAP)[place]);
   return Number.isFinite(drawn) && drawn > 0 ? drawn : 0;
 };
 
@@ -24,19 +29,4 @@ export const showTheDrawingAtItsSize = (drawing: HTMLElement, zoom = 1): boolean
   svg.style.maxWidth = 'none';
   svg.style.width = `${String(Math.round(drawn * zoom))}px`;
   return drawing.scrollWidth > drawing.clientWidth;
-};
-
-/**
- * Shows a drawing fitted to the box it sits in, however wide it was drawn.
- *
- * Fitting it makes the writing inside smaller, which is why it is never what
- * happens on its own — but a drawing three times the width of the column is
- * read by nobody either, and this is how somebody sees the whole of one at a
- * glance before deciding to go through it.
- */
-export const fitTheDrawingToItsBox = (drawing: HTMLElement): void => {
-  const svg = drawing.querySelector('svg');
-  if (svg === null) return;
-  svg.style.maxWidth = '100%';
-  svg.style.width = 'auto';
 };

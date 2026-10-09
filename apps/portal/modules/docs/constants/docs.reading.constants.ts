@@ -28,6 +28,9 @@ export const DOCS_FILE_SUFFIX = '.md';
  */
 export const DOCS_SLUG_SHAPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/** What the system says when the file or the folder asked for does not exist. */
+export const DOCS_NOT_WRITTEN_CODE = 'ENOENT';
+
 /** The language a document falls back to when it has not been written in the one being read. */
 export const DOCS_FALLBACK_LOCALE = 'es';
 

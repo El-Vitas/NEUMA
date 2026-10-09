@@ -76,8 +76,9 @@ export const resolvePortalSidebarOutdentParentId = (
   pageId: string,
 ): null | string | undefined => {
   const page = findPortalSidebarPage(pages, pageId);
-  if (page === undefined || page.parentId === null) return;
-  return findPortalSidebarPage(pages, page.parentId)?.parentId ?? null;
+  const parentId = page?.parentId ?? null;
+  if (parentId === null) return;
+  return findPortalSidebarPage(pages, parentId)?.parentId ?? null;
 };
 
 /** Shows which element the dragged page would land on, and stops showing it wherever it no longer would. */

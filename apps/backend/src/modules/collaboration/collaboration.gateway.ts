@@ -1,3 +1,10 @@
+import { randomUUID } from 'node:crypto';
+import {
+  createCollaborationDocumentName,
+  givePageBlocksTheirIds,
+  type PageContent,
+  pageContentSchema,
+} from '@company-brain/shared';
 import { Hocuspocus } from '@hocuspocus/server';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import {
@@ -8,14 +15,23 @@ import {
   sanitizePresenceState,
 } from './collaboration.utils';
 import { MAX_COLLABORATION_UPDATE_BYTES } from './constants/collaboration.constants';
+import { CollaborationForbiddenError } from './infrastructure/errors/collaboration.forbidden.error';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
+  CollaborationContentRewrite,
   CollaborationContext,
+  CollaborationDirectConnection,
   CollaborationGateway,
   CollaborationGatewayDependencies,
 } from './types/collaboration.types';
+import {
+  encodePageContentAsCollaborationState,
+  readCollaborationDocumentContent,
+  replaceCollaborationDocumentContent,
+} from './utils/collaboration.document.utils';
 
-const createForbiddenError = (): Error => new Error('forbidden');
+const createForbiddenError = (): Error => new CollaborationForbiddenError();
 
 const authorizeDocument = async (
   authorization: CollaborationAuthorizationAdapter,
@@ -43,6 +59,41 @@ const validateLoadedState = async (state: Uint8Array): Promise<Uint8Array> => {
   return state;
 };
 
+/**
+ * El estado inicial de un documento que nadie abrió todavía: la página tal
+ * como está guardada, con un id en cada bloque. Una página que ya no existe no
+ * tiene documento.
+ */
+const seedFromStoredPage = async (content: CollaborationContentAdapter, pageId: string): Promise<Uint8Array> => {
+  const stored = await content.load(pageId);
+  if (stored === null) throw new Error('page-not-found');
+  return encodePageContentAsCollaborationState(givePageBlocksTheirIds(stored, randomUUID));
+};
+
+/**
+ * Lee, reescribe y aplica dentro de una sola transacción del documento, así
+ * ningún cambio de otra persona se cuela entre lo leído y lo escrito. La página
+ * nueva se valida antes de tocar nada: una transacción que falla a la mitad
+ * deja escrito lo que alcanzó. Todo bloque que llegue sin id sale con uno,
+ * así se lo puede señalar desde que existe.
+ */
+const rewriteInsideTheDocument = (
+  connection: CollaborationDirectConnection,
+  rewrite: CollaborationContentRewrite,
+): Promise<PageContent> =>
+  new Promise((resolve, reject) => {
+    connection
+      .transact((document) => {
+        const rewritten = givePageBlocksTheirIds(
+          pageContentSchema.parse(rewrite(readCollaborationDocumentContent(document))),
+          randomUUID,
+        );
+        replaceCollaborationDocumentContent(document, rewritten);
+        resolve(rewritten);
+      })
+      .catch(reject);
+  });
+
 export const createCollaborationGateway = (dependencies: CollaborationGatewayDependencies): CollaborationGateway => {
   const server = new Hocuspocus<CollaborationContext>({
     debounce: 250,
@@ -61,12 +112,13 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       return context;
     },
     async onLoadDocument({ context, documentName }) {
-      await authorizeDocument(dependencies.authorization, context, documentName, 'read');
+      const pageId = await authorizeDocument(dependencies.authorization, context, documentName, 'read');
       const state = await dependencies.persistence.load(documentName);
-      return state === null ? undefined : await validateLoadedState(state);
+      if (state !== null) return await validateLoadedState(state);
+      return await seedFromStoredPage(dependencies.content, pageId);
     },
-    async beforeHandleMessage({ context, documentName, update }) {
-      await authorizeUpdate(context, documentName, update);
+    async beforeHandleMessage({ connection, context, documentName, update }) {
+      await authorizeMessage(context, documentName, update, connection);
     },
     async beforeHandleAwareness({ context, documentName, states }) {
       await authorizeAwareness(context, documentName);
@@ -78,16 +130,33 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
         }),
       );
     },
-    async onChange({ context, documentName, update }) {
-      await authorizeUpdate(context, documentName, update);
-    },
     async onStoreDocument({ document, documentName, lastContext }) {
       await authorizeDocument(dependencies.authorization, lastContext, documentName, 'write');
       const state = encodeStateAsUpdate(document);
       await assertStateSize(state);
       await dependencies.persistence.store(documentName, state);
+      await dependencies.content.store(lastContext, readCollaborationDocumentContent(document));
     },
   });
+
+  const writePageContent = async (
+    context: CollaborationContext,
+    rewrite: CollaborationContentRewrite,
+  ): Promise<PageContent> => {
+    const documentName = createCollaborationDocumentName(context.pageId);
+    await authorizeDocument(dependencies.authorization, context, documentName, 'write');
+    const connection = await server.openDirectConnection(documentName, context);
+    try {
+      return await rewriteInsideTheDocument(connection, rewrite);
+    } finally {
+      await connection.disconnect();
+    }
+  };
+
+  const readLoadedPageContent = (pageId: string): PageContent | null => {
+    const document = server.documents.get(createCollaborationDocumentName(pageId));
+    return document === undefined ? null : readCollaborationDocumentContent(document);
+  };
 
   const authorizeUpdate = async (
     context: CollaborationContext,
@@ -98,6 +167,22 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
     await authorizeDocument(dependencies.authorization, context, documentName, 'write');
   };
 
+  /**
+   * Cada mensaje pasa por aquí antes de aplicarse, también el que solo pide el
+   * estado del documento. Quien solo lee manda mensajes igual: se le pide poder
+   * leer, y lo que intente cambiar lo descarta su conexión de solo lectura. Un
+   * cambio no se vuelve a revisar al aplicarse: ya se revisó aquí.
+   */
+  const authorizeMessage = async (
+    context: CollaborationContext,
+    documentName: string,
+    message: Uint8Array,
+    connection: { readonly readOnly: boolean },
+  ): Promise<void> => {
+    await assertUpdateSize(message);
+    await authorizeDocument(dependencies.authorization, context, documentName, connection.readOnly ? 'read' : 'write');
+  };
+
   const authorizeAwareness = async (context: CollaborationContext | undefined, documentName: string): Promise<void> => {
     if (context === undefined) throw createForbiddenError();
     await authorizeDocument(dependencies.authorization, context, documentName, 'read');
@@ -106,6 +191,7 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
   return {
     assertStateSize,
     assertUpdateSize,
+    authorizeMessage,
     authorizeUpdate,
     handleConnection: (socket, request) => server.handleConnection(socket, request),
     server,
@@ -114,6 +200,8 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       server.closeConnections();
       return Promise.resolve();
     },
+    readLoadedPageContent,
     validateDocumentName: (documentName) => parsePageId(documentName),
+    writePageContent,
   };
 };

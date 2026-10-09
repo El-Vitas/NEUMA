@@ -50,6 +50,7 @@ services:
       JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN:-15m}
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3010}
+      PORTAL_URL: ${PORTAL_URL:-http://localhost:3010}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRUST_PROXY: ${TRUST_PROXY:-false}
     ports:
@@ -78,6 +79,7 @@ services:
       NODE_ENV: production
       PORT: "3010"
       BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:3000}
+      MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-http://localhost:3000/api/v1/mcp}
       ACCESS_TOKEN_MAX_AGE_SECONDS: ${ACCESS_TOKEN_MAX_AGE_SECONDS:-21600}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:

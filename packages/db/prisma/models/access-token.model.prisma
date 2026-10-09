@@ -1,0 +1,25 @@
+/// Una llave con la que un agente entra a Company Brain por su dueño.
+/// Se guarda el hash del secreto, nunca el secreto: el secreto se enseña una
+/// sola vez, al crearla. Lo que puede hacer no es lo de su dueño sino lo que
+/// tiene dado, y nunca más que lo que su dueño puede hacer hoy.
+model AccessToken {
+  id                   String                 @id @default(uuid(7))
+  userId               String
+  workspaceId          String
+  name                 String
+  displayPrefix        String
+  secretHash           String                 @unique
+  /// Los permisos que valen en todos los espacios que su dueño ve, también en los que se creen después.
+  allSpacesPermissions String[]               @default([])
+  createdAt            DateTime               @default(now())
+  lastUsedAt           DateTime?
+  expiresAt            DateTime?
+  revokedAt            DateTime?
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace            Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  grants               AccessTokenGrant[]
+  pageGrants           AccessTokenPageGrant[]
+
+  @@index([userId])
+  @@index([workspaceId])
+}

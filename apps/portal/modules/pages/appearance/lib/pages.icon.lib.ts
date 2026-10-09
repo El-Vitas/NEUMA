@@ -6,7 +6,7 @@ import type { PageEmojiEntry } from '../../editor/text/types/pages.editor.emoji.
 import { foldPageLookingText } from '../../links/lib/pages.looking.lib';
 import { PAGE_ICON_EMOJI_GRID_LIMIT } from '../constants/pages.icon.constants';
 import { PAGE_ICON_SYMBOL_WORDS } from '../constants/pages.icon.symbol-words.constants';
-import { PAGE_ICON_SYMBOL_NAMES } from '../constants/pages.icon.symbols.constants';
+import { PAGE_ICON_SYMBOL_NAME_SET, PAGE_ICON_SYMBOL_NAMES } from '../constants/pages.icon.symbols.constants';
 import type { PageEmojiIcon, PageIcon, PageImageIcon, PageSymbolIcon } from '../types/pages.icon.types';
 
 export const isPageEmojiIcon = (icon: PageIcon): icon is PageEmojiIcon => icon.kind === 'emoji';
@@ -17,10 +17,8 @@ export const isPageSymbolIcon = (icon: PageIcon): icon is PageSymbolIcon => icon
 
 export const resolvePageIconImageUrl = (icon: PageImageIcon): string => resolvePageAssetUrl(icon.assetId);
 
-const offeredPageIconSymbols: ReadonlySet<string> = new Set<string>(PAGE_ICON_SYMBOL_NAMES);
-
 /** Only a symbol this product actually draws can be asked for; anything else is treated as no symbol at all. */
-export const isOfferedPageIconSymbol = (name: string): name is IconName => offeredPageIconSymbols.has(name);
+export const isOfferedPageIconSymbol = (name: string): name is IconName => PAGE_ICON_SYMBOL_NAME_SET.has(name);
 
 const describePageIconSymbol = (name: string): string =>
   foldPageLookingText([name, ...(PAGE_ICON_SYMBOL_WORDS[name] ?? [])].join(' '));

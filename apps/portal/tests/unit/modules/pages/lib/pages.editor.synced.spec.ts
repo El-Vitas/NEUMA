@@ -3,6 +3,7 @@ import type { PageContent } from '@company-brain/shared';
 import { NodeSelection } from 'prosemirror-state';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
+import { isBorrowedDrawing } from '@/modules/pages/editor/structure/lib/pages.editor.synced.drawing.lib';
 import {
   buildSyncedBlockContent,
   createPageUnsyncCommand,
@@ -77,5 +78,19 @@ describe('createPageUnsyncCommand', () => {
     expect(JSON.stringify(kept)).toContain('Lo que se comparte');
     expect(JSON.stringify(kept)).not.toContain('"type":"synced"');
     expect(JSON.stringify(kept)).not.toContain('block-inner');
+  });
+});
+
+describe('isBorrowedDrawing', () => {
+  /** Un diagrama prestado se dibuja, como en su página; mostrar su código haría creer que se rompió. */
+  it('is a diagram or a formula shown as its drawing, and not code, nor a drawing shown only as its code', () => {
+    const code = (language: string | null, shown: string | null = null) =>
+      pageEditorSchema.nodes.code_block.create({ language, shown }, pageEditorSchema.text('x'));
+
+    expect(isBorrowedDrawing(code('mermaid'))).toBe(true);
+    expect(isBorrowedDrawing(code('latex'))).toBe(true);
+    expect(isBorrowedDrawing(code('typescript'))).toBe(false);
+    expect(isBorrowedDrawing(code('mermaid', 'code'))).toBe(false);
+    expect(isBorrowedDrawing(pageEditorSchema.nodes.paragraph.create())).toBe(false);
   });
 });

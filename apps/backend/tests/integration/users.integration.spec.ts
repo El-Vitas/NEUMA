@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import type { AuthSession } from '@company-brain/shared';
 import request from 'supertest';
+import { TokenAdapter } from '@/modules/auth/infrastructure/adapters/token.adapter';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
@@ -123,6 +124,22 @@ describe('Users Module (Integration)', () => {
 
     it('should reject unauthenticated requests with 401', async () => {
       await request(testApp.getServer()).get('/api/v1/users').expect(401);
+    });
+
+    /**
+     * La llave que renueva la sesión dura días y la del documento en vivo viaja
+     * por otro canal: ninguna de las dos abre la API, solo la de acceso, que
+     * dura minutos.
+     */
+    it('rejects a refresh token and a live-document token presented as an access token', async () => {
+      const session = await loginUser(testApp, adminEmail, password);
+      const liveDocumentToken = await testApp
+        .get(TokenAdapter)
+        .signCollaborationToken(session.user, 'workspace-1', '00000000-0000-7000-8000-000000000001', 'write');
+
+      for (const token of [session.refreshToken, liveDocumentToken]) {
+        await request(testApp.getServer()).get('/api/v1/users').set('Authorization', `Bearer ${token}`).expect(401);
+      }
     });
   });
 });

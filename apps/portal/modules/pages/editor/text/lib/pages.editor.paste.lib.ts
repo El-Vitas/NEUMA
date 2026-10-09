@@ -2,6 +2,7 @@ import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import { Fragment, Slice } from 'prosemirror-model';
 import { leaveSomewhereToWriteUnder } from '../../lib/pages.editor.write-under.lib';
 import { readPastedLinkUrl } from '../../menus/lib/pages.editor.link-shape.lib';
+import { PAGE_EDITOR_LINE_BREAK_PATTERN } from '../constants/pages.editor.markdown.constants';
 import {
   PAGE_EDITOR_MAX_CONVERTIBLE_PASTE_LENGTH,
   PAGE_EDITOR_OWN_SLICE_ATTRIBUTE,
@@ -12,8 +13,6 @@ import type {
   PageEditorPasteTarget,
 } from '../types/pages.editor.paste.types';
 import { looksLikePageEditorMarkdown, parsePageEditorMarkdown } from './pages.editor.markdown.lib';
-
-const lineBreak = /\r\n|\r|\n/;
 
 /** The mark ProseMirror leaves on its own clipboard HTML, so a paste from an editor is never re-read as a stranger's. */
 const isPageEditorOwnSlice = (html: string): boolean => html.includes(PAGE_EDITOR_OWN_SLICE_ATTRIBUTE);
@@ -51,7 +50,7 @@ export const decidePageEditorPaste = (schema: Schema, input: PageEditorPasteInpu
  */
 export const buildPageEditorPlainTextParagraphs = (schema: Schema, text: string): readonly EditorNode[] =>
   text
-    .split(lineBreak)
+    .split(PAGE_EDITOR_LINE_BREAK_PATTERN)
     .filter((line) => line.trim().length > 0)
     .map((line) => schema.nodes.paragraph.createChecked(null, schema.text(line)));
 

@@ -3,10 +3,8 @@ import type { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { canReadSpace } from '../../domain/workspace.domain';
 
-const spaceOrOperator = 'OR';
-
 export const buildSpaceVisibilityFilter = (userId: string, role: UserRole): Prisma.SpaceWhereInput => ({
-  [spaceOrOperator]: [
+  OR: [
     { visibility: SpaceVisibility.PUBLIC_INTERNAL },
     ...(canReadSpace(role, SpaceVisibility.RESTRICTED, false)
       ? [{ visibility: SpaceVisibility.RESTRICTED }]

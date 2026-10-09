@@ -1,0 +1,21 @@
+/// Cada bloque de una página, proyectado desde su contenido para buscarlo y señalarlo.
+/// Un id de bloque es único dentro de su página, no en toda la base: duplicar una
+/// página o mover bloques a otra conserva los ids. Por eso la clave es la pareja.
+model PageBlock {
+  pageId        String
+  blockId       String
+  spaceId       String
+  parentBlockId String?
+  position      Int
+  type          String
+  text          String
+  headingPath   String[]
+  pageVersion   Int
+  searchVector  Unsupported("tsvector")?
+  updatedAt     DateTime                 @updatedAt
+  page          Page                     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, blockId])
+  @@index([blockId])
+  @@index([spaceId])
+}

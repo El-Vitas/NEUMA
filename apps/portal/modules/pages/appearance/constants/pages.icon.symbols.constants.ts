@@ -1925,3 +1925,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
 
 /** How many more symbols are drawn each time the reader reaches the end of the grid. */
 export const PAGE_ICON_SYMBOL_GRID_STEP = 120;
+
+/** The same symbols, to ask whether a name is one of them without walking the list. */
+export const PAGE_ICON_SYMBOL_NAME_SET: ReadonlySet<string> = new Set<string>(PAGE_ICON_SYMBOL_NAMES);

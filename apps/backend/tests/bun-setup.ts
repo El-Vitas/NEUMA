@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 import { testEnv } from './config/test-env.config';
+import { applyAgentActionRequestIndex } from './helpers/agent-action-request.fixture';
 import { assertDatabaseReachable, withBoundedTimeout } from './helpers/database.helper';
 import { applySearchDocumentGeneratedColumn } from './helpers/search-projection.fixture';
 import { PostgresAdapter } from './infrastructure/adapters/postgres.adapter';
@@ -54,6 +55,7 @@ beforeAll(async () => {
   await assertDatabaseReachable(testEnv.TEST_DATABASE_ADMIN_URL, DATABASE_REACHABILITY_TIMEOUT_MS);
   pushSchema();
   await applySearchDocumentGeneratedColumn(testDbUrl);
+  await applyAgentActionRequestIndex(testDbUrl);
 });
 
 afterAll(async () => {

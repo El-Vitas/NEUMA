@@ -1,7 +1,25 @@
+import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '@company-brain/shared';
+
 export const PAGE_ATTACHMENTS_CLEANUP_REPOSITORY = 'PAGE_ATTACHMENTS_CLEANUP_REPOSITORY';
 export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';
 export const PAGE_SCHEMA_REPOSITORY = 'PAGE_SCHEMA_REPOSITORY';
+export const PAGE_OUTLINE_REPOSITORY = 'PAGE_OUTLINE_REPOSITORY';
+export const PAGE_MAINTENANCE_REPOSITORY = 'PAGE_MAINTENANCE_REPOSITORY';
+/** De a cuántas páginas se revisa el espacio de trabajo al rellenar, para no cargarlo entero en memoria. */
+export const PAGE_MAINTENANCE_BATCH_SIZE = 100;
+/** Hasta dónde se sube buscando ancestros: más de lo que un árbol real tiene, y un tope si alguno se enredara. */
+export const PAGE_OUTLINE_MAX_DEPTH = 64;
+/** El documento en vivo de las páginas, donde se escribe su contenido. Lo provee quien compone la aplicación. */
+export const PAGE_LIVE_DOCUMENT = 'PAGE_LIVE_DOCUMENT';
+/** Cuántos bloques se agregan de una vez; la página entera sigue sujeta a su propio tope. */
+export const MAX_APPENDED_PAGE_BLOCKS = 200;
 export const REDACTED_MENTION_LABEL = 'Restricted page';
+/**
+ * Lo que va delante del espacio de trabajo en el candado de las mudanzas: dos
+ * páginas que se mueven a la vez, una dentro de la otra, se turnan en vez de
+ * cerrar un ciclo.
+ */
+export const PAGE_MOVES_LOCK_PREFIX = 'page-moves:';
 
 /**
  * The order sisters are read in.
@@ -12,6 +30,13 @@ export const REDACTED_MENTION_LABEL = 'Restricted page';
  * running instead of however the database felt like answering.
  */
 export const PAGE_SIBLING_ORDER = [{ order: 'asc' }, { createdAt: 'asc' }] as const;
+
+/** Qué pasó al guardar lo que dice el documento colaborativo de una página. */
+export const PAGE_CONTENT_STORE_OUTCOME = {
+  missing: 'MISSING',
+  stored: 'STORED',
+  unchanged: 'UNCHANGED',
+} as const;
 
 /**
  * How many pages of a batch are worked on at the same time.
@@ -29,6 +54,9 @@ export const PAGE_BATCH_CONCURRENCY = 5;
  * picture can be shown on several pages and there is only one of it.
  */
 export const EXPORT_ATTACHMENTS_FOLDER = 'assets';
+
+/** Cuántos archivos se leen a la vez al exportar: los demás esperan su turno en vez de abrir cientos de lecturas juntas. */
+export const EXPORT_ATTACHMENT_READS_AT_ONCE = 8;
 
 /** One page goes out as itself; several go out packed, so the folders can say what hung from what. */
 export const EXPORT_MARKDOWN_MEDIA_TYPE = 'text/markdown; charset=utf-8';
@@ -56,7 +84,7 @@ export const SCHEMA_VIEW_LIMIT = 20;
  * queda corta; su etiqueta, que sí se lee, tiene el largo de un renglón.
  */
 export const PAGE_TITLE_MAX_LENGTH = 200;
-export const SCHEMA_PROPERTY_KEY_MAX_LENGTH = 64;
+export const SCHEMA_PROPERTY_KEY_MAX_LENGTH = PAGE_PROPERTY_KEY_MAX_LENGTH;
 export const SCHEMA_LABEL_MAX_LENGTH = 120;
 
 /** Cómo se llama una página sin nombre en el archivo exportado, dicho en el idioma de quien lo pide. */
@@ -77,6 +105,14 @@ export const EXPORT_UNTITLED_LABEL_MAX_LENGTH = 80;
 export const COLLECTION_ROW_LIMIT = 500;
 
 /**
+ * Cuántas filas se recorren para contestar una consulta con filtro y orden. Un
+ * filtro aplicado solo a las primeras quinientas callaría las que cumplen y
+ * están más abajo; aquí se lee la colección entera, hasta este tope, y recién
+ * después se corta lo que se entrega.
+ */
+export const COLLECTION_QUERY_ROW_LIMIT = 5000;
+
+/**
  * Lo que contesta reescribir una opción que ya no está donde se la dejó.
  *
  * Renombrar parte de un nombre y llega a la base un rato después de haberlo
@@ -85,5 +121,12 @@ export const COLLECTION_ROW_LIMIT = 500;
  * escritura se deshace y quien lo pidió vuelve a mirar.
  */
 export const SCHEMA_OPTION_ALREADY_MOVED = 'SCHEMA_OPTION_ALREADY_MOVED';
+
+/**
+ * La forma entera de una colección cambió entre que alguien la leyó y la fue a
+ * guardar entera: guardarla borraría el cambio de la otra persona sin que nadie
+ * se enterara, así que no se guarda.
+ */
+export const SCHEMA_CHANGED_MEANWHILE = 'SCHEMA_CHANGED_MEANWHILE';
 
 export const PAGE_DELETE_FOREVER_OUTCOMES = ['DELETED', 'NOT_FOUND', 'NOT_TRASHED'] as const;

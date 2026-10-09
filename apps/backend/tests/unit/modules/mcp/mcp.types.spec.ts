@@ -9,10 +9,16 @@ const page: McpPage = {
   },
   id: 'page-1',
   lifecycle: 'ACTIVE',
+  lockedAt: null,
   order: 0,
+  owner: null,
   parentId: null,
+  propertyValues: null,
   spaceId: 'space-1',
   title: 'Runbook',
+  verificationExpiresAt: null,
+  verifiedAt: null,
+  verifiedBy: null,
   version: 1,
 };
 

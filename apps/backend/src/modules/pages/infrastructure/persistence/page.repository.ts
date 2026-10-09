@@ -1,49 +1,50 @@
+import { isDeepStrictEqual } from 'node:util';
 import { PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
-import type { PageCoverValue, PageIcon, UserRole } from '@company-brain/shared';
+import { type PageContent, type PageCoverValue, type PageIcon, Result, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
+import { toPageIconInput } from '../../../../common/infrastructure/persistence/page-icon.adapter';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import {
   buildSpaceVisibilityFilter,
   findAccessibleSpaceId,
 } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { PAGE_SIBLING_ORDER } from '../../constants/pages.constants';
+import {
+  PAGE_CONTENT_STORE_OUTCOME,
+  PAGE_MOVES_LOCK_PREFIX,
+  PAGE_SIBLING_ORDER,
+} from '../../constants/pages.constants';
 import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
 import { validatePageCover } from '../../domain/page-cover.domain';
 import type {
   CreatePageInput,
   DuplicatePageInput,
+  PageAccessState,
+  PageContentStoreOutcome,
   PageCopySource,
   PageDeleteForeverOutcome,
   PageHierarchyRow,
   PageMoveContext,
   PageMoveDestinations,
+  PagePropertyValuesMerge,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
+  StoredPageContentRow,
+  StoredPagePropertyValuesRow,
+  StorePageContentInput,
   TrashedPageSummary,
-  UpdatePageInput,
+  UpdatePagePropertyValuesInput,
 } from '../../types/page.types';
+import { PageStoredContentInvalidError } from '../errors/page.stored-content.error';
 
 const toPropertyValuesInput = (
   propertyValues: CreatePageInput['propertyValues'],
 ): Prisma.InputJsonValue | typeof Prisma.JsonNull => propertyValues ?? Prisma.JsonNull;
-
-const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Prisma.JsonNull => {
-  if (icon === null) return Prisma.JsonNull;
-  switch (icon.kind) {
-    case 'emoji':
-      return { kind: icon.kind, value: icon.value };
-    case 'image':
-      return { assetId: icon.assetId, kind: icon.kind };
-    default:
-      return { color: icon.color, kind: icon.kind, name: icon.name };
-  }
-};
 
 const toCoverInput = (cover: PageCoverValue | null): Prisma.InputJsonValue | typeof Prisma.JsonNull =>
   cover === null ? Prisma.JsonNull : { assetId: cover.assetId, position: cover.position };
@@ -126,6 +127,18 @@ export class PageRepository implements PageRepositoryContract {
     return pages.map((page) => this.toSummary(page, authors));
   }
 
+  async findAccessState(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<PageAccessState | null> {
+    return this.prisma.page.findFirst({
+      select: { lifecycle: true, lockedAt: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+    });
+  }
+
   async getAccessible(
     pageId: string,
     workspaceId: string,
@@ -172,7 +185,7 @@ export class PageRepository implements PageRepositoryContract {
       if (input.parentId !== null) {
         const parent = await transaction.page.findFirst({
           select: { id: true },
-          where: { id: input.parentId, spaceId: input.spaceId },
+          where: { id: input.parentId, lifecycle: PageLifecycle.ACTIVE, spaceId: input.spaceId },
         });
         if (parent === null) return null;
       }
@@ -221,7 +234,11 @@ export class PageRepository implements PageRepositoryContract {
     return this.prisma.$transaction(async (transaction) => {
       const original = await transaction.page.findFirst({
         select: pageSelection,
-        where: { ...this.pageAccessFilter(input.workspaceId, input.userId, input.role), id: input.pageId },
+        where: {
+          ...this.pageAccessFilter(input.workspaceId, input.userId, input.role),
+          id: input.pageId,
+          lifecycle: PageLifecycle.ACTIVE,
+        },
       });
       if (original === null) return null;
       await transaction.page.updateMany({
@@ -243,46 +260,98 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  async update(input: UpdatePageInput): Promise<PageSummary | null> {
+  async findStoredContent(pageId: string): Promise<PageContent | null> {
+    const page = await this.prisma.page.findUnique({ select: { content: true }, where: { id: pageId } });
+    if (page === null) return null;
+    const content = validatePageContent(page.content);
+    if (content.isFail()) throw new PageStoredContentInvalidError(pageId, content.getError());
+    return content.getValue();
+  }
+
+  /**
+   * Guarda lo que dice el documento colaborativo de una página. La fila queda
+   * bloqueada mientras se compara, así dos guardados seguidos no cortan dos
+   * versiones del mismo texto, y lo que no cambió no corta ninguna.
+   */
+  async storeContent(input: StorePageContentInput): Promise<PageContentStoreOutcome> {
     return this.prisma.$transaction(async (transaction) => {
-      const current = await transaction.page.findFirst({
-        select: { id: true, versions: { orderBy: { version: 'desc' }, select: { version: true }, take: 1 } },
-        where: { ...this.pageAccessFilter(input.workspaceId, input.userId, input.role), id: input.pageId },
+      const [current] = await transaction.$queryRaw<StoredPageContentRow[]>`
+        SELECT content, title FROM "Page" WHERE id = ${input.pageId} FOR UPDATE
+      `;
+      if (current === undefined) return PAGE_CONTENT_STORE_OUTCOME.missing;
+      if (isDeepStrictEqual(current.content, input.content)) return PAGE_CONTENT_STORE_OUTCOME.unchanged;
+      const latest = await transaction.pageVersion.findFirst({
+        orderBy: { version: 'desc' },
+        select: { version: true },
+        where: { pageId: input.pageId },
       });
-      if (current === null) return null;
-      const nextVersion = (current.versions[0]?.version ?? 0) + 1;
-      const page = await transaction.page.update({
+      const nextVersion = (latest?.version ?? 0) + 1;
+      await transaction.page.update({
         data: {
           content: input.content,
-          propertyValues: toPropertyValuesInput(input.propertyValues),
-          title: input.title,
           updatedById: input.updatedById,
           versions: {
             create: {
               content: input.content,
               createdById: input.updatedById,
-              title: input.title,
+              title: current.title,
               version: nextVersion,
             },
           },
         },
+        where: { id: input.pageId },
+      });
+      await this.announceNewVersion(transaction, input.pageId, nextVersion);
+      return PAGE_CONTENT_STORE_OUTCOME.stored;
+    });
+  }
+
+  async updatePropertyValues<TError>(
+    input: UpdatePagePropertyValuesInput,
+    merge: PagePropertyValuesMerge<TError>,
+  ): Promise<Result<PageSummary, TError> | null> {
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      const [current] = await transaction.$queryRaw<StoredPagePropertyValuesRow[]>`
+        SELECT "propertyValues" FROM "Page" WHERE id = ${input.pageId} FOR UPDATE
+      `;
+      if (current === undefined) return null;
+      const merged = merge(parseSchemaPropertyValues(current.propertyValues));
+      if (merged.isFail()) return { refusal: merged.getError() };
+      const page = await transaction.page.update({
+        data: {
+          propertyValues: toPropertyValuesInput(merged.getValue()),
+          ...(input.title === undefined ? {} : { title: input.title }),
+          updatedById: input.updatedById,
+        },
         select: pageSelection,
         where: { id: input.pageId },
       });
-      await this.outboxRepository.create(
-        {
-          aggregateId: page.id,
-          aggregateType: 'PAGE',
-          eventType: 'PAGE_UPDATED',
-          idempotencyKey: `page:${page.id}:version:${String(nextVersion)}`,
-          payload: { pageId: page.id, version: nextVersion },
-          payloadVersion: 1,
-        },
-        transaction,
-      );
-      const authors = await this.resolvePageAuthors([page]);
-      return this.toSummary(page, authors);
+      await this.announceThePageChanged(page, transaction);
+      return { page };
     });
+    if (updated === null) return null;
+    if ('refusal' in updated) return Result.fail(updated.refusal);
+    const authors = await this.resolvePageAuthors([updated.page]);
+    return Result.ok(this.toSummary(updated.page, authors));
+  }
+
+  /** Avisa que la página tiene una versión nueva, para quienes proyectan su contenido. */
+  private async announceNewVersion(
+    transaction: Prisma.TransactionClient,
+    pageId: string,
+    version: number,
+  ): Promise<void> {
+    await this.outboxRepository.create(
+      {
+        aggregateId: pageId,
+        aggregateType: 'PAGE',
+        eventType: 'PAGE_UPDATED',
+        idempotencyKey: `page:${pageId}:version:${String(version)}`,
+        payload: { pageId, version },
+        payloadVersion: 1,
+      },
+      transaction,
+    );
   }
 
   /**
@@ -317,11 +386,7 @@ export class PageRepository implements PageRepositoryContract {
     workspaceId: string,
     role: UserRole,
   ): Promise<PageSummary | null> {
-    const existing = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
-    });
-    if (existing === null) return null;
+    if (!(await this.isActiveAndAccessible(pageId, workspaceId, userId, role))) return null;
     return this.prisma.$transaction(async (transaction) => {
       const page = await transaction.page.update({
         data: { title, updatedById: userId },
@@ -342,11 +407,7 @@ export class PageRepository implements PageRepositoryContract {
     workspaceId: string,
     role: UserRole,
   ): Promise<PageSummary | null> {
-    const existing = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
-    });
-    if (existing === null) return null;
+    if (!(await this.isActiveAndAccessible(pageId, workspaceId, userId, role))) return null;
     const page = await this.prisma.page.update({
       data: locked ? { lockedAt: new Date(), lockedById: userId } : { lockedAt: null, lockedById: null },
       select: pageSelection,
@@ -374,11 +435,7 @@ export class PageRepository implements PageRepositoryContract {
     workspaceId: string,
     role: UserRole,
   ): Promise<PageSummary | null> {
-    const existing = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
-    });
-    if (existing === null) return null;
+    if (!(await this.isActiveAndAccessible(pageId, workspaceId, userId, role))) return null;
     return this.prisma.$transaction(async (transaction) => {
       const page = await transaction.page.update({
         data: verified
@@ -401,11 +458,7 @@ export class PageRepository implements PageRepositoryContract {
     workspaceId: string,
     role: UserRole,
   ): Promise<PageSummary | null> {
-    const existing = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
-    });
-    if (existing === null) return null;
+    if (!(await this.isActiveAndAccessible(pageId, workspaceId, userId, role))) return null;
     const page = await this.prisma.page.update({ data: { ownerId }, select: pageSelection, where: { id: pageId } });
     const authors = await this.resolvePageAuthors([page]);
     return this.toSummary(page, authors);
@@ -418,11 +471,7 @@ export class PageRepository implements PageRepositoryContract {
     workspaceId: string,
     role: UserRole,
   ): Promise<PageSummary | null> {
-    const existing = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
-    });
-    if (existing === null) return null;
+    if (!(await this.isActiveAndAccessible(pageId, workspaceId, userId, role))) return null;
     const page = await this.prisma.page.update({
       data: { cover: toCoverInput(cover), updatedById: userId },
       select: pageSelection,
@@ -439,14 +488,10 @@ export class PageRepository implements PageRepositoryContract {
     workspaceId: string,
     role: UserRole,
   ): Promise<PageSummary | null> {
-    const existing = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
-    });
-    if (existing === null) return null;
+    if (!(await this.isActiveAndAccessible(pageId, workspaceId, userId, role))) return null;
     return this.prisma.$transaction(async (transaction) => {
       const page = await transaction.page.update({
-        data: { icon: toIconInput(icon), updatedById: userId },
+        data: { icon: toPageIconInput(icon), updatedById: userId },
         select: pageSelection,
         where: { id: pageId },
       });
@@ -593,21 +638,18 @@ export class PageRepository implements PageRepositoryContract {
     role: UserRole,
     mutationId: string,
   ): Promise<PageSummary | null> {
+    const movesLockKey = PAGE_MOVES_LOCK_PREFIX + workspaceId;
     return this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${movesLockKey}))::text`;
       const page = await transaction.page.findFirst({
         select: { id: true, spaceId: true },
-        where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId },
+        where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId, lifecycle: PageLifecycle.ACTIVE },
       });
       if (page === null) return null;
       const destinationSpaceId = await findAccessibleSpaceId(transaction, targetSpaceId, workspaceId, userId, role);
       if (destinationSpaceId === null) return null;
-      if (parentId !== null) {
-        const parent = await transaction.page.findFirst({
-          select: { id: true },
-          where: { id: parentId, spaceId: destinationSpaceId },
-        });
-        if (parent === null) return null;
-      }
+      if (parentId !== null && !(await this.canHangUnder(transaction, pageId, parentId, destinationSpaceId)))
+        return null;
       await this.carryBranchIntoSpace(transaction, pageId, page.spaceId, destinationSpaceId, mutationId);
       const order = await this.findNextOrder(transaction, destinationSpaceId, parentId, pageId);
       const moved = await transaction.page.update({
@@ -629,6 +671,34 @@ export class PageRepository implements PageRepositoryContract {
       const authors = await this.resolvePageAuthors([moved]);
       return this.toSummary(moved, authors);
     });
+  }
+
+  /**
+   * Si una página puede colgar de otra, mirado dentro de la misma transacción
+   * que la mueve y con los movimientos del espacio de trabajo en fila: la de
+   * arriba sigue viva en ese espacio, y no es la página misma ni una que cuelga
+   * de ella. Dos movimientos cruzados, A bajo B y B bajo A, ya no arman un ciclo.
+   */
+  private async canHangUnder(
+    transaction: Prisma.TransactionClient,
+    pageId: string,
+    parentId: string,
+    spaceId: string,
+  ): Promise<boolean> {
+    const parent = await transaction.page.findFirst({
+      select: { id: true },
+      where: { id: parentId, lifecycle: PageLifecycle.ACTIVE, spaceId },
+    });
+    if (parent === null) return false;
+    const [ownBranch] = await transaction.$queryRaw<{ id: string }[]>`
+      WITH RECURSIVE "above" AS (
+        SELECT "id", "parentId" FROM "Page" WHERE "id" = ${parentId}
+        UNION
+        SELECT "page"."id", "page"."parentId" FROM "Page" AS "page" JOIN "above" ON "page"."id" = "above"."parentId"
+      )
+      SELECT "id" FROM "above" WHERE "id" = ${pageId} LIMIT 1
+    `;
+    return ownBranch === undefined;
   }
 
   async parentBelongsToSpace(parentId: string, spaceId: string): Promise<boolean> {
@@ -737,9 +807,14 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<readonly TrashedPageSummary[]> {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(workspaceId, userId, role, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
+    /*
+     * Solo lo que está en la papelera: lo de abajo de una página borrada se
+     * fue con ella, así que contar lo borrado que cuelga de cada una no pide
+     * el resto del árbol.
+     */
     const pages = await this.prisma.page.findMany({
       select: pageHierarchySelection,
-      where: { spaceId: { in: [...accessibleSpaceIds] } },
+      where: { lifecycle: PageLifecycle.TRASHED, spaceId: { in: [...accessibleSpaceIds] } },
     });
     const trashedPages = pages.filter((page) => this.isSearchedTrashedPage(page, search));
     if (trashedPages.length === 0) return [];
@@ -786,18 +861,44 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<readonly string[]> {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(workspaceId, userId, role, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
-    const trashedPages = await this.prisma.page.findMany({
-      select: { id: true },
-      where: { lifecycle: PageLifecycle.TRASHED, spaceId: { in: [...accessibleSpaceIds] } },
-    });
-    const trashedPageIds = trashedPages.map((page) => page.id);
-    if (trashedPageIds.length === 0) return [];
-    await this.prisma.page.deleteMany({ where: { id: { in: trashedPageIds } } });
-    return trashedPageIds;
+    return this.deleteTrashedPagesIn(accessibleSpaceIds);
+  }
+
+  /**
+   * Borra para siempre lo que está en la papelera de unos espacios, en una sola
+   * sentencia que vuelve a mirar que siga en la papelera: una página que alguien
+   * restauró un instante antes no se borra. Devuelve las que de verdad se
+   * borraron, para limpiar solo sus archivos.
+   */
+  private async deleteTrashedPagesIn(spaceIds: readonly string[]): Promise<readonly string[]> {
+    const deleted = await this.prisma.$queryRaw<{ id: string }[]>`
+      DELETE FROM "Page"
+      WHERE "lifecycle" = ${PageLifecycle.TRASHED}::"PageLifecycle" AND "spaceId" = ANY(${[...spaceIds]}::text[])
+      RETURNING "id"
+    `;
+    return deleted.map((page) => page.id);
   }
 
   private accessFilter(spaceId: string, workspaceId: string, userId: string, role: UserRole): Prisma.PageWhereInput {
     return { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId }, spaceId };
+  }
+
+  /**
+   * Si una página que la persona ve sigue viva, para cambiarla. Una en la
+   * papelera no se cambia: quien la renombra o la bloquea desde una pestaña
+   * vieja creería que funcionó sobre algo que ya no está.
+   */
+  private async isActiveAndAccessible(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<boolean> {
+    const page = await this.prisma.page.findFirst({
+      select: { id: true },
+      where: { ...this.pageAccessFilter(workspaceId, userId, role), id: pageId, lifecycle: PageLifecycle.ACTIVE },
+    });
+    return page !== null;
   }
 
   private pageAccessFilter(workspaceId: string, userId: string, role: UserRole): Prisma.PageWhereInput {
@@ -968,7 +1069,7 @@ export class PageRepository implements PageRepositoryContract {
         content: content.getValue(),
         cover: toCoverInput(parsePageCover(original.cover)),
         createdById: userId,
-        icon: toIconInput(parseStoredPageIcon(original.icon)),
+        icon: toPageIconInput(parseStoredPageIcon(original.icon)),
         order,
         parentId,
         propertyValues: toPropertyValuesInput(parseSchemaPropertyValues(original.propertyValues)),

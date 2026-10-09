@@ -44,7 +44,7 @@ export const PagesSchemaSettingsViewIcon = ({ disabled, icon, onPick, viewName }
           type="button"
           variant="outline"
         >
-          {icon === null ? <Smile aria-hidden="true" className="size-4" /> : icon}
+          {icon ?? <Smile aria-hidden="true" className="size-4" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 space-y-2">

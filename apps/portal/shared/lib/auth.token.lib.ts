@@ -1,12 +1,6 @@
 import { cookies } from 'next/headers';
 import { ACCESS_TOKEN_COOKIE } from '@/shared/constants/auth.constants';
-
-export class MissingAccessTokenError extends Error {
-  constructor() {
-    super('Authentication is required for this action');
-    this.name = 'MissingAccessTokenError';
-  }
-}
+import { MissingAccessTokenError } from './auth.token.error';
 
 export const readAccessTokenCookie = async (): Promise<string | undefined> => {
   const cookieStore = await cookies();

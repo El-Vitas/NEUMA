@@ -2,6 +2,8 @@ export const THROTTLER_NAMES = {
   perIp: 'credentials-per-ip',
   global: 'credentials-global',
   exports: 'exports-per-user',
+  mcp: 'mcp-per-token',
+  mcpPerIp: 'mcp-per-ip',
 } as const;
 
 /**
@@ -33,4 +35,25 @@ export const CREDENTIAL_RATE_LIMIT = {
 export const EXPORT_RATE_LIMIT = {
   windowSeconds: 60,
   perUserLimit: 5,
+} as const;
+
+/**
+ * Cuántas llamadas por minuto admite un agente.
+ *
+ * Un agente trabajando de verdad encadena llamadas —buscar, leer, leer otra
+ * sección, escribir—, así que el tope es holgado para eso. Lo que corta es un
+ * agente en bucle, que sin tope se come la base para todos los demás. Se cuenta
+ * por token y no por persona: una persona con dos agentes no los hace
+ * competir por el mismo cupo.
+ */
+export const MCP_RATE_LIMIT = {
+  windowSeconds: 60,
+  perTokenLimit: 120,
+  /**
+   * Lo que se cuenta por dirección antes de mirar el token: así un cliente que
+   * prueba llaves, o un agente con un token revocado que reintenta sin parar,
+   * no consulta la base sin límite. Es holgado porque una oficina entera, con
+   * varios agentes, sale por una sola dirección.
+   */
+  perIpLimit: 600,
 } as const;
