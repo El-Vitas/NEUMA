@@ -1,4 +1,4 @@
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
 import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';

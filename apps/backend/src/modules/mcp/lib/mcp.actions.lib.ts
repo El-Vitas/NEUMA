@@ -1,4 +1,4 @@
-import { AgentActionOutcome } from '@company-brain/db';
+import { AgentActionOutcome } from '@neuma/db';
 import {
   MCP_ABANDONED_REQUEST_MS,
   MCP_REQUEST_ALREADY_DONE_MESSAGE,

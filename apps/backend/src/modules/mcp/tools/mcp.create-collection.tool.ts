@@ -3,7 +3,7 @@ import {
   PAGE_COLLECTION_TITLE_PROPERTY_KEY,
   PAGE_PROPERTY_TYPE,
   PAGE_VIEW_TYPE,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { MCP_EMPTY_PAGE_CONTENT, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';

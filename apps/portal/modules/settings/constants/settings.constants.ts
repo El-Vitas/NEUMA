@@ -1,4 +1,4 @@
-import { canManageWorkspace, USER_ROLE_VALUES } from '@company-brain/shared';
+import { canManageWorkspace, USER_ROLE_VALUES } from '@neuma/shared';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { SettingsNavItem } from '../types/settings.types';
 

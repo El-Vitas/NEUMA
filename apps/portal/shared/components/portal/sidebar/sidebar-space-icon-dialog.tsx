@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageIcon, PageIconColor } from '@company-brain/shared';
+import type { PageIcon, PageIconColor } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { PagesIconMenu } from '@/modules/pages/appearance/components/pages.icon.menu';
 import { pickRandomPageEmojiIcon, pickRandomPageIconSymbolName } from '@/modules/pages/appearance/lib/pages.icon.lib';

@@ -53,7 +53,7 @@ export const PAGE_APPEARANCE_WIDTH_STYLE_CLASS = 'max-w-none';
 export const PAGE_APPEARANCE_SECTION_PADDING_STYLE_CLASS =
   'py-6 pr-4 pl-4 sm:py-8 sm:pr-6 sm:pl-14 lg:py-12 lg:pr-8 lg:pl-16 xl:pr-10';
 
-export const PAGE_APPEARANCE_STORAGE_KEY_PREFIX = 'company-brain-page-appearance:';
+export const PAGE_APPEARANCE_STORAGE_KEY_PREFIX = 'neuma-page-appearance:';
 
 /** Stand-in for the page id of a page not yet saved. */
 export const PAGE_APPEARANCE_NEW_PAGE_STORAGE_SCOPE = 'new';

@@ -1,7 +1,7 @@
-import { SpaceVisibility } from '@company-brain/db';
-import { Prisma } from '@company-brain/db/generated';
-import { type PageIcon, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { SpaceVisibility } from '@neuma/db';
+import { Prisma } from '@neuma/db/generated';
+import { type PageIcon, type UserRole } from '@neuma/shared';
 import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace, canRenameSpace, canShareSpace } from '../../../../common/domain/workspace.domain';

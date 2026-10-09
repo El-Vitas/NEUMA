@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { givePageBlocksTheirIds, type PageContent, pageContentSchema } from '@company-brain/shared';
+import { givePageBlocksTheirIds, type PageContent, pageContentSchema } from '@neuma/shared';
 import { buildMcpBlockNodes } from '@/modules/mcp/lib/mcp.block-input.lib';
 import type { McpBlockInput } from '@/modules/mcp/types/mcp.pages.types';
 

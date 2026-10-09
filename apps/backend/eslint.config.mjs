@@ -1,7 +1,5 @@
 // @ts-check
 import eslint from '@eslint/js';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
 import {
   cleanComments,
   constantsDirOnlyConstants,
@@ -17,7 +15,9 @@ import {
   screamingSnakeInConstants,
   typesDirOnlyTypes,
   utilsDirOnlyUtils,
-} from '@company-brain/eslint-rules';
+} from '@neuma/eslint-rules';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {

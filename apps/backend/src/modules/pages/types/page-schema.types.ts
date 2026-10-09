@@ -1,6 +1,6 @@
-import type { PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
+import type { PageLifecycle } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import type { UserRole } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValues,

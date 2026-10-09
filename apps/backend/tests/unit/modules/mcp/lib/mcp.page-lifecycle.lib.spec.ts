@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@neuma/shared';
 import { findMcpProtectedDescendant } from '@/modules/mcp/lib/mcp.page-lifecycle.lib';
 import type { McpPrincipal } from '@/modules/mcp/types/mcp.types';
 

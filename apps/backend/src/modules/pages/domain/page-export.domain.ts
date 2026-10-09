@@ -1,4 +1,4 @@
-import { type PageContent, pageContentSchema } from '@company-brain/shared';
+import { type PageContent, pageContentSchema } from '@neuma/shared';
 import { EMPTY_EXPORTED_DOCUMENT } from './page-export.domain.constants';
 import type { ExportablePage, OrderedExportPage, PageExportScope } from './page-export.domain.types';
 

@@ -1,5 +1,5 @@
-import { type AuthSession, Result, type User } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { type AuthSession, Result, type User } from '@neuma/shared';
 import { toUser } from '../../common/utils/auth.utils';
 import { assertUserIsActive } from './domain/auth.domain';
 import { type InactiveUserError, InvalidCredentialsError } from './domain/auth.error';

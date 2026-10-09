@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageOptionColor } from '@company-brain/shared';
+import type { PageOptionColor } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';

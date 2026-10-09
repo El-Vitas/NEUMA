@@ -1,4 +1,4 @@
-import type { PageOptionColor } from '@company-brain/shared';
+import type { PageOptionColor } from '@neuma/shared';
 import {
   PAGE_OPTION_COLOR_CLASSES,
   PAGE_OPTION_DOT_CLASSES,

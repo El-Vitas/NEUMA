@@ -1,4 +1,4 @@
-import { USER_ROLE } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import { BookOpen, LayoutDashboard, Search, Settings, Trash2, UserCircle, Users } from 'lucide-react';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 

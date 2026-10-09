@@ -1,4 +1,4 @@
-import type { PageBlockEntry } from '@company-brain/shared';
+import type { PageBlockEntry } from '@neuma/shared';
 import type { PageBlockSearchPage, PageBlockSearchQuery } from '../../../common/types/search.types';
 
 export type {

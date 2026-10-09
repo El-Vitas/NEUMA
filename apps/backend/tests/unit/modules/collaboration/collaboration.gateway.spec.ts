@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { type PageContent, USER_ROLE } from '@company-brain/shared';
 import type { Hocuspocus } from '@hocuspocus/server';
+import { type PageContent, USER_ROLE } from '@neuma/shared';
 import { createCollaborationGateway } from '../../../../src/modules/collaboration/collaboration.gateway';
 import {
   MAX_COLLABORATION_STATE_BYTES,

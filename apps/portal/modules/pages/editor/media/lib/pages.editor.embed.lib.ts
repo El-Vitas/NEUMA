@@ -1,5 +1,6 @@
-import { isAllowedPageEmbedUrl, PAGE_EMBED_PROVIDERS, type PageEmbedProvider } from '@company-brain/shared';
+import { isAllowedPageEmbedUrl, PAGE_EMBED_PROVIDERS, type PageEmbedProvider } from '@neuma/shared';
 import {
+  PAGE_EDITOR_EMBED_FIGMA_FRAME,
   PAGE_EDITOR_EMBED_FIGMA_HOST,
   PAGE_EDITOR_EMBED_LOOM_SHARE,
   PAGE_EDITOR_EMBED_VIMEO_VIDEO,
@@ -37,7 +38,7 @@ export const readPageEmbedFrameUrl = (provider: PageEmbedProvider, value: string
   const url = new URL(value);
   switch (provider) {
     case 'figma':
-      return `${PAGE_EDITOR_EMBED_FIGMA_HOST}${encodeURIComponent(value)}`;
+      return `${PAGE_EDITOR_EMBED_FIGMA_FRAME}?embed_host=${PAGE_EDITOR_EMBED_FIGMA_HOST}&url=${encodeURIComponent(value)}`;
     case 'loom':
       return readLoomFrame(url);
     case 'vimeo':

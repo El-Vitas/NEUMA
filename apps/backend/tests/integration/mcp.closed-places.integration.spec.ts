@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { randomUUID } from 'node:crypto';
-import { SpaceVisibility } from '@company-brain/db';
-import { ACCESS_TOKEN_PERMISSION_VALUES, type AccessTokenAccess } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import { ACCESS_TOKEN_PERMISSION_VALUES, type AccessTokenAccess } from '@neuma/shared';
 import request from 'supertest';
 import { z } from 'zod';
 import { MCP_INACCESSIBLE_MESSAGE } from '@/modules/mcp/constants/mcp.constants';

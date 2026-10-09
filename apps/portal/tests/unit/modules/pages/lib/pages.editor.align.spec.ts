@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageBlockAlignment } from '@company-brain/shared';
+import type { PageBlockAlignment } from '@neuma/shared';
 import { EditorState, NodeSelection } from 'prosemirror-state';
 import {
   createPageBlockAlignmentCommand,

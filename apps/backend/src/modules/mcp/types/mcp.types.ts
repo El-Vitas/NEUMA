@@ -1,4 +1,5 @@
-import type { AgentActionOutcome } from '@company-brain/db';
+import type { McpServer } from '@modelcontextprotocol/server';
+import type { AgentActionOutcome } from '@neuma/db';
 import type {
   AccessTokenPermission,
   AccessTokenPlace,
@@ -10,8 +11,7 @@ import type {
   Result,
   SpaceVisibility,
   UserRole,
-} from '@company-brain/shared';
-import type { McpServer } from '@modelcontextprotocol/server';
+} from '@neuma/shared';
 import type { z } from 'zod';
 import type { AccessTokenPlaceReader, AccessTokenPrincipal } from '../../../common/types/access-token.types';
 import type { PageBlockSearchReader, SearchReader, SearchTokenScope } from '../../../common/types/search.types';

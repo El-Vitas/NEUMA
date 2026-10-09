@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import type { SearchTokenScope } from '../../../common/types/search.types';
 

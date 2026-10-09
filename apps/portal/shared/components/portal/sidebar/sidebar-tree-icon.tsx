@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageIcon } from '@company-brain/shared';
+import type { PageIcon } from '@neuma/shared';
 import { FileText, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageIconGlyph } from '@/shared/components/portal/page-icon-glyph';

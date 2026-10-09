@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, MILLISECONDS_IN_A_DAY, USER_ROLE } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, MILLISECONDS_IN_A_DAY, USER_ROLE } from '@neuma/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';

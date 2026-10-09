@@ -1,9 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
-import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
-import { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
-import { readPagePropertyOptionValues } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
+import { Prisma } from '@neuma/db/generated';
+import type { UserRole } from '@neuma/shared';
+import { readPagePropertyOptionValues } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
 import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
 import {

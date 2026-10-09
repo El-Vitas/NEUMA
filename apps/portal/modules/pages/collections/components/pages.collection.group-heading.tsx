@@ -1,5 +1,5 @@
-import type { PageOptionColor } from '@company-brain/shared';
-import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import type { PageOptionColor } from '@neuma/shared';
+import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { cn } from '@/lib/utils';
 import { readPageOptionDotClass } from '../lib/pages.option-color.lib';
 

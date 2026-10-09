@@ -1,6 +1,6 @@
-import { PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { buildTokenScopeWhere } from '../../../../common/infrastructure/persistence/token-scope.filter';

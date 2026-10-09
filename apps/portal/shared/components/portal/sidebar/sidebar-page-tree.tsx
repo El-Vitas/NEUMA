@@ -1,6 +1,6 @@
 'use client';
 
-import { canEditContent, type UserRole } from '@company-brain/shared';
+import { canEditContent, type UserRole } from '@neuma/shared';
 import { ListChecks } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_NAME_MAX_LENGTH, ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
+import { ACCESS_TOKEN_NAME_MAX_LENGTH, ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@neuma/shared';
 import {
   isAccessTokenUsable,
   listPermissionsBeyondRole,

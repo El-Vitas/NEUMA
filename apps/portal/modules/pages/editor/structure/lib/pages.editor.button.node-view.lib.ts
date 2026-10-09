@@ -1,4 +1,4 @@
-import { PAGE_BUTTON_DEEDS, PAGE_BUTTON_PLACES } from '@company-brain/shared';
+import { PAGE_BUTTON_DEEDS, PAGE_BUTTON_PLACES } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {

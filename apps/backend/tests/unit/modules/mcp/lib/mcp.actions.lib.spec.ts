@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@neuma/shared';
 import { MCP_ABANDONED_REQUEST_MS } from '@/modules/mcp/constants/mcp.constants';
 import { McpRequestTakenError } from '@/modules/mcp/infrastructure/errors/mcp.request-taken.error';
 import { McpToolError } from '@/modules/mcp/infrastructure/errors/mcp.tool.error';
@@ -26,7 +26,7 @@ const call: McpCall = {
     userId: 'user-1',
     workspaceId: 'workspace-1',
   },
-  workspace: { id: 'workspace-1', name: 'Company Brain' },
+  workspace: { id: 'workspace-1', name: 'Neuma' },
 };
 
 const request = { blockIds: [], detail: {}, pageId: 'page-1', tool: 'update_row' };

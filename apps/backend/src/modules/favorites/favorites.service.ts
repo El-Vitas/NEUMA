@@ -1,6 +1,6 @@
-import type { UserRole } from '@company-brain/shared';
-import { Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
+import { Result } from '@neuma/shared';
 import { FAVORITE_REPOSITORY } from './constants/favorites.constants';
 import type { FavoriteMoveDirection, FavoritePageSummary } from './domain/favorite.domain.types';
 import { FavoriteNotFoundError, FavoritePageAccessDeniedError } from './domain/favorite.error';

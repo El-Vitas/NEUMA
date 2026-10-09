@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 import { MCP_DIAGRAMS_PER_WRITE } from '@/modules/mcp/constants/mcp.limits.constants';
 import { McpDiagramCheckerBusyError } from '@/modules/mcp/infrastructure/errors/mcp.diagram-busy.error';
 import { McpDiagramCheckTimeoutError } from '@/modules/mcp/infrastructure/errors/mcp.diagram-timeout.error';

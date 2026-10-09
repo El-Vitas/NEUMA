@@ -1,4 +1,4 @@
-import type { Prisma } from '@company-brain/db/generated';
+import type { Prisma } from '@neuma/db/generated';
 import { extractPageContentMentionIds } from '@/common/domain/page-content.domain';
 
 export const extractMentionTargetPageIds = (content: Prisma.JsonValue): readonly string[] =>

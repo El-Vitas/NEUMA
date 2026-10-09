@@ -1,4 +1,4 @@
-import type { PageOptionColor } from '@company-brain/shared';
+import type { PageOptionColor } from '@neuma/shared';
 
 export interface PageChartPoint {
   readonly color: PageOptionColor | null;

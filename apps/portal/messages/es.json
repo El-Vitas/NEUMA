@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Company Brain",
+    "appName": "Neuma",
     "loading": "Cargando...",
     "cancel": "Cancelar",
     "save": "Guardar",
@@ -163,7 +163,7 @@
   },
   "settings": {
     "title": "Configuración",
-    "subtitle": "Cómo se conectan los agentes con Company Brain.",
+    "subtitle": "Cómo se conectan los agentes con Neuma.",
     "nav": {
       "label": "Secciones de la configuración",
       "tokens": "Tokens de acceso",
@@ -191,7 +191,7 @@
   },
   "accessTokens": {
     "title": "Tokens de acceso",
-    "description": "Un token deja que un agente, como Claude, use Company Brain en tu nombre, solo en los espacios y páginas y con los permisos que le des. Nunca puede más que tú: si pierdes un acceso, el token también lo pierde.",
+    "description": "Un token deja que un agente, como Claude, use Neuma en tu nombre, solo en los espacios y páginas y con los permisos que le des. Nunca puede más que tú: si pierdes un acceso, el token también lo pierde.",
     "connectAt": "Los agentes se conectan por MCP en",
     "create": "Crear token",
     "empty": "Aún no tienes tokens. Crea uno para conectar un agente.",
@@ -1422,7 +1422,7 @@
     "slugInvalid": "El identificador debe tener 80 caracteres o menos."
   },
   "metadata": {
-    "title": "Company Brain",
+    "title": "Neuma",
     "description": "El espacio de conocimiento interno de tu empresa."
   },
   "theme": {

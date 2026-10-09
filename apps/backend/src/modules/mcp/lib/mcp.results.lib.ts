@@ -1,4 +1,4 @@
-import { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 
 export const collectMcpResults = <TValue>(results: readonly Result<TValue, string>[]): Result<TValue[], string> => {
   const failed = results.find((result) => result.isFail());

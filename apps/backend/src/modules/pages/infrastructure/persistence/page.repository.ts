@@ -1,8 +1,8 @@
 import { isDeepStrictEqual } from 'node:util';
-import { PageLifecycle } from '@company-brain/db';
-import { Prisma } from '@company-brain/db/generated';
-import { type PageContent, type PageCoverValue, type PageIcon, Result, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
+import { Prisma } from '@neuma/db/generated';
+import { type PageContent, type PageCoverValue, type PageIcon, Result, type UserRole } from '@neuma/shared';
 import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';

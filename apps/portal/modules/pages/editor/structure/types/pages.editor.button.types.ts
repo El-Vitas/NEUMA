@@ -1,4 +1,4 @@
-import type { PageButtonDeed, PageButtonPlace } from '@company-brain/shared';
+import type { PageButtonDeed, PageButtonPlace } from '@neuma/shared';
 import type { Fragment } from 'prosemirror-model';
 
 export interface PageEditorButtonLabels {

@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS, writeBlocksAsAnchoredMarkdown } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, writeBlocksAsAnchoredMarkdown } from '@neuma/shared';
 import { MCP_DIAGRAM_LOGOS_NOTE, MCP_EMPTY_PAGE_CONTENT, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { buildMcpPageUrl } from '../lib/mcp.address.lib';

@@ -1,5 +1,5 @@
-import { Result } from '@company-brain/shared';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { Result } from '@neuma/shared';
 import katex from 'katex';
 import { MCP_DIAGRAM_WORKER_FILE, MCP_DIAGRAM_WORKER_READY } from '../../constants/mcp.constants';
 import {

@@ -1,4 +1,4 @@
-import { readPageViewConfiguration, readVisiblePropertyKeys } from '@company-brain/shared';
+import { readPageViewConfiguration, readVisiblePropertyKeys } from '@neuma/shared';
 import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
 
 /** Until the view chooses, the grouping property is hidden (the column header already shows it); a manual pick wins. */

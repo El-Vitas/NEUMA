@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@company-brain/design/tokens.css";
+@import "@neuma/design/tokens.css";
 /*
  * How a formula is set out, and the letters it is set in, which travel with the
  * page: a formula has to look the same on a machine that never reaches the

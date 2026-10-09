@@ -1,6 +1,6 @@
 'use client';
 
-import { ACCESS_TOKEN_LEVELS, type AccessTokenPermission } from '@company-brain/shared';
+import { ACCESS_TOKEN_LEVELS, type AccessTokenPermission } from '@neuma/shared';
 import { useState } from 'react';
 import { readLevelMeaningfulFor } from '../lib/access-tokens.lib';
 import type { AccessTokenDraft, AccessTokenDraftRow, AccessTokenDraftTarget } from '../types/access-tokens.types';

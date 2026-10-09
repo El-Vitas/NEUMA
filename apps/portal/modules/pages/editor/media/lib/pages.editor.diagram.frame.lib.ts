@@ -1,4 +1,4 @@
-import { PAGE_DIAGRAM_FRAME_HEIGHT_LEAST, PAGE_DIAGRAM_FRAME_HEIGHT_MOST } from '@company-brain/shared';
+import { PAGE_DIAGRAM_FRAME_HEIGHT_LEAST, PAGE_DIAGRAM_FRAME_HEIGHT_MOST } from '@neuma/shared';
 import { DIAGRAM_BOUNDED_STYLE_CLASS } from '@/shared/constants/diagram.constants';
 import {
   PAGE_EDITOR_DIAGRAM_FRAME_HANDLE_STYLE_CLASS,

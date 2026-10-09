@@ -1,6 +1,6 @@
-# Company Brain
+# Neuma
 
-Monorepo full-stack (Bun + Turborepo) para el company brain, con auth, base de datos, UI kit y estándares de ingeniería.
+Monorepo full-stack (Bun + Turborepo) para Neuma, con auth, base de datos, UI kit y estándares de ingeniería.
 
 ## Inicializar un proyecto
 
@@ -8,7 +8,7 @@ Abre Claude Code en este repo y pide inicializar el proyecto (skill `init-repo`,
 
 1. Nombre del proyecto (scope, repo, base de datos).
 2. Apps y packages conservados: backend, portal, db, shared, design, eslint-rules y rules-cli.
-3. Renombrado in-place (`@company-brain/*` → `@{proyecto}/*`, imágenes docker, env).
+3. Renombrado in-place (`@neuma/*` → `@{proyecto}/*`, imágenes docker, env).
 4. Setup de base de datos (migración inicial + seed).
 5. Cleanup de todo lo no seleccionado.
 6. Verificación: `install → db:generate → typecheck → lint → build`.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, USER_ROLE } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, USER_ROLE } from '@neuma/shared';
 import { AccessTokensService } from '@/modules/access-tokens/access-tokens.service';
 import { ACCESS_TOKEN_SECRET_PREFIX } from '@/modules/access-tokens/constants/access-tokens.constants';
 import type {

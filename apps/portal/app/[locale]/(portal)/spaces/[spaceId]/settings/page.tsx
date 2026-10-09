@@ -1,4 +1,4 @@
-import { canEditContent, USER_ROLE } from '@company-brain/shared';
+import { canEditContent, USER_ROLE } from '@neuma/shared';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { SpacesSettingsForm } from '@/modules/spaces/components/spaces.settings.form';

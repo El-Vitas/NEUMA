@@ -1,5 +1,5 @@
 {
-  "name": "@company-brain/monorepo",
+  "name": "@neuma/monorepo",
   "version": "0.0.1",
   "private": true,
   "workspaces": [
@@ -8,8 +8,8 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "backend:dev": "turbo run dev --filter=@company-brain/backend",
-    "portal:dev": "turbo run dev --filter=@company-brain/portal",
+    "backend:dev": "turbo run dev --filter=@neuma/backend",
+    "portal:dev": "turbo run dev --filter=@neuma/portal",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -21,7 +21,7 @@
     "sherif": "sherif",
     "jscpd": "jscpd",
     "react:doctor": "turbo run react:doctor",
-    "portal:build:analyze": "turbo run build:analyze --filter=@company-brain/portal",
+    "portal:build:analyze": "turbo run build:analyze --filter=@neuma/portal",
     "rules:build": "bun packages/rules-cli/rules-cli.mjs build",
     "rules:query": "bun packages/rules-cli/rules-cli.mjs query",
     "rules:add": "bun packages/rules-cli/rules-cli.mjs add",

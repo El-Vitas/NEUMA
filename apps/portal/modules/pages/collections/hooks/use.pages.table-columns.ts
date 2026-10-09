@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageColumnAlignment, PageRowHeight } from '@company-brain/shared';
-import { PAGE_ROW_HEIGHT } from '@company-brain/shared';
+import type { PageColumnAlignment, PageRowHeight } from '@neuma/shared';
+import { PAGE_ROW_HEIGHT } from '@neuma/shared';
 import {
   moveViewProperty,
   moveViewPropertySideways,

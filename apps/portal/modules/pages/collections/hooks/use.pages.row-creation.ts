@@ -1,6 +1,6 @@
 'use client';
 
-import { isTitlePageProperty } from '@company-brain/shared';
+import { isTitlePageProperty } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';

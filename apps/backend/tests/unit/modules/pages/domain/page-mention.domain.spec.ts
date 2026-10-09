@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { Prisma } from '@company-brain/db/generated';
+import type { Prisma } from '@neuma/db/generated';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from '@/modules/pages/domain/page-mention.domain';
 

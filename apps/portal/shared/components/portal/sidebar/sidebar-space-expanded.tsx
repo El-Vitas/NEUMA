@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { BookOpen, ChevronRight, Download, MoreHorizontal, PenLine, Plus, Smile } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';

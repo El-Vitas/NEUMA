@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Company Brain
+name: Neuma
 description: >
   English-first company knowledge workspace with an editorial athletic edge: near-black ink,
   disciplined white space, signal red used with restraint, condensed display typography for decisive
@@ -217,7 +217,7 @@ components:
 
 ## Overview
 
-Company Brain is a private operating memory for a team. Its visual language borrows the useful part of
+Neuma is a private operating memory for a team. Its visual language borrows the useful part of
 athletic editorial design: decisive headlines, disciplined rhythm, and a strong monochrome base. It is
 not a clone of any brand and it does not use proprietary fonts or assets. The reference is optical energy,
 not brand imitation.
@@ -412,4 +412,4 @@ into a labeled overflow menu after the primary formatting actions remain visible
 - Animation durations are governed by existing motion tokens and are not fully specified here.
 - Dark/light theme parity is not yet defined; this file defines the light canvas plus dark navigation identity.
 - Complex data visualization styles are not part of the document workspace system.
-- Product photography rules are intentionally absent because Company Brain is knowledge-first, not commerce-first.
+- Product photography rules are intentionally absent because Neuma is knowledge-first, not commerce-first.

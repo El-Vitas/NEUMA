@@ -2,7 +2,7 @@ import {
   COLLABORATION_DOCUMENT_PREFIX,
   type CollaborationPresenceState,
   sanitizeCollaborationPresenceIdentity,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { UUID_PATTERN } from '../../common/constants/validation.constants';
 import {
   MAX_COLLABORATION_AWARENESS_STATE_BYTES,

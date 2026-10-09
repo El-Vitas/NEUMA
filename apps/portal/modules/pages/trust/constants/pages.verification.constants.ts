@@ -1,4 +1,4 @@
-import type { PageVerificationStatus } from '@company-brain/shared';
+import type { PageVerificationStatus } from '@neuma/shared';
 import { BadgeCheck, CircleAlert, ShieldQuestion } from 'lucide-react';
 
 export const PAGE_VERIFICATION_STATUS_ICON: Record<PageVerificationStatus, typeof BadgeCheck> = {

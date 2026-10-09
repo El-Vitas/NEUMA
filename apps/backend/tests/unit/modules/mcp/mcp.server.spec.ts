@@ -1,12 +1,6 @@
 import { afterAll, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
-import {
-  ACCESS_TOKEN_PERMISSIONS,
-  type PagePropertyType,
-  Result,
-  USER_ROLE,
-  type UserRole,
-} from '@company-brain/shared';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
+import { ACCESS_TOKEN_PERMISSIONS, type PagePropertyType, Result, USER_ROLE, type UserRole } from '@neuma/shared';
 import { z } from 'zod';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
 import type {
@@ -60,7 +54,7 @@ const principal: McpPrincipal = {
   userId: 'user-1',
   workspaceId: 'workspace-1',
 };
-const workspace: WorkspaceSummary = { id: 'workspace-1', name: 'Company Brain' };
+const workspace: WorkspaceSummary = { id: 'workspace-1', name: 'Neuma' };
 const spaces: readonly SpaceSummary[] = [
   {
     description: null,
@@ -291,7 +285,7 @@ describe('MCP read contract', () => {
     expect(client.getInstructions()).toBe(writeMcpServerInstructions(PORTAL));
   });
 
-  test('tells the agent which links are Company Brain links, and that its tasks live there', async () => {
+  test('tells the agent which links are Neuma links, and that its tasks live there', async () => {
     const client = await connectClient(createDependencies());
 
     expect(client.getInstructions()).toContain(`Links that start with ${PORTAL}`);
@@ -587,7 +581,7 @@ describe('MCP fetch', () => {
     expect(result.content).toEqual([{ text: MCP_INACCESSIBLE_MESSAGE, type: 'text' }]);
   });
 
-  test('says what it takes when the address is not a Company Brain link or id', async () => {
+  test('says what it takes when the address is not a Neuma link or id', async () => {
     const result = await fetchAddress('https://example.com/whatever');
 
     expect(result.content).toEqual([{ text: MCP_UNREADABLE_ADDRESS_MESSAGE, type: 'text' }]);

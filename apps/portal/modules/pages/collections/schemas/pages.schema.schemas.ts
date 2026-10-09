@@ -3,7 +3,7 @@ import {
   PAGE_OPTION_COLOR_VALUES,
   PAGE_PROPERTY_TYPE_VALUES,
   PAGE_VIEW_TYPE_VALUES,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { z } from 'zod';
 
 export const pagePropertyTypeSchema = z.enum(PAGE_PROPERTY_TYPE_VALUES);

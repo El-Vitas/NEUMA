@@ -1,4 +1,4 @@
-import type { AccessTokenAccess } from '@company-brain/shared';
+import type { AccessTokenAccess } from '@neuma/shared';
 import {
   ACCESS_TOKEN_DISPLAY_LENGTH,
   ACCESS_TOKEN_ENCODED_RANDOM_PATTERN,

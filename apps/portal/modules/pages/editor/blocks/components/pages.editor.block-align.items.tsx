@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_BLOCK_ALIGNMENTS, type PageBlockAlignment } from '@company-brain/shared';
+import { PAGE_BLOCK_ALIGNMENTS, type PageBlockAlignment } from '@neuma/shared';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenuItem } from '@/shared/components/ui/dropdown-menu';

@@ -1,5 +1,5 @@
-import type { SpaceVisibility } from '@company-brain/db';
-import type { PageIcon, UserRole } from '@company-brain/shared';
+import type { SpaceVisibility } from '@neuma/db';
+import type { PageIcon, UserRole } from '@neuma/shared';
 import type { AssignableMember } from '../../../common/types/workspace-member.types';
 
 export type AddSpaceMemberOutcome = 'forbidden' | 'not-assignable' | 'not-found' | 'shared';

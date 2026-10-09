@@ -1,4 +1,4 @@
-import { readPageViewConfiguration } from '@company-brain/shared';
+import { readPageViewConfiguration } from '@neuma/shared';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';

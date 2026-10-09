@@ -1,8 +1,4 @@
-import {
-  extractPageContentSegments,
-  isPagePropertyValueEmpty,
-  joinPageContentSegmentsForSearch,
-} from '@company-brain/shared';
+import { extractPageContentSegments, isPagePropertyValueEmpty, joinPageContentSegmentsForSearch } from '@neuma/shared';
 import { formatPropertyValueForDisplay, getEditableSchemaProperties } from '../../collections/lib/pages.properties.lib';
 import type { PagePropertyValues, PageSchema } from '../../collections/types/pages.schema.types';
 import { PAGE_PROPERTIES_VISIBLE_LIMIT } from '../../constants/pages.constants';

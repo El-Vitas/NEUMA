@@ -1,6 +1,6 @@
-import type { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import type { PageOptionColor, PagePropertyOption, PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
+import type { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import type { PageOptionColor, PagePropertyOption, PagePropertyValue, PagePropertyValues } from '@neuma/shared';
 
 export type SchemaPropertyValue = PagePropertyValue;
 export type SchemaPropertyValues = PagePropertyValues;

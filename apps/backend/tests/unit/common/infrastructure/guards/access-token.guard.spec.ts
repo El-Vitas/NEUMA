@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
 import { UnauthorizedException } from '@nestjs/common';
 import { ExecutionContextHost } from '@nestjs/core/helpers/execution-context-host';
+import { USER_ROLE } from '@neuma/shared';
 import { AccessTokenGuard } from '@/common/infrastructure/guards/access-token.guard';
 import type { AccessTokenPrincipal } from '@/common/types/access-token.types';
 

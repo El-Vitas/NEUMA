@@ -1,6 +1,6 @@
-import type { PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@company-brain/shared';
+import type { PageLifecycle } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_CONTENT_STORE_OUTCOME, PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';

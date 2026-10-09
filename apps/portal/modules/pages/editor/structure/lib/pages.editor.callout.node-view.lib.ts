@@ -1,4 +1,4 @@
-import { PAGE_CALLOUT_ICONS } from '@company-brain/shared';
+import { PAGE_CALLOUT_ICONS } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { NodeView } from 'prosemirror-view';
 import {

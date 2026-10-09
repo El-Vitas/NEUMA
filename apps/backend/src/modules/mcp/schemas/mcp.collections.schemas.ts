@@ -4,7 +4,7 @@ import {
   PAGE_PROPERTY_TYPE_VALUES,
   PAGE_SORT_DIRECTION_VALUES,
   PAGE_VIEW_TYPE_VALUES,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { z } from 'zod';
 import {
   MCP_COLLECTION_CHANGE_LIMIT,
@@ -20,7 +20,7 @@ import {
 import { buildMcpAddressSchema, buildMcpOffsetCursorSchema, mcpRequestIdShape } from './mcp.common.schemas';
 
 const collectionSchema = buildMcpAddressSchema(
-  'The collection (a table or board): a Company Brain link to it, or its page id.',
+  'The collection (a table or board): a Neuma link to it, or its page id.',
 );
 
 const columnSchema = z
@@ -125,7 +125,7 @@ export const createRowInputSchema = z.object({
 
 export const updateRowInputSchema = z.object({
   properties: cellValuesSchema.optional(),
-  row: buildMcpAddressSchema('The row: a Company Brain link to it, or its page id.'),
+  row: buildMcpAddressSchema('The row: a Neuma link to it, or its page id.'),
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH).optional(),
 });
 

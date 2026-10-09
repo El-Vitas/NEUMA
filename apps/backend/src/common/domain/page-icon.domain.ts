@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import { type PageIcon, pageIconSchema } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import { type PageIcon, pageIconSchema } from '@neuma/shared';
 
 /** An icon that does not match the current shape becomes `null` instead of being passed on. */
 export const parseStoredPageIcon = (icon: Prisma.JsonValue): PageIcon | null => {

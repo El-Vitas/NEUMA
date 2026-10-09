@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import { type PageContent, pageContentSchema, Result, USER_ROLE } from '@company-brain/shared';
+import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import { type PageContent, pageContentSchema, Result, USER_ROLE } from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';

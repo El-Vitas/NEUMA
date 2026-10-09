@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import type { PageContent } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { OUTBOX_MAX_CLAIM_BATCH_SIZE } from '@/common/constants/outbox.constants';
 import { LinksProjectionWorker } from '@/modules/links/infrastructure/worker/links.projection.worker';

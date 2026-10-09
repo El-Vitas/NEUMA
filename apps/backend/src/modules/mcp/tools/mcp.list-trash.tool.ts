@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { MCP_TRASH_LISTED_MAX } from '../constants/mcp.limits.constants';
 import { buildMcpPageUrl } from '../lib/mcp.address.lib';

@@ -1,4 +1,4 @@
-import { pageIconSchema } from '@company-brain/shared';
+import { pageIconSchema } from '@neuma/shared';
 import { z } from 'zod';
 import {
   SEARCH_DEFAULT_LIMIT,

@@ -5,7 +5,7 @@ import {
   ACCESS_TOKEN_PERMISSIONS,
   ACCESS_TOKEN_SPACE_GRANT_LIMIT,
   USER_ROLE,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   ACCESS_TOKEN_EXPIRY_OPTIONS,
   ACCESS_TOKEN_TARGET_KINDS,

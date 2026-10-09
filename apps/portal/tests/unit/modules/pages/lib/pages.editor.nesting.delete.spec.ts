@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent, PageContentNode } from '@company-brain/shared';
+import type { PageContent, PageContentNode } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { NodeSelection } from 'prosemirror-state';
 import { deletePageEditorBlockKeepingChildren } from '@/modules/pages/editor/blocks/lib/pages.editor.nesting.lib';

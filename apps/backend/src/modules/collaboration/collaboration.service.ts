@@ -1,5 +1,5 @@
-import type { PageContent } from '@company-brain/shared';
 import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
+import type { PageContent } from '@neuma/shared';
 import { createCollaborationGateway } from './collaboration.gateway';
 import type {
   CollaborationAuthorizationAdapter,

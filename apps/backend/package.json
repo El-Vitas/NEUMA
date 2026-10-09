@@ -1,5 +1,5 @@
 {
-  "name": "@company-brain/backend",
+  "name": "@neuma/backend",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -27,8 +27,6 @@
     "test:watch": "bun test tests/unit tests/integration --watch"
   },
   "dependencies": {
-    "@company-brain/db": "workspace:*",
-    "@company-brain/shared": "workspace:*",
     "@fastify/cors": "^11.3.0",
     "@fastify/multipart": "^10.1.0",
     "@fastify/static": "^9.3.0",
@@ -47,6 +45,8 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-fastify": "^11.2.1",
     "@nestjs/throttler": "^6.5.0",
+    "@neuma/db": "workspace:*",
+    "@neuma/shared": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "express": "^5.2.1",
@@ -65,12 +65,12 @@
     "zod": "4"
   },
   "devDependencies": {
-    "@company-brain/eslint-rules": "workspace:*",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@faker-js/faker": "^10.4.0",
     "@modelcontextprotocol/client": "2.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@neuma/eslint-rules": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",

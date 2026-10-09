@@ -1,4 +1,4 @@
-import { isPageWebAddress } from '@company-brain/shared';
+import { isPageWebAddress } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { NodeView } from 'prosemirror-view';
 import {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PageLifecycle } from '@company-brain/db';
+import { PageLifecycle } from '@neuma/db';
 import { mapFavoritesToPageSummaries, resolveFavoriteSwapIndex } from '@/modules/favorites/domain/favorite.domain';
 import type { AccessibleFavoritePage, FavoriteRow } from '@/modules/favorites/domain/favorite.domain.types';
 

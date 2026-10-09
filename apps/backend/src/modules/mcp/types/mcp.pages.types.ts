@@ -1,4 +1,4 @@
-import type { PageBlockColor, PageContent, PageMark, Result, UserRole } from '@company-brain/shared';
+import type { PageBlockColor, PageContent, PageMark, Result, UserRole } from '@neuma/shared';
 import type { z } from 'zod';
 import type { MCP_DRAWING_KINDS } from '../constants/mcp.constants';
 import type {

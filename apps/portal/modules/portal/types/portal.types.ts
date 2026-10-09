@@ -1,4 +1,4 @@
-import type { PageIcon, PageLifecycle, UserRole } from '@company-brain/shared';
+import type { PageIcon, PageLifecycle, UserRole } from '@neuma/shared';
 import type { LucideIcon } from 'lucide-react';
 
 export interface PortalNavItem {

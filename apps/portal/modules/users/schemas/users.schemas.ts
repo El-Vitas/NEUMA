@@ -1,4 +1,4 @@
-import { EMAIL_MAX_LENGTH } from '@company-brain/shared';
+import { EMAIL_MAX_LENGTH } from '@neuma/shared';
 import { z } from 'zod';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
 import {

@@ -1,6 +1,6 @@
-import type { UserRole } from '@company-brain/shared';
-import { Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
+import { Result } from '@neuma/shared';
 import { canCreateSpace } from '../../common/domain/workspace.domain';
 import type { AssignableMember } from '../../common/types/workspace-member.types';
 import { SPACE_REPOSITORY } from './constants/spaces.constants';

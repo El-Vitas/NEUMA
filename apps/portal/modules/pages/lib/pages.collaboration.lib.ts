@@ -1,5 +1,5 @@
-import { sanitizeCollaborationPresenceIdentity } from '@company-brain/shared';
 import type { StatesArray } from '@hocuspocus/provider';
+import { sanitizeCollaborationPresenceIdentity } from '@neuma/shared';
 import { EditorState, TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { initProseMirrorDoc, yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';

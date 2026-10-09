@@ -1,4 +1,4 @@
-import { formatChileanTime } from '@company-brain/shared';
+import { formatChileanTime } from '@neuma/shared';
 import pino from 'pino';
 import 'pino-pretty';
 import { env } from '@/config/env.config';

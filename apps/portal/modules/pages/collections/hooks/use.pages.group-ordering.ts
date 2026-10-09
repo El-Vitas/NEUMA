@@ -1,6 +1,6 @@
 'use client';
 
-import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { moveSchemaOptionSideways } from '../lib/pages.schema-editing.lib';
 import type { PagesGroupOrdering } from '../types/pages.group-ordering.types';
 import type { PageSchema } from '../types/pages.schema.types';

@@ -1,4 +1,4 @@
-import type { PagePropertyOption, PagePropertyType, PageViewType } from '@company-brain/shared';
+import type { PagePropertyOption, PagePropertyType, PageViewType } from '@neuma/shared';
 
 export interface PageCollectionWording {
   readonly firstProperty: string;

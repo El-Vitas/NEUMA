@@ -1,4 +1,4 @@
-import type { PageColumnAlignment, PageRowHeight } from '@company-brain/shared';
+import type { PageColumnAlignment, PageRowHeight } from '@neuma/shared';
 
 /** Padding, not height: a table cell grows with its content and ignores a fixed height. */
 export const PAGE_TABLE_ROW_PADDING_CLASSES: Readonly<Record<PageRowHeight, string>> = {

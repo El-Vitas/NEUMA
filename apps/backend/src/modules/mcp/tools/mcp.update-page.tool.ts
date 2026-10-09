@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPlace, type PageIcon, pageIconSchema } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPlace, type PageIcon, pageIconSchema } from '@neuma/shared';
 import {
   MCP_NOTHING_TO_CHANGE_MESSAGE,
   MCP_PAGE_ICON_INVALID_MESSAGE,

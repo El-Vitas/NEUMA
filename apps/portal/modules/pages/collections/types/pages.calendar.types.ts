@@ -1,4 +1,4 @@
-import type { PageCalendarDay } from '@company-brain/shared';
+import type { PageCalendarDay } from '@neuma/shared';
 import type { PageRow } from './pages.schema.types';
 
 export interface PageCalendarCell extends PageCalendarDay {

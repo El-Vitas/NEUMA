@@ -1,6 +1,6 @@
 'use client';
 
-import { buildPagePropertyKey, isTitlePageProperty, PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { buildPagePropertyKey, isTitlePageProperty, PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';

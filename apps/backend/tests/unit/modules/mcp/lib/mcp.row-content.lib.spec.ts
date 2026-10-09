@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from '@company-brain/shared';
+import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from '@neuma/shared';
 import { buildMcpRowContent } from '@/modules/mcp/lib/mcp.row-content.lib';
 
 describe('buildMcpRowContent', () => {

@@ -1,4 +1,4 @@
-import type { PageCoverValue } from '@company-brain/shared';
+import type { PageCoverValue } from '@neuma/shared';
 
 export type { PageCoverValue };
 

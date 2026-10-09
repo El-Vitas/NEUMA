@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
 import { ConfigService } from '@nestjs/config';
+import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@neuma/shared';
 import { MCP_ACCESS_TOKEN_KEY } from '../../../../src/common/constants/env.constants';
 import type { AccessTokenPrincipal } from '../../../../src/common/types/access-token.types';
 import { McpEnvironmentPrincipalResolver } from '../../../../src/modules/mcp/mcp.principal.resolver';

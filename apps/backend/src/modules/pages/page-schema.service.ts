@@ -1,3 +1,4 @@
+import { Inject, Injectable } from '@nestjs/common';
 import {
   type PageViewConfiguration,
   pageViewConfigurationSchema,
@@ -5,8 +6,7 @@ import {
   readPageViewConfiguration,
   USER_ROLE,
   type UserRole,
-} from '@company-brain/shared';
-import { Inject, Injectable } from '@nestjs/common';
+} from '@neuma/shared';
 import { SchemaPropertyDefinitionError, SchemaViewValidationError } from '../../common/domain/schema.error';
 import { rewriteSchemaOption } from '../../common/domain/schema-option.domain';
 import { validateSchemaView } from '../../common/domain/schema-view.domain';

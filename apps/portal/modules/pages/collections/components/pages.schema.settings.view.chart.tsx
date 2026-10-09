@@ -5,7 +5,7 @@ import {
   PAGE_CHART_KIND_VALUES,
   PAGE_CHART_MEASURE,
   readPageViewConfiguration,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { listNumberPropertyKeys } from '../lib/pages.chart-properties.lib';

@@ -1,4 +1,4 @@
-import { extractPageContentSegments, joinPageContentSegmentsForDisplay } from '@company-brain/shared';
+import { extractPageContentSegments, joinPageContentSegmentsForDisplay } from '@neuma/shared';
 import { BRAND_NAME } from '@/shared/constants/brand.constants';
 import { buildTree, getTreeExpandedIds } from '@/shared/lib/tree.lib';
 import type { PageContent, PageLifecycle, PageSummary, PageTreeItem } from '../types/pages.types';

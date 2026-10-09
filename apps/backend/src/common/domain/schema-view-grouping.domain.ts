@@ -1,5 +1,5 @@
-import { DatabasePropertyType, type DatabaseViewType } from '@company-brain/db';
-import type { PageDateBucket } from '@company-brain/shared';
+import { DatabasePropertyType, type DatabaseViewType } from '@neuma/db';
+import type { PageDateBucket } from '@neuma/shared';
 import {
   canPagePropertyGroupBoard,
   PAGE_DATE_BUCKET,
@@ -8,7 +8,7 @@ import {
   Result,
   readPageDateBucketKey,
   UNASSIGNED_GROUP_KEY,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type {
   SchemaGroupableRow,
   SchemaOrderedRow,

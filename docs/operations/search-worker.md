@@ -4,7 +4,7 @@ The search projection worker (`SearchProjectionWorker`, entrypoint
 `src/modules/search/infrastructure/worker/search.worker.main.ts`) drains the
 outbox (`OutboxEvent` table, written transactionally by pages/databases/spaces
 repositories) and projects each event into the `SearchDocument` full-text
-index that the portal search and the `search_company_brain` MCP tool read
+index that the portal search and the `search_neuma` MCP tool read
 from.
 
 ## 1. Start PostgreSQL

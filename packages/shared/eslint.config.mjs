@@ -1,6 +1,7 @@
 // @ts-check
-import { cleanComments } from '@company-brain/eslint-rules';
+
 import eslint from '@eslint/js';
+import { cleanComments } from '@neuma/eslint-rules';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(

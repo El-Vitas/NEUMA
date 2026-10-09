@@ -1,6 +1,6 @@
-import { PageLifecycle } from '@company-brain/db';
-import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
+import { Prisma } from '@neuma/db/generated';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {

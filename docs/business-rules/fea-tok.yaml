@@ -90,30 +90,6 @@ rules:
         given: Un nombre con un carácter que da vuelta el texto
         when: La persona pide el token
         then: Se rechaza el nombre
-  - id: BR-1dca2a0
-    status: active
-    title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
-    rule: >-
-      El agente nombra columnas, opciones, personas y vistas como las ve la gente, sin importar mayúsculas ni acentos, y
-      Company Brain las traduce a lo que guarda. Lo que no calza se rechaza entero antes de escribir, diciendo qué sí
-      vale. Las escrituras pasan por los mismos servicios que usa el portal, con sus validaciones, sus candados y sus
-      reglas de vistas.
-    why: >-
-      Un agente que adivina claves internas escribe valores que el tablero no muestra. Uno que pasara por otro camino
-      que el portal podría dejar una colección en un estado que el portal no permite, como sin vistas o con dos vistas
-      por defecto.
-    context: >-
-      Renombrar o quitar una opción reescribe las filas que la tenían. Una columna nueva recibe la clave que le daría el
-      portal. La última vista de una colección no se quita, y exactamente una es con la que se abre.
-    scenarios:
-      - title: Mover una tarea
-        given: Un tablero con la columna Estado y las opciones Por hacer y Hecho
-        when: El agente cambia el estado de una tarea a «hecho»
-        then: La tarea queda en Hecho, escrito como lo tiene el tablero
-      - title: La última vista
-        given: Una colección con una sola vista
-        when: El agente pide quitarla
-        then: Se rechaza explicando que una colección conserva al menos una vista
   - id: BR-35337c0
     status: active
     title: Crear, cambiar y revocar un token queda en el registro
@@ -186,29 +162,6 @@ rules:
         given: Un agente que escribe «usa la etiqueta <b>»
         when: Intenta guardarlo
         then: Se le dice que la página no guarda etiquetas y que la nombre sin los signos
-  - id: BR-65519fe
-    status: active
-    title: Toda escritura de un agente queda anotada, termine como termine
-    rule: >-
-      Cada vez que un agente intenta escribir en Company Brain queda una anotación con quién es su dueño, con qué token
-      entró, qué herramienta usó, sobre qué página y qué pidió, y si se hizo, se rechazó o falló. Sin esa anotación no
-      hay escritura.
-    why: >-
-      Un agente actúa en nombre de una persona y a su velocidad. Para responder qué cambió, quién lo pidió y qué intentó
-      sin lograrlo hace falta el rastro completo, incluidos los intentos rechazados, que son los que muestran un token
-      mal configurado o un agente que insiste.
-    context: >-
-      La anotación no guarda llaves hacia la página ni hacia el token, para seguir diciendo qué pasó aunque ya no
-      existan.
-    scenarios:
-      - title: Una opción que no existe
-        given: Un token que puede escribir en un tablero
-        when: El agente crea una fila con un estado que el tablero no tiene
-        then: No se crea nada, el agente recibe las opciones que sí existen y la anotación queda como rechazada
-      - title: Una fila bloqueada
-        given: Una fila que una persona bloqueó contra cambios
-        when: El agente intenta cambiarla
-        then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
   - id: BR-71ebff5
     status: active
     title: El agente edita páginas como una persona, con todo lo que ofrece el editor
@@ -410,6 +363,55 @@ rules:
         given: Un agente creó una página con el id "pedido-1"
         when: Usa el id "pedido-1" para comentar un bloque
         then: El comentario no se hace y la respuesta dice que ese id ya se usó en create_page
+  - id: BR-cef231d
+    status: active
+    title: Toda escritura de un agente queda anotada, termine como termine
+    rule: >-
+      Cada vez que un agente intenta escribir en Neuma queda una anotación con quién es su dueño, con qué token entró,
+      qué herramienta usó, sobre qué página y qué pidió, y si se hizo, se rechazó o falló. Sin esa anotación no hay
+      escritura.
+    why: >-
+      Un agente actúa en nombre de una persona y a su velocidad. Para responder qué cambió, quién lo pidió y qué intentó
+      sin lograrlo hace falta el rastro completo, incluidos los intentos rechazados, que son los que muestran un token
+      mal configurado o un agente que insiste.
+    context: >-
+      La anotación no guarda llaves hacia la página ni hacia el token, para seguir diciendo qué pasó aunque ya no
+      existan.
+    supersedes: BR-65519fe
+    scenarios:
+      - title: Una opción que no existe
+        given: Un token que puede escribir en un tablero
+        when: El agente crea una fila con un estado que el tablero no tiene
+        then: No se crea nada, el agente recibe las opciones que sí existen y la anotación queda como rechazada
+      - title: Una fila bloqueada
+        given: Una fila que una persona bloqueó contra cambios
+        when: El agente intenta cambiarla
+        then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
+  - id: BR-d015a0e
+    status: active
+    title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
+    rule: >-
+      El agente nombra columnas, opciones, personas y vistas como las ve la gente, sin importar mayúsculas ni acentos, y
+      Neuma las traduce a lo que guarda. Lo que no calza se rechaza entero antes de escribir, diciendo qué sí vale. Las
+      escrituras pasan por los mismos servicios que usa el portal, con sus validaciones, sus candados y sus reglas de
+      vistas.
+    why: >-
+      Un agente que adivina claves internas escribe valores que el tablero no muestra. Uno que pasara por otro camino
+      que el portal podría dejar una colección en un estado que el portal no permite, como sin vistas o con dos vistas
+      por defecto.
+    context: >-
+      Renombrar o quitar una opción reescribe las filas que la tenían. Una columna nueva recibe la clave que le daría el
+      portal. La última vista de una colección no se quita, y exactamente una es con la que se abre.
+    supersedes: BR-1dca2a0
+    scenarios:
+      - title: Mover una tarea
+        given: Un tablero con la columna Estado y las opciones Por hacer y Hecho
+        when: El agente cambia el estado de una tarea a «hecho»
+        then: La tarea queda en Hecho, escrito como lo tiene el tablero
+      - title: La última vista
+        given: Una colección con una sola vista
+        when: El agente pide quitarla
+        then: Se rechaza explicando que una colección conserva al menos una vista
   - id: BR-d2011f8
     status: active
     title: Lo que una página va a dibujar se revisa antes de guardarlo
@@ -553,6 +555,31 @@ rules:
         given: Una página que se fue a la papelera con su hija
         when: El agente la restaura pidiendo también sus hijas
         then: Vuelven las dos
+  - id: BR-1dca2a0
+    status: superseded
+    title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
+    rule: >-
+      El agente nombra columnas, opciones, personas y vistas como las ve la gente, sin importar mayúsculas ni acentos, y
+      Company Brain las traduce a lo que guarda. Lo que no calza se rechaza entero antes de escribir, diciendo qué sí
+      vale. Las escrituras pasan por los mismos servicios que usa el portal, con sus validaciones, sus candados y sus
+      reglas de vistas.
+    why: >-
+      Un agente que adivina claves internas escribe valores que el tablero no muestra. Uno que pasara por otro camino
+      que el portal podría dejar una colección en un estado que el portal no permite, como sin vistas o con dos vistas
+      por defecto.
+    context: >-
+      Renombrar o quitar una opción reescribe las filas que la tenían. Una columna nueva recibe la clave que le daría el
+      portal. La última vista de una colección no se quita, y exactamente una es con la que se abre.
+    superseded_by: BR-d015a0e
+    scenarios:
+      - title: Mover una tarea
+        given: Un tablero con la columna Estado y las opciones Por hacer y Hecho
+        when: El agente cambia el estado de una tarea a «hecho»
+        then: La tarea queda en Hecho, escrito como lo tiene el tablero
+      - title: La última vista
+        given: Una colección con una sola vista
+        when: El agente pide quitarla
+        then: Se rechaza explicando que una colección conserva al menos una vista
   - id: BR-5fc8214
     status: superseded
     title: El agente ve lo mismo por cada camino
@@ -580,6 +607,30 @@ rules:
         given: Un token que cierra una subpágina de una página que sí puede leer
         when: El agente lista las páginas bajo la página abierta
         then: No ve la subpágina cerrada ni se la cuenta
+  - id: BR-65519fe
+    status: superseded
+    title: Toda escritura de un agente queda anotada, termine como termine
+    rule: >-
+      Cada vez que un agente intenta escribir en Company Brain queda una anotación con quién es su dueño, con qué token
+      entró, qué herramienta usó, sobre qué página y qué pidió, y si se hizo, se rechazó o falló. Sin esa anotación no
+      hay escritura.
+    why: >-
+      Un agente actúa en nombre de una persona y a su velocidad. Para responder qué cambió, quién lo pidió y qué intentó
+      sin lograrlo hace falta el rastro completo, incluidos los intentos rechazados, que son los que muestran un token
+      mal configurado o un agente que insiste.
+    context: >-
+      La anotación no guarda llaves hacia la página ni hacia el token, para seguir diciendo qué pasó aunque ya no
+      existan.
+    superseded_by: BR-cef231d
+    scenarios:
+      - title: Una opción que no existe
+        given: Un token que puede escribir en un tablero
+        when: El agente crea una fila con un estado que el tablero no tiene
+        then: No se crea nada, el agente recibe las opciones que sí existen y la anotación queda como rechazada
+      - title: Una fila bloqueada
+        given: Una fila que una persona bloqueó contra cambios
+        when: El agente intenta cambiarla
+        then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
   - id: BR-85c1bbf
     status: superseded
     title: Un reintento del agente no crea dos veces lo mismo

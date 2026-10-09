@@ -1,8 +1,8 @@
-# Company Brain Foundation Implementation Plan
+# Neuma Foundation Implementation Plan
 
 > **For agentic workers:** Use the slice-squad workflow for the implementation round. Agents must not spawn agents, commit, or edit files outside their assigned scope.
 
-**Goal:** Deliver the first usable company-brain foundation: one company workspace, employee roles, public/restricted spaces, hierarchical pages, version history, trash, and the search/outbox contracts required by later slices.
+**Goal:** Deliver the first usable Neuma foundation: one company workspace, employee roles, public/restricted spaces, hierarchical pages, version history, trash, and the search/outbox contracts required by later slices.
 
 **Architecture:** Extend the existing NestJS modules and Prisma schema. The backend owns use cases, policies, persistence, and outbox events. The Next.js portal consumes the backend through server queries/actions. Search is represented by a durable projection contract even when the first UI search is delivered in a later slice.
 
@@ -12,7 +12,7 @@
 
 ## Scope Boundary
 
-This round does not implement the complete editor, configurable databases, files, collaboration, BullMQ, Valkey, embeddings, SSO, or external sharing. Their approved target architecture remains in `docs/superpowers/specs/2026-08-01-company-brain-design.md` and will be handled by later plans.
+This round does not implement the complete editor, configurable databases, files, collaboration, BullMQ, Valkey, embeddings, SSO, or external sharing. Their approved target architecture remains in `docs/superpowers/specs/2026-08-01-neuma-design.md` and will be handled by later plans.
 
 ## Slice Plan
 

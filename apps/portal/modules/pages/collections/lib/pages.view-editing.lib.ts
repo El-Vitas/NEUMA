@@ -1,4 +1,4 @@
-import type { PageChartKind, PageChartMeasure, PageDateBucket, PageViewType } from '@company-brain/shared';
+import type { PageChartKind, PageChartMeasure, PageDateBucket, PageViewType } from '@neuma/shared';
 import {
   canPagePropertyGroupBoard,
   PAGE_CHART_KIND,
@@ -12,7 +12,7 @@ import {
   pageViewRequiresGrouping,
   readPageViewConfiguration,
   readVisiblePropertyKeys,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type {
   PageSchemaProperty,
   PageSchemaView,

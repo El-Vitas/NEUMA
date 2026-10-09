@@ -1,4 +1,4 @@
-/// Key an agent uses to enter Company Brain on behalf of its owner.
+/// Key an agent uses to enter Neuma on behalf of its owner.
 /// Only the secret's hash is stored; the secret is shown once, at creation.
 /// Its power is what it was granted, never more than the owner can do today.
 model AccessToken {

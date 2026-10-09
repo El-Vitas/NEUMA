@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@company-brain/db';
-import { type PageContent, USER_ROLE } from '@company-brain/shared';
+import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@neuma/db';
+import { type PageContent, USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
 import { COLLECTION_ROW_LIMIT } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
