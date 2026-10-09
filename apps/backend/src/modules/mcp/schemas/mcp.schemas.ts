@@ -1,4 +1,4 @@
-import { PAGE_VERIFICATION_STATUSES, SPACE_VISIBILITY_VALUES } from '@company-brain/shared';
+import { PAGE_VERIFICATION_STATUSES, SPACE_VISIBILITY_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 
 import {
@@ -145,7 +145,7 @@ export const searchOutputSchema = z.object({
 
 export const fetchInputSchema = z.object({
   cursor: buildMcpOffsetCursorSchema('To read the next part of a long page: the cursor the previous part returned.'),
-  address: buildMcpAddressSchema('A Company Brain link to a page or block, or a page id, or a block id.'),
+  address: buildMcpAddressSchema('A Neuma link to a page or block, or a page id, or a block id.'),
 });
 
 const mcpPathStepSchema = z.object({ id: idSchema.nullable(), title: titleSchema });

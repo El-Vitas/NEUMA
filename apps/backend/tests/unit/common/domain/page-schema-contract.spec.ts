@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
-import type { PagePropertyType, PageViewType } from '@company-brain/shared';
-import { PAGE_PROPERTY_TYPE_VALUES, PAGE_VIEW_TYPE_VALUES } from '@company-brain/shared';
+import { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
+import type { PagePropertyType, PageViewType } from '@neuma/shared';
+import { PAGE_PROPERTY_TYPE_VALUES, PAGE_VIEW_TYPE_VALUES } from '@neuma/shared';
 
 type IsExactUnion<PrismaMember extends string, SharedMember extends string> = [
   Exclude<PrismaMember, SharedMember>,

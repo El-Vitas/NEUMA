@@ -1,9 +1,4 @@
-import {
-  PAGE_VIEW_OUTCOME_KIND,
-  PAGE_VIEW_SHAPE,
-  PAGE_VIEW_TYPE,
-  readPageViewConfiguration,
-} from '@company-brain/shared';
+import { PAGE_VIEW_OUTCOME_KIND, PAGE_VIEW_SHAPE, PAGE_VIEW_TYPE, readPageViewConfiguration } from '@neuma/shared';
 import { readBoardBands, readViewGroups } from '../lib/pages.view-editing.lib';
 import { readShownCardProperties, readShownProperties } from '../lib/pages.view-visibility.lib';
 import type { PageViewRendererRegistry } from '../types/pages.view-renderer.types';

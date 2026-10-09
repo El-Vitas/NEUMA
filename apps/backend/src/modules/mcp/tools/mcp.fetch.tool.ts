@@ -1,4 +1,4 @@
-import { PageLifecycle } from '@company-brain/db';
+import { PageLifecycle } from '@neuma/db';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   canAccessTokenAct,
@@ -6,7 +6,7 @@ import {
   listPageBlocks,
   pageContentSchema,
   writeBlocksAsAnchoredMarkdown,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   MCP_BLOCK_NOT_FOUND_NOTE,
   MCP_FETCHED_IN_TRASH_NOTE,
@@ -278,7 +278,7 @@ export const fetchTool: McpToolDefinition = {
       MCP_TOOL_NAMES.fetch,
       {
         description:
-          `Open a page or a block you can access. Pass a Company Brain link (they start with ${dependencies.portalUrl}; pass it as the person gave it), a page id, or a block id.` +
+          `Open a page or a block you can access. Pass a Neuma link (they start with ${dependencies.portalUrl}; pass it as the person gave it), a page id, or a block id.` +
           ' A page comes back as Markdown with each block id in the comment before it, plus its properties if it is a row of a collection, its comments, the pages under it and the pages linking to it; a long page comes in parts, with a cursor for the next one. A block comes back with its section and its page.',
         inputSchema: fetchInputSchema,
         outputSchema: fetchOutputSchema,

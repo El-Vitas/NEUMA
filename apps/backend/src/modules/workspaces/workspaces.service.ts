@@ -1,5 +1,5 @@
-import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { WorkspaceSummary } from '../../common/types/workspace.types';
 

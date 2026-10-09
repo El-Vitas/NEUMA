@@ -2,7 +2,7 @@
 
 import 'server-only';
 
-import { PAGE_LIFECYCLE } from '@company-brain/shared';
+import { PAGE_LIFECYCLE } from '@neuma/shared';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';

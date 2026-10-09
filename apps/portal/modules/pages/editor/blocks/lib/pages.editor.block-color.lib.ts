@@ -1,4 +1,4 @@
-import type { PageBlockColor } from '@company-brain/shared';
+import type { PageBlockColor } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_COLOR_ATTRS } from '../../text/constants/pages.editor.colors.constants';
 import type { PageEditorBlockColorKind, PageEditorBlockColors } from '../types/pages.editor.block-color.types';

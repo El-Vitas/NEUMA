@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import { makeSchemaViewDefault, Result, removeSchemaView } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import { makeSchemaViewDefault, Result, removeSchemaView } from '@neuma/shared';
 import type { McpNameLister, McpView } from '../types/mcp.collections.types';
 import { foldMcpName, sayMcpRefusalWithNames } from './mcp.columns.lib';
 

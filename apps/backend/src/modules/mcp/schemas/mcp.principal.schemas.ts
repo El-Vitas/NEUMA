@@ -1,4 +1,4 @@
-import { accessTokenAccessSchema, USER_ROLE_VALUES } from '@company-brain/shared';
+import { accessTokenAccessSchema, USER_ROLE_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 
 /** Validated by the HTTP gate, but it travels untyped through the SDK, so it is parsed again. */

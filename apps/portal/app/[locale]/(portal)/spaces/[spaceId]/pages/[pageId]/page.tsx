@@ -1,5 +1,5 @@
-import type { PageCollectionReference, Result } from '@company-brain/shared';
-import { canEditContent, canManageWorkspace, extractPageCollectionReferences, USER_ROLE } from '@company-brain/shared';
+import type { PageCollectionReference, Result } from '@neuma/shared';
+import { canEditContent, canManageWorkspace, extractPageCollectionReferences, USER_ROLE } from '@neuma/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';

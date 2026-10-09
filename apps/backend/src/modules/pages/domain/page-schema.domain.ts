@@ -1,5 +1,5 @@
-import { DatabasePropertyType } from '@company-brain/db';
-import { Result } from '@company-brain/shared';
+import { DatabasePropertyType } from '@neuma/db';
+import { Result } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValues,

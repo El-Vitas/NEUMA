@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import type { Command } from 'prosemirror-state';
 import { PagesEditorPagePickerDialog } from '../../components/pages.editor.page-picker.dialog';

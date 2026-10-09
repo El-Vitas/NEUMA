@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageFilterCondition } from '@company-brain/shared';
+import type { PageFilterCondition } from '@neuma/shared';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';

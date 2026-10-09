@@ -1,4 +1,4 @@
-import { PAGE_LIFECYCLE, type PageLifecycle } from '@company-brain/shared';
+import { PAGE_LIFECYCLE, type PageLifecycle } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';

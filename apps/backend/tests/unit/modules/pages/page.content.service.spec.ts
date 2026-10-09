@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { type PageContent, Result, USER_ROLE } from '@company-brain/shared';
+import { type PageContent, Result, USER_ROLE } from '@neuma/shared';
 import { PageAccessDeniedError, PageBlockEditError, PageLockedError } from '@/modules/pages/domain/page.error';
 import { PageContentService } from '@/modules/pages/page.content.service';
 import type { PageContentWriter, PageLiveDocument, PageWriteAuthorizer } from '@/modules/pages/types/page.types';

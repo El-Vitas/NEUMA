@@ -1,4 +1,4 @@
-import { isPageLinkTarget } from '@company-brain/shared';
+import { isPageLinkTarget } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';

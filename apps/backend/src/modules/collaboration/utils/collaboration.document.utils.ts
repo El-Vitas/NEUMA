@@ -3,7 +3,7 @@ import {
   holdPageContentThisVersionCannotRead,
   type PageContent,
   writePageDocumentJsonAsContent,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { prosemirrorJSONToYXmlFragment, updateYFragment, yXmlFragmentToProseMirrorRootNode } from 'y-prosemirror';
 import { Doc, encodeStateAsUpdate } from 'yjs';
 import { COLLABORATION_PAGE_DOCUMENT_SCHEMA } from '../constants/collaboration.document.constants';

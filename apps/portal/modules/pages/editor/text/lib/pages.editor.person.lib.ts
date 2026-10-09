@@ -1,4 +1,4 @@
-import { pagePersonAttrsSchema } from '@company-brain/shared';
+import { pagePersonAttrsSchema } from '@neuma/shared';
 import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import type { NodeView } from 'prosemirror-view';

@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageOptionColor, PagePropertyOption } from '@company-brain/shared';
-import { PAGE_OPTION_COLOR_VALUES } from '@company-brain/shared';
+import type { PageOptionColor, PagePropertyOption } from '@neuma/shared';
+import { PAGE_OPTION_COLOR_VALUES } from '@neuma/shared';
 import { Check, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';

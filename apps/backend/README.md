@@ -1,4 +1,4 @@
-# @company-brain/backend
+# @neuma/backend
 
 API HTTP de Starter — NestJS 11 sobre **Fastify**, corriendo en el **runtime de Bun** (sin paso de build: Bun ejecuta el TypeScript directamente). Persistencia con Prisma 7 (`@prisma/adapter-pg`) sobre PostgreSQL. Forma parte del monorepo (Bun + Turborepo); **Bun** es el gestor de paquetes, el runtime y el test runner.
 
@@ -13,8 +13,8 @@ API HTTP de Starter — NestJS 11 sobre **Fastify**, corriendo en el **runtime d
 ```bash
 bun install                                     # desde la raíz del monorepo
 cp apps/backend/.env.example apps/backend/.env   # y completar valores
-bun run --filter @company-brain/db db:generate       # generar el cliente Prisma
-bun run --filter @company-brain/db db:migrate:deploy # aplicar migraciones
+bun run --filter @neuma/db db:generate       # generar el cliente Prisma
+bun run --filter @neuma/db db:migrate:deploy # aplicar migraciones
 ```
 
 ## Scripts

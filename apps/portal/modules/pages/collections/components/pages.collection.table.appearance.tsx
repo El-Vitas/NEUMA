@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageRowHeight } from '@company-brain/shared';
-import { PAGE_ROW_HEIGHT_VALUES } from '@company-brain/shared';
+import type { PageRowHeight } from '@neuma/shared';
+import { PAGE_ROW_HEIGHT_VALUES } from '@neuma/shared';
 import { Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';

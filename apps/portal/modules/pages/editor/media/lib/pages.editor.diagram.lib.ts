@@ -5,7 +5,7 @@ import {
   PAGE_DIAGRAM_VIEWS,
   PAGE_FORMULA_LANGUAGE,
   type PageDiagramView,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 
 export const isPageDiagram = (language: unknown): boolean => language === PAGE_DIAGRAM_LANGUAGE;
 

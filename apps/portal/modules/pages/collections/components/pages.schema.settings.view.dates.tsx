@@ -1,6 +1,6 @@
 'use client';
 
-import { readPageViewConfiguration } from '@company-brain/shared';
+import { readPageViewConfiguration } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { PAGE_VIEW_NO_GROUP } from '../constants/pages.collections.constants';

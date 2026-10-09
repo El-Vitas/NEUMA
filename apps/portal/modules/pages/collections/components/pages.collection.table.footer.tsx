@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageViewCalculation } from '@company-brain/shared';
-import { listPageCalculationsFor, PAGE_VIEW_CALCULATION, readPageViewConfiguration } from '@company-brain/shared';
+import type { PageViewCalculation } from '@neuma/shared';
+import { listPageCalculationsFor, PAGE_VIEW_CALCULATION, readPageViewConfiguration } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { TableCell, TableFooter, TableRow } from '@/shared/components/ui/table';

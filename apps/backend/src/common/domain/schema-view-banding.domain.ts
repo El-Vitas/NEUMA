@@ -1,5 +1,5 @@
-import type { DatabaseViewType } from '@company-brain/db';
-import { pageViewRequiresGrouping, Result } from '@company-brain/shared';
+import type { DatabaseViewType } from '@neuma/db';
+import { pageViewRequiresGrouping, Result } from '@neuma/shared';
 import type {
   SchemaGroupableRow,
   SchemaPropertyDefinition,

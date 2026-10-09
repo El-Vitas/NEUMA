@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { type PageContent, pageContentSchema } from '@company-brain/shared';
+import { type PageContent, pageContentSchema } from '@neuma/shared';
 import { buildMcpBlockUpdate, readMcpBlockPlace } from '@/modules/mcp/lib/mcp.block-update.lib';
 
 const words = (text: string) => [{ text, type: 'text' }];

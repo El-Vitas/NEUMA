@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_COLUMN_ALIGNMENT, PAGE_ROW_HEIGHT, readPageViewConfiguration } from '@company-brain/shared';
+import { PAGE_COLUMN_ALIGNMENT, PAGE_ROW_HEIGHT, readPageViewConfiguration } from '@neuma/shared';
 import {
   readAlignmentClass,
   readPageColumnAlignment,

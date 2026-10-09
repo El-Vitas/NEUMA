@@ -1,8 +1,8 @@
-import { PageLifecycle } from '@company-brain/db';
-import { USER_ROLE } from '@company-brain/shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { seconds, ThrottlerModule } from '@nestjs/throttler';
+import { PageLifecycle } from '@neuma/db';
+import { USER_ROLE } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
 
 import { envSchema } from './common/config/env.schema';

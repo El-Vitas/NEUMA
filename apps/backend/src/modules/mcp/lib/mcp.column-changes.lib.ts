@@ -1,5 +1,5 @@
-import { DatabasePropertyType } from '@company-brain/db';
-import { buildPagePropertyKey, pickPageOptionColor, Result } from '@company-brain/shared';
+import { DatabasePropertyType } from '@neuma/db';
+import { buildPagePropertyKey, pickPageOptionColor, Result } from '@neuma/shared';
 import type {
   McpColumn,
   McpColumnChanges,

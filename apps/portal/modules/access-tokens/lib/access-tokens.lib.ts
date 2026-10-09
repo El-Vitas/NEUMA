@@ -14,7 +14,7 @@ import {
   MILLISECONDS_IN_A_DAY,
   readAccessTokenLevel,
   type UserRole,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { BEARER_PREFIX } from '@/shared/constants/auth.constants';
 import {
   ACCESS_TOKEN_DATE_INPUT_PATTERN,

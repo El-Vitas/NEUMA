@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
 import { SectionHeader } from '@/shared/components/ui/section-header';

@@ -5,7 +5,7 @@ import {
   PAGE_FORMULA_LANGUAGE,
   Result,
   readMarkdownInline,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   MCP_BOOKMARK_PROTOCOLS,
   MCP_PARAGRAPH_SEPARATOR,

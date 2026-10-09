@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import type { Result, UserRole } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import type { Result, UserRole } from '@neuma/shared';
 import type { FILE_ASSET_METADATA_SELECTION } from '../constants/files.constants';
 import type { FileAssetMetadata, FileAssetSummary } from '../domain/files.domain.types';
 import type { FileAccessDeniedError, FileStorageError, FileValidationError } from '../domain/files.error';

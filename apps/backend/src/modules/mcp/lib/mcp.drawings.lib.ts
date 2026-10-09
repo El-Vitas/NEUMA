@@ -4,7 +4,7 @@ import {
   PAGE_DIAGRAM_LANGUAGE,
   PAGE_FORMULA_LANGUAGE,
   readPageDocumentText,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   MCP_ARCHITECTURE_DIAGRAM_START,
   MCP_ARCHITECTURE_GROUP,

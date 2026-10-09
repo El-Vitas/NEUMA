@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/shared/components/ui/input';
 import { EMPTY_PAGE_PERSON_OPTIONS, PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME } from '../../constants/pages.constants';

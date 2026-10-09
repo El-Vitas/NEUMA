@@ -36,7 +36,7 @@ describe('readMcpAddress', () => {
     expect(readMcpAddress(`  ${BLOCK}  `)).toEqual({ id: BLOCK, kind: 'id' });
   });
 
-  it('turns down anything that is not a Company Brain link or id', () => {
+  it('turns down anything that is not a Neuma link or id', () => {
     expect(readMcpAddress('https://example.com/some/page')).toEqual({ kind: 'invalid' });
     expect(readMcpAddress(`/spaces/${SPACE}/pages/not-an-id`)).toEqual({ kind: 'invalid' });
     expect(readMcpAddress(`${PAGE}#not-an-id`)).toEqual({ kind: 'invalid' });

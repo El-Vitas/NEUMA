@@ -70,7 +70,7 @@ mock.module('next/navigation', () => ({
 const { createEmptyPageContent, createPageEditorState } = await import('@/modules/pages/editor/lib/pages.editor.lib');
 const { createPageAssetInsertCommand } = await import('@/modules/pages/editor/lib/pages.editor.commands');
 const { pageEditorSchema } = await import('@/modules/pages/editor/lib/pages.editor.schema');
-const { pageContentSchema } = await import('@company-brain/shared');
+const { pageContentSchema } = await import('@neuma/shared');
 
 const collaborationMarkerContent = pageContentSchema.parse({
   content: [{ content: [{ text: 'from-collaboration-session', type: 'text' }], type: 'paragraph' }],

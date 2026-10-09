@@ -82,7 +82,7 @@ describe('readMarkdownInline — links, and what a link can stand for', () => {
     ]);
   });
 
-  it('reads a link to a Company Brain page as a mention of it, from its path or from a full portal link', () => {
+  it('reads a link to a Neuma page as a mention of it, from its path or from a full portal link', () => {
     const mention = { attrs: { label: 'Runbook', pageId: PAGE, spaceId: SPACE }, type: 'mention' } as const;
 
     expect(readMarkdownInline(`[Runbook](/spaces/${SPACE}/pages/${PAGE})`).getValue()).toEqual([mention]);

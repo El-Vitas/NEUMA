@@ -1,4 +1,4 @@
-import { PAGE_DOCUMENT_UNSUPPORTED_NODE, type PageCalloutIcon } from '@company-brain/shared';
+import { PAGE_DOCUMENT_UNSUPPORTED_NODE, type PageCalloutIcon } from '@neuma/shared';
 import type { PageEditorBlockDragState } from '../types/pages.editor.block-drag.types';
 
 export const PAGE_EDITOR_BLOCK_ID_ATTRIBUTE = 'data-block-id';
@@ -504,7 +504,9 @@ export const PAGE_EDITOR_EMBED_VIMEO_VIDEO = /^\/(?:video\/)?(\d+)/;
 /** Loom serves share and embed at the same path with one segment changed. */
 export const PAGE_EDITOR_EMBED_LOOM_SHARE = /^\/(share|embed)\/([\w-]+)/;
 
-export const PAGE_EDITOR_EMBED_FIGMA_HOST = 'https://www.figma.com/embed?embed_host=company-brain&url=';
+export const PAGE_EDITOR_EMBED_FIGMA_FRAME = 'https://www.figma.com/embed';
+
+export const PAGE_EDITOR_EMBED_FIGMA_HOST = 'neuma';
 
 export const PAGE_EDITOR_EMBED_ASPECT_RATIOS: Readonly<Record<string, string>> = {
   figma: '4 / 3',

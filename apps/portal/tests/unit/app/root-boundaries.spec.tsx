@@ -7,8 +7,8 @@ import NotFoundPage from '@/app/not-found';
 import { BRAND_NAME } from '@/shared/constants/brand.constants';
 
 describe('portal root boundaries', () => {
-  it('uses the Company Brain brand constant', () => {
-    expect(BRAND_NAME).toBe('Company Brain');
+  it('uses the Neuma brand constant', () => {
+    expect(BRAND_NAME).toBe('Neuma');
   });
 
   it('renders English error recovery actions', () => {

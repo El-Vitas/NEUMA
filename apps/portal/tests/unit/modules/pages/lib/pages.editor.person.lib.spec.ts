@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { pageContentSchema } from '@company-brain/shared';
+import { pageContentSchema } from '@neuma/shared';
 import type { Command } from 'prosemirror-state';
 import { EditorState } from 'prosemirror-state';
 import type { PagePersonOption } from '@/modules/pages/collections/types/pages.schema.types';

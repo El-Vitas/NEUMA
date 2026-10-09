@@ -1,4 +1,4 @@
-export const PORTAL_SIDEBAR_TREE_WIDTH_STORAGE_KEY = 'company-brain-sidebar-tree-width';
+export const PORTAL_SIDEBAR_TREE_WIDTH_STORAGE_KEY = 'neuma-sidebar-tree-width';
 
 export const PORTAL_SIDEBAR_TREE_DEFAULT_WIDTH_PX = 240;
 export const PORTAL_SIDEBAR_TREE_MIN_WIDTH_PX = 220;

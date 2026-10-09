@@ -1,5 +1,5 @@
-import { type AccessTokenAccess, canManageWorkspace, isAccessTokenNameTaken, Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { type AccessTokenAccess, canManageWorkspace, isAccessTokenNameTaken, Result } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
 import type { AccessTokenPrincipal, AccessTokenPrincipalResolver } from '../../common/types/access-token.types';
 import { ACCESS_TOKEN_LIMIT_PER_USER, ACCESS_TOKEN_REPOSITORY } from './constants/access-tokens.constants';

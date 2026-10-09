@@ -1,4 +1,4 @@
-import { PAGE_COLLECTION_TITLE_PROPERTY_KEY, PAGE_PROPERTY_TYPE, PAGE_VIEW_TYPE } from '@company-brain/shared';
+import { PAGE_COLLECTION_TITLE_PROPERTY_KEY, PAGE_PROPERTY_TYPE, PAGE_VIEW_TYPE } from '@neuma/shared';
 import { PAGE_COLLECTION_FIRST_PROPERTY_KEY } from '../constants/pages.collections.constants';
 import type { PageCollectionShape, PageCollectionWording } from '../types/pages.collections.types';
 

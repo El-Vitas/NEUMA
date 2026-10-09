@@ -1,6 +1,6 @@
-import { AgentActionOutcome } from '@company-brain/db';
-import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
+import { AgentActionOutcome } from '@neuma/db';
+import { Prisma } from '@neuma/db/generated';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { MCP_UNIQUE_VIOLATION_CODE } from '../../constants/mcp.constants';
 import type { McpActionClosing, McpActionEntry, McpActionLog, McpLiveRequest } from '../../types/mcp.types';

@@ -1,4 +1,4 @@
-import { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 import { logger } from '@/lib/logger';
 import { requireAccessTokenCookie } from './auth.token.lib';
 

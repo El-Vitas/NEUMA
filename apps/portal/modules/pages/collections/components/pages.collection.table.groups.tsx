@@ -1,6 +1,6 @@
 'use client';
 
-import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';

@@ -1,5 +1,5 @@
-import type { PagePropertyOption } from '@company-brain/shared';
-import { pagePropertyRequiresOptions, Result } from '@company-brain/shared';
+import type { PagePropertyOption } from '@neuma/shared';
+import { pagePropertyRequiresOptions, Result } from '@neuma/shared';
 import type {
   SchemaOptionRename,
   SchemaPropertyDefinition,

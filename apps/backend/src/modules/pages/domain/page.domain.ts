@@ -1,4 +1,4 @@
-import { type PageContent, pageContentSchema, Result } from '@company-brain/shared';
+import { type PageContent, pageContentSchema, Result } from '@neuma/shared';
 import type { PageParentReference } from './page.domain.types';
 import { PageContentValidationError } from './page.error';
 

@@ -3,7 +3,7 @@ import {
   type AccessTokenPermission,
   accessTokenPermissionSchema,
   type UserRole,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import type {
   AccessTokenNamedGrant,

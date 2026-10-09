@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { SETTINGS_NAV_ITEMS } from '../constants/settings.constants';
 import type { SettingsNavItem } from '../types/settings.types';
 

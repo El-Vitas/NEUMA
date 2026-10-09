@@ -1,4 +1,4 @@
-import type { PageBlockAlignment } from '@company-brain/shared';
+import type { PageBlockAlignment } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_ALIGNABLE_TYPES, PAGE_EDITOR_FILE_TYPE } from '../blocks/constants/pages.editor.blocks.constants';

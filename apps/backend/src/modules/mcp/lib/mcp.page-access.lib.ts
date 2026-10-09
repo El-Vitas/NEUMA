@@ -1,11 +1,11 @@
-import { PageLifecycle } from '@company-brain/db';
+import { PageLifecycle } from '@neuma/db';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   type AccessTokenPermission,
   type AccessTokenPlace,
   canAccessTokenAct,
   type Result,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   MCP_CONCURRENT_CHANGE_MESSAGE,
   MCP_CONCURRENT_REFUSAL_CODES,

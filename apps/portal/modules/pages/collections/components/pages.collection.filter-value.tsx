@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageFilterCondition } from '@company-brain/shared';
+import type { PageFilterCondition } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';

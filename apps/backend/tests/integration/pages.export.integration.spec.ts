@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
+import { SpaceVisibility } from '@neuma/db';
 import request from 'supertest';
 import { EXPORT_RATE_LIMIT } from '@/common/constants/throttler.constants';
 import { PrismaService } from '@/prisma/prisma.service';

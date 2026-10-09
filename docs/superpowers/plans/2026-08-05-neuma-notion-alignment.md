@@ -1,4 +1,4 @@
-# Company Brain Notion Alignment Implementation Plan
+# Neuma Notion Alignment Implementation Plan
 
 > **For agentic workers:** Use the slice-squad workflow. Agents must not spawn agents, commit, push, or edit files outside their assigned scope. Read `AGENTS.md` at the repo root and the app-level `AGENTS.md` before writing code.
 
@@ -210,7 +210,7 @@ Follow `apps/backend/src/modules/search/infrastructure/worker/search.projection.
 
 ## MCP Surface
 
-The existing server (`apps/backend/src/modules/mcp/mcp.server.ts`) has three read tools — `mcp.listSpaces`, `mcp.getPage`, `search_company_brain` — all resolving a principal and filtering by permission. Extend it along the **domain**, not the storage:
+The existing server (`apps/backend/src/modules/mcp/mcp.server.ts`) has three read tools — `mcp.listSpaces`, `mcp.getPage`, `search_neuma` — all resolving a principal and filtering by permission. Extend it along the **domain**, not the storage:
 
 - Reads: fetch a page's blocks, fetch a block by id, list backlinks for a page, query pages by collection property.
 - Writes: create a page (optionally from a template, optionally in a collection), update a page's properties, replace a block by id, append a block, link two pages.

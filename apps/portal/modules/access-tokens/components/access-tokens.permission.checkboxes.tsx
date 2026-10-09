@@ -1,6 +1,6 @@
 'use client';
 
-import type { AccessTokenPermission } from '@company-brain/shared';
+import type { AccessTokenPermission } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { Checkbox } from '@/shared/components/ui/checkbox';

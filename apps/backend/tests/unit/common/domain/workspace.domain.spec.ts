@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { canManageWorkspace, USER_ROLE } from '@company-brain/shared';
+import { canManageWorkspace, USER_ROLE } from '@neuma/shared';
 import {
   canCreateSpace,
   canReadSpace,

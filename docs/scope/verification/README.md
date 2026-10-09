@@ -1,4 +1,4 @@
-# Verificación funcional — Company Brain
+# Verificación funcional — Neuma
 
 Lo que el producto **debe poder hacer**, escrito como comportamientos observables en la interfaz, para revisarlos uno a uno.
 

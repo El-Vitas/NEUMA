@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { USER_ROLE } from '@neuma/shared';
 import { JWT_SECRET_KEY } from '@/common/constants/auth.constants';
 import { TokenAdapter } from '@/modules/auth/infrastructure/adapters/token.adapter';
 

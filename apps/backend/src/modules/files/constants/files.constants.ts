@@ -1,4 +1,4 @@
-import type { Prisma } from '@company-brain/db/generated';
+import type { Prisma } from '@neuma/db/generated';
 import type { FileByteRangeRequest } from '../types/files.types';
 
 export const FILE_ASSET_REPOSITORY = Symbol('FILE_ASSET_REPOSITORY');

@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageLifecycle } from '@company-brain/shared';
+import type { PageLifecycle } from '@neuma/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Command, EditorState } from 'prosemirror-state';

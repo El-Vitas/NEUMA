@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
-import { Result, USER_ROLE } from '@company-brain/shared';
+import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@neuma/db';
+import { Result, USER_ROLE } from '@neuma/shared';
 import {
   COLLECTION_QUERY_ROW_LIMIT,
   COLLECTION_ROW_LIMIT,

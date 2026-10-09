@@ -1,4 +1,4 @@
-import { isPageDocumentNode, readPageDocumentText } from '@company-brain/shared';
+import { isPageDocumentNode, readPageDocumentText } from '@neuma/shared';
 import { MCP_NOT_A_COLLECTION_MESSAGE } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type { McpCall, McpServerDependencies } from '../types/mcp.types';

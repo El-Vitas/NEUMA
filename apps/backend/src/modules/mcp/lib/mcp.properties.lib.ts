@@ -1,5 +1,5 @@
-import { DatabasePropertyType } from '@company-brain/db';
-import type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
+import { DatabasePropertyType } from '@neuma/db';
+import type { PagePropertyValue, PagePropertyValues } from '@neuma/shared';
 import type { McpSchemaColumn } from '../types/mcp.collections.types';
 import type { McpPerson, McpRowProperty } from '../types/mcp.types';
 

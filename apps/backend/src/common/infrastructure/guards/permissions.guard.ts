@@ -1,6 +1,6 @@
-import { type UserRole } from '@company-brain/shared';
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { type UserRole } from '@neuma/shared';
 import { PERMISSIONS_KEY } from '../../constants/auth.constants';
 import type { PermissionEntry, RequestUser } from '../../types/auth.types';
 import { getPermissionsForRole, isUserRole } from '../../utils/auth.utils';

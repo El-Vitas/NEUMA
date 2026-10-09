@@ -1,5 +1,5 @@
-import { FileAssetLifecycle } from '@company-brain/db';
 import { Injectable } from '@nestjs/common';
+import { FileAssetLifecycle } from '@neuma/db';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { PageAssetForExport, PageAttachmentsCleanupRepositoryContract } from '../../types/page.types';
 

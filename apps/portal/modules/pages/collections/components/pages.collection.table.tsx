@@ -1,4 +1,4 @@
-import { readPageViewConfiguration } from '@company-brain/shared';
+import { readPageViewConfiguration } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';

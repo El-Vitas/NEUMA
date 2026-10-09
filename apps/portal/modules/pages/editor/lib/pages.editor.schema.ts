@@ -17,7 +17,7 @@ import {
   PAGE_DOCUMENT_NODES,
   PAGE_EMBED_PROVIDERS,
   PAGE_FILE_DISPLAYS,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
 import {

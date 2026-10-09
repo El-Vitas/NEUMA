@@ -1,6 +1,6 @@
 'use client';
 
-import { humanizeSelectOption } from '@company-brain/shared';
+import { humanizeSelectOption } from '@neuma/shared';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { readPageOptionColorClass } from '../lib/pages.option-color.lib';

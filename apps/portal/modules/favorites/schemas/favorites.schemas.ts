@@ -1,4 +1,4 @@
-import { PAGE_LIFECYCLE_VALUES } from '@company-brain/shared';
+import { PAGE_LIFECYCLE_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 import { FAVORITE_MOVE_DIRECTIONS } from '../constants/favorites.constants';
 

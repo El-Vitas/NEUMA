@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_PROPERTY_TYPE, pagePropertyRequiresPersonDirectory } from '@company-brain/shared';
+import { PAGE_PROPERTY_TYPE, pagePropertyRequiresPersonDirectory } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';

@@ -1,5 +1,5 @@
-import type { UserRole } from '@company-brain/shared';
-import { USER_ROLE } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
+import { USER_ROLE } from '@neuma/shared';
 
 export const USERS_CACHE_TAG = 'users';
 

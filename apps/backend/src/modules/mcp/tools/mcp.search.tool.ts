@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import type { PageBlockSearchPage, SearchPage, SearchQueryFilters } from '../../../common/types/search.types';
 import { MCP_INACCESSIBLE_MESSAGE, MCP_TOOL_NAMES, MCP_VERIFIED_HIT_MARK } from '../constants/mcp.constants';
 import { MCP_SEARCH_PAGE_TITLE_LIMIT } from '../constants/mcp.limits.constants';
@@ -109,7 +109,7 @@ const formatSearchText = (output: McpSearchOutput): string => {
     pages.length === 0 ? '' : `Pages:\n${pages.join('\n')}`,
     output.nextCursor === undefined ? '' : `More blocks with cursor: ${output.nextCursor}`,
   ].filter((section) => section !== '');
-  return sections.length === 0 ? 'Nothing in Company Brain matches.' : sections.join('\n\n');
+  return sections.length === 0 ? 'Nothing in Neuma matches.' : sections.join('\n\n');
 };
 
 export const searchTool: McpToolDefinition = {
@@ -119,7 +119,7 @@ export const searchTool: McpToolDefinition = {
       MCP_TOOL_NAMES.search,
       {
         description:
-          "Search everything in Company Brain you can access: the team's documentation, notes, processes, projects, and its tasks. Returns the blocks that match, each with its page, section and link, and pages whose title matches. Start here to find information; open a result with fetch. What comes from a page someone vouched for as up to date is marked as verified: prefer it when results disagree, or keep only those with verifiedOnly. To go through a board or task list, find it and list the pages under it.",
+          "Search everything in Neuma you can access: the team's documentation, notes, processes, projects, and its tasks. Returns the blocks that match, each with its page, section and link, and pages whose title matches. Start here to find information; open a result with fetch. What comes from a page someone vouched for as up to date is marked as verified: prefer it when results disagree, or keep only those with verifiedOnly. To go through a board or task list, find it and list the pages under it.",
         inputSchema: searchInputSchema,
         outputSchema: searchOutputSchema,
       },

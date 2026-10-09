@@ -1,4 +1,4 @@
-import { extractPageMentionIds, readStoredPageContent } from '@company-brain/shared';
+import { extractPageMentionIds, readStoredPageContent } from '@neuma/shared';
 
 export const extractPageContentMentionIds = (content: unknown): readonly string[] | null => {
   const storedContent = readStoredPageContent(content);

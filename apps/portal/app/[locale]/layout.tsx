@@ -28,7 +28,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Company Brain',
+  title: 'Neuma',
   description: "Your company's internal knowledge workspace.",
 };
 

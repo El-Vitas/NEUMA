@@ -23,15 +23,10 @@
     {
       "name": "domain-only-same-domain",
       "severity": "error",
-      "comment": "El dominio de un módulo solo puede importar de su propio dominio y del kernel compartido de dominio (common/domain, @company-brain/shared value objects, @company-brain/db types). No de otras capas del propio módulo (service/controller/dto/infrastructure) ni de otros módulos.",
+      "comment": "El dominio de un módulo solo puede importar de su propio dominio y del kernel compartido de dominio (common/domain, @neuma/shared value objects, @neuma/db types). No de otras capas del propio módulo (service/controller/dto/infrastructure) ni de otros módulos.",
       "from": { "path": "src/modules/([^/]+)/domain/" },
       "to": {
-        "pathNot": [
-          "src/modules/$1/domain/",
-          "src/common/domain/",
-          "^@company-brain/shared",
-          "^@company-brain/db"
-        ]
+        "pathNot": ["src/modules/$1/domain/", "src/common/domain/", "^@neuma/shared", "^@neuma/db"]
       }
     },
     {
@@ -61,9 +56,9 @@
     {
       "name": "db-only-in-persistence",
       "severity": "error",
-      "comment": "Database package @company-brain/db should only be imported from persistence/ files.",
-      "from": { "pathNot": ["persistence/", "node_modules/@company-brain/db/"] },
-      "to": { "path": "node_modules/@company-brain/db" }
+      "comment": "Database package @neuma/db should only be imported from persistence/ files.",
+      "from": { "pathNot": ["persistence/", "node_modules/@neuma/db/"] },
+      "to": { "path": "node_modules/@neuma/db" }
     }
   ],
   "options": {

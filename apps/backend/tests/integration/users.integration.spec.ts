@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import type { AuthSession } from '@company-brain/shared';
+import type { AuthSession } from '@neuma/shared';
 import request from 'supertest';
 import { TokenAdapter } from '@/modules/auth/infrastructure/adapters/token.adapter';
 import { PrismaService } from '@/prisma/prisma.service';

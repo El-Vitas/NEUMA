@@ -1,5 +1,5 @@
-import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WORKSPACE_DEFAULT_NAME, WORKSPACE_SINGLETON_KEY } from '../../constants/workspace.constants';
 import type { WorkspaceSummary } from '../../types/workspace.types';

@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 
 /** Without `roles`, every role sees the item. */
 export interface SettingsNavItem {

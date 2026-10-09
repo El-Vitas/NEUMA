@@ -1,4 +1,4 @@
-import { type PageIcon, pageIconSchema, Result } from '@company-brain/shared';
+import { type PageIcon, pageIconSchema, Result } from '@neuma/shared';
 import { SpaceIconValidationError } from './space.error';
 
 /** Reuses the page icon contract so a space cannot carry an icon the tree cannot draw for pages. */

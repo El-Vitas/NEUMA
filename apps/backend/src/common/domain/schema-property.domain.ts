@@ -1,10 +1,5 @@
-import type { PagePropertyContext } from '@company-brain/shared';
-import {
-  isTitlePageProperty,
-  isValidPagePropertyValue,
-  pagePropertyRequiresOptions,
-  Result,
-} from '@company-brain/shared';
+import type { PagePropertyContext } from '@neuma/shared';
+import { isTitlePageProperty, isValidPagePropertyValue, pagePropertyRequiresOptions, Result } from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValue, SchemaPropertyValues } from './schema.domain.types';
 import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schema.error';
 import { SCHEMA_PROPERTY_KEY_PATTERN } from './schema-property.constants';

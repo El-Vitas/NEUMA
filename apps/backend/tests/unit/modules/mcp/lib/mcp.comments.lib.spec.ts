@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_BLOCK_COMMENTS_MOST, type PageContent, pageContentSchema } from '@company-brain/shared';
+import { PAGE_BLOCK_COMMENTS_MOST, type PageContent, pageContentSchema } from '@neuma/shared';
 import { addMcpBlockComment, removeMcpBlockComment } from '@/modules/mcp/lib/mcp.comments.lib';
 
 const page = (...content: readonly unknown[]): PageContent =>

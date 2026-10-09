@@ -2,7 +2,7 @@ import {
   holdPageContentThisVersionCannotRead,
   readPageDocumentJsonAsContent,
   writePageDocumentJsonAsContent,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { Node as EditorDocument } from 'prosemirror-model';
 import { EditorState, TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';

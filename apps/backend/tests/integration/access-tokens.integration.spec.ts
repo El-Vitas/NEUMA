@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import request from 'supertest';
 import { AccessTokensService } from '@/modules/access-tokens/access-tokens.service';
 import { ACCESS_TOKEN_LIMIT_PER_USER } from '@/modules/access-tokens/constants/access-tokens.constants';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PagePropertyType } from '@company-brain/shared';
+import type { PagePropertyType } from '@neuma/shared';
 import {
   hideMcpNames,
   listMcpNames,

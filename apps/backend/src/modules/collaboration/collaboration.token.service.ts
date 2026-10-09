@@ -1,6 +1,6 @@
-import { PageLifecycle } from '@company-brain/db';
-import { USER_ROLE } from '@company-brain/shared';
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
+import { USER_ROLE } from '@neuma/shared';
 import {
   COLLABORATION_PAGE_SERVICE,
   COLLABORATION_TOKEN_SIGNER,

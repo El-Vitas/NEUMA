@@ -1,4 +1,4 @@
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { type Node as EditorNode, Fragment } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { findSelectedPageBlocks } from '../../blocks/lib/pages.editor.block-range.lib';

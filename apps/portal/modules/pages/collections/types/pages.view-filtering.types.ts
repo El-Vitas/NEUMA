@@ -4,7 +4,7 @@ import type {
   PageFilterOperator,
   PageSort,
   PageViewCalculation,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { PagePropertyValue, PageSchemaProperty } from './pages.schema.types';
 
 /** Child indexes from the root group down. Stored conditions carry no ids, so the position acts as the identity. */

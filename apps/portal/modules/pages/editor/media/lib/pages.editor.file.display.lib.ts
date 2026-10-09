@@ -1,4 +1,4 @@
-import type { PageFileDisplay } from '@company-brain/shared';
+import type { PageFileDisplay } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_FILE_TYPE } from '../../blocks/constants/pages.editor.blocks.constants';
 import { findSelectedPageBlocks } from '../../blocks/lib/pages.editor.block-range.lib';

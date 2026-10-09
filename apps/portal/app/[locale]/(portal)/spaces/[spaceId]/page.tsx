@@ -1,4 +1,4 @@
-import { canEditContent, PAGE_LIFECYCLE, USER_ROLE } from '@company-brain/shared';
+import { canEditContent, PAGE_LIFECYCLE, USER_ROLE } from '@neuma/shared';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { PagesView } from '@/modules/pages/collections/views/pages.view';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';

@@ -1,5 +1,5 @@
-import type { AccessTokenPlace } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import type { AccessTokenPlace } from '@neuma/shared';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ACCESS_TOKEN_EMPTY_PAGE_REACH } from '../../constants/access-token.constants';
 import type {

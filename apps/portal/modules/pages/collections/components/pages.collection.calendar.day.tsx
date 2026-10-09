@@ -1,6 +1,6 @@
 'use client';
 
-import { shiftPageCalendarDate } from '@company-brain/shared';
+import { shiftPageCalendarDate } from '@neuma/shared';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';

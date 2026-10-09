@@ -5,7 +5,7 @@ import {
   maximumTableColumns,
   maximumTableRows,
   maximumToggleSummaryLength,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 
 /** Fine matching is left to the blocks. */
 export const MCP_SEARCH_PAGE_TITLE_LIMIT = 5;

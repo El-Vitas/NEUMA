@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { render, screen } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 

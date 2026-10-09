@@ -1,4 +1,4 @@
-import type { AccessTokenLevel, AccessTokenPermission, accessTokenAccessSchema } from '@company-brain/shared';
+import type { AccessTokenLevel, AccessTokenPermission, accessTokenAccessSchema } from '@neuma/shared';
 import type { z } from 'zod';
 import type {
   ACCESS_TOKEN_EXPIRY_VALUES,

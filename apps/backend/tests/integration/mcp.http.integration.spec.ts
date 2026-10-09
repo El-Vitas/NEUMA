@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import request from 'supertest';
 import { MCP_RATE_LIMIT } from '@/common/constants/throttler.constants';
 import { PrismaService } from '@/prisma/prisma.service';

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { extractLinkTargetPageIds } from '@/modules/links/utils/links.content.utils';
 
 const contentWithMentions = (): PageContent => ({

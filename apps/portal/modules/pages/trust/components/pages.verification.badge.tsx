@@ -1,4 +1,4 @@
-import type { PageVerificationStatus } from '@company-brain/shared';
+import type { PageVerificationStatus } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {

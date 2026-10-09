@@ -1,4 +1,4 @@
-import { findPageBlock, isPageDocumentNode, readPageDocumentText } from '@company-brain/shared';
+import { findPageBlock, isPageDocumentNode, readPageDocumentText } from '@neuma/shared';
 import { MCP_INACCESSIBLE_MESSAGE } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type { McpCall, McpServerDependencies } from '../types/mcp.types';

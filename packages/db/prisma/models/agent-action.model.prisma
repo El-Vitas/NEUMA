@@ -1,4 +1,4 @@
-/// What an agent did, or tried to do, when writing to Company Brain.
+/// What an agent did, or tried to do, when writing to Neuma.
 /// One row per write, recorded before writing: no row means no write.
 /// No foreign keys to the page or the token, so the record survives their deletion.
 model AgentAction {

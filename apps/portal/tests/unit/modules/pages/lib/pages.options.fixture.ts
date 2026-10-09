@@ -1,4 +1,4 @@
-import type { PagePropertyOption } from '@company-brain/shared';
+import type { PagePropertyOption } from '@neuma/shared';
 
 export const asPropertyOptions = (...values: readonly string[]): readonly PagePropertyOption[] =>
   values.map((value) => ({ color: null, value }));

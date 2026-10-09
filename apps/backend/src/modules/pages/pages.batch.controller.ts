@@ -1,5 +1,5 @@
-import { Result, type UserRole } from '@company-brain/shared';
 import { Body, Controller, Inject, Patch, Post, UseGuards } from '@nestjs/common';
+import { Result, type UserRole } from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
 import type { DomainError } from '../../common/domain/domain.error';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';

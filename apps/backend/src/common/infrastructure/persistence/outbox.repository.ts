@@ -1,5 +1,5 @@
-import { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@neuma/db/generated';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   OUTBOX_ERROR_REDACTION_LABEL,

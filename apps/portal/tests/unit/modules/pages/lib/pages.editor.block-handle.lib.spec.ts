@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { NodeSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { PAGE_EDITOR_BLOCK_HANDLE_CLASS } from '@/modules/pages/editor/blocks/constants/pages.editor.blocks.constants';

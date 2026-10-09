@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   type AccessTokenPermission,
@@ -6,8 +7,7 @@ import {
   type PagePropertyValues,
   Result,
   USER_ROLE,
-} from '@company-brain/shared';
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
+} from '@neuma/shared';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
 import {
   MCP_INACCESSIBLE_MESSAGE,
@@ -221,7 +221,7 @@ const connect = async (
     rows: rows.writer,
     searchService: { locateBlock: notUsedHere, search: notUsedHere, searchBlocks: notUsedHere },
     spacesService: { listAccessible: notUsedHere },
-    workspacesService: { resolveForUser: () => Promise.resolve({ id: 'workspace-1', name: 'Company Brain' }) },
+    workspacesService: { resolveForUser: () => Promise.resolve({ id: 'workspace-1', name: 'Neuma' }) },
   };
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'mcp-collections-test', version: '1.0.0' });

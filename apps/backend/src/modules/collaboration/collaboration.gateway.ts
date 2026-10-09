@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { Hocuspocus } from '@hocuspocus/server';
 import {
   createCollaborationDocumentName,
   givePageBlocksTheirIds,
   type PageContent,
   pageContentSchema,
-} from '@company-brain/shared';
-import { Hocuspocus } from '@hocuspocus/server';
+} from '@neuma/shared';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import {
   assertAwarenessStateSize,
@@ -95,7 +95,7 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
     maxPendingDocuments: 10,
     maxUnauthenticatedQueueMessages: 100,
     maxUnauthenticatedQueueSize: MAX_COLLABORATION_UPDATE_BYTES,
-    name: 'company-brain-collaboration',
+    name: 'neuma-collaboration',
     unloadImmediately: true,
     async onAuthenticate(payload) {
       const pageId = parsePageId(payload.documentName);

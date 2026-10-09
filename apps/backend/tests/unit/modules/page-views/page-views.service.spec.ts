@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { USER_ROLE } from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
 import { PAGE_VIEW_REPOSITORY } from '@/modules/page-views/constants/page-views.constants';
 import { PageViewsService } from '@/modules/page-views/page-views.service';

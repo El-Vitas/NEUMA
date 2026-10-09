@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { FavoritesSection } from '@/modules/favorites/components/favorites.section';

@@ -1,4 +1,4 @@
-import { canPageBlockHold, pageBookmarkAttrsSchema, pageEmbedAttrsSchema } from '@company-brain/shared';
+import { canPageBlockHold, pageBookmarkAttrsSchema, pageEmbedAttrsSchema } from '@neuma/shared';
 import type { Node as EditorNode, NodeType, ResolvedPos, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import type { PageLinkPreview } from '../../../links/types/pages.link-preview.types';

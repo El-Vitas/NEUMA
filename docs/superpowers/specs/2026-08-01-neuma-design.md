@@ -1,4 +1,4 @@
-# Company Brain Design
+# Neuma Design
 
 ## Status
 
@@ -6,7 +6,7 @@ Approved design baseline. This document defines the target architecture and impl
 
 ## Goal
 
-Build a private, single-company knowledge and work system inspired by Outline and Notion, while following the `company-brain` starter conventions and preserving a search-first architecture.
+Build a private, single-company knowledge and work system inspired by Outline and Notion, while following the `neuma` starter conventions and preserving a search-first architecture.
 
 The system will combine flexible pages for knowledge with configurable databases for tasks, projects, and future operational data.
 
@@ -71,7 +71,7 @@ The architecture deliberately does not copy Outline's Koa, RPC, Sequelize, MobX,
 
 ## Repository Conventions
 
-All implementation must follow the current `company-brain` repository instructions:
+All implementation must follow the current `neuma` repository instructions:
 
 - Backend features live under `apps/backend/src/modules/<feature>/`.
 - Portal features live under `apps/portal/modules/<feature>/`.
@@ -216,7 +216,7 @@ MCP is an adapter over application use cases. It never queries Prisma directly a
 
 Initial read tools:
 
-- `search_company_brain`.
+- `search_neuma`.
 - `get_page`.
 - `list_spaces`.
 - `list_databases`.

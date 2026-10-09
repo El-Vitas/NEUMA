@@ -1,6 +1,6 @@
 'use client';
 
-import { MILLISECONDS_IN_A_DAY } from '@company-brain/shared';
+import { MILLISECONDS_IN_A_DAY } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { Input } from '@/shared/components/ui/input';

@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { canMcpPrincipalSeeSpace, listMcpPageRuleProbes, permitsListing } from '../lib/mcp.access.lib';
 import { requireMcpPrincipal, resolveMcpWorkspace, runMcpTool } from '../lib/mcp.tool.lib';

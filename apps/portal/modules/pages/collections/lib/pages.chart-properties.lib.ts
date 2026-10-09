@@ -1,4 +1,4 @@
-import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
 
 export const listNumberPropertyKeys = (properties: readonly PageSchemaProperty[]): readonly string[] =>

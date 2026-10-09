@@ -1,4 +1,4 @@
-import { PAGE_LIFECYCLE, type SpaceVisibility } from '@company-brain/shared';
+import { PAGE_LIFECYCLE, type SpaceVisibility } from '@neuma/shared';
 import type { KeyboardEvent } from 'react';
 import { buildTree, getTreeExpandedIds } from '@/shared/lib/tree.lib';
 import { PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE } from '../constants/portal.sidebar.drag.constants';

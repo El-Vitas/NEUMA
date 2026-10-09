@@ -1,4 +1,3 @@
-import type { Result } from '@company-brain/shared';
 import {
   BadRequestException,
   Body,
@@ -12,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Result } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';

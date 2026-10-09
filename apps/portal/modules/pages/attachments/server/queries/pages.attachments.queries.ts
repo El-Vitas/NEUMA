@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Result } from '@company-brain/shared';
+import type { Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { z } from 'zod';
 import { apiRequest } from '@/shared/lib/api-server';
