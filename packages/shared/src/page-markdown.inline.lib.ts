@@ -28,7 +28,6 @@ import {
 
 type InlineNode = PageContentInlineNode;
 
-/** Lo que se leyó en un punto del texto: los nodos que salieron y cuántos caracteres ocupaban. */
 interface ReadConstruct {
   readonly consumed: number;
   readonly nodes: readonly InlineNode[];
@@ -36,17 +35,16 @@ interface ReadConstruct {
 
 type ConstructReading = Result<ReadConstruct, string> | null;
 
-/** Lo que se sabe de un tramo mientras se lee, para no volver a recorrerlo entero por cada signo. */
+/** Precomputed once per span so the text is not rescanned for every sign. */
 interface InlineReading {
-  /** Cada corchete que abre, con el que lo cierra. */
+  /** Opening bracket position to its closing position. */
   readonly brackets: ReadonlyMap<number, number>;
-  /** Cuán dentro de otros enlaces y marcas va este tramo. */
+  /** How deep inside other links and marks this span sits. */
   readonly depth: number;
-  /** Para cada posición, si va escapada. */
   readonly escaped: readonly boolean[];
-  /** Cada paréntesis que abre, con el que lo cierra. */
+  /** Opening parenthesis position to its closing position. */
   readonly parentheses: ReadonlyMap<number, number>;
-  /** Para cada signo, desde dónde ya se sabe que no cierra. */
+  /** Per sign, the position from which it is known not to close. */
   readonly unclosedFrom: Map<string, number>;
 }
 
@@ -59,11 +57,9 @@ const addMark = (marks: readonly PageMark[], mark: PageMark): readonly PageMark[
   marks.some((carried) => carried.type === mark.type) ? marks : [...marks, mark];
 
 /**
- * Qué posiciones van escapadas: las que tienen un número impar de barras
- * delante, porque dos barras son una barra escrita. Se marcan de una pasada;
- * contar las barras hacia atrás en cada posición tardaría el cuadrado de una
- * tanda larga de barras. Se recorre por unidad y no por carácter, para que la
- * posición calce con la del texto aunque haya emojis.
+ * A position is escaped after an odd number of backslashes. Marked in one pass:
+ * counting backwards per position is quadratic on long backslash runs. Iterates
+ * UTF-16 units, not characters, so positions match the text even with emoji.
  */
 const markEscapedPositions = (source: string): readonly boolean[] => {
   const escaped: boolean[] = [];
@@ -77,14 +73,13 @@ const markEscapedPositions = (source: string): readonly boolean[] => {
 
 const isEscaped = (escaped: readonly boolean[], at: number): boolean => escaped.at(at) === true;
 
-/** Un carácter tal cual, o el que va después de una barra que lo escapa. */
 const readLiteral = (source: string, at: number): { readonly character: string; readonly width: number } => {
   const next = source.charAt(at + 1);
   if (source.charAt(at) === '\\' && MARKDOWN_ESCAPABLE_CHARACTERS.includes(next)) return { character: next, width: 2 };
   return { character: source.charAt(at), width: 1 };
 };
 
-/** Dónde cierra un signo que se abrió: el primero que no está escapado, no va tras un espacio ni pegado a otro igual. */
+/** The first unescaped delimiter that does not follow a space or touch another one. */
 const findClosing = (source: string, reading: InlineReading, delimiter: string, from: number): number => {
   for (let at = source.indexOf(delimiter, from); at !== -1; at = source.indexOf(delimiter, at + 1)) {
     const isGluedToAnother = source[at + delimiter.length] === delimiter[0];
@@ -94,11 +89,7 @@ const findClosing = (source: string, reading: InlineReading, delimiter: string, 
   return -1;
 };
 
-/**
- * Busca dónde cierra un signo recordando dónde ya no se encontró: si desde un
- * punto no hay cierre, tampoco lo hay desde uno más adelante. Sin eso, un
- * texto lleno de signos que no cierran se recorre entero una vez por signo.
- */
+/** No closing from a point means none from a later one; avoids rescanning the text per unclosed sign. */
 const findClosingOnce = (reading: InlineReading, sign: string, from: number, find: () => number): number => {
   const unclosedFrom = reading.unclosedFrom.get(sign);
   if (unclosedFrom !== undefined && unclosedFrom <= from) return -1;
@@ -107,11 +98,7 @@ const findClosingOnce = (reading: InlineReading, sign: string, from: number, fin
   return closing;
 };
 
-/**
- * Cada corchete o paréntesis que abre, con el que lo cierra, contando los que
- * se abren dentro. Se arma de una sola pasada con una pila: buscarlo de nuevo
- * para cada signo que no cierra tardaría el cuadrado del largo del texto.
- */
+/** One stack pass; searching again per unclosed sign would be quadratic in the text length. */
 const pairBrackets = (
   source: string,
   escaped: readonly boolean[],
@@ -129,7 +116,6 @@ const pairBrackets = (
   return pairs;
 };
 
-/** Lo que se sabe de un tramo mientras se lee: sus corchetes ya emparejados, lo que no cierra y cuán hondo va. */
 const startReading = (source: string, depth: number): InlineReading => {
   const escaped = markEscapedPositions(source);
   return {
@@ -141,12 +127,7 @@ const startReading = (source: string, depth: number): InlineReading => {
   };
 };
 
-/**
- * La página de Company Brain a la que lleva una dirección, con o sin dominio e
- * idioma delante, o nada si lleva a otra parte. Un enlace así nombra la página
- * por su id: quien muestra lo que dice una página lo usa para no nombrar las
- * que el lector no ve.
- */
+/** Accepts the address with or without domain and locale; null when it leads elsewhere. */
 export const readPageLinkAddress = (href: string): { readonly pageId: string; readonly spaceId: string } | null => {
   const trimmed = href.trim();
   const path = URL.canParse(trimmed) ? new URL(trimmed).pathname : trimmed;
@@ -171,11 +152,6 @@ const readDate = (target: string): Result<readonly InlineNode[], string> => {
     : Result.fail(`"${at}" is not a day: write a date as [label](date:YYYY-MM-DD).`);
 };
 
-/**
- * Lo que dice un enlace, según a dónde lleva: a una persona, a un día, a una
- * página de Company Brain (una mención), o a otro sitio (un enlace sobre sus
- * palabras). Es lo mismo que la página escribe al leerse, al revés.
- */
 const readLinkTarget = (
   label: string,
   target: string,
@@ -212,7 +188,6 @@ const readCode = (source: string, at: number, marks: readonly PageMark[]): Const
   });
 };
 
-/** Negrita, cursiva o tachado, si el signo que empieza aquí tiene con qué cerrar. */
 const readPairedMark = (
   source: string,
   at: number,
@@ -233,7 +208,7 @@ const readPairedMark = (
   return Result.ok({ consumed: closing + delimiter.length - at, nodes: inner.getValue() });
 };
 
-/** Dónde cierra una fórmula: un signo pegado a lo último que dice, y que no va seguido de un número. */
+/** The closing `$` touches the formula and is not followed by a digit (that would be a price). */
 const findFormulaEnd = (source: string, reading: InlineReading, from: number): number => {
   for (
     let at = source.indexOf(MARKDOWN_FORMULA_DELIMITER, from);
@@ -247,7 +222,6 @@ const findFormulaEnd = (source: string, reading: InlineReading, from: number): n
   return -1;
 };
 
-/** Una fórmula entre signos de dólar, si lo es: un precio suelto se queda como texto. */
 const readFormula = (source: string, at: number, reading: InlineReading): ConstructReading => {
   const first = source.charAt(at + 1);
   if (first === '' || first === ' ') return null;
@@ -263,7 +237,6 @@ const readFormula = (source: string, at: number, reading: InlineReading): Constr
 
 const isPageColor = (color: string): color is PageBlockColor => isOneOf(PAGE_BLOCK_COLORS, color);
 
-/** La marca que dice una etiqueta, si es una de las que la página pinta y dice lo que necesita. */
 const readTagMark = (tag: string, color: string | undefined): Result<PageMark, string> | null => {
   if (tag === MARKDOWN_TAG_MARKS.underline) return color === undefined ? Result.ok({ type: 'underline' }) : null;
   if (color === undefined) return null;
@@ -276,11 +249,7 @@ const readTagMark = (tag: string, color: string | undefined): Result<PageMark, s
   );
 };
 
-/**
- * Subrayado, color de texto o resaltado escritos como su etiqueta de HTML;
- * otra etiqueta, o una sin cerrar, es texto. Se mira solo lo que puede medir
- * una etiqueta, no el resto del texto.
- */
+// Any other tag, or an unclosed one, stays as text.
 const readTag = (source: string, at: number, marks: readonly PageMark[], reading: InlineReading): ConstructReading => {
   const opening = MARKDOWN_TAG_OPENING.exec(source.slice(at, at + MARKDOWN_TAG_OPENING_MAX_LENGTH));
   if (opening === null) return null;
@@ -323,11 +292,7 @@ const readConstruct = (
   }
 };
 
-/**
- * Un tramo de texto con las marcas que ya lo envuelven, leído de izquierda a
- * derecha. Lo que va dentro de un enlace o de una marca se lee un nivel más
- * hondo; pasado el tope se rechaza, en vez de agotar la pila.
- */
+// Nesting past the limit is rejected instead of exhausting the stack.
 const readSpan = (source: string, marks: readonly PageMark[], depth: number): Result<readonly InlineNode[], string> => {
   if (depth > MARKDOWN_MAX_NESTING)
     return Result.fail(
@@ -358,7 +323,6 @@ const readSpan = (source: string, marks: readonly PageMark[], depth: number): Re
 const sameMarks = (first: InlineNode, second: InlineNode): boolean =>
   first.type === 'text' && second.type === 'text' && JSON.stringify(first.marks) === JSON.stringify(second.marks);
 
-/** Por qué la página no guardaría estas palabras, o nada si las guarda. */
 const explainUnstorableText = (node: InlineNode): string | null => {
   if (node.type !== 'text') return null;
   const tag = PAGE_TEXT_TAG_PATTERN.exec(node.text)?.[0];
@@ -369,7 +333,6 @@ const explainUnstorableText = (node: InlineNode): string | null => {
   return null;
 };
 
-/** Dos textos seguidos con las mismas marcas son uno solo, como los guarda el editor. */
 const joinNeighbouringTexts = (nodes: readonly InlineNode[]): InlineNode[] =>
   nodes.reduce<InlineNode[]>((joined, node) => {
     const previous = joined.at(-1);
@@ -382,14 +345,9 @@ const joinNeighbouringTexts = (nodes: readonly InlineNode[]): InlineNode[] =>
   }, []);
 
 /**
- * Lo que dice una línea escrita en Markdown, como lo guarda una página.
- *
- * Lee lo mismo que la página escribe al leerse: negrita, cursiva, código,
- * tachado, enlaces, menciones a páginas, personas y fechas. Un signo que nadie
- * cerró se queda como carácter; un enlace que la página no guardaría se
- * rechaza diciendo por qué, en vez de perderse. Lo mismo unas palabras que la
- * página no guarda: una etiqueta HTML escrita tal cual, o demasiados estilos
- * sobre las mismas palabras.
+ * Inverse of the page-to-Markdown writer. An unclosed sign stays a character;
+ * a link or text the page would not store is rejected with a reason instead of
+ * being silently lost.
  */
 export const readMarkdownInline = (text: string): Result<InlineNode[], string> => {
   const read = readSpan(text.replaceAll('\r\n', '\n'), [], 0);

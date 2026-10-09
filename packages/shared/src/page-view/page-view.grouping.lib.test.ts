@@ -11,7 +11,6 @@ describe('date buckets', () => {
     expect(readPageDateBucketKey('2026-08-14T09:30:00.000Z', PAGE_DATE_BUCKET.DAY)).toBe('2026-08-14');
   });
 
-  /** El lunes, no el domingo: es el primer día de la semana en casi todo el mundo salvo en el calendario estadounidense. */
   test('a week is the monday it starts on', () => {
     expect(readPageDateBucketKey('2026-08-14', PAGE_DATE_BUCKET.WEEK)).toBe('2026-08-10');
     expect(readPageDateBucketKey('2026-08-10', PAGE_DATE_BUCKET.WEEK)).toBe('2026-08-10');

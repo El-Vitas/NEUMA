@@ -65,11 +65,6 @@ describe('taking blocks to another page', () => {
     expect(travelling?.content[0]?.type).toBe('nested_block');
   });
 
-  /**
-   * Lo que se borra al volver la respuesta es lo que se mandó, no lo que esté
-   * seleccionado en ese momento: entre medio la persona pudo hacer clic en otro
-   * bloque, y ese no se fue a ninguna parte.
-   */
   it('takes off this page the blocks that were sent, wherever the selection went meanwhile', () => {
     const state = selectFromTo(createState([paragraph('Uno'), paragraph('Dos'), paragraph('Tres')]), 'Uno', 'Dos');
     const sent = readSelectedPageBlocks(state);
@@ -80,7 +75,6 @@ describe('taking blocks to another page', () => {
     expect(after.doc.textContent).toBe('Tres');
   });
 
-  /** Un bloque que alguien cambió mientras viajaba ya no es el que llegó: se queda, y nada escrito se pierde. */
   it('leaves the blocks where they are when one of them changed while they travelled', () => {
     const state = selectFromTo(createState([paragraph('Uno'), paragraph('Dos'), paragraph('Tres')]), 'Uno', 'Dos');
     const sent = readSelectedPageBlocks(state);

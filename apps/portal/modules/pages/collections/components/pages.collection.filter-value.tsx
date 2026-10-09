@@ -15,14 +15,7 @@ interface IProps {
   readonly property: PageSchemaProperty;
 }
 
-/**
- * Contra qué compara una condición.
- *
- * Una selección ofrece sus opciones en vez de pedir que se escriban, y un
- * operador que no pregunta por ningún valor —«está vacío»— deja el hueco
- * ocupado: sin él, la fila de al lado correría sus campos y las condiciones
- * dejarían de leerse en columnas.
- */
+/** An operator without a value keeps a placeholder, so the fields of the row keep their column alignment. */
 export const PagesCollectionFilterValue = ({ condition, filtering, path, property }: IProps) => {
   const t = useTranslations('pages.collection');
   const textValue = typeof condition.value === 'string' ? condition.value : '';

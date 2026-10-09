@@ -135,7 +135,6 @@ import { PrismaModule } from './prisma/prisma.module';
     { provide: PAGE_MAINTENANCE_REPOSITORY, useClass: PageMaintenanceRepository },
     OutboxRepository,
     WorkspaceContextService,
-    /** El contenido de una página se escribe dentro de su documento en vivo, quien sea que lo escriba. */
     {
       inject: [CollaborationGateway],
       provide: PAGE_LIVE_DOCUMENT,
@@ -185,7 +184,7 @@ import { PrismaModule } from './prisma/prisma.module';
             };
           },
         };
-        /** Una página bloqueada se lee en vivo pero no se escribe: el editor lo respeta, y el servidor también. */
+        // A locked page can be read live but not written, enforced here as well as in the editor.
         const authorization: CollaborationAuthorizationAdapter = {
           authorize: async (context, pageId, mode): Promise<boolean> => {
             const page = await pagesService.readAccessState(pageId, context.workspaceId, context.userId, context.role);
@@ -193,12 +192,7 @@ import { PrismaModule } from './prisma/prisma.module';
             return mode === 'read' || (context.role !== USER_ROLE.CLIENT && page.lockedAt === null);
           },
         };
-        /**
-         * El documento en vivo se guarda primero, porque es lo que se edita, y lo
-         * que la página dice después. Si esto segundo falla, la búsqueda y los
-         * enlaces quedan atrasados hasta el próximo guardado: se cuenta en el log
-         * con la página, para que no pase en silencio.
-         */
+        // Live document saves first; if the page write fails, search and backlinks stay stale, so it is logged.
         const content: CollaborationContentAdapter = {
           load: (pageId) => pagesService.readStoredContent(pageId),
           store: async (context, pageContent) => {

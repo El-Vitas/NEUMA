@@ -28,7 +28,6 @@ export const RecentPagesList = () => {
                 href={ROUTES.PORTAL_SPACE_PAGE(entry.spaceId, entry.pageId)}
               >
                 <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                {/* On a narrow screen the space it belongs to steps under the title rather than eating into it: the name of the page is what is being looked for. */}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <span className="truncate font-medium text-foreground">{entry.title}</span>
                   <span className="shrink-0 text-muted-foreground text-xs">

@@ -1,14 +1,4 @@
-/**
- * Watches which stretch of a long text is being read, and says which one it is.
- *
- * What counts as being read is the last heading that has passed the line where
- * reading happens, near the top of the screen: the heading somebody is under,
- * rather than the one that happens to be closest to the middle, which is where
- * the eye is only for an instant on the way past. Above the first heading the
- * first one is the answer, because a page always begins somewhere. The answer
- * is the heading itself, so it serves both a text whose headings answer to a
- * name and one whose headings are only written. What comes back stops watching.
- */
+/** The active heading is the last one past a reading line near the top; above the first heading, the first wins. */
 export const watchWhatIsBeingRead = (
   headings: readonly HTMLElement[],
   read: (being: HTMLElement | null) => void,

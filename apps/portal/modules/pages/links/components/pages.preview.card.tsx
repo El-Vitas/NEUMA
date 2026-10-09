@@ -20,25 +20,11 @@ import type { PagePreviewOutcome, PagePreviewTarget } from '../types/pages.previ
 interface IProps {
   readonly onHold: () => void;
   readonly onLetGo: () => void;
-  /** `null` while the page is still being asked for, since nothing is known about it yet. */
+  /** `null` while loading. */
   readonly outcome: PagePreviewOutcome | null;
   readonly target: PagePreviewTarget;
 }
 
-/**
- * What a page says about itself, read while nothing more than a rest on its
- * name was asked for.
- *
- * One card answers every question a rest can ask: still being read, closed
- * to whoever is reading, or open and telling what it holds — a reader waiting
- * on it sees the same shape settle into an answer rather than a blank turning
- * into a card out of nowhere.
- *
- * The name it shows is also the way in, so a reader who found what they were
- * looking for in the card does not have to go back to the word that opened it.
- * That way in is what makes this a card and not a tooltip, which may hold
- * nothing anybody can reach.
- */
 export const PagesPreviewCard = ({ onHold, onLetGo, outcome, target }: IProps) => {
   const t = useTranslations('pages');
 
@@ -49,7 +35,7 @@ export const PagesPreviewCard = ({ onHold, onLetGo, outcome, target }: IProps) =
       onMouseEnter={onHold}
       onMouseLeave={onLetGo}
       role="dialog"
-      /** The space the link's own tools stand in belongs to the card, so reaching down for it is never leaving it. */
+      /** The padding is part of the card, so crossing the gap from the link is not leaving it. */
       style={{ paddingTop: `${PAGE_PREVIEW_GAP_PX}px` }}
     >
       <div className={PAGE_PREVIEW_CARD_STYLE_CLASS}>

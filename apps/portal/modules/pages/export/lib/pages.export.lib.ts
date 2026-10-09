@@ -11,15 +11,9 @@ import {
 } from '../constants/pages.export.constants';
 
 /**
- * The name the exported file is saved under, ending as what it actually is.
- *
- * Accents and punctuation come out because the file leaves the browser and
- * lands on somebody's disk, a shared drive, or an email — places that still
- * mangle them. What stays is recognizable enough to know which page it was.
- *
- * The ending follows what the backend sent rather than what was asked for: one
- * page comes back as Markdown and several come back packed, and only the answer
- * knows which of the two happened.
+ * Accents and punctuation are stripped because disks, shared drives and email mangle them.
+ * The extension follows the media type the backend returned, not the scope requested: only the response
+ * knows whether it is one Markdown file or an archive.
  */
 export const buildPagesExportFileName = (exportedName: string, mediaType: string): string => {
   const plain = exportedName

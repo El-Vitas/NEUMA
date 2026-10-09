@@ -46,11 +46,7 @@ const movePage = async (
   return { page: describeMcpManagedPage(dependencies, call, { page: moved, place: arrived }) };
 };
 
-/**
- * Mueve una página, con todo lo que cuelga de ella, bajo otra página o arriba
- * de un espacio. El token tiene que poder escribir donde está, donde va y en
- * cada página de abajo que tenga su propia regla.
- */
+/** The token needs write access at the origin, the destination and every descendant with its own rule. */
 export const movePageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.movePage,
   register: (server, dependencies) => {

@@ -11,12 +11,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Copia el enlace de la página que se está leyendo.
- *
- * Está para todos, lean o editen: un enlace se comparte para que otro llegue,
- * y eso incluye pasárselo a un agente para que abra la página.
- */
+/** Offered to readers as well as editors: a link is shared so someone else can open the page. */
 export const PagesHeaderLinkButton = ({ pageId, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const copyPageLink = useCopyPageLink();

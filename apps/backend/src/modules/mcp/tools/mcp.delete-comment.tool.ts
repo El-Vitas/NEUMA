@@ -26,10 +26,6 @@ const deleteComment = async (
   return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.block]);
 };
 
-/**
- * Quita un comentario de un bloque y de las palabras que marcaba, como lo
- * quita una persona cuando ya no dice nada útil.
- */
 export const deleteCommentTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.deleteComment,
   register: (server, dependencies) => {

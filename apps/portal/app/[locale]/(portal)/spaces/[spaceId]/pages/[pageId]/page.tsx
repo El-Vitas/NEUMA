@@ -37,17 +37,16 @@ interface IProps {
   readonly searchParams?: Promise<RouteSearchParams>;
 }
 
-/** Whether what the address names are ids at all: they end up written into the backend's addresses. */
+/** Ids end up in backend URLs, so anything that is not a UUID is rejected first. */
 const areRecordIds = (...candidates: readonly string[]): boolean =>
   candidates.every((candidate) => z.uuid().safeParse(candidate).success);
 
-/** The view the address names, or nothing when it names none. A repeated parameter keeps only the first. */
+/** A repeated parameter keeps only the first value. */
 const resolveRequestedViewName = (rawViewParam: RouteSearchParamValue): null | string => {
   const candidate = Array.isArray(rawViewParam) ? rawViewParam[0] : rawViewParam;
   return candidate === undefined || candidate === '' ? null : candidate;
 };
 
-/** The page a shared or reloaded address asks to open beside the one it names, when it names one at all. */
 const resolvePanelPageId = (
   rawPanelParam: RouteSearchParamValue,
   pages: readonly PageSummary[],
@@ -59,14 +58,7 @@ const resolvePanelPageId = (
   return pages.some((page) => page.id === candidate) ? candidate : null;
 };
 
-/**
- * Sends an address that no longer holds the page to the one that does.
- *
- * A page moved to another space keeps its own name but changes where it lives,
- * and everything written before the move still points where it was. Rather than
- * answering those with nothing, the page is looked for and the reader taken to
- * it. Not finding it is left alone: the caller says what a missing page means.
- */
+/** Links written before a page moved to another space still point at the old one; a miss is left to the caller. */
 const followThePageToItsSpace = async (pageId: string, spaceId: string): Promise<void> => {
   const locationResult = await getPageSpaceId(pageId);
   if (locationResult.isFail()) return;
@@ -75,12 +67,7 @@ const followThePageToItsSpace = async (pageId: string, spaceId: string): Promise
   redirect({ href: ROUTES.PORTAL_SPACE_PAGE(currentSpaceId, pageId), locale: await getLocale() });
 };
 
-/**
- * The pages of the space, sure to hold this one if it exists.
- *
- * The kept list can predate a page just written from outside the portal, by an
- * agent; such a page is read again rather than answered as missing.
- */
+/** The cached list can predate a page just created outside the portal (by an agent), so it is re-read on a miss. */
 const readPagesHolding = async (spaceId: string, pageId: string): Promise<readonly PageSummary[] | null> => {
   const listedResult = await getPages(spaceId);
   const listed = listedResult.isOk() ? listedResult.getValue() : null;
@@ -89,7 +76,6 @@ const readPagesHolding = async (spaceId: string, pageId: string): Promise<readon
   return rereadResult.isOk() ? rereadResult.getValue() : listed;
 };
 
-/** The name the browser tab carries, which is the page's own and not the workspace's. */
 export const generateMetadata = async ({ params }: IProps): Promise<Metadata> => {
   const { pageId, spaceId } = await params;
   if (!areRecordIds(pageId, spaceId)) return {};
@@ -99,11 +85,7 @@ export const generateMetadata = async ({ params }: IProps): Promise<Metadata> =>
   return { title: buildPageDocumentTitle(page.title, t('untitled')) };
 };
 
-/**
- * A collection looked at from inside another page: one of its views, drawn
- * where the block that names it stands. A reference to something this page
- * cannot read shows nothing rather than a broken frame.
- */
+/** A reference the reader cannot access renders nothing rather than a broken frame. */
 const renderEmbeddedCollection = async (reference: PageCollectionReference, title: string): Promise<ReactNode> => {
   const schemaResult = await getPageSchema(reference.spaceId, reference.pageId);
   if (schemaResult.isFail()) return null;
@@ -125,25 +107,18 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
   );
 };
 
-/** Whether this reader already keeps the page among their favorites. */
 const resolveIsFavorite = (favoritesResult: Result<readonly FavoritePage[], Error>, pageId: string): boolean => {
   const favorites = favoritesResult.isOk() ? favoritesResult.getValue() : [];
   return favorites.some((favorite) => favorite.pageId === pageId);
 };
 
-/** The schema a page's own parent carries, since that is what says what its properties mean. */
 const resolveParentSchema = async (spaceId: string, parentId: string | null): Promise<PageSchema | null> => {
   if (parentId === null) return null;
   const parentSchemaResult = await getPageSchema(spaceId, parentId);
   return parentSchemaResult.isOk() ? parentSchemaResult.getValue() : null;
 };
 
-/**
- * The space members a page's render can put a name to — through its parent
- * schema's person properties, through its own, since the rows it shows name
- * people too, or through the owner an editable page can be handed to answer
- * for it. A page with none of the three offers nobody to look up.
- */
+/** Members are needed for person properties of the parent or own schema, or to assign an owner. */
 const resolvePersonOptionsIfNeeded = async (
   spaceId: string,
   schemas: readonly (PageSchema | null)[],
@@ -154,14 +129,7 @@ const resolvePersonOptionsIfNeeded = async (
   return personOptionsResult.isOk() ? personOptionsResult.getValue() : [];
 };
 
-/**
- * The collection a page shows of its own rows, present only when its own schema
- * actually has properties.
- *
- * Only the view being looked at is asked for. Reading every view of a
- * collection to show one of them costs a round trip per view and shows the same
- * rows over and over.
- */
+/** Reads only the active view: reading every view of a collection costs one round trip each. */
 const buildCollectionSection = async (
   ownSchema: PageSchema | null,
   spaceId: string,
@@ -188,7 +156,6 @@ const buildCollectionSection = async (
   );
 };
 
-/** Every collection this page's own writing points at, drawn where each reference stands. */
 const buildEmbeddedCollections = async (
   page: PageSummary,
   pages: readonly PageSummary[],
@@ -205,12 +172,6 @@ const buildEmbeddedCollections = async (
   return Object.fromEntries(entries);
 };
 
-/**
- * Everything a page's own editor needs, fetched for whichever page is being
- * asked for — the one taking the whole screen or the one riding beside it in
- * the panel. Both are read the same way, since both are read by the same
- * editor.
- */
 const buildPageEditorBundle = async (
   spaceId: string,
   targetPage: PageSummary,
@@ -219,15 +180,6 @@ const buildPageEditorBundle = async (
   favoritesResult: Result<readonly FavoritePage[], Error>,
   requestedViewName: null | string,
 ): Promise<PagesSidePanelBundle> => {
-  /**
-   * Two rounds, not five.
-   *
-   * Only one thing here waits on another — who can be named depends on what the
-   * parent's schema asks for — so everything else is asked for at once. They all
-   * knock on the same backend, and any of them failing already took the whole
-   * page down before, so waiting together costs nothing that waiting in turn
-   * did not.
-   */
   const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
     getPageBacklinks(targetPage.id),
@@ -264,11 +216,7 @@ const buildPageEditorBundle = async (
   };
 };
 
-/**
- * Esta página no puede empezar a dibujarse antes de saber quién mira: lo que
- * muestra depende de la sesión y del espacio, así que se resuelve entera antes
- * de responder en vez de prometer una navegación instantánea que no existe.
- */
+/** Depends on the session and the space, so it resolves fully before responding. */
 export const instant = false;
 
 export default async function Page({ params, searchParams }: IProps) {
@@ -288,12 +236,10 @@ export default async function Page({ params, searchParams }: IProps) {
   if (space === undefined || pages === null || selectedPage === undefined) notFound();
 
   const canEditRole = canEditContent(user?.role ?? USER_ROLE.CLIENT);
-  /** Who read a page is kept from everyone but whoever runs the workspace, and that is settled here, not in the browser. */
   const canSeePageUsage = canManageWorkspace(user?.role ?? USER_ROLE.CLIENT);
   const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pages, pageId);
   const panelPage = panelPageId === null ? undefined : pages.find((page) => page.id === panelPageId);
 
-  /** The address names a view of the page being read, not of whichever page rides beside it. */
   const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
   const [mainBundle, panelBundle] = await Promise.all([
     buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName),

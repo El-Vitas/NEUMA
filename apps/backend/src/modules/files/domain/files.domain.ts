@@ -11,13 +11,7 @@ import {
 import type { FileAssetMetadata, FileAssetSummary } from './files.domain.types';
 import { FileValidationError } from './files.error';
 
-/**
- * Takes the dashes and dots off both ends of a filename.
- *
- * Written as a walk and not as a pattern because a pattern that hunts for a run
- * at the end restarts at every character, and a long enough name would keep the
- * server busy for as long as the sender cares to make it.
- */
+/** Index scan instead of a regex: an end-anchored pattern backtracks, so a long name could tie up the server. */
 const trimFilenameEdges = (filename: string): string => {
   let start = 0;
   let end = filename.length;
@@ -48,7 +42,7 @@ export const validateFileUpload = (input: { filename: string; mimetype: string; 
   return normalizedFilename;
 };
 
-/** What a page is told about a freshly uploaded file: never its storage key, owner id, or workspace. */
+/** Never exposes the storage key, owner id or workspace. */
 export const toUploadedFileAssetResponse = (asset: FileAssetSummary, uploaderName: string): FileAssetMetadata => ({
   id: asset.id,
   mimeType: asset.mimeType,

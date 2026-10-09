@@ -3,10 +3,7 @@ import type { McpPage, McpPageState } from '../types/mcp.types';
 
 const toDay = (moment: Date | null): string | null => (moment === null ? null : moment.toISOString().slice(0, 10));
 
-/**
- * Si la página es de fiar, hoy: la verificación se compara con `now`, así una
- * que venció se dice vencida aunque nadie la haya tocado desde entonces.
- */
+/** Verification is compared against `now`, so an expired one is reported expired even if untouched since. */
 export const describeMcpPageState = (page: McpPage, now: Date): McpPageState => ({
   locked: page.lockedAt !== null,
   owner: page.owner,
@@ -34,7 +31,6 @@ const describeVerification = (verification: McpPageState['verification']): strin
   }
 };
 
-/** El estado en pocas líneas, como lo lee el modelo arriba de lo que la página dice. */
 export const formatMcpPageState = (state: McpPageState): string =>
   [
     describeVerification(state.verification),

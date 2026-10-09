@@ -8,10 +8,6 @@ const isSettingsNavItemVisibleFor = (item: SettingsNavItem, role: UserRole): boo
 export const listSettingsNavItems = (role: UserRole): readonly SettingsNavItem[] =>
   SETTINGS_NAV_ITEMS.filter((item) => isSettingsNavItemVisibleFor(item, role));
 
-/**
- * Si la página que se mira está en esa sección: la sección misma o algo dentro
- * de ella. La ruta llega sin el idioma, y compartir solo el principio del
- * nombre no cuenta.
- */
+/** `pathname` has no locale prefix; matching on the `/` boundary avoids sibling sections sharing a name prefix. */
 export const isSettingsNavItemActive = (pathname: string, href: string): boolean =>
   pathname === href || pathname.startsWith(`${href}/`);

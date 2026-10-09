@@ -1,12 +1,6 @@
 import type { PageEditorBlockColorKind } from '../../blocks/types/pages.editor.block-color.types';
 
-/**
- * How each colour of the palette is painted, written out one by one.
- *
- * The classes are spelled in full on purpose: the stylesheet is built by
- * reading this source, so a class assembled at run time would simply not
- * exist. Every colour is given a light and a dark reading of its own.
- */
+/** Class names are spelled out in full: Tailwind scans this source, so runtime-built classes would not exist. */
 export const PAGE_EDITOR_TEXT_COLOR_CLASSES: readonly string[] = [
   '[&_[data-text-color=gray]]:text-gray-600 dark:[&_[data-text-color=gray]]:text-gray-400',
   '[&_[data-text-color=brown]]:text-amber-800 dark:[&_[data-text-color=brown]]:text-amber-600',
@@ -18,11 +12,6 @@ export const PAGE_EDITOR_TEXT_COLOR_CLASSES: readonly string[] = [
   '[&_[data-text-color=red]]:text-red-700 dark:[&_[data-text-color=red]]:text-red-400',
 ];
 
-/**
- * A background is a tint, not a paint: light enough by day to read black text
- * on, and by night a wash of the same colour over the page rather than a solid
- * block that would shout across a dark room.
- */
 export const PAGE_EDITOR_BACKGROUND_COLOR_CLASSES: readonly string[] = [
   '[&_[data-background-color]]:px-2 [&_[data-background-color]]:py-1',
   '[&_[data-background-color=gray]]:bg-gray-100 dark:[&_[data-background-color=gray]]:bg-gray-400/20',
@@ -35,7 +24,6 @@ export const PAGE_EDITOR_BACKGROUND_COLOR_CLASSES: readonly string[] = [
   '[&_[data-background-color=red]]:bg-red-100 dark:[&_[data-background-color=red]]:bg-red-500/25',
 ];
 
-/** The swatch each colour shows in the menu, so a colour is chosen by seeing it. */
 export const PAGE_EDITOR_COLOR_SWATCH_CLASSES: Readonly<Record<string, string>> = {
   blue: 'bg-blue-500',
   brown: 'bg-amber-700',
@@ -49,7 +37,6 @@ export const PAGE_EDITOR_COLOR_SWATCH_CLASSES: Readonly<Record<string, string>> 
 
 export const PAGE_EDITOR_COLOR_SWATCH_STYLE_CLASS = 'size-3 shrink-0 border border-border';
 
-/** Which attribute of a block each kind of colour is written to. */
 export const PAGE_EDITOR_COLOR_ATTRS: Readonly<Record<PageEditorBlockColorKind, string>> = {
   background: 'backgroundColor',
   text: 'textColor',

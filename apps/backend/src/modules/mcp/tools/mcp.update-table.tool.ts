@@ -14,7 +14,6 @@ import { updateTableInputSchema, writtenBlocksOutputSchema } from '../schemas/mc
 import type { McpTableChange, McpUpdateTableInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
 import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-/** Reparte los párrafos de las filas nuevas, que vienen en fila uno detrás del otro, en una lista por fila. */
 const splitIntoRows = <TParagraph>(
   paragraphs: readonly TParagraph[],
   rows: readonly (readonly string[])[],
@@ -27,10 +26,6 @@ const splitIntoRows = <TParagraph>(
     { at: 0, rows: [] },
   ).rows;
 
-/**
- * Los párrafos de todo lo que se escribe en la tabla, armados de una vez y
- * devueltos a su lugar: primero las celdas que cambian, después las filas nuevas.
- */
 const prepareChange = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -74,11 +69,7 @@ const updateTable = async (
   return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.table]);
 };
 
-/**
- * Cambia una tabla sin reescribirla: unas celdas, filas nuevas al final y
- * filas que se van. Lo que no se toca conserva su id, así sus comentarios y
- * los enlaces a sus celdas siguen donde estaban.
- */
+/** Untouched parts keep their ids so comments and cell links stay attached. */
 export const updateTableTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.updateTable,
   register: (server, dependencies) => {

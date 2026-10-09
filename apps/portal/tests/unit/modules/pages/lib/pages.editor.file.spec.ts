@@ -24,7 +24,6 @@ describe('the line beside a file', () => {
     expect(describePageFile('informe', 'application/pdf', 53)).toBe('PDF · 53 B');
   });
 
-  /** A file saved before a page kept these says nothing rather than something false. */
   it('says only what it knows', () => {
     expect(describePageFile(null, null, 4096)).toBe('4.0 KB');
     expect(describePageFile('notas.txt', null, null)).toBe('TXT');

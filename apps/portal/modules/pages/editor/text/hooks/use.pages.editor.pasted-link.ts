@@ -36,14 +36,7 @@ const askWhatTheLinkSays = async (url: string): Promise<PageLinkPreview | null> 
   }
 };
 
-/**
- * What happens to a link the moment it is pasted.
- *
- * It is written as a link first and the choice only ever changes it, so doing
- * nothing — carrying on writing — leaves exactly what was pasted. What the link
- * says about itself is asked for only if a card is chosen: a page should not go
- * knocking on other people's servers for every address anyone pastes.
- */
+/** The pasted URL is inserted as a plain link first; link metadata is fetched only if a card is chosen. */
 export const usePagesEditorPastedLink = (
   editorViewRef: RefObject<EditorView | null>,
   readSurfaceRect: () => PageEditorSurfaceRect | null,
@@ -58,23 +51,13 @@ export const usePagesEditorPastedLink = (
   const [pasted, setPasted] = useState<PageEditorPastedLink | null>(null);
   const forget = useCallback(() => setPasted(null), []);
   const pasteAsPlainTextRef = useRef(false);
-  /**
-   * Kept in a ref, the way every other label the editor needs is, so that
-   * `handlePastedLink` keeps its identity across renders — `t` is a new
-   * function every time, and the editor is torn down and rebuilt whenever
-   * the paste handler it was given changes.
-   */
+  /** In a ref so `handlePastedLink` stays stable: a new handler rebuilds the editor. */
   const pasteTooMuchLabelRef = useRef(t('paste.tooMuch'));
   useEffect(() => {
     pasteTooMuchLabelRef.current = t('paste.tooMuch');
   }, [t]);
 
-  /**
-   * Asked for once, by the keys, and answered only by the very next paste —
-   * a ClipboardEvent alone never says which shortcut asked for it, so any
-   * other key pressed before that paste lowers it again: the shortcut was
-   * for one paste, not for every one that follows it.
-   */
+  /** A ClipboardEvent does not say which shortcut fired it, so the keydown is remembered for the next paste. */
   useEffect(() => {
     const rememberPlainTextWasAsked = (event: KeyboardEvent): void => {
       const editorDom = editorViewRef.current?.dom;
@@ -88,7 +71,6 @@ export const usePagesEditorPastedLink = (
     return () => document.removeEventListener('keydown', rememberPlainTextWasAsked);
   }, [editorViewRef]);
 
-  /** Where a link pasted at the cursor lands, and the choice offered about what it should become. */
   const pasteLinkAtCursor = useCallback(
     (view: EditorView, url: string): void => {
       const { from } = view.state.selection;
@@ -108,14 +90,6 @@ export const usePagesEditorPastedLink = (
     [readSurfaceRect],
   );
 
-  /**
-   * What every paste into the page answers to, beyond the file it may carry.
-   *
-   * A decision is worked out first, without touching the page, and only then
-   * carried out — so what a paste becomes can be read on its own, the same
-   * way whether it came from this app, from a written document, or from a
-   * stranger's page.
-   */
   const handlePastedLink = useCallback(
     (view: EditorView, event: ClipboardEvent): boolean => {
       const wantedPlainText = pasteAsPlainTextRef.current;
@@ -163,24 +137,12 @@ export const usePagesEditorPastedLink = (
     [pasteLinkAtCursor],
   );
 
-  /**
-   * Gives a link the shape it was asked for, wherever it already is on the page.
-   *
-   * The same three shapes are offered the moment a link is pasted and long
-   * after, from the block's own menu: which one it wears is not a decision that
-   * has to be made in the second it arrives.
-   */
   const shapeLink = useCallback(
     (asked: PageEditorLinkTarget, shape: PageEditorLinkShape) => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
 
-      /**
-       * Where the link stands is asked of the page itself at the moment of
-       * choosing, not remembered from when the menu was opened: by then the
-       * writing may have moved, and a remembered place is how a choice lands
-       * somewhere else — or, worse, silently nowhere.
-       */
+      // Re-read at choice time: the document may have moved since the menu opened.
       const target = readPageLinkTarget(editorView.state) ?? asked;
       if (shape === target.chosen) return;
 
@@ -199,12 +161,7 @@ export const usePagesEditorPastedLink = (
         return;
       }
 
-      /**
-       * Asking a stranger what it is called takes as long as it takes, so the
-       * page says it is asking. The editor is asked for again once the answer
-       * is back: by then the one held here may have been taken down and built
-       * again.
-       */
+      // The editor ref is read again after the await: the view may have been rebuilt meanwhile.
       const waiting = toast.loading(t('linkBeingRead'));
       void askWhatTheLinkSays(target.url).then((said) => {
         const editorNow = editorViewRef.current;

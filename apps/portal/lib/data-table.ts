@@ -1,13 +1,7 @@
 import type { Column, RowData } from '@tanstack/react-table';
 import type { DataTableFeatures } from '@/shared/types/table.types';
 
-/**
- * How a pinned column stays in place while the table scrolls sideways.
- *
- * Anchored by the start and the end of the line rather than by left and right,
- * which is what the table library now names them and what keeps the pinning
- * correct in a language written from right to left.
- */
+/** Pins by inline start and end rather than left and right, so it stays correct in right-to-left languages. */
 export const getColumnPinningStyle = <TData extends RowData>({
   column,
 }: {

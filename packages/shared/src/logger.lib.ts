@@ -2,13 +2,9 @@ const PROCESS_START_WALL_CLOCK_MS = Date.now();
 const PROCESS_START_MONOTONIC_MS = performance.now();
 
 /**
- * La hora que marca una línea de registro, contada desde que arrancó el proceso.
- *
- * Preguntar la hora del reloj de pared en mitad de un renderizado obliga al
- * marco a resolver esa página en el momento, y una consulta guardada en caché
- * no puede: ahí adentro la hora no es un valor estable. El reloj monótono sí lo
- * es —está pensado justo para medir—, así que se pregunta a él cuánto ha pasado
- * y se suma a la hora que era al arrancar.
+ * Reading the wall clock during a render forces the framework to resolve the page
+ * dynamically, which a cached query cannot do. The monotonic clock is stable
+ * there, so elapsed time is added to the wall-clock time at process start.
  */
 const readLogInstant = (): Date =>
   new Date(PROCESS_START_WALL_CLOCK_MS + (performance.now() - PROCESS_START_MONOTONIC_MS));

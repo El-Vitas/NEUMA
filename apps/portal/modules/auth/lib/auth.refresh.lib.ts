@@ -4,11 +4,8 @@ import { authSessionSchema } from '../schemas/auth.schemas';
 import type { AuthSession } from '../types/auth.types';
 
 /**
- * Trades a refresh token for a fresh session straight against the API.
- *
- * It does not go through `apiServer` on purpose: this runs while routing a
- * request, where there is no session to read yet, a rejection must be answered
- * with `null` instead of a redirect, and nothing may reach for cookies.
+ * Bypasses `apiServer` on purpose: this runs while routing, where there is no session yet, a rejection must
+ * return `null` instead of redirecting, and cookies must not be touched.
  */
 export const refreshSession = async (refreshToken: string): Promise<AuthSession | null> => {
   try {

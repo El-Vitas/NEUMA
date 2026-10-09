@@ -15,11 +15,7 @@ const resolveEnglishTranslation = (key: string): string => {
   return typeof node === 'string' ? node : key;
 };
 
-/**
- * A fresh function every call, the way next-intl's real `useTranslations`
- * behaves — a hook that returned the same `t` across renders would hide the
- * exact regression this file guards against.
- */
+// A fresh function per call, like next-intl's real `useTranslations`: a stable `t` would hide the regression guarded.
 mock.module('next-intl', () => ({
   useTranslations: () => (key: string) => resolveEnglishTranslation(key),
 }));
@@ -49,7 +45,7 @@ const mountEditor = (): EditorView => {
   });
 };
 
-/** Stable across renders, the way the real surface rect callback is memoised in the editor component. */
+// Stable across renders, as the memoised surface rect callback is in the editor component.
 const readNoSurfaceRect = () => null;
 
 const renderPastedLink = () => {

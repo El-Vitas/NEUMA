@@ -13,16 +13,8 @@ interface IProps {
 }
 
 /**
- * The symbols on offer, handed out a screenful at a time.
- *
- * Every symbol is fetched the moment it is drawn, so drawing all of them at
- * once would ask for close to two thousand files nobody has looked at yet. The
- * grid grows as the reader reaches its end instead, which is the same thing
- * they would have got by scrolling, minus the wait.
- *
- * Whoever renders this gives it a key tied to what is being searched for, so a
- * new search starts a new grid rather than one that remembers how far the last
- * one had been scrolled.
+ * Each symbol is fetched when drawn, so the grid grows as its end is reached instead of requesting ~2000 files at once.
+ * Render it with a key tied to the search so a new search resets the scroll depth.
  */
 export const PagesIconSymbolsGrid = ({ color, names, onChoose }: IProps) => {
   const t = useTranslations('pages.icon');

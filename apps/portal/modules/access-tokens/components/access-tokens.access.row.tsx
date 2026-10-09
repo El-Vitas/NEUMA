@@ -32,7 +32,6 @@ interface IProps {
   readonly spaceOptions: readonly AccessTokenSpaceOption[];
 }
 
-/** Un lugar y lo que el token puede hacer ahí; «sin acceso» lo excluye. */
 export const AccessTokensAccessRow = ({
   availableKinds,
   canRemove,

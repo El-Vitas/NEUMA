@@ -7,13 +7,7 @@ interface IProps {
   readonly reset: () => void;
 }
 
-/**
- * What is left when even the layout could not be drawn.
- *
- * It carries its own document and its own colours because nothing around it is
- * standing, and like every other screen of its kind it says what happened
- * without repeating what the machine said.
- */
+/** Renders its own document and colours because the root layout failed. Never shows the exception message. */
 const GlobalErrorPage = ({ error, reset }: IProps) => (
   <html lang="en">
     <body className="bg-white text-neutral-900">

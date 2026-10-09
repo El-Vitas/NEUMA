@@ -15,14 +15,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Lo que esta vista deja pasar y en qué orden, al alcance de la mano.
- *
- * Vive sobre las filas y no dentro de la configuración de la colección porque
- * filtrar se hace mirando las filas: se prueba una condición, se ve qué quedó y
- * se corrige. Cada botón dice cuántas condiciones lleva puestas, para que no
- * haya que abrirlo para saber si la vista está filtrada.
- */
+/** Sits above the rows because filtering is iterative; the counts show the view's state while closed. */
 export const PagesCollectionFilterBar = ({ activeViewName, schema, spaceId }: IProps) => {
   const t = useTranslations('pages.collection');
   const filtering = usePagesViewFiltering(schema, activeViewName, spaceId);

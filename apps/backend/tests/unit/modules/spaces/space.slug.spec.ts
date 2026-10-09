@@ -7,11 +7,8 @@ describe('isSpaceSlugAvailableToAsk', () => {
     expect(isSpaceSlugAvailableToAsk('ventas-2026')).toBe(true);
   });
 
-  /**
-   * Every person's own area lives at a name built from their identifier, and it
-   * is made without reading first. Somebody who takes that name leaves its
-   * owner without an area and nothing says so out loud.
-   */
+  // A personal space slug is built from the user id and created without reading first: if someone else takes it,
+  // the owner silently loses the space.
   it('refuses the name where somebody else keeps their own area', () => {
     expect(isSpaceSlugAvailableToAsk(buildPrivateSpaceSlug('user-a'))).toBe(false);
     expect(isSpaceSlugAvailableToAsk('private-anything')).toBe(false);

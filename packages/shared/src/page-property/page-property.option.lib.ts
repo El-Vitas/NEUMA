@@ -13,23 +13,15 @@ const readOption = (stored: unknown): PagePropertyOption | null => {
   return { color: isKnownColor(color) ? color : null, value };
 };
 
-/**
- * The options a property offers, read from whatever the store holds.
- *
- * A collection written before options had colors kept them as a plain list of
- * names, and those are still read — they simply carry no color. Reading is
- * forgiving because the alternative is a page that refuses to open over a color
- * nobody typed.
- */
+/** Also accepts the legacy plain list of names (no color); lenient so a page never fails to open over a color. */
 export const readPagePropertyOptions = (stored: unknown): readonly PagePropertyOption[] | null => {
   if (!Array.isArray(stored)) return null;
   return stored.map(readOption).filter((option): option is PagePropertyOption => option !== null);
 };
 
-/** The names alone, for whoever only needs to know which values a property allows. */
 export const readPagePropertyOptionValues = (stored: unknown): readonly string[] | null =>
   readPagePropertyOptions(stored)?.map((option) => option.value) ?? null;
 
-/** A color for the option standing at this place in the list, starting the palette over when it runs out. */
+/** Cycles the palette when the index runs past it. */
 export const pickPageOptionColor = (index: number): PageOptionColor =>
   PAGE_OPTION_COLOR_VALUES[index % PAGE_OPTION_COLOR_VALUES.length] ?? PAGE_OPTION_COLOR.GRAY;

@@ -32,14 +32,7 @@ interface IProps {
   readonly value: string;
 }
 
-/**
- * Lo que se puede hacer con una columna, donde está la columna.
- *
- * Una columna **es** un valor de la propiedad por la que el tablero agrupa, así
- * que renombrarla o quitarla toca esa propiedad en toda la colección. Por eso
- * quitar pasa antes por una pregunta que dice a cuántas filas deja sin valor:
- * es lo único de aquí que no se ve venir mirando la columna.
- */
+/** A column is a value of the grouping property, so renaming or removing it changes the whole collection. */
 export const PagesCollectionBoardColumnMenu = ({
   color,
   columns,

@@ -1,7 +1,7 @@
 import type { CollaborationPresenceIdentity } from './collaboration-presence.types.js';
 
 export const COLLABORATION_DOCUMENT_PREFIX = 'page:';
-/** Dónde vive el texto de la página dentro del documento colaborativo, para el editor y para el servidor. */
+/** Fragment of the collaborative document holding the page text, shared by editor and server. */
 export const COLLABORATION_DOCUMENT_FRAGMENT = 'prosemirror';
 export const MAX_COLLABORATION_DISPLAY_NAME_LENGTH = 80;
 

@@ -46,11 +46,7 @@ const openAndSelectBetaRoot = async (): Promise<void> => {
   fireEvent.click(options[options.length - 1] as HTMLElement);
 };
 
-/**
- * El aviso se abre mientras la comprobación de acceso todavía es una transición
- * en curso, así que sus botones nacen apagados y se encienden al terminar.
- * Pulsar antes de eso no hace nada.
- */
+// The dialog opens while the access check transition is still running, so its buttons start disabled.
 const clickOnceEnabled = async (name: string): Promise<void> => {
   const button = await screen.findByRole<HTMLButtonElement>('button', { name });
   await waitFor(() => {
@@ -62,12 +58,7 @@ const clickOnceEnabled = async (name: string): Promise<void> => {
 describe('PagesMoveForm — moving across spaces', () => {
   afterEach(() => {
     mock.clearAllMocks();
-    /**
-     * `clearAllMocks` forgets the calls but not the queue `mockImplementationOnce`
-     * builds, so an answer a test queued and never spent would be spent by the
-     * next one. Each test states its own answer outright and this puts the
-     * default back, leaving no queue to leak.
-     */
+    // `clearAllMocks` keeps the `mockImplementationOnce` queue, so an unspent answer would leak into the next test.
     getSpaceMoveAccessLoss.mockImplementation(async () => ({ data: { count: 0 } }));
     movePage.mockImplementation(async () => ({ data: undefined }));
     toast.dismiss();
@@ -124,13 +115,7 @@ describe('PagesMoveForm — moving across spaces', () => {
     await openAndSelectBetaRoot();
     await clickOnceEnabled('Move anyway');
 
-    /**
-     * What is asked of this test is that confirming moves the page, and the
-     * page saying it moved is the honest evidence of that. Ten other spec
-     * files stand in for this same actions module, and which stand-in the
-     * runner happens to hand this one is not something the reader confirming
-     * a move would ever notice.
-     */
+    // Asserts on the visible message: other specs stand in for this actions module differently.
     expect(await screen.findByText('Page moved')).toBeDefined();
     await waitFor(() => {
       expect(screen.queryByText('Someone will stop seeing this page')).toBeNull();

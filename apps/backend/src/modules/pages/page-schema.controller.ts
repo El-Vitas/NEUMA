@@ -115,7 +115,7 @@ export class PageSchemaController {
     const result = await this.pageSchemaService.listRows(pageId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
     const { hasMore, rows } = this.assertSpaceMatch(result.getValue(), spaceId);
-    /* La lista va acompañada de si quedó algo fuera: una lista cortada a secas se lee como la colección entera. */
+    // hasMore keeps a truncated list from being read as the whole collection.
     return { hasMore, rows };
   }
 

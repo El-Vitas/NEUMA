@@ -1,7 +1,4 @@
-/**
- * Otro pedido del mismo token con el mismo id se anotó primero: dos reintentos
- * que llegaron a la vez. El segundo no escribe nada.
- */
+/** Two concurrent retries with the same token and request id: the second writes nothing. */
 export class McpRequestTakenError extends Error {
   constructor(readonly requestId: string) {
     super(`Another call with request id ${requestId} is already under way`);

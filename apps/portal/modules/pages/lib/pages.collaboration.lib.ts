@@ -22,15 +22,7 @@ export const computeCollaborationReconnectDelayMs = (attemptNumber: number): num
   return Math.min(exponentialDelay, COLLABORATION_RECONNECT_MAX_DELAY_MS);
 };
 
-/**
- * The page as it is written together.
- *
- * What is being written is the shared document, so the history is the shared
- * document's too: undoing takes back what this person did and leaves what
- * everyone else did where it is. Undoing and redoing ask which history is in
- * charge, so the same keys and the same menu answer on a page written alone
- * and on one written with others.
- */
+/** Undo history is the shared document's: undo reverts only this person's changes, not other people's. */
 export const createCollaborativePageEditorState = (
   page: PageCollaborationDraft,
   selectBlockLabel: string,
@@ -63,7 +55,6 @@ export const createCollaborativePageEditorState = (
   });
 };
 
-/** Where the browser has the caret right now, as positions of the page, or nothing when it is not in the page's writing. */
 const readBrowserSelection = (view: EditorView): { readonly anchor: number; readonly head: number } | null => {
   const selection = view.dom.ownerDocument.getSelection();
   if (!view.hasFocus() || selection?.anchorNode == null || selection.focusNode == null) return null;
@@ -74,14 +65,7 @@ const readBrowserSelection = (view: EditorView): { readonly anchor: number; read
   };
 };
 
-/**
- * Where this person is writing, read before the page is set up again.
- *
- * A click that landed a moment ago is in the browser and not yet in the
- * editor, whose caret still sits at the top of the page. Setting the page up
- * from that caret sent the first keystrokes into the first paragraph, beside
- * whoever was writing there.
- */
+/** A recent click is in the browser selection before the editor state has it. */
 export const readWhereThisPersonWrites = (view: EditorView): { readonly anchor: number; readonly head: number } =>
   readBrowserSelection(view) ?? { anchor: view.state.selection.anchor, head: view.state.selection.head };
 
@@ -89,23 +73,9 @@ const isInsideWriting = (view: EditorView, position: number): boolean =>
   position >= 0 && position <= view.state.doc.content.size && view.state.doc.resolve(position).parent.inlineContent;
 
 /**
- * Brings a click the editor has not read yet into the editor, before a change
- * from somebody else is applied.
- *
- * The browser moves the caret the moment somebody clicks, and the editor reads
- * it a moment later. A change arriving from somebody else in between is applied
- * around the caret the editor still remembers, so the click was lost and the
- * next keystrokes landed where the caret used to be — often beside whoever was
- * typing. Reading the browser's caret first, before the shared document
- * remembers where this person was, keeps the click.
- *
- * Somebody else only moving their caret is such a change too. Drawing their
- * caret writes the page again, and with it the caret the editor remembers, over
- * the click the browser had not reported yet.
- *
- * It has to be set up before the collaborative state, so it runs first: the
- * document and the presence tell whoever listens in the order they started
- * listening. Returns how to stop.
+ * Applies the browser caret to the editor before a remote change lands, so a click the editor has not read yet
+ * is not overwritten by the stale caret. Remote caret moves count as changes too.
+ * Must be set up before the collaborative state: listeners fire in registration order. Returns a disposer.
  */
 export const keepClicksAcrossChangesFromOthers = (
   view: EditorView,
@@ -133,11 +103,7 @@ export const keepClicksAcrossChangesFromOthers = (
   };
 };
 
-/**
- * Puts the caret back where it was, when the page is set up again around the
- * same document — as after a reconnection — so the writing goes on where it
- * was going instead of jumping to the top.
- */
+/** Restores the caret when the editor is rebuilt around the same document, as after a reconnection. */
 export const restoreSelectionIfStillWriting = (view: EditorView, anchor: number, head: number): void => {
   if (!isInsideWriting(view, anchor) || !isInsideWriting(view, head)) return;
   view.dispatch(

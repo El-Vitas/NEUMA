@@ -11,13 +11,6 @@ interface IProps {
   readonly onAddProperty: () => void;
 }
 
-/**
- * Lo que se enseña cuando una vista pide algo que la colección no tiene.
- *
- * Un desplegable vacío y apagado deja encallado a quien no sabe que lo que
- * falta no es elegir sino agregar, así que se dice qué falta y se lleva a donde
- * se arregla.
- */
 export const PagesSchemaSettingsMissingProperty = ({ heading, isSaving, message, onAddProperty }: IProps) => {
   const t = useTranslations('pages.collection');
 

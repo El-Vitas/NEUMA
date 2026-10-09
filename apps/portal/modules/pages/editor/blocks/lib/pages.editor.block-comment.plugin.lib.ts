@@ -17,7 +17,6 @@ const countBlockComments = (block: EditorNode): number => {
   return Array.isArray(comments) ? comments.length : 0;
 };
 
-/** The speech mark, drawn as the app's other icons are rather than as an emoji the system picks. */
 const createCommentIcon = (): SVGElement => {
   const icon = document.createElementNS(PAGE_EDITOR_SVG_NAMESPACE, 'svg');
   const outline = document.createElementNS(PAGE_EDITOR_SVG_NAMESPACE, 'path');
@@ -52,10 +51,7 @@ const createCommentMark = (view: EditorView, blockStart: number, label: string, 
   return mark;
 };
 
-/**
- * The bubble is placed inside the block it belongs to, which becomes its frame,
- * so it sits level with the middle of what was commented however tall it is.
- */
+/** The block becomes the bubble's frame so the bubble stays level with its middle however tall it is. */
 const buildCommentMark = (
   block: EditorNode,
   blockStart: number,
@@ -79,18 +75,9 @@ const collectCommentMarks = (document: EditorNode, label: string): readonly Deco
   return marks;
 };
 
-/** A commented fragment answers to a click, which is what its underline is inviting. */
 const isPointingAtCommentedText = (event: MouseEvent): boolean =>
   event.target instanceof Element && event.target.closest(`[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]`) !== null;
 
-/**
- * Marks the blocks that have been talked about with a bubble on their right,
- * which opens what was said and where to say more, and lets a commented
- * fragment of text open the same conversation when it is clicked.
- *
- * A comment nobody can see is a comment nobody answers, so the mark is drawn
- * from the block itself and appears the moment the first remark lands.
- */
 export const createPageEditorBlockCommentPlugin = (label: string): EditorPlugin =>
   new EditorPlugin({
     props: {

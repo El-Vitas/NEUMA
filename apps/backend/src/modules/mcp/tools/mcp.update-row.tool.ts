@@ -16,7 +16,7 @@ import type {
 } from '../types/mcp.collections.types';
 import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-/** Las propiedades, y el título si viene, en una sola escritura: o quedan las dos cosas o ninguna. */
+/** Properties and the title go in one write: both apply or neither. */
 const writeProperties = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -50,10 +50,6 @@ const renameRow = async (
   );
 };
 
-/**
- * Cambia lo que el agente pidió y nada más, en una sola escritura. Todo lo que
- * el agente escribió se revisa antes de escribir.
- */
 const writeRowChanges = (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -90,13 +86,7 @@ const updateRow = async (
   return rowOutputSchema.parse(describeMcpRowAsSeen(dependencies.portalUrl, call, target, written, people));
 };
 
-/**
- * Cambia una fila de una colección: su título o sus propiedades. Mover una
- * tarea a otra columna de un tablero es cambiar su estado.
- *
- * Solo viaja lo que se nombra; lo demás que la fila tenía se queda como estaba,
- * aunque otra persona lo haya cambiado mientras tanto.
- */
+/** Only named values are sent, so concurrent edits to other values survive. */
 export const updateRowTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.updateRow,
   register: (server, dependencies) => {

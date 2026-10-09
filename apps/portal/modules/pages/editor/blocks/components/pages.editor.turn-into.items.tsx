@@ -9,11 +9,6 @@ interface IProps {
   readonly onSelect: (conversion: PageEditorBlockConversion) => void;
 }
 
-/**
- * The types on offer, named and marked when going through would leave
- * something behind. Whoever shows them decides where they hang and how the
- * warning is asked; this only lists what the editor can actually do.
- */
 export const PagesEditorTurnIntoItems = ({ conversions, onSelect }: IProps) => {
   const t = useTranslations('pages');
 

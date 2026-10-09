@@ -8,7 +8,7 @@ export type {
   PageBlockSearchResult,
 } from '../../../common/types/search.types';
 
-/** Los bloques de una página en una versión: reemplazan a los que había, si no hay otros más nuevos. */
+/** Replaces the stored blocks unless a newer version exists. */
 export interface PageBlocksProjection {
   readonly blocks: readonly PageBlockEntry[];
   readonly pageId: string;

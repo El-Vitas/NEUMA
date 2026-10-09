@@ -11,21 +11,9 @@ import { updatePageRowPropertiesAction } from '../server/actions/pages.collectio
 import type { PagesBulkEditing } from '../types/pages.bulk-editing.types';
 import type { PagePropertyValue, PagePropertyValues } from '../types/pages.schema.types';
 
-/**
- * Hacer de una vez lo mismo con varias filas.
- *
- * Cada fila viaja por su cuenta y no en un solo mandado, porque el servidor
- * responde por una fila cada vez: lo que cambia aquí es que no haya que repetir
- * el gesto veinte veces, no cómo se guarda.
- *
- * Todo lo que se hace se puede deshacer desde el aviso que aparece al terminar,
- * y por eso cada operación se apunta lo que hacía falta para volver: qué decía
- * cada fila antes, o cuáles son las copias recién hechas. Sin eso, «deshacer»
- * sería un botón que no puede cumplir.
- */
+/** One request per row, since the server answers per row. Each operation keeps what its undo needs. */
 export const usePagesBulkEditing = (
   spaceId: string,
-  /** Lo que cada fila responde ahora, para saber a qué volver si se deshace. */
   valuesByRow: Readonly<Record<string, PagePropertyValues>>,
   onDone: () => void,
 ): PagesBulkEditing => {
@@ -104,7 +92,7 @@ export const usePagesBulkEditing = (
         const sent = await Promise.all(
           rowIds.map(async (pageId) => ({ pageId, went: !hasActionError(await trashPageAction({ pageId, spaceId })) })),
         );
-        /* Se cuenta y se deshace sobre las que de verdad se fueron: devolver una fila que sigue en su sitio no es deshacer nada. */
+        // Counted and undone only for rows that really went; restoring one that never left would be a no-op.
         const trashed = sent.filter((one) => one.went).map((one) => one.pageId);
         if (trashed.length === 0) {
           toast.error(tErrors('generic'));

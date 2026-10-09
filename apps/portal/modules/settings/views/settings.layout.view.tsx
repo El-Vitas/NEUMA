@@ -10,7 +10,6 @@ interface IProps {
   readonly role: UserRole;
 }
 
-/** El marco de la configuración: el título, las secciones que le tocan a quien mira, y la sección abierta. */
 export const SettingsLayoutView = async ({ children, role }: IProps) => {
   const t = await getTranslations('settings');
 

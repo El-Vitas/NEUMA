@@ -49,7 +49,6 @@ describe('groupRowsForView', () => {
     expect(result.getValue()[0]?.rows.map((row) => row.id)).toEqual(['y', 'z']);
   });
 
-  /** Agrupar es agrupar: una tabla a la que se lo pidieron lo hace igual que un tablero. */
   it('groups the rows of a table that was asked to group', () => {
     const result = groupRowsForView(
       DatabaseViewType.TABLE,
@@ -69,10 +68,6 @@ describe('groupRowsForView', () => {
     expect(result.getError().code).toBe('SCHEMA_VIEW_INVALID');
   });
 
-  /**
-   * Una fecha no declara de antemano qué días existen, así que las columnas
-   * salen de los días que las filas nombran, en orden y sin repetirse.
-   */
   it('makes a column per value the rows carry when the property declares none', () => {
     const dueDate = {
       key: 'dueDate',
@@ -98,11 +93,6 @@ describe('groupRowsForView', () => {
     expect(result.getValue()[2]?.rows.map((row) => row.id)).toEqual(['d']);
   });
 
-  /**
-   * Un año de trabajo son trescientos grupos de una fila si cada día es el
-   * suyo. El tramo dice cuánto cabe en cada grupo, y el grupo se nombra por su
-   * principio para que el nombre ordene solo.
-   */
   it('gathers the dates of one week into the monday it started on when the view asks for weeks', () => {
     const dueDate = {
       key: 'dueDate',
@@ -150,7 +140,6 @@ describe('groupRowsForView', () => {
     expect(result.getValue()[0]?.rows.map((row) => row.id)).toEqual(['a', 'b']);
   });
 
-  /** El tramo es de las fechas: pedirlo agrupando por otra cosa no cambia nada. */
   it('ignores the bucket when the property it groups by is not a date', () => {
     const result = groupRowsForView(
       DatabaseViewType.BOARD,

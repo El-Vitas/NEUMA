@@ -71,7 +71,6 @@ const createDivider = (parameters: {
   divider.append(bar);
   divider.className = PAGE_EDITOR_COLUMN_DIVIDER_STYLE_CLASS;
   divider.setAttribute(PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE, 'true');
-  /** What it is, said as what it is: the line between two columns, and how wide each one is left. */
   divider.setAttribute('role', 'separator');
   divider.setAttribute('aria-orientation', 'vertical');
   divider.setAttribute('aria-label', parameters.label);
@@ -103,14 +102,9 @@ const collectDividerDecorations = (document: EditorNode, label: string): readonl
 };
 
 /**
- * Puts a grip between two columns so the width of a row can be shared by hand.
- *
- * The grip takes the whole gap between the columns, while what is drawn inside
- * it stays a thin line: a person aims at the space between columns, not at a
- * four pixel target.
- *
- * Widths are written without touching the undo history: resizing is a way of
- * looking at the page, not an edit of what it says.
+ * Adds a grip between two columns to resize them by hand.
+ * The grip fills the whole gap while the drawn line stays thin, so it is not a four pixel target.
+ * Widths are written outside the undo history.
  */
 export const createPageEditorColumnResizePlugin = (dividerLabel: string): EditorPlugin =>
   new EditorPlugin({

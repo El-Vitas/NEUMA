@@ -10,23 +10,10 @@ import { createPageEditorAskCommand, createPageEditorWriteCommand } from '../../
 import { leaveSomewhereToWriteUnder } from '../../lib/pages.editor.write-under.lib';
 import type { PageSubpageInsert } from '../types/pages.editor.subpage.types';
 
-/**
- * Asks for the page that will hang from this one.
- *
- * A page cannot be written into the writing: it has to be made first, and only
- * whoever holds the page knows how to make one. So the menu asks, the same way
- * it asks for an image, and what lands here is whatever comes back.
- */
+/** A child page must be created outside the editor, so the menu asks the host page to make one. */
 export const askForPageChild: Command = createPageEditorAskCommand(PAGE_EDITOR_SUBPAGE_REQUEST_SELECTOR);
 
-/**
- * Puts the line that leads to a child page where the writing was left.
- *
- * Where it was left is said outright rather than read from the writing when the
- * page comes back: making a page takes a moment, and in that moment the cursor
- * has been elsewhere — the menu was pressed, the writing lost hold — so a line
- * asked for at the end of a page would land at the top of it.
- */
+/** Takes the position explicitly: creating the page is async and the selection has moved by then. */
 export const createPageSubpageInsertCommand =
   (schema: Schema, subpage: PageSubpageInsert, spot: number): Command =>
   (state, dispatch) => {
@@ -40,38 +27,23 @@ export const createPageSubpageInsertCommand =
     return true;
   };
 
-/**
- * Asks which page already written is being named here.
- *
- * The asking is the same one `@` does, so it is done by writing the `@`: one
- * way of looking for a page, whether it was reached from the menu or typed
- * straight into the sentence.
- */
+/** Types the mention trigger, so the menu and a typed `@` open the same page search. */
 export const askForAPageAlreadyWritten: Command = createPageEditorWriteCommand(PAGE_EDITOR_MENTION_TRIGGER);
 
-/** What a page hanging from another is called before anybody has named it. */
 export const nameTheChildPage = (title: string, untitled: string): string =>
   title.trim().length > 0 ? title.trim() : untitled;
 
-/** What a page is called now, asked of the pages this one already knows about. */
 export const readPageTitleFrom = (
   pages: readonly { readonly id: string; readonly title: string }[],
   pageId: string,
 ): string | null => pages.find((page) => page.id === pageId)?.title ?? null;
 
-/** What mark a page wears now, asked the same way its name is. */
 export const readPageIconFrom = (
   pages: readonly { readonly icon?: PageIcon | null; readonly id: string }[],
   pageId: string,
 ): PageIcon | null => pages.find((page) => page.id === pageId)?.icon ?? null;
 
-/**
- * Whether a page is still there, asked of the pages this one already knows about.
- *
- * Nothing is said when the page is not among them — another space, a page
- * gone from the list — because not knowing is not the same as knowing it was
- * thrown away.
- */
+/** Null when the page is not in the list (another space, say), which does not mean it was deleted. */
 export const readPageLifecycleFrom = (
   pages: readonly { readonly id: string; readonly lifecycle: PageLifecycle }[],
   pageId: string,

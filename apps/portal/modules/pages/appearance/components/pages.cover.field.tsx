@@ -13,12 +13,7 @@ interface IProps {
   readonly controller: PagesCoverController;
 }
 
-/**
- * The one control the cover has, kept among the other page-wide controls.
- *
- * It lives there rather than in a row of its own above the title: a page with no
- * cover would otherwise pay for one in blank space, on every page, forever.
- */
+/** Sits among the page-wide controls so a page without a cover does not reserve a row for it. */
 export const PagesCoverField = ({ controller }: IProps) => {
   const t = useTranslations('pages.cover');
   const [isMenuOpen, setIsMenuOpen] = useState(false);

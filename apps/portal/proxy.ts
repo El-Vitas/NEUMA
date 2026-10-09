@@ -50,13 +50,7 @@ const redirectToLogin = (request: NextRequest, locale: string): NextResponse => 
   return NextResponse.redirect(loginUrl);
 };
 
-/**
- * Renews a session that is about to expire before the page is rendered.
- *
- * Routing is the only moment where a new cookie can still reach the browser,
- * so a session is renewed here instead of letting a page render with a token
- * the API is about to reject.
- */
+/** Renews here because routing is the last point where a new cookie can still reach the browser. */
 export const proxy = async (request: NextRequest) => {
   const localeResponse = handleLocaleRouting(request);
   if (localeResponse.headers.has('location')) {
@@ -93,12 +87,7 @@ export const proxy = async (request: NextRequest) => {
   return storeSessionOnResponse(localeResponse, session);
 };
 
-/**
- * Next.js reads this matcher when it builds, without running the file, and it
- * only understands a plain string literal here. Written any other way — a
- * `String.raw` template among them — it is not read at all, the proxy starts
- * answering for `/_next/static` too, and every chunk comes back a 404.
- */
+/** Next reads the matcher statically and accepts only a plain string literal; any other form also matches assets. */
 export const config = {
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 };

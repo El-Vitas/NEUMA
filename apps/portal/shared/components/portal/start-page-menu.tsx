@@ -19,16 +19,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Qué se está creando: una página para escribir, o una colección para guardar
- * filas.
- *
- * Se pregunta aquí y no dentro porque son dos cosas distintas desde el primer
- * momento, y descubrir que existen las colecciones no debería depender de saber
- * que hay un menú de barra al escribir. Lo que se elige decide con qué se abre
- * la página, no qué clase de página es para siempre: una colección es una
- * página con una forma, y la forma se le puede quitar.
- */
+/** The choice only decides how the page opens: a collection is a page with a shape that can be removed. */
 export const StartPageMenu = ({ align = 'start', children, onNavigate, parentId = null, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const { isStarting, startCollection, startPage } = usePagesStart();

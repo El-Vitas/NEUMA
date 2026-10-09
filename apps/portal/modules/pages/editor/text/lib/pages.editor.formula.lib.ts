@@ -17,13 +17,7 @@ import {
 } from '../constants/pages.editor.formula.constants';
 import type { PageFormulaDrawing, PageFormulaInsert } from '../types/pages.editor.formula.types';
 
-/**
- * Builds a ProseMirror command that writes a formula where the writing is.
- *
- * Returns a no-op command (reports `false`, never dispatches) when `latex`
- * fails the shared `pageFormulaAttrsSchema` — the same contract
- * `serializePageEditorDocument` validates against at save time.
- */
+/** Reports `false` when the formula fails `pageFormulaAttrsSchema`, the same contract validated on save. */
 export const createPageFormulaInsertCommand = (schema: Schema, formula: PageFormulaInsert): Command => {
   const attrs = pageFormulaAttrsSchema.safeParse(formula);
   if (!attrs.success) return () => false;
@@ -33,7 +27,7 @@ export const createPageFormulaInsertCommand = (schema: Schema, formula: PageForm
 const escapeFormulaText = (text: string): string =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
-/** Tries katex once; a caller that only needs the markup and a caller that also needs to know whether it failed share this attempt instead of asking katex twice. */
+/** Single katex attempt shared by callers that need only the markup and callers that need to know it failed. */
 const attemptToDrawTheFormula = (latex: string): PageFormulaDrawing => {
   try {
     return { html: katex.renderToString(latex, PAGE_EDITOR_FORMULA_KATEX_OPTIONS) };
@@ -42,18 +36,12 @@ const attemptToDrawTheFormula = (latex: string): PageFormulaDrawing => {
   }
 };
 
-/**
- * Draws a formula as the HTML katex produces.
- *
- * Katex is never let throw: a formula it refuses is shown as what was
- * written — escaped, so the page stays safe — rather than breaking the page.
- */
+/** Never throws: a formula katex refuses comes back as the escaped source text. */
 export const drawTheFormula = (latex: string): string => {
   const drawing = attemptToDrawTheFormula(latex);
   return 'html' in drawing ? drawing.html : drawing.text;
 };
 
-/** Shows a formula the way it reads right now: unwritten, drawn, or refused, each with its own words for what it is. */
 const showTheFormula = (display: HTMLElement, latex: string, labels: PageEditorFormulaLabels): void => {
   display.removeAttribute('title');
 
@@ -78,15 +66,7 @@ const showTheFormula = (display: HTMLElement, latex: string, labels: PageEditorF
   display.setAttribute('aria-label', `${labels.unreadable}: ${latex}`);
 };
 
-/**
- * A formula inside the line, drawn by katex at the size of the writing around
- * it so it never pushes the line's height around.
- *
- * Nothing written yet still stands as a quiet placeholder, and clicking
- * either — or ProseMirror selecting the formula, arriving by keyboard — opens
- * a field to write the LaTeX in. Leaving the field writes it back through a
- * single transaction, the same way the code block writes its own attributes.
- */
+/** Clicking or selecting the formula opens a LaTeX field; leaving it commits through a single transaction. */
 export const createPageFormulaNodeView = (
   node: EditorNode,
   view: EditorView,
@@ -144,7 +124,6 @@ export const createPageFormulaNodeView = (
     render();
   };
 
-  /** Writes the field back to the document in one transaction — nothing here ever mutates the display behind ProseMirror's back. */
   const commit = (): void => {
     const position = getPosition();
     if (position === undefined) return;

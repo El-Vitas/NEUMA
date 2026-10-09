@@ -31,7 +31,6 @@ const call: McpCall = {
 
 const request = { blockIds: [], detail: {}, pageId: 'page-1', tool: 'update_row' };
 
-/** Un registro que anota en memoria, y que puede fallar al abrir o al cerrar una acción. */
 const createLog = (
   fails: { readonly finishing?: boolean; readonly starting?: boolean; readonly taken?: boolean } = {},
   live: McpLiveRequest | null = null,
@@ -63,7 +62,6 @@ const createLog = (
 
 const attempt = { target: 'https://brain.example/spaces/s/pages/p', tool: 'update_row' };
 
-/** Lo que el agente intentó y le fue negado antes de escribir también queda anotado. */
 describe('recordMcpAttempt', () => {
   it('writes down an attempt refused before any write, with what it pointed at', async () => {
     const { dependencies, entries, history } = createLog();
@@ -91,7 +89,6 @@ describe('recordMcpAttempt', () => {
     expect(history).toEqual(['action-1:PENDING', 'action-1:FAILED']);
   });
 
-  /** Una escritura ya anotada no se anota dos veces. */
   it('does not write down twice a refusal that came after the write was written down', async () => {
     const { dependencies, history } = createLog();
 
@@ -103,7 +100,6 @@ describe('recordMcpAttempt', () => {
     expect(history).toEqual(['action-1:PENDING', 'action-1:REFUSED']);
   });
 
-  /** Si el registro falla, el agente igual recibe el motivo verdadero y el fallo del registro se cuenta. */
   it('keeps the real refusal for the agent when the attempt cannot be written down', async () => {
     const { dependencies, unexpected } = createLog({ starting: true });
 
@@ -148,7 +144,6 @@ describe('recordMcpWrite', () => {
     expect(history).toEqual(['action-1:PENDING', 'action-1:REFUSED']);
   });
 
-  /** Sin anotación no hay escritura. */
   it('never writes when the action cannot be written down first', async () => {
     const { dependencies } = createLog({ starting: true });
     let wasWritten = false;
@@ -163,7 +158,6 @@ describe('recordMcpWrite', () => {
     expect(wasWritten).toBe(false);
   });
 
-  /** La escritura ya se hizo: decirle al agente que falló lo haría repetirla. Queda pendiente y se avisa. */
   it('hands back a write that went through when its action cannot be closed, and reports it', async () => {
     const { dependencies, unexpected } = createLog({ finishing: true });
 
@@ -174,7 +168,6 @@ describe('recordMcpWrite', () => {
   });
 });
 
-/** Un reintento con el mismo id de pedido no vuelve a escribir. */
 describe('recordMcpAttempt with a request id', () => {
   const retried = { ...attempt, requestId: 'request-1' };
   const writeOnce = (wasWritten: { count: number }) => (record: McpWriteSession['record']) =>
@@ -191,7 +184,6 @@ describe('recordMcpAttempt with a request id', () => {
     expect(entries.map((entry) => entry.requestId)).toEqual(['request-1']);
   });
 
-  /** Un id repetido para otra cosa no se toma como un reintento: se dice que ya se usó, y nada se pierde en silencio. */
   it('refuses an id already used for another tool, saying so instead of claiming it was done', async () => {
     const other = { actionId: 'action-0', isDone: true, pageId: 'page-9', startedAt: new Date(), tool: 'create_page' };
     const { dependencies } = createLog({}, other);
@@ -228,11 +220,6 @@ describe('recordMcpAttempt with a request id', () => {
     expect(wasWritten.count).toBe(0);
   });
 
-  /**
-   * Un pedido que lleva demasiado pendiente pudo haberse hecho aunque no se
-   * anotara: hacerlo otra vez lo duplicaría. El id no se libera; se le pide al
-   * agente mirar la página y, si no está, mandarlo con un id nuevo.
-   */
   it('does not carry out a retry of a request left pending too long, and says how to tell', async () => {
     const longAgo = new Date(Date.now() - MCP_ABANDONED_REQUEST_MS - 1);
     const abandoned = { actionId: 'action-0', isDone: false, pageId: null, startedAt: longAgo, tool: 'update_row' };
@@ -247,7 +234,6 @@ describe('recordMcpAttempt with a request id', () => {
     expect(history).not.toContain('action-0:FAILED');
   });
 
-  /** Dos reintentos a la vez: el índice deja pasar uno, y el otro no escribe. */
   it('does not write when another call took the same request id first', async () => {
     const { dependencies } = createLog({ taken: true });
     const wasWritten = { count: 0 };

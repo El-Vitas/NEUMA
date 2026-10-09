@@ -25,7 +25,6 @@ describe('pointAtExportedFiles', () => {
     ['page-b', 'Madre/Hija.md'],
   ]);
 
-  /** A link that survives the trip is the difference between a copy to read and a copy to come back from. */
   it('sends a mention to the file the page became', () => {
     const written = '[Manual](/spaces/space-1/pages/page-a) y algo más';
 
@@ -34,7 +33,6 @@ describe('pointAtExportedFiles', () => {
     );
   });
 
-  /** A page nobody exported is still out there; pointing at a file that is not in the archive would be a lie. */
   it('leaves a mention to a page that did not come along exactly as it was', () => {
     const written = '[Otra](/spaces/space-1/pages/page-z)';
 
@@ -69,7 +67,6 @@ describe('pointAtExportedFiles', () => {
     expect(pointAtExportedFiles(written, 'Madre.md', whereEachPageWent, new Map())).toBe(written);
   });
 
-  /** A word in brackets is not an identifier, and rewriting it would break ordinary writing. */
   it('leaves alone something that only looks like an identifier', () => {
     const written = '[ver](algo-corto)';
 

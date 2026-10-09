@@ -8,15 +8,7 @@ import type { WorkspaceSummary } from '../../types/workspace.types';
 export class WorkspaceContextService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * The workspace somebody belongs to, joining them to it the first time.
-   *
-   * Almost every request that carries a session passes through here, and almost
-   * none of them has anything to change: the workspace is made once and a
-   * membership only moves when a role does. So the ordinary path asks twice and
-   * writes nothing, instead of opening a transaction and taking a lock on two
-   * rows that already say what they should.
-   */
+  /** Runs on nearly every request, so the common path only reads and opens no transaction or lock. */
   async resolveForUser(userId: string, role: UserRole): Promise<WorkspaceSummary> {
     const workspace = await this.resolveWorkspace();
     await this.ensureMembership(workspace.id, userId, role);
@@ -27,11 +19,7 @@ export class WorkspaceContextService {
     const existing = await this.readWorkspace();
     if (existing !== null) return existing;
 
-    /**
-     * Two first requests arriving together both try to make it; the unique key
-     * lets exactly one through and the other is dropped, so neither has to read
-     * first and neither can lose the race.
-     */
+    // Concurrent first requests race here; the unique key lets one insert and skips the other.
     await this.prisma.workspace.createMany({
       data: [{ name: WORKSPACE_DEFAULT_NAME, singletonKey: WORKSPACE_SINGLETON_KEY }],
       skipDuplicates: true,

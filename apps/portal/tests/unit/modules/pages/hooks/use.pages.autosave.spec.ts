@@ -131,11 +131,7 @@ describe('usePagesAutosave', () => {
     expect(result.current.savedAt).not.toBeNull();
   });
 
-  /**
-   * React may mount an effect, take it down and mount it again, as it does in
-   * development. A save that finishes after that still has to clear what was
-   * waiting, or leaving the page warns about changes that were already kept.
-   */
+  // React may mount, unmount and remount an effect (as in development); the save must still clear the pending state.
   it('clears what was waiting after a save even when it was mounted twice', async () => {
     const save = mock(() => Promise.resolve(true));
     const { result } = renderHook(() => usePagesAutosave({ enabled: true, onSave: save }), { wrapper: StrictMode });

@@ -23,10 +23,6 @@ interface IProps {
   readonly target: AccessTokenDraftTarget;
 }
 
-/**
- * Dónde vale una fila: en todos los espacios, en un espacio o en una página
- * con todo lo que cuelga de ella. Primero la clase de lugar, después cuál.
- */
 export const AccessTokensTargetPicker = ({
   availableKinds,
   excludedPageIds,

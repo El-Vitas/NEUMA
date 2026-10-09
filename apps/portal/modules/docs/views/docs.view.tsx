@@ -8,7 +8,6 @@ interface IProps {
   readonly entries: readonly DocsEntry[];
 }
 
-/** The manual of the workspace: what there is to read, and what each one answers. */
 export const DocsView = async ({ entries }: IProps) => {
   const t = await getTranslations('docs');
 

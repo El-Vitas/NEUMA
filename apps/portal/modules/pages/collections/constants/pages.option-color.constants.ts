@@ -1,13 +1,6 @@
 import type { PageOptionColor } from '@company-brain/shared';
 
-/**
- * How each color of an option is painted.
- *
- * Kept soft on purpose: an option is a label inside a dense screen, and a
- * saturated background there fights with the writing around it. The text keeps
- * its own weight so a colorblind reader tells one option from another by what it
- * says, never by its color alone.
- */
+/** Soft backgrounds on purpose: saturated ones fight the surrounding text in a dense screen. */
 export const PAGE_OPTION_COLOR_CLASSES: Readonly<Record<PageOptionColor, string>> = {
   GRAY: 'bg-neutral-500/15 text-neutral-800 dark:text-neutral-200',
   BROWN: 'bg-amber-800/15 text-amber-900 dark:text-amber-200',
@@ -20,16 +13,9 @@ export const PAGE_OPTION_COLOR_CLASSES: Readonly<Record<PageOptionColor, string>
   RED: 'bg-red-600/15 text-red-900 dark:text-red-200',
 };
 
-/** What an option without a color of its own wears, so every option still reads as a label. */
 export const PAGE_OPTION_NO_COLOR_CLASS = 'bg-muted text-foreground';
 
-/**
- * El mismo color, pero como superficie de una columna entera.
- *
- * Mucho más tenue que la etiqueta: aquí el color pinta el fondo de todo lo que
- * la columna lleva, y al tono de una etiqueta las tarjetas de encima dejarían
- * de leerse.
- */
+/** Fainter than the label tint: it paints a whole column behind its cards, which must stay readable. */
 export const PAGE_OPTION_SURFACE_CLASSES: Readonly<Record<PageOptionColor, string>> = {
   GRAY: 'bg-neutral-500/8',
   BROWN: 'bg-amber-800/8',
@@ -42,16 +28,9 @@ export const PAGE_OPTION_SURFACE_CLASSES: Readonly<Record<PageOptionColor, strin
   RED: 'bg-red-600/8',
 };
 
-/** La superficie de una columna cuyo valor no eligió color. */
 export const PAGE_OPTION_NO_SURFACE_CLASS = 'bg-muted/40';
 
-/**
- * El color reducido a un punto.
- *
- * Donde el color ya está puesto alrededor —el fondo de una columna entera— el
- * nombre no necesita además ir teñido: bastan un punto que lo repita y el
- * nombre en su tinta normal, que es lo que se lee.
- */
+/** Used where the column background already carries the color, so the name stays in normal ink. */
 export const PAGE_OPTION_DOT_CLASSES: Readonly<Record<PageOptionColor, string>> = {
   GRAY: 'bg-neutral-500',
   BROWN: 'bg-amber-800',
@@ -64,16 +43,9 @@ export const PAGE_OPTION_DOT_CLASSES: Readonly<Record<PageOptionColor, string>> 
   RED: 'bg-red-600',
 };
 
-/** El punto de un valor que no eligió color. */
 export const PAGE_OPTION_NO_DOT_CLASS = 'bg-muted-foreground/50';
 
-/**
- * El mismo color, pero para pintar una figura de un dibujo.
- *
- * Un gráfico pinta formas y no cajas, y va a fondo lleno: aquí el color **es**
- * el dato, no el adorno de una etiqueta. Cada tono se aclara en modo oscuro,
- * porque un azul que se lee sobre papel se pierde sobre un fondo negro.
- */
+/** Chart shapes: full-strength fills, lightened in dark mode so they stay visible on a black background. */
 export const PAGE_OPTION_FILL_CLASSES: Readonly<Record<PageOptionColor, string>> = {
   GRAY: 'fill-neutral-500 dark:fill-neutral-400',
   BROWN: 'fill-amber-800 dark:fill-amber-500',
@@ -86,5 +58,4 @@ export const PAGE_OPTION_FILL_CLASSES: Readonly<Record<PageOptionColor, string>>
   RED: 'fill-red-600 dark:fill-red-400',
 };
 
-/** Lo que se pinta cuando el valor no eligió color: la tinta del tema, que se da vuelta sola. */
 export const PAGE_OPTION_NO_FILL_CLASS = 'fill-muted-foreground';

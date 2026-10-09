@@ -4,23 +4,19 @@ import { MCP_ACCENT_MARKS, MCP_VALUELESS_FILTER_OPERATORS } from '../constants/m
 import type { McpCellInput, McpCellValue, McpColumn, McpNameLister } from '../types/mcp.collections.types';
 import type { McpPerson } from '../types/mcp.types';
 
-/** Un nombre como se compara: sin acentos, sin mayúsculas y sin espacios de sobra. */
 export const foldMcpName = (name: string): string =>
   name.normalize('NFD').replace(MCP_ACCENT_MARKS, '').toLowerCase().trim();
 
-/** Una columna por su clave, o por el nombre que ve la gente, como sea que venga escrito. */
 export const resolveMcpColumn = (columns: readonly McpColumn[], reference: string): McpColumn | null =>
   columns.find((column) => column.key === reference) ??
   columns.find((column) => foldMcpName(column.label) === foldMcpName(reference)) ??
   null;
 
-/** Todos los nombres, para que el agente corrija en vez de adivinar. */
 export const listMcpNames: McpNameLister = (names) => names.join(', ');
 
-/** Ningún nombre: lo que hay en la colección es de quien puede leerla. */
+/** Names in a collection belong to whoever can read it. */
 export const hideMcpNames: McpNameLister = () => null;
 
-/** Un rechazo, y después lo que sí hay si el agente puede saberlo. */
 export const sayMcpRefusalWithNames = (
   said: string,
   kind: string,
@@ -31,7 +27,6 @@ export const sayMcpRefusalWithNames = (
   return listed === null ? said : `${said} Its ${kind} are: ${listed}.`;
 };
 
-/** Una columna nombrada como la ve la gente, o por qué no está y, si se puede saber, cuáles sí. */
 export const requireMcpColumn = (
   columns: readonly McpColumn[],
   reference: string,
@@ -45,11 +40,9 @@ export const requireMcpColumn = (
   );
 };
 
-/** Los nombres de las opciones de una columna, como están escritos. */
 export const listMcpOptionNames = (column: McpColumn): readonly string[] =>
   (column.options ?? []).map((option) => option.value);
 
-/** Una opción de la columna tal como está escrita, aunque venga con otras mayúsculas o sin acentos. */
 export const pickMcpOption = (column: McpColumn, value: string, listNames: McpNameLister): Result<string, string> => {
   const option = (column.options ?? []).find((candidate) => foldMcpName(candidate.value) === foldMcpName(value));
   if (option !== undefined) return Result.ok(option.value);
@@ -63,10 +56,7 @@ export const pickMcpOption = (column: McpColumn, value: string, listNames: McpNa
   );
 };
 
-/**
- * Una persona por su id, o por su nombre si nadie más se llama igual. Con dos
- * del mismo nombre se pide el id: elegir una dejaría la fila a nombre de otra.
- */
+/** With two people of the same name the id is required: picking one would assign the row to the wrong person. */
 const pickPerson = (column: McpColumn, value: string, people: readonly McpPerson[]): Result<string, string> => {
   const byId = people.find((candidate) => candidate.id === value);
   if (byId !== undefined) return Result.ok(byId.id);
@@ -85,7 +75,6 @@ const listInputValues = (input: McpCellInput): readonly string[] => {
   return typeof input === 'object' && input !== null ? input : [];
 };
 
-/** Aplica a uno o a varios valores la misma elección, y falla con el primero que no calce. */
 const pickEach = (
   input: McpCellInput,
   pick: (value: string) => Result<string, string>,
@@ -132,11 +121,7 @@ const readCellValue = (
   }
 };
 
-/**
- * El valor con que una condición compara, como lo guarda la colección. Una
- * condición sobre si la celda está vacía no lleva valor; una sobre el título
- * compara con el texto tal cual.
- */
+/** An emptiness condition carries no value; a title condition compares the raw text. */
 export const readMcpConditionValue = (
   column: McpColumn,
   condition: { readonly operator: string; readonly value?: McpCellInput | undefined },
@@ -151,7 +136,6 @@ export const readMcpConditionValue = (
   return readCellValue(column, input, people, listNames);
 };
 
-/** Las celdas que dicen algo: una fila nueva no guarda las que nacen vacías. */
 export const keepFilledMcpCells = (
   values: Readonly<Record<string, McpCellValue>>,
 ): Record<string, Exclude<McpCellValue, null>> =>
@@ -159,15 +143,7 @@ export const keepFilledMcpCells = (
     Object.entries(values).filter((entry): entry is [string, Exclude<McpCellValue, null>] => entry[1] !== null),
   );
 
-/**
- * Lo que el agente quiere poner en una fila, como lo guarda la colección.
- *
- * El agente nombra las columnas y los valores como los ve una persona: la
- * columna por su nombre, la opción por su nombre, la persona por su nombre.
- * Aquí se traducen a lo que se guarda. Lo que no calza se rechaza entero y,
- * si el token puede leer la colección, diciendo qué sí vale, para que el
- * agente corrija en vez de adivinar; nunca se guarda a medias.
- */
+/** Rejects the whole row on any mismatch, listing valid names when the token can read; never saves partially. */
 export const normalizeMcpCellValues = (
   columns: readonly McpColumn[],
   values: Readonly<Record<string, McpCellInput>>,

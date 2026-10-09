@@ -30,46 +30,23 @@ import { PagesSchemaSettingsViewIcon } from './pages.schema.settings.view.icon';
 interface IProps {
   readonly editor: PagesSchemaEditor;
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
-  /** Su lugar entre las pestañas, que es por donde se llegó hasta ella. */
   readonly position: number;
   readonly view: PageSchemaView;
 }
 
-/**
- * Todo lo que una vista es: cómo se llama, en qué lugar de la fila de pestañas
- * va, si es con la que se abre la colección, por dónde agrupa si es un tablero,
- * y qué propiedades enseña.
- *
- * Lo que aquí se marca no cambia lo que ven las demás vistas: por eso están
- * todas aquí dentro y no en la pantalla de antes, donde cada ajuste parecería
- * de la colección entera.
- */
 export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps) => {
   const t = useTranslations('pages.collection');
   const configuration = readPageViewConfiguration(view.configuration);
-  /** Sin ninguna vista no hay forma de mirar las filas, así que la última no se quita. */
   const isTheLastView = editor.views.length <= 1;
   const groupable = listGroupablePropertyKeys(editor.properties);
-  /** Las que pueden hacer bandas: las que hacen grupos, menos la que ya está haciendo las columnas. */
   const bandable = groupable.filter((key) => key !== configuration.groupBy);
   const availableKeys = editor.properties.map((property) => property.key);
   const shown = readVisiblePropertyKeys(configuration.visibleProperties, availableKeys);
   const labelOf = (key: string): string => editor.properties.find((property) => property.key === key)?.label ?? key;
   const defaultFieldId = useId();
-  /**
-   * Lo tecleado se queda en pantalla aunque no se pueda aplicar.
-   *
-   * El nombre es la dirección de la vista y dos no pueden llamarse igual, pero
-   * atar el campo al modelo hacía que al escribir un nombre ya usado el texto
-   * rebotara al anterior sin decir nada: desde fuera, el teclado no responde.
-   */
+  /** Typed text stays on screen even when rejected: binding the field to the model made a duplicate name snap back. */
   const [typedName, setTypedName] = useState(view.name);
-  /**
-   * Al pasar a otra vista, el campo enseña la suya y no el nombre a medio
-   * escribir de la anterior. Se ajusta al dibujar y no remontando el panel:
-   * remontarlo repetía la animación de entrada, y desde fuera parecía que el
-   * botón de mover no había hecho nada.
-   */
+  /** Resets the typed name while rendering, not by remounting the panel, which replayed the enter animation. */
   const [lastSeenName, setLastSeenName] = useState(view.name);
   if (view.name !== lastSeenName) {
     setLastSeenName(view.name);
@@ -84,11 +61,7 @@ export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps
     editor.renameView(view.name, next);
   };
 
-  /**
-   * Se avisa de lo que se pierde después de hacerlo y no antes, porque nada de
-   * esto viaja hasta guardar: quien no quería puede dejarlo como estaba sin
-   * que las filas se hayan enterado.
-   */
+  /** Warns after converting, not before: nothing is persisted until save, so it can still be reverted. */
   const convertAndWarn = (type: PageViewType | undefined): void => {
     if (type === undefined || type === view.type) return;
     const dropped = listWhatConvertingDrops(view, type);
@@ -96,7 +69,6 @@ export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps
     for (const what of dropped) toast.info(t(`convertDrops.${what}`));
   };
 
-  /** El panel va con la vista: quien la mueve se queda mirándola, no la pierde de vista. */
   const moveAndFollow = (direction: 'EARLIER' | 'LATER'): void => {
     editor.moveView(view.name, direction);
     onGo({ level: 'VIEW', viewPosition: direction === 'EARLIER' ? position - 1 : position + 1 });
@@ -120,11 +92,6 @@ export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps
           />
         </div>
         {isNameTaken && <p className="px-2 text-muted-foreground text-xs">{t('viewNameTaken')}</p>}
-        {/*
-          Cambiar de clase no toca las filas: son las mismas miradas de otra
-          manera. Por eso se ofrece aquí mismo y no como un sitio aparte donde
-          «convertir», que sonaría a que algo se transforma.
-        */}
         <div className="flex items-center justify-between gap-2 px-2 text-sm">
           <span className="text-muted-foreground">{t('viewType')}</span>
           <Select
@@ -189,11 +156,6 @@ export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps
         </div>
       </div>
 
-      {/*
-        Cualquier vista que admita agrupar lo ofrece aquí. Un tablero tiene que
-        agrupar —sus columnas son la agrupación—, y una tabla puede o no: por eso
-        solo ella ofrece «sin agrupar».
-      */}
       {pageViewSupportsGrouping(view.type) && (
         <PagesSchemaSettingsViewGrouping editor={editor} onGo={onGo} view={view} />
       )}
@@ -201,11 +163,7 @@ export const PagesSchemaSettingsView = ({ editor, onGo, position, view }: IProps
         <PagesSchemaSettingsViewDates editor={editor} onGo={onGo} view={view} />
       )}
       {view.type === PAGE_VIEW_TYPE.CHART && <PagesSchemaSettingsViewChart editor={editor} view={view} />}
-      {/*
-        Se enseña siempre, aunque todavía no haya con qué cruzar. Esconderlo
-        cuando falta una segunda propiedad deja a quien lo busca creyendo que no
-        existe, y no hay dónde leer qué haría falta para que apareciera.
-      */}
+      {/* Always shown, even without a second property to cross with: hiding it makes the feature undiscoverable. */}
       {view.type === PAGE_VIEW_TYPE.BOARD && (
         <div className="space-y-2">
           <p className="px-2 text-muted-foreground text-xs uppercase tracking-wide">{t('bandsBy')}</p>

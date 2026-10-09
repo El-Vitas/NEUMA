@@ -9,16 +9,9 @@ interface IProps {
   readonly icon?: ReactNode;
   readonly label: string;
   readonly onClick: () => void;
-  /** Lo que esa fila vale ahora mismo, dicho sin entrar. */
   readonly value?: ReactNode;
 }
 
-/**
- * Una fila de la configuración: qué es, cuánto vale, y por dónde se entra.
- *
- * El valor va a la derecha para poder leer la configuración entera de un
- * vistazo sin abrir nada, que es lo que uno viene a hacer casi siempre.
- */
 export const PagesSchemaSettingsRow = ({ icon, label, onClick, value }: IProps) => (
   <button
     className={cn(

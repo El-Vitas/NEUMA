@@ -7,13 +7,7 @@ import { serializePageEditorDocument } from '../../lib/pages.editor.lib';
 import type { PageEditorBlockLink } from '../../menus/types/pages.editor.page-drop.types';
 import type { PageEditorBlockRange } from '../types/pages.editor.block-drag.types';
 
-/**
- * A stretch of blocks read as page content of their own.
- *
- * They travel as the same contract a page is saved with, so what arrives at the
- * other end is exactly what this page would have stored — nesting, children and
- * colours included.
- */
+/** Uses the same contract a page is saved with, so the receiving page gets exactly what this one would store. */
 export const readPageEditorBlocksContent = (state: EditorState, range: PageEditorBlockRange): PageContent | null => {
   const blocks = state.doc.slice(range.from, range.to).content;
   if (blocks.childCount === 0) return null;
@@ -22,25 +16,18 @@ export const readPageEditorBlocksContent = (state: EditorState, range: PageEdito
   return serializePageEditorDocument(documentType.create(null, blocks));
 };
 
-/** The first line written inside a block, however deep it is held. */
 const readFirstLine = (block: EditorNode): string => {
   if (block.isTextblock) return block.textContent;
   return block.firstChild === null ? '' : readFirstLine(block.firstChild);
 };
 
-/**
- * What the blocks would call the page they become: the first line they say. A
- * block that says nothing names nothing, so the page can be named later.
- */
+/** Empty when the blocks have no text, so the page can be named later. */
 export const readPageEditorBlocksTitle = (state: EditorState, range: PageEditorBlockRange): string => {
   const first = state.doc.slice(range.from, range.to).content.firstChild;
   return first === null ? '' : readFirstLine(first).trim();
 };
 
-/**
- * What is left where the blocks were: nothing, unless taking them out would
- * leave the page with nowhere to write.
- */
+/** Nothing, unless removal would leave the page with nowhere to write. */
 const readReplacement = (state: EditorState, range: PageEditorBlockRange): Fragment | null => {
   const place = state.doc.resolve(range.from);
   const startIndex = place.index();
@@ -53,13 +40,7 @@ const readReplacement = (state: EditorState, range: PageEditorBlockRange): Fragm
   return place.parent.canReplace(startIndex, endIndex, replacement) ? replacement : null;
 };
 
-/**
- * Puts a link to the new page where the blocks used to be, so the page they
- * left still says where they went.
- *
- * The link is the same mention one writes with `@`: one way of pointing at a
- * page, however it came to be written.
- */
+/** The link is the same mention node that `@` produces. */
 export const createPageEditorBlockLinkCommand =
   ({ label, pageId, range, spaceId }: PageEditorBlockLink): Command =>
   (state, dispatch) => {
@@ -78,11 +59,7 @@ export const createPageEditorBlockLinkCommand =
     return true;
   };
 
-/**
- * Takes a known stretch of blocks off the page, for when they now live
- * somewhere else. It is told which blocks rather than reading the selection:
- * the ones that travelled were chosen by the gesture, not by the cursor.
- */
+/** Takes the range explicitly instead of reading the selection, since the gesture chose the blocks, not the cursor. */
 export const createPageEditorBlockRangeRemovalCommand =
   (range: PageEditorBlockRange): Command =>
   (state, dispatch) => {

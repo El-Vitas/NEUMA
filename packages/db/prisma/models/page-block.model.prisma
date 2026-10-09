@@ -1,6 +1,6 @@
-/// Cada bloque de una página, proyectado desde su contenido para buscarlo y señalarlo.
-/// Un id de bloque es único dentro de su página, no en toda la base: duplicar una
-/// página o mover bloques a otra conserva los ids. Por eso la clave es la pareja.
+/// Each page block, projected from its content for search and linking.
+/// A block id is unique within its page, not globally: duplicating a page or
+/// moving blocks keeps ids, so the key is the (page, block) pair.
 model PageBlock {
   pageId        String
   blockId       String

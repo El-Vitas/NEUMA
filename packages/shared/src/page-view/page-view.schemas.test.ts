@@ -108,7 +108,6 @@ describe('validating a view configuration before it is stored', () => {
     expect(pageViewConfigurationSchema.safeParse({ visibleProperties: ['status', 'assignee'] }).success).toBe(true);
   });
 
-  /** Naming none is not the same as naming an empty list: one means «all», the other means «show nothing». */
   test('tells apart choosing nothing from not choosing', () => {
     expect(readPageViewConfiguration({}).visibleProperties).toBeNull();
     expect(readPageViewConfiguration({ visibleProperties: [] }).visibleProperties).toEqual([]);

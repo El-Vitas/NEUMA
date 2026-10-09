@@ -32,7 +32,6 @@ describe('McpDrawingValidatorAdapter', () => {
     expect(checked.map((result) => result.getValue())).toEqual(['architecture', 'zenuml', 'mindmap']);
   });
 
-  /** Lo que Mermaid dice es lo que el agente necesita para corregir: dónde y qué. */
   it('refuses a diagram Mermaid cannot read, with Mermaid’s own words on where and what', async () => {
     const checked = await validator.checkDiagram('architecture-beta\n    service backend["NestJS", logo:logos:nestjs]');
 
@@ -48,7 +47,6 @@ describe('McpDrawingValidatorAdapter', () => {
     expect(validator.checkFormula('\\frac{a}{', false).getError()).toContain('KaTeX parse error');
   });
 
-  /** El revisor es uno para todos: con la fila llena, el que llega se va enseguida en vez de esperar sin fin. */
   it(
     'turns a diagram away at once when the line of diagrams waiting is full, and checks the rest',
     async () => {

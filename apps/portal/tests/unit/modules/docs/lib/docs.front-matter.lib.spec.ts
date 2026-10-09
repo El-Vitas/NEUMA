@@ -8,7 +8,6 @@ describe('what a document says about itself', () => {
     expect(readDocsFrontMatter(file)).toEqual({ order: 2, summary: 'Cómo escribir uno', title: 'Diagramas' });
   });
 
-  /** A document that says nothing about itself is still a document, and still has to be readable. */
   it('holds up when nothing is said about it', () => {
     expect(readDocsFrontMatter('Sin nada arriba.')).toEqual({ order: 999, summary: '', title: '' });
   });

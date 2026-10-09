@@ -11,13 +11,6 @@ interface IProps {
   readonly status: PageVerificationStatus;
 }
 
-/**
- * What the page says about itself in words, not only in color.
- *
- * Verified and expired both keep a checkmark-shaped icon, since a page that
- * was once vouched for is still a different thing from one nobody ever looked
- * at — only the color and the word tell valid from expired apart.
- */
 export const PagesVerificationBadge = ({ status }: IProps) => {
   const t = useTranslations('pages.verification');
   const Icon = PAGE_VERIFICATION_STATUS_ICON[status];

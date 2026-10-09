@@ -9,7 +9,6 @@ describe('isOneOf', () => {
     expect(isOneOf(COLORS, 'green')).toBe(false);
   });
 
-  /** Un texto cualquiera, una vez confirmado, se usa como lo que es: sin forzarlo con un cast. */
   it('lets a confirmed value be used as one of the list', () => {
     const color: string = 'blue';
     const picked: (typeof COLORS)[number] | null = isOneOf(COLORS, color) ? color : null;

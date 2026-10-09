@@ -43,11 +43,7 @@ import type {
   McpToolDefinition,
 } from '../types/mcp.types';
 
-/**
- * La página, si su dueño la ve y la regla más cercana del token deja leerla
- * donde está hoy. Si no, nada: quien pregunta contesta igual que si no
- * existiera, así una negativa no delata a la otra.
- */
+/** Denials answer as if the page did not exist, so one denial does not reveal the other. */
 const findReadablePage = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -66,12 +62,7 @@ const findReadablePage = async (
   return { ...page, content: content.data };
 };
 
-/**
- * La página que tiene un bloque con ese id y que el agente puede ver.
- *
- * Casi siempre hay una sola; duplicar una página conserva los ids de sus
- * bloques, y entonces vale la primera que se pueda ver.
- */
+/** Duplicating a page keeps block ids, so the first visible match wins. */
 const findPageHoldingBlock = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -84,7 +75,6 @@ const findPageHoldingBlock = async (
   return null;
 };
 
-/** De las páginas a las que apunta el contenido, las que el agente puede ver, con su nombre y su espacio de hoy. */
 const listReachableReferences = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -113,7 +103,6 @@ const listReachableBacklinks = async (dependencies: McpServerDependencies, call:
     }));
 };
 
-/** Dónde está una página: sus ancestros, y en lugar de los que el agente no puede ver, un paso sin nombre. */
 const describePlace = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -134,7 +123,6 @@ const describePlace = async (
   };
 };
 
-/** Si la página es una fila, lo que tiene en cada columna de su colección; si no, nada. */
 const describeRowProperties = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -144,11 +132,7 @@ const describeRowProperties = async (
   return describeRow(page);
 };
 
-/**
- * Las páginas que cuelgan de esta, hasta un tope: una colección grande tiene
- * miles de filas, y entregarlas todas pasaría lo que el agente puede recibir
- * de una vez. Las que siguen se recorren con list_pages.
- */
+/** Capped: a large collection has thousands of rows, more than the agent can take at once. */
 const describeChildren = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -169,11 +153,6 @@ const describeChildren = async (
   return { children: shown, ...(more > 0 ? { moreChildren: more } : {}) };
 };
 
-/**
- * La página: dónde está, sus propiedades si es una fila, lo que dice con el id
- * de cada bloque, lo que se comentó, lo que cuelga de ella y quién la enlaza.
- * Una página larga llega de a tramos, desde el bloque que diga el cursor.
- */
 const describePage = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -201,7 +180,6 @@ const describePage = async (
   };
 };
 
-/** Un bloque: lo que dice, bajo qué encabezados está, y la página que lo tiene. */
 const presentBlock = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -237,7 +215,7 @@ const presentInLifecycle = async (
   return { page: await describePage(dependencies, call, page, reachable, start) };
 };
 
-/** Una página en la papelera se puede leer, pero se dice primero dónde está: lo que dice ya no rige. */
+/** A trashed page is readable but flagged first, since its content no longer applies. */
 const present = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -251,7 +229,6 @@ const present = async (
   return { ...output, note };
 };
 
-/** Un id suelto se prueba primero como página y después como bloque. */
 const fetchById = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -265,7 +242,7 @@ const fetchById = async (
   return present(dependencies, call, holder, id, start);
 };
 
-/** Un enlace nombra la página: si no se puede ver, no se busca su bloque en otra parte. */
+/** A link names the page: if it is not visible, its block is not looked up elsewhere. */
 const fetchByPage = async (
   dependencies: McpServerDependencies,
   call: McpCall,

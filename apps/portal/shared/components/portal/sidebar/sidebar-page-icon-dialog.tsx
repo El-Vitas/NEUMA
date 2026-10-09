@@ -25,13 +25,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * A page's mark changed from the tree, without opening it.
- *
- * It offers exactly what the page's own header offers, because two ways of
- * choosing an icon that disagree about what is on offer would be worse than
- * having only one.
- */
 export const SidebarPageIconDialog = ({ onChanged, onClose, page, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const { isPending, runIconMutation } = useIconMutation(onChanged, onClose);

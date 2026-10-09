@@ -11,7 +11,6 @@ import { MCP_EMPTY_PARAGRAPH_NODE } from '../constants/mcp.constants';
 import type { McpContentEdit, McpTableCellChange, McpTableChange } from '../types/mcp.pages.types';
 import { collectMcpResults } from './mcp.results.lib';
 
-/** Las celdas de una fila con una de ellas cambiada: conserva lo que es —su id, su tipo, cuánto abarca— y cambia solo su párrafo. */
 const replaceCellParagraph = (
   cells: readonly PageDocumentNodeShape[],
   column: number,
@@ -48,7 +47,6 @@ const deleteRows = (rows: readonly unknown[], numbers: readonly number[]): Resul
   return Result.ok(rows.filter((_row, index) => !numbers.includes(index + 1)));
 };
 
-/** Una fila nueva, del ancho de la tabla: las celdas que faltan quedan vacías, y una de más no cabe. */
 const writeRow = (paragraphs: readonly unknown[], width: number): Result<unknown, string> => {
   if (paragraphs.length > width)
     return Result.fail(`The table has ${String(width)} columns, but a new row has ${String(paragraphs.length)} cells.`);
@@ -75,10 +73,8 @@ const rebuildRows = (table: PageDocumentNodeShape, change: McpTableChange): Resu
 };
 
 /**
- * Cambia una tabla sin reescribirla: unas celdas, filas nuevas al final y filas
- * que se van. Las filas se cuentan como las muestra fetch, desde la de los
- * encabezados, y siempre sobre la tabla como está antes del cambio. Lo que no
- * se toca conserva su id, así sus comentarios y enlaces siguen donde estaban.
+ * Rows are counted as fetch shows them (header first), against the table before the change.
+ * Untouched parts keep their ids so comments and links stay attached.
  */
 export const editMcpTable =
   (tableId: string, change: McpTableChange): McpContentEdit =>

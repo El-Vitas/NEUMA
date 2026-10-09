@@ -32,7 +32,6 @@ describe('cuándo anotar el último uso', () => {
     expect(isLastUseWorthRecording(new Date(now.getTime() - ACCESS_TOKEN_LAST_USED_RESOLUTION_MS), now)).toBe(true);
   });
 
-  /** Un agente hace decenas de llamadas por minuto: anotar cada una es escribir sin que nadie lea. */
   it('does not record again within the same window', () => {
     expect(isLastUseWorthRecording(new Date(now.getTime() - 1000), now)).toBe(false);
   });

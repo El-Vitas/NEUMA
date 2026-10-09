@@ -33,17 +33,6 @@ const createChoice = (
   return choice;
 };
 
-/**
- * A button, and what it writes when pressed.
- *
- * What it writes is what it holds, written into it the way anything else on the
- * page is written: a button that had to be filled in through a form of its own
- * would be the one block on the page that cannot be written in.
- *
- * How it is set up stays out of sight until it is asked for, because a page full
- * of buttons showing their own workings reads as a page of machinery rather than
- * a page of writing.
- */
 export const createPageButtonNodeView = (
   node: EditorNode,
   view: EditorView,
@@ -117,7 +106,6 @@ export const createPageButtonNodeView = (
     panel.hidden = !open;
   };
 
-  /** Where it writes is asked only of a button that writes here: a row lands in its collection. */
   const showWhatIsAsked = (chosen: string): void => {
     place.hidden = chosen === 'row';
   };

@@ -62,7 +62,6 @@ describe('buildMcpBlockNodes', () => {
     });
   });
 
-  /** Un diagrama hecho con espacios solo sobrevive en un bloque de código: nada de lo escrito se lee como marca. */
   it('keeps code exactly as written, spaces and markers included', () => {
     const text = '┌─────┐\n│ **a** │\n└─────┘';
 
@@ -109,7 +108,6 @@ describe('buildMcpBlockNodes', () => {
     });
   });
 
-  /** El nombre y el espacio de lo que se muestra los pone Company Brain después, con los de hoy. */
   it('points a sub-page, a collection and a row button at the pages named', () => {
     const page = '11111111-1111-4111-8111-111111111111';
     const collection = '22222222-2222-4222-8222-222222222222';
@@ -151,7 +149,6 @@ describe('buildMcpBlockNodes', () => {
     expect(() => asPage(built)).not.toThrow();
   });
 
-  /** Al guardarse, cada bloque recibe su id; una lista numerada sin su número de inicio dejaba de ser válida ahí. */
   it('builds blocks that stay valid once each one is given its id', () => {
     const built = build(
       { items: ['Uno', { items: ['Uno.a'], text: 'Dos' }], type: 'ordered_list' },

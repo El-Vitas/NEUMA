@@ -16,7 +16,7 @@ import type { McpContentEdit, McpTextNode } from '../types/mcp.pages.types';
 const isText = (node: unknown): node is McpTextNode =>
   isPageDocumentNode(node) && node.type === 'text' && typeof node.text === 'string';
 
-/** Los comentarios de un bloque tal como están guardados, sin dejar ninguno afuera: se reescriben con el bloque. */
+/** Keeps every comment, since they are rewritten along with the block. */
 const readStoredComments = (node: PageDocumentNodeShape): readonly unknown[] => {
   const comments = node.attrs?.comments;
   return Array.isArray(comments) ? comments : [];
@@ -24,14 +24,12 @@ const readStoredComments = (node: PageDocumentNodeShape): readonly unknown[] => 
 
 const commentMark = (commentId: string): PageMark => ({ attrs: { id: commentId }, type: 'comment' });
 
-/** Un trozo de texto con el mismo aspecto y lo que ya llevaba, más la marca del comentario si le toca. */
 const cutText = (node: McpTextNode, text: string, extra: readonly PageMark[]): McpTextNode[] => {
   if (text === '') return [];
   const marks = [...(node.marks ?? []), ...extra];
   return [marks.length === 0 ? { text, type: 'text' } : { marks, text, type: 'text' }];
 };
 
-/** Parte un texto en lo que queda antes, lo que dice el comentario y lo que queda después. */
 const splitText = (node: McpTextNode, from: number, to: number, commentId: string): McpTextNode[] => {
   const start = Math.max(0, from);
   const end = Math.min(node.text.length, to);
@@ -42,11 +40,7 @@ const splitText = (node: McpTextNode, from: number, to: number, commentId: strin
   ];
 };
 
-/**
- * Marca, en una línea, las palabras de las que habla un comentario. Lo que no
- * es texto —una mención, una fórmula— ocupa un lugar que ninguna cita calza,
- * así que una cita nunca lo cruza.
- */
+/** Non-text content (mentions, formulas) is a placeholder no quote matches, so a quote never spans it. */
 const markInline = (nodes: readonly unknown[], quote: string, commentId: string): unknown[] | null => {
   const joined = nodes.map((node) => (isText(node) ? node.text : MCP_INLINE_OBJECT_PLACEHOLDER)).join('');
   const from = joined.indexOf(quote);
@@ -61,7 +55,6 @@ const markInline = (nodes: readonly unknown[], quote: string, commentId: string)
   });
 };
 
-/** El bloque con esas palabras marcadas donde las diga primero: en su propia línea o en lo que lleva dentro. */
 const markQuote = (node: PageDocumentNodeShape, quote: string, commentId: string): PageDocumentNodeShape | null => {
   const children = listPageDocumentChildren(node);
   if (children.some(isText)) {
@@ -87,11 +80,7 @@ const findQuote = (
     : Result.ok(marked);
 };
 
-/**
- * Deja un comentario en un bloque, como lo deja una persona desde el menú del
- * bloque: queda en el bloque mismo, así viaja con él cuando se mueve. Si habla
- * de unas palabras, esas palabras quedan marcadas con él.
- */
+/** Stored on the block itself, as when a person comments from the block menu, so it moves with the block. */
 export const addMcpBlockComment =
   (blockId: string, comment: PageBlockComment, quote?: string): McpContentEdit =>
   (content) => {
@@ -122,7 +111,6 @@ const withoutCommentMark = (node: unknown, commentId: string): unknown => {
 const isCommentWithId = (comment: unknown, commentId: string): boolean =>
   typeof comment === 'object' && comment !== null && 'id' in comment && comment.id === commentId;
 
-/** Quita un comentario de su bloque y de las palabras que marcaba, como lo quita una persona. */
 export const removeMcpBlockComment =
   (blockId: string, commentId: string): McpContentEdit =>
   (content) => {

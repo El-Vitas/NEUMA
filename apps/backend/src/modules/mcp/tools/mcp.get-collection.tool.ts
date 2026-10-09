@@ -6,13 +6,6 @@ import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { collectionOutputSchema, getCollectionInputSchema } from '../schemas/mcp.collections.schemas';
 import type { McpToolDefinition } from '../types/mcp.types';
 
-/**
- * La forma de una colección: sus columnas con lo que acepta cada una, y sus
- * vistas con lo que agrupan y filtran.
- *
- * Es lo primero que lee un agente antes de escribir en una colección: con esto
- * nombra columnas y opciones como existen, en vez de adivinarlas.
- */
 export const getCollectionTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.getCollection,
   register: (server, dependencies) => {

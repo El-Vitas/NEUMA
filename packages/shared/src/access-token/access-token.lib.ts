@@ -19,7 +19,7 @@ import type {
   AccessTokenPresetLevel,
 } from './access-token.types.js';
 
-/** Si el permiso solo deja leer. Lo que no está en esa lista cambia algo, aunque se haya olvidado decirlo. */
+/** Anything not in the read list counts as a write, even a permission nobody classified. */
 const isReadOnlyPermission = (permission: AccessTokenPermission): boolean =>
   isOneOf(ACCESS_TOKEN_READ_PERMISSIONS, permission);
 
@@ -31,23 +31,16 @@ const holdsExactly = (held: ReadonlySet<AccessTokenPermission>, level: AccessTok
   return expected.length === held.size && expected.every((permission) => held.has(permission));
 };
 
-/** El nombre del nivel que calza con estos permisos, sin importar el orden, o «personalizado» si ninguno calza. */
+/** Order-insensitive match against the preset levels; `custom` when none matches. */
 export const readAccessTokenLevel = (permissions: readonly AccessTokenPermission[]): AccessTokenLevel => {
   const held = new Set(permissions);
   return ACCESS_TOKEN_PRESET_LEVELS.find((level) => holdsExactly(held, level)) ?? ACCESS_TOKEN_LEVELS.custom;
 };
 
-/**
- * Si alguien con este rol puede poner este permiso en un token.
- *
- * Un token nunca da más que su dueño: quien solo puede leer no fabrica una
- * llave que escriba por él. Sin poder escribir solo se dan los permisos de
- * lectura; uno nuevo que nadie clasificó queda del lado que exige escribir.
- */
+/** A token never grants more than its owner can do: a read-only role can only grant read permissions. */
 export const canRoleGrantAccessTokenPermission = (role: UserRole, permission: AccessTokenPermission): boolean =>
   isReadOnlyPermission(permission) || canEditContent(role);
 
-/** La regla de página más cercana: la de la página misma o la del primer ancestro que tenga una. */
 const findClosestPageGrant = (
   access: AccessTokenAccess,
   lineage: readonly string[],
@@ -57,12 +50,9 @@ const findClosestPageGrant = (
     .find((grant): grant is AccessTokenPageGrant => grant !== undefined);
 
 /**
- * Lo que el token tiene dado en un lugar: lo que diga la regla más cercana.
- *
- * Se sube desde la página por sus ancestros; si ninguno tiene regla, manda la
- * del espacio, y si tampoco, la de todos los espacios. La primera que aparece
- * decide sola, sin sumarse a las de arriba: por eso una regla sin permisos
- * excluye, y una más adentro puede volver a abrir o achicar.
+ * The nearest rule decides alone, without adding up the ones above: page ancestors
+ * first, then the space, then all spaces. So an empty rule excludes, and a deeper
+ * rule can reopen or narrow access.
  */
 export const readAccessTokenPermissionsAt = (
   access: AccessTokenAccess,
@@ -73,12 +63,8 @@ export const readAccessTokenPermissionsAt = (
   access.allSpaces;
 
 /**
- * Si el token puede hacer esto en este lugar, hoy.
- *
- * Hacen falta las dos cosas: que la regla más cercana lo dé, y que su dueño
- * todavía pueda hacerlo. El rol del dueño es el de ahora, no el que tenía al
- * crearlo. Que el dueño siga viendo el lugar lo decide aparte cada lectura,
- * con la misma regla de visibilidad de la pantalla.
+ * Needs both the nearest rule and the owner's current role (not the one at creation).
+ * Whether the owner still sees the place is decided separately on each read.
  */
 export const canAccessTokenAct = (
   access: AccessTokenAccess,
@@ -89,7 +75,7 @@ export const canAccessTokenAct = (
   readAccessTokenPermissionsAt(access, place).includes(permission) &&
   canRoleGrantAccessTokenPermission(ownerRole, permission);
 
-/** Cada permiso que el token tiene en algún lugar: lo que decide qué herramientas se le ofrecen al agente. */
+/** Decides which tools the agent is offered. */
 export const listAccessTokenGrantedPermissions = (access: AccessTokenAccess): readonly AccessTokenPermission[] => [
   ...new Set([
     ...access.allSpaces,
@@ -98,29 +84,20 @@ export const listAccessTokenGrantedPermissions = (access: AccessTokenAccess): re
   ]),
 ];
 
-/**
- * Si un nombre, ya sin los espacios de los bordes, sirve: dice algo, cabe en
- * la lista y no trae caracteres de control, que desordenan la lista y los
- * registros donde aparece.
- */
+/** Control characters are rejected because they garble the list and the records where the name appears. */
 export const isAccessTokenNameAcceptable = (trimmedName: string): boolean =>
   trimmedName.length > 0 &&
   trimmedName.length <= ACCESS_TOKEN_NAME_MAX_LENGTH &&
   !ACCESS_TOKEN_NAME_CONTROL_CHARACTERS.test(trimmedName);
 
-/** Cómo se compara un nombre con otro: sin mayúsculas y con una sola separación entre palabras. */
 const normalizeAccessTokenName = (name: string): string =>
   name.trim().replaceAll(ACCESS_TOKEN_NAME_WHITESPACE_RUN, ' ').toLowerCase();
 
-/**
- * Si el nombre ya lo usa otro token vivo de la misma persona. Dos tokens que
- * se leen igual en la lista se confunden al revocar uno de ellos.
- */
+/** Two tokens that read the same in the list get confused when revoking one. */
 export const isAccessTokenNameTaken = (name: string, liveNames: readonly string[]): boolean => {
   const wanted = normalizeAccessTokenName(name);
   return liveNames.some((liveName) => normalizeAccessTokenName(liveName) === wanted);
 };
 
-/** Si alguna regla da algo. Un token hecho solo de exclusiones no abre nada. */
 export const hasAccessTokenAnyPermission = (access: AccessTokenAccess): boolean =>
   listAccessTokenGrantedPermissions(access).length > 0;

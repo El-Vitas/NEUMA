@@ -33,7 +33,6 @@ describe('llevar una entrada a otro día', () => {
     errors.length = 0;
   });
 
-  /** Quien acaba de soltar una entrada sobre un día la quiere ver ahí, no cuando el servidor conteste. */
   it('shows the entry on the new day before the server answers', async () => {
     let settle = (): void => undefined;
     updatePageRowPropertiesAction.mockImplementationOnce(
@@ -47,7 +46,6 @@ describe('llevar una entrada a otro día', () => {
     await act(async () => settle());
   });
 
-  /** Si el servidor dice que no, la entrada vuelve sola a donde estaba y se dice por qué. */
   it('puts the entry back where it was when the write fails', async () => {
     updatePageRowPropertiesAction.mockImplementationOnce(() => Promise.resolve({ serverError: 'nope' }));
     const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a'));
@@ -60,7 +58,6 @@ describe('llevar una entrada a otro día', () => {
     expect(result.current.dateOf(row, '2026-03-01')).toBe('2026-03-01');
   });
 
-  /** Sin una propiedad de fecha no hay dónde escribir el día, así que no se manda nada. */
   it('writes nothing when the view has no date property', () => {
     const { result } = renderHook(() => usePagesCalendarMoving(null, 'space-a'));
 

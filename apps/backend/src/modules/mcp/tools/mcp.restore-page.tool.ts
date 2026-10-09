@@ -31,11 +31,7 @@ const restorePage = async (
   return { childPages: outcome.restoredChildCount, page: describeMcpManagedPage(dependencies, call, opened) };
 };
 
-/**
- * Trae de vuelta una página de la papelera, y si se pide, las que se fueron
- * con ella. Una página que el token no alcanza se contesta como si no
- * existiera; una que no está en la papelera se dice tal cual.
- */
+/** A page the token cannot reach is answered as missing. */
 export const restorePageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.restorePage,
   register: (server, dependencies) => {

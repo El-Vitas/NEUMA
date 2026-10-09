@@ -20,14 +20,7 @@ import type { PageSchema } from '../types/pages.schema.types';
 import type { PagesTableColumns } from '../types/pages.table-columns.types';
 import { usePagesViewSaving } from './use.pages.view-saving';
 
-/**
- * Mandar sobre las columnas de una tabla: qué ancho tienen, en qué orden salen
- * y cuántas se quedan quietas al desplazarse.
- *
- * Las tres son de la vista y no de la colección: son maneras de mirar las
- * mismas filas, y quien abra otra vista de lo mismo no tiene por qué estar
- * mirándolas igual.
- */
+/** Width, order and frozen count belong to the view, not the collection. */
 export const usePagesTableColumns = (
   schema: PageSchema,
   activeViewName: string,

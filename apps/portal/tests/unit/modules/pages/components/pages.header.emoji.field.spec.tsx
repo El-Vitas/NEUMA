@@ -10,7 +10,6 @@ interface IHarnessProps {
   readonly onLeave?: () => void;
 }
 
-/** A controlled wrapper, since the field itself only ever knows the value it is given. */
 const TitleFieldHarness = ({ initialValue = '', onLeave = () => undefined }: IHarnessProps) => {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement | null>(null);

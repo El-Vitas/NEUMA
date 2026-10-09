@@ -29,7 +29,6 @@ import { canMcpAct, requireMcpInput, requireMcpSuccess } from './mcp.page-access
 import { hideUnreachableReferences, listReferencedPageIds, settleWrittenReferences } from './mcp.references.lib';
 import { checkMcpSyncedTargets } from './mcp.synced-targets.lib';
 
-/** Las páginas a las que apuntan unos bloques y que el token alcanza, con su nombre y su espacio de hoy. */
 const listReachablePlaces = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -50,7 +49,6 @@ const readAsPage = (nodes: readonly unknown[]): Result<PageContent, string> => {
   return Result.fail(`These blocks are not ones a page can hold: ${problems}`);
 };
 
-/** Los mismos bloques con cada mención y cada persona como son hoy, o por qué no se pueden escribir. */
 export const settleMcpWrittenNodes = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -63,11 +61,7 @@ export const settleMcpWrittenNodes = async (
   return requireMcpInput(settleWrittenReferences(nodes, reachable, people));
 };
 
-/**
- * Unos textos escritos como párrafos —las celdas de una tabla—, revisados igual
- * que un bloque: sus fórmulas, a quién nombran y a qué páginas apuntan. Uno por
- * texto, en el mismo orden.
- */
+/** Cell texts get the same checks as a block; one result per text, in order. */
 export const prepareMcpParagraphs = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -79,10 +73,7 @@ export const prepareMcpParagraphs = async (
   return settleMcpWrittenNodes(dependencies, call, built);
 };
 
-/**
- * Lo que el agente escribió, listo para la página: armado, con las menciones y
- * las personas revisadas, y con un id en cada bloque, para poder devolvérselos.
- */
+/** Every block gets an id so the ids can be returned to the agent. */
 export const prepareMcpBlocks = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -102,7 +93,6 @@ export const prepareMcpBlocks = async (
 const listTopBlockIds = (nodes: readonly unknown[]): readonly string[] =>
   nodes.filter(isPageDocumentNode).flatMap((node) => readPageDocumentBlockId(node) ?? []);
 
-/** Escribe en una página por su documento en vivo, como su dueño y en el espacio donde está hoy. */
 export const writeMcpContent = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -120,10 +110,7 @@ export const writeMcpContent = async (
   return requireMcpSuccess(await dependencies.content.edit(writer, edit));
 };
 
-/**
- * Los bloques escritos como quedaron en la página. Una lista que cayó dentro
- * de otra ya no existe como tal: quedan sus ítems, y son esos los que se nombran.
- */
+/** A list that landed inside another no longer exists as such: its items remain and those are the ones named. */
 export const listMcpWrittenBlockIds = (content: PageContent, nodes: readonly unknown[]): readonly string[] =>
   nodes.filter(isPageDocumentNode).flatMap((node) => {
     const blockId = readPageDocumentBlockId(node);
@@ -132,13 +119,8 @@ export const listMcpWrittenBlockIds = (content: PageContent, nodes: readonly unk
   });
 
 /**
- * Lo que devuelve una escritura: la página y los bloques tocados como quedaron,
- * con sus ids, así el agente no tiene que volver a leer. Lo que apunta a una
- * página que el token no alcanza se oculta igual que al leer.
- *
- * Un token que escribe pero no lee donde está la página recibe solo los ids y
- * el enlace: devolverle lo que el bloque dice sería dejarlo leer por la puerta
- * de la escritura.
+ * References to pages the token cannot reach are hidden as when reading. A token that writes but
+ * cannot read the page gets only ids and the link: returning block content would let it read through the write path.
  */
 export const describeMcpWrittenBlocks = async (
   dependencies: McpServerDependencies,
@@ -161,7 +143,6 @@ export const describeMcpWrittenBlocks = async (
   };
 };
 
-/** Una escritura de bloques en texto: dónde quedó y cómo quedó, o solo dónde, si el token no lee ahí. */
 export const formatMcpWrittenBlocksText = (output: McpWrittenBlocksOutput): string =>
   output.page.title === MCP_REDACTED_REFERENCE_LABEL
     ? `${MCP_WRITTEN_UNREADABLE_NOTE} ${output.page.url}\nBlocks: ${output.blockIds.join(', ')}`

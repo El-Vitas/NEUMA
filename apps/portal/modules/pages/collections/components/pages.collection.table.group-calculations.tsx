@@ -7,20 +7,12 @@ import { usePagesCalculationLabel } from '../hooks/use.pages.calculation-label';
 import type { PagePropertyValues, PageSchemaProperty } from '../types/pages.schema.types';
 
 interface IProps {
-  /** Qué dice al pie cada columna, ya elegido para toda la vista. */
   readonly calculations: Readonly<Record<string, PageViewCalculation>>;
   readonly properties: readonly PageSchemaProperty[];
   readonly rowValues: readonly PagePropertyValues[];
 }
 
-/**
- * Lo que cada columna dice de las filas de este grupo.
- *
- * Repite la cuenta que ya se eligió para la vista, aplicada solo a lo que hay
- * dentro del grupo. Aquí no se elige nada: elegir es de la vista entera, y
- * ofrecerlo una vez por grupo daría a entender que cada grupo puede contar una
- * cosa distinta.
- */
+/** Applies the view-wide calculation to one group; it is never chosen per group. */
 export const PagesCollectionTableGroupCalculations = ({ calculations, properties, rowValues }: IProps) => {
   const label = usePagesCalculationLabel();
 
@@ -31,7 +23,6 @@ export const PagesCollectionTableGroupCalculations = ({ calculations, properties
       rowValues.map((values) => values[property.key]),
     );
 
-  /** Un grupo sin filas no tiene nada que contar, y su franja ya dice que está vacío. */
   if (rowValues.length === 0 || properties.every((property) => said(property) === null)) return null;
 
   return (

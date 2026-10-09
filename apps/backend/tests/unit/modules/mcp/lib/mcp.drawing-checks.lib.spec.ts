@@ -105,7 +105,6 @@ describe('checkMcpDrawings', () => {
     expect(refusal.reason).toBe('formula');
   });
 
-  /** Un diagrama que tarda demasiado en revisarse es del agente: se le pide simplificarlo, no se le contesta un fallo. */
   it('refuses a diagram that took too long to check, telling the agent to simplify it', async () => {
     const drawings = {
       ...drawingsThatAccept,
@@ -119,7 +118,6 @@ describe('checkMcpDrawings', () => {
     expect(refusal.reason).toBe('diagram');
   });
 
-  /** Con el revisor lleno, el diagrama no tiene nada de malo: se le pide reintentar, sin decirle que lo corrija. */
   it('asks to send it again in a moment when the checker is full, without blaming the diagram', async () => {
     const drawings = {
       ...drawingsThatAccept,
@@ -132,7 +130,6 @@ describe('checkMcpDrawings', () => {
     expect(refusal.message).not.toContain('Simplify');
   });
 
-  /** Uno que no se dibuja corta la revisión: los que siguen no ocupan al revisor para nada. */
   it('stops checking at the first diagram that cannot be drawn', async () => {
     let checked = 0;
     const drawings = {
@@ -157,7 +154,6 @@ describe('checkMcpDrawings', () => {
     expect(error).not.toBeInstanceOf(McpToolError);
   });
 
-  /** Revisar un diagrama cuesta; una llamada lleva hasta un tope, y se rechaza antes de revisar ninguno. */
   it('refuses more diagrams in one write than it checks, before checking any', async () => {
     let checked = 0;
     const drawings = {

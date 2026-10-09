@@ -13,7 +13,6 @@ describe('what a document can be jumped into', () => {
     ]);
   });
 
-  /** A hash inside fenced writing is a comment or a colour, and never a heading. */
   it('leaves alone what is fenced off as code', () => {
     const markdown = ['## De verdad', '', '```mermaid', 'flowchart TD', '  A[#no es un título] --> B', '```'].join(
       '\n',
@@ -22,7 +21,6 @@ describe('what a document can be jumped into', () => {
     expect(readDocsHeadings(markdown).map((heading) => heading.title)).toEqual(['De verdad']);
   });
 
-  /** Two headings called the same thing cannot answer to the same name. */
   it('gives a name of its own to each of two headings called the same', () => {
     const markdown = ['## Ejemplo', '', '## Ejemplo'].join('\n');
 

@@ -16,7 +16,6 @@ import type {
 
 const read = ACCESS_TOKEN_PERMISSIONS.pagesRead;
 
-/** Un log que guarda lo que se le cuenta, para revisar qué quedó anotado. */
 const createLog = () => {
   const entries: { readonly fields: Record<string, unknown>; readonly message: string }[] = [];
   const write = (fields: Record<string, unknown>, message: string) => {
@@ -88,7 +87,6 @@ const createRepository = (overrides: Partial<AccessTokenRepositoryContract> = {}
   ...overrides,
 });
 
-/** Un repositorio que anota si se llegó a escribir: un rechazo no puede dejar nada a medias. */
 const createWatchedRepository = (overrides: Partial<AccessTokenRepositoryContract> = {}) => {
   const writes: string[] = [];
   const repository = createRepository({
@@ -106,7 +104,6 @@ const createWatchedRepository = (overrides: Partial<AccessTokenRepositoryContrac
 };
 
 describe('crear un token', () => {
-  /** El secreto se enseña una sola vez: después solo queda su hash, y nadie puede volver a leerlo. */
   it('hands back the secret once, and stores only its hash', async () => {
     let storedHash = '';
     const service = createService(
@@ -176,7 +173,6 @@ describe('crear un token', () => {
     expect(writes).toEqual([]);
   });
 
-  /** Quien solo lee no fabrica una llave que escriba por él, tampoco escondiendo la escritura en una página. */
   it('refuses to give writing to a token whose owner can only read, wherever it is given', async () => {
     const { repository, writes } = createWatchedRepository();
     const service = createService(repository);
@@ -195,7 +191,6 @@ describe('crear un token', () => {
     expect(writes).toEqual([]);
   });
 
-  /** Un lugar que el dueño no ve no se puede nombrar, ni para darlo ni para cerrarlo: confirmaría que existe. */
   it('refuses to name a space its owner cannot see, even to close it', async () => {
     const { repository, writes } = createWatchedRepository({ countAccessibleSpaces: () => Promise.resolve(0) });
     const service = createService(repository);
@@ -230,7 +225,6 @@ describe('crear un token', () => {
     expect(writes).toEqual([]);
   });
 
-  /** El nombre se compara dentro de la transacción que guarda, con los tokens vivos de ese momento. */
   it('refuses a name another live token of the person already reads as', async () => {
     let limitsGiven: AccessTokenCreationLimits | null = null;
     const service = createService(
@@ -299,7 +293,6 @@ describe('cambiar lo que un token tiene dado', () => {
     expect(writes).toEqual([]);
   });
 
-  /** Solo su dueño lo cambia: para cualquier otra persona, ese token no existe. */
   it('says it was not found when it is not one of the caller tokens', async () => {
     const service = createService(createRepository({ replaceAccess: () => Promise.resolve(null) }));
 
@@ -374,7 +367,6 @@ describe('entrar con un token', () => {
     expect(await expired.resolvePrincipal(someSecret)).toBeNull();
   });
 
-  /** Desactivar a una persona corta también a los agentes que actuaban por ella. */
   it('answers nobody when the person who owns it was deactivated', async () => {
     const service = createService(
       createRepository({
@@ -386,7 +378,6 @@ describe('entrar con un token', () => {
     expect(await service.resolvePrincipal(someSecret)).toBeNull();
   });
 
-  /** Anotar el último uso es un dato de consulta: si falla, se cuenta, y quien trajo el token igual entra. */
   it('lets the token in when its last use cannot be written down, and tells the log', async () => {
     const { entries, logger } = createLog();
     const service = createService(
@@ -402,7 +393,6 @@ describe('entrar con un token', () => {
   });
 });
 
-/** Quién creó, cambió o revocó un token queda en el log, sin el secreto ni nada que nombre a la persona. */
 describe('lo que queda anotado de un token', () => {
   it('writes down a token created, its access replaced and its revoking, never its secret', async () => {
     const { entries, logger } = createLog();

@@ -11,7 +11,6 @@ describe('readRequestedByteRange', () => {
     expect(readRequestedByteRange('bytes=100-199', 1000)).toEqual({ end: 199, kind: 'part', start: 100 });
   });
 
-  /** A player asking for «from here on» is asking for the rest, however long it turns out to be. */
   it('reads an open end as the rest of the file', () => {
     expect(readRequestedByteRange('bytes=100-', 1000)).toEqual({ end: 999, kind: 'part', start: 100 });
   });
@@ -25,7 +24,6 @@ describe('readRequestedByteRange', () => {
     expect(readRequestedByteRange('bytes=900-5000', 1000)).toEqual({ end: 999, kind: 'part', start: 900 });
   });
 
-  /** Asking for what is not there is not the same as asking for everything, and is not answered with it. */
   it('refuses a stretch that begins past the end, or that runs backwards', () => {
     expect(readRequestedByteRange('bytes=1000-1200', 1000)).toEqual({ kind: 'unsatisfiable' });
     expect(readRequestedByteRange('bytes=500-400', 1000)).toEqual({ kind: 'unsatisfiable' });

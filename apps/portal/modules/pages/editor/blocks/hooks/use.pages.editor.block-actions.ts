@@ -20,24 +20,14 @@ import { readSelectedPageBlocks, readSelectedPageBlocksContent } from '../lib/pa
 import type { PageEditorBlockActions } from '../types/pages.editor.block-actions.types';
 import type { PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 
-/**
- * What the block menu can set in motion, kept away from the editor's own
- * plumbing: running a command on the block, copying its address, and handing
- * the selected blocks to another page.
- */
 export const usePagesEditorBlockActions = (
   editorViewRef: RefObject<EditorView | null>,
-  /** Which page is being written: a block can only be shown elsewhere once it has a page to live in. */
   shownPage: { readonly pageId: string | null; readonly spaceId: string },
 ): PageEditorBlockActions => {
   const t = useTranslations('pages');
   const router = useRouter();
 
-  /**
-   * Gives the editor the focus back once the menu that held it is gone: asking
-   * for it earlier achieves nothing, because what had the focus is about to be
-   * removed and the page would be left with nothing focused at all.
-   */
+  /** Focus is restored on the next frame: the menu that held it is still mounted until then. */
   const runCommand = useCallback(
     (command: Command): boolean => {
       const editorView = editorViewRef.current;
@@ -50,7 +40,6 @@ export const usePagesEditorBlockActions = (
     [editorViewRef],
   );
 
-  /** Asks the same blocks something else — their comments, or where they are going. */
   const ask = useCallback(
     (kind: PageEditorBlockRequestKind): void => {
       const editorView = editorViewRef.current;
@@ -60,7 +49,6 @@ export const usePagesEditorBlockActions = (
     [editorViewRef],
   );
 
-  /** Puts away what the block was asked, so leaving the menu never closes what it opened. */
   const close = useCallback(
     (kind: PageEditorBlockRequestKind): void => {
       const editorView = editorViewRef.current;
@@ -99,11 +87,7 @@ export const usePagesEditorBlockActions = (
     [router, runCommand, t],
   );
 
-  /**
-   * The blocks are added to the other page first and only then taken off this
-   * one, so a failure on the way leaves the page as it was. What is taken off
-   * is what was sent, not whatever is selected when the answer comes back.
-   */
+  /** Adds to the other page first, then deletes the blocks that were sent, not the current selection. */
   const sendOver = useCallback(
     async (destination: PageDestination): Promise<void> => {
       const editorView = editorViewRef.current;
@@ -128,12 +112,7 @@ export const usePagesEditorBlockActions = (
     [sendOver],
   );
 
-  /**
-   * Shows this block in another page too, without moving it.
-   *
-   * What travels is not the block but where it lives, so the other page shows
-   * what this one says: one block, read in two places.
-   */
+  /** Links the block by reference rather than copying it: one block, shown in two pages. */
   const syncInto = useCallback(
     (destination: PageDestination): void => {
       const editorView = editorViewRef.current;

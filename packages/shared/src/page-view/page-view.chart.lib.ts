@@ -11,14 +11,8 @@ const CALCULATION_BY_MEASURE = {
 } as const satisfies Record<PageChartMeasure, string>;
 
 /**
- * Cuánto mide la barra de un grupo.
- *
- * Es la misma cuenta que una columna hace al pie de una tabla, mirada por otro
- * lado: ahí se pregunta por todas las filas juntas y aquí por las de un grupo.
- * Por eso no se vuelve a escribir la aritmética.
- *
- * Un grupo del que no hay nada que decir mide **cero y no nada**: el grupo
- * existe y tiene filas, y un hueco en el dibujo se leería como que no está.
+ * Reuses the table footer calculation, applied per group. A group with nothing to
+ * measure is zero, not absent: the group exists, and a gap would read as missing.
  */
 export const readPageChartValue = (
   measure: PageChartMeasure,
@@ -26,13 +20,7 @@ export const readPageChartValue = (
   values: readonly (PagePropertyValue | undefined)[],
 ): number => computePageCalculation(CALCULATION_BY_MEASURE[measure], type, values) ?? 0;
 
-/**
- * Qué se puede medir.
- *
- * Contar filas se puede siempre, porque no pregunta por ninguna propiedad.
- * Sumar y promediar necesitan un número: sumar estados o promediar fechas no
- * quiere decir nada, así que no se ofrecen cuando no hay ninguno.
- */
+/** Counting always works; sum and average need a numeric property. */
 export const listPageChartMeasuresFor = (hasANumber: boolean): readonly PageChartMeasure[] =>
   hasANumber
     ? [PAGE_CHART_MEASURE.COUNT, PAGE_CHART_MEASURE.SUM, PAGE_CHART_MEASURE.AVERAGE]

@@ -35,16 +35,8 @@ export const metadata: Metadata = {
 export const generateStaticParams = () => routing.locales.map((locale) => ({ locale }));
 
 /**
- * Everything below is dressed in the theme this browser reads with.
- *
- * The reading is asked for here rather than around the `<html>` element so the
- * shell can still be sent while it is being worked out; the wrapper takes no
- * space of its own, it only passes the theme down — and lends itself as the
- * place where dialogs and menus are drawn, so they are dressed too.
- *
- * It says the colour of the text as well as the theme. Whatever does not paint
- * its own colour inherits it from here; without that it would reach up to the
- * document, which is above the theme and always answers in daylight.
+ * Reads the theme here, not around `<html>`, so the shell can stream while it resolves. The wrapper also hosts
+ * portaled dialogs and menus, and sets the text colour because the document above the theme root is always light.
  */
 const LocaleContent = async ({ children }: Readonly<{ children: React.ReactNode }>) => {
   const messages = await getMessages();

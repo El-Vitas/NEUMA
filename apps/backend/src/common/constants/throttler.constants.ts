@@ -6,54 +6,24 @@ export const THROTTLER_NAMES = {
   mcpPerIp: 'mcp-per-ip',
 } as const;
 
-/**
- * How often credentials may be offered.
- *
- * These are the doors somebody knocks on without a session — signing in,
- * renewing a session, opening an account — so they are the doors that can be
- * knocked on all day by a machine. The per-address count stops one machine;
- * the shared count stops a thousand of them, since a list of addresses is
- * cheap and a guess is only worth making in bulk.
- */
+/** Unauthenticated endpoints: the per-IP limit stops one machine, the shared limit stops distributed guessing. */
 export const CREDENTIAL_RATE_LIMIT = {
   windowSeconds: 60,
   perIpLimit: 20,
   globalLimit: 300,
 } as const;
 
-/**
- * Cuántas veces seguidas se puede pedir el espacio entero.
- *
- * Exportar lee todas las páginas activas, se trae sus adjuntos y arma el
- * archivo en memoria, así que es de lo más caro que el servidor hace por una
- * sola petición. Se cuenta por persona y no por dirección porque hace falta
- * sesión para pedirlo, y una oficina entera comparte una dirección.
- *
- * Cinco por minuto es más de lo que nadie exporta a mano, y corta en seco a una
- * pestaña que reintente sola.
- */
+/** Export builds the whole archive in memory, the costliest request; counted per user. */
 export const EXPORT_RATE_LIMIT = {
   windowSeconds: 60,
   perUserLimit: 5,
 } as const;
 
-/**
- * Cuántas llamadas por minuto admite un agente.
- *
- * Un agente trabajando de verdad encadena llamadas —buscar, leer, leer otra
- * sección, escribir—, así que el tope es holgado para eso. Lo que corta es un
- * agente en bucle, que sin tope se come la base para todos los demás. Se cuenta
- * por token y no por persona: una persona con dos agentes no los hace
- * competir por el mismo cupo.
- */
+/** Roomy for chained agent calls but cuts a looping agent; counted per token, not per user. */
 export const MCP_RATE_LIMIT = {
   windowSeconds: 60,
   perTokenLimit: 120,
-  /**
-   * Lo que se cuenta por dirección antes de mirar el token: así un cliente que
-   * prueba llaves, o un agente con un token revocado que reintenta sin parar,
-   * no consulta la base sin límite. Es holgado porque una oficina entera, con
-   * varios agentes, sale por una sola dirección.
-   */
+  // Counted before the token lookup so key guessing cannot hit the database unbounded.
+  // High because an office shares one IP.
   perIpLimit: 600,
 } as const;

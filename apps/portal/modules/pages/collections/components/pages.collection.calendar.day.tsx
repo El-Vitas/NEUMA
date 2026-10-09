@@ -14,33 +14,18 @@ import type { PageCalendarCell, PagesCalendarMoving } from '../types/pages.calen
 interface IProps {
   readonly canEdit: boolean;
   readonly cell: PageCalendarCell;
-  /** Cómo se dice ese día, ya en el idioma de quien mira. */
   readonly dayLabel: string;
   readonly isToday: boolean;
   readonly moving: PagesCalendarMoving;
   readonly onCreate: () => void;
 }
 
-/**
- * Un día del mes con lo que cae en él.
- *
- * Los días del mes de al lado se dibujan igual pero apagados: una semana
- * partida por la mitad no es una semana, y quien mira la primera fila necesita
- * ver dónde empieza el mes sin ponerse a contar casillas.
- *
- * Soltar una entrada encima es ponerle esa fecha. Se ofrece el gesto y también
- * el botón de agregar, porque arrastrar no puede ser la única manera de que algo
- * caiga en un día.
- */
+/** Days of the adjacent months render dimmed, not omitted, so weeks stay whole. */
 export const PagesCollectionCalendarDay = ({ canEdit, cell, dayLabel, isToday, moving, onCreate }: IProps) => {
   const t = useTranslations('pages');
   const isTarget = canEdit && moving.carried !== null;
 
-  /**
-   * Con Alt y las flechas, la entrada cambia de día sin arrastrarla: un día a
-   * cada lado, y una semana arriba o abajo, que es lo que significan esas
-   * flechas sobre una rejilla de siete columnas.
-   */
+  /** Keyboard alternative to dragging: Alt + arrows step by day or by week on a seven-column grid. */
   const moveOnArrow = (event: KeyboardEvent<HTMLDivElement>, rowId: string): void => {
     if (!canEdit || !event.altKey) return;
     const days = PAGE_CALENDAR_KEYBOARD_STEPS[event.key];

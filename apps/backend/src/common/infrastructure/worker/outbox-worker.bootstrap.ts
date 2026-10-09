@@ -7,7 +7,6 @@ import type {
 } from '../../types/outbox-worker.types';
 import { buildLogOptions } from '../logger.options';
 
-/** El log de los proyectores, con el mismo formato y lo mismo oculto que el del servidor. */
 export const createOutboxWorkerLogger = (): OutboxWorkerLogger =>
   pino(buildLogOptions(OUTBOX_WORKER_LOG_LEVEL), pino.destination(2));
 
@@ -33,9 +32,8 @@ export const runOutboxProjectionWorkerBootstrap = async <TApplication extends Ou
     requestShutdown('SIGTERM');
   };
 
-  // Los tipos de Bun añaden su propio `off`/`removeListener` a `process`, y esa
-  // sobrecarga tapa la que Node declara para las señales. El emisor de eventos,
-  // que es lo que `process` es, sigue aceptándolas.
+  // Bun's types add an `off`/`removeListener` overload to `process` that hides Node's signal one.
+  // The EventEmitter view still accepts signals.
   const processEvents: NodeJS.EventEmitter = process;
 
   process.once('SIGINT', handleSigint);

@@ -11,14 +11,7 @@ export const pageImageIconSchema = z.object({ assetId: z.uuid(), kind: z.literal
 
 const maximumPageSymbolIconNameLength = 64;
 
-/**
- * A page marked with one of the drawn symbols the product already speaks in,
- * rather than an emoji or a picture of its own.
- *
- * Only the name is kept. Which symbols are offered, and how each one is drawn,
- * belongs to whoever draws them: storing a name rather than a drawing is what
- * lets that set change without rewriting what every page already chose.
- */
+/** Only the symbol name is stored, so the offered set and its drawings can change without rewriting pages. */
 export const PAGE_ICON_COLORS = [
   'default',
   'gray',

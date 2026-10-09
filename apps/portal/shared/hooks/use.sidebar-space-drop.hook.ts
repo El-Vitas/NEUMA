@@ -19,15 +19,7 @@ import type { PortalSidebarSpaceDropController } from '@/modules/portal/types/po
 import { reorderSpaceAction } from '@/modules/spaces/server/actions/spaces.actions';
 import { hasActionError } from '@/shared/lib/action-result';
 
-/**
- * What a space row can receive: a page, which moves there, and another space,
- * which takes its place in the list.
- *
- * The row belongs to no tree, so it learns what is being dragged from the drag
- * itself rather than from shared state. The two are told apart by what the drag
- * declares it carries, which is the one thing a browser lets one read before the
- * drop. Anything dropped where it already is changes nothing.
- */
+/** The drag kind comes from the types the drag declares, the only thing a browser exposes before the drop. */
 export const useSidebarSpaceDrop = (): PortalSidebarSpaceDropController => {
   const t = useTranslations('pages');
   const spacesT = useTranslations('spaces');

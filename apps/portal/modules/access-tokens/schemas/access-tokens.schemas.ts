@@ -40,17 +40,13 @@ export const workspaceAccessTokenSchema = accessTokenSchema.extend({
 
 export const workspaceAccessTokensListSchema = z.array(workspaceAccessTokenSchema);
 
-/** Lo que vuelve al crear uno: la única vez que el secreto sale del servidor. */
+/** The only time the secret leaves the server. */
 export const createdAccessTokenSchema = z.object({
   secret: z.string().min(1),
   token: accessTokenSchema,
 });
 
-/**
- * Lo que pide la pantalla al crear un token. El vencimiento llega como un
- * instante, ya calculado en la hora de quien lo eligió; el servidor exige que
- * sea después de ahora.
- */
+/** The expiry arrives as an instant computed in the chooser's local time; the server requires it in the future. */
 export const accessTokenCreateSchema = z.object({
   access: accessTokenAccessSchema,
   expiresAt: z.iso.datetime().nullable(),

@@ -15,12 +15,7 @@ import {
 import { PAGE_EDITOR_TABLE_SIZE } from '../../blocks/constants/pages.editor.blocks.constants';
 import type { PageEditorTableAction } from '../types/pages.editor.table.types';
 
-/**
- * A table as it is first drawn: a few rows and columns, the first of them a
- * header. A table of one cell is not a table yet — whoever asked for one is
- * asking for a grid to fill, and the header row is what almost every table
- * turns out to need.
- */
+/** A starter grid whose first row is a header. */
 export const createPageTable = (schema: Schema): EditorNode => {
   const buildRow = (cellType: EditorNode['type']): EditorNode =>
     schema.nodes.table_row.createChecked(
@@ -36,23 +31,12 @@ export const createPageTable = (schema: Schema): EditorNode => {
   ]);
 };
 
-/** Whether the writing is inside a table, which is what decides if a table can be asked anything. */
 export const isPageEditorInTable = (state: EditorState): boolean => isInTable(state);
 
-/**
- * Whether what is selected is cells rather than a block.
- *
- * Selecting a table selects its cells, which is a different kind of aim: what
- * applies to a block — becoming another type, above all — would land on one
- * cell of many and leave the table half changed.
- */
+/** Block commands such as changing type would hit one cell of many and leave the table half changed. */
 export const isPageEditorCellSelection = (state: EditorState): boolean => state.selection instanceof CellSelection;
 
-/**
- * Tab walks to the next cell, and gives the table another row when there is no
- * next cell. Filling a table is one gesture repeated, so the table grows under
- * the writing rather than making someone stop to ask for room.
- */
+/** Adds a row when there is no next cell. */
 export const goToNextPageTableCell: Command = (state, dispatch) => {
   if (!isInTable(state)) return false;
   if (goToNextCell(1)(state, dispatch)) return true;
@@ -62,13 +46,7 @@ export const goToNextPageTableCell: Command = (state, dispatch) => {
 export const goToPreviousPageTableCell: Command = (state, dispatch) =>
   isInTable(state) && goToNextCell(-1)(state, dispatch);
 
-/**
- * Turns the first row into a header, or back into a row like any other.
- *
- * It always answers about the first row, whatever is selected: the menu is
- * opened from the table's own grip, which selects every cell, and a header is
- * something a table has at the top rather than wherever the aim happened to be.
- */
+/** Always acts on the first row: the menu opens from the table grip, which selects every cell. */
 const togglePageTableHeaderRow: Command = (state, dispatch) => {
   if (!isInTable(state)) return false;
   const rect = selectedRect(state);
@@ -87,7 +65,6 @@ const togglePageTableHeaderRow: Command = (state, dispatch) => {
   return true;
 };
 
-/** What each thing a table can be asked for actually does. */
 const readTableCommand = (action: PageEditorTableAction): Command => {
   switch (action) {
     case 'addColumn':

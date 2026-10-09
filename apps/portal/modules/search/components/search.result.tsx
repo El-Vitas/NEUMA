@@ -55,7 +55,7 @@ export const SearchResultCard = ({ locale, result }: IProps) => {
         </div>
       </div>
       <p className="wrap-break-word text-muted-foreground text-sm/6">
-        {/* A snippet is one sentence cut into pieces, so where a piece stands is what tells it from another that reads the same. */}
+        {/* Pieces can repeat the same text, so the index is part of the key. */}
         {result.snippet.map((part, at) =>
           part.highlighted ? (
             <mark className="bg-highlight-soft text-foreground" key={`snippet-${String(at)}`}>

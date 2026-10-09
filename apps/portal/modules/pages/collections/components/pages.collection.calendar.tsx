@@ -20,23 +20,14 @@ import { PagesCollectionNewRow } from './pages.collection.new-row';
 
 interface IProps {
   readonly canEdit: boolean;
-  /** Por qué fecha se coloca cada fila. Nada cuando la vista todavía no lo dice. */
+  /** Null until the view defines which property places each row. */
   readonly dateProperty: null | string;
   readonly rows: readonly PageRow[];
   readonly schema: PageSchema;
   readonly spaceId: string;
 }
 
-/**
- * Las filas de una colección puestas en los días que dicen.
- *
- * El mes se cambia aquí mismo y no viajando al servidor: las filas que pasan el
- * filtro ya están todas en pantalla, así que pasar de mes es repartirlas de
- * otra manera y no volver a pedirlas.
- *
- * Los días se dicen en el idioma de quien mira, con `Intl`, porque los nombres
- * de los meses no son textos del producto: son del calendario de cada uno.
- */
+/** Changing month redistributes the rows already loaded instead of refetching. */
 export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, spaceId }: IProps) => {
   const t = useTranslations('pages.collection');
   const locale = useLocale();
@@ -50,10 +41,7 @@ export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, s
   });
   const [month, setMonth] = useState(() => resolveCalendarMonth(null, rows, dateProperty, today));
   const [namingOn, setNamingOn] = useState<null | string>(null);
-  /**
-   * Los tres se arman una vez por idioma y no por dibujo: componer un formato
-   * de fecha es caro, y el calendario se vuelve a dibujar con cada arrastre.
-   */
+  /** Built once per locale: creating a date formatter is costly and the calendar re-renders on every drag. */
   const monthOf = useMemo(
     () => new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC', year: 'numeric' }),
     [locale],
@@ -66,7 +54,7 @@ export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, s
 
   if (dateProperty === null) return <EmptyState message={t('calendarNeedsDate')} />;
 
-  /** Lo que la fila dice ahora, contando lo que se acaba de soltar y el servidor aún no confirmó. */
+  /** Includes a drop the server has not confirmed yet. */
   const dateOf = (row: PageRow): null | string => moving.dateOf(row, readRowDate(row, dateProperty));
   const cells = buildCalendarCells(month, rows, dateOf);
   const undated = listRowsWithoutDate(rows, dateOf);
@@ -134,10 +122,7 @@ export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, s
           onConfirm={(title) => createOn(namingOn, title)}
         />
       )}
-      {/*
-        Lo que no dice ninguna fecha no cae en ningún día, y aun así está: sin
-        decirlo, una fila sin fecha parecería borrada.
-      */}
+      {/* Rows without a date fall on no day; the count keeps them from looking deleted. */}
       {undated.length > 0 && (
         <p className="px-1 text-muted-foreground text-xs">{t('calendarUndated', { count: undated.length })}</p>
       )}

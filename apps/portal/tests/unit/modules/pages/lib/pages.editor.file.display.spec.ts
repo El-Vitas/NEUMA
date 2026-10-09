@@ -18,7 +18,6 @@ const pageHolding = (attrs: Record<string, unknown>): EditorState => {
 };
 
 describe('how a page shows the file it holds', () => {
-  /** Nobody said, so the kind of file answers: a document is read, anything else is kept. */
   it('says what the block would show today when nobody has chosen', () => {
     expect(readPageFileDisplay(pageHolding({ caption: 'manual.pdf', mimeType: 'application/pdf' }))?.chosen).toBe(
       'document',
@@ -39,7 +38,6 @@ describe('how a page shows the file it holds', () => {
     expect(next.doc.child(0).attrs.display).toBe('line');
   });
 
-  /** Offering a choice that cannot be honoured is how a menu ends up doing nothing. */
   it('offers no choice about a file the browser cannot draw', () => {
     expect(readPageFileDisplay(pageHolding({ caption: 'copia.zip', mimeType: 'application/zip' }))).toBeNull();
     expect(readPageFileDisplay(pageHolding({ caption: 'notas.txt', mimeType: 'text/plain' }))).toBeNull();
@@ -47,7 +45,6 @@ describe('how a page shows the file it holds', () => {
 });
 
 describe('putting a file on a page that already holds one', () => {
-  /** A selected block is what someone is looking at, not a hole to drop the next thing into. */
   it('puts it after the selected block instead of over it', () => {
     const state = pageHolding({ caption: 'manual.pdf', mimeType: 'application/pdf' });
     let next = state;
@@ -83,7 +80,6 @@ describe('the block redrawing itself when the choice changes', () => {
     };
   };
 
-  /** Saying «I handled it» to a change it cannot draw is how a block stays as it was until the page reloads. */
   it('gives the block back to be drawn again when it stops being a document', () => {
     const { node, nodeView } = nodeViewOf({ caption: 'manual.pdf', mimeType: 'application/pdf' });
     const asLine = pageEditorSchema.node('file', { ...node.attrs, display: 'line' });

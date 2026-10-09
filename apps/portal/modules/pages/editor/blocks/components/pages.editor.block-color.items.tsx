@@ -14,11 +14,7 @@ interface IProps {
   readonly selected: string | null;
 }
 
-/**
- * The palette on offer: a handful of colours, each shown as itself, and a way
- * back to the page default. There is no free colour picker on purpose — a page
- * reads as one document, not as a paint set.
- */
+/** A fixed palette with no free colour picker on purpose: a page reads as one document. */
 export const PagesEditorBlockColorItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

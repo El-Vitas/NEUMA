@@ -152,14 +152,8 @@ describe('Restoring a trashed page (Integration)', () => {
   });
 
   /**
-   * `Page.parentId` has `onDelete: SetNull`, so the instant the mother is deleted
-   * forever, Postgres nulls every reference to her — including a trashed child's,
-   * before restore ever runs. Nothing in the schema is left to say she once had a
-   * mother, so this lands exactly like a page that was always at the root: no
-   * notice, because there is nothing left to name. Restoring still lands the page
-   * somewhere real and reachable; only the explanation is unavailable. Closing
-   * that gap would need a schema change (e.g. keeping the mother's title once she
-   * is gone), which is out of scope here.
+   * `Page.parentId` is `onDelete: SetNull`, so deleting the parent for good nulls every reference to it before restore
+   * runs. Nothing is left to name, so the page lands like one that was always at the root, with no notice.
    */
   it('restores a page to the root of its space when its parent was deleted forever, without a notice to name her by', async () => {
     const parent = await createPage(testApp, adminToken, spaceId, 'Deleted Forever Parent');
@@ -203,10 +197,6 @@ describe('Restoring a trashed page (Integration)', () => {
     expect(restoredChild.parentId).toBe(parent.id);
   });
 
-  /**
-   * Una página en la papelera no se cambia: una pestaña vieja que la renombra,
-   * la bloquea o la verifica creería que funcionó sobre algo que ya no está.
-   */
   it('refuses to rename, lock, verify, copy or give an owner to a page in the trash, changing nothing', async () => {
     const trashed = await createPage(testApp, adminToken, spaceId, 'En la papelera');
     await trashPage(testApp, adminToken, spaceId, trashed.id);
@@ -231,11 +221,6 @@ describe('Restoring a trashed page (Integration)', () => {
     expect(await testApp.get(PrismaService).page.count({ where: { title: { startsWith: 'En la papelera' } } })).toBe(1);
   });
 
-  /**
-   * Una página nueva o movida bajo una que está en la papelera quedaría viva
-   * dentro de algo borrado: no se ve en el árbol, y al borrar la de arriba
-   * reaparecería suelta en la raíz.
-   */
   it('refuses to create or move a page under one in the trash', async () => {
     const gone = await createPage(testApp, adminToken, spaceId, 'Padre en la papelera');
     const loose = await createPage(testApp, adminToken, spaceId, 'Suelta');
@@ -256,7 +241,6 @@ describe('Restoring a trashed page (Integration)', () => {
     expect((await getPage(testApp, adminToken, spaceId, loose.id)).parentId).toBeNull();
   });
 
-  /** Vaciar la papelera borra lo que está en ella al borrar, no lo que estaba un momento antes. */
   it('empties the trash of a space, leaving a page restored before it untouched', async () => {
     const gone = await createPage(testApp, adminToken, spaceId, 'Se va');
     const kept = await createPage(testApp, adminToken, spaceId, 'Vuelve');

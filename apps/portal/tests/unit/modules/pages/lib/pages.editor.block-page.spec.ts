@@ -31,7 +31,6 @@ const closeEditor = (mounted: { readonly container: HTMLElement; readonly view: 
   mounted.container.remove();
 };
 
-/** The whole of the first block, as a drag from its grip would take it. */
 const firstBlock = (view: EditorView): { readonly from: number; readonly to: number } => ({
   from: 0,
   to: view.state.doc.child(0).nodeSize,

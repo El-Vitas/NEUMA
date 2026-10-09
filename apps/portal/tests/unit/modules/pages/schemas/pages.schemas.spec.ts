@@ -47,7 +47,6 @@ describe('pageLocatorSchema', () => {
     expect(pageLocatorSchema.safeParse({ pageId: PAGE_ID, spaceId: SPACE_ID }).success).toBe(true);
   });
 
-  /** El id termina escrito en la dirección de un pedido al backend: algo que no es un id no sale de aquí. */
   it('refuses an id that is not one, a path that climbs out included', () => {
     expect(pageLocatorSchema.safeParse({ pageId: PAGE_ID, spaceId: '../../users' }).success).toBe(false);
     expect(pageLocatorSchema.safeParse({ pageId: 'page-a', spaceId: SPACE_ID }).success).toBe(false);

@@ -1,6 +1,3 @@
-// no-utilities-in-components
-// Qué hace: prohíbe helpers que no renderizan dentro de archivos de componente.
-// Para qué: el componente solo renderiza; la lógica va a `lib/` (§1.1, §14.30).
 const STARTS_WITH_UPPERCASE = /^[A-Z]/;
 
 const isModuleScope = (node, context) => {

@@ -13,7 +13,7 @@ describe('search cursor', () => {
     expect(decodeSearchCursor(undefined)).toBeNull();
   });
 
-  /** «1» es una fecha para JavaScript y no para Postgres: un cursor así terminaba en un error del servidor. */
+  // Regression: "1" parses as a date in JavaScript but not in Postgres, and such a cursor ended in a server error.
   test('rejects a cursor whose date is not a full timestamp', () => {
     const forged = Buffer.from(JSON.stringify({ rank: 0.4, sourceId: 'page-2', updatedAt: '1' }), 'utf8').toString(
       'base64url',

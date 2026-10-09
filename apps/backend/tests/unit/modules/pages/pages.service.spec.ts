@@ -117,7 +117,6 @@ const createStorageProvider = (): IStorageProvider => ({
   save: () => Promise.resolve('storage-key'),
 });
 
-/** Says nothing, so a test that expects a warning reads it from the code and not from the output. */
 const createLogger = (): PageLogger => ({ warn: () => undefined });
 
 describe('pages service', () => {
@@ -148,7 +147,6 @@ describe('pages service', () => {
     expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
   });
 
-  /** La dirección nombra un espacio: una página de otro espacio no se escribe por ella. */
   it('refuses a page reached through the address of another space', async () => {
     const service = new PagesService(
       createRepository(),
@@ -680,7 +678,6 @@ describe('pages service', () => {
     expect(result.getError().code).toBe('PAGE_LOCKED');
   });
 
-  /** Renaming a page is writing in it, so a lock stops that too. */
   it('refuses to rename a page somebody locked', async () => {
     const repository = {
       ...createRepository(),
@@ -1330,7 +1327,6 @@ describe('markdown export', () => {
 });
 
 describe('pages service — updating what a row holds', () => {
-  /** Every collection carries one, and a row is refused without it. */
   const titleProperty = {
     key: 'title',
     label: 'Title',
@@ -1373,7 +1369,6 @@ describe('pages service — updating what a row holds', () => {
     type: DatabasePropertyType.RICH_TEXT,
   };
 
-  /** Records what reached the store, so a test can tell what travelled from what was merely read. */
   const buildServiceRecordingWrites = (
     written: Record<string, unknown>[],
     storedValues: SchemaPropertyValues,
@@ -1417,7 +1412,6 @@ describe('pages service — updating what a row holds', () => {
     expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done' });
   });
 
-  /** Nombre y propiedades en dos escrituras dejarían la fila a medias si la segunda falla. */
   it('renames the row in the same write as its properties, so both land or neither does', async () => {
     const received: UpdatePagePropertyValuesInput[] = [];
     const service = new PagesService(
@@ -1450,11 +1444,8 @@ describe('pages service — updating what a row holds', () => {
     expect(received).toEqual([{ pageId: 'page-a', title: 'Informe entregado', updatedById: 'user-a' }]);
   });
 
-  /**
-   * A row keeps what it wrote under a property somebody later removed from the
-   * shape. Carrying that back would be refused, and the row could never be
-   * saved again — so it is left behind the first time the row is written.
-   */
+  // A row keeps values under a property later removed from the shape; carrying them back would be refused and block
+  // every later save, so they are dropped on the first write.
   it('leaves behind a value the shape no longer knows, instead of locking the row', async () => {
     const written: Record<string, unknown>[] = [];
     const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo' }, [
@@ -1475,7 +1466,6 @@ describe('pages service — updating what a row holds', () => {
     expect(written[0]).toEqual({ status: 'done' });
   });
 
-  /** Dropping a card on the column of rows without a value means the row stops having one. */
   it('clears a property when what arrives for it is nothing', async () => {
     const written: Record<string, unknown>[] = [];
     const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo' }, [
@@ -1512,7 +1502,6 @@ describe('pages service — updating what a row holds', () => {
     expect(result.isFail()).toBe(true);
   });
 
-  /** A locked page is locked for everything it holds, not only for what is written in its body. */
   it('refuses to touch a locked page', async () => {
     const service = new PagesService(
       {

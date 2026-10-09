@@ -21,14 +21,6 @@ interface IProps {
   readonly title: string;
 }
 
-/**
- * Where everything in a page is, kept at the side of the page itself.
- *
- * The index block belongs to whoever writes the page and lives in the writing;
- * this one belongs to whoever reads it and is always there, without costing a
- * line. It marks the heading being read, which is what turns a list of names
- * into a place to stand, and a page with nothing to list shows nothing at all.
- */
 export const PagesOutline = ({ headings, onGoToHeading, title }: IProps) => {
   const [beingRead, setBeingRead] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);

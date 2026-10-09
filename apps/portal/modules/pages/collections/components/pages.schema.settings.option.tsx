@@ -19,13 +19,6 @@ interface IProps {
   readonly property: PageSchemaProperty;
 }
 
-/**
- * Una opción y su color.
- *
- * Los colores van en lista, uno por línea con su nombre, en vez de una fila de
- * cuadrados: así se sabe cuál está puesto sin adivinarlo por un contorno, y
- * quien no distingue dos tonos igual lo lee.
- */
 export const PagesSchemaSettingsOption = ({ editor, onGo, option, property }: IProps) => {
   const t = useTranslations('pages.collection');
 

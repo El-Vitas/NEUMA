@@ -84,7 +84,6 @@ export const SidebarPageTreeItem = ({
   const tExport = useTranslations('pages.export');
   const copyPageLink = useCopyPageLink();
   const { children, page } = treeItem;
-  /** A page nobody has named yet is still a row one has to be able to read and point at. */
   const pageTitle = page.title.length > 0 ? page.title : t('untitled');
   const hasChildren = children.length > 0;
   const isExpanded = expandedPageIds.has(page.id);
@@ -157,7 +156,6 @@ export const SidebarPageTreeItem = ({
             'relative flex min-h-11 min-w-0 flex-1 items-center gap-1.5 px-1 text-sidebar-foreground/65 text-sm hover:bg-sidebar-accent hover:text-sidebar-foreground',
             FOCUS_RING_CLASS,
             isSelected && 'bg-sidebar-accent font-medium text-sidebar-foreground',
-            /* Landing inside a page fills it; landing beside it draws the line the page would slot into. */
             'data-[sidebar-page-drop-target=nest]:bg-primary/15 data-[sidebar-page-drop-target=nest]:outline data-[sidebar-page-drop-target=nest]:outline-primary/60',
             'data-[sidebar-page-drop-target=before]:shadow-[inset_0_2px_0_0_var(--color-primary)]',
             'data-[sidebar-page-drop-target=after]:shadow-[inset_0_-2px_0_0_var(--color-primary)]',

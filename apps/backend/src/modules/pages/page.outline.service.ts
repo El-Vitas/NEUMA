@@ -9,7 +9,7 @@ import type {
   PageOutlineWindow,
 } from './types/page-outline.types';
 
-/** Recorrer el árbol de páginas sin abrirlas: qué cuelga de cada una, de dónde cuelga, y cuáles se pueden ver. */
+/** Walks the page tree without loading content, limited to what the reader can see. */
 @Injectable()
 export class PageOutlineService {
   constructor(@Inject(PAGE_OUTLINE_REPOSITORY) private readonly outlineRepository: PageOutlineRepositoryContract) {}

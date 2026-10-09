@@ -32,7 +32,6 @@ const columnSchema = z
 
 const textSchema = z.string().max(MCP_VALUE_TEXT_MAX_LENGTH);
 
-/** Lo que una fila puede tener en una columna: texto, un número, sí o no, varios valores, o nada para vaciarla. */
 const cellValueSchema = z.union([
   textSchema,
   z.number(),
@@ -72,7 +71,6 @@ const cursorSchema = buildMcpOffsetCursorSchema('To read the next part: the curs
 
 const addableColumnTypes = PAGE_PROPERTY_TYPE_VALUES.filter((type) => type !== PAGE_PROPERTY_TYPE.TITLE);
 
-/** Una columna nueva: su nombre como lo verá la gente, su tipo y, si elige entre opciones, cuáles. */
 const newColumnSchema = z.object({
   name: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH),
   options: z
@@ -211,7 +209,6 @@ const outputViewSchema = z.object({
   type: z.string(),
 });
 
-/** Lo que devuelve toda herramienta de colecciones: la colección como quedó. */
 export const collectionOutputSchema = z.object({
   columns: z.array(outputColumnSchema),
   id: z.string(),
@@ -239,9 +236,8 @@ export const queryCollectionOutputSchema = z.object({
   nextCursor: z.string().optional(),
   rows: z.array(outputRowSchema),
   total: z.number().int().nonnegative(),
-  /** Si la colección tenía más filas de las que se pudieron leer: las que faltan no están en el total. */
+  /** Rows beyond the read cap are not in the total. */
   truncated: z.boolean(),
 });
 
-/** Lo que devuelve escribir una fila: la fila como quedó guardada. */
 export const rowOutputSchema = outputRowSchema;

@@ -17,17 +17,9 @@ const securityHeaders = [
   },
 ];
 
-/** Where the files a page holds are handed over. */
 const attachmentsPath = 'api/page-assets';
 
-/**
- * Nothing of this application may be put in a frame, anywhere.
- *
- * The one exception is the attachments themselves, and only inside this same
- * origin: a document shown on a page is drawn by the browser's own viewer,
- * which reads it in a frame of its own. Denying that frame denies the viewer,
- * and the page shows an empty box instead of the document.
- */
+/** Attachments allow same-origin framing because the browser's document viewer renders them in a frame. */
 const framingHeaders = [
   { source: `/((?!${attachmentsPath}).*)`, value: 'DENY' },
   { source: `/${attachmentsPath}/:path*`, value: 'SAMEORIGIN' },
@@ -38,34 +30,15 @@ const monorepoRoot = path.join(import.meta.dirname, '../../');
 const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
-  /**
-   * How much a server action may be handed at once.
-   *
-   * Files reach the server through actions, and the pages promise ten megabytes
-   * of them; the default of one would refuse most of what the interface offers
-   * to accept, and refuse it by throwing rather than by saying so. The margin
-   * above ten is what the encoding of the file itself costs on the way.
-   */
   experimental: {
+    // Files travel through server actions and the UI accepts 10 MB; the margin covers encoding overhead.
     serverActions: { bodySizeLimit: '12mb' },
-    /**
-     * The build stays on Bun, and the persistent Turbopack cache that Next 16.3
-     * turned on by default makes `bun --bun next build` crash with a segfault.
-     * Turned off until the two get along; only the build cache is given up, and
-     * the dev one —which is what keeps memory in check— stays on.
-     */
+    // The persistent Turbopack build cache makes `bun --bun next build` segfault.
     turbopackFileSystemCacheForBuild: false,
-    /**
-     * The type checker Next 16.3 reaches for lives in `typescript/bin/tsc`, and
-     * the compiler this repository installs (`@typescript/typescript6`) does not
-     * ship that file. Typechecking runs on its own through `bun run typecheck`.
-     */
+    // Next looks for `typescript/bin/tsc`, which `@typescript/typescript6` does not ship.
     useTypeScriptCli: false,
   },
-  /**
-   * The manual is written in files rather than in the code, and files nothing
-   * imports are not carried into what gets deployed unless they are named here.
-   */
+  // Nothing imports the docs content files, so tracing would drop them from the deployment.
   outputFileTracingIncludes: { '/[locale]/(portal)/docs/**': ['./content/docs/**/*'] },
   cacheComponents: true,
   logging: {

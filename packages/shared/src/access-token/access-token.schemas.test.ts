@@ -21,7 +21,6 @@ describe('lo que se acepta como acceso de un token', () => {
     expect(accessTokenAccessSchema.safeParse(access({ pages: [{ pageId, permissions: [read] }] })).success).toBe(true);
   });
 
-  /** Una regla sin permisos es una exclusión: se acepta mientras otra regla dé algo. */
   test('accepts a space or a page with no permissions, as an exclusion', () => {
     const everythingButOneSpaceAndOnePage = access({
       allSpaces: [read],
@@ -32,7 +31,6 @@ describe('lo que se acepta como acceso de un token', () => {
     expect(accessTokenAccessSchema.safeParse(everythingButOneSpaceAndOnePage).success).toBe(true);
   });
 
-  /** Quien arma el token tiene que saber qué corregir, no solo que algo está mal. */
   test('says what is wrong and where: a space named twice, a page named twice, or nothing given', () => {
     const issuesOf = (rules: Record<string, unknown>) =>
       accessTokenAccessSchema.safeParse(access(rules)).error?.issues.map((issue) => ({
@@ -61,7 +59,6 @@ describe('lo que se acepta como acceso de un token', () => {
     expect(issuesOf({})).toEqual([{ message: 'The token must give at least one permission somewhere.', path: [] }]);
   });
 
-  /** Un token sin ningún permiso es una llave que no abre nada: mejor no crearla que tener que explicarla. */
   test('refuses a token that can do nothing anywhere, exclusions or not', () => {
     expect(accessTokenAccessSchema.safeParse(access({})).success).toBe(false);
     expect(accessTokenAccessSchema.safeParse(access({ pages: [{ pageId, permissions: [] }] })).success).toBe(false);
@@ -71,7 +68,6 @@ describe('lo que se acepta como acceso de un token', () => {
     expect(accessTokenAccessSchema.safeParse(access({ allSpaces: ['pages:delete-forever'] })).success).toBe(false);
   });
 
-  /** El mismo lugar dos veces deja sin decir cuál de las dos reglas manda. */
   test('refuses the same space or the same page named twice', () => {
     const spaceTwice = access({
       spaces: [

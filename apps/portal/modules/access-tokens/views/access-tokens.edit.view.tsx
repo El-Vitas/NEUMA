@@ -7,12 +7,10 @@ import type { AccessToken, AccessTokenSpaceOption } from '../types/access-tokens
 
 interface IProps {
   readonly role: UserRole;
-  /** Los espacios que la persona ve, o nada si no cargaron: sin ellos no se ofrece cambiar el acceso. */
   readonly spaces: readonly AccessTokenSpaceOption[] | null;
   readonly token: AccessToken;
 }
 
-/** La sección para cambiar lo que puede un token, con espacio para sus reglas. */
 export const AccessTokensEditView = async ({ role, spaces, token }: IProps) => {
   const t = await getTranslations('accessTokens');
 

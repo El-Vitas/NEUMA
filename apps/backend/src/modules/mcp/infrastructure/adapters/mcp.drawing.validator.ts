@@ -13,16 +13,10 @@ import { McpDiagramCheckerBusyError } from '../errors/mcp.diagram-busy.error';
 import { McpDiagramCheckTimeoutError } from '../errors/mcp.diagram-timeout.error';
 
 /**
- * Revisa, antes de guardar, que lo que una página va a dibujar se pueda
- * dibujar: cada diagrama con el mismo Mermaid del portal, cada fórmula con
- * KaTeX.
- *
- * Mermaid corre en un worker aparte porque necesita una ventana simulada, y en
- * el proceso del backend esa ventana haría creer a otras librerías que corren
- * en un navegador. Si el worker no arranca, no contesta o se cae, la revisión
- * falla como falla la infraestructura —la escritura no se hace y el error
- * queda en el log— y el worker se vuelve a levantar para la siguiente. Nunca se
- * da por bueno un diagrama que no se pudo revisar.
+ * Mermaid runs in a separate worker because it needs a fake window, which in the backend process
+ * would make other libraries think they run in a browser. If the worker fails to start, answer or
+ * dies, the check fails as infrastructure does (write skipped, error logged) and the next check
+ * restarts the worker. A diagram that could not be checked is never accepted.
  */
 @Injectable()
 export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModuleDestroy {
@@ -30,14 +24,13 @@ export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModule
   private running: Worker | null = null;
   private nextId = 0;
   private readonly pending = new Map<number, McpPendingDiagramCheck>();
-  /** Los diagramas esperan su turno: el worker lee de a uno, y el tiempo de cada uno corre recién cuando le toca. */
+  /** Serializes checks: the worker reads one at a time, and each timeout starts only on its turn. */
   private turn: Promise<void> = Promise.resolve();
   private waiting = 0;
 
   /**
-   * Revisa un diagrama cuando le llega su turno. Uno que tarda demasiado
-   * reinicia el worker y falla solo él: los que esperaban siguen con uno nuevo.
-   * Con la fila llena, el que llega falla enseguida para que se reintente.
+   * A diagram that takes too long restarts the worker and fails alone; the queued ones continue
+   * on a fresh worker. With the queue full, the newcomer fails at once so it can retry.
    */
   checkDiagram(source: string): Promise<Result<string, string>> {
     if (this.waiting >= MCP_DIAGRAM_CHECKS_WAITING_MAX)
@@ -129,7 +122,7 @@ export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModule
     });
   }
 
-  /** Una respuesta del worker, leída con forma; una que no se entiende es un fallo del worker, no del diagrama. */
+  /** An unreadable answer is a worker failure, not a diagram failure. */
   private settle(data: unknown): void {
     const answer = diagramCheckAnswerSchema.safeParse(data);
     if (!answer.success) {
@@ -141,7 +134,7 @@ export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModule
     waiting?.settle(answer.data);
   }
 
-  /** Detiene el worker y hace fallar lo que esperaba, con el porqué; el próximo diagrama levanta uno nuevo. */
+  /** The next diagram spawns a new worker. */
   private stop(error: Error): void {
     this.running?.terminate();
     this.running = null;

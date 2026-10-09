@@ -8,26 +8,14 @@ import type { PageCollectionInsert } from '../../../collections/types/pages.coll
 import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';
 import { leaveSomewhereToWriteUnder } from '../../lib/pages.editor.write-under.lib';
 
-/**
- * Asks for a collection to keep here.
- *
- * Like a page, a collection cannot be written: it is a page with a shape, and
- * only whoever holds the page knows how to make one. So the menu asks, and what
- * lands in the writing is the block that shows it.
- */
+/** A collection cannot be created inside the editor, so the menu asks the host page to make one. */
 export const askForACollection: Command = createPageEditorAskCommand(PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR);
 
-/** Asks which collection already written is being shown here. */
 export const askForACollectionAlreadyWritten: Command = createPageEditorAskCommand(
   PAGE_EDITOR_COLLECTION_VIEW_REQUEST_SELECTOR,
 );
 
-/**
- * Puts the block that shows a collection where the writing was left.
- *
- * Where it was left is said outright for the same reason a child page says it:
- * making a collection takes a moment, and in that moment the cursor is gone.
- */
+/** Takes the position explicitly: creating the collection is async and the cursor is gone by then. */
 export const createPageCollectionInsertCommand =
   (schema: Schema, collection: PageCollectionInsert, spot: number): Command =>
   (state, dispatch) => {

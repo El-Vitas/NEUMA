@@ -9,7 +9,7 @@ import { Button } from '@/shared/components/ui/button';
 
 interface IProps {
   readonly disabled: boolean;
-  /** Con una columna en la mano, este botón es además el sitio de soltarla al final. */
+  /** While a column is dragged, the button doubles as the drop target for the end position. */
   readonly isCarryingColumn: boolean;
   readonly isColumnTarget: boolean;
   readonly onAdd: (name: string) => void;
@@ -17,13 +17,7 @@ interface IProps {
   readonly onColumnOver: () => void;
 }
 
-/**
- * Una columna más, al final de las que hay.
- *
- * Se pide el nombre antes de crearla porque una columna **es** su nombre: no
- * hay una columna sin nombre a la que ponérselo después, sería un valor vacío
- * de la propiedad y ninguna fila podría estar en ella.
- */
+/** The name is asked first because a column is its name: an unnamed one would be an empty property value. */
 export const PagesCollectionBoardNewColumn = ({
   disabled,
   isCarryingColumn,
@@ -82,7 +76,7 @@ export const PagesCollectionBoardNewColumn = ({
   return (
     <input
       aria-label={t('newColumnName')}
-      // biome-ignore lint/a11y/noAutofocus: el campo es la respuesta al clic que acaba de abrirlo
+      // biome-ignore lint/a11y/noAutofocus: the field answers the click that just opened it
       autoFocus
       className="w-40 shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-foreground text-sm outline-none"
       disabled={disabled}

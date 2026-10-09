@@ -51,7 +51,6 @@ const grouped: PageViewGroup[] = [
   { color: null, key: 'done', label: 'Done', rows: [rowIn('row-2', 'Second task', 'done')] },
 ];
 
-/** Una tarjeta dibuja piezas de cliente, y una pieza de cliente pide las palabras a su manera. */
 const renderWithMessages = (ui: ReactNode) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>

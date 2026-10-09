@@ -9,14 +9,6 @@ import {
 } from '../schemas/portal.sidebar.drag.schemas';
 import type { PortalSidebarDraggedPage, PortalSidebarDropIntent } from '../types/portal.sidebar.drag.types';
 
-/**
- * What letting go over a row would mean: putting the page inside it, or
- * setting it down beside it.
- *
- * Where in the row the pointer rests is the whole question. The middle is by
- * far the widest part, because nesting is what a drag usually means; the thin
- * edges are what let somebody say «here, between these two» instead.
- */
 export const readPortalSidebarDropIntent = (
   row: { readonly height: number; readonly top: number },
   pointerY: number,
@@ -36,7 +28,7 @@ const getPortalSidebarSiblings = (
 ): readonly PortalSidebarPage[] =>
   pages.filter((page) => page.parentId === parentId).toSorted((first, second) => first.order - second.order);
 
-/** True when `descendantId` sits anywhere below `ancestorId` in the tree, itself included. */
+/** Includes the page itself: `ancestorId === descendantId` is true. */
 export const isPortalSidebarPageOrDescendant = (
   pages: readonly PortalSidebarPage[],
   ancestorId: string,
@@ -51,14 +43,12 @@ export const isPortalSidebarPageOrDescendant = (
   return false;
 };
 
-/** A page cannot land on itself nor inside anything it already contains. */
 export const isPortalSidebarPageDropAllowed = (
   pages: readonly PortalSidebarPage[],
   draggedPageId: string,
   targetPageId: string,
 ): boolean => !isPortalSidebarPageOrDescendant(pages, draggedPageId, targetPageId);
 
-/** The page immediately above this one among its siblings, whose place it would take when indented. */
 export const resolvePortalSidebarIndentParentId = (
   pages: readonly PortalSidebarPage[],
   pageId: string,
@@ -70,7 +60,6 @@ export const resolvePortalSidebarIndentParentId = (
   return index > 0 ? siblings[index - 1]?.id : undefined;
 };
 
-/** Where this page lands when it climbs out of its parent to become that parent's sibling. */
 export const resolvePortalSidebarOutdentParentId = (
   pages: readonly PortalSidebarPage[],
   pageId: string,
@@ -81,7 +70,6 @@ export const resolvePortalSidebarOutdentParentId = (
   return findPortalSidebarPage(pages, parentId)?.parentId ?? null;
 };
 
-/** Shows which element the dragged page would land on, and stops showing it wherever it no longer would. */
 export const markPortalSidebarPageDropTarget = (
   element: Element | null,
   intent: PortalSidebarDropIntent = 'nest',
@@ -89,23 +77,15 @@ export const markPortalSidebarPageDropTarget = (
   for (const marked of document.querySelectorAll(`[${PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE}]`)) {
     if (marked !== element) marked.removeAttribute(PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE);
   }
-  /** The mark says what would happen, not merely that something would: nesting and slotting in look different. */
   element?.setAttribute(PORTAL_SIDEBAR_PAGE_DROP_TARGET_ATTRIBUTE, intent);
 };
 
-/**
- * What page a drag is carrying, read from what it wrote when it started.
- *
- * Anything that is not a page of this application reads as nothing at all,
- * because a sidebar row should not act on whatever the desktop happened to drop
- * on it.
- */
+/** Returns null for payloads that are not a page of this app, e.g. files dropped from the desktop. */
 export const readPortalSidebarDraggedPage = (payload: string): PortalSidebarDraggedPage | null => {
   const parsed = portalSidebarDraggedPageSchema.safeParse(readJson(payload));
   return parsed.success ? parsed.data : null;
 };
 
-/** What space a drag is carrying, if it is carrying one at all. */
 export const readPortalSidebarDraggedSpaceId = (payload: string): null | string => {
   const parsed = portalSidebarDraggedSpaceSchema.safeParse(readJson(payload));
   return parsed.success ? parsed.data.spaceId : null;

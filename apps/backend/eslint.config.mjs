@@ -3,6 +3,7 @@ import eslint from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import {
+  cleanComments,
   constantsDirOnlyConstants,
   enforceTypeImports,
   noAwaitImport,
@@ -39,6 +40,7 @@ export default tseslint.config(
     plugins: {
       local: {
         rules: {
+          'clean-comments': cleanComments,
           'no-function-keyword': noFunctionKeyword,
           'types-dir-only-types': typesDirOnlyTypes,
           'no-constants-outside-dir': noConstantsOutsideDir,
@@ -75,6 +77,7 @@ export default tseslint.config(
       'local/no-function-keyword': 'error',
       'local/no-await-import': 'error',
       'local/no-then-async': 'error',
+      'local/clean-comments': 'error',
       'local/screaming-snake-in-constants': 'error',
     },
   },

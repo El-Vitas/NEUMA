@@ -11,7 +11,6 @@ interface IProps {
   readonly selected: PageEditorPageShape;
 }
 
-/** How the page this block names is shown: kept in sight as a collection, or pointed at. */
 export const PagesEditorPageShapeItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

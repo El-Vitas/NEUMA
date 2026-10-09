@@ -6,20 +6,12 @@ import { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 
 interface IProps {
-  /** Dónde va a nacer la fila, dicho por quien lo sabe: una columna, un día. */
   readonly label: string;
   readonly disabled: boolean;
   readonly onCancel: () => void;
   readonly onConfirm: (title: string) => void;
 }
 
-/**
- * Una fila en blanco esperando su nombre.
- *
- * Crear se hace escribiendo: la fila aparece cuando ya se sabe cómo se llama,
- * en vez de nacer sin nombre y obligar a abrirla para ponérselo. Enter la crea,
- * Escape se arrepiente, y salir del campo sin escribir nada también.
- */
 export const PagesCollectionNewRow = ({ disabled, label, onCancel, onConfirm }: IProps) => {
   const t = useTranslations('pages.collection');
   const [title, setTitle] = useState('');
@@ -46,7 +38,7 @@ export const PagesCollectionNewRow = ({ disabled, label, onCancel, onConfirm }: 
     <Card className="mt-1 gap-2 rounded-md border-border/60 p-3 shadow-xs">
       <input
         aria-label={label}
-        // biome-ignore lint/a11y/noAutofocus: el campo es la respuesta al clic que acaba de abrirlo
+        // biome-ignore lint/a11y/noAutofocus: the field answers the click that just opened it
         autoFocus
         className="w-full bg-transparent font-medium text-foreground text-sm outline-none placeholder:text-muted-foreground"
         disabled={disabled}

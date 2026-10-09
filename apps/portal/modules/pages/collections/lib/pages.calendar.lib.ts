@@ -9,32 +9,17 @@ import { PAGE_CALENDAR_DATE_LENGTH, PAGE_CALENDAR_MONTH_LENGTH } from '../consta
 import type { PageCalendarCell } from '../types/pages.calendar.types';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
 
-/** Las propiedades por las que un calendario puede colocar sus filas: las que responden con una fecha. */
 export const listDatePropertyKeys = (properties: readonly PageSchemaProperty[]): readonly string[] =>
   properties.filter((property) => property.type === PAGE_PROPERTY_TYPE.DATE).map((property) => property.key);
 
-/**
- * El día que una fila dice, si dice alguno.
- *
- * Se queda con la fecha y descarta la hora: un calendario de meses coloca por
- * días, y dos filas del mismo día están en el mismo sitio aunque una sea de la
- * mañana y otra de la tarde.
- */
+/** Drops the time: the calendar places rows by day only. */
 export const readRowDate = (row: PageRow, dateProperty: string): null | string => {
   const value = row.propertyValues?.[dateProperty];
   if (typeof value !== 'string' || value === '') return null;
   return value.slice(0, PAGE_CALENDAR_DATE_LENGTH);
 };
 
-/**
- * El mes que hay que enseñar: el pedido, y si no se pidió ninguno, aquel donde
- * caen las filas.
- *
- * Abrir un calendario en el mes de hoy cuando lo que se mira es de marzo deja
- * una rejilla vacía y a alguien preguntándose dónde están sus filas. Así que el
- * mes por defecto es el de la primera fila que tenga fecha, y solo cuando no hay
- * ninguna se cae en el de hoy.
- */
+/** Defaults to the month of the first dated row, then today, so the grid does not open empty. */
 export const resolveCalendarMonth = (
   asked: null | string,
   rows: readonly PageRow[],
@@ -53,17 +38,10 @@ export const resolveCalendarMonth = (
   return (primera ?? today).slice(0, PAGE_CALENDAR_MONTH_LENGTH);
 };
 
-/** El mes de al lado, que es a donde llevan las dos flechas. */
 export const readNeighbourMonth = (month: string, direction: 'EARLIER' | 'LATER'): string =>
   shiftPageCalendarMonth(month, direction === 'EARLIER' ? -1 : 1);
 
-/**
- * Los días del mes con lo que cae en cada uno.
- *
- * Las filas sin fecha no caen en ningún día y no se pierden: quien dibuja las
- * cuenta aparte, porque una fila que no se ve en ninguna parte es una fila que
- * parece borrada.
- */
+/** Rows without a date land in no cell; the caller lists them separately so they do not look deleted. */
 export const buildCalendarCells = (
   month: string,
   rows: readonly PageRow[],
@@ -83,7 +61,6 @@ export const buildCalendarCells = (
   }));
 };
 
-/** Las filas que no dicen ninguna fecha, y que por eso no caen en ningún día. */
 export const listRowsWithoutDate = (
   rows: readonly PageRow[],
   dateOf: (row: PageRow) => null | string,

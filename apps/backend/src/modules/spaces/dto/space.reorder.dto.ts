@@ -1,7 +1,7 @@
 import { IsOptional, IsString } from 'class-validator';
 
 export class ReorderSpaceDto {
-  /** The space this one goes before. Left out, it goes last. */
+  /** Omitted places the space last. */
   @IsOptional()
   @IsString()
   beforeSpaceId?: string;

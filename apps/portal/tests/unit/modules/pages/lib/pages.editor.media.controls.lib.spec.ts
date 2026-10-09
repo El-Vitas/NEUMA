@@ -34,7 +34,6 @@ describe('the controls a player is worked by', () => {
     expect(readBar(bar)).toEqual({ labels: ['Play', 'Mute'], moment: '0:07 / 1:58' });
   });
 
-  /** The button has to say what it will do next, and it is the player that decides when that changed. */
   it('turns into a pause once the player is playing, and back when it stops', () => {
     const state = { currentTime: 0, duration: 10, paused: true };
     const player = playerWith(state);

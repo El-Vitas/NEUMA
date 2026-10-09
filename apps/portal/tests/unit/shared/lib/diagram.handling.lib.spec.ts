@@ -7,7 +7,7 @@ const drawingOf = (viewBox: string): HTMLElement => {
   return drawing;
 };
 
-/** The test page builds a wheel event without the key held with it, so the key is set on the event itself. */
+// The test DOM builds wheel events without the held key, so it is set on the event itself.
 const turnTheWheelCloser = (drawing: HTMLElement): void => {
   const turn = new WheelEvent('wheel', { cancelable: true, deltaY: -1 });
   Object.defineProperty(turn, 'ctrlKey', { value: true });
@@ -28,7 +28,6 @@ describe('letTheDrawingBeHandled', () => {
     expect(drawing.querySelector('svg')?.style.width).toBe('400px');
   });
 
-  /** Drawn again by a page that re-renders, a drawing left holding on would be brought closer twice per turn. */
   it('stops answering the wheel once it is let go of', () => {
     const told: number[] = [];
     const drawing = drawingOf('0 0 400 200');

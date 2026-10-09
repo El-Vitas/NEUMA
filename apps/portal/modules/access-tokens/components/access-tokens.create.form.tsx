@@ -27,7 +27,7 @@ interface IProps {
   readonly takenNames: readonly string[];
 }
 
-/** Nombre, vencimiento y acceso de un token nuevo. Lo que se escribió se conserva si el servidor lo rechaza. */
+/** Typed values are kept when the server rejects the submission. */
 export const AccessTokensCreateForm = ({ onCreated, role, spaces, takenNames }: IProps) => {
   const t = useTranslations('accessTokens');
   const [name, setName] = useState('');

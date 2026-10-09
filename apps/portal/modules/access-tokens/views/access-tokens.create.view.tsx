@@ -8,12 +8,10 @@ import type { AccessTokenSpaceOption } from '../types/access-tokens.types';
 
 interface IProps {
   readonly role: UserRole;
-  /** Los espacios que la persona ve, o nada si no cargaron: sin ellos no se ofrece crear. */
   readonly spaces: readonly AccessTokenSpaceOption[] | null;
   readonly takenNames: readonly string[] | null;
 }
 
-/** La sección para crear un token, con espacio para armar su acceso. */
 export const AccessTokensCreateView = async ({ role, spaces, takenNames }: IProps) => {
   const t = await getTranslations('accessTokens');
 

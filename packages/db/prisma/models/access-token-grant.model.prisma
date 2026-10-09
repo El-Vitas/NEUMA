@@ -1,6 +1,5 @@
-/// Lo que un token puede hacer en un espacio concreto. Reemplaza, en ese
-/// espacio, a lo que el token tiene en todos; sin permisos, lo excluye.
-/// Borrar el espacio borra la regla.
+/// What a token may do in one space. Overrides the token's all-spaces permissions
+/// there; with no permissions, it excludes the space.
 model AccessTokenGrant {
   id          String      @id @default(uuid(7))
   tokenId     String

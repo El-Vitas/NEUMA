@@ -4,7 +4,6 @@ import { act, renderHook } from '@testing-library/react';
 const PATHNAME = '/spaces/space-1/pages/page-1';
 let currentSearch = '';
 
-/** El panel sale al costado sin mover lo que hay detrás, así que ninguna de las dos desplaza la página. */
 const STAYS_WHERE_IT_WAS = { scroll: false };
 
 const push = mock((_href: string, _options?: { scroll: boolean }) => undefined);
@@ -65,11 +64,7 @@ describe('usePagesSidePanel', () => {
     expect(push).toHaveBeenCalledWith(`${PATHNAME}?panel=page-3`, STAYS_WHERE_IT_WAS);
   });
 
-  /**
-   * Cambiar de página deja atrás el editor de la anterior, y al desaparecer solo
-   * cancela la espera del autoguardado en vez de cumplirla: lo escrito hace un
-   * instante se perdería sin decir nada.
-   */
+  // Unmounting the previous editor only cancels the autosave wait instead of flushing it, silently losing the text.
   it('waits for whatever the panel still has to save before going to another page', async () => {
     currentSearch = 'panel=page-2';
     const pushedAfterFlush: boolean[] = [];

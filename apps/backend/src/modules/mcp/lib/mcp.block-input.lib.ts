@@ -34,7 +34,7 @@ const writeLine = (type: string, text: string, attrs?: McpBuiltNode): Result<Mcp
 
 const writeParagraph = (text: string): Result<McpBuiltNode, string> => writeLine('paragraph', text);
 
-/** Varios párrafos, uno por cada parte entre líneas en blanco; al menos uno, aunque esté vacío. */
+/** Always at least one paragraph, even if empty. */
 const writeParagraphs = (text: string): Result<McpBuiltNode[], string> => {
   const parts = text.split(MCP_PARAGRAPH_SEPARATOR).filter((part) => part.trim() !== '');
   return collect((parts.length === 0 ? [''] : parts).map((part) => writeParagraph(part.trim())));
@@ -46,7 +46,7 @@ const writeHolder = (type: string, text: string, attrs?: McpBuiltNode): Result<M
   return Result.ok({ ...(attrs === undefined ? {} : { attrs }), content: paragraphs.getValue(), type });
 };
 
-/** Una lista numerada dice desde qué número cuenta, igual que en el editor; las demás no dicen nada. */
+/** Ordered lists carry their start number, as in the editor. */
 const listAttrs = (listType: string): McpBuiltNode => (listType === 'ordered_list' ? { attrs: { order: 1 } } : {});
 
 const writeListItem = (item: McpListBlockInput['items'][number], listType: string): Result<McpBuiltNode, string> => {
@@ -88,7 +88,7 @@ const writeTableRow = (cells: readonly string[], width: number, cellType: string
   });
 };
 
-/** Una tabla de verdad: la fila de encabezados, y cada fila completada hasta el ancho de los encabezados. */
+/** Short rows are padded to the header width. */
 const writeTable = (input: McpTableBlockInput): Result<McpBuiltNode, string> => {
   const width = input.header.length;
   const tooWide = input.rows.findIndex((row) => row.length > width);
@@ -101,14 +101,14 @@ const writeTable = (input: McpTableBlockInput): Result<McpBuiltNode, string> => 
   return rows.isFail() ? Result.fail(rows.getError()) : Result.ok({ content: rows.getValue(), type: 'table' });
 };
 
-/** Un bloque de código que la página dibuja: un diagrama o una fórmula. Muestra el dibujo, salvo que se pida otra cosa. */
+/** A code block the page renders (diagram or formula); shows the drawing unless another view is requested. */
 const writeDrawn = (language: string, source: string, view: string | undefined): McpBuiltNode => ({
   attrs: { language, ...(view === undefined ? {} : { shown: view }) },
   content: [{ text: source, type: 'text' }],
   type: 'code_block',
 });
 
-/** La página de un enlace o un id. El nombre y el espacio los pone Company Brain después, con los de hoy. */
+/** Name and space are filled in later from current data. */
 const readReferencedPage = (address: string): Result<string, string> => {
   const read = readMcpAddress(address);
   if (read.kind === 'page') return Result.ok(read.pageId);
@@ -129,7 +129,6 @@ const writeCollection = (input: McpCollectionBlockInput): Result<McpBuiltNode, s
   return Result.ok({ attrs: { pageId: pageId.getValue(), spaceId: '', ...viewName }, type: 'collection' });
 };
 
-/** Un botón: lo que escribe al apretarlo, o la fila que agrega a una colección, nombrada por ese texto. */
 const writeButton = (input: McpButtonBlockInput): Result<McpBuiltNode, string> => {
   const content = writeParagraphs(input.text);
   if (content.isFail()) return Result.fail(content.getError());
@@ -140,7 +139,7 @@ const writeButton = (input: McpButtonBlockInput): Result<McpBuiltNode, string> =
   return Result.ok({ attrs: { label: input.label, ...row, ...place }, content: content.getValue(), type: 'button' });
 };
 
-/** Una tarjeta de enlace con las palabras que puso el agente: nadie visita el enlace para buscarlas. */
+/** Uses the agent's own words: the link is never fetched to look them up. */
 const writeBookmark = (input: McpBookmarkBlockInput): Result<McpBuiltNode, string> => {
   if (!URL.canParse(input.url) || !MCP_BOOKMARK_PROTOCOLS.includes(new URL(input.url).protocol))
     return Result.fail(`"${input.url}" is not a web address: a link card takes an http or https link.`);
@@ -151,7 +150,6 @@ const writeBookmark = (input: McpBookmarkBlockInput): Result<McpBuiltNode, strin
   return Result.ok({ attrs: { ...words, url: input.url }, type: 'bookmark' });
 };
 
-/** Un video o un diseño que la página reproduce, del sitio al que pertenece su enlace. */
 const writeEmbed = (url: string): Result<McpBuiltNode, string> => {
   const provider = PAGE_EMBED_PROVIDERS.find((known) => isAllowedPageEmbedUrl(known, url));
   return provider === undefined
@@ -159,14 +157,14 @@ const writeEmbed = (url: string): Result<McpBuiltNode, string> => {
     : Result.ok({ attrs: { provider, url }, type: 'embed' });
 };
 
-/** Un bloque que muestra otro de otra página. El espacio lo pone Company Brain después, con el de hoy. */
+/** The space is filled in later from current data. */
 const writeSynced = (input: McpSyncedBlockInput): Result<McpBuiltNode, string> => {
   const pageId = readReferencedPage(input.page);
   if (pageId.isFail()) return Result.fail(pageId.getError());
   return Result.ok({ attrs: { blockId: input.block, pageId: pageId.getValue(), spaceId: '' }, type: 'synced' });
 };
 
-/** Unas columnas lado a lado, cada una con sus bloques; el error dice en qué columna estaba el que falló. */
+/** The error names the column holding the failed block. */
 const writeColumns = (input: McpColumnsBlockInput): Result<McpBuiltNode, string> => {
   const columns = collect(
     input.columns.map((blocks, index) => {
@@ -233,11 +231,7 @@ const writeBlock = (input: McpBlockInput): Result<McpBuiltNode, string> => {
   }
 };
 
-/**
- * Los nodos que guarda una página, a partir de los bloques que escribió el
- * agente. Si uno no se puede armar, no se arma ninguno, y el error dice cuál
- * era, contando desde uno.
- */
+/** All or nothing: the error names the failing block, counting from one. */
 export const buildMcpBlockNodes = (blocks: readonly McpBlockInput[]): Result<McpBuiltNode[], string> =>
   collect(
     blocks.map((block, position) => {

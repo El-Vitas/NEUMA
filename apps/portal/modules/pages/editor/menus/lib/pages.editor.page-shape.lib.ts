@@ -5,13 +5,6 @@ import { findSelectedPageBlocks } from '../../blocks/lib/pages.editor.block-rang
 import { PAGE_EDITOR_COLLECTION_TYPE } from '../../structure/constants/pages.editor.collection.constants';
 import type { PageEditorPageShape, PageEditorPageShapeTarget } from '../types/pages.editor.page-shape.types';
 
-/**
- * The page named by the selected block, when there is a choice about how it is
- * shown: a collection kept in sight, or the line that leads to it.
- *
- * Both say the same thing — this page holds that one — and which of the two is
- * wanted depends on whether it is being read or only referred to.
- */
 export const readPageShapeTarget = (state: EditorState): PageEditorPageShapeTarget | null => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;
@@ -28,14 +21,7 @@ export const readPageShapeTarget = (state: EditorState): PageEditorPageShapeTarg
   };
 };
 
-/**
- * Shows the page the selected block names the other way round.
- *
- * Nothing is created and nothing is thrown away: the page stays where it is,
- * and what changes is whether this page keeps it in sight or merely points at
- * it. The name is carried across so a line that leads nowhere readable still
- * says what it used to be called.
- */
+/** Swaps the block's shape without creating or deleting the referenced page; the label is carried across. */
 export const createPageShapeCommand =
   (schema: Schema, shape: PageEditorPageShape, target: PageEditorPageShapeTarget, viewName: string | null): Command =>
   (state, dispatch) => {

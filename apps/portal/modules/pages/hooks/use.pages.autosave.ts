@@ -181,7 +181,7 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
     return () => globalThis.removeEventListener('beforeunload', handleBeforeUnload);
   }, [enabled]);
 
-  /** Mounted again after being taken down, as React does in development, it is mounted: a save that ends now still counts. */
+  /** Sets the flag on every mount, since React development mode unmounts and remounts effects. */
   useEffect(() => {
     isMountedRef.current = true;
     return () => {

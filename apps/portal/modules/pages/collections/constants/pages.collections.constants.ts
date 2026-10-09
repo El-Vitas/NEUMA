@@ -1,45 +1,25 @@
-/**
- * The column a new collection starts with, named in English like every other
- * name in the code: what is read on screen is the label, which is written in
- * whatever language the page is being read in.
- */
+/** Key only: the label shown on screen is translated. */
 export const PAGE_COLLECTION_FIRST_PROPERTY_KEY = 'notes';
 
-/** Lo que mide una columna a la que nadie le dio un ancho. */
 export const PAGE_TABLE_DEFAULT_COLUMN_WIDTH = 180;
 
-/** La del nombre nace más ancha: es la que se lee, y casi siempre la más larga. */
 export const PAGE_TABLE_TITLE_COLUMN_WIDTH = 280;
 
-/** Cuánto se ensancha o se angosta una columna por cada pulsación, cuando se hace con el teclado. */
 export const PAGE_TABLE_COLUMN_WIDTH_STEP = 20;
 
 export const PAGE_TABLE_MINIMUM_COLUMN_WIDTH = 80;
 
 export const PAGE_TABLE_MAXIMUM_COLUMN_WIDTH = 960;
 
-/**
- * Cómo se queda quieta una celda: pegada a la izquierda, por encima de lo que
- * pasa por debajo, y con fondo propio para que ese paso no se transparente.
- */
+/** Opaque background so scrolled cells do not show through the frozen one. */
 export const PAGE_TABLE_FROZEN_CELL_CLASS = 'sticky z-10 bg-surface';
 
-/**
- * Which view of a collection is being looked at, written into the address so a
- * board can be sent by link and survives a reload.
- */
+/** Kept in the URL so a view can be shared by link and survives a reload. */
 export const PAGE_COLLECTION_VIEW_SEARCH_PARAM = 'view';
 
-/**
- * Lo que elige «por ninguna» en los desplegables de agrupación.
- *
- * Un desplegable no puede ofrecer la nada como valor —vacío es lo mismo que no
- * haber elegido—, así que la ausencia necesita un nombre propio que ninguna
- * propiedad pueda tener.
- */
+/** Select value for "no grouping": an empty value reads as nothing chosen, so it needs a key no property can have. */
 export const PAGE_VIEW_NO_GROUP = '__none__';
 
-/** Where the page keeps whoever knows how to make a collection, and how to be asked for one already written. */
 export const PAGE_EDITOR_COLLECTION_REQUEST_SELECTOR = '[data-page-collection-request]';
 
 export const PAGE_EDITOR_COLLECTION_VIEW_REQUEST_SELECTOR = '[data-page-collection-view-request]';

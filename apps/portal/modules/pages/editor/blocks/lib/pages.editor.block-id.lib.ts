@@ -28,14 +28,7 @@ export const collectPageEditorBlockIdAssignments = (document: EditorNode): reado
   return assignments;
 };
 
-/**
- * Carries over what the page has just turned into.
- *
- * Handing out an identity is a change like any other, and any change makes the
- * page forget the rule it has just answered — so taking a heading back the
- * instant after writing `# ` would take the hash with it, and what was meant
- * was a line that begins with a hash.
- */
+/** Any change makes the page forget the input rule it just applied, so undoing `# ` right after would drop the hash. */
 const rememberWhatWasJustWritten = (
   transaction: Transaction,
   writingRules: EditorPlugin,
@@ -46,14 +39,8 @@ const rememberWhatWasJustWritten = (
 };
 
 /**
- * Hands out an identity to every block that lacks one, riding along with the
- * change that created it.
- *
- * It travels as part of that change rather than as one of its own: the history
- * of a page written alone puts appended work in the same step it came with, and
- * the history of a page written together is told, once, whether the whole step
- * belongs there — so a step marked as not worth remembering would take the
- * writing with it.
+ * Ids are appended to the change that created the block rather than dispatched on their own: a separate step
+ * excluded from history would take the writing with it.
  */
 export const createPageEditorBlockIdPlugin = (writingRules: EditorPlugin): EditorPlugin =>
   new EditorPlugin({

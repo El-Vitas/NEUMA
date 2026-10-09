@@ -22,7 +22,7 @@ const describeCondition = (
   return `${column} ${filter.operator} ${JSON.stringify(filter.value)}`;
 };
 
-/** Un filtro como se lee: las columnas por su nombre, y los grupos anidados entre paréntesis. */
+/** Nested groups are parenthesized. */
 const describeFilter = (columns: readonly McpColumn[], filter: PageFilter, isNested: boolean): string => {
   if (filter.kind === 'CONDITION') return describeCondition(columns, filter);
   const joined = filter.conditions
@@ -31,7 +31,7 @@ const describeFilter = (columns: readonly McpColumn[], filter: PageFilter, isNes
   return isNested ? `(${joined})` : joined;
 };
 
-/** Lo que filtra una vista, o nada si no filtra: un grupo sin condiciones no filtra. */
+/** A group without conditions filters nothing. */
 const describeViewFilter = (columns: readonly McpColumn[], filter: PageFilter | null): string | null => {
   if (filter === null) return null;
   const described = describeFilter(columns, filter, false);
@@ -49,11 +49,7 @@ const describeView = (columns: readonly McpColumn[], view: McpView): McpCollecti
   };
 };
 
-/**
- * Una colección como la necesita el agente para trabajar con ella: cada
- * columna con lo que acepta, y cada vista con lo que agrupa y filtra, todo
- * nombrado como lo ve la gente.
- */
+/** Everything is named as people see it. */
 export const describeMcpCollection = (portalUrl: string, collection: McpOpenCollection): McpCollectionOutput => {
   const { properties, views } = collection.shape;
   return {
@@ -86,18 +82,13 @@ const formatViewLine = (view: McpCollectionOutput['views'][number]): string => {
   return `- ${view.name} (${kind})${said}`;
 };
 
-/** Una fila en texto: su nombre, su id y su enlace, y debajo sus propiedades en una línea. */
 export const formatMcpRowText = (row: McpRowOutput): string => {
   const properties = describeMcpRowPropertiesInOneLine(row.properties);
   const underneath = properties === '' ? '' : `\n  ${properties}`;
   return `- ${row.title} (row ${row.id}) ${row.url}${underneath}`;
 };
 
-/**
- * La colección en texto corto: qué columnas tiene, qué acepta cada una y qué
- * vistas la muestran. Una colección siempre tiene la columna del título: sin
- * columnas es que el token la cambió sin poder leerla.
- */
+/** A collection always has a title column, so zero columns means the token changed it without reading it. */
 export const formatMcpCollectionText = (collection: McpCollectionOutput): string =>
   collection.columns.length === 0
     ? `${MCP_CONFIGURED_UNREADABLE_NOTE} ${collection.url}`

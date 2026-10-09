@@ -6,10 +6,7 @@ interface IProps {
   readonly searchParams: Promise<RouteSearchParams>;
 }
 
-/**
- * La papelera depende de quién la mira y de lo que busca: se resuelve entera
- * antes de responder, en vez de prometer una navegación instantánea que no existe.
- */
+/** Depends on the session and the search query, so it resolves fully before responding. */
 export const instant = false;
 
 export default async function Page({ searchParams }: IProps) {

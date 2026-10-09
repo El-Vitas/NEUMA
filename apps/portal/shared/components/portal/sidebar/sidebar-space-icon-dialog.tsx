@@ -18,13 +18,7 @@ interface IProps {
   readonly space: { readonly icon: null | PageIcon; readonly id: string; readonly name: string } | null;
 }
 
-/**
- * A space's mark changed from the tree.
- *
- * It offers what a page offers, minus the picture: a space is drawn beside
- * pages at the size of a line of text, and an uploaded image there is a face
- * nobody can read.
- */
+/** Offers the page icons minus uploaded images, which are unreadable at text size. */
 export const SidebarSpaceIconDialog = ({ onChanged, onClose, space }: IProps) => {
   const t = useTranslations('navigation');
   const { isPending, runIconMutation } = useIconMutation(onChanged, onClose);

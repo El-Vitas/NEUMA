@@ -53,10 +53,7 @@ describe('buildSearchSpaceVisibilityFilter', () => {
     for (const role of ['ADMIN', 'WORKER', 'CLIENT'] as const) {
       const sql = readSql(buildSearchSpaceVisibilityFilter('user-a', role));
 
-      /**
-       * A bare `true` among the alternatives swallows every other one: the
-       * whole guard collapses and the reader sees every space there is.
-       */
+      // A bare `true` among the alternatives swallows the others: the guard collapses and every space becomes visible.
       expect(sql).not.toMatch(/OR\s+true/i);
     }
   });

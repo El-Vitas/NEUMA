@@ -1,6 +1,3 @@
-// schemas-dir-only-schemas
-// Qué hace: dentro de `schemas/`, solo permite declaraciones de schemas.
-// Para qué: que `schemas/` no acumule runtime, componentes ni constantes (§1.1).
 export const schemasDirOnlySchemas = {
   meta: {
     type: 'suggestion',

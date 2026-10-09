@@ -7,7 +7,6 @@ import {
 import { findSelectedPageBlocks } from '../../blocks/lib/pages.editor.block-range.lib';
 import type { PageEditorLinkShape, PageEditorLinkTarget } from '../../menus/types/pages.editor.link-shape.types';
 
-/** The one link a line holds, when the line holds nothing else. */
 const readTheOnlyLink = (block: EditorNode): string | null => {
   if (block.childCount !== 1) return null;
   const written = block.child(0);
@@ -29,13 +28,7 @@ const readUrlOfBlock = (block: EditorNode): string | null => {
   return readTheOnlyLink(block);
 };
 
-/**
- * The link the selected block is, whatever shape it is wearing.
- *
- * A page holds the same link as a line, as a card or as a frame, and which of
- * the three it wears should be answerable long after it was pasted — the moment
- * of pasting is not the only moment anyone knows what they want.
- */
+/** The same link can be a line, a card or an embed; this reads it back from the selected block at any time. */
 export const readPageLinkTarget = (state: EditorState): PageEditorLinkTarget | null => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;
@@ -46,7 +39,6 @@ export const readPageLinkTarget = (state: EditorState): PageEditorLinkTarget | n
   return { chosen: shape, from: range.start, to: range.end, url };
 };
 
-/** Brings the link back to being a line of writing that points somewhere. */
 export const createPageLinkFromBlockCommand =
   (target: PageEditorLinkTarget): Command =>
   (state, dispatch) => {

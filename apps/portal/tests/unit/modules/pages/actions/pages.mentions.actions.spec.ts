@@ -42,7 +42,6 @@ describe('searchPageMentionCandidatesAction', () => {
     expect(getSearchResults).toHaveBeenCalledWith(expect.objectContaining({ query: 'tar', sourceType: 'PAGE' }));
   });
 
-  /** Lo que dijo la búsqueda no llega a la pantalla: llega un motivo que la pantalla sabe decir. */
   it('surfaces a search failure as an unexpected failure, never as what it said', async () => {
     getSearchResults.mockClear();
     getSearchResults.mockImplementationOnce(async () => Result.fail(new Error('search unavailable')));

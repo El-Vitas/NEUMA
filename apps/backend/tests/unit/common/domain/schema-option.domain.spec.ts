@@ -148,7 +148,6 @@ describe('rewritePropertyValues', () => {
     });
   });
 
-  /** Presente pero vacía no es lo mismo que ausente, y es ausente lo que significa «sin columna». */
   it('drops the property instead of leaving it empty when the column is gone', () => {
     const stored = { status: 'todo', title: 'A row' };
 

@@ -9,7 +9,6 @@ import type { PageSyncedReference } from '../types/pages.editor.synced.types';
 const isTheBlock = (node: PageContentNode, blockId: string): boolean =>
   'attrs' in node && typeof node.attrs?.id === 'string' && node.attrs.id === blockId;
 
-/** Looks for the block through everything the page holds, however deeply it is held. */
 const findTheBlock = (nodes: readonly PageContentNode[], blockId: string): PageContentNode | null => {
   for (const node of nodes) {
     if (isTheBlock(node, blockId)) return node;
@@ -19,13 +18,7 @@ const findTheBlock = (nodes: readonly PageContentNode[], blockId: string): PageC
   return null;
 };
 
-/**
- * The block a synced one is showing, read from the page it lives in.
- *
- * The pages of the space are already at hand, so what is shown is what that
- * page said the last time it was read here: a borrowed block is never a
- * question asked of a server in the middle of drawing a page.
- */
+/** Reads from the already loaded pages, so drawing never waits on a server request. */
 export const readBorrowedBlock = (
   pages: readonly { readonly content: PageContent; readonly id: string }[],
   pageId: string,
@@ -42,7 +35,6 @@ export const readBorrowedBlock = (
   }
 };
 
-/** The page and block a chosen synced block is showing, when one is chosen. */
 export const readSyncedTarget = (state: EditorState): PageSyncedReference | null => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;
@@ -51,27 +43,17 @@ export const readSyncedTarget = (state: EditorState): PageSyncedReference | null
   return { blockId: node.attrs.blockId, pageId: node.attrs.pageId, position: range.start, spaceId: node.attrs.spaceId };
 };
 
-/** The page that is sent to another page: one block, showing the one that stays here. */
 export const buildSyncedBlockContent = (reference: Omit<PageSyncedReference, 'position'>): PageContent => ({
   content: [{ attrs: { ...reference }, type: 'synced' }],
   schemaVersion: 1,
   type: 'doc',
 });
 
-/**
- * A copy that is nobody else's: the writing is the same, but who it is and what
- * was said about it are not carried over — a remark left on the block that
- * stays belongs to that block, and one block cannot be two.
- */
+/** Drops id and comments: they belong to the original block, and one block cannot be two. */
 const asACopy = (borrowed: EditorNode): EditorNode =>
   borrowed.type.create({ ...borrowed.attrs, comments: null, id: null }, borrowed.content, borrowed.marks);
 
-/**
- * Breaks the tie and leaves what was borrowed as writing of this page.
- *
- * What is left behind is a copy, not the block itself: from then on the two are
- * strangers, and neither hears about the other again.
- */
+/** Replaces the synced block with an independent copy of the original. */
 export const createPageUnsyncCommand =
   (schema: Schema, target: PageSyncedReference, borrowed: EditorNode | null): Command =>
   (state, dispatch) => {

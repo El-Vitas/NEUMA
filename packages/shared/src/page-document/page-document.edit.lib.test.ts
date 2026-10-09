@@ -48,7 +48,6 @@ describe('findPageBlock', () => {
   });
 });
 
-/** Dos bloques con el mismo id no se distinguen: el que llega no puede traer uno que la página ya usa. */
 describe('the ids a page already uses', () => {
   test('refuses to insert a block with an id another block already has', () => {
     expect(insertPageBlocks(page(intro), { at: 'end' }, [paragraph('intro', 'Otra')]).getError()).toContain(
@@ -82,7 +81,6 @@ describe('insertPageBlocks', () => {
     expect(ids(insertPageBlocks(page(intro), { at: 'end' }, [paragraph('a', 'A')]).getValue())).toEqual(['intro', 'a']);
   });
 
-  /** Quien agrega ítems a una lista escribe una lista; lo que cae en ella son sus ítems, no una lista dentro de otra. */
   test('adds the items of a list to the list it lands in', () => {
     const edited = insertPageBlocks(page(list), { after: 'one' }, [bulletList('new', item('mid', 'Medio'))]);
 
@@ -166,7 +164,6 @@ describe('movePageBlocks', () => {
     expect(movePageBlocks(page(list), ['list'], { after: 'one' }).getError()).toContain('inside');
   });
 
-  /** Nombrar un bloque y uno de los que lleva dentro no lo copia: el de dentro viaja una vez, con su padre. */
   test('moves a block named together with one inside it only once', () => {
     const moved = movePageBlocks(page(intro, list, outro), ['list', 'two'], { after: 'outro' }).getValue();
 

@@ -20,7 +20,6 @@ const toReach = (rows: readonly AccessTokenReachRow[]): AccessTokenPageReach => 
   };
 };
 
-/** Las filas de varias subidas por el árbol, de la página hacia la raíz, juntadas por la página de donde salió cada una. */
 const groupLineages = (rows: readonly AccessTokenOriginLineageRow[]): ReadonlyMap<string, AccessTokenPlace> => {
   const places = new Map<string, AccessTokenPlace>();
   for (const row of rows) {
@@ -35,13 +34,7 @@ const groupLineages = (rows: readonly AccessTokenOriginLineageRow[]): ReadonlyMa
   return places;
 };
 
-/**
- * El árbol de páginas tal como está en el momento de decidir.
- *
- * Los dos recorridos cortan un ciclo con el camino ya andado y no con una
- * profundidad máxima: con un tope, una página más honda que el tope quedaría
- * fuera de la exclusión que la cubre, y se vería.
- */
+/** Cycles are cut by the visited path, not a depth cap: a cap would let a deep page escape its exclusion. */
 @Injectable()
 export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
   constructor(private readonly prisma: PrismaService) {}
@@ -66,10 +59,6 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
     return { lineage: rows.map((row) => row.id), spaceId: page.spaceId };
   }
 
-  /**
-   * El lugar de varias páginas en una sola consulta, para no subir el árbol
-   * una vez por página. Las que no son de ese espacio de trabajo no aparecen.
-   */
   async readPlaces(pageIds: readonly string[], workspaceId: string): Promise<ReadonlyMap<string, AccessTokenPlace>> {
     if (pageIds.length === 0) return new Map();
     const rows = await this.prisma.$queryRaw<AccessTokenOriginLineageRow[]>`
@@ -91,10 +80,7 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
     return groupLineages(rows);
   }
 
-  /**
-   * Baja cada regla por todo lo que cuelga de su página y deja, para cada
-   * página alcanzada, la regla más cercana: la de menor distancia hacia arriba.
-   */
+  /** Walks each rule down its page's subtree and keeps, per reached page, the nearest rule. */
   async resolvePageReach(
     rules: readonly AccessTokenPageRuleProbe[],
     workspaceId: string,

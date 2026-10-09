@@ -9,17 +9,12 @@ interface IProps {
   readonly disabled: boolean;
   readonly onChange: (operator: PageFilterGroupOperator) => void;
   readonly operator: PageFilterGroupOperator;
-  /** Qué puesto ocupa la condición dentro de su grupo, que es lo que decide qué se dice aquí. */
   readonly position: number;
 }
 
 /**
- * Lo que va delante de cada condición: «Donde», y de ahí abajo cómo se unen.
- *
- * Se elige una sola vez, en la segunda condición, porque un grupo se une de una
- * sola manera: ofrecerlo en cada línea haría creer que cada par se une a su modo.
- * De la tercera en adelante se repite sin poder tocarse, para que la lista se
- * lea como la frase que es y no haya que subir la vista a recordar cuál era.
+ * Editable only on the second condition: a group has one operator, and a selector per line would suggest each
+ * pair joins differently. Later lines repeat it read-only.
  */
 export const PagesCollectionFilterJoin = ({ disabled, onChange, operator, position }: IProps) => {
   const t = useTranslations('pages.collection');

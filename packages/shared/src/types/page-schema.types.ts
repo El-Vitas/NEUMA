@@ -50,11 +50,7 @@ export const PAGE_VIEW_TYPE_VALUES = [
   PAGE_VIEW_TYPE.CHART,
 ] as const;
 
-/**
- * How the rows of a view arrive: one after another, or already gathered in
- * groups. It says nothing about how they are drawn — a table and a gallery
- * both read their rows in a row and look nothing alike.
- */
+/** How rows arrive, not how they are drawn: a table and a gallery are both FLAT. */
 export type PageViewShape = 'FLAT' | 'GROUPED';
 
 export const PAGE_VIEW_SHAPE = {
@@ -62,7 +58,6 @@ export const PAGE_VIEW_SHAPE = {
   GROUPED: 'GROUPED',
 } as const satisfies Record<PageViewShape, PageViewShape>;
 
-/** Whether a view can be asked to group, must be, or has no use for it. */
 export type PageViewGrouping = 'OPTIONAL' | 'REQUIRED' | 'UNSUPPORTED';
 
 export const PAGE_VIEW_GROUPING = {
@@ -74,7 +69,7 @@ export const PAGE_VIEW_GROUPING = {
 export type PageViewOutcomeKind = 'BANDED_ROWS' | 'FLAT_ROWS' | 'GROUPED_ROWS' | 'MISSING_GROUPING_PROPERTY';
 
 export const PAGE_VIEW_OUTCOME_KIND = {
-  /** En rejilla: una banda por valor de la segunda agrupación, y dentro las columnas de la primera. */
+  /** Grid: one band per value of the second grouping, with the first grouping's columns inside. */
   BANDED_ROWS: 'BANDED_ROWS',
   FLAT_ROWS: 'FLAT_ROWS',
   GROUPED_ROWS: 'GROUPED_ROWS',

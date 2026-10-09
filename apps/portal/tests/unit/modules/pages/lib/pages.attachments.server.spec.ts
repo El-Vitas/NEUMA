@@ -12,7 +12,6 @@ const { getPageAttachmentDownload, uploadPageAttachmentAsset } = await import(
 );
 const { NetworkError } = await import('@/shared/lib/parse-json-body');
 
-/** No llegar al backend es estar sin conexión, y así se tiene que poder leer: no como un error del código. */
 describe('an attachment request that never reaches the backend', () => {
   const unreachable = async (): Promise<Response> => {
     throw new TypeError('fetch failed');

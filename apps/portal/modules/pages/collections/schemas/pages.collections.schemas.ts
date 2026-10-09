@@ -27,10 +27,9 @@ const pageCollectionViewSchema = z.object({
   type: z.enum(PAGE_VIEW_TYPE_VALUES),
 });
 
-/** What has to be said to start a collection: a page to keep it in, and the shape it starts with. */
 export const pageCollectionCreateSchema = z.object({
   content: pageContentSchema,
-  /** Sin madre cuando la colección se crea desde el espacio: ahí es una página de raíz como cualquier otra. */
+  // Absent when created from the space root.
   parentId: z.string().min(1).optional(),
   properties: z.array(pageCollectionPropertySchema).min(1).max(50).readonly(),
   spaceId: z.string().min(1),
@@ -38,45 +37,27 @@ export const pageCollectionCreateSchema = z.object({
   views: z.array(pageCollectionViewSchema).min(1).max(20).readonly(),
 });
 
-/** What has to be said to ask whether a page already written is a collection. */
 export const pageCollectionReadSchema = z.object({
   pageId: z.string().min(1),
   spaceId: z.string().min(1),
 });
 
-/**
- * What has to be said to change what one row holds.
- *
- * Only the properties that moved travel. A value of `null` clears the property,
- * which is what dropping a card on the column of rows without a value means.
- */
+/** Only the properties that changed are sent. A `null` value clears the property. */
 export const pageRowPropertiesSchema = z.object({
   pageId: z.string().min(1),
   propertyValues: z.record(z.string(), z.union([pagePropertyValueSchema, z.null()])),
   spaceId: z.string().min(1),
 });
 
-/**
- * Lo que hay que decir para cambiar lo que una vista dice de sí misma.
- *
- * Solo esa vista y solo su configuración: la forma de la colección no entra, así
- * que doblar una franja o mover un borde deja de costar rehacer cada propiedad y
- * cada vista.
- */
 export const pageViewConfigurationUpdateSchema = z.object({
-  /** Pasa tal cual: quien decide qué cabe en una configuración es el servidor, y lo revisa al recibirla. */
+  // Passed through: the server validates what a configuration may hold.
   configuration: z.record(z.string(), z.unknown()),
   pageId: z.string().min(1),
   spaceId: z.string().min(1),
   viewName: z.string().min(1).max(200),
 });
 
-/**
- * Lo que hay que decir para renombrar o quitar una columna del tablero.
- *
- * De qué nombre viene y a cuál va, porque la forma sola no distingue un
- * renombrado de un quitar y poner. Sin nombre nuevo, la columna se quita.
- */
+/** `from` is required because the shape alone cannot tell a rename from a remove plus add. A null `to` removes. */
 export const pageOptionRewriteSchema = z.object({
   from: z.string().min(1).max(120),
   pageId: z.string().min(1),
@@ -85,13 +66,7 @@ export const pageOptionRewriteSchema = z.object({
   to: z.string().trim().min(1).max(120).nullable(),
 });
 
-/**
- * What has to be said to change the shape of a collection that already exists.
- *
- * The whole shape travels, not the one thing that changed, because a property
- * that disappeared from the list is a property somebody removed and there is no
- * other way to say it.
- */
+/** The whole shape is sent: a removed property can only be expressed by its absence from the list. */
 export const pageCollectionUpdateSchema = z.object({
   pageId: z.string().min(1),
   properties: z.array(pageCollectionPropertySchema).min(1).max(50).readonly(),

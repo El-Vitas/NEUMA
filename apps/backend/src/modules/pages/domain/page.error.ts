@@ -9,7 +9,6 @@ export class PageAccessDeniedError extends DomainError {
   }
 }
 
-/** La forma de la colección ya no es la que se leyó antes de guardarla entera. */
 export class PageSchemaChangedError extends DomainError {
   public readonly code = 'PAGE_SCHEMA_CHANGED';
   public readonly httpStatus = 409;
@@ -55,7 +54,6 @@ export class PageContentValidationError extends DomainError {
   }
 }
 
-/** Un cambio de bloques que no se puede hacer sobre lo que la página dice ahora: un bloque que ya no está, un lugar donde no cabe. */
 export class PageBlockEditError extends DomainError {
   public readonly code = 'PAGE_BLOCK_EDIT_INVALID';
   public readonly httpStatus = 409;
@@ -128,7 +126,6 @@ export class PageCoverValidationError extends DomainError {
   }
 }
 
-/** El mantenimiento de las páginas de todo el espacio de trabajo lo corre solo quien lo administra. */
 export class PageMaintenanceAdminOnlyError extends DomainError {
   public readonly code = 'PAGE_MAINTENANCE_ADMIN_ONLY';
   public readonly httpStatus = 403;
@@ -138,7 +135,7 @@ export class PageMaintenanceAdminOnlyError extends DomainError {
   }
 }
 
-/** El mantenimiento ya está corriendo en este espacio de trabajo: dos a la vez se pisarían los ids que dan. */
+/** Two runs at once would overwrite each other's ids. */
 export class PageMaintenanceAlreadyRunningError extends DomainError {
   public readonly code = 'PAGE_MAINTENANCE_ALREADY_RUNNING';
   public readonly httpStatus = 409;
@@ -148,7 +145,6 @@ export class PageMaintenanceAlreadyRunningError extends DomainError {
   }
 }
 
-/** A page somebody locked refuses the edit rather than quietly taking it. */
 export class PageLockedError extends DomainError {
   public readonly code = 'PAGE_LOCKED';
   public readonly httpStatus = 409;
@@ -158,7 +154,6 @@ export class PageLockedError extends DomainError {
   }
 }
 
-/** An owner has to be somebody who actually belongs to the workspace, not any string that arrives. */
 export class PageOwnerInvalidError extends DomainError {
   public readonly code = 'PAGE_OWNER_INVALID';
   public readonly httpStatus = 400;

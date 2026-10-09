@@ -31,9 +31,8 @@ const asksToManage = (input: McpUpdatePageInput): boolean =>
   input.locked !== undefined || input.verified !== undefined || input.owner !== undefined;
 
 /**
- * Bloquear, verificar y dar dueño son actos de confianza sobre la página, con
- * su propio permiso del token: poder escribirla no alcanza. Se revisa antes de
- * cambiar nada, así un pedido que mezcla las dos cosas no queda a medias.
+ * Locking, verifying and assigning an owner need their own token permission; write is
+ * not enough. Checked up front so a mixed request is not left half applied.
  */
 const requireManaging = (call: McpCall, place: AccessTokenPlace, input: McpUpdatePageInput): void => {
   if (!asksToManage(input)) return;
@@ -41,10 +40,7 @@ const requireManaging = (call: McpCall, place: AccessTokenPlace, input: McpUpdat
     throw new McpToolError(MCP_PAGE_MANAGE_REFUSED_MESSAGE);
 };
 
-/**
- * El emoji pedido, revisado con la misma regla que aplica la página antes de
- * cambiar nada: si se revisara al llegar a su paso, el título ya habría cambiado.
- */
+/** Validated before anything changes: validating at its own step would run after the title changed. */
 const readIcon = (icon: string | null | undefined): PageIcon | null | undefined => {
   if (icon === undefined || icon === null) return icon;
   const parsed = pageIconSchema.safeParse({ kind: 'emoji', value: icon });
@@ -52,10 +48,7 @@ const readIcon = (icon: string | null | undefined): PageIcon | null | undefined 
   return parsed.data;
 };
 
-/**
- * Los cambios pedidos, en el orden en que no chocan entre sí: desbloquear va
- * primero, porque una página bloqueada no se renombra, y bloquear va al final.
- */
+/** Requested changes in a conflict-free order: unlock first, since a locked page cannot be renamed, and lock last. */
 const planSteps = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -89,10 +82,7 @@ const planSteps = async (
   return steps.filter((step) => step !== null);
 };
 
-/**
- * Hace los cambios uno tras otro. Si uno se rechaza, los de antes ya quedaron:
- * se dice cuáles, para que el agente no crea que la página quedó como estaba.
- */
+/** If a step is rejected the earlier ones stay applied, and the result says which. */
 const applySteps = async (steps: readonly McpPageStep[]): Promise<{ changed: string[]; page: McpManagedPage }> => {
   const changed: string[] = [];
   let page: McpManagedPage | null = null;
@@ -135,10 +125,6 @@ const updatePage = async (
   return { changed: done.changed, page: describeMcpManagedPage(dependencies, call, { page: done.page, place }) };
 };
 
-/**
- * Cambia una página entera, como se cambia desde su menú: el título, el
- * emoji, quitar la portada, bloquearla, verificarla o darle un dueño.
- */
 export const updatePageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.updatePage,
   register: (server, dependencies) => {

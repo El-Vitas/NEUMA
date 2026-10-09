@@ -3,13 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { usePagesRowSearch } from '../hooks/use.pages.row-search';
 
-/**
- * Lo que se dice cuando lo buscado no está en ninguna fila.
- *
- * Una tabla con la cabecera puesta y nada debajo parece rota, o parece que la
- * colección se vació. Decirlo, con lo que se buscó delante, evita las dos
- * lecturas.
- */
 export const PagesCollectionSearchEmpty = () => {
   const t = useTranslations('pages.collection');
   const search = usePagesRowSearch();

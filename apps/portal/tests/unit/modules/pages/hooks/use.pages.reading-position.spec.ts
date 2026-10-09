@@ -12,7 +12,6 @@ const PAGE_ID = '11111111-1111-4111-8111-111111111111';
 
 const buildStorageKey = (pageId: string): string => `${PAGES_READING_POSITION_STORAGE_KEY_PREFIX}${pageId}`;
 
-/** No reading area around the page leaves the whole window as the thing that scrolls. */
 const NO_READING_AREA = { current: null };
 
 const buildReadingArea = (): { readonly page: HTMLElement; readonly readingArea: HTMLElement } => {

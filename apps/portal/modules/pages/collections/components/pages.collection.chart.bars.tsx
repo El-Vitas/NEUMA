@@ -8,16 +8,8 @@ interface IProps {
 }
 
 /**
- * Cuánto hay en cada grupo, como barras.
- *
- * Van dibujadas con cajas y no en un lienzo: una barra es un rectángulo con un
- * nombre debajo, y hecha así se lee con lupa, se selecciona y se traduce sin
- * que nadie tenga que medir texto a mano.
- *
- * El alto arranca del suelo, no del valor más chico: una barra que empieza en
- * otro sitio exagera diferencias que no existen. Y cada barra tiene un tope de
- * ancho, porque una tan ancha como alta deja de leerse como una medida y pasa a
- * ser un bloque de color.
+ * Drawn with boxes, not a canvas, so labels are selectable, zoomable and translatable.
+ * Heights start from zero: a truncated baseline would exaggerate differences.
  */
 export const PagesCollectionChartBars = ({ points }: IProps) => {
   const top = readChartTopValue(points.map((point) => point.value));

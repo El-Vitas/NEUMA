@@ -1,6 +1,3 @@
-// no-direct-fetch
-// Qué hace: prohíbe `fetch()` directo; obliga a usar el cliente de API centralizado.
-// Para qué: un solo punto de manejo de headers/errores/auth en las llamadas de red.
 const API_V1_PATTERN = /\/api\/v1\//;
 const API_CLIENT_METHODS = new Set(['get', 'post', 'put', 'patch', 'del']);
 
@@ -24,7 +21,6 @@ export const noDirectFetch = {
       CallExpression(node) {
         const callee = node.callee;
 
-        // Detecta fetch('/api/v1/...')
         if (callee.type === 'Identifier' && callee.name === 'fetch') {
           const firstArg = node.arguments[0];
           if (!firstArg) return;
@@ -40,7 +36,6 @@ export const noDirectFetch = {
           return;
         }
 
-        // Detecta api.get(...), api.post(...), etc.
         if (
           callee.type === 'MemberExpression' &&
           callee.object.type === 'Identifier' &&

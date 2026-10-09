@@ -1,15 +1,10 @@
 import type { PageEmojiEntry } from '../types/pages.editor.emoji.types';
 
-/** What is written to start looking for an emoji, wherever the looking was asked for. */
 export const PAGE_EDITOR_EMOJI_TRIGGER = ':';
 
-/** How many emoji the finder shows at once: a handful to recognise, never the whole set. */
 export const PAGE_EDITOR_EMOJI_MENU_LIMIT = 8;
 
-/**
- * The emoji the finder knows, each under the names it answers to in English and
- * in Spanish, since the product is read in both.
- */
+/** Each emoji is searchable by English and Spanish names, since the product is used in both. */
 export const PAGE_EDITOR_EMOJIS: readonly PageEmojiEntry[] = [
   { character: '😀', names: ['grinning', 'sonriendo'] },
   { character: '😃', names: ['smiley', 'happy', 'sonriente'] },

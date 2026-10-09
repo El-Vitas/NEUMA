@@ -8,14 +8,8 @@ interface IProps {
 }
 
 /**
- * Los mismos grupos como una línea, para cuando lo que importa es hacia dónde va.
- *
- * El dibujo se estira al ancho que haya y guarda sus proporciones, así que las
- * cuentas se hacen una vez en sus propias unidades y el navegador se encarga
- * del resto.
- *
- * Los nombres de los grupos van fuera del lienzo, debajo: dentro habría que
- * medir el texto para saber si cabe, y girarlo cuando no.
+ * Coordinates are computed once in the viewBox's own units and the browser scales the drawing.
+ * Group names sit below the SVG: inside it the text would have to be measured and rotated.
  */
 export const PagesCollectionChartLine = ({ label, points }: IProps) => {
   const values = points.map((point) => point.value);

@@ -15,34 +15,21 @@ import { PAGE_PERSON_HOVER_SEPARATOR, PAGE_PERSON_MARK_STROKES } from '../consta
 import type { PagePersonHoverInfo, PagePersonInsert } from '../types/pages.editor.person.types';
 import { createPageMark } from './pages.editor.marks.lib';
 
-/**
- * Asks who is being named here.
- *
- * A person is looked up the same way a page already written is: by writing
- * `@`, so the one picker that answers for a page answers for a person too.
- */
+/** Types `@`, so the picker that finds pages finds people too. */
 export const askForAPerson: Command = createPageEditorWriteCommand(PAGE_EDITOR_MENTION_TRIGGER);
 
-/**
- * Builds a ProseMirror command that names a person where the writing is.
- *
- * Returns a no-op command (reports `false`, never dispatches) when the
- * `label`/`userId` pair fails the shared `pagePersonAttrsSchema` — the same
- * contract `serializePageEditorDocument` validates against at save time.
- */
+/** Reports `false` when the person fails `pagePersonAttrsSchema`, the same contract validated on save. */
 export const createPagePersonInsertCommand = (schema: Schema, person: PagePersonInsert): Command => {
   const attrs = pagePersonAttrsSchema.safeParse(person);
   if (!attrs.success) return () => false;
   return insertPageNode(schema.nodes.person.createChecked(attrs.data));
 };
 
-/** Read as somebody types a name: capitals and accents are not part of the asking. */
 const answersToThePersonName = (name: string, written: string): boolean => {
   const looked = foldPageLookingText(written.trim());
   return looked.length === 0 || foldPageLookingText(name).includes(looked);
 };
 
-/** The members of the space that answer to the name, at most as many as were asked for. */
 export const keepThePeopleNamed = (
   candidates: readonly PagePersonOption[],
   written: string,
@@ -50,26 +37,12 @@ export const keepThePeopleNamed = (
 ): readonly PagePersonOption[] =>
   candidates.filter((candidate) => answersToThePersonName(candidate.name, written)).slice(0, howMany);
 
-/**
- * What the pointer finds once it rests on a named person.
- *
- * The name is always there, since it is written in the node itself; the
- * address joins it only once the lookup actually holds that person. Not
- * holding them proves nothing — the list may simply not have loaded here —
- * so the name is all that is ever said beyond that.
- */
+/** The email is added only when the member is loaded; a missing member may just mean the list is not loaded yet. */
 const describePersonOnHover = (name: string, userId: string, hover: PagePersonHoverInfo | undefined): string => {
   const member = hover?.findMember(userId);
   return member === undefined ? name : `${name}${PAGE_PERSON_HOVER_SEPARATOR}${member.email}`;
 };
 
-/**
- * A person named in the middle of a sentence.
- *
- * Drawn the same shape as a page named in the middle of a sentence — a mark in
- * front of a name, reading as part of the line — and told apart from one only
- * by which mark it carries.
- */
 export const createPagePersonNodeView = (node: EditorNode, label: string, hover?: PagePersonHoverInfo): NodeView => {
   const host = document.createElement('span');
   const name = document.createElement('span');

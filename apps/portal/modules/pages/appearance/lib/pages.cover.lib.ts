@@ -7,12 +7,7 @@ export const resolvePageCoverImageUrl = (cover: PageCoverValue): string => resol
 export const clampPageCoverPosition = (position: number): number =>
   Math.min(PAGE_COVER_POSITION_MAX, Math.max(PAGE_COVER_POSITION_MIN, Math.round(position)));
 
-/**
- * Where the framing lands after dragging by `deltaY`.
- *
- * Dragging down shows more of the top of the picture, so the movement is read
- * the way a hand moves the image behind a window rather than the window itself.
- */
+/** Dragging down moves the image, not the window, so it reveals more of the top. */
 export const computePageCoverDragPosition = (
   startPosition: number,
   deltaY: number,

@@ -42,7 +42,7 @@ const aPage = (id: string, title: string) => ({
   version: 1,
 });
 
-/** Un documento sin un solo bloque: lo que deja en la base una versión distinta o un arreglo a mano. */
+/** A document with no blocks, as left in the database by another version or a manual fix. */
 const anUnreadablePage = () => ({
   ...aPage('page-rota', 'Rota'),
   content: { content: [], schemaVersion: 1, type: 'doc' },
@@ -53,10 +53,6 @@ describe('leer la lista de páginas de un espacio', () => {
     warnings.length = 0;
   });
 
-  /**
-   * Si una página estropeada tumbara la lista, el espacio entero dejaría de
-   * responder y ninguna de sus páginas se podría abrir, no solo la estropeada.
-   */
   it('leaves out the page it cannot read and keeps the rest', () => {
     const read = readPagesThatCanBeRead(
       [aPage('page-a', 'Una'), anUnreadablePage(), aPage('page-b', 'Otra')],
@@ -66,7 +62,6 @@ describe('leer la lista de páginas de un espacio', () => {
     expect(read.map((page) => page.id)).toEqual(['page-a', 'page-b']);
   });
 
-  /** Una página que desaparece del costado sin que nadie se entere es la otra manera de perderla. */
   it('says how many were left out, and from where', () => {
     readPagesThatCanBeRead([aPage('page-a', 'Una'), anUnreadablePage()], 'getPages');
 
@@ -81,7 +76,6 @@ describe('leer la lista de páginas de un espacio', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  /** Una respuesta que ni siquiera es una lista no es una página estropeada: es otra cosa. */
   it('refuses a response that is not a list at all', () => {
     expect(() => readPagesThatCanBeRead({ items: [] }, 'getPages')).toThrow(PAGES_LIST_IS_NOT_A_LIST);
   });

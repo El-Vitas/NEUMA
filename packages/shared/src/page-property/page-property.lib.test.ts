@@ -51,11 +51,7 @@ describe('page property capabilities', () => {
     expect(typesNeedingDirectory).toEqual([PAGE_PROPERTY_TYPE.PERSON]);
   });
 
-  /**
-   * Una columna es un valor, así que agrupa lo que responda un valor y solo
-   * uno. Queda fuera el texto libre, que haría una columna por respuesta, y la
-   * selección múltiple, que pondría la misma fila en varias a la vez.
-   */
+  // Free text is excluded (one column per answer), as is multi-select (one row in several columns).
   test('a board groups by whatever answers with a single value', () => {
     const groupableTypes = PAGE_PROPERTY_TYPE_VALUES.filter(canPagePropertyGroupBoard);
 

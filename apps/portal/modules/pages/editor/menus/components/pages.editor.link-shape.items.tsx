@@ -11,7 +11,6 @@ interface IProps {
   readonly selected: string | null;
 }
 
-/** The three shapes a link on a page can wear, offered long after it was pasted. */
 export const PagesEditorLinkShapeItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

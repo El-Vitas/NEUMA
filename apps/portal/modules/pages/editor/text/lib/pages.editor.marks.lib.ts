@@ -5,7 +5,6 @@ import {
   PAGE_EDITOR_SVG_NAMESPACE,
 } from '../../blocks/constants/pages.editor.blocks.constants';
 
-/** Draws one of the marks a block is worked by, in the colour of the text around it. */
 export const createPageMark = (strokes: readonly string[]): SVGSVGElement => {
   const mark = document.createElementNS(PAGE_EDITOR_SVG_NAMESPACE, 'svg');
   mark.setAttribute('viewBox', PAGE_EDITOR_MARK_BOX);
@@ -24,13 +23,7 @@ export const createPageMark = (strokes: readonly string[]): SVGSVGElement => {
   return mark;
 };
 
-/**
- * What the button does now, said both in its mark and in words.
- *
- * The words are given twice: to whoever cannot see the mark, and to whoever can
- * see it and still cannot tell what it means — a drawing on a button explains
- * nothing until someone has already learnt it.
- */
+/** The label is both the accessible name and the tooltip, since an icon alone does not explain itself. */
 export const showPageButtonAs = (button: HTMLButtonElement, label: string, strokes: readonly string[]): void => {
   button.setAttribute('aria-label', label);
   button.title = label;

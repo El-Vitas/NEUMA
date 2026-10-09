@@ -8,13 +8,7 @@ import { searchPageMentionCandidatesAction } from '../links/server/actions/pages
 import type { PageMentionCandidate, PagesMentionSearchResult } from '../links/types/pages.mentions.types';
 import type { PageSummary } from '../types/pages.types';
 
-/**
- * The pages somebody may be naming, as they type.
- *
- * The pages of this space are already in hand, so the first letter is answered
- * without waiting for anybody; the search is asked as well, because it reaches
- * pages this one does not hold.
- */
+/** Pages already loaded answer immediately; the search adds pages this space does not hold. */
 export const usePagesMentionSearch = (
   query: string | null,
   pagesAtHand: readonly PageSummary[],

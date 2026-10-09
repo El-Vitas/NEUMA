@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Client } from 'pg';
 
-/** Una tabla con columna de búsqueda generada, que `db push` no sabe crear, y la migración que la define. */
 interface SearchableTable {
   readonly expectedGinIndexCount: number;
   readonly migration: string;
@@ -59,7 +58,6 @@ const extractGinIndexStatements = (migrationSql: string, searchable: SearchableT
   return matches;
 };
 
-/** Lo que hay que correr para que una tabla quede con su columna de búsqueda, como en la migración. */
 const listSearchableTableStatements = (searchable: SearchableTable): readonly string[] => {
   const migrationSql = readFileSync(migrationPath(searchable.migration), 'utf8');
   return [

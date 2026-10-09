@@ -14,13 +14,7 @@ import type {
   PageWriteAuthorizer,
 } from './types/page.types';
 
-/**
- * Escribir el contenido de una página desde fuera del editor: el autoguardado
- * de quien no tiene la edición en vivo, los bloques que se mueven a otra página
- * y lo que escribe un agente. Todo pasa por el documento en vivo, así quien
- * tenga la página abierta lo ve al momento y el contenido guardado sale siempre
- * del mismo lugar.
- */
+/** Writes through the live document so open editors see changes immediately and stored content has a single source. */
 @Injectable()
 export class PageContentService {
   constructor(
@@ -35,10 +29,7 @@ export class PageContentService {
     return this.write(writer, () => replacement);
   }
 
-  /**
-   * Agrega bloques al final de lo que la página dice en el momento de escribir,
-   * no de lo que decía cuando alguien la leyó: dos agregados a la vez quedan los dos.
-   */
+  /** Appends to the content current at write time, so concurrent appends both survive. */
   async append(
     writer: PageContentWriter,
     blocks: readonly unknown[],
@@ -53,12 +44,7 @@ export class PageContentService {
     return this.write(writer, (current) => ({ ...current, content: [...current.content, ...appended] }));
   }
 
-  /**
-   * Cambia bloques de lo que la página dice en el momento de escribir: poner,
-   * cambiar, quitar o mover, sobre la página de ese instante y no sobre la que
-   * alguien leyó antes. Si el cambio ya no se puede hacer —el bloque se fue,
-   * el lugar no lo admite—, no se escribe nada.
-   */
+  /** Applies the edit to the content current at write time; if it no longer applies, nothing is written. */
   async edit(
     writer: PageContentWriter,
     edit: PageContentEdit,
@@ -72,11 +58,7 @@ export class PageContentService {
     });
   }
 
-  /**
-   * El documento en vivo solo recibe una reescritura, sin forma de decir «no»:
-   * un cambio que ya no se podía hacer sale de ella como error y vuelve aquí
-   * como tal, antes de que el documento cambie.
-   */
+  /** The live document only takes a rewrite, so a failed edit is thrown from it and turned back into a Result. */
   private async writeEdit(
     writer: PageContentWriter,
     rewrite: PageContentRewrite,
@@ -89,11 +71,7 @@ export class PageContentService {
     }
   }
 
-  /**
-   * El documento en vivo es infraestructura: lo que rechaza por no calzar
-   * vuelve como un error de contenido, y lo que rechaza porque la página dejó
-   * de poder escribirse mientras tanto vuelve como una negativa.
-   */
+  /** Maps live-document rejections to content-validation or access-denied failures. */
   private async write(
     writer: PageContentWriter,
     rewrite: PageContentRewrite,

@@ -2,14 +2,13 @@ import { MCP_DIAGRAM_BUILT_IN_ICONS, MCP_ICON_NAME_SEPARATORS } from '../constan
 import type { McpIconPack, McpRankedIcon } from '../types/mcp.pages.types';
 import { foldMcpName } from './mcp.columns.lib';
 
-/** Qué tan bien calza un nombre: igual a lo buscado, igual a una palabra, empieza por una, o solo la contiene. */
+/** Lower is better: exact query, exact word, word prefix, then contains. */
 const rankName = (name: string, matched: readonly string[], wanted: string): number => {
   if (name === wanted) return 0;
   if (matched.includes(name)) return 1;
   return matched.some((word) => name.startsWith(word)) ? 2 : 3;
 };
 
-/** Cuántas de las palabras buscadas tiene un nombre y qué tan bien calza; nada si no tiene ninguna. */
 const rankIcon = (
   name: string,
   words: readonly string[],
@@ -27,7 +26,6 @@ const listNames = (pack: McpIconPack): readonly string[] => [
   ...Object.keys(pack.aliases ?? {}),
 ];
 
-/** Si un ícono, escrito como `paquete:ícono` o como uno propio de Mermaid, está entre los que el portal sabe dibujar. */
 export const hasMcpDiagramIcon = (packs: readonly McpIconPack[], icon: string): boolean => {
   if (!icon.includes(':')) return MCP_DIAGRAM_BUILT_IN_ICONS.includes(icon);
   const [prefix, name] = icon.split(':');
@@ -36,13 +34,7 @@ export const hasMcpDiagramIcon = (packs: readonly McpIconPack[], icon: string): 
   return Object.hasOwn(pack.icons, name) || Object.hasOwn(pack.aliases ?? {}, name);
 };
 
-/**
- * Los íconos que un diagrama puede usar y que responden a lo buscado, escritos
- * como el diagrama los nombra: `paquete:ícono`. Basta con una de las palabras,
- * porque quien busca suele describir la idea con varias y ningún ícono las
- * tiene todas. Primero los que tienen más palabras; entre ellos, el que se
- * llama igual, después los que empiezan así y al final los que solo la contienen.
- */
+/** One matching word is enough: no icon has every word of a described idea. Most matches first, then name rank. */
 export const searchMcpDiagramIcons = (packs: readonly McpIconPack[], query: string, limit: number): string[] => {
   const words = foldMcpName(query)
     .split(MCP_ICON_NAME_SEPARATORS)

@@ -13,13 +13,7 @@ const buildCookieOptions = (maxAge: number) => ({
   maxAge,
 });
 
-/**
- * Stores a session, each cookie kept for exactly as long as the token it
- * carries is valid.
- *
- * Keeping a cookie for longer than its token is what made sessions look alive
- * while every request was already being rejected.
- */
+/** Each cookie lives exactly as long as its token: a longer-lived cookie makes a dead session look alive. */
 export const setSessionCookies = async (session: AuthSession): Promise<void> => {
   const cookieStore = await cookies();
   cookieStore.set(ACCESS_TOKEN_COOKIE, session.accessToken, buildCookieOptions(session.accessTokenExpiresInSeconds));

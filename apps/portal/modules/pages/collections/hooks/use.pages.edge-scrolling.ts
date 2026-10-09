@@ -5,16 +5,7 @@ import { useEffect, useRef } from 'react';
 import { readEdgeScrollStep } from '../lib/pages.edge-scrolling.lib';
 import type { PagesEdgeScrolling } from '../types/pages.edge-scrolling.types';
 
-/**
- * Que el tablero se desplace solo mientras se arrastra contra su borde.
- *
- * Sin esto, llevar una tarjeta a una columna que no se ve pide soltarla en
- * medio, desplazar a mano y volver a tomarla: tres gestos para uno.
- *
- * El desplazamiento va por cuadros y no por evento, porque el navegador deja de
- * mandar eventos cuando la mano se queda quieta contra el borde —y quieta
- * contra el borde es exactamente donde hay que seguir moviéndose.
- */
+/** Scrolls per animation frame, not per event: the browser stops firing drag events when the pointer rests. */
 export const usePagesEdgeScrolling = (): PagesEdgeScrolling => {
   const frame = useRef<null | number>(null);
   const step = useRef(0);
@@ -36,7 +27,6 @@ export const usePagesEdgeScrolling = (): PagesEdgeScrolling => {
     frame.current = requestAnimationFrame(keepScrolling);
   };
 
-  /** Lo que quede corriendo cuando esto desaparezca se queda corriendo: hay que pararlo. */
   useEffect(
     () => () => {
       if (frame.current !== null) cancelAnimationFrame(frame.current);

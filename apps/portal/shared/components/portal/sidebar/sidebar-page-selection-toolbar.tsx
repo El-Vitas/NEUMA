@@ -15,11 +15,6 @@ interface IProps {
   readonly selectedCount: number;
 }
 
-/**
- * What a selection can do while it is active: take it away, move it, trash it,
- * or drop it — always with the count in view, so nobody acts on more or fewer
- * pages than they meant to.
- */
 export const SidebarPageSelectionToolbar = ({
   disabled,
   onCancel,

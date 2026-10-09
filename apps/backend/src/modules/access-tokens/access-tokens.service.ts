@@ -42,14 +42,7 @@ import {
   readAccessTokenDisplayPrefix,
 } from './utils/access-token.utils';
 
-/**
- * Las llaves con las que un agente entra por su dueño.
- *
- * Un token puede lo que tiene dado, espacio por espacio, y nunca más que su
- * dueño: al darlo se revisa que el dueño pueda dar cada permiso y vea cada
- * espacio, y al usarlo se vuelve a mirar lo que el dueño puede hoy. Por eso
- * desactivar a la persona apaga también sus tokens.
- */
+/** A token never exceeds its owner: grants are checked at creation and the owner's current role and status at use. */
 @Injectable()
 export class AccessTokensService implements AccessTokenPrincipalResolver {
   constructor(
@@ -96,7 +89,6 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     return created;
   }
 
-  /** Cambia lo que el token tiene dado, con los mismos límites que al crearlo. La clave no cambia. */
   async updateAccess(
     owner: AccessTokenOwner,
     tokenId: string,
@@ -142,7 +134,7 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     return Result.ok(undefined);
   }
 
-  /** En nombre de quién actúa quien presenta este secreto, y con qué, o nadie. Nunca dice por qué no. */
+  /** Returns `null` without saying why, so callers cannot tell unknown, revoked and expired tokens apart. */
   async resolvePrincipal(secret: string): Promise<AccessTokenPrincipal | null> {
     if (!looksLikeAccessTokenSecret(secret)) return null;
 
@@ -160,11 +152,7 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     };
   }
 
-  /**
-   * Anota cuándo se usó el token por última vez. Es un dato de consulta, no
-   * parte de entrar: si no se puede anotar, se cuenta en el log y quien trajo
-   * el token igual entra.
-   */
+  /** Last use is informational, so a failed write is logged and does not block authentication. */
   private async recordUse(tokenId: string, now: Date): Promise<void> {
     try {
       await this.accessTokenRepository.touch(tokenId, now);
@@ -187,12 +175,7 @@ export class AccessTokensService implements AccessTokenPrincipalResolver {
     }
   }
 
-  /**
-   * Lo pedido, si su dueño puede darlo: bien formado, sin permisos que él no
-   * tenga, y sin espacios ni páginas que él no vea. Vale igual para una regla
-   * que da y para una que excluye: tampoco se puede nombrar, ni para cerrarlo,
-   * un lugar que no se ve, porque confirmaría que existe.
-   */
+  /** Applies to exclusion rules too: naming an invisible place, even to close it, would confirm that it exists. */
   private async validateGrantableAccess(
     owner: AccessTokenOwner,
     requested: unknown,

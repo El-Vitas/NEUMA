@@ -12,12 +12,7 @@ const HISTORY_DIR = `${RULES_DIR}/history`;
 
 const VALID_STATUSES = ['active', 'superseded', 'inactive'];
 
-/**
- * El archivo que se copia para empezar un feature nuevo. Declara un id de
- * relleno, así que indexarlo lo volvería un feature real: el dump lo escribiría
- * como `fea-xxx.yaml` y el siguiente build chocaría con dos archivos que dicen
- * ser el mismo feature.
- */
+/** Template with a placeholder feature id; indexing it would create a real feature and clash on the next build. */
 const TEMPLATE_FILE = 'fea-template.yaml';
 
 const help = () => {};
@@ -142,7 +137,6 @@ const cmdBuild = () => {
       }
     }
 
-    // Auto-resolve supersedes chains: mark old rules as superseded
     const updSuperseded = db.prepare(
       "UPDATE rules SET status = 'superseded', superseded_by = ? WHERE id = ? AND status = 'active'",
     );
@@ -306,10 +300,8 @@ const cmdAdd = () => {
   const db = getDb();
   initDb(db);
 
-  // Auto-generate deterministic ID from feature + rule content
   const ruleId = data.id || generateRuleId(data.feature, data.rule);
 
-  // Check for collision: if same ID already exists
   const existing = db.prepare('SELECT id, rule FROM rules WHERE id = ?').get(ruleId);
   if (existing) {
     if (existing.rule === data.rule) {
@@ -319,7 +311,6 @@ const cmdAdd = () => {
     process.exit(1);
   }
 
-  // Validate supersedes target
   if (data.supersedes) {
     const old = db.prepare('SELECT id, status FROM rules WHERE id = ?').get(data.supersedes);
     if (!old) {
@@ -330,13 +321,11 @@ const cmdAdd = () => {
     }
   }
 
-  // Validate status
   const status = data.status || 'active';
   if (!VALID_STATUSES.includes(status)) {
     process.exit(1);
   }
 
-  // Ensure feature exists
   const existingFeature = db.prepare('SELECT id FROM features WHERE id = ?').get(data.feature);
   if (!existingFeature) {
     db.prepare('INSERT INTO features (id, name, purpose, scope) VALUES (?, ?, ?, ?)').run(
@@ -363,7 +352,6 @@ const cmdAdd = () => {
       data.superseded_reason || null,
     );
 
-    // Clear old scenarios, insert new
     db.prepare('DELETE FROM scenarios WHERE rule_id = ?').run(ruleId);
     for (const sc of data.scenarios || []) {
       db.prepare('INSERT INTO scenarios (rule_id, title, given_text, when_text, then_text) VALUES (?, ?, ?, ?, ?)').run(
@@ -375,7 +363,6 @@ const cmdAdd = () => {
       );
     }
 
-    // If supersedes is set, mark old rule as superseded and link back
     if (data.supersedes) {
       db.prepare('UPDATE rules SET status = ?, superseded_by = ?, superseded_reason = ? WHERE id = ?').run(
         'superseded',
@@ -392,16 +379,11 @@ const cmdAdd = () => {
 };
 
 /**
- * Borra una regla que nunca debió existir.
- *
- * Es para deshacer un error material: un id de feature mal escrito, una regla
- * duplicada sin querer, un envío a medias. NO es para retirar una regla que se
- * pensó mal — eso se reemplaza con `supersedes`, que deja la vieja marcada y
- * enlazada a la nueva. Haber pensado mal es parte de la historia del producto y
- * se conserva; haberse equivocado de tecla, no.
- *
- * Por eso se niega a tocar una regla que ya es parte de una cadena: borrarla
- * dejaría a otra apuntando al vacío, y el histórico dejaría de leerse entero.
+ * Deletes a rule that should never have existed (wrong feature id, accidental
+ * duplicate, half-written submission). A rule that was merely wrong is replaced
+ * with `supersedes` instead, which keeps the history.
+ * Refuses to touch a rule that is part of a supersedes chain: deleting it would
+ * leave another rule pointing at nothing.
  */
 const cmdDelete = (args) => {
   const opts = parseArgs(args);
@@ -446,7 +428,6 @@ const cmdDump = () => {
   const db = getDb();
   initDb(db);
 
-  // Backup current YAML files
   const files = readdirSync(RULES_DIR).filter((f) => f.endsWith('.yaml') && f !== TEMPLATE_FILE);
   if (files.length > 0 && !existsSync(HISTORY_DIR)) {
     mkdirSync(HISTORY_DIR, { recursive: true });
@@ -458,7 +439,6 @@ const cmdDump = () => {
     });
   }
 
-  // Read all data from SQLite
   const features = db.prepare('SELECT * FROM features ORDER BY id').all();
 
   for (const feature of features) {

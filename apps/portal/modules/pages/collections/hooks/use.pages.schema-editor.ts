@@ -41,23 +41,12 @@ import type { PageSchema, PageSchemaProperty, PageSchemaView } from '../types/pa
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import { usePagesShapeSaving } from './use.pages.shape-saving';
 
-/**
- * The shape of a collection while somebody is changing it.
- *
- * Nothing travels until it is saved, so a half-made change never reaches the
- * rows: adding a property and then naming its options is several steps, and
- * sending each one would leave the collection in shapes nobody asked for.
- */
+/** Nothing is sent until saved: a multi-step change (add a property, then name its options) must not land half done. */
 export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): PagesSchemaEditor => {
   const [properties, setProperties] = useState<readonly PageSchemaProperty[]>(schema.properties);
   const [views, setViews] = useState<readonly PageSchemaView[]>(schema.views);
   const shape = usePagesShapeSaving(schema, spaceId);
-  /**
-   * Lo último que llegó a viajar, para poder decir si lo que se ve ya no es
-   * eso. Se compara por identidad y no por contenido: cada operación devuelve
-   * la misma lista cuando no cambia nada y una nueva cuando sí, así que la
-   * identidad ya dice exactamente lo que hay que saber.
-   */
+  // Compared by identity: each operation returns the same list when nothing changed.
   const [saved, setSaved] = useState({ properties: schema.properties, views: schema.views });
 
   const save = (): void => {

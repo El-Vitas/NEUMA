@@ -156,7 +156,6 @@ const pageHits: SearchPage = {
   ],
 };
 
-/** El árbol de esta prueba: la página está sola en la raíz de su espacio, y ninguna regla de página alcanza nada. */
 const placeReader: AccessTokenPlaceReader = {
   readPlace: (pageId) => Promise.resolve({ lineage: [pageId], spaceId: SPACE }),
   readPlaces: (pageIds) =>
@@ -164,13 +163,11 @@ const placeReader: AccessTokenPlaceReader = {
   resolvePageReach: () => Promise.resolve({ allowedPageIds: [], closedPageIds: [], spaceIdsWithAllowedPages: [] }),
 };
 
-/** Lo que cuelga de una página, entregado de a tramos como lo hace el árbol de verdad. */
 const childrenOf =
   (all: readonly McpOutlineEntry[]): McpOutlineReader['listChildren'] =>
   (_spaceId, _parentId, _viewer, window) =>
     Promise.resolve({ entries: all.slice(window.skip, window.skip + window.take), total: all.length });
 
-/** La página se ve; la que menciona, no. */
 const outline: McpOutlineReader = {
   listAncestors: () => Promise.resolve([]),
   listChildren: childrenOf([
@@ -223,7 +220,6 @@ const column = (key: string, label: string, type: PagePropertyType): McpColumn =
   type,
 });
 
-/** Una colección con esas columnas, que solo se lee. */
 const collectionWith = (properties: readonly McpColumn[]): McpCollectionService => ({
   defineSchema: notUsedHere,
   getSchema: () => Promise.resolve(Result.ok({ properties, views: [] })),
@@ -232,7 +228,6 @@ const collectionWith = (properties: readonly McpColumn[]): McpCollectionService 
   setViewConfiguration: notUsedHere,
 });
 
-/** Otras dependencias con otra página en lugar de la de siempre. */
 const servingPage = (served: PageSummary, overrides: Partial<McpServerDependencies> = {}): McpServerDependencies => ({
   ...createDependencies(),
   pagesService: { getAccessible: () => Promise.resolve(createPageReadResult(served)) },
@@ -274,7 +269,6 @@ const fetchAddress = async (address: string, dependencies = createDependencies()
   (await connectClient(dependencies)).callTool({ arguments: { address }, name: 'fetch' });
 
 describe('MCP read contract', () => {
-  /** Un token que solo lee no ve herramientas que escriben: ofrecerlas sería invitar a un fallo seguro. */
   test('offers a read-only token the read tools only, starting with the one to use first', async () => {
     const client = await connectClient(createDependencies());
 
@@ -297,7 +291,6 @@ describe('MCP read contract', () => {
     expect(client.getInstructions()).toBe(writeMcpServerInstructions(PORTAL));
   });
 
-  /** Un agente que no sabe que el enlace es de Company Brain intenta abrirlo con un navegador. */
   test('tells the agent which links are Company Brain links, and that its tasks live there', async () => {
     const client = await connectClient(createDependencies());
 
@@ -333,21 +326,15 @@ describe('MCP read contract', () => {
     const result = await client.callTool({ arguments: {}, name: 'list_spaces' });
 
     expect(result.isError).not.toBe(true);
-    /**
-     * An agent is told which spaces it may read — not how they are drawn, nor
-     * in what order a person arranged them, nor whose private corner each one
-     * is, nor what each one says about itself.
-     */
     expect(result.structuredContent).toEqual({
       spaces: spaces.map(
         ({ description: _description, icon: _icon, order: _order, ownerId: _ownerId, ...readable }) => readable,
       ),
     });
-    /* Una vez al armar el servidor, para elegir las herramientas, y otra en la llamada, para que revocar corte al instante. */
+    // Once when building the server (to pick the tools) and once per call, so revoking cuts access at once.
     expect(calls).toEqual(['principal', 'principal', 'workspace:user-1:WORKER', `spaces:workspace-1:user-1:WORKER`]);
   });
 
-  /** Una llave vencida no es un recurso inaccesible: decirlo así manda al agente a buscar otra página en vez de pedir otra llave. */
   test('tells the agent its token no longer works when there is no authenticated principal', async () => {
     const client = await connectClient(createDependencies(null));
 
@@ -368,7 +355,6 @@ describe('MCP read contract', () => {
     expect(reportedErrors).toHaveLength(1);
   });
 
-  /** Sin esto no se sabe qué herramientas se usan, cuánto tardan ni cuánto fallan. */
   test('tells how every call ended, whether it went through, was refused or failed', async () => {
     const finished: string[] = [];
     const client = await connectClient({
@@ -464,7 +450,6 @@ describe('MCP search', () => {
     expect(textOf(result)).toContain('More blocks with cursor: next-block-cursor');
   });
 
-  /** La página de arriba puede estar cerrada para el token aunque la que encontró no: su título no sale. */
   test('never names the page above a hit, which the token may not be allowed to read', async () => {
     const client = await connectClient(createDependencies());
 
@@ -616,7 +601,6 @@ describe('MCP fetch', () => {
     expect(reportedErrors).toHaveLength(0);
   });
 
-  /** Una página guardada en una forma que esta versión no lee se dice como tal, no como que no existe. */
   test('says a page cannot be read when its content is outside the foundation contract', async () => {
     const unreadable = { ...page, content: { content: [], schemaVersion: 2, type: 'doc' } };
     const result = await fetchAddress(PAGE, {
@@ -628,11 +612,10 @@ describe('MCP fetch', () => {
   });
 });
 
-/** Lo que dice si una página es de fiar: si alguien respondió por ella, si está bloqueada y quién la cuida. */
 describe('MCP fetch — whether a page can be trusted', () => {
   const ana = { id: 'u-1', name: 'Ana Pérez' };
 
-  /** Vigente o vencida depende de hoy: el día queda fijo para que la prueba diga siempre lo mismo. */
+  // Current or expired depends on today, so the day is pinned to keep the test deterministic.
   beforeAll(() => {
     setSystemTime(new Date('2026-10-01T12:00:00.000Z'));
   });
@@ -662,7 +645,6 @@ describe('MCP fetch — whether a page can be trusted', () => {
     expect(textOf(result)).toContain('Verified by Ana Pérez (u-1) on 2026-09-01, valid until 2026-12-31.');
   });
 
-  /** Vencida no es lo mismo que nunca verificada: se sabe quién respondió, pero ya no vale. */
   test('tells an expired verification apart from none, so the agent reads the page as possibly out of date', async () => {
     const expired = {
       ...page,
@@ -732,7 +714,6 @@ describe('MCP fetch — rows, comments and long pages', () => {
     expect(textOf(result)).toContain('- Asignada a (assignee, PERSON): Ana Pérez (u-1)');
   });
 
-  /** Lo que una fila tiene en sus columnas es de la colección: sin leer colecciones, la fila se ve como página. */
   test('keeps the properties of a row from a token that reads pages but not collections', async () => {
     const row = { ...page, parentId: MISSING, propertyValues: { status: 'En curso' } };
     const pagesOnly = {
@@ -751,7 +732,6 @@ describe('MCP fetch — rows, comments and long pages', () => {
     expect(textOf(result)).not.toContain('En curso');
   });
 
-  /** Una colección con miles de filas no se entrega entera al abrirla: el resto se recorre con list_pages. */
   test('names only the first pages under a page and says how many more there are', async () => {
     const many = Array.from({ length: MCP_FETCH_CHILD_LIMIT + 5 }, (_unused, index) => ({
       childCount: 0,
@@ -770,7 +750,6 @@ describe('MCP fetch — rows, comments and long pages', () => {
     expect(textOf(result)).toContain(`…and 5 more: list_pages with parentPageId ${PAGE}`);
   });
 
-  /** Una página en la papelera se puede leer, pero lo primero que se dice es que está ahí. */
   test('says first that a page is in the trash', async () => {
     const result = await fetchAddress(PAGE, servingPage({ ...page, lifecycle: 'TRASHED' }));
 
@@ -847,7 +826,6 @@ describe('MCP search — by block type', () => {
   });
 });
 
-/** Los filtros de la búsqueda del portal, y cuáles páginas están verificadas, para preferir lo revisado. */
 describe('MCP search — verified pages, author and when it was edited', () => {
   test('passes the same filters to the search of blocks and of titles', async () => {
     const blockQueries: PageBlockSearchQuery[] = [];
@@ -911,7 +889,6 @@ describe('MCP list_pages', () => {
     });
   });
 
-  /** Qué tareas hay y de quién es cada una se contesta listando el tablero, sin abrir cada tarea. */
   test('gives each row of a collection its properties, people by name', async () => {
     const task = (at: number, status: string) => ({
       childCount: 0,
@@ -937,7 +914,6 @@ describe('MCP list_pages', () => {
     expect(textOf(result)).toContain('Estado: done');
   });
 
-  /** Cientos de páginas de una vez pasan el tope de lo que el agente recibe, y las pierde todas. */
   test('lists a long level in parts, and the cursor leads to the rest', async () => {
     const many = Array.from({ length: 7 }, (_unused, at) => ({
       childCount: 0,

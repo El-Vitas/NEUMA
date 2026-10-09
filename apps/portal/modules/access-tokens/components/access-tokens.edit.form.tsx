@@ -20,12 +20,7 @@ interface IProps {
   readonly token: AccessToken;
 }
 
-/**
- * Cambiar lo que puede un token que ya existe, y volver a los tokens al guardar.
- *
- * Lo que tiene en lugares que su dueño ya no ve no aparece en las filas, y
- * guardar lo quita: se avisa antes, para que no sea una sorpresa.
- */
+/** Access on places its owner can no longer see is not listed and saving removes it, so the user is warned first. */
 export const AccessTokensEditForm = ({ role, spaces, token }: IProps) => {
   const t = useTranslations('accessTokens');
   const router = useRouter();

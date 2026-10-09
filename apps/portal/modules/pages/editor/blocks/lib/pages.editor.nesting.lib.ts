@@ -18,13 +18,9 @@ const readNestingTypes = (state: EditorState): PageEditorNestingTypes | null => 
 };
 
 /**
- * The blocks a nesting gesture applies to: every block the selection covers,
- * which is one block when there is only a cursor and the whole run when
- * several are selected.
- *
- * `holdsThem` decides how far out the reading goes, so a cursor inside a quote
- * or a table cell nests the quote or the table — the block that actually sits
- * on the page — instead of the paragraph it is typing in.
+ * The blocks a nesting gesture applies to: every block the selection covers.
+ * `holdsThem` sets how far out to climb, so a cursor in a quote or table cell nests the quote or table,
+ * not the paragraph inside it.
  */
 const findSelectedBlocks = (state: EditorState, holdsThem: (node: EditorNode) => boolean): NodeRange | null =>
   state.selection.$from.blockRange(state.selection.$to, holdsThem);
@@ -49,13 +45,7 @@ const nestUnder = (previousBlock: EditorNode, blocks: Fragment, types: PageEdito
   );
 };
 
-/**
- * Nests the selected blocks under the block right above them.
- *
- * It works on whatever is selected rather than on the cursor's own block, so a
- * run of blocks nests in one go and a block with nothing to write in — an
- * image, a table — nests just the same.
- */
+/** Nests the selected blocks under the block right above them, whether or not they hold text. */
 export const indentPageEditorBlock: Command = (state, dispatch) => {
   const range = findSelectedBlocks(state, holdsBlockChildren);
   const types = readNestingTypes(state);
@@ -91,10 +81,7 @@ const rebuildWithoutLifted = (
   ];
 };
 
-/**
- * Takes the selected blocks out of what they are nested in, leaving them right
- * after it. A nesting left with no children stops being one.
- */
+/** Moves the selected blocks out of their nesting, right after it. A nesting left with no children stops being one. */
 export const outdentPageEditorBlock: Command = (state, dispatch) => {
   const types = readNestingTypes(state);
   if (types === null) return false;
@@ -122,12 +109,8 @@ export const outdentPageEditorBlock: Command = (state, dispatch) => {
 };
 
 /**
- * Deletes the block others hang from without taking them down with it: the
- * nesting dissolves and its children stay on the page, where they can be seen.
- *
- * Left to the editor's own deletion, the head would be replaced by an empty
- * block and the page would keep a nesting with nothing at its head — the
- * children still there, but hanging from nothing.
+ * Deletes a nesting's head and keeps its children on the page.
+ * The default deletion would replace the head with an empty block and leave children hanging from nothing.
  */
 export const deletePageEditorBlockKeepingChildren: Command = (state, dispatch) => {
   const types = readNestingTypes(state);
