@@ -1,3 +1,5 @@
+import type { Config } from 'dompurify';
+
 /** What separates the four numbers of the box a drawing was drawn inside. */
 export const DIAGRAM_BOX_GAP = /\s+/;
 
@@ -51,6 +53,9 @@ export const DIAGRAM_ZOOM_MOST = 4;
 /** How much closer one turn of the wheel brings a drawing. */
 export const DIAGRAM_ZOOM_WHEEL_STEP = 1.1;
 
+/** How far a pressed pointer moves before the drawing is held and dragged, rather than clicked. */
+export const DIAGRAM_GRIP_THRESHOLD_PX = 4;
+
 /** How much closer one press of a zoom button brings a drawing: more than a turn of the wheel, since it is one press. */
 export const DIAGRAM_ZOOM_BUTTON_STEP = 1.25;
 
@@ -98,8 +103,30 @@ export const DIAGRAM_FETCHING_ATTRIBUTES = ['src', 'href', 'xlink:href', 'data',
 /** What a drawing carries that exists only to fetch something, and is worth nothing without it. */
 export const DIAGRAM_FETCHING_ELEMENTS = 'img, image, iframe, object, embed, link, script, use, audio, video';
 
-/** An address asked of somewhere else, written the way a style asks for one. */
-export const DIAGRAM_OUTSIDE_URL = /url\(\s*['"]?(?!#|data:)[^)]*\)/gi;
+/**
+ * What the last cleaning lets a drawing keep: a picture, its filters, and the
+ * little pages its labels are laid out in. Nothing that runs, and nothing that
+ * opens another page inside this one.
+ */
+export const DIAGRAM_SANITIZE_OPTIONS: Config = {
+  ADD_TAGS: ['foreignobject'],
+  FORBID_TAGS: ['embed', 'iframe', 'object', 'script'],
+  HTML_INTEGRATION_POINTS: { foreignobject: true },
+  USE_PROFILES: { html: true, svg: true, svgFilters: true },
+};
+
+/**
+ * An address asked of somewhere else, written the way a style asks for one.
+ * What it points at is looked at once, ahead, so a long run of spaces costs one
+ * pass and not one pass per space.
+ */
+export const DIAGRAM_OUTSIDE_URL = /url\((?!\s*['"]?(?:#|data:))[^)]*\)/gi;
+
+/**
+ * A style asking for a whole other sheet, which needs no url() around its
+ * address: `@import "https://…";`. It goes whole, up to its semicolon.
+ */
+export const DIAGRAM_SHEET_IMPORT = /@import\b[^;]*;?/gi;
 
 /**
  * A tag whose whole purpose is to fetch something, written inside a label.
@@ -110,7 +137,7 @@ export const DIAGRAM_OUTSIDE_URL = /url\(\s*['"]?(?!#|data:)[^)]*\)/gi;
  * drawn, and the rest of what a label may say is left alone.
  */
 export const DIAGRAM_FETCHING_TAG =
-  /<\s*\/?\s*(?:img|image|iframe|object|embed|link|script|source|track|audio|video)\b[^>]*>/gi;
+  /<\s*(?:\/\s*)?(?:img|image|iframe|object|embed|link|script|source|track|audio|video)\b[^>]*>/gi;
 
 /**
  * The ground a drawing sits on, which is the ground a label on a line has to

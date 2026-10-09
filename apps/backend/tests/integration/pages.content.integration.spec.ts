@@ -182,4 +182,19 @@ describe('Writing the content of a page through its live document (Integration)'
 
     expect((await readStored(pageId)).content).toEqual(pageOf(paragraph('a', 'Bloqueada')));
   });
+
+  /** Una página en la papelera no se escribe: se dice por qué, en vez de un fallo del servidor. */
+  it('refuses to write in a page that is in the trash, as a refusal and not a failure', async () => {
+    const pageId = await createPage(pageOf(paragraph('a', 'En la papelera')));
+    await request(testApp.getServer())
+      .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/trash`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-mutation-id', crypto.randomUUID())
+      .expect(201);
+
+    await replaceContent(pageId, pageOf(paragraph('a', 'Cambio'))).expect(409);
+    await appendBlocks(pageId, [paragraph('b', 'Cambio')]).expect(409);
+
+    expect((await readStored(pageId)).content).toEqual(pageOf(paragraph('a', 'En la papelera')));
+  });
 });

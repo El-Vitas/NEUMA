@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  CACHE_CONTROL_HEADER,
+  CACHE_CONTROL_NO_STORE,
+  HTTP_STATUS_CREATED,
+} from '../../common/constants/http.constants';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
@@ -35,7 +51,9 @@ export class AccessTokensController {
     return this.accessTokensService.listTokens(await this.ownerOf(payload));
   }
 
+  /** La respuesta lleva el secreto, la única vez que se enseña: ningún intermediario ni el navegador la guardan. */
   @HttpCode(HTTP_STATUS_CREATED)
+  @Header(CACHE_CONTROL_HEADER, CACHE_CONTROL_NO_STORE)
   @Post()
   async create(@Body() dto: CreateAccessTokenDto, @User('payload') payload: TokenPayload): Promise<CreatedAccessToken> {
     const result = await this.accessTokensService.createToken(await this.ownerOf(payload), {

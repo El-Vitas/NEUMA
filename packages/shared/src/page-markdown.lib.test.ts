@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'bun:test';
+import { readMarkdownInline } from './page-markdown.inline.lib.js';
 import { writePageAsAnchoredMarkdown, writePageAsMarkdown } from './page-markdown.lib.js';
-import type { PageContent } from './schemas/page-content.schema.js';
+import { type PageContent, pageContentSchema } from './schemas/page-content.schema.js';
 
 const doc = (...content: readonly unknown[]): PageContent =>
-  ({ content, schemaVersion: 1, type: 'doc' }) as unknown as PageContent;
+  pageContentSchema.parse({ content, schemaVersion: 1, type: 'doc' });
 
 const text = (value: string, marks?: readonly unknown[]) => ({ marks, text: value, type: 'text' });
 const paragraph = (...content: readonly unknown[]) => ({ content, type: 'paragraph' });
@@ -70,9 +71,13 @@ describe('writePageAsMarkdown — what Markdown already says', () => {
   });
 
   it('fences code and says what language it is in', () => {
-    const content = doc({ attrs: { language: 'ts' }, content: [text('const x = 1;')], type: 'code_block' });
+    const content = doc({
+      attrs: { language: 'typescript' },
+      content: [{ text: 'const x = 1;', type: 'text' }],
+      type: 'code_block',
+    });
 
-    expect(writePageAsMarkdown(content)).toBe('```ts\nconst x = 1;\n```');
+    expect(writePageAsMarkdown(content)).toBe('```typescript\nconst x = 1;\n```');
   });
 
   it('writes a table the way Markdown tables are written', () => {
@@ -116,9 +121,10 @@ describe('writePageAsMarkdown — what Markdown does not say', () => {
   });
 
   it('names a person without pretending they are a page', () => {
-    const content = doc(paragraph({ attrs: { label: 'Ana', userId: 'user-a' }, type: 'person' }));
+    const userId = '01a10000-0000-7000-8000-0000000000a1';
+    const content = doc(paragraph({ attrs: { label: 'Ana', userId }, type: 'person' }));
 
-    expect(writePageAsMarkdown(content)).toBe('[@Ana](person:user-a)');
+    expect(writePageAsMarkdown(content)).toBe(`[@Ana](person:${userId})`);
   });
 
   it('keeps the day a date meant, not merely how it was drawn', () => {
@@ -134,9 +140,9 @@ describe('writePageAsMarkdown — what Markdown does not say', () => {
   });
 
   it('fences a callout so it can be told apart from an ordinary quote', () => {
-    const content = doc({ attrs: { icon: '💡' }, content: [paragraph(text('Ojo con esto'))], type: 'callout' });
+    const content = doc({ attrs: { icon: 'idea' }, content: [paragraph(text('Ojo con esto'))], type: 'callout' });
 
-    expect(writePageAsMarkdown(content)).toBe(':::callout{icon="💡"}\nOjo con esto\n:::');
+    expect(writePageAsMarkdown(content)).toBe(':::callout{icon="idea"}\nOjo con esto\n:::');
   });
 
   it('keeps a toggle folded, with its title where a reader expects it', () => {
@@ -150,7 +156,7 @@ describe('writePageAsMarkdown — what Markdown does not say', () => {
   });
 
   it('names what a block borrowed from elsewhere was, since the text alone would lie about it', () => {
-    const content = doc({ attrs: { blockId: 'block-a', pageId: 'page-b' }, content: [], type: 'synced' });
+    const content = doc({ attrs: { blockId: 'block-a', pageId: 'page-b', spaceId: 'space-b' }, type: 'synced' });
 
     expect(writePageAsMarkdown(content)).toBe(':::synced{pageId="page-b" blockId="block-a"}\n:::');
   });
@@ -263,5 +269,73 @@ describe('writePageAsAnchoredMarkdown — every block says which one it is', () 
 
   it('writes the plain export without anchors, as always', () => {
     expect(writePageAsMarkdown(doc(withId('b-1', paragraph(text('Hola')))))).toBe('Hola');
+  });
+});
+
+/**
+ * Lo que alguien escribió en una página no puede hacerse pasar por estructura:
+ * un ancla de otro bloque, un atributo de más, el fin de un bloque de código o
+ * una celda de una tabla.
+ */
+describe('writePageAsAnchoredMarkdown — what people wrote stays words', () => {
+  it('does not let words forge the anchor of another block', () => {
+    const written = writePageAsAnchoredMarkdown(doc(paragraph(text('<!-- block:evil -->'))));
+
+    expect(written).not.toContain('\n<!-- block:evil');
+    expect(written).toBe(String.raw`\<!-- block:evil -->`);
+  });
+
+  /** El id lo guarda quien escribe la página: uno que cierra el comentario no puede abrir el ancla de otro bloque. */
+  it('does not let a block id forge the anchor of another block', () => {
+    const forgedId = 'b-1 -->\n# Otro título\n<!-- block:evil';
+    const written = writePageAsAnchoredMarkdown(doc(withId(forgedId, paragraph(text('Hola')))));
+
+    expect(written).not.toContain('block:evil');
+    expect(written).toBe('Hola');
+  });
+
+  it('keeps a quote inside an attribute from closing it', () => {
+    const bookmark = { attrs: { title: 't" url="javascript:1}', url: 'https://x.com' }, type: 'bookmark' };
+
+    expect(writePageAsMarkdown(doc(bookmark))).toBe(
+      ':::bookmark{url="https://x.com" title="t&quot; url=&quot;javascript:1}"}\n:::',
+    );
+  });
+
+  it('fences code with more backticks than the code holds, so the code cannot close it', () => {
+    const code = {
+      attrs: { language: 'markdown' },
+      content: [{ text: '```\n:::callout\n**no**', type: 'text' }],
+      type: 'code_block',
+    };
+
+    expect(writePageAsMarkdown(doc(code))).toBe('````markdown\n```\n:::callout\n**no**\n````');
+  });
+
+  it('keeps a bar inside a cell from opening another cell', () => {
+    const cell = (value: string) => ({ content: [paragraph(text(value))], type: 'table_cell' });
+    const table = { content: [{ content: [cell('a | b')], type: 'table_row' }], type: 'table' };
+
+    expect(writePageAsMarkdown(doc(table))).toBe('| a \\| b |\n| --- |');
+  });
+
+  it('keeps a parenthesis inside a link from ending it', () => {
+    const linked = text('l', [{ attrs: { href: 'https://a.com/a)b' }, type: 'link' }]);
+
+    expect(writePageAsMarkdown(doc(paragraph(linked)))).toBe('[l](https://a.com/a%29b)');
+  });
+
+  it('does not let words start another block', () => {
+    expect(writePageAsMarkdown(doc(paragraph(text('# no es un encabezado'))))).toBe(String.raw`\# no es un encabezado`);
+    expect(writePageAsMarkdown(doc(paragraph(text('1. no es una lista'))))).toBe(String.raw`1\. no es una lista`);
+    expect(writePageAsMarkdown(doc(paragraph(text(':::callout'))))).toBe(String.raw`\:::callout`);
+  });
+
+  /** Lo que la página escribe se lee de vuelta igual: un agente copia esas palabras para cambiarlas. */
+  it('writes words that read back as the same words', () => {
+    const words = 'x*y*z [a](b) `c` ~~d~~ $5 \\ <!-- e --> f_g';
+    const written = writePageAsMarkdown(doc(paragraph(text(words))));
+
+    expect(readMarkdownInline(written).getValue()).toEqual([{ text: words, type: 'text' }]);
   });
 });

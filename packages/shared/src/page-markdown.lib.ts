@@ -1,8 +1,10 @@
 import {
   MARKDOWN_BLOCK_ANCHOR_CLOSE,
+  MARKDOWN_BLOCK_ANCHOR_ID,
   MARKDOWN_BLOCK_ANCHOR_OPEN,
   MARKDOWN_BLOCK_COLOR_ATTRIBUTES,
   MARKDOWN_BLOCK_SEPARATOR,
+  MARKDOWN_DIRECTIVE_ATTRIBUTES,
   MARKDOWN_DIRECTIVE_FENCE,
   MARKDOWN_MARK_WRAPPERS,
   MARKDOWN_TAG_MARKS,
@@ -14,6 +16,14 @@ import {
   readPageDocumentText,
 } from './page-document/page-document.node.lib.js';
 import type { PageDocumentNodeShape } from './page-document/page-document.types.js';
+import {
+  buildMarkdownCodeFence,
+  escapeMarkdownDirectiveValue,
+  escapeMarkdownLineStarts,
+  escapeMarkdownLinkTarget,
+  escapeMarkdownTableCell,
+  escapeMarkdownText,
+} from './page-markdown.escape.lib.js';
 import type { PageContent, PageMark } from './schemas/page-content.schema.js';
 
 type AnyNode = PageDocumentNodeShape;
@@ -35,7 +45,7 @@ const writeBlockColors = (node: AnyNode): string =>
 
 const anchorBlock: BlockAnchor = (node, written) => {
   const blockId = readPageDocumentBlockId(node);
-  if (blockId === null || written === '') return written;
+  if (blockId === null || written === '' || !MARKDOWN_BLOCK_ANCHOR_ID.test(blockId)) return written;
   return `${MARKDOWN_BLOCK_ANCHOR_OPEN}${blockId}${writeBlockColors(node)}${MARKDOWN_BLOCK_ANCHOR_CLOSE}\n${written}`;
 };
 
@@ -61,15 +71,17 @@ const writeTagMark = (carried: string, mark: PageMark): string => {
  */
 const writeText = (node: AnyNode): string => {
   const marks = node.marks ?? [];
+  const isCode = marks.some((mark) => mark.type === 'code');
+  const words = isCode ? (node.text ?? '') : escapeMarkdownText(node.text ?? '');
   const wrapped = marks
     .filter((mark) => mark.type in MARKDOWN_MARK_WRAPPERS)
     .reduce((carried, mark) => {
       const wrapper = MARKDOWN_MARK_WRAPPERS[mark.type as keyof typeof MARKDOWN_MARK_WRAPPERS];
       return `${wrapper}${carried}${wrapper}`;
-    }, node.text ?? '');
-  const written = marks.reduce(writeTagMark, wrapped);
+    }, words);
+  const written = marks.reduce((carried, mark) => writeTagMark(carried, mark), wrapped);
   const link = marks.find((mark) => mark.type === 'link');
-  return link === undefined ? written : `[${written}](${link.attrs.href})`;
+  return link === undefined ? written : `[${written}](${escapeMarkdownLinkTarget(link.attrs.href)})`;
 };
 
 /**
@@ -80,12 +92,17 @@ const writeText = (node: AnyNode): string => {
  * are, a formula is a formula. Nothing here invents syntax, so a plain reader
  * still reads a sentence.
  */
+/** Where a mention leads: the page it names, in the space it lives in. */
+const readMentionTarget = (node: AnyNode): string =>
+  ['', 'spaces', attr(node, 'spaceId') ?? '', 'pages', attr(node, 'pageId') ?? ''].join('/');
+
 const writeInline = (node: AnyNode): string => {
   if (node.type === 'text') return writeText(node);
   if (node.type === 'hard_break') return '\n';
   if (node.type === 'mention')
-    return `[${attr(node, 'label') ?? ''}](/spaces/${attr(node, 'spaceId') ?? ''}/pages/${attr(node, 'pageId') ?? ''})`;
-  if (node.type === 'person') return `[@${attr(node, 'label') ?? ''}](person:${attr(node, 'userId') ?? ''})`;
+    return `[${escapeMarkdownText(attr(node, 'label') ?? '')}](${escapeMarkdownLinkTarget(readMentionTarget(node))})`;
+  if (node.type === 'person')
+    return `[@${escapeMarkdownText(attr(node, 'label') ?? '')}](person:${escapeMarkdownLinkTarget(attr(node, 'userId') ?? '')})`;
   if (node.type === 'date') {
     const at = attr(node, 'at') ?? '';
     return `[${at}](date:${at})`;
@@ -136,7 +153,7 @@ const writeTaskItems = (node: AnyNode, anchor: BlockAnchor): string =>
 /** Una fila de una tabla. Las celdas van sin ids, porque una línea de tabla no admite nada entre sus celdas. */
 const writeTableRow = (row: AnyNode): string =>
   `| ${childrenOf(row)
-    .map((cell) => writeBlocks(childrenOf(cell), leaveUnanchored))
+    .map((cell) => escapeMarkdownTableCell(writeBlocks(childrenOf(cell), leaveUnanchored)))
     .join(' | ')} |`;
 
 const writeTable = (node: AnyNode): string => {
@@ -149,7 +166,18 @@ const writeTable = (node: AnyNode): string => {
   return [writeTableRow(header), rule, ...body.map(writeTableRow)].join('\n');
 };
 
-/** The data a block carries, written where a reader can see it and a reader-back can find it. */
+/**
+ * Un bloque de código tal cual lo escribió quien lo escribió, sin leer formato
+ * en él, entre cercas más largas que cualquier tira de acentos que lleve.
+ */
+const writeCodeBlock = (node: AnyNode): string => {
+  const code = childrenOf(node)
+    .map((child) => child.text ?? '')
+    .join('');
+  const fence = buildMarkdownCodeFence(code);
+  return `${fence}${attr(node, 'language') ?? ''}\n${code}\n${fence}`;
+};
+
 /** Lo que dice un atributo que se puede escribir tal cual: un texto o un número, como el ancho de una columna. */
 const readWritableAttr = (node: AnyNode, name: string): string | undefined => {
   const value = node.attrs?.[name];
@@ -160,7 +188,7 @@ const writeDirectiveAttrs = (node: AnyNode, names: readonly string[]): string =>
   const written = names
     .map((name) => [name, readWritableAttr(node, name)] as const)
     .filter(([, value]) => value !== undefined && value !== '')
-    .map(([name, value]) => `${name}="${value ?? ''}"`);
+    .map(([name, value]) => `${name}="${escapeMarkdownDirectiveValue(value ?? '')}"`);
   return written.length === 0 ? '' : `{${written.join(' ')}}`;
 };
 
@@ -169,31 +197,10 @@ const writeDirective = (node: AnyNode, names: readonly string[], inside: string)
     .filter((part) => part !== '')
     .join('\n');
 
-/**
- * The attributes each kind of block is written with.
- *
- * Only what a reader-back would need to rebuild the block: an id that says
- * which page a collection draws from is worth keeping, and the width a column
- * happened to have is not.
- */
-const DIRECTIVE_ATTRS: Readonly<Record<string, readonly string[]>> = {
-  bookmark: ['url', 'title', 'description'],
-  button: ['label'],
-  callout: ['icon'],
-  collection: ['pageId', 'viewName'],
-  column: ['width'],
-  column_list: [],
-  embed: ['url'],
-  file: ['assetId', 'name'],
-  subpage: ['pageId', 'label'],
-  synced: ['pageId', 'blockId'],
-  toggle: ['summary'],
-};
-
 const writeBlock = (node: AnyNode, anchor: BlockAnchor): string => {
   switch (node.type) {
     case 'paragraph':
-      return writeInlines(childrenOf(node));
+      return escapeMarkdownLineStarts(writeInlines(childrenOf(node)));
     case 'heading':
       return `${'#'.repeat(Number(node.attrs?.level ?? 1))} ${writeInlines(childrenOf(node))}`;
     case 'blockquote':
@@ -204,10 +211,8 @@ const writeBlock = (node: AnyNode, anchor: BlockAnchor): string => {
       return writeListItems(node, (at) => `${String(at + 1)}. `, anchor);
     case 'task_list':
       return writeTaskItems(node, anchor);
-    case 'code_block': {
-      const language = attr(node, 'language') ?? '';
-      return `\`\`\`${language}\n${writeInlines(childrenOf(node))}\n\`\`\``;
-    }
+    case 'code_block':
+      return writeCodeBlock(node);
     case 'divider':
       return '---';
     case 'table':
@@ -215,11 +220,11 @@ const writeBlock = (node: AnyNode, anchor: BlockAnchor): string => {
     case 'image':
     case 'video':
     case 'audio':
-      return `![${attr(node, 'alt') ?? attr(node, 'name') ?? ''}](${attr(node, 'src') ?? attr(node, 'assetId') ?? ''})`;
+      return `![${escapeMarkdownText(attr(node, 'alt') ?? attr(node, 'name') ?? '')}](${escapeMarkdownLinkTarget(attr(node, 'src') ?? attr(node, 'assetId') ?? '')})`;
     default:
       return writeDirective(
         node,
-        DIRECTIVE_ATTRS[node.type] ?? Object.keys(node.attrs ?? {}),
+        MARKDOWN_DIRECTIVE_ATTRIBUTES[node.type] ?? Object.keys(node.attrs ?? {}),
         writeBlocks(childrenOf(node), anchor),
       );
   }

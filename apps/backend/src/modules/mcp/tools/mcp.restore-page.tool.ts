@@ -1,18 +1,40 @@
-import { randomUUID } from 'node:crypto';
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
-import { MCP_INACCESSIBLE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
-import { readMcpPageId, requireMcpSuccess } from '../lib/mcp.page-access.lib';
+import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
+import { openMcpTrashedPage, readMcpPageId, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { describeMcpManagedPage, formatMcpManagedPageText, requireMcpWholeTree } from '../lib/mcp.page-management.lib';
-import { openMcpCall, readMcpPlace, requireMcpPermissionAt, runMcpTool } from '../lib/mcp.tool.lib';
+import { readMcpActor } from '../lib/mcp.tool.lib';
 import { managedPageOutputSchema, restorePageInputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpManagedPageOutput, McpRestorePageInput } from '../types/mcp.page-management.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+const restorePage = async (
+  dependencies: McpServerDependencies,
+  input: McpRestorePageInput,
+  { call, record }: McpWriteSession,
+): Promise<McpManagedPageOutput> => {
+  const opened = await openMcpTrashedPage(
+    dependencies,
+    call,
+    readMcpPageId(input.page),
+    ACCESS_TOKEN_PERMISSIONS.pagesTrash,
+  );
+  const pageId = opened.page.id;
+  const withChildren = input.withChildren === true;
+  if (withChildren) await requireMcpWholeTree(dependencies, call, pageId, ACCESS_TOKEN_PERMISSIONS.pagesTrash);
+  const request = { blockIds: [], detail: { withChildren }, pageId, tool: MCP_TOOL_NAMES.restorePage };
+  const outcome = await record(request, async () =>
+    requireMcpSuccess(
+      await dependencies.pages.restore({ ...readMcpActor(call), includeChildren: withChildren, pageId }),
+    ),
+  );
+  return { childPages: outcome.restoredChildCount, page: describeMcpManagedPage(dependencies, call, opened) };
+};
 
 /**
  * Trae de vuelta una página de la papelera, y si se pide, las que se fueron
- * con ella. Una página que no está en la papelera de quien pide, o que el
- * token no alcanza, se contesta igual: no se dice si existe.
+ * con ella. Una página que el token no alcanza se contesta como si no
+ * existiera; una que no está en la papelera se dice tal cual.
  */
 export const restorePageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.restorePage,
@@ -21,40 +43,15 @@ export const restorePageTool: McpToolDefinition = {
       MCP_TOOL_NAMES.restorePage,
       {
         description:
-          'Bring a page back from the trash, and with withChildren the pages that went to the trash with it. Returns the page and how many pages under it came back.',
+          'Bring a page back from the trash, and with withChildren the pages that went to the trash with it. Returns the page and how many pages under it came back. list_trash shows what is there.',
         inputSchema: restorePageInputSchema,
         outputSchema: managedPageOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.restorePage,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { role, userId } = call.principal;
-            const workspaceId = call.workspace.id;
-            const pageId = readMcpPageId(input.page);
-            const trashed = await dependencies.pages.listTrashed(workspaceId, userId, role, null, null);
-            const page = trashed.find((candidate) => candidate.id === pageId);
-            if (page === undefined) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
-            const place = await readMcpPlace(dependencies, page.id, workspaceId);
-            requireMcpPermissionAt(call.principal, place, ACCESS_TOKEN_PERMISSIONS.pagesTrash);
-            const withChildren = input.withChildren === true;
-            if (withChildren)
-              await requireMcpWholeTree(dependencies, call, page.id, ACCESS_TOKEN_PERMISSIONS.pagesTrash);
-            const request = {
-              blockIds: [],
-              detail: { withChildren },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.restorePage,
-            };
-            const outcome = await recordMcpWrite(dependencies, call, request, async () =>
-              requireMcpSuccess(
-                await dependencies.pages.restore(page.id, userId, workspaceId, randomUUID(), role, withChildren),
-              ),
-            );
-            return { childPages: outcome.restoredChildCount, page: describeMcpManagedPage(dependencies, page) };
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.restorePage },
+          (session) => restorePage(dependencies, input, session),
           formatMcpManagedPageText,
         ),
     );

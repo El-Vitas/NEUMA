@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
 import { Result, USER_ROLE } from '@company-brain/shared';
-import { SCHEMA_OPTION_ALREADY_MOVED } from '@/modules/pages/constants/pages.constants';
+import {
+  COLLECTION_QUERY_ROW_LIMIT,
+  COLLECTION_ROW_LIMIT,
+  SCHEMA_OPTION_ALREADY_MOVED,
+} from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import type { PageRepositoryContract, PageSummary } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
@@ -45,6 +49,7 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   deleteForever: () => Promise.resolve('DELETED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
+  findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () => Promise.resolve(null),
@@ -59,9 +64,9 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   trashCascade: () => Promise.resolve(true),
   findStoredContent: () => Promise.resolve(null),
   storeContent: () => Promise.resolve('UNCHANGED'),
-  updatePropertyValues: async (_input, merge) => {
-    const merged = await merge(null);
-    return merged.isOk() ? Result.ok(page) : Result.fail(merged.getError());
+  updatePropertyValues: (_input, merge) => {
+    const merged = merge(null);
+    return Promise.resolve(merged.isOk() ? Result.ok(page) : Result.fail(merged.getError()));
   },
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
@@ -76,9 +81,10 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
 const createSchemaRepository = (
   overrides: Partial<PageSchemaRepositoryContract> = {},
 ): PageSchemaRepositoryContract => ({
-  defineSchema: (pageId, properties, views) => Promise.resolve({ pageId, properties, views }),
+  defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
   rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
+  listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([titleProperty]),
   setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
   listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
@@ -127,9 +133,9 @@ describe('page schema service — defineSchema', () => {
     const service = new PageSchemaService(
       createPageRepository(),
       createSchemaRepository({
-        defineSchema: (pageId, properties, views) => {
+        defineSchema: (pageId, shape) => {
           defineCalls += 1;
-          return Promise.resolve({ pageId, properties, views });
+          return Promise.resolve({ pageId, ...shape });
         },
       }),
     );
@@ -563,6 +569,20 @@ describe('page schema service — queryRows', () => {
     expect(result.isOk()).toBe(true);
     expect(result.getValue().rows.map((row) => row.id)).toEqual(['a', 'c']);
     expect(result.getValue().rows[0]).toEqual(rowOf('a', 'todo', 0));
+  });
+
+  /** Un filtro aplicado a las primeras quinientas callaría las que cumplen más abajo: la consulta lee mucho más. */
+  it('looks through far more rows than a listing does before filtering them', async () => {
+    const asked: number[] = [];
+    await queryWith({
+      listRows: (_pageId, _workspaceId, _userId, _role, limit) => {
+        asked.push(limit);
+        return Promise.resolve({ hasMore: false, rows });
+      },
+    }).queryRows({ ...reader, configuration: null, pageId: 'page-a', viewName: 'Pendientes' });
+
+    expect(asked).toEqual([COLLECTION_QUERY_ROW_LIMIT]);
+    expect(COLLECTION_QUERY_ROW_LIMIT).toBeGreaterThan(COLLECTION_ROW_LIMIT);
   });
 
   it('reads the rows with a filter of its own, not the one of any view', async () => {

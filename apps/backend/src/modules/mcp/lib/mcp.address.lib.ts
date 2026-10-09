@@ -33,3 +33,6 @@ export const buildMcpPageUrl = (portalUrl: string, spaceId: string, pageId: stri
   if (blockId !== null) url.hash = blockId;
   return url.toString();
 };
+
+/** Desde qué posición sigue una lista que llega de a tramos: el principio, si el agente no trajo cursor. */
+export const readMcpOffset = (cursor: string | undefined): number => (cursor === undefined ? 0 : Number(cursor));

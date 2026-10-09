@@ -1,4 +1,3 @@
-import { DatabasePropertyType } from '@company-brain/db';
 import type { PagePropertyContext } from '@company-brain/shared';
 import {
   isTitlePageProperty,
@@ -96,17 +95,6 @@ export const validateSchemaProperties = (
   return titleProperties.length === 1
     ? Result.ok(properties)
     : Result.fail(new SchemaPropertyDefinitionError('Exactly one TITLE property is required'));
-};
-
-export const validateSchemaProperty = (
-  property: SchemaPropertyDefinition,
-): Result<SchemaPropertyDefinition, SchemaPropertyDefinitionError> => {
-  const result = validateSchemaProperties(
-    isTitlePageProperty(property.type)
-      ? [property]
-      : [{ key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null }, property],
-  );
-  return result.isFail() ? Result.fail(result.getError()) : Result.ok(property);
 };
 
 const findMissingRequiredProperty = (

@@ -91,6 +91,30 @@ rules:
         given: Alguien sin permiso de escribir la página
         when: Abre la colección
         then: No se le dibuja la manera de entrar a la configuración
+  - id: BR-3c85c11
+    status: active
+    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    rule: >-
+      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Una consulta con filtro u orden recorre
+      la colección hasta un tope mucho mayor antes de filtrar, para no dejar fuera filas que cumplen y están más abajo.
+      Cuando la colección tenía más de las que se recorrieron, la respuesta lo declara y quien la lee ve que puede haber
+      más. Una colección cortada nunca se presenta como si fuera entera.
+    why: >-
+      Una colección que creció sola costaría al abrirse en proporción a todo lo que guardó. Pero callar el corte es peor
+      que el corte, y filtrar sobre una colección ya cortada es callarlo dos veces: la respuesta dice que nada cumple
+      cuando lo que cumple quedó afuera.
+    context: >-
+      Hoy se traen 500 filas al abrir una colección o una vista, y una consulta recorre hasta 5000 antes de filtrar y
+      ordenar. El agente recibe la misma advertencia que la pantalla.
+    supersedes: BR-e248700
+    superseded_reason: >-
+      Una consulta con filtro u orden cortaba la colección antes de filtrar, y callaba las filas que cumplían más abajo.
+      Ahora recorre mucho más antes de cortar.
+    scenarios:
+      - title: La tarea que cumple está más abajo
+        given: Una colección de 800 tareas donde solo la fila 700 está bloqueada
+        when: Un agente consulta las tareas bloqueadas
+        then: Recibe la fila 700
   - id: BR-4fef023
     status: active
     title: Una colección se mira de varias formas, y cada una recuerda la suya
@@ -181,27 +205,20 @@ rules:
         given: Alguien sin permiso de escribir la página
         when: Intenta mover una tarjeta
         then: Las tarjetas no se pueden arrastrar, y el servidor rechaza el intento hecho por fuera
-  - id: BR-e248700
+  - id: BR-f6f03fe
     status: active
-    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    title: Un cambio de columnas no pisa el que otro hizo mientras tanto
     rule: >-
-      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Cuando la colección tenía más de las que
-      caben, la respuesta lo declara y la pantalla lo dice junto a las filas, indicando cuántas se están viendo y que
-      hay que filtrar o buscar para llegar al resto. Una colección cortada nunca se presenta como si fuera entera.
-    why: >-
-      Una colección que creció sola —una bandeja de entrada, un registro de incidencias— costaría al abrirse en
-      proporción a todo lo que guardó, y quien la abre espera por filas que no va a mirar. Pero callar el corte es peor
-      que el corte: quinientas de mil sin avisar se leen como las mil, y entonces se decide sobre filas que nadie sabe
-      que faltan.
+      Quien cambia las columnas de una colección lo hace sobre la forma que leyó. Si al guardar la forma ya no es esa,
+      porque otra persona o un agente la cambió entre medio, el cambio se rechaza entero y se avisa que la colección
+      cambió, para que se vuelva a mirar antes de intentarlo de nuevo.
+    why: Guardar sobre una forma vieja borraría en silencio la columna o la opción que el otro acababa de agregar.
+    context: Vale igual para el portal y para los agentes. Lo que ya se había hecho antes del rechazo se informa como hecho.
     scenarios:
-      - title: Una colección que cabe
-        given: Una colección con menos filas que el tope
-        when: Se abre
-        then: Se ven todas y no se dice nada de ningún corte
-      - title: Una colección que no cabe
-        given: Una colección con más filas que el tope
-        when: Se abre
-        then: Se ven las primeras hasta el tope y se avisa que hay más
+      - title: Dos cambios a la vez
+        given: Un agente leyó las columnas de una colección
+        when: Una persona agrega una columna y después el agente guarda su cambio
+        then: El cambio del agente se rechaza diciendo que la colección cambió, y la columna nueva sigue ahí
   - id: BR-f707396
     status: active
     title: Un filtro se arma con grupos, y cada grupo dice si pide todo o cualquiera
@@ -244,3 +261,28 @@ rules:
         given: Una petición con más propiedades que el tope, armada fuera del portal
         when: Se manda
         then: Se rechaza por inválida y la colección se queda como estaba
+  - id: BR-e248700
+    status: superseded
+    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    rule: >-
+      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Cuando la colección tenía más de las que
+      caben, la respuesta lo declara y la pantalla lo dice junto a las filas, indicando cuántas se están viendo y que
+      hay que filtrar o buscar para llegar al resto. Una colección cortada nunca se presenta como si fuera entera.
+    why: >-
+      Una colección que creció sola —una bandeja de entrada, un registro de incidencias— costaría al abrirse en
+      proporción a todo lo que guardó, y quien la abre espera por filas que no va a mirar. Pero callar el corte es peor
+      que el corte: quinientas de mil sin avisar se leen como las mil, y entonces se decide sobre filas que nadie sabe
+      que faltan.
+    superseded_by: BR-3c85c11
+    superseded_reason: >-
+      Una consulta con filtro u orden cortaba la colección antes de filtrar, y callaba las filas que cumplían más abajo.
+      Ahora recorre mucho más antes de cortar.
+    scenarios:
+      - title: Una colección que cabe
+        given: Una colección con menos filas que el tope
+        when: Se abre
+        then: Se ven todas y no se dice nada de ningún corte
+      - title: Una colección que no cabe
+        given: Una colección con más filas que el tope
+        when: Se abre
+        then: Se ven las primeras hasta el tope y se avisa que hay más

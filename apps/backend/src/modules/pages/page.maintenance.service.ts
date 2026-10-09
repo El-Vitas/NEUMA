@@ -7,11 +7,12 @@ import {
   PAGE_MAINTENANCE_BATCH_SIZE,
   PAGE_MAINTENANCE_REPOSITORY,
 } from './constants/pages.constants';
-import { PageMaintenanceAdminOnlyError } from './domain/page.error';
+import { PageMaintenanceAdminOnlyError, PageMaintenanceAlreadyRunningError } from './domain/page.error';
 import { PagesService } from './pages.service';
 import type { PageLiveDocument } from './types/page.types';
 import type {
   PageBlocksFillOutcome,
+  PageCollaborativeContentStore,
   PageFillStep,
   PageMaintenanceRepositoryContract,
   PageMaintenanceRow,
@@ -36,8 +37,14 @@ const addOutcomes = (left: PageBlocksFillOutcome, right: PageBlocksFillOutcome):
  */
 @Injectable()
 export class PageMaintenanceService {
+  /**
+   * Los espacios de trabajo con una corrida en curso. Vive en el proceso porque
+   * el backend es uno solo: los documentos en vivo ya están en su memoria.
+   */
+  private readonly runningWorkspaceIds = new Set<string>();
+
   constructor(
-    private readonly pagesService: PagesService,
+    @Inject(PagesService) private readonly pagesService: PageCollaborativeContentStore,
     @Inject(PAGE_MAINTENANCE_REPOSITORY) private readonly maintenanceRepository: PageMaintenanceRepositoryContract,
     @Inject(PAGE_LIVE_DOCUMENT) private readonly liveDocument: PageLiveDocument,
   ) {}
@@ -55,8 +62,18 @@ export class PageMaintenanceService {
    */
   async fillPageBlocks(
     viewer: PageMaintenanceViewer,
-  ): Promise<Result<PageBlocksFillOutcome, PageMaintenanceAdminOnlyError>> {
+  ): Promise<Result<PageBlocksFillOutcome, PageMaintenanceAdminOnlyError | PageMaintenanceAlreadyRunningError>> {
     if (!canManageWorkspace(viewer.role)) return Result.fail(new PageMaintenanceAdminOnlyError());
+    if (this.runningWorkspaceIds.has(viewer.workspaceId)) return Result.fail(new PageMaintenanceAlreadyRunningError());
+    this.runningWorkspaceIds.add(viewer.workspaceId);
+    try {
+      return Result.ok(await this.fillWorkspace(viewer));
+    } finally {
+      this.runningWorkspaceIds.delete(viewer.workspaceId);
+    }
+  }
+
+  private async fillWorkspace(viewer: PageMaintenanceViewer): Promise<PageBlocksFillOutcome> {
     const runId = randomUUID();
     let outcome: PageBlocksFillOutcome = { pagesGivenIds: 0, pagesReindexed: 0, unreadablePages: 0 };
     let afterPageId: string | null = null;
@@ -66,7 +83,7 @@ export class PageMaintenanceService {
         afterPageId,
         PAGE_MAINTENANCE_BATCH_SIZE,
       );
-      if (batch.length === 0) return Result.ok(outcome);
+      if (batch.length === 0) return outcome;
       outcome = addOutcomes(outcome, await this.fillBatch(batch, viewer, runId));
       afterPageId = batch.at(-1)?.id ?? null;
     }

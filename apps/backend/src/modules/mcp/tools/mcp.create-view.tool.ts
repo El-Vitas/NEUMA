@@ -1,17 +1,21 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
-import { describeMcpCollection, formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
-import { openMcpCollection, saveMcpCollectionShape } from '../lib/mcp.collections.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
+import { formatMcpCollectionText } from '../lib/mcp.collection-output.lib';
+import {
+  describeMcpCollectionAsSeen,
+  openMcpCollectionWithPeople,
+  readMcpColumnsInHand,
+  saveMcpCollectionShape,
+} from '../lib/mcp.collections.lib';
 import { requireMcpInput } from '../lib/mcp.page-access.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { addMcpView } from '../lib/mcp.views.lib';
 import { collectionOutputSchema, createViewInputSchema } from '../schemas/mcp.collections.schemas';
-import type { McpCreateViewInput, McpOpenCollection } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type { McpCollectionOutput, McpCreateViewInput, McpOpenCollection } from '../types/mcp.collections.types';
+import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-const createView = (
+const addView = (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
@@ -19,10 +23,31 @@ const createView = (
   input: McpCreateViewInput,
 ): Promise<McpOpenCollection> => {
   const { properties, views } = collection.shape;
-  const configuration = requireMcpInput(buildMcpViewConfiguration(properties, input, people, {}));
+  const configuration = requireMcpInput(buildMcpViewConfiguration(readMcpColumnsInHand(collection), input, people, {}));
   const view = { configuration, isDefault: false, name: input.name, type: input.type };
   const withView = requireMcpInput(addMcpView(views, view, input.makeDefault === true));
   return saveMcpCollectionShape(dependencies, call, collection, { properties, views: withView });
+};
+
+const createView = async (
+  dependencies: McpServerDependencies,
+  input: McpCreateViewInput,
+  { call, record }: McpWriteSession,
+): Promise<McpCollectionOutput> => {
+  const [collection, people] = await openMcpCollectionWithPeople(
+    dependencies,
+    call,
+    input.collection,
+    ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
+  );
+  const request = {
+    blockIds: [],
+    detail: { type: input.type, view: input.name },
+    pageId: collection.id,
+    tool: MCP_TOOL_NAMES.createView,
+  };
+  const saved = await record(request, () => addView(dependencies, call, collection, people, input));
+  return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
 /**
@@ -41,26 +66,10 @@ export const createViewTool: McpToolDefinition = {
         outputSchema: collectionOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.createView,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const [collection, people] = await Promise.all([
-              openMcpCollection(dependencies, call, input.collection, ACCESS_TOKEN_PERMISSIONS.collectionsConfigure),
-              dependencies.people.listAssignableMembers(call.workspace.id),
-            ]);
-            const request = {
-              blockIds: [],
-              detail: { type: input.type, view: input.name },
-              pageId: collection.id,
-              tool: MCP_TOOL_NAMES.createView,
-            };
-            const saved = await recordMcpWrite(dependencies, call, request, () =>
-              createView(dependencies, call, collection, people, input),
-            );
-            return describeMcpCollection(dependencies.portalUrl, saved);
-          },
+          { requestId: input.requestId, target: input.collection, tool: MCP_TOOL_NAMES.createView },
+          (session) => createView(dependencies, input, session),
           (output) => `View created.\n${formatMcpCollectionText(output)}`,
         ),
     );

@@ -1,6 +1,9 @@
 import {
   isAllowedPageEmbedUrl,
+  isOneOf,
   isPageCalendarDay,
+  isPageLinkTarget,
+  isPageWebAddress,
   PAGE_BLOCK_ALIGNMENTS,
   PAGE_BLOCK_COLORS,
   PAGE_BUTTON_DEEDS,
@@ -23,6 +26,7 @@ import {
   PAGE_EDITOR_BLOCK_CHILDREN_CLASS,
   PAGE_EDITOR_BLOCK_ID_ATTRIBUTE,
   PAGE_EDITOR_CALLOUT_CLASS,
+  PAGE_EDITOR_CARD_PARSE_PRIORITY,
   PAGE_EDITOR_COLUMN_CLASS,
   PAGE_EDITOR_COLUMN_LIST_CLASS,
   PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
@@ -37,7 +41,7 @@ import {
   PAGE_EDITOR_UNSUPPORTED_TYPE,
 } from '../blocks/constants/pages.editor.blocks.constants';
 import { definePageBlock } from '../blocks/lib/pages.editor.block-spec.lib';
-import { PAGE_EDITOR_LINK_PROTOCOLS } from '../text/constants/pages.editor.link.constants';
+import type { PageEditorReadAttrs } from '../types/pages.editor.schema.types';
 
 const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | null> | false => {
   const assetId = element.dataset.assetId;
@@ -50,7 +54,7 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
 };
 
 /** What a page says about the file it holds: what kind it is, how heavy, and how it is shown. */
-const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+const getPageEditorFileAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const asset = getPageEditorFramedAssetAttrs(element);
   if (asset === false) return false;
   const size = Number.parseInt(element.dataset.size ?? '', 10);
@@ -64,7 +68,7 @@ const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | n
 };
 
 /** How something that hangs on the page was left standing: where in the column, and how wide. */
-const getPageEditorFramedAssetAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+const getPageEditorFramedAssetAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const asset = getPageEditorAssetAttrs(element);
   if (asset === false) return false;
   const align = element.dataset.align;
@@ -79,16 +83,17 @@ const getPageEditorFramedAssetAttrs = (element: HTMLElement): Record<string, str
 /** What a page kept about a link it holds as a card. */
 const getPageEditorBookmarkAttrs = (element: HTMLElement): Record<string, string | null> | false => {
   const url = element.getAttribute('href') ?? element.dataset.url;
-  if (url === undefined || url === null || url.length === 0) return false;
+  if (!isPageWebAddress(url)) return false;
+  const icon = element.dataset.icon;
   return {
     description: element.dataset.description ?? null,
-    icon: element.dataset.icon ?? null,
+    icon: isPageWebAddress(icon) ? icon : null,
     title: element.dataset.title ?? null,
     url,
   };
 };
 
-const getPageEditorEmbedAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+const getPageEditorEmbedAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const { pageEmbed, url } = element.dataset;
   const knownProvider = PAGE_EMBED_PROVIDERS.find((entry) => entry === pageEmbed);
   if (knownProvider === undefined || url === undefined || !isAllowedPageEmbedUrl(knownProvider, url)) return false;
@@ -120,7 +125,7 @@ const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | n
   const { frameHeight, language, shown, wrapped } = element.dataset;
   return {
     frameHeight: readPageEditorFrameHeight(frameHeight),
-    language: language !== undefined && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
+    language: language !== undefined && isOneOf(PAGE_CODE_LANGUAGES, language) ? language : null,
     shown: PAGE_DIAGRAM_VIEWS.find((known) => known === shown) ?? null,
     wrapped: wrapped === 'true',
   };
@@ -150,7 +155,7 @@ const readTableCellDomAttrs = (node: EditorNode): Record<string, string> => ({
 });
 
 /** A mark that is not one of the few on offer is no mark at all. */
-const isPageCalloutIcon = (value: string): boolean => PAGE_CALLOUT_ICONS.some((icon) => icon === value);
+const isPageCalloutIcon = (value: string): boolean => isOneOf(PAGE_CALLOUT_ICONS, value);
 
 const getPageEditorCalloutAttrs = (element: HTMLElement): { readonly icon: string | null } => {
   const icon = element.dataset.icon;
@@ -457,13 +462,19 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     definePageBlock({
       ...PAGE_DOCUMENT_NODES.bookmark,
       atom: true,
-      parseDOM: [{ getAttrs: getPageEditorBookmarkAttrs, tag: 'a[data-page-bookmark]' }],
+      parseDOM: [
+        {
+          getAttrs: getPageEditorBookmarkAttrs,
+          priority: PAGE_EDITOR_CARD_PARSE_PRIORITY,
+          tag: 'a[data-page-bookmark]',
+        },
+      ],
       render: (node, blockAttributes) => [
         'a',
         {
           ...blockAttributes,
           'data-page-bookmark': 'true',
-          href: node.attrs.url,
+          ...(isPageWebAddress(node.attrs.url) ? { href: node.attrs.url } : {}),
           rel: 'noopener noreferrer',
           ...(typeof node.attrs.title === 'string' ? { 'data-title': node.attrs.title } : {}),
           ...(typeof node.attrs.description === 'string' ? { 'data-description': node.attrs.description } : {}),
@@ -801,27 +812,19 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
 const pageEditorNodes: Readonly<Record<string, NodeSpec>> = Object.fromEntries(pageEditorNodeEntries);
 
 /**
- * Whether a destination is one a link may point at.
- *
- * A page is written by several people at once and travels between them without
- * passing through the stored schema on the way, so the answer has to be given
- * again wherever a destination is written and wherever one is drawn.
+ * A link read from pasted writing. A page is written by several people at once
+ * and travels between them without passing through the stored schema on the
+ * way, so whether a destination may be followed is asked again wherever one is
+ * written and wherever one is drawn.
  */
-export const isPageEditorLinkTarget = (href: string): boolean => {
-  const trimmed = href.trim();
-  if (trimmed.startsWith('/')) return true;
-  if (!URL.canParse(trimmed)) return false;
-  return PAGE_EDITOR_LINK_PROTOCOLS.has(new URL(trimmed).protocol);
-};
-
 const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | false => {
   const href = element.getAttribute('href');
-  return href === null || !isPageEditorLinkTarget(href) ? false : { href };
+  return href === null || !isPageLinkTarget(href) ? false : { href };
 };
 
 /** A destination nobody may follow is drawn as text, so the writing survives and the link does not. */
 const drawPageEditorLink = (href: unknown): DOMOutputSpec =>
-  typeof href === 'string' && isPageEditorLinkTarget(href) ? ['a', { href }, 0] : ['span', 0];
+  typeof href === 'string' && isPageLinkTarget(href) ? ['a', { href }, 0] : ['span', 0];
 
 const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | false => {
   const id = element.getAttribute(PAGE_EDITOR_COMMENT_ID_ATTRIBUTE);

@@ -59,8 +59,11 @@ export const createPageDiagramZoomControls = (
       level.addEventListener('click', handling.showActualSize);
     },
     controls,
+    /** The name starts with what the button shows, so whoever asks for it by voice finds it by its words. */
     showZoom: (zoom) => {
-      level.textContent = `${String(Math.round(zoom * DIAGRAM_ZOOM_PERCENT))} %`;
+      const shown = `${String(Math.round(zoom * DIAGRAM_ZOOM_PERCENT))} %`;
+      level.textContent = shown;
+      level.setAttribute('aria-label', `${shown}, ${labels.actualSize}`);
     },
   };
 };

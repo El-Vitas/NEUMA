@@ -2,9 +2,11 @@ import {
   isPageDocumentNode,
   listPageDocumentChildren,
   type PageDocumentNodeShape,
+  type PageMark,
   Result,
   readPageDocumentBlockId,
   readPageDocumentText,
+  readPageLinkAddress,
 } from '@company-brain/shared';
 import {
   MCP_BLOCK_REFERENCE_TYPES,
@@ -20,11 +22,20 @@ const pointsAtAPage = (node: PageDocumentNodeShape): boolean =>
   (MCP_INLINE_REFERENCE_TYPES.includes(node.type) || MCP_BLOCK_REFERENCE_TYPES.includes(node.type)) &&
   readPageDocumentText(node, 'pageId') !== undefined;
 
+/** La página a la que lleva una marca de enlace, si lleva a una de Company Brain. */
+const readLinkedPageId = (mark: PageMark): string | null => {
+  const href = mark.type === 'link' ? mark.attrs.href : undefined;
+  return typeof href === 'string' ? (readPageLinkAddress(href)?.pageId ?? null) : null;
+};
+
+const listLinkedPageIds = (node: PageDocumentNodeShape): readonly string[] =>
+  (node.marks ?? []).map(readLinkedPageId).filter((pageId) => pageId !== null);
+
 const collectReferencedPageIds = (nodes: readonly unknown[]): readonly string[] =>
   nodes.filter(isPageDocumentNode).flatMap((node) => {
     const pageId = pointsAtAPage(node) ? readPageDocumentText(node, 'pageId') : undefined;
     const inside = collectReferencedPageIds(listPageDocumentChildren(node));
-    return pageId === undefined ? inside : [pageId, ...inside];
+    return [...(pageId === undefined ? [] : [pageId]), ...listLinkedPageIds(node), ...inside];
   });
 
 /** Las páginas a las que apunta un contenido, una vez cada una, en el orden en que aparecen. */
@@ -64,11 +75,27 @@ const rewriteReference = (node: PageDocumentNodeShape, reachable: ReadonlyMap<st
   return MCP_INLINE_REFERENCE_TYPES.includes(node.type) ? MCP_REDACTED_REFERENCE_WORD : redactedBlock(node);
 };
 
+/** Un texto con un enlace a una página que no se puede ver conserva sus palabras, pero no adónde llevaba. */
+const dropUnreachableLinks = (
+  node: PageDocumentNodeShape,
+  reachable: ReadonlyMap<string, McpPagePlace>,
+): PageDocumentNodeShape => {
+  const marks = node.marks ?? [];
+  const kept = marks.filter((mark) => {
+    const pageId = readLinkedPageId(mark);
+    return pageId === null || reachable.has(pageId);
+  });
+  if (kept.length === marks.length) return node;
+  const { marks: _marks, ...rest } = node;
+  return kept.length === 0 ? rest : { ...rest, marks: kept };
+};
+
 const hideNode = (node: unknown, reachable: ReadonlyMap<string, McpPagePlace>): unknown => {
   if (!isPageDocumentNode(node)) return node;
   if (pointsAtAPage(node)) return rewriteReference(node, reachable);
-  if (node.content === undefined) return node;
-  return { ...node, content: hideUnreachableReferences(node.content, reachable) };
+  const withoutLinks = dropUnreachableLinks(node, reachable);
+  if (withoutLinks.content === undefined) return withoutLinks;
+  return { ...withoutLinks, content: hideUnreachableReferences(withoutLinks.content, reachable) };
 };
 
 /**

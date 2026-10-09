@@ -9,7 +9,6 @@ import {
 import { z } from 'zod';
 import {
   MCP_ADDRESS_MAX_LENGTH,
-  MCP_BLOCK_ID_MAX_LENGTH,
   MCP_BLOCK_TEXT_MAX_LENGTH,
   MCP_BLOCKS_PER_WRITE,
   MCP_BOOKMARK_TEXT_MAX_LENGTH,
@@ -17,13 +16,16 @@ import {
   MCP_FORMULA_MAX_LENGTH,
   MCP_ICON_SEARCH_DEFAULT,
   MCP_ICON_SEARCH_MAX,
+  MCP_ID_MAX_LENGTH,
   MCP_LIST_ITEMS_PER_BLOCK,
   MCP_PAGE_ICON_MAX_LENGTH,
   MCP_TABLE_COLUMNS_MAX,
   MCP_TABLE_ROWS_MAX,
   MCP_TITLE_MAX_LENGTH,
+  MCP_TOGGLE_SUMMARY_MAX_LENGTH,
   MCP_TRASH_LISTED_MAX,
 } from '../constants/mcp.limits.constants';
+import { buildMcpAddressSchema, mcpIdSchema, mcpRequestIdShape } from './mcp.common.schemas';
 
 /** El texto de un bloque, con las marcas en línea escritas como las devuelve fetch. */
 const inlineTextSchema = z
@@ -33,12 +35,9 @@ const inlineTextSchema = z
     'Words, with inline Markdown as fetch returns it: **bold**, *italic*, `code`, ~~strike~~, <u>underlined</u>, <span color="red">coloured words</span>, <mark color="yellow">highlighted words</mark>, [label](https://…), a mention as [Page title](page link), a person as [@Name](person:<user id>), a date as [label](date:YYYY-MM-DD), a formula as $LaTeX$. Colours: gray, brown, orange, yellow, green, blue, purple, red. A line break stays inside the block.',
   );
 
-const pageAddressSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(MCP_ADDRESS_MAX_LENGTH)
-  .describe('The page: a Company Brain link to it, or its page id.');
+const pageAddressSchema = buildMcpAddressSchema('The page: a Company Brain link to it, or its page id.');
+
+const toggleSummarySchema = z.string().trim().min(1).max(MCP_TOGGLE_SUMMARY_MAX_LENGTH);
 
 const drawnViewSchema = z
   .enum(PAGE_DIAGRAM_VIEWS)
@@ -61,7 +60,7 @@ const blockIdSchema = z
   .string()
   .trim()
   .min(1)
-  .max(MCP_BLOCK_ID_MAX_LENGTH)
+  .max(MCP_ID_MAX_LENGTH)
   .describe('A block id, as fetch shows it before each block.');
 
 /** Cada clase de bloque que el agente puede escribir, salvo las columnas, que llevan bloques dentro. */
@@ -95,7 +94,7 @@ const blockVariants = [
       view: drawnViewSchema,
     })
     .describe(
-      'A diagram drawn from Mermaid 11 source, any kind it draws: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, journey, gantt, pie, quadrantChart, requirementDiagram, gitGraph, C4Context, mindmap, timeline, sankey-beta, xychart-beta, block-beta, packet-beta, kanban, architecture-beta, radar-beta, and zenuml. Company Brain draws real product logos and icons: when a diagram shows products, services or systems (Postgres, AWS, a server, a user), draw each with its logo or icon, found with search_diagram_icons, in an architecture-beta service or a flowchart icon node; an emoji is not an icon. C4 views (C4Context, C4Container, C4Component) are written as calls, one per line, never with flowchart arrows: Person(user, "Label", "What they do"), Container(api, "Label", "Technology", "What it does"), ContainerDb(db, "Label", "Technology", "What it keeps"), System_Ext(maps, "Label", "What it is"), System_Boundary(app, "Label") { … }, Rel(user, api, "What it does", "Protocol"). For a crowded graph, start with ---\\nconfig:\\n  layout: elk\\n--- to lay it out better. Data lines of sankey-beta and similar CSV-like diagrams must not be indented.',
+      String.raw`A diagram drawn from Mermaid 11 source, any kind it draws: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, journey, gantt, pie, quadrantChart, requirementDiagram, gitGraph, C4Context, mindmap, timeline, sankey-beta, xychart-beta, block-beta, packet-beta, kanban, architecture-beta, radar-beta, and zenuml. Company Brain draws real product logos and icons: when a diagram shows products, services or systems (Postgres, AWS, a server, a user), draw each with its logo or icon, found with search_diagram_icons, in an architecture-beta service or a flowchart icon node; an emoji is not an icon. C4 views (C4Context, C4Container, C4Component) are written as calls, one per line, never with flowchart arrows: Person(user, "Label", "What they do"), Container(api, "Label", "Technology", "What it does"), ContainerDb(db, "Label", "Technology", "What it keeps"), System_Ext(maps, "Label", "What it is"), System_Boundary(app, "Label") { ... }, Rel(user, api, "What it does", "Protocol"). For a crowded graph, start with ---\nconfig:\n  layout: elk\n--- to lay it out better. Data lines of sankey-beta and similar CSV-like diagrams must not be indented.`,
     ),
   z
     .object({ latex: z.string().min(1).max(MCP_FORMULA_MAX_LENGTH), type: z.literal('formula'), view: drawnViewSchema })
@@ -138,7 +137,7 @@ const blockVariants = [
     })
     .describe('A real table, with a header row and rows of cells. Never draw a table with | or spaces.'),
   z.object({
-    summary: z.string().trim().min(1).max(500),
+    summary: toggleSummarySchema,
     text: inlineTextSchema.optional().describe('What opens under it.'),
     type: z.literal('toggle'),
   }),
@@ -209,9 +208,15 @@ export const createPageInputSchema = z.object({
   parent: pageAddressSchema.optional().describe('Create it under this page.'),
   space: z.uuid().optional().describe('Create it at the top of this space.'),
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH),
+  ...mcpRequestIdShape,
 });
 
-export const insertBlocksInputSchema = z.object({ blocks: blocksSchema, page: pageAddressSchema, ...placeShape });
+export const insertBlocksInputSchema = z.object({
+  blocks: blocksSchema,
+  page: pageAddressSchema,
+  ...placeShape,
+  ...mcpRequestIdShape,
+});
 
 const blockColorSchema = z.enum(PAGE_BLOCK_COLORS).nullable().optional();
 
@@ -220,8 +225,15 @@ export const updateBlockInputSchema = z.object({
   block: blockIdSchema,
   checked: z.boolean().optional().describe('Check or uncheck a checklist item.'),
   page: pageAddressSchema,
-  replacement: blockInputSchema.optional().describe('A whole new block in its place; it keeps the id.'),
-  text: inlineTextSchema.optional().describe('New words for the block, keeping what kind of block it is.'),
+  replacement: blockInputSchema
+    .optional()
+    .describe('A whole new block in its place; it keeps the id, its comments and its colours.'),
+  summary: toggleSummarySchema.optional().describe('New title for a toggle.'),
+  text: inlineTextSchema
+    .optional()
+    .describe(
+      'New words for the block, keeping what kind of block it is. In a toggle, a callout or a quote they are what it holds, split in paragraphs on blank lines.',
+    ),
   textColor: blockColorSchema.describe('Paint all the words of the block; null takes the colour off.'),
 });
 
@@ -275,6 +287,7 @@ export const duplicatePageInputSchema = z.object({
   page: pageAddressSchema,
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH).optional().describe('The title of the copy.'),
   withChildren: z.boolean().optional().describe('Copy the pages under it too.'),
+  ...mcpRequestIdShape,
 });
 
 export const trashPageInputSchema = z.object({ page: pageAddressSchema });
@@ -301,9 +314,9 @@ export const listTrashOutputSchema = z.object({
     .array(
       z.object({
         deletedAt: z.iso.datetime(),
-        deletedBy: z.object({ id: z.string().max(128), name: z.string().max(MCP_TITLE_MAX_LENGTH) }).nullable(),
-        id: z.string().max(128),
-        spaceId: z.string().max(128),
+        deletedBy: z.object({ id: mcpIdSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) }).nullable(),
+        id: mcpIdSchema,
+        spaceId: mcpIdSchema,
         title: z.string().max(MCP_TITLE_MAX_LENGTH),
         trashedChildCount: z.number().int().nonnegative(),
         url: z.url(),
@@ -366,11 +379,12 @@ export const commentOnBlockInputSchema = z.object({
       'Words of the block the comment is about, as plain text without Markdown signs; they get marked. Leave it out to comment on the whole block.',
     ),
   text: z.string().trim().min(1).max(PAGE_BLOCK_COMMENT_BODY_MOST).describe('What the comment says, as plain words.'),
+  ...mcpRequestIdShape,
 });
 
 export const deleteCommentInputSchema = z.object({
   block: blockIdSchema,
-  comment: z.string().trim().min(1).max(MCP_BLOCK_ID_MAX_LENGTH).describe('The comment id, as fetch lists it.'),
+  comment: z.string().trim().min(1).max(MCP_ID_MAX_LENGTH).describe('The comment id, as fetch lists it.'),
   page: pageAddressSchema,
 });
 

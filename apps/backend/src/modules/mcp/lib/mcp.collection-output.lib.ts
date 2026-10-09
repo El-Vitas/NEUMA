@@ -1,5 +1,5 @@
 import { type PageFilter, readPageViewConfiguration } from '@company-brain/shared';
-import { MCP_VALUELESS_FILTER_OPERATORS } from '../constants/mcp.constants';
+import { MCP_CONFIGURED_UNREADABLE_NOTE, MCP_VALUELESS_FILTER_OPERATORS } from '../constants/mcp.constants';
 import type {
   McpCollectionOutput,
   McpColumn,
@@ -82,17 +82,28 @@ const formatViewLine = (view: McpCollectionOutput['views'][number]): string => {
     ...(view.filter === null ? [] : [`where ${view.filter}`]),
   ];
   const kind = view.isDefault ? `${view.type}, default` : view.type;
-  return `- ${view.name} (${kind})${traits.length === 0 ? '' : `: ${traits.join('; ')}`}`;
+  const said = traits.length === 0 ? '' : `: ${traits.join('; ')}`;
+  return `- ${view.name} (${kind})${said}`;
 };
 
 /** Una fila en texto: su nombre, su id y su enlace, y debajo sus propiedades en una línea. */
 export const formatMcpRowText = (row: McpRowOutput): string => {
   const properties = describeMcpRowPropertiesInOneLine(row.properties);
-  return `- ${row.title} (row ${row.id}) ${row.url}${properties === '' ? '' : `\n  ${properties}`}`;
+  const underneath = properties === '' ? '' : `\n  ${properties}`;
+  return `- ${row.title} (row ${row.id}) ${row.url}${underneath}`;
 };
 
-/** La colección en texto corto: qué columnas tiene, qué acepta cada una y qué vistas la muestran. */
+/**
+ * La colección en texto corto: qué columnas tiene, qué acepta cada una y qué
+ * vistas la muestran. Una colección siempre tiene la columna del título: sin
+ * columnas es que el token la cambió sin poder leerla.
+ */
 export const formatMcpCollectionText = (collection: McpCollectionOutput): string =>
+  collection.columns.length === 0
+    ? `${MCP_CONFIGURED_UNREADABLE_NOTE} ${collection.url}`
+    : formatReadableCollectionText(collection);
+
+const formatReadableCollectionText = (collection: McpCollectionOutput): string =>
   [
     `${collection.title} — ${collection.url}`,
     'Columns:',

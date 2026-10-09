@@ -1,5 +1,7 @@
-import type { PagePropertyValues } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import type { McpCall, McpRowDescriber, McpServerDependencies } from '../types/mcp.types';
+import { readMcpRowPlace } from './mcp.collections.lib';
+import { canMcpAct } from './mcp.page-access.lib';
 import { describeMcpRowProperties } from './mcp.properties.lib';
 
 const describesNothing: McpRowDescriber = () => [];
@@ -9,7 +11,8 @@ const describesNothing: McpRowDescriber = () => [];
  * espacio de trabajo se leen una vez, y cada fila se describe con eso.
  *
  * Si el padre no es una colección, o su dueño no la puede ver, las filas no
- * tienen propiedades que decir.
+ * tienen propiedades que decir. Lo que una fila tiene en sus columnas es de la
+ * colección: solo se dice donde el token puede leer colecciones, fila por fila.
  */
 export const loadMcpRowDescriber = async (
   dependencies: McpServerDependencies,
@@ -18,13 +21,17 @@ export const loadMcpRowDescriber = async (
 ): Promise<McpRowDescriber> => {
   if (collectionId === null) return describesNothing;
   const { principal, workspace } = call;
-  const [schema, members] = await Promise.all([
+  const [schema, members, collectionPlace] = await Promise.all([
     dependencies.collections.getSchema(collectionId, workspace.id, principal.userId, principal.role),
     dependencies.people.listAssignableMembers(workspace.id),
+    dependencies.placeReader.readPlace(collectionId, workspace.id),
   ]);
-  if (schema.isFail()) return describesNothing;
+  if (schema.isFail() || collectionPlace === null) return describesNothing;
   const columns = schema.getValue().properties;
   if (columns.length === 0) return describesNothing;
   const people = new Map(members.map((member) => [member.id, member.name]));
-  return (values: PagePropertyValues | null, title: string) => describeMcpRowProperties(columns, values, title, people);
+  return (row) =>
+    canMcpAct(call, readMcpRowPlace({ place: collectionPlace }, row.id), ACCESS_TOKEN_PERMISSIONS.collectionsRead)
+      ? describeMcpRowProperties(columns, row.propertyValues, row.title, people)
+      : [];
 };

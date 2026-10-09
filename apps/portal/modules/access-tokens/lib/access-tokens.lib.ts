@@ -1,7 +1,9 @@
 import {
   ACCESS_TOKEN_LEVEL_VALUES,
   ACCESS_TOKEN_LEVELS,
+  ACCESS_TOKEN_PAGE_GRANT_LIMIT,
   ACCESS_TOKEN_PERMISSION_VALUES,
+  ACCESS_TOKEN_SPACE_GRANT_LIMIT,
   type AccessTokenLevel,
   type AccessTokenPermission,
   canRoleGrantAccessTokenPermission,
@@ -144,11 +146,24 @@ const isEveryRowComplete = (rows: readonly AccessTokenDraftRow[]): boolean =>
 const namesEachPlaceOnce = (rows: readonly AccessTokenDraftRow[]): boolean =>
   new Set(listTargetKeys(rows)).size === rows.length;
 
-/** Si el formulario dice algo que se pueda mandar: cada fila completa, cada lugar una vez, y algo dado en alguno. */
+/** Si el token nombra no más espacios ni páginas de los que el servidor acepta en uno. */
+const isWithinGrantLimits = (rows: readonly AccessTokenDraftRow[]): boolean =>
+  listRowsOfKind(rows, 'PAGE').length <= ACCESS_TOKEN_PAGE_GRANT_LIMIT &&
+  listRowsOfKind(rows, 'SPACE').length <= ACCESS_TOKEN_SPACE_GRANT_LIMIT;
+
+/** Si cabe otra fila: una para todos los espacios, más los espacios y páginas que un token puede nombrar. */
+export const canAddDraftRow = (rows: readonly AccessTokenDraftRow[]): boolean =>
+  rows.length < ACCESS_TOKEN_PAGE_GRANT_LIMIT + ACCESS_TOKEN_SPACE_GRANT_LIMIT + 1;
+
+/**
+ * Si el formulario dice algo que se pueda mandar: cada fila completa, cada
+ * lugar una vez, no más lugares de los que un token nombra, y algo dado en alguno.
+ */
 export const canSubmitAccessDraft = (rows: readonly AccessTokenDraftRow[]): boolean =>
   rows.length > 0 &&
   isEveryRowComplete(rows) &&
   namesEachPlaceOnce(rows) &&
+  isWithinGrantLimits(rows) &&
   hasAccessTokenAnyPermission(draftRowsToAccess(rows));
 
 /** Si un token nuevo se puede pedir: con un nombre que sirve y no está en uso, con vencimiento, y con acceso. */

@@ -5,6 +5,26 @@ export const MCP_SERVER_DEPENDENCIES = Symbol('MCP_SERVER_DEPENDENCIES');
 
 export const MCP_ROUTE = 'mcp';
 
+/**
+ * Lo que se contesta a varias llamadas mandadas juntas en un solo envío. El
+ * tope de llamadas cuenta envíos: un lote de mil contaría como una.
+ */
+export const MCP_BATCH_REFUSED_MESSAGE = 'Send one call per request; several calls in one request are not accepted.';
+
+/** El código con que Prisma dice que un valor único ya estaba: aquí, otro pedido con el mismo id. */
+export const MCP_UNIQUE_VIOLATION_CODE = 'P2002';
+
+/**
+ * Cuánto dura, como mucho, un pedido en curso. Uno que lleva más que esto
+ * pendiente es de un proceso que se cayó o de un cierre que no se anotó: no se
+ * sabe si se hizo, y su id no se libera, porque hacerlo de nuevo podría
+ * duplicarlo.
+ */
+export const MCP_ABANDONED_REQUEST_MS = 10 * 60 * 1000;
+
+/** El origen con que se arma la petición web que recibe el manejador del MCP, que solo lee su ruta. */
+export const MCP_WEB_REQUEST_ORIGIN = 'http://mcp.local';
+
 /** Con qué se presenta, ante el SDK, quien entra con un token personal. */
 export const MCP_ACCESS_TOKEN_CLIENT_ID = 'company-brain-access-token';
 
@@ -78,6 +98,9 @@ export const MCP_INLINE_OBJECT_PLACEHOLDER = '￼';
 /** Los colores con que se puede pintar un bloque entero, con el nombre que tienen en la página. */
 export const MCP_BLOCK_COLOR_NAMES = ['backgroundColor', 'textColor'] as const;
 
+/** Lo que un bloque lleva encima y pasa al bloque que lo reemplaza: lo que otras personas dijeron, y cómo está pintado. */
+export const MCP_BLOCK_KEPT_ATTRIBUTES = ['comments', ...MCP_BLOCK_COLOR_NAMES] as const;
+
 /** Lo que dice el worker que revisa diagramas cuando ya cargó Mermaid y puede empezar. */
 export const MCP_DIAGRAM_WORKER_READY = 'ready';
 
@@ -98,18 +121,29 @@ export const MCP_DRAWING_KINDS = {
  */
 export const MCP_DIAGRAM_ICON_PATTERNS: readonly RegExp[] = [
   /\(([a-z0-9-]+:[a-z0-9-]+)\)/g,
-  /icon:\s*["']([a-z0-9-]+:[a-z0-9-]+)["']/g,
-  /^\s*(?:group|service)\s+[\w-]+\(([\w-]+)\)/gm,
+  /icon:[ \t]*["']([a-z0-9-]+:[a-z0-9-]+)["']/g,
+  /^[ \t]*(?:group|service)[ \t]+[\w-]+\(([\w-]+)\)/gm,
 ];
 
-/** La línea con que empieza un diagrama de arquitectura, después de su configuración si la tiene. */
-export const MCP_ARCHITECTURE_DIAGRAM_START = /^\s*architecture-beta\b/m;
-
 /**
- * Una línea que pone algo en un diagrama de arquitectura: su sangría, qué es,
- * su nombre y, si termina en `in <grupo>`, el grupo que lo contiene.
+ * La línea con que empieza un diagrama de arquitectura, después de su
+ * configuración si la tiene. La sangría es solo de espacios y tabulaciones:
+ * con saltos de línea dentro, un texto de miles de líneas vacías tardaría
+ * el cuadrado de su largo en revisarse.
  */
-export const MCP_ARCHITECTURE_MEMBER_LINE = /^(\s*)(group|service|junction)\s+([\w-]+)(?:.*\sin\s+([\w-]+)\s*$)?/;
+export const MCP_ARCHITECTURE_DIAGRAM_START = /^[ \t]*architecture-beta\b/m;
+
+/** Una línea que pone algo en un diagrama de arquitectura: su sangría, qué es y su nombre. */
+export const MCP_ARCHITECTURE_MEMBER_LINE = /^([ \t]*)(group|service|junction)[ \t]+([\w-]+)/;
+
+/** Lo que separa las palabras de una línea de un diagrama: espacios y tabulaciones. */
+export const MCP_ARCHITECTURE_WORD_SEPARATOR = /[ \t]+/;
+
+/** La palabra con que una línea de un diagrama de arquitectura dice en qué grupo va: `… in <grupo>`. */
+export const MCP_ARCHITECTURE_IN_WORD = 'in';
+
+/** El nombre de un grupo de un diagrama de arquitectura. */
+export const MCP_ARCHITECTURE_NAME = /^[\w-]+$/;
 
 /** Lo que agrupa en un diagrama de arquitectura. */
 export const MCP_ARCHITECTURE_GROUP = 'group';
@@ -186,10 +220,13 @@ export const MCP_VERIFIED_HIT_MARK = ', verified page';
 export const MCP_PAGE_MANAGE_REFUSED_MESSAGE =
   'This token may write this page but not lock it, vouch for it or give it an owner: that needs the permission to manage pages, which only the owner of the token can give it. Nothing was changed.';
 
+/** Lo que acepta una página como ícono: un emoji, uno solo. */
+export const MCP_PAGE_ICON_INVALID_MESSAGE = 'The icon must be one emoji.';
+
 /** Lo que se le dice al agente cuando el portal rechaza cambiar una página entera, por qué y qué hacer en su lugar. */
 export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
   ['PAGE_CYCLE', 'A page cannot go under itself or under a page that hangs from it.'],
-  ['PAGE_ICON_INVALID', 'The icon must be one emoji.'],
+  ['PAGE_ICON_INVALID', MCP_PAGE_ICON_INVALID_MESSAGE],
   [
     'PAGE_INVALID_LIFECYCLE',
     'The page is not where that can happen: only a page out of the trash can be sent to it, and only a page in the trash can be restored.',
@@ -202,7 +239,50 @@ export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
 ]);
 
 /** Lo que otra persona movió entre que el agente leyó y escribió: una vista que ya no está, una opción ya renombrada. */
+/**
+ * Los rechazos que hablan de lo que el agente escribió, cuyo detalle le sirve
+ * para corregirlo. El detalle de cualquier otro no se le pasa.
+ */
+export const MCP_DETAILED_REFUSAL_CODES: readonly string[] = [
+  'PAGE_BLOCK_EDIT_INVALID',
+  'PAGE_CONTENT_INVALID',
+  'PAGE_COVER_INVALID',
+  'PAGE_PROPERTY_CONFORMANCE',
+  'PAGE_PROPERTY_INVALID',
+  'PAGE_SCHEMA_DEFINITION_INVALID',
+  'SCHEMA_PROPERTY_DEFINITION_INVALID',
+  'SCHEMA_PROPERTY_VALUE_INVALID',
+  'SCHEMA_VIEW_INVALID',
+];
+
+/** Lo que se contesta a un reintento de un pedido que ya se hizo: no se hace de nuevo. */
+export const MCP_REQUEST_ALREADY_DONE_MESSAGE = 'This request id was already carried out, so nothing was done again.';
+
+/** Lo que se contesta a un reintento que llega mientras el pedido original todavía corre. */
+export const MCP_REQUEST_IN_PROGRESS_MESSAGE =
+  'A call with this request id is still under way. Wait a moment and read the page to see whether it was done, instead of sending it again.';
+
+/** Lo que se contesta a un id que este token ya usó para otro pedido: no es un reintento. */
+export const MCP_REQUEST_ID_TAKEN_MESSAGE =
+  'This request id was already used for another call, so nothing was done. Use a new request id for each different call.';
+
+/** Lo que se contesta a un reintento de un pedido que quedó a medio anotar: puede haberse hecho. */
+export const MCP_REQUEST_UNKNOWN_MESSAGE =
+  'A call with this request id started long ago and it is not known whether it was done. Read the page to check; if what you asked for is not there, send it again with a new request id.';
+
+/** Lo que se contesta al pedir un cambio sobre una página que está en la papelera. */
+export const MCP_PAGE_IN_TRASH_MESSAGE =
+  'This page is in the trash, so it cannot be changed. Bring it back with restore_page first, or ask a person.';
+
+/** Lo que se dice primero al abrir una página que está en la papelera. */
+export const MCP_FETCHED_IN_TRASH_NOTE =
+  'This page is in the trash: what it says no longer counts for the team. restore_page brings it back.';
+
+/** Lo que se contesta al pedir traer de vuelta una página que no está en la papelera. */
+export const MCP_PAGE_NOT_IN_TRASH_MESSAGE = 'This page is not in the trash, so there is nothing to bring back.';
+
 export const MCP_CONCURRENT_REFUSAL_CODES: readonly string[] = [
+  'PAGE_SCHEMA_CHANGED',
   'PAGE_VIEW_NOT_FOUND',
   'SCHEMA_PROPERTY_DEFINITION_INVALID',
 ];
@@ -212,6 +292,18 @@ export const MCP_REFUSED_CHANGE_PREFIX = 'Company Brain refused the change:';
 
 /** Lo que aparece en lugar de una página que el agente no puede ver: nombrarla ya diría demasiado. */
 export const MCP_REDACTED_REFERENCE_LABEL = '[unavailable page]';
+
+/** Por qué no se tocó un árbol de páginas cuando lo protege una página de abajo que el token no puede leer. */
+export const MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE =
+  'This token cannot do that to the whole tree under this page, so nothing was done. Ask the owner of the token or of the page.';
+
+/** Lo que contesta un cambio a un token que configura la colección pero no la lee. */
+export const MCP_CONFIGURED_UNREADABLE_NOTE =
+  'Saved. This token may change this collection but not read it, so its columns and views are not shown:';
+
+/** Lo que contesta una escritura a un token que escribe en la página pero no la lee. */
+export const MCP_WRITTEN_UNREADABLE_NOTE =
+  'Written. This token may write this page but not read it, so what the page says is not shown:';
 
 /** Lo que apunta a otra página dentro de una línea. */
 export const MCP_INLINE_REFERENCE_TYPES: readonly string[] = ['mention'];
@@ -286,5 +378,5 @@ export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
   'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status.',
   'When the person asks to add, note or change a task of the team or of "our board", do it on a Company Brain collection, never in your own session\'s task list.',
   'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',
-  'You act as the person who created your access token and see exactly what they can see.',
+  'You act as the person who created your access token, limited to what the token allows: anything out of its reach answers as not accessible, the same as something that does not exist.',
 ];

@@ -15,6 +15,7 @@ import {
   sanitizePresenceState,
 } from './collaboration.utils';
 import { MAX_COLLABORATION_UPDATE_BYTES } from './constants/collaboration.constants';
+import { CollaborationForbiddenError } from './infrastructure/errors/collaboration.forbidden.error';
 import type {
   CollaborationAuthorizationAdapter,
   CollaborationContentAdapter,
@@ -30,7 +31,7 @@ import {
   replaceCollaborationDocumentContent,
 } from './utils/collaboration.document.utils';
 
-const createForbiddenError = (): Error => new Error('forbidden');
+const createForbiddenError = (): Error => new CollaborationForbiddenError();
 
 const authorizeDocument = async (
   authorization: CollaborationAuthorizationAdapter,
@@ -116,8 +117,8 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
       if (state !== null) return await validateLoadedState(state);
       return await seedFromStoredPage(dependencies.content, pageId);
     },
-    async beforeHandleMessage({ context, documentName, update }) {
-      await authorizeUpdate(context, documentName, update);
+    async beforeHandleMessage({ connection, context, documentName, update }) {
+      await authorizeMessage(context, documentName, update, connection);
     },
     async beforeHandleAwareness({ context, documentName, states }) {
       await authorizeAwareness(context, documentName);
@@ -128,9 +129,6 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
           states.set(clientId, sanitizePresenceState(rawState));
         }),
       );
-    },
-    async onChange({ context, documentName, update }) {
-      await authorizeUpdate(context, documentName, update);
     },
     async onStoreDocument({ document, documentName, lastContext }) {
       await authorizeDocument(dependencies.authorization, lastContext, documentName, 'write');
@@ -169,6 +167,22 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
     await authorizeDocument(dependencies.authorization, context, documentName, 'write');
   };
 
+  /**
+   * Cada mensaje pasa por aquí antes de aplicarse, también el que solo pide el
+   * estado del documento. Quien solo lee manda mensajes igual: se le pide poder
+   * leer, y lo que intente cambiar lo descarta su conexión de solo lectura. Un
+   * cambio no se vuelve a revisar al aplicarse: ya se revisó aquí.
+   */
+  const authorizeMessage = async (
+    context: CollaborationContext,
+    documentName: string,
+    message: Uint8Array,
+    connection: { readonly readOnly: boolean },
+  ): Promise<void> => {
+    await assertUpdateSize(message);
+    await authorizeDocument(dependencies.authorization, context, documentName, connection.readOnly ? 'read' : 'write');
+  };
+
   const authorizeAwareness = async (context: CollaborationContext | undefined, documentName: string): Promise<void> => {
     if (context === undefined) throw createForbiddenError();
     await authorizeDocument(dependencies.authorization, context, documentName, 'read');
@@ -177,6 +191,7 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
   return {
     assertStateSize,
     assertUpdateSize,
+    authorizeMessage,
     authorizeUpdate,
     handleConnection: (socket, request) => server.handleConnection(socket, request),
     server,

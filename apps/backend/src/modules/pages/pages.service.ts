@@ -14,7 +14,9 @@ import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
 import type { IStorageProvider } from '../../common/types/storage.types';
+import { mapWithBoundedConcurrency } from '../../common/utils/concurrency.utils';
 import {
+  EXPORT_ATTACHMENT_READS_AT_ONCE,
   EXPORT_ATTACHMENTS_FOLDER,
   PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
   PAGE_REPOSITORY,
@@ -49,6 +51,7 @@ import type {
   CarriedAttachment,
   CreatePageInput,
   ExportedFile,
+  PageAccessState,
   PageAttachmentsCleanupRepositoryContract,
   PageContentStoreOutcome,
   PageContentWriter,
@@ -131,18 +134,30 @@ export class PagesService {
    */
   private async gatherAttachments(pageIds: readonly string[]): Promise<readonly CarriedAttachment[]> {
     const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(pageIds);
-    const carried = await Promise.all(
-      assets.map(async (asset) => {
-        try {
-          const contents = await this.storageProvider.read(asset.storageKey);
-          return { contents, id: asset.id, path: `${EXPORT_ATTACHMENTS_FOLDER}/${asset.id}-${asset.originalFilename}` };
-        } catch (error) {
-          this.logger.warn({ assetId: asset.id, err: error, message: 'An attachment could not be carried' });
-          return null;
-        }
-      }),
-    );
+    /* Unos pocos a la vez: un espacio con cientos de archivos abriría cientos de lecturas juntas. */
+    const carried = await mapWithBoundedConcurrency(assets, EXPORT_ATTACHMENT_READS_AT_ONCE, async (asset) => {
+      try {
+        const contents = await this.storageProvider.read(asset.storageKey);
+        return { contents, id: asset.id, path: `${EXPORT_ATTACHMENTS_FOLDER}/${asset.id}-${asset.originalFilename}` };
+      } catch (error) {
+        this.logger.warn({ assetId: asset.id, err: error, message: 'An attachment could not be carried' });
+        return null;
+      }
+    });
     return carried.filter((asset): asset is CarriedAttachment => asset !== null);
+  }
+
+  /**
+   * Si la página sigue viva y si está bloqueada, sin leer lo que dice: lo que
+   * hace falta para dejar pasar cada mensaje del documento en vivo.
+   */
+  async readAccessState(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<PageAccessState | null> {
+    return this.pageRepository.findAccessState(pageId, workspaceId, userId, role);
   }
 
   async getAccessible(
@@ -205,18 +220,24 @@ export class PagesService {
   async authorizeContentWrite(
     writer: PageContentWriter,
     content: unknown,
-  ): Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLockedError>> {
+  ): Promise<
+    Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLifecycleError | PageLockedError>
+  > {
     const allowed = await this.authorizeWrite(writer);
     return allowed.isFail() ? Result.fail(allowed.getError()) : validatePageContent(content);
   }
 
-  /** Si esta persona puede escribir en esta página: que pueda escribir, que la vea y que no esté bloqueada. */
+  /**
+   * Si esta persona puede escribir en esta página: que pueda escribir, que la
+   * vea, que no esté en la papelera y que no esté bloqueada.
+   */
   async authorizeWrite(
     writer: PageContentWriter,
-  ): Promise<Result<PageContentWriter, PageAccessDeniedError | PageLockedError>> {
+  ): Promise<Result<PageContentWriter, PageAccessDeniedError | PageLifecycleError | PageLockedError>> {
     if (writer.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     const page = await this.pageRepository.getAccessible(writer.pageId, writer.workspaceId, writer.userId, writer.role);
-    if (page === null || page.spaceId !== writer.spaceId) return Result.fail(new PageAccessDeniedError());
+    if (page?.spaceId !== writer.spaceId) return Result.fail(new PageAccessDeniedError());
+    if (page.lifecycle !== PageLifecycle.ACTIVE) return Result.fail(new PageLifecycleError());
     if (page.lockedAt !== null) return Result.fail(new PageLockedError());
     return Result.ok(writer);
   }
@@ -238,21 +259,22 @@ export class PagesService {
     if (existing === null) return Result.fail(new PageAccessDeniedError());
     if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
 
+    const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+    const personIds = await this.resolvePersonIdsIfNeeded(schemaProperties, input.workspaceId);
+    const title = input.title ?? existing.title;
     const page = await this.pageRepository.updatePropertyValues(
       {
         pageId: input.pageId,
         ...(input.title === undefined ? {} : { title: input.title }),
         updatedById: input.updatedById,
       },
-      async (current) => {
-        const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
-        const merged = keepWhatThePageSchemaKnows(
+      (current) =>
+        validatePageProperties(
           schemaProperties,
-          mergePagePropertyValues(current, input.propertyValues),
-        );
-        const title = input.title ?? existing.title;
-        return this.resolvePropertyValuesForWrite(existing.parentId, input.workspaceId, title, merged);
-      },
+          title,
+          keepWhatThePageSchemaKnows(schemaProperties, mergePagePropertyValues(current, input.propertyValues)),
+          personIds,
+        ),
     );
     return page ?? Result.fail(new PageAccessDeniedError());
   }
@@ -392,24 +414,12 @@ export class PagesService {
    */
   async listAssignedTo(userId: string, workspaceId: string, role: UserRole): Promise<readonly PageSummary[]> {
     const pages = await this.pageRepository.listWithProperties(workspaceId, userId, role);
-    const personKeysByParentId = new Map<string, readonly string[]>();
-    const assigned: PageSummary[] = [];
-    for (const page of pages) {
-      const parentId = page.parentId;
-      if (parentId === null) continue;
-      if (!personKeysByParentId.has(parentId)) {
-        const properties = await this.pageSchemaRepository.resolveSchemaProperties(parentId);
-        personKeysByParentId.set(
-          parentId,
-          properties
-            .filter((property) => property.type === DatabasePropertyType.PERSON)
-            .map((property) => property.key),
-        );
-      }
-      const personKeys = personKeysByParentId.get(parentId) ?? [];
-      if (isPageAssignedTo(page.propertyValues, personKeys, userId)) assigned.push(page);
-    }
-    return assigned;
+    const collectionIds = [...new Set(pages.flatMap((page) => (page.parentId === null ? [] : [page.parentId])))];
+    const personKeysByCollection = await this.pageSchemaRepository.listPersonPropertyKeys(collectionIds);
+    return pages.filter((page) => {
+      const personKeys = page.parentId === null ? [] : (personKeysByCollection.get(page.parentId) ?? []);
+      return isPageAssignedTo(page.propertyValues, personKeys, userId);
+    });
   }
 
   async listMoveDestinations(

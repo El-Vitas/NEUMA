@@ -1,8 +1,9 @@
-import { ACCESS_TOKEN_PERMISSIONS, canAccessTokenAct } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { MCP_TRASH_LISTED_MAX } from '../constants/mcp.limits.constants';
 import { buildMcpPageUrl } from '../lib/mcp.address.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
+import { canMcpAct } from '../lib/mcp.page-access.lib';
+import { openMcpCall, readMcpActor, runMcpTool } from '../lib/mcp.tool.lib';
 import { listTrashInputSchema, listTrashOutputSchema } from '../schemas/mcp.pages.schemas';
 import type { McpListTrashOutput, McpTrashedPage } from '../types/mcp.page-management.types';
 import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
@@ -10,25 +11,20 @@ import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types
 /**
  * De lo que hay en la papelera, lo que el token puede leer donde estaba cada
  * página: una regla de página que la cierra la deja fuera, como en `search`.
- * Se revisa página por página, a la vez; la papelera es corta, y esto cuesta
- * una consulta por página.
+ * El lugar de todas se lee en una sola consulta.
  */
 const keepReadable = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   trashed: readonly McpTrashedPage[],
 ): Promise<McpTrashedPage[]> => {
-  const places = await Promise.all(
-    trashed.map((page) => dependencies.placeReader.readPlace(page.id, call.workspace.id)),
+  const places = await dependencies.placeReader.readPlaces(
+    trashed.map((page) => page.id),
+    call.workspace.id,
   );
-  const { access, role } = call.principal;
-  return trashed.filter((_page, index) => {
-    const place = places[index];
-    return (
-      place !== null &&
-      place !== undefined &&
-      canAccessTokenAct(access, role, place, ACCESS_TOKEN_PERMISSIONS.pagesRead)
-    );
+  return trashed.filter((page) => {
+    const place = places.get(page.id);
+    return place !== undefined && canMcpAct(call, place, ACCESS_TOKEN_PERMISSIONS.pagesRead);
   });
 };
 
@@ -75,14 +71,11 @@ export const listTrashTool: McpToolDefinition = {
           MCP_TOOL_NAMES.listTrash,
           async () => {
             const call = await openMcpCall(dependencies);
-            const { role, userId } = call.principal;
-            const trashed = await dependencies.pages.listTrashed(
-              call.workspace.id,
-              userId,
-              role,
-              input.space ?? null,
-              input.search ?? null,
-            );
+            const trashed = await dependencies.pages.listTrashed({
+              ...readMcpActor(call),
+              search: input.search ?? null,
+              spaceId: input.space ?? null,
+            });
             const readable = await keepReadable(dependencies, call, trashed);
             return {
               pages: readable

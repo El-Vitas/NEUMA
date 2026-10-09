@@ -1,8 +1,11 @@
 import 'server-only';
+import { ActionRefusalError } from '@/shared/lib/action-refusal.error';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
 /** Nobody is signed in, so there is no account to edit. */
-export class AccountOwnerUnknownError extends Error {
+export class AccountOwnerUnknownError extends ActionRefusalError {
+  readonly reason = 'forbidden';
+
   constructor() {
     super('No hay una sesión activa');
     this.name = 'AccountOwnerUnknownError';

@@ -9,6 +9,16 @@ export class PageAccessDeniedError extends DomainError {
   }
 }
 
+/** La forma de la colección ya no es la que se leyó antes de guardarla entera. */
+export class PageSchemaChangedError extends DomainError {
+  public readonly code = 'PAGE_SCHEMA_CHANGED';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('The collection changed since it was read');
+  }
+}
+
 export class PageCycleError extends DomainError {
   public readonly code = 'PAGE_CYCLE';
   public readonly httpStatus = 409;
@@ -125,6 +135,16 @@ export class PageMaintenanceAdminOnlyError extends DomainError {
 
   constructor() {
     super('Only a workspace admin can run page maintenance.');
+  }
+}
+
+/** El mantenimiento ya está corriendo en este espacio de trabajo: dos a la vez se pisarían los ids que dan. */
+export class PageMaintenanceAlreadyRunningError extends DomainError {
+  public readonly code = 'PAGE_MAINTENANCE_ALREADY_RUNNING';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('Page maintenance is already running in this workspace. Try again when it finishes.');
   }
 }
 

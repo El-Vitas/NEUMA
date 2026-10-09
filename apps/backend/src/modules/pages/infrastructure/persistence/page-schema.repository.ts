@@ -1,9 +1,10 @@
-import { PageLifecycle } from '@company-brain/db';
+import { isDeepStrictEqual } from 'node:util';
+import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
 import { Prisma } from '@company-brain/db/generated';
 import type { UserRole } from '@company-brain/shared';
 import { readPagePropertyOptionValues } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
-import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../../common/domain/schema.domain.types';
+import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
 import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
 import {
   parseSchemaPropertyValues,
@@ -13,8 +14,13 @@ import {
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { COLLECTION_ROW_LIMIT, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
-import type { PageRowsPage, PageSchemaDefinition, PageSchemaRepositoryContract } from '../../types/page-schema.types';
+import { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
+import type {
+  PageRowsPage,
+  PageSchemaDefinition,
+  PageSchemaRepositoryContract,
+  PageSchemaShape,
+} from '../../types/page-schema.types';
 
 const schemaPropertySelection = {
   key: true,
@@ -58,16 +64,32 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return properties.map(toSchemaPropertyDefinition);
   }
 
+  async listPersonPropertyKeys(pageIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>> {
+    if (pageIds.length === 0) return new Map();
+    const properties = await this.prisma.pageSchemaProperty.findMany({
+      orderBy: { order: 'asc' },
+      select: { key: true, pageId: true },
+      where: { pageId: { in: [...pageIds] }, type: DatabasePropertyType.PERSON },
+    });
+    const keysByPage = new Map<string, string[]>();
+    for (const property of properties)
+      keysByPage.set(property.pageId, [...(keysByPage.get(property.pageId) ?? []), property.key]);
+    return keysByPage;
+  }
+
   async getSchema(pageId: string): Promise<PageSchemaDefinition> {
     return this.loadSchemaSummary(this.prisma, pageId);
   }
 
   async defineSchema(
     pageId: string,
-    properties: readonly SchemaPropertyDefinition[],
-    views: readonly SchemaViewDefinition[],
-  ): Promise<PageSchemaDefinition> {
+    { properties, views }: PageSchemaShape,
+    readShape?: PageSchemaShape,
+  ): Promise<PageSchemaDefinition | typeof SCHEMA_CHANGED_MEANWHILE> {
     return this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT "id" FROM "Page" WHERE "id" = ${pageId} FOR UPDATE`;
+      if (readShape !== undefined && !(await this.isStillTheShape(transaction, pageId, readShape)))
+        return SCHEMA_CHANGED_MEANWHILE;
       await transaction.pageSchemaProperty.deleteMany({ where: { pageId } });
       await transaction.pageSchemaView.deleteMany({ where: { pageId } });
       await transaction.pageSchemaProperty.createMany({
@@ -132,10 +154,12 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         },
         where: { key: propertyKey, pageId },
       });
-      const rows = await transaction.page.findMany({
-        select: { id: true, propertyValues: true },
-        where: { parentId: pageId },
-      });
+      /* Las filas se leen tomadas, como al cambiar una sola: una tarjeta movida entretanto no vuelve a su columna vieja. */
+      const rows = await transaction.$queryRaw<{ id: string; propertyValues: Prisma.JsonValue }[]>`
+        SELECT "id", "propertyValues" FROM "Page"
+        WHERE "parentId" = ${pageId} AND "propertyValues" IS NOT NULL
+        FOR UPDATE
+      `;
       for (const row of rows) {
         const stored = parseSchemaPropertyValues(row.propertyValues);
         if (stored === null || !propertyValueMentions(stored[propertyKey], rename.from)) continue;
@@ -164,12 +188,18 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return this.loadSchemaSummary(this.prisma, pageId);
   }
 
-  async listRows(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<PageRowsPage> {
+  async listRows(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    limit: number,
+  ): Promise<PageRowsPage> {
     /* Una de más que el tope: es lo que distingue una colección que cabe justa de una a la que se le cortó la cola. */
     const found = await this.prisma.page.findMany({
       orderBy: { order: 'asc' },
       select: pageRowSelection,
-      take: COLLECTION_ROW_LIMIT + 1,
+      take: limit + 1,
       where: {
         lifecycle: PageLifecycle.ACTIVE,
         parentId: pageId,
@@ -177,8 +207,8 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
       },
     });
     return {
-      hasMore: found.length > COLLECTION_ROW_LIMIT,
-      rows: found.slice(0, COLLECTION_ROW_LIMIT).map((row) => ({
+      hasMore: found.length > limit,
+      rows: found.slice(0, limit).map((row) => ({
         id: row.id,
         lifecycle: row.lifecycle,
         order: row.order,
@@ -192,6 +222,19 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
 
   async listWorkspaceMemberIds(workspaceId: string): Promise<readonly string[]> {
     return this.workspaceMemberRepository.listActiveMemberIds(workspaceId);
+  }
+
+  /** Si la forma guardada sigue siendo la que se leyó: mismas columnas y mismas vistas, en el mismo orden. */
+  private async isStillTheShape(
+    transaction: Prisma.TransactionClient,
+    pageId: string,
+    readShape: PageSchemaShape,
+  ): Promise<boolean> {
+    const current = await this.loadSchemaSummary(transaction, pageId);
+    return isDeepStrictEqual(
+      { properties: current.properties, views: current.views },
+      { properties: readShape.properties, views: readShape.views },
+    );
   }
 
   private async loadSchemaSummary(

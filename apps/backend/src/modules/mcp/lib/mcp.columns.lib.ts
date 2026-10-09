@@ -1,7 +1,7 @@
 import { DatabasePropertyType } from '@company-brain/db';
 import { isPageCalendarDay, Result } from '@company-brain/shared';
 import { MCP_ACCENT_MARKS, MCP_VALUELESS_FILTER_OPERATORS } from '../constants/mcp.constants';
-import type { McpCellInput, McpCellValue, McpColumn } from '../types/mcp.collections.types';
+import type { McpCellInput, McpCellValue, McpColumn, McpNameLister } from '../types/mcp.collections.types';
 import type { McpPerson } from '../types/mcp.types';
 
 /** Un nombre como se compara: sin acentos, sin mayúsculas y sin espacios de sobra. */
@@ -14,35 +14,70 @@ export const resolveMcpColumn = (columns: readonly McpColumn[], reference: strin
   columns.find((column) => foldMcpName(column.label) === foldMcpName(reference)) ??
   null;
 
-export const describeMcpColumns = (columns: readonly McpColumn[]): string =>
-  columns.map((column) => `${column.label} (${column.key})`).join(', ');
+/** Todos los nombres, para que el agente corrija en vez de adivinar. */
+export const listMcpNames: McpNameLister = (names) => names.join(', ');
 
-/** Una columna nombrada como la ve la gente, o por qué no está y cuáles sí. */
-export const requireMcpColumn = (columns: readonly McpColumn[], reference: string): Result<McpColumn, string> => {
-  const column = resolveMcpColumn(columns, reference);
-  return column === null
-    ? Result.fail(`The collection has no column "${reference}". Its columns are: ${describeMcpColumns(columns)}.`)
-    : Result.ok(column);
+/** Ningún nombre: lo que hay en la colección es de quien puede leerla. */
+export const hideMcpNames: McpNameLister = () => null;
+
+/** Un rechazo, y después lo que sí hay si el agente puede saberlo. */
+export const sayMcpRefusalWithNames = (
+  said: string,
+  kind: string,
+  names: readonly string[],
+  listNames: McpNameLister,
+): string => {
+  const listed = listNames(names);
+  return listed === null ? said : `${said} Its ${kind} are: ${listed}.`;
 };
 
-export const describeMcpOptions = (column: McpColumn): string =>
-  (column.options ?? []).map((option) => option.value).join(', ');
+/** Una columna nombrada como la ve la gente, o por qué no está y, si se puede saber, cuáles sí. */
+export const requireMcpColumn = (
+  columns: readonly McpColumn[],
+  reference: string,
+  listNames: McpNameLister,
+): Result<McpColumn, string> => {
+  const column = resolveMcpColumn(columns, reference);
+  if (column !== null) return Result.ok(column);
+  const names = columns.map((candidate) => `${candidate.label} (${candidate.key})`);
+  return Result.fail(
+    sayMcpRefusalWithNames(`The collection has no column "${reference}".`, 'columns', names, listNames),
+  );
+};
+
+/** Los nombres de las opciones de una columna, como están escritos. */
+export const listMcpOptionNames = (column: McpColumn): readonly string[] =>
+  (column.options ?? []).map((option) => option.value);
 
 /** Una opción de la columna tal como está escrita, aunque venga con otras mayúsculas o sin acentos. */
-export const pickMcpOption = (column: McpColumn, value: string): Result<string, string> => {
+export const pickMcpOption = (column: McpColumn, value: string, listNames: McpNameLister): Result<string, string> => {
   const option = (column.options ?? []).find((candidate) => foldMcpName(candidate.value) === foldMcpName(value));
-  return option === undefined
-    ? Result.fail(`${column.label} has no option "${value}". Its options are: ${describeMcpOptions(column)}.`)
-    : Result.ok(option.value);
+  if (option !== undefined) return Result.ok(option.value);
+  return Result.fail(
+    sayMcpRefusalWithNames(
+      `${column.label} has no option "${value}".`,
+      'options',
+      listMcpOptionNames(column),
+      listNames,
+    ),
+  );
 };
 
+/**
+ * Una persona por su id, o por su nombre si nadie más se llama igual. Con dos
+ * del mismo nombre se pide el id: elegir una dejaría la fila a nombre de otra.
+ */
 const pickPerson = (column: McpColumn, value: string, people: readonly McpPerson[]): Result<string, string> => {
-  const person =
-    people.find((candidate) => candidate.id === value) ??
-    people.find((candidate) => foldMcpName(candidate.name) === foldMcpName(value));
-  return person === undefined
-    ? Result.fail(`${column.label}: there is nobody called "${value}" in the workspace.`)
-    : Result.ok(person.id);
+  const byId = people.find((candidate) => candidate.id === value);
+  if (byId !== undefined) return Result.ok(byId.id);
+  const named = people.filter((candidate) => foldMcpName(candidate.name) === foldMcpName(value));
+  const [person, namesake] = named;
+  if (person === undefined) return Result.fail(`${column.label}: there is nobody called "${value}" in the workspace.`);
+  if (namesake !== undefined)
+    return Result.fail(
+      `${column.label}: there is more than one person called "${value}" in the workspace. Name the person by their id: query_collection shows each person on a row with their id.`,
+    );
+  return Result.ok(person.id);
 };
 
 const listInputValues = (input: McpCellInput): readonly string[] => {
@@ -73,6 +108,7 @@ const readCellValue = (
   column: McpColumn,
   input: McpCellInput,
   people: readonly McpPerson[],
+  listNames: McpNameLister,
 ): Result<McpCellValue, string> => {
   if (input === null) return Result.ok(null);
   switch (column.type) {
@@ -80,7 +116,7 @@ const readCellValue = (
       return Result.fail('The title is not a property: set it with title.');
     case DatabasePropertyType.SELECT:
     case DatabasePropertyType.MULTI_SELECT:
-      return pickEach(input, (value) => pickMcpOption(column, value));
+      return pickEach(input, (value) => pickMcpOption(column, value, listNames));
     case DatabasePropertyType.PERSON:
       return pickEach(input, (value) => pickPerson(column, value, people));
     case DatabasePropertyType.NUMBER:
@@ -103,15 +139,16 @@ const readCellValue = (
  */
 export const readMcpConditionValue = (
   column: McpColumn,
-  operator: string,
-  input: McpCellInput | undefined,
+  condition: { readonly operator: string; readonly value?: McpCellInput | undefined },
   people: readonly McpPerson[],
+  listNames: McpNameLister,
 ): Result<McpCellValue, string> => {
+  const { operator, value: input } = condition;
   if (MCP_VALUELESS_FILTER_OPERATORS.includes(operator)) return Result.ok(null);
   if (input === undefined || input === null) return Result.fail(`${column.label} ${operator} needs a value.`);
   if (column.type === DatabasePropertyType.TITLE)
     return typeof input === 'string' ? Result.ok(input) : Result.fail(`${column.label} takes text.`);
-  return readCellValue(column, input, people);
+  return readCellValue(column, input, people, listNames);
 };
 
 /** Las celdas que dicen algo: una fila nueva no guarda las que nacen vacías. */
@@ -127,20 +164,21 @@ export const keepFilledMcpCells = (
  *
  * El agente nombra las columnas y los valores como los ve una persona: la
  * columna por su nombre, la opción por su nombre, la persona por su nombre.
- * Aquí se traducen a lo que se guarda. Lo que no calza se rechaza entero y
- * diciendo qué sí vale, para que el agente corrija en vez de adivinar; nunca
- * se guarda a medias.
+ * Aquí se traducen a lo que se guarda. Lo que no calza se rechaza entero y,
+ * si el token puede leer la colección, diciendo qué sí vale, para que el
+ * agente corrija en vez de adivinar; nunca se guarda a medias.
  */
 export const normalizeMcpCellValues = (
   columns: readonly McpColumn[],
   values: Readonly<Record<string, McpCellInput>>,
   people: readonly McpPerson[],
+  listNames: McpNameLister,
 ): Result<Record<string, McpCellValue>, string> => {
   const normalized: Record<string, McpCellValue> = {};
   for (const [reference, input] of Object.entries(values)) {
-    const column = requireMcpColumn(columns, reference);
+    const column = requireMcpColumn(columns, reference, listNames);
     if (column.isFail()) return Result.fail(column.getError());
-    const value = readCellValue(column.getValue(), input, people);
+    const value = readCellValue(column.getValue(), input, people, listNames);
     if (value.isFail()) return Result.fail(value.getError());
     normalized[column.getValue().key] = value.getValue();
   }

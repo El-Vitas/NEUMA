@@ -10,9 +10,6 @@ export const ACCESS_TOKEN_API_ROUTES = {
   workspaceItem: (tokenId: string) => `/api/v1/access-tokens/workspace/${tokenId}`,
 } as const;
 
-/** Dónde se conecta un agente por HTTP, dicho relativo al servidor para mostrarlo junto a su dirección. */
-export const MCP_HTTP_PATH = '/api/v1/mcp';
-
 /** El nombre con que el agente ve este servidor en su configuración. */
 export const MCP_SERVER_KEY = 'company-brain';
 

@@ -202,4 +202,79 @@ describe('Restoring a trashed page (Integration)', () => {
     const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
     expect(restoredChild.parentId).toBe(parent.id);
   });
+
+  /**
+   * Una página en la papelera no se cambia: una pestaña vieja que la renombra,
+   * la bloquea o la verifica creería que funcionó sobre algo que ya no está.
+   */
+  it('refuses to rename, lock, verify, copy or give an owner to a page in the trash, changing nothing', async () => {
+    const trashed = await createPage(testApp, adminToken, spaceId, 'En la papelera');
+    await trashPage(testApp, adminToken, spaceId, trashed.id);
+    const path = `/api/v1/spaces/${spaceId}/pages/${trashed.id}`;
+    const server = () => request(testApp.getServer());
+    const asAdmin = { Authorization: `Bearer ${adminToken}`, 'x-mutation-id': crypto.randomUUID() };
+
+    const statuses = await Promise.all([
+      server().patch(`${path}/title`).set(asAdmin).send({ title: 'Renombrada' }),
+      server().patch(`${path}/lock`).set(asAdmin).send({ locked: true }),
+      server().patch(`${path}/verification`).set(asAdmin).send({ verified: true }),
+      server().patch(`${path}/owner`).set(asAdmin).send({ ownerId: null }),
+      server().post(`${path}/duplicate`).set(asAdmin).send({ includeChildren: false }),
+    ]);
+
+    for (const response of statuses) expect(response.status).toBeGreaterThanOrEqual(400);
+    const stored = await testApp.get(PrismaService).page.findUniqueOrThrow({
+      select: { lockedAt: true, title: true, verifiedAt: true },
+      where: { id: trashed.id },
+    });
+    expect(stored).toEqual({ lockedAt: null, title: 'En la papelera', verifiedAt: null });
+    expect(await testApp.get(PrismaService).page.count({ where: { title: { startsWith: 'En la papelera' } } })).toBe(1);
+  });
+
+  /**
+   * Una página nueva o movida bajo una que está en la papelera quedaría viva
+   * dentro de algo borrado: no se ve en el árbol, y al borrar la de arriba
+   * reaparecería suelta en la raíz.
+   */
+  it('refuses to create or move a page under one in the trash', async () => {
+    const gone = await createPage(testApp, adminToken, spaceId, 'Padre en la papelera');
+    const loose = await createPage(testApp, adminToken, spaceId, 'Suelta');
+    await trashPage(testApp, adminToken, spaceId, gone.id);
+
+    const created = await request(testApp.getServer())
+      .post(`/api/v1/spaces/${spaceId}/pages`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ content: plainContent('Hija'), parentId: gone.id, title: 'Hija' });
+    const moved = await request(testApp.getServer())
+      .patch(`/api/v1/spaces/${spaceId}/pages/${loose.id}/move`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-mutation-id', crypto.randomUUID())
+      .send({ parentId: gone.id });
+
+    expect(created.status).toBeGreaterThanOrEqual(400);
+    expect(moved.status).toBeGreaterThanOrEqual(400);
+    expect((await getPage(testApp, adminToken, spaceId, loose.id)).parentId).toBeNull();
+  });
+
+  /** Vaciar la papelera borra lo que está en ella al borrar, no lo que estaba un momento antes. */
+  it('empties the trash of a space, leaving a page restored before it untouched', async () => {
+    const gone = await createPage(testApp, adminToken, spaceId, 'Se va');
+    const kept = await createPage(testApp, adminToken, spaceId, 'Vuelve');
+    await trashPage(testApp, adminToken, spaceId, gone.id);
+    await trashPage(testApp, adminToken, spaceId, kept.id);
+    await restorePage(testApp, adminToken, spaceId, kept.id);
+
+    const emptied = await request(testApp.getServer())
+      .delete('/api/v1/pages/trash')
+      .query({ spaceId })
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect((emptied.body as { deletedCount: number }).deletedCount).toBeGreaterThanOrEqual(1);
+    const prisma = testApp.get(PrismaService);
+    expect(await prisma.page.findUnique({ where: { id: gone.id } })).toBeNull();
+    expect(await prisma.page.findUnique({ select: { lifecycle: true }, where: { id: kept.id } })).toEqual({
+      lifecycle: 'ACTIVE',
+    });
+  });
 });

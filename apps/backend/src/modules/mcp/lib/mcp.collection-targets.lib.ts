@@ -2,7 +2,9 @@ import { isPageDocumentNode, readPageDocumentText } from '@company-brain/shared'
 import { MCP_NOT_A_COLLECTION_MESSAGE } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type { McpCall, McpServerDependencies } from '../types/mcp.types';
+import { readMcpNameLister } from './mcp.collections.lib';
 import { requireMcpInput, requireMcpSuccess } from './mcp.page-access.lib';
+import { readMcpPlace } from './mcp.tool.lib';
 import { pickMcpView } from './mcp.views.lib';
 
 /** La colección a la que apunta un bloque: la que muestra incrustada, o a la que un botón le agrega filas. */
@@ -27,7 +29,8 @@ const settleTarget = async (dependencies: McpServerDependencies, call: McpCall, 
   if (shape.properties.length === 0) throw new McpToolError(MCP_NOT_A_COLLECTION_MESSAGE);
   const viewName = readPageDocumentText(node, 'viewName');
   if (viewName === undefined) return node;
-  const view = requireMcpInput(pickMcpView(shape.views, viewName));
+  const place = await readMcpPlace(dependencies, pageId, workspace.id);
+  const view = requireMcpInput(pickMcpView(shape.views, viewName, readMcpNameLister(call, place)));
   return { ...node, attrs: { ...node.attrs, viewName: view.name } };
 };
 

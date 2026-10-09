@@ -207,12 +207,12 @@ export const SidebarPageTreeItem = ({
                     <Copy aria-hidden="true" className="size-4" />
                     {tDuplicate('action')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => copyPageLink(spaceId, page.id)}>
-                    <Link2 aria-hidden="true" className="size-4" />
-                    {t('copyPageLink')}
-                  </DropdownMenuItem>
                 </>
               )}
+              <DropdownMenuItem onSelect={() => void copyPageLink(spaceId, page.id)}>
+                <Link2 aria-hidden="true" className="size-4" />
+                {t('copyPageLink')}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onRequestRename(page)}>
                 <PenLine aria-hidden="true" className="size-4" />
                 {t('renamePage')}

@@ -11,7 +11,7 @@ export const PAGE_EDITOR_MARKDOWN_QUOTE_LINE = /^\s*>\s?(.*)$/;
 export const PAGE_EDITOR_MARKDOWN_DIVIDER_LINE = /^---$/;
 export const PAGE_EDITOR_MARKDOWN_CODE_FENCE_LINE = /^```([\w-]+)?\s*$/;
 
-export const PAGE_EDITOR_MARKDOWN_LINK_INLINE = /\[([^\]]+)]\((https?:\/\/[^\s)]+)\)/;
+export const PAGE_EDITOR_MARKDOWN_LINK_INLINE = /\[([^[\]]+)]\((https?:\/\/[^\s)]+)\)/;
 export const PAGE_EDITOR_MARKDOWN_BOLD_INLINE = /\*\*([^*]+)\*\*/;
 export const PAGE_EDITOR_MARKDOWN_CODE_INLINE = /`([^`]+)`/;
 export const PAGE_EDITOR_MARKDOWN_STRIKE_INLINE = /~~([^~]+)~~/;

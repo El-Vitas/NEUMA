@@ -19,6 +19,7 @@ export interface PageEditorDiagramLabels {
   readonly drawing: string;
   readonly fitToFrame: string;
   readonly frameHeight: string;
+  readonly frameHeightHint: string;
   readonly fullScreen: string;
   readonly line: string;
   readonly unknown: string;

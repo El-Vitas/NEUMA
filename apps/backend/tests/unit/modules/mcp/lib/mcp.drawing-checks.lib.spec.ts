@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { Result } from '@company-brain/shared';
+import { MCP_DIAGRAMS_PER_WRITE } from '@/modules/mcp/constants/mcp.limits.constants';
+import { McpDiagramCheckerBusyError } from '@/modules/mcp/infrastructure/errors/mcp.diagram-busy.error';
+import { McpDiagramCheckTimeoutError } from '@/modules/mcp/infrastructure/errors/mcp.diagram-timeout.error';
 import { McpToolError } from '@/modules/mcp/infrastructure/errors/mcp.tool.error';
 import { checkMcpDrawings } from '@/modules/mcp/lib/mcp.drawing-checks.lib';
 import type { McpDrawingValidator } from '@/modules/mcp/types/mcp.pages.types';
@@ -100,5 +103,75 @@ describe('checkMcpDrawings', () => {
 
     expect(refusal.message).toBe('Block 1: the formula cannot be set. KaTeX says: KaTeX parse error: Expected }');
     expect(refusal.reason).toBe('formula');
+  });
+
+  /** Un diagrama que tarda demasiado en revisarse es del agente: se le pide simplificarlo, no se le contesta un fallo. */
+  it('refuses a diagram that took too long to check, telling the agent to simplify it', async () => {
+    const drawings = {
+      ...drawingsThatAccept,
+      checkDiagram: () => Promise.reject(new McpDiagramCheckTimeoutError(10_000)),
+    };
+
+    const refusal = await refusalOf(checkMcpDrawings(dependenciesWith(drawings), [diagram('flowchart LR\n A-->B')]));
+
+    expect(refusal.message).toContain('Block 1');
+    expect(refusal.message).toContain('Simplify it');
+    expect(refusal.reason).toBe('diagram');
+  });
+
+  /** Con el revisor lleno, el diagrama no tiene nada de malo: se le pide reintentar, sin decirle que lo corrija. */
+  it('asks to send it again in a moment when the checker is full, without blaming the diagram', async () => {
+    const drawings = {
+      ...drawingsThatAccept,
+      checkDiagram: () => Promise.reject(new McpDiagramCheckerBusyError(16)),
+    };
+
+    const refusal = await refusalOf(checkMcpDrawings(dependenciesWith(drawings), [diagram('flowchart LR\n A-->B')]));
+
+    expect(refusal.message).toContain('Send it again in a moment');
+    expect(refusal.message).not.toContain('Simplify');
+  });
+
+  /** Uno que no se dibuja corta la revisión: los que siguen no ocupan al revisor para nada. */
+  it('stops checking at the first diagram that cannot be drawn', async () => {
+    let checked = 0;
+    const drawings = {
+      ...drawingsThatAccept,
+      checkDiagram: () => {
+        checked += 1;
+        return Promise.resolve(Result.fail('Parse error on line 2'));
+      },
+    };
+    const three = [diagram('flowchart LR'), diagram('flowchart LR'), diagram('flowchart LR')];
+
+    await refusalOf(checkMcpDrawings(dependenciesWith(drawings), three));
+
+    expect(checked).toBe(1);
+  });
+
+  it('lets any other failure of the checker through as it is, because it is not the agent’s', async () => {
+    const drawings = { ...drawingsThatAccept, checkDiagram: () => Promise.reject(new Error('The checker stopped')) };
+
+    const error = await refusalOrNothing(checkMcpDrawings(dependenciesWith(drawings), [diagram('flowchart LR')]));
+
+    expect(error).not.toBeInstanceOf(McpToolError);
+  });
+
+  /** Revisar un diagrama cuesta; una llamada lleva hasta un tope, y se rechaza antes de revisar ninguno. */
+  it('refuses more diagrams in one write than it checks, before checking any', async () => {
+    let checked = 0;
+    const drawings = {
+      ...drawingsThatAccept,
+      checkDiagram: () => {
+        checked += 1;
+        return Promise.resolve(Result.ok('flowchart-v2'));
+      },
+    };
+    const many = Array.from({ length: MCP_DIAGRAMS_PER_WRITE + 1 }, () => diagram('flowchart LR\n A-->B'));
+
+    const refusal = await refusalOf(checkMcpDrawings(dependenciesWith(drawings), many));
+
+    expect(refusal.message).toContain(String(MCP_DIAGRAMS_PER_WRITE));
+    expect(checked).toBe(0);
   });
 });

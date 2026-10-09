@@ -122,6 +122,29 @@ describe('Search Projection (Integration)', () => {
     expect(projectedPage?.parentPageTitle).toBeNull();
   });
 
+  /**
+   * «Editada hace una semana» es de la página, no del índice: volver a indexar
+   * —un mantenimiento, un movimiento— no la hace parecer editada hoy.
+   */
+  it('keeps the page’s own last edit as its date in the index, not the moment it was indexed', async () => {
+    const prisma = testApp.get(PrismaService);
+    const longAgo = new Date('2020-01-02T03:04:05.000Z');
+    await request(testApp.getServer())
+      .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}/verification`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ verified: false })
+      .expect(200);
+    await prisma.page.update({ data: { updatedAt: longAgo }, where: { id: pageId } });
+
+    await drainSearchProjection(testApp);
+
+    const indexed = await prisma.searchDocument.findFirstOrThrow({
+      select: { updatedAt: true },
+      where: { sourceId: pageId },
+    });
+    expect(indexed.updatedAt.toISOString()).toBe(longAgo.toISOString());
+  });
+
   it('learns the mark a page takes on after it was already indexed', async () => {
     await request(testApp.getServer())
       .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}/icon`)

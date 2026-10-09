@@ -26,4 +26,8 @@ describe('what is said when a diagram cannot be drawn', () => {
     expect(describeDiagramFault('roto')).toEqual({ line: null, said: 'roto' });
     expect(describeDiagramFault(undefined).said.length).toBeGreaterThan(0);
   });
+
+  it('never shows the reader an object written as [object Object]', () => {
+    expect(describeDiagramFault({ hash: { line: 2 } }).said).not.toContain('[object Object]');
+  });
 });

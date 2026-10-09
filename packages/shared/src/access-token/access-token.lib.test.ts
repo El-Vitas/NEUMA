@@ -3,6 +3,7 @@ import { USER_ROLE } from '../types/user-role.types.js';
 import {
   ACCESS_TOKEN_LEVELS,
   ACCESS_TOKEN_NAME_MAX_LENGTH,
+  ACCESS_TOKEN_PERMISSION_VALUES,
   ACCESS_TOKEN_PERMISSIONS,
 } from './access-token.definitions.js';
 import {
@@ -53,6 +54,15 @@ describe('lo que alguien puede dar', () => {
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, ACCESS_TOKEN_PERMISSIONS.pagesRead)).toBe(true);
   });
 
+  /** Lo que no es de lectura exige poder escribir, aunque sea un permiso nuevo que nadie clasificó. */
+  test('lets someone who only reads give exactly the reading permissions and nothing else', () => {
+    const givenByReader = ACCESS_TOKEN_PERMISSION_VALUES.filter((permission) =>
+      canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, permission),
+    );
+
+    expect(givenByReader).toEqual([ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead]);
+  });
+
   /** Un token no da más que su dueño: quien solo lee no fabrica un token que escriba. */
   test('does not let someone who only reads give writing', () => {
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, ACCESS_TOKEN_PERMISSIONS.pagesWrite)).toBe(false);
@@ -82,6 +92,32 @@ describe('el nombre de un token', () => {
     expect(isAccessTokenNameAcceptable('a'.repeat(ACCESS_TOKEN_NAME_MAX_LENGTH + 1))).toBe(false);
     expect(isAccessTokenNameAcceptable('Claude\nadmin')).toBe(false);
     expect(isAccessTokenNameAcceptable('Claude\u001b[31m')).toBe(false);
+  });
+
+  /** Un carácter invisible o que da vuelta el texto haría que un nombre se lea como otro en la lista. */
+  test('refuses a name with invisible characters, and keeps the one that joins an emoji', () => {
+    const turnsTextAround = String.fromCodePoint(0x202e);
+    const takesNoRoom = String.fromCodePoint(0x200b);
+    const joinsAnEmoji = String.fromCodePoint(0x200d);
+    const womanTechnologist = String.fromCodePoint(0x1f469, 0x200d, 0x1f4bb);
+
+    expect(isAccessTokenNameAcceptable(`Claude${turnsTextAround}nimda`)).toBe(false);
+    expect(isAccessTokenNameAcceptable(`Clau${takesNoRoom}de`)).toBe(false);
+    expect(isAccessTokenNameAcceptable(`Equipo ${womanTechnologist}`)).toBe(true);
+    expect(womanTechnologist).toContain(joinsAnEmoji);
+  });
+
+  /** Entre letras, el que une emojis no une nada: solo hace que dos nombres distintos se lean igual. */
+  test('refuses the emoji joiner when it does not stand between two emojis', () => {
+    const joinsAnEmoji = String.fromCodePoint(0x200d);
+    const womanWithSkinTone = String.fromCodePoint(0x1f469, 0x1f3fd, 0x200d, 0x1f4bb);
+    const rainbowFlag = String.fromCodePoint(0x1f3f3, 0xfe0f, 0x200d, 0x1f308);
+
+    expect(isAccessTokenNameAcceptable(`Cla${joinsAnEmoji}ude`)).toBe(false);
+    expect(isAccessTokenNameAcceptable(`Claude${joinsAnEmoji}`)).toBe(false);
+    expect(isAccessTokenNameAcceptable(`${joinsAnEmoji}Claude`)).toBe(false);
+    expect(isAccessTokenNameAcceptable(`Equipo ${womanWithSkinTone}`)).toBe(true);
+    expect(isAccessTokenNameAcceptable(`Equipo ${rainbowFlag}`)).toBe(true);
   });
 
   /** Dos tokens que se leen igual en la lista son dos tokens que se confunden al revocar. */

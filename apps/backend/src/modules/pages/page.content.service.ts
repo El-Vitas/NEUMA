@@ -2,7 +2,8 @@ import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent, Result } from '@company-
 import { Inject, Injectable } from '@nestjs/common';
 import { ZodError } from 'zod';
 import { PAGE_LIVE_DOCUMENT } from './constants/pages.constants';
-import { PageBlockEditError, PageContentValidationError } from './domain/page.error';
+import { PageAccessDeniedError, PageBlockEditError, PageContentValidationError } from './domain/page.error';
+import { PageLiveDocumentForbiddenError } from './infrastructure/errors/page.live-document.error';
 import { PagesService } from './pages.service';
 import type {
   PageContentEdit,
@@ -79,7 +80,7 @@ export class PageContentService {
   private async writeEdit(
     writer: PageContentWriter,
     rewrite: PageContentRewrite,
-  ): Promise<Result<PageContent, PageBlockEditError | PageContentValidationError>> {
+  ): Promise<Result<PageContent, PageAccessDeniedError | PageBlockEditError | PageContentValidationError>> {
     try {
       return await this.write(writer, rewrite);
     } catch (error) {
@@ -88,15 +89,20 @@ export class PageContentService {
     }
   }
 
-  /** El documento en vivo es infraestructura: lo que rechaza por no calzar vuelve como un error de contenido. */
+  /**
+   * El documento en vivo es infraestructura: lo que rechaza por no calzar
+   * vuelve como un error de contenido, y lo que rechaza porque la página dejó
+   * de poder escribirse mientras tanto vuelve como una negativa.
+   */
   private async write(
     writer: PageContentWriter,
     rewrite: PageContentRewrite,
-  ): Promise<Result<PageContent, PageContentValidationError>> {
+  ): Promise<Result<PageContent, PageAccessDeniedError | PageContentValidationError>> {
     try {
       return Result.ok(await this.liveDocument.writePageContent(writer, rewrite));
     } catch (error) {
       if (error instanceof ZodError) return Result.fail(new PageContentValidationError(error.issues));
+      if (error instanceof PageLiveDocumentForbiddenError) return Result.fail(new PageAccessDeniedError());
       throw error;
     }
   }

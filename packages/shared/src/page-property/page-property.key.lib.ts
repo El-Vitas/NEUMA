@@ -14,10 +14,18 @@ const toBareKey = (label: string): string => {
     .replace(PAGE_PROPERTY_KEY_COMBINING_MARKS, '')
     .toLowerCase()
     .replace(PAGE_PROPERTY_KEY_RUNS_OF_ANYTHING_ELSE, '_')
-    .replace(PAGE_PROPERTY_KEY_EDGE_UNDERSCORES, '')
-    .slice(0, PAGE_PROPERTY_KEY_MAX_LENGTH);
+    .replace(PAGE_PROPERTY_KEY_EDGE_UNDERSCORES, '');
   if (plain === '') return PAGE_PROPERTY_KEY_FALLBACK;
-  return PAGE_PROPERTY_KEY_STARTS_WITH_DIGIT.test(plain) ? `${PAGE_PROPERTY_KEY_DIGIT_PREFIX}${plain}` : plain;
+  const prefixed = PAGE_PROPERTY_KEY_STARTS_WITH_DIGIT.test(plain)
+    ? `${PAGE_PROPERTY_KEY_DIGIT_PREFIX}${plain}`
+    : plain;
+  return prefixed.slice(0, PAGE_PROPERTY_KEY_MAX_LENGTH);
+};
+
+/** A key with its number, cut short so the whole of it fits what the server stores. */
+const numberKey = (bare: string, attempt: number): string => {
+  const suffix = `_${String(attempt)}`;
+  return `${bare.slice(0, PAGE_PROPERTY_KEY_MAX_LENGTH - suffix.length)}${suffix}`;
 };
 
 /**
@@ -34,6 +42,6 @@ export const buildPagePropertyKey = (label: string, properties: readonly { reado
   const taken = new Set(properties.map((property) => property.key));
   if (!taken.has(bare)) return bare;
   let attempt = 2;
-  while (taken.has(`${bare}_${String(attempt)}`)) attempt += 1;
-  return `${bare}_${String(attempt)}`;
+  while (taken.has(numberKey(bare, attempt))) attempt += 1;
+  return numberKey(bare, attempt);
 };

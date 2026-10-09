@@ -1,4 +1,5 @@
 import { type AccessTokenPermission, type AccessTokenPlace, canAccessTokenAct } from '@company-brain/shared';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import {
   MCP_CALL_OUTCOMES,
   MCP_INACCESSIBLE_MESSAGE,
@@ -6,6 +7,7 @@ import {
   MCP_UNEXPECTED_MESSAGE,
 } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
+import type { McpActor } from '../types/mcp.collections.types';
 import type {
   McpCall,
   McpCallOutcome,
@@ -15,6 +17,13 @@ import type {
   McpWorkspace,
 } from '../types/mcp.types';
 import { buildMcpSearchScope, listMcpPageRuleProbes, permitsPageReading } from './mcp.access.lib';
+
+/** En nombre de quién actúa la llamada, en el espacio de trabajo de su token: lo que los servicios piden para decidir. */
+export const readMcpActor = (call: McpCall): McpActor => ({
+  role: call.principal.role,
+  userId: call.principal.userId,
+  workspaceId: call.workspace.id,
+});
 
 /** Quién llama, o un fallo que el agente entiende. Se pregunta en cada llamada para que revocar corte al instante. */
 export const requireMcpPrincipal = async (dependencies: McpServerDependencies): Promise<McpPrincipal> => {
@@ -78,11 +87,14 @@ export const resolveMcpWorkspace = async (
  */
 export const openMcpCall = async (dependencies: McpServerDependencies): Promise<McpCall> => {
   const principal = await requireMcpPrincipal(dependencies);
-  const workspace = await resolveMcpWorkspace(dependencies, principal);
-  const reach = await dependencies.placeReader.resolvePageReach(
-    listMcpPageRuleProbes(principal, permitsPageReading),
-    workspace.id,
-  );
+  /* El espacio de trabajo solo vale si es el del token: el alcance se calcula con ese mismo, a la vez. */
+  const [workspace, reach] = await Promise.all([
+    resolveMcpWorkspace(dependencies, principal),
+    dependencies.placeReader.resolvePageReach(
+      listMcpPageRuleProbes(principal, permitsPageReading),
+      principal.workspaceId,
+    ),
+  ]);
   return {
     principal,
     viewer: {
@@ -110,7 +122,7 @@ export const runMcpTool = async <TOutput extends Record<string, unknown>>(
   tool: string,
   action: () => Promise<TOutput>,
   formatText: (output: TOutput) => string = (output) => JSON.stringify(output),
-) => {
+): Promise<CallToolResult> => {
   const startedAt = performance.now();
   const finish = (outcome: McpCallOutcome, refusal?: McpRefusalReason): void => {
     const durationMs = Math.round(performance.now() - startedAt);

@@ -1,18 +1,22 @@
 import type { Prisma } from '@company-brain/db/generated';
 import { makeSchemaViewDefault, Result, removeSchemaView } from '@company-brain/shared';
-import type { McpView } from '../types/mcp.collections.types';
-import { foldMcpName } from './mcp.columns.lib';
+import type { McpNameLister, McpView } from '../types/mcp.collections.types';
+import { foldMcpName, sayMcpRefusalWithNames } from './mcp.columns.lib';
 
 /** La vista que ya se llama así, sin contar la que se está cambiando. */
 const findViewNamed = (views: readonly McpView[], name: string, except: string | null): McpView | undefined =>
   views.find((view) => view.name !== except && foldMcpName(view.name) === foldMcpName(name));
 
-/** Una vista por su nombre, como sea que venga escrito, o por qué no está y cuáles hay. */
-export const pickMcpView = (views: readonly McpView[], name: string): Result<McpView, string> => {
+/** Una vista por su nombre, como sea que venga escrito, o por qué no está y, si se puede saber, cuáles hay. */
+export const pickMcpView = (
+  views: readonly McpView[],
+  name: string,
+  listNames: McpNameLister,
+): Result<McpView, string> => {
   const view = findViewNamed(views, name, null);
   if (view !== undefined) return Result.ok(view);
-  const names = views.map((candidate) => candidate.name).join(', ');
-  return Result.fail(`The collection has no view "${name}". Its views are: ${names}.`);
+  const names = views.map((candidate) => candidate.name);
+  return Result.fail(sayMcpRefusalWithNames(`The collection has no view "${name}".`, 'views', names, listNames));
 };
 
 const refuseTakenName = (taken: McpView): Result<McpView[], string> =>

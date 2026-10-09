@@ -20,6 +20,7 @@ import {
   PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS,
+  PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS,
   PAGE_EDITOR_FORMULA_STYLE_CLASS,
 } from '../constants/pages.editor.diagram.constants';
 import type { PageEditorDiagramLabels } from '../types/pages.editor.diagram.types';
@@ -53,13 +54,23 @@ const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels
   }
 };
 
-/** What a drawing is saved as: the drawing itself, which is a picture that never blurs. */
-const takeDrawingAway = (svg: string): void => {
+/**
+ * What a drawing is saved as: the drawing itself, which is a picture that never
+ * blurs, at its own size and not at whatever closeness it is looked at now. The
+ * address is let go a while later, once the browser has surely started saving it.
+ */
+const takeDrawingAway = (drawing: HTMLElement): void => {
+  const picture = drawing.querySelector('svg')?.cloneNode(true);
+  if (!(picture instanceof SVGElement)) return;
+  picture.style.removeProperty('width');
+  picture.style.removeProperty('max-width');
   const kept = document.createElement('a');
-  kept.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  kept.href = URL.createObjectURL(new Blob([picture.outerHTML], { type: 'image/svg+xml' }));
   kept.download = 'diagram.svg';
   kept.click();
-  URL.revokeObjectURL(kept.href);
+  setTimeout(() => {
+    URL.revokeObjectURL(kept.href);
+  }, PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS);
 };
 
 /**
@@ -97,6 +108,7 @@ export const attachPageDrawing = (parts: {
   const zooming = createPageDiagramZoomControls(parts.labels);
   const frame = attachPageDiagramFrame({
     drawing,
+    hint: parts.labels.frameHeightHint,
     label: parts.labels.frameHeight,
     writeHeight: (height) => parts.writeAttribute('frameHeight', height),
   });
@@ -116,6 +128,8 @@ export const attachPageDrawing = (parts: {
   let drawn = '';
   let language = '';
   let settling: ReturnType<typeof setTimeout> | null = null;
+  /** A block taken off the page draws nothing more: neither what was waiting nor what was already on its way. */
+  let isStopped = false;
 
   /**
    * What went wrong, and — when the parser said so — the line it went wrong on.
@@ -155,9 +169,11 @@ export const attachPageDrawing = (parts: {
       return;
     }
     void askForTheDrawing(source).then((made) => {
+      if (isStopped || source !== drawn) return;
       if (made.html !== null) {
         drawing.innerHTML = made.html;
         if (!isPageFormula(language)) handling.showAtItsSize();
+        frame.refresh();
       }
       showFault(made.fault?.said ?? null, made.fault?.line ?? null);
     });
@@ -172,8 +188,7 @@ export const attachPageDrawing = (parts: {
 
   view.addEventListener('change', () => parts.writeAttribute('shown', view.value));
   keep.addEventListener('click', () => {
-    const svg = drawing.innerHTML;
-    if (svg.length > 0) takeDrawingAway(svg);
+    takeDrawingAway(drawing);
   });
   wide.addEventListener('click', () => askForTheWholeScreen(parts.container));
   /** Taken to the whole screen or brought back, the frame is another size, so the drawing is fitted to it again. */
@@ -198,6 +213,8 @@ export const attachPageDrawing = (parts: {
 
   return {
     stop: () => {
+      isStopped = true;
+      if (settling !== null) clearTimeout(settling);
       stopWatchingTheGround();
       handling.release();
     },

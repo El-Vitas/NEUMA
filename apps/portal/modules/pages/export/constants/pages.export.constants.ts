@@ -12,5 +12,6 @@ export const PAGES_EXPORT_ARCHIVE_MEDIA_TYPE = 'application/zip';
 /** What a file name keeps of a title: letters and digits, joined by single dashes. */
 export const PAGES_EXPORT_COMBINING_MARKS = /[̀-ͯ]/g;
 export const PAGES_EXPORT_RUNS_OF_ANYTHING_ELSE = /[^a-z0-9]+/g;
-export const PAGES_EXPORT_EDGE_DASHES = /^-+|-+$/g;
-export const PAGES_EXPORT_TRAILING_DASHES = /-+$/;
+/** Each run of signs is already one dash by then, so a single dash at either end is all there is to drop. */
+export const PAGES_EXPORT_EDGE_DASHES = /^-|-$/g;
+export const PAGES_EXPORT_TRAILING_DASHES = /-$/;

@@ -1,4 +1,5 @@
 import {
+  isPageBlockComment,
   isPageDocumentNode,
   listPageDocumentChildren,
   PAGE_BLOCK_ITEM_TYPES,
@@ -7,20 +8,6 @@ import {
   writeBlocksAsAnchoredMarkdown,
 } from '@company-brain/shared';
 import type { McpBlockComment, McpHeldBlock, McpPagePart } from '../types/mcp.types';
-
-/** Lo que se le dice al agente cuando el bloque que nombró ya no está en la página. */
-export const describeMcpMissingBlock = (blockId: string): string =>
-  `The page has no block ${blockId}. Read the page again with fetch to see its blocks as they are now.`;
-
-/** El bloque de una página con ese id, donde sea que esté, o nada si ya no está. */
-export const findMcpBlockNode = (nodes: readonly unknown[], blockId: string): PageDocumentNodeShape | null => {
-  for (const node of nodes.filter(isPageDocumentNode)) {
-    if (readPageDocumentBlockId(node) === blockId) return node;
-    const inside = findMcpBlockNode(listPageDocumentChildren(node), blockId);
-    if (inside !== null) return inside;
-  }
-  return null;
-};
 
 const findHeldBlock = (
   nodes: readonly unknown[],
@@ -49,23 +36,11 @@ export const readMcpBlockInContext = (nodes: readonly unknown[], blockId: string
   return { ...holder, attrs: holderAttrs, content: [node] };
 };
 
-const isComment = (value: unknown): value is Omit<McpBlockComment, 'blockId'> =>
-  typeof value === 'object' &&
-  value !== null &&
-  'author' in value &&
-  typeof value.author === 'string' &&
-  'body' in value &&
-  typeof value.body === 'string' &&
-  'createdAt' in value &&
-  typeof value.createdAt === 'string' &&
-  'id' in value &&
-  typeof value.id === 'string';
-
 const readComments = (node: PageDocumentNodeShape): readonly McpBlockComment[] => {
   const blockId = readPageDocumentBlockId(node);
   const comments = node.attrs?.comments;
   if (blockId === null || !Array.isArray(comments)) return [];
-  return comments.filter(isComment).map((comment) => ({
+  return comments.filter(isPageBlockComment).map((comment) => ({
     author: comment.author,
     blockId,
     body: comment.body,

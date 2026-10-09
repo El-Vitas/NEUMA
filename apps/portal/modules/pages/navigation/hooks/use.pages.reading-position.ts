@@ -25,11 +25,11 @@ const findReadingArea = (pageElement: HTMLElement | null): HTMLElement | null =>
 };
 
 const readScrollTop = (readingArea: HTMLElement | null): number =>
-  readingArea === null ? window.scrollY : readingArea.scrollTop;
+  readingArea === null ? globalThis.scrollY : readingArea.scrollTop;
 
 const scrollTo = (readingArea: HTMLElement | null, top: number): void => {
   if (readingArea === null) {
-    window.scrollTo({ top });
+    globalThis.scrollTo({ top });
     return;
   }
   readingArea.scrollTo({ top });
@@ -83,9 +83,9 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
       isRestoring = false;
       hasRestored.current = true;
       for (const eventName of PAGES_READING_POSITION_POINTER_INTERRUPT_EVENTS) {
-        window.removeEventListener(eventName, stopRestoring);
+        globalThis.removeEventListener(eventName, stopRestoring);
       }
-      window.removeEventListener('keydown', stopRestoringOnScrollKey);
+      globalThis.removeEventListener('keydown', stopRestoringOnScrollKey);
     };
 
     const stopRestoringOnScrollKey = (event: KeyboardEvent): void => {
@@ -104,9 +104,9 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
     };
 
     for (const eventName of PAGES_READING_POSITION_POINTER_INTERRUPT_EVENTS) {
-      window.addEventListener(eventName, stopRestoring, { passive: true });
+      globalThis.addEventListener(eventName, stopRestoring, { passive: true });
     }
-    window.addEventListener('keydown', stopRestoringOnScrollKey);
+    globalThis.addEventListener('keydown', stopRestoringOnScrollKey);
 
     restore();
 
@@ -114,9 +114,9 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
       isRestoring = false;
       clearTimeout(nextAttempt);
       for (const eventName of PAGES_READING_POSITION_POINTER_INTERRUPT_EVENTS) {
-        window.removeEventListener(eventName, stopRestoring);
+        globalThis.removeEventListener(eventName, stopRestoring);
       }
-      window.removeEventListener('keydown', stopRestoringOnScrollKey);
+      globalThis.removeEventListener('keydown', stopRestoringOnScrollKey);
     };
   }, [pageId, pageRef]);
 
@@ -124,7 +124,7 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
     if (pageId === null) return;
 
     const readingArea = findReadingArea(pageRef.current);
-    const scrollSource: HTMLElement | Window = readingArea ?? window;
+    const scrollSource: EventTarget = readingArea ?? globalThis;
     let debounceId: ReturnType<typeof setTimeout> | undefined;
 
     const persistScrollTop = (): void => {
@@ -138,12 +138,12 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
     };
 
     scrollSource.addEventListener('scroll', persistScrollTopDebounced, { passive: true });
-    window.addEventListener('pagehide', persistScrollTop);
+    globalThis.addEventListener('pagehide', persistScrollTop);
 
     return () => {
       if (debounceId !== undefined) clearTimeout(debounceId);
       scrollSource.removeEventListener('scroll', persistScrollTopDebounced);
-      window.removeEventListener('pagehide', persistScrollTop);
+      globalThis.removeEventListener('pagehide', persistScrollTop);
     };
   }, [pageId, pageRef]);
 };

@@ -23,6 +23,8 @@ export type SearchQueryWithFilters = SearchQuery & SearchQueryFilters;
 
 export interface SearchDocumentInput {
   readonly contentType: string;
+  /** Cuándo se editó lo indexado, no cuándo se indexó: volver a indexar no lo vuelve reciente. */
+  readonly editedAt: Date;
   readonly extractedText: string;
   readonly language: SearchLanguage | null;
   readonly properties: Prisma.InputJsonValue;
@@ -114,6 +116,8 @@ export interface SearchProjectionPage {
   readonly spaceId: string;
   readonly spaceName: string;
   readonly title: string;
+  /** Cuándo se editó la página por última vez: la fecha que el índice da por suya. */
+  readonly updatedAt: Date;
   readonly verificationExpiresAt: Date | null;
   readonly verifiedAt: Date | null;
   readonly version: number;

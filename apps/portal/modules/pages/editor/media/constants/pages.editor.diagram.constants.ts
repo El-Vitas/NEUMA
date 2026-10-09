@@ -36,6 +36,9 @@ export const PAGE_EDITOR_DIAGRAM_FRAME_KEY_STEPS: Readonly<Partial<Record<string
   ArrowUp: -40,
 };
 
+/** The key that gives the frame back to the drawing, as a double click does: the restore key of a splitter. */
+export const PAGE_EDITOR_DIAGRAM_FRAME_RESET_KEY = 'Enter';
+
 /** What went wrong is said in the page's own words, without taking the page down with it. */
 export const PAGE_EDITOR_DIAGRAM_FAULT_STYLE_CLASS =
   'border-border border-t bg-surface-low px-3 py-2 text-destructive text-xs';
@@ -48,6 +51,13 @@ export const PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS = [
   '[&:fullscreen_[data-page-diagram]]:h-auto! [&:fullscreen_[data-page-diagram]]:max-h-none!',
   '[&:fullscreen_[data-diagram-frame-handle]]:hidden',
 ].join(' ');
+
+/**
+ * How long a saved drawing keeps its address before it is let go. Some
+ * browsers only start saving a moment after the click; letting it go on the
+ * next turn could leave them with nothing to save.
+ */
+export const PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS = 40_000;
 
 /** A formula is set out in the middle of its box, like the line of a book it stands in for. */
 export const PAGE_EDITOR_FORMULA_STYLE_CLASS = 'flex w-full justify-center overflow-auto p-4 text-foreground';

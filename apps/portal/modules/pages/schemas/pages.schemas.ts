@@ -37,29 +37,36 @@ export const pageSummarySchema = z.object({
   version: z.number(),
 });
 
+/**
+ * The id of a page, a space or a person. Every one is a uuid, and it ends up
+ * written into the address of a request to the backend: anything else — a
+ * `../` included — is turned away here, before it is asked of anyone.
+ */
+const recordIdSchema = z.uuid();
+
 export const pageMutationSchema = z.object({
   content: pageContentSchema,
   propertyValues: pagePropertyValuesSchema.nullable().optional(),
-  spaceId: z.string().min(1),
+  spaceId: recordIdSchema,
   title: z.string().trim().max(200),
 });
 
 export const pageMoveSchema = z.object({
-  pageId: z.string().min(1),
-  parentId: z.string().min(1).nullable(),
-  spaceId: z.string().min(1),
+  pageId: recordIdSchema,
+  parentId: recordIdSchema.nullable(),
+  spaceId: recordIdSchema,
   /** Where the page is going. Left out, it stays in the space it is already in. */
-  targetSpaceId: z.string().min(1).optional(),
+  targetSpaceId: recordIdSchema.optional(),
 });
 
 export const pageReorderSchema = z.object({
   /** Left out, the page goes last among its sisters. */
-  beforePageId: z.string().min(1).optional(),
-  pageId: z.string().min(1),
-  spaceId: z.string().min(1),
+  beforePageId: recordIdSchema.optional(),
+  pageId: recordIdSchema,
+  spaceId: recordIdSchema,
 });
 
-export const pageLocationSchema = z.object({ spaceId: z.string().min(1) });
+export const pageLocationSchema = z.object({ spaceId: recordIdSchema });
 
 export const pageMoveDestinationsSchema = z.object({
   pages: z.array(z.object({ id: z.string(), spaceId: z.string(), title: z.string() })),
@@ -68,16 +75,16 @@ export const pageMoveDestinationsSchema = z.object({
 
 export const pageBlocksHandoverSchema = z.object({
   content: pageContentSchema,
-  pageId: z.string().min(1),
-  spaceId: z.string().min(1),
+  pageId: recordIdSchema,
+  spaceId: recordIdSchema,
 });
 
 /** Lo que dice una página, entero, para reemplazar lo que decía. */
 export const pageContentReplacementSchema = pageBlocksHandoverSchema;
 
 export const pageLocatorSchema = z.object({
-  pageId: z.string().min(1),
-  spaceId: z.string().min(1),
+  pageId: recordIdSchema,
+  spaceId: recordIdSchema,
 });
 
 export const pageRenameSchema = pageLocatorSchema.extend({
@@ -87,11 +94,11 @@ export const pageRenameSchema = pageLocatorSchema.extend({
 export const pageLockSchema = pageLocatorSchema.extend({ locked: z.boolean() });
 
 export const pageVerificationSchema = pageLocatorSchema.extend({
-  expiresAt: z.string().nullable().optional(),
+  expiresAt: z.iso.datetime().nullable().optional(),
   verified: z.boolean(),
 });
 
-export const pageOwnerSchema = pageLocatorSchema.extend({ ownerId: z.string().nullable() });
+export const pageOwnerSchema = pageLocatorSchema.extend({ ownerId: recordIdSchema.nullable() });
 
 export const pageDuplicateSchema = pageLocatorSchema.extend({
   includeChildren: z.boolean().optional(),

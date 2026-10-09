@@ -6,6 +6,7 @@ import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace, canRenameSpace, canShareSpace } from '../../../../common/domain/workspace.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
+import { toPageIconInput } from '../../../../common/infrastructure/persistence/page-icon.adapter';
 import {
   buildSpaceVisibilityFilter,
   findAccessibleSpaceId,
@@ -21,18 +22,6 @@ import type {
   SpaceSummary,
 } from '../../types/space.types';
 import { buildPrivateSpaceSlug } from '../../utils/space.utils';
-
-const toIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Prisma.JsonNull => {
-  if (icon === null) return Prisma.JsonNull;
-  switch (icon.kind) {
-    case 'emoji':
-      return { kind: icon.kind, value: icon.value };
-    case 'image':
-      return { assetId: icon.assetId, kind: icon.kind };
-    default:
-      return { color: icon.color, kind: icon.kind, name: icon.name };
-  }
-};
 
 const spaceSelection = {
   description: true,
@@ -159,17 +148,12 @@ export class SpaceRepository implements SpaceRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<SpaceSummary | null> {
-    const reachable = await this.prisma.space.findFirst({
-      select: { id: true, ownerId: true, visibility: true },
-      where: { id: spaceId, workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
-    });
-    if (reachable === null) return null;
-    /** Reaching a space is not the same as being allowed to name it: a private one answers only to its owner. */
-    if (!canRenameSpace(role, reachable.visibility, reachable.ownerId, userId)) return null;
+    const changeableId = await this.findChangeableSpaceId(spaceId, workspaceId, userId, role);
+    if (changeableId === null) return null;
     const space = await this.prisma.space.update({
       data: { name },
       select: spaceSelection,
-      where: { id: reachable.id },
+      where: { id: changeableId },
     });
     return { ...space, icon: parseStoredPageIcon(space.icon) };
   }
@@ -182,18 +166,34 @@ export class SpaceRepository implements SpaceRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<SpaceSummary | null> {
+    const changeableId = await this.findChangeableSpaceId(spaceId, workspaceId, userId, role);
+    if (changeableId === null) return null;
+    const space = await this.prisma.space.update({
+      data: { description },
+      select: spaceSelection,
+      where: { id: changeableId },
+    });
+    return { ...space, icon: parseStoredPageIcon(space.icon) };
+  }
+
+  /**
+   * El espacio, si quien pide puede cambiar cómo se presenta: su nombre, lo que
+   * dice de sí y su marca son una sola decisión. Llegar a un espacio no es lo
+   * mismo que poder cambiarlo: uno privado responde solo a su dueño, aunque se
+   * haya compartido.
+   */
+  private async findChangeableSpaceId(
+    spaceId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<string | null> {
     const reachable = await this.prisma.space.findFirst({
       select: { id: true, ownerId: true, visibility: true },
       where: { id: spaceId, workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
     });
     if (reachable === null) return null;
-    if (!canRenameSpace(role, reachable.visibility, reachable.ownerId, userId)) return null;
-    const space = await this.prisma.space.update({
-      data: { description },
-      select: spaceSelection,
-      where: { id: reachable.id },
-    });
-    return { ...space, icon: parseStoredPageIcon(space.icon) };
+    return canRenameSpace(role, reachable.visibility, reachable.ownerId, userId) ? reachable.id : null;
   }
 
   async updateIcon(
@@ -203,13 +203,13 @@ export class SpaceRepository implements SpaceRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<SpaceSummary | null> {
-    const accessibleSpaceId = await findAccessibleSpaceId(this.prisma, spaceId, workspaceId, userId, role);
-    if (accessibleSpaceId === null) return null;
+    const changeableId = await this.findChangeableSpaceId(spaceId, workspaceId, userId, role);
+    if (changeableId === null) return null;
     /** The mark handed back is the one just written, so it is not read out of the row only to be parsed again. */
     const space = await this.prisma.space.update({
-      data: { icon: toIconInput(icon) },
+      data: { icon: toPageIconInput(icon) },
       select: { description: true, id: true, name: true, order: true, ownerId: true, slug: true, visibility: true },
-      where: { id: accessibleSpaceId },
+      where: { id: changeableId },
     });
     return { ...space, icon };
   }

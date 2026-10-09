@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { installFetchMock } from '../../../../mocks/global-fetch.mock';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const fetchMock = mock(
@@ -18,19 +19,7 @@ mock.module('next/headers', () => ({
 }));
 mock.module('next-intl/server', () => ({ getLocale: async () => 'en' }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
@@ -53,7 +42,7 @@ describe('updateUserNameAction without a session', () => {
 
     const result = await updateUserNameAction({ name: 'Ana', userId });
 
-    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -73,7 +62,7 @@ describe('updateUserNameAction signed in as somebody who does not run the worksp
 
     const result = await updateUserNameAction({ name: 'Ana', userId });
 
-    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -102,7 +91,7 @@ describe('createUserAction without a session', () => {
 
     const result = await createUserAction({ email: 'ana@example.com', name: 'Ana', password: 'super-secret' });
 
-    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import type { PagePropertyType } from '@company-brain/shared';
-import { normalizeMcpCellValues, resolveMcpColumn } from '@/modules/mcp/lib/mcp.columns.lib';
+import {
+  hideMcpNames,
+  listMcpNames,
+  normalizeMcpCellValues,
+  resolveMcpColumn,
+} from '@/modules/mcp/lib/mcp.columns.lib';
 import type { McpColumn } from '@/modules/mcp/types/mcp.collections.types';
 
 const column = (
@@ -56,6 +61,7 @@ describe('normalizeMcpCellValues', () => {
         Listo: true,
       },
       people,
+      listMcpNames,
     );
 
     expect(normalized.getValue()).toEqual({
@@ -69,7 +75,7 @@ describe('normalizeMcpCellValues', () => {
   });
 
   it('takes a person by their id too, and null to empty a cell', () => {
-    expect(normalizeMcpCellValues(columns, { owner: 'u-2', status: null }, people).getValue()).toEqual({
+    expect(normalizeMcpCellValues(columns, { owner: 'u-2', status: null }, people, listMcpNames).getValue()).toEqual({
       owner: 'u-2',
       status: null,
     });
@@ -77,7 +83,7 @@ describe('normalizeMcpCellValues', () => {
 
   /** Guardar a medias un valor que no existe deja la fila en un estado que nadie pidió. */
   it('refuses an option the column does not have, and says which ones it has', () => {
-    const refused = normalizeMcpCellValues(columns, { Estado: 'Bloqueado' }, people);
+    const refused = normalizeMcpCellValues(columns, { Estado: 'Bloqueado' }, people, listMcpNames);
 
     expect(refused.isFail()).toBe(true);
     expect(refused.getError()).toContain('Bloqueado');
@@ -85,22 +91,42 @@ describe('normalizeMcpCellValues', () => {
   });
 
   it('refuses a column the collection does not have, and says which ones it has', () => {
-    const refused = normalizeMcpCellValues(columns, { Prioridad: 'Alta' }, people);
+    const refused = normalizeMcpCellValues(columns, { Prioridad: 'Alta' }, people, listMcpNames);
 
     expect(refused.getError()).toContain('Prioridad');
     expect(refused.getError()).toContain('Estado (status)');
   });
 
+  /** Escribir no da derecho a leer: el rechazo no cuenta qué columnas ni qué opciones hay. */
+  it('refuses without naming what there is when the names are kept from the agent', () => {
+    const noColumn = normalizeMcpCellValues(columns, { Prioridad: 'Alta' }, people, hideMcpNames);
+    const noOption = normalizeMcpCellValues(columns, { Estado: 'Bloqueado' }, people, hideMcpNames);
+
+    expect(noColumn.getError()).toBe('The collection has no column "Prioridad".');
+    expect(noOption.getError()).toBe('Estado has no option "Bloqueado".');
+  });
+
   it('refuses a person who is not in the workspace', () => {
-    expect(normalizeMcpCellValues(columns, { owner: 'Nadie' }, people).getError()).toContain('Nadie');
+    expect(normalizeMcpCellValues(columns, { owner: 'Nadie' }, people, listMcpNames).getError()).toContain('Nadie');
+  });
+
+  /** Dos personas con el mismo nombre: elegir una al azar dejaría la tarea a nombre de quien no era. */
+  it('refuses a name two people share, asking for the person by id, and takes either by id', () => {
+    const namesakes = [...people, { id: 'u-3', name: 'Ana Pérez' }];
+
+    const byName = normalizeMcpCellValues(columns, { owner: 'ana pérez' }, namesakes, listMcpNames);
+    const byId = normalizeMcpCellValues(columns, { owner: 'u-3' }, namesakes, listMcpNames);
+
+    expect(byName.getError()).toContain('more than one person called "ana pérez"');
+    expect(byId.getValue()).toEqual({ owner: 'u-3' });
   });
 
   it('refuses the title as a property, since the title is set on its own', () => {
-    expect(normalizeMcpCellValues(columns, { Título: 'Otro' }, people).getError()).toContain('title');
+    expect(normalizeMcpCellValues(columns, { Título: 'Otro' }, people, listMcpNames).getError()).toContain('title');
   });
 
   it('refuses a date that is not a calendar day, and a number that is not one', () => {
-    expect(normalizeMcpCellValues(columns, { due: 'mañana' }, people).isFail()).toBe(true);
-    expect(normalizeMcpCellValues(columns, { hours: 'ocho' }, people).isFail()).toBe(true);
+    expect(normalizeMcpCellValues(columns, { due: 'mañana' }, people, listMcpNames).isFail()).toBe(true);
+    expect(normalizeMcpCellValues(columns, { hours: 'ocho' }, people, listMcpNames).isFail()).toBe(true);
   });
 });

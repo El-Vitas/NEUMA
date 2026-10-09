@@ -42,6 +42,12 @@ export const accessTokenAccessSchema = z
     pages: z.array(pageGrantSchema).max(ACCESS_TOKEN_PAGE_GRANT_LIMIT),
     spaces: z.array(spaceGrantSchema).max(ACCESS_TOKEN_SPACE_GRANT_LIMIT),
   })
-  .refine((access) => namesEachOnce(access.spaces.map((grant) => grant.spaceId)))
-  .refine((access) => namesEachOnce(access.pages.map((grant) => grant.pageId)))
-  .refine(hasAccessTokenAnyPermission);
+  .refine((access) => namesEachOnce(access.spaces.map((grant) => grant.spaceId)), {
+    message: 'Each space can have only one rule.',
+    path: ['spaces'],
+  })
+  .refine((access) => namesEachOnce(access.pages.map((grant) => grant.pageId)), {
+    message: 'Each page can have only one rule.',
+    path: ['pages'],
+  })
+  .refine(hasAccessTokenAnyPermission, { message: 'The token must give at least one permission somewhere.' });

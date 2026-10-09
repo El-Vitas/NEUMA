@@ -1,8 +1,16 @@
 /** Cuánto puede medir el nombre de un token de acceso. Lo validan el portal y el servidor. */
 export const ACCESS_TOKEN_NAME_MAX_LENGTH = 80;
 
-/** Cualquier carácter de control: saltos de línea, tabuladores, escapes de terminal, el nulo. */
-export const ACCESS_TOKEN_NAME_CONTROL_CHARACTERS = /\p{Cc}/u;
+/**
+ * Cualquier carácter de control o invisible: saltos de línea, tabuladores,
+ * escapes de terminal, el nulo, y los que cambian la dirección del texto o no
+ * ocupan lugar, con los que un nombre se haría pasar por otro en la lista. El
+ * que une los emojis compuestos (U+200D) se deja solo entre dos emojis, porque
+ * ahí es parte de uno; entre letras no une nada y sirve para lo mismo que los
+ * demás. Antes de él puede ir el tono de piel o el selector que pide el dibujo.
+ */
+export const ACCESS_TOKEN_NAME_CONTROL_CHARACTERS =
+  /(?!\u{200D})[\p{Cc}\p{Cf}]|(?<![\p{Extended_Pictographic}\p{Emoji_Modifier}\u{FE0F}])\u{200D}|\u{200D}(?!\p{Extended_Pictographic})/u;
 
 /** Una tanda de espacios, que para comparar nombres cuenta como uno solo. */
 export const ACCESS_TOKEN_NAME_WHITESPACE_RUN = /\s+/gu;
@@ -42,15 +50,6 @@ export const ACCESS_TOKEN_PERMISSION_VALUES = [
   ACCESS_TOKEN_PERMISSIONS.pagesTrash,
   ACCESS_TOKEN_PERMISSIONS.pagesManage,
   ACCESS_TOKEN_PERMISSIONS.collectionsRead,
-  ACCESS_TOKEN_PERMISSIONS.collectionsWrite,
-  ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
-] as const;
-
-/** Los permisos que cambian algo. Solo puede darlos quien puede escribir. */
-export const ACCESS_TOKEN_WRITE_PERMISSIONS = [
-  ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-  ACCESS_TOKEN_PERMISSIONS.pagesTrash,
-  ACCESS_TOKEN_PERMISSIONS.pagesManage,
   ACCESS_TOKEN_PERMISSIONS.collectionsWrite,
   ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
 ] as const;

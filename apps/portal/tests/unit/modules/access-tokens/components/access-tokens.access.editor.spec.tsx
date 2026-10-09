@@ -4,14 +4,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { AccessTokenSpaceOption } from '@/modules/access-tokens/types/access-tokens.types';
 import en from '../../../../../messages/en.json';
+import { createAccessTokensActionsMock } from '../../../../mocks/access-tokens.actions.mock';
 
-mock.module('@/modules/access-tokens/server/actions/access-tokens.actions', () => ({
-  createAccessTokenAction: mock(async () => ({ data: undefined })),
-  revokeAccessTokenAction: mock(async () => ({ data: undefined })),
-  revokeWorkspaceAccessTokenAction: mock(async () => ({ data: undefined })),
-  searchGrantablePagesAction: mock(async () => ({ data: [] })),
-  updateAccessTokenAccessAction: mock(async () => ({ data: undefined })),
-}));
+mock.module('@/modules/access-tokens/server/actions/access-tokens.actions', () => createAccessTokensActionsMock());
 
 const { AccessTokensAccessEditor } = await import('@/modules/access-tokens/components/access-tokens.access.editor');
 const { useAccessTokensDraft } = await import('@/modules/access-tokens/hooks/use.access-tokens.draft');

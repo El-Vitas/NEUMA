@@ -75,13 +75,10 @@ export class OutboxRepository implements OutboxEventContract {
     error: unknown,
     nextAttemptAt: Date,
   ): Promise<void> {
-    const event = await this.prisma.outboxEvent.findUnique({ select: { payload: true }, where: { id } });
-    if (event === null) return;
-    await this.prisma.outboxEvent.update({
+    await this.prisma.outboxEvent.updateMany({
       data: {
         nextAttemptAt,
         lastError: { message: safeErrorMessage(error), recordedAt: new Date().toISOString() },
-        payload: event.payload ?? Prisma.JsonNull,
         status,
       },
       where: { id },

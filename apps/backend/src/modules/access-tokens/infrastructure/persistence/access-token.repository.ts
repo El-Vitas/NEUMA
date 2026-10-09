@@ -3,6 +3,7 @@ import type { AccessTokenAccess, UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { ACCESS_TOKEN_LAST_USED_RESOLUTION_MS } from '../../constants/access-tokens.constants';
 import type {
   AccessTokenCreation,
   AccessTokenOwner,
@@ -197,7 +198,15 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     return revoked.count > 0;
   }
 
+  /**
+   * Anota el último uso, solo si el anotado ya es viejo: varias llamadas del
+   * mismo agente en el mismo minuto escriben una vez, no una por llamada.
+   */
   async touch(tokenId: string, now: Date): Promise<void> {
-    await this.prisma.accessToken.update({ data: { lastUsedAt: now }, where: { id: tokenId } });
+    const stale = new Date(now.getTime() - ACCESS_TOKEN_LAST_USED_RESOLUTION_MS);
+    await this.prisma.accessToken.updateMany({
+      data: { lastUsedAt: now },
+      where: { id: tokenId, OR: [{ lastUsedAt: null }, { lastUsedAt: { lt: stale } }] },
+    });
   }
 }

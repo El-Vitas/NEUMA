@@ -6,11 +6,10 @@ import {
   pageContentSchema,
 } from '../schemas/page-content.schema.js';
 import {
-  PAGE_DOCUMENT_LEAF_NODES,
   PAGE_DOCUMENT_ONLY_WHEN_BEYOND_ONE_ATTRIBUTES,
   PAGE_DOCUMENT_ONLY_WHEN_TRUE_ATTRIBUTES,
 } from './page-document.constants.js';
-import { PAGE_DOCUMENT_UNSUPPORTED_NODE } from './page-document.structure.js';
+import { PAGE_DOCUMENT_LEAF_NODES, PAGE_DOCUMENT_UNSUPPORTED_NODE } from './page-document.structure.js';
 
 const isJsonObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -47,11 +46,23 @@ export const holdPageContentThisVersionCannotRead = (content: PageContent): Page
   content: [...holdUnknownBlocks(content.content)],
 });
 
-/** Lo que el marcador guardaba, sacado de vuelta. */
+/**
+ * Un texto leído como JSON, o nada si no lo es. El marcador lo llena quien
+ * edita la página, así que puede llegar roto, y eso no puede impedir guardarla.
+ */
+const parseJsonText = (source: string): unknown => {
+  try {
+    return JSON.parse(source);
+  } catch {
+    return null;
+  }
+};
+
+/** Lo que el marcador guardaba, sacado de vuelta; si lo que guardaba no se lee, el marcador se queda como está. */
 const releaseUnknownBlock = (node: Record<string, unknown>): Record<string, unknown> => {
   const source = isJsonObject(node.attrs) ? node.attrs.source : null;
   if (typeof source !== 'string') return node;
-  const original: unknown = JSON.parse(source);
+  const original = parseJsonText(source);
   return isJsonObject(original) ? original : node;
 };
 

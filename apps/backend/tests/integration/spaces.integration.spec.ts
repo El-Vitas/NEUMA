@@ -405,6 +405,40 @@ describe('Private Spaces (Integration)', () => {
     expect(outsiderSpaces.some((space) => space.id === privateSpace.id)).toBe(false);
   });
 
+  /** La marca de un espacio privado es de quien lo nombra: compartirlo deja leerlo, no cambiarle la cara. */
+  it('lets a person a private space was shared with read it, but not change its name or its mark', async () => {
+    const prisma = testApp.get(PrismaService);
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+    await shareSpace(testApp, ownerToken, privateSpace.id, sharedMemberUserId);
+    const workerSessionOf = async (userId: string): Promise<string> => {
+      const { email } = await prisma.user.update({
+        data: { role: 'WORKER' },
+        select: { email: true },
+        where: { id: userId },
+      });
+      return (await loginUser(testApp, email, 'plainPassword123')).accessToken;
+    };
+    const space = await prisma.space.findUniqueOrThrow({ select: { ownerId: true }, where: { id: privateSpace.id } });
+    const [owner, member] = await Promise.all([
+      workerSessionOf(space.ownerId ?? ''),
+      workerSessionOf(sharedMemberUserId),
+    ]);
+    const markAs = (token: string) =>
+      request(testApp.getServer())
+        .patch(`/api/v1/spaces/${privateSpace.id}/icon`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ icon: { kind: 'emoji', value: '🙈' } });
+
+    await renameSpace(testApp, member, privateSpace.id, 'Ajeno').expect(403);
+    const markedByMember = await markAs(member);
+
+    expect(markedByMember.status).toBeGreaterThanOrEqual(400);
+    const stored = await prisma.space.findUniqueOrThrow({ select: { icon: true }, where: { id: privateSpace.id } });
+    expect(JSON.stringify(stored.icon)).not.toContain('🙈');
+    await markAs(owner).expect(200);
+  });
+
   it('rejects unauthenticated requests to list what was shared', async () => {
     await request(testApp.getServer()).get('/api/v1/spaces/shared-with-me').expect(401);
   });

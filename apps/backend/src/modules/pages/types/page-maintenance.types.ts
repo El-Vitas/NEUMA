@@ -1,5 +1,6 @@
 import type { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
+import type { PageContent, UserRole } from '@company-brain/shared';
+import type { PageContentStoreOutcome } from './page.types';
 
 /** Quién pide el mantenimiento, y de qué espacio de trabajo. */
 export interface PageMaintenanceViewer {
@@ -25,6 +26,15 @@ export interface PageBlocksFillOutcome {
   readonly pagesReindexed: number;
   /** Páginas guardadas en una forma que esta versión no lee; se dejan como están. */
   readonly unreadablePages: number;
+}
+
+/** Guardar lo que dice una página por el mismo camino que un cambio cualquiera, que ya avisa a la búsqueda. */
+export interface PageCollaborativeContentStore {
+  readonly storeCollaborativeContent: (
+    pageId: string,
+    userId: string,
+    content: PageContent,
+  ) => Promise<PageContentStoreOutcome>;
 }
 
 export interface PageMaintenanceRepositoryContract {

@@ -108,7 +108,7 @@ export const PagesHeader = ({
           />
           {pageId !== null && <PagesHeaderLinkButton pageId={pageId} spaceId={spaceId} />}
           {pageId !== null && isFavorite !== undefined && (
-            <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} spaceId={spaceId} title={title} />
+            <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} title={title} />
           )}
           {trashControl}
         </div>

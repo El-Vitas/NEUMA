@@ -142,7 +142,7 @@ const writeButton = (input: McpButtonBlockInput): Result<McpBuiltNode, string> =
 
 /** Una tarjeta de enlace con las palabras que puso el agente: nadie visita el enlace para buscarlas. */
 const writeBookmark = (input: McpBookmarkBlockInput): Result<McpBuiltNode, string> => {
-  if (!MCP_BOOKMARK_PROTOCOLS.includes(new URL(input.url).protocol))
+  if (!URL.canParse(input.url) || !MCP_BOOKMARK_PROTOCOLS.includes(new URL(input.url).protocol))
     return Result.fail(`"${input.url}" is not a web address: a link card takes an http or https link.`);
   const words = {
     ...(input.description === undefined ? {} : { description: input.description }),
@@ -226,8 +226,10 @@ const writeBlock = (input: McpBlockInput): Result<McpBuiltNode, string> => {
       return writeCollection(input);
     case 'button':
       return writeButton(input);
-    default:
+    case 'toggle':
       return writeHolder('toggle', input.text ?? '', { summary: input.summary });
+    default:
+      return input satisfies never;
   }
 };
 

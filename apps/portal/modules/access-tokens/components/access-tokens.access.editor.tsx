@@ -7,6 +7,7 @@ import { useId } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { ACCESS_TOKEN_UNNAMED_TARGET_MESSAGE_KEYS } from '../constants/access-tokens.constants';
 import {
+  canAddDraftRow,
   findNewRowTarget,
   listAvailableTargetKinds,
   listGrantableLevels,
@@ -74,6 +75,7 @@ export const AccessTokensAccessEditor = ({ draft, role, spaces }: IProps) => {
       </ul>
       <Button
         className="min-h-11"
+        disabled={!canAddDraftRow(draft.rows)}
         onClick={() => draft.addRow(findNewRowTarget(draft.rows, spaces))}
         type="button"
         variant="outline"

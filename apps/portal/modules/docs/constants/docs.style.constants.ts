@@ -1,4 +1,5 @@
 import { DIAGRAM_MENDED_STYLE_CLASS } from '@/shared/constants/diagram.constants';
+import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 
 /** How wide a sampled picture is shown, and the square one is drawn in when its book does not say. */
 export const DOCS_ICON_SIZE = 32;
@@ -42,8 +43,10 @@ export const DOCS_DRAWING_STYLE_CLASS = [
  * never on top of it — a drawing writes its own title up there.
  */
 export const DOCS_SIZE_BUTTON_STYLE_CLASS = [
+  'inline-flex min-h-11 min-w-11 items-center justify-center',
   'border border-border bg-surface px-2 py-1 text-muted-foreground text-xs',
   'transition-colors hover:text-foreground',
+  FOCUS_RING_CLASS,
 ].join(' ');
 
 /** How big the marks on the zoom buttons of an example are drawn, in pixels. */

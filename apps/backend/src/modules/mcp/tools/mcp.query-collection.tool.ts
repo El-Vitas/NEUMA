@@ -1,8 +1,15 @@
 import type { Prisma } from '@company-brain/db/generated';
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
+import { readMcpOffset } from '../lib/mcp.address.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import { canMcpActOnRow, describeMcpRow, openMcpCollection, requireMcpView } from '../lib/mcp.collections.lib';
+import {
+  canMcpActOnRow,
+  describeMcpRow,
+  openMcpCollection,
+  readMcpColumnsInHand,
+  requireMcpView,
+} from '../lib/mcp.collections.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
@@ -28,7 +35,7 @@ const buildQueryConfiguration = (
     ...(input.sort === undefined ? {} : { sort: input.sort }),
     ...(input.where === undefined ? {} : { where: input.where }),
   };
-  return requireMcpInput(buildMcpViewConfiguration(collection.shape.properties, shape, people, base));
+  return requireMcpInput(buildMcpViewConfiguration(readMcpColumnsInHand(collection), shape, people, base));
 };
 
 const formatQueryText = (output: McpQueryCollectionOutput): string => {
@@ -38,7 +45,7 @@ const formatQueryText = (output: McpQueryCollectionOutput): string => {
       ? ''
       : `\n${String(output.total)} rows match; read the rest with cursor ${output.nextCursor}.`;
   const truncated = output.truncated
-    ? '\nThe collection holds more rows than Company Brain reads at once; narrow the query with where to reach the rest.'
+    ? '\nThe collection is larger than one query looks through: only its first rows, in the collection’s order, were searched. Rows further down may also match.'
     : '';
   return `${output.rows.map(formatMcpRowText).join('\n')}${more}${truncated}`;
 };
@@ -86,7 +93,7 @@ export const queryCollectionTool: McpToolDefinition = {
             const readable = found.rows.filter((row) =>
               canMcpActOnRow(call, collection, row.id, ACCESS_TOKEN_PERMISSIONS.collectionsRead),
             );
-            const start = input.cursor === undefined ? 0 : Number(input.cursor);
+            const start = readMcpOffset(input.cursor);
             const end = start + input.limit;
             return queryCollectionOutputSchema.parse({
               ...(end < readable.length ? { nextCursor: String(end) } : {}),

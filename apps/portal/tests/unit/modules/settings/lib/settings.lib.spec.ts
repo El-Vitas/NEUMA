@@ -18,15 +18,16 @@ describe('listSettingsNavItems', () => {
 });
 
 describe('isSettingsNavItemActive', () => {
+  /** La ruta llega sin el idioma, como la entrega la navegación del portal. */
   it('marks the section of the page being looked at, including the pages inside it', () => {
-    expect(isSettingsNavItemActive('/es/settings/tokens', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(true);
-    expect(isSettingsNavItemActive('/es/settings/tokens/new', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(true);
     expect(isSettingsNavItemActive('/settings/tokens', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(true);
+    expect(isSettingsNavItemActive('/settings/tokens/new', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(true);
   });
 
   /** «tokens» es el comienzo de «tokens-…»: una sección no se enciende por compartir el principio del nombre. */
-  it('does not mark a section whose name only starts the same', () => {
-    expect(isSettingsNavItemActive('/es/settings/workspace-tokens', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(false);
-    expect(isSettingsNavItemActive('/es/settings/tokens-old', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(false);
+  it('does not mark a section whose name only starts the same, nor one that only holds it further down', () => {
+    expect(isSettingsNavItemActive('/settings/workspace-tokens', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(false);
+    expect(isSettingsNavItemActive('/settings/tokens-old', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(false);
+    expect(isSettingsNavItemActive('/spaces/a/settings/tokens', ROUTES.PORTAL_SETTINGS_TOKENS)).toBe(false);
   });
 });

@@ -54,6 +54,12 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     return this.gateway.authorizeUpdate(context, documentName, update);
   }
 
+  authorizeMessage(
+    ...message: Parameters<CollaborationGatewayContract['authorizeMessage']>
+  ): ReturnType<CollaborationGatewayContract['authorizeMessage']> {
+    return this.gateway.authorizeMessage(...message);
+  }
+
   shutdown(): Promise<void> {
     return this.gateway.shutdown();
   }

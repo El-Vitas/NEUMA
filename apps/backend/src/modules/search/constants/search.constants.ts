@@ -1,5 +1,9 @@
 export const SEARCH_TRIGRAM_THRESHOLD = 0.18;
 
+/** Los umbrales de pg_trgm que usan sus operadores `%` y `<<%`, los que el índice de trigramas sabe atender. */
+export const SEARCH_SIMILARITY_SETTING = 'pg_trgm.similarity_threshold';
+export const SEARCH_STRICT_WORD_SIMILARITY_SETTING = 'pg_trgm.strict_word_similarity_threshold';
+
 /**
  * Qué tan parecida tiene que ser una palabra buscada a una palabra entera del
  * bloque para contar como un error de tipeo.

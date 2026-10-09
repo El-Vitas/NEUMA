@@ -44,6 +44,12 @@ export interface AccessTokenCreationLimits {
   readonly maximumLive: number;
 }
 
+/** Lo que el servicio de tokens necesita de un logger: contar un hecho o un error con sus campos. Lo cumple Pino. */
+export interface AccessTokenLogger {
+  readonly error: (fields: Record<string, unknown>, message: string) => void;
+  readonly info: (fields: Record<string, unknown>, message: string) => void;
+}
+
 export interface AccessTokenRepositoryContract {
   /** Cuántos de estos espacios ve la persona. Si son menos que los pedidos, pidió alguno que no ve. */
   readonly countAccessibleSpaces: (

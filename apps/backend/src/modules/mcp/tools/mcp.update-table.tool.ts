@@ -1,7 +1,7 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';
 import {
   describeMcpWrittenBlocks,
@@ -10,10 +10,22 @@ import {
   writeMcpContent,
 } from '../lib/mcp.page-writes.lib';
 import { editMcpTable } from '../lib/mcp.tables.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { updateTableInputSchema, writtenBlocksOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpTableChange, McpUpdateTableInput } from '../types/mcp.pages.types';
-import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type { McpTableChange, McpUpdateTableInput, McpWrittenBlocksOutput } from '../types/mcp.pages.types';
+import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+/** Reparte los párrafos de las filas nuevas, que vienen en fila uno detrás del otro, en una lista por fila. */
+const splitIntoRows = <TParagraph>(
+  paragraphs: readonly TParagraph[],
+  rows: readonly (readonly string[])[],
+): TParagraph[][] =>
+  rows.reduce<{ readonly at: number; readonly rows: TParagraph[][] }>(
+    (split, row) => ({
+      at: split.at + row.length,
+      rows: [...split.rows, paragraphs.slice(split.at, split.at + row.length)],
+    }),
+    { at: 0, rows: [] },
+  ).rows;
 
 /**
  * Los párrafos de todo lo que se escribe en la tabla, armados de una vez y
@@ -32,16 +44,34 @@ const prepareChange = async (
     ...cells.map((cell) => cell.text),
     ...addRows.flat(),
   ]);
-  let next = cells.length;
   return {
-    addRows: addRows.map((row) => {
-      const taken = paragraphs.slice(next, next + row.length);
-      next += row.length;
-      return taken;
-    }),
+    addRows: splitIntoRows(paragraphs.slice(cells.length), addRows),
     cells: cells.map((cell, index) => ({ column: cell.column, paragraph: paragraphs[index], row: cell.row })),
     deleteRows: input.deleteRows ?? [],
   };
+};
+
+const updateTable = async (
+  dependencies: McpServerDependencies,
+  input: McpUpdateTableInput,
+  { call, record }: McpWriteSession,
+): Promise<McpWrittenBlocksOutput> => {
+  const opened = await openMcpPage(dependencies, call, readMcpPageId(input.page), ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  const change = await prepareChange(dependencies, call, input);
+  const request = {
+    blockIds: [input.table],
+    detail: {
+      addedRows: change.addRows?.length ?? 0,
+      changedCells: change.cells?.length ?? 0,
+      deletedRows: change.deleteRows?.length ?? 0,
+    },
+    pageId: opened.page.id,
+    tool: MCP_TOOL_NAMES.updateTable,
+  };
+  const content = await record(request, () =>
+    writeMcpContent(dependencies, call, opened.page, editMcpTable(input.table, change)),
+  );
+  return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.table]);
 };
 
 /**
@@ -61,33 +91,10 @@ export const updateTableTool: McpToolDefinition = {
         outputSchema: writtenBlocksOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.updateTable,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesWrite,
-            );
-            const change = await prepareChange(dependencies, call, input);
-            const request = {
-              blockIds: [input.table],
-              detail: {
-                addedRows: change.addRows?.length ?? 0,
-                changedCells: change.cells?.length ?? 0,
-                deletedRows: change.deleteRows?.length ?? 0,
-              },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.updateTable,
-            };
-            const content = await recordMcpWrite(dependencies, call, request, () =>
-              writeMcpContent(dependencies, call, page, editMcpTable(input.table, change)),
-            );
-            return describeMcpWrittenBlocks(dependencies, call, page, content, [input.table]);
-          },
+          { target: input.page, tool: MCP_TOOL_NAMES.updateTable },
+          (session) => updateTable(dependencies, input, session),
           formatMcpWrittenBlocksText,
         ),
     );

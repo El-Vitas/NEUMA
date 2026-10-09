@@ -20,9 +20,10 @@ interface IProps {
  */
 export const DocsDiagramZoom = ({ onActualSize, onFit, onZoomIn, onZoomOut, zoom }: IProps) => {
   const t = useTranslations('docs');
+  const shown = `${String(Math.round(zoom * DIAGRAM_ZOOM_PERCENT))} %`;
 
   return (
-    <div className="flex justify-end gap-1">
+    <fieldset aria-label={t('drawingTools')} className="m-0 flex min-w-0 justify-end gap-1 border-0 p-0">
       <button
         aria-label={t('drawingZoomOut')}
         className={DOCS_SIZE_BUTTON_STYLE_CLASS}
@@ -32,13 +33,13 @@ export const DocsDiagramZoom = ({ onActualSize, onFit, onZoomIn, onZoomOut, zoom
         <ZoomOut aria-hidden size={DOCS_ZOOM_ICON_SIZE} />
       </button>
       <button
-        aria-label={t('drawingActualSize')}
+        aria-label={`${shown}, ${t('drawingActualSize')}`}
         className={`${DOCS_SIZE_BUTTON_STYLE_CLASS} min-w-14 tabular-nums`}
         onClick={onActualSize}
         title={t('drawingActualSize')}
         type="button"
       >
-        {`${String(Math.round(zoom * DIAGRAM_ZOOM_PERCENT))} %`}
+        {shown}
       </button>
       <button aria-label={t('drawingZoomIn')} className={DOCS_SIZE_BUTTON_STYLE_CLASS} onClick={onZoomIn} type="button">
         <ZoomIn aria-hidden size={DOCS_ZOOM_ICON_SIZE} />
@@ -52,6 +53,6 @@ export const DocsDiagramZoom = ({ onActualSize, onFit, onZoomIn, onZoomOut, zoom
       >
         <Scan aria-hidden size={DOCS_ZOOM_ICON_SIZE} />
       </button>
-    </div>
+    </fieldset>
   );
 };

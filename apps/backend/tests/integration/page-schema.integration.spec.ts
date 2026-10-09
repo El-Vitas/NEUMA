@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@company-brain/db';
-import type { PageContent } from '@company-brain/shared';
+import { type PageContent, USER_ROLE } from '@company-brain/shared';
 import request from 'supertest';
 import { COLLECTION_ROW_LIMIT } from '@/modules/pages/constants/pages.constants';
+import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
@@ -177,6 +178,39 @@ describe('Page Schema (Integration)', () => {
       const schema = readResponse.body as PageSchemaResponse;
       expect(schema.pageId).toBe(collection.id);
       expect(schema.properties.map((property) => property.key)).toEqual(['title', 'status']);
+    });
+
+    /**
+     * Quien guarda la forma entera a partir de lo que leyó no puede borrar lo
+     * que otra persona cambió entre que leyó y guardó: si la forma ya no es la
+     * que leyó, no se guarda y se le dice.
+     */
+    it('refuses to save a whole shape over one that changed since it was read, and keeps the newer one', async () => {
+      const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Concurrida');
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
+      const service = testApp.get(PageSchemaService);
+      const workspace = await testApp.get(PrismaService).workspace.findFirstOrThrow({ select: { id: true } });
+      const asAdmin = { pageId: collection.id, role: USER_ROLE.ADMIN, userId: adminUserId, workspaceId: workspace.id };
+      const read = (await service.getSchema(collection.id, workspace.id, adminUserId, USER_ROLE.ADMIN)).getValue();
+      await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
+        201,
+      );
+
+      const saved = await service.defineSchema({
+        ...asAdmin,
+        properties: [
+          ...read.properties,
+          { key: 'other', label: 'Other', options: null, required: false, type: DatabasePropertyType.RICH_TEXT },
+        ],
+        readShape: read,
+        views: read.views,
+      });
+
+      expect(saved.isFail()).toBe(true);
+      expect(saved.getError().code).toBe('PAGE_SCHEMA_CHANGED');
+      const kept = (await getSchema(testApp, adminToken, sharedSpaceId, collection.id).expect(200))
+        .body as PageSchemaResponse;
+      expect(kept.properties.map((property) => property.key)).toEqual(['title', 'status']);
     });
 
     it('rejects a schema definition missing its single TITLE property', async () => {
@@ -555,6 +589,39 @@ describe('Page Schema (Integration)', () => {
       ).expect(201);
 
       await getView(testApp, outsiderToken, secretSpaceId, collection.id, 'Table').expect(403);
+    });
+  });
+
+  describe('lo asignado a una persona', () => {
+    const ownerProperty = {
+      key: 'owner',
+      label: 'Owner',
+      options: null,
+      required: false,
+      type: DatabasePropertyType.PERSON,
+    };
+
+    /** Cada colección dice cuál de sus columnas nombra personas; una fila es de quien esa columna nombra. */
+    it('lists the rows of every collection that name the person in a column of people', async () => {
+      const tasks = await createPage(testApp, adminToken, sharedSpaceId, 'Tareas asignables');
+      const bugs = await createPage(testApp, adminToken, sharedSpaceId, 'Errores asignables');
+      await defineSchema(testApp, adminToken, sharedSpaceId, tasks.id, [titleProperty, ownerProperty]).expect(201);
+      await defineSchema(testApp, adminToken, sharedSpaceId, bugs.id, [titleProperty, ownerProperty]).expect(201);
+      const mine = await createPage(testApp, adminToken, sharedSpaceId, 'Mía', tasks.id, { owner: adminUserId });
+      const alsoMine = await createPage(testApp, adminToken, sharedSpaceId, 'También mía', bugs.id, {
+        owner: adminUserId,
+      });
+      await createPage(testApp, adminToken, sharedSpaceId, 'De nadie', tasks.id, {});
+
+      const response = await request(testApp.getServer())
+        .get('/api/v1/pages/assigned')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const ids = (response.body as PageResponse[]).map((page) => page.id);
+      expect(ids).toContain(mine.id);
+      expect(ids).toContain(alsoMine.id);
+      expect(ids.filter((id) => id === mine.id || id === alsoMine.id)).toHaveLength(2);
     });
   });
 });

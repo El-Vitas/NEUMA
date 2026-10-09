@@ -23,9 +23,10 @@ const namePerson = (person: { readonly id: string; readonly name: string } | nul
 
 const describeVerification = (verification: McpPageState['verification']): string => {
   const { by, on, status, until } = verification;
+  const validUntil = until === null ? '' : `, valid until ${until}`;
   switch (status) {
     case 'VERIFIED':
-      return `Verified by ${namePerson(by)} on ${on ?? '?'}${until === null ? '' : `, valid until ${until}`}.`;
+      return `Verified by ${namePerson(by)} on ${on ?? '?'}${validUntil}.`;
     case 'EXPIRED':
       return `Verification expired on ${until ?? '?'} (${namePerson(by)} vouched for it on ${on ?? '?'}): it may be out of date.`;
     default:

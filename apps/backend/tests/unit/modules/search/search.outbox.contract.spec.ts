@@ -32,7 +32,6 @@ describe('search outbox projection contract', () => {
     expect(source).toContain('lastError');
     expect(constants).toContain("OUTBOX_ERROR_REDACTION_LABEL = 'removed'");
     expect(source).toContain('OUTBOX_ERROR_REDACTION_LABEL');
-    expect(source).toContain('payload: event.payload');
   });
 
   test('defines durable lastError storage for outbox failures', () => {

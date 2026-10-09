@@ -4,6 +4,7 @@ import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
+import { copyTextToClipboard } from '@/shared/lib/clipboard.lib';
 
 interface IProps {
   readonly label: string;
@@ -14,11 +15,9 @@ interface IProps {
 export const AccessTokensCopyButton = ({ label, text }: IProps) => {
   const t = useTranslations('accessTokens');
 
-  const copy = (): void => {
-    void navigator.clipboard
-      .writeText(text)
-      .then(() => toast.success(t('secret.copied')))
-      .catch(() => toast.error(t('secret.copyError')));
+  const copy = async (): Promise<void> => {
+    if (await copyTextToClipboard(text)) toast.success(t('secret.copied'));
+    else toast.error(t('secret.copyError'));
   };
 
   return (

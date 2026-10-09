@@ -1,18 +1,17 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import { describeMcpRow, openMcpCollection } from '../lib/mcp.collections.lib';
+import { describeMcpRowAsSeen, openMcpCollection, readMcpRowPlace } from '../lib/mcp.collections.lib';
 import { keepFilledMcpCells, normalizeMcpCellValues } from '../lib/mcp.columns.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { buildMcpRowContent } from '../lib/mcp.row-content.lib';
-import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { createRowInputSchema, rowOutputSchema } from '../schemas/mcp.collections.schemas';
-import type { McpCreateRowInput, McpOpenCollection, McpWrittenRow } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
+import type { McpCreateRowInput, McpOpenCollection, McpRowOutput, McpWrittenRow } from '../types/mcp.collections.types';
+import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
 /** Crea la fila por el mismo servicio que usa el portal: las mismas validaciones y el mismo lugar en la colección. */
-const createRow = async (
+const writeRow = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
@@ -20,23 +19,45 @@ const createRow = async (
   input: McpCreateRowInput,
 ): Promise<McpWrittenRow> => {
   const { principal, workspace } = call;
-  const values = requireMcpInput(normalizeMcpCellValues(collection.shape.properties, input.properties ?? {}, people));
-  return requireMcpSuccess(
-    await dependencies.rows.create(
-      {
-        content: buildMcpRowContent(input.text),
-        createdById: principal.userId,
-        parentId: collection.id,
-        propertyValues: keepFilledMcpCells(values),
-        role: principal.role,
-        spaceId: collection.spaceId,
-        title: input.title,
-        userId: principal.userId,
-        workspaceId: workspace.id,
-      },
-      principal.role,
-    ),
+  const values = requireMcpInput(
+    normalizeMcpCellValues(collection.shape.properties, input.properties ?? {}, people, collection.listNames),
   );
+  return requireMcpSuccess(
+    await dependencies.rows.create({
+      content: buildMcpRowContent(input.text),
+      parentId: collection.id,
+      propertyValues: keepFilledMcpCells(values),
+      role: principal.role,
+      spaceId: collection.spaceId,
+      title: input.title,
+      userId: principal.userId,
+      workspaceId: workspace.id,
+    }),
+  );
+};
+
+const createRow = async (
+  dependencies: McpServerDependencies,
+  input: McpCreateRowInput,
+  { call, record }: McpWriteSession,
+): Promise<McpRowOutput> => {
+  const [collection, people] = await Promise.all([
+    openMcpCollection(dependencies, call, input.collection, ACCESS_TOKEN_PERMISSIONS.collectionsWrite),
+    dependencies.people.listAssignableMembers(call.workspace.id),
+  ]);
+  const request = {
+    blockIds: [],
+    detail: { collectionId: collection.id, columns: Object.keys(input.properties ?? {}), title: input.title },
+    pageId: collection.id,
+    tool: MCP_TOOL_NAMES.createRow,
+  };
+  const created = await record(
+    request,
+    () => writeRow(dependencies, call, collection, people, input),
+    (row) => row.id,
+  );
+  const seen = { place: readMcpRowPlace(collection, created.id), shape: collection.shape };
+  return rowOutputSchema.parse(describeMcpRowAsSeen(dependencies.portalUrl, call, seen, created, people));
 };
 
 /**
@@ -58,26 +79,10 @@ export const createRowTool: McpToolDefinition = {
         outputSchema: rowOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.createRow,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const [collection, people] = await Promise.all([
-              openMcpCollection(dependencies, call, input.collection, ACCESS_TOKEN_PERMISSIONS.collectionsWrite),
-              dependencies.people.listAssignableMembers(call.workspace.id),
-            ]);
-            const request = {
-              blockIds: [],
-              detail: { columns: Object.keys(input.properties ?? {}), title: input.title },
-              pageId: collection.id,
-              tool: MCP_TOOL_NAMES.createRow,
-            };
-            const created = await recordMcpWrite(dependencies, call, request, () =>
-              createRow(dependencies, call, collection, people, input),
-            );
-            return rowOutputSchema.parse(describeMcpRow(dependencies.portalUrl, collection.shape, created, people));
-          },
+          { requestId: input.requestId, target: input.collection, tool: MCP_TOOL_NAMES.createRow },
+          (session) => createRow(dependencies, input, session),
           (output) => `Row created.\n${formatMcpRowText(output)}`,
         ),
     );

@@ -1,6 +1,11 @@
 import { type CanActivate, type ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { ACCESS_TOKEN_PRINCIPAL_RESOLVER } from '../../constants/access-token.constants';
-import type { AccessTokenPrincipalResolver, AccessTokenRequest } from '../../types/access-token.types';
+import type {
+  AccessTokenPrincipalResolver,
+  AccessTokenRefusalLogger,
+  AccessTokenRequest,
+} from '../../types/access-token.types';
 import { readBearerToken } from '../../utils/auth.utils';
 
 /**
@@ -17,13 +22,22 @@ import { readBearerToken } from '../../utils/auth.utils';
 export class AccessTokenGuard implements CanActivate {
   constructor(
     @Inject(ACCESS_TOKEN_PRINCIPAL_RESOLVER) private readonly principalResolver: AccessTokenPrincipalResolver,
+    @Inject(PinoLogger) private readonly logger: AccessTokenRefusalLogger,
   ) {}
 
+  /**
+   * Un rechazo queda en el log, sin la llave ni nada de quien la trajo: alguien
+   * probando llaves o un agente con un token vencido que reintenta tienen que
+   * notarse.
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AccessTokenRequest>();
     const secret = readBearerToken(request.headers.authorization);
     const principal = secret === undefined ? null : await this.principalResolver.resolvePrincipal(secret);
-    if (principal === null) throw new UnauthorizedException('Token de acceso inválido');
+    if (principal === null) {
+      this.logger.warn({ offeredToken: secret !== undefined }, 'access token refused');
+      throw new UnauthorizedException('Token de acceso inválido');
+    }
     request.accessTokenPrincipal = principal;
     return true;
   }

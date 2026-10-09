@@ -29,6 +29,67 @@ rules:
         given: Una página en la papelera con una regla de página que cierra su lectura al token
         when: El agente lista la papelera
         then: Esa página no aparece
+  - id: BR-0db7699
+    status: active
+    title: Escribir no da derecho a leer
+    rule: >-
+      Cuando un agente escribe en un lugar que su token no deja leer, la respuesta confirma lo que hizo y le da los ids
+      de lo que escribió, pero no le devuelve el título ni lo que la página dice. Lo que una fila responde en sus
+      columnas pide además leer colecciones en ese lugar, aunque la fila se abra como página.
+    why: >-
+      Un token que solo escribe se da para dejar cosas, no para mirar. Si la respuesta a cada escritura trajera la
+      página escrita, bastaría con escribir algo para leerla entera, y el permiso de lectura no cerraría nada.
+    context: >-
+      Vale para las escrituras de bloques, de páginas y de filas. El aviso que recibe el agente le dice que no puede
+      leer lo escrito, para que no lo tome por un fallo.
+    scenarios:
+      - title: Un token que solo escribe
+        given: Un token que escribe en una página pero no la lee
+        when: El agente agrega un párrafo
+        then: Recibe el id del párrafo y la confirmación, sin el texto de la página ni su título
+      - title: Las columnas de una fila
+        given: Un token que lee páginas pero no colecciones
+        when: El agente abre una fila de un tablero
+        then: Lee lo que la fila dice como página, sin sus valores de columna
+  - id: BR-1779eb2
+    status: active
+    title: Límites, vencimiento y nombre de los tokens
+    rule: >-
+      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
+      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año, cualquier fecha
+      futura (vence cuando termina ese día, en la hora de quien la eligió) o sin vencimiento. Dos tokens vivos de la
+      misma persona no pueden llamarse igual, sin contar mayúsculas ni espacios de más, y el nombre no puede llevar
+      caracteres de control ni invisibles.
+    why: >-
+      El nombre es lo que se lee al revocar. Dos nombres que se leen igual, o uno que con un carácter invisible se lee
+      como otro, hacen revocar el token equivocado.
+    context: >-
+      El tope y el nombre se revisan en la misma transacción que guarda el token, con la fila de la persona tomada:
+      pedir dos a la vez no salta ninguno de los dos. El servidor rechaza un vencimiento que no sea después de ahora.
+      Las mayúsculas se comparan igual en el portal y en el servidor, sin depender del idioma de la máquina. El carácter
+      que une los emojis compuestos se acepta, porque es parte del emoji. Además de las 120 por token, una misma
+      dirección puede hacer como máximo 600 llamadas por minuto al MCP, así probar llaves también tiene tope.
+    supersedes: BR-b1e9e21
+    superseded_reason: >-
+      El nombre aceptaba caracteres invisibles o que dan vuelta el texto, con los que un token se hacía pasar por otro
+      en la lista, y comparaba mayúsculas según el idioma de cada máquina.
+    scenarios:
+      - title: Pasar el tope de tokens
+        given: Una persona con 20 tokens vivos
+        when: Pide uno más
+        then: Se le dice que llegó al tope y no se crea
+      - title: Un nombre repetido
+        given: Un token vivo llamado «Claude del equipo»
+        when: La misma persona pide otro llamado «  claude DEL equipo »
+        then: Se le dice que el nombre ya está en uso
+      - title: Una fecha elegida
+        given: Una persona que elige el 15 de marzo
+        when: Crea el token
+        then: Vence cuando termina ese día, en su hora
+      - title: Un nombre que se hace pasar por otro
+        given: Un nombre con un carácter que da vuelta el texto
+        when: La persona pide el token
+        then: Se rechaza el nombre
   - id: BR-1dca2a0
     status: active
     title: El agente escribe en una colección como una persona, por los mismos nombres y las mismas reglas
@@ -53,6 +114,20 @@ rules:
         given: Una colección con una sola vista
         when: El agente pide quitarla
         then: Se rechaza explicando que una colección conserva al menos una vista
+  - id: BR-35337c0
+    status: active
+    title: Crear, cambiar y revocar un token queda en el registro
+    rule: >-
+      Cada vez que se crea un token, se cambia lo que tiene dado o se revoca, queda en el registro del servidor quién lo
+      hizo, sobre qué token, en qué espacio de trabajo y, al crearlo o cambiarlo, qué permisos da en todos los espacios
+      y a cuántos lugares alcanzan sus reglas. Un intento de entrar con una llave que no sirve también queda, sin la
+      llave.
+    why: >-
+      Un token es una puerta abierta en nombre de una persona. Si se filtra o se usa mal, hay que poder responder cuándo
+      nació, quién le cambió el alcance y quién lo cerró; y alguien probando llaves tiene que notarse.
+    context: >-
+      El registro nunca lleva el secreto, su hash ni el nombre o el correo de la persona: lleva ids. Si no se puede
+      anotar el último uso de un token, se cuenta en el registro y quien trajo el token igual entra.
   - id: BR-5e36ce0
     status: active
     title: Un token nunca puede más que su dueño
@@ -85,29 +160,32 @@ rules:
         given: Un administrador y la página del espacio privado de otra persona
         when: El administrador pide un token con acceso a esa página
         then: El servidor lo rechaza sin decir si la página existe
-  - id: BR-5fc8214
+  - id: BR-61079bd
     status: active
-    title: El agente ve lo mismo por cada camino
+    title: Lo que alguien escribió le llega al agente como palabras, nunca como estructura
     rule: >-
-      Buscar, abrir y recorrer el árbol responden con la misma regla del token: lo que no se puede abrir tampoco aparece
-      en la búsqueda ni en el árbol, y un enlace o un id de una página o un bloque que el agente no puede ver se
-      contesta igual que uno que no existe.
+      Cuando una página se entrega como Markdown —al agente o al exportarla—, lo que una persona escribió se escribe de
+      modo que se lea tal cual: un signo que se leería como formato, un comentario que se haría pasar por el ancla de un
+      bloque, el cierre de un bloque de código, una barra dentro de una celda o un paréntesis dentro de un enlace se
+      escriben escapados. Leído de vuelta, dice exactamente lo mismo. Al revés, lo que el agente escribe y la página no
+      guardaría —una etiqueta de HTML como texto, más estilos de los que unas palabras llevan, una etiqueta dentro de
+      otra igual— se rechaza diciendo qué corregir.
     why: >-
-      Si un camino dijera más que otro, por ahí se filtraría lo que el token cierra: un id sacado de un resultado, un
-      enlace pegado en la conversación o un conteo de subpáginas bastarían para saber que algo existe.
+      El agente nombra los bloques por las anclas que lee. Si las palabras de otra persona pudieran fabricar un ancla,
+      un atributo o el fin de un bloque, quien escribe en una página podría hacer que el agente cambie otro bloque del
+      que cree. Y un rechazo sin explicación hace que el agente reintente lo mismo.
     context: >-
-      La búsqueda devuelve bloques con su página y su sección. Abrir acepta un enlace copiado del portal, un id de
-      página o un id de bloque. Recorrer el árbol lista las páginas de un nivel con cuántas tiene debajo, contando solo
-      las que el agente puede ver.
+      Vale igual para lo que entrega fetch y para la exportación a Markdown. Un bloque de código se encierra con más
+      acentos graves que los que lleva seguidos.
     scenarios:
-      - title: El id de un bloque de una página cerrada
-        given: Un token que lee todo menos una página
-        when: El agente abre un bloque de esa página por su id o por su enlace
-        then: Recibe la misma respuesta que por un id que no existe
-      - title: Una subpágina cerrada
-        given: Un token que cierra una subpágina de una página que sí puede leer
-        when: El agente lista las páginas bajo la página abierta
-        then: No ve la subpágina cerrada ni se la cuenta
+      - title: Un ancla falsa
+        given: Un párrafo que dice «<!-- block:otro -->»
+        when: El agente abre la página
+        then: Lee esas palabras como texto, no como el ancla de un bloque
+      - title: Una etiqueta como texto
+        given: Un agente que escribe «usa la etiqueta <b>»
+        when: Intenta guardarlo
+        then: Se le dice que la página no guarda etiquetas y que la nombre sin los signos
   - id: BR-65519fe
     status: active
     title: Toda escritura de un agente queda anotada, termine como termine
@@ -131,6 +209,49 @@ rules:
         given: Una fila que una persona bloqueó contra cambios
         when: El agente intenta cambiarla
         then: Se le dice que una persona tiene que desbloquearla y la anotación queda como rechazada
+  - id: BR-71ebff5
+    status: active
+    title: El agente edita páginas como una persona, con todo lo que ofrece el editor
+    rule: >-
+      Un agente con permiso de escribir páginas puede hacer en ellas lo mismo que una persona desde el editor, por los
+      mismos caminos y con las mismas reglas. Puede crear páginas, escribir, cambiar, mover y quitar bloques de
+      cualquier tipo del menú de bloques. Puede dar formato al texto (negrita, cursiva, código, tachado, subrayado,
+      color y resaltado) y pintar un bloque entero. Puede cambiar una tabla celda por celda, agregarle y quitarle filas,
+      y comentar un bloque o unas palabras de él, o quitar un comentario. Puede cambiar el título, el emoji, la portada,
+      el bloqueo, la verificación y el dueño de una página, y moverla o duplicarla. Todo lo que escribe llega al momento
+      a quien tiene la página abierta. Lo que un bloque lleva y no es del agente —los comentarios de otras personas, sus
+      colores, los bloques que lleva adentro— no se pierde al cambiarlo.
+    why: >-
+      El agente trabaja en páginas que también usan personas. Un cambio que de paso borra lo que otros dejaron no es
+      editar como una persona: es pisar.
+    context: >-
+      El agente no sube imágenes ni archivos, así que puede quitar una portada pero no poner una nueva. Un comentario
+      lleva el nombre de la persona dueña del token. Lo que no se toca de una tabla conserva su identidad, sus
+      comentarios y los enlaces que apuntan a sus celdas. Un bloque reemplazado entero conserva su id, sus comentarios y
+      sus colores, salvo que el nuevo traiga los suyos. Cambiar las palabras de una cita, un aviso o un desplegable las
+      parte en párrafos como al insertarlos, y se rechaza si el bloque lleva otros bloques adentro: esos se cambian uno
+      por uno. El título de un desplegable se cambia aparte de lo que guarda.
+    supersedes: BR-e608867
+    superseded_reason: >-
+      Reemplazar un bloque borraba los comentarios y los colores que llevaba, y cambiar las palabras de un aviso o un
+      desplegable borraba lo que tenía adentro. Ahora se conserva lo que no es del agente.
+    scenarios:
+      - title: Comentar unas palabras
+        given: Un párrafo con la frase «fecha de cierre»
+        when: El agente comenta esas palabras
+        then: Las palabras quedan marcadas con el comentario, y el comentario lleva el nombre del dueño del token
+      - title: Cambiar una celda
+        given: Una tabla con comentarios en otras celdas
+        when: El agente cambia una celda
+        then: Las demás celdas conservan su id y sus comentarios
+      - title: Página bloqueada
+        given: Una página bloqueada
+        when: El agente intenta escribir en ella
+        then: No se escribe nada y se le dice que una persona tiene que desbloquearla
+      - title: Reemplazar un bloque comentado
+        given: Un aviso amarillo con un comentario de otra persona
+        when: El agente lo reemplaza por un párrafo
+        then: El párrafo conserva el id, el comentario y el color amarillo
   - id: BR-75580a6
     status: active
     title: Lo que apunta a una página cerrada no la nombra
@@ -247,38 +368,48 @@ rules:
         given: Un token con una sola regla, en la página «Vacaciones»
         when: El agente lista espacios y busca
         then: Ve el espacio de «Vacaciones» y encuentra solo esa página y lo que cuelga de ella
-  - id: BR-b1e9e21
+  - id: BR-c448895
     status: active
-    title: Límites, vencimiento y nombre de los tokens
+    title: Un reintento del agente no crea dos veces lo mismo
     rule: >-
-      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
-      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año, cualquier fecha
-      futura (vence cuando termina ese día, en la hora de quien la eligió) o sin vencimiento. Dos tokens vivos de la
-      misma persona no pueden llamarse igual, sin contar mayúsculas ni espacios de más, y el nombre no puede llevar
-      caracteres de control.
+      Al crear una página, una fila, una colección, una vista, un comentario, una copia o bloques nuevos, el agente
+      puede darle al pedido un id propio. Si con el mismo token llega otro pedido con ese id, no se hace de nuevo. Si el
+      primero ya se hizo, se le dice al agente que no se repitió y en qué página quedó. Si todavía corre, se le pide
+      esperar y leer la página. Si lleva más de diez minutos sin terminar, no se sabe si se hizo: se le pide leer la
+      página y, si no está lo que pidió, mandarlo con un id nuevo. Un id ya usado para otra herramienta se rechaza
+      diciendo para cuál se usó. Un pedido que se negó o falló no reserva su id, y el agente puede volver a intentarlo
+      con él.
     why: >-
-      Un tope acota el daño de una fuga y el costo de un agente descontrolado; un vencimiento por defecto hace que un
-      token olvidado deje de servir solo. Dos tokens que se leen igual en la lista se confunden al revocar uno.
+      Cuando la respuesta se pierde en el camino, el agente no sabe si su pedido se hizo y lo manda otra vez. Sin un id,
+      cada reintento deja una página o un comentario repetido que alguien tiene que encontrar y borrar a mano. Liberar
+      el id de un pedido que quedó sin cerrar podía duplicarlo, porque la escritura pudo hacerse aunque su cierre no se
+      anotara.
     context: >-
-      El tope y el nombre se revisan en la misma transacción que guarda el token, con la fila de la persona tomada:
-      pedir dos a la vez no salta ninguno de los dos. El servidor rechaza un vencimiento que no sea después de ahora.
-    supersedes: BR-b1fcc3a
-    superseded_reason: >-
-      El vencimiento dejó de ser solo un plazo fijo: se puede elegir cualquier fecha futura, y los nombres de los tokens
-      vivos de una persona pasaron a ser únicos.
+      El id es opcional y vale solo para el token que lo mandó: otro token puede usar el mismo id sin chocar. Dos
+      pedidos con el mismo id que llegan a la vez los separa la base de datos, no una lectura previa, así que solo uno
+      escribe.
+    supersedes: BR-85c1bbf
     scenarios:
-      - title: Pasar el tope de tokens
-        given: Una persona con 20 tokens vivos
-        when: Pide otro
-        then: El servidor lo rechaza y el portal le dice que revoque uno que no use
-      - title: Un nombre repetido
-        given: Un token vivo llamado «Claude del equipo»
-        when: La misma persona pide otro llamado «claude  DEL equipo»
-        then: El portal lo avisa en el campo antes de enviar, y el servidor lo rechaza si igual llega
-      - title: Una fecha elegida
-        given: Una persona que elige como último día el 15 de marzo
-        when: Crea el token
-        then: El token deja de servir cuando termina el 15 de marzo en su hora
+      - title: Reintento de algo que ya se creó
+        given: Un agente creó una página con el id de pedido "pedido-1"
+        when: Manda otra vez el mismo pedido con el mismo id
+        then: No se crea otra página, y la respuesta dice que no se repitió y cuál es la página
+      - title: Dos reintentos al mismo tiempo
+        given: Un agente manda dos veces a la vez el mismo pedido con el mismo id
+        when: Las dos llamadas llegan juntas
+        then: Se crea una sola página, y la otra llamada recibe que el pedido está en curso
+      - title: El mismo id en otro token
+        given: Un token ya usó el id "pedido-x"
+        when: Otro token crea una página con el id "pedido-x"
+        then: La página se crea, porque el id solo vale dentro de cada token
+      - title: Un pedido que quedó sin cerrar
+        given: Un pedido con id lleva más de diez minutos sin terminar
+        when: El agente lo reintenta con el mismo id
+        then: No se hace de nuevo; se le pide leer la página y usar un id nuevo si lo pedido no está
+      - title: El mismo id para otra cosa
+        given: Un agente creó una página con el id "pedido-1"
+        when: Usa el id "pedido-1" para comentar un bloque
+        then: El comentario no se hace y la respuesta dice que ese id ya se usó en create_page
   - id: BR-d2011f8
     status: active
     title: Lo que una página va a dibujar se revisa antes de guardarlo
@@ -305,6 +436,29 @@ rules:
         given: Un diagrama que nombra un ícono que la página no tiene
         when: El agente intenta guardarlo
         then: Se rechaza nombrando el ícono y cómo encontrar uno que exista
+  - id: BR-dc7a320
+    status: active
+    title: En una colección, cada fila responde a su propia regla
+    rule: >-
+      Leer, filtrar o cambiar las filas de una colección se decide fila por fila con la regla más cercana del token; una
+      regla puesta en una fila manda sobre la de su colección. Leer una colección pide collections:read, cambiar sus
+      filas collections:write y cambiar sus columnas o vistas collections:configure, cada uno en el lugar donde está
+      hoy. Una fila también es una página, y crearla, renombrarla, moverla dentro o fuera de una colección o duplicarla
+      pide collections:write aunque el agente lo haga como página.
+    why: >-
+      Si las herramientas de páginas no pidieran lo mismo que las de colecciones, un token que solo escribe páginas
+      cambiaría filas por la puerta de al lado.
+    context: Lo que una fila dice como página, su contenido, sigue pidiendo poder escribir páginas.
+    supersedes: BR-ff39e6a
+    scenarios:
+      - title: Un token que solo escribe páginas no crea una fila
+        given: Un token con permiso para escribir páginas y sin collections:write en una colección
+        when: El agente crea una página dentro de esa colección
+        then: Se rechaza diciendo que cambiar filas pide collections:write, y no se crea nada
+      - title: Mover una página a una colección es agregar una fila
+        given: Un token sin collections:write en la colección de destino
+        when: El agente mueve una página dentro de esa colección
+        then: Se rechaza y la página queda donde estaba
   - id: BR-e3b419d
     status: active
     title: El token se ve una sola vez
@@ -320,38 +474,36 @@ rules:
         given: Una persona en su cuenta
         when: Crea un token
         then: Ve el token completo y la configuración para su agente, y al cerrar el panel ya no lo puede volver a ver
-  - id: BR-e608867
+  - id: BR-e40f5c7
     status: active
-    title: El agente edita páginas como una persona, con todo lo que ofrece el editor
+    title: El agente ve lo mismo por cada camino
     rule: >-
-      Un agente con permiso de escribir páginas puede hacer en ellas lo mismo que una persona desde el editor, por los
-      mismos caminos y con las mismas reglas. Puede crear páginas, escribir, cambiar, mover y quitar bloques de
-      cualquier tipo del menú de bloques. Puede dar formato al texto (negrita, cursiva, código, tachado, subrayado,
-      color y resaltado) y pintar un bloque entero. Puede cambiar una tabla celda por celda, agregarle y quitarle filas,
-      y comentar un bloque o unas palabras de él, o quitar un comentario. Puede cambiar el título, el emoji, la portada,
-      el bloqueo, la verificación y el dueño de una página, y moverla o duplicarla. Todo lo que escribe llega al momento
-      a quien tiene la página abierta.
+      Buscar, abrir y recorrer el árbol responden con la misma regla del token: lo que no se puede abrir tampoco aparece
+      en la búsqueda ni en el árbol, y un enlace o un id de una página o un bloque que el agente no puede ver se
+      contesta igual que uno que no existe. Lo mismo al escribir: cambiar, comentar, mover, duplicar, mandar a la
+      papelera o restaurar algo que el token no alcanza, o llevar algo hacia un lugar que no alcanza, se contesta igual
+      que si el lugar no existiera, y no cambia nada.
     why: >-
-      Un agente que solo lee, o que escribe texto plano, obliga a una persona a terminar el trabajo a mano. Si puede lo
-      mismo que una persona y bajo las mismas reglas, se le puede encargar la tarea completa sin abrir una puerta que la
-      persona no tiene.
+      Por el camino que conteste distinto se filtra lo que el token no debe ver: una respuesta que dice «no tienes
+      permiso» confirma que la página existe.
     context: >-
-      El agente no sube imágenes ni archivos, así que puede quitar una portada pero no poner una nueva. Un comentario
-      lleva el nombre de la persona dueña del token. Lo que no se toca de una tabla conserva su identidad, sus
-      comentarios y los enlaces que apuntan a sus celdas.
+      La búsqueda devuelve bloques con su página y su sección. Abrir acepta un enlace copiado del portal, un id de
+      página o un id de bloque. Recorrer el árbol lista las páginas de un nivel con cuántas tiene debajo, contando solo
+      las que el agente puede ver. Cada herramienta que escribe se prueba contra un lugar cerrado y contra uno que no
+      existe, y las dos respuestas tienen que ser iguales letra por letra.
+    supersedes: BR-5fc8214
+    superseded_reason: >-
+      Hablaba solo de leer. Escribir sobre un lugar cerrado, o llevar algo hacia él, también tiene que contestarse igual
+      que un lugar que no existe.
     scenarios:
-      - title: Comentar unas palabras
-        given: Un agente con permiso de escribir en una página
-        when: Comenta un bloque citando unas palabras que el bloque dice
-        then: El comentario queda en el bloque firmado por la persona dueña del token, y esas palabras quedan marcadas
-      - title: Cambiar una celda
-        given: Una página con una tabla que tiene comentarios en sus celdas
-        when: El agente cambia el texto de una celda
-        then: Solo cambia esa celda y las demás conservan su identidad y sus comentarios
-      - title: Página bloqueada
-        given: Una página bloqueada
-        when: El agente intenta escribir en ella
-        then: No se escribe nada y se le explica que la página está bloqueada
+      - title: El id de un bloque de una página cerrada
+        given: Un token que no alcanza la página de Sueldos
+        when: El agente abre un bloque de esa página por su id
+        then: Se le contesta lo mismo que por un id que no existe
+      - title: Mover hacia una página cerrada
+        given: Un token que escribe en todo el espacio salvo en la página de Sueldos
+        when: El agente mueve una página abierta debajo de Sueldos
+        then: Se le contesta lo mismo que si Sueldos no existiera, y las dos páginas quedan como estaban
   - id: BR-e782bed
     status: active
     title: Quien administra ve y revoca todos los tokens
@@ -401,29 +553,101 @@ rules:
         given: Una página que se fue a la papelera con su hija
         when: El agente la restaura pidiendo también sus hijas
         then: Vuelven las dos
-  - id: BR-ff39e6a
-    status: active
-    title: En una colección, cada fila responde a su propia regla
+  - id: BR-5fc8214
+    status: superseded
+    title: El agente ve lo mismo por cada camino
     rule: >-
-      Leer, filtrar o cambiar las filas de una colección se decide fila por fila con la regla más cercana del token: una
-      regla puesta en una fila manda sobre la de su colección. Leer una colección pide collections:read, cambiar sus
-      filas collections:write y cambiar sus columnas o vistas collections:configure, cada uno en el lugar donde está
-      hoy.
+      Buscar, abrir y recorrer el árbol responden con la misma regla del token: lo que no se puede abrir tampoco aparece
+      en la búsqueda ni en el árbol, y un enlace o un id de una página o un bloque que el agente no puede ver se
+      contesta igual que uno que no existe.
     why: >-
-      Un tablero abierto puede tener una fila cerrada, por ejemplo una tarea con información sensible. Si la colección
-      decidiera por todas sus filas, consultar el tablero entregaría lo que el token cierra.
+      Si un camino dijera más que otro, por ahí se filtraría lo que el token cierra: un id sacado de un resultado, un
+      enlace pegado en la conversación o un conteo de subpáginas bastarían para saber que algo existe.
     context: >-
-      Una consulta cuenta solo las filas que el token deja leer. A un token que solo lee no se le ofrecen herramientas
-      que escriben.
+      La búsqueda devuelve bloques con su página y su sección. Abrir acepta un enlace copiado del portal, un id de
+      página o un id de bloque. Recorrer el árbol lista las páginas de un nivel con cuántas tiene debajo, contando solo
+      las que el agente puede ver.
+    superseded_by: BR-e40f5c7
+    superseded_reason: >-
+      Hablaba solo de leer. Escribir sobre un lugar cerrado, o llevar algo hacia él, también tiene que contestarse igual
+      que un lugar que no existe.
     scenarios:
-      - title: Una fila cerrada en un tablero abierto
-        given: Un token que lee y escribe en un tablero, salvo en una de sus filas
-        when: El agente consulta el tablero o intenta cambiar esa fila
-        then: La fila no aparece ni se cuenta, y cambiarla se contesta igual que si no existiera
-      - title: Un token que solo escribe filas
-        given: Un token con collections:read y collections:write, sin collections:configure
-        when: El agente se conecta
-        then: Puede crear y cambiar filas, pero no se le ofrecen las herramientas de columnas ni de vistas
+      - title: El id de un bloque de una página cerrada
+        given: Un token que lee todo menos una página
+        when: El agente abre un bloque de esa página por su id o por su enlace
+        then: Recibe la misma respuesta que por un id que no existe
+      - title: Una subpágina cerrada
+        given: Un token que cierra una subpágina de una página que sí puede leer
+        when: El agente lista las páginas bajo la página abierta
+        then: No ve la subpágina cerrada ni se la cuenta
+  - id: BR-85c1bbf
+    status: superseded
+    title: Un reintento del agente no crea dos veces lo mismo
+    rule: >-
+      Al crear una página, una fila, una colección, una vista, un comentario, una copia o bloques nuevos, el agente
+      puede darle al pedido un id propio. Si con el mismo token llega otro pedido con ese id, no se hace de nuevo. Si el
+      primero ya se hizo, se le dice al agente que no se repitió y en qué página quedó. Si todavía corre, se le pide
+      esperar y leer la página. Un pedido que se negó o falló no reserva su id, y el agente puede volver a intentarlo
+      con él. Un pedido que lleva más de diez minutos sin terminar se da por perdido, se anota como fallido y su id
+      vuelve a quedar libre.
+    why: >-
+      Cuando la respuesta se pierde en el camino, el agente no sabe si su pedido se hizo y lo manda otra vez. Sin un id,
+      cada reintento deja una página o un comentario repetido que alguien tiene que encontrar y borrar a mano.
+    context: >-
+      El id es opcional y vale solo para el token que lo mandó: otro token puede usar el mismo id sin chocar. Dos
+      pedidos con el mismo id que llegan a la vez los separa la base de datos, no una lectura previa, así que solo uno
+      escribe.
+    superseded_by: BR-c448895
+    scenarios:
+      - title: Reintento de algo que ya se creó
+        given: Un agente creó una página con el id de pedido "pedido-1"
+        when: Manda otra vez el mismo pedido con el mismo id
+        then: No se crea otra página, y la respuesta dice que no se repitió y cuál es la página
+      - title: Dos reintentos al mismo tiempo
+        given: Un agente manda dos veces a la vez el mismo pedido con el mismo id
+        when: Las dos llamadas llegan juntas
+        then: Se crea una sola página, y la otra llamada recibe que el pedido está en curso
+      - title: El mismo id en otro token
+        given: Un token ya usó el id "pedido-x"
+        when: Otro token crea una página con el id "pedido-x"
+        then: La página se crea, porque el id solo vale dentro de cada token
+      - title: Un pedido abandonado
+        given: Un pedido con id lleva más de diez minutos sin terminar porque el servidor se cayó
+        when: El agente lo reintenta con el mismo id
+        then: El pedido viejo queda anotado como fallido y el nuevo se hace
+  - id: BR-b1e9e21
+    status: superseded
+    title: Límites, vencimiento y nombre de los tokens
+    rule: >-
+      Una persona puede tener como máximo 20 tokens vivos, y cada token puede hacer como máximo 120 llamadas por minuto
+      al servidor MCP. Un token nuevo vence por defecto a los 30 días; se puede elegir 90 días, un año, cualquier fecha
+      futura (vence cuando termina ese día, en la hora de quien la eligió) o sin vencimiento. Dos tokens vivos de la
+      misma persona no pueden llamarse igual, sin contar mayúsculas ni espacios de más, y el nombre no puede llevar
+      caracteres de control.
+    why: >-
+      Un tope acota el daño de una fuga y el costo de un agente descontrolado; un vencimiento por defecto hace que un
+      token olvidado deje de servir solo. Dos tokens que se leen igual en la lista se confunden al revocar uno.
+    context: >-
+      El tope y el nombre se revisan en la misma transacción que guarda el token, con la fila de la persona tomada:
+      pedir dos a la vez no salta ninguno de los dos. El servidor rechaza un vencimiento que no sea después de ahora.
+    supersedes: BR-b1fcc3a
+    superseded_by: BR-1779eb2
+    superseded_reason: >-
+      El nombre aceptaba caracteres invisibles o que dan vuelta el texto, con los que un token se hacía pasar por otro
+      en la lista, y comparaba mayúsculas según el idioma de cada máquina.
+    scenarios:
+      - title: Pasar el tope de tokens
+        given: Una persona con 20 tokens vivos
+        when: Pide otro
+        then: El servidor lo rechaza y el portal le dice que revoque uno que no use
+      - title: Un nombre repetido
+        given: Un token vivo llamado «Claude del equipo»
+        when: La misma persona pide otro llamado «claude  DEL equipo»
+        then: El portal lo avisa en el campo antes de enviar, y el servidor lo rechaza si igual llega
+      - title: Una fecha elegida
+        given: Una persona que elige como último día el 15 de marzo
+        when: Crea el token
+        then: El token deja de servir cuando termina el 15 de marzo en su hora
   - id: BR-b1fcc3a
     status: superseded
     title: Límites de los tokens
@@ -496,3 +720,63 @@ rules:
         given: Un token con lectura en un espacio restringido del que su dueño es miembro
         when: Sacan al dueño del espacio y el agente vuelve a buscar
         then: El agente ya no ve nada de ese espacio
+  - id: BR-e608867
+    status: superseded
+    title: El agente edita páginas como una persona, con todo lo que ofrece el editor
+    rule: >-
+      Un agente con permiso de escribir páginas puede hacer en ellas lo mismo que una persona desde el editor, por los
+      mismos caminos y con las mismas reglas. Puede crear páginas, escribir, cambiar, mover y quitar bloques de
+      cualquier tipo del menú de bloques. Puede dar formato al texto (negrita, cursiva, código, tachado, subrayado,
+      color y resaltado) y pintar un bloque entero. Puede cambiar una tabla celda por celda, agregarle y quitarle filas,
+      y comentar un bloque o unas palabras de él, o quitar un comentario. Puede cambiar el título, el emoji, la portada,
+      el bloqueo, la verificación y el dueño de una página, y moverla o duplicarla. Todo lo que escribe llega al momento
+      a quien tiene la página abierta.
+    why: >-
+      Un agente que solo lee, o que escribe texto plano, obliga a una persona a terminar el trabajo a mano. Si puede lo
+      mismo que una persona y bajo las mismas reglas, se le puede encargar la tarea completa sin abrir una puerta que la
+      persona no tiene.
+    context: >-
+      El agente no sube imágenes ni archivos, así que puede quitar una portada pero no poner una nueva. Un comentario
+      lleva el nombre de la persona dueña del token. Lo que no se toca de una tabla conserva su identidad, sus
+      comentarios y los enlaces que apuntan a sus celdas.
+    superseded_by: BR-71ebff5
+    superseded_reason: >-
+      Reemplazar un bloque borraba los comentarios y los colores que llevaba, y cambiar las palabras de un aviso o un
+      desplegable borraba lo que tenía adentro. Ahora se conserva lo que no es del agente.
+    scenarios:
+      - title: Comentar unas palabras
+        given: Un agente con permiso de escribir en una página
+        when: Comenta un bloque citando unas palabras que el bloque dice
+        then: El comentario queda en el bloque firmado por la persona dueña del token, y esas palabras quedan marcadas
+      - title: Cambiar una celda
+        given: Una página con una tabla que tiene comentarios en sus celdas
+        when: El agente cambia el texto de una celda
+        then: Solo cambia esa celda y las demás conservan su identidad y sus comentarios
+      - title: Página bloqueada
+        given: Una página bloqueada
+        when: El agente intenta escribir en ella
+        then: No se escribe nada y se le explica que la página está bloqueada
+  - id: BR-ff39e6a
+    status: superseded
+    title: En una colección, cada fila responde a su propia regla
+    rule: >-
+      Leer, filtrar o cambiar las filas de una colección se decide fila por fila con la regla más cercana del token: una
+      regla puesta en una fila manda sobre la de su colección. Leer una colección pide collections:read, cambiar sus
+      filas collections:write y cambiar sus columnas o vistas collections:configure, cada uno en el lugar donde está
+      hoy.
+    why: >-
+      Un tablero abierto puede tener una fila cerrada, por ejemplo una tarea con información sensible. Si la colección
+      decidiera por todas sus filas, consultar el tablero entregaría lo que el token cierra.
+    context: >-
+      Una consulta cuenta solo las filas que el token deja leer. A un token que solo lee no se le ofrecen herramientas
+      que escriben.
+    superseded_by: BR-dc7a320
+    scenarios:
+      - title: Una fila cerrada en un tablero abierto
+        given: Un token que lee y escribe en un tablero, salvo en una de sus filas
+        when: El agente consulta el tablero o intenta cambiar esa fila
+        then: La fila no aparece ni se cuenta, y cambiarla se contesta igual que si no existiera
+      - title: Un token que solo escribe filas
+        given: Un token con collections:read y collections:write, sin collections:configure
+        when: El agente se conecta
+        then: Puede crear y cambiar filas, pero no se le ofrecen las herramientas de columnas ni de vistas

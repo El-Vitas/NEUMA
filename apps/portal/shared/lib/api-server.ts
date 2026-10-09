@@ -6,7 +6,8 @@ import { API_ROUTES, ROUTES } from '@/shared/routes/constants/routes.constants';
 import type { DownloadedFile } from '@/shared/types/downloaded-file.types';
 import { redirect } from '../../i18n/navigation';
 import { ApiError } from './api';
-import { MissingAccessTokenError, readAccessTokenCookie } from './auth.token.lib';
+import { MissingAccessTokenError } from './auth.token.error';
+import { readAccessTokenCookie } from './auth.token.lib';
 import { NetworkError, parseJsonBodyStrict } from './parse-json-body';
 
 export const buildHeaders = (
@@ -22,7 +23,16 @@ export const buildHeaders = (
 export const buildUrl = (endpoint: string): string =>
   endpoint.startsWith('http') ? endpoint : `${config.backendApiUrl}${endpoint}`;
 
-const sendApiRequest = async <T>(endpoint: string, accessToken: string | undefined, init: RequestInit): Promise<T> => {
+/**
+ * The backend's answer, once it arrived and said yes. Not reaching it is told
+ * apart from it saying no: the first is being offline, the second carries its
+ * own status.
+ */
+const fetchAcceptedResponse = async (
+  endpoint: string,
+  accessToken: string | undefined,
+  init: RequestInit,
+): Promise<Response> => {
   let response: Response;
   try {
     response = await fetch(buildUrl(endpoint), {
@@ -32,24 +42,16 @@ const sendApiRequest = async <T>(endpoint: string, accessToken: string | undefin
   } catch (error) {
     throw new NetworkError(error);
   }
-
-  if (!response.ok) {
-    throw await ApiError.fromResponse(response);
-  }
-
-  return parseJsonBodyStrict<T>(response);
+  if (!response.ok) throw await ApiError.fromResponse(response);
+  return response;
 };
+
+const sendApiRequest = async <T>(endpoint: string, accessToken: string | undefined, init: RequestInit): Promise<T> =>
+  parseJsonBodyStrict<T>(await fetchAcceptedResponse(endpoint, accessToken, init));
 
 export const apiRequest = async <T>(endpoint: string, accessToken: string, init: RequestInit = {}): Promise<T> =>
   sendApiRequest<T>(endpoint, accessToken, init);
 
-/**
- * A response the backend sends as a document rather than as data.
- *
- * An export comes back as the file itself, so reading it as JSON would only
- * fail. This is the door for those, and it stays separate so nothing else
- * quietly starts skipping the JSON contract.
- */
 /**
  * A response the backend sends as a file rather than as data.
  *
@@ -57,37 +59,16 @@ export const apiRequest = async <T>(endpoint: string, accessToken: string, init:
  * archive is not text — sending it as text would quietly corrupt it.
  */
 export const apiRequestFile = async (endpoint: string, accessToken: string): Promise<DownloadedFile> => {
-  let response: Response;
-  try {
-    response = await fetch(buildUrl(endpoint), { headers: buildHeaders(accessToken, undefined, false) });
-  } catch (error) {
-    throw new NetworkError(error);
-  }
-
-  if (!response.ok) {
-    throw await ApiError.fromResponse(response);
-  }
-
+  const response = await fetchAcceptedResponse(endpoint, accessToken, {});
   return {
     base64: Buffer.from(await response.arrayBuffer()).toString('base64'),
     mediaType: response.headers.get('content-type') ?? 'application/octet-stream',
   };
 };
 
-export const apiRequestText = async (endpoint: string, accessToken: string): Promise<string> => {
-  let response: Response;
-  try {
-    response = await fetch(buildUrl(endpoint), { headers: buildHeaders(accessToken, undefined, false) });
-  } catch (error) {
-    throw new NetworkError(error);
-  }
-
-  if (!response.ok) {
-    throw await ApiError.fromResponse(response);
-  }
-
-  return response.text();
-};
+/** A response the backend sends as text, such as a page exported as Markdown. */
+export const apiRequestText = async (endpoint: string, accessToken: string): Promise<string> =>
+  (await fetchAcceptedResponse(endpoint, accessToken, {})).text();
 
 const isPublicRequest = (endpoint: string, method: string): boolean =>
   PUBLIC_API_REQUESTS.some((candidate) => candidate.endpoint === endpoint && candidate.method === method);

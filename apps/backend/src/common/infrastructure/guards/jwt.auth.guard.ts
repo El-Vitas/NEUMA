@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { FastifyRequest } from 'fastify';
-import { IS_PUBLIC_KEY, JWT_SECRET_KEY } from '../../constants/auth.constants';
+import { ACCESS_TOKEN_AUDIENCE, IS_PUBLIC_KEY, JWT_SECRET_KEY } from '../../constants/auth.constants';
 import type { RequestUser, TokenPayload } from '../../types/auth.types';
 import { readBearerToken } from '../../utils/auth.utils';
 
@@ -45,8 +45,9 @@ export class JwtAuthGuard implements CanActivate {
     (request as FastifyRequest & { user?: RequestUser }).user = user;
   }
 
+  /** Solo la llave de acceso: la de renovar y la del documento en vivo llevan otra audiencia y no abren la API. */
   private async getPayloadFromToken(token: string): Promise<TokenPayload> {
     const secret = this.configService.getOrThrow<string>(JWT_SECRET_KEY);
-    return this.jwtService.verifyAsync<TokenPayload>(token, { secret });
+    return this.jwtService.verifyAsync<TokenPayload>(token, { audience: ACCESS_TOKEN_AUDIENCE, secret });
   }
 }

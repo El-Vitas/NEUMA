@@ -6,8 +6,9 @@ import type { PageEditorBlockRequestKind } from './pages.editor.block-request.ty
 export interface PageEditorBlockActions {
   readonly ask: (kind: PageEditorBlockRequestKind) => void;
   readonly close: (kind: PageEditorBlockRequestKind) => void;
-  readonly copyLink: () => void;
+  readonly copyLink: () => Promise<void>;
   readonly handOver: (destination: PageDestination) => void;
-  readonly runCommand: (command: Command) => void;
+  /** Runs a command on the block, and says whether it did anything. */
+  readonly runCommand: (command: Command) => boolean;
   readonly syncInto: (destination: PageDestination) => void;
 }

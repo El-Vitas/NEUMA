@@ -10,8 +10,10 @@ import { callMcpTool, listenForMcp, listMcpToolNames, readMcpText } from '../hel
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const PASSWORD = 'plainPassword123';
+/** Un nombre que nadie más usa en el espacio de trabajo: con dos iguales, nombrar a la persona es ambiguo. */
+const OWNER_NAME = 'Ana Colecciones';
 
-const { collectionsConfigure, collectionsRead, collectionsWrite, pagesRead } = ACCESS_TOKEN_PERMISSIONS;
+const { collectionsConfigure, collectionsRead, collectionsWrite, pagesRead, pagesWrite } = ACCESS_TOKEN_PERMISSIONS;
 
 interface Session {
   readonly id: string;
@@ -42,7 +44,7 @@ describe('MCP collections (Integration)', () => {
 
   const signUp = async (label: string): Promise<Session> => {
     const email = `mcp-collections-${label}-${String(Date.now())}@test.com`;
-    await registerUser(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
+    await registerUser(testApp, { email, name: OWNER_NAME, password: PASSWORD });
     await testApp.get(PrismaService).user.update({ data: { role: 'ADMIN' }, where: { email } });
     const session = await loginUser(testApp, email, PASSWORD);
     return { id: session.user.id, token: session.accessToken };
@@ -175,7 +177,7 @@ describe('MCP collections (Integration)', () => {
 
       const answer = await call(secret, 'create_row', {
         collection: collectionId,
-        properties: { estado: 'hecho', Responsable: 'ana pérez' },
+        properties: { estado: 'hecho', Responsable: OWNER_NAME.toLowerCase() },
         text: 'Revisar las cláusulas.',
         title: 'Revisar contrato',
       });
@@ -186,7 +188,7 @@ describe('MCP collections (Integration)', () => {
         propertyValues: { owner: owner.id, status: 'Hecho' },
         title: 'Revisar contrato',
       });
-      expect(await actionsOn(collectionId)).toContainEqual({ outcome: 'DONE', tool: 'create_row' });
+      expect(await actionsOn(created.id)).toContainEqual({ outcome: 'DONE', tool: 'create_row' });
     });
 
     it('refuses an option the column does not have without creating anything, and records the refusal', async () => {
@@ -265,6 +267,94 @@ describe('MCP collections (Integration)', () => {
       expect(readMcpText(answer)).toBe(MCP_INACCESSIBLE_MESSAGE);
       expect((await storedRow(closedRowId)).title).toBe('Sueldos');
       expect(await actionsOn(closedRowId)).toEqual([]);
+    });
+  });
+
+  /**
+   * Una página que cuelga de una colección es una fila. Crearla, renombrarla,
+   * moverla o copiarla por las herramientas de páginas cambia filas igual que
+   * create_row: pide escribir en colecciones, no solo en páginas.
+   */
+  describe('las herramientas de páginas sobre las filas de una colección', () => {
+    it('refuses to create, rename, move or copy a row to a token that only writes pages, changing nothing', async () => {
+      const secret = await tokenEverywhere([pagesRead, pagesWrite]);
+      const before = await rowCount();
+      const titleBefore = (await storedRow(openRowId)).title;
+
+      const answers = await Promise.all([
+        call(secret, 'create_page', { parent: collectionId, title: 'Colada' }),
+        call(secret, 'update_page', { page: openRowId, title: 'Renombrada' }),
+        call(secret, 'duplicate_page', { page: openRowId }),
+        call(secret, 'move_page', { page: openRowId, space: otherSpaceId }),
+      ]);
+
+      for (const answer of answers) expect(answer.isError).toBe(true);
+      expect(await rowCount()).toBe(before);
+      expect((await storedRow(openRowId)).title).toBe(titleBefore);
+    });
+
+    it('lets a token that also writes collections create a row as a page', async () => {
+      const secret = await tokenEverywhere([pagesRead, pagesWrite, collectionsWrite]);
+      const before = await rowCount();
+
+      const answer = await call(secret, 'create_page', { parent: collectionId, title: 'Con permiso' });
+
+      expect(answer.isError).toBeUndefined();
+      expect(await rowCount()).toBe(before + 1);
+    });
+  });
+
+  /** Escribir o configurar no da derecho a leer: ni en la respuesta ni en un rechazo se le cuenta lo que no lee. */
+  describe('un token que cambia la colección sin poder leerla', () => {
+    it('confirms a new view without handing back the title, the columns or the other views', async () => {
+      const secret = await tokenEverywhere([collectionsConfigure]);
+
+      const answer = await call(secret, 'create_view', { collection: collectionId, name: 'Sin leer', type: 'TABLE' });
+
+      expect(answer.isError).toBeUndefined();
+      const said = JSON.stringify(answer);
+      expect(said).not.toContain('Tablero');
+      expect(said).not.toContain('Estado');
+      expect(said).not.toContain('Tabla');
+    });
+
+    it('refuses a column it does not find without naming the ones there are', async () => {
+      const secret = await tokenEverywhere([collectionsConfigure]);
+
+      const answer = await call(secret, 'create_view', {
+        collection: collectionId,
+        groupBy: 'columna que no existe',
+        name: 'Agrupada',
+        type: 'BOARD',
+      });
+
+      expect(answer.isError).toBe(true);
+      expect(JSON.stringify(answer)).not.toContain('Estado');
+    });
+
+    it('refuses an option it does not find without naming the ones there are', async () => {
+      const secret = await tokenEverywhere([collectionsWrite]);
+
+      const answer = await call(secret, 'create_row', {
+        collection: collectionId,
+        properties: { Estado: 'Archivado' },
+        title: 'Otra',
+      });
+
+      expect(answer.isError).toBe(true);
+      expect(JSON.stringify(answer)).not.toContain('Por hacer');
+    });
+
+    it('still names the columns and options to a token that may read the collection', async () => {
+      const secret = await tokenEverywhere([collectionsRead, collectionsWrite]);
+
+      const answer = await call(secret, 'create_row', {
+        collection: collectionId,
+        properties: { Estado: 'Archivado' },
+        title: 'Otra',
+      });
+
+      expect(JSON.stringify(answer)).toContain('Por hacer');
     });
   });
 

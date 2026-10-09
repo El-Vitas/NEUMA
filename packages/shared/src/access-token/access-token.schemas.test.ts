@@ -32,6 +32,35 @@ describe('lo que se acepta como acceso de un token', () => {
     expect(accessTokenAccessSchema.safeParse(everythingButOneSpaceAndOnePage).success).toBe(true);
   });
 
+  /** Quien arma el token tiene que saber qué corregir, no solo que algo está mal. */
+  test('says what is wrong and where: a space named twice, a page named twice, or nothing given', () => {
+    const issuesOf = (rules: Record<string, unknown>) =>
+      accessTokenAccessSchema.safeParse(access(rules)).error?.issues.map((issue) => ({
+        message: issue.message,
+        path: issue.path,
+      }));
+
+    expect(
+      issuesOf({
+        allSpaces: [read],
+        spaces: [
+          { permissions: [read], spaceId: 'a' },
+          { permissions: [], spaceId: 'a' },
+        ],
+      }),
+    ).toEqual([{ message: 'Each space can have only one rule.', path: ['spaces'] }]);
+    expect(
+      issuesOf({
+        allSpaces: [read],
+        pages: [
+          { pageId, permissions: [read] },
+          { pageId, permissions: [] },
+        ],
+      }),
+    ).toEqual([{ message: 'Each page can have only one rule.', path: ['pages'] }]);
+    expect(issuesOf({})).toEqual([{ message: 'The token must give at least one permission somewhere.', path: [] }]);
+  });
+
   /** Un token sin ningún permiso es una llave que no abre nada: mejor no crearla que tener que explicarla. */
   test('refuses a token that can do nothing anywhere, exclusions or not', () => {
     expect(accessTokenAccessSchema.safeParse(access({})).success).toBe(false);

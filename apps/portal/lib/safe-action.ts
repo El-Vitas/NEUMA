@@ -1,6 +1,5 @@
 import { createSafeActionClient } from 'next-safe-action';
-import { ACTION_FAILURE_REASON_BY_STATUS } from '@/shared/constants/action-failure.constants';
-import { ApiError } from '@/shared/lib/api';
+import { readActionFailureReasonOf } from '@/shared/lib/action-failure.lib';
 
 /**
  * What an action reports when it could not be carried out.
@@ -10,10 +9,4 @@ import { ApiError } from '@/shared/lib/api';
  * a reader has no business seeing, and they are in whatever language the
  * service happens to speak. Each screen turns the reason into its own sentence.
  */
-export const actionClient = createSafeActionClient({
-  handleServerError: (error) => {
-    if (error instanceof ApiError) return ACTION_FAILURE_REASON_BY_STATUS[error.status] ?? 'unexpected';
-    if (error instanceof TypeError) return 'offline';
-    return 'unexpected';
-  },
-});
+export const actionClient = createSafeActionClient({ handleServerError: readActionFailureReasonOf });

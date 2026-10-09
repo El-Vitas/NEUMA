@@ -1,7 +1,7 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_INACCESSIBLE_MESSAGE, MCP_LIST_PAGES_PLACE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
-import { buildMcpPageUrl } from '../lib/mcp.address.lib';
+import { buildMcpPageUrl, readMcpOffset } from '../lib/mcp.address.lib';
 import { describeMcpOutlinePage, describeMcpRowPropertiesInOneLine } from '../lib/mcp.fetch.text.lib';
 import { loadMcpRowDescriber } from '../lib/mcp.rows.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
@@ -68,16 +68,19 @@ export const listPagesTool: McpToolDefinition = {
           async () => {
             const call = await openMcpCall(dependencies);
             const place = await resolveListingPlace(dependencies, call, input);
+            const start = readMcpOffset(input.cursor);
+            const end = start + input.limit;
             const [children, describeRow] = await Promise.all([
-              dependencies.outline.listChildren(place.spaceId, place.parentId, call.viewer),
+              dependencies.outline.listChildren(place.spaceId, place.parentId, call.viewer, {
+                skip: start,
+                take: input.limit,
+              }),
               loadMcpRowDescriber(dependencies, call, place.parentId),
             ]);
-            const start = input.cursor === undefined ? 0 : Number(input.cursor);
-            const end = start + input.limit;
             return listPagesOutputSchema.parse({
-              ...(end < children.length ? { nextCursor: String(end) } : {}),
-              pages: children.slice(start, end).map((child) => {
-                const properties = describeRow(child.propertyValues, child.title);
+              ...(end < children.total ? { nextCursor: String(end) } : {}),
+              pages: children.entries.map((child) => {
+                const properties = describeRow(child);
                 return {
                   childCount: child.childCount,
                   id: child.id,
@@ -87,7 +90,7 @@ export const listPagesTool: McpToolDefinition = {
                   url: buildMcpPageUrl(dependencies.portalUrl, place.spaceId, child.id, null),
                 };
               }),
-              total: children.length,
+              total: children.total,
             });
           },
           formatListText,

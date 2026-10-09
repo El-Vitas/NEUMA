@@ -23,4 +23,14 @@ describe('resolvePageVerificationStatus', () => {
     const expiresAt = new Date('2026-05-01T00:00:00.000Z');
     expect(resolvePageVerificationStatus(verifiedAt, expiresAt, now)).toBe('EXPIRED');
   });
+
+  /** El momento mismo en que vence ya no vale: lo mismo que un token que vence. */
+  test('reads a page whose expiration is this very moment as expired', () => {
+    expect(resolvePageVerificationStatus(new Date('2026-01-01T00:00:00.000Z'), now, now)).toBe('EXPIRED');
+  });
+
+  /** Una fecha de vencimiento sin nadie que haya verificado no convierte la página en verificada. */
+  test('reads a page with an expiration but nobody who verified it as unverified', () => {
+    expect(resolvePageVerificationStatus(null, new Date('2026-07-01T00:00:00.000Z'), now)).toBe('UNVERIFIED');
+  });
 });

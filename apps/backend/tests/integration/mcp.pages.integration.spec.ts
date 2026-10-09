@@ -135,6 +135,45 @@ describe('MCP page writes (Integration)', () => {
       expect(offered).not.toContain('insert_blocks');
       expect(offered).not.toContain('create_page');
     });
+
+    /**
+     * Que no se le ofrezca no basta: un agente puede llamar una herramienta por
+     * su nombre. Cada una revisa el permiso al llamarla, y sin él no cambia nada.
+     */
+    it('refuses every write tool called by name by a token that only reads the page, changing nothing', async () => {
+      const pageId = await freshPage('Solo se lee');
+      const secret = await tokenFor({ allSpaces: [pagesRead] });
+      const before = await storedContent(pageId);
+      const paragraph = { text: 'Intruso', type: 'paragraph' };
+      const attempts: readonly (readonly [string, Record<string, unknown>])[] = [
+        ['insert_blocks', { blocks: [paragraph], page: pageId }],
+        ['update_block', { block: 'intro', page: pageId, text: 'Cambiado' }],
+        ['delete_blocks', { blocks: ['intro'], page: pageId }],
+        ['comment_on_block', { block: 'intro', page: pageId, text: 'Ojo' }],
+        ['update_page', { page: pageId, title: 'Renombrada' }],
+        ['create_page', { parent: pageId, title: 'Hija' }],
+        ['trash_page', { page: pageId }],
+      ];
+
+      const wasRefused = async (tool: string, args: Record<string, unknown>): Promise<boolean> => {
+        try {
+          const answer = await call(secret, tool, args);
+          return answer.isError === true;
+        } catch (error: unknown) {
+          return error instanceof Error;
+        }
+      };
+
+      const refusals = await Promise.all(attempts.map(([tool, args]) => wasRefused(tool, args)));
+
+      expect(refusals).toEqual(attempts.map(() => true));
+      expect(await storedContent(pageId)).toBe(before);
+      const page = await testApp
+        .get(PrismaService)
+        .page.findUniqueOrThrow({ select: { lifecycle: true, title: true }, where: { id: pageId } });
+      expect(page).toEqual({ lifecycle: 'ACTIVE', title: 'Solo se lee' });
+      expect(await testApp.get(PrismaService).page.count({ where: { parentId: pageId } })).toBe(0);
+    });
   });
 
   describe('crear una página', () => {
@@ -161,7 +200,10 @@ describe('MCP page writes (Integration)', () => {
         select: { detail: true, outcome: true },
         where: { tool: 'create_page' },
       });
-      expect(recorded).toContainEqual({ detail: { title: 'Estado de servicios' }, outcome: 'DONE' });
+      expect(recorded).toContainEqual({
+        detail: { parentId: null, spaceId, title: 'Estado de servicios' },
+        outcome: 'DONE',
+      });
     });
 
     it('refuses to create a page in a space where the token does not write, creating nothing', async () => {

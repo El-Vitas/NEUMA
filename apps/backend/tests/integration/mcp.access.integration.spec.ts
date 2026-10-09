@@ -1,12 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import type { AddressInfo } from 'node:net';
 import { PageLifecycle, SpaceVisibility } from '@company-brain/db';
 import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@company-brain/shared';
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import request from 'supertest';
 import { z } from 'zod';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';
+import { callMcpTool, listenForMcp, listMcpToolNames, type McpToolAnswer } from '../helpers/mcp.helper';
 import { drainSearchProjection } from '../helpers/search.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -17,12 +16,6 @@ const PASSWORD = 'plainPassword123';
 interface Session {
   readonly id: string;
   readonly token: string;
-}
-
-interface ToolText {
-  readonly content: readonly { readonly text?: string }[];
-  readonly isError?: boolean;
-  readonly structuredContent?: unknown;
 }
 
 const read = ACCESS_TOKEN_PERMISSIONS.pagesRead;
@@ -144,22 +137,8 @@ describe('MCP access (Integration)', () => {
 
   const refusalCode = (body: unknown): string => refusalShape.parse(body).error.code;
 
-  const connect = async (secret: string): Promise<Client> => {
-    const client = new Client({ name: 'mcp-access-test', version: '0.0.1' });
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(`${baseUrl}${MCP_PATH}`), {
-        requestInit: { headers: { Authorization: `Bearer ${secret}` } },
-      }),
-    );
-    return client;
-  };
-
-  const call = async (secret: string, name: string, args: Record<string, unknown>): Promise<ToolText> => {
-    const client = await connect(secret);
-    const result = (await client.callTool({ arguments: args, name })) as ToolText;
-    await client.close();
-    return result;
-  };
+  const call = (secret: string, name: string, args: Record<string, unknown>): Promise<McpToolAnswer> =>
+    callMcpTool(baseUrl, secret, name, args);
 
   const listedSpaceIds = async (secret: string): Promise<readonly string[]> => {
     const result = await call(secret, 'list_spaces', {});
@@ -186,8 +165,7 @@ describe('MCP access (Integration)', () => {
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
-    await testApp.app.listen(0, '127.0.0.1');
-    baseUrl = `http://127.0.0.1:${String((testApp.getServer().address() as AddressInfo).port)}`;
+    baseUrl = await listenForMcp(testApp);
 
     admin = await signUp('admin', 'ADMIN');
     worker = await signUp('worker', 'WORKER');
@@ -675,12 +653,7 @@ describe('MCP access (Integration)', () => {
         worker,
         access({ spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaceId: spaces.open }] }),
       );
-      const client = await connect(secret);
-
-      const tools = await client.listTools();
-      await client.close();
-
-      expect(tools.tools.map((tool) => tool.name)).toEqual(['list_spaces', 'get_collection', 'query_collection']);
+      expect(await listMcpToolNames(baseUrl, secret)).toEqual(['list_spaces', 'get_collection', 'query_collection']);
     });
   });
 

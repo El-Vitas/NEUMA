@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   type PagePropertyType,
@@ -18,6 +18,7 @@ import type {
 import type { WorkspaceSummary } from '../../../../src/common/types/workspace.types';
 import {
   MCP_BLOCK_NOT_FOUND_NOTE,
+  MCP_FETCHED_IN_TRASH_NOTE,
   MCP_INACCESSIBLE_MESSAGE,
   MCP_LIST_PAGES_PLACE_MESSAGE,
   MCP_REDACTED_REFERENCE_LABEL,
@@ -26,10 +27,12 @@ import {
   MCP_UNREADABLE_ADDRESS_MESSAGE,
   MCP_UNREADABLE_PAGE_MESSAGE,
 } from '../../../../src/modules/mcp/constants/mcp.constants';
+import { MCP_FETCH_CHILD_LIMIT } from '../../../../src/modules/mcp/constants/mcp.limits.constants';
 import { writeMcpServerInstructions } from '../../../../src/modules/mcp/lib/mcp.instructions.lib';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type { McpCollectionService, McpColumn } from '../../../../src/modules/mcp/types/mcp.collections.types';
 import type {
+  McpOutlineEntry,
   McpOutlineReader,
   McpPageReadResult,
   McpPrincipal,
@@ -105,6 +108,8 @@ const page: PageSummary = {
   version: 3,
 };
 
+const CLOSED_PARENT_TITLE = 'Despidos 2027';
+
 const blockHits: PageBlockSearchPage = {
   items: [
     {
@@ -114,7 +119,7 @@ const blockHits: PageBlockSearchPage = {
       isPageVerified: true,
       pageId: PAGE,
       pageTitle: 'Runbook',
-      parentPageTitle: null,
+      parentPageTitle: CLOSED_PARENT_TITLE,
       rank: 0.9,
       snippet: '<mark>Run</mark> this first',
       spaceId: SPACE,
@@ -154,28 +159,36 @@ const pageHits: SearchPage = {
 /** El árbol de esta prueba: la página está sola en la raíz de su espacio, y ninguna regla de página alcanza nada. */
 const placeReader: AccessTokenPlaceReader = {
   readPlace: (pageId) => Promise.resolve({ lineage: [pageId], spaceId: SPACE }),
+  readPlaces: (pageIds) =>
+    Promise.resolve(new Map(pageIds.map((pageId) => [pageId, { lineage: [pageId], spaceId: SPACE }]))),
   resolvePageReach: () => Promise.resolve({ allowedPageIds: [], closedPageIds: [], spaceIdsWithAllowedPages: [] }),
 };
+
+/** Lo que cuelga de una página, entregado de a tramos como lo hace el árbol de verdad. */
+const childrenOf =
+  (all: readonly McpOutlineEntry[]): McpOutlineReader['listChildren'] =>
+  (_spaceId, _parentId, _viewer, window) =>
+    Promise.resolve({ entries: all.slice(window.skip, window.skip + window.take), total: all.length });
 
 /** La página se ve; la que menciona, no. */
 const outline: McpOutlineReader = {
   listAncestors: () => Promise.resolve([]),
-  listChildren: () =>
-    Promise.resolve([{ childCount: 2, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' }]),
+  listChildren: childrenOf([
+    { childCount: 2, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' },
+  ]),
   listReadable: (pageIds) =>
     Promise.resolve(pageIds.filter((id) => id === PAGE).map((id) => ({ id, spaceId: SPACE, title: 'Runbook' }))),
 };
 
-const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult => ({
-  getValue: () => {
-    if (pageSummary === null) throw new Error('No page');
-    return pageSummary;
-  },
-  isFail: () => pageSummary === null,
-});
+const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult =>
+  pageSummary === null ? Result.fail(new Error('No page')) : Result.ok(pageSummary);
 
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
-  actionLog: { finish: () => Promise.resolve(), start: () => Promise.resolve('action-1') },
+  actionLog: {
+    findLiveRequest: () => Promise.resolve(null),
+    finish: () => Promise.resolve(),
+    start: () => Promise.resolve('action-1'),
+  },
   backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
   collections: collectionWith([]),
   content: { edit: notUsedHere },
@@ -428,7 +441,6 @@ describe('MCP search', () => {
           isPageVerified: true,
           pageId: PAGE,
           pageTitle: 'Runbook',
-          parentPageTitle: null,
           section: ['Setup'],
           snippet: '<mark>Run</mark> this first',
           spaceId: SPACE,
@@ -450,6 +462,15 @@ describe('MCP search', () => {
     });
     expect(textOf(result)).toContain(`Runbook › Setup (paragraph, block ${BLOCK}, verified page)`);
     expect(textOf(result)).toContain('More blocks with cursor: next-block-cursor');
+  });
+
+  /** La página de arriba puede estar cerrada para el token aunque la que encontró no: su título no sale. */
+  test('never names the page above a hit, which the token may not be allowed to read', async () => {
+    const client = await connectClient(createDependencies());
+
+    const result = await client.callTool({ arguments: { query: 'run' }, name: 'search' });
+
+    expect(JSON.stringify(result)).not.toContain(CLOSED_PARENT_TITLE);
   });
 
   test('searches under a page only when the agent can see that page, and says nothing about it otherwise', async () => {
@@ -530,8 +551,9 @@ describe('MCP fetch', () => {
 
   test('never names a page the agent cannot see, even when the page it opened mentions it', async () => {
     const result = await fetchAddress(PAGE);
+    const labelAsWords = MCP_REDACTED_REFERENCE_LABEL.replaceAll(/[[\]]/g, '\\$&');
 
-    expect(textOf(result)).toContain(MCP_REDACTED_REFERENCE_LABEL);
+    expect(textOf(result)).toContain(labelAsWords);
     expect(JSON.stringify(result)).not.toContain('Salaries');
     expect(JSON.stringify(result)).not.toContain(HIDDEN_PAGE);
   });
@@ -610,10 +632,19 @@ describe('MCP fetch', () => {
 describe('MCP fetch — whether a page can be trusted', () => {
   const ana = { id: 'u-1', name: 'Ana Pérez' };
 
+  /** Vigente o vencida depende de hoy: el día queda fijo para que la prueba diga siempre lo mismo. */
+  beforeAll(() => {
+    setSystemTime(new Date('2026-10-01T12:00:00.000Z'));
+  });
+
+  afterAll(() => {
+    setSystemTime();
+  });
+
   test('says who vouched for a page, when, and until when', async () => {
     const verified = {
       ...page,
-      verificationExpiresAt: new Date('2099-01-31T23:59:59.999Z'),
+      verificationExpiresAt: new Date('2026-12-31T23:59:59.999Z'),
       verifiedAt: new Date('2026-09-01T12:00:00.000Z'),
       verifiedBy: ana,
     };
@@ -624,11 +655,11 @@ describe('MCP fetch — whether a page can be trusted', () => {
         state: {
           locked: false,
           owner: null,
-          verification: { by: ana, on: '2026-09-01', status: 'VERIFIED', until: '2099-01-31' },
+          verification: { by: ana, on: '2026-09-01', status: 'VERIFIED', until: '2026-12-31' },
         },
       },
     });
-    expect(textOf(result)).toContain('Verified by Ana Pérez (u-1) on 2026-09-01, valid until 2099-01-31.');
+    expect(textOf(result)).toContain('Verified by Ana Pérez (u-1) on 2026-09-01, valid until 2026-12-31.');
   });
 
   /** Vencida no es lo mismo que nunca verificada: se sabe quién respondió, pero ya no vale. */
@@ -699,6 +730,51 @@ describe('MCP fetch — rows, comments and long pages', () => {
     );
 
     expect(textOf(result)).toContain('- Asignada a (assignee, PERSON): Ana Pérez (u-1)');
+  });
+
+  /** Lo que una fila tiene en sus columnas es de la colección: sin leer colecciones, la fila se ve como página. */
+  test('keeps the properties of a row from a token that reads pages but not collections', async () => {
+    const row = { ...page, parentId: MISSING, propertyValues: { status: 'En curso' } };
+    const pagesOnly = {
+      ...principal,
+      access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], pages: [], spaces: [] },
+    };
+    const result = await fetchAddress(
+      PAGE,
+      servingPage(row, {
+        collections: collectionWith([column('status', 'Estado', 'SELECT')]),
+        principalResolver: { resolve: () => Promise.resolve(pagesOnly) },
+      }),
+    );
+
+    expect(result.structuredContent).not.toHaveProperty('page.properties');
+    expect(textOf(result)).not.toContain('En curso');
+  });
+
+  /** Una colección con miles de filas no se entrega entera al abrirla: el resto se recorre con list_pages. */
+  test('names only the first pages under a page and says how many more there are', async () => {
+    const many = Array.from({ length: MCP_FETCH_CHILD_LIMIT + 5 }, (_unused, index) => ({
+      childCount: 0,
+      id: `child-${String(index)}`,
+      isCollection: false,
+      propertyValues: null,
+      title: `Fila ${String(index)}`,
+    }));
+    const result = await fetchAddress(PAGE, {
+      ...createDependencies(),
+      outline: { ...outline, listChildren: childrenOf(many) },
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent).toMatchObject({ page: { moreChildren: 5 } });
+    expect(textOf(result)).toContain(`…and 5 more: list_pages with parentPageId ${PAGE}`);
+  });
+
+  /** Una página en la papelera se puede leer, pero lo primero que se dice es que está ahí. */
+  test('says first that a page is in the trash', async () => {
+    const result = await fetchAddress(PAGE, servingPage({ ...page, lifecycle: 'TRASHED' }));
+
+    expect(textOf(result).startsWith(MCP_FETCHED_IN_TRASH_NOTE)).toBe(true);
   });
 
   test('says nothing of properties for a page that is not a row', async () => {
@@ -846,7 +922,7 @@ describe('MCP list_pages', () => {
     });
     const client = await connectClient({
       ...createDependencies(),
-      outline: { ...outline, listChildren: () => Promise.resolve([task(1, 'todo'), task(2, 'done')]) },
+      outline: { ...outline, listChildren: childrenOf([task(1, 'todo'), task(2, 'done')]) },
       collections: collectionWith([
         column('title', 'Título', 'TITLE'),
         column('status', 'Estado', 'SELECT'),
@@ -872,7 +948,7 @@ describe('MCP list_pages', () => {
     }));
     const client = await connectClient({
       ...createDependencies(),
-      outline: { ...outline, listChildren: () => Promise.resolve(many) },
+      outline: { ...outline, listChildren: childrenOf(many) },
     });
 
     const first = await client.callTool({ arguments: { limit: 3, spaceId: SPACE }, name: 'list_pages' });

@@ -1,5 +1,6 @@
 import { canEditContent } from '../types/workspace.types.js';
 import type { UserRole } from '../types/user-role.types.js';
+import { isOneOf } from '../value-list.lib.js';
 import {
   ACCESS_TOKEN_LEVEL_PERMISSIONS,
   ACCESS_TOKEN_LEVELS,
@@ -7,7 +8,7 @@ import {
   ACCESS_TOKEN_NAME_MAX_LENGTH,
   ACCESS_TOKEN_NAME_WHITESPACE_RUN,
   ACCESS_TOKEN_PRESET_LEVELS,
-  ACCESS_TOKEN_WRITE_PERMISSIONS,
+  ACCESS_TOKEN_READ_PERMISSIONS,
 } from './access-token.definitions.js';
 import type {
   AccessTokenAccess,
@@ -18,8 +19,9 @@ import type {
   AccessTokenPresetLevel,
 } from './access-token.types.js';
 
-const isWritePermission = (permission: AccessTokenPermission): boolean =>
-  ACCESS_TOKEN_WRITE_PERMISSIONS.some((writing) => writing === permission);
+/** Si el permiso solo deja leer. Lo que no está en esa lista cambia algo, aunque se haya olvidado decirlo. */
+const isReadOnlyPermission = (permission: AccessTokenPermission): boolean =>
+  isOneOf(ACCESS_TOKEN_READ_PERMISSIONS, permission);
 
 export const listAccessTokenLevelPermissions = (level: AccessTokenPresetLevel): readonly AccessTokenPermission[] =>
   ACCESS_TOKEN_LEVEL_PERMISSIONS[level];
@@ -39,10 +41,11 @@ export const readAccessTokenLevel = (permissions: readonly AccessTokenPermission
  * Si alguien con este rol puede poner este permiso en un token.
  *
  * Un token nunca da más que su dueño: quien solo puede leer no fabrica una
- * llave que escriba por él.
+ * llave que escriba por él. Sin poder escribir solo se dan los permisos de
+ * lectura; uno nuevo que nadie clasificó queda del lado que exige escribir.
  */
 export const canRoleGrantAccessTokenPermission = (role: UserRole, permission: AccessTokenPermission): boolean =>
-  !isWritePermission(permission) || canEditContent(role);
+  isReadOnlyPermission(permission) || canEditContent(role);
 
 /** La regla de página más cercana: la de la página misma o la del primer ancestro que tenga una. */
 const findClosestPageGrant = (
@@ -107,7 +110,7 @@ export const isAccessTokenNameAcceptable = (trimmedName: string): boolean =>
 
 /** Cómo se compara un nombre con otro: sin mayúsculas y con una sola separación entre palabras. */
 const normalizeAccessTokenName = (name: string): string =>
-  name.trim().replaceAll(ACCESS_TOKEN_NAME_WHITESPACE_RUN, ' ').toLocaleLowerCase();
+  name.trim().replaceAll(ACCESS_TOKEN_NAME_WHITESPACE_RUN, ' ').toLowerCase();
 
 /**
  * Si el nombre ya lo usa otro token vivo de la misma persona. Dos tokens que

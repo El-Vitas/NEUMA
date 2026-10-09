@@ -654,6 +654,13 @@ export const PAGE_EDITOR_EMBED_REFUSED_STYLE_CLASS = [
 
 export const PAGE_EDITOR_BOOKMARK_TYPE = 'bookmark';
 
+/**
+ * Cuánto pesa la regla que lee una tarjeta pegada frente a la de un enlace
+ * común. Las dos se fijan en un `<a href>` y las marcas se prueban antes que
+ * los bloques: sin esto, copiar y pegar una tarjeta la volvía un enlace.
+ */
+export const PAGE_EDITOR_CARD_PARSE_PRIORITY = 60;
+
 /** A card: the mark of the site, what it is called, what it says, and where it points. */
 export const PAGE_EDITOR_BOOKMARK_STYLE_CLASS = [
   'my-3 flex min-h-11 w-full items-center gap-3 border border-border bg-surface-low px-3 py-2',

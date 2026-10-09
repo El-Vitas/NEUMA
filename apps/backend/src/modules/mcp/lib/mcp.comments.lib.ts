@@ -1,4 +1,6 @@
 import {
+  describeMissingPageBlock,
+  findPageBlock,
   isPageDocumentNode,
   listPageDocumentChildren,
   PAGE_BLOCK_COMMENTS_MOST,
@@ -10,12 +12,12 @@ import {
 } from '@company-brain/shared';
 import { MCP_INLINE_OBJECT_PLACEHOLDER } from '../constants/mcp.constants';
 import type { McpContentEdit, McpTextNode } from '../types/mcp.pages.types';
-import { describeMcpMissingBlock, findMcpBlockNode } from './mcp.blocks.lib';
 
 const isText = (node: unknown): node is McpTextNode =>
   isPageDocumentNode(node) && node.type === 'text' && typeof node.text === 'string';
 
-const readComments = (node: PageDocumentNodeShape): readonly unknown[] => {
+/** Los comentarios de un bloque tal como están guardados, sin dejar ninguno afuera: se reescriben con el bloque. */
+const readStoredComments = (node: PageDocumentNodeShape): readonly unknown[] => {
   const comments = node.attrs?.comments;
   return Array.isArray(comments) ? comments : [];
 };
@@ -93,9 +95,9 @@ const findQuote = (
 export const addMcpBlockComment =
   (blockId: string, comment: PageBlockComment, quote?: string): McpContentEdit =>
   (content) => {
-    const node = findMcpBlockNode(content.content, blockId);
-    if (node === null) return Result.fail(describeMcpMissingBlock(blockId));
-    const comments = readComments(node);
+    const node = findPageBlock(content.content, blockId);
+    if (node === null) return Result.fail(describeMissingPageBlock(blockId));
+    const comments = readStoredComments(node);
     if (comments.length >= PAGE_BLOCK_COMMENTS_MOST)
       return Result.fail(
         `Block ${blockId} already has ${String(PAGE_BLOCK_COMMENTS_MOST)} comments, the most a block holds. Delete one first.`,
@@ -124,9 +126,9 @@ const isCommentWithId = (comment: unknown, commentId: string): boolean =>
 export const removeMcpBlockComment =
   (blockId: string, commentId: string): McpContentEdit =>
   (content) => {
-    const node = findMcpBlockNode(content.content, blockId);
-    if (node === null) return Result.fail(describeMcpMissingBlock(blockId));
-    const comments = readComments(node);
+    const node = findPageBlock(content.content, blockId);
+    if (node === null) return Result.fail(describeMissingPageBlock(blockId));
+    const comments = readStoredComments(node);
     const remaining = comments.filter((comment) => !isCommentWithId(comment, commentId));
     if (remaining.length === comments.length)
       return Result.fail(

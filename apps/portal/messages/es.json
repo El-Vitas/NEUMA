@@ -307,6 +307,8 @@
       "forbidden": "No puedes dar ese acceso: alguno de esos permisos, espacios o páginas no los tienes tú, o la página está en la papelera.",
       "missing": "Ese token ya no existe. Puede que alguien lo haya revocado.",
       "conflict": "Ya tienes un token activo con ese nombre, o llegaste al máximo de tokens activos. Cambia el nombre o revoca uno que no uses.",
+      "tooLarge": "El acceso que armaste es demasiado grande para guardarlo. Quita algunos lugares.",
+      "rateLimited": "Hiciste demasiados intentos seguidos. Espera un momento e inténtalo de nuevo.",
       "offline": "No se pudo conectar con el servidor. Verifica tu conexión.",
       "unexpected": "Algo salió mal. Inténtalo de nuevo."
     },
@@ -1179,6 +1181,7 @@
     "blockLinkCopyFailed": "No se pudo copiar el enlace",
     "copyPageLink": "Copiar enlace",
     "pageLinkCopied": "Enlace de la página copiado",
+    "pageLinkCopyFailed": "No se pudo copiar el enlace de la página. Cópialo desde la barra de direcciones.",
     "blockLinkMissing": "Ese bloque ya no está en la página",
     "moveBlocks": "Mover a…",
     "moveBlocksTitle": "Mover los bloques a otra página",
@@ -1188,6 +1191,7 @@
     "moveBlocksDone": "Bloques movidos a {page}",
     "moveBlocksVisit": "Ir a la página",
     "moveBlocksError": "No se pudieron mover los bloques",
+    "moveBlocksKept": "Los bloques se copiaron a {page}, pero cambiaron aquí mientras se movían y se quedaron también en esta página",
     "unsupportedBlock": "Bloque no compatible",
     "blockToPage": "Convertir en página",
     "blocksMadePage": "Bloques convertidos en la página {page}",
@@ -1203,6 +1207,7 @@
     "openToggle": "Abrir o cerrar este bloque plegable",
     "toggleTitle": "Título del bloque plegable",
     "codeCopied": "Código copiado",
+    "codeCopyFailed": "No se pudo copiar el código. Selecciónalo y cópialo a mano.",
     "copyCode": "Copiar el código",
     "codeLanguage": "Lenguaje del código",
     "wrapCode": "Ajustar las líneas largas",
@@ -1242,7 +1247,8 @@
     "diagramZoomOut": "Alejar el dibujo",
     "diagramFitToFrame": "Ajustar el dibujo al marco",
     "diagramActualSize": "Ver el dibujo a su tamaño real",
-    "diagramFrameHeight": "Alto del marco. Arrastra o usa las flechas para cambiarlo; doble clic lo devuelve al tamaño automático",
+    "diagramFrameHeight": "Alto del marco",
+    "diagramFrameHeightHint": "Arrastra o usa las flechas para cambiarlo; doble clic o Intro lo devuelve al tamaño automático",
     "calloutIcon": "Marca del destacado",
     "noCalloutIcon": "Sin marca",
     "calloutIcons": {
@@ -1399,6 +1405,8 @@
       "forbidden": "No tienes permiso para hacer esto.",
       "missing": "Esto ya no existe. Puede que se haya eliminado.",
       "conflict": "Otra persona lo cambió antes. Recarga para ver cómo quedó.",
+      "tooLarge": "Es demasiado grande para guardarlo de una vez. Divídelo en partes más pequeñas.",
+      "rateLimited": "Hiciste demasiados cambios seguidos. Espera un momento e inténtalo de nuevo.",
       "offline": "No se pudo contactar con el servidor. Revisa tu conexión.",
       "unexpected": "Algo falló de nuestro lado. Inténtalo de nuevo."
     }
@@ -1433,6 +1441,8 @@
     "contents": "En esta página",
     "drawingActualSize": "Tamaño real",
     "drawingFit": "Ajustar al marco",
+    "drawingRegion": "Dibujo del ejemplo",
+    "drawingTools": "Tamaño del dibujo",
     "drawingZoomIn": "Acercar el dibujo",
     "drawingZoomOut": "Alejar el dibujo",
     "empty": "Todavía no hay documentos escritos."

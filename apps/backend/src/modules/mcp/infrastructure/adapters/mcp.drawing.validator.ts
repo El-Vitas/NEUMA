@@ -5,9 +5,12 @@ import { MCP_DIAGRAM_WORKER_FILE, MCP_DIAGRAM_WORKER_READY } from '../../constan
 import {
   MCP_DIAGRAM_CHECK_TIMEOUT_MS,
   MCP_DIAGRAM_CHECKER_START_TIMEOUT_MS,
+  MCP_DIAGRAM_CHECKS_WAITING_MAX,
 } from '../../constants/mcp.limits.constants';
 import { diagramCheckAnswerSchema } from '../../schemas/mcp.pages.schemas';
 import type { McpDiagramCheckAnswer, McpDrawingValidator, McpPendingDiagramCheck } from '../../types/mcp.pages.types';
+import { McpDiagramCheckerBusyError } from '../errors/mcp.diagram-busy.error';
+import { McpDiagramCheckTimeoutError } from '../errors/mcp.diagram-timeout.error';
 
 /**
  * Revisa, antes de guardar, que lo que una página va a dibujar se pueda
@@ -27,11 +30,29 @@ export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModule
   private running: Worker | null = null;
   private nextId = 0;
   private readonly pending = new Map<number, McpPendingDiagramCheck>();
+  /** Los diagramas esperan su turno: el worker lee de a uno, y el tiempo de cada uno corre recién cuando le toca. */
+  private turn: Promise<void> = Promise.resolve();
+  private waiting = 0;
 
-  async checkDiagram(source: string): Promise<Result<string, string>> {
-    const worker = await this.startOnce();
-    const answer = await this.ask(worker, source);
-    return 'fault' in answer ? Result.fail(answer.fault) : Result.ok(answer.diagramType);
+  /**
+   * Revisa un diagrama cuando le llega su turno. Uno que tarda demasiado
+   * reinicia el worker y falla solo él: los que esperaban siguen con uno nuevo.
+   * Con la fila llena, el que llega falla enseguida para que se reintente.
+   */
+  checkDiagram(source: string): Promise<Result<string, string>> {
+    if (this.waiting >= MCP_DIAGRAM_CHECKS_WAITING_MAX)
+      return Promise.reject(new McpDiagramCheckerBusyError(MCP_DIAGRAM_CHECKS_WAITING_MAX));
+    this.waiting += 1;
+    const checked = this.turn
+      .then(() => this.checkNow(source))
+      .finally(() => {
+        this.waiting -= 1;
+      });
+    this.turn = checked.then(
+      () => undefined,
+      () => undefined,
+    );
+    return checked;
   }
 
   checkFormula(latex: string, isOnItsOwnLine: boolean): Result<string, string> {
@@ -46,6 +67,12 @@ export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModule
 
   onModuleDestroy(): void {
     this.stop(new Error('The backend is shutting down'));
+  }
+
+  private async checkNow(source: string): Promise<Result<string, string>> {
+    const worker = await this.startOnce();
+    const answer = await this.ask(worker, source);
+    return 'fault' in answer ? Result.fail(answer.fault) : Result.ok(answer.diagramType);
   }
 
   private startOnce(): Promise<Worker> {
@@ -86,7 +113,7 @@ export class McpDrawingValidatorAdapter implements McpDrawingValidator, OnModule
     const id = this.nextId;
     return new Promise((resolve, reject) => {
       const late = setTimeout(() => {
-        this.stop(new Error(`The diagram checker took more than ${String(MCP_DIAGRAM_CHECK_TIMEOUT_MS)} ms`));
+        this.stop(new McpDiagramCheckTimeoutError(MCP_DIAGRAM_CHECK_TIMEOUT_MS));
       }, MCP_DIAGRAM_CHECK_TIMEOUT_MS);
       this.pending.set(id, {
         fail: (error) => {

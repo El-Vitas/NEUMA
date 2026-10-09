@@ -56,6 +56,7 @@ const createRepository = (): PageRepositoryContract => ({
   deleteForever: () => Promise.resolve('DELETED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
+  findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () =>
@@ -80,9 +81,9 @@ const createRepository = (): PageRepositoryContract => ({
   trashCascade: () => Promise.resolve(true),
   findStoredContent: () => Promise.resolve(null),
   storeContent: () => Promise.resolve('UNCHANGED'),
-  updatePropertyValues: async (_input, merge) => {
-    const merged = await merge(null);
-    return merged.isOk() ? Result.ok(page) : Result.fail(merged.getError());
+  updatePropertyValues: (_input, merge) => {
+    const merged = merge(null);
+    return Promise.resolve(merged.isOk() ? Result.ok(page) : Result.fail(merged.getError()));
   },
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
@@ -94,9 +95,10 @@ const createRepository = (): PageRepositoryContract => ({
 });
 
 const createSchemaRepository = (): PageSchemaRepositoryContract => ({
-  defineSchema: (pageId, properties, views) => Promise.resolve({ pageId, properties, views }),
+  defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
   rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
+  listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([]),
   setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
   listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
@@ -1352,9 +1354,9 @@ describe('pages service — updating what a row holds', () => {
     new PagesService(
       {
         ...createRepository(),
-        updatePropertyValues: async (_input, merge) => {
-          const merged = await merge(page.propertyValues);
-          return merged.isOk() ? Result.ok(updated) : Result.fail(merged.getError());
+        updatePropertyValues: (_input, merge) => {
+          const merged = merge(page.propertyValues);
+          return Promise.resolve(merged.isOk() ? Result.ok(updated) : Result.fail(merged.getError()));
         },
       },
       { ...createSchemaRepository(), ...schemaOverrides },
@@ -1381,11 +1383,11 @@ describe('pages service — updating what a row holds', () => {
       {
         ...createRepository(),
         getAccessible: () => Promise.resolve({ ...page, propertyValues: storedValues }),
-        updatePropertyValues: async (_input, merge) => {
-          const merged = await merge(storedValues);
-          if (merged.isFail()) return Result.fail(merged.getError());
+        updatePropertyValues: (_input, merge) => {
+          const merged = merge(storedValues);
+          if (merged.isFail()) return Promise.resolve(Result.fail(merged.getError()));
           written.push({ ...merged.getValue() });
-          return Result.ok(page);
+          return Promise.resolve(Result.ok(page));
         },
       },
       { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve(schemaProperties) },
@@ -1422,10 +1424,10 @@ describe('pages service — updating what a row holds', () => {
       {
         ...createRepository(),
         getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo' } }),
-        updatePropertyValues: async (input, merge) => {
+        updatePropertyValues: (input, merge) => {
           received.push(input);
-          const merged = await merge({ status: 'todo' });
-          return merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page);
+          const merged = merge({ status: 'todo' });
+          return Promise.resolve(merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page));
         },
       },
       { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) },

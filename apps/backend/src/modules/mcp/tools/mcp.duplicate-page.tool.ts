@@ -1,11 +1,48 @@
 import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { recordMcpWrite } from '../lib/mcp.actions.lib';
+import { runMcpWrite } from '../lib/mcp.actions.lib';
+import { requireMcpRowChangeAllowed } from '../lib/mcp.collections.lib';
 import { openMcpPage, readMcpPageId, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { describeMcpManagedPage, formatMcpManagedPageText, requireMcpWholeTree } from '../lib/mcp.page-management.lib';
-import { openMcpCall, requireMcpPermissionAt, runMcpTool } from '../lib/mcp.tool.lib';
+import { readMcpActor, requireMcpPermissionAt } from '../lib/mcp.tool.lib';
 import { duplicatePageInputSchema, managedPageOutputSchema } from '../schemas/mcp.pages.schemas';
-import type { McpToolDefinition } from '../types/mcp.types';
+import type { McpDuplicatePageInput, McpManagedPageOutput } from '../types/mcp.page-management.types';
+import type { McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+
+const duplicatePage = async (
+  dependencies: McpServerDependencies,
+  input: McpDuplicatePageInput,
+  { call, record }: McpWriteSession,
+): Promise<McpManagedPageOutput> => {
+  const { page, place } = await openMcpPage(
+    dependencies,
+    call,
+    readMcpPageId(input.page),
+    ACCESS_TOKEN_PERMISSIONS.pagesRead,
+  );
+  const besideLineage = place.lineage.slice(1);
+  const beside = { lineage: besideLineage, spaceId: place.spaceId };
+  requireMcpPermissionAt(call.principal, beside, ACCESS_TOKEN_PERMISSIONS.pagesWrite);
+  await requireMcpRowChangeAllowed(dependencies, call, { parentId: page.parentId, place: beside });
+  const withChildren = input.withChildren === true;
+  if (withChildren) await requireMcpWholeTree(dependencies, call, page.id, ACCESS_TOKEN_PERMISSIONS.pagesRead);
+  const request = { blockIds: [], detail: { withChildren }, pageId: page.id, tool: MCP_TOOL_NAMES.duplicatePage };
+  const copy = await record(
+    request,
+    async () =>
+      requireMcpSuccess(
+        await dependencies.pages.duplicate({
+          ...readMcpActor(call),
+          includeChildren: withChildren,
+          pageId: page.id,
+          title: input.title ?? null,
+        }),
+      ),
+    (copied) => copied.id,
+  );
+  const copyPlace = { lineage: [copy.id, ...besideLineage], spaceId: place.spaceId };
+  return { page: describeMcpManagedPage(dependencies, call, { page: copy, place: copyPlace }) };
+};
 
 /**
  * Hace una copia de una página justo al lado de ella, bajo la misma página de
@@ -24,43 +61,10 @@ export const duplicatePageTool: McpToolDefinition = {
         outputSchema: managedPageOutputSchema,
       },
       async (input) =>
-        runMcpTool(
+        runMcpWrite(
           dependencies,
-          MCP_TOOL_NAMES.duplicatePage,
-          async () => {
-            const call = await openMcpCall(dependencies);
-            const { page, place } = await openMcpPage(
-              dependencies,
-              call,
-              readMcpPageId(input.page),
-              ACCESS_TOKEN_PERMISSIONS.pagesRead,
-            );
-            const beside = { lineage: place.lineage.slice(1), spaceId: place.spaceId };
-            requireMcpPermissionAt(call.principal, beside, ACCESS_TOKEN_PERMISSIONS.pagesWrite);
-            const withChildren = input.withChildren === true;
-            if (withChildren)
-              await requireMcpWholeTree(dependencies, call, page.id, ACCESS_TOKEN_PERMISSIONS.pagesRead);
-            const { role, userId } = call.principal;
-            const request = {
-              blockIds: [],
-              detail: { withChildren },
-              pageId: page.id,
-              tool: MCP_TOOL_NAMES.duplicatePage,
-            };
-            const copy = await recordMcpWrite(dependencies, call, request, async () =>
-              requireMcpSuccess(
-                await dependencies.pages.duplicate(
-                  page.id,
-                  withChildren,
-                  input.title ?? null,
-                  userId,
-                  call.workspace.id,
-                  role,
-                ),
-              ),
-            );
-            return { page: describeMcpManagedPage(dependencies, copy) };
-          },
+          { requestId: input.requestId, target: input.page, tool: MCP_TOOL_NAMES.duplicatePage },
+          (session) => duplicatePage(dependencies, input, session),
           formatMcpManagedPageText,
         ),
     );

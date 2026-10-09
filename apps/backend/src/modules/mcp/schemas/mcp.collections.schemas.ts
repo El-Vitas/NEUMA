@@ -6,9 +6,7 @@ import {
   PAGE_VIEW_TYPE_VALUES,
 } from '@company-brain/shared';
 import { z } from 'zod';
-import { MCP_OFFSET_CURSOR_PATTERN } from '../constants/mcp.constants';
 import {
-  MCP_ADDRESS_MAX_LENGTH,
   MCP_COLLECTION_CHANGE_LIMIT,
   MCP_COLUMN_NAME_MAX_LENGTH,
   MCP_LISTED_PAGE_PART_DEFAULT,
@@ -19,13 +17,11 @@ import {
   MCP_VALUE_TEXT_MAX_LENGTH,
   MCP_WHERE_CONDITION_LIMIT,
 } from '../constants/mcp.limits.constants';
+import { buildMcpAddressSchema, buildMcpOffsetCursorSchema, mcpRequestIdShape } from './mcp.common.schemas';
 
-const collectionSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(MCP_ADDRESS_MAX_LENGTH)
-  .describe('The collection (a table or board): a Company Brain link to it, or its page id.');
+const collectionSchema = buildMcpAddressSchema(
+  'The collection (a table or board): a Company Brain link to it, or its page id.',
+);
 
 const columnSchema = z
   .string()
@@ -47,6 +43,9 @@ const cellValueSchema = z.union([
 
 const cellValuesSchema = z
   .record(z.string().max(MCP_COLUMN_NAME_MAX_LENGTH), cellValueSchema)
+  .refine((values) => Object.keys(values).length <= MCP_COLLECTION_CHANGE_LIMIT, {
+    message: `Give at most ${String(MCP_COLLECTION_CHANGE_LIMIT)} columns at once.`,
+  })
   .describe(
     'Values by column (key or name). An option is given by its name; a person by their name or id; a date as YYYY-MM-DD; null empties the cell.',
   );
@@ -69,11 +68,7 @@ const sortSchema = z
 
 const viewNameSchema = z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH);
 
-const cursorSchema = z
-  .string()
-  .regex(MCP_OFFSET_CURSOR_PATTERN)
-  .optional()
-  .describe('To read the next part: the cursor the previous part returned.');
+const cursorSchema = buildMcpOffsetCursorSchema('To read the next part: the cursor the previous part returned.');
 
 const addableColumnTypes = PAGE_PROPERTY_TYPE_VALUES.filter((type) => type !== PAGE_PROPERTY_TYPE.TITLE);
 
@@ -104,6 +99,7 @@ export const createCollectionInputSchema = z.object({
   viewName: namedInTheirLanguageSchema.describe(
     'The name of its first view, a table, in the language of the people who use it, such as "Table" or "Tabla".',
   ),
+  ...mcpRequestIdShape,
 });
 
 export const getCollectionInputSchema = z.object({ collection: collectionSchema });
@@ -126,16 +122,12 @@ export const createRowInputSchema = z.object({
     .optional()
     .describe('What the row page says, as plain paragraphs separated by blank lines.'),
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH),
+  ...mcpRequestIdShape,
 });
 
 export const updateRowInputSchema = z.object({
   properties: cellValuesSchema.optional(),
-  row: z
-    .string()
-    .trim()
-    .min(1)
-    .max(MCP_ADDRESS_MAX_LENGTH)
-    .describe('The row: a Company Brain link to it, or its page id.'),
+  row: buildMcpAddressSchema('The row: a Company Brain link to it, or its page id.'),
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH).optional(),
 });
 
@@ -190,6 +182,7 @@ export const createViewInputSchema = z.object({
   name: viewNameSchema,
   type: z.enum(PAGE_VIEW_TYPE_VALUES),
   ...viewShapeSchema,
+  ...mcpRequestIdShape,
 });
 
 export const updateViewInputSchema = z.object({
