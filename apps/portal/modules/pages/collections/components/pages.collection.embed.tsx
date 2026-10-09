@@ -13,15 +13,7 @@ interface IProps {
   readonly view: PageSchemaView;
 }
 
-/**
- * A collection looked at from inside another page.
- *
- * It says whose collection it is and how it is being looked at, and leads to
- * the collection itself: what is shown here is one way of reading it, and the
- * page it belongs to is where it is added to and changed. It does not repeat
- * the heading a collection carries on its own page — that one names the section
- * of a page, and here the section is the writing around it.
- */
+/** Read-only view of a collection inside another page; it omits the collection page's own heading. */
 export const PagesCollectionEmbed = async ({ outcome, properties, schema, spaceId, title, view }: IProps) => (
   <section aria-label={title} className="my-4 space-y-3 border-border border-s ps-4">
     <div className="flex items-baseline gap-2">

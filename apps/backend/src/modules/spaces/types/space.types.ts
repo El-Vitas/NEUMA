@@ -12,14 +12,12 @@ export interface CreateSpaceInput {
 }
 
 export interface SpaceSummary {
-  /** What the space says it is for, in its own words. Null while nobody has said. */
   readonly description: null | string;
   readonly icon: PageIcon | null;
   readonly id: string;
   readonly name: string;
-  /** Where the space sits in its workspace's own order, which people set by dragging. */
   readonly order: number;
-  /** Who a `PRIVATE` space belongs to. Null for every other visibility. */
+  /** Null unless the space is `PRIVATE`. */
   readonly ownerId: string | null;
   readonly slug: string;
   readonly visibility: SpaceVisibility;
@@ -35,7 +33,7 @@ export interface SpaceRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<SpaceSummary | null>;
-  /** `null` erases what the space said about itself, rather than leaving an empty sentence behind. */
+  /** `null` clears the description instead of storing an empty string. */
   readonly describeSpace: (
     spaceId: string,
     description: null | string,

@@ -1,12 +1,8 @@
 import type { McpRefusalReason } from '../../types/mcp.types';
 
 /**
- * Un fallo que el agente tiene que leer para saber qué hacer después.
- *
- * Se distingue de un fallo inesperado porque su mensaje está escrito para el
- * agente: dice qué pasó y cómo seguir. Lo inesperado no se le cuenta con
- * detalle, porque su detalle es del servidor y no le sirve para decidir nada.
- * El motivo, cuando lo hay, es lo que queda en el log en lugar del mensaje.
+ * Its message is written for the agent: what happened and how to proceed. Unexpected failures
+ * are not detailed to the agent. The reason, when present, is what gets logged instead of the message.
  */
 export class McpToolError extends Error {
   readonly reason?: McpRefusalReason;

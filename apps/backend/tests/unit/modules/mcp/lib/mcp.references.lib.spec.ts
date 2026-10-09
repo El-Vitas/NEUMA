@@ -38,7 +38,6 @@ describe('listReferencedPageIds', () => {
   });
 });
 
-/** Un enlace escrito a mano a una página también la nombra por su id. */
 describe('links to pages', () => {
   const linked = (pageId: string, words: string) => ({
     marks: [{ attrs: { href: `/spaces/s/pages/${pageId}` }, type: 'link' }, { type: 'strong' }],
@@ -67,7 +66,6 @@ describe('links to pages', () => {
 describe('hideUnreachableReferences', () => {
   const hidden = hideUnreachableReferences(nodes, reachable);
 
-  /** Una mención guarda el nombre y el espacio de cuando se escribió; el agente recibe los de hoy. */
   it('names a page it can see as it is called today, where it lives today', () => {
     expect(hidden[0]).toMatchObject({
       content: [
@@ -111,7 +109,6 @@ describe('settleWrittenReferences', () => {
     expect(settled.getValue()).toEqual(written(mention('seen', 'Nombre de hoy', 'new-space')));
   });
 
-  /** Escribir una mención a una página cerrada dejaría su nombre a la vista de quien lea esta. */
   it('refuses a mention of a page the token cannot reach, the same as one that does not exist', () => {
     const settled = settleWrittenReferences(written(mention('hidden', 'Secreta')), reachable, people);
 
@@ -131,7 +128,6 @@ describe('settleWrittenReferences', () => {
     ]);
   });
 
-  /** Un botón que agrega filas a una colección cerrada la delataría a quien lo aprieta. */
   it('refuses a button that adds rows to a page the token cannot reach, and checks what the button writes', () => {
     const rowButton = (pageId: string, inline: readonly unknown[]) => ({
       attrs: { deed: 'row', label: 'Nueva', pageId, spaceId: '' },

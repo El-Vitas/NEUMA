@@ -2,13 +2,9 @@ import { icons as brandIcons } from '@iconify-json/logos';
 import { icons as materialIcons } from '@iconify-json/mdi';
 import type { McpIconPack } from '../types/mcp.pages.types';
 
-/**
- * Los paquetes de íconos que un diagrama puede nombrar: los mismos que el
- * portal le enseña a Mermaid al dibujar. Un ícono que no está aquí no se dibuja.
- */
+/** Same packs the portal registers with Mermaid; an icon outside them is not drawn. */
 export const MCP_DIAGRAM_ICON_PACKS: readonly McpIconPack[] = [brandIcons, materialIcons];
 
-/** Cómo se usa un ícono en un diagrama, para que el agente lo escriba bien a la primera. */
 export const MCP_DIAGRAM_ICON_USAGE = [
   'Use an icon as pack:name inside a diagram block (Mermaid). The only accepted forms:',
   '- architecture-beta, a group: group web(cloud)[Web] puts the icon in parentheses and the label in brackets',

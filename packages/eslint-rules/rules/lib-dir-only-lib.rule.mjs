@@ -1,6 +1,3 @@
-// lib-dir-only-lib
-// Qué hace: dentro de `lib/`, solo permite helpers/utilidades puras.
-// Para qué: que `lib/` no acumule componentes, tipos, constantes ni schemas (§1.1).
 import { eachExportedVariableDeclarator } from './dir-only-exports.util.mjs';
 
 const STARTS_WITH_UPPERCASE = /^[A-Z]/;

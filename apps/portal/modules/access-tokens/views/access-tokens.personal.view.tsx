@@ -12,7 +12,6 @@ interface IProps {
   readonly tokens: readonly AccessToken[] | null;
 }
 
-/** Los tokens propios, dentro de la configuración. Crear y cambiar el acceso tienen su propia página. */
 export const AccessTokensPersonalView = async ({ tokens }: IProps) => {
   const t = await getTranslations('accessTokens');
 

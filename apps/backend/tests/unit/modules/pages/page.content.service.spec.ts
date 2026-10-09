@@ -20,7 +20,6 @@ const pageSaying = (...texts: readonly string[]): PageContent => ({
   type: 'doc',
 });
 
-/** Un documento en vivo que tiene lo que tiene y guarda solo lo que la reescritura le devuelve. */
 const createLiveDocument = (holding: PageContent) => {
   let current = holding;
   const liveDocument: PageLiveDocument = {
@@ -39,7 +38,6 @@ const allowing = (refusal: PageAccessDeniedError | PageLockedError | null = null
 });
 
 describe('PageContentService.edit', () => {
-  /** Otra persona pudo escribir entre que el agente leyó y escribió: la edición parte de lo que hay al escribir. */
   it('edits what the page says at the moment of writing', async () => {
     const live = createLiveDocument(pageSaying('Lo que alguien acaba de escribir'));
     const service = new PageContentService(allowing(), live.liveDocument);

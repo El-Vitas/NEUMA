@@ -22,5 +22,4 @@ export const FILE_RANGE_UNSATISFIABLE: FileByteRangeRequest = { kind: 'unsatisfi
 
 export const FILE_RANGE_NOT_SATISFIABLE_STATUS = 416;
 
-/** Who a file is shown as coming from when its uploader can no longer be found. */
 export const UNKNOWN_FILE_OWNER_NAME = 'Unknown';

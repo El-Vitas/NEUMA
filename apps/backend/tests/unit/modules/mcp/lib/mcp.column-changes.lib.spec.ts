@@ -63,11 +63,6 @@ describe('applyMcpColumnChanges', () => {
     ).toContain('Hecho');
   });
 
-  /**
-   * Renombrar o quitar una opción reescribe las filas que la tenían, y eso lo
-   * hace otro camino; la forma que devuelve ya es la final, con las opciones
-   * cambiadas, para revisarla entera antes de escribir nada.
-   */
   it('hands renaming and removing options over as rewrites, and returns the shape they leave', () => {
     const changed = applyMcpColumnChanges(known, {
       removeOptions: [{ column: 'Estado', option: 'hecho' }],
@@ -81,7 +76,6 @@ describe('applyMcpColumnChanges', () => {
     expect(changed.properties[1]?.options?.map((option) => option.value)).toEqual(['Pendiente']);
   });
 
-  /** Lo que choca con una opción renombrada se rechaza antes de reescribir ninguna fila. */
   it('refuses, before any row is rewritten, an option added under the name another one is renamed to', () => {
     expect(
       applyMcpColumnChanges(known, {
@@ -99,7 +93,6 @@ describe('applyMcpColumnChanges', () => {
     ).toContain('Hecho');
   });
 
-  /** Reescribir las filas de una columna que se quita sería trabajo para nada: se pide una cosa o la otra. */
   it('refuses rewriting the options of a column that the same request removes', () => {
     expect(
       applyMcpColumnChanges(known, {
@@ -118,7 +111,6 @@ describe('applyMcpColumnChanges', () => {
     ).toContain('Por hacer, Hecho');
   });
 
-  /** Un token que cambia la colección sin poder leerla no se entera, por un rechazo, de lo que hay. */
   it('refuses without naming what there is when the names are kept from the agent', () => {
     const hidden = { columns, listNames: hideMcpNames };
 
@@ -138,7 +130,6 @@ describe('what a request for column changes asks', () => {
     expect(hasMcpColumnChanges({ removeColumns: ['Estado'] })).toBe(true);
   });
 
-  /** Renombrar o quitar opciones va por otro camino; lo demás cambia la forma guardada. */
   it('changes the shape only when it adds, renames or removes columns, or adds options', () => {
     expect(hasMcpShapeChanges({ renameOptions: [{ column: 'Estado', from: 'Hecho', to: 'Listo' }] })).toBe(false);
     expect(hasMcpShapeChanges({ addOptions: [{ column: 'Estado', options: ['Bloqueado'] }] })).toBe(true);

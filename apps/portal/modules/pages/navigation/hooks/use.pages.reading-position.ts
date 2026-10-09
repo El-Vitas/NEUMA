@@ -11,12 +11,7 @@ import {
   PAGES_READING_POSITION_STORAGE_KEY_PREFIX,
 } from '../constants/use.pages.reading-position.constants';
 
-/**
- * The box that actually scrolls around a page.
- *
- * The portal keeps its reading area inside the viewport instead of letting the
- * document grow, so the window never moves and asking it to would do nothing.
- */
+/** The portal scrolls an inner area inside the viewport, so scrolling the window would do nothing. */
 const findReadingArea = (pageElement: HTMLElement | null): HTMLElement | null => {
   for (let element = pageElement; element !== null; element = element.parentElement) {
     if (PAGES_READING_POSITION_SCROLLABLE_OVERFLOWS.includes(getComputedStyle(element).overflowY)) return element;
@@ -50,13 +45,8 @@ const saveScrollTop = (pageId: string, scrollTop: number): void => {
 };
 
 /**
- * Keeps a reader's place in a page across a reload.
- *
- * The page's own content can still be arriving after the first paint, so a
- * single restore attempt made too early would land under it. The scroll is
- * asked for again a few times right after mount, and once the reader moves on
- * their own the restoring stops and their place is written down instead,
- * ready for the next time this same page loads.
+ * Content can still arrive after the first paint, so the restore is retried a few times after mount.
+ * It stops as soon as the reader scrolls, and from then on their position is saved.
  */
 export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObject<HTMLElement | null>): void => {
   const hasRestored = useRef(false);
@@ -75,7 +65,6 @@ export const usePagesReadingPosition = (pageId: string | null, pageRef: RefObjec
 
     let isRestoring = true;
     let attemptsLeft = PAGES_READING_POSITION_RESTORE_ATTEMPT_COUNT;
-    /** El intento que queda en el aire, para no dejarlo corriendo cuando esto desaparezca. */
     let nextAttempt: ReturnType<typeof setTimeout> | undefined;
 
     const stopRestoring = (): void => {

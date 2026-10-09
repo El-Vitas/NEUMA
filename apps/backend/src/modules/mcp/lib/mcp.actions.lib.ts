@@ -25,11 +25,7 @@ import { openMcpCall, runMcpTool } from './mcp.tool.lib';
 const outcomeOf = (error: unknown): McpActionClosing =>
   error instanceof McpToolError ? AgentActionOutcome.REFUSED : AgentActionOutcome.FAILED;
 
-/**
- * Cierra una acción con su resultado. Si el registro no responde, la acción
- * queda pendiente a la vista y el fallo se cuenta entero: lo que ya se
- * escribió no se deshace, y decirle al agente que falló lo haría repetirlo.
- */
+/** The write already happened: a log failure is logged, not reported, or the agent would repeat the write. */
 const closeAction = async (
   dependencies: McpActionDependencies,
   actionId: string,
@@ -49,10 +45,7 @@ const readWho = (call: McpCall) => ({
   workspaceId: call.workspace.id,
 });
 
-/**
- * Abre la acción antes de escribir. Si otro reintento con el mismo id se anotó
- * un instante antes, este no escribe: se le dice al agente que espere.
- */
+/** If a concurrent retry with the same id was recorded first, this one does not write and the agent is told to wait. */
 const startAction = async (dependencies: McpActionDependencies, entry: McpActionEntry): Promise<string> => {
   try {
     return await dependencies.actionLog.start(entry);
@@ -67,12 +60,7 @@ const describeDoneRequest = (done: McpLiveRequest): string =>
     ? MCP_REQUEST_ALREADY_DONE_MESSAGE
     : `${MCP_REQUEST_ALREADY_DONE_MESSAGE} It was done on page ${done.pageId}: read it with fetch.`;
 
-/**
- * Un pedido con un id que el agente ya mandó no se hace dos veces: si se hizo,
- * se dice dónde quedó; si sigue en curso, que espere. Uno que lleva demasiado
- * pendiente pudo hacerse sin que se anotara, así que su id tampoco se libera:
- * se le dice al agente cómo saberlo y que, si no está, use un id nuevo.
- */
+/** A request id never runs twice. A stale pending one may have run unrecorded: the agent checks, then uses a new id. */
 const requireFreshRequest = async (
   dependencies: McpActionDependencies,
   call: McpCall,
@@ -88,12 +76,9 @@ const requireFreshRequest = async (
 };
 
 /**
- * Hace una escritura del agente dejándola anotada, termine como termine.
- *
- * La acción se anota antes de escribir: si no se puede anotar, no se escribe.
- * Después se cierra con lo que pasó, también si se negó o falló, porque saber
- * qué intentó un agente y no pudo es tan importante como saber qué cambió. El
- * error sigue su camino hacia el agente después de anotarlo.
+ * The action is recorded before writing: if it cannot be recorded, nothing is written. It is closed
+ * with the outcome even when denied or failed, since what an agent tried and could not do matters
+ * as much as what changed. The error still reaches the agent after being recorded.
  */
 export const recordMcpWrite = async <TResult>(
   dependencies: McpActionDependencies,
@@ -118,11 +103,7 @@ export const recordMcpWrite = async <TResult>(
   return result;
 };
 
-/**
- * Anota un intento que se negó o falló antes de llegar a escribir: un token
- * sin permiso, una página bloqueada, un diagrama que no se dibuja. Si el
- * registro falla, se cuenta, y el agente igual recibe el motivo verdadero.
- */
+/** If the log fails the failure is logged and the agent still receives the real reason. */
 const recordRefusedAttempt = async (
   dependencies: McpActionDependencies,
   call: McpCall,
@@ -145,12 +126,7 @@ const recordRefusedAttempt = async (
   }
 };
 
-/**
- * Corre lo que hace una herramienta que escribe dejando anotado cada intento:
- * la escritura que llegó a hacerse se anota al hacerla, y la que se negó
- * antes (por permiso, por lo que pidió, por el estado de la página) se anota
- * igual, como negada, apuntando a lo que el agente nombró.
- */
+/** A write denied beforehand (permission, request, page state) is recorded as denied, with the named target. */
 export const recordMcpAttempt = async <TOutput>(
   dependencies: McpActionDependencies,
   call: McpCall,
@@ -178,11 +154,7 @@ export const recordMcpAttempt = async <TOutput>(
   }
 };
 
-/**
- * Una herramienta que escribe: abre la llamada, anota cada intento y contesta
- * en la forma que MCP espera. Un token que ni siquiera se reconoce no llega a
- * anotar nada, porque no hay a nombre de quién.
- */
+/** An unrecognized token records nothing: there is no one to attribute it to. */
 export const runMcpWrite = <TOutput extends Record<string, unknown>>(
   dependencies: McpServerDependencies,
   attempt: McpAttempt,

@@ -1,6 +1,3 @@
-// screaming-snake-in-constants
-// Qué hace: obliga SCREAMING_SNAKE_CASE en constantes de dominio.
-// Para qué: convención uniforme y reconocible para constantes (§7).
 const SCREAMING_SNAKE = /^[A-Z][A-Z0-9_]*$/;
 
 export const screamingSnakeInConstants = {

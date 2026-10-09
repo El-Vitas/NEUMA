@@ -74,7 +74,6 @@ describe('reading blocks out of pasted Markdown', () => {
     expect(block?.content).toEqual([{ text: 'const x = 1;\nconst y = 2;', type: 'text' }]);
   });
 
-  /** Un bloque de código vacío —o una sola línea en blanco dentro— se pega como bloque vacío, sin perder el pegado. */
   it('reads a fenced block with nothing in it, or only a blank line, as an empty code block', () => {
     expect(parse('```\n```')[0]).toMatchObject({ type: 'code_block' });
     expect(parse('```\n\n```')[0]).toMatchObject({ type: 'code_block' });

@@ -14,7 +14,6 @@ describe('which code blocks are drawings', () => {
 });
 
 describe('what is shown of a diagram', () => {
-  /** A diagram is drawn to be looked at, so the drawing is what a page shows unless someone says otherwise. */
   it('shows the drawing until someone asks for something else', () => {
     expect(readPageDiagramView(undefined)).toBe('drawing');
     expect(readPageDiagramView('nada de esto')).toBe('drawing');

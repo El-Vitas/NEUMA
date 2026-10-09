@@ -1,6 +1,5 @@
 import type { PagePropertyOption, PagePropertyType, PageViewType } from '@company-brain/shared';
 
-/** What a collection is called in the language of whoever is making it. */
 export interface PageCollectionWording {
   readonly firstProperty: string;
   readonly firstView: string;
@@ -22,25 +21,18 @@ export interface PageCollectionView {
   readonly type: PageViewType;
 }
 
-/** What a collection keeps and how it is looked at. */
 export interface PageCollectionShape {
   readonly properties: readonly PageCollectionProperty[];
   readonly views: readonly PageCollectionView[];
 }
 
-/** Which collection a block shows, and through which of its views. */
 export interface PageCollectionInsert {
   readonly pageId: string;
   readonly spaceId: string;
   readonly viewName: string | null;
 }
 
-/**
- * La colección ya elegida mientras se pregunta cuál de sus vistas se muestra.
- *
- * Lleva también dónde se había quedado la escritura: elegir en un diálogo se
- * lleva el cursor, y el bloque tiene que caer donde estaba y no al final.
- */
+/** `spot` remembers the cursor position: the dialog takes focus, and the block must land where typing stopped. */
 export interface PageEditorCollectionChoice {
   readonly pageId: string;
   readonly spot: number;

@@ -8,7 +8,6 @@ import type { PagePersonOption } from '../types/pages.schema.types';
 
 interface IProps {
   readonly ariaLabelledBy: string;
-  /** Shown as its own option so the field can be set back to nobody, instead of only ever replaced. */
   readonly clearLabel?: string;
   readonly disabled: boolean;
   readonly fieldId: string;

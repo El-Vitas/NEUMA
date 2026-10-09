@@ -24,13 +24,7 @@ import {
 import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
 import type { PageSchema } from '../../types/pages.schema.types';
 
-/**
- * Starts a collection: a page of its own, and the shape of what it keeps.
- *
- * Both in one go, because a page that was meant to be a collection and has no
- * shape yet is a page nobody can tell apart from an ordinary one, and it would
- * be left behind on the first failure.
- */
+/** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
 export const createPageCollectionAction = actionClient
   .inputSchema(pageCollectionCreateSchema)
   .action(async ({ parsedInput }) =>
@@ -50,13 +44,7 @@ export const createPageCollectionAction = actionClient
     }),
   );
 
-/**
- * Changes what one row holds, without touching what its page says.
- *
- * This is what a card dragged across a board does. Only the property that moved
- * travels: sending the whole page back would overwrite whatever somebody else
- * wrote in it while the card was in the air.
- */
+/** Only the changed properties travel: sending the whole page would overwrite concurrent edits to its content. */
 export const updatePageRowPropertiesAction = actionClient
   .inputSchema(pageRowPropertiesSchema)
   .action(async ({ parsedInput }) =>
@@ -68,15 +56,7 @@ export const updatePageRowPropertiesAction = actionClient
     }),
   );
 
-/**
- * Changes the shape of a collection that already exists.
- *
- * What the rows already hold does not travel and does not move: the values live
- * on each row, not on the shape, so renaming a column or giving an option
- * another color leaves every row where it was. A property removed from the
- * shape stops being shown, and what the rows stored under it stays written in
- * case somebody puts it back.
- */
+/** Row values live on the rows, not the shape: a removed property stops showing but its stored values remain. */
 export const updatePageCollectionAction = actionClient
   .inputSchema(pageCollectionUpdateSchema)
   .action(async ({ parsedInput }) =>
@@ -91,15 +71,7 @@ export const updatePageCollectionAction = actionClient
     }),
   );
 
-/**
- * Cambia lo que una vista dice de sí misma: por qué agrupa, qué filtra, qué
- * calcula, cómo se la está mirando.
- *
- * Va aparte de cambiar la forma porque no la toca. Mandar la colección entera
- * para doblar una franja o mover un borde reescribe cada propiedad y cada vista,
- * que es mucho trabajo para un gesto y una ventana donde el cambio de otra
- * persona se pierde.
- */
+/** Separate from the shape update: resending the whole collection for one view tweak risks losing others' changes. */
 export const updatePageViewConfigurationAction = actionClient
   .inputSchema(pageViewConfigurationUpdateSchema)
   .action(async ({ parsedInput }) =>
@@ -114,14 +86,7 @@ export const updatePageViewConfigurationAction = actionClient
     }),
   );
 
-/**
- * Renombra una columna del tablero, o la quita.
- *
- * Va por su propio camino y no por el que cambia la forma entera porque solo
- * aquí se dice de qué nombre viene: sin eso, el servidor no podría reescribir lo
- * que las filas guardaron y todas las que estaban en esa columna se quedarían
- * diciendo algo que la colección ya no reconoce.
- */
+/** Needs the old name so the server can rewrite the values rows already stored under it. */
 export const rewritePageCollectionOptionAction = actionClient
   .inputSchema(pageOptionRewriteSchema)
   .action(async ({ parsedInput }) =>
@@ -136,7 +101,7 @@ export const rewritePageCollectionOptionAction = actionClient
     }),
   );
 
-/** What a page keeps, or nothing at all when that page is not a collection. */
+/** Null when the page is not a collection (404). */
 export const readPageCollectionAction = actionClient
   .inputSchema(pageCollectionReadSchema)
   .action(async ({ parsedInput }) =>

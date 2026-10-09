@@ -49,18 +49,9 @@ const whatIsWrongWithTheName = (options: readonly PagePropertyOption[], rename: 
 };
 
 /**
- * Cómo queda la forma cuando a una opción se le cambia el nombre, o se la quita.
- *
- * Renombrar es cambiarle el nombre a una columna del tablero, y se hace en su
- * sitio y con su color puesto: una columna que al renombrarla se fuera al final
- * o se destiñera no sería la misma columna. El nombre nuevo no puede ser el de
- * otra opción, porque entonces dos columnas responderían a lo mismo y nadie
- * sabría a cuál pertenece cada fila. Quitarla —`to` en nada— borra la columna,
- * no lo que había dentro.
- *
- * Esto solo dice cómo queda la forma. Lo que las filas guardaron bajo el nombre
- * viejo se reescribe en el mismo movimiento, porque una forma que ya no reconoce
- * lo que sus filas dicen las deja a todas sin columna.
+ * Renames or removes an option in place, keeping its position and color. The new
+ * name must not collide with another option. Only the schema changes: rows
+ * storing the old name must be rewritten in the same operation.
  */
 export const rewriteSchemaOption = (
   properties: readonly SchemaPropertyDefinition[],
@@ -77,16 +68,10 @@ export const rewriteSchemaOption = (
   );
 };
 
-/** Si esta fila dice el nombre en cuestión, y por tanto hay que reescribirla. */
 export const propertyValueMentions = (value: SchemaPropertyValue | undefined, name: string): boolean =>
   isStringArray(value) ? value.includes(name) : value === name;
 
-/**
- * Lo que una fila pasa a responder: el nombre nuevo donde decía el viejo.
- *
- * Cuando no hay nombre nuevo, la fila deja de responder eso y nada más: quitar
- * una columna quita la columna, no las filas que estaban en ella.
- */
+/** With no new name, only the old value is dropped from the row. */
 export const rewritePropertyValue = (
   value: SchemaPropertyValue | undefined,
   from: string,
@@ -99,13 +84,7 @@ export const rewritePropertyValue = (
   return to ?? undefined;
 };
 
-/**
- * Todo lo que una fila guarda, con esa propiedad reescrita y el resto intacto.
- *
- * Una propiedad que se queda sin respuesta se quita en vez de guardarse vacía:
- * presente pero vacía no es lo mismo que ausente, y es ausente lo que significa
- * que la fila ya no está en ninguna columna.
- */
+/** A property left without a value is removed rather than stored empty: absent means the row is in no column. */
 export const rewritePropertyValues = (
   stored: SchemaPropertyValues,
   propertyKey: string,

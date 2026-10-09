@@ -14,13 +14,10 @@ import { PagesPropertiesField } from './pages.properties.field';
 import { PagesPropertyValue } from './pages.properties.value';
 
 interface IProps {
-  /** Hacia qué lado se pega lo que dice esta columna, ya resuelto por quien dibuja la tabla. */
   readonly alignmentClass: string;
   readonly ariaLabelledBy: string;
   readonly canEdit: boolean;
-  /** Cómo se corta lo que la celda dice: en una línea, o en unas cuantas. */
   readonly contentClass: string;
-  /** Cuánto mide de alto lo que se toca para responder, según el alto que pidió la vista. */
   readonly controlClass: string;
   readonly personOptions?: readonly PagePersonOption[];
   readonly property: PageSchemaProperty;
@@ -29,17 +26,7 @@ interface IProps {
   readonly value: PagePropertyValue | undefined;
 }
 
-/**
- * Una celda que se responde donde está.
- *
- * Abrir la fila entera para cambiar una palabra es el camino largo de lo que
- * la tabla ya está enseñando, así que la celda se convierte en su propio campo
- * al tocarla y vuelve a ser texto cuando la respuesta está dada. Solo viaja la
- * propiedad que se tocó: lo demás de la fila no es asunto de esta celda.
- *
- * Lo respondido se dibuja antes de que el servidor conteste, y si contesta que
- * no, la celda vuelve sola a lo que decía.
- */
+/** Shows the answer before the server replies and reverts on failure. Only the touched property is sent. */
 export const PagesCollectionTableCell = ({
   alignmentClass,
   ariaLabelledBy,
@@ -79,10 +66,7 @@ export const PagesCollectionTableCell = ({
     });
   };
 
-  /**
-   * Lo que se elige queda respondido en el mismo gesto. Lo que se escribe pasa
-   * por estados a medio escribir, y se guarda al salir del campo.
-   */
+  /** Chosen values save at once; typed text passes through partial states, so it saves on blur. */
   const answer = (answered: PagePropertyValue): void => {
     setDraft(answered);
     if (pagePropertyAnswersOnPick(property.type)) write(answered);
@@ -121,7 +105,6 @@ export const PagesCollectionTableCell = ({
         title={t('properties.editCell', { property: property.label })}
         type="button"
       >
-        {/* El corte va aquí dentro y no en el botón: las líneas se cuentan sobre lo que se lee, no sobre la caja. */}
         <span className={cn('block min-w-0', contentClass)}>
           <PagesPropertyValue personOptions={personOptions} property={property} value={shown} />
         </span>
@@ -131,10 +114,8 @@ export const PagesCollectionTableCell = ({
 
   return (
     /*
-      La caja del campo, no un mando: está aquí para oír el Enter y el Escape
-      que suben desde dentro. Quien recibe el foco sigue siendo el campo. El
-      `min-w-0` deshace el ancho mínimo propio del elemento, que si no impide
-      que la celda se estreche.
+      Only listens for Enter and Escape bubbling up from the field. `min-w-0` undoes the element's own
+      minimum width, which would stop the cell from shrinking.
     */
     <fieldset className="min-w-0" onKeyDown={answerKey}>
       <PagesPropertiesField

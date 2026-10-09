@@ -14,13 +14,7 @@ interface IProps {
   readonly properties: readonly PageSchemaProperty[];
 }
 
-/**
- * En qué orden salen las filas.
- *
- * El orden es una cadena: la primera propiedad manda, y la siguiente solo
- * decide entre las filas que la anterior dejó empatadas. Por eso se muestran en
- * su orden y no como una lista suelta.
- */
+/** Sorts form a chain: each property only breaks ties left by the previous one, so order matters. */
 export const PagesCollectionSortEditor = ({ filtering, properties }: IProps) => {
   const t = useTranslations('pages.collection');
   const labelOf = (key: string): string => readPropertyLabel(properties, key);

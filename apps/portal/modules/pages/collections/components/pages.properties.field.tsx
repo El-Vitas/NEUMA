@@ -18,10 +18,9 @@ import { PagesPropertiesSelectField } from './pages.properties.select-field';
 
 interface IProps {
   readonly ariaLabelledBy: string;
-  /** El campo es la respuesta a un clic que acaba de abrirlo, y entonces se queda con el foco. */
   readonly claimsFocus?: boolean;
   readonly disabled: boolean;
-  /** Lo que se escribe se da por respondido al salir del campo; lo que se elige, no lo necesita. */
+  /** Typed values are committed on blur; chosen values do not need it. */
   readonly onBlur?: () => void;
   readonly onChange: (value: PagePropertyValue) => void;
   readonly personOptions?: readonly PagePersonOption[];

@@ -22,18 +22,9 @@ import type {
 } from '../types/pages.editor.collection-embedding.types';
 
 /**
- * Mostrar aquí una colección, sea recién hecha o de otra página.
- *
- * La página se elige primero y se pregunta después: nada sabe cuáles son
- * colecciones hasta preguntárselo a cada una, y una que no lo es lo dice en vez
- * de dejar un bloque vacío escrito.
- *
- * Con más de una vista se pregunta cuál, porque la que la colección abre por
- * defecto no tiene por qué ser la que corresponde en medio de un texto: un
- * gráfico junto al párrafo que lo comenta, y la tabla en su propia página.
- *
- * Dónde se había quedado la escritura viaja con la pregunta: elegir en un
- * diálogo se lleva el cursor, y el bloque tiene que caer donde estaba.
+ * Whether a page is a collection is only known by asking it, so the page is picked first and checked after.
+ * With several views the user chooses one, and the insert position travels with the question because
+ * the dialog takes the cursor away.
  */
 export const usePagesEditorCollectionEmbedding = ({
   editorViewRef,
@@ -54,13 +45,6 @@ export const usePagesEditorCollectionEmbedding = ({
     onInserted();
   };
 
-  /**
-   * Empieza una colección y la muestra aquí.
-   *
-   * Una colección es una página con forma, así que se hace como se hace una
-   * página y se le da su forma de partida en el mismo gesto; lo que cae en la
-   * escritura es el bloque que la mira.
-   */
   const create = (input: PageEditorCollectionCreation): void => {
     startAsking(async () => {
       const made = await createPageCollectionAction({

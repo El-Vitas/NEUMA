@@ -19,14 +19,8 @@ const newRow = (target: AccessTokenDraftTarget): AccessTokenDraftRow => ({
 });
 
 /**
- * Las filas del formulario de acceso de un token.
- *
- * Empieza con lo que el token ya tiene, o con una fila de solo lectura en todos
- * los espacios para uno nuevo: el punto de partida más seguro que todavía sirve
- * para algo. Una fila que pasa a «todos los espacios» no puede quedar en «sin
- * acceso», que ahí no dice nada: vuelve a solo lectura. Pasar una fila a
- * personalizado conserva las casillas marcadas, para no perder lo armado a
- * mano al tocar el nivel sin querer.
+ * A new token starts read-only on all spaces, the safest useful default. A row moved to all spaces cannot
+ * stay "no access" and falls back to read-only. Switching to custom keeps the checked boxes.
  */
 export const useAccessTokensDraft = (initialRows: readonly AccessTokenDraftRow[]): AccessTokenDraft => {
   const [rows, setRows] = useState<readonly AccessTokenDraftRow[]>(() =>

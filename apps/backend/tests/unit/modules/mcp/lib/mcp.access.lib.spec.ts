@@ -46,7 +46,6 @@ describe('qué espacios ve un token', () => {
     expect(canMcpPrincipalSeeSpace(readOnlyProduct, 'engineering', noReach)).toBe(false);
   });
 
-  /** Una página dada deja ver su espacio, para que el agente sepa dónde está; lo demás del espacio sigue cerrado. */
   test('sees the space of a page it was given, and no other', () => {
     const reach = { allowedPageIds: ['spec'], closedPageIds: [], spaceIdsWithAllowedPages: ['product'] };
 
@@ -54,7 +53,6 @@ describe('qué espacios ve un token', () => {
     expect(canMcpPrincipalSeeSpace(onlyOnePage, 'engineering', reach)).toBe(false);
   });
 
-  /** Ver las filas de una colección también es ver el espacio: sin eso, no sabría dónde están. */
   test('sees a space where it can only read collections', () => {
     expect(canMcpPrincipalSeeSpace(onlyCollectionsInProduct, 'product', noReach)).toBe(true);
   });
@@ -106,7 +104,6 @@ describe('dónde busca un token', () => {
     });
   });
 
-  /** Sin leer páginas en ningún lugar, buscar no encuentra nada, en vez de encontrar todo. */
   test('searches nowhere when it reads pages nowhere', () => {
     expect(buildMcpSearchScope(onlyCollectionsInProduct, noReach)).toEqual({
       allowedPageIds: [],
@@ -125,7 +122,6 @@ describe('qué herramientas se le ofrecen', () => {
     tool('create_page', [ACCESS_TOKEN_PERMISSIONS.pagesWrite]),
   ];
 
-  /** Una herramienta que el token no puede usar no se ofrece: es un nombre más entre los que elegir, y siempre fallaría. */
   test('offers only the tools the token holds a permission for, pages included', () => {
     expect(listMcpToolsOffered(tools, readOnlyProduct).map((offered) => offered.name)).toEqual([
       'list_spaces',
@@ -146,7 +142,6 @@ describe('qué herramientas se le ofrecen', () => {
     expect(listMcpToolsOffered(tools, client).map((offered) => offered.name)).not.toContain('create_page');
   });
 
-  /** Sin identidad al arrancar no hay con qué recortar: se ofrecen todas y cada llamada dice qué pasa con la llave. */
   test('offers every tool when there is no principal to go by', () => {
     expect(listMcpToolsOffered(tools, null)).toHaveLength(tools.length);
   });

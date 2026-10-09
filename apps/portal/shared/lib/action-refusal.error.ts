@@ -1,10 +1,6 @@
 import type { ActionFailureReason } from '@/shared/types/action-failure.types';
 
-/**
- * An action the server turned down on purpose, carrying the reason a screen
- * shows for it. A refusal is not a failure on our side, and it must not reach
- * the reader as one.
- */
+/** A deliberate refusal, not a failure on our side; carries the reason a screen shows. */
 export abstract class ActionRefusalError extends Error {
   abstract readonly reason: ActionFailureReason;
 }

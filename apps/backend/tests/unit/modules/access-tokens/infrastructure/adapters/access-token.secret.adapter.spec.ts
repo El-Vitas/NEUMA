@@ -17,7 +17,6 @@ describe('el secreto de un token de acceso', () => {
     expect(generateAccessTokenSecret()).not.toBe(generateAccessTokenSecret());
   });
 
-  /** Lo que se guarda no sirve para entrar: si la base se filtra, los tokens no se filtran con ella. */
   it('is kept as a hash that does not contain the secret', () => {
     const secret = mintAccessTokenSecret(someRandomBytes);
 

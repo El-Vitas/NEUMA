@@ -14,13 +14,7 @@ import {
 import type { PortalSidebarPageKeyboardMove } from '../types/portal.sidebar.drag.types';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem, PortalSpaceKind } from '../types/portal.types';
 
-/**
- * What a space is to whoever is looking at it.
- *
- * A private space one owns and a private space one was let into look the same
- * from the database and mean opposite things to a reader: the first is their
- * own corner, the second is somebody else's, opened to them.
- */
+/** An owned private space and one shared with the viewer look identical in the data; `ownerId` tells them apart. */
 export const resolvePortalSpaceKind = (
   visibility: SpaceVisibility,
   ownerId: null | string,
@@ -30,10 +24,7 @@ export const resolvePortalSpaceKind = (
   return ownerId === currentUserId ? 'private' : 'shared';
 };
 
-/**
- * A trashed page is reachable from `/trash`, not from the space's own tree,
- * so the tree only ever shows what is still active.
- */
+/** Trashed pages are reachable from `/trash`, so the tree shows only active ones. */
 export const getVisiblePortalSidebarPages = (pages: readonly PortalSidebarPage[]): readonly PortalSidebarPage[] =>
   pages.filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE);
 
@@ -123,13 +114,7 @@ const navigateSidebarPageTreeLeft = (pageLink: HTMLAnchorElement): void => {
 const isSidebarPageTreeNavigationKey = (key: string): boolean =>
   ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(key);
 
-/**
- * The arrow keys move between pages of the tree.
- *
- * It is the link that listens, not the list around it: the list is only a
- * container, and a container that answers to the keyboard is a container
- * nobody can reach with one.
- */
+/** Attached to each link rather than the list: the list is a plain container and is not focusable. */
 export const handleSidebarPageTreeKeyDown = (event: KeyboardEvent<HTMLAnchorElement>): void => {
   const pageLink = event.currentTarget;
   const tree = pageLink.closest<HTMLUListElement>(SIDEBAR_PAGE_TREE_SELECTOR);
@@ -162,10 +147,7 @@ export const handleSidebarPageTreeKeyDown = (event: KeyboardEvent<HTMLAnchorElem
   }
 };
 
-/**
- * The keyboard alternative to dragging a page: held with the arrow keys that
- * already move focus, so it never steals a shortcut the tree already answers to.
- */
+/** Uses Alt so plain arrow keys keep moving focus. */
 export const isPortalSidebarPageMoveShortcut = (
   event: Pick<KeyboardEvent<HTMLAnchorElement>, 'altKey' | 'key'>,
 ): PortalSidebarPageKeyboardMove | null => {

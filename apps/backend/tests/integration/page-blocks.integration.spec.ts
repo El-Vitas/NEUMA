@@ -22,7 +22,6 @@ interface Reader {
 
 const text = (value: string) => ({ text: value, type: 'text' as const });
 
-/** Una página escrita como la manda la API: sin ids en sus bloques. */
 const pageWithoutIds = (...blocks: readonly unknown[]): unknown => ({ content: blocks, schemaVersion: 1, type: 'doc' });
 
 const closedNowhere: SearchTokenScope = {
@@ -140,7 +139,6 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     expect(found.items.some((item) => item.pageId === rootPageId)).toBe(true);
   });
 
-  /** Un pedazo de palabra en común no es un error de tipeo: «vendor» no es «Venn». */
   it('does not take a word that merely shares a few letters for a typo', async () => {
     const lookalikePageId = await createPage(
       'Parecida',
@@ -153,11 +151,6 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     expect(found.items.some((item) => item.pageId === lookalikePageId)).toBe(false);
   });
 
-  /**
-   * Lo buscado puede estar dentro de una palabra más larga, como «safe» en
-   * «ÜSAFE». Se encuentra aunque otra página tenga la palabra entera, y esa
-   * va primero.
-   */
   it('finds what is searched for inside a longer word, after the blocks that have it as a whole word', async () => {
     const wanted = `safe${String(Date.now())}`;
     const insidePageId = await createPage(
@@ -175,7 +168,6 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     expect(found.items.map((item) => item.pageId)).toEqual([wholePageId, insidePageId]);
   });
 
-  /** Los mismos filtros que la búsqueda del portal: verificadas, por quién la creó y por cuándo se editó. */
   it('keeps only the blocks of verified pages when asked, and says which pages are verified', async () => {
     const prisma = testApp.get(PrismaService);
     await prisma.page.update({

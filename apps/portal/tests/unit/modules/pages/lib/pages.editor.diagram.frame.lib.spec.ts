@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { attachPageDiagramFrame } from '@/modules/pages/editor/media/lib/pages.editor.diagram.frame.lib';
 
-/** Un borde sobre un dibujo que mide lo que se le diga, y lo que pidió guardar. */
 const createFrame = (height: number) => {
   const drawing = document.createElement('div');
   drawing.getBoundingClientRect = () => DOMRect.fromRect({ height, width: 600 });
@@ -20,7 +19,6 @@ const press = (handle: HTMLElement, key: string): void => {
 };
 
 describe('the edge a diagram frame is resized by', () => {
-  /** El nombre dice qué es; cómo se usa va aparte, para que un lector de pantalla no lea instrucciones como nombre. */
   it('is named for what it is, with how to use it said apart', () => {
     const { frame } = createFrame(300);
 
@@ -28,7 +26,6 @@ describe('the edge a diagram frame is resized by', () => {
     expect(frame.handle.getAttribute('aria-description')).toBe('Arrastra o usa las flechas');
   });
 
-  /** El dibujo llega después de mostrarse el borde: el valor se vuelve a decir cuando ya tiene su tamaño. */
   it('says the height the frame has once the drawing is in it, in pixels', () => {
     const { frame } = createFrame(312.4);
 
@@ -48,11 +45,7 @@ describe('the edge a diagram frame is resized by', () => {
     expect(written).toEqual([340, 260, null]);
   });
 
-  /**
-   * Tomar el borde y soltarlo sin mover es un clic: no fija un alto que nadie
-   * eligió ni guarda nada. Tampoco con un dibujo más bajo que el mínimo del
-   * marco, ni con uno que mide medio píxel de más.
-   */
+  // Heights below the frame minimum and half a pixel above the drawing must not count as a resize either.
   it.each([300, 99.6, 312.4])('writes nothing when the edge of a %p px drawing is clicked without moving', (height) => {
     const { frame, written } = createFrame(height);
     frame.handle.setPointerCapture = () => undefined;

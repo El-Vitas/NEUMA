@@ -41,10 +41,7 @@ const createViewChoice = (labels: PageEditorDiagramLabels): HTMLSelectElement =>
   return choice;
 };
 
-/**
- * The choice says what it is choosing between: a drawing for a diagram, a
- * formula for a formula. The same three views, named after what is in the box.
- */
+/** The same three views are named after the content: drawing for diagrams, formula for formulas. */
 const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels, isFormula: boolean): void => {
   const named = isFormula ? labels.formula : labels;
   choice.setAttribute('aria-label', named.drawing);
@@ -54,11 +51,7 @@ const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels
   }
 };
 
-/**
- * What a drawing is saved as: the drawing itself, which is a picture that never
- * blurs, at its own size and not at whatever closeness it is looked at now. The
- * address is let go a while later, once the browser has surely started saving it.
- */
+/** Downloads the SVG at its own size, dropping the width set by zoom. */
 const takeDrawingAway = (drawing: HTMLElement): void => {
   const picture = drawing.querySelector('svg')?.cloneNode(true);
   if (!(picture instanceof SVGElement)) return;
@@ -74,15 +67,8 @@ const takeDrawingAway = (drawing: HTMLElement): void => {
 };
 
 /**
- * Draws a block of code that is written in the language of diagrams.
- *
- * The writing is what the page keeps; the drawing is made from it here and
- * never saved, so a diagram is exactly what it says and nothing is left behind
- * when it changes.
- *
- * It is drawn once the writing settles rather than on every keystroke: a
- * half-written diagram is mostly a parse error, and redrawing each one of them
- * makes the page flicker at whoever is typing.
+ * Renders a diagram or formula code block. Only the source is stored; the drawing is derived and never saved.
+ * Redraws are debounced because a half-written diagram is mostly a parse error and would flicker.
  */
 export const attachPageDrawing = (parts: {
   readonly bar: HTMLElement;
@@ -128,16 +114,10 @@ export const attachPageDrawing = (parts: {
   let drawn = '';
   let language = '';
   let settling: ReturnType<typeof setTimeout> | null = null;
-  /** A block taken off the page draws nothing more: neither what was waiting nor what was already on its way. */
+  // Set on removal: cancels pending draws and discards in-flight results.
   let isStopped = false;
 
-  /**
-   * What went wrong, and — when the parser said so — the line it went wrong on.
-   *
-   * The drawing beside it is left where it is and dimmed: it is the last one
-   * that came out, it no longer says what the writing says, and taking it away
-   * at the first typo leaves whoever is writing staring at nothing.
-   */
+  // Keeps the last good drawing, dimmed, instead of blanking it at the first typo.
   const showFault = (said: string | null, line: number | null): void => {
     fault.hidden = said === null;
     drawing.classList.toggle(PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS, said !== null);
@@ -149,16 +129,11 @@ export const attachPageDrawing = (parts: {
       fault.textContent = parts.labels.unknown;
       return;
     }
-    /** The parser often names the line itself; saying it twice helps nobody. */
+    // The parser message often already names the line.
     const names = line !== null && said.includes(String(line));
     fault.textContent = line === null || names ? said : `${said} · ${parts.labels.line} ${String(line)}`;
   };
 
-  /**
-   * What is written is set out by whoever knows how to set it out: the one that
-   * draws diagrams, or the one that sets formulas. Both hand back the same
-   * thing — what came out, or why nothing did.
-   */
   const askForTheDrawing = async (source: string): Promise<Drawn> =>
     isPageFormula(language) ? drawFormula(source) : drawDiagram(source);
 
@@ -191,19 +166,16 @@ export const attachPageDrawing = (parts: {
     takeDrawingAway(drawing);
   });
   wide.addEventListener('click', () => askForTheWholeScreen(parts.container));
-  /** Taken to the whole screen or brought back, the frame is another size, so the drawing is fitted to it again. */
+  // The frame changes size on fullscreen toggle, so refit the drawing.
   parts.container.addEventListener('fullscreenchange', handling.fitToFrame);
 
-  /** A drawing is coloured for the ground it is read on, so it is drawn again when that ground changes. */
+  // Diagram colours depend on the theme, so redraw when it changes.
   const stopWatchingTheGround = watchTheDiagramGround(() => {
     if (drawn.length === 0) return;
     draw(drawn);
   });
 
-  /**
-   * A formula is set out, not drawn: there is no picture of it to bring closer
-   * or frame, and a diagram shown only as its writing has none either.
-   */
+  // Formulas, and diagrams shown as code, have no picture to zoom or frame.
   const showTheDiagramTools = (node: EditorNode, shown: string): void => {
     const isDiagramShown = isPageDiagram(language) && shown !== 'code';
     for (const control of zooming.controls) control.hidden = !isDiagramShown;

@@ -36,7 +36,6 @@ describe('readMarkdownInline — words and marks', () => {
     ]);
   });
 
-  /** Dos barras son una barra escrita: el signo que sigue vuelve a contar. */
   it('reads a written backslash before a marker as a backslash, and the marker as a marker', () => {
     expect(readMarkdownInline(String.raw`\\*a*`).getValue()).toEqual([
       { text: '\\', type: 'text' },
@@ -68,7 +67,6 @@ describe('readMarkdownInline — formulas', () => {
     ]);
   });
 
-  /** Un precio no es una fórmula: «$5 y $10» se queda como se escribió. */
   it('leaves amounts of money as words', () => {
     expect(readMarkdownInline('Cuesta $5 y $10 en total').getValue()).toEqual([
       { text: 'Cuesta $5 y $10 en total', type: 'text' },
@@ -106,7 +104,6 @@ describe('readMarkdownInline — links, and what a link can stand for', () => {
     expect(readMarkdownInline('[x](date:2026-02-30)').getError()).toContain('2026-02-30');
   });
 
-  /** Dos barras al principio llevan a otro sitio aunque parezcan un camino de la aplicación. */
   it('refuses a link that starts with two slashes, which leads to another site', () => {
     expect(readMarkdownInline('[x](//evil.example/a)').isFail()).toBe(true);
   });
@@ -145,13 +142,11 @@ describe('readMarkdownInline — what the page paints that Markdown has no sign 
     expect(readMarkdownInline('<span color="pink">x</span>').getError()).toContain('gray, brown, orange');
   });
 
-  /** La página nunca guarda una etiqueta como texto: se dice cuál y qué hacer, en vez de un fallo sin explicación al guardar. */
   it('refuses a tag it does not know, or one never closed, naming it', () => {
     expect(readMarkdownInline('a <b>b</b>').getError()).toContain('"<b>" is an HTML tag');
     expect(readMarkdownInline('a <u>c').getError()).toContain('"<u>" is an HTML tag');
   });
 
-  /** Una etiqueta igual dentro de otra se cortaría mal y perdería su color: se dice, en vez de guardarla rota. */
   it('refuses a tag inside another of the same name, saying how to write it', () => {
     const nested = '<span color="red">a <span color="blue">b</span> c</span>';
 
@@ -164,7 +159,6 @@ describe('readMarkdownInline — what the page paints that Markdown has no sign 
     expect(readMarkdownInline(crowded).getError()).toContain('more than 5 styles');
   });
 
-  /** Lo que el lector entrega se puede guardar tal cual: si no, el rechazo llegaría después y sin decir por qué. */
   it('gives back only words a page keeps', () => {
     const read = readMarkdownInline('**a** <u>b</u> [c](https://example.com) a < b > c').getValue();
 
@@ -175,10 +169,6 @@ describe('readMarkdownInline — what the page paints that Markdown has no sign 
   });
 });
 
-/**
- * Un texto escrito para trabar la lectura no la traba: cada signo que no
- * cierra se busca una vez, no una vez por cada signo igual que lo sigue.
- */
 describe('readMarkdownInline — text written to slow the reading down', () => {
   const LONGEST_TEXT = 20_000;
   const QUICK_MS = 100;
@@ -202,7 +192,6 @@ describe('readMarkdownInline — text written to slow the reading down', () => {
     expect(timeReading(source)).toBeLessThan(QUICK_MS);
   });
 
-  /** Mil enlaces uno dentro de otro no agotan la pila: se dice que es demasiado. */
   it('refuses links nested too deep instead of failing on its own', () => {
     const nested = `${'['.repeat(5000)}x${'](https://a.example)'.repeat(5000)}`;
 

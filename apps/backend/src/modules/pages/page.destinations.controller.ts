@@ -6,11 +6,7 @@ import type { TokenPayload } from '../../common/types/auth.types';
 import { PagesService } from './pages.service';
 import type { PageMoveDestinations } from './types/page.types';
 
-/**
- * Where a page could go, asked across every space this reader reaches rather
- * than within the one the page happens to be in: moving somewhere else is the
- * whole point of asking.
- */
+/** Move destinations across every space the reader can reach, not only the page's own space. */
 @Controller('pages/move-destinations')
 export class PageDestinationsController {
   constructor(

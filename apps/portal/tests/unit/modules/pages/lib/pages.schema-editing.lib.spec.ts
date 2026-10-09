@@ -32,10 +32,7 @@ const status: PageSchemaProperty = {
 };
 
 describe('toSavableView', () => {
-  /**
-   * A view written before the server settled what a configuration may hold
-   * would take down a change to a property nobody touched.
-   */
+  // A view saved before the server fixed what a configuration may hold must not block changes to other properties.
   it('drops from a configuration what the server would refuse', () => {
     const view: PageSchemaView = {
       configuration: { columns: ['status'], groupBy: 'status' },
@@ -73,7 +70,6 @@ describe('addSchemaProperty', () => {
     });
   });
 
-  /** A property that offers no choices keeps no list, so nothing pretends it has one. */
   it('leaves a property that offers no choices without a list of options', () => {
     const properties = addSchemaProperty([title], { label: 'Notes', type: 'RICH_TEXT' });
 
@@ -86,7 +82,6 @@ describe('removeSchemaProperty', () => {
     expect(removeSchemaProperty([title, status], 'status').map((property) => property.key)).toEqual(['title']);
   });
 
-  /** The title is what opens the page of each row, so a collection without it has no rows to open. */
   it('refuses to remove the title, whatever it is called', () => {
     expect(removeSchemaProperty([title, status], 'title')).toEqual([title, status]);
   });
@@ -115,11 +110,6 @@ describe('addSchemaView', () => {
     expect(views[1]).toEqual({ configuration: {}, isDefault: false, name: 'Second', type: 'TABLE' });
   });
 
-  /**
-   * Un tablero sin decir por dónde agrupa no dibuja columnas, y el servidor
-   * rechaza la colección entera. Nace agrupado por la primera selección que
-   * haya, y desde ahí se cambia.
-   */
   it('makes a board group by the first property that can make columns', () => {
     const views = addSchemaView([table], { name: 'Board', type: 'BOARD' }, [title, status]);
 
@@ -134,7 +124,6 @@ describe('addSchemaView', () => {
     expect(addSchemaView([table], { name: 'Second', type: 'TABLE' }, [title, status])[1]?.configuration).toEqual({});
   });
 
-  /** La colección ya lleva a algún sitio al abrirse, y una segunda vista no cambia a cuál. */
   it('does not make the new view the one the collection leads with', () => {
     expect(addSchemaView([table], { name: 'Board', type: 'BOARD' }, [title, status])[0]?.isDefault).toBe(true);
   });
@@ -198,7 +187,6 @@ describe('moveSchemaView', () => {
     expect(moveSchemaView([table, board], 'Board', 'LATER')).toEqual([table, board]);
   });
 
-  /** Moverla de sitio no cambia con cuál se abre la colección: son dos decisiones distintas. */
   it('does not change which view the collection opens with', () => {
     expect(moveSchemaView([table, board], 'Board', 'EARLIER').find((view) => view.isDefault)?.name).toBe('Table');
   });
@@ -227,7 +215,6 @@ describe('moveSchemaProperty', () => {
     ]);
   });
 
-  /** La columna del nombre va siempre primera, así que moverla no significaría nada. */
   it('leaves the title where it is', () => {
     expect(moveSchemaProperty([title, status], 'title', 'LATER')).toEqual([title, status]);
   });
@@ -258,7 +245,6 @@ describe('duplicateSchemaView', () => {
     ]);
   });
 
-  /** Se duplica para cambiarle algo, así que lo que copia es todo lo que la vista dice de sí misma. */
   it('copies everything the view said about itself', () => {
     const copy = duplicateSchemaView([table, board], 'Table')[1];
 
@@ -266,7 +252,6 @@ describe('duplicateSchemaView', () => {
     expect(copy?.type).toBe('TABLE');
   });
 
-  /** Abrir la colección lleva a un sitio, no a dos: la copia nace sin la delantera. */
   it('never takes over as the view the collection opens with', () => {
     expect(duplicateSchemaView([table, board], 'Table')[1]?.isDefault).toBe(false);
   });
@@ -301,14 +286,12 @@ describe('convertSchemaView', () => {
     expect(readPageViewConfiguration(converted?.configuration).groupBy).toBe('status');
   });
 
-  /** Cruzar en bandas es del tablero: una tabla dibuja una sola dimensión. */
   it('drops the bands when what it becomes cannot draw them', () => {
     const converted = convertSchemaView([board], 'Board', 'TABLE', [title, status])[0];
 
     expect(readPageViewConfiguration(converted?.configuration).subGroupBy).toBeNull();
   });
 
-  /** Ir y volver no cuesta el trabajo hecho: el ancho de las columnas no estorba en un tablero. */
   it('keeps what the new kind of view simply ignores', () => {
     const converted = convertSchemaView([board], 'Board', 'TABLE', [title, status])[0];
 
@@ -351,7 +334,6 @@ describe('changeSchemaPropertyType', () => {
     expect(properties[1]).toEqual({ ...status, options: null, type: 'RICH_TEXT' });
   });
 
-  /** Una selección y una selección múltiple eligen de la misma lista, así que la lista se queda. */
   it('keeps the choices when both the old type and the new one are chosen from a list', () => {
     const properties = changeSchemaPropertyType([title, status], 'status', 'MULTI_SELECT');
 
@@ -371,7 +353,6 @@ describe('changeSchemaPropertyType', () => {
     expect(properties[1]).toEqual({ ...notes, options: [], type: 'SELECT' });
   });
 
-  /** Sin título no hay forma de abrir una fila, y el servidor no acepta una colección sin él. */
   it('refuses to change the type of the property that names each row', () => {
     expect(changeSchemaPropertyType([title, status], 'title', 'NUMBER')).toEqual([title, status]);
   });

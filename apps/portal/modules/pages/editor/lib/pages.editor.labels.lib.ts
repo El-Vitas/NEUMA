@@ -80,11 +80,7 @@ const buildNodeViewLabels = (say: PageEditorSay, locale: string): PageEditorLabe
   unsupported: say('unsupportedBlock'),
 });
 
-/**
- * Everything the editor says, worked out once when the page opens. The words
- * are fixed for as long as the page is open: a change of language opens the
- * page again, under its own address.
- */
+/** Built once per page open: a locale change reloads the page under its own address. */
 export const buildPageEditorLabels = (say: PageEditorSay, locale: string): PageEditorLabels => ({
   blockComments: say('blockComments'),
   blockTooLong: say('blockTooLong'),

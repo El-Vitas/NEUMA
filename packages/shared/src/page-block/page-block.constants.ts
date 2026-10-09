@@ -1,13 +1,13 @@
-/** Bloques cuya primera línea es el bloque mismo: se nombran y se leen por el ítem, no por esa línea. */
+/** The first line is the block itself: identified and read by the item, not by that line. */
 export const PAGE_BLOCK_ITEM_TYPES: readonly string[] = ['list_item', 'task_item'];
 
-/** Bloques que se leen enteros, como uno solo: lo de adentro no se señala por separado. */
+/** Read as a single block: inner content is not identified separately. */
 export const PAGE_BLOCK_WHOLE_TYPES: readonly string[] = ['table'];
 
-/** Bloques que dicen lo suyo en un atributo y no en su contenido. */
+/** Blocks whose text lives in an attribute rather than in their content. */
 export const PAGE_BLOCK_TEXT_ATTRIBUTES: Readonly<Partial<Record<string, string>>> = { toggle: 'summary' };
 
-/** Lo que un nodo en línea deja leer, por su tipo: el texto del nodo, o el atributo que lo nombra. */
+/** Attribute that supplies an inline node's readable text, by node type. */
 export const PAGE_BLOCK_INLINE_TEXT_ATTRIBUTES: Readonly<Partial<Record<string, string>>> = {
   date: 'at',
   mention: 'label',

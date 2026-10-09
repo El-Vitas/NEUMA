@@ -3,7 +3,6 @@ import { copyTextToClipboard } from '@/shared/lib/clipboard.lib';
 
 const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
 
-/** Le da al navegador de la prueba un portapapeles que responde como se le diga, o lo deja sin ninguno. */
 const giveClipboard = (writeText: ((text: string) => Promise<void>) | null): void => {
   const clipboard = writeText === null ? undefined : { writeText };
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: clipboard });
@@ -32,7 +31,7 @@ describe('copyTextToClipboard', () => {
     expect(await copyTextToClipboard('cbk_secret')).toBe(false);
   });
 
-  /** Una página abierta sin HTTPS no tiene portapapeles: antes, el botón no hacía nada y no decía nada. */
+  // Pages served without HTTPS have no clipboard.
   it('says it did not, without throwing, on a page with no clipboard at all', async () => {
     giveClipboard(null);
 

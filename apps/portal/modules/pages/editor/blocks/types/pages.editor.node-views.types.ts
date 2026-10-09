@@ -7,39 +7,28 @@ import type { PageEditorContentsLabels } from '../../structure/types/pages.edito
 import type { PageEditorSyncedLabels } from '../../structure/types/pages.editor.synced.types';
 import type { PageEditorDocumentLabels } from '../../types/pages.editor.document.types';
 
-/** What the two controls of a toggle are called, since neither is a stretch of text to read. */
 export interface PageEditorToggleLabels {
   readonly open: string;
   readonly title: string;
 }
 
-/** What a page hanging from this one is called, and what an unnamed one is called. */
 export interface PageEditorSubpageLabels {
   readonly subpage: string;
   readonly untitled: string;
 }
 
-/** What a mention says once the page it names has been thrown away. */
 export interface PageEditorMentionTrashedLabels {
   readonly label: string;
-  /** The explanation under the pointer, formatted with the mentioned page's name. */
   readonly tooltip: (name: string) => string;
 }
 
-/**
- * What a date is called, the field where another day is picked, and which
- * language's Intl.DateTimeFormat draws its calendar day.
- */
+/** `locale` is the language `Intl.DateTimeFormat` uses to draw the day. */
 export interface PageEditorDateLabels {
   readonly field: string;
   readonly label: string;
   readonly locale: string;
 }
 
-/**
- * What an inline formula is called, what an unwritten one is called, and what
- * its editing field says.
- */
 export interface PageEditorFormulaLabels {
   readonly done: string;
   readonly empty: string;
@@ -49,7 +38,6 @@ export interface PageEditorFormulaLabels {
   readonly unreadable: string;
 }
 
-/** The user-visible names the editor's node views need, kept out of the libs that render them. */
 export interface PageEditorNodeViewLabels {
   readonly button: PageEditorButtonLabels;
   readonly code: PageEditorCodeLabels;

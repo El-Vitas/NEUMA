@@ -28,7 +28,7 @@ export const envSchema = z
     STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
     TRUST_PROXY: z.string().default('false'),
   })
-  /* Los enlaces que reciben los agentes se arman con esta dirección: en producción se dice siempre, en vez de suponer la de una máquina local. */
+  // Agent links are built from this address; production must set it rather than assume localhost.
   .refine((env) => env.NODE_ENV !== 'production' || env.PORTAL_URL !== undefined, {
     message: 'PORTAL_URL must be set to the address people open the portal at in production',
     path: ['PORTAL_URL'],

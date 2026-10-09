@@ -74,11 +74,7 @@ export const pageViewOutcomeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('MISSING_GROUPING_PROPERTY') }),
 ]);
 
-/**
- * Lo que la colección contesta al pedirle una vista: sus filas repartidas, y de
- * cuántas salieron. Las cuentas vienen de allá porque allá están todas las
- * filas: aquí solo llegan las que la vista dejó pasar.
- */
+/** Counts come from the server because only it sees all rows; the client receives just those the view lets through. */
 export const pageViewReadingSchema = z.object({
   hasMore: z.boolean(),
   outcome: pageViewOutcomeSchema,

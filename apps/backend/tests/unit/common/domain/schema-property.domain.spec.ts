@@ -27,11 +27,7 @@ describe('schema property domain validation', () => {
     expect(result.isFail()).toBe(true);
   });
 
-  /**
-   * Una selección recién creada todavía no ofrece nada, y llenarla es el paso
-   * siguiente. Exigirle una opción para poder guardarla obliga a inventar una
-   * o a perder el trabajo.
-   */
+  // A freshly created select has no options yet; requiring one to save would force inventing one.
   it('accepts a selection that does not offer anything yet', () => {
     const result = validateSchemaProperties([
       { key: 'title', label: 'Title', options: null, required: true, type: DatabasePropertyType.TITLE },

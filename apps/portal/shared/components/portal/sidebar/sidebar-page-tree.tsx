@@ -127,7 +127,6 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
-  /** A page with nothing under it leaves nothing to decide, so nothing is asked. */
   const requestDuplicate = (page: PortalSidebarPage, hasChildren: boolean): void => {
     if (hasChildren) {
       setPageToDuplicate(page);
@@ -146,10 +145,7 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     });
   };
 
-  /**
-   * What was picked goes out and the selection ends, because leaving it up
-   * would invite acting twice on pages that already left.
-   */
+  /** The selection ends after the action so it cannot be applied twice to pages that already left. */
   const exportSelection = (): void => {
     exportPages({
       exportedName: t('selection.exportName'),
@@ -161,7 +157,6 @@ export const SidebarPageTree = ({ id, onNavigate, pages, role, spaceId }: IProps
     selection.stop();
   };
 
-  /** A page with nothing under it leaves nothing to decide, so nothing is asked. */
   const requestExport = (page: PortalSidebarPage, hasChildren: boolean): void => {
     if (hasChildren) {
       setPageToExport(page);

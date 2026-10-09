@@ -18,14 +18,8 @@ import type {
 import type { PageViewBand } from '../types/pages.schema.types';
 
 /**
- * Mover una tarjeta por el tablero, con el ratón o con el teclado.
- *
- * Soltar dice hasta tres cosas a la vez: en qué columna queda la tarjeta, en
- * qué banda si el tablero está cruzado, y en qué lugar del cruce. Las dos
- * primeras son valores de propiedades y viajan juntas, porque una tarjeta que
- * cruza en diagonal cambia las dos y mandarlas por separado la dejaría a medio
- * camino si la segunda falla. El lugar es el orden entre hermanas, que es otro
- * hecho y va aparte.
+ * Column and band values are written together: a diagonal move sent as two writes would leave the card
+ * half moved if the second failed. Order among siblings is a separate write.
  */
 export const usePagesBoardDrag = (
   bands: readonly PageViewBand[],
@@ -45,7 +39,6 @@ export const usePagesBoardDrag = (
       applyBoardMoveToBands(current, moved.rowId, moved.move, groupByKey, subGroupByKey),
   );
 
-  /** Las dos propiedades que el cruce significa, escritas de una vez. */
   const landedPropertyValues = (move: PageBoardGridMove): Readonly<Record<string, null | string>> => ({
     ...(move.changesGroup ? { [groupByKey]: move.propertyValue } : {}),
     ...(move.changesBand && subGroupByKey !== '' ? { [subGroupByKey]: move.bandValue } : {}),
@@ -68,11 +61,7 @@ export const usePagesBoardDrag = (
 
   const land = (rowId: string, move: PageBoardGridMove, columnLabel: string): void => {
     startMoving(async () => {
-      /**
-       * Primero se dibuja donde cayó y después se escribe. Esperar a la
-       * respuesta para moverla deja la tarjeta quieta bajo la mano que ya la
-       * soltó, y el gesto se siente roto aunque haya funcionado.
-       */
+      // Shown before the write finishes: waiting leaves the card still under a hand that already dropped it.
       showMoved({ move, rowId });
       const written = await write(rowId, move);
       if (!written) {

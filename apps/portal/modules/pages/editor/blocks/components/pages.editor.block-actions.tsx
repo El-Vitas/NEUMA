@@ -61,14 +61,7 @@ interface IProps {
   readonly onRunCommand: (command: Command) => void;
 }
 
-/**
- * Everything a block can be asked to do: the menu beside its grip, and the two
- * conversations that outlive it — where the blocks are going, and what has been
- * said about this one.
- *
- * The menu closes as soon as one of those opens, so the dialogs live here
- * rather than inside it.
- */
+/** The dialogs live here, not in the menu, because the menu closes as soon as one of them opens. */
 export const PagesEditorBlockActions = ({
   authorName,
   calloutIcon,

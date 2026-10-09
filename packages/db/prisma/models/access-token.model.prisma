@@ -1,7 +1,6 @@
-/// Una llave con la que un agente entra a Company Brain por su dueño.
-/// Se guarda el hash del secreto, nunca el secreto: el secreto se enseña una
-/// sola vez, al crearla. Lo que puede hacer no es lo de su dueño sino lo que
-/// tiene dado, y nunca más que lo que su dueño puede hacer hoy.
+/// Key an agent uses to enter Company Brain on behalf of its owner.
+/// Only the secret's hash is stored; the secret is shown once, at creation.
+/// Its power is what it was granted, never more than the owner can do today.
 model AccessToken {
   id                   String                 @id @default(uuid(7))
   userId               String
@@ -9,7 +8,7 @@ model AccessToken {
   name                 String
   displayPrefix        String
   secretHash           String                 @unique
-  /// Los permisos que valen en todos los espacios que su dueño ve, también en los que se creen después.
+  /// Permissions valid in every space the owner sees, including spaces created later.
   allSpacesPermissions String[]               @default([])
   createdAt            DateTime               @default(now())
   lastUsedAt           DateTime?

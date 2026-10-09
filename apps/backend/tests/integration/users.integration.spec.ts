@@ -43,11 +43,8 @@ describe('Users Module (Integration)', () => {
       });
     });
 
-    /**
-     * Cada puerta se cuenta con su propia cuenta. La de exportar es de cinco por
-     * minuto, y si alcanzara también a entrar, la sexta persona de una oficina
-     * se quedaría fuera sin haber exportado nada.
-     */
+    // Each endpoint has its own counter: if the export cap (5 per minute) applied to sign-in, a sixth person in an
+    // office would be locked out without exporting anything.
     it('does not count signing in against the export allowance', async () => {
       const timestamp = Date.now();
       const email = `throttle-${String(timestamp)}@test.com`;
@@ -126,11 +123,6 @@ describe('Users Module (Integration)', () => {
       await request(testApp.getServer()).get('/api/v1/users').expect(401);
     });
 
-    /**
-     * La llave que renueva la sesión dura días y la del documento en vivo viaja
-     * por otro canal: ninguna de las dos abre la API, solo la de acceso, que
-     * dura minutos.
-     */
     it('rejects a refresh token and a live-document token presented as an access token', async () => {
       const session = await loginUser(testApp, adminEmail, password);
       const liveDocumentToken = await testApp

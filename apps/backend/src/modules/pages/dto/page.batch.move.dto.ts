@@ -11,7 +11,7 @@ export class PageBatchMoveDto {
   @IsString()
   parentId?: string;
 
-  /** The space the pages are going to. Left out, they stay where they are. */
+  /** Omitted keeps the pages in their current space. */
   @IsOptional()
   @IsString()
   targetSpaceId?: string;

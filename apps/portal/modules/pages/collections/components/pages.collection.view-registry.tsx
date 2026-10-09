@@ -14,12 +14,6 @@ import { PagesCollectionGallery } from './pages.collection.gallery';
 import { PagesCollectionList } from './pages.collection.list';
 import { PagesCollectionTable } from './pages.collection.table';
 
-/**
- * Which piece draws which kind of view.
- *
- * A kind of view enters the product by adding its component and one entry here.
- * Nothing that reads rows, filters or groups them has to learn its name.
- */
 export const PageViewRenderers: PageViewRendererRegistry = {
   [PAGE_VIEW_TYPE.TABLE]: {
     render: ({ canEdit, outcome, personOptions, properties, schema, spaceId, view }) =>
@@ -77,7 +71,7 @@ export const PageViewRenderers: PageViewRendererRegistry = {
   [PAGE_VIEW_TYPE.CHART]: {
     render: ({ outcome, properties, view }) =>
       PagesCollectionChart({
-        /* Un gráfico dibuja una dimensión: la propiedad por la que agrupa es su eje, y no cruza en bandas. */
+        /* A chart draws one dimension: the grouping property is its axis, so it takes no bands. */
         groups: readBoardBands(outcome)[0]?.groups ?? [],
         kind: readPageViewConfiguration(view.configuration).chartKind,
         measure: readPageViewConfiguration(view.configuration).chartMeasure,

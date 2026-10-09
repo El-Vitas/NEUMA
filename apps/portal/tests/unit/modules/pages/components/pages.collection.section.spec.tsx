@@ -13,7 +13,7 @@ import en from '../../../../../messages/en.json';
 import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
-/** The settings button and the board reach server actions, which cannot be loaded in a browser-shaped test. */
+// Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
@@ -57,7 +57,6 @@ const tableView: PageSchemaView = { configuration: {}, isDefault: false, name: '
 
 const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [boardView, tableView] };
 
-/** The settings button is a client piece, and a client piece needs the words its own way. */
 const renderWithMessages = (ui: ReactNode) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
@@ -73,7 +72,6 @@ const emptyBoard: PageViewOutcome = {
   kind: 'GROUPED_ROWS',
 };
 
-/** Lo que la colección contesta: las filas repartidas, y de cuántas salieron. */
 const asReading = (outcome: PageViewOutcome, rowCount = 0, totalRowCount = 0, hasMore = false): PageViewReading => ({
   hasMore,
   outcome,
@@ -116,7 +114,6 @@ describe('PagesCollectionSection', () => {
     expect(screen.getByRole('link', { name: 'Board' }).getAttribute('aria-current')).toBe('page');
   });
 
-  /** Whoever cannot write the page cannot reshape what it keeps, so the way in is not drawn for them. */
   it('offers the way into the settings only to whoever can edit the page', async () => {
     const drawFor = async (canEdit: boolean) =>
       renderWithMessages(
@@ -173,10 +170,6 @@ describe('PagesCollectionSection', () => {
     expect(screen.getByRole('alert')).toBeDefined();
   });
 
-  /**
-   * Un filtro que no deja pasar nada no es una colección vacía: decir «aún no
-   * hay filas» manda a agregar una que ya está ahí, escondida.
-   */
   it('explains that the filter is hiding everything instead of saying the collection is empty', async () => {
     renderWithMessages(
       await PagesCollectionSection({
@@ -210,7 +203,6 @@ describe('PagesCollectionSection', () => {
     expect(screen.getByText('collection.rowCount')).toBeDefined();
   });
 
-  /** Ver quinientas de mil sin que nadie lo diga se lee como ver la colección entera. */
   it('says so when the collection held more rows than were brought', async () => {
     renderWithMessages(
       await PagesCollectionSection({

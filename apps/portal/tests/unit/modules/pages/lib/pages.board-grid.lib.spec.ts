@@ -38,7 +38,6 @@ describe('resolveBoardGridDrop', () => {
     expect(resolveBoardGridDrop(bands, 'a', { bandKey: 'high', beforeRowId: null, groupKey: 'todo' })).toBeNull();
   });
 
-  /** Cambiar de columna dentro de la misma banda es el tablero de siempre. */
   it('writes only the column when the card stays in its band', () => {
     const move = resolveBoardGridDrop(bands, 'a', { bandKey: 'high', beforeRowId: null, groupKey: 'done' });
 
@@ -52,7 +51,6 @@ describe('resolveBoardGridDrop', () => {
     });
   });
 
-  /** Cruzar a otra banda cambia la segunda propiedad, y la columna sigue siendo la que dice el cruce. */
   it('writes both properties when the card crosses into another band', () => {
     const move = resolveBoardGridDrop(bands, 'a', { bandKey: 'low', beforeRowId: null, groupKey: 'done' });
 
@@ -74,7 +72,6 @@ describe('resolveBoardGridDrop', () => {
     expect(move?.bandValue).toBe('low');
   });
 
-  /** La banda de las que no responden nada no es un valor: caer ahí borra la respuesta. */
   it('clears the property when the card lands on the band of rows without a value', () => {
     const withUnassigned: readonly PageViewBand[] = [
       ...bands,

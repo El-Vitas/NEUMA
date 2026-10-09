@@ -64,12 +64,6 @@ interface IProps {
   readonly tableActions: boolean;
 }
 
-/**
- * What can be done to the block the grip belongs to.
- *
- * Only what applies to that block is on the list — a block that cannot become
- * anything else is not offered the choice — so nothing here fails when chosen.
- */
 export const PagesEditorBlockMenu = ({
   calloutIcon,
   canBecomePage,

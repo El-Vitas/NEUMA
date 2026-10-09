@@ -6,7 +6,6 @@ interface IProps {
   readonly members: readonly SpaceMember[];
 }
 
-/** Who is in the space, named rather than counted: a number does not tell one who to ask. */
 export const SpacesHomeMembers = ({ members }: IProps) => {
   const t = useTranslations('spaces.home');
 

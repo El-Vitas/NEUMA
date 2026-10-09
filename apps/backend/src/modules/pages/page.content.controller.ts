@@ -8,7 +8,7 @@ import { AppendPageBlocksDto, ReplacePageContentDto } from './dto/page.content.d
 import { PageContentService } from './page.content.service';
 import type { PageContentWriter } from './types/page.types';
 
-/** Escribir el contenido de una página por fuera del editor, siempre a través de su documento en vivo. */
+/** Writes page content from outside the editor, always through the live document. */
 @Controller('spaces/:spaceId/pages/:pageId')
 @UseGuards(JwtAuthGuard)
 export class PageContentController {

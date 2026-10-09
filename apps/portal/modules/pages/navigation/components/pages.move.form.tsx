@@ -35,12 +35,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Where the page lives, changed by naming the place rather than by hunting for
- * it in a list of everything: the destinations of every space one can reach are
- * narrowed as the name is typed. The page's own branch is not among them, since
- * a page cannot come to hang from something that hangs from it.
- */
 export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const [isOpen, setIsOpen] = useState(false);

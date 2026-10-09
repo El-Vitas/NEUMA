@@ -6,12 +6,9 @@ import { writeMcpServerInstructions } from './lib/mcp.instructions.lib';
 import type { McpPrincipal, McpServerDependencies } from './types/mcp.types';
 
 /**
- * Un servidor MCP para una identidad.
- *
- * Por la terminal se arma uno por proceso y por HTTP uno por petición. Solo
- * lleva las herramientas que el token puede usar en algún espacio; que alcance
- * para el espacio de cada llamada lo revisa cada herramienta al correr, con la
- * identidad que vuelve a pedir en ese momento.
+ * One MCP server per identity: per process over stdio, per request over HTTP.
+ * Registers only the tools the token can use in some space; each tool rechecks
+ * access for the call's space with a freshly resolved identity.
  */
 export const createMcpServer = (
   dependencies: McpServerDependencies,

@@ -38,25 +38,19 @@ describe('moving a day at a time', () => {
     expect(shiftPageCalendarDate('2026-03-01', -1)).toBe('2026-02-28');
   });
 
-  /** Una semana entera es lo que significan las flechas de arriba y abajo sobre una rejilla de siete columnas. */
   test('jumps a whole week', () => {
     expect(shiftPageCalendarDate('2026-09-14', 7)).toBe('2026-09-21');
   });
 });
 
 describe('the days a month is drawn with', () => {
-  /**
-   * Seis semanas enteras siempre: un mes que empieza en domingo y tiene 31 días
-   * ocupa seis, y si la rejilla cambiara de alto según el mes, pasar de uno a
-   * otro movería todo lo que hay debajo.
-   */
   test('always draws six whole weeks', () => {
     expect(listPageCalendarDays('2026-09')).toHaveLength(42);
     expect(listPageCalendarDays('2026-02')).toHaveLength(42);
   });
 
   test('starts on the monday of the week the first day falls in', () => {
-    /** El 1 de septiembre de 2026 es martes, así que la rejilla abre el lunes 31 de agosto. */
+    // 2026-09-01 is a Tuesday, so the grid opens on Monday 2026-08-31.
     expect(listPageCalendarDays('2026-09')[0]).toEqual({ date: '2026-08-31', isOfTheMonth: false });
   });
 
@@ -72,7 +66,7 @@ describe('the days a month is drawn with', () => {
     const days = listPageCalendarDays('2026-03').map((day) => day.date);
 
     expect(new Set(days).size).toBe(days.length);
-    /** Marzo de 2026 abre en domingo, así que la rejilla empieza el lunes anterior y termina seis semanas después. */
+    // March 2026 opens on a Sunday, so the grid starts the Monday before.
     expect(days[0]).toBe('2026-02-23');
     expect(days.at(-1)).toBe('2026-04-05');
   });

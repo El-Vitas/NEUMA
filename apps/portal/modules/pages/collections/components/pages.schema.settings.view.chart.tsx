@@ -19,16 +19,7 @@ interface IProps {
   readonly view: PageSchemaView;
 }
 
-/**
- * Cómo se dibuja un gráfico y qué mide.
- *
- * Por dónde agrupa no se elige aquí: un gráfico agrupa como cualquier otra
- * vista, y esa agrupación **es** su eje. Así no hay dos maneras de repartir las
- * mismas filas conviviendo en la misma pantalla.
- *
- * Sumar y promediar necesitan un número, así que solo se ofrecen cuando la
- * colección guarda alguno; sin él queda contar filas, que se puede siempre.
- */
+/** Grouping is not chosen here: it is the chart's axis. Sum and average are offered only with a numeric property. */
 export const PagesSchemaSettingsViewChart = ({ editor, view }: IProps) => {
   const t = useTranslations('pages.collection');
   const configuration = readPageViewConfiguration(view.configuration);

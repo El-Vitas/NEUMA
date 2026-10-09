@@ -11,10 +11,7 @@ interface IProps {
   readonly searchParams: Promise<RouteSearchParams>;
 }
 
-/**
- * Los resultados dependen de lo que se buscó: se resuelven enteros antes de
- * responder, en vez de prometer una navegación instantánea que no existe.
- */
+/** Depends on the search query, so it resolves fully before responding. */
 export const instant = false;
 
 export default async function Page({ searchParams }: IProps) {

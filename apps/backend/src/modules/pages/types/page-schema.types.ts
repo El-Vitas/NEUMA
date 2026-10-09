@@ -25,7 +25,6 @@ export interface PageSchemaSummary extends PageSchemaDefinition {
   readonly spaceId: string;
 }
 
-/** Las columnas y las vistas de una colección, como se leen y se guardan. */
 export interface PageSchemaShape {
   readonly properties: readonly SchemaPropertyDefinition[];
   readonly views: readonly SchemaViewDefinition[];
@@ -38,10 +37,7 @@ export interface DefinePageSchemaInput {
   readonly role: UserRole;
   readonly properties: readonly SchemaPropertyDefinition[];
   readonly views: readonly SchemaViewDefinition[];
-  /**
-   * La forma que leyó quien guarda, si la escribió a partir de ella: si ya no
-   * es la de ahora, no se guarda, para no borrar lo que otra persona cambió.
-   */
+  /** The shape the caller based this on; if the stored shape differs, nothing is saved. */
   readonly readShape?: PageSchemaShape;
 }
 
@@ -55,23 +51,15 @@ export interface PageRowSummary {
   readonly lifecycle: PageLifecycle;
 }
 
-/**
- * Las filas que se trajeron, y si la colección guardaba más de las que caben.
- *
- * Las dos cosas viajan juntas porque una lista cortada sin decirlo se lee como
- * la colección entera.
- */
+/** `hasMore` travels with the rows so a truncated list is not read as the whole collection. */
 export interface PageRowsPage {
   readonly hasMore: boolean;
   readonly rows: readonly PageRowSummary[];
 }
 
-/**
- * Qué filas de una colección se piden: las que deja ver una de sus vistas, o
- * las que deja ver un filtro y un orden propios. Sin ninguno de los dos, todas.
- */
+/** With neither a view name nor a configuration, all rows are returned. */
 export interface QueryPageRowsInput {
-  /** Filtro y orden propios, con la forma de la configuración de una vista. */
+  /** Custom filter and sort, shaped like a view configuration. */
   readonly configuration: unknown;
   readonly pageId: string;
   readonly role: UserRole;
@@ -86,14 +74,6 @@ export interface PageRowsSummary {
   readonly rows: readonly PageRowSummary[];
 }
 
-/**
- * Lo que una vista dice de sí misma: por qué agrupa, qué filtra, qué calcula,
- * cómo se la está mirando.
- *
- * Va por su propio camino porque no toca ni la forma de la colección ni sus
- * otras vistas: mandar el esquema entero para doblar una franja reescribe cada
- * propiedad y cada vista de la colección, y hace caro lo que es un gesto.
- */
 export interface SetPageViewConfigurationInput {
   readonly configuration: Prisma.InputJsonObject;
   readonly pageId: string;
@@ -103,7 +83,7 @@ export interface SetPageViewConfigurationInput {
   readonly workspaceId: string;
 }
 
-/** Sin nombre nuevo, la columna se quita y sus filas se quedan sin valor. */
+/** A null `to` removes the option and clears it from the rows. */
 export interface RewritePageOptionInput {
   readonly from: string;
   readonly pageId: string;
@@ -115,24 +95,19 @@ export interface RewritePageOptionInput {
 }
 
 export interface PageSchemaRepositoryContract {
-  /** Si llega la forma que se leyó, solo guarda si sigue siendo la de ahora. */
+  /** With `readShape`, saves only if the stored shape still equals it. */
   readonly defineSchema: (
     pageId: string,
     shape: PageSchemaShape,
     readShape?: PageSchemaShape,
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_CHANGED_MEANWHILE>;
-  /**
-   * La forma y las filas en el mismo movimiento: tocar una opción sin reescribir
-   * lo que las filas guardaron bajo el nombre viejo las dejaría a todas fuera de
-   * su columna.
-   */
+  /** Rewrites schema and row values together, otherwise rows would keep the old option name. */
   readonly rewriteOption: (
     pageId: string,
     propertyKey: string,
     rename: { readonly from: string; readonly to: null | string },
     properties: readonly SchemaPropertyDefinition[],
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED>;
-  /** Solo esa vista, sin tocar la forma de la colección ni las otras vistas. */
   readonly setViewConfiguration: (
     pageId: string,
     viewName: string,
@@ -140,9 +115,7 @@ export interface PageSchemaRepositoryContract {
   ) => Promise<PageSchemaDefinition>;
   readonly getSchema: (pageId: string) => Promise<PageSchemaDefinition>;
   readonly resolveSchemaProperties: (pageId: null | string) => Promise<readonly SchemaPropertyDefinition[]>;
-  /** Las columnas de personas de varias colecciones a la vez, por colección: una sola consulta para todas. */
   readonly listPersonPropertyKeys: (pageIds: readonly string[]) => Promise<ReadonlyMap<string, readonly string[]>>;
-  /** Las filas de una colección en su orden, hasta el tope pedido, diciendo si quedaron más. */
   readonly listRows: (
     pageId: string,
     workspaceId: string,

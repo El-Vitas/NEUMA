@@ -19,11 +19,7 @@ const readMessageBytes = (message: CollaborationSocketMessage): Uint8Array => {
   return message instanceof ArrayBuffer ? new Uint8Array(message) : message;
 };
 
-/**
- * Abre la conexión en Hocuspocus y le pasa todo lo que llega por el socket,
- * como hace el servidor propio de la librería: sin esto, la conexión se ve
- * abierta pero nunca recibe un mensaje.
- */
+/** Without forwarding every socket message, the connection looks open but never receives anything. */
 const createCollaborationHandler =
   (openConnection: CollaborationConnectionOpener): WebsocketHandler =>
   (socket, request): void => {

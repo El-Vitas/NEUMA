@@ -16,7 +16,6 @@ describe('lo que mide un gráfico de cada grupo', () => {
     expect(readPageChartValue(PAGE_CHART_MEASURE.AVERAGE, PAGE_PROPERTY_TYPE.NUMBER, [3, 8, 4])).toBe(5);
   });
 
-  /** Una barra sin altura es una barra de cero, no una barra que falta: el grupo existe y tiene filas. */
   test('reads a group with no numbers as zero and not as nothing', () => {
     expect(readPageChartValue(PAGE_CHART_MEASURE.SUM, PAGE_PROPERTY_TYPE.NUMBER, [undefined])).toBe(0);
   });
@@ -27,7 +26,6 @@ describe('lo que mide un gráfico de cada grupo', () => {
 });
 
 describe('qué se puede medir', () => {
-  /** Sumar un estado o promediar una fecha no quiere decir nada, así que no se ofrece. */
   test('only offers counting when the collection holds no number', () => {
     expect(listPageChartMeasuresFor(false)).toEqual([PAGE_CHART_MEASURE.COUNT]);
   });

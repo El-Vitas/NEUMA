@@ -27,7 +27,6 @@ import type { McpCall, McpCreationPlace, McpOpenedPage, McpServerDependencies } 
 import { readMcpAddress } from './mcp.address.lib';
 import { readMcpPlace, requireMcpPermissionAt } from './mcp.tool.lib';
 
-/** La página de un enlace o de un id; si no es ninguno de los dos, un fallo que dice qué pasar. */
 export const readMcpPageId = (address: string): string => {
   const read = readMcpAddress(address);
   switch (read.kind) {
@@ -41,13 +40,8 @@ export const readMcpPageId = (address: string): string => {
 };
 
 /**
- * Por qué el servicio no hizo lo pedido, dicho para que el agente sepa qué
- * hacer: lo que no ve suena igual que lo que no existe, lo bloqueado pide a
- * una persona, y lo que alguien cambió mientras tanto pide volver a leer.
- *
- * El detalle de un rechazo solo viaja si es de lo que el agente escribió y
- * puede corregir. De un código que no se conoce va solo el código: su detalle
- * podría nombrar algo que el token no alcanza.
+ * Refusal detail travels only when it concerns what the agent wrote and can correct. For an
+ * unknown code only the code is sent: its detail could name something the token cannot reach.
  */
 export const explainMcpRefusal = (refusal: McpRefusal): string => {
   const { code, details } = refusal;
@@ -62,32 +56,21 @@ export const explainMcpRefusal = (refusal: McpRefusal): string => {
   return `${MCP_REFUSED_CHANGE_PREFIX} ${JSON.stringify(details)}`;
 };
 
-/**
- * Si el token puede hacer eso ahí, sin negarse todavía: una escritura que
- * contesta con lo que la página dice pregunta antes si puede leerla, porque
- * escribir no da derecho a leer.
- */
+/** A write that answers with the page content asks this first, since writing does not grant reading. */
 export const canMcpAct = (call: McpCall, place: AccessTokenPlace, permission: AccessTokenPermission): boolean =>
   canAccessTokenAct(call.principal.access, call.principal.role, place, permission);
 
-/** Lo que devolvió el servicio, o un fallo que el agente puede leer. */
 export const requireMcpSuccess = <TValue>(result: Result<TValue, McpRefusal>): TValue => {
   if (result.isFail()) throw new McpToolError(explainMcpRefusal(result.getError()));
   return result.getValue();
 };
 
-/** Un texto que el agente escribió y que Company Brain rechazaría, dicho antes de llegar a escribir. */
 export const requireMcpInput = <TValue>(result: Result<TValue, string>): TValue => {
   if (result.isFail()) throw new McpToolError(result.getError());
   return result.getValue();
 };
 
-/**
- * Dónde va una página nueva, con los permisos del token revisados ahí: bajo
- * una página que el agente nombra, o arriba del todo en un espacio. Crear una
- * página siempre pide escribir páginas en ese lugar; algo más, como una
- * colección, puede pedir además otros permisos.
- */
+/** Always needs page write at the place; a collection, for instance, may need more. */
 export const resolveMcpCreationPlace = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -110,7 +93,6 @@ export const resolveMcpCreationPlace = async (
   return { parentId: null, parentPlace: spaceTop, spaceId: where.space };
 };
 
-/** Una página que su dueño ve, con el permiso del token revisado donde está hoy, esté donde esté en su vida. */
 const openMcpPageInAnyLifecycle = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -127,11 +109,7 @@ const openMcpPageInAnyLifecycle = async (
   return { page: page.getValue(), place };
 };
 
-/**
- * Una página que su dueño ve, con el permiso del token revisado donde está
- * hoy. Lo que no se ve y lo que no se puede tocar se contestan igual. Una
- * página en la papelera no se cambia: primero se la trae de vuelta.
- */
+/** Unseen and untouchable pages get the same answer. A trashed page cannot be changed until restored. */
 export const openMcpPage = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -143,7 +121,6 @@ export const openMcpPage = async (
   return opened;
 };
 
-/** Una página de la papelera, para traerla de vuelta: la que no está en la papelera no se trae de ningún lado. */
 export const openMcpTrashedPage = async (
   dependencies: McpServerDependencies,
   call: McpCall,

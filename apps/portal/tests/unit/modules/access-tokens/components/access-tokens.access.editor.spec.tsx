@@ -31,7 +31,6 @@ const renderEditor = (role: UserRole, spaces: readonly AccessTokenSpaceOption[] 
 const rows = (): HTMLElement[] => screen.getAllByRole('listitem');
 
 describe('AccessTokensAccessEditor', () => {
-  /** Quien solo lee no ve ofrecido un nivel que después el servidor rechazaría. */
   it('offers someone who only reads the read level and custom, and no level that writes', () => {
     renderEditor(USER_ROLE.CLIENT);
 
@@ -40,7 +39,6 @@ describe('AccessTokensAccessEditor', () => {
     expect(screen.queryByRole('radio', { name: /Read and write/ })).toBeNull();
   });
 
-  /** «Sin acceso» en todos los espacios no dice nada: solo aparece donde excluye algo. */
   it('offers no access only where it excludes something', () => {
     renderEditor(USER_ROLE.WORKER, [{ id: 'product', name: 'Product' }]);
 
@@ -60,7 +58,6 @@ describe('AccessTokensAccessEditor', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  /** Un lugar ya nombrado por otra fila no se puede volver a elegir. */
   it('does not let a second row pick all spaces, and lets it be removed', () => {
     renderEditor(USER_ROLE.WORKER, [{ id: 'product', name: 'Product' }]);
 
@@ -80,7 +77,6 @@ describe('AccessTokensAccessEditor', () => {
     const second = rows()[1] ?? document.body;
 
     expect((within(second).getByRole('radio', { name: 'A page' }) as HTMLInputElement).checked).toBe(true);
-    /** El botón dice qué es y qué tiene elegido, no solo «Página». */
     expect(within(second).getByRole('button', { name: 'Page Choose a page' })).toBeDefined();
   });
 });

@@ -48,13 +48,7 @@ export const createPageAction = actionClient
     }),
   );
 
-/**
- * What a page says, sent by whoever is writing it without the live document.
- *
- * It still lands in the live document on the server, so anybody who does have
- * the page open live sees it, and the page is stored from there like any other
- * change.
- */
+/** Replaces content without a live session; the server still applies it to the live document. */
 export const replacePageContentAction = actionClient
   .inputSchema(pageContentReplacementSchema)
   .action(async ({ parsedInput }) =>
@@ -66,7 +60,6 @@ export const replacePageContentAction = actionClient
     }),
   );
 
-/** A page's name changed from wherever it is listed, without opening it. */
 export const renamePageAction = actionClient.inputSchema(pageRenameSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'renamePage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.title(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -76,7 +69,7 @@ export const renamePageAction = actionClient.inputSchema(pageRenameSchema).actio
   }),
 );
 
-/** A page copied whole, with its branch when asked. The copy's own name is decided by whoever asks, in their language. */
+/** The caller supplies the copy's title so it can be localized. */
 export const duplicatePageAction = actionClient.inputSchema(pageDuplicateSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'duplicatePage' }, async () => {
     const copy = await authenticatedRequest(
@@ -89,7 +82,6 @@ export const duplicatePageAction = actionClient.inputSchema(pageDuplicateSchema)
   }),
 );
 
-/** A page closed to edits, or opened again. Whoever may write in it may also decide it should rest. */
 export const setPageLockAction = actionClient.inputSchema(pageLockSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'setPageLock' }, async () => {
     const page = await authenticatedRequest(PAGE_API_ROUTES.lock(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -100,7 +92,6 @@ export const setPageLockAction = actionClient.inputSchema(pageLockSchema).action
   }),
 );
 
-/** Setting a page down among its own sisters, which changes the order and nothing else. */
 export const reorderPageAction = actionClient.inputSchema(pageReorderSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'reorderPage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.order(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -117,16 +108,12 @@ export const movePageAction = actionClient.inputSchema(pageMoveSchema).action(as
       targetSpaceId: parsedInput.targetSpaceId,
     });
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
-    /** A page that changed space leaves one tree and joins another, so both have to be read again. */
+    // A moved page leaves one space tree and joins another, so both caches are stale.
     if (parsedInput.targetSpaceId !== undefined) updateTag(PAGES_CACHE_TAG(parsedInput.targetSpaceId));
   }),
 );
 
-/**
- * Everywhere this page could go: the spaces its reader reaches and the pages of
- * those spaces, minus its own branch. Asked of the server rather than worked out
- * from the space at hand, since the space at hand is only one of the answers.
- */
+/** Spans every space the reader reaches and excludes the page's own branch. */
 export const listPageMoveDestinationsAction = actionClient
   .inputSchema(pageLocatorSchema)
   .action(async ({ parsedInput }) =>
@@ -137,12 +124,7 @@ export const listPageMoveDestinationsAction = actionClient
     }),
   );
 
-/**
- * The pages of a space a block could be sent to, named so they can be picked.
- *
- * They are read from the space itself rather than from the search index, so
- * choosing a destination works the moment a page exists.
- */
+/** Reads the space directly instead of the search index, so a new page is a valid destination immediately. */
 export const listPageDestinationsAction = actionClient
   .inputSchema(pageDestinationsSchema)
   .action(async ({ parsedInput }) =>
@@ -155,13 +137,7 @@ export const listPageDestinationsAction = actionClient
     }),
   );
 
-/**
- * Adds blocks at the end of another page.
- *
- * The server adds them to what the page says at the moment of writing, inside
- * its live document: reading the page here and writing it back whole lost
- * whatever somebody else added in between.
- */
+/** Appended by the server inside the live document; read-modify-write here would lose concurrent edits. */
 export const addBlocksToPageAction = actionClient
   .inputSchema(pageBlocksHandoverSchema)
   .action(async ({ parsedInput }) =>

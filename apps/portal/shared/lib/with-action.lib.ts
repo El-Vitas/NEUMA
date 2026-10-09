@@ -4,7 +4,7 @@ export const withAction = async <T>(
   meta: Record<string, unknown> & { action: string },
   fn: () => Promise<T>,
 ): Promise<T> => {
-  /** Cuánto tardó, no qué hora era: para una duración, el reloj monótono es el correcto. */
+  /** Monotonic clock: the right one for a duration. */
   const start = performance.now();
   logger.info({ ...meta, status: 'start' });
 
@@ -13,7 +13,7 @@ export const withAction = async <T>(
     logger.info({ ...meta, status: 'success', durationMs: Math.round(performance.now() - start) });
     return result;
   } catch (error) {
-    /** Anything can be thrown, so what is written down has to be made into an error first. */
+    /** Anything can be thrown, so it is converted to an Error before logging. */
     const wrapped = error instanceof Error ? error : new Error(String(error));
     logger.error({
       ...meta,

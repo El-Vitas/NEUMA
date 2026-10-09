@@ -10,10 +10,6 @@ import { PAGE_PERSON_SEARCH_LIMIT } from '../../../editor/text/constants/pages.e
 import { keepThePeopleNamed } from '../../../editor/text/lib/pages.editor.person.lib';
 import { personMentionSearchInputSchema } from '../../schemas/pages.person.schemas';
 
-/**
- * Who a name written after `@` may mean, among the people who can read this
- * space — never a member of a space this page does not belong to.
- */
 export const searchPagePersonCandidatesAction = actionClient
   .inputSchema(personMentionSearchInputSchema)
   .action(async ({ parsedInput }) =>

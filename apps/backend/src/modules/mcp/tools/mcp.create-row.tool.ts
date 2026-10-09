@@ -10,7 +10,6 @@ import { createRowInputSchema, rowOutputSchema } from '../schemas/mcp.collection
 import type { McpCreateRowInput, McpOpenCollection, McpRowOutput, McpWrittenRow } from '../types/mcp.collections.types';
 import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-/** Crea la fila por el mismo servicio que usa el portal: las mismas validaciones y el mismo lugar en la colección. */
 const writeRow = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -60,13 +59,6 @@ const createRow = async (
   return rowOutputSchema.parse(describeMcpRowAsSeen(dependencies.portalUrl, call, seen, created, people));
 };
 
-/**
- * Agrega una fila a una colección: una tarea nueva en un tablero, con su
- * estado, su responsable y su fecha.
- *
- * El agente nombra columnas, opciones y personas como las ve la gente; lo que
- * no calza se rechaza entero, diciendo qué sí vale, antes de escribir nada.
- */
 export const createRowTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.createRow,
   register: (server, dependencies) => {

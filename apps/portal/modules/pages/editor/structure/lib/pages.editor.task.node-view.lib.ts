@@ -8,13 +8,7 @@ import {
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
 } from '../../blocks/constants/pages.editor.blocks.constants';
 
-/**
- * The box a task is ticked in.
- *
- * It is a button rather than a checkbox of the browser's own: what the page
- * holds is the single answer to whether the task is done, and a native checkbox
- * would keep a second answer of its own that can drift from it.
- */
+/** A button, not a native checkbox, so the node attribute stays the only source of the done state. */
 const createTaskCheckbox = (label: string): HTMLButtonElement => {
   const checkbox = document.createElement('button');
   checkbox.className = PAGE_EDITOR_TASK_CHECKBOX_STYLE_CLASS;
@@ -25,14 +19,7 @@ const createTaskCheckbox = (label: string): HTMLButtonElement => {
   return checkbox;
 };
 
-/**
- * A task done says so on itself, and the page draws it from there.
- *
- * Whether it is done is written as an attribute rather than as a look given to
- * the whole item, because a task can hold other tasks: crossing out the item
- * would cross out everything hanging from it, and a task nobody ticked would
- * read as done.
- */
+/** Done state is an attribute, not a style on the item: nested tasks would otherwise inherit the strike-through. */
 const showTaskDoneState = (item: HTMLElement, checkbox: HTMLButtonElement, isDone: boolean): void => {
   checkbox.setAttribute('aria-checked', String(isDone));
   checkbox.textContent = isDone ? PAGE_EDITOR_TASK_DONE_MARK : '';
@@ -40,13 +27,6 @@ const showTaskDoneState = (item: HTMLElement, checkbox: HTMLButtonElement, isDon
   for (const className of PAGE_EDITOR_TASK_BOX_DONE_STYLE_CLASSES) checkbox.classList.toggle(className, isDone);
 };
 
-/**
- * Renders a task the reader can tick off.
- *
- * Whether it is done lives in the block itself rather than in the browser's own
- * checkbox state, so the page remembers it and the mark survives moving the
- * block, saving the page and opening it again.
- */
 export const createPageTaskItemNodeView = (
   node: EditorNode,
   view: EditorView,

@@ -12,20 +12,12 @@ import {
 } from '../../media/constants/pages.editor.diagram.constants';
 import { isPageDrawn, isPageFormula, readPageDiagramView } from '../../media/lib/pages.editor.diagram.lib';
 
-/** Whether a borrowed block is a diagram or a formula its own page shows drawn. */
 export const isBorrowedDrawing = (borrowed: EditorNode): boolean =>
   borrowed.type.name === 'code_block' &&
   isPageDrawn(borrowed.attrs.language) &&
   readPageDiagramView(borrowed.attrs.shown) !== 'code';
 
-/**
- * Draws a borrowed diagram or formula the way its own page draws it, instead
- * of showing its writing: a synced diagram shown as code reads as broken.
- *
- * It is only looked at here, so it gets the bounded frame and the wheel to
- * bring it closer, but none of the controls that change it. Says how to let
- * the drawing go when the block is gone.
- */
+/** Read-only drawing: zoom and a bounded frame, no editing controls. Returns the cleanup function. */
 export const drawBorrowedBlock = (borrowed: EditorNode, body: HTMLElement): (() => void) => {
   const isFormula = isPageFormula(borrowed.attrs.language);
   const drawing = document.createElement('div');
@@ -49,7 +41,6 @@ export const drawBorrowedBlock = (borrowed: EditorNode, body: HTMLElement): (() 
     if (!isFormula) handling.showAtItsSize();
   };
   void show();
-  /** A diagram is coloured for the ground it is read on, the borrowed one as much as its own. */
   const stopWatchingTheGround = isFormula ? () => undefined : watchTheDiagramGround(() => void show());
   return () => {
     stopWatchingTheGround();

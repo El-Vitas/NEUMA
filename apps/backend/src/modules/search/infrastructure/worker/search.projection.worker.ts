@@ -98,7 +98,7 @@ export class SearchProjectionWorker extends OutboxProjectionWorker {
     await this.projectPage(page);
   }
 
-  /** La página y sus bloques, cada uno donde se busca. Un contenido que no se puede leer no se proyecta. */
+  /** Content that cannot be read is not projected. */
   private async projectPage(page: SearchProjectionPage): Promise<void> {
     const content = readStoredPageContent(page.content);
     const input = toPageProjection(page);

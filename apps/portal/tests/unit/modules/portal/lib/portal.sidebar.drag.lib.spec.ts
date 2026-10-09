@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { PORTAL_SIDEBAR_ROW_NESTING_BAND } from '@/modules/portal/constants/portal.sidebar.drag.constants';
 import { readPortalSidebarDropIntent } from '@/modules/portal/lib/portal.sidebar.drag.lib';
 
-/** A row twenty pixels tall, standing where the pointer measurements below assume it does. */
+// The pointer measurements below assume this row position.
 const row = { height: 20, top: 100 } as const;
 
 describe('readPortalSidebarDropIntent', () => {

@@ -11,11 +11,6 @@ interface IProps {
   readonly selected: string | null;
 }
 
-/**
- * The marks on offer for an aside: a handful, each shown as itself, and a way
- * back to none. They are named as well as drawn, since a symbol alone says
- * nothing to a reader who cannot see it.
- */
 export const PagesEditorCalloutIconItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

@@ -12,13 +12,6 @@ interface IProps {
   readonly untitledLabel: string;
 }
 
-/**
- * Una fila de la colección como una tarjeta de la galería.
- *
- * Se parece a la del tablero y no es la misma: aquí la tarjeta no se arrastra a
- * ninguna parte —no hay columnas a las que llevarla—, así que no carga con
- * nada de lo que hace falta para moverla.
- */
 export const PagesCollectionGalleryCard = ({
   openFullPageLabel,
   personOptions,

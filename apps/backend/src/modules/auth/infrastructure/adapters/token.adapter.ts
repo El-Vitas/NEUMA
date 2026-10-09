@@ -26,7 +26,7 @@ export class TokenAdapter {
     private readonly configService: ConfigService,
   ) {}
 
-  /** Signs the short-lived token that opens the API, marked with its own audience so no other token does. */
+  /** Carries its own audience so no other token type is accepted as an access token. */
   async signAccessToken(user: User): Promise<string> {
     return this.jwtService.signAsync(
       { ...this.toTokenPayload(user), aud: ACCESS_TOKEN_AUDIENCE },
@@ -37,11 +37,7 @@ export class TokenAdapter {
     );
   }
 
-  /**
-   * Signs the long-lived token whose only power is to ask for a new access
-   * token. It is marked with its own audience so an access token can never be
-   * used to renew a session, nor a refresh token to reach the API.
-   */
+  /** Its own audience keeps an access token from renewing a session and a refresh token from reaching the API. */
   async signRefreshToken(user: User): Promise<string> {
     return this.jwtService.signAsync(
       { ...this.toTokenPayload(user), aud: REFRESH_TOKEN_AUDIENCE },
@@ -59,11 +55,7 @@ export class TokenAdapter {
     });
   }
 
-  /**
-   * Issues the whole session at once — both tokens and how long each one
-   * lives — so every place that starts a session (signing in, signing up,
-   * renewing) hands out exactly the same thing.
-   */
+  /** Single place that builds a session, shared by sign-in, sign-up and renewal. */
   async issueSession(user: User): Promise<AuthSession> {
     const [accessToken, refreshToken] = await Promise.all([this.signAccessToken(user), this.signRefreshToken(user)]);
     return {
@@ -117,7 +109,6 @@ export class TokenAdapter {
     }
   }
 
-  /** Who a session belongs to, the same in every token it is issued with. */
   private toTokenPayload(user: User): TokenPayload {
     return { email: user.email, name: user.name, role: user.role, sub: user.id };
   }

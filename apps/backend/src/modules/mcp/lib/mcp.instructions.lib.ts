@@ -1,12 +1,6 @@
 import { MCP_SERVER_INSTRUCTION_LINES } from '../constants/mcp.constants';
 
-/**
- * Lo que el agente lee al conectarse, con la dirección del portal donde corre.
- *
- * Un enlace de Company Brain parece un enlace cualquiera: sin saber de dónde
- * viene, un agente lo abre con un navegador o lo da por inaccesible. Diciéndole
- * con qué empiezan, lo abre con `fetch`.
- */
+/** Names the portal URL so agents open Company Brain links with `fetch` instead of a browser. */
 export const writeMcpServerInstructions = (portalUrl: string): string =>
   [
     ...MCP_SERVER_INSTRUCTION_LINES,

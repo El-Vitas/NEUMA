@@ -34,10 +34,6 @@ describe('SpacesEmptyState', () => {
     expect(screen.getByText("Create the first page to start organizing this space's knowledge.")).toBeDefined();
   });
 
-  /**
-   * Lo único que se pregunta es de qué clase: elegida, la página se hace y se
-   * abre, sin un formulario de por medio.
-   */
   it('asks an editor what to start, and starts it', async () => {
     startedSpaceIds.length = 0;
     startedCollectionSpaceIds.length = 0;

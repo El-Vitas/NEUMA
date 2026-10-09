@@ -29,19 +29,8 @@ import { usePagesShapeSaving } from './use.pages.shape-saving';
 import { usePagesViewSaving } from './use.pages.view-saving';
 
 /**
- * Mandar sobre las columnas de un tablero, que son los valores de la propiedad
- * por la que agrupa.
- *
- * Se aplica al momento, como arrastrar una tarjeta: una columna se toca
- * mirándola, y guardar aparte lo que se ve obliga a ir a otra pantalla para
- * comprobar lo que ya está delante.
- *
- * Lo que se hace aquí se reparte en tres según a quién pertenece. El nombre y el
- * color son del **valor**, y se ven en todas las vistas. Plegarla, ponerle un
- * tope o esconder la de las filas sin valor son de **la vista**: es cómo se está
- * mirando, no lo que las filas guardan. Y renombrar o quitar arrastran además a
- * las **filas**, así que van por su propio camino: el servidor tiene que saber
- * de qué nombre viene para reescribir lo que guardaron.
+ * Edits apply immediately. Name and color belong to the option value (all views), collapse, limit and the
+ * unassigned column belong to the view, and rename/remove also rewrite rows, so they go through the server.
  */
 export const usePagesBoardColumns = (
   schema: PageSchema,
@@ -63,7 +52,6 @@ export const usePagesBoardColumns = (
     toast.success(t('saved'));
   };
 
-  /** Las vistas van tal como están aquí, con lo que todavía no se mandó, para no perderlo por el camino. */
   const saveShape = (properties: PageSchema['properties']): void => shape.save(properties, viewSaving.views);
 
   const rewrite = (from: string, to: null | string): void => {
@@ -83,11 +71,7 @@ export const usePagesBoardColumns = (
     });
   };
 
-  /**
-   * Dos columnas con el mismo nombre no pueden ser. Se dice aquí, con el nombre
-   * delante, en vez de mandarlo y recibir de vuelta un «algo salió mal» que no
-   * señala a nada.
-   */
+  /** Refused locally so the message can name the column instead of a generic server error. */
   const refuseTakenName = (name: string): boolean => {
     if (!isSchemaOptionNameTaken(schema.properties, groupByKey, name)) return false;
     toast.error(t('columnNameTaken', { column: name.trim() }));

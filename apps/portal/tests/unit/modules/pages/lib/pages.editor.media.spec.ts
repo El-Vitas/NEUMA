@@ -25,7 +25,6 @@ const insert = (kind: 'audio' | 'video'): EditorState => {
 };
 
 describe('putting something that plays on a page', () => {
-  /** Handing a block that holds nothing an empty content is a shape the contract refuses. */
   it('saves a video as something that holds nothing', () => {
     const saved = serializePageEditorState(insert('video'));
 

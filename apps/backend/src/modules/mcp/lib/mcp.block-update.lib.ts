@@ -12,7 +12,7 @@ import {
 import { MCP_BLOCK_COLOR_NAMES, MCP_BLOCK_KEPT_ATTRIBUTES } from '../constants/mcp.constants';
 import type { McpBlockChange, McpBlockColors, McpBlockPlaceInput, McpContentEdit } from '../types/mcp.pages.types';
 
-/** El lugar que pidió el agente, como lo entienden las ediciones de una página: el final de la página si no pidió ninguno. */
+/** Defaults to the end of the page when no place is given. */
 export const readMcpBlockPlace = (input: McpBlockPlaceInput): Result<PageBlockPlace, string> => {
   const named = [input.after, input.before, input.inside].filter((blockId) => blockId !== undefined);
   if (named.length > 1) return Result.fail('Say only one of after, before or inside.');
@@ -31,10 +31,7 @@ const withFirstLine = (node: PageDocumentNodeShape, inline: readonly unknown[]):
 const holdsOnlyParagraphs = (node: PageDocumentNodeShape): boolean =>
   listPageDocumentChildren(node).every((child) => isPageDocumentNode(child) && child.type === 'paragraph');
 
-/**
- * Lo que guarda una cita, un aviso o un desplegable, con otras palabras. Si
- * además guarda otros bloques, rehacerlo los borraría: se cambian uno por uno.
- */
+/** Rebuilding a quote, callout or toggle that holds other blocks would delete them, so those are changed one by one. */
 const rewriteHeld = (
   node: PageDocumentNodeShape,
   words: NonNullable<McpBlockChange['words']>,
@@ -45,7 +42,6 @@ const rewriteHeld = (
         `This ${node.type} holds other blocks besides its words. Change them one by one by their ids, or send a replacement for the whole ${node.type}.`,
       );
 
-/** Un bloque con otras palabras, del mismo tipo. Cada tipo guarda sus palabras en su sitio. */
 const rewriteWords = (
   node: PageDocumentNodeShape,
   words: NonNullable<McpBlockChange['words']>,
@@ -78,11 +74,7 @@ const retitle = (node: PageDocumentNodeShape, summary: string): Result<PageDocum
     ? Result.ok({ ...node, attrs: { ...node.attrs, summary } })
     : Result.fail(`Only a toggle has a summary, and this block is a ${node.type}.`);
 
-/**
- * El bloque nuevo, con lo que el anterior llevaba encima y no es suyo: los
- * comentarios de otras personas y sus colores. Si el bloque nuevo trae sus
- * propios colores, mandan esos.
- */
+/** Carries over other people's comments and the old colors; colors on the replacement win. */
 const keepAnnotations = (node: PageDocumentNodeShape, replacement: unknown): unknown => {
   if (!isPageDocumentNode(replacement)) return replacement;
   const kept = Object.entries(node.attrs ?? {}).filter(([name]) => isOneOf(MCP_BLOCK_KEPT_ATTRIBUTES, name));
@@ -103,7 +95,7 @@ const changeContent = (node: PageDocumentNodeShape, change: McpBlockChange): Res
   return check(withWords.getValue(), change.checked);
 };
 
-/** Pinta un bloque entero con los colores pedidos; un color en `null` se quita, y el que no se nombra se queda. */
+/** A `null` color is removed; colors not named stay. */
 const paint = (node: unknown, colors: McpBlockColors): unknown => {
   if (!isPageDocumentNode(node)) return node;
   const painted = Object.entries({ ...node.attrs, ...colors }).filter(
@@ -118,10 +110,7 @@ const applyChange = (node: PageDocumentNodeShape, change: McpBlockChange): Resul
   return Result.ok(paint(changed.getValue(), change.colors));
 };
 
-/**
- * El cambio de un bloque, hecho sobre lo que la página dice al escribir. El
- * bloque conserva su id, así los enlaces que lo señalaban siguen llegando.
- */
+/** The block keeps its id so links pointing at it keep working. */
 export const buildMcpBlockUpdate =
   (blockId: string, change: McpBlockChange): McpContentEdit =>
   (content) => {

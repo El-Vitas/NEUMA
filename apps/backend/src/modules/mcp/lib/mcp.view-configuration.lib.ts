@@ -4,7 +4,6 @@ import type { McpColumnsInHand, McpViewShapeInput } from '../types/mcp.collectio
 import type { McpPerson } from '../types/mcp.types';
 import { readMcpConditionValue, requireMcpColumn } from './mcp.columns.lib';
 
-/** Las claves de unas columnas nombradas como las ve la gente, o la primera que no está. */
 const requireKeys = (known: McpColumnsInHand, references: readonly string[]): Result<string[], string> => {
   const keys: string[] = [];
   for (const reference of references) {
@@ -55,14 +54,7 @@ const buildGroupBy = (known: McpColumnsInHand, groupBy: string | null): Result<s
   return column.isFail() ? Result.fail(column.getError()) : Result.ok(column.getValue().key);
 };
 
-/**
- * La configuración de una vista con lo que pidió el agente, sobre la que ya
- * tenía.
- *
- * El agente nombra columnas, opciones y personas como las ve la gente; aquí se
- * traducen a lo que la vista guarda. Sus condiciones van todas juntas. Lo que
- * no pidió cambiar queda como estaba.
- */
+/** Unrequested settings stay as they were. */
 export const buildMcpViewConfiguration = (
   known: McpColumnsInHand,
   shape: McpViewShapeInput,

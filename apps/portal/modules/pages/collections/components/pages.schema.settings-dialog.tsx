@@ -23,16 +23,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Donde se decide la forma de una colección.
- *
- * Es un panel al costado y no un cuadro sobre la pantalla: lo que se cambia
- * aquí se ve enseguida en las filas de al lado, y taparlas para configurarlas
- * obliga a cerrar cada vez para saber si quedó como se quería.
- *
- * Se entra por niveles —propiedades, una propiedad, una opción—, cada uno con
- * su vuelta atrás. Un esquema entero desplegado de una vez no se lee: se busca.
- */
+/** A side panel, not a centered dialog, so changes stay visible in the rows beside it. */
 export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) => {
   const t = useTranslations('pages.collection');
   const editor = usePagesSchemaEditor(schema, spaceId);
@@ -53,10 +44,6 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
     property: property !== undefined,
     view: view !== undefined,
   });
-  /**
-   * Lo que falta para poder guardar, dicho aquí en vez de dejar que el servidor
-   * rechace la colección entera con un error que no señala a nadie.
-   */
   const boardWithoutGrouping = findBoardWithoutGrouping(editor.views, editor.properties);
   const whatIsMissing =
     boardWithoutGrouping === undefined ? null : t('boardNeedsGrouping', { view: boardWithoutGrouping.name });
@@ -77,13 +64,7 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
     <DialogPrimitive.Root modal={false} onOpenChange={(open) => !open && onClose()} open>
       <DialogPrimitive.Portal container={themeRoot ?? undefined}>
         <DialogPrimitive.Content
-          /*
-            Alto por la ventana visible y no por la del documento.
-            `inset-y-0` estira el panel hasta el borde de abajo, que en un
-            navegador con barras que aparecen y desaparecen no es el borde de lo
-            que se ve: el pie —donde está guardar— quedaba justo fuera. `dvh`
-            mide lo que de verdad se ve ahora mismo.
-          */
+          /* `dvh` tracks the visible viewport; `inset-y-0` pushed the footer offscreen with collapsing bars. */
           className="data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right fixed top-0 right-0 z-50 flex h-dvh max-h-dvh w-full max-w-96 flex-col border-border border-l bg-surface shadow-lg outline-none duration-200 ease-out data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:duration-0"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
@@ -117,10 +98,9 @@ export const PagesSchemaSettingsDialog = ({ onClose, schema, spaceId }: IProps) 
             )}
           </div>
 
-          {/* El respiro de abajo cuenta con la barra del sistema, que en un móvil se come lo último que haya. */}
+          {/* The bottom padding accounts for the system bar on mobile. */}
           <div className="shrink-0 space-y-2 border-border border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {whatIsMissing !== null && <p className="px-1 text-muted-foreground text-xs">{whatIsMissing}</p>}
-            {/* Nada de lo que se toca aquí llega a las filas hasta guardar, así que se dice que queda algo por mandar. */}
             {whatIsMissing === null && editor.hasUnsavedChanges && (
               <p className="flex items-center gap-1.5 px-1 text-muted-foreground text-xs">
                 <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-primary" />

@@ -21,7 +21,6 @@ interface Session {
 const read = ACCESS_TOKEN_PERMISSIONS.pagesRead;
 const nothing: AccessTokenAccess['allSpaces'] = [];
 
-/** Lo que contesta cada herramienta se lee con forma: si cambiara, la prueba lo dice en vez de leer vacío. */
 const listedSpacesShape = z.object({ spaces: z.array(z.object({ id: z.string() })) });
 const foundShape = z.object({
   blocks: z.array(z.object({ pageId: z.string() })),
@@ -36,13 +35,7 @@ const access = (rules: Partial<AccessTokenAccess>): AccessTokenAccess => ({
   ...rules,
 });
 
-/**
- * Lo que puede y no puede un agente, recorrido de punta a punta: token creado
- * por la API, agente conectado por HTTP con un cliente MCP de verdad, y datos
- * en Postgres. Cada caso intenta saltarse un filtro por un lado distinto:
- * leer, buscar y listar tienen que decir lo mismo, porque por el que diga más
- * es por donde se filtra.
- */
+/** Read, search and list must agree: whichever says more is where access leaks. */
 describe('MCP access (Integration)', () => {
   let testApp: TestApp;
   let baseUrl: string;
@@ -63,11 +56,7 @@ describe('MCP access (Integration)', () => {
     workerPrivate: '',
   };
 
-  /*
-    Palabras sin nada en común. La búsqueda también empareja por parecido, y
-    palabras con el mismo número al final se encontrarían entre sí: un falso
-    resultado que taparía una fuga de verdad o inventaría una.
-  */
+  // Words with nothing in common: search also matches by similarity, so words sharing a suffix would find each other.
   const words = {
     bonus: 'Tavrenholm',
     deep: 'Oxquindrel',
@@ -97,7 +86,6 @@ describe('MCP access (Integration)', () => {
     return (response.body as { id: string }).id;
   };
 
-  /** El espacio privado nace solo la primera vez que su dueña lista sus espacios, como en la pantalla. */
   const privateSpaceOf = async (owner: Session): Promise<string> => {
     const response = await request(testApp.getServer())
       .get('/api/v1/spaces')
@@ -123,7 +111,6 @@ describe('MCP access (Integration)', () => {
     return (response.body as { id: string }).id;
   };
 
-  /** Cada token con su propio nombre: dos vivos de la misma persona no pueden llamarse igual. */
   const askForToken = (owner: Session, rules: AccessTokenAccess, overrides: Record<string, unknown> = {}) => {
     tokenCount += 1;
     return request(testApp.getServer())
@@ -145,7 +132,6 @@ describe('MCP access (Integration)', () => {
     return listedSpacesShape.parse(result.structuredContent).spaces.map((space) => space.id);
   };
 
-  /** Las páginas que la búsqueda deja ver, por sus bloques o por su título. */
   const foundPageIds = async (secret: string, query: string, spaceId?: string): Promise<readonly string[]> => {
     const result = await call(secret, 'search', spaceId === undefined ? { query } : { query, spaceId });
     const found = foundShape.parse(result.structuredContent);
@@ -155,7 +141,6 @@ describe('MCP access (Integration)', () => {
   const canRead = async (secret: string, pageId: string): Promise<boolean> =>
     (await call(secret, 'fetch', { address: pageId })).isError !== true;
 
-  /** Lo mismo por los tres caminos: si uno de ellos dijera más, por ahí se filtraría. */
   const reaches = async (secret: string, page: keyof typeof pages): Promise<boolean> => {
     const isReadable = await canRead(secret, pages[page]);
     const isFound = (await foundPageIds(secret, words[page])).includes(pages[page]);
@@ -176,16 +161,6 @@ describe('MCP access (Integration)', () => {
     spaces.workerPrivate = await privateSpaceOf(worker);
     await testApp.get(PrismaService).spaceMember.create({ data: { spaceId: spaces.restricted, userId: worker.id } });
 
-    /*
-      El árbol del espacio abierto:
-        open
-        hr
-        ├── salaries
-        │   └── bonus
-        │       └── deep
-        └── holidays
-            └── summer
-    */
     pages.open = await createPage(admin, spaces.open, words.open);
     pages.hr = await createPage(admin, spaces.open, words.hr);
     pages.salaries = await createPage(admin, spaces.open, words.salaries, pages.hr);
@@ -218,12 +193,10 @@ describe('MCP access (Integration)', () => {
       expect(await foundPageIds(secret, words.restricted)).toEqual([]);
     });
 
-    /** El espacio que pide el agente solo achica la búsqueda: nombrar otro no abre la puerta. */
     it('cannot widen the search by naming a space it was not given', async () => {
       expect(await foundPageIds(secret, words.restricted, spaces.restricted)).toEqual([]);
     });
 
-    /** Pedir la página directo por su id tampoco sirve, y la respuesta no confirma que exista. */
     it('cannot read a page outside that space by its id, and is not told the page exists', async () => {
       const refused = await call(secret, 'fetch', { address: pages.restricted });
       const missing = await call(secret, 'fetch', { address: '00000000-0000-4000-8000-000000000000' });
@@ -249,7 +222,6 @@ describe('MCP access (Integration)', () => {
       expect(listed).toContain(spaces.workerPrivate);
     });
 
-    /** Lo privado responde a su dueña, y a nadie por encima de ella: ni al token de un administrador. */
     it('of an admin never reaches someone else’s private space', async () => {
       const secret = await tokenFor(admin, access({ allSpaces: [read] }));
 
@@ -298,7 +270,6 @@ describe('MCP access (Integration)', () => {
   });
 
   describe('excluir y reabrir adentro', () => {
-    /** La regla más cercana manda: se puede cerrar un árbol y volver a abrir una rama suya. */
     it('reopens a branch inside a closed one, and only that branch', async () => {
       const secret = await tokenFor(
         worker,
@@ -362,7 +333,6 @@ describe('MCP access (Integration)', () => {
       mentioningPageId = (response.body as { id: string }).id;
     });
 
-    /** Tener el id de un bloque o su enlace no abre la página donde está. */
     it('cannot open a block of a closed page by its id or its link, and is not told it exists', async () => {
       const missing = await call(secret, 'fetch', { address: '00000000-0000-4000-8000-000000000000' });
       const byId = await call(secret, 'fetch', { address: salariesBlockId });
@@ -390,7 +360,6 @@ describe('MCP access (Integration)', () => {
       expect(JSON.stringify(result)).not.toContain(pages.salaries);
     });
 
-    /** Contar una hija cerrada ya diría que existe. */
     it('neither lists nor counts a closed page under one it can read', async () => {
       const underHr = await listedUnder(pages.hr);
       const atTheTop = z
@@ -437,7 +406,6 @@ describe('MCP access (Integration)', () => {
       expect(await reaches(secret, 'salaries')).toBe(false);
     });
 
-    /** Ve el espacio de su página, para saber dónde está, y ningún otro. */
     it('lists the space of that page and no other', async () => {
       expect(await listedSpaceIds(secret)).toEqual([spaces.open]);
     });
@@ -448,7 +416,6 @@ describe('MCP access (Integration)', () => {
   });
 
   describe('el árbol de hoy manda, no el del día en que se dio', () => {
-    /** Lo que se saca de debajo de una página dada deja de estar dado. */
     it('loses a page moved out from under the page it was given', async () => {
       const prisma = testApp.get(PrismaService);
       const secret = await tokenFor(worker, access({ pages: [{ pageId: pages.holidays, permissions: [read] }] }));
@@ -461,7 +428,6 @@ describe('MCP access (Integration)', () => {
       expect(afterMove).toBe(false);
     });
 
-    /** Lo que se mete debajo de una página cerrada queda cerrado, también para la búsqueda. */
     it('closes a page moved in under a closed one', async () => {
       const prisma = testApp.get(PrismaService);
       const secret = await tokenFor(
@@ -477,7 +443,6 @@ describe('MCP access (Integration)', () => {
       expect(afterMove).toBe(false);
     });
 
-    /** Lo que el dueño ve se mira en cada llamada: si lo sacan de un espacio, su token pierde ese espacio al instante. */
     it('loses a space the moment its owner loses it', async () => {
       const secret = await tokenFor(worker, access({ spaces: [{ permissions: [read], spaceId: spaces.restricted }] }));
       const prisma = testApp.get(PrismaService);
@@ -501,7 +466,6 @@ describe('MCP access (Integration)', () => {
       expect(refusalCode(refused.body)).toBe('ACCESS_TOKEN_SPACE_NOT_ACCESSIBLE');
     });
 
-    /** Tampoco para cerrarlo: nombrarlo confirmaría que existe. */
     it('refuses to exclude a space its creator cannot see', async () => {
       const refused = await askForToken(
         admin,
@@ -534,7 +498,6 @@ describe('MCP access (Integration)', () => {
       expect(trashed.status).toBe(403);
     });
 
-    /** Quien solo lee no fabrica una llave que escriba por él, tampoco escondiendo la escritura en una página. */
     it('refuses writing permissions to someone who can only read, wherever they are given', async () => {
       const everywhere = await askForToken(reader, access({ allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesWrite] })).expect(
         403,
@@ -559,7 +522,6 @@ describe('MCP access (Integration)', () => {
   });
 
   describe('el nombre y el vencimiento', () => {
-    /** Dos tokens vivos que se leen igual en la lista se confunden al revocar uno. */
     it('refuses a second live token that reads the same, and allows it once the first is revoked', async () => {
       const first = (
         await askForToken(worker, access({ allSpaces: [read] }), { name: 'Claude del equipo' }).expect(201)
@@ -611,7 +573,6 @@ describe('MCP access (Integration)', () => {
         .expect(401);
     });
 
-    /** Solo su dueño cambia lo que tiene dado: para cualquier otra persona, ese token no existe. */
     it('cannot be changed by anyone but its owner', async () => {
       const created = (await askForToken(worker, access({ allSpaces: [read] })).expect(201)).body as {
         token: { id: string };
@@ -658,11 +619,6 @@ describe('MCP access (Integration)', () => {
   });
 
   describe('lo que ve quien administra', () => {
-    /**
-     * El administrador ve todos los tokens, pero los lugares que no ve no los
-     * lee ni en la lista de tokens: el espacio privado de otra persona, y las
-     * páginas de ese espacio, aparecen como un número, sin nombre ni título.
-     */
     it('sees every token and counts, without naming, the places it cannot see', async () => {
       const created = (
         await askForToken(

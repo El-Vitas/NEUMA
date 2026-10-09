@@ -4,7 +4,7 @@ import { PAGE_DATE_BUCKET } from './page-view.types.js';
 
 const DATE_LENGTH = 10;
 const MONTH_LENGTH = 7;
-/** El domingo es el día 0 en el reloj, y la semana empieza el lunes: hay que retroceder seis, no cero. */
+/** Sunday is day 0 but the week starts on Monday, so step back six, not zero. */
 const DAYS_BACK_FROM_SUNDAY = 6;
 
 const readDate = (value: string): Date | null => {
@@ -21,14 +21,9 @@ const readMondayOf = (date: Date): Date => {
 };
 
 /**
- * El grupo al que va una fecha según el tramo que la vista pidió.
- *
- * El grupo se nombra por su principio —el día, el lunes de esa semana, el mes—
- * porque así el nombre ordena solo: puestos en fila, los nombres quedan en el
- * orden en que pasó el tiempo sin que nadie tenga que compararlos como fechas.
- *
- * Lo que no es una fecha no nombra ningún grupo, y quien reparte lo manda al de
- * las filas sin valor.
+ * The group is named by its start (the day, that week's Monday, the month) so
+ * names sort chronologically as plain strings. A non-date returns null and the
+ * caller sends it to the no-value group.
  */
 export const readPageDateBucketKey = (value: string, bucket: PageDateBucket): null | string => {
   const date = readDate(value);

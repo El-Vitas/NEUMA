@@ -35,11 +35,7 @@ const insertBlocks = async (
   return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, written);
 };
 
-/**
- * Escribe bloques nuevos en una página: al final, al principio, junto a un
- * bloque o dentro de uno. Se escriben sobre lo que la página dice en ese
- * momento, así lo que otra persona acaba de escribir no se pierde.
- */
+/** Inserts over the page's current content so a concurrent edit is not lost. */
 export const insertBlocksTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.insertBlocks,
   register: (server, dependencies) => {

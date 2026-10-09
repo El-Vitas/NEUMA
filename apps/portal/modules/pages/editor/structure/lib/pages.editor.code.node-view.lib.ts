@@ -28,14 +28,7 @@ const createLanguageChoice = (labels: PageEditorCodeLabels): HTMLSelectElement =
   return choice;
 };
 
-/**
- * Renders code with what is needed to read it: what it is written in, a way to
- * take it away whole, and a way to stop long lines running off the side.
- *
- * The controls are form controls of their own rather than writable content:
- * inside the editor every keystroke belongs to the writing, and a control made
- * of text would never receive one.
- */
+/** The controls are real form controls because keystrokes inside the editor go to the document, not to text nodes. */
 export const createPageCodeBlockNodeView = (
   node: EditorNode,
   view: EditorView,
@@ -83,7 +76,6 @@ export const createPageCodeBlockNodeView = (
   wrap.addEventListener('mousedown', (event) => event.preventDefault());
   wrap.addEventListener('click', () => writeAttribute('wrapped', codeBlock.attrs.wrapped !== true));
   copy.addEventListener('mousedown', (event) => event.preventDefault());
-  /** Nothing visible happens when writing is copied, so the page says that it was. */
   copy.addEventListener('click', () => {
     void copyTextToClipboard(codeBlock.textContent).then((isCopied) => {
       if (isCopied) toast.success(labels.copied);

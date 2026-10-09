@@ -1,10 +1,4 @@
-// constants-dir-only-constants
-// Qué hace: dentro de un directorio `constants/`, solo permite constantes; reporta
-//   funciones, clases, interfaces y type aliases declarados ahí.
-// Para qué: mantener `constants/` como hogar exclusivo de valores literales (§1.1),
-//   empujando funciones a helpers, tipos a `types/`, etc.
-// Opción: { helpersDir } — carpeta de helpers sugerida en el mensaje ('lib' en el
-//   frontend, 'utils' en el backend). Default: 'lib'.
+// Option helpersDir: folder suggested in the message ('lib' in the frontend, 'utils' in the backend).
 
 const DEFAULT_HELPERS_DIR = 'lib';
 

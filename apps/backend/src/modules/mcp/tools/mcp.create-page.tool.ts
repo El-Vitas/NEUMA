@@ -52,7 +52,6 @@ const createPage = async (
   };
 };
 
-/** Crea una página, bajo otra o arriba del todo en un espacio, y opcionalmente con lo que dice. */
 export const createPageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.createPage,
   register: (server, dependencies) => {

@@ -11,13 +11,6 @@ interface IProps {
   readonly untitledLabel: string;
 }
 
-/**
- * Una fila de la colección leída como un renglón.
- *
- * El nombre manda y lo demás va debajo, en pequeño: una lista se recorre
- * mirando nombres, y lo que una fila guarda se lee solo cuando ya se reconoció
- * cuál es.
- */
 export const PagesCollectionListRow = ({
   openFullPageLabel,
   personOptions,

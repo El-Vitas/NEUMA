@@ -6,7 +6,6 @@ const words = (text: string) => [{ text, type: 'text' }];
 const page = (...content: readonly unknown[]): PageContent =>
   pageContentSchema.parse({ content, schemaVersion: 1, type: 'doc' });
 
-/** Las palabras nuevas como llegan ya preparadas: en una línea, y partidas en párrafos por las líneas en blanco. */
 const said = (...paragraphs: readonly string[]) => ({
   inline: words(paragraphs.join(' ')),
   paragraphs: paragraphs.map((paragraph) => ({ content: words(paragraph), type: 'paragraph' })),
@@ -20,7 +19,6 @@ const task = {
   content: [{ attrs: { id: 'task-line' }, content: words('Revisar'), type: 'paragraph' }],
   type: 'task_item',
 };
-/** Lo que guarda el desplegable: un párrafo y una lista, que unas palabras nuevas no pueden pisar. */
 const boxHolds = [
   { attrs: { id: 'box-line' }, content: words('Uno'), type: 'paragraph' },
   {
@@ -119,7 +117,6 @@ describe('buildMcpBlockUpdate', () => {
     });
   });
 
-  /** Lo que otras personas comentaron y cómo pintaron el bloque no es del agente: el bloque nuevo lo hereda. */
   it('keeps the comments and colours of a replaced block, unless the new one brings its own colour', () => {
     const edited = buildMcpBlockUpdate('note', {
       replacement: { attrs: { backgroundColor: 'blue' }, content: words('Ahora es un párrafo'), type: 'paragraph' },
@@ -145,7 +142,6 @@ describe('buildMcpBlockUpdate', () => {
     });
   });
 
-  /** Rehacer con párrafos lo que guarda un desplegable borraría la lista que tiene adentro. */
   it('refuses new words for a toggle that holds other blocks, and says how to change them', () => {
     expect(buildMcpBlockUpdate('box', { words: said('Otro') })(content).getError()).toContain('one by one');
   });

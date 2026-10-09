@@ -11,13 +11,7 @@ import type { PageBlockDefinition } from '../types/pages.editor.block-spec.types
 const readPageBlockAttribute = (node: EditorNode, attribute: string, name: string): Record<string, string> =>
   typeof node.attrs[name] === 'string' ? { [attribute]: node.attrs[name] } : {};
 
-/**
- * What every block writes into the page: who it is and how it is painted.
- *
- * The colours travel as names rather than as styles, so the page decides how
- * each one looks and a block saved today keeps reading well when that decision
- * changes.
- */
+/** Colours are written as names, not styles, so saved blocks keep working if the palette changes. */
 export const getPageBlockDomAttributes = (node: EditorNode): Record<string, string> => ({
   ...readPageBlockAttribute(node, PAGE_EDITOR_BLOCK_ID_ATTRIBUTE, 'id'),
   ...readPageBlockAttribute(node, PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE, 'textColor'),
@@ -28,7 +22,6 @@ export const getPageBlockDomAttributes = (node: EditorNode): Record<string, stri
     : {}),
 });
 
-/** Reads back what every block carries, so pasting a block keeps its identity and its colours. */
 export const getPageBlockAttrs = (
   element: Element,
 ): { readonly backgroundColor: string | null; readonly id: string | null; readonly textColor: string | null } => ({
@@ -40,13 +33,7 @@ export const getPageBlockAttrs = (
 const withBlockAttrParsing = (rule: TagParseRule): TagParseRule =>
   rule.getAttrs === undefined && rule.attrs === undefined ? { ...rule, getAttrs: getPageBlockAttrs } : rule;
 
-/**
- * Declares how a block type is drawn: what every block carries — its identity
- * and its colours — is written into the rendered page and read back when
- * parsing, so a change to what all blocks share is made here once instead of in
- * every block type. What the block holds comes from the shared page document
- * structure, which the server reads too.
- */
+/** Adds the attributes shared by every block, so changing them happens here once. */
 export const definePageBlock = (definition: PageBlockDefinition): NodeSpec => {
   const { parseDOM, render, ...rest } = definition;
   return {

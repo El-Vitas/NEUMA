@@ -28,15 +28,10 @@ const asksForAnyChange = (input: McpUpdateViewInput): boolean =>
     (change) => change !== undefined,
   );
 
-/** Si solo cambia lo que la vista muestra: eso va por su camino propio, sin reescribir la colección entera. */
 const changesOnlyWhatItShows = (input: McpUpdateViewInput): boolean =>
   input.name === undefined && input.makeDefault !== true;
 
-/**
- * Cambia lo que una vista muestra por el camino que no toca las demás vistas
- * ni las columnas: guardar la colección entera por un filtro dejaría una
- * ventana donde se pierde lo que otra persona acaba de cambiar.
- */
+/** Saving the whole collection for a filter could overwrite someone else's concurrent change. */
 const setViewConfiguration = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -99,11 +94,6 @@ const updateView = async (
   return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
-/**
- * Cambia una vista de una colección: su nombre, qué filtra, cómo ordena, por
- * qué agrupa, qué columnas muestra, o si es con la que se abre. Lo que no se
- * nombra queda como estaba.
- */
 export const updateViewTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.updateView,
   register: (server, dependencies) => {

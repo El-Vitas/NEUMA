@@ -31,7 +31,6 @@ describe('deciding what a drop does', () => {
     expect(move).toEqual({ beforeRowId: null, changesGroup: true, changesOrder: true, propertyValue: 'doing' });
   });
 
-  /** Landing in the column of rows without a value clears the property instead of writing a word. */
   it('clears the property when the card lands among the rows without a value', () => {
     const move = resolveBoardDrop(groups, 'a', { beforeRowId: null, groupKey: 'unassigned' });
 
@@ -44,15 +43,10 @@ describe('deciding what a drop does', () => {
     expect(move).toEqual({ beforeRowId: 'a', changesGroup: false, changesOrder: true, propertyValue: null });
   });
 
-  /** A card dropped onto itself has not moved. */
   it('does nothing when a card is dropped on itself', () => {
     expect(resolveBoardDrop(groups, 'b', { beforeRowId: 'b', groupKey: 'todo' })).toBeNull();
   });
 
-  /**
-   * Dropping a card just before the one that already follows it leaves it
-   * exactly where it was: the gap it was dropped into is the gap it came from.
-   */
   it('does nothing when the gap it was dropped into is the one it already occupied', () => {
     expect(resolveBoardDrop(groups, 'a', { beforeRowId: 'b', groupKey: 'todo' })).toBeNull();
   });
@@ -67,7 +61,6 @@ describe('deciding what a drop does', () => {
 });
 
 describe('reading which gap the pointer is over', () => {
-  /** Above the middle of a card means the gap before it; below means the gap after. */
   it('reads the upper half of a card as the gap before it', () => {
     expect(readDropSideFromPointer(120, { height: 100, top: 100 })).toBe('BEFORE');
   });

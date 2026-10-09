@@ -1,9 +1,4 @@
-/**
- * Cómo se llama cada nivel de la configuración.
- *
- * Lo que se está mirando puede no estar —una propiedad recién quitada—, y
- * entonces el nivel se dice por su nombre general.
- */
+/** Falls back to the generic level name when the item being viewed is gone, e.g. a just-removed property. */
 export interface PagesSchemaSettingsNames {
   readonly configure: string;
   readonly option: string | undefined;
@@ -14,28 +9,15 @@ export interface PagesSchemaSettingsNames {
   readonly views: string;
 }
 
-/** Una clase que se puede elegir al agregar algo: lo que se guarda y lo que se lee. */
 export interface PagesSchemaSettingsKindOption {
   readonly label: string;
   readonly value: string;
 }
 
-/**
- * Dónde está parado quien configura la colección.
- *
- * La configuración no se muestra entera de una vez: se entra por niveles, y
- * cada nivel enseña una sola cosa. Un esquema con seis propiedades, cada una
- * con sus opciones y sus colores, desplegado a la vez es un muro donde no se
- * encuentra nada.
- */
 export type PagesSchemaSettingsRoute =
   | { readonly level: 'OPTION'; readonly optionValue: string; readonly propertyKey: string }
   | { readonly level: 'PROPERTIES' }
   | { readonly level: 'PROPERTY'; readonly propertyKey: string }
   | { readonly level: 'ROOT' }
-  /**
-   * Por su lugar y no por su nombre: una vista se renombra desde aquí dentro, y
-   * una ruta que la nombrara se quedaría apuntando a un nombre que acaba de
-   * dejar de existir en cuanto se escribe la primera letra.
-   */
+  /** By position, not name: a view is renamed from inside this route, which would orphan a name-based one. */
   | { readonly level: 'VIEW'; readonly viewPosition: number };

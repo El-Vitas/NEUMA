@@ -15,14 +15,8 @@ interface IProps {
 }
 
 /**
- * A real range slider standing in for the resize line at the tree's edge.
- *
- * As `<input type="range">` it already has the slider role, already exposes
- * min/max/value for real, and already answers to the arrow keys, Home, End
- * and Page Up/Down without a line of code here. Its own pointer dragging is
- * switched off in `onPointerDown` — a native slider that size would be far
- * more sensitive than the pixel-for-pixel drag this handle has always had —
- * so the caller drives the drag instead, exactly as before.
+ * A native range input for slider semantics and keyboard support. Its own pointer dragging is disabled in
+ * `onPointerDown` because it would be far more sensitive than the pixel-for-pixel drag the caller drives.
  */
 export const SidebarTreeResizeHandle = ({ onChangeWidth, onPointerDown, width }: IProps) => {
   const t = useTranslations('pages.treePanel');

@@ -9,11 +9,7 @@ import { commentedBlockOutputSchema, commentOnBlockInputSchema } from '../schema
 import type { McpCommentedBlockOutput, McpCommentOnBlockInput } from '../types/mcp.pages.types';
 import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-/**
- * El nombre con que firma quien comenta, el mismo que ven los demás en el
- * espacio. Quien tiene un token es miembro de su espacio de trabajo: si no
- * aparece, algo se rompió en otra parte, y eso no se disimula firmando con otro.
- */
+/** A token holder is always a workspace member, so a missing name is a real failure and is not masked. */
 const readAuthorName = async (dependencies: McpServerDependencies, call: McpCall): Promise<string> => {
   const members = await dependencies.people.listAssignableMembers(call.workspace.id);
   const author = members.find((member) => member.id === call.principal.userId);
@@ -49,11 +45,6 @@ const commentOnBlock = async (
   return { ...written, comment: { ...comment, blockId: input.block } };
 };
 
-/**
- * Deja un comentario en un bloque, como lo deja una persona desde el menú del
- * bloque, firmado por la persona dueña del token. Si habla de unas palabras,
- * quedan marcadas con él.
- */
 export const commentOnBlockTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.commentOnBlock,
   register: (server, dependencies) => {

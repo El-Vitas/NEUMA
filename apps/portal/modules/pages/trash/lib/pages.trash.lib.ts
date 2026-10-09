@@ -7,7 +7,6 @@ export const buildPageTrashUrl = (search: string): string => {
   return `${ROUTES.PORTAL_TRASH}?search=${encodeURIComponent(trimmedSearch)}`;
 };
 
-/** The `?spaceId=&search=` a page-trash API request carries, empty when neither was given. */
 export const buildPageTrashListQuerySuffix = (spaceId?: string, search?: string): string => {
   const query = new URLSearchParams();
   if (spaceId !== undefined) query.set('spaceId', spaceId);
@@ -16,7 +15,6 @@ export const buildPageTrashListQuerySuffix = (spaceId?: string, search?: string)
   return serialized.length > 0 ? `?${serialized}` : '';
 };
 
-/** Decides what to tell someone after a restore, from what the server reported it did. */
 export const resolvePageRestoreNotice = (outcome: TrashRestoreOutcome): PageRestoreNotice => {
   if (outcome.spaceName !== null) return { kind: 'toRoot', space: outcome.spaceName };
   if (outcome.parentTitle !== null) return { kind: 'underParent', parent: outcome.parentTitle };

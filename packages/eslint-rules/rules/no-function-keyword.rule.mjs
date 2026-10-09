@@ -1,6 +1,3 @@
-// no-function-keyword
-// Qué hace: prohíbe la palabra clave `function`; obliga arrow functions / const.
-// Para qué: estilo uniforme de declaración de funciones (§11).
 export const noFunctionKeyword = {
   meta: {
     type: 'suggestion',

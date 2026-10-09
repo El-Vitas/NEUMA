@@ -17,17 +17,13 @@ interface IProps {
   readonly onExpiry: (expiry: AccessTokenExpiry) => void;
 }
 
-/**
- * Hasta cuándo sirve el token: un plazo, una fecha elegida o nunca. La fecha
- * vale el día entero y no puede ser antes de mañana; el servidor vuelve a
- * exigir que sea después de ahora.
- */
+/** A chosen date covers the whole day and cannot be earlier than tomorrow; the server rechecks it. */
 export const AccessTokensExpiryField = ({ customDate, expiry, onCustomDate, onExpiry }: IProps) => {
   const t = useTranslations('accessTokens');
   const groupId = useId();
   const dateId = useId();
   const dateHintId = useId();
-  /** El primer día que se puede elegir se fija al abrir el formulario, y no se recalcula en cada dibujo. */
+  /** Fixed when the form opens, not recomputed on every render. */
   const [earliestDay] = useState(() => formatDateInputValue(new Date(Date.now() + MILLISECONDS_IN_A_DAY)));
 
   return (

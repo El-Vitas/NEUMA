@@ -8,7 +8,7 @@ import en from '../../../../../messages/en.json';
 import { createAccessTokensActionsMock } from '../../../../mocks/access-tokens.actions.mock';
 
 const secret = 'cbk_only-shown-once';
-/** Cuánto puede correrse el vencimiento: una hora de cambio de horario, y lo que tarda la prueba. */
+// Allows a daylight-saving shift plus the test's own runtime.
 const EXPIRY_TOLERANCE_MS = 2 * 60 * 60 * 1000;
 const tokensPath = '/settings/tokens';
 const sentShape = z.object({
@@ -39,7 +39,6 @@ mock.module('@/modules/access-tokens/server/actions/access-tokens.actions', () =
   createAccessTokensActionsMock({ createAccessTokenAction }),
 );
 
-/** La navegación del portal necesita el enrutador de Next, que no existe fuera de una página. */
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) => <a href={href}>{children}</a>,
   useRouter: () => ({ push: () => undefined }),
@@ -92,7 +91,6 @@ describe('AccessTokensCreatePanel', () => {
     expect(Math.abs(expiresIn - 30 * MILLISECONDS_IN_A_DAY)).toBeLessThan(EXPIRY_TOLERANCE_MS);
   });
 
-  /** Dos tokens activos que se leen igual se confunden al revocar: se avisa antes de enviar. */
   it('says a name is already in use and does not let it be sent', () => {
     renderPanel(['Claude del equipo']);
     typeName('  claude DEL equipo ');
@@ -125,7 +123,6 @@ describe('AccessTokensCreatePanel', () => {
     expect(sentShape.parse(createAccessTokenAction.mock.calls.at(-1)?.[0]).expiresAt).toBeNull();
   });
 
-  /** El secreto se ve una vez, listo para copiar y pegado en la configuración del agente. */
   it('shows the secret once, inside the agent configuration too, and leads back to the tokens', async () => {
     renderPanel();
     typeName('Claude');

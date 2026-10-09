@@ -1,43 +1,30 @@
-/** Cuánto puede medir el nombre de un token de acceso. Lo validan el portal y el servidor. */
 export const ACCESS_TOKEN_NAME_MAX_LENGTH = 80;
 
 /**
- * Cualquier carácter de control o invisible: saltos de línea, tabuladores,
- * escapes de terminal, el nulo, y los que cambian la dirección del texto o no
- * ocupan lugar, con los que un nombre se haría pasar por otro en la lista. El
- * que une los emojis compuestos (U+200D) se deja solo entre dos emojis, porque
- * ahí es parte de uno; entre letras no une nada y sirve para lo mismo que los
- * demás. Antes de él puede ir el tono de piel o el selector que pide el dibujo.
+ * Control or invisible characters, which let one name pass for another in a list.
+ * The zero-width joiner (U+200D) is allowed only between emojis (optionally after
+ * a skin tone or variation selector), where it is part of the emoji.
  */
 export const ACCESS_TOKEN_NAME_CONTROL_CHARACTERS =
   /(?!\u{200D})[\p{Cc}\p{Cf}]|(?<![\p{Extended_Pictographic}\p{Emoji_Modifier}\u{FE0F}])\u{200D}|\u{200D}(?!\p{Extended_Pictographic})/u;
 
-/** Una tanda de espacios, que para comparar nombres cuenta como uno solo. */
 export const ACCESS_TOKEN_NAME_WHITESPACE_RUN = /\s+/gu;
 
-/** Cuántos espacios puede nombrar un token uno por uno. Para más, está «todos los espacios». */
+/** Past this many named spaces, the token uses "all spaces" instead. */
 export const ACCESS_TOKEN_SPACE_GRANT_LIMIT = 50;
 
-/** Cuántas páginas puede nombrar un token una por una. Cada una ya incluye todo lo que cuelga de ella. */
+/** Each named page already includes everything under it. */
 export const ACCESS_TOKEN_PAGE_GRANT_LIMIT = 50;
 
 /**
- * Lo que un token puede hacer, cada cosa por su nombre.
- *
- * Es un catálogo cerrado: un permiso que el servidor no conoce no se guarda, y
- * uno que deja de existir no se arrastra. Separa leer de escribir, y páginas de
- * colecciones, porque son las líneas por las que la gente quiere cortar: «que
- * lea todo pero solo cree tareas», «que escriba páginas pero no toque la forma
- * de las colecciones».
+ * Closed catalog: an unknown permission is never stored. Read is split from write
+ * and pages from collections because those are the lines people cut along.
  */
 export const ACCESS_TOKEN_PERMISSIONS = {
   pagesRead: 'pages:read',
   pagesWrite: 'pages:write',
   pagesTrash: 'pages:trash',
-  /**
-   * Bloquear una página, responder por ella como verificada y darle un dueño:
-   * actos de confianza sobre la página, aparte de escribir en ella.
-   */
+  /** Lock, verify and assign an owner: trust acts on a page, separate from writing to it. */
   pagesManage: 'pages:manage',
   collectionsRead: 'collections:read',
   collectionsWrite: 'collections:write',
@@ -55,9 +42,8 @@ export const ACCESS_TOKEN_PERMISSION_VALUES = [
 ] as const;
 
 /**
- * Los niveles con nombre, para no marcar casilla por casilla en el caso común.
- * Cada uno incluye al anterior; lo que no calza con ninguno es personalizado.
- * «Sin acceso» no da nada: es la forma de excluir un lugar que otra regla abría.
+ * Named levels, each including the previous one; anything matching none is custom.
+ * `none` grants nothing: it excludes a place another rule opened.
  */
 export const ACCESS_TOKEN_LEVELS = {
   none: 'NONE',
@@ -75,7 +61,6 @@ export const ACCESS_TOKEN_LEVEL_VALUES = [
   ACCESS_TOKEN_LEVELS.custom,
 ] as const;
 
-/** Los niveles que tienen un conjunto fijo de permisos. Personalizado no lo tiene. */
 export const ACCESS_TOKEN_PRESET_LEVELS = [
   ACCESS_TOKEN_LEVELS.none,
   ACCESS_TOKEN_LEVELS.read,
@@ -85,7 +70,7 @@ export const ACCESS_TOKEN_PRESET_LEVELS = [
 
 const ACCESS_TOKEN_NO_PERMISSIONS = [] as const;
 
-/** Los permisos que solo leen. Con cualquiera de ellos, el token ve el espacio. */
+/** Any of these lets the token see the space. */
 export const ACCESS_TOKEN_READ_PERMISSIONS = [
   ACCESS_TOKEN_PERMISSIONS.pagesRead,
   ACCESS_TOKEN_PERMISSIONS.collectionsRead,
@@ -104,5 +89,4 @@ export const ACCESS_TOKEN_LEVEL_PERMISSIONS = {
   [ACCESS_TOKEN_LEVELS.full]: ACCESS_TOKEN_PERMISSION_VALUES,
 } as const;
 
-/** Cuánto puede medir el id de un espacio dentro de lo que se le da a un token. */
 export const ACCESS_TOKEN_SPACE_ID_MAX_LENGTH = 128;

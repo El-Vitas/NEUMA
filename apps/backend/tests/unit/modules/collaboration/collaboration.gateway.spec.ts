@@ -40,7 +40,6 @@ const pageOf = (...blocks: PageContent['content']): PageContent => ({ content: b
 
 const storedPage = pageOf(paragraph('a', 'Lo guardado'));
 
-/** Una página admite hasta 20.000 caracteres por texto; uno más ya no calza. */
 const textBeyondThePageLimit = 20_001;
 
 const createAdapters = (
@@ -175,11 +174,8 @@ describe('collaboration gateway', () => {
     expect(gateway.authorizeUpdate(payload.context, documentName, new Uint8Array([1]))).rejects.toThrow('forbidden');
   });
 
-  /**
-   * Toda conexión manda mensajes aunque no escriba: el primero pide el estado
-   * del documento. A quien solo lee se le pide poder leer, no escribir; lo que
-   * intente cambiar ya lo descarta la conexión de solo lectura.
-   */
+  // Every connection sends messages even without writing (the first asks for the document state), so read-only users
+  // need read access only; the read-only connection drops any change they attempt.
   test('lets a read-only viewer sync the document, asking it only to be able to read', async () => {
     const adapters = createAdapters({ canWrite: false, mode: 'read' });
     const gateway = createCollaborationGateway(adapters);
@@ -218,7 +214,6 @@ describe('collaboration gateway', () => {
     expect(() => gateway.validateDocumentName('page:not-a-uuid')).toThrow('invalid-document-name');
   });
 
-  /** Las páginas nacen con UUID v7: un patrón que solo conoce hasta la v5 deja fuera a todas. */
   test('accepts the document of a page whose id is a version 7 uuid', () => {
     const gateway = createCollaborationGateway(createAdapters());
     const versionSevenPageId = '019ffc24-f641-739d-bc50-284c896476fc';
@@ -265,11 +260,6 @@ describe('collaboration gateway', () => {
     expect(storedPages).toEqual([live]);
   });
 
-  /**
-   * Sembrar es cosa del servidor, una vez por documento. Si lo hiciera cada
-   * navegador al encontrarlo vacío, dos que abren a la vez lo escribirían dos
-   * veces.
-   */
   test('seeds a document nobody has opened yet with the stored page', async () => {
     const gateway = createCollaborationGateway(createAdapters());
 
@@ -334,7 +324,6 @@ describe('collaboration gateway writing from the server', () => {
     expect(gateway.writePageContent(writerContext, (current) => current)).rejects.toThrow('forbidden');
   });
 
-  /** Una transacción que falla a la mitad deja escrito lo que alcanzó: lo inválido no llega a tocar el documento. */
   test('leaves the document untouched when the new page does not fit the page shape', async () => {
     const gateway = createCollaborationGateway(createAdapters());
     const tooLong = pageOf(paragraph('a', 'x'.repeat(textBeyondThePageLimit)));

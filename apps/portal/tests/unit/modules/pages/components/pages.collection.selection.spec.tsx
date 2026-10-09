@@ -101,7 +101,6 @@ describe('marcar filas', () => {
     expect(screen.getByTestId('selection-bar').textContent).toContain('1 row selected');
   });
 
-  /** Las que se están viendo, que son las que el filtro dejó pasar. */
   it('marca de una vez todas las filas que se ven', async () => {
     await drawTable();
 
@@ -119,7 +118,6 @@ describe('marcar filas', () => {
     expect(screen.queryByTestId('selection-bar')).toBeNull();
   });
 
-  /** A quien solo puede leer no se le ofrece marcar: no hay nada que pudiera hacer después. */
   it('no ofrece casillas a quien no puede escribir', async () => {
     await drawTable(false);
 

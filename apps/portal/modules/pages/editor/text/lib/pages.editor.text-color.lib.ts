@@ -16,7 +16,6 @@ const readTheMark = (kind: PageEditorBlockColorKind): MarkType =>
     ? pageEditorSchema.marks[PAGE_EDITOR_TEXT_COLOR_MARK]
     : pageEditorSchema.marks[PAGE_EDITOR_BACKGROUND_COLOR_MARK];
 
-/** The colour the chosen writing already carries, so the menu shows what is in use rather than what is on offer. */
 export const readPageTextColor = (state: EditorState, kind: PageEditorBlockColorKind): string | null => {
   const mark = readTheMark(kind);
   const { $from, empty, from } = state.selection;
@@ -27,20 +26,12 @@ export const readPageTextColor = (state: EditorState, kind: PageEditorBlockColor
   return typeof color === 'string' ? color : null;
 };
 
-/** Both colours the chosen writing carries, as the menu needs them. */
 export const readPageTextColors = (state: EditorState): PageEditorBlockColors => ({
   background: readPageTextColor(state, 'background'),
   text: readPageTextColor(state, 'text'),
 });
 
-/**
- * Paints the chosen writing, or takes the paint off when given no colour.
- *
- * A colour on the writing itself is what somebody means when they choose four
- * words and reach for a colour: painting the whole block would paint what they
- * did not choose. Painting a whole block is a different thing, and it is asked
- * for from the block's own menu.
- */
+/** Colors the selected text as a mark and removes it when `color` is null; whole-block color is a separate menu. */
 export const createPageTextColorCommand =
   (kind: PageEditorBlockColorKind, color: PageBlockColor | null): Command =>
   (state, dispatch) => {

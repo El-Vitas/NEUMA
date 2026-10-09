@@ -19,7 +19,6 @@ describe('readPagePropertyOptions', () => {
     ]);
   });
 
-  /** Collections written before options had colors keep working, and get no color. */
   test('reads a plain list of names as options without a color', () => {
     expect(readPagePropertyOptions(['todo', 'done'])).toEqual([
       { color: null, value: 'todo' },

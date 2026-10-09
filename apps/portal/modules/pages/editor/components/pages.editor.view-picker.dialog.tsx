@@ -8,19 +8,10 @@ import type { PageCollectionView } from '../../collections/types/pages.collectio
 interface IProps {
   readonly onCancel: () => void;
   readonly onChoose: (viewName: string) => void;
-  /** Las vistas de la colección elegida, o ninguna mientras no se haya elegido una. */
   readonly views: readonly PageCollectionView[] | null;
 }
 
-/**
- * Cuál de las vistas de la colección se muestra aquí.
- *
- * Se pregunta porque una colección se mira de varias maneras y la que abre por
- * defecto no tiene por qué ser la que corresponde en medio de un texto: un
- * gráfico junto al párrafo que lo comenta, y la tabla en su propia página.
- *
- * Solo aparece cuando hay más de una: con una sola no hay nada que preguntar.
- */
+/** Only shown when the collection has more than one view; the default view may not suit an inline embed. */
 export const PagesEditorViewPickerDialog = ({ onCancel, onChoose, views }: IProps) => {
   const t = useTranslations('pages');
 

@@ -7,7 +7,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/** What a space says instead of a blank page, the moment it has nothing in it yet. */
 export const SpacesEmptyState = ({ canCreatePage, spaceId }: IProps) => {
   const t = useTranslations('spaces');
 

@@ -16,13 +16,6 @@ interface IProps {
   readonly columns: PagesTableColumns;
 }
 
-/**
- * Cómo se ve la tabla: cuánto alto tiene cada fila y si el texto largo se parte.
- *
- * Van juntos porque se deciden juntos: partir el texto sin dejar crecer la fila
- * no enseñaría las líneas de más. La alineación de cada columna no está aquí
- * sino en el menú de su propia columna, que es donde se la está mirando.
- */
 export const PagesCollectionTableAppearance = ({ columns }: IProps) => {
   const t = useTranslations('pages.collection');
   const wrapFieldId = useId();

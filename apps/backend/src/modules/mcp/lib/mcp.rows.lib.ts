@@ -6,14 +6,7 @@ import { describeMcpRowProperties } from './mcp.properties.lib';
 
 const describesNothing: McpRowDescriber = () => [];
 
-/**
- * Cómo describir las filas de una colección: sus columnas y las personas del
- * espacio de trabajo se leen una vez, y cada fila se describe con eso.
- *
- * Si el padre no es una colección, o su dueño no la puede ver, las filas no
- * tienen propiedades que decir. Lo que una fila tiene en sus columnas es de la
- * colección: solo se dice donde el token puede leer colecciones, fila por fila.
- */
+/** Column values belong to the collection, so rows have none when its owner cannot see it. */
 export const loadMcpRowDescriber = async (
   dependencies: McpServerDependencies,
   call: McpCall,

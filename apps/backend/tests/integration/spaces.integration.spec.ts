@@ -183,7 +183,6 @@ describe('Space Move Access Loss (Integration)', () => {
       `move-access-public-${String(timestamp)}`,
       SpaceVisibility.PUBLIC_INTERNAL,
     );
-    /** The editor can read this one, since it is added as a member below. */
     openRestrictedSpaceId = await createSpace(
       testApp,
       adminToken,
@@ -191,7 +190,7 @@ describe('Space Move Access Loss (Integration)', () => {
       `move-access-open-${String(timestamp)}`,
       SpaceVisibility.RESTRICTED,
     );
-    /** The editor is never added here, so moving into it is what costs the editor its access. */
+    // The editor is never added here, so moving into it costs the editor its access.
     closedRestrictedSpaceId = await createSpace(
       testApp,
       adminToken,
@@ -201,7 +200,7 @@ describe('Space Move Access Loss (Integration)', () => {
     );
     await addSpaceMember(testApp, openRestrictedSpaceId, editorEmail);
 
-    /** Workspace membership is created lazily on first request, so the editor needs one before it can be counted. */
+    // Workspace membership is created lazily on first request, so the editor needs one to be counted.
     await request(testApp.getServer()).get('/api/v1/spaces').set('Authorization', `Bearer ${editorToken}`).expect(200);
     await request(testApp.getServer())
       .get('/api/v1/spaces')
@@ -280,12 +279,7 @@ const findOwnPrivateSpace = (spaces: readonly SpaceListItem[]): SpaceListItem =>
   return privateSpace;
 };
 
-/**
- * Whether `PRIVATE` truly means private — the most delicate guarantee in this
- * module. Every visibility already lets an admin through on `canReadSpace`
- * except this one, so this suite exists to keep that carve-out from creeping
- * back in through `listAccessible`, `rename`, or `addMember`.
- */
+/** Every visibility lets an admin through `canReadSpace` except `PRIVATE`; that carve-out must not leak elsewhere. */
 describe('Private Spaces (Integration)', () => {
   let testApp: TestApp;
   let adminToken: string;
@@ -323,7 +317,6 @@ describe('Private Spaces (Integration)', () => {
     outsiderUserId = (await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email: outsiderEmail } }))
       .id;
 
-    /** Workspace membership — and, for the owner, a private space — are created lazily on first request. */
     await listSpaces(testApp, adminToken).expect(200);
     await listSpaces(testApp, ownerToken).expect(200);
     await listSpaces(testApp, sharedMemberToken).expect(200);
@@ -405,7 +398,6 @@ describe('Private Spaces (Integration)', () => {
     expect(outsiderSpaces.some((space) => space.id === privateSpace.id)).toBe(false);
   });
 
-  /** La marca de un espacio privado es de quien lo nombra: compartirlo deja leerlo, no cambiarle la cara. */
   it('lets a person a private space was shared with read it, but not change its name or its mark', async () => {
     const prisma = testApp.get(PrismaService);
     const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];

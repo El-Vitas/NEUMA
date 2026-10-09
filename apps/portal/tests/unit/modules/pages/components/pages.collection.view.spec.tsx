@@ -18,7 +18,7 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
-/** Un tablero y el pie de una tabla llegan a acciones de servidor, que no se cargan en una prueba con forma de navegador. */
+// Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
@@ -74,7 +74,6 @@ const rows = [
 
 const flatOutcome: PageViewOutcome = { kind: 'FLAT_ROWS', rows };
 
-/** A view may draw a client piece, and a client piece needs the words its own way. */
 const drawView = async (outcome: PageViewOutcome | null, view: PageSchemaView) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
@@ -116,7 +115,6 @@ describe('PagesCollectionView', () => {
     expect(screen.getByTestId('collection-gallery')).toBeDefined();
   });
 
-  /** Una lista y una galería también agrupan cuando se les pide, sin dejar de ser lo que son. */
   it('draws a list from rows that arrived already gathered in groups', async () => {
     await drawView({ groups: [{ color: null, key: 'todo', label: 'todo', rows }], kind: 'GROUPED_ROWS' }, listView);
 

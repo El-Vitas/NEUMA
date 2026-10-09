@@ -66,7 +66,7 @@ export class SpacesController {
     @User('payload') payload: TokenPayload,
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    /** A blank sentence is not something a space says about itself: it goes back to saying nothing. */
+    // A blank description clears it.
     const said = dto.description?.trim();
     const description = said === undefined || said === '' ? null : said;
     const result = await this.spacesService.describeSpace(

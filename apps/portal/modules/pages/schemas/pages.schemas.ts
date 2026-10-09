@@ -10,19 +10,17 @@ export const pageLifecycleSchema = z.enum(PAGE_LIFECYCLE_VALUES);
 
 export const pageAuthorSchema = z.object({ id: z.string(), name: z.string() });
 
+/** Fields an older answer lacks, or that this version cannot read, fall back to null rather than failing the page. */
 export const pageSummarySchema = z.object({
   content: pageContentSchema,
-  /** A stored cover this version cannot read leaves the page bare rather than unreadable. */
   cover: pageCoverValueSchema.nullable().catch(null).default(null),
   createdAt: z.coerce.date(),
   createdBy: pageAuthorSchema.nullable(),
   icon: pageIconSchema.nullable().optional(),
   id: z.string(),
   lifecycle: pageLifecycleSchema,
-  /** An older answer that does not mention the lock reads as a page nobody locked. */
   lockedAt: z.coerce.date().nullable().catch(null).default(null),
   order: z.number(),
-  /** An older answer that does not mention an owner reads as a page nobody was handed. */
   owner: pageAuthorSchema.nullable().catch(null).default(null),
   parentId: z.string().nullable(),
   propertyValues: pagePropertyValuesSchema.nullable(),
@@ -30,18 +28,13 @@ export const pageSummarySchema = z.object({
   title: z.string(),
   updatedAt: z.coerce.date(),
   updatedBy: pageAuthorSchema.nullable(),
-  /** An older answer that does not mention verification reads as a page nobody has vouched for. */
   verificationExpiresAt: z.coerce.date().nullable().catch(null).default(null),
   verifiedAt: z.coerce.date().nullable().catch(null).default(null),
   verifiedBy: pageAuthorSchema.nullable().catch(null).default(null),
   version: z.number(),
 });
 
-/**
- * The id of a page, a space or a person. Every one is a uuid, and it ends up
- * written into the address of a request to the backend: anything else — a
- * `../` included — is turned away here, before it is asked of anyone.
- */
+/** Ids end up in backend request paths, so anything that is not a uuid (e.g. `../`) is rejected here. */
 const recordIdSchema = z.uuid();
 
 export const pageMutationSchema = z.object({
@@ -55,12 +48,10 @@ export const pageMoveSchema = z.object({
   pageId: recordIdSchema,
   parentId: recordIdSchema.nullable(),
   spaceId: recordIdSchema,
-  /** Where the page is going. Left out, it stays in the space it is already in. */
   targetSpaceId: recordIdSchema.optional(),
 });
 
 export const pageReorderSchema = z.object({
-  /** Left out, the page goes last among its sisters. */
   beforePageId: recordIdSchema.optional(),
   pageId: recordIdSchema,
   spaceId: recordIdSchema,
@@ -79,7 +70,6 @@ export const pageBlocksHandoverSchema = z.object({
   spaceId: recordIdSchema,
 });
 
-/** Lo que dice una página, entero, para reemplazar lo que decía. */
 export const pageContentReplacementSchema = pageBlocksHandoverSchema;
 
 export const pageLocatorSchema = z.object({

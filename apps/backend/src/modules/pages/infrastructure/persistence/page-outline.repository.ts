@@ -16,21 +16,14 @@ import type {
   PageOutlineWindow,
 } from '../../types/page-outline.types';
 
-/** Las páginas activas que quien mira puede ver: las de sus espacios, y con un token, solo las que el token deja. */
+/** Active pages the reader can see, narrowed to the token scope when there is one. */
 const readableBy = (reader: PageOutlineReader): Prisma.PageWhereInput => ({
   ...(reader.tokenScope === undefined ? {} : buildTokenScopeWhere(reader.tokenScope)),
   lifecycle: PageLifecycle.ACTIVE,
   space: { ...buildSpaceVisibilityFilter(reader.userId, reader.role), workspaceId: reader.workspaceId },
 });
 
-/**
- * El árbol de páginas leído sin su contenido.
- *
- * Recorrer un espacio no necesita lo que dice cada página, y cargarlo haría
- * pesado algo que un agente hace a cada paso. Ve lo mismo que ve la persona, y
- * con un token, lo que el token deja: una hija que no se puede ver tampoco se
- * cuenta, porque contarla ya diría que existe.
- */
+/** Page tree without content, so walking a space stays cheap. Children the reader cannot see are not counted either. */
 @Injectable()
 export class PageOutlineRepository implements PageOutlineRepositoryContract {
   constructor(private readonly prisma: PrismaService) {}

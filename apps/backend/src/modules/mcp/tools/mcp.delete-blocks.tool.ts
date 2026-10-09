@@ -24,10 +24,6 @@ const deleteBlocks = async (
   return { ...described, blockIds: input.blocks };
 };
 
-/**
- * Quita bloques de una página, con todo lo que llevan dentro. Si alguno ya no
- * está, no se quita ninguno: el agente vuelve a leer antes de seguir.
- */
 export const deleteBlocksTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.deleteBlocks,
   register: (server, dependencies) => {

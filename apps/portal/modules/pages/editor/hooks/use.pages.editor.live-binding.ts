@@ -10,12 +10,8 @@ import {
 import type { PagesEditorLiveBindingOptions } from '../types/pages.editor.live-binding.types';
 
 /**
- * Ties the editor to the live document of the page while there is one.
- *
- * When the live document arrives, the editor starts writing into it without
- * losing where the person was writing nor the search they had open. When it is
- * given up for good, what the page says now is handed over to be sent, since
- * nothing keeps it any more.
+ * Binds the editor to the live document while one exists, preserving the selection and open search.
+ * When the live document is dropped for good, the current content is handed back to be saved.
  */
 export const usePagesEditorLiveBinding = ({
   editorViewRef,

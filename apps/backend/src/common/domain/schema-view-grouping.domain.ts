@@ -36,41 +36,21 @@ const findGroupingProperty = (
   return property !== undefined && canPagePropertyGroupBoard(property.type) ? property : null;
 };
 
-/**
- * Cómo se lee un valor puesto en una fila para saber a qué columna va.
- *
- * Las columnas se nombran con texto, así que un número o una casilla se leen
- * como el texto que son. Lo que no responde nada no nombra columna: eso lo
- * decide después quien reparte, y va a la de las filas sin valor.
- */
+/** Keys are text, so numbers and booleans are stringified; anything else lands in the no-value group. */
 const readGroupKeyFrom = (value: unknown): null | string => {
   if (typeof value === 'string') return value === '' ? null : value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return null;
 };
 
-/**
- * El nombre del grupo al que va una fila, que en una fecha es el del tramo.
- *
- * Agrupar por fecha sin tramo es un grupo por día, y eso está bien para una
- * semana de trabajo y no para un año. El tramo solo cambia cómo se reparten:
- * lo que la fila guarda sigue siendo el día exacto.
- */
+/** For dates the key is the bucket's; the row still stores the exact day. */
 const readGroupKeyOf = (property: SchemaPropertyDefinition, bucket: PageDateBucket, value: unknown): null | string => {
   const named = readGroupKeyFrom(value);
   if (named === null || property.type !== DatabasePropertyType.DATE) return named;
   return readPageDateBucketKey(named, bucket);
 };
 
-/**
- * Las columnas que ofrece una propiedad que no declara sus valores.
- *
- * Una selección dice de antemano qué opciones hay, y sus columnas salen de
- * ahí aunque estén vacías. Una fecha o un número no: nadie declaró qué días
- * existen, así que las columnas son las que las filas nombran, en orden y sin
- * repetirse. Una casilla es el caso intermedio: solo tiene dos respuestas
- * posibles, y las dos se ofrecen aunque nadie las haya dado todavía.
- */
+/** Columns come from the values rows actually hold, sorted; a checkbox always offers both answers. */
 const listUndeclaredGroupKeys = (
   property: SchemaPropertyDefinition,
   bucket: PageDateBucket,
@@ -88,13 +68,7 @@ const listUndeclaredGroupKeys = (
 export const compareRowsByOrder = (left: SchemaOrderedRow, right: SchemaOrderedRow): number =>
   left.order - right.order || left.id.localeCompare(right.id);
 
-/**
- * The rows of a view gathered by the value they carry, one group per option the
- * grouping property offers, plus one for whoever carries no value at all.
- *
- * Every option gets its group even when nothing landed in it, because an empty
- * column that exists is a place to drop something and an absent one is not.
- */
+/** Every option gets a group even when empty, so it stays a drop target; rows without a value get their own group. */
 export const groupRowsForView = <TRow extends SchemaGroupableRow>(
   viewType: DatabaseViewType,
   configuration: Readonly<Record<string, unknown>>,
@@ -102,7 +76,7 @@ export const groupRowsForView = <TRow extends SchemaGroupableRow>(
   rows: readonly TRow[],
   compareRows: (left: TRow, right: TRow) => number = compareRowsByOrder,
 ): Result<readonly SchemaRowGroup<TRow>[], SchemaViewValidationError> => {
-  /** Que pueda agrupar, no que tenga que: una tabla agrupa solo cuando se lo piden, y agrupa igual. */
+  // Supporting grouping is enough: a table groups only when asked to.
   if (!pageViewSupportsGrouping(viewType))
     return Result.fail(new SchemaViewValidationError('View does not read its rows in groups'));
   const groupKey = getGroupKey(configuration);

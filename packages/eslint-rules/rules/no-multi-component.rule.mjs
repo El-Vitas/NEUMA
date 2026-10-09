@@ -1,6 +1,3 @@
-// no-multi-component
-// Qué hace: prohíbe más de un componente público por archivo.
-// Para qué: un componente por archivo (§1.1); facilita ubicar y reusar piezas.
 const STARTS_WITH_UPPER = /^[A-Z]/;
 
 const isComponentExport = (declaration) => {

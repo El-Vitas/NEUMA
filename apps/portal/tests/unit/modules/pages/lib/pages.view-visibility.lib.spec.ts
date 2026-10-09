@@ -28,7 +28,6 @@ describe('readShownProperties', () => {
     expect(readShownProperties(viewShowing(null), properties)).toEqual(properties);
   });
 
-  /** Somebody who put the due date first meant to read it first. */
   it('keeps the order the view chose, not the order the collection has', () => {
     expect(readShownProperties(viewShowing(['dueDate', 'status']), properties)).toEqual([dueDate, status]);
   });
@@ -43,17 +42,12 @@ describe('readShownProperties', () => {
 });
 
 describe('readShownCardProperties', () => {
-  /** The column heading already says that value; repeating it on every card inside is noise. */
   it('leaves out of the card what the column already says', () => {
     const board: PageSchemaView = { configuration: { groupBy: 'status' }, isDefault: true, name: 'B', type: 'BOARD' };
 
     expect(readShownCardProperties(board, properties)).toEqual([dueDate]);
   });
 
-  /**
-   * Dejarla fuera es lo que se hace mientras nadie dijo nada. Quien la marcó a
-   * mano la quiere ahí, y sacársela igual sería no hacerle caso.
-   */
   it('shows the grouping property on the card when somebody asked for it by name', () => {
     const board: PageSchemaView = {
       configuration: { groupBy: 'status', visibleProperties: ['status', 'dueDate'] },

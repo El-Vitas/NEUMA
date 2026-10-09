@@ -8,7 +8,7 @@ import {
 import type { PageEditorDiagramFrameGrip } from '../types/pages.editor.diagram.types';
 import { keepPageDiagramFrameHeightWithinReach } from './pages.editor.diagram.lib';
 
-/** The name is what the edge is; how to use it is said apart, so a screen reader does not read instructions as a name. */
+/** The usage hint goes in `aria-description` so a screen reader does not read it as the name. */
 const createHandle = (label: string, hint: string): HTMLElement => {
   const handle = document.createElement('div');
   handle.className = PAGE_EDITOR_DIAGRAM_FRAME_HANDLE_STYLE_CLASS;
@@ -25,12 +25,8 @@ const createHandle = (label: string, hint: string): HTMLElement => {
 };
 
 /**
- * The edge a drawing's frame is made taller or lower by.
- *
- * The frame is part of the page: the height it is left at is saved with the
- * block, so everyone sees the diagram in the same frame. It is dragged, or moved
- * with the arrows by whoever does not use a pointer, and a double click or Enter
- * gives the frame back to the drawing, which then decides it again.
+ * Resize handle for the diagram frame, by drag or arrow keys. The height is saved with the block;
+ * double click or Enter clears it and the drawing sizes itself again.
  */
 export const attachPageDiagramFrame = (parts: {
   readonly drawing: HTMLElement;
@@ -47,7 +43,6 @@ export const attachPageDiagramFrame = (parts: {
 
   const readHeight = (): number => parts.drawing.getBoundingClientRect().height;
 
-  /** The height the frame has now, said again whenever the drawing in it changes size. */
   const refresh = (): void => {
     const height = String(Math.round(readHeight()));
     handle.setAttribute('aria-valuenow', height);
@@ -60,7 +55,6 @@ export const attachPageDiagramFrame = (parts: {
     refresh();
   };
 
-  /** What is not a pointer taking hold of the edge belongs to the page, not to the frame. */
   handle.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -74,11 +68,7 @@ export const attachPageDiagramFrame = (parts: {
     showHeight(keepPageDiagramFrameHeightWithinReach(grip.height + event.clientY - grip.y));
   });
 
-  /**
-   * Taking hold and letting go without moving is a click, and a click does not
-   * fix a height nobody chose. What moved is the pointer, not the drawing: a
-   * drawing lower than the least a frame may be would otherwise read as moved.
-   */
+  // Compares pointer positions, not heights: a drawing below the minimum would otherwise look moved.
   handle.addEventListener('pointerup', (event) => {
     if (grip === null) return;
     const taken = grip;
@@ -107,7 +97,7 @@ export const attachPageDiagramFrame = (parts: {
   return {
     handle,
     refresh,
-    /** A height that arrives from another person or an agent is kept within reach, like one typed here. */
+    // Heights from other collaborators or agents are clamped too.
     show: (frameHeight) => {
       showHeight(typeof frameHeight === 'number' ? keepPageDiagramFrameHeightWithinReach(frameHeight) : null);
     },

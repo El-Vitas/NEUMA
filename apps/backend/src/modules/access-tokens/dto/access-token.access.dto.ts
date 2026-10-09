@@ -1,7 +1,7 @@
 import { IsObject } from 'class-validator';
 
 export class UpdateAccessTokenAccessDto {
-  /** Lo que el token pasa a tener dado, entero: reemplaza lo anterior, no se le suma. */
+  /** Replaces the previous access entirely; it is not merged. */
   @IsObject()
   access!: Record<string, unknown>;
 }

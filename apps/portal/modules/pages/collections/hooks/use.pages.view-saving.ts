@@ -10,21 +10,8 @@ import type { PageSchema, PageSchemaView } from '../types/pages.schema.types';
 import type { PagesViewSaving } from '../types/pages.view-saving.types';
 
 /**
- * Cambiar lo que una vista dice de sí misma, aplicado en cuanto se dice.
- *
- * A diferencia de la forma de la colección, que se arma en varios pasos y se
- * guarda al final, lo de una vista se responde mirando las filas: aplicarlo al
- * momento es lo que permite ver si quedó como se buscaba.
- *
- * Solo viaja esa vista. Mandar la colección entera reescribiría cada propiedad y
- * cada vista para cambiar un filtro, y se llevaría por delante lo que otra
- * persona acabara de cambiar en otra parte de la forma.
- *
- * Se dibuja antes de que el servidor conteste, y si contesta que no, vuelve solo
- * a lo que había. Las filas vuelven con la respuesta —cuáles pasan y en qué
- * orden lo decide el servidor—: la acción invalida lo guardado y contesta con la
- * página ya rehecha, así que pedir además un redibujado era hacer ese trabajo
- * dos veces por gesto.
+ * Applied immediately, optimistically, and reverted if the server refuses. Only the active view is sent,
+ * so a change elsewhere in the collection shape is not overwritten. Rows come back with the response.
  */
 export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, spaceId: string): PagesViewSaving => {
   const t = useTranslations('pages.collection');
@@ -33,12 +20,8 @@ export const usePagesViewSaving = (schema: PageSchema, activeViewName: string, s
   const [lastRead, setLastRead] = useState<readonly PageSchemaView[]>(schema.views);
   const [isSaving, startSaving] = useTransition();
 
-  /*
-    Lo que la colección dice de sus vistas puede cambiar por otro camino —la
-    configuración, abierta al lado— y esta copia no se enteraría: al guardar un
-    filtro mandaría encima lo que leyó al abrirse y borraría ese cambio. Mientras
-    hay algo viajando no se toca, para no pisar lo que ya se está dibujando.
-  */
+  // Views can change elsewhere (the settings dialog); without resyncing, a save would overwrite that change.
+  // Skipped while a save is in flight so the optimistic state is not clobbered.
   if (lastRead !== schema.views && !isSaving) {
     setLastRead(schema.views);
     setViews(schema.views);

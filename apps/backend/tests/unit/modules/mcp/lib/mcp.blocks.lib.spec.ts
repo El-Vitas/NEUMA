@@ -21,7 +21,6 @@ describe('readMcpBlockInContext', () => {
     expect(readMcpBlockInContext(nodes, 'top')).toEqual(paragraph('top', 'Arriba'));
   });
 
-  /** Un ítem suelto no se escribe como ítem: dentro de una lista como la suya se lee como se ve. */
   it('gives an item inside a list like its own, without naming that list', () => {
     expect(readMcpBlockInContext(nodes, 'item')).toEqual({
       attrs: {},

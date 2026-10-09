@@ -14,7 +14,6 @@ import type {
   McpToolDefinition,
 } from '../types/mcp.types';
 
-/** Desde dónde listar: una página que el agente puede ver, o la raíz de un espacio. */
 const resolveListingPlace = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -42,14 +41,6 @@ const formatListText = (output: McpListPagesOutput): string => {
   return `${lines.join('\n')}${more}`;
 };
 
-/**
- * Un nivel del árbol: las páginas que cuelgan de un padre, cada una con cuántas
- * tiene debajo. Solo las que el agente puede ver, y solo esas se cuentan.
- *
- * Bajo una colección, cada fila trae sus propiedades: preguntar qué tareas hay
- * pendientes y de quién es cada una se contesta con una sola llamada, sin abrir
- * las tareas una por una. Van de a tramos, con un cursor para el siguiente.
- */
 export const listPagesTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.listPages,
   register: (server, dependencies) => {

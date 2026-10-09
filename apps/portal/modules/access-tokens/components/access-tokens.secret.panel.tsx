@@ -18,11 +18,8 @@ interface IProps {
 }
 
 /**
- * El token recién creado, la única vez que se ve entero.
- *
- * Al aparecer, el foco va al token: el botón que lo pidió ya no existe, y lo
- * siguiente que hay que hacer es copiarlo. El secreto vive solo mientras esta
- * página está abierta; no pasa por la dirección ni por ninguna caché.
+ * Moves focus to the token on mount: the button that requested it is gone and copying is the next step.
+ * The secret never goes through the URL or any cache.
  */
 export const AccessTokensSecretPanel = ({ mcpUrl, secret }: IProps) => {
   const t = useTranslations('accessTokens');

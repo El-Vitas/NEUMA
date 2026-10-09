@@ -12,26 +12,14 @@ import type {
 } from '../../domain/access-token.domain.types';
 import type { StoredAccessToken } from '../../types/access-token.types';
 
-/**
- * Los permisos guardados, quedándose con los que el catálogo todavía conoce.
- *
- * La columna es texto libre para la base. Un permiso que dejó de existir no
- * rompe la lectura del token: simplemente ya no da nada.
- */
+/** The column is free text, so a permission removed from the catalog is dropped instead of breaking the read. */
 export const readStoredPermissions = (stored: readonly string[]): readonly AccessTokenPermission[] =>
   stored.flatMap((permission) => {
     const known = accessTokenPermissionSchema.safeParse(permission);
     return known.success ? [known.data] : [];
   });
 
-/**
- * Lo que se lee de un token para mostrarlo, visto por alguien.
- *
- * Las reglas se traen con nombre solo en los lugares que ve quien mira; las
- * demás solo se cuentan. Así un administrador no lee el nombre del espacio
- * privado, ni el título de una página de ese espacio, que otra persona le dio
- * a su propio token; y quien perdió un espacio no sigue leyendo su nombre.
- */
+/** Names come only from places the viewer can see, so an admin cannot read private names off another's token. */
 export const accessTokenRecordSelectFor = (viewerId: string, viewerRole: UserRole) =>
   ({
     _count: { select: { grants: true, pageGrants: true } },
@@ -84,15 +72,12 @@ export const toAccessTokenRecord = (stored: StoredAccessToken): AccessTokenRecor
   spaces: stored.grants.map(toNamedGrant),
 });
 
-/** Las filas de reglas por espacio que guarda un acceso. */
 export const toSpaceGrantRows = (access: AccessTokenAccess) =>
   access.spaces.map((grant) => ({ permissions: [...grant.permissions], spaceId: grant.spaceId }));
 
-/** Las filas de reglas por página que guarda un acceso. */
 export const toPageGrantRows = (access: AccessTokenAccess) =>
   access.pages.map((grant) => ({ pageId: grant.pageId, permissions: [...grant.permissions] }));
 
-/** El acceso tal como se guardó, vuelto a leer con el catálogo de hoy. */
 export const toStoredAccess = (stored: {
   readonly allSpacesPermissions: readonly string[];
   readonly grants: readonly { readonly permissions: readonly string[]; readonly spaceId: string }[];

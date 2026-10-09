@@ -1,6 +1,3 @@
-// types-dir-only-types
-// Qué hace: dentro de `types/`, solo permite tipos/interfaces.
-// Para qué: que `types/` no acumule runtime, schemas ni constantes (§1.1).
 export const typesDirOnlyTypes = {
   meta: {
     type: 'suggestion',

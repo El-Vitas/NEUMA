@@ -16,7 +16,6 @@ import {
   structuredToggleNodeFixture,
 } from './pages.content.fixture';
 
-/** What every block carries once the schema has had its say. */
 const BLOCK_ATTRS = { backgroundColor: null, comments: null, id: null, textColor: null };
 
 const parseLink = (href: string) => {
@@ -376,7 +375,6 @@ describe('block identity in the DOM', () => {
     expect(parsed.firstChild?.attrs.id).toBe('block-9');
   });
 
-  /** Copied and pasted, a diagram keeps the frame it was given, or it comes back at another size. */
   it('reads back how tall the frame of a drawing was made, and nothing that is not a height it may have', () => {
     const drawn = (frameHeight: number) =>
       renderBlock(
@@ -434,11 +432,7 @@ const readMarkStructure = (spec: MarkSpec | PageDocumentMarkStructure) => ({
   inclusive: spec.inclusive,
 });
 
-/**
- * El servidor arma su esquema con la estructura compartida para leer y escribir
- * el documento colaborativo. Si el editor y el servidor no ven la misma forma,
- * lo que escribe uno lo rompe el otro.
- */
+/** The server builds its schema from the shared structure; a different shape would break what the editor writes. */
 describe('pageEditorSchema and the shared page document structure', () => {
   it('declares the same nodes, in the same order, with the same shape', () => {
     const editorNodes: [string, ReturnType<typeof readNodeStructure>][] = [];

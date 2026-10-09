@@ -17,18 +17,14 @@ const createZoomLevel = (label: string): HTMLButtonElement => {
   return level;
 };
 
-/** A press on a button of the bar is not a click on the page, so the writing keeps where it was. */
+/** Preventing mousedown keeps the editor selection when a toolbar button is pressed. */
 const keepTheWritingWhereItWas = (button: HTMLButtonElement): void => {
   button.addEventListener('mousedown', (event) => {
     event.preventDefault();
   });
 };
 
-/**
- * The buttons a drawing is brought closer and pushed away by, for whoever does
- * not zoom with the wheel: closer, further, fitted to its frame, and how close
- * it is now, which takes it back to its own size when pressed.
- */
+/** Zoom buttons for users without a wheel; the level button resets to actual size. */
 export const createPageDiagramZoomControls = (
   labels: PageEditorDiagramLabels,
 ): {
@@ -59,7 +55,7 @@ export const createPageDiagramZoomControls = (
       level.addEventListener('click', handling.showActualSize);
     },
     controls,
-    /** The name starts with what the button shows, so whoever asks for it by voice finds it by its words. */
+    // The accessible name starts with the visible text so voice control can target it.
     showZoom: (zoom) => {
       const shown = `${String(Math.round(zoom * DIAGRAM_ZOOM_PERCENT))} %`;
       level.textContent = shown;

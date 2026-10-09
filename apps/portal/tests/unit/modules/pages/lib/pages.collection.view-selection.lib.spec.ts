@@ -21,7 +21,6 @@ describe('resolveActiveCollectionView', () => {
     expect(resolveActiveCollectionView([table, { ...board, isDefault: false }], null)).toEqual(table);
   });
 
-  /** An address kept from a view that was deleted should land somewhere, not on nothing. */
   it('falls back rather than showing nothing when the address names a view that is gone', () => {
     expect(resolveActiveCollectionView([table, board], 'Calendar')).toEqual(board);
   });

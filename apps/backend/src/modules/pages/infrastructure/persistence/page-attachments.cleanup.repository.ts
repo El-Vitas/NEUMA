@@ -16,7 +16,6 @@ export class PageAttachmentsCleanupRepository implements PageAttachmentsCleanupR
     return assets.map((asset) => asset.storageKey);
   }
 
-  /** What hangs on these pages, named so an export can carry it and point the writing at it. */
   async listAssetsForPages(pageIds: readonly string[]): Promise<readonly PageAssetForExport[]> {
     if (pageIds.length === 0) return [];
     return this.prisma.fileAsset.findMany({

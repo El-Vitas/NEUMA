@@ -17,7 +17,6 @@ const SOMEBODY_ELSE = 7;
 
 const closers: (() => void)[] = [];
 
-/** A page written together, with its two paragraphs, set up the way the editor sets it up. */
 const openLivePage = (): { readonly view: EditorView; readonly provider: HocuspocusProvider } => {
   const document_ = new Doc();
   const provider = new HocuspocusProvider({
@@ -48,7 +47,7 @@ const openLivePage = (): { readonly view: EditorView; readonly provider: Hocuspo
   return { provider, view };
 };
 
-/** The browser moves the caret on a click, and tells the editor a moment later. */
+// The browser moves the caret on a click and tells the editor a moment later.
 const clickWithoutTellingTheEditorYet = (view: EditorView, paragraphText: string): void => {
   const holdSelectionChange = (event: Event): void => event.stopImmediatePropagation();
   window.addEventListener('selectionchange', holdSelectionChange, true);
@@ -65,11 +64,7 @@ afterEach(() => {
 });
 
 describe('keepClicksAcrossChangesFromOthers', () => {
-  /**
-   * Drawing somebody else's caret writes the page again, and with it the caret
-   * the editor remembers — which, before the browser reports the click, is not
-   * where this person just clicked.
-   */
+  // Drawing another caret rewrites the page and the remembered caret, stale until the click is reported.
   it('keeps a click the editor has not read yet when somebody else only moves their caret', () => {
     const { provider, view } = openLivePage();
     clickWithoutTellingTheEditorYet(view, SECOND_PARAGRAPH);

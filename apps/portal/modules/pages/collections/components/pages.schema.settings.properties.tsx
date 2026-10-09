@@ -16,24 +16,13 @@ interface IProps {
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
 }
 
-/**
- * Todo lo que la colección guarda, una propiedad por línea.
- *
- * Cada una dice de qué tipo es sin entrar, y se entra solo para cambiarla. Lo
- * de agregar queda al final, que es cuando ya se vio lo que hay y se sabe que
- * falta algo.
- */
 export const PagesSchemaSettingsProperties = ({ editor, onGo }: IProps) => {
   const t = useTranslations('pages.collection');
-  /** Entre las que se pueden mover: la del nombre no cuenta, así que la primera de estas ya no tiene sitio arriba. */
   const movable = editor.properties
     .filter((property) => !isTitlePageProperty(property.type))
     .map((property) => property.key);
 
-  /**
-   * Se entra en la propiedad recién creada: si es una selección, ahí es donde
-   * se le dan las opciones, y sin ellas no se puede guardar la colección.
-   */
+  /** Opens the new property: a select needs its options there before the collection can be saved. */
   const addAndOpen = (label: string, chosen: string): void => {
     const type = readAddablePropertyType(chosen);
     if (type === undefined) return;
@@ -51,10 +40,6 @@ export const PagesSchemaSettingsProperties = ({ editor, onGo }: IProps) => {
             onClick={() => onGo({ level: 'PROPERTY', propertyKey: property.key })}
             value={t(`types.${property.type}`)}
           />
-          {/*
-            La del nombre no se mueve: va siempre primera —es la que abre cada
-            fila—, así que ni ella cambia de sitio ni otra se le pone delante.
-          */}
           {!isTitlePageProperty(property.type) && (
             <>
               <Button

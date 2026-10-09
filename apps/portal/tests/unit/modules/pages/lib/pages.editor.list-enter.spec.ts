@@ -36,7 +36,6 @@ const oneTaskAlreadyDone: PageContent = {
   type: 'doc',
 } as PageContent;
 
-/** The cursor left where a reader leaves it: at the end of the point just written. */
 const withCursorAtTheEnd = (content: PageContent = listOfOnePoint) => {
   const state = createPageEditorState(content, 'Select block');
   const endOfText = state.doc.resolve(state.doc.content.size - 3);

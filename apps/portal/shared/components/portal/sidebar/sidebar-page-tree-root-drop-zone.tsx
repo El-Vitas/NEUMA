@@ -9,15 +9,7 @@ interface IProps {
   readonly onDrop: (event: DragEvent<HTMLButtonElement>) => void;
 }
 
-/**
- * Where a dragged page lands when it should stop being anyone's child.
- *
- * Shown only while a page is being dragged, and only for the one placement
- * `move()` can actually keep: becoming a root page of this space. A real
- * button, not a styled `div`, so it is reachable and announced like any
- * other control — the drop itself stays mouse-only, but nothing here is
- * pretending otherwise.
- */
+/** A real button so it is reachable and announced; the drop itself stays mouse-only. */
 export const SidebarPageTreeRootDropZone = ({ onDragOver, onDrop }: IProps) => {
   const t = useTranslations('pages');
 

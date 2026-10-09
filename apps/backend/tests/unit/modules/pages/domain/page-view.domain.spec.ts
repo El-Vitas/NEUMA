@@ -193,7 +193,6 @@ describe('countPageViewRows', () => {
     expect(countPageViewRows({ kind: 'FLAT_ROWS', rows: [buildRow({ id: 'a' }), buildRow({ id: 'b' })] })).toBe(2);
   });
 
-  /** Una fila está en un grupo y en uno solo, así que sumar los grupos las cuenta a todas una vez. */
   it('adds up what every group holds', () => {
     const outcome = buildPageViewOutcome(
       { configuration: { groupBy: 'status' }, isDefault: true, name: 'Board', type: DatabaseViewType.BOARD },
@@ -208,7 +207,6 @@ describe('countPageViewRows', () => {
     expect(countPageViewRows(outcome)).toBe(3);
   });
 
-  /** Sin la propiedad por la que agrupa no hay filas repartidas, y decir «ninguna» es lo cierto. */
   it('counts none when the view could not even be read', () => {
     expect(countPageViewRows({ kind: 'MISSING_GROUPING_PROPERTY' })).toBe(0);
   });

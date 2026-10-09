@@ -1,7 +1,6 @@
 export const SPACES_CACHE_TAG = 'spaces';
 export const SPACES_SHARED_WITH_ME_CACHE_TAG = 'spaces-shared-with-me';
 export const SPACE_NAME_MAX_LENGTH = 120;
-/** Enough for a sentence or two saying what goes in here, not for a page of its own. */
 export const SPACE_DESCRIPTION_MAX_LENGTH = 500;
 export const SPACE_SLUG_MAX_LENGTH = 80;
 

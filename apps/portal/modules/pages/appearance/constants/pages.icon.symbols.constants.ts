@@ -1,15 +1,6 @@
 import type { IconName } from 'lucide-react/dynamic';
 
-/**
- * Every symbol a page may be marked with.
- *
- * Only the names live here. The drawings themselves are fetched when a reader
- * actually asks for one, so offering 1910 symbols costs nothing to
- * whoever never opens the picker.
- *
- * Generated from the icon set the product already depends on; regenerate it
- * rather than editing by hand.
- */
+/** Names only; the drawings are fetched on demand. Generated from the icon set: regenerate, do not edit by hand. */
 export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'a-arrow-down',
   'a-arrow-up',
@@ -1923,8 +1914,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'zoom-out',
 ];
 
-/** How many more symbols are drawn each time the reader reaches the end of the grid. */
 export const PAGE_ICON_SYMBOL_GRID_STEP = 120;
 
-/** The same symbols, to ask whether a name is one of them without walking the list. */
 export const PAGE_ICON_SYMBOL_NAME_SET: ReadonlySet<string> = new Set<string>(PAGE_ICON_SYMBOL_NAMES);

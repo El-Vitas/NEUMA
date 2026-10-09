@@ -1,12 +1,7 @@
 import { type AccessTokenPermission, canAccessTokenAct } from '@company-brain/shared';
 import type { McpGrantPlace, McpPrincipal } from '../types/mcp.types';
 
-/**
- * La primera página que cuelga de otra y cuya propia regla no deja al token
- * hacer algo que alcanza a todo el árbol, como mandarlo a la papelera. Solo
- * importan las páginas con una regla propia: las demás heredan la de arriba,
- * que ya se revisó en la página misma.
- */
+/** Only pages with their own rule matter: the rest inherit the rule above, already checked on the page itself. */
 export const findMcpProtectedDescendant = (
   principal: McpPrincipal,
   targetId: string,

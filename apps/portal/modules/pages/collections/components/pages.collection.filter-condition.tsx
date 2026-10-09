@@ -13,23 +13,11 @@ import { PagesCollectionFilterValue } from './pages.collection.filter-value';
 interface IProps {
   readonly condition: PageFilterCondition;
   readonly filtering: PagesViewFiltering;
-  /** Dónde está esta condición dentro del filtro, que es como se la nombra para cambiarla o quitarla. */
   readonly path: PageFilterPath;
   readonly property: PageSchemaProperty;
 }
 
-/**
- * Una condición: qué propiedad, cómo se compara y contra qué.
- *
- * Los operadores que se ofrecen son los que esa clase de propiedad admite: una
- * fecha no «contiene» nada.
- *
- * Los tres campos miden siempre lo mismo, así que una condición queda debajo de
- * la anterior en columnas y no escalonada, y el botón de quitarla cae siempre en
- * el mismo sitio. Quitar es discreto y solo se enciende en rojo al apuntarlo:
- * una fila con una cruz roja encendida pide a gritos algo que casi nunca se
- * quiere hacer.
- */
+/** Fields keep fixed widths so conditions align in columns; remove stays muted until hovered. */
 export const PagesCollectionFilterCondition = ({ condition, filtering, path, property }: IProps) => {
   const t = useTranslations('pages.collection');
 

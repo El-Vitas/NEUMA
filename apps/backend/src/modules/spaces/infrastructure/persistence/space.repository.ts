@@ -82,7 +82,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
     if (!canShareSpace(space.visibility, space.ownerId, userId)) return 'forbidden';
     const activeMemberIds = await this.workspaceMemberRepository.listActiveMemberIds(workspaceId);
     if (!activeMemberIds.includes(memberUserId)) return 'not-assignable';
-    /** Sharing twice is sharing once: the unique pair already in the table settles it, without reading first. */
+    // Idempotent: the unique (space, user) pair settles repeats without a prior read.
     await this.prisma.spaceMember.createMany({
       data: [{ spaceId: space.id, userId: memberUserId }],
       skipDuplicates: true,
@@ -90,13 +90,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return 'shared';
   }
 
-  /**
-   * Puts a space where somebody dragged it, and writes the whole order down again.
-   *
-   * The list is renumbered from the top rather than nudged: gaps and ties left by
-   * moving one space are what make the next drag land somewhere nobody pointed at.
-   * A space dropped on itself changes nothing.
-   */
+  /** Renumbers the whole list from the top, since gaps and ties left by a single nudge break the next drag. */
   async reorder(
     spaceId: string,
     beforeSpaceId: null | string,
@@ -158,7 +152,6 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return { ...space, icon: parseStoredPageIcon(space.icon) };
   }
 
-  /** Saying what a space is for answers to the same hand that names it: the two are one decision. */
   async describeSpace(
     spaceId: string,
     description: null | string,
@@ -176,12 +169,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return { ...space, icon: parseStoredPageIcon(space.icon) };
   }
 
-  /**
-   * El espacio, si quien pide puede cambiar cómo se presenta: su nombre, lo que
-   * dice de sí y su marca son una sola decisión. Llegar a un espacio no es lo
-   * mismo que poder cambiarlo: uno privado responde solo a su dueño, aunque se
-   * haya compartido.
-   */
+  /** Reaching a space is not enough to change it: a private space answers only to its owner, even when shared. */
   private async findChangeableSpaceId(
     spaceId: string,
     workspaceId: string,
@@ -205,7 +193,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
   ): Promise<SpaceSummary | null> {
     const changeableId = await this.findChangeableSpaceId(spaceId, workspaceId, userId, role);
     if (changeableId === null) return null;
-    /** The mark handed back is the one just written, so it is not read out of the row only to be parsed again. */
+    // Returns the input icon instead of re-parsing the stored row.
     const space = await this.prisma.space.update({
       data: { icon: toPageIconInput(icon) },
       select: { description: true, id: true, name: true, order: true, ownerId: true, slug: true, visibility: true },
@@ -225,12 +213,7 @@ export class SpaceRepository implements SpaceRepositoryContract {
     return this.workspaceMemberRepository.listAssignableMembers(workspaceId);
   }
 
-  /**
-   * Who reads the source space today and would not read the destination — the
-   * question a move across spaces has to answer before it happens. A move that
-   * does not cross spaces, or that lands in a space the whole organization can
-   * already read, costs nothing beyond the two access checks it needed anyway.
-   */
+  /** Members who can read the source space but not the destination. */
   async countMembersLosingAccess(
     sourceSpaceId: string,
     targetSpaceId: string,
@@ -285,19 +268,10 @@ export class SpaceRepository implements SpaceRepositoryContract {
     }).length;
   }
 
-  /**
-   * The place a person's private space is created is the first time it would be
-   * listed, not a step somebody has to remember. The unique `(workspaceId, slug)`
-   * pair on a deterministic slug is what makes the upsert safe against two
-   * concurrent requests both trying to create the same person's private space.
-   */
+  /** Created lazily the first time the space would be listed. */
   private async ensurePrivateSpace(workspaceId: string, userId: string): Promise<void> {
     const slug = buildPrivateSpaceSlug(userId);
-    /**
-     * Two requests arriving together both try to make it; the unique slug lets
-     * exactly one through and the other is dropped, so neither has to read
-     * first and neither can lose the race.
-     */
+    // The unique (workspaceId, slug) on a deterministic slug lets one concurrent request win without a prior read.
     await this.prisma.space.createMany({
       data: [
         {

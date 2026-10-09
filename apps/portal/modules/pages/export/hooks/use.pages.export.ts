@@ -10,14 +10,6 @@ import { buildPagesExportFileName } from '../lib/pages.export.lib';
 import { exportPagesAsMarkdownAction } from '../server/actions/pages.export.actions';
 import type { PagesExportRequest, PagesExportResult } from '../types/pages.export.types';
 
-/**
- * Writes a page, a page with everything under it, or a whole space out to a
- * Markdown file the reader keeps.
- *
- * What Markdown says on its own is written on its own; what it has no words for
- * is written as a link or a fenced block that names itself, so the file reads
- * as a document to a person and still comes back whole on import.
- */
 export const usePagesExport = (): PagesExportResult => {
   const t = useTranslations('pages.export');
   const tErrors = useTranslations('errors');

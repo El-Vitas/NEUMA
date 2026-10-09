@@ -13,7 +13,6 @@ const pageId = '22222222-2222-4222-8222-222222222222';
 const createAdapter = (): TokenAdapter =>
   new TokenAdapter(new JwtService(), new ConfigService({ [JWT_SECRET_KEY]: secret }));
 
-/** El mensaje con que se rechazó un token, o nada si se aceptó. */
 const refusalOf = async (verification: Promise<unknown>): Promise<string | null> => {
   try {
     await verification;
@@ -41,7 +40,6 @@ describe('TokenAdapter collaboration tokens', () => {
     });
   });
 
-  /** Las páginas nacen con UUID v7, así que el token de una página real tiene que servir. */
   test('verifies the collaboration token of a page whose id is a version 7 uuid', async () => {
     const adapter = createAdapter();
     const versionSevenPageId = '019ffc24-f641-739d-bc50-284c896476fc';
@@ -58,7 +56,7 @@ describe('TokenAdapter collaboration tokens', () => {
     expect(await refusalOf(adapter.verifyCollaborationToken(accessToken))).toBe('invalid-collaboration-token');
   });
 
-  /** Firmado ya vencido, en vez de esperar a que venza: la prueba no depende del reloj. */
+  // Signed already expired instead of waiting for it to expire, so the test does not depend on the clock.
   test('rejects an expired collaboration token', async () => {
     const adapter = createAdapter();
     const expiredToken = await new JwtService().signAsync(

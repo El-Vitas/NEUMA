@@ -59,11 +59,7 @@ const validateLoadedState = async (state: Uint8Array): Promise<Uint8Array> => {
   return state;
 };
 
-/**
- * El estado inicial de un documento que nadie abrió todavía: la página tal
- * como está guardada, con un id en cada bloque. Una página que ya no existe no
- * tiene documento.
- */
+/** Initial state of a document nobody has opened yet: the stored page with an id on every block. */
 const seedFromStoredPage = async (content: CollaborationContentAdapter, pageId: string): Promise<Uint8Array> => {
   const stored = await content.load(pageId);
   if (stored === null) throw new Error('page-not-found');
@@ -71,11 +67,9 @@ const seedFromStoredPage = async (content: CollaborationContentAdapter, pageId: 
 };
 
 /**
- * Lee, reescribe y aplica dentro de una sola transacción del documento, así
- * ningún cambio de otra persona se cuela entre lo leído y lo escrito. La página
- * nueva se valida antes de tocar nada: una transacción que falla a la mitad
- * deja escrito lo que alcanzó. Todo bloque que llegue sin id sale con uno,
- * así se lo puede señalar desde que existe.
+ * Reads, rewrites and applies in one document transaction so no concurrent edit slips in between.
+ * The new page is validated before anything is touched: a transaction that fails midway keeps what it wrote.
+ * Blocks arriving without an id get one.
  */
 const rewriteInsideTheDocument = (
   connection: CollaborationDirectConnection,
@@ -168,10 +162,9 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
   };
 
   /**
-   * Cada mensaje pasa por aquí antes de aplicarse, también el que solo pide el
-   * estado del documento. Quien solo lee manda mensajes igual: se le pide poder
-   * leer, y lo que intente cambiar lo descarta su conexión de solo lectura. Un
-   * cambio no se vuelve a revisar al aplicarse: ya se revisó aquí.
+   * Gates every message, including plain state requests. Read-only users send messages too: they
+   * need read permission, and their read-only connection discards any change. Changes are not
+   * re-checked when applied.
    */
   const authorizeMessage = async (
     context: CollaborationContext,

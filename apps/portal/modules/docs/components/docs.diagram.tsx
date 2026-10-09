@@ -15,17 +15,7 @@ interface IProps {
   readonly source: string;
 }
 
-/**
- * An example shown as what is written and what comes out of it.
- *
- * The drawing is made here and now, by the same hand that draws diagrams inside
- * a page: a manual that shows a picture of what the page used to do is a manual
- * that lies the day the page changes.
- *
- * It sits in a frame that never grows past the screen, fitted to it the first
- * time if it is larger, and is brought closer, pushed away or dragged around
- * inside it the same way a diagram on a page is.
- */
+/** Rendered live with the same renderer as page diagrams, so the manual cannot drift from the editor. */
 export const DocsDiagram = ({ source }: IProps) => {
   const t = useTranslations('docs');
   const drawingRef = useRef<HTMLElement>(null);

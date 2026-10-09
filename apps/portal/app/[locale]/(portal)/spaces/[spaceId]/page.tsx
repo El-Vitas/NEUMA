@@ -13,13 +13,7 @@ interface IProps {
   readonly params: Promise<{ spaceId: string }>;
 }
 
-/**
- * The space's own pages, shaped the way its entrance reads them.
- *
- * Shaped here rather than handed over whole because the entrance belongs to the
- * spaces side of the application, which has no business knowing what else a page
- * carries around.
- */
+/** Narrows the page so the spaces module does not depend on the rest of the page shape. */
 const toSpaceHomePage = (page: PageSummary): SpaceHomePage => ({
   icon: page.icon ?? null,
   id: page.id,

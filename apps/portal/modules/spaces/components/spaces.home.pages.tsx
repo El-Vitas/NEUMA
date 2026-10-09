@@ -10,7 +10,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/** The pages the space hangs directly from itself, which is what it is made of at first sight. */
 export const SpacesHomePages = ({ pages, spaceId }: IProps) => {
   const t = useTranslations('spaces.home');
 

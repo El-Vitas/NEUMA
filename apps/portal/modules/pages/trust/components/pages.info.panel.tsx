@@ -14,13 +14,6 @@ interface IProps {
   readonly info: PageInfoMetadata;
 }
 
-/**
- * What a page says about itself, kept out of the way of what it says to
- * everyone else: who wrote it, who touched it last, and how much is there.
- *
- * It lives behind a button rather than a fixed strip, since none of this is
- * something the writing itself needed to make room for.
- */
 export const PagesInfoPanel = ({ content, info }: IProps) => {
   const t = useTranslations('pages.info');
   const format = useFormatter();

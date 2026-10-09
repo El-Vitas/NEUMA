@@ -9,31 +9,21 @@ import { PagesCollectionTableRowCheckbox } from './pages.collection.table.row-ch
 import { PagesCollectionTableRowShell } from './pages.collection.table.row-shell';
 
 interface IProps {
-  /** La clase de alineación de cada columna, ya resuelta por quien dibuja la tabla. */
   readonly alignmentClasses: Readonly<Record<string, string>>;
-  /** Cuánto aire lleva cada celda y cómo se corta lo que dice, ya resuelto: toda la tabla se ve igual. */
   readonly appearance: PageTableAppearance;
   readonly canEdit: boolean;
   readonly collectionPageId: string;
-  /** Lo que deja quieta a cada columna al desplazarse, ya resuelto y en el orden de las columnas. */
   readonly frozenCells: readonly { readonly className?: string; readonly style?: { readonly left: number } }[];
-  /** Ya traducidos por quien dibuja la tabla: una fila no tiene por qué ir a buscar palabras. */
   readonly openFullPageLabel: string;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly row: PageRow;
-  /** Lo que esta fila dice en palabras, para el buscador de la colección. */
   readonly searchText: string;
-  /** Ya traducido por quien dibuja la tabla, con el nombre de la fila dentro. */
   readonly selectLabel: string;
   readonly spaceId: string;
   readonly untitledLabel: string;
 }
 
-/**
- * Una fila de la tabla: su nombre, que es lo que la abre, y lo que guarda bajo
- * cada columna.
- */
 export const PagesCollectionTableRow = ({
   alignmentClasses,
   appearance,
@@ -52,7 +42,6 @@ export const PagesCollectionTableRow = ({
   return (
     <PagesCollectionTableRowShell searchText={searchText}>
       <TableCell {...frozenCells[0]} className={cn(frozenCells[0]?.className, appearance.cellClass)}>
-        {/* La casilla acompaña al nombre en vez de tener columna propia: una columna más movería todas las demás. */}
         {canEdit && (
           <span className="mr-2 inline-flex align-middle">
             <PagesCollectionTableRowCheckbox label={selectLabel} rowId={row.id} />

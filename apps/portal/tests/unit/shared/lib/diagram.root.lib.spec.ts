@@ -11,12 +11,7 @@ const hangOnTheRoot = (name: string, value: unknown): void => {
 };
 
 describe('what the interface hangs on the root of the page', () => {
-  /**
-   * The drawing engine turns a whole diagram into text to write one of its own
-   * notes, and that diagram reaches the root of the page. What the interface
-   * hangs there points back at itself, so the writing never ends and the
-   * drawing dies with it.
-   */
+  // The engine serializes a whole diagram, which reaches the page root; a self-reference there would loop.
   it('is left out of anything that walks the root, and still readable by whoever hung it', () => {
     const bookkeeping: { self: unknown } = { self: null };
     bookkeeping.self = bookkeeping;

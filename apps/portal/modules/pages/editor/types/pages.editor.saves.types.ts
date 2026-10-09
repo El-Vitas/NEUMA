@@ -8,7 +8,7 @@ export interface PagesEditorSavesOptions {
   readonly readPropertyValues: () => PagePropertyValues;
   readonly readTitle: () => string;
   readonly spaceId: string;
-  /** A row that has never kept its properties sends all of them the first time: there is nothing there to overwrite. */
+  /** `null` for a row that never stored properties: the first save sends all of them. */
   readonly storedPropertyValues: PagePropertyValues | null;
 }
 
@@ -16,6 +16,6 @@ export interface PagesEditorSaves {
   readonly markContentChanged: () => void;
   readonly markPropertyChanged: (key: string, value: PagePropertyValue) => void;
   readonly markTitleChanged: () => void;
-  /** Sends what is waiting, each part on its own, and says whether all of it arrived. */
+  /** Resolves to whether every pending part was saved. */
   readonly saveWhatIsPending: () => Promise<boolean>;
 }

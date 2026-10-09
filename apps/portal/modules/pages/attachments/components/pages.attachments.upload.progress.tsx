@@ -2,12 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-/**
- * What is shown while a file is on its way up.
- *
- * The bar carries no percentage because the system does not know one; a moving
- * bar that counts to a hundred on its own schedule is a promise nobody made.
- */
+/** Indeterminate on purpose: the upload reports no progress, so a percentage would be invented. */
 export const PagesAttachmentsUploadProgress = () => {
   const t = useTranslations('pages.attachments');
 

@@ -45,7 +45,6 @@ describe('listMcpDiagramIcons', () => {
     expect(listMcpDiagramIcons(source)).toEqual(['logos:postgresql', 'mdi:server', 'cloud']);
   });
 
-  /** Sin paquete, un ícono de arquitectura que Mermaid no trae se dibuja como un signo de pregunta. */
   it('names the icons without a pack on groups and services, and nothing a flowchart writes in parentheses', () => {
     const source = [
       'architecture-beta',
@@ -59,7 +58,7 @@ describe('listMcpDiagramIcons', () => {
   });
 });
 
-/** Mermaid dibuja estos diagramas sin quejarse, pero con las cajas vacías a un lado y los servicios sueltos. */
+/** Mermaid renders these without complaint, but with empty boxes aside and services left loose. */
 describe('findMcpArchitectureGroupingFault', () => {
   it('finds nothing wrong when every group holds something, a nested group included', () => {
     const source = [
@@ -114,7 +113,6 @@ describe('findMcpArchitectureGroupingFault', () => {
   });
 });
 
-/** Un texto escrito para trabar la revisión no la traba: lo que se busca en él se busca línea por línea. */
 describe('diagram text written to slow the check down', () => {
   it('checks a diagram padded with thousands of empty lines at once', () => {
     const source = `flowchart TD\n A-->B${'\n'.repeat(20_000)}x`;

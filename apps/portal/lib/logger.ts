@@ -3,11 +3,7 @@ import pino from 'pino';
 import 'pino-pretty';
 import { env } from '@/config/env.config';
 
-/**
- * La salida legible es para quien mira la consola mientras desarrolla. Pedirla
- * también en las pruebas levanta un hilo aparte que nadie lee y que además
- * revienta bajo el ejecutor de pruebas.
- */
+/** Pretty output spawns a worker thread that crashes under the test runner, so only development uses it. */
 const wantsReadableOutput = env.NODE_ENV === 'development';
 
 export const logger = pino({

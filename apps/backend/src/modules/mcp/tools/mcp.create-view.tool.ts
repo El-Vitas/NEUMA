@@ -50,10 +50,6 @@ const createView = async (
   return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
-/**
- * Agrega una manera de mirar las filas de una colección: una tabla, un
- * tablero agrupado por estado, una lista filtrada.
- */
 export const createViewTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.createView,
   register: (server, dependencies) => {

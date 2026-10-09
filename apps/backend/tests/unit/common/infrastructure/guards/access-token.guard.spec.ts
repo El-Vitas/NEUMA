@@ -29,7 +29,6 @@ const createGuard = (known: string) => {
 
 const contextFor = (request: GuardedRequest) => new ExecutionContextHost([request]);
 
-/** Con qué se negó el guardia, o nada si dejó pasar. */
 const refusalOf = async (attempt: Promise<boolean>): Promise<unknown> => {
   try {
     await attempt;
@@ -48,7 +47,6 @@ describe('AccessTokenGuard', () => {
     expect(request.accessTokenPrincipal).toEqual(principal);
   });
 
-  /** Quien prueba llaves tiene que notarse en el log, sin que la llave quede escrita. */
   it('refuses a token that stands for nobody, and tells the log without the key', async () => {
     const { guard, warnings } = createGuard('cbk_known');
 

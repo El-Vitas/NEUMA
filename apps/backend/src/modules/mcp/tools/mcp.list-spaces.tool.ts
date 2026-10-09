@@ -5,10 +5,6 @@ import { requireMcpPrincipal, resolveMcpWorkspace, runMcpTool } from '../lib/mcp
 import { listSpacesInputSchema, listSpacesOutputSchema } from '../schemas/mcp.schemas';
 import type { McpToolDefinition } from '../types/mcp.types';
 
-/**
- * Los espacios que el token ve: los que su dueño ve, recortados a los que la
- * regla del token deja leer o que tienen dentro una página abierta.
- */
 export const listSpacesTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.listSpaces,
   register: (server, dependencies) => {

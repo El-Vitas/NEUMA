@@ -11,7 +11,6 @@ interface IProps {
   readonly token: WorkspaceAccessToken;
 }
 
-/** Un token de cualquiera, visto por quien administra: todo menos el secreto. */
 export const AccessTokensWorkspaceRow = ({ token }: IProps) => {
   const t = useTranslations('accessTokens');
   const locale = useLocale();

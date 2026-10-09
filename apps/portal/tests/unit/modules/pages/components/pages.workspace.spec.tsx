@@ -30,7 +30,7 @@ mock.module('@/modules/pages/editor/components/pages.editor', () => ({
   ),
 }));
 
-/** Starting a page reaches a server action, which refuses to load outside a server. */
+// Starting a page reaches a server action, which refuses to load outside a server.
 mock.module('@/shared/components/portal/start-page-button', () => ({
   StartPageButton: ({ label }: { readonly label: string }) => <button type="button">{label}</button>,
 }));
@@ -91,7 +91,6 @@ describe('PagesWorkspace collaboration propagation', () => {
     );
   });
 
-  /** There is no route for a page that does not exist yet: a page is made first and written in afterwards. */
   it('offers to start a page instead of an editor over nothing', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>

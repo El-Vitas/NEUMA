@@ -16,11 +16,7 @@ export const SidebarToggle = ({ collapsed, onToggle }: IProps) => {
     <button
       aria-label={collapsed ? t('expandMenu') : t('collapseMenu')}
       className={cn(
-        /**
-         * Above the strip that resizes the tree. That strip runs the whole edge and
-         * covered all but a few pixels of this circle, so the pointer kept landing on
-         * a drag when it meant to press.
-         */
+        /** Above the resize strip, which covers almost all of this button and would turn presses into drags. */
         'absolute top-20 -right-4 z-30 flex size-11 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground/70 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-foreground',
         FOCUS_RING_CLASS,
       )}

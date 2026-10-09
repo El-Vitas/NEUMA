@@ -13,7 +13,6 @@ export interface PagesAppearanceResult {
   readonly setTypography: (typography: PageAppearanceTypography) => void;
 }
 
-/** The classes a page's own layout is drawn with. */
 export interface PageAppearanceLayoutStyleClasses {
   readonly outlineLayout: string;
   readonly outlineSide: string;

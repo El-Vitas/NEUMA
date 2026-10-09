@@ -82,7 +82,6 @@ describe('createPageUnsyncCommand', () => {
 });
 
 describe('isBorrowedDrawing', () => {
-  /** Un diagrama prestado se dibuja, como en su página; mostrar su código haría creer que se rompió. */
   it('is a diagram or a formula shown as its drawing, and not code, nor a drawing shown only as its code', () => {
     const code = (language: string | null, shown: string | null = null) =>
       pageEditorSchema.nodes.code_block.create({ language, shown }, pageEditorSchema.text('x'));

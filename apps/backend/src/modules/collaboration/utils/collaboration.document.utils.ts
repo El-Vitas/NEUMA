@@ -8,12 +8,7 @@ import { prosemirrorJSONToYXmlFragment, updateYFragment, yXmlFragmentToProseMirr
 import { Doc, encodeStateAsUpdate } from 'yjs';
 import { COLLABORATION_PAGE_DOCUMENT_SCHEMA } from '../constants/collaboration.document.constants';
 
-/**
- * Lo guardado de una página, escrito como el estado inicial de su documento
- * colaborativo. Lo hace el servidor, una sola vez por documento: si lo hiciera
- * cada navegador al encontrarlo vacío, dos que abren a la vez lo escribirían
- * dos veces.
- */
+/** The server seeds each document once; browsers seeding an empty one would write it twice when two open together. */
 export const encodePageContentAsCollaborationState = (content: PageContent): Uint8Array => {
   const document = new Doc();
   prosemirrorJSONToYXmlFragment(
@@ -26,12 +21,7 @@ export const encodePageContentAsCollaborationState = (content: PageContent): Uin
   return state;
 };
 
-/**
- * Deja el documento colaborativo diciendo exactamente el contenido nuevo,
- * tocando solo lo que cambió: los bloques iguales se quedan donde están, así
- * lo que otra persona escribe al mismo tiempo en ellos se funde en vez de
- * perderse.
- */
+/** Touches only what changed: unchanged blocks stay put so concurrent edits in them merge instead of being lost. */
 export const replaceCollaborationDocumentContent = (document: Doc, content: PageContent): void => {
   const replacement = COLLABORATION_PAGE_DOCUMENT_SCHEMA.nodeFromJSON(holdPageContentThisVersionCannotRead(content));
   replacement.check();
@@ -41,7 +31,6 @@ export const replaceCollaborationDocumentContent = (document: Doc, content: Page
   });
 };
 
-/** Lo que dice el documento colaborativo ahora, en la forma en que se guarda una página. */
 export const readCollaborationDocumentContent = (document: Doc): PageContent =>
   writePageDocumentJsonAsContent(
     yXmlFragmentToProseMirrorRootNode(

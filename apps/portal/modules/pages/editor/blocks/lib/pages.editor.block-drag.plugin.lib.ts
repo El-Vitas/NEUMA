@@ -114,13 +114,8 @@ const cancelBlockDrag = (view: EditorView): void => {
 };
 
 /**
- * Drives dragging blocks by their gutter handle: it draws where the blocks
- * would land, dims the ones travelling, and applies the drop.
- *
- * The drag runs on plain pointer events instead of the browser's native
- * drag-and-drop: the handle must keep the caret where it is (it calls
- * `preventDefault` on mousedown), and that alone stops a native drag from ever
- * starting in Chromium.
+ * Runs on pointer events, not native drag-and-drop: the handle calls `preventDefault` on mousedown to keep
+ * the caret, which stops a native drag from starting in Chromium.
  */
 export const createPageEditorBlockDragPlugin = (): EditorPlugin<PageEditorBlockDragState> =>
   new EditorPlugin<PageEditorBlockDragState>({

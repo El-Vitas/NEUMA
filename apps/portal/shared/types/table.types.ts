@@ -2,20 +2,9 @@ import type { CellContext, ColumnDef, ColumnFiltersState, RowData, SortingState 
 import type React from 'react';
 import type { dataTableFeatures } from '@/shared/lib/data-table.features.lib';
 
-/**
- * The set of capabilities every table type has to be told about.
- *
- * Taken from the one registry rather than written again, so the types and what
- * the tables can actually do cannot drift apart.
- */
 export type DataTableFeatures = typeof dataTableFeatures;
 
-/**
- * What a cell of our data table receives.
- *
- * Named here so a cell written inside a module speaks our table's language and
- * not the table library's — the library stays behind `shared/`.
- */
+/** Keeps the table library behind `shared/`, so module cells never import it. */
 export type TableCellProps<TData extends RowData> = CellContext<DataTableFeatures, TData, unknown>;
 
 export interface TableAction {

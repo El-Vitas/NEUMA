@@ -4,10 +4,7 @@ import { AccessTokensCreateView } from '@/modules/access-tokens/views/access-tok
 import { getReachableSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
-/**
- * Crear un token depende de quién mira y de lo que ve hoy: se resuelve entero
- * antes de responder, en vez de prometer una navegación instantánea que no existe.
- */
+/** Depends on the session, so it resolves fully before responding. */
 export const instant = false;
 
 export default async function Page() {

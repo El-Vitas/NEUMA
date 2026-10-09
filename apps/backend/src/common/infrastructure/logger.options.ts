@@ -3,7 +3,7 @@ import { formatChileanTime } from '@company-brain/shared';
 import { type LoggerOptions, stdSerializers } from 'pino';
 import { LOG_REDACTED_FIELDS } from '../constants/logger.constants';
 
-/** Un error como se escribe en el log: su mensaje y su traza, nunca el objeto entero, que puede cargar datos. */
+/** Logs only message and stack, never the whole error object, which can carry data. */
 const writeLoggedError = (object: Record<string, unknown>): Record<string, unknown> => {
   if (object.err === undefined) return object;
   const errValue = object.err;
@@ -12,15 +12,9 @@ const writeLoggedError = (object: Record<string, unknown>): Record<string, unkno
   return { ...object, err: { message: '[non-string error]' } };
 };
 
-/** Un campo personal o secreto, arriba de lo que se escribe y dentro de un objeto que va en él. */
 const readTopAndNested = (field: string): readonly string[] => [field, `*.${field}`];
 
-/**
- * Cómo escribe el log todo proceso del backend: el servidor HTTP y el MCP por
- * terminal por igual, para que un mismo error se lea igual venga de donde venga.
- * Niveles por nombre en mayúsculas, hora de Chile, errores con su traza y sin
- * datos personales ni secretos.
- */
+/** Shared by every backend process (HTTP server and MCP) so the same error logs identically. */
 export const buildLogOptions = (level: string): LoggerOptions => ({
   formatters: {
     level: (label: string) => ({ level: label.toUpperCase() }),

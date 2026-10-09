@@ -3,25 +3,13 @@ import type { EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_BLOCK_GROUP } from '../constants/pages.editor.blocks.constants';
 import { acceptsSiblingBlocks } from './pages.editor.block-target.lib';
 
-/**
- * A container that only exists to hold blocks — the page, a column, a cell,
- * what hangs from a nesting — as opposed to a block that happens to hold
- * others, such as a quote or a callout, which is itself what a gesture aims at.
- */
+/** True for pure containers (page, column, cell), not for blocks like a quote that hold others but are a target. */
 export const holdsStandaloneBlocks = (node: EditorNode): boolean =>
   acceptsSiblingBlocks(node) && node.type.spec.group !== PAGE_EDITOR_BLOCK_GROUP;
 
-/**
- * The blocks a gesture applies to: every block the selection covers, read from
- * the container that holds them as siblings.
- *
- * One answer for all of them — converting, duplicating, deleting — so a cursor
- * inside a quote acts on the quote, one inside a list acts on the list, and one
- * in a table cell acts on the paragraph it is typing in.
- */
+/** A cursor inside a quote or list acts on that quote or list; inside a table cell, on its paragraph. */
 export const findSelectedPageBlocks = (state: EditorState): NodeRange | null =>
   state.selection.$from.blockRange(state.selection.$to, holdsStandaloneBlocks);
 
-/** The block a single place in the page belongs to, read the same way as the ones a selection covers. */
 export const findPageBlockAround = (place: ResolvedPos): NodeRange | null =>
   place.blockRange(place, holdsStandaloneBlocks);

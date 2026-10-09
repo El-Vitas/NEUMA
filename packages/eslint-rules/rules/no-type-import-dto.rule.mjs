@@ -1,6 +1,4 @@
-// no-type-import-dto
-// Qué hace: prohíbe importar un DTO con `import type`.
-// Para qué: NestJS necesita el DTO en runtime (validación/decoradores); `import type` lo borra.
+// NestJS needs the DTO at runtime (validation, decorators); `import type` erases it.
 export const noTypeImportDto = {
   meta: {
     type: 'problem',

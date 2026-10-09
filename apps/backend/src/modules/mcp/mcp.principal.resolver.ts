@@ -6,12 +6,9 @@ import type { AccessTokenPrincipalResolver } from '../../common/types/access-tok
 import type { McpPrincipal, McpPrincipalResolver } from './types/mcp.types';
 
 /**
- * Quién es el agente que entra por la terminal.
- *
- * Por la terminal no hay cabeceras donde traer una llave, así que la llave es un
- * token personal puesto en el entorno del proceso. Se pregunta por él en cada
- * llamada y no una sola vez al arrancar: revocarlo en el portal tiene que cortar
- * al agente en su siguiente llamada.
+ * Identifies the stdio agent by a personal token from the process environment
+ * (no headers there). Resolved on every call, not once at startup, so revoking
+ * it in the portal cuts the agent off at its next call.
  */
 @Injectable()
 export class McpEnvironmentPrincipalResolver implements McpPrincipalResolver {

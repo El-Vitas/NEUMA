@@ -14,20 +14,10 @@ interface IProps {
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly spaceId: string;
-  /** Lo que cada fila responde ahora, para poder devolverla a eso si se deshace. */
   readonly valuesByRow: Readonly<Record<string, PagePropertyValues>>;
 }
 
-/**
- * Lo que se puede hacer con las filas marcadas, y cuántas son.
- *
- * Aparece solo cuando hay alguna marcada: una barra siempre presente ocupa sitio
- * para decir «ninguna», que es lo que ya se ve sin ella.
- *
- * Todo lo que ofrece se puede deshacer desde el aviso que sale al terminar, y
- * por eso borrar no pregunta antes: preguntar y además poder deshacer es pedir
- * dos veces la misma decisión.
- */
+/** Every action can be undone from the toast, so deleting does not ask for confirmation first. */
 export const PagesCollectionSelectionBar = ({ personOptions, properties, spaceId, valuesByRow }: IProps) => {
   const t = useTranslations('pages.collection');
   const selection = usePagesRowSelection();

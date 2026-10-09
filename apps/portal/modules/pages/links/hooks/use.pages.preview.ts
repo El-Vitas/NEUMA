@@ -19,15 +19,6 @@ const readPagePreviewOutcome = async (link: PagePreviewLinkMatch): Promise<PageP
   return isActionSuccess<PagePreviewContent>(response) ? { content: response.data, kind: 'found' } : { kind: 'denied' };
 };
 
-/**
- * What a page says of itself while the pointer, or the keyboard, rests on a
- * mention or on a link to it.
- *
- * Asked only once the rest has lasted long enough to be worth answering, so
- * passing over a link on the way to somewhere else never asks anything; let
- * go the moment nothing is rested on any more, or at a word from whoever was
- * reading it.
- */
 export const usePagesPreview = (
   surfaceRef: RefObject<HTMLElement | null>,
   readSurfaceRect: () => PageEditorSurfaceRect | null,
@@ -89,16 +80,11 @@ export const usePagesPreview = (
     const container = surfaceRef.current;
     if (container === null) return;
 
-    /**
-     * Whether there is a link worth a preview is answered first, from the
-     * event alone; the surface is only measured once that is already yes,
-     * since `mouseover` fires on every stretch of plain writing the pointer
-     * crosses while somebody is typing.
-     */
+    /** Layout is measured only after a link is found: `mouseover` fires over all plain text while typing. */
     const followTheAnchorUnderPointer = (target: EventTarget | null): void => {
       const link = readPagePreviewLink(container, target);
       if (link === null) {
-        /** Resting on the card is still resting on the page it speaks for, so the leaving already begun is called off. */
+        /** Hovering the card cancels the close already scheduled. */
         if (isWithinThePagePreviewCard(target)) clearCloseTimeout();
         else scheduleClose();
         return;

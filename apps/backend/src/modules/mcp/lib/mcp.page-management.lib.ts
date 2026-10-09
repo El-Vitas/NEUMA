@@ -7,11 +7,7 @@ import { buildMcpPageUrl } from './mcp.address.lib';
 import { canMcpAct } from './mcp.page-access.lib';
 import { findMcpProtectedDescendant } from './mcp.page-lifecycle.lib';
 
-/**
- * Una página cambiada entera, con el enlace que una persona puede abrir. Su
- * título se dice solo si el token puede leerla ahí: mandarla a la papelera o
- * moverla no da derecho a leerla.
- */
+/** The title is shown only if the token can read the page there: trashing or moving it does not grant reading. */
 export const describeMcpManagedPage = (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -25,7 +21,6 @@ export const describeMcpManagedPage = (
   };
 };
 
-/** Un cambio a una página entera en texto: qué página, dónde, y qué cambió. */
 export const formatMcpManagedPageText = (output: McpManagedPageOutput): string =>
   [
     `${output.page.title} — ${output.page.url}`,
@@ -35,7 +30,6 @@ export const formatMcpManagedPageText = (output: McpManagedPageOutput): string =
     .filter((line) => line !== '')
     .join('\n');
 
-/** Dónde está hoy cada página con su propia regla en el token, leído de una vez. */
 const readGrantPlaces = async (dependencies: McpServerDependencies, call: McpCall): Promise<McpGrantPlace[]> => {
   const places = await dependencies.placeReader.readPlaces(
     call.principal.access.pages.map((grant) => grant.pageId),
@@ -44,13 +38,7 @@ const readGrantPlaces = async (dependencies: McpServerDependencies, call: McpCal
   return [...places].map(([pageId, place]) => ({ pageId, place }));
 };
 
-/**
- * Revisa que el token pueda hacer algo que alcanza a todo lo que cuelga de una
- * página —mandarlo a la papelera, moverlo, copiarlo—, y no solo a la página:
- * una página de abajo con su propia regla que no lo deja la protege a ella y
- * a la de arriba. Se nombra solo si el token puede leerla; si no, nombrarla
- * diría que existe.
- */
+/** A descendant's own rule protects its ancestor too. It is named only if readable: otherwise naming it reveals it. */
 export const requireMcpWholeTree = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -71,10 +59,7 @@ export const requireMcpWholeTree = async (
   );
 };
 
-/**
- * Una persona del espacio de trabajo por su id o por su nombre, sin distinguir
- * mayúsculas. Un nombre que tienen dos personas no elige a ninguna.
- */
+/** Name matching ignores case; a name shared by two people selects neither. */
 export const findMcpPerson = (people: readonly McpPerson[], named: string): McpPerson => {
   const byId = people.find((person) => person.id === named);
   if (byId !== undefined) return byId;

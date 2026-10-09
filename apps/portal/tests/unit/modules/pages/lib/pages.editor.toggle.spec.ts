@@ -162,11 +162,7 @@ describe('titling a toggle', () => {
     container.remove();
   });
 
-  /**
-   * The keyboard answers to whatever holds the focus. Written as content of the
-   * editor, the title never received a keystroke: the editor read them all as
-   * writing on the page. It is a field of its own, and it is named.
-   */
+  // As editor content the title never received keystrokes: the editor read them all as page writing.
   it('offers the title as a field of its own, named for whoever cannot see it', () => {
     const { container, view } = mountToggle();
     const title = findTitle(container);

@@ -23,7 +23,6 @@ describe('buildPagePropertyKey', () => {
     expect(buildPagePropertyKey('«»', [])).toBe('property');
   });
 
-  /** El servidor guarda claves de hasta 64 caracteres: una más larga se rechazaría al guardar la columna. */
   it('keeps a long name within what the server stores, prefix and number included', () => {
     const long = 'a'.repeat(100);
     const taken = [{ key: buildPagePropertyKey(long, []) }];

@@ -15,11 +15,6 @@ import { PagesCollectionTableRow } from './pages.collection.table.row';
 interface IProps {
   readonly activeViewName: string;
   readonly canEdit: boolean;
-  /**
-   * Las filas repartidas en grupos. Una tabla a la que nadie pidió agrupar
-   * recibe un solo grupo sin nombre, que es lo mismo que una lista de filas
-   * dicho de la manera en que esta tabla sabe dibujarlas.
-   */
   readonly groups: readonly PageViewGroup[];
   readonly isGrouped: boolean;
   readonly personOptions?: readonly PagePersonOption[];
@@ -43,11 +38,6 @@ export const PagesCollectionTable = async ({
   if (rows.length === 0) return <EmptyState message={t('collection.emptyTable')} />;
 
   const columnKeys = listTableColumnKeys(properties.map((property) => property.key));
-  /**
-   * Lo guardado, no lo que se esté arrastrando: el cuerpo no sigue al ratón
-   * —para eso está el `colgroup` de la cabecera—, solo necesita saber cuáles se
-   * quedan quietas y dónde empieza cada una.
-   */
   const activeView = schema.views.find((view) => view.name === activeViewName);
   const {
     calculations,
@@ -59,12 +49,10 @@ export const PagesCollectionTable = async ({
     rowHeight,
     wrapsText,
   } = readPageViewConfiguration(activeView?.configuration ?? {});
-  /** Se resuelve una vez y viaja hecho: si cada celda lo calculara, la misma respuesta se repetiría por fila y columna. */
   const appearance = readTableAppearance(rowHeight, wrapsText);
   const alignmentClasses = Object.fromEntries(
     properties.map((property) => [property.key, readAlignmentClass(columnAlignments, property.key)]),
   );
-  /** Lo que cada fila dice en palabras, armado una vez: buscar ocurre al teclear y no puede rehacerlo por letra. */
   const searchTextByRow = Object.fromEntries(rows.map((row) => [row.id, buildRowSearchText(row, properties)]));
   const offsets = readTableColumnOffsets(columnKeys, columnWidths);
   const frozenCells = columnKeys.map((_columnKey, position) =>

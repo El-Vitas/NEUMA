@@ -6,7 +6,7 @@ import type { TokenPayload } from '../../common/types/auth.types';
 import { PagesService } from './pages.service';
 import type { PageSummary } from './types/page.types';
 
-/** What somebody was given to do, asked across every space rather than one at a time. */
+/** Pages assigned to the caller, across all spaces. */
 @Controller('pages/assigned')
 export class PageAssignedController {
   constructor(

@@ -9,10 +9,7 @@ interface IProps {
   readonly tokens: readonly WorkspaceAccessToken[] | null;
 }
 
-/**
- * Los tokens vivos de todo el espacio de trabajo, en una tabla. Son pocos por
- * construcción (un tope por persona), así que se muestran todos sin paginar.
- */
+/** Not paginated: tokens are capped per person, so the list is small by construction. */
 export const AccessTokensWorkspaceTable = ({ tokens }: IProps) => {
   const t = useTranslations('accessTokens.workspace');
 

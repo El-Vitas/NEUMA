@@ -25,18 +25,6 @@ const createPlayer = (
   return player;
 };
 
-/**
- * Renders a video or a recording as something that plays where it was put.
- *
- * What is under the controls is a real `<video>` or `<audio>`; what is drawn
- * over it is ours, so a player reads as part of the page instead of as a black
- * box the browser left there.
- *
- * Both take the whole column of writing until someone says otherwise, and both
- * are stretched from the right edge the same way an image is: a player is a
- * control to be worked, and one left at the size its file happened to have is
- * a control nobody asked for.
- */
 const createPageMediaNodeView = (
   node: EditorNode,
   kind: 'video' | 'audio',
@@ -59,13 +47,7 @@ const createPageMediaNodeView = (
     if (position === undefined) return;
     view.dispatch(view.state.tr.setNodeAttribute(position, 'width', width));
   });
-  /**
-   * Where the player stands and how much of the column it takes.
-   *
-   * One nobody sized takes the column, but never more of it than the file
-   * itself has to show: a small clip blown up to the width of the page is the
-   * same clip, only blurred.
-   */
+  /** An unsized player takes the column but never more than the file's own width, so small clips are not blurred. */
   const showMedia = (current: EditorNode): void => {
     framePageBlockAlignment(figure, PAGE_EDITOR_MEDIA_FIGURE_STYLE_CLASS, current.attrs.align);
     if (typeof current.attrs.width === 'number') {

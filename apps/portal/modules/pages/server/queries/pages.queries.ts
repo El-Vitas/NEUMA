@@ -26,13 +26,8 @@ const getPagesCached = async (accessToken: string, spaceId: string): Promise<rea
 };
 
 /**
- * The pages of a space, read again for one page the kept list did not have.
- *
- * A page written from outside the portal — by an agent, through the MCP —
- * reaches the kept list only once that list refreshes, and the first visit to
- * it would otherwise be told it does not exist. The read is fresh, kept only
- * for the request that asked: the page and its title share it, and an address
- * nobody has leaves nothing behind.
+ * Uncached read for a page the cached list does not have yet, e.g. one written through the MCP.
+ * Deduplicated per request only, so unknown addresses leave nothing behind.
  */
 export const getPagesHolding = async (
   spaceId: string,
@@ -47,12 +42,7 @@ const readPagesFresh = cache(async (accessToken: string, spaceId: string): Promi
   return readPagesThatCanBeRead(response, 'getPagesHolding');
 });
 
-/**
- * Which space a page lives in now.
- *
- * Asked when an address does not find it where it says: a page that changed
- * space left every link written before the move pointing at the space it left.
- */
+/** Resolves links to a page that moved to another space after the link was written. */
 export const getPageSpaceId = async (pageId: string): Promise<Result<string, Error>> =>
   withQuery({ op: 'getPageSpace', params: { pageId } }, (accessToken) => getPageSpaceIdCached(accessToken, pageId));
 
@@ -65,7 +55,6 @@ const getPageSpaceIdCached = async (accessToken: string, pageId: string): Promis
   return pageLocationSchema.parse(response).spaceId;
 };
 
-/** The pages this person was given, across every space they can reach. */
 export const getAssignedPages = async (): Promise<Result<readonly PageSummary[], Error>> =>
   withQuery({ op: 'getAssignedPages' }, (accessToken) => getAssignedPagesCached(accessToken));
 

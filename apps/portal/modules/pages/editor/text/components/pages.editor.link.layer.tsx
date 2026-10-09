@@ -16,13 +16,7 @@ interface IProps {
   readonly rested: PageEditorLinkAtHand | null;
 }
 
-/**
- * Everything the page says about one link: the bubble a link shows when the
- * pointer rests on it, and the field that asks where it goes.
- *
- * They are one thing because they never both belong on screen — being asked
- * where a link goes replaces resting on it.
- */
+/** The hover bubble and the edit field share one layer because they are never on screen together. */
 export const PagesEditorLinkLayer = ({
   asked,
   onCancel,

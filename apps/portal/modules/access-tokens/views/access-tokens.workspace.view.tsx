@@ -7,7 +7,6 @@ interface IProps {
   readonly tokens: readonly WorkspaceAccessToken[] | null;
 }
 
-/** La sección de quien administra: quién tiene tokens, qué pueden hacer, y revocarlos. */
 export const AccessTokensWorkspaceView = async ({ tokens }: IProps) => {
   const t = await getTranslations('accessTokens.workspace');
 

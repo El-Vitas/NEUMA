@@ -13,21 +13,13 @@ import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
-/**
- * Starts a page and takes whoever asked for it there.
- *
- * The page is made empty and opened, instead of being asked for in a form and
- * made afterwards: a page is something one writes in, and its name is one of the
- * things written in it. Nothing is required first, so nothing is left unwritten
- * either — the page is called nothing until somebody calls it something.
- */
+/** Creates the page empty and opens it; the title is written in the page, not asked for in a form. */
 export const usePagesStart = (): PagesStartResult => {
   const router = useRouter();
   const t = useTranslations('pages');
   const tErrors = useTranslations('errors');
   const [isStarting, startTransition] = useTransition();
 
-  /** Lo que las dos maneras de arrancar hacen igual: llevar allí, o decir por qué no se pudo. */
   const openOrComplain = (started: unknown, spaceId: string): void => {
     if (!isActionSuccess<PageSummary>(started)) {
       toast.error(tErrors(`reasons.${readActionFailureReason(started)}`));

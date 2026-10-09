@@ -25,14 +25,7 @@ import type {
 
 export const buildSlashMenuOptionId = (menuId: string, itemId: string): string => `${menuId}-option-${itemId}`;
 
-/**
- * What the editor says about itself while the menu beside the cursor is open.
- *
- * It is said on the editor and not on the menu because the focus never leaves
- * the text: a reader only follows `aria-activedescendant` on the element it is
- * standing on. The words are taken back when the menu closes, so the rest of
- * the time the editor is plain text again and nothing announces a list.
- */
+/** Set on the editor, not the menu: focus stays in the text and `aria-activedescendant` needs the focused node. */
 export const describeEditorWithTriggerMenu = (
   menuId: string,
   activeItemId: string | null,
@@ -113,7 +106,6 @@ const buildPageMentionItems = (
     }),
   }));
 
-/** Told apart from a page once it is written, by the mark it carries rather than by anything shown here. */
 const buildPersonMentionItems = (
   schema: Schema,
   personCandidates: readonly PagePersonOption[],
@@ -127,7 +119,7 @@ const buildPersonMentionItems = (
 const answersToTheDayName = (label: string, query: string): boolean =>
   query.length === 0 || foldPageLookingText(label).includes(foldPageLookingText(query));
 
-/** The one day offered for picking opens its own calendar the moment it lands; the rest are written outright. */
+/** Only the `pick` offer opens a calendar after insertion; the others are inserted directly. */
 const chooseDayCommand = (schema: Schema, offer: PageEditorDayOffer): Command =>
   offer.labelKey === 'pick'
     ? createPageDatePickCommand(schema, { at: offer.at })
@@ -146,11 +138,7 @@ const buildDayMentionItems = (
     .map(({ label, offer }) => ({ id: `date-${offer.id}`, label, run: chooseDayCommand(schema, offer) }));
 };
 
-/**
- * How close an answer sits to what was typed: an exact match first, then
- * whichever starts the same way, then whatever merely contains it — so pages,
- * people, and days sort by the same rule instead of by which kind they are.
- */
+/** Exact match, then prefix, then substring, so pages, people and days sort by the same rule. */
 const rankAgainstQuery = (label: string, query: string): number => {
   const foldedQuery = foldPageLookingText(query);
   if (foldedQuery.length === 0) return 0;
@@ -164,13 +152,6 @@ const byHowCloseToQuery =
   (left: PagesEditorMenuItem, right: PagesEditorMenuItem): number =>
     rankAgainstQuery(left.label, query) - rankAgainstQuery(right.label, query);
 
-/**
- * Everyone and everything that answers to what was typed after `@`: the
- * pages named that way, the members of this space called that, and the days
- * that go by that name — closest first, whichever kind they are — and, when
- * none of them is called exactly that, the offer to make the page that was
- * named.
- */
 const buildMentionTriggerItems = (parameters: {
   readonly canMakeAPage: boolean;
   readonly dayOffers: readonly PageEditorDayOffer[];
@@ -217,13 +198,7 @@ const moveRecentToTheFront = (
   return [...recentItems, ...remainingItems];
 };
 
-/**
- * Whether a command answers to what was typed after the slash.
- *
- * Its own name counts as well as its label: someone reaching for a list of
- * things to do types `/task`, and the label they would be shown may well be
- * written in another language than the one they are typing in.
- */
+/** Matches the command name too, because the translated label may be in another language than the one typed. */
 const answersTo = (query: string, label: string, commandName: string): boolean =>
   label.toLocaleLowerCase().includes(query) || commandName.toLocaleLowerCase().includes(query);
 
@@ -253,7 +228,6 @@ export const buildEditorTriggerItems = (parameters: {
   readonly translateCommandLabel: (labelKey: string) => string;
   readonly translateDayLabel: (labelKey: PageEditorDayOffer['labelKey']) => string;
   readonly nameTheOfferToMakeAPage: (title: string) => string;
-  /** Whether this page is written yet, since a page can only be made hanging from one that exists. */
   readonly canMakeAPage: boolean;
   readonly recentCommandIds?: readonly string[];
   readonly triggerKind: PagesEditorTriggerKind | null;

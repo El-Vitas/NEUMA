@@ -13,7 +13,6 @@ import { explainMcpRefusal, readMcpPageId } from '@/modules/mcp/lib/mcp.page-acc
 const PAGE = '0199a1c2-0000-7000-8000-000000000001';
 
 describe('explainMcpRefusal', () => {
-  /** Lo que no se ve suena igual que lo que no existe: si no, el rechazo confirmaría que está. */
   it('says the same about a page the token cannot see and a collection that is not there', () => {
     expect(explainMcpRefusal({ code: 'PAGE_ACCESS_DENIED', details: { pageId: PAGE } })).toBe(MCP_INACCESSIBLE_MESSAGE);
     expect(explainMcpRefusal({ code: 'PAGE_SCHEMA_NOT_FOUND', details: undefined })).toBe(MCP_INACCESSIBLE_MESSAGE);
@@ -39,7 +38,6 @@ describe('explainMcpRefusal', () => {
     );
   });
 
-  /** De un código que no conoce no sabe qué nombra su detalle: podría ser algo que el token no alcanza. */
   it('says only the code of a refusal it does not know, never its details', () => {
     const explained = explainMcpRefusal({ code: 'SOMETHING_NEW', details: { hiddenTitle: 'Salaries 2027' } });
 

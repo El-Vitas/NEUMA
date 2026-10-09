@@ -29,7 +29,6 @@ export const formatAttachmentSize = (size: number, locale: string): string => {
 
 export const formatAttachmentType = (mimeType: string): string => ATTACHMENT_TYPE_LABELS[mimeType] ?? mimeType;
 
-/** What a page makes of a file: a picture, something that plays, or a file to take away. */
 export const mapAttachmentMimeTypeToPageAssetNodeType = (mimeType: string): PageAssetNodeType => {
   if (mimeType.startsWith(IMAGE_ATTACHMENT_MIME_TYPE_PREFIX)) return 'image';
   if (mimeType.startsWith(VIDEO_ATTACHMENT_MIME_TYPE_PREFIX)) return 'video';
@@ -53,7 +52,7 @@ export const buildPageAssetInsertOptionsFromAttachment = (
   return { assetId: attachment.id, caption: attachment.originalFilename };
 };
 
-/** The pictures a page wears are not files it carries, so the attachment list leaves them out. */
+/** The icon and cover images are page decoration, not attachments, so they are left out of the list. */
 export const excludePageAssetAttachments = (
   attachments: readonly AttachmentSummary[],
   icon: PageIcon | null,

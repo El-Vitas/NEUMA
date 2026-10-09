@@ -26,7 +26,7 @@ describe('isPageLinkTarget', () => {
     expect(isPageLinkTarget('mailto:ana@example.com')).toBe(true);
   });
 
-  /** El navegador borra tabs y saltos antes de leer una dirección: "/\t/x" termina siendo "//x", otro sitio. */
+  // Browsers strip tabs and newlines before parsing an address, so "/\t/x" becomes "//x", another site.
   test('refuses what only looks like a path of this app and leads to another site', () => {
     expect(isPageLinkTarget('//evil.example')).toBe(false);
     expect(isPageLinkTarget('/\t/evil.example')).toBe(false);
@@ -206,7 +206,6 @@ describe('pageContentSchema', () => {
     ).toBe(true);
   });
 
-  /** Una tarjeta se abre con un clic: una que corre código en vez de llevar a un sitio no se guarda. */
   test('rejects a card, or its icon, that leads anywhere but a web address', () => {
     const cardWith = (attrs: Record<string, string>) =>
       pageContentSchema.safeParse({ content: [{ attrs, type: 'bookmark' }], schemaVersion: 1, type: 'doc' }).success;
@@ -555,10 +554,7 @@ describe('pageContentSchema', () => {
     });
   });
 
-  /**
-   * Lo que un bloque desconocido lleva no se lee, pero se guarda: sin tope, uno
-   * anidado sin fin tumbaba la validación entera en vez de rechazarse.
-   */
+  // Regression: without a cap, endless nesting crashed validation instead of being rejected.
   test('refuses an unknown block nested beyond reason or carrying an endless text, without throwing', () => {
     const blockWith = (attrs: Record<string, unknown>) => ({
       content: [{ attrs, type: 'diagram' }],

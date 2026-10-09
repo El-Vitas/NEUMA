@@ -15,11 +15,7 @@ export const validateSchemaView = (
     return Result.fail(new SchemaViewValidationError('View configuration is not valid'));
   }
   const groupBy = view.configuration.groupBy;
-  /**
-   * Una vista que tiene que agrupar sin decir por qué no dibuja nada, y una que
-   * podía no agrupar pero eligió una propiedad que no sirve tampoco. Lo que sí
-   * vale es no agrupar cuando no hacía falta.
-   */
+  // A view that must group needs a valid property; one that may skip grouping is valid only if it skips it entirely.
   if (!pageViewRequiresGrouping(view.type) && (groupBy === undefined || groupBy === null)) return Result.ok(view);
   const property = properties.find((candidate) => candidate.key === groupBy);
   return property !== undefined && canPagePropertyGroupBoard(property.type)
