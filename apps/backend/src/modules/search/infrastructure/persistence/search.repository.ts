@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { SearchIndexingState, SpaceVisibility } from '@company-brain/db';
-import { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { SearchIndexingState, SpaceVisibility } from '@neuma/db';
+import { Prisma } from '@neuma/db/generated';
+import type { UserRole } from '@neuma/shared';
 import { SEARCH_MAX_LIMIT } from '../../../../common/constants/search.constants';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { canReadSpace } from '../../../../common/domain/workspace.domain';

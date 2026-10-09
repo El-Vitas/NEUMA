@@ -1,10 +1,5 @@
-import type { PageCalendarDay } from '@company-brain/shared';
-import {
-  listPageCalendarDays,
-  PAGE_PROPERTY_TYPE,
-  readPageCalendarMonth,
-  shiftPageCalendarMonth,
-} from '@company-brain/shared';
+import type { PageCalendarDay } from '@neuma/shared';
+import { listPageCalendarDays, PAGE_PROPERTY_TYPE, readPageCalendarMonth, shiftPageCalendarMonth } from '@neuma/shared';
 import { PAGE_CALENDAR_DATE_LENGTH, PAGE_CALENDAR_MONTH_LENGTH } from '../constants/pages.calendar.constants';
 import type { PageCalendarCell } from '../types/pages.calendar.types';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';

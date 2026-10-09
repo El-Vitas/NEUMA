@@ -1,4 +1,4 @@
-import type { PageEmbedProvider } from '@company-brain/shared';
+import type { PageEmbedProvider } from '@neuma/shared';
 import {
   PAGE_CODE_LANGUAGES,
   PAGE_DIAGRAM_LANGUAGE,
@@ -9,7 +9,7 @@ import {
   pageImageAttrsSchema,
   pageMediaAttrsSchema,
   pageMentionAttrsSchema,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { baseKeymap, chainCommands, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { gapCursor } from 'prosemirror-gapcursor';
 import { history } from 'prosemirror-history';

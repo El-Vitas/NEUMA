@@ -1,4 +1,4 @@
-import { API_SEGMENTS, RESOURCE_ROUTES } from '@company-brain/shared';
+import { API_SEGMENTS, RESOURCE_ROUTES } from '@neuma/shared';
 
 const API_V1_PREFIX = '/api/v1';
 

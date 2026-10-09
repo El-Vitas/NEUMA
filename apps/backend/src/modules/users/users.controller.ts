@@ -1,4 +1,3 @@
-import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES, type User } from '@company-brain/shared';
 import {
   Body,
   Controller,
@@ -12,6 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES, type User } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
 import { Action, Resource } from '../../common/constants/permission.constants';

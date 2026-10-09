@@ -1,4 +1,4 @@
-export const SIDEBAR_STORAGE_KEY = 'company-brain-sidebar-collapsed';
+export const SIDEBAR_STORAGE_KEY = 'neuma-sidebar-collapsed';
 export const SIDEBAR_COLLAPSED_WIDTH = 'w-14';
 export const SIDEBAR_EXPANDED_WIDTH = 'w-60';
 export const SIDEBAR_TRANSITION_DURATION_MS = 300;

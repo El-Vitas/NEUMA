@@ -1,4 +1,4 @@
-import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
+import { PAGE_CODE_LANGUAGES } from '@neuma/shared';
 import type { Node as EditorNode, Mark, Schema } from 'prosemirror-model';
 import {
   PAGE_EDITOR_LINE_BREAK_PATTERN,

@@ -1,4 +1,4 @@
-import { isPageCalendarDay, pageDateAttrsSchema } from '@company-brain/shared';
+import { isPageCalendarDay, pageDateAttrsSchema } from '@neuma/shared';
 import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import { NodeSelection } from 'prosemirror-state';

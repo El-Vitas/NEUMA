@@ -1,4 +1,4 @@
-import type { AccessTokenAccess, UserRole } from '@company-brain/shared';
+import type { AccessTokenAccess, UserRole } from '@neuma/shared';
 import type {
   AccessTokenCreation,
   AccessTokenOwner,

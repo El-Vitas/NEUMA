@@ -1,6 +1,6 @@
 'use client';
 
-import { isAccessTokenNameTaken, type UserRole } from '@company-brain/shared';
+import { isAccessTokenNameTaken, type UserRole } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { type SubmitEvent, useState, useTransition } from 'react';
 import { toast } from 'sonner';

@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_VIEW_TYPE, PAGE_VIEW_TYPE_VALUES } from '@company-brain/shared';
+import { PAGE_VIEW_TYPE, PAGE_VIEW_TYPE_VALUES } from '@neuma/shared';
 import { Columns3, Layers, List, Table2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { readPageViewType } from '../lib/pages.view-editing.lib';

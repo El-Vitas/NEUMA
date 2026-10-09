@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { MCP_DIAGRAM_ICON_PACKS, MCP_DIAGRAM_ICON_USAGE } from '../constants/mcp.diagram-icons.constants';
 import { searchMcpDiagramIcons } from '../lib/mcp.diagram-icons.lib';

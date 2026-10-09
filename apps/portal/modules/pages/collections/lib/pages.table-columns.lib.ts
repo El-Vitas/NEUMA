@@ -1,4 +1,4 @@
-import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@company-brain/shared';
+import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@neuma/shared';
 import {
   PAGE_TABLE_DEFAULT_COLUMN_WIDTH,
   PAGE_TABLE_FROZEN_CELL_CLASS,

@@ -3,7 +3,7 @@ import {
   pageViewConfigurationSchema,
   pageViewRequiresGrouping,
   Result,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from './schema.domain.types';
 import { SchemaViewValidationError } from './schema.error';
 

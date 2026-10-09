@@ -1,4 +1,4 @@
-import { pageMentionAttrsSchema } from '@company-brain/shared';
+import { pageMentionAttrsSchema } from '@neuma/shared';
 import { type Node as EditorNode, Fragment } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { Selection } from 'prosemirror-state';

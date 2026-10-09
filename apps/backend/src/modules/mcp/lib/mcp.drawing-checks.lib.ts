@@ -1,4 +1,4 @@
-import type { Result } from '@company-brain/shared';
+import type { Result } from '@neuma/shared';
 import { MCP_DIAGRAM_BUILT_IN_ICONS, MCP_DRAWING_KINDS, MCP_REFUSAL_REASONS } from '../constants/mcp.constants';
 import { MCP_DIAGRAM_ICON_PACKS } from '../constants/mcp.diagram-icons.constants';
 import { MCP_DIAGRAMS_PER_WRITE } from '../constants/mcp.limits.constants';
@@ -48,7 +48,7 @@ const checkDiagram = async (
   return unknown === undefined
     ? null
     : new McpToolError(
-        `Block ${String(drawing.block)}: the diagram names the icon ${unknown}, which Company Brain cannot draw. Without a pack only ${MCP_DIAGRAM_BUILT_IN_ICONS.join(', ')} exist; find any other with search_diagram_icons and write it as pack:name.`,
+        `Block ${String(drawing.block)}: the diagram names the icon ${unknown}, which Neuma cannot draw. Without a pack only ${MCP_DIAGRAM_BUILT_IN_ICONS.join(', ')} exist; find any other with search_diagram_icons and write it as pack:name.`,
         MCP_REFUSAL_REASONS.diagramIcon,
       );
 };

@@ -11,7 +11,7 @@ import {
   Result,
   readPageDocumentBlockId,
   writeBlocksAsAnchoredMarkdown,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { MCP_REDACTED_REFERENCE_LABEL, MCP_WRITTEN_UNREADABLE_NOTE } from '../constants/mcp.constants';
 import type {
   McpBlockInput,

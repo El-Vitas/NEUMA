@@ -1,4 +1,4 @@
-import type { PageIcon } from '@company-brain/shared';
+import type { PageIcon } from '@neuma/shared';
 
 export interface SpaceHomePage {
   readonly icon: PageIcon | null;

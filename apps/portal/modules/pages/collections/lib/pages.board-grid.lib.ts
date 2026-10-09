@@ -1,4 +1,4 @@
-import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import type { PageBoardGridDropTarget, PageBoardGridMove } from '../types/pages.board-drag.types';
 import type { PageRow, PageViewBand } from '../types/pages.schema.types';
 import { applyBoardMoveToGroups, readBoardGroupValue, resolveBoardDrop, withLandedValue } from './pages.board-drag.lib';

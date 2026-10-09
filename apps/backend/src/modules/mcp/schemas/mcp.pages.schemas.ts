@@ -5,7 +5,7 @@ import {
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
   PAGE_DIAGRAM_VIEWS,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { z } from 'zod';
 import {
   MCP_ADDRESS_MAX_LENGTH,
@@ -34,7 +34,7 @@ const inlineTextSchema = z
     'Words, with inline Markdown as fetch returns it: **bold**, *italic*, `code`, ~~strike~~, <u>underlined</u>, <span color="red">coloured words</span>, <mark color="yellow">highlighted words</mark>, [label](https://…), a mention as [Page title](page link), a person as [@Name](person:<user id>), a date as [label](date:YYYY-MM-DD), a formula as $LaTeX$. Colours: gray, brown, orange, yellow, green, blue, purple, red. A line break stays inside the block.',
   );
 
-const pageAddressSchema = buildMcpAddressSchema('The page: a Company Brain link to it, or its page id.');
+const pageAddressSchema = buildMcpAddressSchema('The page: a Neuma link to it, or its page id.');
 
 const toggleSummarySchema = z.string().trim().min(1).max(MCP_TOGGLE_SUMMARY_MAX_LENGTH);
 
@@ -92,7 +92,7 @@ const blockVariants = [
       view: drawnViewSchema,
     })
     .describe(
-      String.raw`A diagram drawn from Mermaid 11 source, any kind it draws: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, journey, gantt, pie, quadrantChart, requirementDiagram, gitGraph, C4Context, mindmap, timeline, sankey-beta, xychart-beta, block-beta, packet-beta, kanban, architecture-beta, radar-beta, and zenuml. Company Brain draws real product logos and icons: when a diagram shows products, services or systems (Postgres, AWS, a server, a user), draw each with its logo or icon, found with search_diagram_icons, in an architecture-beta service or a flowchart icon node; an emoji is not an icon. C4 views (C4Context, C4Container, C4Component) are written as calls, one per line, never with flowchart arrows: Person(user, "Label", "What they do"), Container(api, "Label", "Technology", "What it does"), ContainerDb(db, "Label", "Technology", "What it keeps"), System_Ext(maps, "Label", "What it is"), System_Boundary(app, "Label") { ... }, Rel(user, api, "What it does", "Protocol"). For a crowded graph, start with ---\nconfig:\n  layout: elk\n--- to lay it out better. Data lines of sankey-beta and similar CSV-like diagrams must not be indented.`,
+      String.raw`A diagram drawn from Mermaid 11 source, any kind it draws: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, journey, gantt, pie, quadrantChart, requirementDiagram, gitGraph, C4Context, mindmap, timeline, sankey-beta, xychart-beta, block-beta, packet-beta, kanban, architecture-beta, radar-beta, and zenuml. Neuma draws real product logos and icons: when a diagram shows products, services or systems (Postgres, AWS, a server, a user), draw each with its logo or icon, found with search_diagram_icons, in an architecture-beta service or a flowchart icon node; an emoji is not an icon. C4 views (C4Context, C4Container, C4Component) are written as calls, one per line, never with flowchart arrows: Person(user, "Label", "What they do"), Container(api, "Label", "Technology", "What it does"), ContainerDb(db, "Label", "Technology", "What it keeps"), System_Ext(maps, "Label", "What it is"), System_Boundary(app, "Label") { ... }, Rel(user, api, "What it does", "Protocol"). For a crowded graph, start with ---\nconfig:\n  layout: elk\n--- to lay it out better. Data lines of sankey-beta and similar CSV-like diagrams must not be indented.`,
     ),
   z
     .object({ latex: z.string().min(1).max(MCP_FORMULA_MAX_LENGTH), type: z.literal('formula'), view: drawnViewSchema })
@@ -147,7 +147,7 @@ const blockVariants = [
       url: z.url().max(MCP_ADDRESS_MAX_LENGTH).describe('An http or https address.'),
     })
     .describe(
-      'A link shown as a card with its title and description, which you write: Company Brain never visits the link. Without a title it shows the site.',
+      'A link shown as a card with its title and description, which you write: Neuma never visits the link. Without a title it shows the site.',
     ),
   z
     .object({ type: z.literal('embed'), url: z.url().max(MCP_ADDRESS_MAX_LENGTH) })

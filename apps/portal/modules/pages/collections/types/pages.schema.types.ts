@@ -5,10 +5,10 @@ import type {
   PagePropertyType,
   PagePropertyValues,
   PageViewType,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { ReactNode } from 'react';
 
-export type { PagePropertyValue, PagePropertyValues } from '@company-brain/shared';
+export type { PagePropertyValue, PagePropertyValues } from '@neuma/shared';
 
 export interface PageSchemaProperty {
   readonly key: string;

@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import type { McpCall, McpRowDescriber, McpServerDependencies } from '../types/mcp.types';
 import { readMcpRowPlace } from './mcp.collections.lib';
 import { canMcpAct } from './mcp.page-access.lib';

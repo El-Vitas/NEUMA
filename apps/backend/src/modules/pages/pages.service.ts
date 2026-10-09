@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
+import { Inject, Injectable } from '@nestjs/common';
+import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
 import {
   givePageBlocksTheirIds,
   type PageContent,
@@ -8,8 +9,7 @@ import {
   USER_ROLE,
   type UserRole,
   writePagesAsMarkdownFiles,
-} from '@company-brain/shared';
-import { Inject, Injectable } from '@nestjs/common';
+} from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';

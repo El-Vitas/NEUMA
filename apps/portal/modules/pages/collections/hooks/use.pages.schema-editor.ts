@@ -9,7 +9,7 @@ import {
   type PagePropertyType,
   type PageViewType,
   removeSchemaView,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { useState } from 'react';
 import {
   addSchemaOption,

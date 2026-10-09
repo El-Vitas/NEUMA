@@ -5,7 +5,7 @@ import {
   PAGE_PROPERTY_TYPE,
   pageViewRequiresGrouping,
   readPageViewConfiguration,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { Checkbox } from '@/shared/components/ui/checkbox';

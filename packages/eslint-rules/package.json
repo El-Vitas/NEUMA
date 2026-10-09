@@ -1,5 +1,5 @@
 {
-  "name": "@company-brain/eslint-rules",
+  "name": "@neuma/eslint-rules",
   "version": "0.1.0",
   "private": true,
   "type": "module",

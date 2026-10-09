@@ -1,7 +1,7 @@
-import { FileAssetLifecycle, PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import { USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { FileAssetLifecycle, PageLifecycle } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import { USER_ROLE, type UserRole } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { FILE_ASSET_METADATA_SELECTION, UNKNOWN_FILE_OWNER_NAME } from '../../constants/files.constants';

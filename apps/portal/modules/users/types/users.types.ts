@@ -1,4 +1,4 @@
-import type { User } from '@company-brain/shared';
+import type { User } from '@neuma/shared';
 import type { z } from 'zod';
 import type { createUserSchema, updateUserNameSchema, usersListParamsSchema } from '../schemas/users.schemas';
 

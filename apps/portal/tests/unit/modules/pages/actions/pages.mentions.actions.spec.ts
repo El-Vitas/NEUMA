@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 import type { SearchPage, SearchQuery } from '@/shared/types/search.types';
 import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 

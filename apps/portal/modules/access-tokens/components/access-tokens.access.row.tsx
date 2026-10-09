@@ -1,6 +1,6 @@
 'use client';
 
-import { ACCESS_TOKEN_LEVELS, type AccessTokenLevel, type AccessTokenPermission } from '@company-brain/shared';
+import { ACCESS_TOKEN_LEVELS, type AccessTokenLevel, type AccessTokenPermission } from '@neuma/shared';
 import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';

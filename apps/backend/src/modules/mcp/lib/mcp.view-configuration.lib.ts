@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import { PAGE_FILTER_GROUP_OPERATOR, Result } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import { PAGE_FILTER_GROUP_OPERATOR, Result } from '@neuma/shared';
 import type { McpColumnsInHand, McpViewShapeInput } from '../types/mcp.collections.types';
 import type { McpPerson } from '../types/mcp.types';
 import { readMcpConditionValue, requireMcpColumn } from './mcp.columns.lib';

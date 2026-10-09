@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_INACCESSIBLE_MESSAGE, MCP_LIST_PAGES_PLACE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl, readMcpOffset } from '../lib/mcp.address.lib';

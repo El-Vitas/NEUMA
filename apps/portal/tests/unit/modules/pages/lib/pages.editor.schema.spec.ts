@@ -5,7 +5,7 @@ import {
   type PageDocumentMarkStructure,
   type PageDocumentNodeStructure,
   pageContentSchema,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { AttributeSpec, MarkSpec, NodeSpec, Node as ProseMirrorNode } from 'prosemirror-model';
 import { DOMParser, DOMSerializer } from 'prosemirror-model';
 import { serializePageEditorDocument } from '@/modules/pages/editor/lib/pages.editor.lib';

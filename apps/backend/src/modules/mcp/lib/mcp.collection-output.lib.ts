@@ -1,4 +1,4 @@
-import { type PageFilter, readPageViewConfiguration } from '@company-brain/shared';
+import { type PageFilter, readPageViewConfiguration } from '@neuma/shared';
 import { MCP_CONFIGURED_UNREADABLE_NOTE, MCP_VALUELESS_FILTER_OPERATORS } from '../constants/mcp.constants';
 import type {
   McpCollectionOutput,

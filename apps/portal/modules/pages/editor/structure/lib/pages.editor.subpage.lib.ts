@@ -1,4 +1,4 @@
-import type { PageLifecycle } from '@company-brain/shared';
+import type { PageLifecycle } from '@neuma/shared';
 import type { Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import type { PageIcon } from '../../../appearance/types/pages.icon.types';

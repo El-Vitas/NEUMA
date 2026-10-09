@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@company-brain/shared';
+import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@neuma/shared';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Table, TableHeader, TableRow } from '@/shared/components/ui/table';

@@ -1,4 +1,4 @@
-import { USER_ROLE } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import { getLocale } from 'next-intl/server';
 import { usersListParamsSchema } from '@/modules/users/schemas/users.schemas';
 import { getUsers } from '@/modules/users/server/queries/users.queries';

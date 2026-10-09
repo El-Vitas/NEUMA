@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType } from '@company-brain/db';
+import { DatabasePropertyType } from '@neuma/db';
 import { validateSchemaProperties, validateSchemaPropertyValues } from '@/common/domain/schema-property.domain';
 
 describe('schema property domain validation', () => {

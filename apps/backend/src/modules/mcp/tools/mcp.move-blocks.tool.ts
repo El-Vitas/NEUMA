@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS, movePageBlocks } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, movePageBlocks } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { readMcpBlockPlace } from '../lib/mcp.block-update.lib';

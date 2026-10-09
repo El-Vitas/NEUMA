@@ -1,4 +1,4 @@
-import type { SpaceVisibility } from '@company-brain/shared';
+import type { SpaceVisibility } from '@neuma/shared';
 import type { ZodString } from 'zod';
 import type { BadgeVariant, SpaceFieldErrorCode } from '../types/spaces.types';
 

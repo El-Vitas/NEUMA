@@ -1,4 +1,4 @@
-import { PAGE_LIFECYCLE } from '@company-brain/shared';
+import { PAGE_LIFECYCLE } from '@neuma/shared';
 import type { SearchResult } from '@/shared/types/search.types';
 import type { PageSummary } from '../../types/pages.types';
 import type { PageMentionCandidate } from '../types/pages.mentions.types';

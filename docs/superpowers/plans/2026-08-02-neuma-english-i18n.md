@@ -1,4 +1,4 @@
-# Company Brain English And I18n Implementation Plan
+# Neuma English And I18n Implementation Plan
 
 > **For agentic workers:** Use the slice-squad workflow. Agents must not spawn agents, commit, push, or edit files outside their assigned scope.
 
@@ -98,7 +98,7 @@ The route pathname stays English for every locale in this round. Translation app
 - Keep route groups and layouts thin.
 - Update every internal href and redirect through `ROUTES` or `next-intl` navigation helpers.
 - Set root document language from the resolved locale.
-- Replace starter metadata with Company Brain metadata.
+- Replace starter metadata with Neuma metadata.
 - Do not leave compatibility Spanish route implementations; use redirects only if preserving old bookmarks is explicitly desired.
 
 ## Verification

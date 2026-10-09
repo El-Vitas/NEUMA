@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import type { PageContent } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { CollaborationGateway } from '@/modules/collaboration/collaboration.service';
 import { readCollaborationDocumentContent } from '@/modules/collaboration/utils/collaboration.document.utils';

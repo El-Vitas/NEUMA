@@ -1,10 +1,10 @@
-import type { PageColumnAlignment, PageRowHeight } from '@company-brain/shared';
+import type { PageColumnAlignment, PageRowHeight } from '@neuma/shared';
 import {
   PAGE_COLUMN_ALIGNMENT,
   PAGE_COLUMN_ALIGNMENT_VALUES,
   PAGE_ROW_HEIGHT,
   PAGE_ROW_HEIGHT_VALUES,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   PAGE_TABLE_ALIGNMENT_CLASSES,
   PAGE_TABLE_CONTROL_HEIGHT_CLASSES,

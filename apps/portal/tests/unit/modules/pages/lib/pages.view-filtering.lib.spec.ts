@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageFilter, PageFilterCondition, PageFilterGroup } from '@company-brain/shared';
-import { readPageViewConfiguration } from '@company-brain/shared';
+import type { PageFilter, PageFilterCondition, PageFilterGroup } from '@neuma/shared';
+import { readPageViewConfiguration } from '@neuma/shared';
 import {
   addViewFilterCondition,
   addViewFilterGroup,

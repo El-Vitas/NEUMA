@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_FILE_DISPLAYS, type PageFileDisplay } from '@company-brain/shared';
+import { PAGE_FILE_DISPLAYS, type PageFileDisplay } from '@neuma/shared';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenuItem } from '@/shared/components/ui/dropdown-menu';

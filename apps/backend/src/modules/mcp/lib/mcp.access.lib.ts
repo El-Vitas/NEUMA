@@ -6,7 +6,7 @@ import {
   isOneOf,
   listAccessTokenGrantedPermissions,
   readAccessTokenPermissionsAt,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { AccessTokenPageReach, AccessTokenPageRuleProbe } from '../../../common/types/access-token.types';
 import type { SearchTokenScope } from '../../../common/types/search.types';
 import type { McpPrincipal, McpToolDefinition } from '../types/mcp.types';

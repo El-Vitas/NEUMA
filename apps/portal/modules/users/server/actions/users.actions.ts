@@ -1,7 +1,7 @@
 'use server';
 
 import 'server-only';
-import { canManageWorkspace } from '@company-brain/shared';
+import { canManageWorkspace } from '@neuma/shared';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
 import { registerUser } from '@/modules/auth/server/lib/auth.server';

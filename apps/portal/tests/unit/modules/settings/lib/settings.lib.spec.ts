@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import { isSettingsNavItemActive, listSettingsNavItems } from '@/modules/settings/lib/settings.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import { USER_ROLE } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import { USER_ROLE } from '@neuma/shared';
 import { SpacesService } from '@/modules/spaces/spaces.service';
 import type { SpaceRepositoryContract, SpaceSummary } from '@/modules/spaces/types/space.types';
 

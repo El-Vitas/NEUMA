@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_SORT_DIRECTION } from '@company-brain/shared';
+import { PAGE_SORT_DIRECTION } from '@neuma/shared';
 import { ArrowDown, ArrowUp, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/components/ui/button';

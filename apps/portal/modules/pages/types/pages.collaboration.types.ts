@@ -1,5 +1,5 @@
-import type { CollaborationPresenceIdentity } from '@company-brain/shared';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
+import type { CollaborationPresenceIdentity } from '@neuma/shared';
 import type { Doc, XmlFragment } from 'yjs';
 
 export type CollaborationStatus = 'connected' | 'connecting' | 'disconnected' | 'error' | 'exhausted' | 'reconnecting';

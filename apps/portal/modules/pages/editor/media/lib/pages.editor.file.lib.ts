@@ -1,4 +1,4 @@
-import type { PageFileDisplay } from '@company-brain/shared';
+import type { PageFileDisplay } from '@neuma/shared';
 import {
   PAGE_EDITOR_DOCUMENT_MIME_TYPE,
   PAGE_EDITOR_DOCUMENT_NAME_ENDING,

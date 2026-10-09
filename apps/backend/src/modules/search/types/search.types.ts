@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import type { PageIcon } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import type { PageIcon } from '@neuma/shared';
 import type {
   SearchQuery,
   SearchQueryFilters,

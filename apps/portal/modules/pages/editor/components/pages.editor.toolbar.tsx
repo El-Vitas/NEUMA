@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockColor } from '@company-brain/shared';
+import type { PageBlockColor } from '@neuma/shared';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {

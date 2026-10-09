@@ -8,7 +8,7 @@
 
 ## Qué se busca
 
-Un agente conectado con un token trabaja en Company Brain como una persona con
+Un agente conectado con un token trabaja en Neuma como una persona con
 los permisos de ese token:
 
 - encuentra un bloque concreto, sabe en qué página y sección vive, y llega a él;
@@ -18,7 +18,7 @@ los permisos de ese token:
   crea vistas y cambia columnas.
 
 Hoy tiene tres herramientas de lectura (`list_spaces`, `read_page`,
-`search_company_brain`). Ve cada página como un bulto, la búsqueda contesta
+`search_neuma`). Ve cada página como un bulto, la búsqueda contesta
 «está en esta página» y no «está en este bloque», y no puede escribir nada.
 
 ## Lo que se encontró al revisar el código
@@ -240,7 +240,7 @@ bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
 > desarrollo y en el navegador. Quedó así:
 >
 > - Las herramientas son `search`, `fetch`, `list_spaces` y `list_pages`. Las de
->   antes, `read_page` y `search_company_brain`, se retiraron.
+>   antes, `read_page` y `search_neuma`, se retiraron.
 > - `fetch` abre un enlace del portal (con o sin idioma), un id de página o un id
 >   de bloque. Una página llega en Markdown con el id de cada bloque, sus
 >   propiedades si es una fila, sus comentarios, lo que cuelga de ella y quién la
@@ -290,7 +290,7 @@ bloque, Markdown de todos los bloques, `fetch`, `search`, `list_pages`, URLs, y
 >   (`removeSchemaView` y `makeSchemaViewDefault`).
 >
 > Lo probaron agentes haiku con preguntas naturales y solo el MCP. Hicieron falta
-> dos instrucciones más: anotar las tareas del equipo en Company Brain y no en la
+> dos instrucciones más: anotar las tareas del equipo en Neuma y no en la
 > lista propia del agente, y que un tablero puede tener su nombre en otro idioma.
 >
 > El título y las propiedades de una fila se guardan en una sola escritura

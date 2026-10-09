@@ -1,4 +1,4 @@
-import { PAGE_LIFECYCLE_VALUES, pageContentSchema as sharedPageContentSchema } from '@company-brain/shared';
+import { PAGE_LIFECYCLE_VALUES, pageContentSchema as sharedPageContentSchema } from '@neuma/shared';
 import { z } from 'zod';
 import { pageCoverValueSchema } from '../appearance/schemas/pages.cover.schemas';
 import { pageIconSchema } from '../appearance/schemas/pages.icon.schemas';

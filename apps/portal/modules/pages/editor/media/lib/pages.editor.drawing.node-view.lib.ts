@@ -1,4 +1,4 @@
-import { PAGE_DIAGRAM_VIEWS } from '@company-brain/shared';
+import { PAGE_DIAGRAM_VIEWS } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import { drawDiagram } from '@/shared/lib/diagram.drawing.lib';
 import { isDiagramUnknown } from '@/shared/lib/diagram.fault.lib';

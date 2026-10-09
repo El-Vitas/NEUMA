@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import {
   encodePageContentAsCollaborationState,

@@ -1,4 +1,4 @@
-import type { AccessTokenAccess, AccessTokenPermission, UserRole } from '@company-brain/shared';
+import type { AccessTokenAccess, AccessTokenPermission, UserRole } from '@neuma/shared';
 import type {
   AccessTokenAccessValidationError,
   AccessTokenExpiryInPastError,

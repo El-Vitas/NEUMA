@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_CONTENT_SCHEMA_VERSION, USER_ROLE } from '@company-brain/shared';
+import { PAGE_CONTENT_SCHEMA_VERSION, USER_ROLE } from '@neuma/shared';
 import { PAGE_CONTENT_STORE_OUTCOME } from '@/modules/pages/constants/pages.constants';
 import { PageMaintenanceService } from '@/modules/pages/page.maintenance.service';
 import type { PageContentStoreOutcome, PageLiveDocument } from '@/modules/pages/types/page.types';

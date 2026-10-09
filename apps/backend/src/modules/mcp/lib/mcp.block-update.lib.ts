@@ -8,7 +8,7 @@ import {
   type PageDocumentNodeShape,
   Result,
   replacePageBlock,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { MCP_BLOCK_COLOR_NAMES, MCP_BLOCK_KEPT_ATTRIBUTES } from '../constants/mcp.constants';
 import type { McpBlockChange, McpBlockColors, McpBlockPlaceInput, McpContentEdit } from '../types/mcp.pages.types';
 

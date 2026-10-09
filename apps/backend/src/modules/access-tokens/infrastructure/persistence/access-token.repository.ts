@@ -1,6 +1,6 @@
-import { PageLifecycle } from '@company-brain/db';
-import type { AccessTokenAccess, UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
+import type { AccessTokenAccess, UserRole } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { ACCESS_TOKEN_LAST_USED_RESOLUTION_MS } from '../../constants/access-tokens.constants';

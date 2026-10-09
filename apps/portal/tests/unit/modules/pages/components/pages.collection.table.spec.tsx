@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { readPageViewConfiguration } from '@company-brain/shared';
+import { readPageViewConfiguration } from '@neuma/shared';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';

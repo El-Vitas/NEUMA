@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_ICON_COLORS } from '@company-brain/shared';
+import { PAGE_ICON_COLORS } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';

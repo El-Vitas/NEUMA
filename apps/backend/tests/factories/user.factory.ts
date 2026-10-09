@@ -1,6 +1,6 @@
-import type { PrismaClient } from '@company-brain/db/generated';
-import { USER_ROLE_VALUES, type UserRole } from '@company-brain/shared';
 import { faker } from '@faker-js/faker';
+import type { PrismaClient } from '@neuma/db/generated';
+import { USER_ROLE_VALUES, type UserRole } from '@neuma/shared';
 import { Factory } from 'fishery';
 
 const HASH_ROUNDS = 4;

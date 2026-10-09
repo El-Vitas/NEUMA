@@ -1,4 +1,4 @@
-import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
+import { PAGE_CODE_LANGUAGES } from '@neuma/shared';
 import type { PageEditorLabels, PageEditorSay } from '../types/pages.editor.labels.types';
 
 const buildCodeLabels = (say: PageEditorSay): PageEditorLabels['nodeViews']['code'] => ({

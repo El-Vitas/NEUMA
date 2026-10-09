@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockAlignment, PageBlockColor, PageCalloutIcon, PageFileDisplay } from '@company-brain/shared';
+import type { PageBlockAlignment, PageBlockColor, PageCalloutIcon, PageFileDisplay } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,

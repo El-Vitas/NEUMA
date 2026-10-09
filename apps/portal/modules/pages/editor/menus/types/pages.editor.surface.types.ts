@@ -1,4 +1,4 @@
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import type { PageEditorBlockColors } from '../../blocks/types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest } from '../../blocks/types/pages.editor.block-request.types';
 import type { PageEditorBlockConversion } from '../../blocks/types/pages.editor.convert.types';

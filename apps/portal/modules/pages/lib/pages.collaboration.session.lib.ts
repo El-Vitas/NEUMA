@@ -1,6 +1,6 @@
-import { COLLABORATION_DOCUMENT_FRAGMENT, createCollaborationDocumentName } from '@company-brain/shared';
 import type { onStatusParameters } from '@hocuspocus/provider';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
+import { COLLABORATION_DOCUMENT_FRAGMENT, createCollaborationDocumentName } from '@neuma/shared';
 import { Doc } from 'yjs';
 import { env } from '@/config/env.config';
 import { isActionSuccess } from '@/shared/lib/action-result';

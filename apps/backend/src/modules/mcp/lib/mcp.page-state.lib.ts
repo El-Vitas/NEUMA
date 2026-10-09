@@ -1,4 +1,4 @@
-import { resolvePageVerificationStatus } from '@company-brain/shared';
+import { resolvePageVerificationStatus } from '@neuma/shared';
 import type { McpPage, McpPageState } from '../types/mcp.types';
 
 const toDay = (moment: Date | null): string | null => (moment === null ? null : moment.toISOString().slice(0, 10));

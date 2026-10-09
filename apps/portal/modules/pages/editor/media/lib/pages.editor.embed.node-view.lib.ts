@@ -1,4 +1,4 @@
-import type { PageEmbedProvider } from '@company-brain/shared';
+import type { PageEmbedProvider } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {

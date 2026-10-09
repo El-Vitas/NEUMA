@@ -68,8 +68,8 @@ const pageContentWithMention = (
 const seedWorkspace = async (prisma: SeedClient): Promise<void> => {
   await prisma.workspace.upsert({
     where: { singletonKey: 'default' },
-    create: { id: workspaceId, name: 'Company Brain', singletonKey: 'default' },
-    update: { name: 'Company Brain' },
+    create: { id: workspaceId, name: 'Neuma', singletonKey: 'default' },
+    update: { name: 'Neuma' },
   });
 };
 

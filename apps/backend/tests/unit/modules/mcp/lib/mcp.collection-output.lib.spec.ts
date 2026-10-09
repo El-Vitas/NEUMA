@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_OPTION_COLOR, type PagePropertyType } from '@company-brain/shared';
+import { PAGE_OPTION_COLOR, type PagePropertyType } from '@neuma/shared';
 import { describeMcpCollection, formatMcpCollectionText } from '@/modules/mcp/lib/mcp.collection-output.lib';
 import { listMcpNames } from '@/modules/mcp/lib/mcp.columns.lib';
 import type { McpColumn } from '@/modules/mcp/types/mcp.collections.types';

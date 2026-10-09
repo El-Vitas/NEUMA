@@ -101,11 +101,11 @@ La futura implementación cumple este contrato cuando:
 
 ## Relación Con La Arquitectura Existente
 
-- `docs/superpowers/plans/2026-08-01-company-brain-editor.md` define el documento
+- `docs/superpowers/plans/2026-08-01-neuma-editor.md` define el documento
   JSON compatible con ProseMirror como contrato compartido.
-- `docs/superpowers/specs/2026-08-01-company-brain-design.md` define MCP como
+- `docs/superpowers/specs/2026-08-01-neuma-design.md` define MCP como
   adaptador sobre casos de uso autorizados.
-- `docs/superpowers/plans/2026-08-05-company-brain-notion-alignment.md` prioriza
+- `docs/superpowers/plans/2026-08-05-neuma-notion-alignment.md` prioriza
   lecturas y escrituras acotadas por bloque.
 
 Este documento concreta cómo esas decisiones deben aplicarse a la autoría de

@@ -1,4 +1,4 @@
-import type { Prisma } from '@company-brain/db/generated';
+import type { Prisma } from '@neuma/db/generated';
 
 export interface OutboxEventInput {
   readonly aggregateId: string;

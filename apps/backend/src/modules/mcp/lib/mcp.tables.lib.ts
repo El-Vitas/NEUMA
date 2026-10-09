@@ -6,7 +6,7 @@ import {
   type PageDocumentNodeShape,
   Result,
   replacePageBlock,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { MCP_EMPTY_PARAGRAPH_NODE } from '../constants/mcp.constants';
 import type { McpContentEdit, McpTableCellChange, McpTableChange } from '../types/mcp.pages.types';
 import { collectMcpResults } from './mcp.results.lib';

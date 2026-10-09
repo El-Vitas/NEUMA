@@ -9,7 +9,7 @@ import {
   type PageMark,
   Result,
   replacePageBlock,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { MCP_INLINE_OBJECT_PLACEHOLDER } from '../constants/mcp.constants';
 import type { McpContentEdit, McpTextNode } from '../types/mcp.pages.types';
 

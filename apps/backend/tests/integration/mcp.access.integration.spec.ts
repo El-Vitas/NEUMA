@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { PageLifecycle, SpaceVisibility } from '@company-brain/db';
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@company-brain/shared';
+import { PageLifecycle, SpaceVisibility } from '@neuma/db';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { z } from 'zod';
 import { PrismaService } from '@/prisma/prisma.service';

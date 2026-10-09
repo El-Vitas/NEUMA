@@ -1,4 +1,4 @@
-# Company Brain Module Slice Map
+# Neuma Module Slice Map
 
 > **For agentic workers:** This map is the execution authority for the remaining current scope. No agent may create a subagent, commit, or edit files outside its module scope.
 

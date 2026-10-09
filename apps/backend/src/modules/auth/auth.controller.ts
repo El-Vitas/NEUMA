@@ -1,5 +1,5 @@
-import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES } from '@company-brain/shared';
 import { Body, Controller, Delete, HttpCode, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES } from '@neuma/shared';
 import { HTTP_STATUS_CREATED, HTTP_STATUS_NO_CONTENT } from '../../common/constants/http.constants';
 import { Public } from '../../common/infrastructure/decorators/public.decorator';
 import { CredentialsThrottlerGuard } from '../../common/infrastructure/guards/credentials-throttler.guard';

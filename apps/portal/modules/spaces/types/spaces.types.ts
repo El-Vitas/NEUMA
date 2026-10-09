@@ -1,6 +1,6 @@
-import type { PageIcon, SpaceVisibility } from '@company-brain/shared';
+import type { PageIcon, SpaceVisibility } from '@neuma/shared';
 
-export type { SpaceVisibility } from '@company-brain/shared';
+export type { SpaceVisibility } from '@neuma/shared';
 
 export interface SpaceSummary {
   readonly description: string | null;

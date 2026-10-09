@@ -1,6 +1,6 @@
 'use client';
 
-import { SPACE_VISIBILITY } from '@company-brain/shared';
+import { SPACE_VISIBILITY } from '@neuma/shared';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { SyntheticEvent } from 'react';

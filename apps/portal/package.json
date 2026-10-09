@@ -1,5 +1,5 @@
 {
-  "name": "@company-brain/portal",
+  "name": "@neuma/portal",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -22,14 +22,14 @@
     "react:doctor": "npx -y react-doctor@latest ."
   },
   "dependencies": {
-    "@company-brain/design": "workspace:*",
-    "@company-brain/shared": "workspace:*",
     "@daypicker/react": "^10.0.1",
     "@hocuspocus/provider": "^4.4.0",
     "@iconify-json/logos": "^1.2.12",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-js/layout-elk": "^0.2.2",
     "@mermaid-js/mermaid-zenuml": "^0.2.3",
+    "@neuma/design": "workspace:*",
+    "@neuma/shared": "workspace:*",
     "@radix-ui/react-checkbox": "^1.3.4",
     "@radix-ui/react-label": "^2.1.9",
     "@tanstack/react-table": "^9.1.2",
@@ -72,9 +72,9 @@
     "zod": "4"
   },
   "devDependencies": {
-    "@company-brain/eslint-rules": "workspace:*",
     "@happy-dom/global-registrator": "^20.10.6",
     "@iconify/types": "^2.0.0",
+    "@neuma/eslint-rules": "workspace:*",
     "@tailwindcss/postcss": "^4.2.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",

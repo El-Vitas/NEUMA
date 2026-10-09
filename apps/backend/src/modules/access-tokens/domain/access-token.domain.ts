@@ -7,7 +7,7 @@ import {
   listAccessTokenGrantedPermissions,
   Result,
   type UserRole,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { AccessTokenValidity } from './access-token.domain.types';
 import {
   AccessTokenAccessValidationError,

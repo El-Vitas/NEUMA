@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageFilter, PageFilterGroup } from '@company-brain/shared';
+import type { PageFilter, PageFilterGroup } from '@neuma/shared';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';

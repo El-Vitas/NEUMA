@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageLifecycle } from '@company-brain/shared';
-import { pageContentSchema } from '@company-brain/shared';
+import type { PageLifecycle } from '@neuma/shared';
+import { pageContentSchema } from '@neuma/shared';
 import type { PageIcon } from '@/modules/pages/appearance/types/pages.icon.types';
 import { createPageEditorNodeViews } from '@/modules/pages/editor/blocks/lib/pages.editor.node-views.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';

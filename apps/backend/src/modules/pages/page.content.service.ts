@@ -1,5 +1,5 @@
-import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent, Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent, Result } from '@neuma/shared';
 import { ZodError } from 'zod';
 import { PAGE_LIVE_DOCUMENT } from './constants/pages.constants';
 import { PageAccessDeniedError, PageBlockEditError, PageContentValidationError } from './domain/page.error';

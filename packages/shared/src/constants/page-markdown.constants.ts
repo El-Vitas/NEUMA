@@ -40,7 +40,7 @@ export const MARKDOWN_DATE_TARGET = 'date:';
 
 export const MARKDOWN_PERSON_PREFIX = '@';
 
-/** Matches a Company Brain page path, with or without a locale prefix. */
+/** Matches a Neuma page path, with or without a locale prefix. */
 export const MARKDOWN_PAGE_PATH_PATTERN = /^(?:\/[a-z]{2}(?:-[A-Za-z]{2})?)?\/spaces\/([^/?#\s]+)\/pages\/([^/?#\s]+)/;
 
 /** Every ASCII punctuation character, as in CommonMark: a backslash before any of them reads back literally. */

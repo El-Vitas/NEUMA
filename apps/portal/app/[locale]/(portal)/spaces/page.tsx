@@ -1,4 +1,4 @@
-import { canEditContent, USER_ROLE } from '@company-brain/shared';
+import { canEditContent, USER_ROLE } from '@neuma/shared';
 import { getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { SpacesView } from '@/modules/spaces/views/spaces.view';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';

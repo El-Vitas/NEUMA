@@ -1,4 +1,4 @@
-import type { PagePropertyContext, PagePropertyType } from '@company-brain/shared';
+import type { PagePropertyContext, PagePropertyType } from '@neuma/shared';
 import {
   formatPagePropertyValue,
   getDefaultPagePropertyValue,
@@ -7,7 +7,7 @@ import {
   isTitlePageProperty,
   PAGE_PROPERTY_LOGICAL_TYPE,
   pagePropertyRequiresPersonDirectory,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type {
   PagePersonOption,
   PagePropertyValue,

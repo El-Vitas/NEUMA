@@ -1,11 +1,11 @@
-import type { SpaceVisibility } from '@company-brain/db';
+import type { SpaceVisibility } from '@neuma/db';
 import {
   canEditContent,
   canManageWorkspace,
   type UserRole,
   WORKSPACE_CAPABILITY_BY_ROLE,
   type WorkspaceCapability,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 
 export const getWorkspaceCapability = (role: UserRole): WorkspaceCapability => WORKSPACE_CAPABILITY_BY_ROLE[role];
 

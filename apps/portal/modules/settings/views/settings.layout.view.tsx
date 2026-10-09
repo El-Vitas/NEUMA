@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/shared/components/ui/page-header';

@@ -1,6 +1,6 @@
-# Company Brain Future Scope
+# Neuma Future Scope
 
-Nothing in this document is a current implementation task. These items are intentionally excluded from the current company-brain phase.
+Nothing in this document is a current implementation task. These items are intentionally excluded from the current Neuma phase.
 
 ## Identity And Access
 

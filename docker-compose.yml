@@ -3,27 +3,27 @@ services:
     image: postgres:18.4-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-company-brain}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-company-brain}
-      POSTGRES_DB: ${POSTGRES_DB:-company-brain}
+      POSTGRES_USER: ${POSTGRES_USER:-neuma}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-neuma}
+      POSTGRES_DB: ${POSTGRES_DB:-neuma}
       POSTGRES_INITDB_ARGS: "--data-checksums"
-      # Provisions the least-privilege company-brain_app role on first init (see the script).
-      COMPANY_BRAIN_APP_PASSWORD: ${COMPANY_BRAIN_APP_PASSWORD}
+      # Provisions the least-privilege neuma_app role on first init (see the script).
+      NEUMA_APP_PASSWORD: ${NEUMA_APP_PASSWORD}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-company-brain} -d ${POSTGRES_DB:-company-brain}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-neuma} -d ${POSTGRES_DB:-neuma}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # One-shot: apply Prisma migrations, then exit. Minimal image (only @company-brain/db
+  # One-shot: apply Prisma migrations, then exit. Minimal image (only @neuma/db
   # with the Prisma CLI + schema/migrations) — no NestJS/backend/Bun.
   migrate:
-    image: localhost/company-brain-migrate:latest
+    image: localhost/neuma-migrate:latest
     build:
       context: .
       dockerfile: packages/db/migrate.Dockerfile
@@ -36,7 +36,7 @@ services:
     restart: "no"
 
   backend:
-    image: localhost/company-brain-backend:latest
+    image: localhost/neuma-backend:latest
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -68,7 +68,7 @@ services:
         condition: service_completed_successfully
 
   portal:
-    image: localhost/company-brain-portal:latest
+    image: localhost/neuma-portal:latest
     build:
       context: .
       dockerfile: apps/portal/Dockerfile

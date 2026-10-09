@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { pageContentSchema } from '@company-brain/shared';
+import { pageContentSchema } from '@neuma/shared';
 import { EditorState } from 'prosemirror-state';
 import { createPageAssetInsertCommand } from '@/modules/pages/editor/lib/pages.editor.commands';
 import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';

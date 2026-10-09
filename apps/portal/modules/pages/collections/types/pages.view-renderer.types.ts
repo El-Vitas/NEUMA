@@ -1,4 +1,4 @@
-import type { PageViewShape, PageViewType } from '@company-brain/shared';
+import type { PageViewShape, PageViewType } from '@neuma/shared';
 import type { ReactNode } from 'react';
 import type {
   PagePersonOption,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@company-brain/db';
+import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@neuma/db';
 import { buildPageViewOutcome, countPageViewRows } from '@/modules/pages/domain/page-view.domain';
 import type { PageRowSummary } from '@/modules/pages/types/page-schema.types';
 

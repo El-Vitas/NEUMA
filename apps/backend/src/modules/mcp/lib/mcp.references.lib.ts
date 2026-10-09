@@ -7,7 +7,7 @@ import {
   readPageDocumentBlockId,
   readPageDocumentText,
   readPageLinkAddress,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   MCP_BLOCK_REFERENCE_TYPES,
   MCP_INLINE_REFERENCE_TYPES,

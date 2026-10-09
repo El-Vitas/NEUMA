@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPermission, type AccessTokenPlace } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPermission, type AccessTokenPlace } from '@neuma/shared';
 import { MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE, MCP_REDACTED_REFERENCE_LABEL } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type { McpManagedPage, McpManagedPageOutput } from '../types/mcp.page-management.types';

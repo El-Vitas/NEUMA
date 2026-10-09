@@ -1,4 +1,4 @@
-import type { PageLifecycle } from '@company-brain/shared';
+import type { PageLifecycle } from '@neuma/shared';
 
 export interface FavoritePage {
   readonly favoriteId: string;
