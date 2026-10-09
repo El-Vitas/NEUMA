@@ -1,3 +1,4 @@
+export { cleanComments } from './rules/clean-comments.rule.mjs';
 export { constantsDirOnlyConstants } from './rules/constants-dir-only-constants.rule.mjs';
 export { enforceTypeImports } from './rules/enforce-type-imports.rule.mjs';
 export { hooksDirOnlyHooks } from './rules/hooks-dir-only-hooks.rule.mjs';
