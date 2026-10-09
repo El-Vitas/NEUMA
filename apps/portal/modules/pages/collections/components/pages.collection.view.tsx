@@ -1,4 +1,4 @@
-import { PAGE_VIEW_OUTCOME_KIND, PAGE_VIEW_SHAPE } from '@company-brain/shared';
+import { PAGE_VIEW_OUTCOME_KIND, PAGE_VIEW_SHAPE } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';

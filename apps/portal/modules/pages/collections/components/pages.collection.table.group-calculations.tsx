@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageViewCalculation } from '@company-brain/shared';
-import { PAGE_VIEW_CALCULATION } from '@company-brain/shared';
+import type { PageViewCalculation } from '@neuma/shared';
+import { PAGE_VIEW_CALCULATION } from '@neuma/shared';
 import { TableCell, TableRow } from '@/shared/components/ui/table';
 import { usePagesCalculationLabel } from '../hooks/use.pages.calculation-label';
 import type { PagePropertyValues, PageSchemaProperty } from '../types/pages.schema.types';

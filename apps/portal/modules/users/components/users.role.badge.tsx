@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/shared/components/ui/badge';
 import { USER_ROLE_BADGE_VARIANTS } from '../constants/users.constants';

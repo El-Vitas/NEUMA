@@ -1,4 +1,4 @@
-import type { Result } from '@company-brain/shared';
+import type { Result } from '@neuma/shared';
 import type { z } from 'zod';
 import type {
   duplicatePageInputSchema,

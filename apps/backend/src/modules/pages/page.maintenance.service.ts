@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { canManageWorkspace, givePageBlocksTheirIds, Result, readStoredPageContent } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { canManageWorkspace, givePageBlocksTheirIds, Result, readStoredPageContent } from '@neuma/shared';
 import {
   PAGE_CONTENT_STORE_OUTCOME,
   PAGE_LIVE_DOCUMENT,

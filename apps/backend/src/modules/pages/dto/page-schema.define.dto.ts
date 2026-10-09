@@ -1,7 +1,7 @@
-import { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import type { PageOptionColor } from '@company-brain/shared';
-import { PAGE_OPTION_COLOR_VALUES, readPagePropertyOptions } from '@company-brain/shared';
+import { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import type { PageOptionColor } from '@neuma/shared';
+import { PAGE_OPTION_COLOR_VALUES, readPagePropertyOptions } from '@neuma/shared';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,

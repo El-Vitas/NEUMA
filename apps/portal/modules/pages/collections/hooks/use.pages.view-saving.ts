@@ -1,6 +1,6 @@
 'use client';
 
-import { readPageViewConfiguration } from '@company-brain/shared';
+import { readPageViewConfiguration } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';

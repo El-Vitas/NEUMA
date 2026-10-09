@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_NAME_MAX_LENGTH } from '@company-brain/shared';
+import { ACCESS_TOKEN_NAME_MAX_LENGTH } from '@neuma/shared';
 import { Transform } from 'class-transformer';
 import { IsISO8601, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 

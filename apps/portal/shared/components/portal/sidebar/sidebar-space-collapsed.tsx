@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageIcon } from '@company-brain/shared';
+import type { PageIcon } from '@neuma/shared';
 import { BookOpen } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';

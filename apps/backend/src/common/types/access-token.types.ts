@@ -1,4 +1,4 @@
-import type { AccessTokenAccess, AccessTokenPlace, UserRole } from '@company-brain/shared';
+import type { AccessTokenAccess, AccessTokenPlace, UserRole } from '@neuma/shared';
 import type { FastifyRequest } from 'fastify';
 
 /** The role is the owner's current one, not the one at creation time. */

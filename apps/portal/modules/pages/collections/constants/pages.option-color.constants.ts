@@ -1,4 +1,4 @@
-import type { PageOptionColor } from '@company-brain/shared';
+import type { PageOptionColor } from '@neuma/shared';
 
 /** Soft backgrounds on purpose: saturated ones fight the surrounding text in a dense screen. */
 export const PAGE_OPTION_COLOR_CLASSES: Readonly<Record<PageOptionColor, string>> = {

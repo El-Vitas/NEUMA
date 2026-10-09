@@ -1,4 +1,4 @@
-import type { PageOptionColor } from '@company-brain/shared';
+import type { PageOptionColor } from '@neuma/shared';
 
 /** The first group of members belongs to the option value (all views); the second group to this view only. */
 export interface PagesBoardColumns {

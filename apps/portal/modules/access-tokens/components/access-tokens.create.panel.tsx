@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { useState } from 'react';
 import type { AccessTokenSpaceOption, CreatedAccessToken } from '../types/access-tokens.types';
 import { AccessTokensCreateForm } from './access-tokens.create.form';

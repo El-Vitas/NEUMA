@@ -1,4 +1,4 @@
-# Company Brain Search Implementation Plan
+# Neuma Search Implementation Plan
 
 > **For agentic workers:** Use the slice-squad workflow. Agents must not spawn agents, commit, push, or edit files outside their assigned scope.
 
@@ -54,7 +54,7 @@
 - `apps/backend/src/app.module.ts` only for injecting SearchService into the existing MCP dependency boundary
 - MCP tests
 
-**Deliverable:** Add `search_company_brain` to the read-only MCP server using the same authorized SearchService, bounded schemas, structured results, snippets, and safe errors.
+**Deliverable:** Add `search_neuma` to the read-only MCP server using the same authorized SearchService, bounded schemas, structured results, snippets, and safe errors.
 
 ## SearchDocument Contract
 

@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@neuma/db/generated';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type {
   LinksProjectionPage,

@@ -1,7 +1,7 @@
-import { PageLifecycle, SearchSourceType } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import { listPageBlocks, readStoredPageContent } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { PageLifecycle, SearchSourceType } from '@neuma/db';
+import type { Prisma } from '@neuma/db/generated';
+import { listPageBlocks, readStoredPageContent } from '@neuma/shared';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
 import type { OutboxProjectionEvent, OutboxProjectionOutbox } from '../../../../common/types/outbox.types';

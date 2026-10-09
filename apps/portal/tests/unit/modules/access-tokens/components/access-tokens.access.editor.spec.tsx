@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { USER_ROLE, type UserRole } from '@company-brain/shared';
+import { USER_ROLE, type UserRole } from '@neuma/shared';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { AccessTokenSpaceOption } from '@/modules/access-tokens/types/access-tokens.types';

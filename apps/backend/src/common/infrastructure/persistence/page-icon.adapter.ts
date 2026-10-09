@@ -1,5 +1,5 @@
-import { Prisma } from '@company-brain/db/generated';
-import type { PageIcon } from '@company-brain/shared';
+import { Prisma } from '@neuma/db/generated';
+import type { PageIcon } from '@neuma/shared';
 
 /** Stores only the fields of the icon's own kind. */
 export const toPageIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Prisma.JsonNull => {

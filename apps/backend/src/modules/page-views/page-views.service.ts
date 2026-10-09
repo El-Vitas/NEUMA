@@ -1,6 +1,6 @@
-import type { UserRole } from '@company-brain/shared';
-import { canManageWorkspace, Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
+import { canManageWorkspace, Result } from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
 import { PAGE_VIEW_COOLDOWN_MS, PAGE_VIEW_LIST_LIMIT, PAGE_VIEW_REPOSITORY } from './constants/page-views.constants';
 import { shouldRecordPageView } from './domain/page-view.domain';

@@ -1,5 +1,5 @@
-import { DatabasePropertyType } from '@company-brain/db';
-import { isPageCalendarDay, Result } from '@company-brain/shared';
+import { DatabasePropertyType } from '@neuma/db';
+import { isPageCalendarDay, Result } from '@neuma/shared';
 import { MCP_ACCENT_MARKS, MCP_VALUELESS_FILTER_OPERATORS } from '../constants/mcp.constants';
 import type { McpCellInput, McpCellValue, McpColumn, McpNameLister } from '../types/mcp.collections.types';
 import type { McpPerson } from '../types/mcp.types';

@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { readMcpOffset } from '../lib/mcp.address.lib';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';

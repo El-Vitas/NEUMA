@@ -1,4 +1,4 @@
-# Company Brain Live Editing Implementation Plan
+# Neuma Live Editing Implementation Plan
 
 > **For agentic workers:** Use the slice-squad workflow. Agents must not spawn agents, commit, push, or edit files outside their assigned scope.
 

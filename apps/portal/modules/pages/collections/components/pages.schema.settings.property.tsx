@@ -1,6 +1,6 @@
 'use client';
 
-import { isTitlePageProperty, pagePropertyRequiresOptions } from '@company-brain/shared';
+import { isTitlePageProperty, pagePropertyRequiresOptions } from '@neuma/shared';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';

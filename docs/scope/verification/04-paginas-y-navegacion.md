@@ -31,7 +31,7 @@ Crear páginas, organizarlas, encontrarlas de nuevo.
 - [x] Enter en el título baja al cuerpo — el cursor entra al editor y lo escrito cae ahí
 - [x] El título se actualiza en el árbol lateral mientras se escribe
 - [x] Una página sin título muestra un texto de marcador claro («Sin título»)
-- [x] El título aparece en la pestaña del navegador — «Nombre de la página · Company Brain», tanto en la carga del servidor como al renombrar en vivo
+- [x] El título aparece en la pestaña del navegador — «Nombre de la página · Neuma», tanto en la carga del servidor como al renombrar en vivo
 
 ## PG-04 · Debe permitir ponerle un ícono a la página
 

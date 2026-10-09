@@ -5,7 +5,7 @@ import type {
   PageOptionColor,
   PagePropertyType,
   PageViewType,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { PageSchemaProperty, PageSchemaView } from './pages.schema.types';
 
 export interface PagesSchemaEditor {

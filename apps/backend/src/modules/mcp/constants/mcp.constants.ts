@@ -1,4 +1,4 @@
-import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent } from '@company-brain/shared';
+import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent } from '@neuma/shared';
 
 export const MCP_PRINCIPAL_RESOLVER = Symbol('MCP_PRINCIPAL_RESOLVER');
 export const MCP_SERVER_DEPENDENCIES = Symbol('MCP_SERVER_DEPENDENCIES');
@@ -18,9 +18,9 @@ export const MCP_ABANDONED_REQUEST_MS = 10 * 60 * 1000;
 export const MCP_WEB_REQUEST_ORIGIN = 'http://mcp.local';
 
 /** Client id reported to the SDK for personal-token callers. */
-export const MCP_ACCESS_TOKEN_CLIENT_ID = 'company-brain-access-token';
+export const MCP_ACCESS_TOKEN_CLIENT_ID = 'neuma-access-token';
 
-export const MCP_SERVER_INFO = { name: 'company-brain', version: '0.1.0' } as const;
+export const MCP_SERVER_INFO = { name: 'neuma', version: '0.1.0' } as const;
 
 /** Renaming one breaks the configuration of anyone already using it. */
 export const MCP_TOOL_NAMES = {
@@ -144,7 +144,7 @@ export const MCP_NOT_A_ROW_MESSAGE =
   'This page is not a row of a collection. A row is a page right under a collection; list_pages or query_collection give their ids.';
 
 export const MCP_PAGE_LOCKED_MESSAGE =
-  'This page is locked against edits. Ask a person to unlock it in Company Brain before changing it.';
+  'This page is locked against edits. Ask a person to unlock it in Neuma before changing it.';
 
 export const MCP_CONCURRENT_CHANGE_MESSAGE =
   'Somebody changed the same thing a moment ago. Read the collection again with get_collection and retry.';
@@ -222,7 +222,7 @@ export const MCP_CONCURRENT_REFUSAL_CODES: readonly string[] = [
   'SCHEMA_PROPERTY_DEFINITION_INVALID',
 ];
 
-export const MCP_REFUSED_CHANGE_PREFIX = 'Company Brain refused the change:';
+export const MCP_REFUSED_CHANGE_PREFIX = 'Neuma refused the change:';
 
 /** Naming a page the agent cannot see would already leak too much. */
 export const MCP_REDACTED_REFERENCE_LABEL = '[unavailable page]';
@@ -261,19 +261,19 @@ export const MCP_LIST_PAGES_PLACE_MESSAGE =
   'Say where to list from: pass a spaceId for the pages at the top of a space, or a parentPageId for the pages under a page.';
 
 export const MCP_UNREADABLE_ADDRESS_MESSAGE =
-  'This is not a Company Brain link or id. Pass a page or block link copied from Company Brain, or a page or block id.';
+  'This is not a Neuma link or id. Pass a page or block link copied from Neuma, or a page or block id.';
 
 /** Same answer for missing and forbidden resources. */
 export const MCP_INACCESSIBLE_MESSAGE = 'Resource not accessible.';
 
 export const MCP_UNAUTHENTICATED_MESSAGE =
-  'The access token is missing, revoked or expired. Ask the person to create a new one in their Company Brain account settings.';
+  'The access token is missing, revoked or expired. Ask the person to create a new one in their Neuma account settings.';
 
 export const MCP_UNREADABLE_PAGE_MESSAGE =
-  'This page is stored in a format this version of Company Brain cannot read. Ask a person to open it in the portal.';
+  'This page is stored in a format this version of Neuma cannot read. Ask a person to open it in the portal.';
 
 /** Deliberately vague: the detail stays in the server log. */
-export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Company Brain side. Try again in a moment.';
+export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Neuma side. Try again in a moment.';
 
 /**
  * Read on connect, except the portal-location line, which depends on where the server runs.
@@ -281,20 +281,20 @@ export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Company Brain
  * It names tasks explicitly: a coding agent otherwise thinks of its own task list.
  */
 export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
-  "Company Brain is the team's knowledge base: its documentation, notes, processes, projects, and its tasks and boards.",
-  'When the person asks about the company, the team, its work or its tasks, look in Company Brain before saying there is nothing.',
+  "Neuma is the team's knowledge base: its documentation, notes, processes, projects, and its tasks and boards.",
+  'When the person asks about the company, the team, its work or its tasks, look in Neuma before saying there is nothing.',
   'When the person names a page, manual, gallery or document without a link, search for it by name here before asking them for more.',
   'Content lives in spaces; a space holds a tree of pages, and a page is made of blocks.',
   'A collection is a page whose child pages are rows with properties (a table or kanban board of tasks, for instance).',
   'To find information, start with search: it returns the exact blocks that match, with their page and section.',
-  'To open something, use fetch with a Company Brain link, a page id or a block id.',
+  'To open something, use fetch with a Neuma link, a page id or a block id.',
   'Pages come back as Markdown; the comment before each block carries its id. To browse, use list_spaces and list_pages.',
   'If your token can write pages, read the page with fetch first to get its block ids, then write with insert_blocks, update_block, move_blocks or delete_blocks; create_page makes a new page. Write each block by what it means: a table as a table, code or a diagram drawn with spaces as a code_block.',
   'Diagrams are Mermaid, any kind, and can show product logos and icons (never emojis in their place): find their names with search_diagram_icons before drawing.',
   'Besides text, a page holds columns side by side, link cards, videos from YouTube, Vimeo, Loom or Figma, and blocks synced from another page: write them as blocks too.',
   'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
   'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status.',
-  'When the person asks to add, note or change a task of the team or of "our board", do it on a Company Brain collection, never in your own session\'s task list.',
+  'When the person asks to add, note or change a task of the team or of "our board", do it on a Neuma collection, never in your own session\'s task list.',
   'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',
   'You act as the person who created your access token, limited to what the token allows: anything out of its reach answers as not accessible, the same as something that does not exist.',
 ];

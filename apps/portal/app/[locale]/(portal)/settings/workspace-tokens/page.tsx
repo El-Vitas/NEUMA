@@ -1,4 +1,4 @@
-import { canManageWorkspace } from '@company-brain/shared';
+import { canManageWorkspace } from '@neuma/shared';
 import { notFound } from 'next/navigation';
 import { getWorkspaceAccessTokens } from '@/modules/access-tokens/server/queries/access-tokens.queries';
 import { AccessTokensWorkspaceView } from '@/modules/access-tokens/views/access-tokens.workspace.view';

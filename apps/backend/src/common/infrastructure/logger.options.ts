@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { formatChileanTime } from '@company-brain/shared';
+import { formatChileanTime } from '@neuma/shared';
 import { type LoggerOptions, stdSerializers } from 'pino';
 import { LOG_REDACTED_FIELDS } from '../constants/logger.constants';
 

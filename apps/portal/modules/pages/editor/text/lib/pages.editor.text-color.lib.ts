@@ -1,4 +1,4 @@
-import type { PageBlockColor } from '@company-brain/shared';
+import type { PageBlockColor } from '@neuma/shared';
 import type { MarkType } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import {

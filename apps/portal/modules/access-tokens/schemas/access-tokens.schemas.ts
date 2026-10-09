@@ -1,8 +1,4 @@
-import {
-  ACCESS_TOKEN_NAME_MAX_LENGTH,
-  accessTokenAccessSchema,
-  accessTokenPermissionSchema,
-} from '@company-brain/shared';
+import { ACCESS_TOKEN_NAME_MAX_LENGTH, accessTokenAccessSchema, accessTokenPermissionSchema } from '@neuma/shared';
 import { z } from 'zod';
 import { SEARCH_MAX_QUERY_LENGTH } from '@/shared/constants/search.constants';
 

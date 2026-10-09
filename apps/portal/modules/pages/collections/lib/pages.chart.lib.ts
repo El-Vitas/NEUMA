@@ -1,5 +1,5 @@
-import type { PageChartMeasure } from '@company-brain/shared';
-import { PAGE_CHART_MEASURE, readPageChartValue } from '@company-brain/shared';
+import type { PageChartMeasure } from '@neuma/shared';
+import { PAGE_CHART_MEASURE, readPageChartValue } from '@neuma/shared';
 import { FULL_TURN, HALF_TURN, QUARTER_TURN } from '../constants/pages.chart.constants';
 import type { PageChartPoint, PageChartSlice } from '../types/pages.chart.types';
 import type { PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';

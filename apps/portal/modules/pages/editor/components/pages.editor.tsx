@@ -1,6 +1,6 @@
 'use client';
 
-import { resolvePageVerificationStatus } from '@company-brain/shared';
+import { resolvePageVerificationStatus } from '@neuma/shared';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {

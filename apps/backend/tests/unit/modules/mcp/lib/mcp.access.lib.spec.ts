@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@neuma/shared';
 import {
   buildMcpSearchScope,
   canMcpPrincipalSeeSpace,

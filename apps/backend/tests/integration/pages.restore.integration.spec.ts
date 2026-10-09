@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import type { PageContent } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
 import { loginUser, registerUser } from '../helpers/auth.helper';

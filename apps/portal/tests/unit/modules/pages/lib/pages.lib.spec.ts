@@ -65,10 +65,10 @@ describe('pages.lib', () => {
 
 describe('what the browser tab says of a page', () => {
   it('puts the page name before the workspace name', () => {
-    expect(buildPageDocumentTitle('Quarterly plan', 'Untitled')).toBe('Quarterly plan · Company Brain');
+    expect(buildPageDocumentTitle('Quarterly plan', 'Untitled')).toBe('Quarterly plan · Neuma');
   });
 
   it('falls back to the untitled label when nothing is written yet', () => {
-    expect(buildPageDocumentTitle('   ', 'Untitled')).toBe('Untitled · Company Brain');
+    expect(buildPageDocumentTitle('   ', 'Untitled')).toBe('Untitled · Neuma');
   });
 });

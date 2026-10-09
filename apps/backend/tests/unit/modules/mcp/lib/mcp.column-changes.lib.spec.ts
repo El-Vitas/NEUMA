@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_OPTION_COLOR, type PagePropertyType } from '@company-brain/shared';
+import { PAGE_OPTION_COLOR, type PagePropertyType } from '@neuma/shared';
 import {
   applyMcpColumnChanges,
   describeMcpColumnChanges,

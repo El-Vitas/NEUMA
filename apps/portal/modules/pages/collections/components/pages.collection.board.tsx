@@ -1,6 +1,6 @@
 'use client';
 
-import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';

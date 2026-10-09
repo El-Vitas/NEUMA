@@ -1,4 +1,4 @@
-import type { AuthSession } from '@company-brain/shared';
+import type { AuthSession } from '@neuma/shared';
 import request from 'supertest';
 import type { TestApp } from './test-app.helper';
 

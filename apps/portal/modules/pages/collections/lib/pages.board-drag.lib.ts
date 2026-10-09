@@ -1,4 +1,4 @@
-import { UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import { UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import type {
   PageBoardDropSide,
   PageBoardDropTarget,

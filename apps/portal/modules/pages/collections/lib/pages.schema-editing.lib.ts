@@ -4,7 +4,7 @@ import type {
   PagePropertyType,
   PageViewConfiguration,
   PageViewType,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   buildPagePropertyKey,
   canPagePropertyGroupBoard,
@@ -16,7 +16,7 @@ import {
   pageViewSupportsGrouping,
   pickPageOptionColor,
   readPageViewConfiguration,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { PAGE_ADDABLE_PROPERTY_TYPES } from '../constants/pages.schema-editing.constants';
 import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
 

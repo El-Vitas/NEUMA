@@ -1,4 +1,4 @@
-import { pageIconSchema, SPACE_VISIBILITY_VALUES } from '@company-brain/shared';
+import { pageIconSchema, SPACE_VISIBILITY_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 import {
   SPACE_DESCRIPTION_MAX_LENGTH,

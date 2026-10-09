@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { EMPTY_PAGE_VIEW_CONFIGURATION, readPageViewConfiguration } from '@company-brain/shared';
+import { EMPTY_PAGE_VIEW_CONFIGURATION, readPageViewConfiguration } from '@neuma/shared';
 import {
   addSchemaOption,
   addSchemaProperty,

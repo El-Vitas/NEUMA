@@ -1,5 +1,5 @@
-import type { PageContent, UserRole } from '@company-brain/shared';
 import type { Hocuspocus, WebSocketLike } from '@hocuspocus/server';
+import type { PageContent, UserRole } from '@neuma/shared';
 
 export interface CollaborationContext {
   readonly mode: 'read' | 'write';

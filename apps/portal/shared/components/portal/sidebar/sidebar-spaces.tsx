@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
 import { SidebarSpace } from './sidebar-space';

@@ -1,6 +1,6 @@
 'use client';
 
-import { isPageLinkTarget } from '@company-brain/shared';
+import { isPageLinkTarget } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';

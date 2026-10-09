@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType } from '@company-brain/db';
-import { PAGE_OPTION_COLOR } from '@company-brain/shared';
+import { DatabasePropertyType } from '@neuma/db';
+import { PAGE_OPTION_COLOR } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '@/common/domain/schema.domain.types';
 import {
   propertyValueMentions,

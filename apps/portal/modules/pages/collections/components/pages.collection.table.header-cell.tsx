@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_COLUMN_ALIGNMENT_VALUES } from '@company-brain/shared';
+import { PAGE_COLUMN_ALIGNMENT_VALUES } from '@neuma/shared';
 import { GripVertical, Pin, PinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';

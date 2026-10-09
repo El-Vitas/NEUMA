@@ -3,7 +3,7 @@ import {
   type AccessTokenPermission,
   type AccessTokenPlace,
   canAccessTokenAct,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   MCP_NOT_A_COLLECTION_MESSAGE,
   MCP_NOT_A_ROW_MESSAGE,

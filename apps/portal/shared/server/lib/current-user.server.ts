@@ -1,5 +1,5 @@
 import 'server-only';
-import type { User } from '@company-brain/shared';
+import type { User } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { ACCESS_TOKEN_COOKIE } from '@/shared/constants/auth.constants';

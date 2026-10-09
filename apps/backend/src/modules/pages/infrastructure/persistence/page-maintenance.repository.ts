@@ -1,5 +1,5 @@
-import { PageLifecycle } from '@company-brain/db';
 import { Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { PageMaintenanceRepositoryContract, PageMaintenanceRow } from '../../types/page-maintenance.types';

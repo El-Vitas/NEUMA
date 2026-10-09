@@ -35,7 +35,7 @@ describe('what is put in the frame', () => {
 
   it('shows a drawing through the service that holds it', () => {
     expect(readPageEmbedFrameUrl('figma', 'https://www.figma.com/design/abcdefghijklmnopqrstuv/Algo')).toBe(
-      'https://www.figma.com/embed?embed_host=company-brain&url=https%3A%2F%2Fwww.figma.com%2Fdesign%2Fabcdefghijklmnopqrstuv%2FAlgo',
+      'https://www.figma.com/embed?embed_host=neuma&url=https%3A%2F%2Fwww.figma.com%2Fdesign%2Fabcdefghijklmnopqrstuv%2FAlgo',
     );
   });
 

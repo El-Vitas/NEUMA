@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPermission } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenPermission } from '@neuma/shared';
 
 export const ACCESS_TOKENS_CACHE_TAG = 'access-tokens';
 
@@ -10,7 +10,7 @@ export const ACCESS_TOKEN_API_ROUTES = {
   workspaceItem: (tokenId: string) => `/api/v1/access-tokens/workspace/${tokenId}`,
 } as const;
 
-export const MCP_SERVER_KEY = 'company-brain';
+export const MCP_SERVER_KEY = 'neuma';
 
 export const ACCESS_TOKEN_MCP_TRANSPORT = 'http';
 

@@ -1,4 +1,4 @@
-import type { PageColumnAlignment, PageRowHeight } from '@company-brain/shared';
+import type { PageColumnAlignment, PageRowHeight } from '@neuma/shared';
 
 export interface PagesTableColumns {
   readonly alignments: Readonly<Record<string, PageColumnAlignment>>;

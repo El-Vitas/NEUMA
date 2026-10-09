@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import type { PageContent, UserRole } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import type { PageContent, UserRole } from '@neuma/shared';
 import request from 'supertest';
 import type { SearchTokenScope } from '@/common/types/search.types';
 import { PageBlockRepository } from '@/modules/search/infrastructure/persistence/page-block.repository';

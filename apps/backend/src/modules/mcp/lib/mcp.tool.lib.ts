@@ -1,5 +1,5 @@
-import { type AccessTokenPermission, type AccessTokenPlace, canAccessTokenAct } from '@company-brain/shared';
 import type { CallToolResult } from '@modelcontextprotocol/server';
+import { type AccessTokenPermission, type AccessTokenPlace, canAccessTokenAct } from '@neuma/shared';
 import {
   MCP_CALL_OUTCOMES,
   MCP_INACCESSIBLE_MESSAGE,

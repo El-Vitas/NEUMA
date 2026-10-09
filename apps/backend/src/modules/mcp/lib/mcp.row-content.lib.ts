@@ -1,4 +1,4 @@
-import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent } from '@company-brain/shared';
+import { PAGE_CONTENT_SCHEMA_VERSION, type PageContent } from '@neuma/shared';
 import {
   MCP_EMPTY_PARAGRAPH_NODE,
   MCP_HARD_BREAK_NODE,

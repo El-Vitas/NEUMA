@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';

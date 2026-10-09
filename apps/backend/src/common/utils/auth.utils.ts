@@ -1,4 +1,4 @@
-import { USER_ROLE_VALUES, type User, type UserRole } from '@company-brain/shared';
+import { USER_ROLE_VALUES, type User, type UserRole } from '@neuma/shared';
 import { BEARER_AUTHORIZATION_PATTERN } from '../constants/auth.constants';
 import { ADMIN_PERMISSIONS, WORKER_PERMISSIONS } from '../constants/role.permissions';
 import type { PermissionEntry } from '../types/auth.types';

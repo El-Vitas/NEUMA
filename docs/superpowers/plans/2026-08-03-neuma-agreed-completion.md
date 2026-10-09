@@ -1,10 +1,10 @@
-# Company Brain Agreed Scope Completion Plan
+# Neuma Agreed Scope Completion Plan
 
-> **Superseded:** Use `docs/superpowers/plans/2026-08-03-company-brain-module-slices.md` as the execution authority. The current/future boundary is documented in `docs/scope/current-scope.md` and `docs/scope/future-scope.md`.
+> **Superseded:** Use `docs/superpowers/plans/2026-08-03-neuma-module-slices.md` as the execution authority. The current/future boundary is documented in `docs/scope/current-scope.md` and `docs/scope/future-scope.md`.
 
 > **For agentic workers:** Use the slice-squad workflow. Agents must not spawn agents, commit, push, or edit files outside their assigned scope.
 
-**Goal:** Finish only the features explicitly included in the approved company-brain scope, without implementing the deferred backlog.
+**Goal:** Finish only the features explicitly included in the approved Neuma scope, without implementing the deferred backlog.
 
 **Architecture:** Extend the existing shared ProseMirror contract and editor, integrate the existing FileAsset and collaboration boundaries, then harden worker/integration operation. No new product domains are introduced. Overlapping editor files are handled sequentially; independent operational tests run in a separate slice.
 

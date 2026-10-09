@@ -9,6 +9,6 @@ export const PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE = {
 } as const;
 
 /** During dragover the browser exposes the type but not the data, which space rows use to detect a page drag. */
-export const PORTAL_SIDEBAR_PAGE_DRAG_TYPE = 'application/x-company-brain-page';
+export const PORTAL_SIDEBAR_PAGE_DRAG_TYPE = 'application/x-neuma-page';
 
-export const PORTAL_SIDEBAR_SPACE_DRAG_TYPE = 'application/x-company-brain-space';
+export const PORTAL_SIDEBAR_SPACE_DRAG_TYPE = 'application/x-neuma-space';

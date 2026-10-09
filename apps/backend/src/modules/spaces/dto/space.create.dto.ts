@@ -1,4 +1,4 @@
-import { SpaceVisibility } from '@company-brain/db';
+import { SpaceVisibility } from '@neuma/db';
 import { IsIn, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateSpaceDto {

@@ -1,4 +1,4 @@
-import type { PageContent, PageContentNode } from '@company-brain/shared';
+import type { PageContent, PageContentNode } from '@neuma/shared';
 import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_SYNCED_TYPE } from '../../blocks/constants/pages.editor.blocks.constants';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ACCESS_TOKEN_NAME_MAX_LENGTH } from '@company-brain/shared';
+import { ACCESS_TOKEN_NAME_MAX_LENGTH } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { Input } from '@/shared/components/ui/input';

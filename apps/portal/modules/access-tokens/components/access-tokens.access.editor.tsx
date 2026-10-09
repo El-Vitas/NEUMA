@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';

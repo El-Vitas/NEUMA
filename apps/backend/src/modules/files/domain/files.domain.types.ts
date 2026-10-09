@@ -1,4 +1,4 @@
-import type { FileAssetLifecycle } from '@company-brain/db';
+import type { FileAssetLifecycle } from '@neuma/db';
 
 export interface FileAssetSummary {
   readonly checksum: string;

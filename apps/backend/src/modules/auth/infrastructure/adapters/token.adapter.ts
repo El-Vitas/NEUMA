@@ -1,8 +1,7 @@
-import { type AuthSession, isOneOf, USER_ROLE_VALUES, type User } from '@company-brain/shared';
-
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { type AuthSession, isOneOf, USER_ROLE_VALUES, type User } from '@neuma/shared';
 import {
   ACCESS_TOKEN_AUDIENCE,
   COLLABORATION_TOKEN_AUDIENCE,

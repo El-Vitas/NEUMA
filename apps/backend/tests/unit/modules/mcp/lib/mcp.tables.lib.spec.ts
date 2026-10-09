@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { type PageContent, pageContentSchema } from '@company-brain/shared';
+import { type PageContent, pageContentSchema } from '@neuma/shared';
 import { editMcpTable } from '@/modules/mcp/lib/mcp.tables.lib';
 
 const page = (...content: readonly unknown[]): PageContent =>

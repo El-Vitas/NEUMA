@@ -1,4 +1,4 @@
-import { pageFormulaAttrsSchema } from '@company-brain/shared';
+import { pageFormulaAttrsSchema } from '@neuma/shared';
 import katex from 'katex';
 import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';

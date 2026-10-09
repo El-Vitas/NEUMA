@@ -1,4 +1,4 @@
-import { pageEmojiIconSchema, pageIconSchema, pageSymbolIconSchema } from '@company-brain/shared';
+import { pageEmojiIconSchema, pageIconSchema, pageSymbolIconSchema } from '@neuma/shared';
 import { z } from 'zod';
 
 export { pageIconSchema };

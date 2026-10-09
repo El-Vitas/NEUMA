@@ -2,14 +2,14 @@
 
 **Status:** Accepted
 **Date:** 2026-08-05
-**Supersedes (in part):** the data model established by `docs/superpowers/plans/2026-08-02-company-brain-databases.md`
+**Supersedes (in part):** the data model established by `docs/superpowers/plans/2026-08-02-neuma-databases.md`
 **Changes scope:** moves Mentions and Backlinks from `docs/scope/future-scope.md` into `docs/scope/current-scope.md`
 
 **Revision, same day:** the first draft of this ADR kept a `Collection` entity (a renamed `Database`) plus a `Collection` foreign key on `Page`, with a rule that `parentId` and `collectionId` were mutually exclusive. That was wrong for the same reason `DatabaseRecord` was wrong — it duplicated identity that `Page` already owns, and the mutual-exclusion rule was the symptom. A collection is now a **page that carries a schema**, and membership is plain `parentId`. Recorded rather than silently rewritten so the reasoning is not re-derived later.
 
 ## Context
 
-The product objective is a **company brain**: one place where the organization's knowledge and its work are the *same fabric*. The value only appears when a task carries its own context and a document shows what work came out of it. A wiki next to a task tracker does not produce that — it produces two silos that happen to share a login.
+The product objective is **Neuma**: one place where the organization's knowledge and its work are the *same fabric*. The value only appears when a task carries its own context and a document shows what work came out of it. A wiki next to a task tracker does not produce that — it produces two silos that happen to share a login.
 
 The current implementation does not deliver that objective, because it has **two primitives instead of one**:
 
@@ -149,4 +149,4 @@ The consequence to guard: if a Yjs session's state can ever diverge from `Page.c
 
 ## Governance
 
-Phases land in the order defined by `docs/superpowers/plans/2026-08-05-company-brain-single-page-primitive.md`. Phase 1 (graph) is independent of Phases 2 and 3 and may ship alone. `DatabaseRecord` must not gain new capabilities in the meantime — any request to add versioning, trash or collaboration to records is a signal to accelerate Phase 3, not to duplicate `Page`.
+Phases land in the order defined by `docs/superpowers/plans/2026-08-05-neuma-single-page-primitive.md`. Phase 1 (graph) is independent of Phases 2 and 3 and may ship alone. `DatabaseRecord` must not gain new capabilities in the meantime — any request to add versioning, trash or collaboration to records is a signal to accelerate Phase 3, not to duplicate `Page`.

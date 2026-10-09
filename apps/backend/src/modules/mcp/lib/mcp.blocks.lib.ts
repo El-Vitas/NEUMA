@@ -6,7 +6,7 @@ import {
   type PageDocumentNodeShape,
   readPageDocumentBlockId,
   writeBlocksAsAnchoredMarkdown,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { McpBlockComment, McpHeldBlock, McpPagePart } from '../types/mcp.types';
 
 const findHeldBlock = (

@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageFilterGroupOperator } from '@company-brain/shared';
-import { PAGE_FILTER_GROUP_OPERATOR } from '@company-brain/shared';
+import type { PageFilterGroupOperator } from '@neuma/shared';
+import { PAGE_FILTER_GROUP_OPERATOR } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 

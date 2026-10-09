@@ -1,5 +1,5 @@
-import type { PageChartKind, PageChartMeasure } from '@company-brain/shared';
-import { PAGE_CHART_KIND, UNASSIGNED_GROUP_KEY } from '@company-brain/shared';
+import type { PageChartKind, PageChartMeasure } from '@neuma/shared';
+import { PAGE_CHART_KIND, UNASSIGNED_GROUP_KEY } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import { readChartSeries } from '../lib/pages.chart.lib';
 import type { PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';

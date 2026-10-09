@@ -1,5 +1,5 @@
-import { type AuthSession, Result } from '@company-brain/shared';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { type AuthSession, Result } from '@neuma/shared';
 import { toUser } from '../../common/utils/auth.utils';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PasswordAdapter } from '../auth/infrastructure/adapters/password.adapter';

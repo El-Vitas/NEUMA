@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Result } from '@company-brain/shared';
+import type { Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { ApiError } from '@/shared/lib/api';

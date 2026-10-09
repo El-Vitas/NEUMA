@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_BLOCK_COLORS } from '@company-brain/shared';
+import { PAGE_BLOCK_COLORS } from '@neuma/shared';
 import {
   PAGE_EDITOR_BACKGROUND_COLOR_CLASSES,
   PAGE_EDITOR_COLOR_SWATCH_CLASSES,

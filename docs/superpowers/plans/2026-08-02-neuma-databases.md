@@ -1,6 +1,6 @@
-# Company Brain Databases Implementation Plan
+# Neuma Databases Implementation Plan
 
-> **Status: SUPERSEDED (2026-08-05).** The data model described here — `DatabaseRecord` as an entity separate from `Page` — is replaced by the single-page-primitive model in `docs/architecture/adr/008-adopt-single-page-primitive.md`, executed by `docs/superpowers/plans/2026-08-05-company-brain-single-page-primitive.md`.
+> **Status: SUPERSEDED (2026-08-05).** The data model described here — `DatabaseRecord` as an entity separate from `Page` — is replaced by the single-page-primitive model in `docs/architecture/adr/008-adopt-single-page-primitive.md`, executed by `docs/superpowers/plans/2026-08-05-neuma-single-page-primitive.md`.
 >
 > What survives from this plan: the typed property system, the Tasks/Projects templates, and the table/board view logic. What is replaced: `DatabaseRecord` (records become pages), the optional `pageId` bridge described below (unnecessary once there is one primitive), and the top-level `/databases` route. Kept for the history of why the property engine looks the way it does.
 

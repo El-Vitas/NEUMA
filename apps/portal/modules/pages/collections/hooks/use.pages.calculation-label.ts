@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageViewCalculation } from '@company-brain/shared';
-import { computePageCalculation, isPageCalculationAPortion, PAGE_VIEW_CALCULATION } from '@company-brain/shared';
+import type { PageViewCalculation } from '@neuma/shared';
+import { computePageCalculation, isPageCalculationAPortion, PAGE_VIEW_CALCULATION } from '@neuma/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
 

@@ -1,4 +1,4 @@
-import { type AccessTokenPermission, canAccessTokenAct } from '@company-brain/shared';
+import { type AccessTokenPermission, canAccessTokenAct } from '@neuma/shared';
 import type { McpGrantPlace, McpPrincipal } from '../types/mcp.types';
 
 /** Only pages with their own rule matter: the rest inherit the rule above, already checked on the page itself. */

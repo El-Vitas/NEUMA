@@ -1,5 +1,5 @@
-import type { PageContent } from '@company-brain/shared';
 import { Body, Controller, Param, Post, Put, UseGuards } from '@nestjs/common';
+import type { PageContent } from '@neuma/shared';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';

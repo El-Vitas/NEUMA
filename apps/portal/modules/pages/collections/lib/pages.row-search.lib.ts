@@ -1,4 +1,4 @@
-import { getPagePropertyLogicalType, PAGE_PROPERTY_LOGICAL_TYPE } from '@company-brain/shared';
+import { getPagePropertyLogicalType, PAGE_PROPERTY_LOGICAL_TYPE } from '@neuma/shared';
 import { foldPageLookingText } from '../../links/lib/pages.looking.lib';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
 

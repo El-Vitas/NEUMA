@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { PageLifecycle } from '@company-brain/db';
-import { Result, USER_ROLE } from '@company-brain/shared';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { PageLifecycle } from '@neuma/db';
+import { Result, USER_ROLE } from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
 import { JwtAuthGuard } from '@/common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '@/common/infrastructure/persistence/workspace-context.service';

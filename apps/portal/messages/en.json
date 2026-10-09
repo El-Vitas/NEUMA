@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Company Brain",
+    "appName": "Neuma",
     "loading": "Loading...",
     "cancel": "Cancel",
     "save": "Save",
@@ -163,7 +163,7 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "How agents connect to Company Brain.",
+    "subtitle": "How agents connect to Neuma.",
     "nav": {
       "label": "Settings sections",
       "tokens": "Access tokens",
@@ -191,7 +191,7 @@
   },
   "accessTokens": {
     "title": "Access tokens",
-    "description": "A token lets an agent, like Claude, use Company Brain on your behalf, only in the spaces and pages and with the permissions you give it. It can never do more than you: if you lose some access, the token loses it too.",
+    "description": "A token lets an agent, like Claude, use Neuma on your behalf, only in the spaces and pages and with the permissions you give it. It can never do more than you: if you lose some access, the token loses it too.",
     "connectAt": "Agents connect over MCP at",
     "create": "Create token",
     "empty": "You have no tokens yet. Create one to connect an agent.",
@@ -1422,7 +1422,7 @@
     "slugInvalid": "Slug must be 80 characters or fewer."
   },
   "metadata": {
-    "title": "Company Brain",
+    "title": "Neuma",
     "description": "Your company's internal knowledge workspace."
   },
   "theme": {

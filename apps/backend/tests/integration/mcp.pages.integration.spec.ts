@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { z } from 'zod';
 import {
@@ -342,7 +342,7 @@ describe('MCP page writes (Integration)', () => {
       expect(await outcomesOn(pageId)).toEqual([]);
     });
 
-    it('refuses a diagram that names an icon Company Brain cannot draw', async () => {
+    it('refuses a diagram that names an icon Neuma cannot draw', async () => {
       const pageId = await freshPage('Ícono inventado');
 
       const answer = await call(await writerToken(), 'insert_blocks', {

@@ -1,4 +1,4 @@
-import { DatabasePropertyType } from '@company-brain/db';
+import { DatabasePropertyType } from '@neuma/db';
 import type {
   McpFetchedBlock as FetchedBlock,
   McpFetchedPage as FetchedPage,

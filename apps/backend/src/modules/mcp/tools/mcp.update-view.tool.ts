@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import { ACCESS_TOKEN_PERMISSIONS } from '@company-brain/shared';
+import type { Prisma } from '@neuma/db/generated';
+import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';

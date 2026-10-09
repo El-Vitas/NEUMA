@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ACCESS_TOKEN_PERMISSIONS, type PageBlockComment } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, type PageBlockComment } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { addMcpBlockComment } from '../lib/mcp.comments.lib';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent, PageContentNode } from '@company-brain/shared';
+import type { PageContent, PageContentNode } from '@neuma/shared';
 import { undo } from 'prosemirror-history';
 import type { Command, EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';

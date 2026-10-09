@@ -1,4 +1,4 @@
-import { isOneOf } from '@company-brain/shared';
+import { isOneOf } from '@neuma/shared';
 import { readJsonSafely } from '@/shared/lib/json.lib';
 import {
   PAGE_OUTLINE_LAYOUT_STYLE_CLASS,

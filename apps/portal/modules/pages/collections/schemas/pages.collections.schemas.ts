@@ -3,7 +3,7 @@ import {
   PAGE_PROPERTY_TYPE_VALUES,
   PAGE_VIEW_TYPE_VALUES,
   pageContentSchema,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { z } from 'zod';
 import { pagePropertyValueSchema } from './pages.schema.schemas';
 

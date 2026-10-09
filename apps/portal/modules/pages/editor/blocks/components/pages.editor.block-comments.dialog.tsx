@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';

@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_PERMISSIONS, removePageBlocks } from '@company-brain/shared';
+import { ACCESS_TOKEN_PERMISSIONS, removePageBlocks } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
 import { openMcpPage, readMcpPageId } from '../lib/mcp.page-access.lib';

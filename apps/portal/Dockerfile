@@ -12,7 +12,7 @@ FROM base AS pruner
 RUN apk add --no-cache libc6-compat
 RUN bun install -g turbo@2.9.14
 COPY . .
-RUN turbo prune @company-brain/portal --docker
+RUN turbo prune @neuma/portal --docker
 
 # Install every dependency (build tooling included) and build through Turbo, which
 # compiles the workspace packages the portal imports before the app itself.
@@ -27,7 +27,7 @@ COPY --from=pruner /app/out/json/ ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 COPY --from=pruner /app/out/full/ ./
 RUN --mount=type=cache,id=next-portal,target=/app/apps/portal/.next/cache \
-    bunx turbo run build --filter=@company-brain/portal
+    bunx turbo run build --filter=@neuma/portal
 # Trim the standalone output here, before the runner copies it: a rm in the
 # runner would only add a whiteout and leave the bytes in an earlier layer. This
 # image is Alpine (musl), so the glibc sharp binaries Next traced never load;

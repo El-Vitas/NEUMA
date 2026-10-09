@@ -10,7 +10,7 @@ import type {
   PageSort,
   PageViewCalculation,
   PageViewConfiguration,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   getPageFilterOperators,
   getPagePropertyLogicalType,
@@ -23,7 +23,7 @@ import {
   PAGE_VIEW_CALCULATION,
   PAGE_VIEW_CALCULATION_VALUES,
   readPageViewConfiguration,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import {
   EMPTY_PAGE_FILTER_GROUP,
   PAGE_FILTER_OPERATORS_WITHOUT_VALUE,

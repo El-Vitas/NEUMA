@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageFilterGroupOperator, PageFilterOperator, PageViewCalculation } from '@company-brain/shared';
+import type { PageFilterGroupOperator, PageFilterOperator, PageViewCalculation } from '@neuma/shared';
 import { EMPTY_PAGE_FILTER_GROUP } from '../constants/pages.view-filtering.constants';
 import {
   addViewFilterCondition,

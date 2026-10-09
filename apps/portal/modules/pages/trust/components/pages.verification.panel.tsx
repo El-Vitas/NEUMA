@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageVerificationStatus } from '@company-brain/shared';
+import type { PageVerificationStatus } from '@neuma/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useState, useTransition } from 'react';
 import { toast } from 'sonner';

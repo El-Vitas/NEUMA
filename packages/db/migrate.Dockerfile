@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Migration image. Runs `prisma migrate deploy` once and exits — used as an
 # init/one-shot step before the backend starts. `turbo prune` reduces the
-# monorepo to the @company-brain/db subgraph so the image carries only the Prisma
+# monorepo to the @neuma/db subgraph so the image carries only the Prisma
 # schema, migrations and client, nothing else.
 
 FROM docker.io/oven/bun:1.3-alpine AS base
@@ -13,7 +13,7 @@ FROM base AS pruner
 RUN apk add --no-cache libc6-compat
 RUN bun install -g turbo@2.9.14
 COPY . .
-RUN turbo prune @company-brain/db --docker
+RUN turbo prune @neuma/db --docker
 
 # Install production dependencies, then prune what `migrate deploy` never uses.
 # The trim runs in this stage (not the runner) so the runner copies an already-
@@ -36,4 +36,4 @@ FROM base AS runner
 COPY --from=build /app ./
 # Migrations run DDL, so they connect as the DB owner via MIGRATION_DATABASE_URL
 # (falling back to DATABASE_URL). The backend runtime uses a least-privilege role.
-CMD ["sh", "-c", "DATABASE_URL=\"${MIGRATION_DATABASE_URL:-$DATABASE_URL}\" bun run --filter @company-brain/db db:migrate:deploy"]
+CMD ["sh", "-c", "DATABASE_URL=\"${MIGRATION_DATABASE_URL:-$DATABASE_URL}\" bun run --filter @neuma/db db:migrate:deploy"]

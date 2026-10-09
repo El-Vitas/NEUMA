@@ -1,4 +1,4 @@
-import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '@company-brain/shared';
+import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '@neuma/shared';
 
 export const PAGE_ATTACHMENTS_CLEANUP_REPOSITORY = 'PAGE_ATTACHMENTS_CLEANUP_REPOSITORY';
 export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';

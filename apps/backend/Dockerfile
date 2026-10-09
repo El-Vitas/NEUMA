@@ -13,7 +13,7 @@ FROM base AS pruner
 RUN apk add --no-cache libc6-compat
 RUN bun install -g turbo@2.9.14
 COPY . .
-RUN turbo prune @company-brain/backend --docker
+RUN turbo prune @neuma/backend --docker
 
 # Install production dependencies, then generate the Prisma client. Manifests are
 # copied before sources so the dependency layer is only rebuilt when the lockfile
@@ -26,7 +26,7 @@ COPY --from=pruner /app/out/full/ ./
 # Prisma requires a connection string to load its config; client generation is
 # offline and never opens the connection.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
-RUN bun run --filter @company-brain/db db:generate
+RUN bun run --filter @neuma/db db:generate
 # The runtime only uses @prisma/client + the pg driver adapter. Everything the
 # Prisma CLI and config loader pulled in for `generate` is dead weight now:
 # the CLI itself, the native engines, the config loader and its `effect`/

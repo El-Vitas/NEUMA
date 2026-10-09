@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import type { SEARCH_EDITED_RANGE_VALUES, SEARCH_SOURCE_TYPE_VALUES } from '../constants/search.constants';
 
 export type SearchSourceType = (typeof SEARCH_SOURCE_TYPE_VALUES)[number];

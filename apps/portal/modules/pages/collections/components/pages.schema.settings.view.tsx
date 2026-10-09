@@ -1,13 +1,13 @@
 'use client';
 
-import type { PageViewType } from '@company-brain/shared';
+import type { PageViewType } from '@neuma/shared';
 import {
   PAGE_VIEW_TYPE,
   PAGE_VIEW_TYPE_VALUES,
   pageViewSupportsGrouping,
   readPageViewConfiguration,
   readVisiblePropertyKeys,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import { ArrowLeft, ArrowRight, Copy, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';

@@ -1,11 +1,11 @@
-import type { PageFilter, PageViewConfiguration } from '@company-brain/shared';
+import type { PageFilter, PageViewConfiguration } from '@neuma/shared';
 import {
   comparePageRowsBySorts,
   matchesPageFilter,
   PAGE_VIEW_SHAPE,
   readPageViewConfiguration,
   readPageViewShape,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../../common/domain/schema.domain.types';
 import { bandRowsForView } from '../../../common/domain/schema-view-banding.domain';
 import { compareRowsByOrder, groupRowsForView } from '../../../common/domain/schema-view-grouping.domain';
