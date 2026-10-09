@@ -36,7 +36,6 @@ export class AccessTokenAccessValidationError extends DomainError {
   }
 }
 
-/** Se pidió dar algo que su dueño no puede hacer él mismo. Dice qué, para que se pueda corregir. */
 export class AccessTokenPermissionBeyondOwnerError extends DomainError {
   public readonly code = 'ACCESS_TOKEN_PERMISSION_BEYOND_OWNER';
   public readonly httpStatus = 403;
@@ -46,10 +45,7 @@ export class AccessTokenPermissionBeyondOwnerError extends DomainError {
   }
 }
 
-/**
- * Se nombró un espacio que su dueño no ve. No dice cuál: decir cuál confirmaría
- * que existe, y un espacio que no se ve tampoco se tiene que poder adivinar.
- */
+/** Does not say which space: naming it would confirm that it exists. */
 export class AccessTokenSpaceNotAccessibleError extends DomainError {
   public readonly code = 'ACCESS_TOKEN_SPACE_NOT_ACCESSIBLE';
   public readonly httpStatus = 403;
@@ -59,10 +55,7 @@ export class AccessTokenSpaceNotAccessibleError extends DomainError {
   }
 }
 
-/**
- * Se nombró una página que su dueño no ve, que está en la papelera o que no
- * existe. No dice cuál ni por qué, por la misma razón que con los espacios.
- */
+/** Covers invisible, trashed and nonexistent pages alike, for the same reason as spaces. */
 export class AccessTokenPageNotAccessibleError extends DomainError {
   public readonly code = 'ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE';
   public readonly httpStatus = 403;
@@ -81,7 +74,6 @@ export class AccessTokenNameInvalidError extends DomainError {
   }
 }
 
-/** La persona ya tiene un token vivo que se llama igual. */
 export class AccessTokenNameTakenError extends DomainError {
   public readonly code = 'ACCESS_TOKEN_NAME_TAKEN';
   public readonly httpStatus = 409;
@@ -91,7 +83,6 @@ export class AccessTokenNameTakenError extends DomainError {
   }
 }
 
-/** Solo quien administra el espacio de trabajo ve y revoca los tokens de los demás. */
 export class AccessTokenAdminOnlyError extends DomainError {
   public readonly code = 'ACCESS_TOKEN_ADMIN_ONLY';
   public readonly httpStatus = 403;

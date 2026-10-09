@@ -10,12 +10,7 @@ interface IProps {
   readonly status: CollaborationStatus | null;
 }
 
-/**
- * Says whether the page is being written together, and by whom.
- *
- * While everything works it is only announced to screen readers: a connection
- * doing its job is not news.
- */
+/** While the connection works it is announced to screen readers only. */
 export const PagesEditorCollaborationStatus = ({ participants, status }: IProps) => {
   const t = useTranslations('pages');
   if (status === null) return null;

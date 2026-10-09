@@ -27,7 +27,6 @@ import {
 } from '../constants/mcp.limits.constants';
 import { buildMcpAddressSchema, mcpIdSchema, mcpRequestIdShape } from './mcp.common.schemas';
 
-/** El texto de un bloque, con las marcas en línea escritas como las devuelve fetch. */
 const inlineTextSchema = z
   .string()
   .max(MCP_BLOCK_TEXT_MAX_LENGTH)
@@ -63,7 +62,6 @@ const blockIdSchema = z
   .max(MCP_ID_MAX_LENGTH)
   .describe('A block id, as fetch shows it before each block.');
 
-/** Cada clase de bloque que el agente puede escribir, salvo las columnas, que llevan bloques dentro. */
 const blockVariants = [
   z.object({ text: inlineTextSchema, type: z.literal('paragraph') }),
   z.object({ level: z.number().int().min(1).max(3), text: inlineTextSchema, type: z.literal('heading') }),
@@ -165,13 +163,9 @@ const blockVariants = [
     ),
 ] as const;
 
-/** Un bloque que va dentro de una columna: cualquiera, salvo otras columnas. */
 const columnBlockSchema = z.discriminatedUnion('type', blockVariants);
 
-/**
- * Un bloque escrito por el agente, por lo que quiere decir y no por cómo se ve:
- * una tabla es una tabla y un diagrama con espacios es un bloque de código.
- */
+/** Blocks are written by meaning, not appearance: a spaced-out diagram is a code block, not a table. */
 export const blockInputSchema = z.discriminatedUnion('type', [
   ...blockVariants,
   z
@@ -190,7 +184,6 @@ const blocksSchema = z.array(blockInputSchema).min(1).max(MCP_BLOCKS_PER_WRITE);
 
 const blockIdsSchema = z.array(blockIdSchema).min(1).max(MCP_BLOCKS_PER_WRITE);
 
-/** Dónde van los bloques: junto a uno, dentro de uno, o al principio o al final. */
 const placeShape = {
   after: blockIdSchema.optional().describe('Right after this block.'),
   at: z
@@ -243,7 +236,6 @@ export const moveBlocksInputSchema = z.object({ blocks: blockIdsSchema, page: pa
 
 const writtenPageSchema = z.object({ id: z.string(), title: z.string(), url: z.url() });
 
-/** Lo que devuelve toda escritura de bloques: la página, y los bloques como quedaron, con sus ids. */
 export const writtenBlocksOutputSchema = z.object({
   blockIds: z.array(z.string()),
   markdown: z.string(),
@@ -308,7 +300,6 @@ export const listTrashInputSchema = z.object({
   space: z.uuid().optional().describe('Only the trash of this space.'),
 });
 
-/** Lo que hay en la papelera y el token puede leer, lo más reciente primero. */
 export const listTrashOutputSchema = z.object({
   pages: z
     .array(
@@ -323,11 +314,9 @@ export const listTrashOutputSchema = z.object({
       }),
     )
     .max(MCP_TRASH_LISTED_MAX),
-  /** Cuántas hay en total, aunque se muestren menos. */
   total: z.number().int().nonnegative(),
 });
 
-/** Lo que devuelve un cambio a una página entera: la página como quedó, qué cambió y a cuántas páginas bajo ella alcanzó. */
 export const managedPageOutputSchema = z.object({
   changed: z.array(z.string()).optional(),
   childPages: z.number().int().optional(),
@@ -412,7 +401,7 @@ export const searchDiagramIconsInputSchema = z.object({
 
 export const searchDiagramIconsOutputSchema = z.object({ icons: z.array(z.string()), usage: z.string() });
 
-/** Lo que contesta el worker que revisa diagramas, leído con forma: viene de otro hilo, no de este código. */
+/** Parsed because the reply comes from another thread. */
 export const diagramCheckAnswerSchema = z.union([
   z.object({ diagramType: z.string(), id: z.number().int() }),
   z.object({ fault: z.string(), id: z.number().int() }),

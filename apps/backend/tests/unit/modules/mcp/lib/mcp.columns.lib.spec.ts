@@ -81,7 +81,6 @@ describe('normalizeMcpCellValues', () => {
     });
   });
 
-  /** Guardar a medias un valor que no existe deja la fila en un estado que nadie pidió. */
   it('refuses an option the column does not have, and says which ones it has', () => {
     const refused = normalizeMcpCellValues(columns, { Estado: 'Bloqueado' }, people, listMcpNames);
 
@@ -97,7 +96,6 @@ describe('normalizeMcpCellValues', () => {
     expect(refused.getError()).toContain('Estado (status)');
   });
 
-  /** Escribir no da derecho a leer: el rechazo no cuenta qué columnas ni qué opciones hay. */
   it('refuses without naming what there is when the names are kept from the agent', () => {
     const noColumn = normalizeMcpCellValues(columns, { Prioridad: 'Alta' }, people, hideMcpNames);
     const noOption = normalizeMcpCellValues(columns, { Estado: 'Bloqueado' }, people, hideMcpNames);
@@ -110,7 +108,6 @@ describe('normalizeMcpCellValues', () => {
     expect(normalizeMcpCellValues(columns, { owner: 'Nadie' }, people, listMcpNames).getError()).toContain('Nadie');
   });
 
-  /** Dos personas con el mismo nombre: elegir una al azar dejaría la tarea a nombre de quien no era. */
   it('refuses a name two people share, asking for the person by id, and takes either by id', () => {
     const namesakes = [...people, { id: 'u-3', name: 'Ana Pérez' }];
 

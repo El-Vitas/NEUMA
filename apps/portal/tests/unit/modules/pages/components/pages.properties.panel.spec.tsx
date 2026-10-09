@@ -16,12 +16,7 @@ mock.module('@/modules/pages/attachments/server/actions/pages.attachments.action
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
 }));
-/**
- * The panel's business here is revealing the location row, not how moving a
- * page works. Standing in for the whole form keeps this file from reaching the
- * server-only chain behind it — and out of a fight with the move form's own
- * spec, which mocks that same chain to answer differently.
- */
+// Stands in for the move form: avoids its server-only chain, which the move form's own spec mocks differently.
 mock.module('@/modules/pages/navigation/components/pages.move.form', () => ({
   PagesMoveForm: ({ ariaLabelledBy }: { readonly ariaLabelledBy: string }) => (
     <button aria-labelledby={ariaLabelledBy} type="button">

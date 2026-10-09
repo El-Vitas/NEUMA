@@ -6,18 +6,12 @@ import {
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorWidthFrame } from '../types/pages.editor.width.types';
 
-/** How much of the page a block takes. A block nobody sized takes all of it. */
 export const readPageBlockWidth = (width: unknown): number =>
   typeof width === 'number' && width > 0 && width <= 1 ? width : 1;
 
 /**
- * Lets the right edge of a block be dragged, and hands over the width it was
- * left at as a share of the room around it rather than in pixels, so a block
- * reads the same on a screen it was never sized on.
- *
- * Nothing is handed over when the edge was taken hold of and let go without
- * moving: a click is not a resize, and saving one would write a width onto
- * every block anyone ever touched.
+ * Makes a block's right edge draggable and reports the width as a share of the available room, not pixels.
+ * Nothing is reported when the edge was released without moving, so a click never writes a width.
  */
 export const dragPageBlockWidth = (
   handle: HTMLElement,
@@ -49,14 +43,8 @@ export const dragPageBlockWidth = (
 };
 
 /**
- * Puts something on the page inside a frame that can be taken by its right edge
- * and stretched.
- *
- * The frame carries the width and the block fills it, so a block nobody sized
- * hugs whatever it came in at while a block that was sized answers to the
- * column of writing around it — which is the only thing a share of the page can
- * mean. The edge sits on the frame, so it is found beside the block rather than
- * far off at the margin.
+ * Wraps content in a frame whose right edge can be dragged.
+ * The frame carries the width and the block fills it, so a sized block is relative to the writing column.
  */
 export const framePageBlockWidth = (
   block: HTMLElement,

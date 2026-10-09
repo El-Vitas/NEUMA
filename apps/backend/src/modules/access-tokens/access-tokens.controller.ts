@@ -31,13 +31,7 @@ import type {
 import { UpdateAccessTokenAccessDto } from './dto/access-token.access.dto';
 import { CreateAccessTokenDto } from './dto/access-token.create.dto';
 
-/**
- * Los tokens de quien llama, y los de todos para quien administra.
- *
- * Ninguna ruta recibe de quién es el token: sale siempre de la sesión. Así no
- * hay un id ajeno que probar, y cambiar o revocar tokens de otra persona solo
- * lo hace quien administra, por su propia puerta.
- */
+/** No route takes the token owner as input: it always comes from the session, so there is no foreign id to probe. */
 @Controller(ACCESS_TOKENS_ROUTE)
 @UseGuards(JwtAuthGuard)
 export class AccessTokensController {
@@ -51,7 +45,7 @@ export class AccessTokensController {
     return this.accessTokensService.listTokens(await this.ownerOf(payload));
   }
 
-  /** La respuesta lleva el secreto, la única vez que se enseña: ningún intermediario ni el navegador la guardan. */
+  /** The response carries the secret, shown only once, so no cache may store it. */
   @HttpCode(HTTP_STATUS_CREATED)
   @Header(CACHE_CONTROL_HEADER, CACHE_CONTROL_NO_STORE)
   @Post()

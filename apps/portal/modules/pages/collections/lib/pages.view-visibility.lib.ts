@@ -1,20 +1,7 @@
 import { readPageViewConfiguration, readVisiblePropertyKeys } from '@company-brain/shared';
 import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
 
-/**
- * The properties one view shows, in the order it shows them.
- *
- * The order is the view's, not the collection's: somebody who put the due date
- * first meant to read it first, and reordering it back would undo the choice.
- */
-/**
- * Lo que una tarjeta dice además de su título.
- *
- * Mientras la vista no eligió nada, la propiedad por la que agrupa se queda
- * fuera: el encabezado de la columna ya dice ese valor y repetirlo en cada
- * tarjeta de dentro es ruido donde menos espacio hay. Pero si alguien la marcó
- * a mano, se muestra: eligió verla y sacársela igual sería no hacerle caso.
- */
+/** Until the view chooses, the grouping property is hidden (the column header already shows it); a manual pick wins. */
 export const readShownCardProperties = (
   view: PageSchemaView,
   properties: readonly PageSchemaProperty[],
@@ -25,6 +12,7 @@ export const readShownCardProperties = (
   return shown.filter((property) => property.key !== groupBy);
 };
 
+/** In the view's own order, not the collection's. */
 export const readShownProperties = (
   view: PageSchemaView,
   properties: readonly PageSchemaProperty[],

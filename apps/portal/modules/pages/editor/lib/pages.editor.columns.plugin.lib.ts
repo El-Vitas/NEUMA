@@ -22,14 +22,7 @@ const tidyRowContent = (row: EditorNode, kept: readonly EditorNode[]): Fragment 
   return survivor === null || survivor === undefined ? Fragment.empty : survivor.content;
 };
 
-/**
- * Keeps a row of columns honest after every edit: a column left with nothing
- * in it stops being a column, and a row left with a single column stops being
- * a row, so its blocks go back to the page.
- *
- * Without this, dragging the last block out of a column would leave an empty
- * column — and later a row of one — that look like layout but hold nothing.
- */
+/** Removes empty columns and dissolves a row left with a single column, returning its blocks to the page. */
 export const createPageEditorColumnCleanupPlugin = (): EditorPlugin =>
   new EditorPlugin({
     appendTransaction: (transactions, _previousState, nextState) => {

@@ -15,11 +15,7 @@ export const PAGE_PROPERTY_LOGICAL_TYPE = {
   MULTI_TAG: 'MULTI_TAG',
 } as const satisfies Record<PagePropertyLogicalType, PagePropertyLogicalType>;
 
-/**
- * The colors an option may wear, named rather than written as a number, so the
- * same name reads as a tag on screen, as a column heading on a board and as a
- * word in an export.
- */
+/** Named, not numeric, so the same color reads in a tag, a board heading and an export. */
 export type PageOptionColor = 'GRAY' | 'BROWN' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | 'PURPLE' | 'PINK' | 'RED';
 
 export const PAGE_OPTION_COLOR = {
@@ -46,7 +42,6 @@ export const PAGE_OPTION_COLOR_VALUES = [
   PAGE_OPTION_COLOR.RED,
 ] as const;
 
-/** One choice a property offers: the value a row stores, and how it is shown. */
 export interface PagePropertyOption {
   readonly color: PageOptionColor | null;
   readonly value: string;

@@ -9,7 +9,6 @@ interface IProps {
   readonly onRemove: (commentId: string) => void;
 }
 
-/** One remark: who said it, when, and what it says. */
 export const PagesEditorBlockCommentItem = ({ comment, onRemove }: IProps) => {
   const t = useTranslations('pages');
   const format = useFormatter();

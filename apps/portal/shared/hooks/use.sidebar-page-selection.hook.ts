@@ -4,10 +4,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import type { PortalSidebarPageSelectionController } from '@/modules/portal/types/portal.sidebar.selection.types';
 
-/**
- * Selecting several pages of a tree at once, entered on purpose rather than
- * picked up by accident from a stray click on a row.
- */
 export const useSidebarPageSelection = (): PortalSidebarPageSelectionController => {
   const t = useTranslations('pages.selection');
   const [isActive, setIsActive] = useState(false);

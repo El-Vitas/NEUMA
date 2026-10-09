@@ -98,7 +98,6 @@ describe('buildMcpViewConfiguration', () => {
     ).toContain('Por hacer, Hecho');
   });
 
-  /** Configurar no da derecho a leer: el rechazo no cuenta qué columnas ni qué opciones hay. */
   it('refuses without naming what there is when the names are kept from the agent', () => {
     const hidden = { columns, listNames: hideMcpNames };
 

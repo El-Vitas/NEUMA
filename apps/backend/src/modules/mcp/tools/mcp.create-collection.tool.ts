@@ -31,7 +31,6 @@ import type {
   McpWriteSession,
 } from '../types/mcp.types';
 
-/** La columna que nombra cada fila, que toda colección tiene y que no se puede quitar. */
 const writeTitleColumn = (name: string): McpColumn => ({
   key: PAGE_COLLECTION_TITLE_PROPERTY_KEY,
   label: name,
@@ -40,7 +39,6 @@ const writeTitleColumn = (name: string): McpColumn => ({
   type: PAGE_PROPERTY_TYPE.TITLE,
 });
 
-/** La forma con que nace la colección: sus columnas y una tabla sin filtros. Se revisa antes de crear nada. */
 const planShape = (input: McpCreateCollectionInput): McpCollectionShape => {
   const plan = requireMcpInput(
     applyMcpColumnChanges(
@@ -74,9 +72,8 @@ const createPage = async (
 };
 
 /**
- * Guarda la forma de la página recién creada. Su lugar sale de donde se creó,
- * sin volver a preguntarlo: una lectura de más después de escribir solo podría
- * fallar y deshacer una colección que quedó bien.
+ * Uses the creation location instead of re-reading it: an extra read after writing
+ * could only fail and undo a good collection.
  */
 const saveShape = async (
   dependencies: McpServerDependencies,
@@ -101,10 +98,8 @@ const saveShape = async (
 };
 
 /**
- * Deshace la página que esta misma llamada acaba de crear, cuando no se le
- * pudo dar su forma: una colección a medias, sin columnas, confunde más de lo
- * que sirve. Si no se puede deshacer, se dice cuál quedó para que una persona
- * la termine o la quite.
+ * A column-less collection is worse than none, so the page is undone. If undo fails,
+ * the result names the remaining page so a person can finish or remove it.
  */
 const trashPage = async (dependencies: McpServerDependencies, call: McpCall, page: McpWrittenRow): Promise<boolean> => {
   try {
@@ -124,11 +119,7 @@ const takeBackPage = async (dependencies: McpServerDependencies, call: McpCall, 
   );
 };
 
-/**
- * Le da a la página recién creada su forma de colección. La forma ya se revisó,
- * así que solo un fallo por dentro la deja sin columnas: entonces la página se
- * deshace y el motivo sigue su camino.
- */
+/** The shape is already validated, so only an internal failure leaves the page column-less. */
 const giveItsShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -173,11 +164,6 @@ const createCollection = async (
   return describeMcpCollection(dependencies.portalUrl, collection);
 };
 
-/**
- * Crea una colección: una página cuyas páginas hijas son filas con columnas,
- * como un tablero de tareas. Nace con la columna que nombra cada fila, las que
- * pida el agente y una tabla.
- */
 export const createCollectionTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.createCollection,
   register: (server, dependencies) => {

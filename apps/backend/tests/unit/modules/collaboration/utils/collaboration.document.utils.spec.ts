@@ -70,11 +70,6 @@ const readBack = (content: PageContent): PageContent => {
 };
 
 describe('collaboration document', () => {
-  /**
-   * El servidor siembra el documento colaborativo con lo guardado y después
-   * guarda lo que quedó en él. Si la ida y la vuelta cambian algo, cada vez que
-   * alguien abre una página la página cambia sola.
-   */
   test('gives back exactly the page it was seeded with', () => {
     expect(readBack(richPage)).toEqual(richPage);
   });
@@ -116,11 +111,6 @@ describe('replaceCollaborationDocumentContent', () => {
     expect(readCollaborationDocumentContent(document)).toEqual(pageOf(paragraph('a', 'Uno'), paragraph('b', 'Dos')));
   });
 
-  /**
-   * Lo que agrega el servidor, un agente por ejemplo, se funde con lo que una
-   * persona escribe al mismo tiempo en otro bloque: ninguno de los dos pisa al
-   * otro.
-   */
   test('merges with what somebody is writing at the same time in another block', () => {
     const seed = encodePageContentAsCollaborationState(pageOf(paragraph('a', 'Uno'), paragraph('b', 'Dos')));
     const server = new Doc();

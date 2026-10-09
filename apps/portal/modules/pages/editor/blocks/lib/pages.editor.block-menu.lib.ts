@@ -8,26 +8,16 @@ import { findPageBlockAround, findSelectedPageBlocks } from './pages.editor.bloc
 const isPageEditorBlockRequest = (value: unknown): value is PageEditorBlockRequest =>
   typeof value === 'object' && value !== null && 'blockStart' in value && 'kind' in value;
 
-/** What is being asked of which block, or nothing while the page is left alone. */
 export const readPageEditorBlockRequest = (state: EditorState): PageEditorBlockRequest | null =>
   pageEditorBlockMenuKey.getState(state) ?? null;
 
-/**
- * Puts away what was being asked, and only that.
- *
- * A menu that hands the block over to a conversation — its comments, where it
- * is going — closes itself right after; naming what is being closed keeps that
- * farewell from taking the conversation with it.
- */
+/** Closes only the given kind: a menu handing over to a dialog closes itself and must not close the dialog. */
 export const closePageEditorBlockRequest = (view: EditorView, kind: PageEditorBlockRequestKind): void => {
   if (readPageEditorBlockRequest(view.state)?.kind !== kind) return;
   view.dispatch(view.state.tr.setMeta(pageEditorBlockMenuKey, null));
 };
 
-/**
- * Asks something of the block starting at `blockStart`, selecting it first so
- * what is being answered and what the page shows as chosen are the same block.
- */
+/** Selects the block first so the request and the visible selection are the same block. */
 export const openPageEditorBlockRequest = (
   view: EditorView,
   blockStart: number,
@@ -40,26 +30,14 @@ export const openPageEditorBlockRequest = (
   view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, { blockStart, kind }));
 };
 
-/**
- * Asks the same blocks something else — their comments, where they are going.
- *
- * What the page has hold of is left alone: the blocks were chosen before the
- * menu was opened, and choosing one of them again on the way out would leave
- * the rest behind.
- */
+/** Leaves the selection alone: reselecting one block on the way out would drop the rest. */
 export const changePageEditorBlockRequest = (view: EditorView, kind: PageEditorBlockRequestKind): void => {
   const request = readPageEditorBlockRequest(view.state);
   if (request === null) return;
   view.dispatch(view.state.tr.setMeta(pageEditorBlockMenuKey, { ...request, kind }));
 };
 
-/**
- * Asks what has been said about the chosen stretch of text.
- *
- * Unlike the questions asked of a whole block, this one leaves the chosen text
- * exactly as it was: it is the fragment being talked about, and losing hold of
- * it would leave the remark with nothing to point at.
- */
+/** Keeps the text selection, since that fragment is what the comment points at. */
 export const openPageEditorFragmentComments = (view: EditorView): void => {
   const range = findSelectedPageBlocks(view.state);
   const { from, to } = view.state.selection;
@@ -74,12 +52,7 @@ export const openPageEditorFragmentComments = (view: EditorView): void => {
   );
 };
 
-/**
- * Opens what has been said about the block a place in the page belongs to.
- *
- * The place is also taken as the cursor, so what the conversation shows and
- * what the page has hold of are the same block.
- */
+/** Also moves the cursor to `place`, so the dialog and the selection refer to the same block. */
 export const openPageEditorBlockCommentsAt = (view: EditorView, place: number): void => {
   const range = findPageBlockAround(view.state.doc.resolve(place));
   if (range === null) return;
@@ -88,7 +61,6 @@ export const openPageEditorBlockCommentsAt = (view: EditorView, place: number): 
   view.dispatch(transaction.setMeta(pageEditorBlockMenuKey, { blockStart: range.start, kind: 'comments' }));
 };
 
-/** Asks the block the selection is on for its actions, so the menu is reachable without a pointer. */
 export const openPageEditorBlockMenu: Command = (state, dispatch) => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return false;
@@ -98,12 +70,7 @@ export const openPageEditorBlockMenu: Command = (state, dispatch) => {
   return true;
 };
 
-/**
- * Remembers what a block was asked.
- *
- * The question is dropped as soon as the page changes underneath it, so an
- * answer can never land on a block that is no longer where it was.
- */
+/** The request is dropped when the document changes, so it never lands on a block that has moved. */
 export const createPageEditorBlockMenuPlugin = (): EditorPlugin<PageEditorBlockRequest | null> =>
   new EditorPlugin<PageEditorBlockRequest | null>({
     key: pageEditorBlockMenuKey,

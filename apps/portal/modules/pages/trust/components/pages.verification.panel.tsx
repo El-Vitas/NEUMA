@@ -33,11 +33,6 @@ interface IProps {
   readonly verifiedBy: null | PageAuthor;
 }
 
-/**
- * Whether a page can be trusted, and who answers for it — both asked and set
- * from the same place, because they are both about knowing what a page is
- * worth before reading it, not about what it says.
- */
 export const PagesVerificationPanel = ({
   canEdit,
   onOwnerChange,

@@ -1,10 +1,4 @@
-/**
- * The same list, with one of its own set down in front of another.
- *
- * `null` for the one it goes before means the end of the line, which is where
- * something dropped past everything belongs. Naming a thing the list does not
- * hold answers nothing at all rather than guessing at what was meant.
- */
+/** A `null` `beforeId` moves the item to the end; an id missing from the list yields `null`. */
 export const placeBefore = <T extends { readonly id: string }>(
   listed: readonly T[],
   movedId: string,

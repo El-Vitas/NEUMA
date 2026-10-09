@@ -17,7 +17,6 @@ describe('readBoardGroupValue', () => {
     expect(readBoardGroupValue('todo')).toBe('todo');
   });
 
-  /** The column of rows with no value is not a value: landing there clears the property. */
   it('reads the column of rows without a value as no value at all', () => {
     expect(readBoardGroupValue('unassigned')).toBeNull();
   });
@@ -28,7 +27,6 @@ describe('isBoardDropAllowed', () => {
     expect(isBoardDropAllowed('todo', 'doing')).toBe(true);
   });
 
-  /** Dropping where it already is would be a write that changes nothing. */
   it('refuses a card back onto the column it came from', () => {
     expect(isBoardDropAllowed('todo', 'todo')).toBe(false);
   });
@@ -47,7 +45,6 @@ describe('resolveBoardKeyboardTarget', () => {
     expect(resolveBoardKeyboardTarget(groups, 'doing', 'BACKWARD')).toBe('todo');
   });
 
-  /** Wrapping around would move a card somewhere nobody aimed at. */
   it('stops at the last column instead of wrapping around', () => {
     expect(resolveBoardKeyboardTarget(groups, 'unassigned', 'FORWARD')).toBeNull();
   });

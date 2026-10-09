@@ -31,16 +31,10 @@ const addOutcomes = (left: PageBlocksFillOutcome, right: PageBlocksFillOutcome):
   unreadablePages: left.unreadablePages + right.unreadablePages,
 });
 
-/**
- * El mantenimiento de las páginas que ya existían antes de que cada bloque
- * tuviera id y se proyectara para buscarlo.
- */
+/** Backfills block ids and search projection for pages created before blocks had ids. */
 @Injectable()
 export class PageMaintenanceService {
-  /**
-   * Los espacios de trabajo con una corrida en curso. Vive en el proceso porque
-   * el backend es uno solo: los documentos en vivo ya están en su memoria.
-   */
+  /** In-process because there is a single backend instance and live documents already live in its memory. */
   private readonly runningWorkspaceIds = new Set<string>();
 
   constructor(
@@ -50,15 +44,8 @@ export class PageMaintenanceService {
   ) {}
 
   /**
-   * Deja cada página del espacio de trabajo con un id en cada bloque, y con sus
-   * bloques proyectados para buscarlos.
-   *
-   * Una página abierta en vivo se toma de su documento en vivo, que es lo que
-   * dice ahora; una que nadie tiene abierta, de lo guardado. Si le faltaban
-   * ids, se guarda con ellos por el mismo camino que un cambio cualquiera, y
-   * ese guardado ya avisa a la búsqueda. Si no le faltaban, solo se le pide a
-   * la búsqueda que la vuelva a proyectar. Correrlo dos veces no cambia nada
-   * que la primera no haya hecho.
+   * Open pages are read from the live document, others from storage. Pages missing ids are saved
+   * through the normal path, which notifies search; the rest are only re-projected. Idempotent.
    */
   async fillPageBlocks(
     viewer: PageMaintenanceViewer,

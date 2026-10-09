@@ -33,10 +33,6 @@ export class PageSchemaPropertyOptionDto {
   color?: PageOptionColor;
 }
 
-/**
- * One option as it arrived, whether it was sent as an object or as the plain
- * name a caller written before colors would send.
- */
 const toOptionDto = (option: { color: PageOptionColor | null; value: string }): PageSchemaPropertyOptionDto => {
   const dto = new PageSchemaPropertyOptionDto();
   dto.value = option.value;
@@ -61,7 +57,7 @@ export class PageSchemaPropertyDto {
   @IsBoolean()
   required!: boolean;
 
-  /** Sent as objects. A plain list of names is still read, so a caller written before colors keeps working. */
+  /** Accepts objects or plain names; plain names stay supported for older callers. */
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
@@ -85,10 +81,7 @@ export class PageSchemaViewDto {
   isDefault!: boolean;
 }
 
-/**
- * De qué nombre viene una opción y a cuál va, que es lo que la forma sola no
- * puede deducir. Sin nombre nuevo, la opción se quita.
- */
+/** Renames an option from `from` to `to`; without `to` the option is removed. */
 export class RewritePageOptionDto {
   @IsString()
   @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
@@ -102,7 +95,6 @@ export class RewritePageOptionDto {
   to?: string;
 }
 
-/** Lo que una vista dice de sí misma, sin tocar la forma de la colección. */
 export class SetPageViewConfigurationDto {
   @IsObject()
   configuration!: Prisma.InputJsonObject;

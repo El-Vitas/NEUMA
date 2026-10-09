@@ -7,15 +7,7 @@ import { DEFAULT_DEBOUNCE_MS } from '@/shared/constants/use-table-action.constan
 import { isActionSuccess } from '@/shared/lib/action-result';
 import type { UseCommandBarSearchResult } from '@/shared/types/use.command-bar-search.types';
 
-/**
- * Whichever pages last answered to a query, kept only for as long as they
- * still answer to the one now asked.
- *
- * Loading and staleness are read off the gap between the query in hand and
- * the query those pages actually answer to, rather than tracked as state of
- * their own — so the reader never sees a render where the two have drifted
- * apart, the way a `setState` fired from inside the effect would allow.
- */
+/** Loading is derived from the gap between the current query and the answered one, never set inside the effect. */
 export const useCommandBarSearch = (query: string): UseCommandBarSearchResult => {
   const [pages, setPages] = useState<readonly SearchInstantPageCandidate[]>([]);
   const [resolvedQuery, setResolvedQuery] = useState('');

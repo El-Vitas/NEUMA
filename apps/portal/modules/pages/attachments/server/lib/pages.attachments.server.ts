@@ -8,7 +8,6 @@ import { ATTACHMENT_FILENAME_PATTERN, FILES_API_ROUTE } from '../../constants/pa
 import { attachmentSummarySchema } from '../../schemas/pages.attachments.schemas';
 import type { AttachmentDownload } from '../../types/pages.attachments.types';
 
-/** A file sent to or asked of the backend; not reaching it is being offline, said the way every other call says it. */
 const askBackendForFile = async (address: string, init: RequestInit): Promise<Response> => {
   try {
     return await fetch(address, init);
@@ -17,11 +16,7 @@ const askBackendForFile = async (address: string, init: RequestInit): Promise<Re
   }
 };
 
-/**
- * The stretch a player asked for travels with the request: dropping it here
- * would leave the page asking for a piece and the server answering with the
- * whole file, which is a seek bar that does not move.
- */
+/** Forwards `range`: without it the server answers with the whole file and media seeking breaks. */
 export const getPageAttachmentResponse = async (
   attachmentId: string,
   accessToken: string,

@@ -14,7 +14,7 @@ interface IProps {
   readonly selected: readonly AccessTokenPermission[];
 }
 
-/** Las casillas de un nivel personalizado. Solo aparecen los permisos que quien crea el token tiene. */
+/** Only permissions the token's creator holds are shown. */
 export const AccessTokensPermissionCheckboxes = ({ errorId, onToggle, permissions, selected }: IProps) => {
   const t = useTranslations('accessTokens');
   const idPrefix = useId();

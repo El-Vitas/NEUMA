@@ -7,10 +7,6 @@ interface IProps {
   readonly title: string;
 }
 
-/**
- * El encabezado de una sección dentro de una página que ya tiene su título,
- * como las de la configuración: un nivel por debajo de `PageHeader`.
- */
 export const SectionHeader = ({ action, id, subtitle, title }: IProps) => (
   <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
     <div className="min-w-0 max-w-prose">

@@ -14,15 +14,7 @@ import { PageBatchMoveDto } from './dto/page.batch.move.dto';
 import { PageBatchTrashDto } from './dto/page.batch.trash.dto';
 import { PagesService } from './pages.service';
 
-/**
- * Moving or trashing several pages at once, composed from the same moves the
- * service already offers one page at a time.
- *
- * Selecting a mother and one of her own descendants is not two separate
- * requests to the same page: only the mother is asked to move or to go to the
- * trash, and whatever she carries with her — cascade already does that — is
- * reported as succeeded alongside her, never attempted a second time.
- */
+/** Descendants of a selected page are covered by the cascade and reported as succeeded, not acted on again. */
 @Controller('pages/batch')
 export class PagesBatchController {
   constructor(
@@ -115,12 +107,7 @@ export class PagesBatchController {
     }
   }
 
-  /**
-   * Sorts the requested ids into what to act on directly and what is already
-   * spoken for by an ancestor in the same request — walked through the real
-   * parent chain, not just the pages the caller happened to select, since
-   * cascade reaches every descendant regardless of who else was picked.
-   */
+  /** Walks the real parent chain, not only the selection, because the cascade reaches every descendant. */
   private async resolveSelection(
     pageIds: readonly string[],
     workspaceId: string,

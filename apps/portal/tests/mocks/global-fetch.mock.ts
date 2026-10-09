@@ -3,10 +3,8 @@ import { beforeAll } from 'bun:test';
 type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 /**
- * MSW instala su interceptor sobre `globalThis.fetch` desde el `beforeAll` del
- * preload. Sustituir `fetch` en el cuerpo del módulo lo dejaría por debajo de
- * ese interceptor, que se quedaría con las peticiones; registrarlo como hook
- * lo pone después, y el doble vuelve a recibirlas.
+ * MSW installs its interceptor on `globalThis.fetch` in the preload's `beforeAll`. Replacing `fetch` in the module
+ * body would sit under that interceptor and never see requests; registering it as a hook runs it afterwards.
  */
 export const installFetchMock = (fetchMock: FetchMock): void => {
   beforeAll(() => {

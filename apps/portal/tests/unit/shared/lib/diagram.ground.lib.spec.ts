@@ -31,7 +31,7 @@ describe('watchTheDiagramGround', () => {
     expect(changes).toBe(2);
   });
 
-  /** La raíz del tema lleva otras clases: redibujar cada diagrama por ellas sería dibujarlos todos de nuevo para nada. */
+  // The theme root carries other classes; redrawing every diagram for them would be wasted work.
   it('says nothing when the root changes a class that is not day or night', async () => {
     const ground = createGround();
     let changes = 0;

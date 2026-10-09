@@ -22,13 +22,7 @@ export const createPageCollaborationSession = (
   let websocketProvider: HocuspocusProviderWebsocket | null = null;
   let attemptsMade = 0;
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  /**
-   * The page as this person has it, for as long as the session lasts.
-   *
-   * Only the connection is rebuilt after a cut. What was written while it was
-   * down lives in this document, and reconnecting hands it to the server;
-   * starting the document over on each reconnection threw it away.
-   */
+  /** Kept across reconnections: edits made while offline live here and sync on reconnect. */
   const ydoc = new Doc();
   const fragment = ydoc.getXmlFragment(COLLABORATION_DOCUMENT_FRAGMENT);
 
@@ -52,14 +46,7 @@ export const createPageCollaborationSession = (
     targetProvider.setAwarenessField('user', { name: trimmedDisplayName });
   };
 
-  /**
-   * One failure, one reconnection.
-   *
-   * The same failure is heard from twice — the socket refuses, and the provider
-   * reports the disconnection — and each account used to become a reconnection
-   * of its own: two sessions racing, two timers running, and the attempts spent
-   * twice as fast as the reader was told.
-   */
+  /** One failure schedules one reconnection: the socket and the provider both report the same failure. */
   const handleConnectionFailure = (): void => {
     if (reconnectTimeoutId !== null) return;
     teardownConnection();
@@ -99,13 +86,8 @@ export const createPageCollaborationSession = (
       url: env.NEXT_PUBLIC_COLLABORATION_WS_URL,
     });
     /**
-     * The socket is asked to connect here so that its refusal belongs to us.
-     *
-     * It starts connecting on its own the moment it is built, and a connection
-     * that fails ends as a rejection nobody is waiting for — which the browser
-     * then reports as a fault in the middle of writing, over something as
-     * ordinary as a page opened while the server is restarting. Asking again
-     * calls off that first attempt and hands us the answer to the second.
+     * The socket starts connecting on construction, and a failure there is an unhandled rejection.
+     * Connecting again cancels that attempt and returns a promise this code handles.
      */
     websocketProvider.connect().catch(() => {
       if (isActive) handleConnectionFailure();
@@ -121,11 +103,7 @@ export const createPageCollaborationSession = (
         callbacks.onParticipantsChange(mapAwarenessStatesToParticipants(states, ydoc.clientID));
       },
       onStatus: setProviderStatus,
-      /**
-       * The document arrives already holding the page: the server seeds it once,
-       * the first time anybody opens it. Seeding it here, from each browser that
-       * found it empty, wrote the page twice when two opened it at once.
-       */
+      /** The server seeds the document once; seeding from each browser would duplicate the page. */
       onSynced: ({ state }) => {
         if (!isActive || !state || provider === null) return;
         setAwarenessDisplayName(provider);

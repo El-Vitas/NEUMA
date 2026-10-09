@@ -13,10 +13,6 @@ interface IProps {
   readonly submitLabel: string;
 }
 
-/**
- * Las acciones al pie del formulario, como en el resto del portal: volver a los
- * tokens al comienzo de la fila y la acción al final, donde termina la lectura.
- */
 export const AccessTokensFormFooter = ({ canSubmit, isPending, pendingLabel, submitLabel }: IProps) => {
   const t = useTranslations('accessTokens.form');
 

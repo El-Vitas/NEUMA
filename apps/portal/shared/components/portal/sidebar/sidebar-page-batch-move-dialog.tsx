@@ -36,11 +36,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Where every selected page goes, picked once for the whole batch. The
- * destination list is asked for the first selected page rather than for each
- * one, since it is the same set of spaces and pages either way.
- */
+/** Destinations are fetched for the first selected page only; the set is the same for every page. */
 export const SidebarPageBatchMoveDialog = ({ anchorPageId, onClose, onMoved, open, pageIds, spaceId }: IProps) => {
   const t = useTranslations('pages.selection');
   const tPages = useTranslations('pages');

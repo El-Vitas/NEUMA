@@ -15,21 +15,12 @@ interface IProps {
   readonly activeViewName: string;
   readonly canEdit: boolean;
   readonly properties: readonly PageSchemaProperty[];
-  /** Lo que guarda cada fila de las que la vista dejó pasar, que es sobre lo que se cuenta. */
   readonly rowValues: readonly PagePropertyValues[];
   readonly schema: PageSchema;
   readonly spaceId: string;
 }
 
-/**
- * Lo que cada columna dice de todas sus filas juntas.
- *
- * Se cuenta sobre las filas que la vista dejó pasar y no sobre la colección
- * entera: un total que ignora el filtro puesto responde a una pregunta que
- * nadie hizo. Y se calcula aquí, con lo que ya está en pantalla, para que
- * cambiar de cuenta se vea al momento en vez de esperar al servidor —que
- * mientras tanto guarda la elección en la vista, porque es de la vista—.
- */
+/** Computed over the rows the filter let through, client-side, so changing a calculation shows instantly. */
 export const PagesCollectionTableFooter = ({
   activeViewName,
   canEdit,
@@ -57,7 +48,6 @@ export const PagesCollectionTableFooter = ({
       rowValues.map((values) => values[property.key]),
     ) ?? t('calculate');
 
-  /** Una columna quieta lo es de arriba abajo: si el pie no se quedara, la columna tendría un agujero. */
   const columnKeys = listTableColumnKeys(properties.map((property) => property.key));
   const activeView = schema.views.find((view) => view.name === activeViewName);
   const { columnWidths, frozenColumns } = readPageViewConfiguration(activeView?.configuration ?? {});

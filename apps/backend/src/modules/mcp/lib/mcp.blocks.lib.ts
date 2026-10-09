@@ -22,11 +22,7 @@ const findHeldBlock = (
   return null;
 };
 
-/**
- * Un bloque como se lee solo. Un ítem suelto no se escribe como ítem, así que
- * va dentro de una lista como la suya; la lista no lleva id, porque no es lo
- * que se nombró.
- */
+/** A bare item is wrapped in a list of its kind; the list gets no id since it was not what was named. */
 export const readMcpBlockInContext = (nodes: readonly unknown[], blockId: string): PageDocumentNodeShape | null => {
   const found = findHeldBlock(nodes, blockId, null);
   if (found === null) return null;
@@ -49,20 +45,12 @@ const readComments = (node: PageDocumentNodeShape): readonly McpBlockComment[] =
   }));
 };
 
-/** Lo que se dijo sobre cada bloque de una página, con el bloque sobre el que se dijo, en el orden de la página. */
 export const listMcpBlockComments = (nodes: readonly unknown[]): readonly McpBlockComment[] =>
   nodes
     .filter(isPageDocumentNode)
     .flatMap((node) => [...readComments(node), ...listMcpBlockComments(listPageDocumentChildren(node))]);
 
-/**
- * Un tramo de una página, cortado entre bloques de arriba.
- *
- * Una página muy larga entregada de una vez se come la conversación del
- * agente. Se corta entre bloques, nunca en medio de uno, y siempre entra al
- * menos un bloque, aunque solo ya pase del tamaño: así el tramo siguiente
- * siempre avanza.
- */
+/** Cuts between blocks and always takes at least one, even oversized, so the next part advances. */
 export const takeMcpPagePart = (nodes: readonly unknown[], start: number, maxCharacters: number): McpPagePart => {
   const taken: unknown[] = [];
   let written = 0;

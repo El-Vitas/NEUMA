@@ -13,11 +13,7 @@ interface IProps {
   readonly token: AccessToken;
 }
 
-/**
- * Un token de quien mira: cómo se llama, cómo empieza, qué puede hacer y
- * cuándo se usó. Cambiar el acceso lleva a su propia página; revocar queda
- * separado, para que no se toque uno buscando el otro.
- */
+/** Revoking is kept apart from editing access so one is not hit while reaching for the other. */
 export const AccessTokensItem = ({ token }: IProps) => {
   const t = useTranslations('accessTokens');
 

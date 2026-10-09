@@ -40,12 +40,8 @@ const queryIn = (config: Prisma.Sql): Prisma.Sql =>
   Prisma.sql`websearch_to_tsquery(${config}, public.immutable_unaccent("input"."queryText"))`;
 
 /**
- * Si un documento tiene lo buscado como palabra entera, leído en su idioma.
- *
- * Va en un tramo por idioma, cada uno con su configuración fija: una consulta
- * cuya configuración sale de una columna de cada fila no puede usar el índice
- * del vector y recorre la tabla entera. Así cada tramo usa el índice, y los
- * tramos se juntan. Los idiomas son los mismos con que se arma el vector.
+ * One branch per language with a fixed config: a config read from a column cannot use the vector index.
+ * Languages match those used to build the vector.
  */
 const buildWholeWordMatch = (vector: Prisma.Sql): Prisma.Sql => Prisma.sql`(
   ("searchDocument"."language" = 'en' AND ${vector} @@ ${queryIn(Prisma.sql`'english'::regconfig`)})
@@ -57,24 +53,17 @@ const buildWholeWordMatch = (vector: Prisma.Sql): Prisma.Sql => Prisma.sql`(
   )
 )`;
 
-/** Fija un umbral de pg_trgm solo para la transacción en curso, para que sus operadores usen el índice con ese umbral. */
+/** Transaction-local, so pg_trgm operators use the index with this threshold. */
 export const buildTrigramThresholdSetting = (setting: string, threshold: number): Prisma.Sql =>
   Prisma.sql`SELECT set_config(${setting}, ${String(threshold)}, true)`;
 
-/**
- * Si una columna tiene lo buscado dentro de alguna palabra, sin mirar tildes
- * ni mayúsculas. Sin patrón —lo buscado es muy corto—, nunca.
- */
+/** Accent- and case-insensitive; a null pattern (query too short) never matches. */
 export const buildInsideWordMatch = (column: Prisma.Sql, pattern: string | null): Prisma.Sql =>
   pattern === null
     ? Prisma.sql`FALSE`
     : Prisma.sql`public.immutable_unaccent(${column}) ILIKE public.immutable_unaccent(${pattern})`;
 
-/**
- * El orden de lo encontrado, en escalones: palabra entera primero (y entre
- * ellas, la más parecida), después dentro de una palabra del título, y al
- * final dentro de una palabra del texto.
- */
+/** Tiers: whole word first (most similar first), then inside a title word, then inside a text word. */
 export const buildWordRank = (matches: {
   readonly insideText: Prisma.Sql;
   readonly insideTitle: Prisma.Sql;
@@ -158,17 +147,9 @@ const buildEditedRangeInterval = (range: SearchEditedRange): Prisma.Sql => {
 };
 
 /**
- * Which spaces a reader is allowed to find anything in.
- *
- * Every alternative is tied to the one visibility it speaks for. Saying
- * instead that some role may read restricted spaces, as a bare condition of
- * its own, does not widen the guard — it dissolves it: an alternative that is
- * simply true makes every other one moot, and the reader finds pages in every
- * space there is, private ones included.
- *
- * This mirrors `buildSpaceVisibilityFilter`, which the rest of the system
- * already reads by; written again here because a raw query cannot take a
- * Prisma `where`.
+ * Mirrors `buildSpaceVisibilityFilter`, duplicated because raw SQL cannot take a Prisma `where`.
+ * Each role condition stays inside its own visibility branch: a bare TRUE alternative would make
+ * every other one moot and expose private spaces.
  */
 export const buildSearchSpaceVisibilityFilter = (userId: string, role: UserRole): Prisma.Sql => {
   const belongsToTheReader = Prisma.sql`EXISTS (
@@ -190,18 +171,12 @@ export const buildSearchSpaceVisibilityFilter = (userId: string, role: UserRole)
   )`;
 };
 
-/** Lo editado desde el comienzo del período; la columna es la de la página o la de su copia en el índice. */
 export const buildEditedRangeFilter = (
   range: SearchEditedRange,
   updatedAtColumn: Prisma.Sql = Prisma.sql`"searchDocument"."updatedAt"`,
 ): Prisma.Sql => Prisma.sql`AND ${updatedAtColumn} >= ${buildEditedRangeInterval(range)}`;
 
-/**
- * Only pages currently valid: verified, and either with no expiration or one
- * still in the future. Checked against `now()` at query time rather than a
- * flag baked in at projection time, so a page does not keep reading as
- * verified past its own expiration just because nobody has written in it since.
- */
+/** Evaluated against `now()` at query time, so an expired verification stops matching without a rewrite. */
 const documentIsVerified = Prisma.sql`(
   "searchDocument"."properties"->>'verifiedAt' IS NOT NULL
   AND (
@@ -218,13 +193,9 @@ const buildSpaceLevelTokenFilter = (scope: SearchTokenScope, spaceColumn: Prisma
     : Prisma.sql`${spaceColumn} = ANY(${[...scope.openSpaceIds]}::text[])`;
 
 /**
- * Lo que un token deja encontrar, con la misma regla que decide al leer: una
- * página con regla de página propia o heredada la sigue; las demás siguen la
- * regla de su espacio, o la de todos. Se suma a la visibilidad de la persona,
- * nunca la reemplaza.
- *
- * Se le dice qué columna nombra la página y cuál el espacio, porque se busca
- * tanto en páginas como en bloques, y un bloque sigue la regla de su página.
+ * Same rule as reading: a page with its own or inherited rule follows it, the rest follow their
+ * space's rule. Added to the user's visibility, never replacing it. Columns are parameters because
+ * pages and blocks are both searched.
  */
 export const buildTokenScopeFilter = (
   scope: SearchTokenScope,
@@ -322,7 +293,6 @@ export class SearchRepository {
     return this.toSearchPage(usefulRows, query.limit);
   }
 
-  /** Lo que tiene lo buscado como palabra entera o dentro de una palabra más larga, ordenado por `buildWordRank`. */
   private async findFullTextMatches(
     query: SearchQueryWithFilters,
     cursor: ReturnType<typeof decodeSearchCursor>,
@@ -349,11 +319,7 @@ export class SearchRepository {
     return this.prisma.$queryRaw<SearchRow[]>(sql);
   }
 
-  /**
-   * Las páginas parecidas a lo buscado, para perdonar un error de tipeo. El
-   * operador usa el índice de trigramas con el umbral fijado solo para esta
-   * transacción; la comparación con el umbral queda escrita igual.
-   */
+  /** Typo tolerance: index-backed operator with a transaction-local threshold, compared again explicitly. */
   private async findTrigramMatches(
     query: SearchQueryWithFilters,
     cursor: ReturnType<typeof decodeSearchCursor>,

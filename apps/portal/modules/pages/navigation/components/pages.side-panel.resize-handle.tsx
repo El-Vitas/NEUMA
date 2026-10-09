@@ -15,12 +15,8 @@ interface IProps {
 }
 
 /**
- * The panel's own resize line, at its left edge.
- *
- * Built the same way the page tree's handle is: a real `<input type="range">`
- * standing in for the line, so the keyboard already works on it for free, and
- * only the pointer drag is switched off and driven by the caller instead —
- * the native range would otherwise map the whole width onto an 11px thumb.
+ * A real `<input type="range">` so the keyboard works for free; pointer drag is disabled and driven by
+ * the caller, since the native range would map the whole width onto an 11px thumb.
  */
 export const PagesSidePanelResizeHandle = ({ onChangeWidth, onPointerDown, width }: IProps) => {
   const t = useTranslations('pages.sidePanel');

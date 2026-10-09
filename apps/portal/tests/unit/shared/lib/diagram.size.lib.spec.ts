@@ -27,11 +27,7 @@ describe('how tall a drawing was drawn', () => {
   });
 });
 
-/**
- * Squeezed into the column a diagram is drawn at a fraction of its size and
- * stops being readable long before it stops being wide, so it is shown at the
- * size it was drawn at, times however much closer it has been brought.
- */
+// Squeezed into the column, a diagram becomes unreadable long before it gets narrow, so it keeps its drawn size.
 describe('the size a drawing is shown at', () => {
   it('shows it at the size it was drawn, and lets it be brought closer', () => {
     const drawing = drawingOf('0 0 1200 400');

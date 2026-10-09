@@ -25,18 +25,18 @@ const maximumPropertyKeyLength = 100;
 const maximumFilterTextLength = 500;
 const maximumFilterEntries = 50;
 
-/** Un emoji, contando los que se escriben con varios caracteres —una bandera, una familia—. */
+/** One emoji, counting multi-character ones such as a flag or a family. */
 const maximumIconLength = 16;
 const maximumColumns = 200;
 const maximumColumnLimit = 999;
 const maximumColumnValueLength = 200;
-/** Una columna más angosta que esto deja de poder leerse, y más ancha deja de caber con las demás. */
+/** Pixels: narrower is unreadable, wider no longer fits beside the other columns. */
 const minimumColumnWidth = 80;
 const maximumColumnWidth = 960;
 
 const propertyKeySchema = z.string().min(1).max(maximumPropertyKeyLength);
 
-/** Una columna se nombra por el valor que es, y un valor no es una clave de propiedad. */
+/** A column is identified by its value, which is not a property key. */
 const columnValueSchema = z.string().min(1).max(maximumColumnValueLength);
 
 const filterValueSchema: z.ZodType<PagePropertyValue> = z.union([
@@ -111,9 +111,7 @@ const storedConfigurationSchema = z.object(configurationShape);
 
 const toConfiguration = (parsed: z.infer<typeof storedConfigurationSchema>): PageViewConfiguration => ({
   calculations: parsed.calculations ?? {},
-  /** Barras sin decir nada: comparar cuánto hay en cada grupo es a lo que se viene. */
   chartKind: parsed.chartKind ?? PAGE_CHART_KIND.BAR,
-  /** Y contando filas, que es lo único que se puede hacer sin elegir una propiedad. */
   chartMeasure: parsed.chartMeasure ?? PAGE_CHART_MEASURE.COUNT,
   chartValueProperty: parsed.chartValueProperty ?? null,
   collapsedGroups: parsed.collapsedGroups ?? [],
@@ -125,16 +123,13 @@ const toConfiguration = (parsed: z.infer<typeof storedConfigurationSchema>): Pag
   frozenColumns: parsed.frozenColumns ?? 0,
   hidesEmptyGroups: parsed.hidesEmptyGroups ?? false,
   icon: parsed.icon ?? null,
-  /** Corta por defecto: lo que casi siempre se viene a hacer es ver muchas filas de una vez. */
   rowHeight: parsed.rowHeight ?? PAGE_ROW_HEIGHT.SHORT,
   wrapsText: parsed.wrapsText ?? false,
   hidesUnassignedColumn: parsed.hidesUnassignedColumn ?? false,
   groupBy: parsed.groupBy ?? null,
-  /** Sin decir nada, cada día es su propio grupo: es lo que hacía antes de que hubiera tramos. */
   groupByDateBucket: parsed.groupByDateBucket ?? PAGE_DATE_BUCKET.DAY,
   sorts: parsed.sorts ?? [],
   subGroupBy: parsed.subGroupBy ?? null,
-  /** Nothing means «all of them»; an empty list means somebody chose to show none. */
   visibleProperties: parsed.visibleProperties ?? null,
 });
 

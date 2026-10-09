@@ -2,14 +2,7 @@ import { Plugin as EditorPlugin } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import { PAGE_EDITOR_PLACEHOLDER_STYLE_CLASS } from '../blocks/constants/pages.editor.blocks.constants';
 
-/**
- * Offers the invitation to write on the empty block the cursor is standing on,
- * and only there.
- *
- * Saying it on every empty block would turn a page full of room to breathe into
- * a page full of the same sentence repeated, so the hint follows the cursor and
- * disappears the moment something is written.
- */
+/** Shown only on the empty block under the cursor, so a page of empty blocks does not repeat the hint. */
 export const createPageEditorPlaceholderPlugin = (placeholder: string): EditorPlugin =>
   new EditorPlugin({
     props: {

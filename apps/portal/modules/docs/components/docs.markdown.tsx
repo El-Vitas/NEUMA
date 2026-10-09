@@ -10,14 +10,7 @@ interface IProps {
   readonly markdown: string;
 }
 
-/**
- * A document, shown as it was written.
- *
- * The writing is the source: nothing here is held in the code, so writing
- * documentation is writing a file and never touching a screen. Headings are
- * given names of their own on the way in, which is what makes every one of them
- * something somebody can link to and land on.
- */
+/** Headings receive ids on the way in so each one can be linked to. */
 export const DocsMarkdown = ({ markdown }: IProps) => (
   <div className={DOCS_MARKDOWN_STYLE_CLASS}>
     <Markdown

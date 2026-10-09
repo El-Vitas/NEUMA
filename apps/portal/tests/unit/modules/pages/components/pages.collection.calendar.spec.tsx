@@ -70,7 +70,6 @@ describe('PagesCollectionCalendar', () => {
     expect(screen.getByRole('heading', { name: /September 2026/i })).toBeDefined();
   });
 
-  /** Seis semanas enteras siempre, para que pasar de mes no mueva lo que hay debajo. */
   it('draws six whole weeks', () => {
     cleanup();
     render(drawCalendar());
@@ -87,7 +86,6 @@ describe('PagesCollectionCalendar', () => {
     expect(day.textContent).toContain('Revisar el informe');
   });
 
-  /** Una fila sin fecha no cae en ningún día, y decirlo es lo que la salva de parecer borrada. */
   it('says how many rows have no date at all', () => {
     cleanup();
     render(drawCalendar());
@@ -107,7 +105,6 @@ describe('PagesCollectionCalendar', () => {
     expect(screen.getByRole('heading', { name: /October 2026/i })).toBeDefined();
   });
 
-  /** Arrastrar no puede ser la única manera: con Alt y las flechas la entrada cambia de día. */
   it('moves an entry to another day with the keyboard, writing only its date', async () => {
     cleanup();
     written.length = 0;
@@ -143,7 +140,6 @@ describe('PagesCollectionCalendar', () => {
     expect(created[0]?.title).toBe('Preparar la demo');
   });
 
-  /** Sin fecha elegida no hay dónde poner nada, y una rejilla vacía no lo explicaría. */
   it('says the view still does not name a date instead of drawing an empty month', () => {
     cleanup();
     render(drawCalendar(null));

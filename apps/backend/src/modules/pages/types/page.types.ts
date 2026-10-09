@@ -32,7 +32,6 @@ export interface CreatePageInput {
   readonly workspaceId: string;
 }
 
-/** Lo que dice el documento colaborativo de una página, para guardarlo como su contenido. */
 export interface StorePageContentInput {
   readonly content: PageContent;
   readonly pageId: string;
@@ -48,17 +47,12 @@ export interface StoredPageContentRow {
 
 export interface UpdatePagePropertyValuesInput {
   readonly pageId: string;
-  /** Un nombre nuevo que se guarda en la misma escritura; sin él, el nombre no se toca. */
+  /** Saved in the same write; omitted leaves the title untouched. */
   readonly title?: string;
   readonly updatedById: string;
 }
 
-/** Lo que la fila tiene ahora, fundido con lo que llega y validado; o por qué no se puede guardar. */
-/**
- * Cómo quedan las propiedades a partir de las que la fila tiene al bloquearla.
- * Es puro a propósito: corre con la fila bloqueada, y cualquier consulta que
- * hiciera tomaría otra conexión mientras la transacción retiene la suya.
- */
+/** Must stay pure: it runs under the row lock, and a query would take a second connection. */
 export type PagePropertyValuesMerge<TError> = (
   current: SchemaPropertyValues | null,
 ) => Result<SchemaPropertyValues | null, TError>;
@@ -69,10 +63,8 @@ export interface StoredPagePropertyValuesRow {
 
 export type PageContentRewrite = (current: PageContent) => PageContent;
 
-/** Un cambio sobre lo que la página dice al escribir: la página que queda, o por qué no se puede. */
 export type PageContentEdit = (current: PageContent) => Result<PageContent, string>;
 
-/** Quién decide si alguien puede escribir en una página, y si lo que escribe calza con una página. */
 export interface PageWriteAuthorizer {
   readonly authorizeContentWrite: (
     writer: PageContentWriter,
@@ -89,34 +81,26 @@ export type PageContentWriteError =
   | PageLifecycleError
   | PageLockedError;
 
-/**
- * El documento en vivo de una página, visto desde las páginas: reescribirla a
- * partir de lo que dice en el momento de escribir. Quien la tenga abierta lo ve
- * en vivo, y la página se guarda desde ahí. Devuelve la página tal como quedó.
- */
 export interface PageLiveDocument {
-  /** Lo que dice el documento en vivo de una página si alguien lo tiene abierto; nada si no. */
+  /** Null when nobody has the document open. */
   readonly readLoadedPageContent: (pageId: string) => PageContent | null;
   readonly writePageContent: (writer: PageContentWriter, rewrite: PageContentRewrite) => Promise<PageContent>;
 }
 
-/** Quién escribe el contenido de una página, y en cuál. */
 export interface PageContentWriter {
   readonly pageId: string;
   readonly role: UserRole;
-  /** El espacio que nombra la dirección: una página de otro espacio no se escribe por esta. */
+  /** The space named in the address; a page in another space is rejected. */
   readonly spaceId: string;
   readonly userId: string;
   readonly workspaceId: string;
 }
 
-/** What has to be said to change what a row holds, without touching what it says. */
 export interface UpdatePagePropertiesInput {
   readonly pageId: string;
-  /** Only the properties that changed. What the row already held stays. */
   readonly propertyValues: Readonly<Record<string, unknown>>;
   readonly role: UserRole;
-  /** A new name for the row, saved in the same write as its properties so both land or neither does. */
+  /** Saved in the same write as the properties so both land or neither does. */
   readonly title?: string;
   readonly updatedById: string;
   readonly userId: string;
@@ -131,7 +115,6 @@ export interface PageSummary {
   readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
-  /** When somebody locked the page against edits, and nothing when nobody has. */
   readonly lockedAt: Date | null;
   readonly order: number;
   readonly owner: null | { readonly id: string; readonly name: string };
@@ -141,9 +124,9 @@ export interface PageSummary {
   readonly title: string;
   readonly updatedAt: Date;
   readonly updatedBy: null | { readonly id: string; readonly name: string };
-  /** When the verification stops counting as valid. Left null, a verified page never goes stale on its own. */
+  /** Null means a verified page never expires. */
   readonly verificationExpiresAt: Date | null;
-  /** When somebody last vouched for the page, and nothing when nobody has. Expiring leaves this untouched. */
+  /** Expiring leaves this untouched. */
   readonly verifiedAt: Date | null;
   readonly verifiedBy: null | { readonly id: string; readonly name: string };
   readonly version: number;
@@ -153,22 +136,16 @@ export interface PageMoveContext {
   readonly pageId: string;
   readonly pages: readonly PageParentReference[];
   readonly propertyValues: SchemaPropertyValues | null;
-  /** Where the page lives now, which is not always where it is going. */
   readonly spaceId: string;
   readonly title: string;
 }
 
-/**
- * Where a page may be sent: the spaces this reader can reach, and the pages of
- * those spaces it could hang from. Its own branch is left out, since a page
- * cannot come to hang from something that hangs from it.
- */
+/** Excludes the page's own branch, since a page cannot be moved under its descendants. */
 export interface PageMoveDestinations {
   readonly pages: readonly { readonly id: string; readonly spaceId: string; readonly title: string }[];
   readonly spaces: readonly { readonly id: string; readonly name: string }[];
 }
 
-/** What a page is copied from: everything it wears and everything it says, as it sits in the database. */
 export interface PageCopySource {
   readonly content: Prisma.JsonValue;
   readonly cover: Prisma.JsonValue;
@@ -197,25 +174,21 @@ export interface PageRestoreOutcome {
   readonly spaceName: null | string;
 }
 
-/** Anything an export hands over: a page written out, or a file that hung on one. */
 export interface ExportedFile {
   readonly contents: string | Uint8Array;
   readonly path: string;
 }
 
-/** An attachment already read out of storage, with the place inside the archive it will take. */
 export interface CarriedAttachment {
   readonly contents: Buffer;
   readonly id: string;
   readonly path: string;
 }
 
-/** The little a page needs of a logger: to say that something it expected to read was not there. */
 export interface PageLogger {
   readonly warn: (context: Record<string, unknown>) => void;
 }
 
-/** Something hung on a page, as an export needs to know it: what to call it, and where to read it from. */
 export interface PageAssetForExport {
   readonly id: string;
   readonly originalFilename: string;
@@ -238,7 +211,6 @@ export interface TrashedPageSummary {
   readonly trashedChildCount: number;
 }
 
-/** Lo justo para decidir si una página se lee o se escribe ahora: si sigue viva y si está bloqueada. */
 export interface PageAccessState {
   readonly lifecycle: PageLifecycle;
   readonly lockedAt: Date | null;
@@ -314,7 +286,7 @@ export interface PageRepositoryContract {
     role: UserRole,
     mutationId: string,
   ) => Promise<PageSummary | null>;
-  /** `null` for the page it goes before puts it last among its sisters. */
+  /** A null `beforePageId` places the page last among its siblings. */
   readonly reorderAmongSiblings: (
     pageId: string,
     beforePageId: null | string,
@@ -347,11 +319,7 @@ export interface PageRepositoryContract {
   ) => Promise<boolean>;
   readonly findStoredContent: (pageId: string) => Promise<PageContent | null>;
   readonly storeContent: (input: StorePageContentInput) => Promise<PageContentStoreOutcome>;
-  /**
-   * Cambia solo las propiedades de una fila: las funde con las que tiene en el
-   * momento de escribir, con la fila bloqueada, sin tocar lo que dice. Nada si
-   * la página no existe.
-   */
+  /** Merges under the row lock; null when the page does not exist. */
   readonly updatePropertyValues: <TError>(
     input: UpdatePagePropertyValuesInput,
     merge: PagePropertyValuesMerge<TError>,

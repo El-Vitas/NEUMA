@@ -28,7 +28,7 @@ import { updateTableTool } from '../tools/mcp.update-table.tool';
 import { updateViewTool } from '../tools/mcp.update-view.tool';
 import type { McpToolDefinition } from '../types/mcp.types';
 
-/** Todas las herramientas, en el orden en que se le presentan al agente. Agregar una es sumarla aquí. */
+/** Listed in the order they are presented to the agent. */
 export const MCP_TOOLS: readonly McpToolDefinition[] = [
   searchTool,
   fetchTool,

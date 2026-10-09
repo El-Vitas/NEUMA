@@ -9,14 +9,7 @@ import type {
 } from '../../domain/schema.domain.types';
 import { isPropertyValue } from '../../domain/schema-property.domain';
 
-/**
- * Lo guardado, tal cual, en la forma que Prisma acepta de vuelta.
- *
- * Un `null` se conserva: es un valor que quien guardó eligió, no la ausencia de
- * uno. Una condición de filtro que no compara contra nada guarda `value: null`,
- * y descartarlo devolvería una condición sin un campo que su propio contrato
- * exige, con lo que el filtro entero dejaría de leerse.
- */
+/** Keeps `null`: a filter condition without a comparand stores `value: null`, and dropping it breaks the filter. */
 const toInputJsonValue = (value: Prisma.JsonValue): Prisma.InputJsonValue | null => {
   if (value === null) return null;
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;

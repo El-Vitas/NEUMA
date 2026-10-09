@@ -7,14 +7,12 @@ import { pageEditorSchema } from '../../lib/pages.editor.schema';
 import { PAGE_EDITOR_BUTTON_TYPE } from '../constants/pages.editor.button.constants';
 import type { PageButtonPressed } from '../types/pages.editor.button.types';
 
-/** The button a page is standing on, when what is chosen is one. */
 export const readSelectedButton = (state: EditorState): number | null => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;
   return range.parent.child(range.startIndex).type.name === PAGE_EDITOR_BUTTON_TYPE ? range.start : null;
 };
 
-/** Says which collection a button adds its rows to. */
 export const createPageButtonCollectionCommand =
   (at: number, pageId: string, spaceId: string): Command =>
   (state, dispatch) => {
@@ -26,7 +24,6 @@ export const createPageButtonCollectionCommand =
     return true;
   };
 
-/** The button that was pressed, and everything it takes to do what it says. */
 export const readThePressedButton = (state: EditorState, at: number): PageButtonPressed | null => {
   const node = state.doc.nodeAt(at);
   if (node?.type.name !== PAGE_EDITOR_BUTTON_TYPE) return null;
@@ -41,7 +38,6 @@ export const readThePressedButton = (state: EditorState, at: number): PageButton
   };
 };
 
-/** Where what a button writes lands, said as a place in the page rather than as a word. */
 const findTheSpot = (state: EditorState, pressed: PageButtonPressed): number => {
   if (pressed.place === 'top') return 0;
   if (pressed.place === 'bottom') return state.doc.content.size;
@@ -49,13 +45,7 @@ const findTheSpot = (state: EditorState, pressed: PageButtonPressed): number => 
   return node === null ? state.doc.content.size : pressed.at + node.nodeSize;
 };
 
-/**
- * Writes what the button holds where the button says.
- *
- * What lands is a copy, and a copy is nobody: who each block was is left behind,
- * because the same block cannot be written twice into the same page and a remark
- * left on the one inside the button is about that one.
- */
+/** Copies drop ids and comments: an id cannot repeat on a page and comments belong to the original block. */
 const asFreshBlocks = (content: Fragment): Fragment =>
   Fragment.fromArray(
     content.content.map((block: EditorNode) =>
@@ -73,18 +63,11 @@ export const createPageButtonWriteCommand =
     return true;
   };
 
-/**
- * What the new row is called: the first thing the button would have written.
- *
- * A row with no name is a row nobody can find again, and the button already
- * says what it is for — so what it writes names what it made.
- */
 export const readTheRowTitle = (content: Fragment, untitled: string): string => {
   const written = content.firstChild?.textContent.trim() ?? '';
   return written.length > 0 ? written : untitled;
 };
 
-/** What the new row holds: everything the button would have written after its first line. */
 export const readTheRowContent = (content: Fragment): PageContent => {
   const rest = content.content.slice(1);
   const document =

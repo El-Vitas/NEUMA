@@ -45,7 +45,6 @@ describe('el nombre de un token', () => {
     expect(validateAccessTokenName('a'.repeat(ACCESS_TOKEN_NAME_MAX_LENGTH + 1)).isFail()).toBe(true);
   });
 
-  /** Un salto de línea o un carácter de control rompe la lista y los registros donde el nombre aparece. */
   it('refuses a name with line breaks or control characters', () => {
     expect(validateAccessTokenName('Claude\nadmin').isFail()).toBe(true);
     expect(validateAccessTokenName('Claude\u0000').isFail()).toBe(true);
@@ -89,7 +88,6 @@ describe('lo que se pide dar a un token', () => {
     expect(result.getError().code).toBe('ACCESS_TOKEN_ACCESS_INVALID');
   });
 
-  /** Lo que no tiene la forma del catálogo no llega a ninguna consulta. */
   it('refuses anything that is not the shape of an access', () => {
     expect(validateAccessTokenAccess(null).isFail()).toBe(true);
     expect(validateAccessTokenAccess({ allSpaces: [read] }).isFail()).toBe(true);
@@ -104,7 +102,6 @@ describe('lo que se pide dar a un token', () => {
 });
 
 describe('lo que el dueño no puede dar', () => {
-  /** Un token no da más que su dueño: quien solo lee no pide escribir en ningún lugar, tampoco en una página. */
   it('names every writing permission someone who only reads tried to give, wherever it was', () => {
     const beyond = listPermissionsBeyondRole(
       {

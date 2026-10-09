@@ -12,15 +12,7 @@ import { pageEditorSchema } from '../../lib/pages.editor.schema';
 import type { PageEditorSyncedLabels } from '../types/pages.editor.synced.types';
 import { drawBorrowedBlock, isBorrowedDrawing } from './pages.editor.synced.drawing.lib';
 
-/**
- * Shows a block that lives in another page.
- *
- * It is drawn and not written in: what is read here is what that page says now,
- * and writing it is done where it lives — otherwise the same block would be
- * edited from two places at once and one of the two would lose. It says outright
- * that it is borrowed and where from, because a block that reads as this page's
- * own and cannot be typed into reads as broken.
- */
+/** Read-only: editing happens in the source page, so the same block is never edited from two places. */
 export const createPageSyncedNodeView = (
   node: EditorNode,
   labels: PageEditorSyncedLabels,

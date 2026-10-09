@@ -13,7 +13,6 @@ export const VARIANT_CLASSES = {
     'border border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/10 hover:transition-colors hover:duration-200',
 };
 
-/** Forward on the right, back on the left; stacked on a narrow screen with the forward action first. */
 export const FORM_ACTIONS_ROW_CLASS = 'flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between';
 
 export const FORM_ACTIONS_BACK_CLASS = 'flex flex-wrap items-center gap-2';

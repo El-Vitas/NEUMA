@@ -21,7 +21,6 @@ describe('envSchema', () => {
     expect(parsed.success).toBe(true);
   });
 
-  /** En producción lo que cuenta es que alguien lo haya dicho, aunque sea la dirección local de una prueba en la propia máquina. */
   it('starts in production with whatever portal address was given, a local one included', () => {
     const parsed = envSchema.safeParse({ ...required, NODE_ENV: 'production', PORTAL_URL: 'http://localhost:3010' });
 

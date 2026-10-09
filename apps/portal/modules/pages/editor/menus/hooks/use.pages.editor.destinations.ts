@@ -5,10 +5,7 @@ import { isActionSuccess } from '@/shared/lib/action-result';
 import { listPageDestinationsAction } from '../../../server/actions/pages.actions';
 import type { PageDestination } from '../types/pages.editor.destination.types';
 
-/**
- * The pages of this space that blocks can be sent to, read once the picker is
- * open — asking earlier would cost a request nobody was waiting for.
- */
+/** Fetched only once the picker is open, to avoid a request nobody is waiting for. */
 export const usePagesEditorDestinations = (
   isOpen: boolean,
   spaceId: string,

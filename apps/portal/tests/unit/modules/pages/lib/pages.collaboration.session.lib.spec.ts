@@ -14,7 +14,6 @@ const attachCalls: MockHocuspocusProvider[] = [];
 let setAwarenessFieldCallCount = 0;
 
 class MockHocuspocusProviderWebsocket {
-  /** The socket is asked to connect by the session, so its refusal belongs to the session. */
   connect(): Promise<void> {
     return Promise.resolve();
   }
@@ -209,11 +208,7 @@ describe('pages.collaboration.session.lib', () => {
     expect(setAwarenessFieldCallCount).toBe(0);
   });
 
-  /**
-   * What somebody writes while the connection is down lives only in their copy
-   * of the page. Starting that copy over on reconnecting threw it away; keeping
-   * it lets the reconnection hand it to the server.
-   */
+  // Text written while offline lives only in the local copy; reconnecting must keep it so it reaches the server.
   it('keeps the same document across a reconnection, with what was written while cut off', async () => {
     const { handle, sessions } = createRecordingSession('page-keep');
     await Promise.resolve();
@@ -233,7 +228,6 @@ describe('pages.collaboration.session.lib', () => {
     handle.destroy();
   });
 
-  /** Only once it stops trying does the page stop being written live, and then it keeps itself by being sent. */
   it('lets go of the live session only when it gives up reconnecting', async () => {
     const { handle, sessions } = createRecordingSession('page-let-go');
     await Promise.resolve();
@@ -252,11 +246,7 @@ describe('pages.collaboration.session.lib', () => {
     handle.destroy();
   });
 
-  /**
-   * A failing connection is heard from more than once — the socket refuses and
-   * the provider reports it — and each account of the same failure must not
-   * become a reconnection of its own.
-   */
+  // One failure is reported twice (the socket refuses and the provider reports it); neither may trigger its own retry.
   it('schedules one reconnection however many times the same failure is reported', async () => {
     const { handle, statuses } = createRecordingSession('page-once');
 

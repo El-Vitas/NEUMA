@@ -33,11 +33,8 @@ describe('lo que una vista dice de sí misma, al guardarlo', () => {
     updatePageViewConfigurationAction.mockClear();
   });
 
-  /**
-   * La configuración de la colección se abre al lado y cambia las mismas vistas.
-   * Sin volver a mirar lo que llegó, guardar un filtro mandaría encima lo que se
-   * leyó al abrirse y borraría la agrupación que acaban de poner.
-   */
+  // The collection settings open beside the page and change the same views: saving a filter from the opening snapshot
+  // would wipe a grouping just set.
   it('keeps what the collection says now, not what it said when it opened', () => {
     const { rerender, result } = renderHook(({ schema }) => usePagesViewSaving(schema, 'Table', 'space-a'), {
       initialProps: { schema: schemaWith([viewNamed('Table', {})]) },
@@ -55,7 +52,6 @@ describe('lo que una vista dice de sí misma, al guardarlo', () => {
     expect(sent.configuration.groupBy).toBe('status');
   });
 
-  /** Lo que se está dibujando sin que el servidor haya contestado no se pisa con lo que llegue entretanto. */
   it('leaves what is still travelling alone', () => {
     let settle = (): void => undefined;
     updatePageViewConfigurationAction.mockImplementationOnce(

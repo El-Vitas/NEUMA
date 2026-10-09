@@ -46,11 +46,10 @@ import type {
   AccessTokenTargetKind,
 } from '../types/access-tokens.types';
 
-/** Los permisos que da una fila: los del nivel, o los marcados a mano si es personalizado. */
 export const readDraftRowPermissions = (row: AccessTokenDraftRow): readonly AccessTokenPermission[] =>
   row.level === ACCESS_TOKEN_LEVELS.custom ? row.customPermissions : listAccessTokenLevelPermissions(row.level);
 
-/** La clave de un lugar, única entre las filas; una fila de página sin página elegida no tiene. */
+/** Null for a page row with no page chosen yet. */
 export const readDraftTargetKey = (target: AccessTokenDraftTarget): string | null => {
   switch (target.kind) {
     case 'ALL':
@@ -73,7 +72,6 @@ const listRowsOfKind = <TKind extends AccessTokenDraftTarget['kind']>(
       row.target.kind === kind,
   );
 
-/** Lo que se manda al servidor a partir de las filas del formulario. */
 export const draftRowsToAccess = (rows: readonly AccessTokenDraftRow[]): AccessTokenAccessInput => ({
   allSpaces: [...new Set(listRowsOfKind(rows, 'ALL').flatMap(readDraftRowPermissions))],
   pages: listRowsOfKind(rows, 'PAGE').flatMap((row) =>
@@ -94,7 +92,6 @@ const toDraftRow = (
   return { customPermissions: level === ACCESS_TOKEN_LEVELS.custom ? permissions : [], key, level, target };
 };
 
-/** Las filas que muestran lo que un token ya tiene dado, para cambiarlo. */
 export const accessToDraftRows = (
   access: Pick<AccessToken, 'allSpaces' | 'pages' | 'spaces'>,
 ): readonly AccessTokenDraftRow[] => [
@@ -113,7 +110,6 @@ export const accessToDraftRows = (
   ),
 ];
 
-/** Los permisos que alguien con este rol puede poner en un token: los demás ni se ofrecen. */
 export const listGrantablePermissions = (role: UserRole): readonly AccessTokenPermission[] =>
   ACCESS_TOKEN_PERMISSION_VALUES.filter((permission) => canRoleGrantAccessTokenPermission(role, permission));
 
@@ -121,19 +117,17 @@ const isLevelGrantable = (role: UserRole, level: AccessTokenLevel): boolean =>
   level === ACCESS_TOKEN_LEVELS.custom ||
   listAccessTokenLevelPermissions(level).every((permission) => canRoleGrantAccessTokenPermission(role, permission));
 
-/** «Sin acceso» en todos los espacios es lo mismo que no decir nada: solo tiene sentido para excluir algo. */
+/** "No access" on all spaces says nothing; it only makes sense to exclude something. */
 const isLevelMeaningfulFor = (level: AccessTokenLevel, kind: AccessTokenTargetKind): boolean =>
   level !== ACCESS_TOKEN_LEVELS.none || kind !== ACCESS_TOKEN_TARGET_KINDS.all;
 
-/** El nivel que queda al mover una fila a otro lugar: «sin acceso» en todos los espacios pasa a solo lectura. */
 export const readLevelMeaningfulFor = (level: AccessTokenLevel, target: AccessTokenDraftTarget): AccessTokenLevel =>
   isLevelMeaningfulFor(level, target.kind) ? level : ACCESS_TOKEN_LEVELS.read;
 
-/** Los niveles que alguien con este rol puede dar en esta clase de lugar. Personalizado siempre, con sus casillas. */
 export const listGrantableLevels = (role: UserRole, kind: AccessTokenTargetKind): readonly AccessTokenLevel[] =>
   ACCESS_TOKEN_LEVEL_VALUES.filter((level) => isLevelGrantable(role, level) && isLevelMeaningfulFor(level, kind));
 
-/** Una fila personalizada sin ninguna casilla marcada: no dice qué da. «Sin acceso», en cambio, lo dice. */
+/** A custom row with no box checked grants nothing and says nothing; "no access" at least states an exclusion. */
 export const isDraftRowMissingPermissions = (row: AccessTokenDraftRow): boolean =>
   row.level === ACCESS_TOKEN_LEVELS.custom && row.customPermissions.length === 0;
 
@@ -146,19 +140,14 @@ const isEveryRowComplete = (rows: readonly AccessTokenDraftRow[]): boolean =>
 const namesEachPlaceOnce = (rows: readonly AccessTokenDraftRow[]): boolean =>
   new Set(listTargetKeys(rows)).size === rows.length;
 
-/** Si el token nombra no más espacios ni páginas de los que el servidor acepta en uno. */
 const isWithinGrantLimits = (rows: readonly AccessTokenDraftRow[]): boolean =>
   listRowsOfKind(rows, 'PAGE').length <= ACCESS_TOKEN_PAGE_GRANT_LIMIT &&
   listRowsOfKind(rows, 'SPACE').length <= ACCESS_TOKEN_SPACE_GRANT_LIMIT;
 
-/** Si cabe otra fila: una para todos los espacios, más los espacios y páginas que un token puede nombrar. */
+/** One row for all spaces plus the most spaces and pages a token may name. */
 export const canAddDraftRow = (rows: readonly AccessTokenDraftRow[]): boolean =>
   rows.length < ACCESS_TOKEN_PAGE_GRANT_LIMIT + ACCESS_TOKEN_SPACE_GRANT_LIMIT + 1;
 
-/**
- * Si el formulario dice algo que se pueda mandar: cada fila completa, cada
- * lugar una vez, no más lugares de los que un token nombra, y algo dado en alguno.
- */
 export const canSubmitAccessDraft = (rows: readonly AccessTokenDraftRow[]): boolean =>
   rows.length > 0 &&
   isEveryRowComplete(rows) &&
@@ -166,7 +155,6 @@ export const canSubmitAccessDraft = (rows: readonly AccessTokenDraftRow[]): bool
   isWithinGrantLimits(rows) &&
   hasAccessTokenAnyPermission(draftRowsToAccess(rows));
 
-/** Si un token nuevo se puede pedir: con un nombre que sirve y no está en uso, con vencimiento, y con acceso. */
 export const canSubmitAccessTokenCreate = (request: {
   readonly expiry: AccessTokenExpiryResolution;
   readonly name: string;
@@ -189,26 +177,22 @@ const listFreeSpaces = (
   return spaces.filter((space) => !taken.has(space.id));
 };
 
-/** Los espacios que puede nombrar una fila: el suyo y los que ninguna otra fila nombró. */
 export const listRowSpaceOptions = (
   rows: readonly AccessTokenDraftRow[],
   rowKey: string,
   spaces: readonly AccessTokenSpaceOption[],
 ): readonly AccessTokenSpaceOption[] => listFreeSpaces(listOtherRows(rows, rowKey), spaces);
 
-/** Las páginas que ya nombran las demás filas: esa fila no las puede volver a nombrar. */
 export const listPagesTakenByOtherRows = (rows: readonly AccessTokenDraftRow[], rowKey: string): readonly string[] =>
   listRowsOfKind(listOtherRows(rows, rowKey), 'PAGE').flatMap((row) =>
     row.target.page === null ? [] : [row.target.page.id],
   );
 
-/** Las páginas encontradas que todavía se pueden nombrar. */
 export const excludePageOptions = (
   options: readonly AccessTokenPageOption[],
   excludedPageIds: readonly string[],
 ): readonly AccessTokenPageOption[] => options.filter((option) => !excludedPageIds.includes(option.id));
 
-/** En qué está la búsqueda de páginas: falta escribir, busca, falló, no encontró, o encontró. */
 export const readPageSearchState = (
   query: string,
   search: AccessTokenPageSearch,
@@ -222,11 +206,7 @@ export const readPageSearchState = (
 
 const hasAllSpacesRow = (rows: readonly AccessTokenDraftRow[]): boolean => listRowsOfKind(rows, 'ALL').length > 0;
 
-/**
- * El lugar con que queda una fila al pasar a otra clase: todos los espacios si
- * ninguna otra fila lo tiene, el primer espacio libre, o una página por elegir.
- * Nada si esa clase ya no tiene lugar libre.
- */
+/** Null when the kind has no free place left. */
 export const readDraftTargetForKind = (
   rows: readonly AccessTokenDraftRow[],
   rowKey: string,
@@ -246,7 +226,6 @@ export const readDraftTargetForKind = (
   }
 };
 
-/** El nombre del lugar de una fila: el del espacio o el título de la página; nada para todos, o sin elegir. */
 export const nameDraftTarget = (
   target: AccessTokenDraftTarget,
   spaces: readonly AccessTokenSpaceOption[],
@@ -261,7 +240,6 @@ export const nameDraftTarget = (
   }
 };
 
-/** Las clases de lugar a las que puede pasar una fila: las que todavía tienen un lugar libre para ella. */
 export const listAvailableTargetKinds = (
   rows: readonly AccessTokenDraftRow[],
   rowKey: string,
@@ -269,7 +247,6 @@ export const listAvailableTargetKinds = (
 ): readonly AccessTokenTargetKind[] =>
   ACCESS_TOKEN_TARGET_KIND_VALUES.filter((kind) => readDraftTargetForKind(rows, rowKey, kind, spaces) !== null);
 
-/** Dónde empieza una fila nueva: todos los espacios si están libres, el primer espacio libre, o una página. */
 export const findNewRowTarget = (
   rows: readonly AccessTokenDraftRow[],
   spaces: readonly AccessTokenSpaceOption[],
@@ -277,7 +254,6 @@ export const findNewRowTarget = (
   readDraftTargetForKind(rows, '', ACCESS_TOKEN_TARGET_KINDS.all, spaces) ??
   readDraftTargetForKind(rows, '', ACCESS_TOKEN_TARGET_KINDS.space, spaces) ?? { kind: 'PAGE', page: null };
 
-/** Lo que un token tiene dado, línea por línea: primero todos los espacios, después cada espacio y cada página. */
 export const summarizeAccessToken = (
   access: Pick<AccessToken, 'allSpaces' | 'pages' | 'spaces'>,
 ): readonly AccessTokenSummaryLine[] => [
@@ -302,7 +278,6 @@ export const summarizeAccessToken = (
   })),
 ];
 
-/** La entrada que un agente pega en su configuración de MCP para conectarse con este token. */
 export const buildAccessTokenMcpConfig = (mcpUrl: string, secret: string): string =>
   JSON.stringify(
     {
@@ -318,11 +293,7 @@ export const buildAccessTokenMcpConfig = (mcpUrl: string, secret: string): strin
     ACCESS_TOKEN_MCP_CONFIG_INDENT,
   );
 
-/**
- * El último instante del día escrito en un campo de fecha, en la hora de quien
- * lo eligió, o nada si lo escrito no es un día que exista. Es el último y no el
- * primero del día siguiente para que la lista diga el mismo día que se eligió.
- */
+/** Last instant of the day in the chooser's local time, so the list shows the day that was picked. */
 const readEndOfChosenDay = (dateInputValue: string): Date | null => {
   const parts = ACCESS_TOKEN_DATE_INPUT_PATTERN.exec(dateInputValue);
   if (parts === null) return null;
@@ -332,11 +303,7 @@ const readEndOfChosenDay = (dateInputValue: string): Date | null => {
   return isRealDay ? new Date(new Date(year, month, day + 1).getTime() - 1) : null;
 };
 
-/**
- * Cuándo vence un token con lo elegido. Una fecha elegida vale el día entero:
- * vence cuando termina ese día, donde vive quien la eligió. El servidor vuelve
- * a exigir que sea después de ahora.
- */
+/** A chosen date covers the whole day. The server rechecks that the expiry is in the future. */
 export const resolveAccessTokenExpiry = (
   expiry: AccessTokenExpiry,
   customDate: string,
@@ -357,7 +324,7 @@ export const resolveAccessTokenExpiry = (
   }
 };
 
-/** El vencimiento como lo pide la acción: un instante, nada si no vence, o sin decidir si falta la fecha. */
+/** Null means the token never expires; undefined means the date is still missing. */
 export const readExpiresAtInput = (resolution: AccessTokenExpiryResolution): string | null | undefined => {
   switch (resolution.kind) {
     case 'AT':
@@ -371,10 +338,8 @@ export const readExpiresAtInput = (resolution: AccessTokenExpiryResolution): str
 
 const padDatePart = (value: number): string => String(value).padStart(ACCESS_TOKEN_DATE_PART_LENGTH, '0');
 
-/** Un día como lo escribe y lo lee un campo de fecha, en la hora de quien mira. */
 export const formatDateInputValue = (date: Date): string =>
   `${String(date.getFullYear())}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
 
-/** Una opción que trae su explicación necesita espacio para ella; una que es solo un nombre, no. */
 export const hasChoiceHint = <TValue extends string>(choice: AccessTokenChoice<TValue>): boolean =>
   choice.hint !== undefined && choice.hint.length > 0;

@@ -23,11 +23,7 @@ export const buildHeaders = (
 export const buildUrl = (endpoint: string): string =>
   endpoint.startsWith('http') ? endpoint : `${config.backendApiUrl}${endpoint}`;
 
-/**
- * The backend's answer, once it arrived and said yes. Not reaching it is told
- * apart from it saying no: the first is being offline, the second carries its
- * own status.
- */
+/** Not reaching the backend (offline) is distinct from it answering with an error status. */
 const fetchAcceptedResponse = async (
   endpoint: string,
   accessToken: string | undefined,
@@ -52,12 +48,7 @@ const sendApiRequest = async <T>(endpoint: string, accessToken: string | undefin
 export const apiRequest = async <T>(endpoint: string, accessToken: string, init: RequestInit = {}): Promise<T> =>
   sendApiRequest<T>(endpoint, accessToken, init);
 
-/**
- * A response the backend sends as a file rather than as data.
- *
- * The bytes travel encoded because a server action answers in JSON, and an
- * archive is not text — sending it as text would quietly corrupt it.
- */
+/** Bytes are encoded because a server action answers in JSON; sending an archive as text would corrupt it. */
 export const apiRequestFile = async (endpoint: string, accessToken: string): Promise<DownloadedFile> => {
   const response = await fetchAcceptedResponse(endpoint, accessToken, {});
   return {
@@ -66,7 +57,6 @@ export const apiRequestFile = async (endpoint: string, accessToken: string): Pro
   };
 };
 
-/** A response the backend sends as text, such as a page exported as Markdown. */
 export const apiRequestText = async (endpoint: string, accessToken: string): Promise<string> =>
   (await fetchAcceptedResponse(endpoint, accessToken, {})).text();
 

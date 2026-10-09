@@ -14,7 +14,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/** The way into the shape of a collection, kept beside the views it decides. */
 export const PagesSchemaSettingsButton = ({ schema, spaceId }: IProps) => {
   const t = useTranslations('pages.collection');
   const [isOpen, setIsOpen] = useState(false);

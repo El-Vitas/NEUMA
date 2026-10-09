@@ -17,7 +17,6 @@ import type { PageBlockEntry } from './page-block.types.js';
 
 type Node = PageDocumentNodeShape;
 
-/** Un bloque recién encontrado, antes de saber su lugar en la página y su sección. */
 interface FoundBlock {
   readonly headingLevel: number | null;
   readonly id: string;
@@ -36,13 +35,11 @@ const readInlineText = (node: Node): string => {
   return listPageDocumentChildren(node).map(readInlineText).join('');
 };
 
-/** Lo que dice un bloque escrito en una línea: sus palabras, si las tiene; si no, nada. */
 const readLineText = (node: Node): string => {
   const children = listPageDocumentChildren(node);
   return children.some(isInline) ? children.map(readInlineText).join('') : '';
 };
 
-/** Todo lo que dice un bloque y lo que lleva dentro, en el orden en que se lee. */
 const readEverythingSaid = (node: Node): readonly string[] => {
   const line = readLineText(node);
   if (line !== '') return [line];
@@ -60,7 +57,6 @@ const readBlockText = (node: Node): string => {
   return readLineText(node);
 };
 
-/** Lo que cuelga de un bloque y se señala por separado. */
 const listInnerBlocks = (node: Node): readonly Node[] => {
   if (PAGE_BLOCK_WHOLE_TYPES.includes(node.type)) return [];
   const children = listPageDocumentChildren(node);
@@ -85,7 +81,6 @@ const findBlocks = (nodes: readonly Node[], parentId: string | null): readonly F
     return [found, ...inner];
   });
 
-/** Los encabezados abiertos al llegar a un punto de la página, del más externo al más cercano. */
 interface OpenHeading {
   readonly level: number;
   readonly text: string;
@@ -94,12 +89,7 @@ interface OpenHeading {
 const closeHeadingsAtOrBelow = (open: readonly OpenHeading[], level: number): readonly OpenHeading[] =>
   open.filter((heading) => heading.level < level);
 
-/**
- * Cada bloque con su lugar y su sección.
- *
- * Un encabezado cierra los que tiene del mismo nivel o más adentro y abre el
- * suyo; todo lo que viene después, hasta el próximo que lo cierre, está bajo él.
- */
+/** A heading closes open headings of the same or deeper level, then opens its own section. */
 const placeBlocks = (found: readonly FoundBlock[]): readonly PageBlockEntry[] => {
   const placed: PageBlockEntry[] = [];
   let open: readonly OpenHeading[] = [];
@@ -118,12 +108,6 @@ const placeBlocks = (found: readonly FoundBlock[]): readonly PageBlockEntry[] =>
   return placed;
 };
 
-/**
- * Los bloques de una página, en el orden en que se lee.
- *
- * Se señalan igual que en su Markdown con ids: un ítem de una lista por el
- * ítem, y una tabla entera como un bloque. Así el id que encuentra la búsqueda
- * es el mismo que el agente ve al leer la página.
- */
+/** Blocks in reading order, identified as in the Markdown with ids, so a search hit id matches what the agent reads. */
 export const listPageBlocks = (content: PageContent): readonly PageBlockEntry[] =>
   placeBlocks(findBlocks(content.content.filter(isPageDocumentNode), null));

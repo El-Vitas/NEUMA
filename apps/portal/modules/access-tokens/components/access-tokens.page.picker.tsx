@@ -19,11 +19,7 @@ interface IProps {
   readonly page: AccessTokenPageOption | null;
 }
 
-/**
- * Elegir una página escribiendo su nombre. Solo aparecen las que encuentra la
- * búsqueda de quien crea el token, que ya son las que ve; las que otra fila
- * nombró no se ofrecen de nuevo.
- */
+/** Pages already named by another row are not offered again. */
 export const AccessTokensPagePicker = ({ excludedPageIds, labelId, onChoose, page }: IProps) => {
   const t = useTranslations('accessTokens.form');
   const valueId = useId();

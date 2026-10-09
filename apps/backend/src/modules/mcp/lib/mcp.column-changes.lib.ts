@@ -57,7 +57,6 @@ const removeColumns: McpColumnStep = (columns, changes, listNames) => {
   return Result.ok(kept);
 };
 
-/** Que la columna ya tiene esa opción, y cuáles tiene si el agente puede saberlo. */
 const sayOptionTaken = (column: McpColumn, taken: string, listNames: McpNameLister): string =>
   sayMcpRefusalWithNames(`${column.label} already has "${taken}".`, 'options', listMcpOptionNames(column), listNames);
 
@@ -86,7 +85,6 @@ const addOptions: McpColumnStep = (columns, changes, listNames) => {
   return Result.ok(changed);
 };
 
-/** Si renombrar una opción a ese nombre la confundiría con otra que la columna ya tiene. */
 const findCollidingOption = (column: McpColumn, from: string, to: string | null): string | null => {
   if (to === null) return null;
   const existing = pickMcpOption(column, to, hideMcpNames);
@@ -108,7 +106,6 @@ const planRewrite = (
   return Result.ok({ from: option.getValue(), propertyKey: column.getValue().key, to });
 };
 
-/** Una opción renombrada o quitada en la forma, tal como quedará después de reescribir sus filas. */
 const rewriteOptionInShape = (columns: readonly McpColumn[], rewrite: McpOptionRewrite): McpColumn[] =>
   columns.map((column) => {
     if (column.key !== rewrite.propertyKey) return column;
@@ -121,7 +118,6 @@ const rewriteOptionInShape = (columns: readonly McpColumn[], rewrite: McpOptionR
     };
   });
 
-/** Una opción que se reescribe en una columna que el mismo pedido quita: se pide una cosa o la otra. */
 const findRewriteOfRemovedColumn = (
   rewrites: readonly McpOptionRewrite[],
   original: readonly McpColumn[],
@@ -142,7 +138,7 @@ const planOptionRewrites = (known: McpColumnsInHand, changes: McpColumnChanges):
     : Result.fail(failed.getError());
 };
 
-/** Cada paso parte de las columnas que dejó el anterior, y el primero que falla corta la cadena. */
+/** Each step starts from the columns the previous one left; the first failure stops the chain. */
 const applyColumnSteps = (
   columns: readonly McpColumn[],
   changes: McpColumnChanges,
@@ -155,7 +151,6 @@ const applyColumnSteps = (
 
 const isAsked = (list: readonly unknown[] | undefined): boolean => list !== undefined && list.length > 0;
 
-/** Si el agente pidió cambiar algo en las columnas. */
 export const hasMcpColumnChanges = (changes: McpColumnChanges): boolean =>
   [
     changes.addColumns,
@@ -166,11 +161,10 @@ export const hasMcpColumnChanges = (changes: McpColumnChanges): boolean =>
     changes.renameOptions,
   ].some(isAsked);
 
-/** Si algo de lo pedido cambia la forma guardada, y no solo reescribe opciones con sus filas. */
+/** False when the request only rewrites options along with their rows. */
 export const hasMcpShapeChanges = (changes: McpColumnChanges): boolean =>
   [changes.addColumns, changes.addOptions, changes.removeColumns, changes.renameColumns].some(isAsked);
 
-/** Lo que el agente pidió, una línea por cambio, para dejarlo anotado. */
 export const describeMcpColumnChanges = (changes: McpColumnChanges): { readonly changes: readonly string[] } => ({
   changes: [
     ...(changes.addColumns ?? []).map((column) => `add column ${column.name}`),
@@ -183,15 +177,9 @@ export const describeMcpColumnChanges = (changes: McpColumnChanges): { readonly 
 });
 
 /**
- * Las columnas de una colección con lo que el agente pidió cambiar, ya en su
- * forma final.
- *
- * Cada columna y cada opción se nombra como la ve la gente. Una columna nueva
- * recibe la clave que le daría el portal, y una renombrada conserva la suya,
- * así las filas no pierden lo que tenían. Renombrar o quitar una opción vuelve
- * además aparte, porque también reescribe las filas que la tenían; la forma
- * que se devuelve ya la trae cambiada, así todo lo pedido se revisa junto
- * antes de que se reescriba la primera fila.
+ * A new column gets the key the portal would give it; a renamed one keeps its key so rows keep
+ * their values. Renaming or removing an option is also returned separately because it rewrites
+ * rows; the returned shape already includes it, so the whole request is validated before the first row is rewritten.
  */
 export const applyMcpColumnChanges = (
   known: McpColumnsInHand,

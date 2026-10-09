@@ -9,11 +9,7 @@ import { withAction } from '@/shared/lib/with-action.lib';
 import { spaceMoveAccessLossInputSchema, spaceMoveAccessLossSchema } from '@/shared/schemas/space-move-access.schemas';
 import type { SpaceMoveAccessLoss } from '@/shared/types/space-move-access.types';
 
-/**
- * How many people who can read the source space today would not read the
- * destination — asked before a cross-space move is confirmed, never while
- * moving within the same space, since that never changes who can see it.
- */
+/** Only for cross-space moves: moving within a space never changes who can see the page. */
 export const getSpaceMoveAccessLossAction = actionClient
   .inputSchema(spaceMoveAccessLossInputSchema)
   .action(async ({ parsedInput }) =>

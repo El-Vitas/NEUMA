@@ -10,15 +10,7 @@ interface IProps {
   readonly reset: () => void;
 }
 
-/**
- * What is shown when a page gives up.
- *
- * It says what happened in the reader's own words and never repeats what the
- * machine said: the message an exception carries is written for whoever is
- * going to fix it, not for whoever was writing. The digest is offered instead,
- * because it is the one thing that leads to the real cause without spelling it
- * out on screen.
- */
+/** Shows the digest instead of the exception message, which is written for developers. */
 const LocaleErrorPage = ({ error, reset }: IProps) => {
   const t = useTranslations('errors');
 

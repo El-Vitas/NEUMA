@@ -14,7 +14,6 @@ import {
   portalPageBatchTrashSchema,
 } from '../../schemas/portal.sidebar.selection.schemas';
 
-/** Every selected page went to the trash together, cascading down whatever any of them carried with it. */
 export const batchTrashPagesAction = actionClient.inputSchema(portalPageBatchTrashSchema).action(({ parsedInput }) =>
   withAction({ action: 'batchTrashPages' }, async () => {
     const outcome = await authenticatedRequest(PORTAL_PAGE_BATCH_API_ROUTES.trash, 'POST', {
@@ -25,7 +24,6 @@ export const batchTrashPagesAction = actionClient.inputSchema(portalPageBatchTra
   }),
 );
 
-/** Every selected page moved to the same destination, keeping whatever already hung from them. */
 export const batchMovePagesAction = actionClient.inputSchema(portalPageBatchMoveSchema).action(({ parsedInput }) =>
   withAction({ action: 'batchMovePages' }, async () => {
     const outcome = await authenticatedRequest(PORTAL_PAGE_BATCH_API_ROUTES.move, 'PATCH', {

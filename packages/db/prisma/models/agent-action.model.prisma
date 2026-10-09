@@ -1,9 +1,6 @@
-/// Lo que un agente hizo, o intentó hacer, al escribir en Company Brain.
-/// Una fila por escritura: quién la hizo, con qué token, con qué herramienta,
-/// dónde y qué tocó, y cómo terminó. La fila se anota antes de escribir: sin
-/// fila no hay escritura.
-/// No apunta con llaves a la página ni al token: el registro tiene que seguir
-/// diciendo qué pasó aunque la página o el token ya no existan.
+/// What an agent did, or tried to do, when writing to Company Brain.
+/// One row per write, recorded before writing: no row means no write.
+/// No foreign keys to the page or the token, so the record survives their deletion.
 model AgentAction {
   id          String             @id @default(uuid(7))
   workspaceId String
@@ -13,13 +10,13 @@ model AgentAction {
   pageId      String?
   blockIds    String[]           @default([])
   outcome     AgentActionOutcome
-  /// Qué pidió el agente, en corto: las columnas que cambió, la vista que creó.
+  /// Short summary of the request: the columns changed, the view created.
   detail      Json
   createdAt   DateTime           @default(now())
-  /// Cuándo se supo cómo terminó; nada mientras siga pendiente.
+  /// Null while the outcome is still pending.
   finishedAt  DateTime?
-  /// El id que el agente le dio a su pedido, si le dio uno: el mismo id no se hace dos veces con el mismo token.
-  /// Lo cuida un índice único parcial, solo sobre las acciones pendientes o hechas (ver la migración que lo crea).
+  /// Agent-supplied idempotency id: the same id never runs twice for one token.
+  /// Enforced by a partial unique index over pending or done actions only (see its migration).
   requestId   String?
 
   @@index([workspaceId, createdAt])

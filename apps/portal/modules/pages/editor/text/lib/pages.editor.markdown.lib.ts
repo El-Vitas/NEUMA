@@ -18,7 +18,6 @@ import type {
   PageEditorMarkdownLineMatcher,
 } from '../types/pages.editor.paste.types';
 
-/** The one candidate that starts earliest in what is left to read, since that is the one written first. */
 const findEarliestInlineMatch = (text: string): PageEditorMarkdownInlineMatch | null =>
   PAGE_EDITOR_MARKDOWN_INLINE_PATTERNS.reduce<PageEditorMarkdownInlineMatch | null>((earliest, { kind, pattern }) => {
     const match = pattern.exec(text);
@@ -166,19 +165,9 @@ const readPageEditorParagraph = (schema: Schema, lines: readonly string[], start
   return { block: buildPageEditorParagraphFromText(schema, written.join(' ')), next: index };
 };
 
-/**
- * Whether a stretch of pasted text is written the way Markdown is written —
- * enough that reading it as blocks, rather than as a single run of text, is
- * what whoever pasted it meant.
- */
 export const looksLikePageEditorMarkdown = (text: string): boolean =>
   text.split(PAGE_EDITOR_LINE_BREAK_PATTERN).some((line) => findPageEditorMarkdownMatcher(line) !== undefined);
 
-/**
- * Reads pasted Markdown into the blocks this page already knows how to write
- * by hand — the same headings, lists, quotes and marks the input rules make
- * as each is typed, made instead from what arrived all at once.
- */
 export const parsePageEditorMarkdown = (schema: Schema, text: string): readonly EditorNode[] => {
   const lines = text.split(PAGE_EDITOR_LINE_BREAK_PATTERN);
   const blocks: EditorNode[] = [];

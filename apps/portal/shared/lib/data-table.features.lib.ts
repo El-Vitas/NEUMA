@@ -17,14 +17,7 @@ import {
   tableFeatures,
 } from '@tanstack/react-table';
 
-/**
- * What every table of this application knows how to do.
- *
- * TanStack Table v9 only offers an API for the features registered here, so
- * this is the one place that decides which capabilities exist at all. It stays
- * at module level on purpose: building it again on each render would build a
- * new table each time.
- */
+/** TanStack Table v9 only exposes registered features. Module level: rebuilding per render makes a new table. */
 export const dataTableFeatures = tableFeatures({
   columnFacetingFeature,
   columnFilteringFeature,

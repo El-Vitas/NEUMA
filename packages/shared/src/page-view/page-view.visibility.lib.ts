@@ -1,14 +1,6 @@
 /**
- * Which properties a view shows, and in what order.
- *
- * A view that chose nothing shows everything the collection has: that is what a
- * collection looks like before anybody configures it, and it is also what a view
- * written before this existed should keep looking like. Choosing an empty list
- * is a different thing, and it means showing none.
- *
- * What the view names but the collection no longer has is left out rather than
- * shown empty, because a column for a property that was removed is a column
- * about nothing.
+ * Null (never chosen) shows everything, so unconfigured and older views look the
+ * same; an empty list shows none. Keys the collection no longer has are dropped.
  */
 export const readVisiblePropertyKeys = (
   chosen: readonly string[] | null,

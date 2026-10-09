@@ -32,14 +32,13 @@ describe('writePagesAsMarkdownFiles', () => {
     expect(files.map((file) => file.path)).toEqual(['Primera.md', 'Segunda.md']);
   });
 
-  /** Algunos sistemas no aceptan un archivo que termina en punto o en espacio. */
   it('trims the dots and blanks a name ends in, and keeps the ones inside it', () => {
     const files = writePagesAsMarkdownFiles([page('Notas . . ...', 'uno'), page('v1.2 final', 'dos')]);
 
     expect(files.map((file) => file.path)).toEqual(['Notas.md', 'v1.2 final.md']);
   });
 
-  /** Un título lleno de puntos que no terminan el nombre no puede tardar el cuadrado de su largo. */
+  /** Guards against quadratic time on a title full of dots that do not end the name. */
   it('names a page full of dots at once', () => {
     const startedAt = performance.now();
     writePagesAsMarkdownFiles([page(`${'.'.repeat(50_000)}x`, 'uno')]);
@@ -47,7 +46,6 @@ describe('writePagesAsMarkdownFiles', () => {
     expect(performance.now() - startedAt).toBeLessThan(100);
   });
 
-  /** A page with pages under it is both the file that holds its writing and the folder that holds its daughters. */
   it('puts a daughter inside a folder named after her mother', () => {
     const files = writePagesAsMarkdownFiles([
       page('Madre', 'arriba'),
@@ -58,7 +56,6 @@ describe('writePagesAsMarkdownFiles', () => {
     expect(files.map((file) => file.path)).toEqual(['Madre.md', 'Madre/Hija.md', 'Madre/Hija/Nieta.md']);
   });
 
-  /** A slash in a title would quietly turn one page into a folder somebody never made. */
   it('takes out what would break a path, and nothing else', () => {
     const files = writePagesAsMarkdownFiles([page('Ventas / Chile: 2026', 'x')]);
 
@@ -71,14 +68,12 @@ describe('writePagesAsMarkdownFiles', () => {
     expect(files[0]?.path).toBe('Diseño y año.md');
   });
 
-  /** Some systems refuse a name that ends in a dot or a space outright. */
   it('does not leave a name ending where a file system would refuse it', () => {
     const files = writePagesAsMarkdownFiles([page('Borrador...', 'x')]);
 
     expect(files[0]?.path).toBe('Borrador.md');
   });
 
-  /** Two sisters called the same thing would land on the same file and one would win. */
   it('gives the second of two sisters with one name a file of her own', () => {
     const files = writePagesAsMarkdownFiles([page('Acta', 'una'), page('Acta', 'otra'), page('Acta', 'tercera')]);
 

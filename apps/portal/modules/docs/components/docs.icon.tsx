@@ -8,13 +8,7 @@ interface IProps {
   readonly size: number;
 }
 
-/**
- * One picture, drawn as it comes from its book.
- *
- * What a book hands over is the drawing itself and not an address, so it is put
- * into the page as drawing; nothing here is fetched from anywhere and nothing
- * here came from anybody but us.
- */
+/** The icon book returns markup, not a URL, and it comes from our own server, so it is injected as is. */
 export const DocsIcon = ({ drawing, size }: IProps) => {
   const iconRef = useRef<SVGSVGElement>(null);
 

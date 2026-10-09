@@ -9,14 +9,7 @@ interface IProps {
   readonly points: readonly PageChartPoint[];
 }
 
-/**
- * Qué parte del total se lleva cada grupo.
- *
- * El pastel va acompañado siempre de su lista con los números: de un arco no se
- * lee cuánto vale, y dos porciones parecidas son indistinguibles a ojo. Esa
- * lista es además lo que hace que el dibujo diga algo para quien no distingue
- * los colores.
- */
+/** Always paired with a list of the numbers: an arc does not show its value, nor does colour alone. */
 export const PagesCollectionChartPie = ({ label, points }: IProps) => {
   const slices = readChartSlices(points.map((point) => point.value));
   const diameter = PAGE_CHART_PIE_RADIUS * 2;

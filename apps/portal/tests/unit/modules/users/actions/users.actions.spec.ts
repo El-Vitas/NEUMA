@@ -48,11 +48,7 @@ describe('updateUserNameAction without a session', () => {
   });
 });
 
-/**
- * The screen that offers this is behind a check, but the screen is not the
- * door: an action answers to its own address, so somebody signed in as anybody
- * reaches it without ever loading the screen.
- */
+// An action answers to its own address, so a check on the screen that offers it does not protect it.
 describe('updateUserNameAction signed in as somebody who does not run the workspace', () => {
   it('rejects without making an outbound request', async () => {
     cookieValue = 'valid-access-token';

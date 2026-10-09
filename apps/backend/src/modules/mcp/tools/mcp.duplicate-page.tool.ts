@@ -44,11 +44,7 @@ const duplicatePage = async (
   return { page: describeMcpManagedPage(dependencies, call, { page: copy, place: copyPlace }) };
 };
 
-/**
- * Hace una copia de una página justo al lado de ella, bajo la misma página de
- * arriba. El token tiene que poder escribir ahí; y si se copian las páginas de
- * abajo, poder leerlas todas, o la copia sacaría a la luz una que tiene cerrada.
- */
+/** Copying descendants needs read access to all of them, or the copy would expose a closed page. */
 export const duplicatePageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.duplicatePage,
   register: (server, dependencies) => {

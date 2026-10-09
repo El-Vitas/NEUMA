@@ -71,9 +71,8 @@ interface IProps {
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly isFavorite?: boolean;
-  /** Where a link to another page of this app is followed, when it should not leave this editor's own place. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
-  /** Told once a save this editor made has actually reached the server, so whoever else is showing the same page can catch up. */
+  /** Called once a save by this editor has reached the server, so other views of the page can refresh. */
   readonly onSaved?: () => void;
   readonly page: PageSummary;
   readonly pages: readonly PageSummary[];
@@ -149,13 +148,11 @@ export const PagesEditor = forwardRef(
       return didSave;
     };
 
-    /** A locked page reads exactly like one nobody may write in, because that is what it is. */
     const isLocked = lockedAt !== null;
     const canWrite = canEdit && !isLocked;
     const canAutosave = canWrite && page.lifecycle === 'ACTIVE';
     const canTrash = canWrite && page.lifecycle === 'ACTIVE';
 
-    /** Whoever sent the page away stops looking at a page that is no longer there. */
     const handlePageTrashed = (): void => router.push(ROUTES.PORTAL_SPACE(spaceId));
 
     const autosave = usePagesAutosave({
@@ -173,7 +170,7 @@ export const PagesEditor = forwardRef(
       [autosave],
     );
 
-    /** A page nobody has named yet opens on its name, which is where one starts writing it. */
+    /** An untitled page opens with the title focused. */
     useEffect(() => {
       if (page.title.length > 0) return;
       titleInputRef.current?.focus();
@@ -301,12 +298,7 @@ export const PagesEditor = forwardRef(
               propertyValues={propertyValues}
               spaceId={spaceId}
             />
-            {/*
-              Una página que lleva una colección es, sobre todo, esa colección: va
-              antes que el cuerpo, no al final, para que abrirla sea verla. Lo que
-              se escriba encima queda debajo, como las notas que acompañan a una
-              tabla y no como el motivo de la página.
-            */}
+            {/* Rendered before the body: a page with a collection is mostly that collection. */}
             {collectionSection}
             <PagesProseMirrorEditor
               canEdit={canWrite}

@@ -20,10 +20,7 @@ export interface SchemaViewDefinition {
   readonly isDefault: boolean;
 }
 
-/**
- * De qué nombre viene una opción y a cuál va, que es lo que la forma sola no
- * puede deducir. Sin nombre nuevo, la opción se quita.
- */
+/** A `to` of `null` removes the option. */
 export interface SchemaOptionRename {
   readonly from: string;
   readonly propertyKey: string;
@@ -46,7 +43,6 @@ export interface SchemaRowGroup<TRow extends SchemaGroupableRow> {
   readonly rows: readonly TRow[];
 }
 
-/** Una franja que cruza todas las columnas, con lo que a cada una le toca dentro de ella. */
 export interface SchemaRowBand<TRow extends SchemaGroupableRow> {
   readonly color: PageOptionColor | null;
   readonly groups: readonly SchemaRowGroup<TRow>[];

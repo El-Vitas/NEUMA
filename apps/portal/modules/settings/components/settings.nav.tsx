@@ -11,10 +11,6 @@ interface IProps {
   readonly items: readonly SettingsNavItem[];
 }
 
-/**
- * Las secciones de la configuración. En pantalla ancha van en columna a un
- * costado; en una angosta, en fila arriba, y se desplazan si no caben.
- */
 export const SettingsNav = ({ items }: IProps) => {
   const t = useTranslations('settings.nav');
   const pathname = usePathname();

@@ -33,11 +33,7 @@ describe('quién es el agente conectado por la terminal', () => {
     expect(await resolver.resolve()).toEqual(principal);
   });
 
-  /**
-   * Se pregunta en cada llamada y no una vez al arrancar: revocar el token en el
-   * portal tiene que cortar al agente en la siguiente llamada, no cuando alguien
-   * reinicie el proceso.
-   */
+  // Asked on every call, not once at startup: revoking the token must cut the agent off at its next call.
   test('asks again on every call, so a revoked token stops working at once', async () => {
     let calls = 0;
     const resolver = new McpEnvironmentPrincipalResolver(new ConfigService({ [MCP_ACCESS_TOKEN_KEY]: 'cbk_secret' }), {

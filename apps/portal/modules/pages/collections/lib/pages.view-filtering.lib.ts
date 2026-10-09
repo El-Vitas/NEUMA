@@ -38,25 +38,13 @@ export const filterOperatorNeedsValue = (operator: PageFilterOperator): boolean 
 export const listFilterOperatorsFor = (property: PageSchemaProperty): readonly PageFilterOperator[] =>
   getPageFilterOperators(getPagePropertyLogicalType(property.type));
 
-/**
- * Cómo compara lo elegido, entre lo que esa propiedad admite.
- *
- * Lo elegido en un desplegable llega como texto, así que se busca en la lista
- * en vez de darlo por bueno: un operador que esa clase de propiedad no admite
- * no llega a escribirse en la condición.
- */
+/** Looked up in the allowed list rather than trusted: a select yields plain text. */
 export const readFilterOperatorFor = (property: PageSchemaProperty, chosen: string): PageFilterOperator => {
   const operators = listFilterOperatorsFor(property);
   return operators.find((candidate) => candidate === chosen) ?? operators[0] ?? PAGE_FILTER_OPERATOR.IS;
 };
 
-/**
- * Lo que una vista deja pasar, siempre como el grupo que es.
- *
- * Lo guardado puede ser un grupo o una condición suelta —el contrato admite
- * ambos—, y quien lo muestra no debería tener que distinguirlo: una condición
- * sola se lee como el grupo de una condición.
- */
+/** The stored filter may be a group or a bare condition; a bare one is wrapped in a single-condition group. */
 const readFilterRootOf = ({ filter }: PageViewConfiguration): PageFilterGroup => {
   if (filter === null) return EMPTY_PAGE_FILTER_GROUP;
   if (filter.kind === 'GROUP') return filter;
@@ -66,38 +54,24 @@ const readFilterRootOf = ({ filter }: PageViewConfiguration): PageFilterGroup =>
 export const readViewFilterRoot = (view: PageSchemaView): PageFilterGroup =>
   readFilterRootOf(readPageViewConfiguration(view.configuration));
 
-/** Cuántas condiciones hay puestas en total, estén sueltas o dentro de un grupo. */
 export const countFilterConditions = (filter: PageFilter): number =>
   filter.kind === 'CONDITION'
     ? 1
     : filter.conditions.reduce((total, nested) => total + countFilterConditions(nested), 0);
 
-/**
- * Si dentro de este grupo cabe otro.
- *
- * El contrato admite tres niveles contando la condición, así que un grupo
- * abierto dentro de otro dejaría a sus condiciones en el cuarto. Solo el grupo
- * de arriba puede abrir grupos.
- */
+/** The contract allows three levels counting the condition, so only the top group can open a nested group. */
 export const canNestFilterGroup = (path: PageFilterPath): boolean =>
   path.length + 1 + PAGE_NESTED_FILTER_GROUP_LEVELS <= PAGE_FILTER_MAXIMUM_DEPTH;
 
-/** Cómo se nombra un nodo entre los demás: dónde está, que es lo único que no comparte con ningún otro. */
 export const readFilterNodeKey = (path: PageFilterPath): string => path.join('.');
 
 export const readViewSorts = (view: PageSchemaView): readonly PageSort[] =>
   readPageViewConfiguration(view.configuration).sorts;
 
-/** Un filtro sin ninguna condición es una vista que no filtra, y eso se guarda como nada. */
+/** A filter with no conditions is stored as null. */
 const toFilter = (root: PageFilterGroup): PageFilter | null => (countFilterConditions(root) === 0 ? null : root);
 
-/**
- * Lo que una vista dice de sí misma, cambiado en un sitio.
- *
- * A quien lo cambia le llega ya leído y no en crudo: lo guardado admite claves
- * que el contrato no conoce —una vista escrita por una versión más nueva—, y
- * devolverlas tal cual haría que el servidor rechazara el cambio entero.
- */
+/** Receives the parsed configuration: stored keys unknown to the contract would make the server reject it. */
 const rewriteView = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -146,14 +120,7 @@ const rewriteFilter = (
     filter: toFilter(rewrite(readFilterRootOf(configuration))),
   }));
 
-/**
- * Cómo se reconoce una condición entre las demás.
- *
- * Una condición guardada no lleva identificador —el contrato guarda lo que la
- * condición dice, no cuál es—, así que lo que dice hace de nombre. Por eso no
- * se admiten dos a medio armar sobre la misma propiedad: serían indistinguibles
- * mientras ninguna tenga valor.
- */
+/** Conditions have no id, so their content is the identity; two unfinished ones on a property would clash. */
 export const readFilterConditionKey = (condition: PageFilterCondition): string =>
   `${condition.propertyKey}|${condition.operator}|${condition.value === null ? '' : String(condition.value)}`;
 
@@ -178,12 +145,7 @@ export const addViewFilterCondition = (
     }),
   );
 
-/**
- * Abre un grupo dentro de otro, para decir «esto y además una de estas otras».
- *
- * Nace uniendo con «o» porque es lo que no se podía decir sin él: quien abre un
- * paréntesis dentro de un «y» está pidiendo justo lo que el «y» no da.
- */
+/** Starts as OR: nesting inside an AND is only useful for what AND cannot express. */
 export const addViewFilterGroup = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -227,7 +189,6 @@ export const setViewFilterConditionValue = (
   value: PagePropertyValue | null,
 ): readonly PageSchemaView[] => rewriteConditionAt(views, viewName, path, (condition) => ({ ...condition, value }));
 
-/** Quita lo que haya en ese sitio: una condición, o un grupo con todo lo que lleva dentro. */
 export const removeViewFilterNode = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -252,7 +213,7 @@ const rewriteSorts = (
 ): readonly PageSchemaView[] =>
   rewriteView(views, viewName, (configuration) => ({ ...configuration, sorts: rewrite(configuration.sorts) }));
 
-/** Ordenar dos veces por lo mismo no ordena más, así que la segunda vez no hace nada. */
+/** Sorting twice by the same property is a no-op. */
 export const addViewSort = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -302,12 +263,6 @@ export const readViewHidesUnassignedColumn = (view: PageSchemaView): boolean =>
 export const readViewHidesEmptyGroups = (view: PageSchemaView): boolean =>
   readPageViewConfiguration(view.configuration).hidesEmptyGroups;
 
-/**
- * Dejar de ver los grupos que no tienen ninguna fila, o volver a verlos.
- *
- * Es de la vista y no de la propiedad: el valor sigue existiendo y se puede
- * elegir, lo que se pidió fue no tener delante los que nadie eligió todavía.
- */
 export const toggleViewHidesEmptyGroups = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -317,11 +272,6 @@ export const toggleViewHidesEmptyGroups = (
     hidesEmptyGroups: !configuration.hidesEmptyGroups,
   }));
 
-/**
- * Plegar un grupo, o desplegarlo: lo mismo dicho al revés, y por eso un solo
- * gesto. Vale igual para una columna del tablero que para una franja de una
- * tabla agrupada, porque son el mismo grupo mirado de otra manera.
- */
 export const toggleViewCollapsedGroup = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -334,12 +284,7 @@ export const toggleViewCollapsedGroup = (
       : [...configuration.collapsedGroups, groupKey],
   }));
 
-/**
- * Cuántas tarjetas se espera en una columna, o ninguna espera.
- *
- * «Ninguna espera» se guarda quitando la clave: una columna sin tope no es una
- * columna con tope cero, que sería una columna donde nada cabe.
- */
+/** No limit is stored by removing the key: a limit of zero would mean a column where nothing fits. */
 export const setViewColumnLimit = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -396,14 +341,7 @@ export const setViewRowHeight = (
 export const readViewWrapsText = (view: PageSchemaView): boolean =>
   readPageViewConfiguration(view.configuration).wrapsText;
 
-/**
- * Que el texto largo se parta en varias líneas, o que se corte.
- *
- * Partir sin crecer el alto no serviría de nada —las líneas de más quedarían
- * fuera de la fila—, así que empezar a partir sube el alto a medio cuando
- * estaba en el más corto. Dejar de partir no lo baja: quien lo subió puede
- * quererlo alto igual.
- */
+/** Enabling wrap raises a SHORT row to MEDIUM (extra lines would be clipped); disabling it never lowers the height. */
 export const toggleViewWrapsText = (views: readonly PageSchemaView[], viewName: string): readonly PageSchemaView[] =>
   rewriteView(views, viewName, (configuration) => {
     const wrapsText = !configuration.wrapsText;
@@ -414,7 +352,7 @@ export const toggleViewWrapsText = (views: readonly PageSchemaView[], viewName: 
 export const readViewColumnAlignments = (view: PageSchemaView): Readonly<Record<string, PageColumnAlignment>> =>
   readPageViewConfiguration(view.configuration).columnAlignments;
 
-/** Hacia qué lado se pega una columna. Al principio es lo mismo que no decir nada, y por eso se quita. */
+/** START is the default, so it is stored by removing the key. */
 export const setViewColumnAlignment = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -429,14 +367,7 @@ export const setViewColumnAlignment = (
     };
   });
 
-/**
- * Cambia una columna de sitio en la tabla, poniéndola justo antes de otra.
- *
- * El orden de las columnas es el de las propiedades que la vista dice mostrar,
- * así que moverlas es reescribir esa lista. Una vista que nunca eligió nada no
- * tiene lista: se le escribe entera tal como se está viendo, que es lo que
- * estaba enseñando, y recién ahí se mueve una.
- */
+/** A view that never chose has no list, so the currently shown keys are written out first and then reordered. */
 export const moveViewProperty = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -453,7 +384,6 @@ export const moveViewProperty = (
     return { ...configuration, visibleProperties: [...rest.slice(0, at), propertyKey, ...rest.slice(at)] };
   });
 
-/** Un puesto a un lado o al otro, que es como se mueve una columna sin ratón. */
 export const moveViewPropertySideways = (
   views: readonly PageSchemaView[],
   viewName: string,
@@ -468,20 +398,13 @@ export const moveViewPropertySideways = (
   return moveViewProperty(views, viewName, shownKeys, propertyKey, beforeKey);
 };
 
-/** Lo elegido en un desplegable llega como texto, y solo es un cálculo si es uno de los que hay. */
 export const readPageCalculation = (chosen: string): PageViewCalculation | undefined =>
   PAGE_VIEW_CALCULATION_VALUES.find((candidate) => candidate === chosen);
 
 export const readViewCalculations = (view: PageSchemaView): Readonly<Record<string, PageViewCalculation>> =>
   readPageViewConfiguration(view.configuration).calculations;
 
-/**
- * Qué dice una columna al pie, o que no diga nada.
- *
- * «Nada» se guarda quitando la clave y no escribiéndola: una columna que no
- * calcula es una columna de la que la vista no tiene nada que decir, y dejar
- * escrito que no dice nada llena la configuración de silencios.
- */
+/** NONE is stored by removing the key, so the configuration holds no empty entries. */
 export const setViewCalculation = (
   views: readonly PageSchemaView[],
   viewName: string,

@@ -12,11 +12,6 @@ const formatIconsText = (output: McpSearchDiagramIconsOutput): string =>
     ? 'No icon answers to that. Try another word in English, such as the product name or what the icon shows.'
     : `${output.icons.join('\n')}\n\n${output.usage}`;
 
-/**
- * Los íconos que se pueden poner en un diagrama, buscados por lo que muestran.
- * Son los mismos que el portal sabe dibujar: marcas de productos y los íconos
- * de Material Design.
- */
 export const searchDiagramIconsTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.searchDiagramIcons,
   register: (server, dependencies) => {

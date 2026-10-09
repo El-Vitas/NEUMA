@@ -11,16 +11,7 @@ interface IProps {
   readonly properties: readonly PageSchemaProperty[];
 }
 
-/**
- * Lo que esta vista deja pasar.
- *
- * Las condiciones cuelgan de un grupo, y ese grupo puede llevar otros dentro:
- * así se dice «esto, y además una de estas otras», que con una sola lista de
- * condiciones unidas por «y» o por «o» no se podía decir.
- *
- * Quitar todo va al final y separado del resto, porque deshace de un golpe lo
- * que se armó de a poco: puesto entre los demás botones se toca sin querer.
- */
+/** Clear-all sits apart at the end: it undoes everything at once and must not be hit by accident. */
 export const PagesCollectionFilterEditor = ({ filtering, properties }: IProps) => {
   const t = useTranslations('pages.collection');
 

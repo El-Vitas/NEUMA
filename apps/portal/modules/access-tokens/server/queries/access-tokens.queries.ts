@@ -20,7 +20,6 @@ const getAccessTokensCached = async (accessToken: string): Promise<readonly Acce
   return accessTokensListSchema.parse(response);
 };
 
-/** Todos los tokens del espacio de trabajo. Solo contesta a quien lo administra; el servidor lo decide. */
 export const getWorkspaceAccessTokens = async (): Promise<Result<readonly WorkspaceAccessToken[], Error>> =>
   withQuery({ op: 'getWorkspaceAccessTokens' }, (accessToken) => getWorkspaceAccessTokensCached(accessToken));
 

@@ -4,7 +4,7 @@ import { OutboxRepository } from '../../../../common/infrastructure/persistence/
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { PageMaintenanceRepositoryContract, PageMaintenanceRow } from '../../types/page-maintenance.types';
 
-/** Recorrer todas las páginas de un espacio de trabajo para mantenerlas, sin mirar quién las ve. */
+/** Walks every active page of a workspace regardless of who can see it. */
 @Injectable()
 export class PageMaintenanceRepository implements PageMaintenanceRepositoryContract {
   constructor(
@@ -29,11 +29,7 @@ export class PageMaintenanceRepository implements PageMaintenanceRepositoryContr
     });
   }
 
-  /**
-   * Un aviso por página, como los que deja cualquier cambio. La clave lleva la
-   * corrida, así correr el mantenimiento otra vez vuelve a avisar, y un mismo
-   * aviso no se duplica dentro de una corrida.
-   */
+  /** The key includes the run id: a new run notifies again, a repeat within one run does not. */
   async announceReindex(pageIds: readonly string[], runId: string): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       for (const pageId of pageIds)

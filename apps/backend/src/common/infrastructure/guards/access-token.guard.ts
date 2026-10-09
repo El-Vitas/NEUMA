@@ -9,14 +9,8 @@ import type {
 import { readBearerToken } from '../../utils/auth.utils';
 
 /**
- * Deja pasar a quien trae un token personal válido, y anota en nombre de quién actúa.
- *
- * Es la puerta de los agentes, no la de las personas: una sesión del portal no
- * entra por aquí, y un token personal no entra por las puertas del portal. Así
- * una llave de agente que se filtre no sirve para hacerse pasar por el portal.
- *
- * El motivo del rechazo no se dice: «no existe», «revocado» y «vencido» suenan
- * igual para quien está probando llaves.
+ * Agent entry point only: portal sessions are not accepted here, and personal tokens are not accepted by portal guards.
+ * The refusal reason is never disclosed, so unknown, revoked and expired tokens look the same.
  */
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
@@ -25,11 +19,6 @@ export class AccessTokenGuard implements CanActivate {
     @Inject(PinoLogger) private readonly logger: AccessTokenRefusalLogger,
   ) {}
 
-  /**
-   * Un rechazo queda en el log, sin la llave ni nada de quien la trajo: alguien
-   * probando llaves o un agente con un token vencido que reintenta tienen que
-   * notarse.
-   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AccessTokenRequest>();
     const secret = readBearerToken(request.headers.authorization);

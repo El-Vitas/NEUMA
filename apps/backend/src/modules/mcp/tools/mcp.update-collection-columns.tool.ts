@@ -26,7 +26,6 @@ import type {
 } from '../types/mcp.collections.types';
 import type { McpCall, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
 
-/** Renombra o quita una opción y reescribe en el mismo movimiento las filas que la tenían. */
 const rewriteOption = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -49,7 +48,6 @@ const rewriteOption = async (
 const describeRewrite = (rewrite: McpOptionRewrite): string =>
   rewrite.to === null ? `removed "${rewrite.from}"` : `renamed "${rewrite.from}" to "${rewrite.to}"`;
 
-/** Las opciones una tras otra: cada una parte de lo que dejó la anterior, y queda anotada al hacerse. */
 const rewriteOptions = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -65,10 +63,9 @@ const rewriteOptions = async (
 };
 
 /**
- * Un fallo a mitad de camino, con lo que ya quedó hecho. Cada opción es su
- * propia escritura y ya reescribió sus filas: si el agente no sabe cuáles
- * quedaron, las repite o cree que nada cambió. Un fallo que no es del agente se
- * cuenta en el log antes de decírselo.
+ * Each option is its own write and has already rewritten its rows; without knowing which,
+ * the agent would repeat them or assume nothing changed. Failures not caused by the agent
+ * are logged first.
  */
 const sayWhatWasAlreadyDone = (
   dependencies: McpServerDependencies,
@@ -84,12 +81,8 @@ const sayWhatWasAlreadyDone = (
 };
 
 /**
- * Hace los cambios de columnas que pidió el agente.
- *
- * Todo lo pedido se revisa junto, contra la forma final, antes de la primera
- * escritura. Las opciones que se renombran o se quitan van primero, porque
- * reescriben las filas que las tenían; después se guarda la forma final ya
- * revisada.
+ * Everything is validated against the final shape before the first write. Renamed or
+ * removed options go first because they rewrite rows.
  */
 const changeColumns = async (
   dependencies: McpServerDependencies,
@@ -134,12 +127,6 @@ const updateColumns = async (
   return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
-/**
- * Cambia las columnas de una colección: agrega, renombra o quita columnas, y
- * agrega, renombra o quita las opciones de una columna de selección.
- *
- * Renombrar una columna o una opción conserva lo que las filas tenían en ella.
- */
 export const updateCollectionColumnsTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.updateCollectionColumns,
   register: (server, dependencies) => {

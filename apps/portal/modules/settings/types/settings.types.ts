@@ -1,6 +1,6 @@
 import type { UserRole } from '@company-brain/shared';
 
-/** Una sección de la configuración: adónde lleva, cómo se llama y quién la ve. Sin roles, la ve todo el mundo. */
+/** Without `roles`, every role sees the item. */
 export interface SettingsNavItem {
   readonly href: string;
   readonly labelKey: string;

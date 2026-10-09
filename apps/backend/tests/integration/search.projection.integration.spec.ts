@@ -122,10 +122,6 @@ describe('Search Projection (Integration)', () => {
     expect(projectedPage?.parentPageTitle).toBeNull();
   });
 
-  /**
-   * «Editada hace una semana» es de la página, no del índice: volver a indexar
-   * —un mantenimiento, un movimiento— no la hace parecer editada hoy.
-   */
   it('keeps the page’s own last edit as its date in the index, not the moment it was indexed', async () => {
     const prisma = testApp.get(PrismaService);
     const longAgo = new Date('2020-01-02T03:04:05.000Z');
@@ -176,7 +172,6 @@ describe('Search Projection (Integration)', () => {
     expect(projectedPage?.title).toBe(renamedTitle);
   });
 
-  /** «safe» encuentra «ÜSAFE», aunque otra página tenga la palabra entera, que va primero. */
   it('finds what is searched for inside a longer word in a title, after the pages that have it as a whole word', async () => {
     const wanted = `safe${String(Date.now())}`;
     const createPage = async (title: string): Promise<string> => {

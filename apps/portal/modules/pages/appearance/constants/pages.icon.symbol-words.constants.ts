@@ -1,11 +1,4 @@
-/**
- * The words each symbol answers to, beyond its own name.
- *
- * A symbol is named after what it draws, but people look for it by what they
- * mean: whoever wants to mark a project does not think «briefcase». These are
- * written in both languages the product speaks, so the search works in the one
- * the reader is already using.
- */
+/** Search words per symbol, in Spanish and English: people search by meaning, not by the drawn object's name. */
 export const PAGE_ICON_SYMBOL_WORDS: Readonly<Record<string, readonly string[]>> = {
   archive: ['archivo', 'guardar', 'archive', 'storage'],
   bell: ['aviso', 'notificacion', 'alerta', 'notification', 'alert', 'reminder'],

@@ -20,42 +20,31 @@ export type McpRestorePageInput = z.infer<typeof restorePageInputSchema>;
 export type McpListTrashOutput = z.infer<typeof listTrashOutputSchema>;
 export type McpManagedPageOutput = z.infer<typeof managedPageOutputSchema>;
 
-/** Una página tras cambiarla entera: lo que hace falta para decir dónde quedó. */
 export interface McpManagedPage {
   readonly id: string;
   readonly spaceId: string;
   readonly title: string;
 }
 
-/** Una página en la papelera, como la ve quien la puede restaurar. */
 export interface McpTrashedPage {
   readonly deletedAt: Date;
-  /** Quién la mandó a la papelera, si sigue en el espacio de trabajo. */
   readonly deletedBy: null | McpPerson;
   readonly id: string;
   readonly spaceId: string;
   readonly title: string;
-  /** Cuántas páginas de abajo se fueron con ella. */
   readonly trashedChildCount: number;
 }
 
 type McpPageAnswer<TValue> = Promise<Result<TValue, McpRefusal>>;
 
-/** Un cambio a una página entera, con el nombre que se le dice al agente cuando quedó hecho. */
 export interface McpPageStep {
   readonly apply: () => McpPageAnswer<McpManagedPage>;
   readonly name: string;
 }
 
-/** Quién actúa sobre qué página. */
 type McpOnPage = McpActor & { readonly pageId: string };
 
-/**
- * Lo que el agente hace con una página entera, por el mismo servicio que el
- * portal: así valen las mismas reglas —quién puede, qué está bloqueado, a dónde
- * se puede mover— sin repetirlas. Cada cambio dice por su nombre qué es cada
- * cosa: dos ids en el orden equivocado no se confunden en silencio.
- */
+/** Same service as the portal, so the same rules apply. */
 export interface McpPageManager {
   readonly duplicate: (
     input: McpOnPage & { readonly includeChildren: boolean; readonly title: string | null },

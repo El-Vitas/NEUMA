@@ -7,14 +7,7 @@ import type { PageEditorBlockRange } from '../../blocks/types/pages.editor.block
 import { findPageEditorPageDropTarget, markPageEditorPageDropTarget } from '../lib/pages.editor.page-drop.lib';
 import type { PageEditorPageDropParameters } from '../types/pages.editor.page-drop.types';
 
-/**
- * Dragging blocks onto the page tree turns them into a page of their own, held
- * by the page they were dropped on.
- *
- * The blocks that travel are remembered while the drag is on: the editor puts
- * the drag away the moment the button is released, and by then this still needs
- * to know what was being carried.
- */
+/** The dragged blocks are remembered because the editor clears its drag state before the drop is handled. */
 export const usePagesEditorPageDrop = ({ editorViewRef, spaceId }: PageEditorPageDropParameters): void => {
   const turnIntoPage = usePagesEditorBlocksToPage({ editorViewRef, spaceId });
   const travellingRef = useRef<PageEditorBlockRange | null>(null);

@@ -8,14 +8,7 @@ interface IProps {
   readonly kind: PortalSpaceKind;
 }
 
-/**
- * Says apart the space everyone shares, the corner that is one's own, and the
- * corner somebody else opened up.
- *
- * The drawing is what is seen at a glance, but it is never the whole message:
- * the word travels with it for whoever reads the tree by ear, since a padlock
- * and an open door look alike to anybody who cannot see either.
- */
+/** The text label travels with the glyph so screen-reader users also get the space kind. */
 export const SidebarSpaceKindMark = ({ kind }: IProps) => {
   const t = useTranslations('spaces.privacy');
 

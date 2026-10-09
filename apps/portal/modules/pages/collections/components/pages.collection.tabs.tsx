@@ -12,16 +12,8 @@ interface IProps {
 }
 
 /**
- * The ways this collection can be looked at, with the one being looked at now
- * marked.
- *
- * Each one is a link rather than a button, so a view can be opened in another
- * tab, sent to somebody, or reached again by going back — and so the collection
- * still works before any script has loaded.
- *
- * Cambiar de vista no mueve la página: quien mira una colección que está a
- * media página ya llegó hasta ella, y devolverlo arriba le hace bajar otra vez
- * para ver lo que acaba de pedir.
+ * Links rather than buttons, so a view opens in another tab, can be shared, and works before scripts load.
+ * Switching views does not scroll the page.
  */
 export const PagesCollectionTabs = ({ activeViewName, label, views }: IProps) => (
   <nav aria-label={label}>
@@ -42,7 +34,6 @@ export const PagesCollectionTabs = ({ activeViewName, label, views }: IProps) =>
               href={buildCollectionViewHref(view.name)}
               scroll={false}
             >
-              {/* Acompaña al nombre, no lo sustituye: un emoji solo no dice cuál de tres tableros es. */}
               {icon !== null && (
                 <span aria-hidden="true" className="mr-1.5">
                   {icon}

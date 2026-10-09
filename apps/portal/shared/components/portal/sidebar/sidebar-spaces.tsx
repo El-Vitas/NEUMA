@@ -15,7 +15,6 @@ interface IProps {
 export const SidebarSpaces = ({ collapsed, onNavigate, role, spaces }: IProps) => {
   const t = useTranslations('navigation');
   const tPrivacy = useTranslations('spaces.privacy');
-  /** What somebody else opened up is not one's own place, so it does not sit in the same list. */
   const ownSpaces = spaces.filter((space) => space.kind !== 'shared');
   const sharedSpaces = spaces.filter((space) => space.kind === 'shared');
 

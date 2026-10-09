@@ -46,13 +46,8 @@ export const listSpacesOutputSchema = z.object({
 
 const mcpPersonSchema = z.object({ id: idSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) });
 
-/** Un día, como `YYYY-MM-DD`. */
 const daySchema = z.iso.date();
 
-/**
- * Si la página es de fiar: si alguien respondió por ella y si eso sigue
- * valiendo, si está bloqueada contra cambios y quién la cuida.
- */
 const mcpPageStateSchema = z.object({
   locked: z.boolean(),
   owner: mcpPersonSchema.nullable(),
@@ -64,7 +59,6 @@ const mcpPageStateSchema = z.object({
   }),
 });
 
-/** Las propiedades de una fila: cada columna con su valor, y las personas por su nombre. */
 const mcpRowPropertiesSchema = z
   .array(
     z.object({
@@ -78,12 +72,10 @@ const mcpRowPropertiesSchema = z
   .max(MCP_LISTED_PAGE_LIMIT)
   .optional();
 
-/** Una página vista desde el árbol, como la entregan `list_pages` y las hijas de `fetch`. */
 const mcpOutlinePageSchema = z.object({
   childCount: z.number().int().nonnegative(),
   id: idSchema,
   isCollection: z.boolean(),
-  /** Si es una fila de una colección, lo que tiene en cada columna. */
   properties: mcpRowPropertiesSchema,
   title: titleSchema,
   url: urlSchema,
@@ -120,14 +112,12 @@ export const searchInputSchema = z.object({
 });
 
 /**
- * Un bloque encontrado, con su página. No lleva el título de la página de
- * arriba: el token puede leer una página sin poder leer la que la contiene, y
- * fetch ya da el camino con los cerrados sin nombre.
+ * Omits the parent title: the token may read a page without its container, and
+ * fetch already gives the path with closed pages unnamed.
  */
 const mcpBlockHitSchema = z.object({
   blockId: idSchema,
   blockType: kindSchema,
-  /** Si su página está verificada y la verificación sigue valiendo. */
   isPageVerified: z.boolean(),
   pageId: idSchema,
   pageTitle: titleSchema,
@@ -158,13 +148,9 @@ export const fetchInputSchema = z.object({
   address: buildMcpAddressSchema('A Company Brain link to a page or block, or a page id, or a block id.'),
 });
 
-/** Un paso de la ruta de una página. Uno que el agente no puede ver va sin id ni título. */
 const mcpPathStepSchema = z.object({ id: idSchema.nullable(), title: titleSchema });
 
-/**
- * La página abierta. Cuando se pidió un bloque, va solo lo que dice dónde está
- * el bloque; lo que la página dice entera se pide abriendo la página.
- */
+/** When a block was requested, only what locates it is included; full content needs the page itself. */
 const mcpFetchedPageSchema = z.object({
   backlinks: z
     .array(z.object({ id: idSchema, title: titleSchema, url: urlSchema }))
@@ -185,14 +171,11 @@ const mcpFetchedPageSchema = z.object({
     .optional(),
   id: idSchema,
   markdown: z.string().optional(),
-  /** Cuántas páginas más cuelgan de esta, aparte de las nombradas: se recorren con list_pages. */
   moreChildren: z.number().int().positive().optional(),
-  /** Si la página sigue: el cursor para pedir el tramo siguiente. */
   nextCursor: z.string().optional(),
   path: z.array(mcpPathStepSchema).max(MCP_PATH_MAX_DEPTH),
   properties: mcpRowPropertiesSchema,
   spaceId: idSchema,
-  /** Solo al abrir la página entera, no al abrir uno de sus bloques. */
   state: mcpPageStateSchema.optional(),
   title: titleSchema,
   url: urlSchema,

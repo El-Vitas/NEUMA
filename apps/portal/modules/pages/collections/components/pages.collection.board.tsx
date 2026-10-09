@@ -19,34 +19,24 @@ import { PagesCollectionBoardColumn } from './pages.collection.board.column';
 import { PagesCollectionBoardNewColumn } from './pages.collection.board.new-column';
 
 interface IProps {
-  /** Cuál de las vistas de la colección es esta, que es de quien son las columnas plegadas y sus topes. */
+  /** Owner of the folded columns and limits. */
   readonly activeViewName: string;
-  /** Las filas en rejilla: una banda sin nombre cuando el tablero agrupa por una sola propiedad. */
+  /** A single unnamed band when the board groups by one property. */
   readonly bands: readonly PageViewBand[];
   readonly canEdit: boolean;
   readonly groupByKey: string;
   readonly personOptions?: readonly PagePersonOption[];
-  /** What each card says besides its title, already narrowed to what this view shows. */
+  /** Already narrowed to what this view shows. */
   readonly properties: readonly PageSchemaProperty[];
-  /** La colección entera: de ella cuelgan las filas nuevas, y en ella viven las columnas. */
   readonly schema: PageSchema;
   readonly spaceId: string;
-  /** La segunda propiedad por la que agrupa, o nada cuando el tablero es de una sola dimensión. */
+  /** Empty when the board has a single grouping dimension. */
   readonly subGroupByKey: string;
 }
 
 /**
- * Las filas de una colección como tarjetas en columnas, una columna por valor.
- *
- * Una columna crece con lo que lleva y es la página la que se desplaza. Darle
- * un alto propio con su barra dentro obliga a desplazar dos veces —la columna y
- * la página— para llegar a una tarjeta, y arrastrar entre dos columnas
- * desplazadas cada una por su lado deja de tener un arriba común.
- *
- * Con una segunda agrupación puesta, las mismas columnas se repiten dentro de
- * cada banda: la banda cruza el tablero entero para que una columna siga
- * estando debajo de su cabecera de una banda a la siguiente, y cada cruce sea
- * un sitio donde poner algo.
+ * Columns grow with their content and the page scrolls, not the column: nested scrolling would need two gestures
+ * and break dragging between columns. With a sub-grouping, bands span the whole board so columns stay aligned.
  */
 export const PagesCollectionBoard = ({
   activeViewName,
@@ -96,24 +86,12 @@ export const PagesCollectionBoard = ({
     onStart: setCarriedColumn,
     target: columnTarget,
   };
-  /**
-   * Una columna solo se puede tocar cuando es una opción declarada. La de las
-   * filas sin valor no es ninguna, y las de una fecha o un número tampoco: esas
-   * salen de lo que las filas traen puesto, así que no hay nada que renombrar
-   * ahí sin renombrar filas una por una.
-   */
+  /** Only declared options are editable: columns derived from row values (dates, numbers) cannot be renamed alone. */
   const canCommandColumns =
     canEdit && (schema.properties.find((property) => property.key === groupByKey)?.options ?? null) !== null;
   const commandOf = (groupKey: string): null | PagesBoardColumns =>
     canCommandColumns && groupKey !== UNASSIGNED_GROUP_KEY ? columns : null;
-  /**
-   * Se esconde solo cuando no tiene nada: una columna escondida con filas dentro
-   * sería esconder filas, y lo que se pidió fue no ver una columna que sobra.
-   *
-   * Esconder todas las vacías se paga con un sitio menos donde soltar una
-   * tarjeta, así que la columna que se está usando ahora mismo —la de la tarjeta
-   * en el aire— se queda a la vista aunque esté vacía.
-   */
+  /** Only empty columns hide, and none while a card is dragged, so there is always somewhere to drop it. */
   const isShown = (group: { readonly key: string; readonly rows: readonly unknown[] }): boolean => {
     if (group.rows.length > 0 || drag.draggingRowId !== null) return true;
     if (group.key === UNASSIGNED_GROUP_KEY && columns.hidesUnassignedColumn) return false;
@@ -130,17 +108,12 @@ export const PagesCollectionBoard = ({
       <output aria-live="polite" className="sr-only">
         {drag.announcement}
       </output>
-      {/*
-        El tablero se sale del margen del cuerpo y llega hasta el borde: columnas
-        encajonadas en el ancho de un párrafo obligan a desplazar por cuatro que
-        cabrían. El margen se devuelve por dentro para que la primera columna no
-        quede pegada al borde.
-      */}
+      {/* Bleeds past the body margin to use the full width; the padding restores it inside. */}
       <section
         aria-label={t('collection.boardColumns')}
         className="-mx-4 space-y-4 overflow-x-auto px-4 pb-3 sm:-mr-6 sm:-ml-14 sm:pr-6 sm:pl-14 lg:-mr-8 lg:-ml-16 lg:pr-8 lg:pl-16 xl:-mr-10 xl:pr-10"
         data-testid="collection-board"
-        /* Arrastrar contra el borde desplaza el tablero: sin esto, llevar una tarjeta a una columna que no se ve son tres gestos. */
+        /* Dragging against the edge scrolls the board, so a card can reach an off-screen column in one gesture. */
         onDragLeave={stopEdgeScrolling}
         onDragOver={scrollAtEdge}
         onDrop={dropAtEdge}
@@ -182,10 +155,9 @@ export const PagesCollectionBoard = ({
                   spaceId={spaceId}
                 />
               ))}
-              {/* Una sola vez, en la primera banda: la columna nueva es de todas, no de esta franja. */}
+              {/* Only in the first band: a new column belongs to every band. */}
               {canCommandColumns && band.key === drag.bands[0]?.key && (
                 <div className="flex shrink-0 flex-col items-start gap-1">
-                  {/* Soltar sobre él es soltar al final: no hay ninguna columna a la derecha ante la cual caer. */}
                   <PagesCollectionBoardNewColumn
                     disabled={columns.isBusy}
                     isCarryingColumn={carriedColumn !== null}

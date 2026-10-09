@@ -1,12 +1,10 @@
-/// Cómo terminó una escritura de un agente.
+/// How an agent write ended.
 enum AgentActionOutcome {
-  /// Anotada antes de escribir y todavía sin cerrar. Si queda así, la escritura
-  /// pudo haberse hecho sin que se supiera cómo terminó: hay que mirarla.
+  /// Recorded before writing and not yet closed. If it stays this way the write may have happened unnoticed: inspect it.
   PENDING
-  /// Se hizo.
   DONE
-  /// No se hizo porque no le tocaba: permiso, página bloqueada, valor inválido.
+  /// Not done because it was not allowed: permission, locked page, invalid value.
   REFUSED
-  /// No se hizo por algo que falló por dentro.
+  /// Not done because of an internal failure.
   FAILED
 }

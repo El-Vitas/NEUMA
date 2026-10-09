@@ -1,5 +1,4 @@
-/** What a page editor lets whoever holds it ask for from the outside. */
 export interface PagesEditorHandle {
-  /** Waits for whatever this editor still has to save, so closing it never throws away what was written. */
+  /** Resolves once pending saves finish, so closing the editor never drops unsaved writing. */
   readonly flushPendingChanges: () => Promise<void>;
 }

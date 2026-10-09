@@ -6,7 +6,6 @@ import { PagesCollectionGalleryCard } from './pages.collection.gallery.card';
 import { PagesCollectionGroupSection } from './pages.collection.group-section';
 
 interface IProps {
-  /** Las filas repartidas en grupos; sin agrupación, un solo grupo sin nombre con todas dentro. */
   readonly groups: readonly PageViewGroup[];
   readonly isGrouped: boolean;
   readonly personOptions?: readonly PagePersonOption[];
@@ -14,14 +13,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Las filas de una colección como tarjetas en cuadrícula.
- *
- * Es la lista con más sitio por fila: sirve cuando lo que distingue a una de
- * otra se ve antes de leerla. Las tarjetas se acomodan al ancho que haya en vez
- * de tener un número fijo por línea, para que en un teléfono quede una y en una
- * pantalla ancha quepan cuatro sin que nadie las configure.
- */
 export const PagesCollectionGallery = async ({
   groups,
   isGrouped,

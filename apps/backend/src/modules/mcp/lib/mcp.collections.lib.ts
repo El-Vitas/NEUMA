@@ -29,7 +29,6 @@ import { describeMcpRowProperties } from './mcp.properties.lib';
 import { requireMcpPermissionAt } from './mcp.tool.lib';
 import { pickMcpView } from './mcp.views.lib';
 
-/** Las columnas y las vistas de una página, si su dueño la ve. Una página sin columnas no es una colección. */
 const readShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -44,15 +43,10 @@ const readShape = async (
 
 const isCollectionShape = (shape: McpCollectionShape): boolean => shape.properties.length > 0;
 
-/**
- * Cómo se nombra lo que hay en una colección cuando el agente pide algo que no
- * está: con todo, si el token puede leer colecciones ahí; sin nada, si solo
- * puede cambiarla. Escribir no da derecho a leer, tampoco por un rechazo.
- */
+/** Writing does not grant reading, not even through a refusal message. */
 export const readMcpNameLister = (call: McpCall, place: AccessTokenPlace): McpNameLister =>
   canMcpAct(call, place, ACCESS_TOKEN_PERMISSIONS.collectionsRead) ? listMcpNames : hideMcpNames;
 
-/** Si una página tiene columnas: las que cuelgan de ella son filas. */
 const isCollectionPage = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -63,12 +57,7 @@ const isCollectionPage = async (
   return schema.isOk() && isCollectionShape(schema.getValue());
 };
 
-/**
- * Una página que cuelga de una colección es una fila. Crearla, renombrarla,
- * moverla o copiarla por las herramientas de páginas cambia filas igual que
- * create_row, así que pide además escribir en colecciones, en el lugar de la
- * fila. Lo que dice una fila por dentro sigue siendo escribir una página.
- */
+/** Page tools that create, rename, move or copy a row also need collection write permission at the row's place. */
 export const requireMcpRowChangeAllowed = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -78,13 +67,7 @@ export const requireMcpRowChangeAllowed = async (
   requireMcpPermissionAt(call.principal, row.place, ACCESS_TOKEN_PERMISSIONS.collectionsWrite);
 };
 
-/**
- * La colección que el agente nombró, si su dueño la ve y la regla más cercana
- * del token da ese permiso donde está hoy.
- *
- * El permiso se revisa antes de mirar si tiene columnas: decir «no es una
- * colección» de una página cerrada ya contaría algo de ella.
- */
+/** Permission first: saying "not a collection" about a closed page would already leak something. */
 export const openMcpCollection = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -104,12 +87,7 @@ export const openMcpCollection = async (
   };
 };
 
-/**
- * Una fila que el agente nombró y la colección de la que cuelga.
- *
- * El permiso se mira en la fila, porque es lo que se escribe; la colección
- * solo se lee para saber qué columnas tiene.
- */
+/** Permission is checked on the row, since that is what gets written; the collection is only read for its columns. */
 export const openMcpRow = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -123,12 +101,7 @@ export const openMcpRow = async (
   return { listNames: readMcpNameLister(call, place), place, row, shape };
 };
 
-/**
- * Guarda la forma entera de la colección por el mismo servicio que usa el
- * portal, con sus validaciones, y devuelve la colección como quedó. Lleva la
- * forma que se leyó al abrirla: si otra persona la cambió entretanto, no se
- * guarda encima, y el agente vuelve a leerla.
- */
+/** Carries the shape read on open: if someone changed it meanwhile, nothing is overwritten and the agent rereads. */
 export const saveMcpCollectionShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -150,7 +123,6 @@ export const saveMcpCollectionShape = async (
   return { ...collection, shape: { properties: saved.properties, views: saved.views } };
 };
 
-/** Una colección abierta junto con las personas del espacio de trabajo, para leer o escribir columnas de personas por nombre. */
 export const openMcpCollectionWithPeople = (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -162,21 +134,15 @@ export const openMcpCollectionWithPeople = (
     dependencies.people.listAssignableMembers(call.workspace.id),
   ]);
 
-/** Una vista de la colección por su nombre, como sea que venga escrito, o por qué no está y, si se puede saber, cuáles sí. */
 export const requireMcpView = (collection: McpOpenCollection, name: string): McpView =>
   requireMcpInput(pickMcpView(collection.shape.views, name, collection.listNames));
 
-/** Las columnas de una colección abierta, con cómo nombrarlas en un rechazo. */
 export const readMcpColumnsInHand = (collection: {
   readonly listNames: McpNameLister;
   readonly shape: McpCollectionShape;
 }): McpColumnsInHand => ({ columns: collection.shape.properties, listNames: collection.listNames });
 
-/**
- * Si el token deja hacer eso en una fila de la colección. La fila cuelga de la
- * colección, así que su lugar es el de la colección con ella misma encima: una
- * regla puesta en la fila manda sobre la de la colección.
- */
+/** The row's place is the collection's with the row on top, so a rule set on the row overrides the collection's. */
 export const canMcpActOnRow = (
   call: McpCall,
   collection: McpOpenCollection,
@@ -185,11 +151,7 @@ export const canMcpActOnRow = (
 ): boolean =>
   canAccessTokenAct(call.principal.access, call.principal.role, readMcpRowPlace(collection, rowId), permission);
 
-/**
- * Una fila como la ve el token donde está: lo que tiene en cada columna solo
- * si puede leer colecciones ahí, y su título solo si puede leer la página.
- * Escribir en una fila no da derecho a leerla.
- */
+/** Cells need collection read, the title needs page read; writing a row does not grant reading it. */
 export const describeMcpRowAsSeen = (
   portalUrl: string,
   call: McpCall,
@@ -205,11 +167,7 @@ export const describeMcpRowAsSeen = (
   return { ...described, properties: [], title };
 };
 
-/**
- * Una colección recién cambiada, tal como el token puede verla: sus columnas y
- * sus vistas solo si puede leer colecciones ahí, y su título solo si puede leer
- * la página. Configurar no da derecho a leer.
- */
+/** Columns and views need collection read, the title needs page read; configuring does not grant reading. */
 export const describeMcpCollectionAsSeen = (
   portalUrl: string,
   call: McpCall,
@@ -223,13 +181,11 @@ export const describeMcpCollectionAsSeen = (
   return { ...described, columns: [], title, views: [] };
 };
 
-/** El lugar de una fila: el de su colección, con la fila delante, para que su propia regla mande. */
 export const readMcpRowPlace = (collection: { readonly place: AccessTokenPlace }, rowId: string): AccessTokenPlace => ({
   lineage: [rowId, ...collection.place.lineage],
   spaceId: collection.place.spaceId,
 });
 
-/** Una fila como la devuelve toda herramienta que la escribe o la lee: sus propiedades con nombre y su enlace. */
 export const describeMcpRow = (
   portalUrl: string,
   shape: McpCollectionShape,

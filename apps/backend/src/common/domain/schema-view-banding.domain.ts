@@ -14,26 +14,12 @@ const readSubGroupKey = (configuration: Readonly<Record<string, unknown>>): stri
   return typeof subGroupBy === 'string' ? subGroupBy : null;
 };
 
-/**
- * Las mismas columnas, vacías, para una banda que todavía no sabe qué lleva.
- *
- * Cada banda repite todas las columnas aunque no le haya tocado nada en
- * algunas: es lo que las mantiene alineadas de una banda a la siguiente, y lo
- * que hace que el cruce vacío siga siendo un sitio donde soltar.
- */
+/** Every band repeats all columns, even empty ones, so columns stay aligned and empty cells remain drop targets. */
 const emptyColumns = <TRow extends SchemaGroupableRow>(
   columns: readonly SchemaRowGroup<TRow>[],
 ): SchemaRowGroup<TRow>[] => columns.map((column) => ({ ...column, rows: [] as TRow[] }));
 
-/**
- * Las filas de un tablero puestas en rejilla: una banda por valor de la segunda
- * agrupación, y dentro de cada banda una columna por valor de la primera.
- *
- * Las dos dimensiones se arman con la misma operación que arma un tablero de
- * una sola: agrupar es agrupar, y lo único que cambia es por qué propiedad. Así
- * una banda ofrece exactamente las mismas columnas que el tablero sin bandas, y
- * nada que dibuje columnas tiene que aprender dos formas de leerlas.
- */
+/** One band per second-grouping value; each band offers the same columns as an unbanded board. */
 export const bandRowsForView = <TRow extends SchemaGroupableRow>(
   viewType: DatabaseViewType,
   configuration: Readonly<Record<string, unknown>>,
@@ -41,11 +27,7 @@ export const bandRowsForView = <TRow extends SchemaGroupableRow>(
   rows: readonly TRow[],
   compareRows?: (left: TRow, right: TRow) => number,
 ): Result<readonly SchemaRowBand<TRow>[], SchemaViewValidationError> => {
-  /**
-   * Cruzar es de quien lee sus filas en grupos por lo que es, no de quien puede
-   * agrupar si se lo piden: una tabla dibuja una sola dimensión, y darle bandas
-   * sería pedirle que dibuje una rejilla dentro de una lista.
-   */
+  // Only views that always group can band; a table draws a single dimension.
   if (!pageViewRequiresGrouping(viewType))
     return Result.fail(new SchemaViewValidationError('View does not lay its rows in bands'));
   const subGroupKey = readSubGroupKey(configuration);

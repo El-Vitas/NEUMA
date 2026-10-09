@@ -28,12 +28,7 @@ const trashPage = async (
   return { childPages: preview.childPageCount, page: describeMcpManagedPage(dependencies, call, opened) };
 };
 
-/**
- * Manda una página a la papelera, con todo lo que cuelga de ella, como lo hace
- * una persona: nada se borra, y restore_page la trae de vuelta. Pide su propio
- * permiso, aparte de escribir, en la página y en cada una de abajo que tenga
- * su propia regla.
- */
+/** Needs its own permission, separate from write, on the page and on every descendant with its own rule. */
 export const trashPageTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.trashPage,
   register: (server, dependencies) => {

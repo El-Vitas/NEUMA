@@ -5,7 +5,6 @@ import type { PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE } from '../constants/portal.side
 export type PortalSidebarPageKeyboardMove =
   (typeof PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE)[keyof typeof PORTAL_SIDEBAR_PAGE_KEYBOARD_MOVE];
 
-/** What letting go over a row would do: put the page inside it, or beside it. */
 export type PortalSidebarDropIntent = 'after' | 'before' | 'nest';
 
 export interface PortalSidebarPageDragState {

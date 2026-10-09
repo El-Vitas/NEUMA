@@ -2,20 +2,12 @@ import { type PageContent, pageContentSchema } from '@company-brain/shared';
 import { EMPTY_EXPORTED_DOCUMENT } from './page-export.domain.constants';
 import type { ExportablePage, OrderedExportPage, PageExportScope } from './page-export.domain.types';
 
-/**
- * The content of a page as the export can read it, or an empty page.
- *
- * A page whose body the schema no longer recognizes still comes out of the
- * export — with its name and its place in the tree — instead of taking the
- * whole file down with it. Losing one body is a smaller harm than losing
- * everything somebody asked to take with them.
- */
+/** An unrecognized body falls back to an empty page so it cannot take the whole export down. */
 export const readExportableContent = (stored: unknown): PageContent => {
   const understood = pageContentSchema.safeParse(stored);
   return understood.success ? understood.data : EMPTY_EXPORTED_DOCUMENT;
 };
 
-/** The scope somebody asked for, or nothing when they asked for pages without saying which. */
 export const readExportScope = (
   kind: PageExportScope['kind'],
   pageId: null | string,
@@ -26,14 +18,7 @@ export const readExportScope = (
   return pageId === null ? null : { kind, pageId };
 };
 
-/**
- * The pages an export covers, read down the tree the way the tree is read.
- *
- * A mother comes before her daughters and a daughter before her sister, which
- * is the order somebody looking at the sidebar would read them in — so the
- * file comes out in the shape the tree already had, not in whatever order the
- * database happened to answer.
- */
+/** Pages an export covers in sidebar order (parent before children, then siblings), not database order. */
 export const orderPagesForExport = <T extends ExportablePage>(pages: readonly T[]): readonly OrderedExportPage<T>[] => {
   const childrenOf = (parentId: null | string): readonly T[] =>
     pages.filter((page) => page.parentId === parentId).sort((one, other) => one.order - other.order);
@@ -58,7 +43,6 @@ const collectPagesBelow = (pages: readonly ExportablePage[], rootId: string): Re
   return found;
 };
 
-/** Which pages a scope covers, already in the order they should be read. */
 export const selectPagesForExport = <T extends ExportablePage>(
   pages: readonly T[],
   scope: PageExportScope,

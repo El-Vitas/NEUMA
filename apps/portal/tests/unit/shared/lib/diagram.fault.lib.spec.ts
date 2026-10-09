@@ -2,7 +2,6 @@ import { describe, expect, it } from 'bun:test';
 import { describeDiagramFault, isDiagramUnknown } from '@/shared/lib/diagram.fault.lib';
 
 describe('what is said when a diagram cannot be drawn', () => {
-  /** The line is the first thing anyone needs, and it is the one thing the message hides. */
   it('says which line the drawing broke on', () => {
     const fault = new Error('Parse error on line 3:\n...flowchart TD;\nExpecting SEMI, got INVALID');
 
@@ -16,7 +15,6 @@ describe('what is said when a diagram cannot be drawn', () => {
     });
   });
 
-  /** Writing that is not a diagram at all is the one failure the page explains in its own words. */
   it('knows when what was written is not a diagram at all', () => {
     expect(isDiagramUnknown('No diagram type detected matching given configuration for text: hola')).toBe(true);
     expect(isDiagramUnknown('Parse error on line 3')).toBe(false);

@@ -6,11 +6,9 @@ import { usePagesRowSelection } from '../hooks/use.pages.row-selection';
 import { readSelectAllState } from '../lib/pages.row-selection.lib';
 
 interface IProps {
-  /** Las filas que se están viendo: las que el filtro dejó pasar, no las que la colección guarda. */
   readonly rowIds: readonly string[];
 }
 
-/** La casilla que marca todo lo que se está viendo. */
 export const PagesCollectionTableSelectAll = ({ rowIds }: IProps) => {
   const t = useTranslations('pages.collection');
   const selection = usePagesRowSelection();

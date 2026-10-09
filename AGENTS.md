@@ -172,7 +172,7 @@ Allowed:
 - Short explanation of architectural decisions.
 - Public API documentation.
 
-Comments explain **why**, not **what**.
+Comments explain **why**, not **what**. They are written in **English**, are short (one line by default, five at most), never tell history or process, and never carry secrets or personal data. The full rules live in `.agents/skills/code-comments/SKILL.md`, and `local/clean-comments` enforces what can be checked mechanically. This section overrides the "zero comments" default of `vitas-guidelines`.
 
 ---
 

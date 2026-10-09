@@ -9,14 +9,8 @@ import type { PagesCalendarMoving } from '../types/pages.calendar.types';
 import type { PageRow } from '../types/pages.schema.types';
 
 /**
- * Llevar una fila a otro día, que es escribir su fecha.
- *
- * Se dibuja en el día nuevo antes de preguntar: quien acaba de soltar una
- * entrada sobre un día la quiere ver ahí, no medio segundo después. Si el
- * servidor dice que no, vuelve sola a donde estaba y se dice por qué.
- *
- * Solo viaja la fecha. Mandar la fila entera se llevaría por delante lo que otra
- * persona escribiera en ella mientras la entrada estaba en el aire.
+ * Moves optimistically and reverts if the server refuses. Only the date is sent: sending the whole row
+ * would overwrite edits someone else made while the entry was being dragged.
  */
 export const usePagesCalendarMoving = (dateProperty: null | string, spaceId: string): PagesCalendarMoving => {
   const tErrors = useTranslations('errors');
@@ -26,7 +20,7 @@ export const usePagesCalendarMoving = (dateProperty: null | string, spaceId: str
 
   return {
     carried,
-    /** Lo que la fila dice ahora mismo, contando lo que se acaba de soltar y el servidor todavía no confirmó. */
+    // Includes drops the server has not confirmed yet.
     dateOf: (row: PageRow, stored: null | string) => moved[row.id] ?? stored,
     forget: () => setCarried(null),
     moveTo: (rowId: string, date: string) => {

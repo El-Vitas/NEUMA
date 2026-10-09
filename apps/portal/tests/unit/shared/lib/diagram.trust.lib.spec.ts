@@ -6,11 +6,7 @@ import {
   mendTheDrawing,
 } from '@/shared/lib/diagram.trust.lib';
 
-/**
- * One family writes what a line means in a grey it carries in its own code,
- * chosen for a white page: on a page read at night that is the only word
- * explaining the arrow, written in a colour nobody can see.
- */
+// The engine hard-codes a grey chosen for white pages, which is unreadable on a dark page.
 describe('writing the engine painted in a grey of its own', () => {
   it('is lifted to the colour of the page around it', () => {
     const mended = mendTheDrawing('<svg><text fill="#444444">escribe en</text></svg>');
@@ -26,11 +22,7 @@ describe('writing the engine painted in a grey of its own', () => {
   });
 });
 
-/**
- * The drawing is put on the page for an instant to be measured, and whatever it
- * asks for is asked for during that instant — so what is about to be drawn is
- * cleaned before it is drawn, and not only afterwards.
- */
+// The drawing is mounted briefly to be measured and its requests fire then, so the source is cleaned beforehand.
 describe('what the writing of a diagram is allowed to reach', () => {
   it('takes out an address asked of somebody else', () => {
     const kept = keepTheDiagramSourceToItself(
@@ -57,7 +49,6 @@ describe('what the writing of a diagram is allowed to reach', () => {
     expect(keepTheDiagramSourceToItself('A[<img src=x>< / img>] --> B')).toBe('A[] --> B');
   });
 
-  /** Lo escribe quien escribe en la página, y lo lee cada persona que la abre: no puede trabar al navegador. */
   it('reads a long run of spaces in one pass', () => {
     const startedAt = performance.now();
 
@@ -68,12 +59,7 @@ describe('what the writing of a diagram is allowed to reach', () => {
   });
 });
 
-/**
- * A diagram is written by whoever can write on the page and looked at by
- * everyone who reads it, so nothing in a drawing may reach outside the page:
- * an address in a drawing is a question asked of a stranger's server, once for
- * every reader, and the stranger learns who is reading and from where.
- */
+// An address in a drawing is a request to a stranger's server for every reader, revealing who reads and from where.
 describe('what a drawing is allowed to reach', () => {
   it('drops a picture asked of somebody else', () => {
     const kept = keepTheDrawingToItself('<svg><image href="https://ajeno.example/rastro.gif"/></svg>');
@@ -97,11 +83,7 @@ describe('what a drawing is allowed to reach', () => {
     expect(kept).not.toContain('ajeno.example');
   });
 
-  /*
-   * The style a drawing carries is cleaned on its own: the simulated page these
-   * tests run in drops a whole drawing that holds a style, so asking it would
-   * prove nothing.
-   */
+  // The style is cleaned on its own: the simulated DOM drops a whole drawing holding a style, proving nothing.
   it('drops an address hidden in the style the drawing carries', () => {
     const kept = forgetWhatIsAskedOfOthers('.node rect{background:url("https://ajeno.example/fondo.gif")}');
 
@@ -109,7 +91,6 @@ describe('what a drawing is allowed to reach', () => {
     expect(kept).toContain('.node rect{background:none}');
   });
 
-  /** A style can ask for a whole other sheet by its address alone, with no url() around it. */
   it('drops a whole other sheet a style asks for, however its address is written', () => {
     const kept = forgetWhatIsAskedOfOthers(
       '@import "https://ajeno.example/a.css"; @import \'//ajeno.example/b.css\' screen; .node{fill:red}',
@@ -128,7 +109,6 @@ describe('what a drawing is allowed to reach', () => {
     expect(kept).toContain('A --> B');
   });
 
-  /** A drawing points at its own pieces all the time, and that is the whole of how it is drawn. */
   it('leaves alone what the drawing points at inside itself', () => {
     const kept = keepTheDrawingToItself(
       '<svg><defs><marker id="punta"/></defs><path marker-end="url(#punta)" d="M0 0"/><use href="#punta"/></svg>',
@@ -139,7 +119,6 @@ describe('what a drawing is allowed to reach', () => {
     expect(kept).toContain('d="M0 0"');
   });
 
-  /** The stamps a diagram may name travel inside the drawing itself, and must survive it. */
   it('leaves alone a picture that travels inside the drawing', () => {
     const kept = keepTheDrawingToItself('<svg><image href="data:image/png;base64,iVBORw0KGgo="/></svg>');
 
@@ -147,10 +126,7 @@ describe('what a drawing is allowed to reach', () => {
   });
 });
 
-/**
- * Lo que escribe un agente también se dibuja delante de todos. Si la limpieza
- * del motor dejara pasar algo, esta es la segunda línea.
- */
+// Agent-written diagrams are drawn for everyone; this is the second line after the engine's own cleaning.
 describe('a drawing that tries to run something', () => {
   it('drops a script, a handler on a piece, and a page opened inside a label', () => {
     const kept = keepTheDrawingToItself(

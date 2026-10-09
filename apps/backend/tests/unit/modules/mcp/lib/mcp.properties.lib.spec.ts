@@ -41,7 +41,6 @@ describe('describeMcpRowProperties', () => {
     expect(titled).toEqual([{ key: 'title', label: 'Título', type: 'TITLE', value: 'Escribir el plan' }]);
   });
 
-  /** Un id no dice de quién es la tarea; el nombre sí. */
   it('names the people a person column points at, by the name they have in the workspace', () => {
     const people = new Map([
       ['u-1', 'Ana Pérez'],

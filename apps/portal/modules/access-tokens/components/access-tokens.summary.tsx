@@ -7,10 +7,7 @@ interface IProps {
   readonly token: Pick<AccessToken, 'allSpaces' | 'hiddenPlaceCount' | 'pages' | 'spaces'>;
 }
 
-/**
- * Lo que un token puede hacer, en una línea por lugar, exclusiones incluidas.
- * Los lugares que quien mira no ve solo se cuentan: ni su nombre sale de ahí.
- */
+/** Places the viewer cannot see are only counted, never named. */
 export const AccessTokensSummary = ({ token }: IProps) => {
   const t = useTranslations('accessTokens');
 

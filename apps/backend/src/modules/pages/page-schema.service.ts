@@ -45,7 +45,7 @@ import type {
 } from './types/page-schema.types';
 import type { PageViewSummary } from './types/page-view.types';
 
-/** El filtro y el orden de la vista nombrada, o los propios, ya validados contra la colección. */
+/** Filter and sort of the named view, or the caller's own, validated against the collection. */
 const resolveQueryConfiguration = (
   schema: PageSchemaDefinition,
   input: QueryPageRowsInput,
@@ -94,14 +94,7 @@ export class PageSchemaService {
     return Result.ok({ ...schema, spaceId: page.spaceId });
   }
 
-  /**
-   * Le cambia el nombre a una opción, o la quita: en un tablero, renombrar o
-   * borrar una columna.
-   *
-   * Es una operación y no un cambio más de la forma porque la forma sola no
-   * distingue un renombrado de un quitar y poner: sin decir de qué nombre viene,
-   * las filas que respondían lo viejo se quedarían huérfanas.
-   */
+  /** A schema diff cannot tell a rename from remove-and-add, which would orphan row values. */
   async rewriteOption(
     input: RewritePageOptionInput,
   ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | SchemaPropertyDefinitionError>> {
@@ -121,22 +114,14 @@ export class PageSchemaService {
       { from: input.from, to: input.to },
       rewritten.getValue(),
     );
-    /* Otra persona tocó esa misma opción entre que se leyó y se fue a escribir: se deshace en vez de borrarle el cambio. */
+    // The option changed between read and write: fail instead of overwriting the other edit.
     if (written === SCHEMA_OPTION_ALREADY_MOVED) {
       return Result.fail(new SchemaPropertyDefinitionError({ from: input.from, propertyKey: input.propertyKey }));
     }
     return Result.ok({ ...written, spaceId: page.spaceId });
   }
 
-  /**
-   * Cambia lo que una vista dice de sí misma: por qué agrupa, qué filtra, qué
-   * calcula, cómo se la está mirando.
-   *
-   * Va aparte de definir la forma porque no la toca. Guardar esto reescribiendo
-   * la colección entera hace caro un gesto —doblar una franja, mover un borde—
-   * y deja una ventana donde lo que otra persona acaba de cambiar en otra
-   * propiedad se pierde.
-   */
+  /** Avoids rewriting the whole collection per view tweak, which is costly and can lose concurrent edits. */
   async setViewConfiguration(
     input: SetPageViewConfigurationInput,
   ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | PageViewNotFoundError | SchemaViewValidationError>> {
@@ -182,13 +167,7 @@ export class PageSchemaService {
     return Result.ok({ ...found, spaceId: page.spaceId });
   }
 
-  /**
-   * Las filas de una colección que deja ver una de sus vistas, o un filtro y un
-   * orden propios, en una sola lista y cada una entera.
-   *
-   * Un filtro propio se valida igual que el de una vista, y además tiene que
-   * nombrar columnas que la colección tenga: si no, se dice cuáles no están.
-   */
+  /** A custom filter is validated like a view's and must name existing columns; missing ones are reported. */
   async queryRows(
     input: QueryPageRowsInput,
   ): Promise<

@@ -1,18 +1,13 @@
-/**
- * Un bloque de una página, tal como se lo señala y se lo busca.
- *
- * Es lo que se proyecta a `PageBlock` y a la búsqueda: con su id se llega a él
- * y con su ruta de encabezados se sabe en qué sección está.
- */
+/** Projected to `PageBlock` and to search. */
 export interface PageBlockEntry {
-  /** Los encabezados bajo los que está, del más externo al más cercano. */
+  /** Enclosing headings, outermost first. */
   readonly headingPath: readonly string[];
   readonly id: string;
-  /** El bloque con id más cercano que lo contiene, o nada si está en la raíz de la página. */
+  /** Nearest enclosing block with an id; null at the page root. */
   readonly parentId: string | null;
-  /** Su lugar en el orden en que se lee la página, desde cero. */
+  /** Zero-based reading order. */
   readonly position: number;
-  /** Lo que dice el bloque mismo, sin lo que dicen los bloques que lleva dentro. */
+  /** The block's own text, excluding nested blocks. */
   readonly text: string;
   readonly type: string;
 }

@@ -8,11 +8,7 @@ import { listTrashInputSchema, listTrashOutputSchema } from '../schemas/mcp.page
 import type { McpListTrashOutput, McpTrashedPage } from '../types/mcp.page-management.types';
 import type { McpCall, McpServerDependencies, McpToolDefinition } from '../types/mcp.types';
 
-/**
- * De lo que hay en la papelera, lo que el token puede leer donde estaba cada
- * página: una regla de página que la cierra la deja fuera, como en `search`.
- * El lugar de todas se lee en una sola consulta.
- */
+/** A page rule closing a trashed page hides it, as in `search`; locations are read in one query. */
 const keepReadable = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -38,7 +34,6 @@ const describeTrashedPage = (portalUrl: string, page: McpTrashedPage): McpListTr
   url: buildMcpPageUrl(portalUrl, page.spaceId, page.id, null),
 });
 
-/** Cada página en una línea: cuándo y quién la borró, y cuántas se fueron con ella. */
 const formatTrashText = (output: McpListTrashOutput): string => {
   if (output.pages.length === 0) return 'Nothing in the trash that this token can read.';
   const lines = output.pages.map((page) => {
@@ -53,7 +48,6 @@ const formatTrashText = (output: McpListTrashOutput): string => {
   return `In the trash:\n${lines.join('\n')}${more}`;
 };
 
-/** Lo que hay en la papelera, para traer una página de vuelta con `restore_page` sin saber su id. */
 export const listTrashTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.listTrash,
   register: (server, dependencies) => {

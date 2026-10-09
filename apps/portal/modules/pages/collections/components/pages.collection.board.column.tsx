@@ -21,13 +21,12 @@ import { PagesCollectionBoardColumnRemoveDialog } from './pages.collection.board
 import { PagesCollectionNewRow } from './pages.collection.new-row';
 
 interface IProps {
-  /** La banda en la que está esta columna. Vacío cuando el tablero no tiene bandas. */
+  /** Empty when the board has no bands. */
   readonly bandKey: string;
   readonly canDrag: boolean;
   readonly canEdit: boolean;
-  /** El gesto de llevar una columna de sitio, que no es el de llevar una tarjeta. */
   readonly columnDrag: PageBoardColumnDrag;
-  /** Qué se puede hacer con la columna misma. Nada cuando la columna no es un valor que se pueda tocar. */
+  /** Null when the column is not an editable value. */
   readonly columns: null | PagesBoardColumns;
   readonly drag: PageBoardDragController;
   readonly group: PageViewGroup;
@@ -42,18 +41,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Una columna del tablero: un valor de la propiedad que agrupa, con lo que le
- * tocó dentro.
- *
- * Se queda aunque esté vacía, porque una columna vacía es un sitio donde soltar
- * y una ausente no. Y es la misma pieza esté sola o dentro de una banda: una
- * rejilla no es otra clase de tablero, son las mismas columnas repetidas por
- * cada valor del segundo agrupamiento.
- *
- * Plegada se queda en una franja que sigue diciendo cómo se llama y cuántas
- * lleva: plegar es dejar de mirar dentro, no dejar de saber que está.
- */
+/** Rendered even when empty, since an empty column is still a drop target; the same piece is reused inside bands. */
 export const PagesCollectionBoardColumn = ({
   bandKey,
   canDrag,
@@ -74,7 +62,6 @@ export const PagesCollectionBoardColumn = ({
 }: IProps) => {
   const t = useTranslations('pages');
   const [mode, setMode] = useState<PageBoardColumnMode>('NAMED');
-  /** Con una columna en la mano no hay huecos entre tarjetas que señalar: lo que se mueve es otra cosa. */
   const isAimingAt = (beforeRowId: null | string): boolean =>
     columnDrag.carried === null &&
     drag.target !== null &&
@@ -112,11 +99,7 @@ export const PagesCollectionBoardColumn = ({
       )}
       data-testid="board-column"
       onDragLeave={() => drag.onDragLeave(group.key)}
-      /*
-        Lo que se está llevando decide qué se ofrece: con una columna en la mano,
-        el tablero ofrece huecos entre columnas y no entre tarjetas, y mezclar
-        las dos cosas haría que soltar signifique dos cosas a la vez.
-      */
+      /* A dragged column offers gaps between columns only, so a drop never means two things at once. */
       onDragOver={(event) => {
         if (columnDrag.carried !== null) {
           event.preventDefault();
@@ -154,7 +137,7 @@ export const PagesCollectionBoardColumn = ({
           onRename={renameTo}
         />
       </div>
-      {/* Lo dice, y deja soltar igual: un tope es lo que se esperaba, no una puerta. */}
+      {/* The limit is advisory: the message shows but drops are still accepted. */}
       {isOverLimit && (
         <p className="px-3 pb-2 text-muted-foreground text-xs" data-testid="board-column-over-limit">
           {t('collection.columnOverLimit', { limit })}

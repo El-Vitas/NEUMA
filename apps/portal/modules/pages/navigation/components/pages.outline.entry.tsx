@@ -25,12 +25,7 @@ interface IProps {
   readonly onSelect: (position: number) => void;
 }
 
-/**
- * One heading at the side: a mark whose length says its level even at rest,
- * and a name that only becomes visible once the rail has opened into a panel.
- * The name is never absent from the writing, only shrunk away, so a screen
- * reader meets it regardless of whether the rail is open.
- */
+/** The name is shrunk, not removed, when the rail is collapsed, so screen readers still reach it. */
 export const PagesOutlineEntry = ({ heading, isExpanded, isReading, onSelect }: IProps) => {
   const markWidthClassName = readPageOutlineRailMarkWidthStyleClass(heading.level);
   const indentStyle = isExpanded
@@ -46,7 +41,7 @@ export const PagesOutlineEntry = ({ heading, isExpanded, isReading, onSelect }: 
         isExpanded ? PAGE_OUTLINE_ENTRY_BUTTON_EXPANDED_STYLE_CLASS : PAGE_OUTLINE_ENTRY_BUTTON_COLLAPSED_STYLE_CLASS,
       )}
       onClick={() => onSelect(heading.position)}
-      /** The writing keeps the cursor while the heading is chosen, so it is the page that moves. */
+      /** Keeps the editor selection while a heading is picked. */
       onMouseDown={(event) => event.preventDefault()}
       style={indentStyle}
       type="button"

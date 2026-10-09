@@ -108,14 +108,7 @@ export class PagesController {
     return result.getValue();
   }
 
-  /**
-   * What a row holds, changed without touching what it says.
-   *
-   * Apart from the endpoint that saves a page because the two are not the same
-   * act: moving a card across a board changes one value and nothing else, and
-   * sending the whole page back to say it would overwrite whatever somebody
-   * else wrote in it meanwhile.
-   */
+  /** Separate from saving a page: resending the whole page on a card drag would overwrite concurrent edits. */
   @Patch(':pageId/properties')
   @UseGuards(JwtAuthGuard)
   async updateProperties(
@@ -254,14 +247,7 @@ export class PagesController {
     return result.getValue();
   }
 
-  /**
-   * A scope of pages as Markdown: one file when one page went out, a zip
-   * otherwise.
-   *
-   * Answered as bytes rather than as JSON because what comes back is a file
-   * somebody saves, not a shape a program reads: wrapping it in JSON would
-   * make every reader unwrap it before it were a document again.
-   */
+  /** Returns raw bytes, not JSON: a single Markdown file for one page, a zip otherwise. */
   @Get('export/markdown')
   @UseGuards(JwtAuthGuard, ExportThrottlerGuard)
   async exportAsMarkdown(

@@ -34,10 +34,6 @@ const managedShape = z.object({
   page: z.object({ id: z.string(), title: z.string() }),
 });
 
-/**
- * Lo que un agente hace además de escribir bloques: formato, colores,
- * comentarios, tablas y páginas enteras. De punta a punta, mirando lo guardado.
- */
 describe('MCP page management (Integration)', () => {
   let testApp: TestApp;
   let baseUrl: string;
@@ -279,7 +275,6 @@ describe('MCP page management (Integration)', () => {
       expect(readMcpText(refused)).toBe(MCP_PAGE_LOCKED_MESSAGE);
     });
 
-    /** Escribir una página no da para bloquearla, verificarla ni darle dueño; tampoco una regla de más arriba que la propia página cierra. */
     it('refuses to lock, vouch for or give an owner without the permission to manage that page, changing nothing', async () => {
       const pageId = await freshPage('Sin gestión');
       const writerOnly = await tokenFor({ allSpaces: [pagesRead, pagesWrite] });
@@ -342,7 +337,6 @@ describe('MCP page management (Integration)', () => {
       expect((await prisma().page.findUniqueOrThrow({ where: { id: pageId } })).trashedAt).toBeNull();
     });
 
-    /** Nombrar una página cerrada a la lectura diría que existe: se rechaza sin decir cuál. */
     it('refuses without naming a page under it that the token may not even read', async () => {
       const pageId = await freshPage('Con hija cerrada');
       const childId = await freshPage('Cerrada', pageId);
@@ -357,7 +351,6 @@ describe('MCP page management (Integration)', () => {
       expect((await prisma().page.findUniqueOrThrow({ where: { id: pageId } })).trashedAt).toBeNull();
     });
 
-    /** Escribir no da derecho a leer: lo que contesta una escritura no muestra lo que la página dice. */
     it('answers a token that writes but cannot read with ids and the link only', async () => {
       const pageId = await freshPage('Solo escritura');
       const writeOnly = await tokenFor({ allSpaces: [pagesWrite] });
@@ -370,7 +363,6 @@ describe('MCP page management (Integration)', () => {
       expect(text).not.toContain('Solo escritura');
     });
 
-    /** Un intento negado antes de escribir también queda anotado, a nombre del token. */
     it('writes down an attempt the token was refused before writing', async () => {
       const pageId = await freshPage('Intento negado');
       const closedHere = await tokenFor({
@@ -388,7 +380,6 @@ describe('MCP page management (Integration)', () => {
       expect(action.detail).toEqual({ target: pageId });
     });
 
-    /** Lo que está en la papelera, para traerlo de vuelta sin saber su id; lo que el token no lee no aparece. */
     it('lists the pages in the trash the token may read, with who trashed them and how many went along', async () => {
       const secret = await fullToken();
       const keptId = await freshPage('Para recuperar');
@@ -413,7 +404,6 @@ describe('MCP page management (Integration)', () => {
     });
   });
 
-  /** Si la respuesta no le llega al agente y reintenta con el mismo id, no se crea dos veces. */
   describe('reintentos con el mismo id de pedido', () => {
     const countTitled = (title: string): Promise<number> =>
       prisma().page.count({ where: { spaceId, title, trashedAt: null } });
@@ -432,7 +422,6 @@ describe('MCP page management (Integration)', () => {
       expect(readMcpText(retry)).toContain(created.id);
     });
 
-    /** El índice parcial separa dos llamadas que llegan juntas: una escribe, la otra no. */
     it('creates the page once when two calls with the same id arrive together', async () => {
       const secret = await fullToken();
       const title = `A la vez ${String(Date.now())}`;

@@ -9,7 +9,7 @@ import { McpRequestTakenError } from '../errors/mcp.request-taken.error';
 const isRequestTaken = (error: unknown): boolean =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === MCP_UNIQUE_VIOLATION_CODE;
 
-/** Donde queda anotada cada escritura de un agente: pendiente antes de escribir, cerrada al terminar. */
+/** Each agent write is recorded as pending before it runs and closed when it ends. */
 @Injectable()
 export class McpActionRepository implements McpActionLog {
   constructor(private readonly prisma: PrismaService) {}

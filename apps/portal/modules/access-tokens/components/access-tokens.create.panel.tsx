@@ -10,15 +10,10 @@ interface IProps {
   readonly mcpUrl: string;
   readonly role: UserRole;
   readonly spaces: readonly AccessTokenSpaceOption[];
-  /** Los nombres de los tokens vivos de quien crea, para avisar antes de enviar si uno se repite. */
   readonly takenNames: readonly string[];
 }
 
-/**
- * Crear un token en su propia página: primero qué puede hacer, después el
- * token mismo, en el mismo lugar. El secreto queda solo en esta página
- * mientras está abierta; al salir se olvida, porque no se puede volver a pedir.
- */
+/** The secret lives only while this page is open; it cannot be requested again. */
 export const AccessTokensCreatePanel = ({ mcpUrl, role, spaces, takenNames }: IProps) => {
   const [created, setCreated] = useState<CreatedAccessToken | null>(null);
 

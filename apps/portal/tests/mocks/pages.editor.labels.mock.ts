@@ -1,6 +1,5 @@
 import type { createPageEditorNodeViews } from '@/modules/pages/editor/blocks/lib/pages.editor.node-views.lib';
 
-/** Lo que dicen los controles de cada bloque en las pruebas del editor: un solo juego para todas. */
 export const pageEditorTestLabels: Parameters<typeof createPageEditorNodeViews>[0] = {
   code: {
     copied: 'Copied',

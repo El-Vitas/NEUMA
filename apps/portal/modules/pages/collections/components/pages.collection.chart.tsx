@@ -12,18 +12,10 @@ interface IProps {
   readonly kind: PageChartKind;
   readonly measure: PageChartMeasure;
   readonly properties: readonly PageSchemaProperty[];
-  /** Qué propiedad se suma o se promedia, o nada cuando lo que se hace es contar filas. */
+  /** Property summed or averaged; null when the measure counts rows. */
   readonly valueProperty: null | string;
 }
 
-/**
- * Las filas de una colección contadas, no listadas.
- *
- * Dibuja los mismos grupos que dibujaría un tablero: por eso respeta el filtro
- * y el orden de la vista sin saber nada de ellos —le llegan las filas que la
- * vista dejó pasar, ya repartidas—, y por eso se rehace solo cuando los datos
- * cambian, como cualquier otra vista.
- */
 export const PagesCollectionChart = async ({ groups, kind, measure, properties, valueProperty }: IProps) => {
   const t = await getTranslations('pages.collection');
   const points = readChartSeries(groups, measure, valueProperty, properties).map((point) =>

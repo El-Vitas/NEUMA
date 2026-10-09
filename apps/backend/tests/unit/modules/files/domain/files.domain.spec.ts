@@ -30,7 +30,6 @@ describe('files domain', () => {
 });
 
 describe('describeFileDisposition', () => {
-  /** A page that shows a document in place needs it handed over to be read, not to be saved. */
   it('hands over a document a page can show in place to be read where it is', () => {
     expect(describeFileDisposition('application/pdf', 'manual.pdf')).toBe("inline; filename*=UTF-8''manual.pdf");
   });

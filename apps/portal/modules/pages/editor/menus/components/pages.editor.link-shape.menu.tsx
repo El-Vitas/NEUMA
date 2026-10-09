@@ -8,13 +8,6 @@ interface IProps {
   readonly onChoose: (shape: PageEditorLinkShape) => void;
 }
 
-/**
- * What to do with the link that was just pasted.
- *
- * It appears beside the link and offers the three shapes a link can take on a
- * page; doing nothing leaves it as it is, which is why the link is written
- * first and the choice only ever changes it.
- */
 export const PagesEditorLinkShapeMenu = ({ onChoose }: IProps) => {
   const t = useTranslations('pages');
 

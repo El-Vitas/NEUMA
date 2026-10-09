@@ -116,7 +116,6 @@ describe('buildPageAssetInsertOptionsFromAttachment', () => {
     expect(buildPageAssetInsertOptionsFromAttachment(video)).toEqual({ assetId: 'v', caption: 'demo.mp4' });
   });
 
-  /** A file says what kind it is and how heavy on the block itself, so the page describes what it holds. */
   it('derives the asset id, name, kind and weight from a non-image attachment', () => {
     expect(buildPageAssetInsertOptionsFromAttachment(fileAttachment)).toEqual({
       assetId: '33333333-3333-4333-8333-333333333333',

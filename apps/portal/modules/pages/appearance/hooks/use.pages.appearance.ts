@@ -14,12 +14,7 @@ import type {
   PagesAppearanceResult,
 } from '../types/pages.appearance.types';
 
-/**
- * Reads and keeps a page's own look, kept in the browser rather than fetched:
- * the same way `PagesOutline` keeps whether its index is hidden. The choice is
- * read after mount, never during the first render, so the page it draws on the
- * server and the page it draws right after never disagree.
- */
+/** Stored in localStorage and read after mount, so server and first client render agree. */
 export const usePagesAppearance = (pageId: string | null): PagesAppearanceResult => {
   const [preferences, setPreferences] = useState<PageAppearancePreferences>(PAGE_APPEARANCE_DEFAULT_PREFERENCES);
   const hasOwnChoice = useRef(false);

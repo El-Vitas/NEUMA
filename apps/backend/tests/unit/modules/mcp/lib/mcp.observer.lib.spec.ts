@@ -26,7 +26,6 @@ describe('createMcpObserver', () => {
     ]);
   });
 
-  /** Un fallo inesperado sin su traza no dice dónde buscar. */
   it('writes an unexpected failure as an error carrying the error itself, so its trace is kept', () => {
     const { logger, written } = createLogger();
     const failure = new Error('The live document went away');

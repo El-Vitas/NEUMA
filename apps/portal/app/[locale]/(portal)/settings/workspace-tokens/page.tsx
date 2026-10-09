@@ -4,11 +4,7 @@ import { getWorkspaceAccessTokens } from '@/modules/access-tokens/server/queries
 import { AccessTokensWorkspaceView } from '@/modules/access-tokens/views/access-tokens.workspace.view';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
-/**
- * Los tokens de todo el espacio de trabajo son de quien administra. Para el
- * resto esta sección no existe. Se resuelve entero antes de responder, porque
- * depende de la sesión.
- */
+/** Admin-only section, missing for other roles. Depends on the session, so it resolves fully before responding. */
 export const instant = false;
 
 export default async function Page() {

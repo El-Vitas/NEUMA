@@ -14,22 +14,10 @@ interface IProps {
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
 }
 
-/**
- * Lo primero que se ve al configurar: qué guarda la colección y de cuántas
- * maneras se mira, cada cosa en una línea que se abre.
- *
- * Las vistas se listan como se listan las propiedades, y por la misma razón:
- * desplegar aquí lo que cada una decide llena la pantalla de ajustes de vistas
- * que nadie vino a mirar, y deja el nombre de cada una como texto muerto —sin
- * dónde renombrarla, ordenarla ni quitarla.
- */
 export const PagesSchemaSettingsRoot = ({ editor, onGo }: IProps) => {
   const t = useTranslations('pages.collection');
 
-  /**
-   * Se entra en la vista recién agregada: un tablero sin decir por dónde agrupa
-   * no dibuja columnas, y ahí es donde se le dice.
-   */
+  /** Opens the new view: a board without a grouping draws no columns, and the grouping is set there. */
   const addAndOpen = (name: string, kind: string): void => {
     const type = readPageViewType(kind);
     if (type === undefined) return;

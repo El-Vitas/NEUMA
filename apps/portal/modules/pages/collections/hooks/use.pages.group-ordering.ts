@@ -7,16 +7,8 @@ import type { PageSchema } from '../types/pages.schema.types';
 import { usePagesShapeSaving } from './use.pages.shape-saving';
 
 /**
- * Cambiar de sitio un grupo de una tabla, que es cambiar de sitio el valor que
- * ese grupo es.
- *
- * Vive en la propiedad y no en la vista, igual que el orden de las columnas de
- * un tablero: son el mismo orden mirado de otra manera, y tener uno por vista
- * haría que renombrar una opción en un sitio la dejara en otro lugar en el otro.
- *
- * Solo se puede con los valores declarados. El grupo de las filas sin valor no
- * es uno, y los que salen de una fecha o un número tampoco: esos los pone lo que
- * las filas traen puesto, y su orden es el de lo que guardan.
+ * The order lives on the property, shared with board columns, not per view. Only declared option values
+ * can move: the unassigned group and groups derived from dates or numbers follow the row data.
  */
 export const usePagesGroupOrdering = (schema: PageSchema, groupByKey: string, spaceId: string): PagesGroupOrdering => {
   const shape = usePagesShapeSaving(schema, spaceId);

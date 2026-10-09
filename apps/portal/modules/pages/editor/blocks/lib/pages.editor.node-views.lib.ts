@@ -53,11 +53,6 @@ import {
 } from '../constants/pages.editor.blocks.constants';
 import type { PageEditorMentionTrashedLabels, PageEditorNodeViewLabels } from '../types/pages.editor.node-views.types';
 
-/**
- * Renders a file as what it is: a name, what kind of file it is and how heavy,
- * on a line that takes one press to bring it down. The name is what it was
- * called when it arrived, since that is what whoever saved it will look for.
- */
 const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView => {
   const host = document.createElement('div');
   host.className = PAGE_EDITOR_COLLECTION_CLASS;
@@ -72,23 +67,8 @@ const createPageCollectionNodeView = (node: EditorNode, label: string): NodeView
 };
 
 /**
- * A page named in the middle of a sentence.
- *
- * Like the block that leads to a child page, it keeps which page it is and asks
- * what that page is called every time it is drawn; the name written down when
- * it was inserted answers for a page that cannot be read from here — one in
- * another space, or thrown away. The mark of a page in front of it says what
- * kind of thing is being named, and that it lives in the writing rather than on
- * a line of its own is what tells it apart from a page started here.
- */
-/**
- * The mark a mentioned page wears where it is named.
- *
- * The icon is asked of the pages this one already knows about rather than kept
- * inside the mention, so a page that changes its mark changes it everywhere it
- * is named. A page nobody here has in hand — or one wearing a drawn symbol,
- * which lives in the drawing set and not in a stroke this can copy — keeps the
- * plain page mark it always had.
+ * The icon is looked up live, not stored in the mention, so changing a page's icon updates every mention.
+ * Unknown pages and drawn symbols fall back to the plain page mark.
  */
 const createPageMentionMark = (icon: PageIcon | null): HTMLElement | SVGSVGElement => {
   if (icon?.kind === 'emoji') {
@@ -112,13 +92,7 @@ const createPageMentionMark = (icon: PageIcon | null): HTMLElement | SVGSVGEleme
   return mark;
 };
 
-/**
- * Says a mentioned page was thrown away, in words and not only in color.
- *
- * Color alone tells nobody who cannot see it apart; the tag next to the name
- * and the explanation under the pointer say it outright, the same way for
- * everyone reading.
- */
+/** Flags a trashed page with a text tag and tooltip, so the state does not rely on color alone. */
 const markPageMentionAsTrashed = (
   link: HTMLAnchorElement,
   title: string,
@@ -132,6 +106,7 @@ const markPageMentionAsTrashed = (
   link.append(tag);
 };
 
+/** Falls back to the label stored at insert time when the page cannot be read from here (other space, trashed). */
 const createPageMentionNodeView = (
   node: EditorNode,
   readPageTitle: (pageId: string) => string | null,
@@ -153,10 +128,7 @@ const createPageMentionNodeView = (
   return { dom: link };
 };
 
-/**
- * A block written by a version that knows more than this one, drawn as what it
- * is: something held on the page, named, and plainly not editable here.
- */
+/** Placeholder for a block type written by a newer version; not editable here. */
 const createPageUnsupportedNodeView = (node: EditorNode, label: string): NodeView => {
   const placeholder = document.createElement('div');
   placeholder.className = PAGE_EDITOR_UNSUPPORTED_STYLE_CLASS;
@@ -168,17 +140,11 @@ const createPageUnsupportedNodeView = (node: EditorNode, label: string): NodeVie
 
 export const createPageEditorNodeViews = (
   labels: PageEditorNodeViewLabels,
-  /** How a page says what it is called now, since what a block keeps is which page it is. */
   readPageTitle: (pageId: string) => string | null = () => null,
-  /** How a block written in another page is fetched, since a borrowed block is drawn from where it lives. */
   readBorrowed: (pageId: string, blockId: string) => EditorNode | null = () => null,
-  /** What happens when a button is pressed, which is more than the writing can do on its own. */
   pressTheButton: (at: number) => void = () => undefined,
-  /** Who a named person is, once the pointer rests on them and their id is worth looking up. */
   readPersonForHover: (userId: string) => PagePersonOption | undefined = () => undefined,
-  /** What mark a page wears now, asked the same way its name is. */
   readPageIcon: (pageId: string) => PageIcon | null = () => null,
-  /** Whether a mentioned page is still there, asked the same way its name is. */
   readPageLifecycle: (pageId: string) => PageLifecycle | null = () => null,
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
@@ -201,11 +167,7 @@ export const createPageEditorNodeViews = (
   person: (node) => createPagePersonNodeView(node, labels.person, { findMember: readPersonForHover }),
   date: (node, view, getPosition) => createPageDateNodeView(node, view, getPosition, labels.date),
   formula: (node, view, getPosition) => createPageFormulaNodeView(node, view, getPosition, labels.formula),
-  /**
-   * The table is drawn here rather than by `columnResizing`, whose own drawing
-   * would have to be named the way that plugin names it. What a page decides
-   * for one of its blocks is decided where every other block is decided.
-   */
+  // Drawn here instead of by `columnResizing`, which would require naming the table view the way that plugin does.
   [PAGE_EDITOR_TABLE_TYPE]: (node) => new PageTableView(node, PAGE_EDITOR_TABLE_MINIMUM_CELL_WIDTH),
   [PAGE_EDITOR_VIDEO_TYPE]: (node, view, getPosition) =>
     createPageVideoNodeView(node, view, getPosition, labels.media, getPageAssetUrl),

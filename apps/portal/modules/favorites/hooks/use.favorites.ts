@@ -8,12 +8,7 @@ import { swapFavoritePages } from '../lib/favorites.lib';
 import { moveFavoriteAction, removeFavoriteAction } from '../server/actions/favorites.actions';
 import type { FavoriteMoveDirection, FavoritesOverride, UseFavoritesResult } from '../types/favorites.types';
 
-/**
- * Favorites arrive from the server as props, already fresh for this render.
- * This hook only carries the optimistic edit between a click and the moment
- * the mutation resolves — once the server list moves on, the override is let
- * go rather than fought.
- */
+/** Holds the optimistic edit until the server list changes, then drops it. */
 export const useFavorites = (serverFavorites: readonly FavoritePage[]): UseFavoritesResult => {
   const router = useRouter();
   const [override, setOverride] = useState<FavoritesOverride | null>(null);

@@ -22,14 +22,7 @@ interface IProps {
   readonly view: PageSchemaView;
 }
 
-/**
- * One view of a collection, drawn by whichever piece is registered for its kind.
- *
- * The rows that arrive carry the shape they were read in, and the piece says
- * which shape it draws. When the two disagree the mismatch is shown rather than
- * assumed away, because a view drawn from rows it cannot read would look empty
- * instead of broken.
- */
+/** A shape mismatch is shown explicitly: a view drawn from rows it cannot read would look empty, not broken. */
 export const PagesCollectionView = async ({
   canEdit,
   outcome,
@@ -49,14 +42,12 @@ export const PagesCollectionView = async ({
   if (renderer.shape === PAGE_VIEW_SHAPE.FLAT && outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS) {
     return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
-  /** Quien lee de las dos maneras recibe lo que llegue: agrupar es algo que se le pide, no lo que es. */
   if (
     renderer.shape === 'EITHER' &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS)
   ) {
     return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
-  /** Un tablero lee sus filas agrupadas, y en rejilla es una forma de estarlo. */
   if (
     renderer.shape === PAGE_VIEW_SHAPE.GROUPED &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.BANDED_ROWS)

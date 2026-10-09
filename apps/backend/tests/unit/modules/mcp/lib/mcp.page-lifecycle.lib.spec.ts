@@ -20,7 +20,6 @@ const placeOf = (pageId: string, ...above: readonly string[]) => ({
 });
 
 describe('findMcpProtectedDescendant', () => {
-  /** Mandar una página a la papelera se lleva todo lo que cuelga de ella: una hija cerrada al token no se va con ella. */
   it('names a page under the target whose own rule does not let the token do it', () => {
     const principal = principalWith([{ pageId: 'child', permissions: [pagesRead] }]);
 

@@ -5,12 +5,8 @@ import {
 } from '@/common/infrastructure/persistence/schema-json.adapter';
 
 describe('toSchemaViewDefinition', () => {
-  /**
-   * A condition that compares against nothing stores a null value, and that
-   * null is part of what the condition says. Dropping it hands back a condition
-   * missing a field its own contract requires, and the whole filter stops being
-   * read at all.
-   */
+  // The null stored by a condition that compares against nothing is part of the condition: dropping it breaks the
+  // contract and the whole filter stops being read.
   it('keeps a null that a stored filter condition deliberately holds', () => {
     const view = toSchemaViewDefinition({
       configuration: {

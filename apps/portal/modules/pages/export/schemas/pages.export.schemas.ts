@@ -11,7 +11,6 @@ export const pageExportRequestSchema = z
     pageIds: z.array(z.string()).max(PAGES_EXPORT_SELECTION_LIMIT).default([]),
     scope: pageExportScopeSchema,
     spaceId: z.string(),
-    /** What a page with no name of its own is called in the file, in the reader's own language. */
     untitledLabel: z.string().min(1).max(80),
   })
   .refine((request) => !namesOnePage(request.scope) || request.pageId !== null, {

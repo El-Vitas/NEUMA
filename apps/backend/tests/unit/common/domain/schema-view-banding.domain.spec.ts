@@ -29,7 +29,6 @@ const priorityProperty: SchemaPropertyDefinition = {
 const properties = [statusProperty, priorityProperty];
 
 describe('bandRowsForView', () => {
-  /** Una banda por valor del subgrupo, y dentro las mismas columnas en el mismo orden: es una rejilla. */
   it('lays one band per sub-group value, each holding every column', () => {
     const result = bandRowsForView(DatabaseViewType.BOARD, { groupBy: 'status', subGroupBy: 'priority' }, properties, [
       { id: 'a', order: 0, propertyValues: { priority: 'high', status: 'todo' } },
@@ -54,7 +53,6 @@ describe('bandRowsForView', () => {
     expect(low?.groups[1]?.rows.map((row) => row.id)).toEqual(['b']);
   });
 
-  /** Sin valor en el subgrupo la fila sigue estando en su columna, en la banda de las que no lo dicen. */
   it('sends a row without a sub-group value to the unassigned band, keeping its column', () => {
     const result = bandRowsForView(DatabaseViewType.BOARD, { groupBy: 'status', subGroupBy: 'priority' }, properties, [
       { id: 'a', order: 0, propertyValues: { status: 'done' } },
@@ -100,7 +98,6 @@ describe('bandRowsForView', () => {
     ).toBe(true);
   });
 
-  /** Una tabla agrupa, pero no cruza: dibuja una sola dimensión. */
   it('refuses a view that does not lay its rows in bands', () => {
     expect(
       bandRowsForView(DatabaseViewType.TABLE, { groupBy: 'status', subGroupBy: 'priority' }, properties, []).isFail(),

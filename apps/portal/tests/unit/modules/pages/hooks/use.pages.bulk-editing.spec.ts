@@ -54,7 +54,6 @@ describe('hacer de una vez lo mismo con varias filas', () => {
     errors.length = 0;
   });
 
-  /** Devolver una fila que nunca se fue no es deshacer nada, y contarla miente sobre lo que pasó. */
   it('counts and undoes only the rows that really went to the trash', async () => {
     trashPageAction.mockImplementation((input: unknown) => {
       const { pageId } = input as { pageId: string };
@@ -74,7 +73,6 @@ describe('hacer de una vez lo mismo con varias filas', () => {
     expect(restorePageAction).toHaveBeenCalledWith({ pageId: 'row-a', spaceId: 'space-a' });
   });
 
-  /** Deshacer un valor puesto a varias filas es devolverle a cada una el suyo, no dejarlas todas iguales. */
   it('gives every row back the value it had before', async () => {
     const { result } = renderBulkEditing();
 

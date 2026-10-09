@@ -9,7 +9,6 @@ interface IProps {
   readonly pageTitle: string;
 }
 
-/** Whether this one page rides along with the batch, named for whoever reads instead of sees it. */
 export const SidebarPageTreeItemCheckbox = ({ isPicked, onToggle, pageTitle }: IProps) => {
   const t = useTranslations('pages.selection');
 

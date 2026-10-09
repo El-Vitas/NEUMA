@@ -25,33 +25,20 @@ import { PagesCollectionTableSelectAll } from './pages.collection.table.select-a
 interface IProps {
   readonly activeViewName: string;
   readonly canEdit: boolean;
-  /** Las filas y el pie, ya dibujados por el servidor: aquí solo se los enmarca. */
   readonly children: ReactNode;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
-  /** Las filas que se están viendo, que son las que marca la casilla de arriba. */
   readonly rowIds: readonly string[];
-  /** Lo que dice cada fila en palabras, para el buscador de la colección. */
   readonly searchTexts: readonly string[];
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly titleLabel: string;
-  /** Lo que cada fila responde ahora, para poder devolverla a eso si se deshace lo hecho en bloque. */
   readonly valuesByRow: Readonly<Record<string, PagePropertyValues>>;
 }
 
 /**
- * La tabla entera medida por sus columnas.
- *
- * El ancho viaja por `colgroup` y no por cada celda: así una columna mide lo
- * mismo arriba que abajo mientras se la estira, sin que el cuerpo tenga que
- * saber nada de lo que está pasando con el ratón. Y la tabla lleva escrito
- * cuánto suman: sin eso el navegador la estira hasta su marco y le regala el
- * sobrante a la última columna, que entonces deja de medir lo que se le dijo.
- *
- * Lo que se queda quieto al desplazarse sí se dice celda por celda, porque
- * pegarse al borde es de cada una; el sitio donde se pega se calcula con los
- * anchos ya guardados, para que cabecera y cuerpo coincidan siempre.
+ * Widths travel through `colgroup`, not each cell, so a column measures the same above and below while resized.
+ * The table states its total width: otherwise the browser stretches it and gives the surplus to the last column.
  */
 export const PagesCollectionTableHeader = ({
   activeViewName,
@@ -71,7 +58,7 @@ export const PagesCollectionTableHeader = ({
   const [stretching, setStretching] = useState<null | { readonly columnKey: string; readonly width: number }>(null);
   const [carried, setCarried] = useState<null | string>(null);
 
-  /** El que se está arrastrando ahora mismo manda sobre el guardado, para que el borde siga a la mano. */
+  /** The width being dragged wins over the saved one so the edge follows the pointer. */
   const widthOf = (columnKey: string): number =>
     stretching !== null && stretching.columnKey === columnKey
       ? stretching.width
@@ -89,10 +76,6 @@ export const PagesCollectionTableHeader = ({
   return (
     <PagesCollectionSearchProvider searchTexts={searchTexts}>
       <PagesCollectionSelectionProvider>
-        {/*
-        Buscar y cómo se ve la tabla van juntos sobre ella: las dos cosas se
-        deciden mirándola, y ninguna cambia lo que la colección guarda.
-      */}
         <div className="mb-1 flex items-center justify-between gap-2">
           <PagesCollectionSearchField />
           {canEdit && <PagesCollectionTableAppearance columns={columns} />}
@@ -125,7 +108,6 @@ export const PagesCollectionTableHeader = ({
                       ? titleLabel
                       : (properties[position - 1]?.label ?? columnKey)
                   }
-                  /* La casilla de marcar todo va con el nombre, que es la columna que abre cada fila. */
                   leading={
                     canEdit && columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY ? (
                       <PagesCollectionTableSelectAll rowIds={rowIds} />

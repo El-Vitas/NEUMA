@@ -13,18 +13,8 @@ import { buildRowPropertyValues } from '../lib/pages.properties.lib';
 import type { PagesRowCreation, PagesRowCreationInput } from '../types/pages.row-creation.types';
 
 /**
- * Crear una fila desde el sitio donde va a vivir: una columna del tablero, un
- * día del calendario.
- *
- * Nace ya respondiendo lo que ese sitio representa, porque ponerla ahí es
- * decirlo: obligar a abrirla después para repetirlo sería pedir dos veces lo
- * mismo. Y nace además respondiendo lo que la colección da por sentado, porque
- * una colección puede exigir respuesta a cosas que ese sitio no dice, y el
- * servidor rechaza la fila entera por lo que falta.
- *
- * Nace con su nombre escrito. Una fila es sobre todo su título —es lo que se lee
- * en la tarjeta, en la tabla y en el árbol—, y el propio dominio pide que lo
- * traiga: una fila sin nombre no se distingue de las demás sin nombre.
+ * The row starts with the values its placement implies (board column, calendar day) plus the collection's
+ * defaults, because the server rejects a row missing required properties. A title is always sent.
  */
 export const usePagesRowCreation = ({
   collectionPageId,
@@ -44,7 +34,7 @@ export const usePagesRowCreation = ({
           content: createEmptyPageContent(),
           parentId: collectionPageId,
           propertyValues: {
-            /** El título viaja aparte, escrito: no es una respuesta más de la fila. */
+            // The title is sent separately, not as a property value.
             ...buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
             ...buildNewRowPropertyValues(placedByKey, placedValue),
             ...(bandedByKey === '' ? {} : buildNewRowPropertyValues(bandedByKey, bandValue)),

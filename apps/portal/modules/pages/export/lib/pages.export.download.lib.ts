@@ -1,10 +1,4 @@
-/**
- * Hands the file to the browser so it lands on the reader's disk.
- *
- * The bytes are built here rather than served from a link because the request
- * carries the session, and an anchor pointing at the backend would travel
- * without it.
- */
+/** Built from bytes rather than a backend link, because a plain anchor would not carry the session. */
 export const downloadExportedFile = (fileName: string, base64: string, mediaType: string): void => {
   const binary = atob(base64);
   const bytes = Uint8Array.from(binary, (character) => character.codePointAt(0) ?? 0);

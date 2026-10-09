@@ -53,7 +53,6 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
   };
 };
 
-/** What a page says about the file it holds: what kind it is, how heavy, and how it is shown. */
 const getPageEditorFileAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const asset = getPageEditorFramedAssetAttrs(element);
   if (asset === false) return false;
@@ -67,7 +66,6 @@ const getPageEditorFileAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   };
 };
 
-/** How something that hangs on the page was left standing: where in the column, and how wide. */
 const getPageEditorFramedAssetAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const asset = getPageEditorAssetAttrs(element);
   if (asset === false) return false;
@@ -80,7 +78,6 @@ const getPageEditorFramedAssetAttrs = (element: HTMLElement): PageEditorReadAttr
   };
 };
 
-/** What a page kept about a link it holds as a card. */
 const getPageEditorBookmarkAttrs = (element: HTMLElement): Record<string, string | null> | false => {
   const url = element.getAttribute('href') ?? element.dataset.url;
   if (!isPageWebAddress(url)) return false;
@@ -113,7 +110,6 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   return { open: element.hasAttribute('open'), summary };
 };
 
-/** A frame height read from the page, kept only when it is one a drawing's frame may have. */
 const readPageEditorFrameHeight = (said: string | undefined): number | null => {
   const height = Number(said);
   const isAllowed =
@@ -131,12 +127,7 @@ const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | n
   };
 };
 
-/**
- * How far a cell reaches and how wide its column was left.
- *
- * A table records the widths on the cells of a row rather than on the table, so
- * stretching a column is a change to that row and travels with it.
- */
+/** Column widths live on the cells of a row, not on the table, so a resize is a change to that row. */
 const getPageEditorTableCellAttrs = (
   element: HTMLElement,
 ): { readonly colspan: number; readonly colwidth: readonly number[] | null; readonly rowspan: number } => {
@@ -154,7 +145,6 @@ const readTableCellDomAttrs = (node: EditorNode): Record<string, string> => ({
   ...(Array.isArray(node.attrs.colwidth) ? { 'data-colwidth': node.attrs.colwidth.join(',') } : {}),
 });
 
-/** A mark that is not one of the few on offer is no mark at all. */
 const isPageCalloutIcon = (value: string): boolean => isOneOf(PAGE_CALLOUT_ICONS, value);
 
 const getPageEditorCalloutAttrs = (element: HTMLElement): { readonly icon: string | null } => {
@@ -204,7 +194,6 @@ const getPageEditorSubpageAttrs = (
   return { label: label === undefined || label.length === 0 ? pageId : label, pageId, spaceId };
 };
 
-/** A colour that is not one of the few the page allows is no colour at all. */
 const readPageColor = (value: string | null): string | null =>
   PAGE_BLOCK_COLORS.find((known) => known === value) ?? null;
 
@@ -257,7 +246,6 @@ const getPageEditorColumnAttrs = (
   return { id: element.dataset.blockId ?? null, width: Number.isFinite(width) ? width : null };
 };
 
-/** A heading carries its level and whether it was left folded, and both must survive a round trip through the DOM. */
 const readPageEditorHeadingAttrs =
   (level: number) =>
   (element: HTMLElement): { readonly collapsed: boolean; readonly level: number } => ({
@@ -386,7 +374,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       render: (_node, blockAttributes) => ['hr', blockAttributes],
     }),
   ],
-  /** What is in the page, listed by the page itself: it holds nothing of its own. */
   [
     'table_of_contents',
     definePageBlock({
@@ -396,10 +383,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       render: (_node, blockAttributes) => ['nav', { ...blockAttributes, 'data-page-contents': 'true' }],
     }),
   ],
-  /**
-   * A button, and what it writes when pressed: what it writes is what it holds,
-   * so setting it up is writing in it like anywhere else on the page.
-   */
   [
     'button',
     definePageBlock({
@@ -421,7 +404,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     }),
   ],
-  /** A block that lives in another page and is only shown here, as it stands there now. */
   [
     'synced',
     definePageBlock({
@@ -439,7 +421,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     }),
   ],
-  /** A page that hangs from this one, standing in the writing as the line that leads to it. */
   [
     'subpage',
     definePageBlock({
@@ -629,7 +610,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     },
   ],
-  /** A person named in the writing: who, and what they were called at the time. */
   [
     'person',
     {
@@ -644,7 +624,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     },
   ],
-  /** A date named in the writing, kept as the calendar day it points at. */
   [
     'date',
     {
@@ -655,7 +634,6 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       toDOM: (node: EditorNode): DOMOutputSpec => ['span', { 'data-page-date': node.attrs.at }, node.attrs.at],
     },
   ],
-  /** A formula inside the line. Empty means one not written yet. */
   [
     'formula',
     {
@@ -779,11 +757,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     }),
   ],
   [
-    /**
-     * A block written by a version that knows more than this one. It stands in
-     * the page as a placeholder that says which type it is, and carries the
-     * original word for word so that saving the page gives it back untouched.
-     */
+    // Placeholder for a type from a newer version; keeps the original content so saving round-trips it untouched.
     PAGE_EDITOR_UNSUPPORTED_TYPE,
     definePageBlock({
       ...PAGE_DOCUMENT_NODES.unsupported,
@@ -811,18 +785,13 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
 
 const pageEditorNodes: Readonly<Record<string, NodeSpec>> = Object.fromEntries(pageEditorNodeEntries);
 
-/**
- * A link read from pasted writing. A page is written by several people at once
- * and travels between them without passing through the stored schema on the
- * way, so whether a destination may be followed is asked again wherever one is
- * written and wherever one is drawn.
- */
+/** Content can reach the editor without passing the stored schema, so link targets are validated on read and draw. */
 const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | false => {
   const href = element.getAttribute('href');
   return href === null || !isPageLinkTarget(href) ? false : { href };
 };
 
-/** A destination nobody may follow is drawn as text, so the writing survives and the link does not. */
+/** A disallowed target renders as plain text, keeping the content but dropping the link. */
 const drawPageEditorLink = (href: unknown): DOMOutputSpec =>
   typeof href === 'string' && isPageLinkTarget(href) ? ['a', { href }, 0] : ['span', 0];
 
@@ -834,10 +803,7 @@ const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | 
 export const pageEditorSchema = new Schema({
   marks: {
     code: { ...PAGE_DOCUMENT_MARKS.code, toDOM: (): DOMOutputSpec => ['code', 0] },
-    /**
-     * A remark left on a fragment of the text. It says only which remark it is:
-     * what was said is kept by the block, as it is for a whole block.
-     */
+    // Holds only the comment id; the comment text is stored on the block.
     comment: {
       ...PAGE_DOCUMENT_MARKS.comment,
       parseDOM: [{ getAttrs: getPageEditorCommentAttrs, tag: `span[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]` }],
@@ -853,13 +819,6 @@ export const pageEditorSchema = new Schema({
       parseDOM: [{ getAttrs: getPageEditorLinkAttrs, tag: 'a[href]' }],
       toDOM: (mark) => drawPageEditorLink(mark.attrs.href),
     },
-    /**
-     * A stretch of writing painted on its own.
-     *
-     * It is painted with the same few colours a whole block is painted with,
-     * and drawn by the same rule: what is read on screen comes from the
-     * attribute, so a colour cannot be invented on the spot.
-     */
     [PAGE_EDITOR_BACKGROUND_COLOR_MARK]: {
       ...PAGE_DOCUMENT_MARKS.background_color,
       parseDOM: [
@@ -867,7 +826,6 @@ export const pageEditorSchema = new Schema({
       ],
       toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE]: mark.attrs.color }, 0],
     },
-    /** Struck through, and read as struck through by whatever the writing is pasted into. */
     strike: {
       ...PAGE_DOCUMENT_MARKS.strike,
       parseDOM: [{ tag: 's' }, { tag: 'del' }, { tag: 'strike' }],
@@ -879,11 +837,7 @@ export const pageEditorSchema = new Schema({
       parseDOM: [{ getAttrs: getPageEditorTextColorAttrs, tag: `span[${PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE}]` }],
       toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE]: mark.attrs.color }, 0],
     },
-    /**
-     * Underlined, drawn in the colour of the writing rather than the colour of a
-     * link: on a page where every link is underlined too, the only thing left to
-     * tell them apart is that one of them is not a link.
-     */
+    // Keeps the text colour, unlike links, so underlined text is distinguishable from a link.
     underline: {
       ...PAGE_DOCUMENT_MARKS.underline,
       parseDOM: [{ tag: 'u' }, { style: 'text-decoration=underline' }],

@@ -25,9 +25,8 @@ const mergeLines = (read: readonly PageEditorBlockLines[]): PageEditorBlockLines
 });
 
 /**
- * Reads a block as the lines of text it holds, descending into whatever holds
- * more blocks, and says whether anything was left behind on the way: a block
- * that carries no text at all, or a nesting whose children stop hanging from it.
+ * Reads a block as the lines of text it holds, descending into nested blocks, and reports whether anything is lost:
+ * a block with no text, or a nesting whose children stop hanging from it.
  */
 const readBlockLines = (block: EditorNode): PageEditorBlockLines => {
   if (PAGE_EDITOR_ARRANGEMENT_BLOCK_TYPES.includes(block.type.name)) return PAGE_EDITOR_NOTHING_TO_CARRY;
@@ -37,7 +36,6 @@ const readBlockLines = (block: EditorNode): PageEditorBlockLines => {
   return PAGE_EDITOR_BLOCKS_BEYOND_THEIR_LINES.includes(block.type.name) ? { ...read, keepsEverything: false } : read;
 };
 
-/** The blocks a conversion applies to, read as the lines of text they hold. */
 const readSelectedBlocks = (state: EditorState): PageEditorConversionSource | null => {
   if (isPageEditorCellSelection(state)) return null;
   const range = findSelectedPageBlocks(state);
@@ -49,11 +47,7 @@ const readSelectedBlocks = (state: EditorState): PageEditorConversionSource | nu
   return { ...read, carried: readCarriedAttrs(first.attrs), range };
 };
 
-/**
- * What a block keeps when it becomes another type: who it is, how it is
- * painted, and what was said about it. Changing the shape of a block is not a
- * reason to lose its colour or its comments.
- */
+/** Identity, colours and comments survive a type change. */
 export const readCarriedAttrs = (attrs: Attrs): Attrs =>
   Object.fromEntries(PAGE_EDITOR_CARRIED_BLOCK_ATTRS.flatMap((name) => (name in attrs ? [[name, attrs[name]]] : [])));
 
@@ -147,10 +141,7 @@ const isPlainText = (line: Fragment): boolean => {
 const dropsFormatting = (schema: Schema, shape: PageEditorBlockShape): boolean =>
   shape.kind === 'textblock' && schema.nodes[shape.type]?.spec.code === true;
 
-/**
- * Leaves the converted block selected when the conversion produced a single
- * one, so it can be converted again, moved or dropped without hunting for it.
- */
+/** Selects the converted block when the conversion produced exactly one. */
 const selectionAfterConversion = (doc: EditorNode, blockStart: number, blockCount: number): Selection =>
   blockCount === 1 ? NodeSelection.create(doc, blockStart) : Selection.near(doc.resolve(blockStart + 1));
 
@@ -166,12 +157,8 @@ const readConversion = (
 };
 
 /**
- * The conversions the current selection can actually go through.
- *
- * A conversion that could not be applied is never listed — it is built and
- * measured against the place the blocks live before being offered — so what the
- * menu shows is what the editor can do, and each one says whether going through
- * with it would leave something behind.
+ * The conversions the current selection can actually go through, each flagged when it would lose something.
+ * Every candidate is built against the real document first, so an inapplicable one is never listed.
  */
 export const listPageEditorBlockConversions = (state: EditorState): readonly PageEditorBlockConversion[] => {
   const source = readSelectedBlocks(state);
@@ -182,12 +169,7 @@ export const listPageEditorBlockConversions = (state: EditorState): readonly Pag
   });
 };
 
-/**
- * Turns the selected blocks into the given type, carrying their text over.
- *
- * The whole conversion is a single change, so it is undone in one step no
- * matter how many blocks it touched.
- */
+/** Turns the selected blocks into the given type, carrying their text over, as a single undoable change. */
 export const createPageEditorBlockConversionCommand =
   (targetId: string): Command =>
   (state, dispatch) => {

@@ -8,18 +8,11 @@ export const SIDEBAR_HOVER_CLASS =
 
 export const SIDEBAR_PAGE_TREE_ITEM_SELECTOR = '[data-page-tree-item="true"]';
 export const SIDEBAR_PAGE_TREE_LINK_SELECTOR = '[data-page-tree-link="true"]';
-/** The list the pages of a space hang from, which is where moving between them makes sense. */
 export const SIDEBAR_PAGE_TREE_SELECTOR = '[data-page-tree="true"]';
 export const SIDEBAR_PAGE_TREE_TOGGLE_SELECTOR = '[data-page-tree-toggle="true"]';
 
 export const SIDEBAR_TREE_INDENT_BASE_PX = 6;
 export const SIDEBAR_TREE_INDENT_STEP_PX = 10;
 
-/**
- * How many generations the tree steps in before it stops.
- *
- * Every step in is width the page's name no longer has. A branch can go as
- * deep as anyone wants, so past this point the nesting is told by the tree
- * folding and by the page's own path, not by pushing the name off the edge.
- */
+/** Past this depth the indent stops growing so page names keep their width. */
 export const SIDEBAR_TREE_MAX_INDENTED_DEPTH = 6;

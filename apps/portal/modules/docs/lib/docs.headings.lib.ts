@@ -2,16 +2,7 @@ import GithubSlugger from 'github-slugger';
 import { DOCS_FENCED_CODE, DOCS_HEADING_LINE } from '../constants/docs.reading.constants';
 import type { DocsHeading } from '../types/docs.types';
 
-/**
- * The headings somebody can jump straight to, in the order they are written.
- *
- * Only the two levels below the title are taken: an index that lists everything
- * lists nothing, because it stops being a way of finding one thing and becomes
- * the document again, only harder to read.
- *
- * Names are made the way the page itself makes them, so that what the index
- * points at is what the heading answers to.
- */
+/** Only levels 2 and 3 are indexed. Ids come from the same slugger the page uses, so index links match the headings. */
 export const readDocsHeadings = (markdown: string): readonly DocsHeading[] => {
   const slugger = new GithubSlugger();
   const headings: DocsHeading[] = [];

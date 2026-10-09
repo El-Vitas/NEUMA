@@ -52,7 +52,6 @@ describe('MCP over HTTP (Integration)', () => {
     await request(testApp.getServer()).post(MCP_PATH).send({}).expect(401);
   });
 
-  /** Algo que ni siquiera tiene forma de llave se rechaza igual que una llave que no existe. */
   it('turns away a malformed key the same way as one that does not exist', async () => {
     const malformed = await request(testApp.getServer())
       .post(MCP_PATH)
@@ -67,7 +66,6 @@ describe('MCP over HTTP (Integration)', () => {
     expect(malformed.body).toEqual(unknown.body);
   });
 
-  /** Un token vencido deja de servir aunque nadie lo haya revocado. */
   it('turns away a token whose expiry has passed', async () => {
     const secret = await createTokenSecret('Vencido');
     await testApp
@@ -77,10 +75,6 @@ describe('MCP over HTTP (Integration)', () => {
     await request(testApp.getServer()).post(MCP_PATH).set('Authorization', `Bearer ${secret}`).send({}).expect(401);
   });
 
-  /**
-   * Un agente en bucle se corta en su propio tope, y el tope es de su token:
-   * otro agente de la misma persona sigue trabajando.
-   */
   it('cuts an agent off at its own call limit without touching another token', async () => {
     const busy = await createTokenSecret('En bucle');
     const calm = await createTokenSecret('Tranquilo');
@@ -98,7 +92,6 @@ describe('MCP over HTTP (Integration)', () => {
     expect(other.status).not.toBe(429);
   });
 
-  /** Varias llamadas en un solo envío contarían como una sola para el tope: no se aceptan. */
   it('turns away several calls sent together in one request, running none of them', async () => {
     const secret = await createTokenSecret('En lote');
     const listTools = (id: number) => ({ id, jsonrpc: '2.0', method: 'tools/list', params: {} });
@@ -113,7 +106,6 @@ describe('MCP over HTTP (Integration)', () => {
     expect(response.text).not.toContain('"tools"');
   });
 
-  /** Una sesión del portal no es una llave de agente: si se filtra una, no abre la otra puerta. */
   it('turns away a portal session presented as if it were an agent token', async () => {
     await request(testApp.getServer())
       .post(MCP_PATH)
@@ -122,10 +114,7 @@ describe('MCP over HTTP (Integration)', () => {
       .expect(401);
   });
 
-  /**
-   * Probar llaves también tiene tope: se cuenta por dirección antes de mirar
-   * la llave. Va al final porque el tope es de la dirección de toda la prueba.
-   */
+  // Runs last: the cap is counted per address for the whole suite.
   it('cuts off a client that keeps offering keys that do not open', async () => {
     const guess = 'cbk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     const statuses: number[] = [];

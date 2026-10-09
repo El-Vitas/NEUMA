@@ -16,12 +16,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * A page renamed from the tree, without opening it.
- *
- * Reaching a page only to change what it is called means losing the place you
- * were reading; this asks for the new name where the old one is already shown.
- */
 export const SidebarPageRenameDialog = ({ onClose, onRenamed, page, spaceId }: IProps) => {
   const t = useTranslations('pages');
   const [title, setTitle] = useState(page?.title ?? '');
@@ -32,7 +26,7 @@ export const SidebarPageRenameDialog = ({ onClose, onRenamed, page, spaceId }: I
   const rename = (): void => {
     startTransition(async () => {
       const result = await renamePageAction({ pageId: page.id, spaceId, title: title.trim() });
-      /** Renaming answers with nothing when it works, so only a reported failure means it did not. */
+      /** Success returns nothing, so only a reported failure means the rename failed. */
       if (hasActionError(result)) {
         toast.error(t('permissionError'));
         return;

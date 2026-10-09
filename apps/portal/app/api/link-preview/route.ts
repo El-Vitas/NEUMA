@@ -8,26 +8,7 @@ import { readLinkPreviewFromHtml } from '@/modules/pages/links/lib/pages.link-pr
 import { linkPreviewRequestSchema } from '@/modules/pages/links/schemas/pages.link-preview.schemas';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 
-/**
- * What a link says about itself, asked for by the server and never by the
- * browser.
- *
- * Only what a page says about itself is read, and only over https: the page is
- * asking a stranger a question on behalf of whoever is writing, and it should
- * neither carry their session there nor bring back more than a few lines.
- *
- * A site that will not answer, answers slowly, or answers with something that
- * is not a page, is not an error here: the writing simply keeps the link as it
- * was pasted.
- */
-/**
- * Asks a site, following where it points but never blindly.
- *
- * Redirects are walked one at a time because a site out on the internet is
- * free to point at an address only this server can reach, and a redirect that
- * is merely followed turns the question into a way in. Every hop is asked the
- * same question the first address was asked.
- */
+/** Redirects are followed manually so every hop is checked: a remote site could redirect to an internal address. */
 const askTheSite = async (address: string): Promise<Response | null> => {
   let here = address;
   for (let hop = 0; hop <= LINK_PREVIEW_MAXIMUM_HOPS; hop += 1) {

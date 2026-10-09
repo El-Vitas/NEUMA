@@ -18,13 +18,6 @@ interface IProps {
   readonly value: PagePropertyValue | undefined;
 }
 
-/**
- * What one property of one row says, drawn the way that kind of property reads.
- *
- * A chosen option wears the color it was given, so the same value looks the same
- * in a cell as on a card. Everything else is plain text: a date or a number
- * gains nothing from being dressed up.
- */
 export const PagesPropertyValue = ({ personOptions = EMPTY_PAGE_PERSON_OPTIONS, property, value }: IProps) => {
   const t = useTranslations('pages');
   if (property.type === PAGE_PROPERTY_TYPE.CHECKBOX) return t(readCheckboxLabelKey(value));

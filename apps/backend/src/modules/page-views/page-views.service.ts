@@ -40,11 +40,7 @@ export class PageViewsService {
     return Result.ok({ viewCount, viewers });
   }
 
-  /**
-   * A failed write here must never take the page reading down with it: the
-   * caller already has the page, so any technical failure is swallowed and
-   * logged rather than surfaced.
-   */
+  /** Failures are logged, not surfaced: the caller already has the page and must not fail because of this write. */
   async recordView(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<void> {
     try {
       const enabled = await this.pageViewRepository.getPageViewsEnabled(workspaceId);

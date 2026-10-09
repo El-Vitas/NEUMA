@@ -7,23 +7,14 @@ import type { PagePersonOption, PageRow, PageSchemaProperty } from '../types/pag
 import { PagesPropertyValue } from './pages.properties.value';
 
 interface IProps {
-  /**
-   * En columna cuando hay poco ancho y mucho alto —una tarjeta—, y en línea
-   * cuando es al revés: un renglón de una lista tiene el ancho de la página
-   * entera, y apilar ahí seis propiedades convierte cada fila en un párrafo.
-   */
+  /** `COLUMN` for narrow cards; `ROW` for list rows, where stacking many properties would read as a paragraph. */
   readonly direction: 'COLUMN' | 'ROW';
   readonly personOptions?: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly row: PageRow;
 }
 
-/**
- * Lo que una fila dice además de su título.
- *
- * Solo se dibuja lo que lleva algo: el sitio es poco, y una hilera de etiquetas
- * vacías ocupa el de las que sí respondieron.
- */
+/** Only properties with a value render, so empty labels do not take space. */
 export const PagesCollectionCardProperties = ({
   direction,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,

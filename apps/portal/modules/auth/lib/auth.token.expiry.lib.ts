@@ -14,11 +14,8 @@ const readPayload = (token: string): Record<string, unknown> | null => {
 };
 
 /**
- * Reads whether an access token is spent, without verifying it.
- *
- * Only the backend can say whether a token is genuine; this reading is used to
- * decide when to ask for a new one, so a page is never rendered with a token
- * that is about to be rejected. A token that cannot be read counts as spent.
+ * Does not verify the token, only the backend can; it decides when to refresh so no page renders with a token
+ * about to be rejected. An unreadable token counts as spent.
  */
 export const isAccessTokenSpent = (parameters: {
   readonly leewaySeconds: number;

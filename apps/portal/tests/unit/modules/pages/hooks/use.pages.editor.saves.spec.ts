@@ -6,7 +6,6 @@ const sentTitles: string[] = [];
 const sentContents: PageContent[] = [];
 const arrivals: { readonly arrive: () => void; readonly fail: () => void }[] = [];
 
-/** Cada envío queda en camino hasta que la prueba lo deja llegar, o lo pierde en el camino. */
 const travel = () =>
   new Promise<{ data: Record<string, never> }>((resolve, reject) => {
     arrivals.push({
@@ -41,7 +40,6 @@ const contentSaying = (words: string): PageContent => ({
   type: 'doc',
 });
 
-/** Lo que dice la página en cada momento, como lo leería el editor al mandar. */
 const createPage = () => {
   const page = { content: contentSaying('A'), title: 'A' };
   const { result } = renderHook(() =>
@@ -75,7 +73,7 @@ describe('lo que se escribe mientras un guardado va en camino', () => {
     replacePageContentAction.mockClear();
   });
 
-  /** Si la respuesta del primer guardado borrara la marca, lo escrito después nunca se mandaría. */
+  // The first save's response must not clear the mark, or text typed afterwards would never be sent.
   it('sends a title typed while the previous one was on its way', async () => {
     const { page, saves } = createPage();
 
@@ -120,7 +118,6 @@ describe('lo que se escribe mientras un guardado va en camino', () => {
     expect(sentTitles).toEqual(['A']);
   });
 
-  /** Un envío que se pierde por el camino (sin red, un despliegue) no puede dar lo escrito por guardado. */
   it('keeps waiting what was lost on the way, and sends it again on the next save', async () => {
     const { saves } = createPage();
 

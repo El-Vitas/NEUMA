@@ -77,19 +77,15 @@ export const PagesHeader = ({
 }: IProps) => {
   const t = useTranslations('pages');
   const layoutStyleClasses = getPageAppearanceLayoutStyleClasses();
-  /** Its own, because the router keeps the page one came from mounted, and two fields cannot share a name. */
+  /** The router keeps the previous page mounted, and two fields cannot share a name. */
   const titleFieldId = useId();
   usePagesDocumentTitle(pageId === null ? null : buildPageDocumentTitle(title, t('untitled')));
 
   return (
     <header className={cn('group space-y-4', layoutStyleClasses.width)}>
       {/*
-        Lo que se hace con la página va arriba del todo, en la misma línea que
-        dice dónde está: al costado del título peleaba con él —el título es lo
-        más grande de la página y crece hasta donde llegue—, y una fila de
-        botones a media altura de esa letra no se lee como una barra sino como
-        parte del nombre. Cuando no caben los dos, la fila de botones baja
-        entera en vez de estrujar el rastro de migas.
+        Actions share the breadcrumb line: beside the large title they read as part of its name.
+        The button row wraps whole rather than squeezing the breadcrumb.
       */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0 flex-1 basis-48">
@@ -141,7 +137,7 @@ export const PagesHeader = ({
       {pageId !== null && spaceName !== undefined && (
         <RecentPageRecorder pageId={pageId} spaceId={spaceId} spaceName={spaceName} title={title} />
       )}
-      {/* Everyone who reads a page marks it read; only whoever runs the workspace gets to look at the tally. */}
+      {/* Every reader records usage; only whoever runs the workspace can see the tally. */}
       {pageId !== null && <PagesUsageRecorder pageId={pageId} />}
     </header>
   );

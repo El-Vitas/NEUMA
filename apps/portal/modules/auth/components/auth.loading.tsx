@@ -2,11 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-/**
- * What the login shows while it finds out who is there. It is drawn before the
- * page can wait for anything, so it reads its words from the provider the
- * layout already set up instead of asking the request for its language.
- */
+/** Drawn before the page can await anything, so it reads messages from the layout's provider, not the request. */
 export const AuthLoading = () => {
   const t = useTranslations('common');
   return (

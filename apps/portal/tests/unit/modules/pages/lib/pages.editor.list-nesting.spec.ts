@@ -36,7 +36,6 @@ const oneParagraph: PageContent = {
   type: 'doc',
 } as PageContent;
 
-/** The cursor where a reader leaves it: at the end of the point just written. */
 const withCursorAtTheEnd = (content: PageContent): EditorState => {
   const state = createPageEditorState(content, 'Select block');
   return state.apply(state.tr.setSelection(TextSelection.near(state.doc.resolve(state.doc.content.size), -1)));

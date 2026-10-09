@@ -88,14 +88,7 @@ export class PagesService {
     return this.redactPages(pages, workspaceId, userId, role);
   }
 
-  /**
-   * A scope of pages written out as one Markdown file.
-   *
-   * Read through the same door as any other listing, so an export never hands
-   * over a page its asker could not have opened one at a time. Pages in the
-   * trash stay out: what is exported is what the space holds, not what it once
-   * held.
-   */
+  /** Goes through the normal listing, so no page the asker cannot open is exported; trashed pages are excluded. */
   async exportAsMarkdown(
     spaceId: string,
     scope: PageExportScope,
@@ -123,18 +116,10 @@ export class PagesService {
     return Result.ok([...written, ...carried.map(({ contents, path }) => ({ contents, path }))]);
   }
 
-  /**
-   * What hangs on the exported pages, read out of storage so it can travel too.
-   *
-   * They go in a folder of their own rather than beside the pages that use
-   * them, because one picture can be shown on several pages and there is only
-   * one of it. A file that storage can no longer hand over is left behind
-   * rather than taking the whole export down: the writing that mentions it
-   * still says what it was.
-   */
+  /** Own folder, since one file can appear on several pages. An unreadable file is skipped. */
   private async gatherAttachments(pageIds: readonly string[]): Promise<readonly CarriedAttachment[]> {
     const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(pageIds);
-    /* Unos pocos a la vez: un espacio con cientos de archivos abriría cientos de lecturas juntas. */
+    // Bounded so a space with hundreds of files does not open hundreds of reads at once.
     const carried = await mapWithBoundedConcurrency(assets, EXPORT_ATTACHMENT_READS_AT_ONCE, async (asset) => {
       try {
         const contents = await this.storageProvider.read(asset.storageKey);
@@ -147,10 +132,7 @@ export class PagesService {
     return carried.filter((asset): asset is CarriedAttachment => asset !== null);
   }
 
-  /**
-   * Si la página sigue viva y si está bloqueada, sin leer lo que dice: lo que
-   * hace falta para dejar pasar cada mensaje del documento en vivo.
-   */
+  /** Liveness and lock state without loading content, enough to gate each live-document message. */
   async readAccessState(
     pageId: string,
     workspaceId: string,
@@ -199,24 +181,15 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /** La página tal como está guardada, para sembrar su documento colaborativo. */
   readStoredContent(pageId: string): Promise<PageContent | null> {
     return this.pageRepository.findStoredContent(pageId);
   }
 
-  /**
-   * Guarda lo que dice el documento colaborativo como contenido de la página.
-   * Quién lo escribió ya fue autorizado al conectarse al documento.
-   */
+  /** The writer was already authorized when connecting to the document. */
   storeCollaborativeContent(pageId: string, userId: string, content: PageContent): Promise<PageContentStoreOutcome> {
     return this.pageRepository.storeContent({ content, pageId, updatedById: userId });
   }
 
-  /**
-   * Si esta persona puede escribir este contenido en esta página: que pueda
-   * escribir, que vea la página, que la página no esté bloqueada y que el
-   * contenido calce con el contrato de una página.
-   */
   async authorizeContentWrite(
     writer: PageContentWriter,
     content: unknown,
@@ -227,10 +200,6 @@ export class PagesService {
     return allowed.isFail() ? Result.fail(allowed.getError()) : validatePageContent(content);
   }
 
-  /**
-   * Si esta persona puede escribir en esta página: que pueda escribir, que la
-   * vea, que no esté en la papelera y que no esté bloqueada.
-   */
   async authorizeWrite(
     writer: PageContentWriter,
   ): Promise<Result<PageContentWriter, PageAccessDeniedError | PageLifecycleError | PageLockedError>> {
@@ -242,15 +211,7 @@ export class PagesService {
     return Result.ok(writer);
   }
 
-  /**
-   * What a row holds changed, without the writing being touched.
-   *
-   * Only the properties named travel, and they land on top of the ones the row
-   * already had. That is what lets a card be dragged from one column to another
-   * without carrying the whole page along: whoever moves it knows the value that
-   * changed and nothing else, and sending the rest would be sending back a copy
-   * of what it read, stale by however long the drag took.
-   */
+  /** Merges only the named properties over the stored ones, so a card drag never resends a stale copy of the row. */
   async updateProperties(
     input: UpdatePagePropertiesInput,
   ): Promise<Result<PageSummary, PageAccessDeniedError | PageLockedError | PagePropertyValidationError>> {
@@ -279,12 +240,7 @@ export class PagesService {
     return page ?? Result.fail(new PageAccessDeniedError());
   }
 
-  /**
-   * A page's name changed on its own, without the writing being touched.
-   *
-   * Renaming from a list is not the same act as editing a page: no new version
-   * is cut for it, because nothing anyone wrote has changed.
-   */
+  /** Cuts no version: renaming does not change content. */
   async rename(
     pageId: string,
     title: string,
@@ -327,13 +283,6 @@ export class PagesService {
     return copy === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(copy);
   }
 
-  /**
-   * Locks a page against edits, or lets it be written in again.
-   *
-   * Whoever may write in a page may also decide it should stop being written in,
-   * and undo that decision: a lock nobody present can lift is a page lost to the
-   * person who locked it by mistake.
-   */
   async setLocked(
     pageId: string,
     locked: boolean,
@@ -346,13 +295,7 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /**
-   * Vouches for a page, or takes that back — whoever may write in it may also vouch for it.
-   *
-   * Verifying again with a new date is treated as the same act repeated, not a
-   * separate rule: it re-stamps who verified it and when, which is how an
-   * expiration gets pushed out without a second endpoint to keep in sync.
-   */
+  /** Verifying again re-stamps who and when, which is how an expiration is extended. */
   async setVerification(
     pageId: string,
     verified: boolean,
@@ -374,7 +317,7 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /** Only somebody who actually belongs to the workspace can be handed a page to answer for. */
+  /** The owner must be a workspace member. */
   async setOwner(
     pageId: string,
     ownerId: null | string,
@@ -405,13 +348,7 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /**
-   * The pages somebody was given, across every space they can reach.
-   *
-   * A page belongs to whoever is named in a property its collection calls a
-   * person; the schema is asked once per collection rather than once per page,
-   * since pages of the same collection answer to the same one.
-   */
+  /** Person properties are resolved once per collection, not per page, since a collection shares one schema. */
   async listAssignedTo(userId: string, workspaceId: string, role: UserRole): Promise<readonly PageSummary[]> {
     const pages = await this.pageRepository.listWithProperties(workspaceId, userId, role);
     const collectionIds = [...new Set(pages.flatMap((page) => (page.parentId === null ? [] : [page.parentId])))];
@@ -433,7 +370,6 @@ export class PagesService {
     return destinations === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(destinations);
   }
 
-  /** Rearranging sisters is not moving a page: nothing changes hands, so nobody else has to be told. */
   async reorderAmongSiblings(
     pageId: string,
     beforePageId: null | string,
@@ -568,7 +504,6 @@ export class PagesService {
     return Result.ok({ deletedCount: deletedPageIds.length });
   }
 
-  /** Whether a page may hang where it is being sent: a real parent there, and not one of its own. */
   validateMove(
     pageId: string,
     parentId: null | string,
@@ -617,13 +552,7 @@ export class PagesService {
     return childPageCount === null ? Result.fail(new PageAccessDeniedError()) : Result.ok({ childPageCount });
   }
 
-  /**
-   * Un archivo que no se pudo borrar del almacén queda escrito en la bitácora.
-   *
-   * La página se va igual —la fila ya no está y no se va a volver atrás por
-   * esto—, pero un archivo que sobrevive a su página ocupa sitio sin que nadie
-   * lo sepa, y nadie va a buscarlo si el fallo no dejó rastro.
-   */
+  /** Logged, not thrown: the page row is already gone, but an orphaned file must leave a trace. */
   private async cleanupAttachments(pageIds: readonly string[]): Promise<void> {
     if (pageIds.length === 0) return;
     const storageKeys = await this.pageAttachmentsCleanupRepository.listStorageKeysForPages(pageIds);

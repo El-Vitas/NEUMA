@@ -18,23 +18,13 @@ const isSameHosts = (
   next: readonly PageEditorCollectionHost[],
 ): boolean => previous.length === next.length && previous.every((host, index) => host.element === next[index]?.element);
 
-/**
- * Where each collection block is standing on the page, so the collection itself
- * can be rendered into it.
- *
- * The list only changes when the elements do, so a page full of collections is
- * not rebuilt on every keystroke.
- */
+/** The list keeps its identity unless the elements change, so a keystroke does not rebuild every collection. */
 export const usePagesEditorCollectionHosts = (
   editorHostRef: RefObject<HTMLElement | null>,
 ): { readonly hosts: readonly PageEditorCollectionHost[]; readonly sync: () => void } => {
   const [hosts, setHosts] = useState<readonly PageEditorCollectionHost[]>([]);
-  /**
-   * Each spot answers to a name of its own, minted the first time it is seen.
-   * Naming them after the collection they show would give two spots the same
-   * name when a page shows one collection twice — and, for a moment while a
-   * block is being dragged, when it shows one collection once.
-   */
+  // Names are minted per element, not taken from the collection: one collection can appear in two spots,
+  // including briefly while a block is dragged.
   const namesRef = useRef(new WeakMap<HTMLElement, string>());
   const mintedRef = useRef(0);
 

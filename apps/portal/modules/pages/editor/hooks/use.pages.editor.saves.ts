@@ -7,22 +7,13 @@ import type { PagePropertyValue, PagePropertyValues } from '../../collections/ty
 import { renamePageAction, replacePageContentAction } from '../../server/actions/pages.actions';
 import type { PagesEditorSaves, PagesEditorSavesOptions } from '../types/pages.editor.saves.types';
 
-/**
- * What of the page is waiting to be kept, and how each part travels.
- *
- * The writing is kept by the live document while there is one, so it is only
- * sent from here when there is not. The name travels on its own. A property
- * travels alone, so nobody's change to another one is sent back stale. A part
- * that fails to arrive stays waiting for the next save, and a change made while
- * a save is on its way is not forgotten when that save comes back.
- */
-/**
- * Whether a part arrived. One that never reached the server — the connection
- * dropped, a new version was being put up — did not arrive either, and stays
- * waiting just like one the server refused.
- */
+/** A request that never reached the server counts as not arrived, like one the server refused. */
 const didArrive = async (send: () => Promise<unknown>): Promise<boolean> => !hasActionError(await callAction(send));
 
+/**
+ * Content is sent from here only when no live document keeps it. Title and each property travel separately,
+ * so one property's change is never sent back stale. A part that fails stays pending for the next save.
+ */
 export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEditorSaves => {
   const isTitlePendingRef = useRef(false);
   const isContentPendingRef = useRef(false);

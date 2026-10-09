@@ -8,7 +8,6 @@ interface IProps {
   readonly tokens: readonly AccessToken[] | null;
 }
 
-/** Los tokens de quien mira, o por qué no se ven: no cargaron, o todavía no hay ninguno. */
 export const AccessTokensList = ({ tokens }: IProps) => {
   const t = useTranslations('accessTokens');
 

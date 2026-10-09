@@ -16,7 +16,6 @@ describe('Outbox (Integration)', () => {
     await testApp.close();
   });
 
-  /** Un evento que falla se reintenta con lo mismo que llevaba: el fallo se anota aparte y sin secretos. */
   it('records why an event failed, without its secrets, and keeps what the event carries', async () => {
     const prisma = testApp.get(PrismaService);
     const outbox = testApp.get(OutboxRepository);

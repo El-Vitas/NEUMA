@@ -16,19 +16,11 @@ interface IProps {
   readonly view: PageSchemaView;
 }
 
-/**
- * Por qué fecha coloca sus filas un calendario.
- *
- * Una colección puede guardar varias —cuándo empieza algo, cuándo vence—, y el
- * calendario enseña una cada vez: por eso se elige, en vez de suponer que la
- * primera es la buena.
- */
 export const PagesSchemaSettingsViewDates = ({ editor, onGo, view }: IProps) => {
   const t = useTranslations('pages.collection');
   const dates = listDatePropertyKeys(editor.properties);
   const labelOf = (key: string): string => editor.properties.find((property) => property.key === key)?.label ?? key;
 
-  /* Sin ninguna fecha no hay calendario que hacer. */
   if (dates.length === 0) {
     return (
       <PagesSchemaSettingsMissingProperty

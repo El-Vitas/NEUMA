@@ -5,11 +5,7 @@ import { Client } from 'pg';
 const MIGRATION = '20261004120000_agent_action_request_id';
 const UNIQUE_INDEX_PATTERN = /CREATE UNIQUE INDEX "AgentAction_tokenId_requestId_live_key"[\s\S]*?;/;
 
-/**
- * El índice que impide hacer dos veces el mismo pedido de un agente. Es parcial,
- * y `db push` no sabe crearlo, así que se toma tal cual de su migración: las
- * pruebas cuidan lo mismo que la base de verdad.
- */
+/** Partial unique index that `db push` cannot create, so it is taken verbatim from its migration. */
 export const applyAgentActionRequestIndex = async (schemaScopedDatabaseUrl: string): Promise<void> => {
   const path = resolve(process.cwd(), `../../packages/db/prisma/migrations/${MIGRATION}/migration.sql`);
   const statement = UNIQUE_INDEX_PATTERN.exec(readFileSync(path, 'utf8'))?.[0];

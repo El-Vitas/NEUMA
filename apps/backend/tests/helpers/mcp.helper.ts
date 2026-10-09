@@ -4,7 +4,6 @@ import type { TestApp } from './test-app.helper';
 
 const MCP_PATH = '/api/v1/mcp';
 
-/** Lo que contesta una herramienta, leído como lo lee un agente. */
 const mcpToolAnswerSchema = z.object({
   content: z.array(z.object({ text: z.string().optional() })),
   isError: z.boolean().optional(),
@@ -13,7 +12,6 @@ const mcpToolAnswerSchema = z.object({
 
 export type McpToolAnswer = z.infer<typeof mcpToolAnswerSchema>;
 
-/** La app escuchando en un puerto propio, para que un cliente MCP de verdad se conecte por HTTP. */
 export const listenForMcp = async (testApp: TestApp): Promise<string> => {
   await testApp.app.listen(0, '127.0.0.1');
   const address = testApp.getServer().address();
@@ -31,7 +29,7 @@ export const connectMcpClient = async (baseUrl: string, secret: string): Promise
   return client;
 };
 
-/** Conecta, hace algo y cierra, aunque lo que hizo falle: un cliente abierto deja la prueba colgada. */
+/** Closes the client even when the callback fails: an open client hangs the test. */
 const withMcpClient = async <TResult>(
   baseUrl: string,
   secret: string,
@@ -45,7 +43,6 @@ const withMcpClient = async <TResult>(
   }
 };
 
-/** Conecta, llama una herramienta y cierra, como un agente que hace una sola pregunta. */
 export const callMcpTool = (
   baseUrl: string,
   secret: string,
@@ -56,7 +53,6 @@ export const callMcpTool = (
     mcpToolAnswerSchema.parse(await client.callTool({ arguments: args, name })),
   );
 
-/** Las herramientas que se le ofrecen a un token. */
 export const listMcpToolNames = (baseUrl: string, secret: string): Promise<readonly string[]> =>
   withMcpClient(baseUrl, secret, async (client) => (await client.listTools()).tools.map((tool) => tool.name));
 

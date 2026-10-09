@@ -40,22 +40,16 @@ const findDrawings = (node: unknown, block: number): McpDrawing[] => {
   return (node.content ?? []).flatMap((child) => findDrawings(child, block));
 };
 
-/**
- * Todo lo que unos bloques le piden a la página dibujar —diagramas, fórmulas
- * en su línea y dentro de una frase—, con el bloque de arriba en que está,
- * contando desde uno, para decir cuál falló.
- */
+/** Each drawing carries its top-level block number, counting from one, to report which failed. */
 export const listMcpDrawings = (nodes: readonly unknown[]): McpDrawing[] =>
   nodes.flatMap((node, index) => findDrawings(node, index + 1));
 
-/** Los íconos que nombra un diagrama, como `paquete:ícono` o como uno propio de Mermaid, una vez cada uno. */
 export const listMcpDiagramIcons = (source: string): string[] => [
   ...new Set(
     MCP_DIAGRAM_ICON_PATTERNS.flatMap((pattern) => [...source.matchAll(pattern)].map((match) => match[1] ?? '')),
   ),
 ];
 
-/** El grupo que nombra una línea al terminar en `in <grupo>`, leído palabra por palabra. */
 const readArchitectureParent = (line: string): string | null => {
   const words = line.trim().split(MCP_ARCHITECTURE_WORD_SEPARATOR);
   const [before, last] = words.slice(-2);
@@ -71,7 +65,6 @@ const readArchitectureMember = (line: string): McpArchitectureMember[] => {
   ];
 };
 
-/** El grupo escrito más cerca por encima de un miembro, que es donde lo pone la sangría. */
 const findGroupAbove = (members: readonly McpArchitectureMember[], index: number): McpArchitectureMember | undefined =>
   members.slice(0, index).findLast((member) => member.isGroup);
 
@@ -98,12 +91,7 @@ const findEmptyGroup = (members: readonly McpArchitectureMember[]): string | nul
     : `the group ${empty.name} has nothing in it. End the line of each service that belongs there with "in ${empty.name}", or remove the group.`;
 };
 
-/**
- * Lo que un diagrama de arquitectura agrupa mal aunque Mermaid lo lea: un
- * servicio con sangría bajo un grupo pero fuera de él, o un grupo vacío. Se
- * dibujan igual, con las cajas vacías a un lado y los servicios sueltos, y
- * casi siempre es porque se escribió la sangría creyendo que agrupa.
- */
+/** Mermaid parses an indented service outside its group, or an empty group, but draws loose services. */
 export const findMcpArchitectureGroupingFault = (source: string): string | null => {
   if (!MCP_ARCHITECTURE_DIAGRAM_START.test(source)) return null;
   const members = source.split('\n').flatMap(readArchitectureMember);

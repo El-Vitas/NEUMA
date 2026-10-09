@@ -27,13 +27,6 @@ interface IProps {
   readonly totalMatches: number;
 }
 
-/**
- * Looks for what is typed, and offers to put something else in its place.
- *
- * Opening it never touches the writing's own cursor — it is a door onto the
- * page, not a change to it — so closing it without doing anything leaves the
- * page exactly as it was found.
- */
 export const PagesEditorFindPanel = ({
   currentIndex,
   onClose,

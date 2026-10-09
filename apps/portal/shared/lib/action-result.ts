@@ -17,12 +17,7 @@ export const isActionSuccess = <T>(result: unknown): result is { readonly data: 
   return 'data' in candidate && candidate.data !== undefined;
 };
 
-/**
- * Calls an action from a screen. One that never reaches the server — the
- * connection dropped, a new version was being put up — does not answer, it
- * rejects; it is told apart as being offline, so the screen says so instead of
- * falling over.
- */
+/** A call that never reaches the server rejects instead of answering; it is reported as offline. */
 export const callAction = async <TResult>(send: () => Promise<TResult>): Promise<TResult | ActionFailure> => {
   try {
     return await send();
@@ -31,11 +26,6 @@ export const callAction = async <TResult>(send: () => Promise<TResult>): Promise
   }
 };
 
-/**
- * Why an action failed, said in one of the few words a screen knows how to
- * translate. Anything it does not recognise is treated as unexpected rather
- * than shown as it arrived.
- */
 export const readActionFailureReason = (result: unknown): ActionFailureReason => {
   if (typeof result !== 'object' || result === null || !('serverError' in result)) return 'unexpected';
   const reason = result.serverError;

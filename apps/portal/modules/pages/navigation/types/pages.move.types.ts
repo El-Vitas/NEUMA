@@ -14,7 +14,6 @@ export interface PageMoveDestinations {
   readonly spaces: readonly PageMoveSpace[];
 }
 
-/** One place a page can be sent: the root of a space, or a page inside one. */
 export interface PageMoveDestination {
   readonly id: string;
   readonly pageId: string | null;
@@ -23,7 +22,6 @@ export interface PageMoveDestination {
   readonly title: string;
 }
 
-/** A cross-space move waiting on the person who asked for it, since it would cost someone their access. */
 export interface PendingAccessLossPageMove {
   readonly count: number;
   readonly destination: PageMoveDestination;

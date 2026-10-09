@@ -30,7 +30,6 @@ const renderField = (overrides: Partial<Parameters<typeof PagesIconField>[0]> = 
   );
 
 describe('PagesIconField', () => {
-  /** A page without a chosen icon shows the plain document mark, so the button reads as an icon from day one. */
   it('shows the default mark while no icon has been chosen', () => {
     const { container } = renderField();
 

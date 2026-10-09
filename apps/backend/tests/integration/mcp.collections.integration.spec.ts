@@ -10,7 +10,7 @@ import { callMcpTool, listenForMcp, listMcpToolNames, readMcpText } from '../hel
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const PASSWORD = 'plainPassword123';
-/** Un nombre que nadie más usa en el espacio de trabajo: con dos iguales, nombrar a la persona es ambiguo. */
+/** Unique in the workspace: naming a person is ambiguous with duplicates. */
 const OWNER_NAME = 'Ana Colecciones';
 
 const { collectionsConfigure, collectionsRead, collectionsWrite, pagesRead, pagesWrite } = ACCESS_TOKEN_PERMISSIONS;
@@ -23,13 +23,7 @@ interface Session {
 const queriedShape = z.object({ rows: z.array(z.object({ id: z.string() })), total: z.number() });
 const writtenRowShape = z.object({ id: z.string() });
 
-/**
- * Lo que un agente puede hacer con una colección, de punta a punta: token
- * creado por la API, cliente MCP de verdad por HTTP, y la colección en
- * Postgres. Cada caso mira la base, no solo la respuesta: una escritura
- * rechazada tiene que no haber tocado nada, y toda escritura intentada tiene
- * que quedar anotada.
- */
+/** Cases check the database, not only the response: rejected writes change nothing, attempts are logged. */
 describe('MCP collections (Integration)', () => {
   let testApp: TestApp;
   let baseUrl: string;
@@ -270,11 +264,7 @@ describe('MCP collections (Integration)', () => {
     });
   });
 
-  /**
-   * Una página que cuelga de una colección es una fila. Crearla, renombrarla,
-   * moverla o copiarla por las herramientas de páginas cambia filas igual que
-   * create_row: pide escribir en colecciones, no solo en páginas.
-   */
+  // A page under a collection is a row, so the page tools need collection write access like create_row.
   describe('las herramientas de páginas sobre las filas de una colección', () => {
     it('refuses to create, rename, move or copy a row to a token that only writes pages, changing nothing', async () => {
       const secret = await tokenEverywhere([pagesRead, pagesWrite]);
@@ -304,7 +294,6 @@ describe('MCP collections (Integration)', () => {
     });
   });
 
-  /** Escribir o configurar no da derecho a leer: ni en la respuesta ni en un rechazo se le cuenta lo que no lee. */
   describe('un token que cambia la colección sin poder leerla', () => {
     it('confirms a new view without handing back the title, the columns or the other views', async () => {
       const secret = await tokenEverywhere([collectionsConfigure]);
