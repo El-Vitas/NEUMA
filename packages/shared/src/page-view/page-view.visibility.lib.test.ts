@@ -4,7 +4,6 @@ import { readVisiblePropertyKeys } from './page-view.visibility.lib.js';
 const available = ['status', 'assignee', 'dueDate'];
 
 describe('readVisiblePropertyKeys', () => {
-  /** A view that never said anything shows what the collection has, in the order it has it. */
   test('shows everything when the view chose nothing', () => {
     expect(readVisiblePropertyKeys(null, available)).toEqual(available);
   });
@@ -17,7 +16,6 @@ describe('readVisiblePropertyKeys', () => {
     expect(readVisiblePropertyKeys([], available)).toEqual([]);
   });
 
-  /** A property removed from the collection cannot be shown, whatever the view still remembers. */
   test('leaves out what the collection no longer has', () => {
     expect(readVisiblePropertyKeys(['status', 'removed'], available)).toEqual(['status']);
   });

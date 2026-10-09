@@ -16,13 +16,7 @@ export const EMPTY_PAGE_BACKLINKS: PageBacklinksResult = { count: 0, items: [] }
 
 export const EMPTY_PAGE_ATTACHMENTS: readonly AttachmentSummary[] = [];
 
-/**
- * The empty values a page's parts fall back to.
- *
- * They are named once and shared because a fresh `[]` or `{}` written at each
- * call is a different value every render, and everything downstream redraws
- * for a change that never happened.
- */
+/** Shared constants: a fresh `[]` or `{}` per call is a new value every render and redraws everything downstream. */
 export const EMPTY_PAGE_PERSON_OPTIONS: readonly PagePersonOption[] = [];
 
 export const EMPTY_PAGE_SUMMARIES: readonly PageSummary[] = [];
@@ -38,7 +32,6 @@ export const EMPTY_PAGE_INFO: PageInfoMetadata = {
   lastEditedByName: null,
 };
 
-/** What splits a page's own writing into the words its word count reads off. */
 export const PAGE_INFO_WORD_SEPARATOR = /\s+/;
 
 export const PAGE_PROPERTIES_VISIBLE_LIMIT = 5;
@@ -53,9 +46,7 @@ export const PAGE_API_ROUTES = {
   list: (spaceId: string, includeTrashed = false) =>
     `/api/v1/spaces/${spaceId}/pages?includeTrashed=${String(includeTrashed)}`,
   item: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}`,
-  /** Lo que dice la página, escrito a través de su documento en vivo. */
   content: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/content`,
-  /** Bloques agregados al final de la página, a través de su documento en vivo. */
   blocks: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/blocks`,
   exportMarkdown: (spaceId: string, query: string) => `/api/v1/spaces/${spaceId}/pages/export/markdown?${query}`,
   duplicate: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/duplicate`,
@@ -73,10 +64,8 @@ export const PAGE_API_ROUTES = {
   restore: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/restore`,
   backlinks: (pageId: string) => `/api/v1/pages/${pageId}/backlinks`,
   schema: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/schema`,
-  /** Renombrar o quitar una opción, que es renombrar o quitar una columna del tablero, arrastrando las filas. */
   rewriteOption: (spaceId: string, pageId: string, propertyKey: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/properties/${propertyKey}/rewrite-option`,
-  /** Lo que una vista dice de sí misma, sin rehacer la forma de la colección. */
   viewConfiguration: (spaceId: string, pageId: string, viewName: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/views/${encodeURIComponent(viewName)}/configuration`,
   rows: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/rows`,
@@ -84,5 +73,4 @@ export const PAGE_API_ROUTES = {
     `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,
 } as const;
 
-/** Lo que se dice cuando la lista de páginas no llegó siquiera como una lista. */
 export const PAGES_LIST_IS_NOT_A_LIST = 'The pages list arrived as something that is not a list';

@@ -9,7 +9,6 @@ describe('removeSchemaView', () => {
     expect(removeSchemaView([table, board], 'Board').map((view) => view.name)).toEqual(['Table']);
   });
 
-  /** Sin ninguna vista no hay forma de mirar las filas, y el servidor tampoco lo acepta. */
   test('refuses to remove the last view', () => {
     expect(removeSchemaView([table], 'Table')).toEqual([table]);
   });
@@ -26,7 +25,6 @@ describe('removeSchemaView', () => {
 });
 
 describe('makeSchemaViewDefault', () => {
-  /** Abrir la colección lleva a una vista, así que exactamente una la lleva. */
   test('hands the lead to the view named, and takes it from the one that had it', () => {
     expect(makeSchemaViewDefault([table, board], 'Board').map((view) => view.isDefault)).toEqual([false, true]);
   });

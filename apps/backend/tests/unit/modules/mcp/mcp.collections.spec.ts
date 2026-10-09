@@ -45,7 +45,6 @@ const everyCollectionPermission: readonly AccessTokenPermission[] = [
   ACCESS_TOKEN_PERMISSIONS.collectionsConfigure,
 ];
 
-/** Un token que hace todo con colecciones, salvo en una fila que tiene cerrada. */
 const principalWith = (allSpaces: readonly AccessTokenPermission[]): McpPrincipal => ({
   access: { allSpaces, pages: [{ pageId: CLOSED_ROW, permissions: [] }], spaces: [] },
   role: USER_ROLE.WORKER,
@@ -107,7 +106,6 @@ const initialShape: McpCollectionShape = {
   views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
 };
 
-/** Una colección en memoria que guarda lo que se le pide, para ver qué llegó al servicio. */
 const createCollectionStore = (refusesTheShape = false) => {
   let shape = initialShape;
   const received: Record<string, unknown[]> = { defineSchema: [], queryRows: [], rewriteOption: [], setView: [] };
@@ -146,7 +144,6 @@ const written = (id: string, title: string, values: PagePropertyValues | null): 
   title,
 });
 
-/** Filas que se escriben en memoria; una fila bloqueada rechaza como lo hace el servicio de páginas. */
 const createRowStore = (refusal: McpRefusal | null = null) => {
   const received: Record<string, unknown[]> = { create: [], rename: [], updateProperties: [] };
   const answer = (row: McpWrittenRow) =>
@@ -172,7 +169,6 @@ const createRowStore = (refusal: McpRefusal | null = null) => {
 
 const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
 
-/** Una acción anotada por el registro falso, con cómo terminó. */
 interface LoggedAction extends McpActionEntry {
   readonly outcome: string;
 }
@@ -236,7 +232,6 @@ const connect = async (
 
 type ToolResult = Awaited<ReturnType<Client['callTool']>>;
 
-/** Lo anotado de cada escritura, sin quién la hizo: qué herramienta, sobre qué página y cómo terminó. */
 const summarizeActions = (actions: readonly LoggedAction[]) =>
   actions.map(({ outcome, pageId, tool }) => ({ outcome, pageId, tool }));
 
@@ -423,7 +418,6 @@ describe('MCP collections — columns and views', () => {
     });
   });
 
-  /** Las opciones ya reescribieron sus filas: si la forma no se guarda, el agente tiene que saberlo para no repetirlo. */
   test('says which options were already renamed when the new columns could not be saved afterwards', async () => {
     const permissions = everyCollectionPermission;
     const { client } = await connect(

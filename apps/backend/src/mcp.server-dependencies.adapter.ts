@@ -21,12 +21,7 @@ import { SearchService } from './modules/search/search.service';
 import { SpacesService } from './modules/spaces/spaces.service';
 import { WorkspacesService } from './modules/workspaces/workspaces.service';
 
-/**
- * Arma lo que el servidor MCP necesita con los mismos servicios que usa el
- * portal, así lo que hace un agente pasa por las mismas reglas que lo que hace
- * una persona. Vive junto a la aplicación, que es donde esos servicios ya
- * están armados, en vez de que cada módulo los vuelva a crear.
- */
+/** Reuses the portal's services so agent actions go through the same rules as a person's. */
 @Injectable()
 export class McpServerDependenciesAdapter {
   constructor(
@@ -69,11 +64,7 @@ export class McpServerDependenciesAdapter {
     };
   }
 
-  /**
-   * Lo que el agente hace con una página entera, llevado al servicio de páginas
-   * en el orden de argumentos que el servicio pide. Cada cambio lleva su propio
-   * id de mutación: el agente no tiene uno que dar.
-   */
+  /** Agents supply no mutation id, so each change generates its own. */
   private buildPageManager(): McpPageManager {
     const { pagesService } = this;
     return {
@@ -104,7 +95,6 @@ export class McpServerDependenciesAdapter {
     };
   }
 
-  /** Lo que escribe filas y páginas nuevas, con quien escribe como autor de lo que crea. */
   private buildRowWriter(): McpRowWriter {
     const { pagesService } = this;
     return {

@@ -20,11 +20,7 @@ export const PageFavoriteToggle = ({ isFavorite, pageId, title }: IProps) => {
   const t = useTranslations('pages');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  /**
-   * The star answers to the server. The click only borrows it while the
-   * mutation travels, so the same page unfavorited from the sidebar leaves no
-   * stale star behind here.
-   */
+  /** Server state wins; the click only overrides it while the mutation is pending, so no stale star remains. */
   const [favorite, showFavorite] = useOptimistic(isFavorite);
 
   const toggleFavorite = (): void => {

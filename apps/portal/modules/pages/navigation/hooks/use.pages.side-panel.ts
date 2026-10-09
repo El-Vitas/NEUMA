@@ -18,16 +18,8 @@ import {
 import type { PagesSidePanelController } from '../types/pages.side-panel.types';
 
 /**
- * The panel's own address, its width, and how one moves through both.
- *
- * The panel exists only because the address names it — a shared link or a
- * reload has to open the same page beside the same page — so opening,
- * navigating within and closing the panel are all the same operation: write a
- * new address. Closing is the one exception with a step before it: whatever
- * the panel's own editor still has to save is asked to finish first, so a
- * page closed moments after being written never loses what was written.
- *
- * The panel hangs off the right edge, so dragging left is what grows it.
+ * The address names the panel, so opening, navigating and closing are all writes of a new address.
+ * Closing first flushes the panel editor's pending save. The panel hangs off the right edge: dragging left grows it.
  */
 export const usePagesSidePanel = (flushPendingChanges: () => Promise<void>): PagesSidePanelController => {
   const router = useRouter();
@@ -53,12 +45,7 @@ export const usePagesSidePanel = (flushPendingChanges: () => Promise<void>): Pag
     [pathname, router, searchParams],
   );
 
-  /**
-   * Cambiar de página dentro del panel deja atrás el editor de la anterior, así
-   * que lo escrito hace un instante se manda antes de irse: el autoguardado
-   * espera un momento entre tecla y tecla, y al desaparecer solo cancela esa
-   * espera en vez de cumplirla.
-   */
+  /** Autosave is debounced and unmounting only cancels the wait, so pending changes are flushed before leaving. */
   const navigateWithinPanel = useCallback(
     async (_spaceId: string, pageId: string): Promise<void> => {
       await flushPendingChanges();

@@ -34,7 +34,6 @@ describe('turning a pasted link into what it should be', () => {
     expect(doc.child(0).attrs).toMatchObject({ provider: 'youtube', url });
   });
 
-  /** A link nobody can embed is left exactly as it was pasted, and the page says why. */
   it('refuses to embed a link to anywhere else, leaving the writing untouched', () => {
     const other = 'https://example.com/a';
     const state = pageSaying(other);
@@ -75,7 +74,6 @@ describe('what counts as a link on the clipboard', () => {
     expect(readPastedLinkUrl('')).toBeNull();
   });
 
-  /** Only what the page can go on to ask about or show: nothing is offered for what it cannot. */
   it('is asked for over a safe connection', () => {
     expect(readPastedLinkUrl('http://example.com/a')).toBeNull();
     expect(readPastedLinkUrl('javascript:alert(1)')).toBeNull();

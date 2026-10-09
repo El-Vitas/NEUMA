@@ -17,10 +17,6 @@ const readKeyLabel = (key: string, usesCommandKey: boolean): string => {
   return usesCommandKey ? PAGE_EDITOR_COMMAND_KEY_LABEL : PAGE_EDITOR_CONTROL_KEY_LABEL;
 };
 
-/**
- * Turns a binding into the keys a person sees, naming the modifier the way
- * their keyboard does.
- */
 export const readPageEditorShortcutKeys = (
   shortcut: PageEditorShortcut,
   usesCommandKey: boolean,

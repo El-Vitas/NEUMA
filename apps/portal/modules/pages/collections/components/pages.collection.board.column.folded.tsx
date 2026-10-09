@@ -13,14 +13,7 @@ interface IProps {
   readonly onUnfold: () => void;
 }
 
-/**
- * Una columna doblada: una franja con su color, cuántas lleva y su nombre de
- * arriba abajo.
- *
- * Sigue siendo un sitio donde soltar otra columna. Si no lo fuera, una columna
- * doblada partiría el tablero en dos mitades entre las que no se puede pasar
- * nada.
- */
+/** Still a drop target for columns, otherwise a folded column would split the board in two. */
 export const PagesCollectionBoardColumnFolded = ({ columnDrag, group, label, onUnfold }: IProps) => {
   const t = useTranslations('pages');
 
@@ -49,7 +42,7 @@ export const PagesCollectionBoardColumnFolded = ({ columnDrag, group, label, onU
     >
       <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-full', readPageOptionDotClass(group.color))} />
       <span className="font-medium text-muted-foreground text-xs tabular-nums">{group.rows.length}</span>
-      {/* De arriba abajo: una franja de 44px no da para el nombre escrito de lado a lado. */}
+      {/* Vertical: a 44px strip cannot fit the name written horizontally. */}
       <span className="truncate font-medium text-foreground text-sm [writing-mode:vertical-rl]">{label}</span>
     </button>
   );

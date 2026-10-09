@@ -27,7 +27,6 @@ describe('lo que una fila dice en palabras', () => {
     expect(searchText).toContain('preparar la reunion con direccion');
   });
 
-  /** Quien escribe «agosto» no busca `2026-08-14`, y quien escribe «3» encontraría media colección. */
   it('deja fuera lo que no son palabras', () => {
     expect(buildRowSearchText(row, properties)).not.toContain('2026');
   });
@@ -44,7 +43,6 @@ describe('quién cae dentro de lo buscado', () => {
     expect(rowMatchesQuery(searchText, 'reunión')).toBe(true);
   });
 
-  /** Se busca como se escribe, no como se acentúa: «direccion» encuentra «Dirección». */
   it('no se pelea con los acentos ni con las mayúsculas', () => {
     expect(rowMatchesQuery(searchText, 'DIRECCION')).toBe(true);
   });
@@ -53,7 +51,6 @@ describe('quién cae dentro de lo buscado', () => {
     expect(rowMatchesQuery(searchText, 'presupuesto')).toBe(false);
   });
 
-  /** Un buscador vacío no es una condición: es un buscador esperando. */
   it('deja pasar a todas mientras no se escriba nada', () => {
     expect(rowMatchesQuery(searchText, '')).toBe(true);
     expect(rowMatchesQuery(searchText, '   ')).toBe(true);

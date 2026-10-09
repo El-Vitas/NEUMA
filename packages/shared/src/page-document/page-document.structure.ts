@@ -7,7 +7,6 @@ import type {
 const OPTIONAL: PageDocumentAttributes[string] = { default: null };
 const REQUIRED: PageDocumentAttributes[string] = {};
 
-/** Lo que lleva todo bloque, sea del tipo que sea: quién es, cómo se pinta y qué se dijo de él. */
 const PAGE_DOCUMENT_BLOCK_ATTRIBUTES: PageDocumentAttributes = {
   backgroundColor: OPTIONAL,
   comments: OPTIONAL,
@@ -34,14 +33,10 @@ const PAGE_DOCUMENT_TABLE_CELL_ATTRIBUTES: PageDocumentAttributes = {
   rowspan: { default: 1 },
 };
 
-/** El nombre del bloque que escribió una versión que sabe más que esta, y que se guarda tal cual. */
+/** Placeholder for a block written by a newer version; stored as is. */
 export const PAGE_DOCUMENT_UNSUPPORTED_NODE = 'unsupported';
 
-/**
- * La forma del documento de una página, igual para el editor y para el
- * servidor. El orden importa: el primer bloque es el que se crea por defecto, y
- * el orden de las marcas es el orden en que se escriben.
- */
+/** Shared by editor and server. Order matters: the first block is the default, and mark order is write order. */
 export const PAGE_DOCUMENT_NODES = {
   doc: { content: 'block+' },
   paragraph: { attrs: withBlockAttributes(), content: 'inline*', group: 'block' },
@@ -132,12 +127,7 @@ export const PAGE_DOCUMENT_NODES = {
   nested_block: { attrs: withBlockAttributes(), content: 'block block_children', group: 'block' },
 } as const satisfies Readonly<Record<string, PageDocumentNodeStructure>>;
 
-/**
- * Los nodos que no contienen nada: los que su forma no dice qué llevan dentro.
- * Darle a uno de estos un `content` vacío al escribirlo sería una forma que el
- * contrato guardado rechaza. Sale de la forma misma, así un nodo nuevo no
- * queda fuera por olvido.
- */
+/** Derived so a new node is not forgotten; the stored contract rejects an empty `content` on these. */
 export const PAGE_DOCUMENT_LEAF_NODES: readonly string[] = Object.entries(PAGE_DOCUMENT_NODES)
   .filter(([, structure]) => !('content' in structure))
   .map(([name]) => name);

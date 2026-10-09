@@ -12,13 +12,7 @@ interface IProps {
   readonly name: string;
 }
 
-/**
- * One drawn symbol, fetched only when something actually asks for it.
- *
- * A name that this product does not draw shows nothing rather than breaking
- * what surrounds it: whatever the page is called still matters more than the
- * mark beside it.
- */
+/** Fetched on demand; an unknown name renders nothing instead of breaking the surrounding title. */
 export const PagesIconSymbol = ({ className, color = 'default', name }: IProps) => {
   if (!isOfferedPageIconSymbol(name)) return null;
 

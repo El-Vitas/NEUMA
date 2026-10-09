@@ -20,15 +20,10 @@ import { createMcpServer } from './mcp.server';
 import type { McpServerDependencies } from './types/mcp.types';
 
 /**
- * La puerta HTTP del MCP, para agentes que no corren en la misma máquina.
- *
- * Entra solo quien trae un token personal, y el guardia ya dejó anotado en
- * nombre de quién. Cada petición arma su propio servidor con esa identidad: no
- * hay sesión que quede viva entre llamadas, así que revocar el token corta la
- * siguiente llamada y dos agentes nunca comparten estado. Armarlo cuesta cerca
- * de un milisegundo, menos que cualquier consulta de la llamada: guardarlo para
- * reusarlo ahorraría poco y obligaría a invalidarlo cuando cambia lo que el
- * token tiene dado.
+ * HTTP entry point of the MCP for remote agents. Each request builds its own
+ * server from the guard's identity, so revoking a token cuts the next call and
+ * agents never share state. Building takes about a millisecond; caching it
+ * would save little and require invalidation whenever the token's grants change.
  */
 @Controller(MCP_ROUTE)
 @UseGuards(McpIpThrottlerGuard, AccessTokenGuard, McpThrottlerGuard)
@@ -54,7 +49,7 @@ export class McpController implements OnModuleDestroy {
       authInfo: toMcpAuthInfo(principal),
       parsedBody: request.body,
     });
-    /* Fastify manda un Response web tal cual —estado, cabeceras y flujo—, sin juntarlo en memoria. */
+    /* Fastify sends a web Response as is (status, headers, stream) without buffering it. */
     await reply.send(response);
   }
 

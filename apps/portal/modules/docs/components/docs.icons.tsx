@@ -10,13 +10,7 @@ interface IProps {
   readonly named: string;
 }
 
-/**
- * The pictures a document names, shown drawn and named.
- *
- * Naming a picture is guesswork unless somebody can see the one they are
- * naming, so the ones a document lists are drawn here beside the name to copy —
- * and asked of our own server, exactly as a diagram asks for them.
- */
+/** Icons are fetched from our own server, exactly as a diagram fetches them. */
 export const DocsIcons = ({ named }: IProps) => {
   const [drawings, setDrawings] = useState<Readonly<Record<string, DocsIconDrawing>>>({});
   const wanted = readNamedIcons(named);

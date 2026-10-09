@@ -25,11 +25,7 @@ import type {
 
 const readChildren = (node: unknown): readonly unknown[] => (isPageDocumentNode(node) ? (node.content ?? []) : []);
 
-/**
- * Las palabras nuevas de un bloque, con sus menciones revisadas: leídas como
- * las de un párrafo, y como las de una cita, que las parte en párrafos igual
- * que al insertarla.
- */
+/** A quote's text splits into paragraphs, as on insert. */
 const prepareWords = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -46,10 +42,6 @@ const prepareWords = async (
   return { inline: readChildren(paragraph), paragraphs: readChildren(quote), text };
 };
 
-/**
- * Las palabras nuevas de un bloque que la página dibuja —un diagrama, una
- * fórmula— se revisan como se revisaría el bloque entero, antes de escribir.
- */
 const checkChangedDrawing = async (
   dependencies: McpServerDependencies,
   page: McpPageSource,
@@ -62,7 +54,6 @@ const checkChangedDrawing = async (
   await checkMcpDrawings(dependencies, [{ ...target, content: [{ text, type: 'text' }] }]);
 };
 
-/** Los colores que se pidió darle o quitarle al bloque entero, si se pidió alguno. */
 const readColors = (input: McpUpdateBlockInput): McpBlockChange => {
   const colors = {
     ...(input.backgroundColor === undefined ? {} : { backgroundColor: input.backgroundColor }),
@@ -71,7 +62,6 @@ const readColors = (input: McpUpdateBlockInput): McpBlockChange => {
   return Object.keys(colors).length === 0 ? {} : { colors };
 };
 
-/** Lo que el agente pidió cambiar: o un bloque entero, o sus palabras y si está marcado; y, con cualquiera, sus colores. */
 const prepareChange = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -114,11 +104,7 @@ const updateBlock = async (
   return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, [input.block]);
 };
 
-/**
- * Cambia un bloque de una página: sus palabras, si un ítem de una lista de
- * tareas está hecho, o el bloque entero. El bloque conserva su id, así los
- * enlaces que lo señalaban siguen llegando a él.
- */
+/** The block keeps its id so links to it still resolve. */
 export const updateBlockTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.updateBlock,
   register: (server, dependencies) => {

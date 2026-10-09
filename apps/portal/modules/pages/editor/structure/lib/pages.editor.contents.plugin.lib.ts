@@ -28,17 +28,8 @@ const markEveryIndex = (state: EditorState): DecorationSet => {
 };
 
 /**
- * Tells an index when the page it lists has changed.
- *
- * A block is only asked to redraw itself when its own writing changes, and an
- * index has no writing of its own: it would be drawn once and go stale the
- * moment somebody typed a heading. So each one is marked with what the headings
- * of the page come to, and a mark that changes is what asks it to be redrawn —
- * which also means writing a paragraph leaves it exactly as it was.
- *
- * The headings are marked too, in the order they are written, because the index
- * kept at the side of the page is drawn outside the writing and has no other way
- * of knowing which heading is the one being read.
+ * A node view only redraws when its own content changes, and an index has none, so each index and heading is
+ * decorated with the heading signature: a changed decoration forces the redraw.
  */
 export const createPageEditorContentsPlugin = (): Plugin =>
   new Plugin({

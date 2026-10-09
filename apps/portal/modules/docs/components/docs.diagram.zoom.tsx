@@ -13,11 +13,7 @@ interface IProps {
   readonly zoom: number;
 }
 
-/**
- * The buttons an example's drawing is brought closer and pushed away by:
- * closer, further, fitted to its frame, and how close it is now, which takes
- * it back to its own size when pressed.
- */
+/** The zoom level button resets the drawing to its own size. */
 export const DocsDiagramZoom = ({ onActualSize, onFit, onZoomIn, onZoomOut, zoom }: IProps) => {
   const t = useTranslations('docs');
   const shown = `${String(Math.round(zoom * DIAGRAM_ZOOM_PERCENT))} %`;

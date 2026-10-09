@@ -51,32 +51,20 @@ export const serializePageEditorDocument = (document: EditorDocument): PageConte
 export const serializePageEditorState = (state: EditorState): PageContent => serializePageEditorDocument(state.doc);
 
 /**
- * What of the writing the page is able to keep, and nothing when it cannot keep it.
- *
- * The editor lets more be written than a page accepts — a single block longer
- * than the page allows, above all — and asking for it as a value rather than
- * having it thrown is what lets the refusal be said out loud: thrown from the
- * middle of writing it stops nothing visible and saves nothing either, which is
- * a page that quietly stops being kept while somebody keeps writing it.
+ * Returns `null` instead of throwing when the content exceeds what a page accepts (a block that is too long),
+ * so the caller can surface the refusal rather than silently stop saving.
  */
 export const readWhatThePageCanKeep = (state: EditorState): PageContent | null =>
   readPageDocumentJsonAsContent(state.doc.toJSON());
 
 export const isPageEditorReadOnly = (canEdit: boolean): boolean => !canEdit;
 
-/**
- * Puts the cursor at the beginning of the writing.
- *
- * Leaving the title is arriving at the body, so the writing is taken hold of and
- * the cursor placed in its first block rather than the page merely scrolled: the
- * next word typed then lands where the person meant to go.
- */
+/** Focuses the editor and places the cursor in the first block, so typing after the title lands in the body. */
 export const goToTheWritingStart = (editorView: EditorView): void => {
   editorView.focus();
   editorView.dispatch(editorView.state.tr.setSelection(TextSelection.atStart(editorView.state.doc)).scrollIntoView());
 };
 
-/** A command is handed the view as well: some of them answer with the page around the writing. */
 export const runPageEditorCommand = (editorView: EditorView, command: PageEditorCommand): boolean =>
   command.run(editorView.state, editorView.dispatch, editorView);
 
@@ -125,9 +113,5 @@ export const computeSelectionToolbarPlacement = (parameters: {
   return { left, placement, top };
 };
 
-/**
- * Whether the shortcuts should be announced with the command key rather than
- * control. It is read from what the browser says it is, since the platform it
- * runs on is no longer something a page may ask for.
- */
+/** Reads the user agent because `navigator.platform` is deprecated. */
 export const usesCommandKeyboard = (userAgent: string): boolean => PAGE_EDITOR_APPLE_USER_AGENT_PATTERN.test(userAgent);

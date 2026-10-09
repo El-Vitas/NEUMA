@@ -12,20 +12,11 @@ interface IProps {
   readonly icon: null | PageIcon;
 }
 
-/**
- * The mark a page wears, whichever kind it chose — and the one it wears when it
- * chose nothing.
- *
- * A page with no icon of its own is not a page missing its icon: it wears the
- * plain document mark, the same one it shows in the tree, so what a new page
- * looks like is the same thing everywhere rather than an empty space here and a
- * drawing there.
- */
 export const PageIconGlyph = ({ className, icon }: IProps) => {
   if (icon === null) return <FileText aria-hidden="true" className={cn('size-[0.7em]', className)} />;
 
   if (icon.kind === 'image') {
-    /** Asked for by the browser itself: the optimiser fetches from the server, where nobody is signed in. */
+    /** The browser must fetch it: the image optimiser runs on the server, where nobody is signed in. */
     return (
       <ImageWithFallback
         alt=""

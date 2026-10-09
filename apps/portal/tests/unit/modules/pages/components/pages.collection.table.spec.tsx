@@ -16,7 +16,6 @@ import { asPropertyOptions } from '../lib/pages.options.fixture';
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const saved: { configuration: Record<string, unknown>; viewName: string }[] = [];
 
-/** Cómo quedó la configuración de la vista en lo último que se mandó a guardar. */
 const readWrittenConfiguration = () => readPageViewConfiguration(saved[0]?.configuration ?? {});
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
@@ -27,7 +26,7 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
-/** La barra de selección alcanza a estas, y sin ellas el módulo real arrastra código de servidor. */
+// The selection bar reaches these; without them the real module pulls in server code.
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),
   duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),
@@ -45,7 +44,6 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     return { data: null };
   },
   updatePageCollectionAction: async () => ({ data: schema }),
-  /** El pie y la cabecera guardan solo lo que esa vista dice de sí misma. */
   updatePageViewConfigurationAction: async (input: { configuration: Record<string, unknown>; viewName: string }) => {
     saved.push(input);
     return { data: { ...schema, views: [{ ...view, configuration: input.configuration }] } };
@@ -54,7 +52,6 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
 
 const { PagesCollectionTable } = await import('@/modules/pages/collections/components/pages.collection.table');
 
-/** A cell draws a client piece, and a client piece needs the words its own way. */
 const renderWithMessages = (ui: ReactNode) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
@@ -91,7 +88,6 @@ const view: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table'
 
 const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [view] };
 
-/** Todas las pruebas dibujan la misma tabla: lo único que cambia es quién mira y qué filas hay. */
 const drawTable = (canEdit: boolean, shownRows: readonly PageRow[] = rows) =>
   PagesCollectionTable({
     activeViewName: view.name,
@@ -118,11 +114,7 @@ describe('PagesCollectionTable', () => {
   it('offers a way to open a row in full page instead of at the side', async () => {
     renderWithMessages(await drawTable(false));
 
-    /**
-     * Asked for by where each link leads rather than by what it is called: a
-     * server component's words are not translated here, and what this test is
-     * about is that the full page is reachable at all.
-     */
+    // Matched by link destination: a server component's words are not translated here.
     const destinations = screen
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'))
@@ -256,7 +248,6 @@ describe('PagesCollectionTable — agrupada', () => {
     expect(bands[0]?.textContent).toContain('1');
   });
 
-  /** Cada grupo repite la cuenta que la vista eligió, sobre lo suyo. */
   it('says under each group what its own rows add up to', async () => {
     renderWithMessages(await drawGrouped());
 
@@ -289,7 +280,6 @@ describe('PagesCollectionTable — agrupada', () => {
     expect(bands.map((band) => band.textContent).join(' ')).not.toContain('blocked');
   });
 
-  /** El orden de los grupos es el de las opciones, así que solo se mueven las que son una. */
   it('offers to move a group that is a declared value, and not the first one further up', async () => {
     renderWithMessages(await drawGrouped());
 

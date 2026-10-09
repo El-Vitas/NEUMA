@@ -14,15 +14,6 @@ import type {
   PageEditorColumnTypes,
 } from '../types/pages.editor.block-drag.types';
 
-/**
- * Tells which side of a block the pointer is hugging, which is how a row gets
- * split into columns: dropping on the far left or far right of a block puts
- * the dragged blocks beside it instead of above or below it.
- *
- * The band is a share of the block's width, capped so wide blocks do not turn
- * most of their surface into a column target.
- */
-/** Whether the pointer is close enough to the top or the bottom of a block to mean a new line rather than a column. */
 export const isPointerAtPageEditorBlockEdge = (parameters: {
   readonly blockRect: { readonly height: number; readonly top: number };
   readonly clientY: number;
@@ -34,6 +25,7 @@ export const isPointerAtPageEditorBlockEdge = (parameters: {
   return clientY <= blockRect.top + reach || clientY >= blockRect.top + blockRect.height - reach;
 };
 
+/** The band is a share of the block width, capped so wide blocks are not mostly column target. */
 export const findPageEditorColumnSide = (parameters: {
   readonly blockRect: { readonly left: number; readonly width: number };
   readonly clientX: number;
@@ -45,14 +37,10 @@ export const findPageEditorColumnSide = (parameters: {
     PAGE_EDITOR_COLUMN_EDGE_MAX_PX,
   );
 
-  /**
-   * The bands reach a little past the block. The grip a drag starts from sits
-   * out in the margin, so the pointer arrives from outside: refusing to answer
-   * there is what made dropping beside a block feel like it went unnoticed.
-   */
+  // The bands reach past the block because the drag grip sits in the margin, so the pointer arrives from outside.
   if (clientX < blockRect.left - band || clientX > right + band) return null;
 
-  /** On a block narrower than two bands there is no middle left, so each side takes half. */
+  // A block narrower than two bands has no middle, so each side takes half.
   if (blockRect.width <= band * 2) return clientX < blockRect.left + blockRect.width / 2 ? 'left' : 'right';
 
   if (clientX <= blockRect.left + band) return 'left';
@@ -134,14 +122,7 @@ const buildColumnDropTransaction = (
   return transaction;
 };
 
-/**
- * Builds the command that drops blocks beside another one.
- *
- * When the target already lives in a row of columns the dragged blocks become
- * one more column of that row, which is how a row grows to three, four or as
- * many columns as wanted. Otherwise the target and the dragged blocks become a
- * new row of two.
- */
+/** Inside an existing column row the dragged blocks become one more column; otherwise a new row of two. */
 export const createPageEditorColumnDropCommand =
   (drop: PageEditorColumnDrop): Command =>
   (state, dispatch) => {

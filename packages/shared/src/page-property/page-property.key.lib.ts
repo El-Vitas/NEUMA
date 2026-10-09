@@ -22,20 +22,15 @@ const toBareKey = (label: string): string => {
   return prefixed.slice(0, PAGE_PROPERTY_KEY_MAX_LENGTH);
 };
 
-/** A key with its number, cut short so the whole of it fits what the server stores. */
 const numberKey = (bare: string, attempt: number): string => {
   const suffix = `_${String(attempt)}`;
   return `${bare.slice(0, PAGE_PROPERTY_KEY_MAX_LENGTH - suffix.length)}${suffix}`;
 };
 
 /**
- * The key a property is stored under, made from the name somebody typed.
- *
- * The key never changes once a row has written something under it, so it is
- * built to survive: no accents, no spaces, nothing the server would refuse. A
- * name already taken gets a number rather than landing on somebody else's
- * values. The portal and the agent both make keys this way, so a column made
- * by either reads the same.
+ * The key is immutable once rows store values under it. A taken name gets a number
+ * so it never lands on another column's values. Portal and agent share this, so
+ * a column reads the same whoever made it.
  */
 export const buildPagePropertyKey = (label: string, properties: readonly { readonly key: string }[]): string => {
   const bare = toBareKey(label);

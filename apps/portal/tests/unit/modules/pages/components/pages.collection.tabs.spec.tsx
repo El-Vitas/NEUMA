@@ -23,7 +23,6 @@ describe('PagesCollectionTabs', () => {
     expect(screen.getByRole('link', { name: /Table/ }).getAttribute('aria-current')).toBeNull();
   });
 
-  /** El emoji acompaña al nombre: solo, no diría cuál de tres tableros es. */
   it('draws the emoji of a view that chose one, next to its name', () => {
     cleanup();
     render(<PagesCollectionTabs activeViewName="Table" label="Vistas" views={[table, board]} />);

@@ -15,13 +15,7 @@ interface IProps {
   readonly space: SpaceSummary;
 }
 
-/**
- * What a space is called and what it is for, said in one place.
- *
- * Both are sent, but only what changed: renaming a space and describing it are
- * two different things to the server, and asking it to do the one nobody
- * touched would put a needless write in the record of the space.
- */
+/** Sends only the fields that changed, so an untouched one does not cause a needless write. */
 export const SpacesSettingsForm = ({ space }: IProps) => {
   const t = useTranslations('spaces.settings');
   const [name, setName] = useState(space.name);
@@ -68,7 +62,6 @@ export const SpacesSettingsForm = ({ space }: IProps) => {
 
       <div className="space-y-2">
         <Label htmlFor={descriptionFieldId}>{t('descriptionLabel')}</Label>
-        {/* A sentence or two, so the plain field the rest of the app already uses is the honest size for it. */}
         <Input
           id={descriptionFieldId}
           maxLength={SPACE_DESCRIPTION_MAX_LENGTH}

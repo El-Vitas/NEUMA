@@ -21,10 +21,6 @@ import type {
 } from '../types/mcp.collections.types';
 import type { McpPerson, McpToolDefinition } from '../types/mcp.types';
 
-/**
- * El filtro y el orden de la consulta: los de la vista que nombró, si nombró
- * una, con lo que pidió aparte encima.
- */
 const buildQueryConfiguration = (
   collection: McpOpenCollection,
   input: McpQueryCollectionInput,
@@ -50,14 +46,7 @@ const formatQueryText = (output: McpQueryCollectionOutput): string => {
   return `${output.rows.map(formatMcpRowText).join('\n')}${more}${truncated}`;
 };
 
-/**
- * Las filas de una colección que cumplen unas condiciones, en un orden: las
- * tareas pendientes de alguien, las que vencen esta semana.
- *
- * Filtra y ordena el mismo código que usa una vista del portal, así lo que
- * contesta el agente es lo que una persona vería con esa vista. Solo cuenta
- * las filas que el token deja leer.
- */
+/** Uses the portal's view code, so results match what a person sees. Counts only rows the token can read. */
 export const queryCollectionTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.queryCollection,
   register: (server, dependencies) => {

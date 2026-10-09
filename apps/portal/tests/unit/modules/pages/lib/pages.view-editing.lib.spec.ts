@@ -27,14 +27,12 @@ const board: PageSchemaView = {
 const table: PageSchemaView = { configuration: {}, isDefault: false, name: 'Table', type: 'TABLE' };
 
 describe('listGroupablePropertyKeys', () => {
-  /** Solo lo que responde un valor y uno solo: el título nombra la fila, no la agrupa. */
   it('offers only the properties a board can make columns from', () => {
     expect(listGroupablePropertyKeys([title, status, dueDate])).toEqual(['status', 'dueDate']);
   });
 });
 
 describe('findBoardWithoutGrouping', () => {
-  /** El servidor rechaza la colección entera si un tablero no dice por dónde agrupa. */
   it('finds the board that does not say what makes its columns', () => {
     const ungrouped: PageSchemaView = { configuration: {}, isDefault: false, name: 'Nuevo', type: 'BOARD' };
 
@@ -45,7 +43,6 @@ describe('findBoardWithoutGrouping', () => {
     expect(findBoardWithoutGrouping([table, board], [title, status])).toBeUndefined();
   });
 
-  /** Una fecha sí hace columnas: una por día de los que las filas nombran. */
   it('says nothing about a board grouped by a date', () => {
     const byDate: PageSchemaView = {
       configuration: { groupBy: 'dueDate' },
@@ -57,7 +54,6 @@ describe('findBoardWithoutGrouping', () => {
     expect(findBoardWithoutGrouping([byDate], [title, dueDate])).toBeUndefined();
   });
 
-  /** El título nombra cada fila, así que agrupar por él haría una columna por fila. */
   it('counts as ungrouped a board pointing at a property that cannot make columns', () => {
     const byTitle: PageSchemaView = {
       configuration: { groupBy: 'title' },
@@ -69,7 +65,6 @@ describe('findBoardWithoutGrouping', () => {
     expect(findBoardWithoutGrouping([byTitle], [title, status])?.name).toBe('Por nombre');
   });
 
-  /** La propiedad por la que agrupaba se quitó del esquema, y el tablero se quedó apuntando a la nada. */
   it('counts as ungrouped a board pointing at a property that is no longer there', () => {
     expect(findBoardWithoutGrouping([board], [title])?.name).toBe('Board');
   });
@@ -103,7 +98,6 @@ describe('setViewGroupBy', () => {
 });
 
 describe('toggleViewProperty', () => {
-  /** A view that never chose shows everything, so the first thing hidden is the one just clicked. */
   it('hides one property when the view was showing them all', () => {
     const changed = toggleViewProperty([table], 'Table', 'status', ['status', 'dueDate']);
 

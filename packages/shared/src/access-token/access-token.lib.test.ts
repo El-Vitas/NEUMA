@@ -23,7 +23,7 @@ const read = listAccessTokenLevelPermissions(ACCESS_TOKEN_LEVELS.read);
 const readWrite = listAccessTokenLevelPermissions(ACCESS_TOKEN_LEVELS.readWrite);
 const none = listAccessTokenLevelPermissions(ACCESS_TOKEN_LEVELS.none);
 
-/** Una página en un espacio, con sus ancestros de la más cercana a la raíz. */
+/** Ancestors are ordered from nearest to root. */
 const pageAt = (spaceId: string, ...lineage: string[]): AccessTokenPlace => ({ lineage, spaceId });
 
 describe('los niveles de acceso', () => {
@@ -38,7 +38,6 @@ describe('los niveles de acceso', () => {
     expect(readAccessTokenLevel([...readWrite].reverse())).toBe(ACCESS_TOKEN_LEVELS.readWrite);
   });
 
-  /** Sin permisos no es un error: es una exclusión, y tiene nombre propio. */
   test('calls an empty set no access', () => {
     expect(readAccessTokenLevel([])).toBe(ACCESS_TOKEN_LEVELS.none);
     expect(none).toEqual([]);
@@ -54,7 +53,6 @@ describe('lo que alguien puede dar', () => {
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, ACCESS_TOKEN_PERMISSIONS.pagesRead)).toBe(true);
   });
 
-  /** Lo que no es de lectura exige poder escribir, aunque sea un permiso nuevo que nadie clasificó. */
   test('lets someone who only reads give exactly the reading permissions and nothing else', () => {
     const givenByReader = ACCESS_TOKEN_PERMISSION_VALUES.filter((permission) =>
       canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, permission),
@@ -63,13 +61,11 @@ describe('lo que alguien puede dar', () => {
     expect(givenByReader).toEqual([ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsRead]);
   });
 
-  /** Un token no da más que su dueño: quien solo lee no fabrica un token que escriba. */
   test('does not let someone who only reads give writing', () => {
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.CLIENT, ACCESS_TOKEN_PERMISSIONS.pagesWrite)).toBe(false);
     expect(canRoleGrantAccessTokenPermission(USER_ROLE.WORKER, ACCESS_TOKEN_PERMISSIONS.pagesWrite)).toBe(true);
   });
 
-  /** Bloquear, verificar y dar dueño son actos de confianza: ni lectura y escritura los trae, ni quien solo lee los da. */
   test('keeps managing pages apart from writing them, given only by someone who writes and only in full access', () => {
     const { pagesManage } = ACCESS_TOKEN_PERMISSIONS;
 
@@ -86,7 +82,6 @@ describe('el nombre de un token', () => {
     expect(isAccessTokenNameAcceptable('a'.repeat(ACCESS_TOKEN_NAME_MAX_LENGTH))).toBe(true);
   });
 
-  /** Un salto de línea o un carácter de control rompe la lista y los registros donde el nombre aparece. */
   test('refuses an empty name, one too long, and one with control characters', () => {
     expect(isAccessTokenNameAcceptable('')).toBe(false);
     expect(isAccessTokenNameAcceptable('a'.repeat(ACCESS_TOKEN_NAME_MAX_LENGTH + 1))).toBe(false);
@@ -94,7 +89,6 @@ describe('el nombre de un token', () => {
     expect(isAccessTokenNameAcceptable('Claude\u001b[31m')).toBe(false);
   });
 
-  /** Un carácter invisible o que da vuelta el texto haría que un nombre se lea como otro en la lista. */
   test('refuses a name with invisible characters, and keeps the one that joins an emoji', () => {
     const turnsTextAround = String.fromCodePoint(0x202e);
     const takesNoRoom = String.fromCodePoint(0x200b);
@@ -107,7 +101,6 @@ describe('el nombre de un token', () => {
     expect(womanTechnologist).toContain(joinsAnEmoji);
   });
 
-  /** Entre letras, el que une emojis no une nada: solo hace que dos nombres distintos se lean igual. */
   test('refuses the emoji joiner when it does not stand between two emojis', () => {
     const joinsAnEmoji = String.fromCodePoint(0x200d);
     const womanWithSkinTone = String.fromCodePoint(0x1f469, 0x1f3fd, 0x200d, 0x1f4bb);
@@ -120,7 +113,6 @@ describe('el nombre de un token', () => {
     expect(isAccessTokenNameAcceptable(`Equipo ${rainbowFlag}`)).toBe(true);
   });
 
-  /** Dos tokens que se leen igual en la lista son dos tokens que se confunden al revocar. */
   test('treats names that read the same as the same name', () => {
     expect(isAccessTokenNameTaken('claude  en MI portátil', ['Claude en mi portátil'])).toBe(true);
     expect(isAccessTokenNameTaken('Claude en el servidor', ['Claude en mi portátil'])).toBe(false);
@@ -145,7 +137,6 @@ describe('la regla más cercana manda', () => {
     expect(readAccessTokenPermissionsAt(everywhereReadingButHr, pageAt('finance', 'budget'))).toEqual([]);
   });
 
-  /** La exclusión alcanza a todo lo que cuelga de la página, a cualquier profundidad. */
   test('excludes a page and everything under it', () => {
     expect(readAccessTokenPermissionsAt(everywhereReadingButHr, pageAt('product', 'hr'))).toEqual([]);
     expect(readAccessTokenPermissionsAt(everywhereReadingButHr, pageAt('product', 'salaries', 'hr'))).toEqual([]);
@@ -161,7 +152,6 @@ describe('la regla más cercana manda', () => {
     ).toEqual(read);
   });
 
-  /** Lo dado en un espacio reemplaza a lo de todos: así se puede también achicar. */
   test('narrows inside a space instead of adding to what all spaces give', () => {
     const writingEverywhereReadingFinance: AccessTokenAccess = {
       allSpaces: readWrite,
@@ -199,10 +189,6 @@ describe('lo que un token puede hacer, hoy', () => {
     expect(canAccessTokenAct(writingInProduct, USER_ROLE.WORKER, pageAt('engineering', 'b'), write)).toBe(false);
   });
 
-  /**
-   * Lo que el dueño puede hacer se mira hoy, no cuando creó el token: si le
-   * bajaron el rol a solo lectura, su token deja de escribir en la llamada siguiente.
-   */
   test('stops writing the moment its owner can no longer write', () => {
     expect(
       canAccessTokenAct(
@@ -226,7 +212,6 @@ describe('lo que un token puede hacer, hoy', () => {
     expect(granted).not.toContain(ACCESS_TOKEN_PERMISSIONS.pagesTrash);
   });
 
-  /** Un token hecho solo de exclusiones no abre nada: no vale la pena crearlo. */
   test('knows when every rule gives nothing', () => {
     expect(hasAccessTokenAnyPermission({ allSpaces: [], pages: [{ pageId: 'hr', permissions: [] }], spaces: [] })).toBe(
       false,

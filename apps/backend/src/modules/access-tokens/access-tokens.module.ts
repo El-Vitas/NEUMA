@@ -6,11 +6,6 @@ import { AccessTokensService } from './access-tokens.service';
 import { ACCESS_TOKEN_REPOSITORY } from './constants/access-tokens.constants';
 import { AccessTokenRepository } from './infrastructure/persistence/access-token.repository';
 
-/**
- * Los tokens personales, y la respuesta a «¿de quién es este token?» para
- * cualquier puerta de agentes que la necesite. Esa respuesta se ofrece por un
- * contrato común, así quien la usa no depende de este módulo por dentro.
- */
 @Module({
   controllers: [AccessTokensController],
   exports: [ACCESS_TOKEN_PRINCIPAL_RESOLVER, AccessTokensService],

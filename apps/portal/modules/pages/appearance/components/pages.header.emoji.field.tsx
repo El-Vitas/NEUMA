@@ -14,17 +14,11 @@ interface IProps {
   readonly id: string;
   readonly inputRef: RefObject<HTMLInputElement | null>;
   readonly onChange: (title: string) => void;
-  /** Where Enter goes once the title is written, since a title is not a line one stays on. */
   readonly onLeave: () => void;
   readonly placeholder: string;
   readonly value: string;
 }
 
-/**
- * The page title, written the same way the body is: `:` followed by letters
- * offers an emoji, typed further narrows it, and Enter writes the character
- * in, replacing the trigger the same way the body's own finder does.
- */
 export const PagesHeaderEmojiField = ({
   ariaLabel,
   className,

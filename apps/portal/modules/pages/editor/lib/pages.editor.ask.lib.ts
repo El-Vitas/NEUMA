@@ -2,13 +2,8 @@ import type { Command } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 
 /**
- * Writes a bit of text where the cursor stands, and nada más.
- *
- * Es el gesto de teclear: sirve para poner el emoji que se eligió y también
- * para escribir el `@` o los `:` que abren el buscador que ya los contesta, en
- * vez de tener un segundo camino para abrirlo desde el menú. Siempre se puede
- * escribir, así que siempre dice que sí —el contrato de ProseMirror pide
- * contestar sin actuar cuando no llega `dispatch`.
+ * Types text at the cursor. Also opens the `@` and `:` finders from the menu by typing their trigger,
+ * so there is a single path to open them.
  */
 export const createPageEditorWriteCommand =
   (written: string): Command =>
@@ -17,7 +12,6 @@ export const createPageEditorWriteCommand =
     return true;
   };
 
-/** Whoever answers, when there is anybody there and they are in a state to act. */
 const findWhoeverAnswers = (selector: string, view: EditorView | undefined): HTMLElement | null => {
   const answering = view?.dom.ownerDocument.querySelector<HTMLElement>(selector);
   if (answering === null || answering === undefined) return null;
@@ -25,13 +19,8 @@ const findWhoeverAnswers = (selector: string, view: EditorView | undefined): HTM
 };
 
 /**
- * Knocks on a door the page left open.
- *
- * Some of what a menu offers cannot be done by the writing — making a page,
- * choosing a file, asking where a link goes — so the writing knocks and
- * whoever holds the page answers. Asked without being told to act, it only
- * says whether anybody is there: the menu wants to know that before it takes
- * away what was typed, so that a knock nobody answers costs nothing.
+ * Delegates an action the editor cannot do itself (create a page, pick a file) to the element matching `selector`.
+ * Without `dispatch` it only reports whether that element exists, so the menu can check before consuming typed text.
  */
 export const createPageEditorAskCommand =
   (selector: string, leaveWord: (answering: HTMLElement) => void = () => {}): Command =>

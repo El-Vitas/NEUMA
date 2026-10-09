@@ -9,10 +9,7 @@ import { hasAccessTokenAnyPermission } from './access-token.lib.js';
 
 export const accessTokenPermissionSchema = z.enum(ACCESS_TOKEN_PERMISSION_VALUES);
 
-/**
- * Una lista de permisos sin repetidos: repetir uno no da más, solo ensucia lo
- * guardado. Vacía es válida: es una exclusión.
- */
+/** Deduplicated. Empty is valid: it is an exclusion. */
 const permissionListSchema = z
   .array(accessTokenPermissionSchema)
   .max(ACCESS_TOKEN_PERMISSION_VALUES.length * 2)
@@ -30,12 +27,7 @@ const pageGrantSchema = z.object({
 
 const namesEachOnce = (ids: readonly string[]): boolean => new Set(ids).size === ids.length;
 
-/**
- * Lo que un token tiene dado, tal como se acepta al crearlo o cambiarlo, y tal
- * como se vuelve a leer de la base. Se valida la forma aquí; que el dueño pueda
- * dar esos permisos en esos espacios y páginas lo decide el servidor, que es
- * quien sabe qué ve el dueño.
- */
+/** Validates shape only; whether the owner may grant these permissions there is decided by the server. */
 export const accessTokenAccessSchema = z
   .object({
     allSpaces: permissionListSchema,

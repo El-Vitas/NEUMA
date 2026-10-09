@@ -46,7 +46,6 @@ const deleteView = async (
   return describeMcpCollectionAsSeen(dependencies.portalUrl, call, saved);
 };
 
-/** Quita una vista de una colección. Las filas no se tocan: solo deja de existir esa manera de mirarlas. */
 export const deleteViewTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.deleteView,
   register: (server, dependencies) => {

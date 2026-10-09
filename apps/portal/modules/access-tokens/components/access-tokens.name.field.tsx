@@ -12,10 +12,7 @@ interface IProps {
   readonly value: string;
 }
 
-/**
- * El nombre del token. Si otro token vivo ya se llama así, lo dice aquí mismo
- * y no al enviar: dos tokens que se leen igual se confunden al revocar uno.
- */
+/** Flags a duplicate name while typing: two identical names get confused when revoking one. */
 export const AccessTokensNameField = ({ isTaken, onChange, value }: IProps) => {
   const t = useTranslations('accessTokens.form');
   const nameId = useId();

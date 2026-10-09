@@ -1,6 +1,5 @@
 import type { PageEditorMarkdownMarkKind } from '../types/pages.editor.paste.types';
 
-/** Any of the three ways a line can end, so text copied from any system splits the same. */
 export const PAGE_EDITOR_LINE_BREAK_PATTERN = /\r\n|\r|\n/;
 
 export const PAGE_EDITOR_MARKDOWN_HEADING_LINE = /^(#{1,3})\s+(.*)$/;
@@ -15,7 +14,7 @@ export const PAGE_EDITOR_MARKDOWN_LINK_INLINE = /\[([^[\]]+)]\((https?:\/\/[^\s)
 export const PAGE_EDITOR_MARKDOWN_BOLD_INLINE = /\*\*([^*]+)\*\*/;
 export const PAGE_EDITOR_MARKDOWN_CODE_INLINE = /`([^`]+)`/;
 export const PAGE_EDITOR_MARKDOWN_STRIKE_INLINE = /~~([^~]+)~~/;
-/** One asterisk, and not the second of a pair: `**` is bold and must not be read as italic twice. */
+/** Single asterisks only: `**` is bold and must not match as two italics. */
 export const PAGE_EDITOR_MARKDOWN_ITALIC_INLINE = /(?<!\*)\*([^*]+)\*(?!\*)/;
 
 export const PAGE_EDITOR_MARKDOWN_MARK_NAMES: Readonly<Record<PageEditorMarkdownMarkKind, string>> = {

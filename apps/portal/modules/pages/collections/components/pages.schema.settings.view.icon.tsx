@@ -15,12 +15,7 @@ interface IProps {
   readonly viewName: string;
 }
 
-/**
- * Con qué emoji se reconoce una vista en su pestaña.
- *
- * Solo emoji: una pestaña mide lo que mide una línea de texto, y ahí una imagen
- * no se lee. Se busca por nombre porque nadie recorre mil emojis con la vista.
- */
+/** Emoji only: a tab is one line of text tall, where an image would not read. */
 export const PagesSchemaSettingsViewIcon = ({ disabled, icon, onPick, viewName }: IProps) => {
   const t = useTranslations('pages.collection');
   const [isOpen, setIsOpen] = useState(false);

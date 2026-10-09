@@ -21,11 +21,7 @@ interface IProps {
   readonly tokenName: string;
 }
 
-/**
- * Revocar pide confirmación porque no tiene vuelta atrás: el agente queda
- * fuera en su siguiente llamada y el token no se puede reactivar. Quien llama
- * decide contra qué puerta se revoca, la propia o la de quien administra.
- */
+/** Confirms because revoking is irreversible. The caller chooses the own or the admin revoke action. */
 export const AccessTokensRevokeDialog = ({ revoke, tokenId, tokenName }: IProps) => {
   const t = useTranslations('accessTokens');
   const [isOpen, setIsOpen] = useState(false);

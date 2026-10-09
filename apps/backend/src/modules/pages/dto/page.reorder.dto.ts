@@ -1,7 +1,7 @@
 import { IsOptional, IsUUID } from 'class-validator';
 
 export class ReorderPageDto {
-  /** Absent means the page goes last among its sisters. */
+  /** Omitted places the page last among its siblings. */
   @IsOptional()
   @IsUUID()
   beforePageId?: string;

@@ -5,10 +5,6 @@ import type { PagePropertyType } from '../types/page-schema.types.js';
 import type { PageViewCalculation } from './page-view.types.js';
 import { PAGE_VIEW_CALCULATION } from './page-view.types.js';
 
-/**
- * Lo que cualquier columna puede decir de sus filas: cuántas hay, cuántas
- * respondieron y cuántas no. No hace falta saber qué guarda para contarla.
- */
 const CALCULATIONS_FOR_EVERY_PROPERTY = [
   PAGE_VIEW_CALCULATION.NONE,
   PAGE_VIEW_CALCULATION.COUNT_ALL,
@@ -29,7 +25,6 @@ const CALCULATIONS_BY_LOGICAL_TYPE: Readonly<Record<string, readonly PageViewCal
   [PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN]: [PAGE_VIEW_CALCULATION.PERCENT_CHECKED],
 };
 
-/** Qué puede decir al pie una columna que guarda esta clase de respuesta. */
 export const listPageCalculationsFor = (type: PagePropertyType): readonly PageViewCalculation[] => [
   ...CALCULATIONS_FOR_EVERY_PROPERTY,
   ...(CALCULATIONS_BY_LOGICAL_TYPE[getPagePropertyLogicalType(type)] ?? []),
@@ -40,7 +35,6 @@ const readNumbers = (values: readonly (PagePropertyValue | undefined)[]): readon
 
 const sumOf = (numbers: readonly number[]): number => numbers.reduce((total, number) => total + number, 0);
 
-/** El de en medio, o la media de los dos de en medio cuando no hay uno solo. */
 const medianOf = (numbers: readonly number[]): number => {
   const sorted = [...numbers].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
@@ -68,14 +62,10 @@ const overNumbers = (calculation: PageViewCalculation, numbers: readonly number[
 };
 
 /**
- * Lo que una columna dice de las filas que recibe.
- *
- * Recibe las filas que la vista dejó pasar, no todas las de la colección: un
- * total que ignora el filtro puesto responde a una pregunta que nadie hizo.
- *
- * Devuelve `null` cuando no hay nada que decir —ninguna fila, o ninguna con un
- * número— para que quien lo muestre calle en vez de escribir un cero que se
- * lee como un dato.
+ * Expects the rows the view let through, not the whole collection: a total that
+ * ignores the active filter answers a question nobody asked.
+ * Returns `null` when there is nothing to say, so the UI shows nothing instead
+ * of a zero that reads as data.
  */
 export const computePageCalculation = (
   calculation: PageViewCalculation,
@@ -98,6 +88,5 @@ export const computePageCalculation = (
   }
 };
 
-/** El porcentaje se escribe con su signo, y lo demás como el número que es. */
 export const isPageCalculationAPortion = (calculation: PageViewCalculation): boolean =>
   calculation === PAGE_VIEW_CALCULATION.PERCENT_CHECKED;

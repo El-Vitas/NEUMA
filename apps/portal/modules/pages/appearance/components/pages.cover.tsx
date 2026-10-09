@@ -16,14 +16,7 @@ interface IProps {
   readonly controller: PagesCoverController;
 }
 
-/**
- * The picture at the head of a page.
- *
- * It is a picture and nothing else until somebody asks to reposition it: only
- * then does it answer to dragging and hold on to touch. Otherwise a finger
- * moving across it scrolls the page, which is what a finger moving across a
- * picture is normally doing.
- */
+/** Takes over the pointer only while repositioning, so outside it a touch drag still scrolls the page. */
 export const PagesCover = ({ controller }: IProps) => {
   const t = useTranslations('pages.cover');
   const [draggedPosition, setDraggedPosition] = useState<number | null>(null);
@@ -83,7 +76,7 @@ export const PagesCover = ({ controller }: IProps) => {
       sizes="100vw"
       src={resolvePageCoverImageUrl(cover)}
       style={{ objectPosition: `center ${String(shownPosition)}%` }}
-      /** Asked for by the browser itself: the optimiser fetches from the server, where nobody is signed in. */
+      /** The optimiser fetches from the server, where nobody is signed in, so the browser loads the image itself. */
       unoptimized
     />
   );

@@ -26,14 +26,7 @@ interface IProps {
   readonly spaces: readonly AccessTokenSpaceOption[];
 }
 
-/**
- * Qué puede hacer el token, fila por fila: en todos los espacios, en un
- * espacio o en una página, y dónde no puede nada.
- *
- * Solo se ofrece lo que quien lo crea puede dar: los espacios y páginas que ve
- * y los permisos de su rol. El servidor lo vuelve a revisar, pero una opción
- * que después falla es peor que no ofrecerla.
- */
+/** Offers only what the creator can grant; the server rechecks, but an option that later fails is worse than none. */
 export const AccessTokensAccessEditor = ({ draft, role, spaces }: IProps) => {
   const t = useTranslations('accessTokens');
   const hintId = useId();

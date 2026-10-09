@@ -14,7 +14,7 @@ import type {
   McpToolDefinition,
 } from '../types/mcp.types';
 
-/** Buscar bajo una página solo vale si el agente la puede ver: si no, se contesta como si no existiera. */
+/** Searching under a page requires the agent to see it; otherwise it is answered as missing. */
 const requireReachableRoot = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -25,7 +25,6 @@ const requireReachableRoot = async (
   if (readable.length === 0) throw new McpToolError(MCP_INACCESSIBLE_MESSAGE);
 };
 
-/** Lo que acota por la página, igual para bloques y para títulos. */
 const readPageFilters = (input: McpSearchInput): SearchQueryFilters => ({
   ...(input.author === undefined ? {} : { authorQuery: input.author }),
   ...(input.editedWithin === undefined ? {} : { editedRange: input.editedWithin }),
@@ -47,10 +46,7 @@ const findBlocks = (dependencies: McpServerDependencies, call: McpCall, input: M
     workspaceId: call.workspace.id,
   });
 
-/**
- * Las páginas que coinciden por su título, que la búsqueda de bloques no mira.
- * Solo en la primera tanda, y no bajo una página, donde manda el árbol.
- */
+/** Block search ignores titles. Only in the first batch and not under a page, where the tree decides. */
 const findPages = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -99,7 +95,6 @@ const toSearchOutput = (portalUrl: string, blocks: PageBlockSearchPage, pages: S
   });
 };
 
-/** Lo que lee el modelo: cada bloque con su página y su sección, y cómo abrirlo. */
 const formatSearchText = (output: McpSearchOutput): string => {
   const blocks = output.blocks.map((block) => {
     const where = [block.pageTitle, ...block.section].join(' › ');

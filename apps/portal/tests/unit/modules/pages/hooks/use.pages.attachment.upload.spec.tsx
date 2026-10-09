@@ -64,7 +64,7 @@ describe('usePagesAttachmentUpload', () => {
     });
 
     await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(1));
-    /** The attachment is reported from inside the transition, which React ends a tick later. */
+    // The attachment is reported from inside the transition, which React ends a tick later.
     await waitFor(() => expect(result.current.isPending).toBe(false));
     unmount();
   });

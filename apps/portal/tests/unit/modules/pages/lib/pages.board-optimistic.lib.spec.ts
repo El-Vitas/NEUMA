@@ -70,7 +70,6 @@ describe('showing a move before the server has confirmed it', () => {
     expect(idsOf(moved, 'todo')).toEqual(['c', 'a', 'b']);
   });
 
-  /** La tarjeta ya lleva puesto el valor de su columna nueva: si no, volvería a dibujarse como estaba. */
   it('carries the value of the column it landed in', () => {
     const moved = applyBoardMoveToGroups(
       groups,

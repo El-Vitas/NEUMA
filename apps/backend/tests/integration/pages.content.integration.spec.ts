@@ -20,7 +20,6 @@ const paragraph = (id: string, text: string): PageContent['content'][number] => 
 
 const pageOf = (...blocks: PageContent['content']): PageContent => ({ content: blocks, schemaVersion: 1, type: 'doc' });
 
-/** Una página admite hasta 20.000 caracteres por texto; uno más ya no calza. */
 const textBeyondThePageLimit = 20_001;
 
 describe('Writing the content of a page through its live document (Integration)', () => {
@@ -136,7 +135,7 @@ describe('Writing the content of a page through its live document (Integration)'
     expect((await readStored(pageId)).content).toEqual(pageOf(paragraph('a', 'Primero'), paragraph('b', 'Agregado')));
   });
 
-  /** Leer la página, sumarle algo y guardarla entera perdía lo que otro sumaba al mismo tiempo. */
+  // Regression: reading the page, adding to it and saving it whole lost concurrent additions.
   it('keeps both of two appends that arrive at the same time', async () => {
     const pageId = await createPage(pageOf(paragraph('a', 'Base')));
 
@@ -183,7 +182,6 @@ describe('Writing the content of a page through its live document (Integration)'
     expect((await readStored(pageId)).content).toEqual(pageOf(paragraph('a', 'Bloqueada')));
   });
 
-  /** Una página en la papelera no se escribe: se dice por qué, en vez de un fallo del servidor. */
   it('refuses to write in a page that is in the trash, as a refusal and not a failure', async () => {
     const pageId = await createPage(pageOf(paragraph('a', 'En la papelera')));
     await request(testApp.getServer())

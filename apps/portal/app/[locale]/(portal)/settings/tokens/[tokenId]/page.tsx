@@ -8,11 +8,7 @@ interface IProps {
   readonly params: Promise<{ tokenId: string }>;
 }
 
-/**
- * Solo se cambia un token propio: se busca entre los de quien mira, así que el
- * de otra persona no existe aquí, igual que uno que nunca existió.
- * Se resuelve entero antes de responder, porque depende de la sesión.
- */
+/** Looks the token up among the viewer's own, so another user's token counts as missing. Depends on the session. */
 export const instant = false;
 
 export default async function Page({ params }: IProps) {

@@ -45,7 +45,6 @@ describe('lo que dibuja un gráfico', () => {
     expect(readChartSeries(groups, 'SUM', 'amount', [amount]).map((point) => point.value)).toEqual([11, 4, 0]);
   });
 
-  /** Sin la propiedad elegida no hay nada que sumar, y contar filas es lo único que siempre se puede. */
   it('falls back to counting when the chosen property is gone', () => {
     expect(readChartSeries(groups, 'SUM', 'missing', [amount]).map((point) => point.value)).toEqual([2, 1, 0]);
   });
@@ -56,7 +55,6 @@ describe('cuánto mide el eje', () => {
     expect(readChartTopValue([3, 11, 4])).toBe(11);
   });
 
-  /** Sin tope, una barra de cero se dividiría por cero; y un eje que llega a cero no dibuja nada. */
   it('never reads as zero, so nothing divides by nothing', () => {
     expect(readChartTopValue([0, 0])).toBe(1);
     expect(readChartTopValue([])).toBe(1);
@@ -78,7 +76,6 @@ describe('el pastel', () => {
     expect(readChartSlices([3, 1]).map((slice) => Math.round(slice.sweep))).toEqual([270, 90]);
   });
 
-  /** Sin nada que repartir no hay pastel: mejor ninguna porción que un círculo entero mintiendo. */
   it('has no slices when there is nothing to share out', () => {
     expect(readChartSlices([0, 0])).toEqual([]);
   });
@@ -94,7 +91,6 @@ describe('el pastel', () => {
     expect(describePieSlicePath({ from: 0, sweep: 90 }, 50)).toContain('A');
   });
 
-  /** Una porción que se lleva todo es un círculo, y un arco de 360 grados no dibuja nada. */
   it('draws a lone slice as the whole round', () => {
     expect(describePieSlicePath({ from: 0, sweep: 360 }, 50)).toContain('A');
   });

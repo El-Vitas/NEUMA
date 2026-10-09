@@ -58,7 +58,6 @@ describe('placing an image', () => {
     expect(serializePageEditorState(next).content[0]).toMatchObject({ attrs: { align: 'center' }, type: 'image' });
   });
 
-  /** Standing at full width is standing at the left with all of the room. */
   it('gives it all the room when asked for full width, and leaves it on a side to come back to', () => {
     const next = run(imagePage(), 'full');
     if (next === null) throw new Error('the image was not widened');

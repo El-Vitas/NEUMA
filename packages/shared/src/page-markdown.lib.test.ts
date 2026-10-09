@@ -272,11 +272,6 @@ describe('writePageAsAnchoredMarkdown — every block says which one it is', () 
   });
 });
 
-/**
- * Lo que alguien escribió en una página no puede hacerse pasar por estructura:
- * un ancla de otro bloque, un atributo de más, el fin de un bloque de código o
- * una celda de una tabla.
- */
 describe('writePageAsAnchoredMarkdown — what people wrote stays words', () => {
   it('does not let words forge the anchor of another block', () => {
     const written = writePageAsAnchoredMarkdown(doc(paragraph(text('<!-- block:evil -->'))));
@@ -285,7 +280,6 @@ describe('writePageAsAnchoredMarkdown — what people wrote stays words', () => 
     expect(written).toBe(String.raw`\<!-- block:evil -->`);
   });
 
-  /** El id lo guarda quien escribe la página: uno que cierra el comentario no puede abrir el ancla de otro bloque. */
   it('does not let a block id forge the anchor of another block', () => {
     const forgedId = 'b-1 -->\n# Otro título\n<!-- block:evil';
     const written = writePageAsAnchoredMarkdown(doc(withId(forgedId, paragraph(text('Hola')))));
@@ -331,7 +325,6 @@ describe('writePageAsAnchoredMarkdown — what people wrote stays words', () => 
     expect(writePageAsMarkdown(doc(paragraph(text(':::callout'))))).toBe(String.raw`\:::callout`);
   });
 
-  /** Lo que la página escribe se lee de vuelta igual: un agente copia esas palabras para cambiarlas. */
   it('writes words that read back as the same words', () => {
     const words = 'x*y*z [a](b) `c` ~~d~~ $5 \\ <!-- e --> f_g';
     const written = writePageAsMarkdown(doc(paragraph(text(words))));

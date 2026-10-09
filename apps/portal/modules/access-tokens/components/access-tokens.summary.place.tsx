@@ -6,7 +6,6 @@ interface IProps {
   readonly target: AccessTokenSummaryTarget;
 }
 
-/** Dónde vale una línea del resumen: en todos los espacios, en un espacio, o en una página con lo que cuelga de ella. */
 export const AccessTokensSummaryPlace = ({ target }: IProps) => {
   const t = useTranslations('accessTokens');
 

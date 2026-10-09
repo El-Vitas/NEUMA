@@ -11,19 +11,13 @@ import { PagesCollectionCardProperties } from './pages.collection.card-propertie
 import { PagesCollectionRowTitle } from './pages.collection.row-title';
 
 interface IProps {
-  /** La banda en la que está la tarjeta. Vacío cuando el tablero no tiene bandas. */
+  /** Empty when the board has no bands. */
   readonly bandKey: string;
   readonly canEdit: boolean;
   readonly drag: PageBoardDragController;
   readonly groupKey: string;
-  /**
-   * Si lo que se está llevando es una columna entera y no una tarjeta.
-   *
-   * Una tarjeta no es sitio donde dejar una columna, así que cuando eso es lo
-   * que viene en la mano se aparta y deja que conteste la columna de debajo.
-   */
+  /** A card is not a drop target for a column, so while one is dragged the card lets the column below answer. */
   readonly isCarryingColumn: boolean;
-  /** La tarjeta que sigue a esta en su columna, que es el hueco de debajo. */
   readonly nextRowId: null | string;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
@@ -31,13 +25,7 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * One row of a collection as a card on a board.
- *
- * It can be carried with the pointer or sent to the next column with the arrow
- * keys while it has focus. Both do the same thing, because a board that only
- * answers to dragging leaves out whoever cannot drag.
- */
+/** Movable by keyboard (Alt + arrows) as well as by drag, so the board does not exclude whoever cannot drag. */
 export const PagesCollectionBoardCard = ({
   bandKey,
   canEdit,
@@ -52,16 +40,7 @@ export const PagesCollectionBoardCard = ({
 }: IProps) => {
   const t = useTranslations('pages');
 
-  /**
-   * A qué hueco apunta la mano mientras pasa por encima de esta tarjeta: al de
-   * arriba o al de abajo. Se detiene aquí para que la columna no responda por
-   * ella y termine señalando siempre el final.
-   *
-   * Salvo que lo que venga en la mano sea una columna: entonces esta tarjeta no
-   * es sitio para nada, y se deja pasar el gesto sin tocarlo para que la columna
-   * de debajo se señale como destino. Marcar aquí un hueco entre tarjetas
-   * prometía soltar una columna dentro de otra, que no es algo que exista.
-   */
+  /** Stops the event so the column does not answer and always point at its end; a dragged column passes through. */
   const aimAtNearestGap = (event: DragEvent<HTMLDivElement>): void => {
     if (!canEdit || isCarryingColumn) return;
     event.preventDefault();
@@ -95,7 +74,6 @@ export const PagesCollectionBoardCard = ({
       onKeyDown={moveOnArrow}
       tabIndex={canEdit ? 0 : undefined}
     >
-      {/* El título completo, aunque ocupe dos líneas: una tarea cortada a la mitad no se reconoce. */}
       <PagesCollectionRowTitle
         className="w-full items-start justify-between gap-2 font-medium"
         openFullPageLabel={t('sidePanel.openFullPage')}

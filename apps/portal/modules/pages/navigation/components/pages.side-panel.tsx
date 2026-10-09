@@ -26,18 +26,8 @@ interface IProps {
 }
 
 /**
- * A page read beside the one already open, instead of in place of it.
- *
- * It is not a dialog: the page behind it keeps its own scroll and its own
- * focus, and nothing here holds the keyboard hostage. What Radix's
- * non-modal `Dialog` gives for free is exactly what a panel like this needs
- * and nothing more — Escape and an outside click both ask to close it, a
- * menu opened from inside it is not mistaken for the outside, and no
- * overlay is drawn to dim what is still there to be read.
- *
- * Entra deslizándose desde el borde del que sale, porque aparecer de golpe no
- * dice de dónde vino ni que lo de atrás sigue ahí. Quien pidió menos
- * movimiento no lo ve moverse.
+ * Built on Radix's non-modal `Dialog`: the page behind keeps its scroll and focus, Escape and outside clicks
+ * close it, menus opened inside it do not count as outside, and no overlay is drawn.
  */
 export const PagesSidePanel = ({
   bundle,
@@ -91,7 +81,6 @@ export const PagesSidePanel = ({
           onOpenAutoFocus={(event) => event.preventDefault()}
           style={widthStyle}
         >
-          {/* Quien navega con lector de pantalla llega aquí sin ver el panel: el nombre lo dice el título. */}
           <DialogPrimitive.Title className="sr-only">{t('title')}</DialogPrimitive.Title>
           <PagesSidePanelResizeHandle
             onChangeWidth={sidePanel.handleWidthChange}
@@ -115,11 +104,7 @@ export const PagesSidePanel = ({
               </Button>
             </DialogPrimitive.Close>
           </div>
-          {/*
-            Navegar dentro del panel cambia de página sin cambiar de dirección,
-            así que el editor no se rehace solo: sin nombrar cuál página es, se
-            quedaría con el título, el ícono y el bloqueo de la anterior.
-          */}
+          {/* Navigating inside the panel keeps the same address, so the editor needs a key to remount per page. */}
           <div className="min-h-0 flex-1 overflow-y-auto">
             <PagesEditor
               attachments={attachments}

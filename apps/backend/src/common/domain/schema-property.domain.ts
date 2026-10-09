@@ -20,15 +20,7 @@ const toPropertyContext = (
   personIds: ReadonlySet<string> | undefined,
 ): PagePropertyContext => ({ options: property.options?.map((option) => option.value) ?? null, personIds });
 
-/**
- * Lo que una lista de opciones tiene que cumplir, si la propiedad las admite.
- *
- * Puede no ofrecer ninguna: una selección recién creada todavía no dice de
- * dónde elegir, y llenarla es el paso siguiente. Exigirle una opción para
- * poder guardarla obliga a inventar una o a perder lo hecho hasta ahí. Lo que
- * sí se rechaza es una lista que se contradice: dos opciones iguales, o una
- * sin nombre, que nadie sabría distinguir al elegir.
- */
+/** An empty option list is valid: a freshly created select has none yet. Duplicates and blank names are rejected. */
 const validatePropertyOptions = (property: SchemaPropertyDefinition): string | null => {
   if (!pagePropertyRequiresOptions(property.type)) {
     return property.options === null || property.options.length === 0 ? null : `${property.key} cannot define options`;
@@ -40,13 +32,7 @@ const validatePropertyOptions = (property: SchemaPropertyDefinition): string | n
   return null;
 };
 
-/**
- * Lo que una fila queda teniendo tras un cambio parcial.
- *
- * Una propiedad que llega valiendo nada se quita en vez de guardarse vacía: es
- * lo que significa soltar una tarjeta en la columna de las filas sin valor, y
- * una propiedad presente pero vacía no es lo mismo que una ausente.
- */
+/** A `null` property is removed, not stored empty: dropping a card in the no-value column means absent. */
 export const mergePropertyValues = (
   stored: Readonly<Record<string, unknown>> | null,
   arriving: Readonly<Record<string, unknown>>,
@@ -60,15 +46,7 @@ export const mergePropertyValues = (
   return Object.fromEntries(Object.entries(merged).filter(([key]) => !cleared.has(key)));
 };
 
-/**
- * Lo que la forma todavía reconoce, de todo lo que una fila trae.
- *
- * Una propiedad quitada de la forma deja atrás lo que las filas escribieron bajo
- * ella. Ese resto ya no significa nada y la forma lo rechaza, así que arrastrarlo
- * al escribir dejaría la fila sin poder volver a guardarse nunca. Se descarta al
- * escribir, no antes: mientras nadie toque la fila, sigue ahí por si la propiedad
- * vuelve.
- */
+/** Drops values of removed properties on write; the schema rejects them, so keeping them would block saving. */
 export const keepWhatTheSchemaKnows = (
   properties: readonly SchemaPropertyDefinition[],
   propertyValues: Readonly<Record<string, unknown>>,

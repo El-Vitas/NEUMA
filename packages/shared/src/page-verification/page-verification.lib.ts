@@ -1,12 +1,8 @@
 import type { PageVerificationStatus } from './page-verification.definitions.js';
 
 /**
- * Whether a page is currently trustworthy, currently stale, or was never vouched for.
- *
- * Expiring is not the same as losing the verification: a page whose expiration
- * date has passed still remembers who verified it and when, but no longer
- * counts as valid. The comparison happens against `now` when it is read, so a
- * page does not need to be written in again to catch up with the calendar.
+ * An expired page still remembers who verified it and when, but no longer counts as valid.
+ * Evaluated against `now` at read time, so no rewrite is needed as the calendar advances.
  */
 export const resolvePageVerificationStatus = (
   verifiedAt: Date | null,

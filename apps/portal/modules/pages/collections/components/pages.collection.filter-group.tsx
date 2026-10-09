@@ -15,32 +15,18 @@ import { PagesCollectionFilterJoin } from './pages.collection.filter-join';
 interface IProps {
   readonly filtering: PagesViewFiltering;
   readonly group: PageFilterGroup;
-  /** Dónde está este grupo dentro del filtro. Vacío es el de arriba, el que no se puede quitar. */
+  /** Empty for the root group, which cannot be removed. */
   readonly path: PageFilterPath;
   readonly properties: readonly PageSchemaProperty[];
 }
 
-/**
- * Un grupo de condiciones, y los grupos que lleve dentro.
- *
- * Se dibuja a sí mismo porque un grupo anidado es un grupo igual: lo único que
- * cambia es que el de arriba no se puede quitar —quitarlo sería quitar el filtro
- * entero, que es lo que hace «quitar todo»—.
- *
- * Cada línea empieza por cómo se une a la anterior y sigue por la propiedad, de
- * modo que las columnas quedan una debajo de otra y el grupo se lee como una
- * frase de arriba abajo en lugar de como tres controles sueltos por línea.
- */
 export const PagesCollectionFilterGroup = ({ filtering, group, path, properties }: IProps) => {
   const t = useTranslations('pages.collection');
   const isRoot = path.length === 0;
   const propertyOf = (key: string): PageSchemaProperty | undefined =>
     properties.find((property) => property.key === key);
 
-  /**
-   * Una condición sobre una propiedad que ya no existe no se dibuja: no hay
-   * operadores que ofrecerle ni valor que comparar.
-   */
+  /** A condition on a deleted property renders nothing: it has no operators or value to offer. */
   const describeNode = (node: PageFilter, nodePath: PageFilterPath): null | ReactNode => {
     if (node.kind === 'GROUP') {
       return <PagesCollectionFilterGroup filtering={filtering} group={node} path={nodePath} properties={properties} />;
@@ -110,7 +96,7 @@ export const PagesCollectionFilterGroup = ({ filtering, group, path, properties 
             {t('addFilterGroup')}
           </Button>
         )}
-        {/* Con texto y no con una cruz: una cruz más, en la misma columna que las de las condiciones, se lee como quitar una de ellas. */}
+        {/* Text, not a cross: a cross in the conditions' column would read as removing one of them. */}
         {!isRoot && (
           <Button
             className="ml-auto min-h-11 text-muted-foreground text-xs hover:text-destructive"

@@ -31,7 +31,7 @@ export const PortalLayout = ({ children, favorites, role, spaces, themeChoice, u
   const lastPathnameRef = useRef<string | null>(null);
   const t = useTranslations('navigation');
   const { startPage } = usePagesStart();
-  /** Read when the chord is struck, not when it was bound, so the shortcut never starts a page where one used to be. */
+  // Refs let the keydown listener read the latest values without rebinding.
   const pathnameRef = useRef(pathname);
   const spacesRef = useRef(spaces);
 
@@ -40,11 +40,6 @@ export const PortalLayout = ({ children, favorites, role, spaces, themeChoice, u
     spacesRef.current = spaces;
   }, [pathname, spaces]);
 
-  /**
-   * The chords live here rather than in each screen because they answer
-   * wherever one is: what changes between screens is only which space a new
-   * page would belong to, and the address already says that.
-   */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isPortalCommandShortcut(event)) {
@@ -62,11 +57,7 @@ export const PortalLayout = ({ children, favorites, role, spaces, themeChoice, u
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [startPage]);
 
-  /**
-   * Every arrival puts the reader back at the content, which is what changed
-   * under them. The address is read rather than merely awaited, so what the
-   * effect answers to is plain to see.
-   */
+  // Moves focus to the content after each navigation.
   useEffect(() => {
     if (lastPathnameRef.current === pathname) return;
     lastPathnameRef.current = pathname;

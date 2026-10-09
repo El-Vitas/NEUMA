@@ -1,10 +1,5 @@
 import type { PageDestination } from '../types/pages.editor.destination.types';
 
-/**
- * The pages whose name answers to what is being typed, in the order they were
- * given. An empty question offers them all: the list is the space's own pages,
- * short enough to read.
- */
 export const findPageDestinations = (
   destinations: readonly PageDestination[],
   query: string,

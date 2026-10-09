@@ -233,11 +233,6 @@ describe('page schema service — rewriteOption', () => {
     expect(result.getError().code).toBe('SCHEMA_PROPERTY_DEFINITION_INVALID');
   });
 
-  /**
-   * Entre leer las opciones y escribirlas hay un viaje, y en ese viaje otra
-   * persona puede haber tocado la misma. Escribir lo leído le borraría el
-   * cambio, así que la escritura se deshace y quien lo pidió vuelve a mirar.
-   */
   it('gives up when somebody else moved that same option first', async () => {
     const service = new PageSchemaService(
       createPageRepository(),
@@ -253,7 +248,6 @@ describe('page schema service — rewriteOption', () => {
     expect(result.getError().code).toBe('SCHEMA_PROPERTY_DEFINITION_INVALID');
   });
 
-  /** Lo que el repositorio recibe es la forma ya renombrada, y el nombre viejo para las filas. */
   it('hands the rewritten shape to the repository, together with where the name comes from', async () => {
     const asked: { properties?: unknown; rename?: unknown }[] = [];
     const service = new PageSchemaService(
@@ -357,7 +351,6 @@ describe('page schema service — listRows', () => {
     expect(result.getValue()).toEqual({ hasMore: false, rows: [row], spaceId: 'space-a' });
   });
 
-  /** Una lista cortada sin decirlo se lee como la colección entera, y entonces faltan filas que nadie sabe que faltan. */
   it('passes on that the collection held more rows than were brought', async () => {
     const service = new PageSchemaService(
       createPageRepository(),
@@ -571,7 +564,6 @@ describe('page schema service — queryRows', () => {
     expect(result.getValue().rows[0]).toEqual(rowOf('a', 'todo', 0));
   });
 
-  /** Un filtro aplicado a las primeras quinientas callaría las que cumplen más abajo: la consulta lee mucho más. */
   it('looks through far more rows than a listing does before filtering them', async () => {
     const asked: number[] = [];
     await queryWith({

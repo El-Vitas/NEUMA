@@ -33,7 +33,6 @@ describe('a link kept as a card', () => {
     expect(drawCard('https://ejemplo.com')).toContain('href="https://ejemplo.com"');
   });
 
-  /** Una tarjeta se abre con un clic: una que corre código no se pega ni se dibuja como enlace. */
   it('neither takes nor draws a card that runs code when it is opened', () => {
     expect(cardFrom('javascript:alert(1)')?.type.name).not.toBe('bookmark');
     expect(drawCard('javascript:alert(1)')).not.toContain('javascript:');
@@ -54,11 +53,7 @@ describe('drawing a link somebody else wrote', () => {
     expect(drawLink('https://ejemplo.com')).toContain('href="https://ejemplo.com"');
   });
 
-  /**
-   * A page is written by several people at once, and what arrives over the
-   * live connection has not passed through the stored schema. The drawing is
-   * the last place left to refuse.
-   */
+  // Content arriving over the live connection skips the stored schema, so drawing is the last place to refuse.
   it('draws a destination that runs code as plain writing, keeping the text and dropping the link', () => {
     const drawn = drawLink('javascript:alert(1)');
 
@@ -67,7 +62,6 @@ describe('drawing a link somebody else wrote', () => {
     expect(drawn).toContain('ver');
   });
 
-  /** Dos barras, o una barra con un tab en medio, llevan a otro sitio aunque parezcan un camino propio. */
   it('draws as plain writing what looks like a path of this product and leads to another site', () => {
     expect(drawLink('//evil.example')).not.toContain('<a');
     expect(drawLink('/\t/evil.example')).not.toContain('<a');

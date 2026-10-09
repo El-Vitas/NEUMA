@@ -30,13 +30,7 @@ export const isPageMoveAllowed = (
   return true;
 };
 
-/**
- * Whether a page may hang from `parentId` once it lands in `targetSpaceId`.
- *
- * The parent is judged against the space the page is going to, not the one it
- * comes from: a page moved across spaces travels with its children, so what has
- * to hold is that it ends up beneath something already living where it lands.
- */
+/** The parent is judged against the destination space, since a moved page travels with its children. */
 export const hasValidPageParent = (
   pageId: string,
   parentId: null | string,
@@ -50,13 +44,7 @@ export const hasValidPageParent = (
   return parent?.spaceId === targetSpaceId && parent.id !== page.id;
 };
 
-/**
- * Every page nested under `pageId`, at any depth, so a trash or restore
- * action can carry the whole branch with it instead of only the one page.
- *
- * A breadth-first walk over a parent-to-children map, since the hierarchy
- * arrives flat and recursion would need the same map rebuilt on every call.
- */
+/** Breadth-first over a parent-to-children map: the hierarchy arrives flat, and recursion would rebuild the map. */
 export const collectDescendantIds = (pageId: string, pages: readonly PageParentReference[]): readonly string[] => {
   const childIdsByParentId = new Map<string, string[]>();
   for (const page of pages) {
@@ -84,12 +72,7 @@ export const pageTitleMatchesSearch = (title: string, search: null | string): bo
   return trimmedSearch.length === 0 || title.toLowerCase().includes(trimmedSearch);
 };
 
-/**
- * Whether a page names somebody among the people it is assigned to.
- *
- * Only properties the schema calls a person are read: a page that happens to
- * mention an identifier in some text is not a page somebody was given.
- */
+/** Only person-typed properties count, not identifiers mentioned in text. */
 export const isPageAssignedTo = (
   propertyValues: Record<string, unknown> | null,
   personPropertyKeys: readonly string[],

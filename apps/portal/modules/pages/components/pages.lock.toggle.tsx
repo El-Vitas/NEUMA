@@ -17,13 +17,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/**
- * Closes a page to edits, and opens it again.
- *
- * The same control does both and shows which one the page is in, because a lock
- * one cannot see is a page that has simply stopped accepting what is typed into
- * it, and a lock nobody present can lift is a page lost to a stray click.
- */
 export const PagesLockToggle = ({ isLocked, onLockChange, pageId, spaceId }: IProps) => {
   const t = useTranslations('pages.lock');
   const [isPending, startTransition] = useTransition();

@@ -17,7 +17,7 @@ interface IProps {
   readonly onRandomEmoji: () => void;
   readonly onRandomSymbol: (color: PageIconColor) => void;
   readonly onRemove: () => void;
-  /** Left out by whoever draws the mark too small for a picture to read as anything. */
+  /** Omitted where the mark is too small for an uploaded picture to be legible. */
   readonly onUpload?: (file: File) => void;
   readonly symbolColor: PageIconColor;
 }
@@ -41,7 +41,7 @@ export const PagesIconMenu = ({
   const options = findPageIconEmojiOptions(query);
   const symbolNames = findPageIconSymbolNames(query);
 
-  /** Chance stays inside whichever drawer is open: nobody asking for a random icon wants an emoji. */
+  /** Random stays within the open tab: a symbol search should not yield an emoji. */
   const chooseAtRandom = (): void => (tab === 'emoji' ? onRandomEmoji() : onRandomSymbol(color));
 
   return (

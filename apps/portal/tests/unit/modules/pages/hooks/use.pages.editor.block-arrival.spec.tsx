@@ -32,7 +32,6 @@ const Page = ({
   );
 };
 
-/** Opens the page asking for one block while another is the one standing there. */
 const openPageAsking = (wanted: string, standing: string): void => {
   window.location.hash = `#${wanted}`;
   render(

@@ -7,12 +7,6 @@ import {
   PAGE_EDITOR_EMBED_YOUTUBE_VIDEO,
 } from '../../blocks/constants/pages.editor.blocks.constants';
 
-/**
- * Which of the services a page can show a link belongs to.
- *
- * A link to anywhere else is not refused here — it is simply not one of these,
- * and the page has other ways to hold it.
- */
 export const readPageEmbedProvider = (url: string): PageEmbedProvider | null =>
   PAGE_EMBED_PROVIDERS.find((provider) => isAllowedPageEmbedUrl(provider, url)) ?? null;
 
@@ -35,12 +29,8 @@ const readLoomFrame = (url: URL): string | null => {
 };
 
 /**
- * The address the service itself shows the thing at, which is not the address
- * it is shared at: a video shared as `watch?v=…` is played at `embed/…`, and
- * handing the shared one to a frame shows a page, not a video.
- *
- * A drawing is the exception: the service is handed the whole address and
- * decides what to draw.
+ * Maps the shared URL to the provider's embed URL (`watch?v=…` becomes `embed/…`), since framing the shared
+ * one shows a page, not the video. Drawing providers receive the whole URL.
  */
 export const readPageEmbedFrameUrl = (provider: PageEmbedProvider, value: string): string | null => {
   if (!isAllowedPageEmbedUrl(provider, value)) return null;

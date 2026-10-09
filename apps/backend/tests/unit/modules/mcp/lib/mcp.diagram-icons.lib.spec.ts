@@ -34,7 +34,6 @@ describe('searchMcpDiagramIcons', () => {
     expect(searchMcpDiagramIcons([brands, material], 'aws lambda', 10)).toEqual(['logos:aws-lambda', 'logos:aws']);
   });
 
-  /** Un agente describe lo que busca con varias palabras; ningún ícono tiene todas, pero cada una sirve. */
   it('finds the icons that answer any of several words, those named just like one of them first', () => {
     expect(searchMcpDiagramIcons([brands, material], 'monitor presentation screen', 10)).toEqual([
       'mdi:monitor',

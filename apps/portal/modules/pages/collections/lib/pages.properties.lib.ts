@@ -21,13 +21,7 @@ const toPropertyContext = (property: PageSchemaProperty): PagePropertyContext =>
   personIds: undefined,
 });
 
-/**
- * Cómo se llama una propiedad, o su clave cuando ya no está.
- *
- * Una vista puede nombrar una propiedad que la colección dejó de tener, y decir
- * la clave es decir algo con lo que se puede ir a buscar; callar deja un hueco
- * que no lleva a ninguna parte.
- */
+/** A view can reference a property the collection no longer has; the key is shown instead of a blank. */
 export const readPropertyLabel = (properties: readonly PageSchemaProperty[], key: string): string =>
   properties.find((property) => property.key === key)?.label ?? key;
 
@@ -40,14 +34,7 @@ export const getDefaultPropertyValue = (property: PageSchemaProperty): PagePrope
 export const buildDefaultPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(properties.map((property) => [property.key, getDefaultPropertyValue(property)]));
 
-/**
- * The defaults a row can be made with, leaving out what would be no answer.
- *
- * A collection may require an answer for every row, and it may also hold
- * properties nobody can guess — who it is for, when it is due. Sending an empty
- * one is worse than sending none: the collection reads it as an answer and
- * refuses it, and whoever pressed the button is told nothing they can act on.
- */
+/** Empty defaults are omitted: the server would read them as an answer and refuse the row. */
 export const buildRowPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(
     properties
@@ -73,7 +60,6 @@ export const formatPropertyValueForDisplay = (
   value: PagePropertyValue | undefined,
 ): string => formatPagePropertyValue(property.type, value);
 
-/** Whether a row answered a property at all, which is what decides if it takes room on a card. */
 export const hasPropertyValueToShow = (value: PagePropertyValue | undefined): boolean =>
   value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
 
@@ -93,15 +79,7 @@ export const getPagePersonOptionLabel = (options: readonly PagePersonOption[], o
   return hasNameCollision ? `${option.name} (${option.email})` : option.name;
 };
 
-/**
- * Cómo se lee una asignación allí donde solo se muestra: el nombre de quien
- * está asignado, nunca su identificador.
- *
- * Devuelve `null` cuando hay alguien asignado a quien el directorio ya no
- * reconoce, para que quien lo muestre lo diga con palabras en vez de enseñar
- * un identificador desnudo. Mientras el directorio no haya llegado no dice
- * nada, por la misma razón.
- */
+/** Null when the assignee is unknown to the directory; empty string while the directory has not loaded. */
 export const readPagePersonDisplayName = (
   options: readonly PagePersonOption[],
   value: PagePropertyValue | undefined,
@@ -112,14 +90,7 @@ export const readPagePersonDisplayName = (
   return person === undefined ? null : getPagePersonOptionLabel(options, person);
 };
 
-/**
- * Cuándo lo respondido en una celda ya está dicho del todo.
- *
- * Lo que se elige de una lista o se marca queda respondido en el mismo gesto:
- * no hay un después. Lo que se escribe —un texto, un número, una fecha— pasa
- * por estados a medio escribir que no son la respuesta, así que se guarda al
- * salir del campo y no en cada tecla.
- */
+/** Picked values are final at once; typed ones pass through half-written states, so they save on blur. */
 export const pagePropertyAnswersOnPick = (type: PagePropertyType): boolean => {
   const logicalType = getPagePropertyLogicalType(type);
   return (
@@ -129,6 +100,5 @@ export const pagePropertyAnswersOnPick = (type: PagePropertyType): boolean => {
   );
 };
 
-/** Which word a checkbox is read as, so the cell that shows it asks one question and not two. */
 export const readCheckboxLabelKey = (value: PagePropertyValue | undefined): string =>
   getBooleanPropertyValue(value) ? 'properties.yes' : 'properties.no';

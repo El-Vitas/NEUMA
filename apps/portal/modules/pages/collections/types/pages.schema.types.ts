@@ -55,13 +55,7 @@ export interface PageViewGroup {
   readonly rows: readonly PageRow[];
 }
 
-/**
- * Un grupo de la tabla tal como llega a quien lo dibuja: lo que hay que decir de
- * él, y sus filas ya dibujadas.
- *
- * Las filas vienen hechas porque las dibuja el servidor y el grupo solo decide
- * si se enseñan: plegar es dejar de mirar, no volver a construir nada.
- */
+/** Rows arrive already rendered by the server; the group only decides whether to show them. */
 export interface PageTableGroup {
   readonly color: PageOptionColor | null;
   readonly key: string;
@@ -70,7 +64,6 @@ export interface PageTableGroup {
   readonly rows: ReactNode;
 }
 
-/** Una franja que cruza todas las columnas, con lo que a cada una le toca dentro de ella. */
 export interface PageViewBand {
   readonly color: PageOptionColor | null;
   readonly groups: readonly PageViewGroup[];
@@ -84,17 +77,13 @@ export type PageViewOutcome =
   | { readonly groups: readonly PageViewGroup[]; readonly kind: 'GROUPED_ROWS' }
   | { readonly kind: 'MISSING_GROUPING_PROPERTY' };
 
-/**
- * Lo que la colección contesta al pedirle una vista: sus filas repartidas como
- * esa vista las lee, y de cuántas salieron.
- */
 export interface PageViewReading {
-  /** Si la colección guardaba más filas de las que el servidor trajo. */
+  /** True when the collection stores more rows than the server returned. */
   readonly hasMore: boolean;
   readonly outcome: PageViewOutcome;
-  /** Las que el filtro dejó pasar. */
+  /** Rows that passed the view filter. */
   readonly rowCount: number;
-  /** Todas las que llegaron, filtre o no la vista. */
+  /** Every row received, whether or not the view filters it. */
   readonly totalRowCount: number;
 }
 

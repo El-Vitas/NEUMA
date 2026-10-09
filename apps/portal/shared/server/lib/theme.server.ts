@@ -5,13 +5,7 @@ import { THEME_CHOICE_COOKIE, THEME_READING_COOKIE } from '@/shared/constants/th
 import { readThemeChoice, readThemeReading } from '@/shared/lib/theme.lib';
 import type { ThemeChoice, ThemeReading } from '@/shared/types/theme.types';
 
-/**
- * How this browser reads the interface, as far as the server can tell.
- *
- * Both the choice and the reading the browser resolved are kept, so the page
- * can be sent already dressed instead of arriving light and turning dark once
- * the scripts have run.
- */
+/** Both the choice and the resolved reading are stored, so the page renders themed before scripts run. */
 export const readRequestTheme = async (): Promise<{
   readonly choice: ThemeChoice;
   readonly reading: ThemeReading;

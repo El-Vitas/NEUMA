@@ -14,13 +14,11 @@ const PASSWORD = 'plainPassword123';
 
 const createdShape = z.object({ id: z.string() });
 
-/** Una llamada que el agente hace sobre un lugar, con el lugar puesto donde va. */
 interface WriteCase {
   readonly tool: string;
   readonly args: (place: string) => Record<string, unknown>;
 }
 
-/** Las escrituras sobre una página, cada una con lo mínimo que su herramienta pide. */
 const pageWrites: readonly WriteCase[] = [
   { args: (page) => ({ blocks: [{ text: 'Filtrado', type: 'paragraph' }], page }), tool: 'insert_blocks' },
   { args: (page) => ({ block: 'intro', page, text: 'Filtrado' }), tool: 'update_block' },
@@ -37,7 +35,6 @@ const pageWrites: readonly WriteCase[] = [
   { args: (parent) => ({ parent, title: 'Filtrado' }), tool: 'create_page' },
 ];
 
-/** Las de una colección. */
 const collectionWrites: readonly WriteCase[] = [
   { args: (collection) => ({ collection }), tool: 'get_collection' },
   { args: (collection) => ({ collection }), tool: 'query_collection' },
@@ -51,12 +48,6 @@ const collectionWrites: readonly WriteCase[] = [
   },
 ];
 
-/**
- * Lo que un token cierra no se toca por ningún camino. Cada herramienta que
- * escribe es una puerta distinta, así que todas se prueban contra el mismo
- * lugar cerrado: tienen que contestar lo mismo que para un lugar que no existe,
- * y dejarlo como estaba.
- */
 describe('MCP closed places (Integration)', () => {
   let testApp: TestApp;
   let baseUrl: string;
@@ -91,7 +82,6 @@ describe('MCP closed places (Integration)', () => {
   const createdId = async (tool: string, args: Record<string, unknown>): Promise<string> =>
     createdShape.parse((await call(everything, tool, args)).structuredContent).id;
 
-  /** Todo lo que se guarda de un lugar: si cambia algo, se nota aquí. */
   const snapshotOf = async (pageId: string): Promise<string> => {
     const prisma = testApp.get(PrismaService);
     const [page, children] = await Promise.all([
@@ -114,11 +104,7 @@ describe('MCP closed places (Integration)', () => {
   const actionsDoneOn = (pageId: string) =>
     testApp.get(PrismaService).agentAction.count({ where: { outcome: 'DONE', pageId } });
 
-  /**
-   * Lo que hace un token que puede todo, salvo en la página y la colección
-   * cerradas. Uno nuevo por caso, porque el tope de llamadas se cuenta por
-   * token, y revocado al terminar, porque no puede haber dos vivos iguales.
-   */
+  /** Fresh token per case (the call cap is per token), revoked after (live tokens cannot share a name). */
   const asClosingToken = async <TResult>(act: (secret: string) => Promise<TResult>): Promise<TResult> => {
     const token = await createToken({
       allSpaces: [...ACCESS_TOKEN_PERMISSION_VALUES],
@@ -134,7 +120,6 @@ describe('MCP closed places (Integration)', () => {
     }
   };
 
-  /** Lo que contesta una herramienta sobre el lugar cerrado, y sobre uno que no existe. */
   const answersFor = (tool: string, args: (place: string) => Record<string, unknown>, place: string) =>
     asClosingToken(async (secret) => ({
       closed: readMcpText(await call(secret, tool, args(place))),
@@ -211,7 +196,6 @@ describe('MCP closed places (Integration)', () => {
     expect(await snapshotOf(closedRowId)).toBe(before);
   });
 
-  /** Un lugar abierto no sirve de puente hacia uno cerrado: no se puede llevar nada allí. */
   it('does not move an open page into a closed one', async () => {
     const target = await snapshotOf(closedPageId);
     const moved = await snapshotOf(openPageId);

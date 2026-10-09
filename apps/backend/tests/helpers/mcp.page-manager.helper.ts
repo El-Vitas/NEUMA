@@ -2,7 +2,6 @@ import type { McpPageManager } from '@/modules/mcp/types/mcp.page-management.typ
 
 const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
 
-/** Un gestor de páginas para las pruebas que no cambian páginas enteras: cualquier uso falla y se nota. */
 export const createUnusedPageManager = (): McpPageManager => ({
   duplicate: notUsedHere,
   listTrashed: notUsedHere,

@@ -8,10 +8,7 @@ describe('mapWithBoundedConcurrency', () => {
     expect(doubled).toEqual([2, 4, 6, 8, 10]);
   });
 
-  /**
-   * The point of the whole thing: each item opens its own transaction, and a
-   * hundred of those at once takes every connection there is.
-   */
+  // Each item opens its own transaction, and a hundred at once would take every connection.
   it('never has more than the allowed number in flight at once', async () => {
     let inFlight = 0;
     let mostAtOnce = 0;

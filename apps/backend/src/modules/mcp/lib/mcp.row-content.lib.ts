@@ -16,13 +16,7 @@ const buildParagraph = (text: string) =>
     type: 'paragraph',
   }) as const;
 
-/**
- * Lo que dice la página de una fila nueva, a partir del texto del agente.
- *
- * Cada parte entre líneas en blanco es un párrafo, y un salto de línea suelto
- * sigue siendo un salto dentro de su párrafo. Sin texto, la fila nace con un
- * párrafo vacío, igual que una fila creada en el portal.
- */
+/** No text yields one empty paragraph, as a row created in the portal. */
 export const buildMcpRowContent = (text: string | undefined): PageContent => {
   const paragraphs = (text ?? '')
     .split(MCP_PARAGRAPH_SEPARATOR)

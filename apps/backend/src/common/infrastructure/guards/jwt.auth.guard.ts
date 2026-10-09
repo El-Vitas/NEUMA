@@ -45,7 +45,7 @@ export class JwtAuthGuard implements CanActivate {
     (request as FastifyRequest & { user?: RequestUser }).user = user;
   }
 
-  /** Solo la llave de acceso: la de renovar y la del documento en vivo llevan otra audiencia y no abren la API. */
+  /** Refresh and collaboration tokens carry other audiences and must not open the API. */
   private async getPayloadFromToken(token: string): Promise<TokenPayload> {
     const secret = this.configService.getOrThrow<string>(JWT_SECRET_KEY);
     return this.jwtService.verifyAsync<TokenPayload>(token, { audience: ACCESS_TOKEN_AUDIENCE, secret });

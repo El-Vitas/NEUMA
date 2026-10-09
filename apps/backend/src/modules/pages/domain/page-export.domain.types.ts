@@ -1,4 +1,3 @@
-/** The little a page has to say about itself for an export to know where it goes. */
 export interface ExportablePage {
   readonly id: string;
   readonly order: number;
@@ -6,10 +5,6 @@ export interface ExportablePage {
   readonly title: string;
 }
 
-/**
- * How much is being asked for: one page, a page with everything under it, a
- * handful somebody picked, or a whole space.
- */
 export type PageExportScope =
   | { readonly kind: 'branch'; readonly pageId: string }
   | { readonly kind: 'page'; readonly pageId: string }

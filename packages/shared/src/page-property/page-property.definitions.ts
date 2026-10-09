@@ -10,14 +10,7 @@ import { PAGE_PROPERTY_LOGICAL_TYPE } from './page-property.types.js';
 
 const titleMaximumLength = 200;
 
-/**
- * Cuánto cabe en una celda de texto.
- *
- * Una propiedad se responde en una celda que se mira de un vistazo junto a las
- * demás, no es donde se escribe un documento: para eso está el cuerpo de la
- * página, que la fila ya tiene. El tope es holgado a propósito —cabe un párrafo
- * largo— y está para que nadie mande un libro por una celda.
- */
+/** Generous but a cell is not a document: long writing belongs in the row's page body. */
 const richTextMaximumLength = 2000;
 
 const baseCapabilities: PagePropertyCapabilities = {
@@ -100,7 +93,7 @@ const personDefinition: PagePropertyDefinition = {
 const dateDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.DATE,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.DATE,
-  /** Una columna por día de los que las filas nombran: las fechas no se declaran de antemano, se usan. */
+  /** One board column per date the rows use; dates are not declared in advance. */
   capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => '',
   isValidValue: (value) => typeof value === 'string' && !Number.isNaN(Date.parse(value)),
@@ -111,7 +104,7 @@ const dateDefinition: PagePropertyDefinition = {
 const checkboxDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.CHECKBOX,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN,
-  /** Dos columnas y no más: una casilla solo responde que sí o que no. */
+  /** Two board columns: checked or not. */
   capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => false,
   isValidValue: (value) => typeof value === 'boolean',
@@ -122,7 +115,7 @@ const checkboxDefinition: PagePropertyDefinition = {
 const numberDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.NUMBER,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.NUMBER,
-  /** Una columna por número que las filas traen puesto: sirve para tallas, puntos o pisos. */
+  /** One board column per number the rows use, e.g. sizes, points or floors. */
   capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => 0,
   isValidValue: (value) => typeof value === 'number' && Number.isFinite(value),

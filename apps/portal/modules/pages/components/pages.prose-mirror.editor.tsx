@@ -126,19 +126,13 @@ interface IProps {
   readonly currentUserDisplayName?: string;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
-  /**
-   * What the page says now, and whether the live document already keeps it.
-   * While it does, the server stores the page from there and nothing has to be
-   * sent from here; without it, the page is only kept by being sent.
-   */
+  /** `isKeptLive` is true when the live document already stores the page, so nothing has to be sent. */
   readonly onContentChange: (content: PageContent, isKeptLive: boolean) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
-  /** Where a link to another page of this app is followed, when following it should not leave where it was clicked from. */
+  /** Follows internal page links without leaving the current view, e.g. inside a side panel. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
   readonly pageId: string | null;
-  /** The pages this one already knows about, which is how a block says what a page is called now. */
   readonly pages?: readonly PageSummary[];
-  /** The members of this space, which is how a named person says who they are once the pointer rests on them. */
   readonly personOptions?: readonly PagePersonOption[];
   readonly spaceId: string;
   readonly textSize?: PageAppearanceTextSize;
@@ -175,16 +169,9 @@ export const PagesProseMirrorEditor = forwardRef(
     const tErrors = useTranslations('errors');
     const [isMakingChild, startMakingChild] = useTransition();
     const [isChoosingCollection, setIsChoosingCollection] = useState(false);
-    /** Whether the writing is still what somebody is working on, which is what the bar over a selection answers to. */
     const [isWritingInHand, setIsWritingInHand] = useState(true);
     const [linkInHand, setLinkInHand] = useState<PageEditorLinkAtHand | null>(null);
     const [linkUnderPointer, setLinkUnderPointer] = useState<PageEditorLinkAtHand | null>(null);
-    /**
-     * A link to a page of this app is followed through whoever is asked to
-     * follow it here — the panel that holds this editor when there is one,
-     * the router when there is not — rather than always leaving for a whole
-     * new address.
-     */
     const followPageHref = useCallback(
       (href: string): void => {
         const internalPage = resolveInternalPageHref(href);
@@ -209,7 +196,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const findPersonForHoverRef = useRef((userId: string): PagePersonOption | undefined =>
       personOptionsRef.current.find((option) => option.id === userId),
     );
-    /** Said once, and again only after the page has managed to keep something. */
+    /** Avoids repeating the error until a change has been kept successfully. */
     const toldOfTooMuchRef = useRef(false);
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
@@ -223,11 +210,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const editorHostRef = useRef<HTMLDivElement>(null);
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
-    /**
-     * El editor armado ahora. Se vuelve a armar cuando cambia algo de lo que
-     * depende, y lo que se ató al anterior —el documento en vivo— tiene que
-     * volver a atarse al nuevo: si no, sigue hablándole a uno que ya no existe.
-     */
+    /** State rather than a ref: the live document must rebind to each rebuilt editor. */
     const [mountedEditorView, setMountedEditorView] = useState<EditorView | null>(null);
     const embedding = usePagesEditorCollectionEmbedding({
       editorViewRef,
@@ -261,7 +244,6 @@ export const PagesProseMirrorEditor = forwardRef(
       [canEdit, pageId],
     );
 
-    /** The editor's own box, which every menu is placed against. */
     const readSurfaceRect = useCallback((): PageEditorSurfaceRect | null => {
       const surfaceElement = surfaceRef.current;
       if (surfaceElement === null) return null;
@@ -269,28 +251,11 @@ export const PagesProseMirrorEditor = forwardRef(
       return { left: rect.left, top: rect.top, width: rect.width };
     }, []);
 
-    /**
-     * Taken apart on purpose: the editor is built once, and it is built again
-     * whenever the hand it was given changes. A whole object handed over fresh
-     * on every render is a new hand every time, and rebuilding the editor
-     * reloads every video, every frame and every document on the page.
-     */
+    // Destructured so the editor depends on the stable callback: a fresh object each render would rebuild it.
     const pastedLink = usePagesEditorPastedLink(editorViewRef, readSurfaceRect);
     const { handlePastedLink } = pastedLink;
-    /**
-     * Watches the surface on its own, outside the editor's own construction:
-     * a mention or a link is still just a link once it is drawn, so nothing
-     * about how the editor is built has to know that resting on one is asked
-     * about here.
-     */
     const preview = usePagesPreview(surfaceRef, readSurfaceRect);
 
-    /**
-     * A picture on the clipboard becomes a picture on the page.
-     *
-     * Pasting is how an image most often arrives — from a screenshot, from
-     * another page — and without this it arrived as nothing at all.
-     */
     const uploadPastedFile = useCallback(
       (view: EditorView, event: ClipboardEvent): boolean => {
         const pastedFile = event.clipboardData?.files[0];
@@ -316,7 +281,6 @@ export const PagesProseMirrorEditor = forwardRef(
     const syncFind = find.sync;
     const resumeFind = find.resume;
 
-    /** The blocks the menu is open for become a page held by the one being written. */
     const becomePage = useCallback((): void => {
       const editorView = editorViewRef.current;
       const chosen = editorView === null ? null : findSelectedPageBlocks(editorView.state);
@@ -356,7 +320,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const isTriggerMenuOpen = canEdit && triggerQuery !== null && triggerMenuPosition !== null;
     const activeTriggerItemId = isTriggerMenuOpen ? (triggerItems[triggerSelectedIndex]?.id ?? null) : null;
 
-    /** A reader never leaves the editable text to reach the menu, so the editor speaks for it. */
+    /** Focus stays in the editable text, so the editor exposes the menu state for assistive tech. */
     useEffect(() => {
       editorViewRef.current?.setProps({
         attributes: describeEditorWithTriggerMenu(triggerMenuId, activeTriggerItemId),
@@ -383,13 +347,7 @@ export const PagesProseMirrorEditor = forwardRef(
       goToRef.current = followPageHref;
     }, [followPageHref]);
 
-    /**
-     * The page keeps what it can keep, and says so when it cannot.
-     *
-     * What the editor allows is wider than what a page accepts — a block longer
-     * than the page holds, above all — and a page that quietly stops being kept
-     * while somebody keeps writing it is the worst way for that to end.
-     */
+    /** The editor accepts more than a page can store (an over-long block), so the failure is reported, not silent. */
     const keepWhatCanBeKeptRef = useRef((state: EditorState): void => {
       const kept = readWhatThePageCanKeep(state);
       if (kept === null) {
@@ -420,11 +378,7 @@ export const PagesProseMirrorEditor = forwardRef(
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
-          /*
-            Un editor ya desarmado no tiene dónde aplicar nada. Lo que llega en
-            el instante entre desarmarlo y atar el documento en vivo al nuevo no
-            se pierde: vive en el documento, y el editor nuevo parte de él.
-          */
+          // Nothing is lost between teardown and rebinding: the live document keeps it and the new editor starts there.
           if (editorView.isDestroyed) return;
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
@@ -446,12 +400,7 @@ export const PagesProseMirrorEditor = forwardRef(
         },
         editable: () => !isPageEditorReadOnly(canEdit),
         handleDOMEvents: {
-          /**
-           * The bar over a chosen stretch of writing belongs to the moment of
-           * choosing it. ProseMirror keeps its selection while it is not
-           * focused — so that coming back returns it — but a bar left floating
-           * over writing nobody is holding any more is only in the way.
-           */
+          // ProseMirror keeps the selection while unfocused, but the selection bar should not float over it.
           blur: (_view, event) => {
             const tookTheFocus = event.relatedTarget instanceof Element ? event.relatedTarget : null;
             setIsWritingInHand(isTheWritingStillInHand(tookTheFocus, surfaceRef.current));
@@ -461,13 +410,7 @@ export const PagesProseMirrorEditor = forwardRef(
             setIsWritingInHand(true);
             return false;
           },
-          /**
-           * A link to a page of this app is followed without leaving the app: a
-           * whole page load to reach the next page of the same workspace throws
-           * away everything the browser already had. It is answered here, and
-           * not at the node the click landed on, so that a page named in the
-           * middle of a sentence is followed the same way as a plain link.
-           */
+          // Handled here, not at the clicked node, so a page mention is followed like a plain link.
           click: (_view, event) => {
             const followed = event.target instanceof Element ? event.target.closest('a') : null;
             const href = followed?.getAttribute('href') ?? null;
@@ -528,13 +471,6 @@ export const PagesProseMirrorEditor = forwardRef(
       syncFind,
     });
 
-    /**
-     * Does what a button says when it is pressed.
-     *
-     * What it holds is written where it says, or — when it is a button for a
-     * collection — becomes one more row of it, named after the first thing it
-     * would have written, because a row nobody named is a row nobody finds.
-     */
     const pressTheButtonRef = useRef((at: number): void => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
@@ -560,14 +496,6 @@ export const PagesProseMirrorEditor = forwardRef(
       );
     });
 
-    /**
-     * Makes the page that will hang from this one, and leaves the line to it
-     * where the writing was.
-     *
-     * The page is made first and named afterwards, the way a page is made
-     * anywhere else here: what is written in it is written in the page itself,
-     * so this one only has to say where it is.
-     */
     const makeTheChildPage = (): void => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
@@ -575,7 +503,7 @@ export const PagesProseMirrorEditor = forwardRef(
         toast.error(t('subpageNeedsPage'));
         return;
       }
-      /** Where the writing is now, said before the making begins, because it will not be there after. */
+      // Captured before the async work, after which the selection has moved.
       const spot = editorView.state.selection.from;
       startMakingChild(async () => {
         const made = await callAction(() =>
@@ -583,7 +511,7 @@ export const PagesProseMirrorEditor = forwardRef(
             content: createEmptyPageContent(),
             parentId: pageId,
             spaceId,
-            /** Left unnamed rather than named «Untitled»: a page called that is a page lying about its name. */
+            // Left empty rather than "Untitled", which would pass for a real name.
             title: '',
           }),
         );
@@ -602,7 +530,6 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
-    /** Makes the page that was named in the middle of a sentence but was not written yet. */
     const makeTheNamedPage = (title: string): void => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
@@ -610,7 +537,7 @@ export const PagesProseMirrorEditor = forwardRef(
         toast.error(t('subpageNeedsPage'));
         return;
       }
-      /** Where the writing is now, said before the making begins, because it will not be there after. */
+      // Captured before the async work, after which the selection has moved.
       const spot = editorView.state.selection.from;
       startMakingChild(async () => {
         const made = await callAction(() =>
@@ -631,13 +558,6 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
-    /**
-     * Starts a collection and shows it here.
-     *
-     * A collection is a page with a shape, so it is made the way a page is made
-     * and given the shape it starts with in the same breath; what lands in the
-     * writing is the block that looks at it.
-     */
     const makeTheCollection = (): void => {
       const editorView = editorViewRef.current;
       if (editorView === null) return;
@@ -653,26 +573,13 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
-    /**
-     * Shows a collection that lives somewhere else.
-     *
-     * The page is chosen first and asked about afterwards: nothing here knows
-     * which pages are collections until each one is asked, and a page that is
-     * not one says so instead of leaving an empty block on the page.
-     */
+    /** Whether the page is a collection is only known by asking, so a failure is reported, not an empty block. */
     const showTheChosenCollection = (chosen: PageDestination): void => {
       setIsChoosingCollection(false);
       embedding.show(chosen.id, collectionSpotRef.current);
     };
 
-    /**
-     * Shows the page this block names the other way round: the collection kept
-     * in sight, or only the line that leads to it.
-     *
-     * Going back to the collection asks the page whether it still is one, since
-     * a shape can be taken away from a page long after somebody wrote a block
-     * that shows it.
-     */
+    /** Switching back to a collection re-checks the page, since its shape may have been removed since. */
     const showThePageAs = (shape: PageEditorPageShape): void => {
       const editorView = editorViewRef.current;
       const target = surface.pageShape;
@@ -699,12 +606,7 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
-    /**
-     * Breaks the tie with the page the block lives in and keeps a copy here.
-     *
-     * The copy is this page's own writing from then on: neither side hears
-     * about the other again, which is the whole point of asking for it.
-     */
+    /** The copy belongs to this page from then on; later edits on either side do not propagate. */
     const breakTheSync = (): void => {
       const editorView = editorViewRef.current;
       const target = surface.syncedTarget;
@@ -714,13 +616,7 @@ export const PagesProseMirrorEditor = forwardRef(
       editorView.focus();
     };
 
-    /**
-     * Says which collection a button adds its rows to.
-     *
-     * The page is asked whether it is a collection before it is written down: a
-     * button pointing at a page that keeps nothing would fail only when somebody
-     * presses it, which is the worst moment to find out.
-     */
+    /** Verified now so a button pointing at a non-collection fails here, not when someone presses it. */
     const chooseTheButtonCollection = (chosen: PageDestination): void => {
       const editorView = editorViewRef.current;
       const at = surface.buttonAt;
@@ -740,15 +636,7 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
-    /**
-     * One more row of a collection: a page of its own hanging from it, as every
-     * row is.
-     *
-     * The collection is asked what it keeps before the row is made, because a
-     * collection that requires something of every row would refuse one that
-     * arrives empty, and the refusal would land on whoever pressed the button
-     * with nothing to do about it.
-     */
+    /** The schema is read first because required properties need default values, or an empty row would be refused. */
     const addTheRow = (collectionId: string, collectionSpaceId: string, title: string, content: PageContent): void => {
       startMakingChild(async () => {
         const asked = await callAction(() =>
@@ -781,7 +669,6 @@ export const PagesProseMirrorEditor = forwardRef(
       });
     };
 
-    /** Asks where the writing in hand should take whoever presses it. */
     const askWhereTheLinkGoes = (): void => {
       const editorView = editorViewRef.current;
       const spot = surface.toolbarPosition;
@@ -792,7 +679,6 @@ export const PagesProseMirrorEditor = forwardRef(
       setLinkInHand({ link, spot });
     };
 
-    /** Leaves the writing where it is and takes the link off it. */
     const stopBeingALink = (rested: PageEditorLinkAtHand): void => {
       const editorView = editorViewRef.current;
       setLinkUnderPointer(null);
@@ -801,7 +687,6 @@ export const PagesProseMirrorEditor = forwardRef(
       editorView.focus();
     };
 
-    /** Writes down where it goes, or takes the link off, and gives the writing back its cursor. */
     const sayWhereTheLinkGoes = (href: string | null): void => {
       const editorView = editorViewRef.current;
       const asked = linkInHand;
@@ -835,7 +720,6 @@ export const PagesProseMirrorEditor = forwardRef(
 
     return (
       <section aria-label={t('editor')} className="space-y-3">
-        {/** Whoever knows how to make a page, kept where the menu can reach it and nobody else can. */}
         <button
           aria-hidden="true"
           className="hidden"
@@ -1028,7 +912,7 @@ export const PagesProseMirrorEditor = forwardRef(
             onLetGo={preview.letGo}
             outcome={preview.outcome}
           />
-          {/* One floating thing at a time: a bar and a bubble on the same words cover each other. */}
+          {/* Only one floating element at a time: a bar and a bubble over the same words overlap. */}
           {canEdit &&
             isWritingInHand &&
             linkInHand === null &&

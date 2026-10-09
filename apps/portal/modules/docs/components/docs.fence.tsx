@@ -6,13 +6,7 @@ import { DocsDiagram } from './docs.diagram';
 import { DocsFormula } from './docs.formula';
 import { DocsIcons } from './docs.icons';
 
-/**
- * A fenced block of a document, which is not always writing to look at.
- *
- * A block written in the language of diagrams is drawn, and one asking for the
- * gallery of pictures becomes the gallery: what a document shows is decided in
- * the document, not here, so somebody writing one never has to touch this.
- */
+/** The document decides what a block shows through its language tag, so authors never touch this component. */
 export const DocsFence = ({ children, className }: ComponentProps<'code'>) => {
   const language = readFenceLanguage(className);
   const written = readFenceText(children);

@@ -10,7 +10,6 @@ interface IProps {
   readonly selected: string | null;
 }
 
-/** How the page shows the file it holds: read where it stands, or named on one line. */
 export const PagesEditorFileDisplayItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

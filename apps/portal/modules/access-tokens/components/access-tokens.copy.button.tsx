@@ -11,7 +11,6 @@ interface IProps {
   readonly text: string;
 }
 
-/** Copia al portapapeles y lo dice. Si el navegador no deja, lo dice también, para copiarlo a mano. */
 export const AccessTokensCopyButton = ({ label, text }: IProps) => {
   const t = useTranslations('accessTokens');
 

@@ -22,7 +22,6 @@ const pointsAtAPage = (node: PageDocumentNodeShape): boolean =>
   (MCP_INLINE_REFERENCE_TYPES.includes(node.type) || MCP_BLOCK_REFERENCE_TYPES.includes(node.type)) &&
   readPageDocumentText(node, 'pageId') !== undefined;
 
-/** La página a la que lleva una marca de enlace, si lleva a una de Company Brain. */
 const readLinkedPageId = (mark: PageMark): string | null => {
   const href = mark.type === 'link' ? mark.attrs.href : undefined;
   return typeof href === 'string' ? (readPageLinkAddress(href)?.pageId ?? null) : null;
@@ -38,12 +37,10 @@ const collectReferencedPageIds = (nodes: readonly unknown[]): readonly string[] 
     return [...(pageId === undefined ? [] : [pageId]), ...listLinkedPageIds(node), ...inside];
   });
 
-/** Las páginas a las que apunta un contenido, una vez cada una, en el orden en que aparecen. */
 export const listReferencedPageIds = (nodes: readonly unknown[]): readonly string[] => [
   ...new Set(collectReferencedPageIds(nodes)),
 ];
 
-/** Un bloque que mostraba una página que no se puede ver: queda una línea que no la nombra, con el mismo id. */
 const redactedBlock = (node: PageDocumentNodeShape): PageDocumentNodeShape => {
   const blockId = readPageDocumentBlockId(node);
   return {
@@ -53,13 +50,7 @@ const redactedBlock = (node: PageDocumentNodeShape): PageDocumentNodeShape => {
   };
 };
 
-/**
- * Lo que apunta a una página que el agente puede ver, con la página como es hoy.
- *
- * Una mención y una subpágina guardan el nombre y el espacio de cuando se
- * escribieron; si la página cambió de nombre o de espacio, el agente leería un
- * nombre que ya no existe y un enlace a un espacio donde ya no está.
- */
+/** Mentions and subpages store the name and space from when written, stale after a rename or move. */
 const bringUpToDate = (node: PageDocumentNodeShape, place: McpPagePlace): PageDocumentNodeShape => ({
   ...node,
   attrs: {
@@ -75,7 +66,6 @@ const rewriteReference = (node: PageDocumentNodeShape, reachable: ReadonlyMap<st
   return MCP_INLINE_REFERENCE_TYPES.includes(node.type) ? MCP_REDACTED_REFERENCE_WORD : redactedBlock(node);
 };
 
-/** Un texto con un enlace a una página que no se puede ver conserva sus palabras, pero no adónde llevaba. */
 const dropUnreachableLinks = (
   node: PageDocumentNodeShape,
   reachable: ReadonlyMap<string, McpPagePlace>,
@@ -99,13 +89,8 @@ const hideNode = (node: unknown, reachable: ReadonlyMap<string, McpPagePlace>): 
 };
 
 /**
- * El contenido sin rastro de las páginas que el agente no puede ver, y con las
- * que sí puede ver nombradas como son hoy.
- *
- * Una mención, una subpágina, un bloque sincronizado o una colección que
- * apunta a una página que el token no alcanza dirían su título, su id o lo que
- * dice. En su lugar queda una marca que no nombra nada, y un bloque conserva su
- * id, así el agente todavía puede señalarlo.
+ * A mention, subpage, synced block or collection would leak the title, id or content of an
+ * unreadable page, so an unnamed mark replaces it; a block keeps its id so it stays addressable.
  */
 export const hideUnreachableReferences = (
   nodes: readonly unknown[],
@@ -144,14 +129,9 @@ const settleNode = (
 };
 
 /**
- * Lo que el agente escribió, con cada mención, cada bloque que muestra otra
- * página y cada persona como son hoy.
- *
- * Solo se puede apuntar a una página que el token alcanza: escribir una
- * mención, una subpágina o una colección incrustada de una página cerrada
- * dejaría su nombre o sus filas a la vista de quien lea esta. Se rechaza igual
- * que una página que no existe, sin repetir el nombre que el agente le puso.
- * Una persona tiene que estar en el espacio de trabajo.
+ * Only pages the token can reach may be referenced, or a mention, subpage or embedded
+ * collection would expose a closed page's name or rows. Rejected like a missing page,
+ * without echoing the name.
  */
 export const settleWrittenReferences = (
   nodes: readonly unknown[],

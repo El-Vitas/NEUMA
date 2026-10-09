@@ -100,7 +100,6 @@ describe('de lo guardado a las filas, para editarlo', () => {
 });
 
 describe('lo que alguien puede dar', () => {
-  /** Quien solo lee no ve ofrecido lo que no podría dar: no es un botón que después falla. */
   it('offers someone who only reads the reading level, custom and no access, nothing that writes', () => {
     expect(listGrantableLevels(USER_ROLE.CLIENT, ACCESS_TOKEN_TARGET_KINDS.space)).toEqual([
       ACCESS_TOKEN_LEVELS.none,
@@ -110,7 +109,6 @@ describe('lo que alguien puede dar', () => {
     expect(listGrantablePermissions(USER_ROLE.CLIENT)).not.toContain(ACCESS_TOKEN_PERMISSIONS.pagesWrite);
   });
 
-  /** «Sin acceso» en todos los espacios es lo mismo que no decir nada: no se ofrece ahí. */
   it('does not offer no access for all spaces', () => {
     expect(listGrantableLevels(USER_ROLE.WORKER, ACCESS_TOKEN_TARGET_KINDS.all)).toEqual([
       ACCESS_TOKEN_LEVELS.read,
@@ -132,7 +130,6 @@ describe('el nivel al cambiar de lugar', () => {
 });
 
 describe('los lugares que ofrece cada fila', () => {
-  /** Un lugar ya elegido en otra fila no se ofrece de nuevo: repetirlo solo deja una fila que no se puede mandar. */
   it('offers every space except the ones other rows already name', () => {
     const rows = [
       row({ key: 'a', target: { kind: 'SPACE', spaceId: 'product' } }),
@@ -158,7 +155,6 @@ describe('los lugares que ofrece cada fila', () => {
     expect(excludePageOptions([holidays, other], [holidays.id])).toEqual([other]);
   });
 
-  /** Cuando no hay nada que mostrar, se dice por qué: falta escribir, busca, falló o no encontró. */
   it('says what the page search is doing when there is nothing to show', () => {
     const idle = { hasFailed: false, isSearching: false, pages: [] };
 
@@ -264,7 +260,6 @@ describe('hasta cuándo sirve', () => {
     });
   });
 
-  /** Una fecha elegida vale el día entero: vence cuando ese día termina, donde vive quien lo eligió. */
   it('expires when the chosen day ends, and asks for a day while none is chosen', () => {
     const resolution = resolveAccessTokenExpiry(ACCESS_TOKEN_EXPIRY_OPTIONS.custom, '2027-03-15', now);
 
@@ -304,7 +299,6 @@ describe('cuándo se puede mandar', () => {
     expect(canSubmitAccessDraft([row({})])).toBe(true);
   });
 
-  /** El servidor no acepta más lugares que estos: mejor no ofrecer mandar lo que va a rechazar. */
   it('stops at the most spaces a token can name, and offers no row past what fits', () => {
     const spaces = (count: number) =>
       Array.from({ length: count }, (_unused, index) =>
@@ -322,7 +316,6 @@ describe('cuándo se puede mandar', () => {
     expect(canSubmitAccessDraft([row({ target: { kind: 'PAGE', page: holidays } })])).toBe(true);
   });
 
-  /** El mismo lugar dos veces deja sin decir cuál fila manda. */
   it('does not allow the same place twice', () => {
     const twice = [
       row({ key: 'a', target: { kind: 'SPACE', spaceId: 'product' } }),

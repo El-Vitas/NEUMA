@@ -13,17 +13,10 @@ import type { DocsDocument, DocsEntry } from '../../types/docs.types';
 
 const folderOf = (locale: string): string => join(process.cwd(), DOCS_CONTENT_FOLDER, locale);
 
-/** A document or a language nobody wrote is expected; anything else that fails reading them is not, and is let through. */
+/** A missing document or language is expected; any other read failure propagates. */
 const isNotWritten = (error: unknown): boolean =>
   error instanceof Error && 'code' in error && error.code === DOCS_NOT_WRITTEN_CODE;
 
-/**
- * Reads a document as it was written, or nothing when nobody wrote it.
- *
- * A document not written in the language being read is read in the language the
- * manual is kept in: half a manual in the reader's language and half of it
- * missing is worse than a manual in one language.
- */
 const readWritten = async (locale: string, slug: string): Promise<string | null> => {
   try {
     return await readFile(join(folderOf(locale), `${slug}${DOCS_FILE_SUFFIX}`), 'utf8');
@@ -45,7 +38,6 @@ const readNames = async (locale: string): Promise<readonly string[]> => {
   }
 };
 
-/** Everything there is to read, in the order the documents themselves ask for. */
 export const readDocsEntries = async (locale: string): Promise<readonly DocsEntry[]> => {
   const [own, fallback] = await Promise.all([readNames(locale), readNames(DOCS_FALLBACK_LOCALE)]);
   const names = new Set([...own, ...fallback]);
@@ -56,7 +48,7 @@ export const readDocsEntries = async (locale: string): Promise<readonly DocsEntr
     .sort((one, other) => one.order - other.order || one.title.localeCompare(other.title));
 };
 
-/** One document, read in the language asked for and otherwise in the one it was written in. */
+/** Falls back to the default locale so a half-translated manual never shows gaps. */
 export const readDocsDocument = async (locale: string, slug: string): Promise<DocsDocument | null> => {
   if (!DOCS_SLUG_SHAPE.test(slug)) return null;
   const file = (await readWritten(locale, slug)) ?? (await readWritten(DOCS_FALLBACK_LOCALE, slug));

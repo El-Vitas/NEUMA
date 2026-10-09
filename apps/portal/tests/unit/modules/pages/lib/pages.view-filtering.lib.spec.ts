@@ -62,11 +62,6 @@ describe('reading what a view filters by', () => {
     expect(readViewFilterRoot(table)).toEqual({ conditions: [], kind: 'GROUP', operator: 'AND' });
   });
 
-  /**
-   * Lo guardado puede ser una condición suelta —el contrato lo admite—, y quien
-   * la muestra no debería tener que distinguir ese caso: se lee como el grupo de
-   * una sola condición que es.
-   */
   it('reads a lone stored condition as a group holding it', () => {
     const stored: PageSchemaView = {
       ...table,
@@ -94,11 +89,6 @@ describe('adding a condition', () => {
     expect(conditionAt(addViewFilterCondition(views, 'Table', ROOT, dueDate), [0]).operator).toBe('IS');
   });
 
-  /**
-   * Dos condiciones a medio armar sobre la misma propiedad son la misma
-   * condición escrita dos veces: no dicen nada distinto hasta que una recibe
-   * valor, y no habría cómo decirle a la pantalla cuál es cuál.
-   */
   it('does not add a second half-made condition on the same property', () => {
     const twice = addViewFilterCondition(addViewFilterCondition(views, 'Table', ROOT, status), 'Table', ROOT, status);
 
@@ -132,10 +122,6 @@ describe('changing a condition', () => {
     );
   });
 
-  /**
-   * «Está vacío» asks nothing of a value, so a value left over from the previous
-   * operator would sit there unused and travel to the server as noise.
-   */
   it('drops the value when the operator stops asking for one', () => {
     const withValue = setViewFilterConditionValue(withCondition, 'Table', [0], 'todo');
 
@@ -161,7 +147,6 @@ describe('removing a node', () => {
     ]);
   });
 
-  /** A view with no conditions left is a view that does not filter, not one filtering by nothing. */
   it('leaves the view without a filter once the last condition goes', () => {
     const withOne = addViewFilterCondition(views, 'Table', ROOT, status);
 
@@ -172,7 +157,6 @@ describe('removing a node', () => {
 });
 
 describe('clearing the filter', () => {
-  /** Quitar las condiciones de a una guardaría una vez por condición; quitarlas todas es un solo cambio. */
   it('leaves the view without a filter in one go', () => {
     const withTwo = addViewFilterCondition(
       addViewFilterCondition(views, 'Table', ROOT, status),
@@ -206,7 +190,6 @@ describe('joining conditions', () => {
 describe('anidando grupos de condiciones', () => {
   const withGroup = addViewFilterGroup(addViewFilterCondition(views, 'Table', ROOT, status), 'Table', ROOT);
 
-  /** Un grupo nace uniendo con «o»: quien lo abre dentro de un «y» está pidiendo justo lo que el «y» no da. */
   it('opens a group that joins with «o» inside a root that joins with «y»', () => {
     expect(rootOf(withGroup).operator).toBe('AND');
     expect(nodeAt(withGroup, [1])).toEqual({ conditions: [], kind: 'GROUP', operator: 'OR' });
@@ -241,7 +224,7 @@ describe('anidando grupos de condiciones', () => {
     expect(rootOf(removeViewFilterNode(inside, 'Table', [1])).conditions).toHaveLength(1);
   });
 
-  /** Tres niveles es lo que el contrato admite, contando la condición: el grupo de un grupo ya no cabe. */
+  // The contract allows three levels counting the condition, so a group inside a group does not fit.
   it('refuses to open a group inside a group', () => {
     expect(canNestFilterGroup(ROOT)).toBe(true);
     expect(canNestFilterGroup([1])).toBe(false);
@@ -297,11 +280,7 @@ describe('moviendo las columnas de una tabla', () => {
   const columnsOf = (rewritten: readonly PageSchemaView[]) =>
     readPageViewConfiguration(rewritten[0]?.configuration ?? {}).visibleProperties;
 
-  /**
-   * Una vista que nunca eligió qué mostrar no tiene lista que reordenar. Se le
-   * escribe entera tal como se estaba viendo, que es lo que enseñaba, y recién
-   * ahí se mueve una: sin eso, mover una columna la haría la única visible.
-   */
+  // Without a stored list, moving one column would otherwise leave it as the only visible one.
   it('writes down what it was already showing before moving anything', () => {
     expect(columnsOf(moveViewProperty(views, 'Table', shown, 'dueDate', 'status'))).toEqual(['dueDate', 'status']);
   });

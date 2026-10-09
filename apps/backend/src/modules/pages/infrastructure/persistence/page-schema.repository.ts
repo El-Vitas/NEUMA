@@ -121,16 +121,8 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
   }
 
   /**
-   * Reescribe la opción y arrastra consigo lo que las filas guardaron.
-   *
-   * Las dos cosas en una transacción: si la forma cambiara y las filas no, todas
-   * las que decían el nombre viejo quedarían diciendo algo que la colección ya
-   * no reconoce, y el tablero las dejaría sin columna.
-   *
-   * De qué nombre viene se comprueba aquí dentro, con la fila tomada: quien
-   * pidió el cambio leyó las opciones hace un rato, y si en ese rato otra
-   * persona tocó esa misma opción, escribir lo leído borraría su cambio. La
-   * opción que ya no está donde se la dejó no se reescribe.
+   * Schema and row values change in one transaction so no row keeps an option name the schema dropped.
+   * The source option is re-checked under the row lock: a concurrent edit to it must not be overwritten.
    */
   async rewriteOption(
     pageId: string,
@@ -154,7 +146,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         },
         where: { key: propertyKey, pageId },
       });
-      /* Las filas se leen tomadas, como al cambiar una sola: una tarjeta movida entretanto no vuelve a su columna vieja. */
+      // Rows are locked so a card moved meanwhile does not return to its old column.
       const rows = await transaction.$queryRaw<{ id: string; propertyValues: Prisma.JsonValue }[]>`
         SELECT "id", "propertyValues" FROM "Page"
         WHERE "parentId" = ${pageId} AND "propertyValues" IS NOT NULL
@@ -172,13 +164,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     });
   }
 
-  /**
-   * Cambia lo que una vista dice de sí misma, y nada más.
-   *
-   * Rehacer la forma entera para esto borraría y volvería a crear cada propiedad
-   * y cada vista de la colección: mucho trabajo, y una ventana donde el cambio
-   * de otra persona se perdería, por doblar una franja.
-   */
+  /** Updates one view only; redefining the whole schema would recreate everything and risk losing concurrent edits. */
   async setViewConfiguration(
     pageId: string,
     viewName: string,
@@ -195,7 +181,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     role: UserRole,
     limit: number,
   ): Promise<PageRowsPage> {
-    /* Una de más que el tope: es lo que distingue una colección que cabe justa de una a la que se le cortó la cola. */
+    // One extra row tells a collection that fits exactly from one that was truncated.
     const found = await this.prisma.page.findMany({
       orderBy: { order: 'asc' },
       select: pageRowSelection,
@@ -224,7 +210,6 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return this.workspaceMemberRepository.listActiveMemberIds(workspaceId);
   }
 
-  /** Si la forma guardada sigue siendo la que se leyó: mismas columnas y mismas vistas, en el mismo orden. */
   private async isStillTheShape(
     transaction: Prisma.TransactionClient,
     pageId: string,
@@ -247,11 +232,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         select: schemaPropertySelection,
         where: { pageId },
       }),
-      /**
-       * En el orden que les dio quien configuró la colección, que es el de sus
-       * pestañas. Leerlas por nombre haría que renombrar una vista la moviera de
-       * sitio, y dejaría el orden en manos del alfabeto.
-       */
+      // Ordered by the configured tab order, not by name, so renaming a view does not move it.
       client.pageSchemaView.findMany({
         orderBy: { order: 'asc' },
         select: schemaViewSelection,

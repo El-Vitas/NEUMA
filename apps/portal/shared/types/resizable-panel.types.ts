@@ -7,7 +7,7 @@ export interface ResizablePanelController {
 }
 
 export interface ResizablePanelSettings {
-  /** Which way the panel grows when the pointer moves right. */
+  /** Growth direction when the pointer moves right: a panel on the right edge shrinks. */
   readonly grows: 'leftwards' | 'rightwards';
   readonly clamp: (candidate: number) => number;
   readonly defaultWidth: number;

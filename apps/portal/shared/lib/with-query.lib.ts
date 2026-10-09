@@ -19,11 +19,7 @@ export const withQuery = async <T>(
     return Result.fail(logQueryFailure(meta, error));
   }
 
-  /**
-   * Cuánto tardó, no qué hora era. Medir con el reloj de pared obliga a resolver
-   * la página en el momento —el marco no puede adelantar nada que dependa de la
-   * hora—, y para una duración el reloj monótono es además el correcto.
-   */
+  /** Wall-clock time would force the page to resolve at request time; the monotonic clock also suits durations. */
   const start = performance.now();
   logger.info({ ...meta, status: 'start' });
 

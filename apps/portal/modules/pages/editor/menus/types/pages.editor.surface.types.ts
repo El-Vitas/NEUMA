@@ -7,30 +7,25 @@ import type { PageSyncedReference } from '../../structure/types/pages.editor.syn
 import type { PageEditorLinkTarget } from './pages.editor.link-shape.types';
 import type { PageEditorPageShapeTarget } from './pages.editor.page-shape.types';
 
-/** Where on the screen a spot of the page is, measured from the editor's own box. */
 export interface PageEditorSpot {
   readonly left: number;
   readonly top: number;
 }
 
-/** The editor's own box, as the placement of menus is measured against it. */
 export interface PageEditorSurfaceRect {
   readonly left: number;
   readonly top: number;
   readonly width: number;
 }
 
-/** Where a collection block stands, so its own page can be rendered into it. */
 export interface PageEditorCollectionHost {
   readonly element: HTMLElement;
-  /** Which spot on the page this is, told apart from every other one: the same collection may be shown twice. */
+  /** Unique per spot: the same collection may be shown twice on a page. */
   readonly name: string;
   readonly pageId: string;
-  /** Por cuál de sus vistas se la mira aquí, o nada cuando el bloque no dice ninguna. */
   readonly viewName: null | string;
 }
 
-/** What the page around the editor shows about the blocks in play. */
 export interface PageEditorSurfaceState {
   readonly pageShape: PageEditorPageShapeTarget | null;
   readonly syncedTarget: PageSyncedReference | null;
@@ -53,7 +48,6 @@ export interface PageEditorSurfaceState {
   readonly toolbarPosition: PageEditorSpot | null;
 }
 
-/** A block being waited for on a page that may still be drawing itself. */
 export interface PageEditorBlockWatch {
   readonly blockId: string;
   readonly onFound: (block: Element) => void;

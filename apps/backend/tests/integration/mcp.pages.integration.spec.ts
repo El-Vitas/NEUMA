@@ -24,11 +24,6 @@ interface Session {
 const writtenShape = z.object({ blockIds: z.array(z.string()), markdown: z.string() });
 const createdShape = z.object({ id: z.string(), markdown: z.string() });
 
-/**
- * Lo que un agente escribe en una página, de punta a punta: cliente MCP por
- * HTTP, documento en vivo y Postgres. Cada caso mira lo guardado, no solo la
- * respuesta: lo rechazado tiene que no haber tocado la página.
- */
 describe('MCP page writes (Integration)', () => {
   let testApp: TestApp;
   let baseUrl: string;
@@ -80,7 +75,6 @@ describe('MCP page writes (Integration)', () => {
     return (response.body as { secret: string }).secret;
   };
 
-  /** Un token que lee y escribe en todas partes, salvo en la página cerrada. */
   const writerToken = () =>
     tokenFor({ allSpaces: [pagesRead, pagesWrite], pages: [{ pageId: closedPageId, permissions: [] }] });
 
@@ -136,10 +130,7 @@ describe('MCP page writes (Integration)', () => {
       expect(offered).not.toContain('create_page');
     });
 
-    /**
-     * Que no se le ofrezca no basta: un agente puede llamar una herramienta por
-     * su nombre. Cada una revisa el permiso al llamarla, y sin él no cambia nada.
-     */
+    // Not offering a tool is not enough: an agent can call it by name, so each tool checks the permission itself.
     it('refuses every write tool called by name by a token that only reads the page, changing nothing', async () => {
       const pageId = await freshPage('Solo se lee');
       const secret = await tokenFor({ allSpaces: [pagesRead] });
@@ -332,7 +323,7 @@ describe('MCP page writes (Integration)', () => {
       expect(await storedContent(pageId)).toContain('logos:postgresql');
     });
 
-    /** Se rechaza antes de tocar la página, así que no hay escritura que anotar: el rechazo queda en el log de llamadas. */
+    // Rejected before touching the page, so there is no write to record: only the call log has the rejection.
     it('refuses a diagram Mermaid cannot read, writing nothing and saying where it broke', async () => {
       const pageId = await freshPage('Diagrama roto');
       const before = await storedContent(pageId);

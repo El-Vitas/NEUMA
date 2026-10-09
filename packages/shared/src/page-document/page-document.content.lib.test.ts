@@ -36,7 +36,6 @@ describe('writePageDocumentJsonAsContent', () => {
     expect(writePageDocumentJsonAsContent(held)).toEqual(pageWithAnUnknownBlock);
   });
 
-  /** Lo que el esquema agrega por defecto no se escribe: una página guardada se lee igual que antes. */
   it('leaves out the attributes that say nothing', () => {
     const documentJson = {
       content: [
@@ -104,7 +103,6 @@ describe('readPageDocumentJsonAsContent', () => {
     expect(readPageDocumentJsonAsContent(held)).toEqual(pageWithAnUnknownBlock);
   });
 
-  /** El marcador lo llena quien edita: uno roto no puede hacer fallar cada guardado de la página. */
   it('keeps a placeholder whose block is not readable as it is, instead of throwing', () => {
     const broken = { attrs: { name: 'diagram', source: '{not json' }, type: 'unsupported' };
     const document = { content: [broken], schemaVersion: 1, type: 'doc' };

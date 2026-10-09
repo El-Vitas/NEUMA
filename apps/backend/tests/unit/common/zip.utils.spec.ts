@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { buildZipArchive } from '@/common/utils/zip.utils';
 
-/**
- * Reads the archive back with a real unzip, so the test proves the format and
- * not our own idea of it.
- *
- * `-O UTF-8` is asked for because Info-ZIP on Linux ignores the flag that says
- * the names are UTF-8 and falls back to an encoding from the eighties. The
- * archive is right; the reader has to be told.
- */
+/** Reads the archive back with a real unzip. `-O UTF-8` because Info-ZIP on Linux ignores the UTF-8 name flag. */
 const readBack = async (bytes: Uint8Array): Promise<Record<string, string>> => {
   const workingDirectory = `/tmp/zip-spec-${String(bytes.byteLength)}-${String(bytes[20] ?? 0)}`;
   await Bun.$`rm -rf ${workingDirectory}`.quiet();

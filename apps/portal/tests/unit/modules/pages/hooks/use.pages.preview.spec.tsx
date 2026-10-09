@@ -41,7 +41,7 @@ const hoverOver = (element: HTMLElement): void => {
   });
 };
 
-/** The card stands past the edge of the writing, so reaching it is also leaving the surface. */
+// The card stands past the edge of the writing, so reaching it also leaves the surface.
 const leaveSurfaceTowards = (surface: HTMLElement, entered: HTMLElement): void => {
   act(() => {
     surface.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: entered }));

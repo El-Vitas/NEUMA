@@ -36,7 +36,6 @@ describe('Exporting pages (Integration)', () => {
     await testApp.close();
   });
 
-  /** Exportar es de lo más caro que hace el servidor: pasado su tope por minuto, se corta. */
   it('stops exporting once a person asked too many times in a row', async () => {
     for (let exported = 0; exported < EXPORT_RATE_LIMIT.perUserLimit; exported += 1) {
       const allowed = await exportSpace();

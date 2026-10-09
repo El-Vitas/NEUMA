@@ -18,7 +18,6 @@ const watchCalls = () => {
 };
 
 describe('runMcpTool', () => {
-  /** El motivo es una etiqueta fija: el mensaje al agente puede citar lo que escribió, y eso no va al log. */
   it('tells why a call was refused, and never the message the agent reads', async () => {
     const { dependencies, finished } = watchCalls();
 

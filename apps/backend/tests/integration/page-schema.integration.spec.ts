@@ -180,11 +180,6 @@ describe('Page Schema (Integration)', () => {
       expect(schema.properties.map((property) => property.key)).toEqual(['title', 'status']);
     });
 
-    /**
-     * Quien guarda la forma entera a partir de lo que leyó no puede borrar lo
-     * que otra persona cambió entre que leyó y guardó: si la forma ya no es la
-     * que leyó, no se guarda y se le dice.
-     */
     it('refuses to save a whole shape over one that changed since it was read, and keeps the newer one', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Concurrida');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
@@ -233,7 +228,6 @@ describe('Page Schema (Integration)', () => {
       expect(row.propertyValues).not.toHaveProperty('title');
     });
 
-    /** What a card dragged across a board does: one value moves and the rest of the page is left alone. */
     it('changes one property of a row without touching what the page says', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board dragged');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
@@ -253,10 +247,7 @@ describe('Page Schema (Integration)', () => {
       expect((moved.body as PageResponse).title).toBe('Row dragged');
     });
 
-    /**
-     * Leer la fila, fundirle lo nuevo y guardarla entera perdía lo que otra
-     * persona cambiaba al mismo tiempo en otra columna.
-     */
+    // Regression: reading the row, merging and saving it whole lost concurrent changes to other columns.
     it('keeps both of two property changes that arrive at the same time', async () => {
       const priorityProperty = {
         key: 'priority',
@@ -289,7 +280,6 @@ describe('Page Schema (Integration)', () => {
       expect(stored.propertyValues).toEqual({ priority: 'high', status: 'done' });
     });
 
-    /** Cambiar una propiedad no es escribir en la página: ni su contenido ni sus versiones se mueven. */
     it('leaves the content and the versions of the row alone when a property changes', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Board untouched');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
@@ -381,11 +371,7 @@ describe('Page Schema (Integration)', () => {
       expect(listed.hasMore).toBe(false);
     });
 
-    /**
-     * Una colección que creció sola no puede costar lo que guarde. Se corta en
-     * el tope y se dice que se cortó, porque quinientas de seiscientas sin
-     * avisar se leen como las seiscientas.
-     */
+    // Truncation must be reported: 500 of 600 rows without notice read as all 600.
     it('brings at most the row limit, and says the collection held more', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Overgrown Collection');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
@@ -515,7 +501,6 @@ describe('Page Schema (Integration)', () => {
       };
       expect(body.outcome.kind).toBe('FLAT_ROWS');
       expect(body.outcome.rows.map((row) => row.id)).toEqual([first.id, second.id]);
-      /** Cuántas se ven de cuántas hay: sin filtro puesto, las mismas. */
       expect(body).toMatchObject({ rowCount: 2, totalRowCount: 2 });
     });
 
@@ -601,7 +586,6 @@ describe('Page Schema (Integration)', () => {
       type: DatabasePropertyType.PERSON,
     };
 
-    /** Cada colección dice cuál de sus columnas nombra personas; una fila es de quien esa columna nombra. */
     it('lists the rows of every collection that name the person in a column of people', async () => {
       const tasks = await createPage(testApp, adminToken, sharedSpaceId, 'Tareas asignables');
       const bugs = await createPage(testApp, adminToken, sharedSpaceId, 'Errores asignables');

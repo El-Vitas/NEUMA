@@ -8,21 +8,10 @@ import type { PagesRowSearch } from '../types/pages.row-search.types';
 
 interface IProps {
   readonly children: ReactNode;
-  /** Lo que dice cada fila en palabras, ya armado por el servidor: buscar no puede rehacerlo en cada tecla. */
   readonly searchTexts: readonly string[];
 }
 
-/**
- * Lo que se está buscando dentro de la colección.
- *
- * Se busca sobre lo que ya está en pantalla, que son las filas que el filtro
- * dejó pasar: así buscar respeta el filtro sin tener que saber nada de él, y
- * responde al teclear en vez de ir y volver del servidor por cada letra.
- *
- * Lo buscado no se guarda en la vista. Buscar es de este rato —se busca algo,
- * se encuentra y se sigue—, y una vista que abriera mañana con una búsqueda
- * puesta parecería una colección a la que le faltan filas.
- */
+/** The query is not saved in the view: a view reopening with a search applied would look like it lost rows. */
 export const PagesCollectionSearchProvider = ({ children, searchTexts }: IProps) => {
   const [query, setQuery] = useState('');
 

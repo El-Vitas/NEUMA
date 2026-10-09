@@ -15,12 +15,6 @@ interface IProps {
   readonly space: { readonly id: string; readonly name: string } | null;
 }
 
-/**
- * A space renamed from the tree.
- *
- * The name is what a space is found by, and it is shown right here, so it is
- * changed right here rather than somewhere else entirely.
- */
 export const SidebarSpaceRenameDialog = ({ onClose, onRenamed, space }: IProps) => {
   const t = useTranslations('navigation');
   const commonT = useTranslations('common');

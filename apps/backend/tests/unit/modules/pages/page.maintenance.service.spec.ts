@@ -26,7 +26,6 @@ const liveDocument: PageLiveDocument = {
   writePageContent: () => Promise.reject(new Error('Maintenance never writes through the live document')),
 };
 
-/** Un repositorio con una sola tanda de páginas, que anota a cuáles se les pidió volver a proyectarse. */
 const createRepository = (pages: readonly PageMaintenanceRow[]) => {
   const reindexed: string[] = [];
   const repository: PageMaintenanceRepositoryContract = {
@@ -82,7 +81,6 @@ describe('page maintenance — fillPageBlocks', () => {
     expect((await service.fillPageBlocks(admin)).getValue().unreadablePages).toBe(1);
   });
 
-  /** Dos corridas a la vez darían ids distintos a la misma página, y la segunda pisaría la primera. */
   it('refuses a second run in the same workspace while the first is going, and lets one in once it ends', async () => {
     const { repository } = createRepository([storedPage('page-a')]);
     const { promise: firstWrite, resolve: finishFirstWrite } = Promise.withResolvers<PageContentStoreOutcome>();

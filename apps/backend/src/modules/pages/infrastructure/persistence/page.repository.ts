@@ -49,7 +49,7 @@ const toPropertyValuesInput = (
 const toCoverInput = (cover: PageCoverValue | null): Prisma.InputJsonValue | typeof Prisma.JsonNull =>
   cover === null ? Prisma.JsonNull : { assetId: cover.assetId, position: cover.position };
 
-/** A stored cover nobody can read leaves the page bare rather than unreadable. */
+/** An unreadable stored cover yields null instead of failing the whole page. */
 const parsePageCover = (cover: Prisma.JsonValue): PageCoverValue | null => {
   const validation = validatePageCover(cover);
   return validation.isOk() ? validation.getValue() : null;
@@ -222,14 +222,7 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  /**
-   * Copies a page, and what hangs from it when asked.
-   *
-   * The copy is put right after the original rather than at the end: a copy one
-   * cannot find next to what it was copied from is a copy one has to go looking
-   * for. Its branch keeps its own shape, and only the page one asked to copy is
-   * renamed — the pages under it were not the ones being duplicated.
-   */
+  /** The copy goes right after the original; only its root is renamed. */
   async duplicate(input: DuplicatePageInput): Promise<PageSummary | null> {
     return this.prisma.$transaction(async (transaction) => {
       const original = await transaction.page.findFirst({
@@ -268,11 +261,7 @@ export class PageRepository implements PageRepositoryContract {
     return content.getValue();
   }
 
-  /**
-   * Guarda lo que dice el documento colaborativo de una página. La fila queda
-   * bloqueada mientras se compara, así dos guardados seguidos no cortan dos
-   * versiones del mismo texto, y lo que no cambió no corta ninguna.
-   */
+  /** Locks the row while comparing: concurrent saves cut no duplicate versions, unchanged content cuts none. */
   async storeContent(input: StorePageContentInput): Promise<PageContentStoreOutcome> {
     return this.prisma.$transaction(async (transaction) => {
       const [current] = await transaction.$queryRaw<StoredPageContentRow[]>`
@@ -335,7 +324,6 @@ export class PageRepository implements PageRepositoryContract {
     return Result.ok(this.toSummary(updated.page, authors));
   }
 
-  /** Avisa que la página tiene una versión nueva, para quienes proyectan su contenido. */
   private async announceNewVersion(
     transaction: Prisma.TransactionClient,
     pageId: string,
@@ -354,14 +342,7 @@ export class PageRepository implements PageRepositoryContract {
     );
   }
 
-  /**
-   * Says out loud that a page changed without a new version of it being cut —
-   * its name, or the mark it wears.
-   *
-   * The index keeps both, so a page renamed or re-marked and never written in
-   * again would otherwise be found under what it used to be called. The moment
-   * the change was written is what tells one such change from the next.
-   */
+  /** Announces a change that cuts no version (title, icon); the search index stores both. */
   private async announceThePageChanged(
     page: { readonly id: string; readonly updatedAt: Date },
     transaction: Prisma.TransactionClient,
@@ -399,7 +380,7 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  /** Locking is not editing what the page says, so it is recorded without cutting a new version of it. */
+  /** Cuts no version: locking does not edit content. */
   async setLocked(
     pageId: string,
     locked: boolean,
@@ -418,14 +399,8 @@ export class PageRepository implements PageRepositoryContract {
   }
 
   /**
-   * Vouches for a page, or takes that back.
-   *
-   * Verifying is stamped again every time it is asked, since asking it again
-   * is the same act of vouching repeated — that is also what lets an
-   * expiration be pushed out without a second endpoint. Unverifying clears the
-   * three fields together, because a page that was never vouched for should
-   * not still remember an expiration date. The page is announced as changed so
-   * the search index, which is asked to filter by this, does not go stale.
+   * Verifying re-stamps every time, which also lets an expiration be extended. Unverifying clears all
+   * three fields together. Announces the change because the search index filters by verification.
    */
   async setVerification(
     pageId: string,
@@ -450,7 +425,7 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  /** Assigning is not editing what the page says, so it is recorded without cutting a new version of it. */
+  /** Cuts no version: assigning does not edit content. */
   async setOwner(
     pageId: string,
     ownerId: null | string,
@@ -501,13 +476,7 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  /**
-   * What a move has to be judged against: the page, and the trees of both the
-   * space it leaves and the one it arrives at.
-   *
-   * The destination space is only looked at when it is one this reader may see,
-   * so a page cannot be sent into a space its own author cannot reach.
-   */
+  /** The destination tree loads only if the reader can see that space. */
   async findMoveContext(
     pageId: string,
     targetSpaceId: null | string,
@@ -540,7 +509,6 @@ export class PageRepository implements PageRepositoryContract {
     };
   }
 
-  /** Every page this reader can see that carries properties at all, which is where an assignment could be written. */
   async listWithProperties(workspaceId: string, userId: string, role: UserRole): Promise<readonly PageSummary[]> {
     const pages = await this.prisma.page.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -586,14 +554,7 @@ export class PageRepository implements PageRepositoryContract {
     };
   }
 
-  /**
-   * Sets a page down among its own sisters, in front of one of them.
-   *
-   * Only the order changes: whose child the page is, and which space it lives
-   * in, are a different matter and stay as they were. The whole row is
-   * renumbered from the top so no two sisters end up claiming the same place —
-   * that is what would make the next drag land where nobody aimed.
-   */
+  /** Changes order only, never parent or space. Siblings are renumbered from the top so no two share a position. */
   async reorderAmongSiblings(
     pageId: string,
     beforePageId: null | string,
@@ -673,12 +634,7 @@ export class PageRepository implements PageRepositoryContract {
     });
   }
 
-  /**
-   * Si una página puede colgar de otra, mirado dentro de la misma transacción
-   * que la mueve y con los movimientos del espacio de trabajo en fila: la de
-   * arriba sigue viva en ese espacio, y no es la página misma ni una que cuelga
-   * de ella. Dos movimientos cruzados, A bajo B y B bajo A, ya no arman un ciclo.
-   */
+  /** Runs with workspace moves serialized, so crossed moves cannot form a cycle. */
   private async canHangUnder(
     transaction: Prisma.TransactionClient,
     pageId: string,
@@ -807,11 +763,7 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<readonly TrashedPageSummary[]> {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(workspaceId, userId, role, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
-    /*
-     * Solo lo que está en la papelera: lo de abajo de una página borrada se
-     * fue con ella, así que contar lo borrado que cuelga de cada una no pide
-     * el resto del árbol.
-     */
+    // Only trashed pages: descendants of a deleted page were trashed with it, so counting needs no other tree rows.
     const pages = await this.prisma.page.findMany({
       select: pageHierarchySelection,
       where: { lifecycle: PageLifecycle.TRASHED, spaceId: { in: [...accessibleSpaceIds] } },
@@ -864,12 +816,7 @@ export class PageRepository implements PageRepositoryContract {
     return this.deleteTrashedPagesIn(accessibleSpaceIds);
   }
 
-  /**
-   * Borra para siempre lo que está en la papelera de unos espacios, en una sola
-   * sentencia que vuelve a mirar que siga en la papelera: una página que alguien
-   * restauró un instante antes no se borra. Devuelve las que de verdad se
-   * borraron, para limpiar solo sus archivos.
-   */
+  /** Re-checks the page is still trashed in the same statement, so a just-restored page survives. */
   private async deleteTrashedPagesIn(spaceIds: readonly string[]): Promise<readonly string[]> {
     const deleted = await this.prisma.$queryRaw<{ id: string }[]>`
       DELETE FROM "Page"
@@ -883,11 +830,7 @@ export class PageRepository implements PageRepositoryContract {
     return { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId }, spaceId };
   }
 
-  /**
-   * Si una página que la persona ve sigue viva, para cambiarla. Una en la
-   * papelera no se cambia: quien la renombra o la bloquea desde una pestaña
-   * vieja creería que funcionó sobre algo que ya no está.
-   */
+  /** Trashed pages are not editable, so a stale tab cannot rename or lock something already gone. */
   private async isActiveAndAccessible(
     pageId: string,
     workspaceId: string,
@@ -1010,15 +953,8 @@ export class PageRepository implements PageRepositoryContract {
   }
 
   /**
-   * Takes whatever hangs from a moved page into the space it lands in.
-   *
-   * A page does not travel alone: splitting a branch across two spaces would
-   * leave its own children where nobody can reach them from it. Each one is
-   * announced as moved too, because the index that finds them records the space
-   * they belong to, and an unannounced page keeps answering for the old one.
-   *
-   * Who last edited them is left alone: a page carried along by its mother was
-   * not written by whoever moved her.
+   * Descendants follow the moved page so a branch is never split across spaces. Each is announced as
+   * moved because the search index stores its space. Last editor is untouched: the move is not an edit.
    */
   private async carryBranchIntoSpace(
     transaction: Prisma.TransactionClient,
@@ -1053,7 +989,6 @@ export class PageRepository implements PageRepositoryContract {
     }
   }
 
-  /** One page written again under a new parent, with everything it wore and everything it said. */
   private async writeThePageCopy(
     transaction: Prisma.TransactionClient,
     original: PageCopySource,
@@ -1094,12 +1029,7 @@ export class PageRepository implements PageRepositoryContract {
     return copy;
   }
 
-  /**
-   * Writes the branch under a page again, under its copy.
-   *
-   * Walked from the top down so every page finds its new parent already written:
-   * a child copied before its mother would have nowhere to hang from.
-   */
+  /** Walks top-down so each child finds its new parent already written. */
   private async copyTheBranchUnder(
     transaction: Prisma.TransactionClient,
     original: { id: string; spaceId: string },

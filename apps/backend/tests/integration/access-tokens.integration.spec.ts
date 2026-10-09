@@ -79,7 +79,6 @@ describe('Access tokens (Integration)', () => {
     expect(await tokens.resolvePrincipal(body.secret)).toBeNull();
   });
 
-  /** Nadie apaga el token de otra persona adivinando su id: para quien no es dueña, ese token no existe. */
   it('does not let one person revoke another person token', async () => {
     const body = (await createToken(ownerToken, 'Ajeno').expect(201)).body as CreatedTokenResponse;
 
@@ -91,7 +90,6 @@ describe('Access tokens (Integration)', () => {
     expect((await testApp.get(AccessTokensService).resolvePrincipal(body.secret))?.userId).toBe(ownerId);
   });
 
-  /** Desactivar a una persona corta también a los agentes que actuaban por ella. */
   it('stops standing for a person who was deactivated', async () => {
     const body = (await createToken(ownerToken, 'Hasta desactivar').expect(201)).body as CreatedTokenResponse;
     const prisma = testApp.get(PrismaService);

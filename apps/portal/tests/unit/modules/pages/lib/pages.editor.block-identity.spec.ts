@@ -17,7 +17,6 @@ const mountEditor = (content: PageContentNode[]): { readonly container: HTMLElem
   return { container, view };
 };
 
-/** The identity of the block the text is written in, not of whatever holds it. */
 const readIdOf = (view: EditorView, text: string): string | null => {
   let blockId: string | null = null;
   view.state.doc.descendants((node) => {

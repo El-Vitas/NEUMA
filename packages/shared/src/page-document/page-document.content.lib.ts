@@ -16,10 +16,6 @@ const isJsonObject = (value: unknown): value is Record<string, unknown> =>
 
 const isUnsupportedBlock = (node: Record<string, unknown>): boolean => node.type === PAGE_DOCUMENT_UNSUPPORTED_NODE;
 
-/**
- * Un bloque que esta versión no conoce, convertido en uno que sí puede tener:
- * el tipo que dice ser y el bloque entero, palabra por palabra.
- */
 const holdUnknownBlock = (node: PageContentNode): PageContentNode => ({
   attrs: { name: node.type, source: JSON.stringify(node) },
   type: PAGE_DOCUMENT_UNSUPPORTED_NODE,
@@ -34,22 +30,13 @@ const holdUnknownBlocks = (nodes: readonly PageContentNode[]): readonly PageCont
     return { ...node, content: [...holdUnknownBlocks(node.content)] };
   });
 
-/**
- * La página como la puede leer el documento del editor.
- *
- * Lo que esta versión no conoce pasa a ser un marcador que lleva el original,
- * así la página se abre entera en vez de fallar por el único bloque que nadie
- * aquí entiende.
- */
+/** Unknown blocks become placeholders carrying the original, so the page opens instead of failing on one block. */
 export const holdPageContentThisVersionCannotRead = (content: PageContent): PageContent => ({
   ...content,
   content: [...holdUnknownBlocks(content.content)],
 });
 
-/**
- * Un texto leído como JSON, o nada si no lo es. El marcador lo llena quien
- * edita la página, así que puede llegar roto, y eso no puede impedir guardarla.
- */
+/** The placeholder is editable by users, so a broken one must not block saving the page. */
 const parseJsonText = (source: string): unknown => {
   try {
     return JSON.parse(source);
@@ -58,7 +45,6 @@ const parseJsonText = (source: string): unknown => {
   }
 };
 
-/** Lo que el marcador guardaba, sacado de vuelta; si lo que guardaba no se lee, el marcador se queda como está. */
 const releaseUnknownBlock = (node: Record<string, unknown>): Record<string, unknown> => {
   const source = isJsonObject(node.attrs) ? node.attrs.source : null;
   if (typeof source !== 'string') return node;
@@ -112,22 +98,16 @@ const normalizeDocumentJson = (value: unknown): Record<string, unknown> => {
   return normalized;
 };
 
-/**
- * El documento del editor, tal como sale de ProseMirror, en la forma en que se
- * guarda una página: sin los atributos que no dicen nada y con los bloques
- * desconocidos devueltos como llegaron. Todavía sin validar.
- */
 const prepareDocumentJsonForStorage = (documentJson: unknown): Record<string, unknown> => ({
   ...releasePageContentThisVersionCannotRead(normalizeDocumentJson(documentJson)),
   schemaVersion: PAGE_CONTENT_SCHEMA_VERSION,
 });
 
-/** Lo que del documento se puede guardar, o nada si no calza con el contrato de una página. */
 export const readPageDocumentJsonAsContent = (documentJson: unknown): PageContent | null => {
   const kept = pageContentSchema.safeParse(prepareDocumentJsonForStorage(documentJson));
   return kept.success ? kept.data : null;
 };
 
-/** El documento escrito como se guarda una página. Lo que no calza se rechaza, nunca se guarda a medias. */
+/** Rejects content that does not fit the page contract; never stores it partially. */
 export const writePageDocumentJsonAsContent = (documentJson: unknown): PageContent =>
   pageContentSchema.parse(prepareDocumentJsonForStorage(documentJson));

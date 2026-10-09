@@ -30,13 +30,8 @@ const writeStoredCollapsed = (collapsed: boolean): void => {
 };
 
 /**
- * Remembers whether the sidebar is collapsed.
- *
- * The first render must match what the server sent, so it always starts
- * expanded and adopts the stored preference right after mounting: reading
- * storage while rendering makes the browser and the server disagree and React
- * throws the whole tree away. The preference is written when someone changes
- * it, so adopting the stored value can never overwrite it.
+ * Starts expanded and adopts the stored preference after mount: reading storage during render
+ * would mismatch the server HTML and make React discard the tree.
  */
 export const useSidebarCollapsed = (enableKeyboardShortcut = true): readonly [boolean, () => void] => {
   const [collapsed, setCollapsed] = useState(false);

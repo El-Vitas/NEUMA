@@ -7,7 +7,7 @@ interface IProps {
   readonly children: ReactNode;
 }
 
-/** Las secciones que se ofrecen dependen del rol de quien mira. */
+/** The sections offered depend on the viewer's role. */
 export default async function Layout({ children }: IProps) {
   const user = await getCurrentUser();
   if (user === null) notFound();

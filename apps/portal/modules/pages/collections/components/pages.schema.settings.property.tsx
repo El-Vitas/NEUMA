@@ -22,17 +22,7 @@ interface IProps {
   readonly property: PageSchemaProperty;
 }
 
-/**
- * Una propiedad y lo que se decide sobre ella.
- *
- * El tipo se puede cambiar, y se avisa de lo que cuesta: lo que las filas ya
- * guardaron se queda escrito con la forma anterior y hay que volver a
- * responderlo. La propiedad de título es la excepción por los dos lados —ni
- * deja de serlo ni otra pasa a serlo—, porque es la que abre cada fila.
- *
- * Cada opción es una línea con su color puesto. El color se elige entrando en
- * ella, no con nueve botones por opción esperando a que alguien acierte.
- */
+/** The title property can neither change type nor be assigned to another property: it opens each row. */
 export const PagesSchemaSettingsProperty = ({ editor, onGo, property }: IProps) => {
   const t = useTranslations('pages.collection');
   const [newOption, setNewOption] = useState('');

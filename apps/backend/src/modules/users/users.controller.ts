@@ -76,12 +76,7 @@ export class UsersController {
     return this.usersService.updateUser(id, dto);
   }
 
-  /**
-   * A password is changed by the person who knows it and nobody else, so the
-   * account is the session's own. Taking the account from the address would
-   * also hand out an oracle: anybody could try a password against any account
-   * and read the answer in the status code.
-   */
+  /** Only the session's own account may change its password, so the path id must match the token. */
   @Patch(':id/password')
   @UseGuards(JwtAuthGuard)
   @HttpCode(204)

@@ -1,6 +1,3 @@
-// hooks-dir-only-hooks
-// Qué hace: dentro de `hooks/`, solo permite hooks `use*`.
-// Para qué: que `hooks/` sea hogar exclusivo de hooks (§1.1), sin tipos ni helpers sueltos.
 import { eachExportedVariableDeclarator } from './dir-only-exports.util.mjs';
 
 const STARTS_WITH_USE = /^use[A-Z]/;

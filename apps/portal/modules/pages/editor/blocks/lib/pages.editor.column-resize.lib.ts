@@ -1,11 +1,6 @@
 import { PAGE_EDITOR_COLUMN_MINIMUM_WIDTH } from '../constants/pages.editor.blocks.constants';
 
-/**
- * Shares a row's width between its columns.
- *
- * A column with no width of its own takes an equal share, which is what a row
- * looks like right after it is created.
- */
+/** Normalizes column widths to sum to 1; a column with no width of its own takes an equal share. */
 export const readPageEditorColumnWidths = (widths: readonly (number | null)[]): readonly number[] => {
   const evenShare = widths.length === 0 ? 0 : 1 / widths.length;
   const known = widths.map((width) => (typeof width === 'number' && width > 0 ? width : evenShare));
@@ -14,12 +9,8 @@ export const readPageEditorColumnWidths = (widths: readonly (number | null)[]): 
 };
 
 /**
- * Moves the divider between two columns to where the pointer is, taking the
- * width from one neighbour and giving it to the other, so the rest of the row
- * stays exactly as it was.
- *
- * Neither neighbour can be squeezed past `PAGE_EDITOR_COLUMN_MINIMUM_WIDTH`,
- * so a column can always be seen and written in.
+ * Moves the divider between two columns to the pointer, trading width between the neighbours only.
+ * Neither neighbour shrinks below `PAGE_EDITOR_COLUMN_MINIMUM_WIDTH`.
  */
 export const resizePageEditorColumns = (parameters: {
   readonly boundaryIndex: number;

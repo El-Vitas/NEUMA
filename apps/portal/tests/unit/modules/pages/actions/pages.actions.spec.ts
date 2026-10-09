@@ -54,7 +54,6 @@ const {
 const spaceId = '11111111-1111-4111-8111-111111111111';
 const pageId = '22222222-2222-4222-8222-222222222222';
 
-/** Una acción es una puerta pública: lo que no cumple su esquema se rechaza antes de llamar a nadie. */
 describe('pages.actions with what their schema does not accept', () => {
   it('refuses a page with no blocks at all, without making an outbound request', async () => {
     cookieValue = 'access-token';

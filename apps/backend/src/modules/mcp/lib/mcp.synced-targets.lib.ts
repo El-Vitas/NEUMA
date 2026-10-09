@@ -29,12 +29,7 @@ const checkNode = async (dependencies: McpServerDependencies, call: McpCall, nod
   await checkMcpSyncedTargets(dependencies, call, node.content ?? []);
 };
 
-/**
- * Revisa que cada bloque sincronizado muestre un bloque que existe, también
- * los que van dentro de una columna. Uno que apunta a un bloque que no está se
- * vería roto en la página sin que nadie supiera por qué. Que el token alcance
- * la página de origen ya se revisó antes, con el resto de lo que apunta a otra.
- */
+/** Token access to the source page is checked earlier. */
 export const checkMcpSyncedTargets = async (
   dependencies: McpServerDependencies,
   call: McpCall,

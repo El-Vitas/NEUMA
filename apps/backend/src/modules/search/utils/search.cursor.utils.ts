@@ -4,11 +4,7 @@ import type { SearchCursor } from '../types/search.types';
 export const encodeSearchCursor = (cursor: SearchCursor): string =>
   Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 
-/**
- * El cursor que vino de un resultado anterior, leído con forma. El cursor no va
- * firmado, así que viene de afuera: una fecha que JavaScript acepta pero
- * Postgres no terminaría en un error del servidor, y por eso se exige entera.
- */
+/** The cursor is unsigned client input; the schema is strict so a date Postgres rejects is not a server error. */
 export const decodeSearchCursor = (value: string | undefined): SearchCursor | null => {
   if (value === undefined || value.length === 0) return null;
   try {

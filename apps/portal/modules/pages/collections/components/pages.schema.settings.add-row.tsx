@@ -10,27 +10,15 @@ import type { PagesSchemaSettingsKindOption } from '../types/pages.schema-settin
 interface IProps {
   readonly addLabel: string;
   readonly disabled: boolean;
-  /** La clase que sale puesta, que debe ser la que más se agrega y no la primera de la lista. */
   readonly initialKind: string;
   readonly kindLabel: string;
   readonly kinds: readonly PagesSchemaSettingsKindOption[];
   readonly nameLabel: string;
   readonly onAdd: (name: string, kind: string) => void;
-  /** Los nombres que no se pueden repetir, cuando el nombre es además la dirección de lo que se agrega. */
   readonly takenNames: readonly string[];
   readonly takenWarning: string;
 }
 
-/**
- * Lo de agregar algo a la forma de una colección: cómo se llama y de qué clase
- * es.
- *
- * Va al final de la lista, que es cuando ya se vio lo que hay y se sabe qué
- * falta. Se pide el nombre antes que la clase porque nadie agrega «una
- * selección» sin saber de qué, y no se puede agregar sin nombre: lo que se
- * escribe aquí es la etiqueta que se lee después, o la dirección por la que se
- * llega a una vista.
- */
 export const PagesSchemaSettingsAddRow = ({
   addLabel,
   disabled,
@@ -44,7 +32,6 @@ export const PagesSchemaSettingsAddRow = ({
 }: IProps) => {
   const [name, setName] = useState('');
   const [kind, setKind] = useState(initialKind);
-  /** Se dice antes de pulsar: agregar y que no pase nada es lo que hace pensar que está roto. */
   const isTaken = takenNames.includes(name.trim());
 
   const addAndClearTheName = (): void => {

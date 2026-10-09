@@ -10,7 +10,6 @@ interface IProps {
   readonly selected: string | null;
 }
 
-/** Where a block may stand in the column of writing, including taking all of it. */
 export const PagesEditorBlockAlignItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

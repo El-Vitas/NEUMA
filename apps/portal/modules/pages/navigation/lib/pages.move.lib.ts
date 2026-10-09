@@ -17,12 +17,7 @@ const toSpaceRootDestination = (space: PageMoveSpace, rootLabel: string): PageMo
   title: rootLabel,
 });
 
-/**
- * Every place a page can be sent, as one list to be read down.
- *
- * Each space offers its own root before the pages inside it, so the list reads
- * the way the tree does — the space first, then what already hangs from it.
- */
+/** Each space's root precedes its pages, matching tree order. */
 export const buildPageMoveDestinations = (
   destinations: PageMoveDestinations,
   rootLabel: string,
@@ -41,7 +36,6 @@ export const buildPageMoveDestinations = (
       })),
   ]);
 
-/** Where the page sits right now, named the same way the choices are. */
 export const findCurrentPageMoveDestination = (
   destinations: readonly PageMoveDestination[],
   spaceId: string,

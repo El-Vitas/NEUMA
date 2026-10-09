@@ -28,7 +28,6 @@ import type { PageContent, PageMark } from './schemas/page-content.schema.js';
 
 type AnyNode = PageDocumentNodeShape;
 
-/** Cómo se presenta un bloque ya escrito: tal cual, o con su id delante. */
 type BlockAnchor = (node: AnyNode, written: string) => string;
 
 const childrenOf = listPageDocumentChildren;
@@ -36,7 +35,6 @@ const attr = readPageDocumentText;
 
 const leaveUnanchored: BlockAnchor = (_node, written) => written;
 
-/** Los colores con que está pintado un bloque entero, como atributos del ancla. */
 const writeBlockColors = (node: AnyNode): string =>
   MARKDOWN_BLOCK_COLOR_ATTRIBUTES.map((name) => [name, attr(node, name)] as const)
     .filter(([, color]) => color !== undefined)
@@ -49,7 +47,6 @@ const anchorBlock: BlockAnchor = (node, written) => {
   return `${MARKDOWN_BLOCK_ANCHOR_OPEN}${blockId}${writeBlockColors(node)}${MARKDOWN_BLOCK_ANCHOR_CLOSE}\n${written}`;
 };
 
-/** A mark Markdown has no sign for, written as the HTML tag that means it, around what it already wraps. */
 const writeTagMark = (carried: string, mark: PageMark): string => {
   switch (mark.type) {
     case 'underline':
@@ -63,12 +60,7 @@ const writeTagMark = (carried: string, mark: PageMark): string => {
   }
 };
 
-/**
- * A word with whatever it wears written around it.
- *
- * A link is the outermost wrapper because that is how Markdown reads it: the
- * emphasis belongs to the words, and the link belongs to all of them together.
- */
+// The link is the outermost wrapper: emphasis belongs to the words, the link to all of them.
 const writeText = (node: AnyNode): string => {
   const marks = node.marks ?? [];
   const isCode = marks.some((mark) => mark.type === 'code');
@@ -84,18 +76,10 @@ const writeText = (node: AnyNode): string => {
   return link === undefined ? written : `[${written}](${escapeMarkdownLinkTarget(link.attrs.href)})`;
 };
 
-/**
- * What lives inside a line and is not a word.
- *
- * Each one is written as the thing Markdown already has that means the same:
- * a mention is a link to the page it names, a person is a link to who they
- * are, a formula is a formula. Nothing here invents syntax, so a plain reader
- * still reads a sentence.
- */
-/** Where a mention leads: the page it names, in the space it lives in. */
 const readMentionTarget = (node: AnyNode): string =>
   ['', 'spaces', attr(node, 'spaceId') ?? '', 'pages', attr(node, 'pageId') ?? ''].join('/');
 
+/** Mentions, people and formulas use constructs Markdown already has, so a plain reader still reads a sentence. */
 const writeInline = (node: AnyNode): string => {
   if (node.type === 'text') return writeText(node);
   if (node.type === 'hard_break') return '\n';
@@ -113,20 +97,13 @@ const writeInline = (node: AnyNode): string => {
 
 const writeInlines = (nodes: readonly AnyNode[]): string => nodes.map(writeInline).join('');
 
-/** What a block says on its own, with every line of it pushed behind the same marker. */
 const indentEveryLine = (written: string, marker: string): string =>
   written
     .split('\n')
     .map((line) => `${marker}${line}`)
     .join('\n');
 
-/**
- * Lo que dice un ítem de una lista.
- *
- * Su primera línea es el ítem mismo: se nombra por el ítem y no por esa línea,
- * así quien lo lee no ve dos ids para lo mismo. Lo que cuelga debajo sí lleva
- * el suyo.
- */
+/** The first line is the item itself and carries no id of its own; nested blocks do. */
 const writeListItemBody = (item: AnyNode, anchor: BlockAnchor): string => {
   const children = childrenOf(item);
   const line = children.at(0);
@@ -150,7 +127,7 @@ const writeTaskItems = (node: AnyNode, anchor: BlockAnchor): string =>
     .map((item) => anchor(item, `- [${item.attrs?.checked === true ? 'x' : ' '}] ${writeListItemBody(item, anchor)}`))
     .join('\n');
 
-/** Una fila de una tabla. Las celdas van sin ids, porque una línea de tabla no admite nada entre sus celdas. */
+/** Cells carry no ids: a table row allows nothing between its cells. */
 const writeTableRow = (row: AnyNode): string =>
   `| ${childrenOf(row)
     .map((cell) => escapeMarkdownTableCell(writeBlocks(childrenOf(cell), leaveUnanchored)))
@@ -166,10 +143,6 @@ const writeTable = (node: AnyNode): string => {
   return [writeTableRow(header), rule, ...body.map(writeTableRow)].join('\n');
 };
 
-/**
- * Un bloque de código tal cual lo escribió quien lo escribió, sin leer formato
- * en él, entre cercas más largas que cualquier tira de acentos que lleve.
- */
 const writeCodeBlock = (node: AnyNode): string => {
   const code = childrenOf(node)
     .map((child) => child.text ?? '')
@@ -178,7 +151,6 @@ const writeCodeBlock = (node: AnyNode): string => {
   return `${fence}${attr(node, 'language') ?? ''}\n${code}\n${fence}`;
 };
 
-/** Lo que dice un atributo que se puede escribir tal cual: un texto o un número, como el ancho de una columna. */
 const readWritableAttr = (node: AnyNode, name: string): string | undefined => {
   const value = node.attrs?.[name];
   return typeof value === 'number' ? String(value) : attr(node, name);
@@ -236,26 +208,13 @@ const writeBlocks = (nodes: readonly AnyNode[], anchor: BlockAnchor): string =>
     .filter((written) => written !== '')
     .join(MARKDOWN_BLOCK_SEPARATOR);
 
-/**
- * A page written as Markdown.
- *
- * What Markdown already says is said in Markdown, so the file reads as an
- * ordinary document anywhere. What it does not say is written as the nearest
- * thing that carries the same meaning — a link, or a named fence — so what
- * comes out can be read back in without guessing.
- */
+/** What Markdown cannot say is written as the nearest equivalent (a link, a named fence) so it reads back. */
 export const writePageAsMarkdown = (content: PageContent): string =>
   writeBlocks(content.content.filter(isPageDocumentNode), leaveUnanchored);
 
-/**
- * La página en Markdown, con el id de cada bloque delante del bloque.
- *
- * Es la que lee un agente: para señalar un bloque, pedirlo o escribir junto a
- * él necesita su id, y lo encuentra justo donde está el bloque.
- */
+/** Read by agents, who need each block's id to reference, request or write next to it. */
 export const writePageAsAnchoredMarkdown = (content: PageContent): string =>
   writeBlocks(content.content.filter(isPageDocumentNode), anchorBlock);
 
-/** Unos bloques sueltos en Markdown, con sus ids, como salen dentro de una página. */
 export const writeBlocksAsAnchoredMarkdown = (nodes: readonly unknown[]): string =>
   writeBlocks(nodes.filter(isPageDocumentNode), anchorBlock);

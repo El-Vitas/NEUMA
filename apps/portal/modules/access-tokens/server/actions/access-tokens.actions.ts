@@ -24,12 +24,8 @@ import {
 import type { AccessTokenPageOption } from '../../types/access-tokens.types';
 
 /**
- * Crea un token y devuelve su secreto.
- *
- * Es la única respuesta del portal que lleva un secreto, y por eso no pasa por
- * ninguna caché: vuelve directo a quien lo pidió, que lo ve una vez. Lo que se
- * pide dar lo vuelve a revisar el servidor contra lo que su dueño puede: esta
- * acción es una puerta pública y no se le cree nada.
+ * The only portal response that carries a secret, so it bypasses every cache. The server rechecks the
+ * requested grants against the owner's rights: this action is a public entry point and is not trusted.
  */
 export const createAccessTokenAction = actionClient
   .inputSchema(accessTokenCreateSchema)
@@ -66,11 +62,7 @@ export const revokeAccessTokenAction = actionClient
     }),
   );
 
-/**
- * Las páginas que se pueden nombrar en un token: las que encuentra la búsqueda
- * de quien lo crea, que ya solo ve lo que su dueño ve. Nombrarlas no las da:
- * al guardar, el servidor vuelve a mirar que el dueño las vea y sigan vivas.
- */
+/** Naming a page does not grant it: on save the server rechecks that the owner can see it and it still exists. */
 export const searchGrantablePagesAction = actionClient
   .inputSchema(accessTokenPageSearchSchema)
   .action(async ({ parsedInput }) =>
@@ -90,7 +82,6 @@ export const searchGrantablePagesAction = actionClient
     }),
   );
 
-/** Revocar el token de cualquiera: el servidor solo lo deja a quien administra el espacio de trabajo. */
 export const revokeWorkspaceAccessTokenAction = actionClient
   .inputSchema(accessTokenRevokeSchema)
   .action(async ({ parsedInput }) =>

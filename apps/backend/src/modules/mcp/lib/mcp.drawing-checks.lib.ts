@@ -10,10 +10,7 @@ import type { McpDrawingDependencies } from '../types/mcp.types';
 import { hasMcpDiagramIcon } from './mcp.diagram-icons.lib';
 import { findMcpArchitectureGroupingFault, listMcpDiagramIcons, listMcpDrawings } from './mcp.drawings.lib';
 
-/**
- * Lo que dice Mermaid de un diagrama. Uno que tardó demasiado en revisarse es
- * un rechazo para el agente; cualquier otro fallo del revisor sigue su camino.
- */
+/** A timeout is a refusal for the agent; any other checker failure propagates. */
 const askMermaid = async (
   dependencies: McpDrawingDependencies,
   drawing: McpDrawing,
@@ -34,7 +31,6 @@ const askMermaid = async (
   }
 };
 
-/** Por qué un diagrama no se dibujaría como se quiso: Mermaid no lo lee, agrupa mal o nombra un ícono que el portal no tiene. */
 const checkDiagram = async (
   dependencies: McpDrawingDependencies,
   drawing: McpDrawing,
@@ -72,11 +68,7 @@ const checkDrawing = (dependencies: McpDrawingDependencies, drawing: McpDrawing)
     ? checkDiagram(dependencies, drawing)
     : Promise.resolve(checkFormula(dependencies, drawing));
 
-/**
- * Uno por uno, hasta el primero que no se dibuja. El revisor de diagramas es
- * uno solo para todos: seguir revisando lo que ya no se va a escribir lo ocupa
- * para nadie mientras otros esperan.
- */
+/** Stops at the first failure: the checker is shared, so checking what will not be written blocks others. */
 const requireEveryDrawingDrawable = async (
   dependencies: McpDrawingDependencies,
   drawings: readonly McpDrawing[],
@@ -87,13 +79,7 @@ const requireEveryDrawingDrawable = async (
   }
 };
 
-/**
- * Revisa, antes de escribir, que cada diagrama y cada fórmula de unos bloques
- * se pueda dibujar como lo dibujará el portal. Si uno no, no se escribe nada y
- * el agente recibe lo que dijo Mermaid o KaTeX, con el número de bloque: un
- * diagrama roto que se guarda en silencio solo lo descubre después alguien
- * que abre la página.
- */
+/** On failure nothing is written; the agent gets Mermaid's or KaTeX's message with the block number. */
 export const checkMcpDrawings = async (
   dependencies: McpDrawingDependencies,
   nodes: readonly unknown[],

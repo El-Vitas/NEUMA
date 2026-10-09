@@ -48,7 +48,6 @@ const selectBlockAt = (state: EditorState, blockIndex: number): EditorState => {
   return state.apply(state.tr.setSelection(NodeSelection.create(state.doc, blockStart)));
 };
 
-/** Starts a new change, so undoing reverts only what comes next. */
 const startNewChange = (state: EditorState): EditorState => state.apply(closeHistory(state.tr));
 
 const describeBlocks = (state: EditorState): unknown =>

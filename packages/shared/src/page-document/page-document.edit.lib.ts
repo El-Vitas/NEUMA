@@ -12,16 +12,14 @@ import type { PageBlockPlace, PageDocumentNodeShape } from './page-document.type
 type Node = PageDocumentNodeShape;
 type Nodes = readonly unknown[];
 
-/** Lo que se hace con los hermanos del bloque encontrado: el bloque está en `index`, dentro de `holder`. */
+/** The found block sits at `index` inside `holder`; null means the page root. */
 type SiblingsEdit = (siblings: Nodes, index: number, holder: Node | null) => Result<Nodes, string>;
 
 const idOf = (node: unknown): string | null => (isPageDocumentNode(node) ? readPageDocumentBlockId(node) : null);
 
-/** Lo que se dice cuando el bloque nombrado ya no está en la página. */
 export const describeMissingPageBlock = (blockId: string): string =>
   `The page has no block ${blockId}. Read the page again with fetch to see its blocks as they are now.`;
 
-/** Los ids de todos los bloques, en el orden en que se leen. */
 const collectIds = (nodes: Nodes): readonly string[] =>
   nodes.flatMap((node) => {
     if (!isPageDocumentNode(node)) return [];
@@ -30,7 +28,6 @@ const collectIds = (nodes: Nodes): readonly string[] =>
     return own === null ? inner : [own, ...inner];
   });
 
-/** El bloque de una página con ese id, donde sea que esté, o nada si ya no está. */
 export const findPageBlock = (nodes: Nodes, blockId: string): Node | null => {
   for (const node of nodes) {
     if (!isPageDocumentNode(node)) continue;
@@ -41,10 +38,7 @@ export const findPageBlock = (nodes: Nodes, blockId: string): Node | null => {
   return null;
 };
 
-/**
- * Lo que cabe dentro de un bloque. En una lista caben sus ítems: una lista del
- * mismo tipo que llega se deshace en los suyos, y lo demás no cabe.
- */
+/** A list only accepts its items: an incoming list of the same kind is unwrapped into its items. */
 const fitInto = (holder: Node | null, nodes: Nodes): Result<Nodes, string> => {
   if (holder !== null && PAGE_BLOCK_WHOLE_TYPES.includes(holder.type))
     return Result.fail(`A ${holder.type} is changed as a whole, not block by block inside it.`);
@@ -67,11 +61,7 @@ const replaceChildren = (nodes: Nodes, position: number, node: Node, children: N
     ? nodes.filter((_, at) => at !== position)
     : nodes.map((sibling, at) => (at === position ? { ...node, content: children } : sibling));
 
-/**
- * Rehace solo la rama donde está el bloque: sus hermanos pasan por `edit`, y
- * cada bloque de arriba queda igual salvo por lo que cambió dentro. Un bloque
- * que se queda sin nada dentro se va con lo que se le quitó.
- */
+/** Rebuilds only the branch holding the block; an ancestor left empty is dropped with it. */
 const editAround = (
   nodes: Nodes,
   blockId: string,
@@ -89,7 +79,6 @@ const editAround = (
   return null;
 };
 
-/** La página con esos bloques, si sigue siendo una página válida. */
 const withBlocks = (content: PageContent, nodes: Nodes): Result<PageContent, string> => {
   const parsed = pageContentSchema.safeParse({
     ...content,
@@ -112,7 +101,6 @@ const spliceIn = (siblings: Nodes, position: number, nodes: Nodes): Nodes => [
   ...siblings.slice(position),
 ];
 
-/** Dónde empieza lo de adentro de un bloque: en un ítem, después de su propia línea. */
 const firstInnerPosition = (holder: Node): number => (PAGE_BLOCK_ITEM_TYPES.includes(holder.type) ? 1 : 0);
 
 const insertInside = (content: PageContent, blockId: string, at: 'end' | 'start', nodes: Nodes) =>
@@ -139,7 +127,6 @@ const insertBeside = (content: PageContent, blockId: string, offset: number, nod
     return fitted.isFail() ? fitted : Result.ok(spliceIn(siblings, index + offset, fitted.getValue()));
   });
 
-/** Los ids de unos bloques que ya usa otro bloque de la página: dos bloques con un id no se distinguen. */
 const listTakenIds = (present: Nodes, nodes: Nodes, leaving: Nodes = []): readonly string[] => {
   const left = new Set(collectIds(leaving));
   const taken = new Set(collectIds(present).filter((blockId) => !left.has(blockId)));
@@ -149,7 +136,6 @@ const listTakenIds = (present: Nodes, nodes: Nodes, leaving: Nodes = []): readon
 const describeTakenIds = (taken: readonly string[]): string =>
   `The page already has a block ${taken.join(', ')}: new blocks need ids of their own, or none.`;
 
-/** Pone bloques en un lugar de la página: al principio o al final, junto a un bloque, o dentro de uno. */
 export const insertPageBlocks = (
   content: PageContent,
   place: PageBlockPlace,
@@ -164,10 +150,7 @@ export const insertPageBlocks = (
   return withBlocks(content, blocks);
 };
 
-/**
- * Cambia un bloque por otro que conserva su id, así los enlaces que lo
- * señalaban siguen llegando a él.
- */
+/** The replacement keeps the original id so links to it keep working. */
 export const replacePageBlock = (content: PageContent, blockId: string, node: unknown): Result<PageContent, string> =>
   editPage(content, blockId, (siblings, index, holder) => {
     const fitted = fitInto(holder, [node]);
@@ -190,12 +173,7 @@ const removeOne = (nodes: Nodes, blockId: string): Result<Nodes, string> =>
   editAround(nodes, blockId, null, (siblings, index) => Result.ok(siblings.filter((_, at) => at !== index))) ??
   Result.ok(nodes);
 
-/**
- * Quita bloques con todo lo que llevan dentro. Si falta alguno, no quita
- * ninguno. Un bloque que ya se fue con otro que lo contenía no se busca de
- * nuevo. La página se valida una vez, ya sin todos ellos: lo que importa es
- * cómo queda, no cada paso intermedio.
- */
+/** All-or-nothing. The page is validated once, after every removal, not at each intermediate step. */
 export const removePageBlocks = (content: PageContent, blockIds: readonly string[]): Result<PageContent, string> => {
   const missing = missingIds(content, blockIds);
   if (missing.length > 0) return Result.fail(describeMissingPageBlock(missing.join(', ')));
@@ -213,10 +191,7 @@ const placeTarget = (place: PageBlockPlace): string | null => {
   return null;
 };
 
-/**
- * Los bloques nombrados que no van ya dentro de otro nombrado, en el orden de
- * la página: un bloque que viaja dentro de su padre no se lleva dos veces.
- */
+/** A named block already carried inside a named parent is not moved twice. */
 const listTopmostBlocks = (content: PageContent, blockIds: readonly string[]): readonly Node[] => {
   const named = collectIds(content.content).filter((blockId) => blockIds.includes(blockId));
   const nodes = named.map((blockId) => findPageBlock(content.content, blockId)).filter((node) => node !== null);
@@ -224,10 +199,6 @@ const listTopmostBlocks = (content: PageContent, blockIds: readonly string[]): r
   return nodes.filter((node) => !carriedInside.has(idOf(node) ?? ''));
 };
 
-/**
- * Lleva bloques a otro lugar de la misma página, con su id y todo lo que
- * llevan dentro, en el orden en que estaban.
- */
 export const movePageBlocks = (
   content: PageContent,
   blockIds: readonly string[],

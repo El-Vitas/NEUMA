@@ -2,13 +2,7 @@ import type { Node as EditorNode } from 'prosemirror-model';
 import { TableView } from 'prosemirror-tables';
 import { PAGE_EDITOR_TABLE_SCROLL_STYLE_CLASS } from '../../blocks/constants/pages.editor.blocks.constants';
 
-/**
- * A table that is wider than the page scrolls inside itself.
- *
- * Left to itself a wide table pushes the whole page sideways, and every other
- * block on it drifts out of reach. The table is given a box of its own to
- * overflow into, so what is too wide travels only within the table.
- */
+/** Wraps the table in its own scroll box so a wide table does not push the whole page sideways. */
 export class PageTableView extends TableView {
   constructor(node: EditorNode, cellMinWidth: number) {
     super(node, cellMinWidth);

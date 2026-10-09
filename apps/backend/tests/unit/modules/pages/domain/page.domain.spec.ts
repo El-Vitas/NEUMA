@@ -42,7 +42,6 @@ describe('page domain rules', () => {
     ).toBe(false);
   });
 
-  /** A page sent to another space hangs from a page already living there, not from one it leaves behind. */
   it('allows a page to hang from a parent in the space it is being sent to', () => {
     expect(
       isPageMoveAllowed('page-a', 'page-b', 'space-b', [
@@ -106,7 +105,6 @@ describe('what counts as a page somebody was given', () => {
     expect(isPageAssignedTo({ reviewers: ['user-b', 'user-a'] }, ['reviewers'], 'user-a')).toBe(true);
   });
 
-  /** A page that happens to mention an identifier in some text is not a page somebody was given. */
   it('ignores a value the schema does not call a person', () => {
     expect(isPageAssignedTo({ notes: 'user-a' }, ['owner'], 'user-a')).toBe(false);
   });

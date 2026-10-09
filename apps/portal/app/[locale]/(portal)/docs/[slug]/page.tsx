@@ -3,11 +3,7 @@ import { getLocale } from 'next-intl/server';
 import { readDocsDocument } from '@/modules/docs/server/lib/docs.content.server';
 import { DocsArticleView } from '@/modules/docs/views/docs.article.view';
 
-/**
- * El documento se lee en el idioma de quien mira y detrás de su sesión, así que
- * se resuelve entero antes de responder, en vez de prometer una navegación
- * instantánea que no existe.
- */
+/** Depends on the locale and the session, so it resolves fully before responding. */
 export const instant = false;
 
 interface IProps {

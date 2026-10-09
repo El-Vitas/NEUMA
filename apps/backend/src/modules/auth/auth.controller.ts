@@ -13,12 +13,7 @@ import { RefreshSessionDto } from './dto/refresh.session.dto';
 export class AuthController {
   constructor(readonly authService: AuthService) {}
 
-  /**
-   * Counted, because this is a door that opens with a guess.
-   *
-   * Nothing here needs a session to be reached, so nothing but the count
-   * stands between a patient machine and every password it cares to try.
-   */
+  /** Throttled: public and unauthenticated, so the throttle is the only brake on password guessing. */
   @HttpCode(HTTP_STATUS_CREATED)
   @Post(API_SEGMENTS.SESSIONS)
   @Public()

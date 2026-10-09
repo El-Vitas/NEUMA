@@ -16,7 +16,6 @@ interface IProps {
   readonly columns: null | PagesBoardColumns;
   readonly isCreating: boolean;
   readonly label: string;
-  /** Cuántas tarjetas se esperan aquí, o ninguna espera. */
   readonly limit: null | number;
   readonly mode: PageBoardColumnMode;
   readonly onCollapse: () => void;
@@ -29,14 +28,7 @@ interface IProps {
   readonly group: PageViewGroup;
 }
 
-/**
- * El nombre de la columna, lo que lleva dentro, y lo que se puede hacer con
- * ella.
- *
- * El nombre y el tope se responden aquí mismo, convirtiendo la cabecera en su
- * propio campo: son dos palabras, y mandarlas a un cuadro aparte aleja la
- * respuesta de la columna que se está mirando.
- */
+/** Rename and limit are answered inline, with the header turning into the field, instead of in a separate dialog. */
 export const PagesCollectionBoardColumnHeader = ({
   canEdit,
   columns,
@@ -64,7 +56,6 @@ export const PagesCollectionBoardColumnHeader = ({
     if (event.key === 'Escape') onModeChange('NAMED');
   };
 
-  /** Vacío quita el tope: una columna sin tope no es una columna donde nada cabe. */
   const limitTo = (written: string): void => {
     onModeChange('NAMED');
     const asked = Number.parseInt(written, 10);
@@ -75,7 +66,7 @@ export const PagesCollectionBoardColumnHeader = ({
     return (
       <input
         aria-label={t('collection.renameColumnTo', { column: label })}
-        // biome-ignore lint/a11y/noAutofocus: el campo es la respuesta a lo que se acaba de elegir en el menú
+        // biome-ignore lint/a11y/noAutofocus: the field answers the menu choice that just opened it
         autoFocus
         className="min-w-0 flex-1 rounded-sm bg-background/70 px-2 py-0.5 font-medium text-foreground text-sm outline-none"
         defaultValue={group.label}
@@ -90,7 +81,7 @@ export const PagesCollectionBoardColumnHeader = ({
     return (
       <input
         aria-label={t('collection.columnLimitFor', { column: label })}
-        // biome-ignore lint/a11y/noAutofocus: el campo es la respuesta a lo que se acaba de elegir en el menú
+        // biome-ignore lint/a11y/noAutofocus: the field answers the menu choice that just opened it
         autoFocus
         className="min-w-0 flex-1 rounded-sm bg-background/70 px-2 py-0.5 font-medium text-foreground text-sm outline-none"
         defaultValue={limit === null ? '' : String(limit)}
@@ -104,10 +95,7 @@ export const PagesCollectionBoardColumnHeader = ({
     );
   }
 
-  /**
-   * Sin ratón la columna también se mueve: Alt y las flechas la llevan un puesto
-   * a cada lado, que es lo mismo que arrastrarla hasta ahí.
-   */
+  /** Keyboard alternative to dragging the column. */
   const answerHandleKey = (event: KeyboardEvent<HTMLButtonElement>): void => {
     if (!event.altKey || columns === null) return;
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;

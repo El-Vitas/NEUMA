@@ -25,7 +25,7 @@ mock.module('@/i18n/navigation', () => ({
   ),
   useRouter: () => ({ refresh: () => undefined }),
 }));
-/** El tablero se mira porque la dirección lo pide, y lo que apunte cada tarjeta tiene que seguir pidiéndolo. */
+// The address selects the board view.
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams('view=Board') }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   rewritePageCollectionOptionAction: async (input: { from: string; to: null | string }) => {
@@ -55,7 +55,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
     reordered.push(input);
     return { data: null };
   },
-  /** La barra de selección alcanza a estas tres, y sin ellas el módulo real arrastra código de servidor. */
+  // The selection bar reaches these three; without them the real module pulls in server code.
   duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),
   restorePageAction: async () => ({ data: null }),
   trashPageAction: async () => ({ data: null }),
@@ -83,7 +83,7 @@ const groups: PageViewGroup[] = [
   { color: null, key: 'done', label: 'done', rows: [] },
 ];
 
-/** El entorno de prueba no lleva la altura del puntero en el evento, así que se la ponemos. */
+// The test environment does not put the pointer height on the event.
 const dragOverAt = (card: HTMLElement, pointerY: number): void => {
   const event = createEvent.dragOver(card);
   Object.defineProperty(event, 'clientY', { value: pointerY });
@@ -177,7 +177,6 @@ describe('PagesCollectionBoard', () => {
     expect(moved[0]).toEqual({ pageId: 'row-1', propertyValues: { status: 'done' }, spaceId: 'space-1' });
   });
 
-  /** A card dropped where it already was would be a write that changes nothing. */
   it('does not write anything when a card is dropped on its own column', async () => {
     moved.length = 0;
     reordered.length = 0;
@@ -210,7 +209,6 @@ describe('PagesCollectionBoard', () => {
     });
   });
 
-  /** Una fila es sobre todo su nombre: sin él no habría nada que la distinga en la columna. */
   it('creates nothing when the name was left blank', async () => {
     created.length = 0;
     drawBoard(true);
@@ -225,10 +223,6 @@ describe('PagesCollectionBoard', () => {
     expect(created).toHaveLength(0);
   });
 
-  /**
-   * Moving a card up or down inside its own column says nothing about the value
-   * the column stands for, so only the order travels.
-   */
   it('writes only the order when a card is dropped above another in its own column', async () => {
     moved.length = 0;
     reordered.length = 0;
@@ -242,13 +236,12 @@ describe('PagesCollectionBoard', () => {
       { color: null, key: 'done', label: 'done', rows: [] },
     ]);
     const [first, second] = screen.getAllByTestId('collection-board-card');
-    /** El entorno de prueba no calcula posiciones, así que la altura de la tarjeta se la damos aquí. */
+    // The test environment computes no layout, so the card height is given here.
     giveCardHeight(first as HTMLElement, { height: 100, top: 100 });
 
     fireEvent.dragStart(second as HTMLElement);
     dragOverAt(first as HTMLElement, 120);
 
-    /** La marca dice dónde va a caer antes de soltar, y es lo que la mano mira. */
     await waitFor(() => {
       expect(screen.getAllByTestId('board-drop-gap')[0]?.getAttribute('data-active')).toBe('true');
     });
@@ -282,11 +275,9 @@ describe('PagesCollectionBoard', () => {
     ] as PageViewGroup[];
     drawBoard(false, withPriority, shownProperties);
 
-    /** Shown the way a person reads it, not the way it is stored. */
     expect(screen.getByText('High')).toBeDefined();
   });
 
-  /** A card is small: a row of empty labels costs the space the answered ones need. */
   it('leaves out of the card a property the row did not answer', () => {
     drawBoard(false, groups, shownProperties);
 
@@ -294,7 +285,6 @@ describe('PagesCollectionBoard', () => {
   });
 });
 
-/** Cómo quedaron las opciones de la propiedad en lo último que se mandó a guardar. */
 const optionsWritten = (): readonly string[] => {
   const properties = reshaped[0]?.properties;
   if (!Array.isArray(properties)) return [];
@@ -302,7 +292,7 @@ const optionsWritten = (): readonly string[] => {
   return (first?.options ?? []).map((option) => option.value);
 };
 
-/** El menú se abre con el ratón de verdad: un clic sintético no lo despliega. */
+// The menu opens only on a real mouse press; a synthetic click does not.
 const openColumnMenu = (): void => {
   const trigger = screen.getAllByTestId('board-column-menu')[0];
   if (trigger === undefined) throw new Error('No column menu to open');
@@ -320,7 +310,6 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     expect(screen.queryByTestId('board-new-column')).toBeNull();
   });
 
-  /** Es un valor de la propiedad, y ese valor no existe: no hay nada que renombrar. */
   it('offers no actions on the column of rows without a value', () => {
     drawBoard(true, [{ color: null, key: UNASSIGNED_GROUP_KEY, label: 'Unassigned', rows: [] }]);
 
@@ -356,7 +345,6 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     expect(rewritten[0]).toMatchObject({ from: 'todo', propertyKey: 'status', to: null });
   });
 
-  /** Dos columnas con el mismo nombre no pueden ser, y se dice antes de mandarlo. */
   it('refuses a name another column already answers to, without asking the server', async () => {
     rewritten.length = 0;
     drawBoard(true);
@@ -367,7 +355,7 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     fireEvent.change(field, { target: { value: 'done' } });
     fireEvent.keyDown(field, { key: 'Enter' });
 
-    /** Lo que se comprueba es que no se manda; el aviso lo dibuja el avisador, que aquí no está montado. */
+    // The warning is drawn by the toaster, which is not mounted here.
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'New name for todo' })).toBeNull());
     expect(rewritten).toHaveLength(0);
   });
@@ -392,7 +380,6 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     const strip = screen.getByTestId('board-column-collapsed');
     expect(strip.textContent).toContain('todo');
     expect(strip.textContent).toContain('1');
-    /** Plegada no ofrece soltar dentro: lo que se pliega se deja de mirar, no se pierde. */
     expect(screen.queryByRole('link', { name: 'First task' })).toBeNull();
   });
 
@@ -431,11 +418,6 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     expect(optionsWritten()).toEqual(['done', 'todo']);
   });
 
-  /**
-   * Una tarjeta no es sitio donde dejar una columna. Marcar un hueco entre
-   * tarjetas mientras se lleva una columna prometía soltarla dentro de otra
-   * columna, que no es algo que exista.
-   */
   it('does not offer a gap between cards while what is being carried is a column', () => {
     drawBoard(true);
 
@@ -447,7 +429,6 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     ).toHaveLength(0);
   });
 
-  /** Y la columna de debajo sí se señala: el gesto pasa de largo en vez de detenerse en la tarjeta. */
   it('marks the column under the card as where the carried column would land', () => {
     drawBoard(true);
 
@@ -457,7 +438,6 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     expect(screen.getAllByTestId('board-column')[0]?.className).toContain('ring-primary');
   });
 
-  /** Arrastrar no puede ser la única manera: con el teclado va un puesto a cada lado. */
   it('moves a column sideways with the keyboard', async () => {
     reshaped.length = 0;
     drawBoard(true);

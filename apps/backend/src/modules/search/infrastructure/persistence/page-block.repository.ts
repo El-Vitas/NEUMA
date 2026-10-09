@@ -29,14 +29,10 @@ import {
 
 const blockQueryExpression = Prisma.sql`websearch_to_tsquery('simple'::regconfig, public.immutable_unaccent("input"."queryText"))`;
 
-/** Lo que ordena un bloque entre los que empatan: su página y su id, que juntos no se repiten. */
+/** Tie-breaker: page id plus block id is unique. */
 const blockKey = Prisma.sql`("block"."pageId" || ':' || "block"."blockId")`;
 
-/**
- * Solo dentro de una página y todo lo que cuelga de ella. `UNION` en vez de
- * `UNION ALL`: si una fila mala dejara un ciclo en el árbol, la consulta igual
- * termina en vez de dar vueltas hasta que la corten.
- */
+/** `UNION` rather than `UNION ALL` so a corrupt cycle in the tree still terminates. */
 const buildRootPageFilter = (rootPageId: string): Prisma.Sql => Prisma.sql`AND "block"."pageId" IN (
   WITH RECURSIVE "subtree" AS (
     SELECT "id" FROM "Page" WHERE "id" = ${rootPageId}
@@ -53,19 +49,16 @@ const buildCursorFilter = (cursor: SearchCursor, rankExpression: Prisma.Sql): Pr
     AND ${blockKey} > ${cursor.sourceId})
 )`;
 
-/** La página del bloque está verificada y su verificación no venció; la misma regla que con las páginas. */
 const pageIsVerified = Prisma.sql`(
   "page"."verifiedAt" IS NOT NULL
   AND ("page"."verificationExpiresAt" IS NULL OR "page"."verificationExpiresAt" > now())
 )`;
 
-/** Quien creó la página tiene eso en su nombre, sin mirar mayúsculas. */
 const buildAuthorFilter = (authorQuery: string): Prisma.Sql => Prisma.sql`AND EXISTS (
   SELECT 1 FROM "User" AS "author"
   WHERE "author"."id" = "page"."createdById" AND "author"."name" ILIKE ${buildSearchAnywherePattern(authorQuery)}
 )`;
 
-/** Lo que acota por la página: verificada, quién la creó y cuándo se editó. */
 const buildPageFilters = (query: PageBlockSearchQuery): Prisma.Sql[] => [
   ...(query.verifiedOnly === true ? [Prisma.sql`AND ${pageIsVerified}`] : []),
   ...(query.authorQuery === undefined ? [] : [buildAuthorFilter(query.authorQuery)]),
@@ -89,11 +82,7 @@ const buildBlockFilters = (
   return filters.length === 0 ? Prisma.empty : Prisma.join(filters, ' ');
 };
 
-/**
- * La consulta de bloques. La página y su espacio salen de `Page`, no de la
- * proyección: si la página se movió y la proyección todavía no lo sabe, manda
- * dónde está hoy, y con eso la visibilidad y la regla del token.
- */
+/** Page and space come from `Page`, not the projection, so a moved page is judged by where it is now. */
 const buildBlockSearchSql = (
   query: PageBlockSearchQuery,
   cursor: SearchCursor | null,
@@ -157,13 +146,7 @@ const toBlockSearchPage = (rows: readonly PageBlockSearchRow[], limit: number): 
 export class PageBlockRepository implements PageBlockRepositoryContract {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Cambia los bloques de una página por los de una versión.
-   *
-   * El proyector puede recibir los eventos fuera de orden; una versión vieja
-   * que llega tarde no pisa a una más nueva. Un candado por página hace que
-   * dos proyecciones de la misma página no se mezclen.
-   */
+  /** Events arrive out of order, so an older version never overwrites a newer one; a page lock serializes writes. */
   async replaceBlocks(input: PageBlocksProjection): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${input.pageId}))::text`;
@@ -195,12 +178,7 @@ export class PageBlockRepository implements PageBlockRepositoryContract {
     });
   }
 
-  /**
-   * Las páginas del espacio de trabajo que tienen un bloque con ese id.
-   *
-   * Casi siempre es una. Pueden ser más porque duplicar una página conserva
-   * los ids de sus bloques. Quién puede ver cada una lo decide quien pregunta.
-   */
+  /** Can return several pages because duplicating a page keeps its block ids. The caller decides visibility. */
   async locateBlock(blockId: string, workspaceId: string): Promise<readonly string[]> {
     const blocks = await this.prisma.pageBlock.findMany({
       select: { pageId: true },
@@ -216,7 +194,6 @@ export class PageBlockRepository implements PageBlockRepositoryContract {
     return toBlockSearchPage(usefulRows, query.limit);
   }
 
-  /** Los bloques con lo buscado como palabra entera o dentro de una palabra más larga, enteras primero. */
   private findFullTextMatches(query: PageBlockSearchQuery, cursor: SearchCursor | null): Promise<PageBlockSearchRow[]> {
     const vector = Prisma.sql`"block"."searchVector"`;
     const wholeWord = Prisma.sql`${vector} @@ ${blockQueryExpression}`;
@@ -242,12 +219,7 @@ export class PageBlockRepository implements PageBlockRepositoryContract {
     );
   }
 
-  /**
-   * Los bloques con una palabra parecida a lo buscado, para perdonar un error
-   * de tipeo. El operador usa el índice de trigramas con el umbral fijado solo
-   * para esta transacción; la comparación con el umbral queda escrita igual,
-   * así el resultado no depende de cómo esté configurada la base.
-   */
+  /** Index-backed operator with a transaction-local threshold; the explicit comparison ignores database settings. */
   private async findTrigramMatches(
     query: PageBlockSearchQuery,
     cursor: SearchCursor | null,

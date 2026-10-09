@@ -52,7 +52,6 @@ mock.module('next-intl/server', () => ({
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) =>
     createElement('a', { href }, children),
-  /** The route sends an address that lost its page to wherever the page went. */
   redirect: () => undefined,
   useRouter: () => ({ refresh: () => undefined }),
 }));
@@ -66,23 +65,20 @@ mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () =
 const getPages = mock(async () => pagesResult);
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
   getPages,
-  /** Read when the kept list does not have the page yet, as with a page an agent just wrote. */
   getPagesHolding: async () => pagesResult,
-  /** The route asks where a page lives when the address does not find it here. */
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
   getPageView: async () => ({ getValue: () => ({ kind: 'FLAT_ROWS', rows: [] }), isOk: () => true }),
 }));
-/** The collection settings and the board reach server actions, which a browser-shaped test cannot load. */
+// Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
   updatePageViewConfigurationAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
-/** El tablero crea y reordena filas, y esas acciones no se cargan en una prueba con forma de navegador. */
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),
   duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),

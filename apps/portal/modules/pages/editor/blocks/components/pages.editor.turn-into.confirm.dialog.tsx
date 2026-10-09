@@ -18,11 +18,6 @@ interface IProps {
   readonly onConfirm: (targetId: string) => void;
 }
 
-/**
- * Asks before a conversion that would leave something behind, naming the type
- * it is about to become, so losing content is always a decision and never a
- * surprise.
- */
 export const PagesEditorTurnIntoConfirmDialog = ({ conversion, onCancel, onConfirm }: IProps) => {
   const t = useTranslations('pages');
   if (conversion === null) return null;

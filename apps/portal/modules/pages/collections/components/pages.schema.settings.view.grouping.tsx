@@ -24,13 +24,6 @@ interface IProps {
   readonly view: PageSchemaView;
 }
 
-/**
- * Por dónde agrupa una vista, y lo que solo tiene sentido una vez agrupada: el
- * tramo cuando agrupa por fecha, y si los grupos vacíos se ven.
- *
- * Van juntos porque se leen juntos: las tres respuestas describen un solo montón
- * de filas partido de una manera.
- */
 export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) => {
   const t = useTranslations('pages.collection');
   const configuration = readPageViewConfiguration(view.configuration);
@@ -40,7 +33,6 @@ export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) 
     editor.properties.find((property) => property.key === configuration.groupBy)?.type === PAGE_PROPERTY_TYPE.DATE;
   const emptyGroupsFieldId = useId();
 
-  /* Sin ninguna propiedad que haga columnas no hay nada que elegir aquí. */
   if (groupable.length === 0) {
     return (
       <PagesSchemaSettingsMissingProperty
@@ -74,10 +66,6 @@ export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) 
           ))}
         </SelectContent>
       </Select>
-      {/*
-        Un tramo solo significa algo en una fecha: nadie agrupa una selección
-        «por meses». Por eso aparece con la propiedad puesta y no antes.
-      */}
       {isGroupedByDate && (
         <Select
           disabled={editor.isSaving}
@@ -96,11 +84,6 @@ export const PagesSchemaSettingsViewGrouping = ({ editor, onGo, view }: IProps) 
           </SelectContent>
         </Select>
       )}
-      {/*
-        Solo cuando de verdad está agrupando: sin grupos no hay grupos vacíos que
-        esconder, y una casilla que no hace nada se marca igual y deja a quien la
-        marcó esperando algo.
-      */}
       {configuration.groupBy !== null && (
         <label
           className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 text-foreground text-sm hover:bg-muted"

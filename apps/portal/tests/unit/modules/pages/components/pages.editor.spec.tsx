@@ -100,7 +100,6 @@ describe('a page that nobody has named yet', () => {
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Title' }));
   });
 
-  /** Nothing is asked for before writing: naming it is already a change the page keeps by itself. */
   it('keeps what is written without anybody pressing anything', async () => {
     renamePageAction.mockClear();
     replacePageContentAction.mockClear();
@@ -118,7 +117,6 @@ describe('a page that nobody has named yet', () => {
       pageId: '22222222-2222-4222-8222-222222222222',
       title: 'Quarterly plan',
     });
-    /** Only the name changed: the writing is not sent back with it. */
     expect(replacePageContentAction).not.toHaveBeenCalled();
   });
 });
@@ -163,10 +161,7 @@ describe('a page hanging from a collection', () => {
     });
   });
 
-  /**
-   * Once the row keeps its properties, a change sends only itself: sending the
-   * rest back would overwrite what somebody else changed in the meantime.
-   */
+  // Sending the other properties back would overwrite what somebody else changed meanwhile.
   it('sends only the property that changed once the row already keeps its properties', async () => {
     updatePageRowPropertiesAction.mockClear();
     render(
@@ -204,7 +199,6 @@ describe('a page hanging from a collection', () => {
     expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).not.toMatchObject({
       propertyValues: { status: 'in_progress' },
     });
-    /** Once it arrived, nothing is left waiting: leaving the page asks nothing. */
     await waitFor(() => {
       const leaving = new Event('beforeunload', { cancelable: true });
       window.dispatchEvent(leaving);

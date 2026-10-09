@@ -84,7 +84,6 @@ describe('formatMcpCollectionText', () => {
     expect(text).toContain('- Tablero (BOARD): grouped by Estado; where Estado IS "Hecho" AND Título IS_NOT_EMPTY');
   });
 
-  /** Una colección se describe sin columnas solo a un token que la cambió sin poder leerla. */
   it('says the change was saved, and only where, when the columns are kept from the agent', () => {
     const described = describeMcpCollection('https://brain.example.com', collection);
 

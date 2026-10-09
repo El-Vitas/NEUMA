@@ -9,11 +9,7 @@ import { formatMcpPageState } from './mcp.page-state.lib';
 
 const describePath = (page: FetchedPage): string => [...page.path.map((step) => step.title), page.title].join(' › ');
 
-/**
- * Una página del árbol en una línea. De una colección se dice cuántas filas
- * tiene, no cuántas páginas: leído como «4 debajo», un tablero de cuatro
- * tareas se entendía como uno de cuatro columnas.
- */
+/** A collection reports its row count, not "N below": that read as a board with four columns instead of four tasks. */
 export const describeMcpOutlinePage = (page: {
   readonly childCount: number;
   readonly id: string;
@@ -41,7 +37,6 @@ const describeBacklinks = (page: FetchedPage): string => {
   return `Linked from:\n${lines.join('\n')}`;
 };
 
-/** Lo que dice una propiedad: las personas por su nombre, lo demás tal cual. */
 const describePropertyValue = (property: FetchedProperty): string => {
   if (property.people !== undefined && property.people.length > 0)
     return property.people.map((person) => `${person.name} (${person.id})`).join(', ');
@@ -49,10 +44,7 @@ const describePropertyValue = (property: FetchedProperty): string => {
   return Array.isArray(property.value) ? property.value.join(', ') : String(property.value);
 };
 
-/**
- * Las propiedades de una fila en una línea, sin la del título, que ya va como
- * nombre de la fila. Es lo que se lee al recorrer un tablero, fila por fila.
- */
+/** Omits the title, which is already the row's name. */
 export const describeMcpRowPropertiesInOneLine = (properties: readonly FetchedProperty[]): string =>
   properties
     .filter((property) => property.type !== DatabasePropertyType.TITLE)
@@ -97,13 +89,7 @@ const writeBlock = (block: FetchedBlock, page: FetchedPage): readonly string[] =
   `The whole page: ${page.url} (page ${page.id})`,
 ];
 
-/**
- * Lo que lee el modelo al abrir algo.
- *
- * Una página va en Markdown con el id de cada bloque, seguida de lo que cuelga
- * de ella y de quién la enlaza. Un bloque va con dónde está y cómo abrir su
- * página entera. Una nota, si la hay, va primero: cambia cómo leer el resto.
- */
+/** A note, when present, comes first because it changes how to read the rest. */
 export const formatMcpFetchText = (output: McpFetchOutput): string =>
   [output.note ?? '', ...(output.block === undefined ? writePage(output.page) : writeBlock(output.block, output.page))]
     .filter((part) => part !== '')

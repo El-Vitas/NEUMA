@@ -8,12 +8,8 @@ import { searchGrantablePagesAction } from '../server/actions/access-tokens.acti
 import type { AccessTokenPageOption, AccessTokenPageSearch } from '../types/access-tokens.types';
 
 /**
- * Las páginas que responden a lo escrito, para nombrarlas en un token.
- *
- * Espera a que se deje de escribir, y una respuesta que llega tarde para una
- * búsqueda ya reemplazada se descarta. Que siga buscando se lee de la
- * diferencia entre lo escrito y lo que la respuesta contesta, no de un estado
- * aparte que pueda quedar desfasado.
+ * Debounced; a late response to a superseded query is discarded. "Still searching" is derived from the gap
+ * between the typed query and the answered one, not from separate state that could go stale.
  */
 export const useAccessTokensPageSearch = (query: string): AccessTokenPageSearch => {
   const [pages, setPages] = useState<readonly AccessTokenPageOption[]>([]);

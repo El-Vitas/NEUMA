@@ -3,7 +3,7 @@ import { describe, expect, it, mock } from 'bun:test';
 const teachings: string[] = [];
 let isEngineReady = false;
 
-/** Un motor que la primera vez no termina de aprender, como cuando falla la carga de una parte por la red. */
+/** An engine whose first load fails, like a chunk that fails to load over the network. */
 const mermaidEngine = {
   initialize: mock(() => undefined),
   registerExternalDiagrams: mock(() => {
@@ -24,7 +24,6 @@ mock.module('@mermaid-js/mermaid-zenuml', () => ({ default: {} }));
 const { drawDiagram } = await import('@/shared/lib/diagram.drawing.lib');
 
 describe('drawDiagram when the engine fails to get ready', () => {
-  /** Un tropiezo al cargar el motor no puede dejar todos los diagramas en blanco por el resto de la sesión. */
   it('says why the first diagram could not be drawn, and draws the next one', async () => {
     const first = await drawDiagram('graph TD; A-->B');
     const second = await drawDiagram('graph TD; A-->B');

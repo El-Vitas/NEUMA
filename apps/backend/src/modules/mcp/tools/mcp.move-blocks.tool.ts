@@ -27,10 +27,6 @@ const moveBlocks = async (
   return describeMcpWrittenBlocks(dependencies, call, { ...opened, content }, input.blocks);
 };
 
-/**
- * Lleva bloques a otro lugar de la misma página, con su id y todo lo que
- * llevan dentro, en el orden en que estaban.
- */
 export const moveBlocksTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.moveBlocks,
   register: (server, dependencies) => {

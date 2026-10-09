@@ -9,13 +9,7 @@ interface IProps {
   readonly params: Promise<{ spaceId: string }>;
 }
 
-/**
- * Where a space is named and says what it is for.
- *
- * A space nobody may write in has nothing to settle here, so the screen is not
- * merely hidden from them — it does not exist for them, the same as a space
- * they cannot reach at all.
- */
+/** Users who cannot write in the space get not-found, the same as for a space they cannot reach. */
 export default async function Page({ params }: IProps) {
   const { spaceId } = await params;
   const [spacesResult, user, t] = await Promise.all([

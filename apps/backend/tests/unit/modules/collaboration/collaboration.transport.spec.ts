@@ -31,11 +31,7 @@ const openSocket = async (app: FastifyInstance): Promise<WebSocket> => {
 };
 
 describe('collaboration transport', () => {
-  /**
-   * Hocuspocus 4 no escucha el socket por su cuenta: si el transporte no le
-   * pasa lo que llega, la edición colaborativa parece conectada y no
-   * sincroniza nada.
-   */
+  // Hocuspocus 4 does not listen to the socket itself: without forwarding, collaboration looks connected but is dead.
   test('hands every message the client sends to the connection, byte for byte', async () => {
     const app = Fastify({ forceCloseConnections: true });
     const received: Uint8Array[] = [];
@@ -61,7 +57,6 @@ describe('collaboration transport', () => {
     await app.close();
   });
 
-  /** Sin el cierre, Hocuspocus nunca guarda el documento al irse la última persona. */
   test('tells the connection when the client closes, with its code and reason', async () => {
     const app = Fastify({ forceCloseConnections: true });
     let closeEvent: CollaborationCloseEvent | undefined;

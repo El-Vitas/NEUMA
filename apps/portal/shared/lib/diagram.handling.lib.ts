@@ -12,11 +12,7 @@ const readDrawnSize = (drawing: HTMLElement): DiagramSize => {
   return { height: readDrawnHeight(viewBox), width: readDrawnWidth(viewBox) };
 };
 
-/**
- * The room a frame gives its drawing. A frame nobody sized grows with what it
- * holds up to its limit, so that limit — not the height it has now — is the
- * room a drawing has to fit.
- */
+/** An unsized frame grows with its content up to its limit, so the limit, not the current height, is the room. */
 const readRoom = (drawing: HTMLElement): DiagramSize => {
   const worn = getComputedStyle(drawing);
   const limit = Number.parseFloat(worn.maxHeight);
@@ -27,17 +23,8 @@ const readRoom = (drawing: HTMLElement): DiagramSize => {
 };
 
 /**
- * Shows a drawing at the size it was drawn, and lets it be moved and brought closer.
- *
- * A diagram is drawn as wide as it needs to be, which is often wider than the
- * column it is read in: fitted to that column it is shrunk until the writing in
- * it cannot be read, so it keeps its own size and the box it sits in scrolls.
- * What reaches past its box is dragged into view, and what is still too small or
- * too large is brought closer or pushed away with the wheel or the buttons.
- *
- * The first time it is shown, a drawing larger than its frame is fitted to it,
- * so whoever opens the page sees all of it before going through any of it. How
- * close it is brought is up to whoever reads it and is never saved.
+ * A diagram is often wider than its column and fitting it would shrink the text unreadable, so it keeps its own
+ * size and the box scrolls. The zoom level is never saved.
  */
 export const letTheDrawingBeHandled = (drawing: HTMLElement, tellZoom: (zoom: number) => void): DiagramHandling => {
   const listening = new AbortController();
@@ -56,7 +43,6 @@ export const letTheDrawingBeHandled = (drawing: HTMLElement, tellZoom: (zoom: nu
 
   const measureFit = (): number => measureDiagramFitZoom(readDrawnSize(drawing), readRoom(drawing));
 
-  /** A drawing in a frame that is not on the screen has no room to be fitted to yet. */
   const sizeTheFirstTime = (): void => {
     if (isSized || drawing.clientWidth === 0) return;
     isSized = true;
@@ -77,7 +63,7 @@ export const letTheDrawingBeHandled = (drawing: HTMLElement, tellZoom: (zoom: nu
     { signal },
   );
 
-  /** Taking hold of a drawing is not writing on the page, so the editor is never told of it. */
+  /** Grabbing a drawing is not an edit, so the editor is not notified. */
   drawing.addEventListener(
     'pointerdown',
     (event) => {
@@ -88,11 +74,7 @@ export const letTheDrawingBeHandled = (drawing: HTMLElement, tellZoom: (zoom: nu
     { signal },
   );
 
-  /**
-   * The drawing is held only once the pointer has really moved: a press that
-   * stays put is a click, and a click on a link or on a word in the drawing
-   * must reach it.
-   */
+  /** A press that stays put is a click and must still reach links in the drawing. */
   drawing.addEventListener(
     'pointermove',
     (event) => {

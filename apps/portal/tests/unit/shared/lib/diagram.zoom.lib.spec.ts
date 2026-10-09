@@ -2,7 +2,6 @@ import { describe, expect, it } from 'bun:test';
 import { keepDiagramZoomWithinReach, measureDiagramFitZoom } from '@/shared/lib/diagram.zoom.lib';
 
 describe('how close a drawing can be brought', () => {
-  /** Brought close enough to read and pushed far enough to see whole, and no further either way. */
   it('stays between the smallest and the largest it is worth reading at', () => {
     expect(keepDiagramZoomWithinReach(1.5)).toBe(1.5);
     expect(keepDiagramZoomWithinReach(0.01)).toBe(0.25);

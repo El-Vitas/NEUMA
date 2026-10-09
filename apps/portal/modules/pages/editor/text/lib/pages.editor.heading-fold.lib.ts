@@ -6,13 +6,7 @@ import type { PageEditorFoldedRange } from '../types/pages.editor.heading-fold.t
 
 const isHeading = (node: EditorNode): boolean => node.type.name === PAGE_EDITOR_HEADING_TYPE;
 
-/**
- * What a folded heading takes with it.
- *
- * Everything after it belongs to it until a heading of the same rank or a
- * louder one arrives — a deeper heading is part of what was folded, so it goes
- * too, and with it whatever it was holding.
- */
+/** A fold covers everything after its heading up to the next heading of the same or a higher rank. */
 export const readPageEditorFoldedRanges = (document: EditorNode): readonly PageEditorFoldedRange[] => {
   const ranges: PageEditorFoldedRange[] = [];
   let folding: { readonly level: number } | null = null;
@@ -36,7 +30,6 @@ export const readPageEditorFoldedRanges = (document: EditorNode): readonly PageE
   return ranges;
 };
 
-/** Folds or unfolds the heading standing at a position, and remembers it on the page. */
 export const togglePageEditorHeadingFold =
   (position: number): Command =>
   (state, dispatch) => {
@@ -48,7 +41,6 @@ export const togglePageEditorHeadingFold =
     return true;
   };
 
-/** Whether the block a menu was opened for is one that folds, and how it stands right now. */
 export const readPageEditorFoldState = (
   document: EditorNode,
   blockStart: number,
@@ -58,15 +50,7 @@ export const readPageEditorFoldState = (
   return { isFolded: block.attrs.collapsed === true };
 };
 
-/**
- * Answers Enter at the end of a folded heading by opening it first.
- *
- * Anything written while it stays folded is born out of sight — the fold owns
- * everything after the heading, so there is no "after" to write into — and the
- * page reads as if it had stopped accepting anything. Someone writing on a
- * heading is asking to work there, so what it holds comes back into view and
- * the writing carries on as it would anywhere else.
- */
+/** Enter at the end of a folded heading unfolds it first: a block added inside the fold would be hidden. */
 export const openFoldedHeadingBeforeWriting: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;
   if (!empty) return false;
@@ -87,14 +71,7 @@ export const openFoldedHeadingBeforeWriting: Command = (state, dispatch) => {
   return true;
 };
 
-/**
- * Opens every fold that reaches the end of the page.
- *
- * A fold owns everything after its heading until one of the same rank or
- * louder, so the last fold on a page owns the end of it. A block added there
- * would be born out of sight, which is how a page stops offering anywhere to
- * write. Whoever adds one is shown where it went.
- */
+/** A block added at the end of a page that ends inside a fold would be hidden, so those folds are opened. */
 export const openFoldsReachingTheEnd = (transaction: Transaction, document: EditorNode): Transaction => {
   const foldedRanges = readPageEditorFoldedRanges(document);
   const lastHidden = foldedRanges.at(-1);

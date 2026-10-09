@@ -14,7 +14,6 @@ export interface PagesSidePanelController {
   readonly width: number;
 }
 
-/** Everything the panel needs of the page it holds, fetched the same way the main page is. */
 export interface PagesSidePanelBundle {
   readonly attachments: readonly AttachmentSummary[];
   readonly backlinks: PageBacklinksResult;

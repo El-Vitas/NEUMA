@@ -1,6 +1,3 @@
-// no-then-async
-// Qué hace: prohíbe mezclar `.then()` con `async/await` en el mismo contexto async.
-// Para qué: consistencia de control de flujo asíncrono; usar `await` de forma pareja.
 const THEN_NODE_KEYS = [
   'body',
   'expression',

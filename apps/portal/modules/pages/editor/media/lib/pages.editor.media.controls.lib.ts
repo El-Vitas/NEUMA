@@ -24,16 +24,7 @@ const createSeekBar = (label: string): HTMLInputElement => {
   return seek;
 };
 
-/**
- * The controls a player is worked by, drawn here rather than left to the
- * browser: the ones the browser draws come in its own colours and its own
- * shapes, and a page made of one set of colours should not hold a black box
- * from somewhere else.
- *
- * What is under them is still a real `<video>` or `<audio>`, so it plays,
- * buffers and answers the keyboard as it always did; only the buttons are ours,
- * and each one says what it does for whoever cannot see it.
- */
+/** Custom controls over a real media element, replacing the browser's, which ignore the page theme. */
 export const createPageMediaControls = (player: HTMLMediaElement, labels: PageEditorMediaLabels): HTMLElement => {
   const bar = document.createElement('div');
   const playing = createPageMarkButton(labels.play, PAGE_EDITOR_MARKS.play, PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS);

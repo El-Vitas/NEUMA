@@ -24,7 +24,6 @@ import {
   toStoredAccess,
 } from './access-token.persistence.adapter';
 
-/** Vivo es sin revocar y sin vencer: lo que todavía abre la puerta y cuenta para el tope. */
 const liveTokens = (now: Date) => ({
   OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
   revokedAt: null,
@@ -62,12 +61,7 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     });
   }
 
-  /**
-   * Toma la fila de la persona antes de mirar, así dos creaciones a la vez se
-   * ponen en fila y la segunda ve el token de la primera: ni el tope ni el
-   * nombre se pueden saltar pidiendo dos a la vez. El token y lo que tiene dado
-   * se guardan juntos: un token a medio dar no existe.
-   */
+  /** Locks the user's row first so concurrent creations serialize and cannot bypass the limit or name check. */
   async createWithinLimit(
     token: NewAccessToken,
     ownerRole: UserRole,
@@ -148,10 +142,7 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     return tokens.map(({ user, ...token }) => ({ ...toAccessTokenRecord(token), owner: user }));
   }
 
-  /**
-   * Reemplaza lo dado de una sola vez. Toma la fila del token, así dos cambios
-   * seguidos no se mezclan y lo que queda es el último entero.
-   */
+  /** Locks the token row so concurrent replacements cannot interleave. */
   async replaceAccess(
     owner: AccessTokenOwner,
     tokenId: string,
@@ -198,10 +189,7 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     return revoked.count > 0;
   }
 
-  /**
-   * Anota el último uso, solo si el anotado ya es viejo: varias llamadas del
-   * mismo agente en el mismo minuto escriben una vez, no una por llamada.
-   */
+  /** Writes only when the stored value is stale, so calls within the same minute cost one write. */
   async touch(tokenId: string, now: Date): Promise<void> {
     const stale = new Date(now.getTime() - ACCESS_TOKEN_LAST_USED_RESOLUTION_MS);
     await this.prisma.accessToken.updateMany({

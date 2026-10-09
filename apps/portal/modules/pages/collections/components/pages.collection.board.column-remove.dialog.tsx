@@ -16,18 +16,10 @@ interface IProps {
   readonly label: string;
   readonly onClose: () => void;
   readonly onConfirm: () => void;
-  /** Cuántas filas se quedan sin valor, que es lo único que no se ve venir mirando la columna. */
   readonly rowCount: number;
 }
 
-/**
- * La pregunta antes de quitar una columna.
- *
- * Quitar una columna quita un valor de la propiedad en toda la colección, no
- * solo en esta vista, y las filas que estaban dentro se quedan sin valor. Se
- * dice cuántas son, porque una columna llena y una vacía se borran con el mismo
- * gesto y no cuestan lo mismo.
- */
+/** Removing a column clears that property value on its rows across the whole collection, not only this view. */
 export const PagesCollectionBoardColumnRemoveDialog = ({ isBusy, label, onClose, onConfirm, rowCount }: IProps) => {
   const t = useTranslations('pages.collection');
   const tCommon = useTranslations('common');

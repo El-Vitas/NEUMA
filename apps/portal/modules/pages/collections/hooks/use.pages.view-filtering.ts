@@ -23,13 +23,6 @@ import type { PagePropertyValue, PageSchema, PageSchemaProperty } from '../types
 import type { PageFilterPath, PagesViewFiltering } from '../types/pages.view-filtering.types';
 import { usePagesViewSaving } from './use.pages.view-saving';
 
-/**
- * Lo que una vista filtra, ordena y calcula, aplicado en cuanto se dice.
- *
- * Quien escribe un valor lo aplica al salir del campo, para no pedir las filas
- * por cada tecla. El resto —guardar y volver a pedir las filas— es lo mismo que
- * hace cualquier cambio de una vista, y por eso se apoya en quien ya lo sabe.
- */
 export const usePagesViewFiltering = (
   schema: PageSchema,
   activeViewName: string,

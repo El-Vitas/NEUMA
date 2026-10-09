@@ -12,12 +12,7 @@ interface IProps<TValue extends string> {
   readonly value: TValue;
 }
 
-/**
- * Pocas opciones a la vista, una sola elegida. Son radios de verdad dentro de
- * un fieldset: las flechas recorren el grupo y el lector de pantalla anuncia la
- * pregunta junto a cada respuesta. Una opción que no se puede elegir se ve
- * apagada y el navegador la salta.
- */
+/** Native radios in a fieldset, so arrow keys move through the group and screen readers announce the question. */
 export const AccessTokensChoiceGroup = <TValue extends string>({
   legend,
   name,

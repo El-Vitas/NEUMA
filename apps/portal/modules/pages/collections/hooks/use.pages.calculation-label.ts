@@ -5,14 +5,7 @@ import { computePageCalculation, isPageCalculationAPortion, PAGE_VIEW_CALCULATIO
 import { useFormatter, useTranslations } from 'next-intl';
 import type { PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
 
-/**
- * Cómo se lee el pie de una columna.
- *
- * Lo dicen dos sitios —el pie de la tabla, donde además se elige, y el de cada
- * grupo, que solo lo repite sobre sus filas—, así que la cuenta y la manera de
- * escribirla viven en uno solo: un porcentaje lleva su signo y lo demás se
- * escribe como el número que es, en el idioma de quien mira.
- */
+/** Shared by the table footer and each group footer so both format the result the same way. */
 export const usePagesCalculationLabel = (): ((
   calculation: PageViewCalculation,
   property: PageSchemaProperty,

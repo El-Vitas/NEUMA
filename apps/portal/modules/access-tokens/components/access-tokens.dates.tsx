@@ -6,7 +6,6 @@ interface IProps {
   readonly token: Pick<AccessToken, 'createdAt' | 'expiresAt' | 'lastUsedAt'>;
 }
 
-/** Cuándo se creó un token, cuándo se usó por última vez y hasta cuándo sirve. */
 export const AccessTokensDates = ({ token }: IProps) => {
   const t = useTranslations('accessTokens');
   const locale = useLocale();

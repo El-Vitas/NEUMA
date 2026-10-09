@@ -1,6 +1,3 @@
-// utils-dir-only-utils
-// Qué hace: dentro de `utils/`, solo permite utilidades/helpers.
-// Para qué: que `utils/` no acumule componentes, tipos ni constantes (§1.1).
 export const utilsDirOnlyUtils = {
   meta: {
     type: 'suggestion',

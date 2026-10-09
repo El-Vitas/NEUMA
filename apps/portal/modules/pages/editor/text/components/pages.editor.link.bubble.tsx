@@ -15,11 +15,6 @@ interface IProps {
   readonly onRemove: () => void;
 }
 
-/**
- * What a link offers when the pointer rests on it: where it goes, and the two
- * things one may want to do to a link that is already written — send it
- * somewhere else, or stop it being a link at all.
- */
 export const PagesEditorLinkBubble = ({ href, onEdit, onLeave, onRemove }: IProps) => {
   const t = useTranslations('pages');
 

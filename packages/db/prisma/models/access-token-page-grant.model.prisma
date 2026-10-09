@@ -1,7 +1,6 @@
-/// Lo que un token puede hacer en una página y en todo lo que cuelga de ella.
-/// Sin permisos, excluye esa página y lo que cuelga de ella. Para cada página
-/// manda la regla más cercana, así que una regla más adentro puede volver a
-/// abrir o achicar. Borrar la página borra la regla.
+/// What a token may do on a page and everything under it.
+/// With no permissions, it excludes the page and its descendants. The nearest
+/// rule wins, so a deeper rule can reopen or narrow access.
 model AccessTokenPageGrant {
   id          String      @id @default(uuid(7))
   tokenId     String
