@@ -11,7 +11,7 @@ Abre Claude Code en este repo y pide inicializar el proyecto (skill `init-repo`,
 3. Renombrado in-place (`@neuma/*` → `@{proyecto}/*`, imágenes docker, env).
 4. Setup de base de datos (migración inicial + seed).
 5. Cleanup de todo lo no seleccionado.
-6. Verificación: `install → db:generate → typecheck → lint → build`.
+6. Verificación: `install → typecheck → lint → build`.
 
 ## Qué incluye
 
@@ -19,7 +19,7 @@ Abre Claude Code en este repo y pide inicializar el proyecto (skill `init-repo`,
 |---|---|---|
 | `apps/backend` | NestJS 11 sobre Fastify, JWT auth + roles/permisos, storage provider, health, throttling, env validado con Zod | 3000 |
 | `apps/portal` | Next.js 16 App Router (RSC), shadcn/ui + Dice UI, toolkit data-table (TanStack), next-safe-action, next-themes | 3010 |
-| `packages/db` | Prisma 7 + PostgreSQL (driver adapter pg), schema dividido en `models/` y `enums/`, seeds | — |
+| `packages/db` | Prisma ORM 8 + PostgreSQL 18, contrato dividido en `models/` y `enums/`, migraciones en `migrations/`, seeds | — |
 | `packages/shared` | Result type, Money value object, logger, constantes compartidas | — |
 | `packages/design` | Design tokens Tailwind 4 (`tokens.css`, light/dark, IBM Plex) | — |
 | `packages/eslint-rules` | 19 reglas ESLint de arquitectura (convenciones de carpetas, no-prisma-outside-persistence, etc.) | — |
@@ -33,7 +33,7 @@ Funcional desde el día uno: login JWT con roles y permisos, gestión de usuario
 bun install
 cp .env.example .env
 docker compose up -d postgres
-cd packages/db && bun run db:generate && bun run db:migrate -- --name init && bun run db:seed && cd ../..
+cd packages/db && bun run db:migrate:deploy && bun run db:seed && cd ../..
 bun run dev
 ```
 
@@ -61,5 +61,11 @@ bun run rules:query  # registro de reglas de negocio
 
 ## Deploy
 
-- `docker-compose.yml`: postgres + migrate one-shot + backend + portal.
+- `docker-compose.yml`: postgres + migrate one-shot + backend + workers de búsqueda y retroenlaces + portal.
 - `docker/db/init/10-app-role.sh`: rol Postgres de mínimo privilegio para runtime.
+- No hay registro abierto. En una instalación nueva, el primer administrador se crea una vez desde el servidor; después, los administradores crean las cuentas desde «Usuarios» (ADR 016):
+
+  ```bash
+  read -rs CLAVE && printf '%s' "$CLAVE" | docker compose exec -T backend \
+    bun run admin:create --email tu@empresa.cl --name "Tu Nombre"; unset CLAVE
+  ```

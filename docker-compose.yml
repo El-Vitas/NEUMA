@@ -15,7 +15,8 @@ services:
       - postgres-data:/var/lib/postgresql
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-neuma} -d ${POSTGRES_DB:-neuma}"]
+      # Over TCP: the first-boot server that runs the init scripts listens on the socket only, then restarts.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-neuma} -d ${POSTGRES_DB:-neuma}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -42,7 +43,7 @@ services:
       dockerfile: apps/backend/Dockerfile
       target: runner
     restart: unless-stopped
-    environment:
+    environment: &backend-environment
       NODE_ENV: production
       PORT: "3000"
       DATABASE_URL: ${DATABASE_URL}
@@ -55,17 +56,38 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-false}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
+    volumes:
+      - uploads:/app/apps/backend/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-    depends_on:
+    depends_on: &after-migrations
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+
+  # Search and backlinks are projected from the outbox by their own processes, using the backend image.
+  search-worker:
+    image: localhost/neuma-backend:latest
+    restart: unless-stopped
+    environment: *backend-environment
+    command: ["bun", "run", "src/modules/search/infrastructure/worker/search.worker.main.ts"]
+    healthcheck:
+      disable: true
+    depends_on: *after-migrations
+
+  links-worker:
+    image: localhost/neuma-backend:latest
+    restart: unless-stopped
+    environment: *backend-environment
+    command: ["bun", "run", "src/modules/links/infrastructure/worker/links.worker.main.ts"]
+    healthcheck:
+      disable: true
+    depends_on: *after-migrations
 
   portal:
     image: localhost/neuma-portal:latest
@@ -74,6 +96,7 @@ services:
       dockerfile: apps/portal/Dockerfile
       args:
         BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:3000}
+        NEXT_PUBLIC_COLLABORATION_WS_URL: ${COLLABORATION_WS_URL:-ws://localhost:3000/api/v1/collaboration}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -96,3 +119,4 @@ services:
 
 volumes:
   postgres-data:
+  uploads:
