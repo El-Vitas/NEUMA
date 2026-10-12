@@ -11,14 +11,8 @@ import type { PageEditorSubpageLabels } from '../../blocks/types/pages.editor.no
 import { createPageMark } from '../../text/lib/pages.editor.marks.lib';
 
 /**
- * Draws the line that leads to a page hanging from this one.
- *
- * What the page keeps is which page it is, so the name is asked for every time
- * it is drawn: renaming a page is done in the page itself, and everywhere it is
- * named should say what it is called now. The name written down when it was
- * inserted is the fallback, for a child that cannot be read from here — one
- * moved somewhere private, or thrown away — and such a line says so rather than
- * pretending the page is still there.
+ * The title is read from the live page list on every draw so renames show up; the title stored in the node
+ * is only the fallback when the child cannot be read from here.
  */
 export const createPageSubpageNodeView = (
   node: EditorNode,

@@ -1,4 +1,4 @@
-import { type PageIcon, pageIconSchema, Result } from '@company-brain/shared';
+import { type PageIcon, pageIconSchema, Result } from '@neuma/shared';
 import { PageIconValidationError } from './page.error';
 
 export const validatePageIcon = (icon: unknown): Result<PageIcon | null, PageIconValidationError> => {

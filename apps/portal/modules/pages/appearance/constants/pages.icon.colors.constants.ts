@@ -1,13 +1,5 @@
 import type { PageIconColor } from '../types/pages.icon.types';
 
-/**
- * What each colour looks like once a symbol wears it.
- *
- * «Default» is not a colour of its own: it lets the symbol take whatever colour
- * the writing around it already has, which is what most pages want and what a
- * page reverts to when its colour is taken away.
- */
-/** The same colours as a filled dot, for choosing one rather than wearing it. */
 export const PAGE_ICON_COLOR_SWATCH_STYLE_CLASSES: Readonly<Record<PageIconColor, string>> = {
   blue: 'bg-sky-500',
   brown: 'bg-amber-800',
@@ -21,6 +13,7 @@ export const PAGE_ICON_COLOR_SWATCH_STYLE_CLASSES: Readonly<Record<PageIconColor
   yellow: 'bg-yellow-500',
 };
 
+/** `default` inherits the surrounding text colour instead of being a colour of its own. */
 export const PAGE_ICON_COLOR_STYLE_CLASSES: Readonly<Record<PageIconColor, string>> = {
   blue: 'text-sky-500',
   brown: 'text-amber-800',

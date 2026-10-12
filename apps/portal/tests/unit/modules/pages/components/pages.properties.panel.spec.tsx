@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
+import { asPropertyOptions } from '../lib/pages.options.fixture';
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
@@ -15,12 +16,7 @@ mock.module('@/modules/pages/attachments/server/actions/pages.attachments.action
   downloadPageAttachmentAction: async () => ({ serverError: 'request' }),
   uploadPageAttachmentAction: async () => ({ serverError: 'request' }),
 }));
-/**
- * The panel's business here is revealing the location row, not how moving a
- * page works. Standing in for the whole form keeps this file from reaching the
- * server-only chain behind it — and out of a fight with the move form's own
- * spec, which mocks that same chain to answer differently.
- */
+// Stands in for the move form: avoids its server-only chain, which the move form's own spec mocks differently.
 mock.module('@/modules/pages/navigation/components/pages.move.form', () => ({
   PagesMoveForm: ({ ariaLabelledBy }: { readonly ariaLabelledBy: string }) => (
     <button aria-labelledby={ariaLabelledBy} type="button">
@@ -58,7 +54,7 @@ const titleProperty: PageSchemaProperty = {
 const statusProperty: PageSchemaProperty = {
   key: 'status',
   label: 'Status',
-  options: ['todo', 'done'],
+  options: asPropertyOptions('todo', 'done'),
   required: true,
   type: 'SELECT',
 };

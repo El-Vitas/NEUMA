@@ -9,7 +9,6 @@ interface IProps {
   readonly onSelect: (action: PageEditorTableAction) => void;
 }
 
-/** What can be done to the table the writing is standing in, named as the change it makes. */
 export const PagesEditorTableItems = ({ onSelect }: IProps) => {
   const t = useTranslations('pages');
 

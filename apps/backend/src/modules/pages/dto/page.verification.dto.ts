@@ -4,7 +4,7 @@ export class SetPageVerificationDto {
   @IsBoolean()
   verified!: boolean;
 
-  /** Left out or sent as `null`, the page is verified with no expiration. */
+  /** Omitted or `null` means the verification never expires. */
   @IsOptional()
   @IsISO8601()
   expiresAt?: null | string;

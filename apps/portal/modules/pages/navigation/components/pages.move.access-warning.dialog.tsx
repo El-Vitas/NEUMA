@@ -19,7 +19,6 @@ interface IProps {
   readonly pendingMove: PendingAccessLossPageMove;
 }
 
-/** Warns that moving across spaces would cost someone their access, before the move happens. */
 export const PagesMoveAccessWarningDialog = ({ isPending, onCancel, onConfirm, pendingMove }: IProps) => {
   const t = useTranslations('pages');
   const tCommon = useTranslations('common');

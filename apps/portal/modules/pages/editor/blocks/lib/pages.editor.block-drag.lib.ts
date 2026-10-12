@@ -34,11 +34,7 @@ const getSelectedBlockRange = (state: EditorState): PageEditorBlockRange | null 
   return range === null ? null : { from: range.start, to: range.end };
 };
 
-/**
- * Resolves which blocks travel with a drag started from the handle of the
- * block at `blockStart`: that block alone, or every block the current
- * selection spans when the dragged block is one of them.
- */
+/** The whole selection travels when the dragged block is part of it; otherwise only that block. */
 export const getPageEditorDragRange = (state: EditorState, blockStart: number): PageEditorBlockRange | null => {
   const block = state.doc.nodeAt(blockStart);
   if (block === null) return null;
@@ -72,13 +68,8 @@ const createPlacementSelection = (transaction: Transaction, placement: number, c
     : TextSelection.between(transaction.doc.resolve(placement), transaction.doc.resolve(placement + content.size));
 
 /**
- * Builds the command that lands a dragged block — or every block of a
- * multi-block selection — at `insertAt`, moving it or leaving a copy behind.
- *
- * Reports `false` without dispatching when the drop would destroy the page:
- * a block dropped inside itself, a drop that changes nothing, or a placement
- * the schema forbids. The whole move is a single transaction, so one undo
- * restores the previous order.
+ * Reports `false` without dispatching when the drop would destroy the page: a block dropped inside itself,
+ * a no-op drop, or a placement the schema forbids. A single transaction, so one undo restores the order.
  */
 export const createPageEditorBlockMoveCommand =
   (parameters: PageEditorBlockMove): Command =>
@@ -97,10 +88,6 @@ export const createPageEditorBlockMoveCommand =
     return true;
   };
 
-/**
- * Turns the pointer position into where the dragged blocks would land: beside
- * the block it hugs, splitting that row into columns, or between two blocks.
- */
 export const findPageEditorDropPlacement = (
   view: EditorView,
   pointer: PageEditorDropPointer,
@@ -122,7 +109,6 @@ export const findPageEditorDropPlacement = (
   return insertAt === null ? null : { insertAt, kind: 'between' };
 };
 
-/** Applies whichever kind of drop the pointer resolved to. */
 export const createPageEditorBlockDropCommand = (parameters: PageEditorBlockDrop): Command =>
   parameters.placement.kind === 'column'
     ? createPageEditorColumnDropCommand({
@@ -180,14 +166,7 @@ export const writePageEditorDragState = (view: EditorView, next: PageEditorBlock
 export const isPageEditorBlockDragActive = (state: EditorState): boolean =>
   (pageEditorBlockDragKey.getState(state)?.range ?? null) !== null;
 
-/**
- * Arms a drag for the block at `blockStart`, or for every block of the current
- * selection when that block is one of them.
- *
- * The drag only becomes visible once the pointer moves, so a plain click on
- * the handle still just selects the block. Reports the blocks that would
- * travel, so the caller can tell a single-block grab from a multi-block one.
- */
+/** The drag shows only once the pointer moves, so a plain click on the handle still selects the block. */
 export const armPageEditorBlockDrag = (view: EditorView, blockStart: number): PageEditorBlockRange | null => {
   const range = getPageEditorDragRange(view.state, blockStart);
   if (range === null) return null;

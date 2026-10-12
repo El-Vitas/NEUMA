@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { BookOpen, ChevronRight, Download, MoreHorizontal, PenLine, Plus, Smile } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -17,8 +17,8 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
-import { usePagesStart } from '@/shared/hooks/use.pages-start.hook';
 import { useSidebarSpaceDrop } from '@/shared/hooks/use.sidebar-space-drop.hook';
+import { StartPageMenu } from '../start-page-menu';
 import { SidebarPageTree } from './sidebar-page-tree';
 import { SidebarSpaceIconDialog } from './sidebar-space-icon-dialog';
 import { SidebarSpaceKindMark } from './sidebar-space-kind-mark';
@@ -51,7 +51,6 @@ export const SidebarSpaceExpanded = ({
   const exportT = useTranslations('pages.export');
   const router = useRouter();
   const { exportPages, isExporting } = usePagesExport();
-  const { isStarting, startPage } = usePagesStart();
   const spaceDrop = useSidebarSpaceDrop();
   const [isIconDialogOpen, setIsIconDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -133,22 +132,19 @@ export const SidebarSpaceExpanded = ({
           </DropdownMenu>
         )}
         {canCreatePages && (
-          <button
-            aria-label={pagesT('createPage')}
-            className={cn(
-              'grid size-11 shrink-0 place-items-center text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:opacity-0 lg:group-hover/space:opacity-100 lg:focus-visible:opacity-100',
-              FOCUS_RING_CLASS,
-            )}
-            disabled={isStarting}
-            onClick={() => {
-              onNavigate?.();
-              startPage(space.id);
-            }}
-            title={pagesT('createPage')}
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-          </button>
+          <StartPageMenu align="end" onNavigate={onNavigate} spaceId={space.id}>
+            <button
+              aria-label={pagesT('createPage')}
+              className={cn(
+                'grid size-11 shrink-0 place-items-center text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:opacity-0 lg:group-hover/space:opacity-100 lg:focus-visible:opacity-100',
+                FOCUS_RING_CLASS,
+              )}
+              title={pagesT('createPage')}
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+            </button>
+          </StartPageMenu>
         )}
       </div>
       {hasPages && isExpanded && (

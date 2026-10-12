@@ -1,0 +1,28 @@
+// use prisma-8
+
+/// Key an agent uses to enter Neuma on behalf of its owner.
+/// Only the secret's hash is stored; the secret is shown once, at creation.
+/// Its power is what it was granted, never more than the owner can do today.
+model AccessToken {
+  id                   String                 @id(map: "AccessToken_pkey") @default(uuid(7))
+  userId               String
+  workspaceId          String
+  name                 String
+  displayPrefix        String
+  secretHash           String
+  /// Permissions valid in every space the owner sees, including spaces created later.
+  allSpacesPermissions String[]               @default([]) @noCheck(elementNotNull)
+  createdAt            TimestamptzJsDate      @default(now())
+  lastUsedAt           TimestamptzJsDate?
+  expiresAt            TimestamptzJsDate?
+  revokedAt            TimestamptzJsDate?
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessToken_userId_fkey")
+  workspace            Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessToken_workspaceId_fkey")
+
+  grants               AccessTokenGrant[]
+  pageGrants           AccessTokenPageGrant[]
+
+  @@unique([secretHash], map: "AccessToken_secretHash_key")
+  @@index([userId], map: "AccessToken_userId_idx")
+  @@index([workspaceId], map: "AccessToken_workspaceId_idx")
+}

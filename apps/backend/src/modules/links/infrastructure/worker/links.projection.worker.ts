@@ -1,5 +1,5 @@
-import { PageLifecycle } from '@company-brain/db';
 import { Inject, Injectable } from '@nestjs/common';
+import { PageLifecycle } from '@neuma/db';
 import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
 import type { OutboxProjectionEvent, OutboxProjectionOutbox } from '../../../../common/types/outbox.types';
 import { LINKS_OUTBOX_MAX_ATTEMPTS } from '../../constants/links.constants';

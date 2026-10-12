@@ -25,7 +25,6 @@ export const createSpaceAction = actionClient.inputSchema(createSpaceSchema).act
   }),
 );
 
-/** The order the spaces are listed in, rearranged by dragging one of them. */
 export const reorderSpaceAction = actionClient.inputSchema(reorderSpaceSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'reorderSpaces' }, async () => {
     const spaces = await apiServer.patch<unknown>(SPACE_API_ROUTES.order(parsedInput.spaceId), {
@@ -46,7 +45,6 @@ export const renameSpaceAction = actionClient.inputSchema(renameSpaceSchema).act
   }),
 );
 
-/** What a space says it is for, so whoever lands in it knows what goes in here before opening anything. */
 export const describeSpaceAction = actionClient.inputSchema(describeSpaceSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'describeSpace' }, async () => {
     const described = await apiServer.patch<unknown>(SPACE_API_ROUTES.description(parsedInput.spaceId), {
@@ -57,7 +55,7 @@ export const describeSpaceAction = actionClient.inputSchema(describeSpaceSchema)
   }),
 );
 
-/** Sharing a private space, which changes both what its owner sees and what the invited person now reads. */
+// Invalidates both lists: the owner's spaces and the invited member's shared-with-me spaces.
 export const shareSpaceAction = actionClient.inputSchema(shareSpaceSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'shareSpace' }, async () => {
     await apiServer.post<unknown>(SPACE_API_ROUTES.members(parsedInput.spaceId), { userId: parsedInput.userId });

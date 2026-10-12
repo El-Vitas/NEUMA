@@ -1,6 +1,6 @@
 'use client';
 
-import { isPageLinkTarget } from '@company-brain/shared';
+import { isPageLinkTarget } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
@@ -20,15 +20,7 @@ interface IProps {
   readonly onChoose: (href: string | null) => void;
 }
 
-/**
- * Where a link goes, asked for in one field.
- *
- * The same field takes an address and the name of a page, because from where
- * somebody is standing both answer the same question — where should this take
- * me — and having to say which of the two it is beforehand is a question about
- * the machine rather than about the writing. What is not somewhere to go is
- * refused with a reason instead of being written down as a broken link.
- */
+/** One field takes either a URL or a page name, so the user never has to pick which kind of target it is. */
 export const PagesEditorLinkField = ({ href, onCancel, onChoose, pagesAtHand }: IProps) => {
   const t = useTranslations('pages');
   const [written, setWritten] = useState(href ?? '');
@@ -36,7 +28,6 @@ export const PagesEditorLinkField = ({ href, onCancel, onChoose, pagesAtHand }: 
   const [refused, setRefused] = useState(false);
   const looking = written.trim().length > 0 && !isPageLinkTarget(written);
 
-  /** The field is asked for, so it takes the writing: leaving the cursor behind would ask and then not listen. */
   useEffect(() => fieldRef.current?.focus(), []);
   const search = usePagesMentionSearch(looking ? written.trim() : null, pagesAtHand);
 

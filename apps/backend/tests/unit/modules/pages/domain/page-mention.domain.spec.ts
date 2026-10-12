@@ -1,27 +1,27 @@
 import { describe, expect, it } from 'bun:test';
-import type { Prisma } from '@company-brain/db/generated';
+import type { JsonValue } from '@neuma/db';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from '@/modules/pages/domain/page-mention.domain';
 
-const buildMentionNode = (pageId: string, label: string): Prisma.JsonValue => ({
+const buildMentionNode = (pageId: string, label: string): JsonValue => ({
   attrs: { label, pageId, spaceId: 'space-a' },
   type: 'mention',
 });
 
-const buildParagraph = (children: readonly Prisma.JsonValue[]): Prisma.JsonValue => ({
+const buildParagraph = (children: readonly JsonValue[]): JsonValue => ({
   content: [...children],
   type: 'paragraph',
 });
 
-const buildTextNode = (text: string): Prisma.JsonValue => ({ text, type: 'text' });
+const buildTextNode = (text: string): JsonValue => ({ text, type: 'text' });
 
-const buildDocument = (children: readonly Prisma.JsonValue[]): Prisma.JsonValue => ({
+const buildDocument = (children: readonly JsonValue[]): JsonValue => ({
   content: [...children],
   schemaVersion: 1,
   type: 'doc',
 });
 
-const buildNestedMentionDocument = (pageId: string, label: string): Prisma.JsonValue =>
+const buildNestedMentionDocument = (pageId: string, label: string): JsonValue =>
   buildDocument([
     {
       content: [

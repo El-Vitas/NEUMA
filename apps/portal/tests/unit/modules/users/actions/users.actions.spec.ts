@@ -1,4 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const fetchMock = mock(
@@ -17,19 +19,7 @@ mock.module('next/headers', () => ({
 }));
 mock.module('next-intl/server', () => ({ getLocale: async () => 'en' }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
@@ -37,7 +27,7 @@ mock.module('@/shared/lib/with-action.lib', () => ({
 let signedInUser: { readonly id: string; readonly role: string } | null = null;
 mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: async () => signedInUser }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
 
 const { createUserAction, updateUserNameAction } = await import('@/modules/users/server/actions/users.actions');
 
@@ -52,17 +42,13 @@ describe('updateUserNameAction without a session', () => {
 
     const result = await updateUserNameAction({ name: 'Ana', userId });
 
-    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
 });
 
-/**
- * The screen that offers this is behind a check, but the screen is not the
- * door: an action answers to its own address, so somebody signed in as anybody
- * reaches it without ever loading the screen.
- */
+// An action answers to its own address, so a check on the screen that offers it does not protect it.
 describe('updateUserNameAction signed in as somebody who does not run the workspace', () => {
   it('rejects without making an outbound request', async () => {
     cookieValue = 'valid-access-token';
@@ -72,7 +58,7 @@ describe('updateUserNameAction signed in as somebody who does not run the worksp
 
     const result = await updateUserNameAction({ name: 'Ana', userId });
 
-    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -99,37 +85,44 @@ describe('createUserAction without a session', () => {
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
-    const result = await createUserAction({ email: 'ana@example.com', name: 'Ana', password: 'super-secret' });
+    const result = await createUserAction({
+      email: 'ana@example.com',
+      name: 'Ana',
+      password: 'super-secret',
+      role: 'WORKER',
+    });
 
-    expect(result).toEqual({ serverError: 'No administras este espacio de trabajo' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
 describe('createUserAction signed in as whoever runs the workspace', () => {
-  it('makes the outbound request and invalidates the cache', async () => {
+  it('asks the backend as the admin, with the chosen role, and invalidates the cache', async () => {
     cookieValue = 'valid-access-token';
     signedInUser = { id: 'the-admin', role: 'ADMIN' };
     fetchMock.mockClear();
     updateTagMock.mockClear();
     fetchMock.mockImplementationOnce(
       async (): Promise<Response> =>
-        new Response(
-          JSON.stringify({
-            accessToken: 'issued-token',
-            accessTokenExpiresInSeconds: 900,
-            refreshToken: 'issued-refresh-token',
-            refreshTokenExpiresInSeconds: 604_800,
-            user: { email: 'ana@example.com', id: userId, name: 'Ana', role: 'WORKER' },
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        ),
+        new Response(JSON.stringify({ email: 'ana@example.com', id: userId, name: 'Ana', role: 'WORKER' }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        }),
     );
 
-    const result = await createUserAction({ email: 'ana@example.com', name: 'Ana', password: 'super-secret' });
+    const result = await createUserAction({
+      email: 'ana@example.com',
+      name: 'Ana',
+      password: 'super-secret',
+      role: 'WORKER',
+    });
 
     expect(result).toEqual({ data: undefined });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer valid-access-token');
+    expect(JSON.parse(String(init?.body))).toMatchObject({ role: 'WORKER' });
     expect(updateTagMock).toHaveBeenCalledWith('users');
   });
 });

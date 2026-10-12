@@ -1,4 +1,3 @@
-import type { Prisma } from '@company-brain/db/generated';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type {
@@ -6,30 +5,38 @@ import type {
   SearchProjectionSource as SearchProjectionSourceContract,
 } from '../../types/search.types';
 
-const pageSelection = {
-  content: true,
-  createdById: true,
-  icon: true,
-  id: true,
-  lifecycle: true,
-  parentId: true,
-  space: { select: { name: true } },
-  spaceId: true,
-  title: true,
-  verificationExpiresAt: true,
-  verifiedAt: true,
-  versions: { orderBy: { version: 'desc' as const }, select: { version: true }, take: 1 },
-} satisfies Prisma.PageSelect;
-
 @Injectable()
 export class SearchProjectionSource implements SearchProjectionSourceContract {
   constructor(private readonly prisma: PrismaService) {}
 
   async findPage(pageIdentifier: string): Promise<SearchProjectionPage | null> {
-    const page = await this.prisma.page.findUnique({ select: pageSelection, where: { id: pageIdentifier } });
-    if (page === null) return null;
-    const author = await this.prisma.user.findUnique({ select: { name: true }, where: { id: page.createdById } });
-    const parentPageTitle = await this.findParentPageTitle(page.parentId);
+    const page = await this.prisma.models.Page.where({ id: pageIdentifier })
+      .select(
+        'content',
+        'createdById',
+        'icon',
+        'id',
+        'lifecycle',
+        'parentId',
+        'spaceId',
+        'title',
+        'updatedAt',
+        'verificationExpiresAt',
+        'verifiedAt',
+      )
+      .include('space', (space) => space.select('name'))
+      .include('versions', (versions) =>
+        versions
+          .select('version')
+          .orderBy((version) => version.version.desc())
+          .limit(1),
+      )
+      .first();
+    if (page === null || page.space === null) return null;
+    const [author, parentPageTitle] = await Promise.all([
+      this.prisma.models.User.where({ id: page.createdById }).select('name').first(),
+      this.findParentPageTitle(page.parentId),
+    ]);
     return {
       ...page,
       authorId: page.createdById,
@@ -43,7 +50,7 @@ export class SearchProjectionSource implements SearchProjectionSourceContract {
 
   private async findParentPageTitle(parentId: string | null): Promise<string | null> {
     if (parentId === null) return null;
-    const parent = await this.prisma.page.findUnique({ select: { title: true }, where: { id: parentId } });
+    const parent = await this.prisma.models.Page.where({ id: parentId }).select('title').first();
     return parent?.title ?? null;
   }
 }

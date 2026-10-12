@@ -22,6 +22,17 @@ describe('withQuery without an access token', () => {
   });
 });
 
+describe("withQuery and Next's own control flow", () => {
+  it('lets an error Next throws on purpose through, instead of logging it as a failed query', async () => {
+    cookieValue = 'valid-access-token';
+    const { notFound } = await import('next/navigation');
+
+    const outcome = withQuery({ op: 'test' }, async () => notFound());
+
+    expect(outcome).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
+  });
+});
+
 describe('withQuery with an access token', () => {
   it('resolves with the query function result', async () => {
     cookieValue = 'valid-access-token';

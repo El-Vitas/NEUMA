@@ -81,10 +81,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return Object.keys(rest).length > 0 ? rest : undefined;
   }
 
-  /**
-   * Only what nobody meant: a business refusal and a deliberate HTTP answer are
-   * the system working, and drown out the ones that are not.
-   */
+  /** Domain and HTTP exceptions are expected outcomes, not logged, so they do not drown out real failures. */
   private logUnhandled(exception: unknown, request: FastifyRequest, envelope: Envelope): void {
     const isDomain = exception instanceof DomainError;
     const isHttp = exception instanceof HttpException;

@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_ICON_COLORS } from '@company-brain/shared';
+import { PAGE_ICON_COLORS } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -13,13 +13,7 @@ interface IProps {
   readonly selected: PageIconColor;
 }
 
-/**
- * The colour a symbol is drawn in, kept to a single dot until it is asked for.
- *
- * A row of ten swatches spends most of the picker's width saying something
- * nobody was looking at yet; one dot showing the colour in use, that opens the
- * rest when clicked, says the same thing and leaves the room for the symbols.
- */
+/** Collapsed to one dot so the ten swatches do not take the picker's width from the symbols. */
 export const PagesIconColorPicker = ({ onChoose, selected }: IProps) => {
   const t = useTranslations('pages.icon');
   const [isOpen, setIsOpen] = useState(false);

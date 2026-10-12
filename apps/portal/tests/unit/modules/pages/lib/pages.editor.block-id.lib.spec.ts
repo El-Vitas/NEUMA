@@ -10,7 +10,6 @@ import { createPageAssetInsertCommand } from '@/modules/pages/editor/lib/pages.e
 import { createEmptyPageContent } from '@/modules/pages/editor/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 
-/** The rules a page is written by, which the identities plugin carries the memory of. */
 const writingRules = inputRules({ rules: [] });
 
 const createStateWithPlugin = (content: Record<string, unknown>): EditorState =>

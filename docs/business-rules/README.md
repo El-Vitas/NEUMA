@@ -25,6 +25,14 @@ bun run rules:build          # reconstruye rules.db desde los YAML
 bun run rules:query <texto>  # busca reglas
 bun run rules:add            # agrega una regla vía CLI
 bun run rules:dump           # exporta el registro
+bun run rules:delete --id BR-xxx   # borra una regla puesta por error
 ```
+
+`rules:delete` no es la manera de retirar una regla. Una regla que se pensó mal se
+reemplaza con `supersedes`, y la vieja queda marcada y enlazada a la nueva: haberse
+equivocado al pensar es parte de la historia del producto y se conserva. `delete`
+es para un error material —el feature equivocado, la misma regla enviada dos
+veces, un envío a medias—, y se niega a tocar una regla de la que cuelgue el
+histórico.
 
 `rules.db` es un artefacto generado: no se versiona, se reconstruye con `rules:build`.

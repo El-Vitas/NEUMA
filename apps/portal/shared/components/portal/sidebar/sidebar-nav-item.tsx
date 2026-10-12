@@ -29,7 +29,9 @@ export const SidebarNavItem = ({ item, isActive, collapsed, onNavigate }: IProps
     onClick={onNavigate}
     title={collapsed ? item.label : undefined}
   >
-    {isActive && <span className="absolute top-1/2 left-0 h-6 w-1.5 -translate-y-1/2 rounded-r bg-primary" />}
+    {isActive && (
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 my-auto h-6 w-1.5 rounded-r bg-primary" />
+    )}
     <item.icon aria-hidden="true" className="size-5 shrink-0" />
     {!collapsed && <span>{item.label}</span>}
   </Link>

@@ -1,6 +1,8 @@
 import type { CollaborationPresenceIdentity } from './collaboration-presence.types.js';
 
 export const COLLABORATION_DOCUMENT_PREFIX = 'page:';
+/** Fragment of the collaborative document holding the page text, shared by editor and server. */
+export const COLLABORATION_DOCUMENT_FRAGMENT = 'prosemirror';
 export const MAX_COLLABORATION_DISPLAY_NAME_LENGTH = 80;
 
 const hexColorPattern = /^#[0-9a-fA-F]{6}$/;

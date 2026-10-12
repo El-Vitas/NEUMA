@@ -8,13 +8,7 @@ interface IProps {
   readonly source: string;
 }
 
-/**
- * An example shown as what is written and how it is set.
- *
- * It is set here and now by the same hand that sets formulas inside a page, so
- * what the manual shows is what somebody will get when they write the same
- * thing on a page of their own.
- */
+/** Rendered with the same renderer as page formulas, so the manual shows what a page would produce. */
 export const DocsFormula = ({ source }: IProps) => {
   const settingRef = useRef<HTMLDivElement>(null);
 

@@ -1,4 +1,4 @@
-import type { SchemaBoardColumn, SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
+import type { SchemaPropertyValues, SchemaRowBand, SchemaRowGroup } from '../../../common/domain/schema.domain.types';
 
 export interface PageViewRow {
   readonly id: string;
@@ -6,11 +6,14 @@ export interface PageViewRow {
   readonly propertyValues: SchemaPropertyValues | null;
 }
 
-type GroupablePageViewRow = PageViewRow & { readonly propertyValues: SchemaPropertyValues };
+export type GroupablePageViewRow = PageViewRow & { readonly propertyValues: SchemaPropertyValues };
 
-export type PageBoardColumn = SchemaBoardColumn<GroupablePageViewRow>;
+export type PageViewGroup = SchemaRowGroup<GroupablePageViewRow>;
+
+export type PageViewBand = SchemaRowBand<GroupablePageViewRow>;
 
 export type PageViewOutcome =
-  | { readonly kind: 'TABLE_ROWS'; readonly rows: readonly PageViewRow[] }
-  | { readonly kind: 'BOARD_COLUMNS'; readonly columns: readonly PageBoardColumn[] }
-  | { readonly kind: 'BOARD_MISSING_GROUPING_PROPERTY' };
+  | { readonly bands: readonly PageViewBand[]; readonly kind: 'BANDED_ROWS' }
+  | { readonly kind: 'FLAT_ROWS'; readonly rows: readonly PageViewRow[] }
+  | { readonly groups: readonly PageViewGroup[]; readonly kind: 'GROUPED_ROWS' }
+  | { readonly kind: 'MISSING_GROUPING_PROPERTY' };

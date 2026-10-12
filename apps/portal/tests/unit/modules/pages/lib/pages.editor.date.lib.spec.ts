@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
-import { pageContentSchema } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
+import { pageContentSchema } from '@neuma/shared';
 import type { Command } from 'prosemirror-state';
 import { EditorState, NodeSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';

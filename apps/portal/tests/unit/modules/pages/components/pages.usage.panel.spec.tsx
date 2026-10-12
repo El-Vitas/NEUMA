@@ -5,7 +5,6 @@ import { Toaster, toast } from 'sonner';
 import type { PageUsageSettings, PageUsageSummary } from '@/modules/pages/trust/types/pages.usage.types';
 import en from '../../../../../messages/en.json';
 
-/** What each action really answers: what was asked for, or a reason it could not be given. */
 type UsageSettingsResult = { data: { enabled: boolean } } | { serverError: string };
 type UsageReportResult = { data: { settings: PageUsageSettings; summary: PageUsageSummary } } | { serverError: string };
 

@@ -1,4 +1,4 @@
-import { extractPageContentSegments } from '@company-brain/shared';
+import { extractPageContentSegments } from '@neuma/shared';
 import { PAGE_INFO_WORD_SEPARATOR } from '../../constants/pages.constants';
 import type { PageContent, PageSummary } from '../../types/pages.types';
 import type { PageInfoMetadata } from '../types/pages.info.types';

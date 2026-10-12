@@ -20,14 +20,7 @@ const createCaptionField = (node: EditorNode, label: string): HTMLInputElement =
   return caption;
 };
 
-/**
- * Renders an image with what a page needs to say about it.
- *
- * The one line written under it is both what a reader sees and what is read out
- * to whoever cannot see the image: asking for the same sentence twice is how a
- * page ends up with a caption and an empty alternative text.
- *
- */
+/** The caption doubles as the alt text, so it is entered once. */
 export const createPageImageNodeView = (
   node: EditorNode,
   view: EditorView,

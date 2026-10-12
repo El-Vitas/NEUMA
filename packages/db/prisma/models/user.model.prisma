@@ -1,21 +1,24 @@
+// use prisma-8
 model User {
-  id        String   @id @default(uuid(7))
-  email     String   @unique
-  password  String
-  name      String
-  role      UserRole @default(CLIENT)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String                     @id(map: "User_pkey") @default(uuid(7))
+  email                String
+  password             String
+  name                 String
+  role                 pg.enum(UserRole)          @default("CLIENT")
+  isActive             Boolean                    @default(true)
+  createdAt            TimestamptzJsDate          @default(now())
+  updatedAt            temporal.updatedAtJsDate()
 
   workspaceMemberships WorkspaceMember[]
   spaceMemberships     SpaceMember[]
   favorites            PageFavorite[]
-  verifiedPages        Page[]               @relation("PageVerifiedBy")
-  ownedPages           Page[]               @relation("PageOwner")
-  ownedSpaces          Space[]              @relation("SpaceOwner")
+  verifiedPages        Page[]                     @relation(name: "PageVerifiedBy")
+  ownedPages           Page[]                     @relation(name: "PageOwner")
+  ownedSpaces          Space[]                    @relation(name: "SpaceOwner")
   pageViews            PageView[]
+  accessTokens         AccessToken[]
 
-  @@index([email])
-  @@index([role])
+  @@index([email], map: "User_email_idx")
+  @@unique([email], map: "User_email_key")
+  @@index([role], map: "User_role_idx")
 }

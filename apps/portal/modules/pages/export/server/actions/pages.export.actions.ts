@@ -17,6 +17,7 @@ export const exportPagesAsMarkdownAction = actionClient
       const accessToken = await requireAccessTokenCookie();
       const query = new URLSearchParams({ scope: parsedInput.scope, untitledLabel: parsedInput.untitledLabel });
       if (parsedInput.pageId !== null) query.set('pageId', parsedInput.pageId);
+      for (const pageId of parsedInput.pageIds) query.append('pageIds', pageId);
       return apiRequestFile(PAGE_API_ROUTES.exportMarkdown(parsedInput.spaceId, query.toString()), accessToken);
     }),
   );

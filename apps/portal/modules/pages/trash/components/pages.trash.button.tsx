@@ -14,10 +14,6 @@ interface IProps {
   readonly title: string;
 }
 
-/**
- * Sends the page being read straight to the trash, without a trip back to the
- * sidebar tree to find it — the same confirmation the tree already asks for.
- */
 export const PagesTrashButton = ({ onTrashed, pageId, spaceId, title }: IProps) => {
   const t = useTranslations('pages');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);

@@ -21,7 +21,6 @@ export interface TrashRestoreOutcome {
   readonly spaceName: null | string;
 }
 
-/** What a restore outcome means for the page: where it landed, or that nothing more needs saying. */
 export type PageRestoreNotice =
   | { readonly kind: 'restored' }
   | { readonly kind: 'toRoot'; readonly space: string }

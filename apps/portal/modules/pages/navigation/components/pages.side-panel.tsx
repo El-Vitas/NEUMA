@@ -26,14 +26,8 @@ interface IProps {
 }
 
 /**
- * A page read beside the one already open, instead of in place of it.
- *
- * It is not a dialog: the page behind it keeps its own scroll and its own
- * focus, and nothing here holds the keyboard hostage. What Radix's
- * non-modal `Dialog` gives for free is exactly what a panel like this needs
- * and nothing more — Escape and an outside click both ask to close it, a
- * menu opened from inside it is not mistaken for the outside, and no
- * overlay is drawn to dim what is still there to be read.
+ * Built on Radix's non-modal `Dialog`: the page behind keeps its scroll and focus, Escape and outside clicks
+ * close it, menus opened inside it do not count as outside, and no overlay is drawn.
  */
 export const PagesSidePanel = ({
   bundle,
@@ -59,11 +53,11 @@ export const PagesSidePanel = ({
   const themeRoot = useThemeRoot();
   const editorHandleRef = useRef<ComponentRef<typeof PagesEditor>>(null);
 
-  const flushBeforeClose = useCallback(async (): Promise<void> => {
+  const flushPendingChanges = useCallback(async (): Promise<void> => {
     await editorHandleRef.current?.flushPendingChanges();
   }, []);
 
-  const sidePanel = usePagesSidePanel(flushBeforeClose);
+  const sidePanel = usePagesSidePanel(flushPendingChanges);
 
   const handleOpenChange = (open: boolean): void => {
     if (open) return;
@@ -71,7 +65,7 @@ export const PagesSidePanel = ({
   };
 
   const handleOpenFullPage = async (): Promise<void> => {
-    await flushBeforeClose();
+    await flushPendingChanges();
     router.push(ROUTES.PORTAL_SPACE_PAGE(spaceId, page.id));
   };
 
@@ -83,11 +77,11 @@ export const PagesSidePanel = ({
     <DialogPrimitive.Root modal={false} onOpenChange={handleOpenChange} open>
       <DialogPrimitive.Portal container={themeRoot ?? undefined}>
         <DialogPrimitive.Content
-          aria-label={t('title')}
-          className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-border border-l bg-surface shadow-lg outline-none sm:w-(--pages-side-panel-width)"
+          className="data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right fixed inset-y-0 right-0 z-40 flex w-full flex-col border-border border-l bg-surface shadow-lg outline-none duration-200 ease-out data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:duration-0 sm:w-(--pages-side-panel-width)"
           onOpenAutoFocus={(event) => event.preventDefault()}
           style={widthStyle}
         >
+          <DialogPrimitive.Title className="sr-only">{t('title')}</DialogPrimitive.Title>
           <PagesSidePanelResizeHandle
             onChangeWidth={sidePanel.handleWidthChange}
             onPointerDown={sidePanel.startResizing}
@@ -110,6 +104,7 @@ export const PagesSidePanel = ({
               </Button>
             </DialogPrimitive.Close>
           </div>
+          {/* Navigating inside the panel keeps the same address, so the editor needs a key to remount per page. */}
           <div className="min-h-0 flex-1 overflow-y-auto">
             <PagesEditor
               attachments={attachments}
@@ -119,6 +114,7 @@ export const PagesSidePanel = ({
               currentUserDisplayName={currentUserDisplayName}
               embeddedCollections={embeddedCollections}
               isFavorite={isFavorite}
+              key={`${page.id}:${page.lifecycle}`}
               onNavigateToPage={sidePanel.navigateWithinPanel}
               onSaved={handleSaved}
               page={page}

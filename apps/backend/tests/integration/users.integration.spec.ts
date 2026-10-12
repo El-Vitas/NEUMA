@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import type { AuthSession } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
+import { TokenAdapter } from '@/modules/auth/infrastructure/adapters/token.adapter';
+import { UsersService } from '@/modules/users/users.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface UserListResponse {
@@ -13,10 +15,27 @@ interface UserListResponse {
 }
 
 describe('Users Module (Integration)', () => {
+  const password = 'plainPassword123';
   let testApp: TestApp;
+  let adminToken: string;
+  let clientToken: string;
+  let adminEmail: string;
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
+
+    const timestamp = Date.now();
+    adminEmail = `list-admin-${String(timestamp)}@test.com`;
+    const clientEmail = `list-client-${String(timestamp)}@test.com`;
+
+    await createAccount(testApp, { email: adminEmail, name: 'List Admin', password });
+    const clientSession = await createAccount(testApp, { email: clientEmail, name: 'List Client', password });
+    clientToken = clientSession.accessToken;
+
+    const prisma = testApp.get(PrismaService);
+    await prisma.models.User.where({ email: adminEmail }).update({ role: 'ADMIN' });
+    const adminSession = await loginUser(testApp, adminEmail, password);
+    adminToken = adminSession.accessToken;
   });
 
   afterAll(async () => {
@@ -24,59 +43,89 @@ describe('Users Module (Integration)', () => {
   });
 
   describe('POST /api/v1/users', () => {
-    it('should create a new user and persist to the database', async () => {
-      const timestamp = Date.now();
+    it('lets an admin create an account with the role they choose, without handing them its session', async () => {
       const payload = {
-        email: `integration-${String(timestamp)}@test.com`,
-        name: 'Integration User',
-        password: 'plainPassword123',
+        email: `created-${String(Date.now())}@test.com`,
+        name: 'Created Worker',
+        password,
+        role: USER_ROLE.WORKER,
       };
 
-      const response = await request(testApp.getServer()).post('/api/v1/users').send(payload).expect(201);
+      const response = await request(testApp.getServer())
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(payload)
+        .expect(201);
 
-      const body = response.body as AuthSession;
-      expect(typeof body.accessToken).toBe('string');
-      expect(body.user).toMatchObject({
-        email: payload.email,
-        name: payload.name,
-      });
+      const body = response.body as Record<string, unknown>;
+      expect(body).toMatchObject({ email: payload.email, name: payload.name, role: USER_ROLE.WORKER });
+      expect(body.accessToken).toBeUndefined();
+      const session = await loginUser(testApp, payload.email, password);
+      expect(session.user.role).toBe(USER_ROLE.WORKER);
+    });
+
+    it('refuses anyone who is not signed in, so nobody can let themselves in', async () => {
+      await request(testApp.getServer())
+        .post('/api/v1/users')
+        .send({ email: `outsider-${String(Date.now())}@test.com`, name: 'Outsider', password, role: USER_ROLE.CLIENT })
+        .expect(401);
+    });
+
+    it('refuses a signed-in user who does not administer accounts', async () => {
+      await request(testApp.getServer())
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({ email: `peer-${String(Date.now())}@test.com`, name: 'Peer', password, role: USER_ROLE.CLIENT })
+        .expect(403);
+    });
+
+    it('refuses an email that already has an account', async () => {
+      const response = await request(testApp.getServer())
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ email: adminEmail, name: 'Twin', password, role: USER_ROLE.CLIENT })
+        .expect(409);
+
+      expect((response.body as { error?: { code: string } }).error?.code).toBe('USER_EMAIL_ALREADY_IN_USE');
     });
 
     it('should reject invalid payload with 400', async () => {
-      const invalidPayload = {
-        email: 'not-an-email',
-        name: '',
-        password: '123',
-      };
-
-      const response = await request(testApp.getServer()).post('/api/v1/users').send(invalidPayload).expect(400);
+      const response = await request(testApp.getServer())
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ email: 'not-an-email', name: '', password: '123', role: 'OWNER' })
+        .expect(400);
 
       const body = response.body as { error?: { code: string } };
       expect(body.error?.code).toBe('BAD_REQUEST');
     });
+
+    // Each endpoint has its own counter: if the export cap (5 per minute) applied to sign-in, a sixth person in an
+    // office would be locked out without exporting anything.
+    it('does not count signing in against the export allowance', async () => {
+      const email = `throttle-${String(Date.now())}@test.com`;
+      await createAccount(testApp, { email, name: 'Throttle User', password });
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await loginUser(testApp, email, password);
+      }
+    });
+  });
+
+  describe('creating the first admin', () => {
+    it('refuses once an admin exists, so the command cannot hand out a second way in', async () => {
+      const result = await testApp.get(UsersService).createFirstAdmin({
+        email: `second-admin-${String(Date.now())}@test.com`,
+        name: 'Second Admin',
+        password,
+      });
+
+      expect(result.isFail()).toBe(true);
+      expect(result.getError().code).toBe('USER_ADMIN_ALREADY_EXISTS');
+    });
   });
 
   describe('GET /api/v1/users', () => {
-    const password = 'plainPassword123';
-    let adminToken: string;
-    let clientToken: string;
-    let adminEmail: string;
-
-    beforeAll(async () => {
-      const timestamp = Date.now();
-      adminEmail = `list-admin-${String(timestamp)}@test.com`;
-      const clientEmail = `list-client-${String(timestamp)}@test.com`;
-
-      await registerUser(testApp, { email: adminEmail, name: 'List Admin', password });
-      const clientSession = await registerUser(testApp, { email: clientEmail, name: 'List Client', password });
-      clientToken = clientSession.accessToken;
-
-      const prisma = testApp.get(PrismaService);
-      await prisma.user.update({ data: { role: 'ADMIN' }, where: { email: adminEmail } });
-      const adminSession = await loginUser(testApp, adminEmail, password);
-      adminToken = adminSession.accessToken;
-    });
-
     it('should return a paginated user list for an admin', async () => {
       const response = await request(testApp.getServer())
         .get('/api/v1/users')
@@ -107,6 +156,17 @@ describe('Users Module (Integration)', () => {
 
     it('should reject unauthenticated requests with 401', async () => {
       await request(testApp.getServer()).get('/api/v1/users').expect(401);
+    });
+
+    it('rejects a refresh token and a live-document token presented as an access token', async () => {
+      const session = await loginUser(testApp, adminEmail, password);
+      const liveDocumentToken = await testApp
+        .get(TokenAdapter)
+        .signCollaborationToken(session.user, 'workspace-1', '00000000-0000-7000-8000-000000000001', 'write');
+
+      for (const token of [session.refreshToken, liveDocumentToken]) {
+        await request(testApp.getServer()).get('/api/v1/users').set('Authorization', `Bearer ${token}`).expect(401);
+      }
     });
   });
 });

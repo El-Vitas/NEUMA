@@ -74,6 +74,11 @@ describe('reading blocks out of pasted Markdown', () => {
     expect(block?.content).toEqual([{ text: 'const x = 1;\nconst y = 2;', type: 'text' }]);
   });
 
+  it('reads a fenced block with nothing in it, or only a blank line, as an empty code block', () => {
+    expect(parse('```\n```')[0]).toMatchObject({ type: 'code_block' });
+    expect(parse('```\n\n```')[0]).toMatchObject({ type: 'code_block' });
+  });
+
   it('drops the language when it is not one this page knows, keeping the code itself', () => {
     const [block] = parse('```not-a-real-language\ncode\n```');
 

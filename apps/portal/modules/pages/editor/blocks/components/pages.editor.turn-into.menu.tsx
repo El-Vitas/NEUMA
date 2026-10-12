@@ -12,13 +12,6 @@ interface IProps {
   readonly onConvert: (targetId: string) => void;
 }
 
-/**
- * Offers the types the selected blocks can become.
- *
- * The list comes from what the editor has already built and measured against
- * the page, so a conversion that would fail is never on it; the ones that would
- * leave something behind ask first.
- */
 export const PagesEditorTurnIntoMenu = ({ conversions, onConvert }: IProps) => {
   const t = useTranslations('pages');
   const conversion = usePagesEditorConversionRequest(onConvert);

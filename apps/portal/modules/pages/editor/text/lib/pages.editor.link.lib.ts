@@ -1,7 +1,8 @@
+import { isPageLinkTarget } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { createPageEditorAskCommand } from '../../lib/pages.editor.ask.lib';
-import { isPageEditorLinkTarget, pageEditorSchema } from '../../lib/pages.editor.schema';
+import { pageEditorSchema } from '../../lib/pages.editor.schema';
 import type { PageEditorSurfaceRect } from '../../menus/types/pages.editor.surface.types';
 import {
   PAGE_EDITOR_LINK_BUBBLE_GAP_PX,
@@ -9,14 +10,9 @@ import {
 } from '../constants/pages.editor.link.constants';
 import type { PageEditorLinkAtHand, PageEditorWrittenLink } from '../types/pages.editor.link.types';
 
-/** A page of this app rather than somewhere else, which is what can be opened without leaving. */
 export const isWithinThePages = (href: string): boolean => href.startsWith('/');
 
-/**
- * The link the writing is standing in, whether it was chosen whole or the
- * cursor is merely inside it: reaching for a link that is already there means
- * that one, however much of it happens to be selected.
- */
+/** The link under the selection, whether it covers the whole link or the cursor is just inside it. */
 export const readTheLinkInHand = (state: EditorState): PageEditorWrittenLink | null => {
   const { $from, from, to } = state.selection;
   const link = pageEditorSchema.marks.link;
@@ -35,13 +31,7 @@ export const readTheLinkInHand = (state: EditorState): PageEditorWrittenLink | n
   return reach;
 };
 
-/**
- * The link the pointer is resting on, and where a bubble about it would stand.
- *
- * Reaching a link that is already written means putting the cursor in it, and
- * putting the cursor in a link is also how one follows it — so the way to ask
- * about a link without going there is to rest on it.
- */
+/** The link under the pointer and where its bubble goes; hovering avoids moving the cursor, which follows the link. */
 export const readTheLinkUnderPointer = (
   view: EditorView,
   target: EventTarget | null,
@@ -59,12 +49,11 @@ export const readTheLinkUnderPointer = (
   };
 };
 
-/** Puts the link on what is in hand, or takes it off when given nowhere to go. */
 export const createPageLinkCommand =
   (link: PageEditorWrittenLink, href: string | null): Command =>
   (state, dispatch) => {
     if (link.from === link.to) return false;
-    if (href !== null && !isPageEditorLinkTarget(href)) return false;
+    if (href !== null && !isPageLinkTarget(href)) return false;
     if (dispatch === undefined) return true;
     const mark = pageEditorSchema.marks.link;
     const transaction = state.tr.removeMark(link.from, link.to, mark);
@@ -72,11 +61,5 @@ export const createPageLinkCommand =
     return true;
   };
 
-/**
- * Asks for the link field.
- *
- * The field belongs to the page around the writing, so the keystroke reaches it
- * the same way the menu reaches whoever knows how to make a page: by knocking
- * on a door the page left open.
- */
+/** The field lives outside the editor, so the command reaches it through the request selector. */
 export const askForTheLinkField: Command = createPageEditorAskCommand(PAGE_EDITOR_LINK_REQUEST_SELECTOR);

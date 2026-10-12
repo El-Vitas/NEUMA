@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import { filterNavItemsByRole, filterNavSectionsByRole } from '@/modules/portal/lib/portal.nav.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 

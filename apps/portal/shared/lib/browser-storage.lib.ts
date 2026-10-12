@@ -1,11 +1,4 @@
-/**
- * What this browser remembered, or nothing.
- *
- * Every read and write is wrapped because storage is not always there to be
- * had: a private window, a browser told to keep no site data, or a render that
- * happened on the server all answer by refusing, and none of those are worth
- * taking a page down for.
- */
+/** Every access is guarded: storage can be refused in a private window, with blocked site data, or on the server. */
 export const readStoredNumber = (key: string): number | null => {
   if (globalThis.window === undefined) return null;
   try {

@@ -1,14 +1,6 @@
 /**
- * Runs the same work over many things, a few at a time.
- *
- * Asking for all of them at once is what starves the connection pool: each one
- * here opens its own transaction, and a hundred transactions want a hundred
- * connections that do not exist. The cost is wall-clock — a batch finishes in
- * rounds rather than in one — which is the right thing to spend, since the
- * alternative is the rest of the application waiting behind it.
- *
- * Nothing is abandoned when one fails: whatever `run` decides to do about a
- * failure is its own business, and every item is still reached.
+ * Bounded so a large batch of transactions does not starve the connection pool.
+ * A failure does not stop the others; `run` decides how to handle it.
  */
 export const mapWithBoundedConcurrency = async <T, R>(
   items: readonly T[],

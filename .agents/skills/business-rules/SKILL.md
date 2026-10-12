@@ -100,6 +100,34 @@ YAML
 - **Status validation** — must be one of: `active`, `superseded`, `inactive`
 - **Always add `feature_name`, `feature_purpose`, and `feature_scope` when creating a new feature.** Omit them when adding rules to an existing feature.
 
+## Delete — only for a mistake that never should have existed
+
+```bash
+pnpm run rules:delete --id BR-104
+```
+
+**This is not how you retire a rule.** A rule that turned out to be wrong, or that
+the product outgrew, is replaced with `supersedes`: the old one stays, marked and
+linked to the one that took its place. Getting the thinking wrong is part of the
+product's history and is kept.
+
+`delete` is for a **material error** — the kind that has no thinking behind it:
+
+- The wrong `feature` id, so the rule landed somewhere it was never about.
+- The same rule sent twice with slightly different wording.
+- A half-written rule sent before it was finished.
+
+It refuses to touch anything the history depends on:
+
+| Refuses when | Because |
+|---|---|
+| the rule was superseded by another | it is history, and history is kept |
+| the rule superseded another | the older one would point at nothing |
+| no `--id` was given | nothing is deleted by accident |
+
+A backup lands in `history/` before the YAML is rewritten, so a delete is itself
+undoable.
+
 ## Supersede behavior
 
 When you set `supersedes: BR-xxx`:

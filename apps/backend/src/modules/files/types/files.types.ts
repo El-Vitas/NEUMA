@@ -1,6 +1,6 @@
-import type { Prisma } from '@company-brain/db/generated';
-import type { Result, UserRole } from '@company-brain/shared';
-import type { FILE_ASSET_METADATA_SELECTION } from '../constants/files.constants';
+import type { Models, Scalars } from '@neuma/db';
+import type { Result, UserRole } from '@neuma/shared';
+import type { FILE_ASSET_METADATA_FIELDS } from '../constants/files.constants';
 import type { FileAssetMetadata, FileAssetSummary } from '../domain/files.domain.types';
 import type { FileAccessDeniedError, FileStorageError, FileValidationError } from '../domain/files.error';
 
@@ -15,7 +15,7 @@ export interface CreateFileAssetInput {
   readonly workspaceId: string;
 }
 
-export type FileAssetMetadataRow = Prisma.FileAssetGetPayload<{ select: typeof FILE_ASSET_METADATA_SELECTION }>;
+export type FileAssetMetadataRow = Pick<Scalars<Models.public_FileAsset>, (typeof FILE_ASSET_METADATA_FIELDS)[number]>;
 
 export interface FileAssetRepository {
   readonly canAttachToContent: (
@@ -49,7 +49,6 @@ export interface FileAssetRepository {
   readonly markDeleted: (assetId: string, workspaceId: string, userId: string) => Promise<boolean>;
 }
 
-/** What a reader asked for of a file: all of it, one stretch of it, or something that is not there. */
 export type FileByteRangeRequest =
   | { readonly end: number; readonly kind: 'part'; readonly start: number }
   | { readonly kind: 'unsatisfiable' }

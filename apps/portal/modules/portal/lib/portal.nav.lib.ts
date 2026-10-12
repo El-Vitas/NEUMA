@@ -1,4 +1,4 @@
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { DASHBOARD_NAV_SECTIONS } from '../constants/portal.nav.constants';
 import type { PortalNavItem, PortalNavSection } from '../types/portal.types';
 

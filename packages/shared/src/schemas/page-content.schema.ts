@@ -1,13 +1,15 @@
 import { z } from 'zod';
+import { isOneOf } from '../value-list.lib.js';
 
 export const PAGE_CONTENT_SCHEMA_VERSION = 1;
 const maximumPageContentDepth = 10;
 const maximumPageContentNodes = 500;
-const maximumPageTextLength = 20_000;
-const maximumTableRows = 50;
-const maximumTableColumns = 10;
+/** Limits that writers outside the editor must respect before sending. */
+export const maximumPageTextLength = 20_000;
+export const maximumTableRows = 50;
+export const maximumTableColumns = 10;
 const maximumTableColumnWidth = 2_000;
-const maximumToggleSummaryLength = 500;
+export const maximumToggleSummaryLength = 500;
 const maximumAssetIdLength = 200;
 const maximumAssetMetadataLength = 500;
 const maximumEmbedUrlLength = 2_048;
@@ -16,57 +18,48 @@ const maximumMentionPageIdLength = 200;
 const maximumMentionLabelLength = 200;
 const maximumMentionSpaceIdLength = 200;
 const maximumPersonLabelLength = 200;
-const maximumFormulaLatexLength = 4_000;
+export const maximumFormulaLatexLength = 4_000;
 const maximumCommentAuthorLength = 200;
-const maximumCommentBodyLength = 2_000;
 const maximumCommentDateLength = 40;
-const maximumCommentsPerBlock = 50;
+
+/** Exported so writers know the comment length and per-block count limits up front. */
+export const PAGE_BLOCK_COMMENT_BODY_MOST = 2000;
+export const PAGE_BLOCK_COMMENTS_MOST = 50;
 const maximumUnknownTypeLength = 80;
-const maximumBookmarkTextLength = 300;
+/** Far beyond any real block, far short of the stack. */
+const maximumUnknownJsonDepth = 32;
+export const maximumBookmarkTextLength = 300;
 
 export const PAGE_EMBED_PROVIDERS = ['figma', 'loom', 'vimeo', 'youtube'] as const;
 export type PageEmbedProvider = (typeof PAGE_EMBED_PROVIDERS)[number];
 
-/**
- * The colours a block may be painted with, kept short on purpose: a page reads
- * as one document, and every colour here is chosen to be legible on both a
- * light and a dark background.
- */
-/** Where a link written in a page may lead, other than to a place within this app. */
 export const PAGE_LINK_PROTOCOLS: readonly string[] = ['http:', 'https:', 'mailto:'];
 
-/**
- * Whether an address is somewhere a link may take a reader: a page of this app,
- * written as a path, or an address of one of the few protocols a page allows.
- */
+/** A leading double slash leads to another site while looking like an app path. */
+const PAGE_LINK_PROTOCOL_RELATIVE_PATTERN = /^[/\\]{2}/;
+
+/** Browsers strip tabs and newlines before parsing, so "/\t/evil.site" becomes "//evil.site". */
+const PAGE_LINK_CONTROL_CHARACTERS = /\p{Cc}/u;
+
+/** An app path or an address with one of the allowed protocols. */
 export const isPageLinkTarget = (href: string): boolean => {
   const trimmed = href.trim();
+  if (PAGE_LINK_CONTROL_CHARACTERS.test(trimmed)) return false;
+  if (PAGE_LINK_PROTOCOL_RELATIVE_PATTERN.test(trimmed)) return false;
   if (trimmed.startsWith('/')) return true;
   if (!URL.canParse(trimmed)) return false;
   return PAGE_LINK_PROTOCOLS.includes(new URL(trimmed).protocol);
 };
 
+/** Kept short on purpose; each color is legible on both light and dark backgrounds. */
 export const PAGE_BLOCK_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'red'] as const;
 export type PageBlockColor = (typeof PAGE_BLOCK_COLORS)[number];
 
-/**
- * What kind of aside a callout is.
- *
- * What is kept is the kind and not the symbol drawn for it: a page says the
- * same thing to everyone reading it, whatever each of them ends up seeing, and
- * the same few kinds mean the same few things throughout a document.
- */
+/** The kind is stored, not the drawn symbol, so every reader gets the same meaning. */
 export const PAGE_CALLOUT_ICONS = ['idea', 'info', 'warning', 'done', 'blocked', 'pinned'] as const;
 export type PageCalloutIcon = (typeof PAGE_CALLOUT_ICONS)[number];
 
-/**
- * The languages a code block can be said to be written in. `plain` is code
- * nobody named.
- *
- * A diagram is one of them rather than a block of its own: what is written is
- * text, kept as text, and a page that cannot draw it still holds everything
- * that was said.
- */
+/** `plain` is unnamed code. A diagram is a language, not its own block, so its text survives undrawn. */
 export const PAGE_CODE_LANGUAGES = [
   'plain',
   'bash',
@@ -85,28 +78,25 @@ export const PAGE_CODE_LANGUAGES = [
 ] as const;
 export type PageCodeLanguage = (typeof PAGE_CODE_LANGUAGES)[number];
 
-/**
- * What is shown of a block that draws: what was written, what it draws, or both at once.
- *
- * The drawing is what such a block is for — a diagram, a formula — so it is what
- * a page shows unless someone says otherwise; the writing is there for whoever
- * is changing it.
- */
+export const PAGE_DIAGRAM_LANGUAGE = 'mermaid' satisfies PageCodeLanguage;
+
+export const PAGE_FORMULA_LANGUAGE = 'latex' satisfies PageCodeLanguage;
+
+/** The drawing is the point of such a block, so it is shown unless someone asks for the source. */
 export const PAGE_DIAGRAM_VIEWS = ['drawing', 'code', 'both'] as const;
 export type PageDiagramView = (typeof PAGE_DIAGRAM_VIEWS)[number];
 
-/**
- * What a button does when it is pressed: write what it holds into the page, or
- * add one more row to a collection.
- */
+/** Pixels: high enough to show something, no taller than a tall screen. */
+export const PAGE_DIAGRAM_FRAME_HEIGHT_LEAST = 120;
+export const PAGE_DIAGRAM_FRAME_HEIGHT_MOST = 2400;
+
 export const PAGE_BUTTON_DEEDS = ['blocks', 'row'] as const;
 export type PageButtonDeed = (typeof PAGE_BUTTON_DEEDS)[number];
 
-/** Where what a button writes lands: under the button itself, or at either end of the page. */
 export const PAGE_BUTTON_PLACES = ['below', 'top', 'bottom'] as const;
 export type PageButtonPlace = (typeof PAGE_BUTTON_PLACES)[number];
 
-/** A remark left on a block, kept with the block itself so it travels wherever the block goes. */
+/** Stored on the block so it travels wherever the block goes. */
 export type PageBlockComment = {
   readonly author: string;
   readonly body: string;
@@ -114,7 +104,6 @@ export type PageBlockComment = {
   readonly id: string;
 };
 
-/** What every block carries, whatever its type: who it is, how it is painted, and what was said about it. */
 export type PageBlockAttrs = {
   readonly backgroundColor?: PageBlockColor;
   readonly comments?: readonly PageBlockComment[];
@@ -142,11 +131,6 @@ const pageMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('em') }).strict(),
   z.object({ type: z.literal('code') }).strict(),
   z.object({ type: z.literal('strike') }).strict(),
-  /**
-   * A stretch of writing painted on its own, rather than a whole block painted.
-   * The colour is one of the few the page allows, so what is read is legible on
-   * both a light and a dark background.
-   */
   z.object({ attrs: z.object({ color: z.enum(PAGE_BLOCK_COLORS) }).strict(), type: z.literal('text_color') }).strict(),
   z
     .object({ attrs: z.object({ color: z.enum(PAGE_BLOCK_COLORS) }).strict(), type: z.literal('background_color') })
@@ -158,22 +142,23 @@ const pageMarkSchema = z.discriminatedUnion('type', [
       type: z.literal('link'),
     })
     .strict(),
-  /**
-   * A remark left on a fragment of the text. It carries only which remark it
-   * is: what was said is kept by the block, so a fragment and a whole block are
-   * commented in one place and travel together.
-   */
+  // Carries only the comment id; the body lives on the block so fragment and block comments share one place.
   z.object({ attrs: z.object({ id: pageBlockIdSchema }).strict(), type: z.literal('comment') }).strict(),
 ]);
 
+/** Pages never store HTML tags, so markup cannot ride in as text. */
+export const PAGE_TEXT_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
+
+export const PAGE_TEXT_MARKS_MOST = 5;
+
 const pageTextSchema = z
   .object({
-    marks: z.array(pageMarkSchema).max(5).optional(),
+    marks: z.array(pageMarkSchema).max(PAGE_TEXT_MARKS_MOST).optional(),
     text: z
       .string()
       .min(1)
       .max(maximumPageTextLength)
-      .refine((text) => !/<\/?[a-z][^>]*>/i.test(text)),
+      .refine((text) => !PAGE_TEXT_TAG_PATTERN.test(text)),
     type: z.literal('text'),
   })
   .strict();
@@ -188,27 +173,25 @@ const pageCodeTextSchema = z
 const pageBlockCommentSchema = z
   .object({
     author: z.string().min(1).max(maximumCommentAuthorLength),
-    body: z.string().min(1).max(maximumCommentBodyLength),
+    body: z.string().min(1).max(PAGE_BLOCK_COMMENT_BODY_MOST),
     createdAt: z.string().min(1).max(maximumCommentDateLength),
     id: pageBlockIdSchema,
   })
   .strict();
 
-/** What every block may carry, whatever its type. Block types add their own on top of these. */
+export const isPageBlockComment = (value: unknown): value is PageBlockComment =>
+  pageBlockCommentSchema.safeParse(value).success;
+
 const pageBlockAttrsShape = {
   backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
-  comments: z.array(pageBlockCommentSchema).max(maximumCommentsPerBlock).optional(),
+  comments: z.array(pageBlockCommentSchema).max(PAGE_BLOCK_COMMENTS_MOST).optional(),
   id: pageBlockIdSchema.optional(),
   textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
 };
 
 const pageIdOnlyAttrsSchema = z.object(pageBlockAttrsShape).strict();
 
-/**
- * What a cell of a table carries beyond what it says: how far it reaches, and
- * how wide its column was left. The widths are kept per cell because that is
- * where a table records them when a column is stretched.
- */
+// Column widths are stored per cell because that is where a table records them when a column is stretched.
 const pageTableCellAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
@@ -245,7 +228,7 @@ export const pageMentionAttrsSchema = z
   })
   .strict();
 
-/** A person named in the writing: who, and what they were called at the time. */
+/** `label` is the name at mention time. */
 export const pagePersonAttrsSchema = z
   .object({
     label: z.string().min(1).max(maximumPersonLabelLength),
@@ -255,7 +238,7 @@ export const pagePersonAttrsSchema = z
 
 const pageCalendarDayPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-/** Whether a string names a real calendar day, not merely one shaped like one. */
+/** Rejects impossible days such as 2026-02-30 that merely match the shape. */
 export const isPageCalendarDay = (value: string): boolean => {
   const match = pageCalendarDayPattern.exec(value);
   if (match === null) return false;
@@ -267,26 +250,19 @@ export const isPageCalendarDay = (value: string): boolean => {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 };
 
-/** A date named in the writing, kept as the calendar day it points at. */
 export const pageDateAttrsSchema = z
   .object({
     at: z.string().refine(isPageCalendarDay),
   })
   .strict();
 
-/** A formula inside the line. Empty means one not written yet. */
+/** Empty `latex` means a formula not written yet. */
 export const pageFormulaAttrsSchema = z
   .object({
     latex: z.string().max(maximumFormulaLatexLength),
   })
   .strict();
 
-/**
- * A button, and what it does when pressed.
- *
- * What it writes is what it holds, so it is set up by writing in it like
- * anywhere else on the page rather than through a form of its own.
- */
 export const pageButtonAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
@@ -298,12 +274,7 @@ export const pageButtonAttrsSchema = z
   })
   .strict();
 
-/**
- * A block that lives in another page and is only shown here.
- *
- * What is kept is where it lives — which page, and which block of it — so that
- * what is read here is what is written there, at the moment of reading.
- */
+/** Stores only the source page and block, so what is read here is what is written there at read time. */
 export const pageSyncedAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
@@ -313,12 +284,7 @@ export const pageSyncedAttrsSchema = z
   })
   .strict();
 
-/**
- * A page that hangs from this one, standing in the writing as a line of its own.
- *
- * What is kept is which page it is; the name is kept only so a page whose child
- * cannot be read still says something instead of showing an empty line.
- */
+/** `label` is kept only so an unreadable child page still shows something instead of an empty line. */
 export const pageSubpageAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
@@ -356,7 +322,6 @@ const pageFormulaSchema = z
   })
   .strict();
 
-/** A line broken on purpose inside a block, without starting another one. */
 const pageHardBreakSchema = z.object({ type: z.literal('hard_break') }).strict();
 
 const pageInlineNodeSchema = z.discriminatedUnion('type', [
@@ -377,36 +342,15 @@ export const pageAssetAttrsSchema = z
   })
   .strict();
 
-/**
- * Where a block that is not writing — an image, a player — stands on the line
- * it occupies, and how much of the width it takes. A page reads as one column,
- * so such a block says how it stands in that column rather than carrying a size
- * in pixels that no other screen would honour.
- */
+/** Non-text blocks (image, player) are placed and sized relative to the single page column, not in pixels. */
 export const PAGE_BLOCK_ALIGNMENTS = ['left', 'center', 'right', 'full'] as const;
 export type PageBlockAlignment = (typeof PAGE_BLOCK_ALIGNMENTS)[number];
 
-/**
- * What a page says about a file it is holding.
- *
- * The kind of file and how heavy it is are kept on the block rather than looked
- * up: an asset never changes once uploaded, and a page that describes what it
- * holds can be read without asking anyone else.
- *
- * A file the page shows in place — a document, read where it stands — is placed
- * and sized like anything else that is not writing.
- */
-/**
- * How a page shows a file it is holding: read where it stands, or named on one
- * line that brings it down.
- *
- * It is the block that says so and not the kind of file, because the same
- * document is a thing to read on one page and a thing to keep on another, and
- * nobody should have to upload it twice to say which.
- */
+/** Chosen per block, not per file type: one document can be read in place on a page and downloaded on another. */
 export const PAGE_FILE_DISPLAYS = ['document', 'line'] as const;
 export type PageFileDisplay = (typeof PAGE_FILE_DISPLAYS)[number];
 
+// Kind and size are stored on the block: an asset never changes after upload, so the page reads without a lookup.
 export const pageFileAttrsSchema = pageAssetAttrsSchema
   .extend({
     align: z.enum(PAGE_BLOCK_ALIGNMENTS).optional(),
@@ -417,12 +361,6 @@ export const pageFileAttrsSchema = pageAssetAttrsSchema
   })
   .strict();
 
-/**
- * A video kept on the page: how much of the width it takes, said as a share of
- * the page for the same reason an image does — a size in pixels is a size on
- * one screen only. A recording is sized the same way: what is drawn is the row
- * of controls it is worked by, and a row of controls has a width.
- */
 export const pageMediaAttrsSchema = pageAssetAttrsSchema
   .extend({
     align: z.enum(PAGE_BLOCK_ALIGNMENTS).optional(),
@@ -437,21 +375,20 @@ export const pageImageAttrsSchema = pageAssetAttrsSchema
   })
   .strict();
 
-/**
- * A link kept on the page as a card: what it is called, what it says about
- * itself, and the mark the site is known by.
- *
- * What was read from the link is written down rather than looked up again: a
- * page has to read the same tomorrow, and the site it points at may be gone by
- * then — a card that keeps its title still says what was linked.
- */
+/** Only http(s): a card opens on click, so `javascript:` and `data:` are refused. */
+const pageWebAddressSchema = z.url({ protocol: /^https?$/ }).max(maximumEmbedUrlLength);
+
+/** Live-connection content skips the stored schema, so this is checked again where a card is drawn. */
+export const isPageWebAddress = (value: unknown): value is string => pageWebAddressSchema.safeParse(value).success;
+
+/** Link metadata is stored, not re-fetched: the page must read the same later even if the site is gone. */
 export const pageBookmarkAttrsSchema = z
   .object({
     ...pageBlockAttrsShape,
     description: z.string().max(maximumBookmarkTextLength).optional(),
-    icon: z.url().max(maximumEmbedUrlLength).optional(),
+    icon: pageWebAddressSchema.optional(),
     title: z.string().max(maximumBookmarkTextLength).optional(),
-    url: z.url().max(maximumEmbedUrlLength),
+    url: pageWebAddressSchema,
   })
   .strict();
 
@@ -519,10 +456,7 @@ type PageBlockNode<Type extends string, Content> = {
   readonly type: Type;
 };
 
-/**
- * Anything a page may hold, said in the only shape a page is stored in. A block
- * this version does not know is kept as such: readable as JSON, never read into.
- */
+/** An unknown block is kept as readable JSON and never read into. */
 export type PageContentJson =
   | string
   | number
@@ -531,7 +465,7 @@ export type PageContentJson =
   | readonly PageContentJson[]
   | { readonly [key: string]: PageContentJson };
 
-/** A block written by a version that knows more than this one: kept as it arrived, and never read into. */
+/** Written by a newer version: kept as it arrived. */
 export type PageContentUnknownNode = {
   readonly attrs?: { readonly [key: string]: PageContentJson };
   readonly content?: readonly PageContentJson[];
@@ -591,7 +525,11 @@ export type PageContentKnownNode =
       readonly type: 'block_children';
     }
   | {
-      readonly attrs?: PageBlockAttrs & { readonly language?: PageCodeLanguage; readonly wrapped?: boolean };
+      readonly attrs?: PageBlockAttrs & {
+        readonly frameHeight?: number;
+        readonly language?: PageCodeLanguage;
+        readonly wrapped?: boolean;
+      };
       readonly content: readonly PageContentText[];
       readonly type: 'code_block';
     }
@@ -645,7 +583,6 @@ export type PageContentKnownNode =
 
 export type PageContentNode = PageContentKnownNode | PageContentUnknownNode;
 
-/** Every block type this version knows how to read. What is not here is kept as it arrived. */
 export const PAGE_CONTENT_NODE_TYPES: readonly string[] = [
   'paragraph',
   'heading',
@@ -781,6 +718,12 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
         attrs: z
           .object({
             ...pageBlockAttrsShape,
+            frameHeight: z
+              .number()
+              .int()
+              .min(PAGE_DIAGRAM_FRAME_HEIGHT_LEAST)
+              .max(PAGE_DIAGRAM_FRAME_HEIGHT_MOST)
+              .optional(),
             language: z.enum(PAGE_CODE_LANGUAGES).optional(),
             shown: z.enum(PAGE_DIAGRAM_VIEWS).optional(),
             wrapped: z.boolean().optional(),
@@ -860,26 +803,32 @@ const pageKnownNodeSchema: z.ZodType<PageContentKnownNode> = z.lazy(() =>
   ]),
 );
 
-/**
- * A block written by a version that knows more than this one.
- *
- * It is kept exactly as it arrived — nobody here can read it, so nobody here
- * may rewrite it — and it is kept inert: what it holds is never looked into,
- * and whoever draws the page shows a placeholder rather than its contents. A
- * block this version does know stays out of here even when it is malformed:
- * being wrong is not the same as being new.
- */
-const pageJsonSchema: z.ZodType<PageContentJson> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(pageJsonSchema),
-    z.record(z.string(), pageJsonSchema),
-  ]),
-);
+const readPageJsonChildren = (value: unknown): readonly unknown[] | null =>
+  typeof value === 'object' && value !== null ? Object.values(value) : null;
 
+const isPageJsonLeaf = (value: unknown): boolean =>
+  value === null ||
+  typeof value === 'boolean' ||
+  (typeof value === 'number' && Number.isFinite(value)) ||
+  (typeof value === 'string' && value.length <= maximumPageTextLength);
+
+/** Iterative, so thousands of nested levels are refused instead of exhausting the stack. */
+const isBoundedPageJson = (value: unknown): value is PageContentJson => {
+  const pending = [{ depth: 0, value }];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    const children = readPageJsonChildren(next.value);
+    if (children === null && !isPageJsonLeaf(next.value)) return false;
+    if (children !== null && next.depth >= maximumUnknownJsonDepth) return false;
+    for (const child of children ?? []) pending.push({ depth: next.depth + 1, value: child });
+  }
+  return true;
+};
+
+const pageJsonSchema = z.custom<PageContentJson>(isBoundedPageJson, {
+  message: 'Unknown block holds something nested too deep, or a text too long',
+});
+
+// Kept inert as it arrived. A known type is excluded even when malformed: being wrong is not being new.
 const pageUnknownNodeSchema = z
   .object({
     attrs: z.record(z.string(), pageJsonSchema).optional(),
@@ -896,7 +845,6 @@ const pageNodeSchema: z.ZodType<PageContentNode> = z.union([pageKnownNodeSchema,
 
 const pageNodeListSchema = z.array(pageNodeSchema).min(1);
 
-/** What this version can read into. A block it does not know counts as one thing and is not opened. */
 export const isKnownPageContentNode = (node: { readonly type: string }): node is PageContentKnownNode =>
   PAGE_CONTENT_NODE_TYPES.includes(node.type);
 
@@ -994,17 +942,9 @@ const pageBlockParentChildTypes: Readonly<Record<PageBlockParentType, readonly P
   column: pageContainerChildTypes,
 };
 
-/**
- * Whether a block of one kind may hold a block of another.
- *
- * Asked before writing rather than after: the editor is free to draw more than
- * a page may keep, and a block put where the page cannot keep it is only found
- * out when the page fails to save.
- */
+/** Asked before writing: the editor can draw more than a page may keep, which would otherwise fail at save. */
 export const canPageBlockHold = (parent: string, child: string): boolean =>
-  parent in pageBlockParentChildTypes
-    ? pageBlockParentChildTypes[parent as PageBlockParentType].some((allowed) => allowed === child)
-    : true;
+  parent in pageBlockParentChildTypes ? isOneOf(pageBlockParentChildTypes[parent as PageBlockParentType], child) : true;
 
 const validateBlockChildren = (
   nodes: readonly PageContentNode[],
@@ -1013,7 +953,7 @@ const validateBlockChildren = (
   context: z.RefinementCtx,
 ): void => {
   nodes.forEach((node, index) => {
-    /** A block this version does not know is kept wherever it was written, since nothing here can judge it. */
+    // Unknown blocks are kept wherever they were written; nothing here can judge them.
     if (!isKnownPageContentNode(node)) return;
     if (allowedTypes.includes(node.type)) return;
     context.addIssue({
@@ -1038,14 +978,7 @@ const validateNestedBlockShape = (
   }
 };
 
-/**
- * Whether a block is one that holds other blocks.
- *
- * What a paragraph or a heading holds is writing, not blocks, and a line or an
- * image holds nothing at all. Asked as a question about the block rather than
- * read off its shape, a block arriving with content it could never hold — which
- * the contract refuses anyway — is left alone instead of being read into.
- */
+// Decided by block type, not by shape: content a block could never hold is left to the contract to refuse.
 const holdsOtherBlocks = (
   node: PageContentKnownNode,
 ): node is Extract<PageContentKnownNode, { readonly type: PageBlockParentType }> =>
@@ -1074,10 +1007,7 @@ const validatePageNodeNesting = (
   });
 };
 
-/**
- * The persisted contract is ProseMirror JSON with `schemaVersion` metadata on
- * the root document, rather than an envelope around the ProseMirror node.
- */
+/** ProseMirror JSON with `schemaVersion` on the root document, not an envelope around the node. */
 export const pageContentSchema = z
   .object({
     content: pageNodeListSchema,

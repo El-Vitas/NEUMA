@@ -1,0 +1,24 @@
+// use prisma-8
+
+/// Each page block, projected from its content for search and linking.
+/// A block id is unique within its page, not globally: duplicating a page or
+/// moving blocks keeps ids, so the key is the (page, block) pair.
+/// Its `searchVector` column and the unaccented trigram index on `text` live outside the contract, because
+/// Prisma cannot model a generated tsvector or an index operator class (see the baseline migration).
+model PageBlock {
+  pageId        String
+  blockId       String
+  spaceId       String
+  parentBlockId String?
+  position      Int
+  type          String
+  text          String
+  headingPath   String[]                   @noCheck(elementNotNull)
+  pageVersion   Int
+  updatedAt     temporal.updatedAtJsDate()
+  page          Page                       @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageBlock_pageId_fkey", index: "PageBlock_pkey")
+
+  @@id([pageId, blockId], map: "PageBlock_pkey")
+  @@index([blockId], map: "PageBlock_blockId_idx")
+  @@index([spaceId], map: "PageBlock_spaceId_idx")
+}

@@ -238,11 +238,6 @@ describe('computeSelectionToolbarPlacement', () => {
   });
 });
 
-/**
- * The editor lets more be written than a page accepts, and a page that quietly
- * stops being kept while somebody keeps writing it is the worst way for that to
- * end — so what cannot be kept comes back as nothing, to be said out loud.
- */
 describe('what of the writing the page is able to keep', () => {
   it('hands back the writing when the page can keep it', () => {
     const state = createPageEditorState(content, 'Elegir bloque');

@@ -1,9 +1,13 @@
 import { getTrashedPages } from '@/modules/pages/trash/server/queries/pages.trash.queries';
 import { PagesTrashView } from '@/modules/pages/trash/views/pages.trash.view';
+import type { RouteSearchParams } from '@/shared/types/route-search-params.types';
 
 interface IProps {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<RouteSearchParams>;
 }
+
+/** Depends on the session and the search query, so it resolves fully before responding. */
+export const instant = false;
 
 export default async function Page({ searchParams }: IProps) {
   const params = await searchParams;

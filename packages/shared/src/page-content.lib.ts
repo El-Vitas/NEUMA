@@ -11,11 +11,7 @@ import {
 
 type PageContentAnyNode = PageContentNode | PageContentInlineNode;
 
-/**
- * What is written in a line, as opposed to a block. A block this version does
- * not know has a free-form type, so what is read out of a node is asked of its
- * shape rather than of its name alone.
- */
+/** An unknown block has a free-form type, so these guards check the node's shape, not only its type name. */
 const isPageContentText = (node: PageContentAnyNode): node is PageContentText =>
   node.type === 'text' && 'text' in node && typeof node.text === 'string';
 
@@ -29,16 +25,10 @@ const isPageContentDate = (node: PageContentAnyNode): node is PageContentDate =>
   node.type === 'date' && 'attrs' in node && typeof node.attrs?.at === 'string';
 
 /**
- * Walks a page's ProseMirror-shaped content and returns every leaf text
- * segment in document order. Structural nodes without a `content` field
- * (image, file, embed) contribute nothing, and neither does a block this
- * version does not know: what it holds is never read into. A mention
- * contributes its denormalized `label`, so a page mentioning another page is
- * findable by searching the mentioned page's title. A person contributes its
- * `label` and a date contributes its `at`, for the same reason: naming
- * someone or naming a day should make the page findable by that name or that
- * day. A formula contributes nothing — its `latex` is machine writing, and
- * indexing it would only add noise.
+ * Leaf text segments in document order. Nodes without `content` (image, file,
+ * embed) and unknown blocks contribute nothing. Mentions, people and dates
+ * contribute their `label` or `at` so the page is findable by that name or day;
+ * a formula's `latex` is skipped as noise.
  */
 export const extractPageContentSegments = (content: PageContent): readonly string[] =>
   extractPageContentNodeSegments(content.content).filter((segment) => segment.length > 0);
@@ -59,10 +49,7 @@ export const joinPageContentSegmentsForDisplay = (segments: readonly string[]): 
 
 export const joinPageContentSegmentsForSearch = (segments: readonly string[]): string => segments.join(' ');
 
-/**
- * Walks a page's ProseMirror-shaped content and returns the ids of every
- * page referenced by a mention, in document order and deduplicated.
- */
+/** Ids of mentioned pages, in document order, deduplicated. */
 export const extractPageMentionIds = (content: PageContent): readonly string[] => {
   const mentionedPageIds = extractPageContentNodeMentionIds(content.content);
   return [...new Set(mentionedPageIds)];

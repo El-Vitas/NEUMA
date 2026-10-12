@@ -26,25 +26,30 @@ describe('search outbox projection contract', () => {
 
   test('records retry metadata without exposing the raw error object', () => {
     const source = readFileSync(repositoryPath, 'utf8');
+    const constants = readFileSync(resolve(process.cwd(), 'src/common/constants/outbox.constants.ts'), 'utf8');
 
     expect(source).toContain('safeErrorMessage');
     expect(source).toContain('lastError');
-    expect(source).toContain("redactionLabel = 'removed'");
-    expect(source).toContain('payload: event.payload');
+    expect(constants).toContain("OUTBOX_ERROR_REDACTION_LABEL = 'removed'");
+    expect(source).toContain('OUTBOX_ERROR_REDACTION_LABEL');
   });
 
-  test('defines durable lastError storage for outbox failures', () => {
+  test('defines durable lastError storage for each consumer delivery', () => {
     const model = readFileSync(
-      resolve(process.cwd(), '../../packages/db/prisma/models/outbox-event.model.prisma'),
+      resolve(process.cwd(), '../../packages/db/prisma/models/outbox-delivery.model.prisma'),
       'utf8',
     );
     const migration = readFileSync(
-      resolve(process.cwd(), '../../packages/db/prisma/migrations/20260802030000_outbox_error_metadata/migration.sql'),
+      resolve(
+        process.cwd(),
+        '../../packages/db/migrations/app/20261011T2304_outbox_deliveries_per_consumer/migration.ts',
+      ),
       'utf8',
     );
 
-    expect(model).toContain('lastError      Json?');
-    expect(migration).toContain('ADD COLUMN "lastError" JSONB');
+    expect(model).toContain('lastError     Jsonb?');
+    expect(model).toContain('@@unique([eventId, consumer]');
+    expect(migration).toContain("col('lastError', 'jsonb'");
   });
 
   test('emits page events inside repository transactions', () => {

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { Result, USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { Result, USER_ROLE, type UserRole } from '@neuma/shared';
 import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { IStorageProvider } from '../../common/types/storage.types';

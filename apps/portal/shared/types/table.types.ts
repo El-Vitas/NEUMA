@@ -1,13 +1,11 @@
-import type { CellContext, ColumnDef, ColumnFiltersState, SortingState } from '@tanstack/react-table';
+import type { CellContext, ColumnDef, ColumnFiltersState, RowData, SortingState } from '@tanstack/react-table';
 import type React from 'react';
+import type { dataTableFeatures } from '@/shared/lib/data-table.features.lib';
 
-/**
- * What a cell of our data table receives.
- *
- * Named here so a cell written inside a module speaks our table's language and
- * not the table library's — the library stays behind `shared/`.
- */
-export type TableCellProps<TData> = CellContext<TData, unknown>;
+export type DataTableFeatures = typeof dataTableFeatures;
+
+/** Keeps the table library behind `shared/`, so module cells never import it. */
+export type TableCellProps<TData extends RowData> = CellContext<DataTableFeatures, TData, unknown>;
 
 export interface TableAction {
   icon: React.ReactNode;
@@ -30,9 +28,9 @@ export interface BuildTableUrlParams {
   columnFilters: ColumnFiltersState;
 }
 
-export interface UseEntityTableOptions<TData> {
+export interface UseEntityTableOptions<TData extends RowData> {
   readonly buildUrl: (params: BuildTableUrlParams) => string;
-  readonly columns: ColumnDef<TData, unknown>[];
+  readonly columns: ColumnDef<DataTableFeatures, TData, unknown>[];
   readonly data: TData[];
   readonly initialState?: {
     readonly columnFilters?: ColumnFiltersState;

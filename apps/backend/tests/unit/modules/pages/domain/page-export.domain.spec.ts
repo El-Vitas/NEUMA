@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { orderPagesForExport, selectPagesForExport } from '@/modules/pages/domain/page-export.domain';
+import { orderPagesForExport, readExportScope, selectPagesForExport } from '@/modules/pages/domain/page-export.domain';
 
 const pages = [
   { id: 'root-a', order: 0, parentId: null, title: 'Madre' },
@@ -34,6 +34,38 @@ describe('selectPagesForExport', () => {
 
   it('has nothing to give for a page that is not there', () => {
     expect(selectPagesForExport(pages, { kind: 'branch', pageId: 'nowhere' })).toEqual([]);
+  });
+
+  it('takes only the pages somebody picked, in the order the tree reads', () => {
+    const chosen = selectPagesForExport(pages, { kind: 'pages', pageIds: ['root-b', 'child-a'] });
+
+    expect(chosen.map((page) => page.id)).toEqual(['child-a', 'root-b']);
+  });
+
+  it('leaves out what hangs from a picked page, because it was not picked', () => {
+    const chosen = selectPagesForExport(pages, { kind: 'pages', pageIds: ['root-a'] });
+
+    expect(chosen.map((page) => page.id)).toEqual(['root-a']);
+  });
+
+  it('ignores a picked page that is not there instead of failing on it', () => {
+    const chosen = selectPagesForExport(pages, { kind: 'pages', pageIds: ['nowhere', 'child-b'] });
+
+    expect(chosen.map((page) => page.id)).toEqual(['child-b']);
+  });
+});
+
+describe('readExportScope', () => {
+  it('refuses a selection that names no pages', () => {
+    expect(readExportScope('pages', null, [])).toBeNull();
+  });
+
+  it('reads a selection from the pages it names, ignoring the single page', () => {
+    expect(readExportScope('pages', null, ['one', 'other'])).toEqual({ kind: 'pages', pageIds: ['one', 'other'] });
+  });
+
+  it('refuses one page that does not say which', () => {
+    expect(readExportScope('branch', null, [])).toBeNull();
   });
 });
 

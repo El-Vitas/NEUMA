@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { baseKeymap } from 'prosemirror-commands';
 import type { Command, EditorState } from 'prosemirror-state';
 import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';

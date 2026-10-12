@@ -46,13 +46,7 @@ export class FilesController {
     return toUploadedFileAssetResponse(result.getValue(), payload.name);
   }
 
-  /**
-   * A file is handed over whole, or by the stretch a player asked for.
-   *
-   * Answering «give me the bytes around minute forty» with the whole file is
-   * what leaves a seek bar unable to move: a reader that cannot ask for a piece
-   * has to wait for everything before it.
-   */
+  /** Honors byte ranges: answering a seek with the whole file leaves media players unable to seek. */
   @Get(':assetId')
   async download(
     @Param('assetId') assetId: string,
@@ -67,14 +61,7 @@ export class FilesController {
     const size = download.body.length;
     const asked = readRequestedByteRange(range, size);
 
-    /**
-     * The kind of file is what we say it is, not what the browser guesses.
-     *
-     * What a file claims to be is decided by whoever uploaded it, so a file
-     * that says one thing and holds another is always possible. Told not to
-     * guess, the browser hands over what it was given instead of noticing HTML
-     * inside something declared as text and running it.
-     */
+    /** `nosniff`: the type is uploader-declared, so the browser must not sniff HTML out of a text file. */
     response
       .header('Accept-Ranges', 'bytes')
       .header('X-Content-Type-Options', 'nosniff')

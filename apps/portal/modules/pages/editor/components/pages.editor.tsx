@@ -1,5 +1,6 @@
 'use client';
 
+import { resolvePageVerificationStatus } from '@neuma/shared';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -13,7 +14,6 @@ import {
   useState,
 } from 'react';
 import { cn } from '@/lib/utils';
-import { hasActionError } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { PagesCover } from '../../appearance/components/pages.cover';
 import { PagesHeader } from '../../appearance/components/pages.header';
@@ -50,14 +50,13 @@ import { PagesBacklinks } from '../../links/components/pages.backlinks';
 import type { PageBacklinksResult } from '../../links/types/pages.backlinks.types';
 import { PagesOutline } from '../../navigation/components/pages.outline';
 import { usePagesReadingPosition } from '../../navigation/hooks/use.pages.reading-position';
-import { updatePageAction } from '../../server/actions/pages.actions';
 import { PagesTrashButton } from '../../trash/components/pages.trash.button';
 import { PagesUsagePanel } from '../../trust/components/pages.usage.panel';
 import { PagesVerificationPanel } from '../../trust/components/pages.verification.panel';
 import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
-import { resolvePageVerificationStatus } from '../../trust/lib/pages.verification.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
+import { usePagesEditorSaves } from '../hooks/use.pages.editor.saves';
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 import type { PageEditorHeading } from '../structure/types/pages.editor.contents.types';
@@ -72,9 +71,8 @@ interface IProps {
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly isFavorite?: boolean;
-  /** Where a link to another page of this app is followed, when it should not leave this editor's own place. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
-  /** Told once a save this editor made has actually reached the server, so whoever else is showing the same page can catch up. */
+  /** Called once a save by this editor has reached the server, so other views of the page can refresh. */
   readonly onSaved?: () => void;
   readonly page: PageSummary;
   readonly pages: readonly PageSummary[];
@@ -129,6 +127,15 @@ export const PagesEditor = forwardRef(
       page.propertyValues ?? buildDefaultPropertyValues(editableProperties),
     );
     const propertyValuesRef = useRef(propertyValues);
+    const saves = usePagesEditorSaves({
+      hasEditableProperties: editableProperties.length > 0,
+      pageId: page.id,
+      readContent: () => contentRef.current,
+      readPropertyValues: () => propertyValuesRef.current,
+      readTitle: () => titleRef.current,
+      spaceId,
+      storedPropertyValues: page.propertyValues,
+    });
     const [headings, setHeadings] = useState<readonly PageEditorHeading[]>(EMPTY_PAGE_HEADINGS);
     const appearance = usePagesAppearance(page.id);
     const cover = usePagesCover(page.cover ?? null, page.id, spaceId);
@@ -136,25 +143,16 @@ export const PagesEditor = forwardRef(
     usePagesReadingPosition(page.id, pageRef);
 
     const updateCurrentPage = async (): Promise<boolean> => {
-      const result = await updatePageAction({
-        content: contentRef.current,
-        pageId: page.id,
-        propertyValues: editableProperties.length > 0 ? propertyValuesRef.current : undefined,
-        spaceId,
-        title: titleRef.current.trim(),
-      });
-      const didSave = !hasActionError(result);
+      const didSave = await saves.saveWhatIsPending();
       if (didSave) onSaved?.();
       return didSave;
     };
 
-    /** A locked page reads exactly like one nobody may write in, because that is what it is. */
     const isLocked = lockedAt !== null;
     const canWrite = canEdit && !isLocked;
     const canAutosave = canWrite && page.lifecycle === 'ACTIVE';
     const canTrash = canWrite && page.lifecycle === 'ACTIVE';
 
-    /** Whoever sent the page away stops looking at a page that is no longer there. */
     const handlePageTrashed = (): void => router.push(ROUTES.PORTAL_SPACE(spaceId));
 
     const autosave = usePagesAutosave({
@@ -172,7 +170,7 @@ export const PagesEditor = forwardRef(
       [autosave],
     );
 
-    /** A page nobody has named yet opens on its name, which is where one starts writing it. */
+    /** An untitled page opens with the title focused. */
     useEffect(() => {
       if (page.title.length > 0) return;
       titleInputRef.current?.focus();
@@ -193,12 +191,14 @@ export const PagesEditor = forwardRef(
     const handlePropertyValueChange = (key: string, value: PagePropertyValue): void => {
       const nextPropertyValues = { ...propertyValuesRef.current, [key]: value };
       propertyValuesRef.current = nextPropertyValues;
+      saves.markPropertyChanged(key, value);
       setPropertyValues(nextPropertyValues);
       autosave.schedule();
     };
 
     const handleTitleChange = (nextTitle: string): void => {
       titleRef.current = nextTitle;
+      saves.markTitleChanged();
       setTitle(nextTitle);
       autosave.schedule();
     };
@@ -206,8 +206,10 @@ export const PagesEditor = forwardRef(
     const handleAttachmentDeleted = (attachmentId: string): void =>
       setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId));
 
-    const handleContentChange = (content: PageContent): void => {
+    const handleContentChange = (content: PageContent, isKeptLive: boolean): void => {
       contentRef.current = content;
+      if (isKeptLive) return;
+      saves.markContentChanged();
       autosave.schedule();
     };
 
@@ -296,6 +298,8 @@ export const PagesEditor = forwardRef(
               propertyValues={propertyValues}
               spaceId={spaceId}
             />
+            {/* Rendered before the body: a page with a collection is mostly that collection. */}
+            {collectionSection}
             <PagesProseMirrorEditor
               canEdit={canWrite}
               content={page.content}
@@ -314,7 +318,6 @@ export const PagesEditor = forwardRef(
               typography={appearance.preferences.typography}
             />
             <PagesBacklinks backlinks={backlinks} />
-            {collectionSection}
           </div>
           <aside className={layoutStyleClasses.outlineSide}>
             <PagesOutline headings={headings} onGoToHeading={handleGoToHeading} title={t('pageContents')} />

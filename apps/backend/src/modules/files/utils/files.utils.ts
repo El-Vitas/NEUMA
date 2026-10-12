@@ -5,17 +5,8 @@ const readLastBytes = (count: number, size: number): FileByteRangeRequest =>
   count > 0 ? { end: size - 1, kind: 'part', start: Math.max(size - count, 0) } : FILE_RANGE_UNSATISFIABLE;
 
 /**
- * Which stretch of a file was asked for.
- *
- * A player asks for the piece it is about to show rather than the whole file,
- * and that is what lets a listener jump to the middle of an hour-long recording
- * without waiting for the first fifty-nine minutes. Answering every such
- * question with the whole file is what makes a seek bar do nothing.
- *
- * Anything that is not a single stretch of bytes — several at once, a unit
- * nobody has heard of, figures that are not figures — is read as no question
- * at all; a stretch that begins past the end is refused, because answering it
- * with everything would be answering something else.
+ * Anything that is not a single byte range (several ranges, another unit, non-numeric figures) is
+ * treated as no range header. A range starting past the end is unsatisfiable, not answered with the whole file.
  */
 export const readRequestedByteRange = (header: string | undefined, size: number): FileByteRangeRequest => {
   const asked = FILE_BYTE_RANGE_PATTERN.exec(header ?? '');

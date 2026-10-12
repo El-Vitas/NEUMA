@@ -9,7 +9,6 @@ export const portalPageBatchMoveSchema = z.object({
   pageIds: z.array(z.string().min(1)).min(1),
   parentId: z.string().min(1).nullable(),
   spaceId: z.string().min(1),
-  /** Where the pages are going. Left out, they stay in the space they are already in. */
   targetSpaceId: z.string().min(1).optional(),
 });
 

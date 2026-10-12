@@ -1,16 +1,15 @@
-import type { ColumnSort, Row, RowData } from '@tanstack/react-table';
-import type { dataTableConfig } from '@/config/data-table';
-
-export type DataTableConfig = typeof dataTableConfig;
+import type { ColumnSort, Row, RowData, TableFeatures } from '@tanstack/react-table';
+import type { DATA_TABLE_FILTER_VARIANTS } from '@/shared/constants/data-table.constants';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface TableMeta<TData extends RowData> {
+  interface TableMeta<TFeatures extends TableFeatures, TData extends RowData> {
     queryKeys?: QueryKeys;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData extends RowData, TValue> {
+  interface ColumnMeta<TFeatures extends TableFeatures, TData extends RowData, TValue> {
     label?: string;
     placeholder?: string;
     variant?: FilterVariant;
@@ -36,9 +35,7 @@ export interface Option {
   icon?: React.FC<React.SVGProps<SVGSVGElement>>;
 }
 
-export type FilterOperator = DataTableConfig['operators'][number];
-export type FilterVariant = DataTableConfig['filterVariants'][number];
-export type JoinOperator = DataTableConfig['joinOperators'][number];
+export type FilterVariant = (typeof DATA_TABLE_FILTER_VARIANTS)[number];
 
 export interface ExtendedColumnSort<TData> extends Omit<ColumnSort, 'id'> {
   id: Extract<keyof TData, string>;
@@ -50,7 +47,7 @@ export interface ExtendedColumnFilter<TData> {
   value: string;
 }
 
-export interface DataTableRowAction<TData> {
-  row: Row<TData>;
+export interface DataTableRowAction<TData extends RowData> {
+  row: Row<DataTableFeatures, TData>;
   variant: 'update' | 'delete';
 }

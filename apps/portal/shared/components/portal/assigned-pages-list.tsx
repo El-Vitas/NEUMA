@@ -5,13 +5,7 @@ import { SidebarTreeIcon } from '@/shared/components/portal/sidebar/sidebar-tree
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
-/**
- * What this person was given to do, gathered from every space they can reach.
- *
- * A page is theirs when a property its collection calls a person names them, so
- * the list answers «what is mine» rather than «what did I open lately», which is
- * what the recents already say.
- */
+/** A page is assigned when a person property of its collection names the user, across all reachable spaces. */
 export const AssignedPagesList = async () => {
   const t = await getTranslations('portal.assigned');
   const result = await getAssignedPages();

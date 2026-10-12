@@ -1,7 +1,6 @@
-import { PageLifecycle, SearchSourceType } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import { readStoredPageContent } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { type JsonValue, PageLifecycle, SearchSourceType } from '@neuma/db';
+import { listPageBlocks, readStoredPageContent } from '@neuma/shared';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
 import type { OutboxProjectionEvent, OutboxProjectionOutbox } from '../../../../common/types/outbox.types';
@@ -15,6 +14,7 @@ import type {
   SearchDocumentInput,
   SearchDocumentProjection,
   SearchDocumentRemoval,
+  SearchProjectionPage,
   SearchProjectionSource,
 } from '../../types/search.types';
 import { extractPageContentText } from '../../utils/search.content.utils';
@@ -23,13 +23,14 @@ const toPageProjection = (page: {
   authorId: string;
   authorName: string | null;
   content: unknown;
-  icon: Prisma.JsonValue;
+  icon: JsonValue;
   id: string;
   parentPageId: string | null;
   parentPageTitle: string | null;
   spaceId: string;
   spaceName: string;
   title: string;
+  updatedAt: Date;
   verificationExpiresAt: Date | null;
   verifiedAt: Date | null;
   version: number;
@@ -38,6 +39,7 @@ const toPageProjection = (page: {
   if (content === null) return null;
   return {
     contentType: 'PAGE',
+    editedAt: page.updatedAt,
     extractedText: extractPageContentText(content),
     language: null,
     properties: {
@@ -86,17 +88,32 @@ export class SearchProjectionWorker extends OutboxProjectionWorker {
   }
 
   protected async projectEvent(event: OutboxProjectionEvent): Promise<void> {
-    if (event.aggregateType === 'PAGE') {
-      const page = await this.source.findPage(event.aggregateId);
-      if (page?.lifecycle !== PageLifecycle.ACTIVE) {
-        await this.projection.removeProjection(
-          toRemoval(SearchSourceType.PAGE, event.aggregateId, page?.version ?? readVersionMarker(event)),
-        );
-        return;
-      }
-      const input = toPageProjection(page);
-      if (input !== null) await this.projection.applyProjection(input);
+    if (event.aggregateType !== 'PAGE') return;
+    const page = await this.source.findPage(event.aggregateId);
+    if (page?.lifecycle !== PageLifecycle.ACTIVE) {
+      await this.forgetPage(event.aggregateId, page?.version ?? readVersionMarker(event));
+      return;
     }
+    await this.projectPage(page);
+  }
+
+  /** Content that cannot be read is not projected. */
+  private async projectPage(page: SearchProjectionPage): Promise<void> {
+    const content = readStoredPageContent(page.content);
+    const input = toPageProjection(page);
+    if (content === null || input === null) return;
+    await this.projection.applyProjection(input);
+    await this.projection.applyBlocksProjection({
+      blocks: listPageBlocks(content),
+      pageId: page.id,
+      pageVersion: page.version,
+      spaceId: page.spaceId,
+    });
+  }
+
+  private async forgetPage(pageId: string, version: number): Promise<void> {
+    await this.projection.removeProjection(toRemoval(SearchSourceType.PAGE, pageId, version));
+    await this.projection.removeBlocksProjection({ pageId, pageVersion: version });
   }
 }
 

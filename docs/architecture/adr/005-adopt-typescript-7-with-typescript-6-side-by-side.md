@@ -32,3 +32,4 @@ The gate's `typecheck` task must resolve `tsc` to TS7 (verify with `tsc --versio
 - Created: 2026-07-10
 - Approved by: El-Vitas
 - Revisit when: typescript-eslint ships TS 7 support (TS 7.1 stable API).
+- Modified: 2026-10-11 — Revisado al actualizar a TypeScript 7.0.2 y 6.0.2: typescript-eslint 8.71.1 sigue exigiendo `typescript >=4.8.4 <6.1.0`, así que la decisión sigue vigente.

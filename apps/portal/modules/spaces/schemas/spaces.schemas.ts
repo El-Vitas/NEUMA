@@ -1,4 +1,4 @@
-import { pageIconSchema, SPACE_VISIBILITY_VALUES } from '@company-brain/shared';
+import { pageIconSchema, SPACE_VISIBILITY_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 import {
   SPACE_DESCRIPTION_MAX_LENGTH,
@@ -8,14 +8,12 @@ import {
 
 export const spaceVisibilitySchema = z.enum(SPACE_VISIBILITY_VALUES);
 
+/** Fields an older answer lacks, or that this version cannot read, fall back instead of emptying the space list. */
 export const spaceSummarySchema = z.object({
-  /** An older answer that says nothing about the space leaves it saying nothing, rather than emptying the list. */
   description: z.string().nullable().catch(null).default(null),
-  /** A mark nobody can draw leaves the space unmarked, rather than emptying the list it stands in. */
   icon: pageIconSchema.nullable().catch(null).default(null),
   id: z.string(),
   name: z.string(),
-  /** Where the space sits among the others. An older answer without it keeps them in the order they arrived. */
   order: z.number().catch(0).default(0),
   ownerId: z.string().nullable().catch(null).default(null),
   slug: z.string(),
@@ -35,7 +33,7 @@ export const renameSpaceSchema = z.object({
 });
 
 export const describeSpaceSchema = z.object({
-  /** Empty is a real answer here: it means the space goes back to saying nothing about itself. */
+  /** Empty is valid and clears the description. */
   description: z.string().trim().max(SPACE_DESCRIPTION_MAX_LENGTH),
   spaceId: z.string().min(1),
 });
@@ -46,7 +44,6 @@ export const createSpaceSchema = z.object({
   visibility: spaceVisibilitySchema,
 });
 
-/** Sharing a private space, one workspace member at a time. */
 export const shareSpaceSchema = z.object({
   spaceId: z.string().min(1),
   userId: z.string().min(1),

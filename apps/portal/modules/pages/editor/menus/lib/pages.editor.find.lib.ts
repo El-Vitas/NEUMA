@@ -13,13 +13,10 @@ import {
 } from '../constants/pages.editor.find.constants';
 import type { PageEditorFindMatch, PageEditorFindSpan, PageEditorFindState } from '../types/pages.editor.find.types';
 
-/** What the panel and the plugin that draws its matches both answer to. */
 export const pageEditorFindKey = new PluginKey<PageEditorFindState>(PAGE_EDITOR_FIND_PLUGIN_KEY);
 
-/** Asks for the search field, the way asking for the link field already works. */
 export const askForThePageFind = createPageEditorAskCommand(PAGE_EDITOR_FIND_REQUEST_SELECTOR);
 
-/** Every stretch of writing a block holds, at the position it stands in the page. */
 const collectPageEditorFindSpans = (block: EditorNode, contentStart: number): readonly PageEditorFindSpan[] => {
   const spans: PageEditorFindSpan[] = [];
   block.descendants((node, offset) => {
@@ -29,16 +26,7 @@ const collectPageEditorFindSpans = (block: EditorNode, contentStart: number): re
   return spans;
 };
 
-/**
- * One block read as a single stretch of folded text, and where in the page
- * each of its characters came from.
- *
- * A mark change breaks a block into more than one span of writing, and a
- * picture sitting between two words breaks it further still. Joined without
- * telling those apart, "wor" and "ld" either side of a picture would read as
- * "world" — a match nobody actually wrote — so a gap between two spans leaves
- * a character behind that nothing typed can ever answer to.
- */
+/** A gap between two spans (an inline image) inserts a NUL so "wor" + "ld" around it does not match "world". */
 const joinPageEditorFindSpans = (
   spans: readonly PageEditorFindSpan[],
 ): { readonly folded: string; readonly positions: readonly number[] } => {
@@ -48,13 +36,13 @@ const joinPageEditorFindSpans = (
 
   for (const span of spans) {
     if (expected !== null && span.at !== expected) {
-      folded += String.fromCharCode(0);
+      folded += String.fromCodePoint(0);
       positions.push(expected);
     }
     for (let index = 0; index < span.text.length; index += 1) {
       const foldedCharacter = foldPageLookingCharacter(span.text[index] ?? '');
       folded += foldedCharacter;
-      for (let unit = 0; unit < foldedCharacter.length; unit += 1) positions.push(span.at + index);
+      positions.push(...Array.from({ length: foldedCharacter.length }, () => span.at + index));
     }
     expected = span.at + span.text.length;
   }
@@ -83,12 +71,7 @@ const findPageEditorMatchesInBlock = (
   return matches;
 };
 
-/**
- * Every place in the page that answers to what is being looked for.
- *
- * A match never reaches across two blocks: a paragraph ending and the next one
- * beginning is not a place anybody meant when they typed a word.
- */
+/** Matches never span two blocks. */
 export const findPageEditorMatches = (document: EditorNode, query: string): readonly PageEditorFindMatch[] => {
   const foldedQuery = foldPageLookingText(query);
   if (foldedQuery.length === 0) return [];
@@ -105,7 +88,6 @@ export const findPageEditorMatches = (document: EditorNode, query: string): read
 const isPageEditorPositionFolded = (document: EditorNode, position: number): boolean =>
   readPageEditorFoldedRanges(document).some((range) => range.from <= position && position < range.to);
 
-/** The collapsed heading standing closest before a position, which is the one answering for it. */
 const findLastPageEditorCollapsedHeadingBefore = (document: EditorNode, position: number): number | null => {
   let found: number | null = null;
   document.forEach((node, offset) => {
@@ -117,15 +99,8 @@ const findLastPageEditorCollapsedHeadingBefore = (document: EditorNode, position
 };
 
 /**
- * Opens the fold that is actually standing between a reader and a position,
- * and no other.
- *
- * A heading standing before a position is not necessarily the one hiding it —
- * an earlier fold may have already ended at a heading of its own rank before
- * this position was ever reached. Only the nearest collapsed heading answers
- * for it, so it is opened and the position is asked again: a fold nested
- * inside another does not answer for anything on its own, and asking again is
- * how the heading that actually governs the position is found next.
+ * Unfolds one collapsed heading at a time and re-checks, because an earlier collapsed heading may have ended before
+ * the position and not be the one hiding it.
  */
 export const unfoldPageEditorHeadingsHiding = (transaction: Transaction, position: number): Transaction => {
   let next = transaction;
@@ -139,7 +114,6 @@ export const unfoldPageEditorHeadingsHiding = (transaction: Transaction, positio
   return next;
 };
 
-/** Every closed toggle a position is standing inside of, from the outermost in. */
 export const findPageEditorClosedTogglePositions = (document: EditorNode, position: number): readonly number[] => {
   if (position > document.content.size) return [];
   const resolved = document.resolve(position);
@@ -151,12 +125,6 @@ export const findPageEditorClosedTogglePositions = (document: EditorNode, positi
   return positions;
 };
 
-/**
- * Opens whatever is hiding a match and stands the writing on it.
- *
- * A match found is a match meant to be seen, so a fold that owns it gives it
- * back, the same way writing on a folded heading does.
- */
 export const revealPageEditorFindMatch = (transaction: Transaction, match: PageEditorFindMatch): Transaction => {
   let next = unfoldPageEditorHeadingsHiding(transaction, match.from);
   for (const togglePosition of findPageEditorClosedTogglePositions(next.doc, match.from)) {
@@ -166,18 +134,10 @@ export const revealPageEditorFindMatch = (transaction: Transaction, match: PageE
   return next.setSelection(TextSelection.near(inside)).scrollIntoView();
 };
 
-/** What the search plugin remembers right now, or nothing being looked for at all. */
 export const readPageEditorFindState = (view: EditorView): PageEditorFindState =>
   pageEditorFindKey.getState(view.state) ?? PAGE_EDITOR_FIND_INITIAL_STATE;
 
-/**
- * Looks for something on the page, and stands the writing on the first place
- * it answers.
- *
- * Nothing here belongs to what was written, so it is left out of the undo
- * history — taking back a search would otherwise cost somebody their last real
- * edit.
- */
+/** Search transactions stay out of the undo history so undo never reverts a search instead of an edit. */
 export const searchPageEditorFind = (view: EditorView, query: string): void => {
   const matches = findPageEditorMatches(view.state.doc, query);
   let transaction = view.state.tr.setMeta(pageEditorFindKey, { query, type: 'query' }).setMeta('addToHistory', false);
@@ -186,7 +146,6 @@ export const searchPageEditorFind = (view: EditorView, query: string): void => {
   view.dispatch(transaction);
 };
 
-/** Moves to the match one place ahead or behind the one being read, wrapping around the page. */
 export const stepPageEditorFindMatch = (view: EditorView, offset: 1 | -1): void => {
   const current = readPageEditorFindState(view);
   const total = current.matches.length;
@@ -202,19 +161,11 @@ export const stepPageEditorFindMatch = (view: EditorView, offset: 1 | -1): void 
   view.dispatch(transaction);
 };
 
-/** Forgets the search, and gives the writing its focus back. */
 export const closePageEditorFind = (view: EditorView): void => {
   view.dispatch(view.state.tr.setMeta(pageEditorFindKey, { type: 'clear' }).setMeta('addToHistory', false));
   view.focus();
 };
 
-/**
- * Puts what was asked for in place of the match being read.
- *
- * It is one transaction, and it only ever touches the text inside the match —
- * never the block around it — so a replaced word stays the word it was, said
- * differently, rather than becoming a new block wearing the old one's place.
- */
 export const replacePageEditorFindMatch = (
   view: EditorView,
   match: PageEditorFindMatch,
@@ -226,7 +177,6 @@ export const replacePageEditorFindMatch = (
   view.dispatch(transaction);
 };
 
-/** Puts what was asked for in place of every match, from the last back to the first. */
 export const replaceAllPageEditorFindMatches = (
   view: EditorView,
   matches: readonly PageEditorFindMatch[],
@@ -235,6 +185,7 @@ export const replaceAllPageEditorFindMatches = (
 ): void => {
   if (matches.length === 0) return;
   let transaction = view.state.tr;
+  // Last to first, so earlier positions stay valid.
   for (const match of [...matches].reverse()) transaction = transaction.insertText(replacement, match.from, match.to);
   transaction.setMeta(pageEditorFindKey, { query, type: 'query' });
   view.dispatch(transaction);

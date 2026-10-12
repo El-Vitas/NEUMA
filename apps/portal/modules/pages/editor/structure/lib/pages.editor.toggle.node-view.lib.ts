@@ -19,14 +19,7 @@ const createToggleArrow = (label: string): HTMLButtonElement => {
   return arrow;
 };
 
-/**
- * The line a toggle is named on.
- *
- * It is a field of its own rather than writable content, because the keyboard
- * always answers to whatever holds the focus: a stretch of writable text inside
- * the editor belongs to the editor, which reads every keystroke as writing on
- * the page and never lets the title have one.
- */
+/** An input, not editable content: the editor would otherwise swallow every keystroke typed into the title. */
 const createToggleTitle = (summary: string, label: string): HTMLInputElement => {
   const title = document.createElement('input');
   title.type = 'text';
@@ -37,17 +30,7 @@ const createToggleTitle = (summary: string, label: string): HTMLInputElement => 
   return title;
 };
 
-/**
- * Renders a toggle the reader can open, name and fill.
- *
- * It is not built out of `<details>`: a `<summary>` takes the focus for itself
- * and the title inside it never received a keystroke. What it holds is hidden
- * while it is closed, and the arrow is a real button, so the toggle answers a
- * finger and the keyboard alike.
- *
- * Whether it is open lives in the block rather than in the browser, which is why
- * the page reopens the way it was left.
- */
+/** Not built on `<details>`: its `<summary>` takes focus and the title input inside never got keystrokes. */
 export const createPageToggleNodeView = (
   node: EditorNode,
   view: EditorView,

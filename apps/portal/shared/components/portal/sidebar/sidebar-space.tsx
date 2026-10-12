@@ -1,6 +1,6 @@
 'use client';
 
-import { canEditContent, type UserRole } from '@company-brain/shared';
+import { canEditContent, type UserRole } from '@neuma/shared';
 import { useState } from 'react';
 import { usePathname } from '@/i18n/navigation';
 import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';

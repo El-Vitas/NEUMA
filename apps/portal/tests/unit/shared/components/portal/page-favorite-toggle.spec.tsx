@@ -44,7 +44,7 @@ const toggleTree = (isFavorite: boolean) => (
   <>
     <Toaster />
     <NextIntlClientProvider locale="en" messages={en}>
-      <PageFavoriteToggle isFavorite={isFavorite} pageId="page-a" spaceId="space-a" title="Handbook" />
+      <PageFavoriteToggle isFavorite={isFavorite} pageId="page-a" title="Handbook" />
     </NextIntlClientProvider>
   </>
 );

@@ -1,14 +1,15 @@
-import type { PrismaClient } from '../../src/client.js';
 import {
   DatabasePropertyType,
   DatabaseViewType,
-  Prisma,
+  type JsonObject,
+  type NeumaDatabase,
+  OutboxConsumer,
   SpaceVisibility,
   UserRole,
-} from '../../src/generated/client.js';
+} from '../../src/index.js';
 import type { SeedUsers } from './users.seed.js';
 
-type SeedClient = Prisma.TransactionClient;
+type SeedModels = NeumaDatabase['orm']['public'];
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const spaceId = '22222222-2222-4222-8222-222222222222';
@@ -40,19 +41,30 @@ const taskRowSetupEnvironmentId = 'b1111111-1111-4111-8111-111111111111';
 const taskRowDocumentArchitectureId = 'b2222222-2222-4222-8222-222222222222';
 const taskRowReviewPortalContentId = 'b3333333-3333-4333-8333-333333333333';
 
-const pageContent = (text: string): Prisma.InputJsonObject => ({
-  content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],
+const rootBlockId = 'c1111111-1111-4111-8111-111111111111';
+const gettingStartedBlockId = 'c2222222-2222-4222-8222-222222222222';
+const architectureBlockId = 'c3333333-3333-4333-8333-333333333333';
+const tasksBlockId = 'c4444444-4444-4444-8444-444444444444';
+const setupEnvironmentBlockId = 'c5555555-5555-4555-8555-555555555555';
+const documentArchitectureBlockId = 'c6666666-6666-4666-8666-666666666666';
+const reviewPortalContentBlockId = 'c7777777-7777-4777-8777-777777777777';
+
+/** Blocks carry fixed ids, as the editor would give them, so search and links can point at them. */
+const pageContent = (blockId: string, text: string): JsonObject => ({
+  content: [{ attrs: { id: blockId }, content: [{ text, type: 'text' }], type: 'paragraph' }],
   schemaVersion: 1,
   type: 'doc',
 });
 
 const pageContentWithMention = (
+  blockId: string,
   leadText: string,
   mention: { label: string; pageId: string },
   trailingText: string,
-): Prisma.InputJsonObject => ({
+): JsonObject => ({
   content: [
     {
+      attrs: { id: blockId },
       content: [
         { text: leadText, type: 'text' },
         { attrs: { label: mention.label, pageId: mention.pageId, spaceId }, type: 'mention' },
@@ -65,97 +77,126 @@ const pageContentWithMention = (
   type: 'doc',
 });
 
-const seedWorkspace = async (prisma: SeedClient): Promise<void> => {
-  await prisma.workspace.upsert({
-    where: { singletonKey: 'default' },
-    create: { id: workspaceId, name: 'Company Brain', singletonKey: 'default' },
-    update: { name: 'Company Brain' },
-  });
+const seedWorkspace = async (models: SeedModels): Promise<void> => {
+  const updatedCount = await models.Workspace.where({ singletonKey: 'default' }).updateAndCount({ name: 'Neuma' });
+  if (updatedCount > 0) return;
+  await models.Workspace.create({ id: workspaceId, name: 'Neuma', singletonKey: 'default' });
 };
 
-const seedWorkspaceMembers = async (prisma: SeedClient, users: SeedUsers): Promise<void> => {
+const seedWorkspaceMembers = async (models: SeedModels, users: SeedUsers): Promise<void> => {
   const members = [
     { role: UserRole.ADMIN, userId: users.adminId },
     { role: UserRole.WORKER, userId: users.workerId },
     { role: UserRole.CLIENT, userId: users.clientId },
   ] as const;
 
-  await prisma.workspaceMember.deleteMany({
-    where: { workspaceId, userId: { notIn: members.map((member) => member.userId) } },
-  });
+  await models.WorkspaceMember.where({ workspaceId })
+    .where((member) => member.userId.notIn(members.map((seedMember) => seedMember.userId)))
+    .deleteAndCount();
   for (const member of members) {
-    await prisma.workspaceMember.upsert({
-      where: { workspaceId_userId: { userId: member.userId, workspaceId } },
-      create: { role: member.role, userId: member.userId, workspaceId },
-      update: { role: member.role },
+    const updatedCount = await models.WorkspaceMember.where({ userId: member.userId, workspaceId }).updateAndCount({
+      role: member.role,
     });
+    if (updatedCount === 0) {
+      await models.WorkspaceMember.create({ role: member.role, userId: member.userId, workspaceId });
+    }
   }
 };
 
-const seedSpace = async (prisma: SeedClient): Promise<void> => {
-  await prisma.space.upsert({
-    where: { workspaceId_slug: { slug: 'engineering', workspaceId } },
-    create: {
-      id: spaceId,
-      name: 'Engineering',
-      slug: 'engineering',
-      visibility: SpaceVisibility.PUBLIC_INTERNAL,
-      workspaceId,
-    },
-    update: { name: 'Engineering', visibility: SpaceVisibility.PUBLIC_INTERNAL },
+const seedSpace = async (models: SeedModels): Promise<void> => {
+  const updatedCount = await models.Space.where({ slug: 'engineering', workspaceId }).updateAndCount({
+    name: 'Engineering',
+    visibility: SpaceVisibility.PUBLIC_INTERNAL,
+  });
+  if (updatedCount > 0) return;
+  await models.Space.create({
+    id: spaceId,
+    name: 'Engineering',
+    slug: 'engineering',
+    visibility: SpaceVisibility.PUBLIC_INTERNAL,
+    workspaceId,
   });
 };
 
 const seedPage = async (
-  prisma: SeedClient,
+  models: SeedModels,
   page: {
     id: string;
     parentId: string | null;
     title: string;
-    content: Prisma.InputJsonObject;
+    content: JsonObject;
     order: number;
-    propertyValues?: Prisma.InputJsonObject;
+    propertyValues?: JsonObject;
   },
   userId: string,
 ): Promise<void> => {
-  await prisma.page.upsert({
-    where: { id: page.id },
+  await models.Page.upsert({
+    conflictOn: { id: page.id },
     create: { ...page, createdById: userId, spaceId, updatedById: userId },
     update: { ...page, createdById: userId, updatedById: userId },
   });
-  await prisma.pageVersion.upsert({
-    where: { pageId_version: { pageId: page.id, version: 1 } },
-    create: { content: page.content, createdById: userId, pageId: page.id, title: page.title, version: 1 },
-    update: { content: page.content, createdById: userId, title: page.title },
+  const updatedCount = await models.PageVersion.where({ pageId: page.id, version: 1 }).updateAndCount({
+    content: page.content,
+    createdById: userId,
+    title: page.title,
+  });
+  if (updatedCount > 0) return;
+  await models.PageVersion.create({
+    content: page.content,
+    createdById: userId,
+    pageId: page.id,
+    title: page.title,
+    version: 1,
   });
 };
 
-const seedPages = async (prisma: SeedClient, users: SeedUsers): Promise<void> => {
+/** The same event the backend writes when a page is created, so the projection workers index seeded pages too. */
+const announcePages = async (models: SeedModels, pageIds: readonly string[]): Promise<void> => {
+  for (const pageId of pageIds) {
+    await models.OutboxEvent.create({
+      aggregateId: pageId,
+      aggregateType: 'PAGE',
+      deliveries: (deliveries) => deliveries.create(Object.values(OutboxConsumer).map((consumer) => ({ consumer }))),
+      eventType: 'PAGE_CREATED',
+      idempotencyKey: `page:${pageId}:version:1`,
+      payload: { pageId, spaceId, version: 1 },
+      payloadVersion: 1,
+    });
+  }
+};
+
+const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> => {
   const userId = users.adminId;
   const pages = [
     {
-      content: pageContent('A practical guide to how the Engineering team works.'),
+      content: pageContent(rootBlockId, 'A practical guide to how the Engineering team works.'),
       id: rootPageId,
       order: 0,
       parentId: null,
       title: 'Engineering Handbook',
     },
     {
-      content: pageContent('Start here to set up your local environment and make your first change.'),
+      content: pageContent(
+        gettingStartedBlockId,
+        'Start here to set up your local environment and make your first change.',
+      ),
       id: gettingStartedPageId,
       order: 0,
       parentId: rootPageId,
       title: 'Getting Started',
     },
     {
-      content: pageContent('The system is organized into a portal, backend, and shared database packages.'),
+      content: pageContent(
+        architectureBlockId,
+        'The system is organized into a portal, backend, and shared database packages.',
+      ),
       id: architecturePageId,
       order: 1,
       parentId: rootPageId,
       title: 'Architecture',
     },
     {
-      content: pageContent('Track engineering work as a table or as a board grouped by status.'),
+      content: pageContent(tasksBlockId, 'Track engineering work as a table or as a board grouped by status.'),
       id: tasksPageId,
       order: 1,
       parentId: null,
@@ -163,6 +204,7 @@ const seedPages = async (prisma: SeedClient, users: SeedUsers): Promise<void> =>
     },
     {
       content: pageContentWithMention(
+        setupEnvironmentBlockId,
         'Prepare the local development environment. See ',
         { label: 'Getting Started', pageId: gettingStartedPageId },
         ' for the setup steps.',
@@ -181,6 +223,7 @@ const seedPages = async (prisma: SeedClient, users: SeedUsers): Promise<void> =>
     },
     {
       content: pageContentWithMention(
+        documentArchitectureBlockId,
         'Document the service boundaries and data flow, building on ',
         { label: 'Architecture', pageId: architecturePageId },
         '.',
@@ -198,7 +241,7 @@ const seedPages = async (prisma: SeedClient, users: SeedUsers): Promise<void> =>
       title: 'Document service architecture',
     },
     {
-      content: pageContent('Review the first portal content and share feedback.'),
+      content: pageContent(reviewPortalContentBlockId, 'Review the first portal content and share feedback.'),
       id: taskRowReviewPortalContentId,
       order: 2,
       parentId: tasksPageId,
@@ -213,17 +256,23 @@ const seedPages = async (prisma: SeedClient, users: SeedUsers): Promise<void> =>
     },
   ] as const;
 
-  await prisma.page.deleteMany({ where: { spaceId, id: { notIn: pages.map((page) => page.id) } } });
-  for (const page of pages) await seedPage(prisma, page, userId);
+  await models.Page.where({ spaceId })
+    .where((page) => page.id.notIn(pages.map((seedPageRow) => seedPageRow.id)))
+    .deleteAndCount();
+  for (const page of pages) await seedPage(models, page, userId);
+  await announcePages(
+    models,
+    pages.map((page) => page.id),
+  );
 };
 
-const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
+const seedPageSchema = async (models: SeedModels): Promise<void> => {
   const properties = [
     {
       id: tasksTitlePropertyId,
       key: 'title',
       label: 'Title',
-      options: Prisma.DbNull,
+      options: null,
       order: 0,
       required: true,
       type: DatabasePropertyType.TITLE,
@@ -232,7 +281,11 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
       id: tasksStatusPropertyId,
       key: 'status',
       label: 'Status',
-      options: ['todo', 'in_progress', 'done'],
+      options: [
+        { color: 'GRAY', value: 'todo' },
+        { color: 'BLUE', value: 'in_progress' },
+        { color: 'GREEN', value: 'done' },
+      ],
       order: 1,
       required: true,
       type: DatabasePropertyType.SELECT,
@@ -241,7 +294,7 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
       id: tasksAssigneePropertyId,
       key: 'assignee',
       label: 'Assignee',
-      options: Prisma.DbNull,
+      options: null,
       order: 2,
       required: false,
       type: DatabasePropertyType.PERSON,
@@ -250,7 +303,11 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
       id: tasksPriorityPropertyId,
       key: 'priority',
       label: 'Priority',
-      options: ['low', 'medium', 'high'],
+      options: [
+        { color: 'GRAY', value: 'low' },
+        { color: 'YELLOW', value: 'medium' },
+        { color: 'RED', value: 'high' },
+      ],
       order: 3,
       required: false,
       type: DatabasePropertyType.SELECT,
@@ -259,7 +316,7 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
       id: tasksDueDatePropertyId,
       key: 'dueDate',
       label: 'Due date',
-      options: Prisma.DbNull,
+      options: null,
       order: 4,
       required: false,
       type: DatabasePropertyType.DATE,
@@ -268,19 +325,19 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
       id: tasksDescriptionPropertyId,
       key: 'description',
       label: 'Description',
-      options: Prisma.DbNull,
+      options: null,
       order: 5,
       required: false,
       type: DatabasePropertyType.RICH_TEXT,
     },
   ] as const;
 
-  await prisma.pageSchemaProperty.deleteMany({
-    where: { pageId: tasksPageId, id: { notIn: properties.map((property) => property.id) } },
-  });
+  await models.PageSchemaProperty.where({ pageId: tasksPageId })
+    .where((property) => property.id.notIn(properties.map((seedProperty) => seedProperty.id)))
+    .deleteAndCount();
   for (const property of properties) {
-    await prisma.pageSchemaProperty.upsert({
-      where: { id: property.id },
+    await models.PageSchemaProperty.upsert({
+      conflictOn: { id: property.id },
       create: { ...property, pageId: tasksPageId },
       update: { ...property, pageId: tasksPageId },
     });
@@ -288,7 +345,8 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
 
   const views = [
     {
-      configuration: { columns: ['status', 'assignee', 'priority', 'dueDate', 'description'] },
+      /** Empty: a configuration only accepts filter, grouping and sort, and the server rejects anything else. */
+      configuration: {},
       id: tasksTableViewId,
       isDefault: true,
       name: 'Table',
@@ -302,19 +360,19 @@ const seedPageSchema = async (prisma: SeedClient): Promise<void> => {
       type: DatabaseViewType.BOARD,
     },
   ] as const;
-  await prisma.pageSchemaView.deleteMany({
-    where: { pageId: tasksPageId, id: { notIn: views.map((view) => view.id) } },
-  });
+  await models.PageSchemaView.where({ pageId: tasksPageId })
+    .where((schemaView) => schemaView.id.notIn(views.map((seedView) => seedView.id)))
+    .deleteAndCount();
   for (const view of views) {
-    await prisma.pageSchemaView.upsert({
-      where: { id: view.id },
+    await models.PageSchemaView.upsert({
+      conflictOn: { id: view.id },
       create: { ...view, pageId: tasksPageId },
       update: { ...view, pageId: tasksPageId },
     });
   }
 };
 
-const seedPageLinks = async (prisma: SeedClient): Promise<void> => {
+const seedPageLinks = async (models: SeedModels): Promise<void> => {
   const links = [
     { sourcePageId: taskRowSetupEnvironmentId, targetPageId: gettingStartedPageId },
     { sourcePageId: taskRowDocumentArchitectureId, targetPageId: architecturePageId },
@@ -322,18 +380,24 @@ const seedPageLinks = async (prisma: SeedClient): Promise<void> => {
 
   for (const sourcePageId of new Set(links.map((link) => link.sourcePageId))) {
     const targetPageIds = links.filter((link) => link.sourcePageId === sourcePageId).map((link) => link.targetPageId);
-    await prisma.pageLink.deleteMany({ where: { sourcePageId, targetPageId: { notIn: targetPageIds } } });
+    await models.PageLink.where({ sourcePageId })
+      .where((link) => link.targetPageId.notIn(targetPageIds))
+      .deleteAndCount();
   }
-  await prisma.pageLink.createMany({ data: links.map((link) => ({ ...link })), skipDuplicates: true });
+  await models.PageLink.createAndCount(
+    links.map((link) => ({ ...link })),
+    { onConflict: 'skip' },
+  );
 };
 
-export const seedDemo = async (prisma: PrismaClient, users: SeedUsers): Promise<void> => {
-  await prisma.$transaction(async (transaction) => {
-    await seedWorkspace(transaction);
-    await seedWorkspaceMembers(transaction, users);
-    await seedSpace(transaction);
-    await seedPages(transaction, users);
-    await seedPageSchema(transaction);
-    await seedPageLinks(transaction);
+export const seedDemo = async (database: NeumaDatabase, users: SeedUsers): Promise<void> => {
+  await database.transaction(async (transaction) => {
+    const models = transaction.orm.public;
+    await seedWorkspace(models);
+    await seedWorkspaceMembers(models, users);
+    await seedSpace(models);
+    await seedPages(models, users);
+    await seedPageSchema(models);
+    await seedPageLinks(models);
   });
 };

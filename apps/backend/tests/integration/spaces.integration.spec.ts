@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
+import { SpaceVisibility } from '@neuma/db';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -17,13 +17,14 @@ interface MemberResponse {
 
 const promoteToRole = async (testApp: TestApp, email: string, role: 'ADMIN' | 'WORKER'): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role });
 };
 
 const addSpaceMember = async (testApp: TestApp, spaceId: string, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  const user = await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email } });
-  await prisma.spaceMember.create({ data: { spaceId, userId: user.id } });
+  const user = await prisma.models.User.select('id').where({ email }).first();
+  expect(user).not.toBeNull();
+  await prisma.models.SpaceMember.create({ spaceId, userId: user?.id ?? '' });
 };
 
 const createSpace = async (
@@ -63,9 +64,9 @@ describe('Space Members (Integration)', () => {
     const outsiderEmail = `space-members-outsider-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Space Admin', password });
-    await registerUser(testApp, { email: editorEmail, name: 'Space Editor', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Space Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Space Admin', password });
+    await createAccount(testApp, { email: editorEmail, name: 'Space Editor', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Space Outsider', password });
     await promoteToRole(testApp, adminEmail, 'ADMIN');
     await promoteToRole(testApp, editorEmail, 'WORKER');
 
@@ -166,9 +167,9 @@ describe('Space Move Access Loss (Integration)', () => {
     const outsiderEmail = `move-access-outsider-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Move Access Admin', password });
-    await registerUser(testApp, { email: editorEmail, name: 'Move Access Editor', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Move Access Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Move Access Admin', password });
+    await createAccount(testApp, { email: editorEmail, name: 'Move Access Editor', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Move Access Outsider', password });
     await promoteToRole(testApp, adminEmail, 'ADMIN');
     await promoteToRole(testApp, editorEmail, 'WORKER');
 
@@ -183,7 +184,6 @@ describe('Space Move Access Loss (Integration)', () => {
       `move-access-public-${String(timestamp)}`,
       SpaceVisibility.PUBLIC_INTERNAL,
     );
-    /** The editor can read this one, since it is added as a member below. */
     openRestrictedSpaceId = await createSpace(
       testApp,
       adminToken,
@@ -191,7 +191,7 @@ describe('Space Move Access Loss (Integration)', () => {
       `move-access-open-${String(timestamp)}`,
       SpaceVisibility.RESTRICTED,
     );
-    /** The editor is never added here, so moving into it is what costs the editor its access. */
+    // The editor is never added here, so moving into it costs the editor its access.
     closedRestrictedSpaceId = await createSpace(
       testApp,
       adminToken,
@@ -201,7 +201,7 @@ describe('Space Move Access Loss (Integration)', () => {
     );
     await addSpaceMember(testApp, openRestrictedSpaceId, editorEmail);
 
-    /** Workspace membership is created lazily on first request, so the editor needs one before it can be counted. */
+    // Workspace membership is created lazily on first request, so the editor needs one to be counted.
     await request(testApp.getServer()).get('/api/v1/spaces').set('Authorization', `Bearer ${editorToken}`).expect(200);
     await request(testApp.getServer())
       .get('/api/v1/spaces')
@@ -280,12 +280,7 @@ const findOwnPrivateSpace = (spaces: readonly SpaceListItem[]): SpaceListItem =>
   return privateSpace;
 };
 
-/**
- * Whether `PRIVATE` truly means private — the most delicate guarantee in this
- * module. Every visibility already lets an admin through on `canReadSpace`
- * except this one, so this suite exists to keep that carve-out from creeping
- * back in through `listAccessible`, `rename`, or `addMember`.
- */
+/** Every visibility lets an admin through `canReadSpace` except `PRIVATE`; that carve-out must not leak elsewhere. */
 describe('Private Spaces (Integration)', () => {
   let testApp: TestApp;
   let adminToken: string;
@@ -305,10 +300,10 @@ describe('Private Spaces (Integration)', () => {
     const outsiderEmail = `private-spaces-outsider-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Private Spaces Admin', password });
-    await registerUser(testApp, { email: ownerEmail, name: 'Private Spaces Owner', password });
-    await registerUser(testApp, { email: sharedMemberEmail, name: 'Private Spaces Shared Member', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Private Spaces Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Private Spaces Admin', password });
+    await createAccount(testApp, { email: ownerEmail, name: 'Private Spaces Owner', password });
+    await createAccount(testApp, { email: sharedMemberEmail, name: 'Private Spaces Shared Member', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Private Spaces Outsider', password });
     await promoteToRole(testApp, adminEmail, 'ADMIN');
 
     adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;
@@ -317,13 +312,9 @@ describe('Private Spaces (Integration)', () => {
     outsiderToken = (await loginUser(testApp, outsiderEmail, password)).accessToken;
 
     const prisma = testApp.get(PrismaService);
-    sharedMemberUserId = (
-      await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email: sharedMemberEmail } })
-    ).id;
-    outsiderUserId = (await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email: outsiderEmail } }))
-      .id;
+    sharedMemberUserId = (await prisma.models.User.select('id').where({ email: sharedMemberEmail }).first())?.id ?? '';
+    outsiderUserId = (await prisma.models.User.select('id').where({ email: outsiderEmail }).first())?.id ?? '';
 
-    /** Workspace membership — and, for the owner, a private space — are created lazily on first request. */
     await listSpaces(testApp, adminToken).expect(200);
     await listSpaces(testApp, ownerToken).expect(200);
     await listSpaces(testApp, sharedMemberToken).expect(200);
@@ -403,6 +394,36 @@ describe('Private Spaces (Integration)', () => {
     await shareSpace(testApp, sharedMemberToken, privateSpace.id, outsiderUserId).expect(403);
     const outsiderSpaces = (await listSpaces(testApp, outsiderToken).expect(200)).body as SpaceListItem[];
     expect(outsiderSpaces.some((space) => space.id === privateSpace.id)).toBe(false);
+  });
+
+  it('lets a person a private space was shared with read it, but not change its name or its mark', async () => {
+    const prisma = testApp.get(PrismaService);
+    const ownerSpaces = (await listSpaces(testApp, ownerToken).expect(200)).body as SpaceListItem[];
+    const privateSpace = findOwnPrivateSpace(ownerSpaces);
+    await shareSpace(testApp, ownerToken, privateSpace.id, sharedMemberUserId);
+    const workerSessionOf = async (userId: string): Promise<string> => {
+      const updated = await prisma.models.User.select('email').where({ id: userId }).update({ role: 'WORKER' });
+      return (await loginUser(testApp, updated?.email ?? '', 'plainPassword123')).accessToken;
+    };
+    const space = await prisma.models.Space.select('ownerId').where({ id: privateSpace.id }).first();
+    const [owner, member] = await Promise.all([
+      workerSessionOf(space?.ownerId ?? ''),
+      workerSessionOf(sharedMemberUserId),
+    ]);
+    const markAs = (token: string) =>
+      request(testApp.getServer())
+        .patch(`/api/v1/spaces/${privateSpace.id}/icon`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ icon: { kind: 'emoji', value: '🙈' } });
+
+    await renameSpace(testApp, member, privateSpace.id, 'Ajeno').expect(403);
+    const markedByMember = await markAs(member);
+
+    expect(markedByMember.status).toBeGreaterThanOrEqual(400);
+    const stored = await prisma.models.Space.select('icon').where({ id: privateSpace.id }).first();
+    expect(stored).not.toBeNull();
+    expect(JSON.stringify(stored?.icon)).not.toContain('🙈');
+    await markAs(owner).expect(200);
   });
 
   it('rejects unauthenticated requests to list what was shared', async () => {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest, mock } from 'bun:test';
+import type { Doc } from 'yjs';
 import { MAX_COLLABORATION_RECONNECT_ATTEMPTS } from '@/modules/pages/constants/pages.collaboration.constants';
 import { computeCollaborationReconnectDelayMs } from '@/modules/pages/lib/pages.collaboration.lib';
 import type {
@@ -6,7 +7,6 @@ import type {
   PageCollaborationParticipant,
   PageCollaborationSession,
 } from '@/modules/pages/types/pages.collaboration.types';
-import type { PageContent } from '@/modules/pages/types/pages.types';
 
 const providerConfigurations: MockHocuspocusProvider['configuration'][] = [];
 const destroyCalls: string[] = [];
@@ -14,7 +14,6 @@ const attachCalls: MockHocuspocusProvider[] = [];
 let setAwarenessFieldCallCount = 0;
 
 class MockHocuspocusProviderWebsocket {
-  /** The socket is asked to connect by the session, so its refusal belongs to the session. */
   connect(): Promise<void> {
     return Promise.resolve();
   }
@@ -25,7 +24,13 @@ class MockHocuspocusProviderWebsocket {
 }
 
 class MockHocuspocusProvider {
-  constructor(public readonly configuration: { readonly onStatus: (payload: { readonly status: string }) => void }) {
+  constructor(
+    public readonly configuration: {
+      readonly document: Doc;
+      readonly onStatus: (payload: { readonly status: string }) => void;
+      readonly onSynced: (payload: { readonly state: boolean }) => void;
+    },
+  ) {
     providerConfigurations.push(configuration);
   }
 
@@ -57,12 +62,6 @@ const emitStatus = (index: number, status: string): void => {
   providerConfigurations[index]?.onStatus({ status });
 };
 
-const samplePageContent: PageContent = {
-  content: [{ content: [{ text: 'placeholder', type: 'text' }], type: 'paragraph' }],
-  schemaVersion: 1,
-  type: 'doc',
-};
-
 const createRecordingSession = (pageId: string) => {
   const statuses: CollaborationStatus[] = [];
   const sessions: (PageCollaborationSession | null)[] = [];
@@ -75,7 +74,6 @@ const createRecordingSession = (pageId: string) => {
       onStatusChange: (nextStatus) => statuses.push(nextStatus),
     },
     getDisplayName: () => null,
-    initialContent: samplePageContent,
     pageId,
   });
 
@@ -210,11 +208,45 @@ describe('pages.collaboration.session.lib', () => {
     expect(setAwarenessFieldCallCount).toBe(0);
   });
 
-  /**
-   * A failing connection is heard from more than once — the socket refuses and
-   * the provider reports it — and each account of the same failure must not
-   * become a reconnection of its own.
-   */
+  // Text written while offline lives only in the local copy; reconnecting must keep it so it reaches the server.
+  it('keeps the same document across a reconnection, with what was written while cut off', async () => {
+    const { handle, sessions } = createRecordingSession('page-keep');
+    await Promise.resolve();
+    const firstDocument = providerConfigurations[0]?.document;
+    providerConfigurations[0]?.onSynced({ state: true });
+
+    emitStatus(0, 'disconnected');
+    await Promise.resolve();
+    firstDocument?.getText('written-while-cut-off').insert(0, 'no se pierde');
+    jest.advanceTimersByTime(computeCollaborationReconnectDelayMs(1));
+    await Promise.resolve();
+
+    expect(providerConfigurations[1]?.document).toBe(firstDocument);
+    expect(providerConfigurations[1]?.document.getText('written-while-cut-off').toString()).toBe('no se pierde');
+    expect(sessions.includes(null)).toBe(false);
+
+    handle.destroy();
+  });
+
+  it('lets go of the live session only when it gives up reconnecting', async () => {
+    const { handle, sessions } = createRecordingSession('page-let-go');
+    await Promise.resolve();
+    providerConfigurations[0]?.onSynced({ state: true });
+
+    for (let attempt = 0; attempt < MAX_COLLABORATION_RECONNECT_ATTEMPTS; attempt += 1) {
+      expect(sessions.at(-1)).not.toBeNull();
+      emitStatus(providerConfigurations.length - 1, 'disconnected');
+      await Promise.resolve();
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    }
+
+    expect(sessions.at(-1)).toBeNull();
+
+    handle.destroy();
+  });
+
+  // One failure is reported twice (the socket refuses and the provider reports it); neither may trigger its own retry.
   it('schedules one reconnection however many times the same failure is reported', async () => {
     const { handle, statuses } = createRecordingSession('page-once');
 

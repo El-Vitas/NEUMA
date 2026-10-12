@@ -1,5 +1,5 @@
 import type { ActionFailure } from '@/shared/types/action-result.types';
-import { ACTION_FAILURE_REASONS } from '../constants/action-failure.constants';
+import { ACTION_FAILURE_REASONS, ACTION_OFFLINE_REASON } from '../constants/action-failure.constants';
 import type { ActionFailureReason } from '../types/action-failure.types';
 
 export const hasActionError = (result: unknown): result is ActionFailure => {
@@ -17,11 +17,15 @@ export const isActionSuccess = <T>(result: unknown): result is { readonly data: 
   return 'data' in candidate && candidate.data !== undefined;
 };
 
-/**
- * Why an action failed, said in one of the few words a screen knows how to
- * translate. Anything it does not recognise is treated as unexpected rather
- * than shown as it arrived.
- */
+/** A call that never reaches the server rejects instead of answering; it is reported as offline. */
+export const callAction = async <TResult>(send: () => Promise<TResult>): Promise<TResult | ActionFailure> => {
+  try {
+    return await send();
+  } catch {
+    return { serverError: ACTION_OFFLINE_REASON };
+  }
+};
+
 export const readActionFailureReason = (result: unknown): ActionFailureReason => {
   if (typeof result !== 'object' || result === null || !('serverError' in result)) return 'unexpected';
   const reason = result.serverError;

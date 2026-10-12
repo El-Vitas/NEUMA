@@ -172,7 +172,7 @@ Allowed:
 - Short explanation of architectural decisions.
 - Public API documentation.
 
-Comments explain **why**, not **what**.
+Comments explain **why**, not **what**. They are written in **English**, are short (one line by default, five at most), never tell history or process, and never carry secrets or personal data. The full rules live in `.agents/skills/code-comments/SKILL.md`, and `local/clean-comments` enforces what can be checked mechanically. This section overrides the "zero comments" default of `vitas-guidelines`.
 
 ---
 
@@ -229,6 +229,8 @@ Comments explain **why**, not **what**.
 - To add/modify a rule: pipe YAML to `bun run rules:add` (auto-dumps to YAML files).
 - Never edit YAML files directly if you're an AI — use `rules:add`. Humans can edit YAML directly.
 - After humans edit YAML, run `bun run rules:build` to sync SQLite.
+- To retire a rule, replace it: pass `supersedes: BR-NNN`. The old one is kept, marked and linked — history is never deleted.
+- `bun run rules:delete --id BR-NNN` is only for a material mistake (wrong feature, duplicate, half-written), never to retire a rule that was thought through.
 
 ---
 
@@ -250,3 +252,14 @@ Comments explain **why**, not **what**.
 - No mixing concerns in one PR.
 - **Verify before finalizing.** Run `bun run format` and `bun run check` (per-app) or `turbo run format` && `turbo run check` (root) before committing or asking to commit.
 - **Never commit without explicit user permission.** Wait for the user to say "commit" or "pr".
+
+<!-- BEGIN:turborepo-agent-rules -->
+
+# This is NOT the Turborepo you know
+
+Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
+
+Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
+
+This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
+<!-- END:turborepo-agent-rules -->

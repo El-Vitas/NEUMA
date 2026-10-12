@@ -35,7 +35,7 @@ const CommandDialog = ({
   return (
     <Dialog {...props}>
       <DialogContent className={cn('overflow-hidden p-0', className)} showCloseButton={showCloseButton}>
-        {/* Inside the content, because that is the element the name is tied to; outside it, nothing names the dialog. */}
+        {/* Must sit inside the content: that is the element the dialog name is tied to. */}
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

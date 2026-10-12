@@ -1,16 +1,23 @@
 import {
   isAllowedPageEmbedUrl,
+  isOneOf,
   isPageCalendarDay,
+  isPageLinkTarget,
+  isPageWebAddress,
   PAGE_BLOCK_ALIGNMENTS,
   PAGE_BLOCK_COLORS,
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
   PAGE_CODE_LANGUAGES,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
   PAGE_DIAGRAM_VIEWS,
+  PAGE_DOCUMENT_MARKS,
+  PAGE_DOCUMENT_NODES,
   PAGE_EMBED_PROVIDERS,
   PAGE_FILE_DISPLAYS,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type { DOMOutputSpec, Node as EditorNode, NodeSpec } from 'prosemirror-model';
 import { Schema } from 'prosemirror-model';
 import {
@@ -19,11 +26,11 @@ import {
   PAGE_EDITOR_BLOCK_CHILDREN_CLASS,
   PAGE_EDITOR_BLOCK_ID_ATTRIBUTE,
   PAGE_EDITOR_CALLOUT_CLASS,
+  PAGE_EDITOR_CARD_PARSE_PRIORITY,
   PAGE_EDITOR_COLUMN_CLASS,
   PAGE_EDITOR_COLUMN_LIST_CLASS,
   PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
   PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS,
-  PAGE_EDITOR_TABLE_CELL_ATTRS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
   PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE,
@@ -34,6 +41,7 @@ import {
   PAGE_EDITOR_UNSUPPORTED_TYPE,
 } from '../blocks/constants/pages.editor.blocks.constants';
 import { definePageBlock } from '../blocks/lib/pages.editor.block-spec.lib';
+import type { PageEditorReadAttrs } from '../types/pages.editor.schema.types';
 
 const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | null> | false => {
   const assetId = element.dataset.assetId;
@@ -45,8 +53,7 @@ const getPageEditorAssetAttrs = (element: HTMLElement): Record<string, string | 
   };
 };
 
-/** What a page says about the file it holds: what kind it is, how heavy, and how it is shown. */
-const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+const getPageEditorFileAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const asset = getPageEditorFramedAssetAttrs(element);
   if (asset === false) return false;
   const size = Number.parseInt(element.dataset.size ?? '', 10);
@@ -59,8 +66,7 @@ const getPageEditorFileAttrs = (element: HTMLElement): Record<string, string | n
   };
 };
 
-/** How something that hangs on the page was left standing: where in the column, and how wide. */
-const getPageEditorFramedAssetAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+const getPageEditorFramedAssetAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const asset = getPageEditorAssetAttrs(element);
   if (asset === false) return false;
   const align = element.dataset.align;
@@ -72,19 +78,19 @@ const getPageEditorFramedAssetAttrs = (element: HTMLElement): Record<string, str
   };
 };
 
-/** What a page kept about a link it holds as a card. */
 const getPageEditorBookmarkAttrs = (element: HTMLElement): Record<string, string | null> | false => {
   const url = element.getAttribute('href') ?? element.dataset.url;
-  if (url === undefined || url === null || url.length === 0) return false;
+  if (!isPageWebAddress(url)) return false;
+  const icon = element.dataset.icon;
   return {
     description: element.dataset.description ?? null,
-    icon: element.dataset.icon ?? null,
+    icon: isPageWebAddress(icon) ? icon : null,
     title: element.dataset.title ?? null,
     url,
   };
 };
 
-const getPageEditorEmbedAttrs = (element: HTMLElement): Record<string, string | number | null> | false => {
+const getPageEditorEmbedAttrs = (element: HTMLElement): PageEditorReadAttrs => {
   const { pageEmbed, url } = element.dataset;
   const knownProvider = PAGE_EMBED_PROVIDERS.find((entry) => entry === pageEmbed);
   if (knownProvider === undefined || url === undefined || !isAllowedPageEmbedUrl(knownProvider, url)) return false;
@@ -104,21 +110,24 @@ const getPageEditorToggleAttrs = (element: Element): { readonly open: boolean; r
   return { open: element.hasAttribute('open'), summary };
 };
 
-const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | boolean | null> => {
-  const { language, shown, wrapped } = element.dataset;
+const readPageEditorFrameHeight = (said: string | undefined): number | null => {
+  const height = Number(said);
+  const isAllowed =
+    Number.isInteger(height) && height >= PAGE_DIAGRAM_FRAME_HEIGHT_LEAST && height <= PAGE_DIAGRAM_FRAME_HEIGHT_MOST;
+  return isAllowed ? height : null;
+};
+
+const getPageEditorCodeAttrs = (element: HTMLElement): Record<string, string | number | boolean | null> => {
+  const { frameHeight, language, shown, wrapped } = element.dataset;
   return {
-    language: language !== undefined && PAGE_CODE_LANGUAGES.some((known) => known === language) ? language : null,
+    frameHeight: readPageEditorFrameHeight(frameHeight),
+    language: language !== undefined && isOneOf(PAGE_CODE_LANGUAGES, language) ? language : null,
     shown: PAGE_DIAGRAM_VIEWS.find((known) => known === shown) ?? null,
     wrapped: wrapped === 'true',
   };
 };
 
-/**
- * How far a cell reaches and how wide its column was left.
- *
- * A table records the widths on the cells of a row rather than on the table, so
- * stretching a column is a change to that row and travels with it.
- */
+/** Column widths live on the cells of a row, not on the table, so a resize is a change to that row. */
 const getPageEditorTableCellAttrs = (
   element: HTMLElement,
 ): { readonly colspan: number; readonly colwidth: readonly number[] | null; readonly rowspan: number } => {
@@ -136,8 +145,7 @@ const readTableCellDomAttrs = (node: EditorNode): Record<string, string> => ({
   ...(Array.isArray(node.attrs.colwidth) ? { 'data-colwidth': node.attrs.colwidth.join(',') } : {}),
 });
 
-/** A mark that is not one of the few on offer is no mark at all. */
-const isPageCalloutIcon = (value: string): boolean => PAGE_CALLOUT_ICONS.some((icon) => icon === value);
+const isPageCalloutIcon = (value: string): boolean => isOneOf(PAGE_CALLOUT_ICONS, value);
 
 const getPageEditorCalloutAttrs = (element: HTMLElement): { readonly icon: string | null } => {
   const icon = element.dataset.icon;
@@ -186,7 +194,6 @@ const getPageEditorSubpageAttrs = (
   return { label: label === undefined || label.length === 0 ? pageId : label, pageId, spaceId };
 };
 
-/** A colour that is not one of the few the page allows is no colour at all. */
 const readPageColor = (value: string | null): string | null =>
   PAGE_BLOCK_COLORS.find((known) => known === value) ?? null;
 
@@ -239,7 +246,6 @@ const getPageEditorColumnAttrs = (
   return { id: element.dataset.blockId ?? null, width: Number.isFinite(width) ? width : null };
 };
 
-/** A heading carries its level and whether it was left folded, and both must survive a round trip through the DOM. */
 const readPageEditorHeadingAttrs =
   (level: number) =>
   (element: HTMLElement): { readonly collapsed: boolean; readonly level: number } => ({
@@ -248,22 +254,20 @@ const readPageEditorHeadingAttrs =
   });
 
 const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
-  ['doc', { content: 'block+' }],
+  ['doc', PAGE_DOCUMENT_NODES.doc],
   [
     'paragraph',
     definePageBlock({
-      content: 'inline*',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.paragraph,
       parseDOM: [{ tag: 'p' }],
       render: (_node, blockAttributes) => ['p', blockAttributes, 0],
     }),
   ],
-  ['text', { group: 'inline' }],
+  ['text', PAGE_DOCUMENT_NODES.text],
   [
     'hard_break',
     {
-      group: 'inline',
-      inline: true,
+      ...PAGE_DOCUMENT_NODES.hard_break,
       parseDOM: [{ tag: 'br' }],
       selectable: false,
       toDOM: () => ['br'],
@@ -272,9 +276,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'collection',
     definePageBlock({
-      attrs: { pageId: {}, spaceId: {}, viewName: { default: null } },
+      ...PAGE_DOCUMENT_NODES.collection,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorCollectionAttrs, tag: 'div[data-page-collection]' }],
       render: (node, blockAttributes) => [
         'div',
@@ -290,8 +293,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'blockquote',
     definePageBlock({
-      content: 'block+',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.blockquote,
       parseDOM: [{ tag: 'blockquote' }],
       render: (_node, blockAttributes) => ['blockquote', blockAttributes, 0],
     }),
@@ -299,8 +301,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'bullet_list',
     definePageBlock({
-      content: 'list_item+',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.bullet_list,
       parseDOM: [{ tag: 'ul' }],
       render: (_node, blockAttributes) => ['ul', blockAttributes, 0],
     }),
@@ -308,11 +309,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'code_block',
     definePageBlock({
-      attrs: { language: { default: null }, shown: { default: null }, wrapped: { default: false } },
+      ...PAGE_DOCUMENT_NODES.code_block,
       code: true,
-      content: 'text*',
-      group: 'block',
-      marks: '',
       parseDOM: [{ getAttrs: getPageEditorCodeAttrs, preserveWhitespace: 'full', tag: 'pre' }],
       render: (node, blockAttributes) => [
         'pre',
@@ -321,6 +319,9 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
           ...(typeof node.attrs.language === 'string' ? { 'data-language': node.attrs.language } : {}),
           ...(typeof node.attrs.shown === 'string' ? { 'data-shown': node.attrs.shown } : {}),
           ...(node.attrs.wrapped === true ? { 'data-wrapped': 'true' } : {}),
+          ...(typeof node.attrs.frameHeight === 'number'
+            ? { 'data-frame-height': String(node.attrs.frameHeight) }
+            : {}),
         },
         ['code', 0],
       ],
@@ -329,15 +330,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'video',
     definePageBlock({
-      attrs: {
-        align: { default: null },
-        alt: { default: null },
-        assetId: {},
-        caption: { default: null },
-        width: { default: null },
-      },
+      ...PAGE_DOCUMENT_NODES.video,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorFramedAssetAttrs, tag: 'video[data-page-video]' }],
       render: (node, blockAttributes) => [
         'video',
@@ -355,15 +349,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'audio',
     definePageBlock({
-      attrs: {
-        align: { default: null },
-        alt: { default: null },
-        assetId: {},
-        caption: { default: null },
-        width: { default: null },
-      },
+      ...PAGE_DOCUMENT_NODES.audio,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorFramedAssetAttrs, tag: 'audio[data-page-audio]' }],
       render: (node, blockAttributes) => [
         'audio',
@@ -381,39 +368,26 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'divider',
     definePageBlock({
+      ...PAGE_DOCUMENT_NODES.divider,
       atom: true,
-      group: 'block',
       parseDOM: [{ tag: 'hr' }],
       render: (_node, blockAttributes) => ['hr', blockAttributes],
     }),
   ],
-  /** What is in the page, listed by the page itself: it holds nothing of its own. */
   [
     'table_of_contents',
     definePageBlock({
+      ...PAGE_DOCUMENT_NODES.table_of_contents,
       atom: true,
-      group: 'block',
       parseDOM: [{ tag: 'nav[data-page-contents]' }],
       render: (_node, blockAttributes) => ['nav', { ...blockAttributes, 'data-page-contents': 'true' }],
     }),
   ],
-  /**
-   * A button, and what it writes when pressed: what it writes is what it holds,
-   * so setting it up is writing in it like anywhere else on the page.
-   */
   [
     'button',
     definePageBlock({
-      attrs: {
-        deed: { default: null },
-        label: {},
-        pageId: { default: null },
-        place: { default: null },
-        spaceId: { default: null },
-      },
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.button,
       defining: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorButtonAttrs, tag: 'div[data-page-button]' }],
       render: (node, blockAttributes): DOMOutputSpec => [
         'div',
@@ -430,13 +404,11 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     }),
   ],
-  /** A block that lives in another page and is only shown here, as it stands there now. */
   [
     'synced',
     definePageBlock({
-      attrs: { blockId: {}, pageId: {}, spaceId: {} },
+      ...PAGE_DOCUMENT_NODES.synced,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorSyncedAttrs, tag: 'div[data-page-synced]' }],
       render: (node, blockAttributes) => [
         'div',
@@ -449,13 +421,11 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     }),
   ],
-  /** A page that hangs from this one, standing in the writing as the line that leads to it. */
   [
     'subpage',
     definePageBlock({
-      attrs: { label: {}, pageId: {}, spaceId: {} },
+      ...PAGE_DOCUMENT_NODES.subpage,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorSubpageAttrs, tag: 'a[data-page-subpage]' }],
       render: (node, blockAttributes) => [
         'a',
@@ -471,16 +441,21 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'bookmark',
     definePageBlock({
-      attrs: { description: { default: null }, icon: { default: null }, title: { default: null }, url: {} },
+      ...PAGE_DOCUMENT_NODES.bookmark,
       atom: true,
-      group: 'block',
-      parseDOM: [{ getAttrs: getPageEditorBookmarkAttrs, tag: 'a[data-page-bookmark]' }],
+      parseDOM: [
+        {
+          getAttrs: getPageEditorBookmarkAttrs,
+          priority: PAGE_EDITOR_CARD_PARSE_PRIORITY,
+          tag: 'a[data-page-bookmark]',
+        },
+      ],
       render: (node, blockAttributes) => [
         'a',
         {
           ...blockAttributes,
           'data-page-bookmark': 'true',
-          href: node.attrs.url,
+          ...(isPageWebAddress(node.attrs.url) ? { href: node.attrs.url } : {}),
           rel: 'noopener noreferrer',
           ...(typeof node.attrs.title === 'string' ? { 'data-title': node.attrs.title } : {}),
           ...(typeof node.attrs.description === 'string' ? { 'data-description': node.attrs.description } : {}),
@@ -492,9 +467,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'embed',
     definePageBlock({
-      attrs: { align: { default: null }, provider: {}, url: {}, width: { default: null } },
+      ...PAGE_DOCUMENT_NODES.embed,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorEmbedAttrs, tag: 'div[data-page-embed]' }],
       render: (node, blockAttributes) => [
         'div',
@@ -511,18 +485,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'file',
     definePageBlock({
-      attrs: {
-        align: { default: null },
-        alt: { default: null },
-        assetId: {},
-        caption: { default: null },
-        display: { default: null },
-        mimeType: { default: null },
-        size: { default: null },
-        width: { default: null },
-      },
+      ...PAGE_DOCUMENT_NODES.file,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorFileAttrs, tag: 'div[data-page-file]' }],
       render: (node, blockAttributes) => [
         'div',
@@ -543,10 +507,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'heading',
     definePageBlock({
-      attrs: { collapsed: { default: false }, level: { default: 1 } },
-      content: 'inline*',
+      ...PAGE_DOCUMENT_NODES.heading,
       defining: true,
-      group: 'block',
       parseDOM: [
         { getAttrs: readPageEditorHeadingAttrs(1), tag: 'h1' },
         { getAttrs: readPageEditorHeadingAttrs(2), tag: 'h2' },
@@ -562,15 +524,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'image',
     definePageBlock({
-      attrs: {
-        align: { default: null },
-        alt: { default: null },
-        assetId: {},
-        caption: { default: null },
-        width: { default: null },
-      },
+      ...PAGE_DOCUMENT_NODES.image,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorFramedAssetAttrs, tag: 'img[data-page-image]' }],
       render: (node, blockAttributes) => [
         'img',
@@ -588,7 +543,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'list_item',
     definePageBlock({
-      content: 'paragraph block*',
+      ...PAGE_DOCUMENT_NODES.list_item,
       defining: true,
       parseDOM: [{ tag: 'li' }],
       render: (_node, blockAttributes) => ['li', blockAttributes, 0],
@@ -597,8 +552,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'task_list',
     definePageBlock({
-      content: 'task_item+',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.task_list,
       parseDOM: [{ tag: 'ul[data-task-list]' }],
       render: (_node, blockAttributes) => [
         'ul',
@@ -610,8 +564,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'task_item',
     definePageBlock({
-      attrs: { checked: { default: false } },
-      content: 'paragraph block*',
+      ...PAGE_DOCUMENT_NODES.task_item,
       defining: true,
       parseDOM: [{ getAttrs: getPageEditorTaskAttrs, tag: 'li[data-task-item]' }],
       render: (node, blockAttributes) => [
@@ -629,10 +582,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'callout',
     definePageBlock({
-      attrs: { icon: { default: null } },
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.callout,
       defining: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorCalloutAttrs, tag: 'aside[data-callout]' }],
       render: (node, blockAttributes) => [
         'aside',
@@ -649,10 +600,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'mention',
     {
-      attrs: { label: {}, pageId: {}, spaceId: {} },
+      ...PAGE_DOCUMENT_NODES.mention,
       atom: true,
-      group: 'inline',
-      inline: true,
       parseDOM: [{ getAttrs: getPageEditorMentionAttrs, tag: 'span[data-page-mention]' }],
       toDOM: (node: EditorNode): DOMOutputSpec => [
         'span',
@@ -661,14 +610,11 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     },
   ],
-  /** A person named in the writing: who, and what they were called at the time. */
   [
     'person',
     {
-      attrs: { label: {}, userId: {} },
+      ...PAGE_DOCUMENT_NODES.person,
       atom: true,
-      group: 'inline',
-      inline: true,
       parseDOM: [{ getAttrs: getPageEditorPersonAttrs, tag: 'span[data-page-person]' }],
       selectable: true,
       toDOM: (node: EditorNode): DOMOutputSpec => [
@@ -678,27 +624,21 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
       ],
     },
   ],
-  /** A date named in the writing, kept as the calendar day it points at. */
   [
     'date',
     {
-      attrs: { at: {} },
+      ...PAGE_DOCUMENT_NODES.date,
       atom: true,
-      group: 'inline',
-      inline: true,
       parseDOM: [{ getAttrs: getPageEditorDateAttrs, tag: 'span[data-page-date]' }],
       selectable: true,
       toDOM: (node: EditorNode): DOMOutputSpec => ['span', { 'data-page-date': node.attrs.at }, node.attrs.at],
     },
   ],
-  /** A formula inside the line. Empty means one not written yet. */
   [
     'formula',
     {
-      attrs: { latex: { default: '' } },
+      ...PAGE_DOCUMENT_NODES.formula,
       atom: true,
-      group: 'inline',
-      inline: true,
       parseDOM: [{ getAttrs: getPageEditorFormulaAttrs, tag: 'span[data-page-formula]' }],
       selectable: true,
       toDOM: (node: EditorNode): DOMOutputSpec => ['span', { 'data-page-formula': node.attrs.latex }, node.attrs.latex],
@@ -707,9 +647,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'ordered_list',
     definePageBlock({
-      attrs: { order: { default: 1 } },
-      content: 'list_item+',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.ordered_list,
       parseDOM: [
         { getAttrs: (element: Element) => ({ order: Number(element.getAttribute('start')) || 1 }), tag: 'ol' },
       ],
@@ -723,8 +661,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'table',
     definePageBlock({
-      content: 'table_row+',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.table,
       isolating: true,
       parseDOM: [{ tag: 'table' }],
       render: (_node, blockAttributes) => ['table', blockAttributes, ['tbody', 0]],
@@ -734,8 +671,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'table_cell',
     definePageBlock({
-      attrs: PAGE_EDITOR_TABLE_CELL_ATTRS,
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.table_cell,
       isolating: true,
       parseDOM: [{ getAttrs: getPageEditorTableCellAttrs, tag: 'td' }],
       render: (node, blockAttributes) => ['td', { ...blockAttributes, ...readTableCellDomAttrs(node) }, 0],
@@ -745,8 +681,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'table_header',
     definePageBlock({
-      attrs: PAGE_EDITOR_TABLE_CELL_ATTRS,
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.table_header,
       isolating: true,
       parseDOM: [{ getAttrs: getPageEditorTableCellAttrs, tag: 'th' }],
       render: (node, blockAttributes) => ['th', { ...blockAttributes, ...readTableCellDomAttrs(node) }, 0],
@@ -756,7 +691,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'table_row',
     definePageBlock({
-      content: '(table_cell | table_header)+',
+      ...PAGE_DOCUMENT_NODES.table_row,
       parseDOM: [{ tag: 'tr' }],
       render: (_node, blockAttributes) => ['tr', blockAttributes, 0],
       tableRole: 'row',
@@ -765,10 +700,8 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'toggle',
     definePageBlock({
-      attrs: { open: { default: false }, summary: {} },
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.toggle,
       defining: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorToggleAttrs, tag: 'details[data-page-toggle]' }],
       render: (node, blockAttributes): DOMOutputSpec => [
         'details',
@@ -785,8 +718,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'column_list',
     definePageBlock({
-      content: 'column+',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.column_list,
       parseDOM: [{ tag: 'div[data-column-list]' }],
       render: (_node, blockAttributes) => [
         'div',
@@ -798,8 +730,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'column',
     definePageBlock({
-      attrs: { width: { default: null } },
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.column,
       parseDOM: [{ getAttrs: getPageEditorColumnAttrs, tag: 'div[data-column]' }],
       render: (node, blockAttributes) => [
         'div',
@@ -816,7 +747,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'block_children',
     definePageBlock({
-      content: 'block+',
+      ...PAGE_DOCUMENT_NODES.block_children,
       parseDOM: [{ tag: 'div[data-block-children]' }],
       render: (_node, blockAttributes) => [
         'div',
@@ -826,16 +757,11 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
     }),
   ],
   [
-    /**
-     * A block written by a version that knows more than this one. It stands in
-     * the page as a placeholder that says which type it is, and carries the
-     * original word for word so that saving the page gives it back untouched.
-     */
+    // Placeholder for a type from a newer version; keeps the original content so saving round-trips it untouched.
     PAGE_EDITOR_UNSUPPORTED_TYPE,
     definePageBlock({
-      attrs: { name: {}, source: {} },
+      ...PAGE_DOCUMENT_NODES.unsupported,
       atom: true,
-      group: 'block',
       parseDOM: [{ getAttrs: getPageEditorUnsupportedAttrs, tag: `div[${PAGE_EDITOR_UNSUPPORTED_ATTRIBUTE}]` }],
       render: (node, blockAttributes) => [
         'div',
@@ -850,8 +776,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
   [
     'nested_block',
     definePageBlock({
-      content: 'block block_children',
-      group: 'block',
+      ...PAGE_DOCUMENT_NODES.nested_block,
       parseDOM: [{ tag: 'div[data-nested-block]' }],
       render: (_node, blockAttributes) => ['div', { ...blockAttributes, 'data-nested-block': 'true' }, 0],
     }),
@@ -859,30 +784,16 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
 ];
 
 const pageEditorNodes: Readonly<Record<string, NodeSpec>> = Object.fromEntries(pageEditorNodeEntries);
-const pageEditorLinkProtocols = new Set(['http:', 'https:', 'mailto:']);
 
-/**
- * Whether a destination is one a link may point at.
- *
- * A page is written by several people at once and travels between them without
- * passing through the stored schema on the way, so the answer has to be given
- * again wherever a destination is written and wherever one is drawn.
- */
-export const isPageEditorLinkTarget = (href: string): boolean => {
-  const trimmed = href.trim();
-  if (trimmed.startsWith('/')) return true;
-  if (!URL.canParse(trimmed)) return false;
-  return pageEditorLinkProtocols.has(new URL(trimmed).protocol);
-};
-
+/** Content can reach the editor without passing the stored schema, so link targets are validated on read and draw. */
 const getPageEditorLinkAttrs = (element: Element): { readonly href: string } | false => {
   const href = element.getAttribute('href');
-  return href === null || !isPageEditorLinkTarget(href) ? false : { href };
+  return href === null || !isPageLinkTarget(href) ? false : { href };
 };
 
-/** A destination nobody may follow is drawn as text, so the writing survives and the link does not. */
+/** A disallowed target renders as plain text, keeping the content but dropping the link. */
 const drawPageEditorLink = (href: unknown): DOMOutputSpec =>
-  typeof href === 'string' && isPageEditorLinkTarget(href) ? ['a', { href }, 0] : ['span', 0];
+  typeof href === 'string' && isPageLinkTarget(href) ? ['a', { href }, 0] : ['span', 0];
 
 const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | false => {
   const id = element.getAttribute(PAGE_EDITOR_COMMENT_ID_ATTRIBUTE);
@@ -891,14 +802,10 @@ const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | 
 
 export const pageEditorSchema = new Schema({
   marks: {
-    code: { toDOM: (): DOMOutputSpec => ['code', 0] },
-    /**
-     * A remark left on a fragment of the text. It says only which remark it is:
-     * what was said is kept by the block, as it is for a whole block.
-     */
+    code: { ...PAGE_DOCUMENT_MARKS.code, toDOM: (): DOMOutputSpec => ['code', 0] },
+    // Holds only the comment id; the comment text is stored on the block.
     comment: {
-      attrs: { id: {} },
-      inclusive: false,
+      ...PAGE_DOCUMENT_MARKS.comment,
       parseDOM: [{ getAttrs: getPageEditorCommentAttrs, tag: `span[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]` }],
       toDOM: (mark): DOMOutputSpec => [
         'span',
@@ -906,41 +813,33 @@ export const pageEditorSchema = new Schema({
         0,
       ],
     },
-    em: { toDOM: (): DOMOutputSpec => ['em', 0] },
+    em: { ...PAGE_DOCUMENT_MARKS.em, toDOM: (): DOMOutputSpec => ['em', 0] },
     link: {
-      attrs: { href: {} },
-      inclusive: false,
+      ...PAGE_DOCUMENT_MARKS.link,
       parseDOM: [{ getAttrs: getPageEditorLinkAttrs, tag: 'a[href]' }],
       toDOM: (mark) => drawPageEditorLink(mark.attrs.href),
     },
-    /**
-     * A stretch of writing painted on its own.
-     *
-     * It is painted with the same few colours a whole block is painted with,
-     * and drawn by the same rule: what is read on screen comes from the
-     * attribute, so a colour cannot be invented on the spot.
-     */
     [PAGE_EDITOR_BACKGROUND_COLOR_MARK]: {
-      attrs: { color: {} },
+      ...PAGE_DOCUMENT_MARKS.background_color,
       parseDOM: [
         { getAttrs: getPageEditorBackgroundColorAttrs, tag: `span[${PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE}]` },
       ],
       toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_BACKGROUND_COLOR_ATTRIBUTE]: mark.attrs.color }, 0],
     },
-    /** Struck through, and read as struck through by whatever the writing is pasted into. */
-    strike: { parseDOM: [{ tag: 's' }, { tag: 'del' }, { tag: 'strike' }], toDOM: (): DOMOutputSpec => ['s', 0] },
-    strong: { toDOM: (): DOMOutputSpec => ['strong', 0] },
+    strike: {
+      ...PAGE_DOCUMENT_MARKS.strike,
+      parseDOM: [{ tag: 's' }, { tag: 'del' }, { tag: 'strike' }],
+      toDOM: (): DOMOutputSpec => ['s', 0],
+    },
+    strong: { ...PAGE_DOCUMENT_MARKS.strong, toDOM: (): DOMOutputSpec => ['strong', 0] },
     [PAGE_EDITOR_TEXT_COLOR_MARK]: {
-      attrs: { color: {} },
+      ...PAGE_DOCUMENT_MARKS.text_color,
       parseDOM: [{ getAttrs: getPageEditorTextColorAttrs, tag: `span[${PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE}]` }],
       toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE]: mark.attrs.color }, 0],
     },
-    /**
-     * Underlined, drawn in the colour of the writing rather than the colour of a
-     * link: on a page where every link is underlined too, the only thing left to
-     * tell them apart is that one of them is not a link.
-     */
+    // Keeps the text colour, unlike links, so underlined text is distinguishable from a link.
     underline: {
+      ...PAGE_DOCUMENT_MARKS.underline,
       parseDOM: [{ tag: 'u' }, { style: 'text-decoration=underline' }],
       toDOM: (): DOMOutputSpec => ['u', { class: PAGE_EDITOR_UNDERLINE_STYLE_CLASS }, 0],
     },

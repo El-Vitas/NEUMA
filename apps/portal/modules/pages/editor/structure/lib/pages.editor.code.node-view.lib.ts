@@ -1,7 +1,8 @@
-import { PAGE_CODE_LANGUAGES } from '@company-brain/shared';
+import { PAGE_CODE_LANGUAGES } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import { toast } from 'sonner';
+import { copyTextToClipboard } from '@/shared/lib/clipboard.lib';
 import {
   PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS,
   PAGE_EDITOR_CODE_BAR_STYLE_CLASS,
@@ -9,7 +10,6 @@ import {
   PAGE_EDITOR_CODE_WRAPPED_STYLE_CLASS,
   PAGE_EDITOR_MARKS,
 } from '../../blocks/constants/pages.editor.blocks.constants';
-import { askTheBrowser } from '../../lib/pages.editor.asking.lib';
 import { attachPageDrawing } from '../../media/lib/pages.editor.drawing.node-view.lib';
 import { createPageMarkButton } from '../../text/lib/pages.editor.marks.lib';
 import type { PageEditorCodeLabels } from '../types/pages.editor.code.types';
@@ -28,14 +28,7 @@ const createLanguageChoice = (labels: PageEditorCodeLabels): HTMLSelectElement =
   return choice;
 };
 
-/**
- * Renders code with what is needed to read it: what it is written in, a way to
- * take it away whole, and a way to stop long lines running off the side.
- *
- * The controls are form controls of their own rather than writable content:
- * inside the editor every keystroke belongs to the writing, and a control made
- * of text would never receive one.
- */
+/** The controls are real form controls because keystrokes inside the editor go to the document, not to text nodes. */
 export const createPageCodeBlockNodeView = (
   node: EditorNode,
   view: EditorView,
@@ -51,7 +44,7 @@ export const createPageCodeBlockNodeView = (
   const code = document.createElement('code');
   let codeBlock = node;
 
-  const writeAttribute = (name: string, value: boolean | string | null): void => {
+  const writeAttribute = (name: string, value: boolean | number | string | null): void => {
     const position = getPosition();
     if (position === undefined) return;
     view.dispatch(view.state.tr.setNodeAttribute(position, name, value));
@@ -83,9 +76,11 @@ export const createPageCodeBlockNodeView = (
   wrap.addEventListener('mousedown', (event) => event.preventDefault());
   wrap.addEventListener('click', () => writeAttribute('wrapped', codeBlock.attrs.wrapped !== true));
   copy.addEventListener('mousedown', (event) => event.preventDefault());
-  /** Nothing visible happens when writing is copied, so the page says that it was. */
   copy.addEventListener('click', () => {
-    askTheBrowser(navigator.clipboard.writeText(codeBlock.textContent), () => toast.success(labels.copied));
+    void copyTextToClipboard(codeBlock.textContent).then((isCopied) => {
+      if (isCopied) toast.success(labels.copied);
+      else toast.error(labels.copyFailed);
+    });
   });
 
   return {

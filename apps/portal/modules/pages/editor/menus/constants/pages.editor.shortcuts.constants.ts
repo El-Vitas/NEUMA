@@ -14,12 +14,7 @@ import { selectBlockThenDocument, selectEnclosingBlock } from '../../text/lib/pa
 import { askForThePageFind } from '../lib/pages.editor.find.lib';
 import type { PageEditorShortcut } from '../types/pages.editor.shortcuts.types';
 
-/**
- * Every keystroke the editor answers to, written once.
- *
- * The editor binds this list and the shortcut panel reads it, so a shortcut
- * cannot be bound without being told, nor told without working.
- */
+/** Bound by the editor and listed by the shortcuts dialog, so the two cannot drift apart. */
 export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-b', labelKey: 'bold', run: toggleMark(pageEditorSchema.marks.strong) },
   { binding: 'Mod-i', labelKey: 'italic', run: toggleMark(pageEditorSchema.marks.em) },
@@ -45,12 +40,7 @@ export const PAGE_EDITOR_SHORTCUTS: readonly PageEditorShortcut[] = [
   { binding: 'Mod-Shift-Backspace', labelKey: 'deleteBlock', run: deletePageEditorBlocks },
   { binding: 'Escape', labelKey: 'selectBlock', run: selectEnclosingBlock },
   { binding: 'Mod-a', labelKey: 'selectBlockThenPage', run: selectBlockThenDocument },
-  /**
-   * Undoing right after the writing turned into something answers the turning
-   * first: `# ` became a heading, and what was meant was a page that begins
-   * with a hash. A step later there is nothing to take back and the usual
-   * undoing answers.
-   */
+  // Undoes an input rule first (`# ` turned into a heading), then the usual step.
   { binding: 'Mod-z', labelKey: 'undo', run: chainCommands(undoInputRule, undoPageEditorStep) },
   { binding: 'Shift-Mod-z', labelKey: 'redo', run: redoPageEditorStep },
 ];

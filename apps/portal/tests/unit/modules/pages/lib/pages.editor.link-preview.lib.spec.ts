@@ -19,7 +19,6 @@ describe('what a page says about itself', () => {
     });
   });
 
-  /** What a site tells a stranger about itself is often about something else; only its name is taken. */
   it('takes the name and the mark, and nothing a site says about itself', () => {
     const html = pageSaying(`
       <title>Un video</title>
@@ -40,7 +39,6 @@ describe('what a page says about itself', () => {
     expect(readLinkPreviewFromHtml(pageSaying(''), 'https://example.com/a')).toEqual({ url: 'https://example.com/a' });
   });
 
-  /** A mark given as a whole address is kept as it is; one given as a path is read against the link. */
   it('reads the mark of the site wherever it is given', () => {
     const absolute = pageSaying('<link rel="shortcut icon" href="https://cdn.example.com/i.png" />');
     expect(readLinkPreviewFromHtml(absolute, 'https://example.com/a')?.icon).toBe('https://cdn.example.com/i.png');

@@ -1,4 +1,4 @@
-import type { SpaceVisibility } from '@company-brain/shared';
+import type { SpaceVisibility } from '@neuma/shared';
 import type { ZodString } from 'zod';
 import type { BadgeVariant, SpaceFieldErrorCode } from '../types/spaces.types';
 
@@ -19,7 +19,6 @@ export const resolveSpaceFieldErrorMessage = (
   tooShortMessage: string,
 ): string | undefined => (errorCode === 'tooShort' ? tooShortMessage : undefined);
 
-/** Which of the badge's looks a space's reach is drawn with. */
 export const resolveSpaceBadgeVariant = (visibility: SpaceVisibility): BadgeVariant => {
   switch (visibility) {
     case 'RESTRICTED':

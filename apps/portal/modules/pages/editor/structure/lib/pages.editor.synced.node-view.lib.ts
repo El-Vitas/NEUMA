@@ -10,16 +10,9 @@ import {
 } from '../../blocks/constants/pages.editor.blocks.constants';
 import { pageEditorSchema } from '../../lib/pages.editor.schema';
 import type { PageEditorSyncedLabels } from '../types/pages.editor.synced.types';
+import { drawBorrowedBlock, isBorrowedDrawing } from './pages.editor.synced.drawing.lib';
 
-/**
- * Shows a block that lives in another page.
- *
- * It is drawn and not written in: what is read here is what that page says now,
- * and writing it is done where it lives — otherwise the same block would be
- * edited from two places at once and one of the two would lose. It says outright
- * that it is borrowed and where from, because a block that reads as this page's
- * own and cannot be typed into reads as broken.
- */
+/** Read-only: editing happens in the source page, so the same block is never edited from two places. */
 export const createPageSyncedNodeView = (
   node: EditorNode,
   labels: PageEditorSyncedLabels,
@@ -46,15 +39,18 @@ export const createPageSyncedNodeView = (
 
   body.className = PAGE_EDITOR_SYNCED_BODY_STYLE_CLASS;
   const borrowed = readBorrowed(node.attrs.pageId, node.attrs.blockId);
+  let letGo = (): void => undefined;
   if (borrowed === null) {
     const lost = document.createElement('p');
     lost.className = PAGE_EDITOR_SYNCED_LOST_STYLE_CLASS;
     lost.textContent = labels.lost;
     body.append(lost);
+  } else if (isBorrowedDrawing(borrowed)) {
+    letGo = drawBorrowedBlock(borrowed, body);
   } else {
     body.append(DOMSerializer.fromSchema(pageEditorSchema).serializeNode(borrowed));
   }
 
   container.append(mark, body);
-  return { dom: container, ignoreMutation: () => true, stopEvent: () => true };
+  return { destroy: () => letGo(), dom: container, ignoreMutation: () => true, stopEvent: () => true };
 };

@@ -5,13 +5,7 @@ import { WorkspaceContextService } from '../../common/infrastructure/persistence
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PagesService } from './pages.service';
 
-/**
- * Which space a page lives in, asked without naming one.
- *
- * A page that moves between spaces changes address, and everything written
- * before the move still points at the old one. Asked this way, an address that
- * has gone stale can be answered with the page instead of with nothing.
- */
+/** Resolves a page without its space id, so links made before a cross-space move still find it. */
 @Controller('pages/location')
 export class PageLocationController {
   constructor(

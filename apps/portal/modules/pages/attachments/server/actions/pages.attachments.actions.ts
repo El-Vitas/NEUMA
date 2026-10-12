@@ -5,8 +5,7 @@ import 'server-only';
 import { updateTag } from 'next/cache';
 import { z } from 'zod';
 import { actionClient } from '@/lib/safe-action';
-import { config } from '@/shared/config';
-import { BEARER_PREFIX } from '@/shared/constants/auth.constants';
+import { apiServer } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { FILES_API_ROUTE, PAGE_ATTACHMENTS_CACHE_TAG } from '../../constants/pages.attachments.constants';
@@ -40,15 +39,7 @@ export const deletePageAttachmentAction = actionClient
   .inputSchema(z.object({ attachmentId: attachmentIdSchema }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'deletePageAttachment' }, async () => {
-      const accessToken = await requireAccessTokenCookie();
-      const response = await fetch(
-        `${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(parsedInput.attachmentId)}`,
-        {
-          headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
-          method: 'DELETE',
-        },
-      );
-      if (!response.ok) throw new Error('Attachment delete request failed');
+      await apiServer.del(`${FILES_API_ROUTE}/${encodeURIComponent(parsedInput.attachmentId)}`);
       updateTag(PAGE_ATTACHMENTS_CACHE_TAG);
     }),
   );

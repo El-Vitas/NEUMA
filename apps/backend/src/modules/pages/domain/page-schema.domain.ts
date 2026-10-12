@@ -1,11 +1,16 @@
-import { DatabasePropertyType } from '@company-brain/db';
-import { Result } from '@company-brain/shared';
+import { DatabasePropertyType } from '@neuma/db';
+import { Result } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValues,
   SchemaViewDefinition,
 } from '../../../common/domain/schema.domain.types';
-import { validateSchemaProperties, validateSchemaPropertyValues } from '../../../common/domain/schema-property.domain';
+import {
+  keepWhatTheSchemaKnows,
+  mergePropertyValues,
+  validateSchemaProperties,
+  validateSchemaPropertyValues,
+} from '../../../common/domain/schema-property.domain';
 import { validateSchemaView } from '../../../common/domain/schema-view.domain';
 import { PagePropertyValidationError, PageSchemaDefinitionError } from './page.error';
 
@@ -73,6 +78,9 @@ const validateRowPropertyValues = (
     ? Result.fail(new PagePropertyValidationError(validated.getError().message))
     : Result.ok(stripTitleValue(validated.getValue(), titleProperty.key));
 };
+
+export const keepWhatThePageSchemaKnows = keepWhatTheSchemaKnows;
+export const mergePagePropertyValues = mergePropertyValues;
 
 export const validatePageProperties = (
   schemaProperties: readonly SchemaPropertyDefinition[],

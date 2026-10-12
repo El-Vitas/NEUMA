@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { Database } from 'bun:sqlite';
-import yaml from 'js-yaml';
+import { dump, load } from 'js-yaml';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
 const DB_PATH = `${ROOT}docs/business-rules/rules.db`;
@@ -11,6 +11,9 @@ const RULES_DIR = `${ROOT}docs/business-rules`;
 const HISTORY_DIR = `${RULES_DIR}/history`;
 
 const VALID_STATUSES = ['active', 'superseded', 'inactive'];
+
+/** Template with a placeholder feature id; indexing it would create a real feature and clash on the next build. */
+const TEMPLATE_FILE = 'fea-template.yaml';
 
 const help = () => {};
 
@@ -99,7 +102,7 @@ const cmdBuild = () => {
   db.run('DELETE FROM scenarios; DELETE FROM rules; DELETE FROM features;');
 
   const files = readdirSync(RULES_DIR)
-    .filter((f) => f.endsWith('.yaml') && f !== 'DESIGN.md')
+    .filter((f) => f.endsWith('.yaml') && f !== TEMPLATE_FILE)
     .sort();
 
   const insertFeature = db.prepare('INSERT INTO features (id, name, purpose, scope) VALUES (?, ?, ?, ?)');
@@ -113,7 +116,7 @@ const cmdBuild = () => {
   const tx = db.transaction(() => {
     for (const file of files) {
       const content = readFileSync(`${RULES_DIR}/${file}`, 'utf-8');
-      const data = yaml.load(content);
+      const data = load(content);
       insertFeature.run(data.id, data.name, data.purpose, data.scope || '');
       for (const rule of data.rules || []) {
         insertRule.run(
@@ -134,13 +137,12 @@ const cmdBuild = () => {
       }
     }
 
-    // Auto-resolve supersedes chains: mark old rules as superseded
     const updSuperseded = db.prepare(
       "UPDATE rules SET status = 'superseded', superseded_by = ? WHERE id = ? AND status = 'active'",
     );
     for (const file of files) {
       const content = readFileSync(`${RULES_DIR}/${file}`, 'utf-8');
-      const data = yaml.load(content);
+      const data = load(content);
       for (const rule of data.rules || []) {
         if (rule.supersedes) {
           updSuperseded.run(rule.id, rule.supersedes);
@@ -289,7 +291,7 @@ const cmdQuery = (args) => {
 
 const cmdAdd = () => {
   const input = readFileSync('/dev/stdin', 'utf-8');
-  const data = yaml.load(input);
+  const data = load(input);
 
   if (!data.feature || !data.rule) {
     process.exit(1);
@@ -298,10 +300,8 @@ const cmdAdd = () => {
   const db = getDb();
   initDb(db);
 
-  // Auto-generate deterministic ID from feature + rule content
   const ruleId = data.id || generateRuleId(data.feature, data.rule);
 
-  // Check for collision: if same ID already exists
   const existing = db.prepare('SELECT id, rule FROM rules WHERE id = ?').get(ruleId);
   if (existing) {
     if (existing.rule === data.rule) {
@@ -311,7 +311,6 @@ const cmdAdd = () => {
     process.exit(1);
   }
 
-  // Validate supersedes target
   if (data.supersedes) {
     const old = db.prepare('SELECT id, status FROM rules WHERE id = ?').get(data.supersedes);
     if (!old) {
@@ -322,13 +321,11 @@ const cmdAdd = () => {
     }
   }
 
-  // Validate status
   const status = data.status || 'active';
   if (!VALID_STATUSES.includes(status)) {
     process.exit(1);
   }
 
-  // Ensure feature exists
   const existingFeature = db.prepare('SELECT id FROM features WHERE id = ?').get(data.feature);
   if (!existingFeature) {
     db.prepare('INSERT INTO features (id, name, purpose, scope) VALUES (?, ?, ?, ?)').run(
@@ -355,7 +352,6 @@ const cmdAdd = () => {
       data.superseded_reason || null,
     );
 
-    // Clear old scenarios, insert new
     db.prepare('DELETE FROM scenarios WHERE rule_id = ?').run(ruleId);
     for (const sc of data.scenarios || []) {
       db.prepare('INSERT INTO scenarios (rule_id, title, given_text, when_text, then_text) VALUES (?, ?, ?, ?, ?)').run(
@@ -367,7 +363,6 @@ const cmdAdd = () => {
       );
     }
 
-    // If supersedes is set, mark old rule as superseded and link back
     if (data.supersedes) {
       db.prepare('UPDATE rules SET status = ?, superseded_by = ?, superseded_reason = ? WHERE id = ?').run(
         'superseded',
@@ -383,12 +378,57 @@ const cmdAdd = () => {
   cmdDump();
 };
 
+/**
+ * Deletes a rule that should never have existed (wrong feature id, accidental
+ * duplicate, half-written submission). A rule that was merely wrong is replaced
+ * with `supersedes` instead, which keeps the history.
+ * Refuses to touch a rule that is part of a supersedes chain: deleting it would
+ * leave another rule pointing at nothing.
+ */
+const cmdDelete = (args) => {
+  const opts = parseArgs(args);
+  const ruleId = typeof opts.id === 'string' ? opts.id : null;
+  if (ruleId === null) {
+    process.stderr.write('Falta decir qué regla se borra: --id BR-xxx\n');
+    process.exit(1);
+  }
+
+  const db = getDb();
+  initDb(db);
+
+  const rule = db.prepare('SELECT id, status, supersedes, superseded_by FROM rules WHERE id = ?').get(ruleId);
+  if (!rule) {
+    db.close();
+    process.stderr.write(`${ruleId} no existe\n`);
+    process.exit(1);
+  }
+  if (rule.superseded_by) {
+    db.close();
+    process.stderr.write(`${ruleId} ya fue reemplazada por ${rule.superseded_by}: es historia y se conserva\n`);
+    process.exit(1);
+  }
+  if (rule.supersedes) {
+    db.close();
+    process.stderr.write(`${ruleId} reemplazó a ${rule.supersedes}: borrarla dejaría esa regla apuntando al vacío\n`);
+    process.exit(1);
+  }
+
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM scenarios WHERE rule_id = ?').run(ruleId);
+    db.prepare('DELETE FROM rules WHERE id = ?').run(ruleId);
+  });
+  tx();
+  db.close();
+
+  process.stderr.write(`${ruleId} borrada\n`);
+  cmdDump();
+};
+
 const cmdDump = () => {
   const db = getDb();
   initDb(db);
 
-  // Backup current YAML files
-  const files = readdirSync(RULES_DIR).filter((f) => f.endsWith('.yaml') && f !== 'DESIGN.md');
+  const files = readdirSync(RULES_DIR).filter((f) => f.endsWith('.yaml') && f !== TEMPLATE_FILE);
   if (files.length > 0 && !existsSync(HISTORY_DIR)) {
     mkdirSync(HISTORY_DIR, { recursive: true });
   }
@@ -399,7 +439,6 @@ const cmdDump = () => {
     });
   }
 
-  // Read all data from SQLite
   const features = db.prepare('SELECT * FROM features ORDER BY id').all();
 
   for (const feature of features) {
@@ -442,7 +481,7 @@ const cmdDump = () => {
     };
 
     const cleanDoc = JSON.parse(JSON.stringify(doc));
-    const yamlContent = yaml.dump(cleanDoc, { indent: 2, lineWidth: 120, noRefs: true });
+    const yamlContent = dump(cleanDoc, { indent: 2, lineWidth: 120, noRefs: true });
     writeFileSync(`${RULES_DIR}/${feature.id.toLowerCase()}.yaml`, yamlContent);
   }
 
@@ -465,6 +504,9 @@ const main = () => {
       break;
     case 'dump':
       cmdDump();
+      break;
+    case 'delete':
+      cmdDelete(args);
       break;
     default:
       help();

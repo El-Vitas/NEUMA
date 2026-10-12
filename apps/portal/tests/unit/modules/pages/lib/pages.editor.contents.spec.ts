@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import { PAGE_EDITOR_HEADING_ATTRIBUTE } from '@/modules/pages/editor/structure/constants/pages.editor.contents.constants';
 import {

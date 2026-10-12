@@ -1,22 +1,25 @@
+// use prisma-8
 model Space {
-  id          String          @id @default(uuid(7))
+  id          String                     @id(map: "Space_pkey") @default(uuid(7))
   workspaceId String
   name        String
   description String?
   slug        String
-  icon        Json?
-  visibility  SpaceVisibility @default(PUBLIC_INTERNAL)
-  order       Int             @default(0)
+  icon        Jsonb?
+  visibility  pg.enum(SpaceVisibility)   @default("PUBLIC_INTERNAL")
+  order       Int                        @default(0)
   ownerId     String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  owner       User?           @relation("SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   TimestamptzJsDate          @default(now())
+  updatedAt   temporal.updatedAtJsDate()
+  workspace   Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Space_workspaceId_fkey", index: "Space_workspaceId_order_idx")
+  owner       User?                      @relation(name: "SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Space_ownerId_fkey")
+
   members     SpaceMember[]
   pages       Page[]
+  tokenGrants AccessTokenGrant[]
 
-  @@unique([workspaceId, slug])
-  @@index([workspaceId, visibility])
-  @@index([workspaceId, order])
-  @@index([ownerId])
+  @@unique([workspaceId, slug], map: "Space_workspaceId_slug_key")
+  @@index([workspaceId, visibility], map: "Space_workspaceId_visibility_idx")
+  @@index([workspaceId, order], map: "Space_workspaceId_order_idx")
+  @@index([ownerId], map: "Space_ownerId_idx")
 }

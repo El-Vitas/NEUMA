@@ -1,4 +1,4 @@
-import type { PageIcon, PageLifecycle, UserRole } from '@company-brain/shared';
+import type { PageIcon, PageLifecycle, UserRole } from '@neuma/shared';
 import type { LucideIcon } from 'lucide-react';
 
 export interface PortalNavItem {
@@ -13,11 +13,6 @@ export interface PortalNavSection {
   readonly items: readonly PortalNavItem[];
 }
 
-/**
- * What kind of place a space is, from the standpoint of whoever is looking at
- * the tree: everyone's, a private corner of their own, or somebody else's
- * corner they were let into.
- */
 export type PortalSpaceKind = 'own' | 'private' | 'shared';
 
 export interface PortalLayoutSpace {

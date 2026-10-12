@@ -9,6 +9,15 @@ export class UserAccessDeniedError extends DomainError {
   }
 }
 
+export class AdminAlreadyExistsError extends DomainError {
+  public readonly code = 'USER_ADMIN_ALREADY_EXISTS';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('Ya existe un administrador: las cuentas nuevas se crean desde la aplicación');
+  }
+}
+
 export class EmailAlreadyInUseError extends DomainError {
   public readonly code = 'USER_EMAIL_ALREADY_IN_USE';
   public readonly httpStatus = 409;

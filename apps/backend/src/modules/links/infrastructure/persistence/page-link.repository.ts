@@ -1,7 +1,6 @@
-import { PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { and, type NeumaTransaction, PageLifecycle } from '@neuma/db';
+import type { UserRole } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { BACKLINKS_LIST_LIMIT } from '../../constants/links.constants';
@@ -14,7 +13,7 @@ export class PageLinkRepository implements PageLinkRepositoryContract {
 
   async reconcile(input: PageLinkReconciliationInput): Promise<void> {
     const targetPageIds = resolveLinkTargets(input.sourcePageId, input.targetPageIds);
-    await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.transaction(async (transaction) => {
       await this.deleteStaleLinks(transaction, input.sourcePageId, targetPageIds);
       await this.insertMissingLinks(transaction, input.sourcePageId, targetPageIds);
     });
@@ -26,42 +25,46 @@ export class PageLinkRepository implements PageLinkRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<BacklinksResult> {
-    const where: Prisma.PageLinkWhereInput = {
-      sourcePage: { space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId } },
-      targetPage: { lifecycle: PageLifecycle.ACTIVE },
-      targetPageId,
-    };
-    const [rows, count] = await Promise.all([
-      this.prisma.pageLink.findMany({
-        orderBy: { createdAt: 'asc' },
-        select: { sourcePage: { select: { id: true, spaceId: true, title: true } } },
-        take: BACKLINKS_LIST_LIMIT,
-        where,
-      }),
-      this.prisma.pageLink.count({ where }),
+    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
+    const backlinks = this.prisma.models.PageLink.where((link) =>
+      and(
+        link.targetPageId.eq(targetPageId),
+        link.targetPage.some({ lifecycle: PageLifecycle.ACTIVE }),
+        link.sourcePage.some((sourcePage) =>
+          sourcePage.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))),
+        ),
+      ),
+    );
+    const [rows, aggregate] = await Promise.all([
+      backlinks
+        .include('sourcePage', (sourcePage) => sourcePage.select('id', 'spaceId', 'title'))
+        .orderBy((link) => link.createdAt.asc())
+        .limit(BACKLINKS_LIST_LIMIT)
+        .all(),
+      backlinks.aggregate((aggregation) => ({ total: aggregation.count() })),
     ]);
-    return { count, items: rows.map((row) => row.sourcePage) };
+    return { count: aggregate.total, items: rows.flatMap((row) => (row.sourcePage === null ? [] : [row.sourcePage])) };
   }
 
   private async deleteStaleLinks(
-    transaction: Prisma.TransactionClient,
+    transaction: NeumaTransaction,
     sourcePageId: string,
     targetPageIds: readonly string[],
   ): Promise<void> {
-    const where: Prisma.PageLinkWhereInput =
-      targetPageIds.length === 0 ? { sourcePageId } : { sourcePageId, targetPageId: { notIn: [...targetPageIds] } };
-    await transaction.pageLink.deleteMany({ where });
+    await transaction.orm.public.PageLink.where({ sourcePageId })
+      .where((link) => link.targetPageId.notIn([...targetPageIds]))
+      .deleteAndCount();
   }
 
   private async insertMissingLinks(
-    transaction: Prisma.TransactionClient,
+    transaction: NeumaTransaction,
     sourcePageId: string,
     targetPageIds: readonly string[],
   ): Promise<void> {
     if (targetPageIds.length === 0) return;
-    await transaction.pageLink.createMany({
-      data: targetPageIds.map((targetPageId) => ({ sourcePageId, targetPageId })),
-      skipDuplicates: true,
-    });
+    await transaction.orm.public.PageLink.createAndCount(
+      targetPageIds.map((targetPageId) => ({ sourcePageId, targetPageId })),
+      { onConflict: 'skip' },
+    );
   }
 }

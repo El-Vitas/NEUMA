@@ -5,7 +5,6 @@ import { applyUpdate, Doc } from 'yjs';
 import { PAGE_EDITOR_COMMANDS } from '@/modules/pages/editor/constants/pages.editor.constants';
 import { createCollaborativePageEditorState } from '@/modules/pages/lib/pages.collaboration.lib';
 
-/** Two people on the same page, each with their own copy, telling each other what they wrote. */
 const openTogether = (): { readonly first: EditorView; readonly second: EditorView; readonly close: () => void } => {
   const firstDocument = new Doc();
   const secondDocument = new Doc();

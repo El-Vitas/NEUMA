@@ -30,11 +30,6 @@ import type {
 } from '../types/pages.editor.slash-menu.types';
 import type { PageEditorSpot } from '../types/pages.editor.surface.types';
 
-/**
- * The menu that opens beside the cursor on `/` or `@`: what it shows, how it
- * is placed, and how the keyboard steps through it — kept apart from the rest
- * of the editor, which only asks it to answer a keypress or watch a selection.
- */
 export const usePagesEditorTriggerMenu = ({
   canMakeAPage,
   editorViewRef,
@@ -118,7 +113,7 @@ export const usePagesEditorTriggerMenu = ({
     [surfaceRef],
   );
 
-  /** The place the menu stands is kept twice: read on the next render, and read at once by a keypress. */
+  // Mirrored in a ref so a keypress reads the position before the next render.
   const rememberTriggerMenuPosition = useCallback((position: PageEditorSpot | null): void => {
     triggerMenuPositionRef.current = position;
     setTriggerMenuPosition(position);
@@ -152,7 +147,7 @@ export const usePagesEditorTriggerMenu = ({
       if (editorView === null || query === null) return;
       const triggerStart = editorView.state.selection.from - query.length - 1;
       if (triggerStart < 1) return;
-      /** Asked first whether it can be done at all: what was typed is not worth losing to a menu entry that does nothing. */
+      // Dry run first, so the typed text is not deleted for a command that cannot run.
       if (!command(editorView.state, undefined, editorView)) return;
       editorView.dispatch(editorView.state.tr.delete(triggerStart, editorView.state.selection.from));
       command(editorView.state, editorView.dispatch, editorView);
@@ -162,11 +157,6 @@ export const usePagesEditorTriggerMenu = ({
     [closeTriggerMenu, editorViewRef],
   );
 
-  /**
-   * The menu open beside the cursor answers the keyboard first; otherwise the
-   * editor keeps its own behaviour, only stepping aside so Escape can leave a
-   * selection behind.
-   */
   const answerKeyPress = useCallback(
     (editorView: EditorView, event: KeyboardEvent): boolean => {
       if (triggerQueryRef.current !== null && triggerMenuPositionRef.current !== null) {

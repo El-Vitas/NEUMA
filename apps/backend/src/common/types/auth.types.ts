@@ -1,4 +1,4 @@
-import type { User, UserRole } from '@company-brain/shared';
+import type { User, UserRole } from '@neuma/shared';
 import type { Action, Resource } from '../constants/permission.constants';
 
 export type Role = UserRole;

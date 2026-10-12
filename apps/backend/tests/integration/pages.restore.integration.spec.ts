@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import type { PageContent } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -32,7 +32,7 @@ const plainContent = (text: string): PageContent => ({
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const createSpace = async (testApp: TestApp, token: string, name: string, slug: string): Promise<string> => {
@@ -108,7 +108,7 @@ describe('Restoring a trashed page (Integration)', () => {
     const adminEmail = `restore-admin-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Restore Admin', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Restore Admin', password });
     await promoteToAdmin(testApp, adminEmail);
 
     const adminSession = await loginUser(testApp, adminEmail, password);
@@ -152,14 +152,8 @@ describe('Restoring a trashed page (Integration)', () => {
   });
 
   /**
-   * `Page.parentId` has `onDelete: SetNull`, so the instant the mother is deleted
-   * forever, Postgres nulls every reference to her — including a trashed child's,
-   * before restore ever runs. Nothing in the schema is left to say she once had a
-   * mother, so this lands exactly like a page that was always at the root: no
-   * notice, because there is nothing left to name. Restoring still lands the page
-   * somewhere real and reachable; only the explanation is unavailable. Closing
-   * that gap would need a schema change (e.g. keeping the mother's title once she
-   * is gone), which is out of scope here.
+   * `Page.parentId` is `onDelete: SetNull`, so deleting the parent for good nulls every reference to it before restore
+   * runs. Nothing is left to name, so the page lands like one that was always at the root, with no notice.
    */
   it('restores a page to the root of its space when its parent was deleted forever, without a notice to name her by', async () => {
     const parent = await createPage(testApp, adminToken, spaceId, 'Deleted Forever Parent');
@@ -201,5 +195,71 @@ describe('Restoring a trashed page (Integration)', () => {
 
     const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
     expect(restoredChild.parentId).toBe(parent.id);
+  });
+
+  it('refuses to rename, lock, verify, copy or give an owner to a page in the trash, changing nothing', async () => {
+    const trashed = await createPage(testApp, adminToken, spaceId, 'En la papelera');
+    await trashPage(testApp, adminToken, spaceId, trashed.id);
+    const path = `/api/v1/spaces/${spaceId}/pages/${trashed.id}`;
+    const server = () => request(testApp.getServer());
+    const asAdmin = { Authorization: `Bearer ${adminToken}`, 'x-mutation-id': crypto.randomUUID() };
+
+    const statuses = await Promise.all([
+      server().patch(`${path}/title`).set(asAdmin).send({ title: 'Renombrada' }),
+      server().patch(`${path}/lock`).set(asAdmin).send({ locked: true }),
+      server().patch(`${path}/verification`).set(asAdmin).send({ verified: true }),
+      server().patch(`${path}/owner`).set(asAdmin).send({ ownerId: null }),
+      server().post(`${path}/duplicate`).set(asAdmin).send({ includeChildren: false }),
+    ]);
+
+    for (const response of statuses) expect(response.status).toBeGreaterThanOrEqual(400);
+    const pages = testApp.get(PrismaService).models.Page;
+    const stored = await pages.where({ id: trashed.id }).select('lockedAt', 'title', 'verifiedAt').all().firstOrThrow();
+    expect(stored).toEqual({ lockedAt: null, title: 'En la papelera', verifiedAt: null });
+    const matching = await pages
+      .where((page) => page.title.like('En la papelera%'))
+      .aggregate((aggregate) => ({ total: aggregate.count() }));
+    expect(matching.total).toBe(1);
+  });
+
+  it('refuses to create or move a page under one in the trash', async () => {
+    const gone = await createPage(testApp, adminToken, spaceId, 'Padre en la papelera');
+    const loose = await createPage(testApp, adminToken, spaceId, 'Suelta');
+    await trashPage(testApp, adminToken, spaceId, gone.id);
+
+    const created = await request(testApp.getServer())
+      .post(`/api/v1/spaces/${spaceId}/pages`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ content: plainContent('Hija'), parentId: gone.id, title: 'Hija' });
+    const moved = await request(testApp.getServer())
+      .patch(`/api/v1/spaces/${spaceId}/pages/${loose.id}/move`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-mutation-id', crypto.randomUUID())
+      .send({ parentId: gone.id });
+
+    expect(created.status).toBeGreaterThanOrEqual(400);
+    expect(moved.status).toBeGreaterThanOrEqual(400);
+    expect((await getPage(testApp, adminToken, spaceId, loose.id)).parentId).toBeNull();
+  });
+
+  it('empties the trash of a space, leaving a page restored before it untouched', async () => {
+    const gone = await createPage(testApp, adminToken, spaceId, 'Se va');
+    const kept = await createPage(testApp, adminToken, spaceId, 'Vuelve');
+    await trashPage(testApp, adminToken, spaceId, gone.id);
+    await trashPage(testApp, adminToken, spaceId, kept.id);
+    await restorePage(testApp, adminToken, spaceId, kept.id);
+
+    const emptied = await request(testApp.getServer())
+      .delete('/api/v1/pages/trash')
+      .query({ spaceId })
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect((emptied.body as { deletedCount: number }).deletedCount).toBeGreaterThanOrEqual(1);
+    const prisma = testApp.get(PrismaService);
+    expect(await prisma.models.Page.first({ id: gone.id })).toBeNull();
+    expect(await prisma.models.Page.where({ id: kept.id }).select('lifecycle').first()).toEqual({
+      lifecycle: 'ACTIVE',
+    });
   });
 });

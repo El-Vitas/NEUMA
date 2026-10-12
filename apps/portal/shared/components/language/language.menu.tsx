@@ -13,12 +13,6 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { LANGUAGE_CHOICES, LANGUAGE_NAMES } from '@/shared/constants/language.constants';
 
-/**
- * Lets the interface be read in another language, staying on the same page.
- *
- * Each language is named in itself, so it can be recognised by someone who
- * cannot read the one currently on screen.
- */
 export const LanguageMenu = () => {
   const t = useTranslations('language');
   const router = useRouter();

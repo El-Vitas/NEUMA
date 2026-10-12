@@ -1,3 +1,4 @@
+import { isPageWebAddress } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { NodeView } from 'prosemirror-view';
 import {
@@ -11,15 +12,8 @@ import {
 const readHost = (url: string): string => (URL.canParse(url) ? new URL(url).hostname : url);
 
 /**
- * Renders a link kept as a card: the mark of the site, what it is called, and
- * where it points.
- *
- * What is drawn is what the page wrote down when the link arrived, not what the
- * site says today: a page reads the same tomorrow, and asking again on every
- * render would make a page depend on somewhere else being up.
- *
- * A link nobody could read a title for is drawn as its own address, which is
- * the truest thing there is to say about it.
+ * Draws the metadata stored when the link was added, never refetched, so rendering does not depend on the site.
+ * Falls back to the address when no title was found.
  */
 export const createPageBookmarkNodeView = (node: EditorNode): NodeView => {
   const card = document.createElement('a');
@@ -29,12 +23,12 @@ export const createPageBookmarkNodeView = (node: EditorNode): NodeView => {
 
   card.className = PAGE_EDITOR_BOOKMARK_STYLE_CLASS;
   card.dataset.pageBookmark = 'true';
-  card.href = node.attrs.url;
+  if (isPageWebAddress(node.attrs.url)) card.href = node.attrs.url;
   card.rel = 'noopener noreferrer';
   card.target = '_blank';
   card.contentEditable = 'false';
 
-  if (typeof node.attrs.icon === 'string' && node.attrs.icon.length > 0) {
+  if (isPageWebAddress(node.attrs.icon)) {
     const mark = document.createElement('img');
     mark.className = PAGE_EDITOR_BOOKMARK_ICON_STYLE_CLASS;
     mark.src = node.attrs.icon;

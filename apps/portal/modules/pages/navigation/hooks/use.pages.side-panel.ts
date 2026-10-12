@@ -18,18 +18,10 @@ import {
 import type { PagesSidePanelController } from '../types/pages.side-panel.types';
 
 /**
- * The panel's own address, its width, and how one moves through both.
- *
- * The panel exists only because the address names it — a shared link or a
- * reload has to open the same page beside the same page — so opening,
- * navigating within and closing the panel are all the same operation: write a
- * new address. Closing is the one exception with a step before it: whatever
- * the panel's own editor still has to save is asked to finish first, so a
- * page closed moments after being written never loses what was written.
- *
- * The panel hangs off the right edge, so dragging left is what grows it.
+ * The address names the panel, so opening, navigating and closing are all writes of a new address.
+ * Closing first flushes the panel editor's pending save. The panel hangs off the right edge: dragging left grows it.
  */
-export const usePagesSidePanel = (flushBeforeClose: () => Promise<void>): PagesSidePanelController => {
+export const usePagesSidePanel = (flushPendingChanges: () => Promise<void>): PagesSidePanelController => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -46,17 +38,28 @@ export const usePagesSidePanel = (flushBeforeClose: () => Promise<void>): PagesS
 
   const openPanel = useCallback(
     (pageId: string): void => {
-      router.push(buildAddressWithSearch(pathname, withPagesSidePanelParam(searchParams.toString(), pageId)));
+      router.push(buildAddressWithSearch(pathname, withPagesSidePanelParam(searchParams.toString(), pageId)), {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams],
   );
 
-  const navigateWithinPanel = useCallback((_spaceId: string, pageId: string): void => openPanel(pageId), [openPanel]);
+  /** Autosave is debounced and unmounting only cancels the wait, so pending changes are flushed before leaving. */
+  const navigateWithinPanel = useCallback(
+    async (_spaceId: string, pageId: string): Promise<void> => {
+      await flushPendingChanges();
+      openPanel(pageId);
+    },
+    [flushPendingChanges, openPanel],
+  );
 
   const closePanel = useCallback(async (): Promise<void> => {
-    await flushBeforeClose();
-    router.replace(buildAddressWithSearch(pathname, withoutPagesSidePanelParam(searchParams.toString())));
-  }, [flushBeforeClose, pathname, router, searchParams]);
+    await flushPendingChanges();
+    router.replace(buildAddressWithSearch(pathname, withoutPagesSidePanelParam(searchParams.toString())), {
+      scroll: false,
+    });
+  }, [flushPendingChanges, pathname, router, searchParams]);
 
   return {
     closePanel,

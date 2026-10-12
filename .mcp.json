@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "neuma": {
+      "type": "http",
+      "url": "${NEUMA_MCP_URL:-http://localhost:3000/api/v1/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${NEUMA_MCP_TOKEN}"
+      }
+    }
+  }
+}

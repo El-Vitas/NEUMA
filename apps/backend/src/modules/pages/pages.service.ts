@@ -1,18 +1,22 @@
-import { DatabasePropertyType, PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
+import { randomUUID } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { DatabasePropertyType, type JsonValue, PageLifecycle } from '@neuma/db';
 import {
-  type ExportedPageFile,
+  givePageBlocksTheirIds,
   type PageContent,
   Result,
   USER_ROLE,
   type UserRole,
   writePagesAsMarkdownFiles,
-} from '@company-brain/shared';
-import { Inject, Injectable } from '@nestjs/common';
+} from '@neuma/shared';
+import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
 import type { IStorageProvider } from '../../common/types/storage.types';
+import { mapWithBoundedConcurrency } from '../../common/utils/concurrency.utils';
 import {
+  EXPORT_ATTACHMENT_READS_AT_ONCE,
+  EXPORT_ATTACHMENTS_FOLDER,
   PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
@@ -37,17 +41,27 @@ import { readExportableContent, selectPagesForExport } from './domain/page-expor
 import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
-import { validatePageProperties } from './domain/page-schema.domain';
+import {
+  keepWhatThePageSchemaKnows,
+  mergePagePropertyValues,
+  validatePageProperties,
+} from './domain/page-schema.domain';
 import type {
+  CarriedAttachment,
   CreatePageInput,
+  ExportedFile,
+  PageAccessState,
   PageAttachmentsCleanupRepositoryContract,
+  PageContentStoreOutcome,
+  PageContentWriter,
   PageDescendantsPreview,
+  PageLogger,
   PageMoveDestinations,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
   TrashedPageSummary,
-  UpdatePageInput,
+  UpdatePagePropertiesInput,
 } from './types/page.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
 
@@ -59,6 +73,7 @@ export class PagesService {
     @Inject(PAGE_ATTACHMENTS_CLEANUP_REPOSITORY)
     private readonly pageAttachmentsCleanupRepository: PageAttachmentsCleanupRepositoryContract,
     @Inject(STORAGE_PROVIDER) private readonly storageProvider: IStorageProvider,
+    @Inject(Logger) private readonly logger: PageLogger,
   ) {}
 
   async list(
@@ -72,14 +87,7 @@ export class PagesService {
     return this.redactPages(pages, workspaceId, userId, role);
   }
 
-  /**
-   * A scope of pages written out as one Markdown file.
-   *
-   * Read through the same door as any other listing, so an export never hands
-   * over a page its asker could not have opened one at a time. Pages in the
-   * trash stay out: what is exported is what the space holds, not what it once
-   * held.
-   */
+  /** Goes through the normal listing, so no page the asker cannot open is exported; trashed pages are excluded. */
   async exportAsMarkdown(
     spaceId: string,
     scope: PageExportScope,
@@ -87,17 +95,50 @@ export class PagesService {
     userId: string,
     role: UserRole,
     untitledLabel: string,
-  ): Promise<Result<readonly ExportedPageFile[], PageAccessDeniedError>> {
+  ): Promise<Result<readonly ExportedFile[], PageAccessDeniedError>> {
     const pages = await this.list(spaceId, workspaceId, userId, role, false);
     const chosen = selectPagesForExport(pages, scope);
     if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
 
-    return Result.ok(
-      writePagesAsMarkdownFiles(
-        chosen.map((page) => ({ content: readExportableContent(page.content), path: page.path, title: page.title })),
-        untitledLabel,
-      ),
+    const carried = await this.gatherAttachments(chosen.map((page) => page.id));
+    const written = writePagesAsMarkdownFiles(
+      chosen.map((page) => ({
+        content: readExportableContent(page.content),
+        id: page.id,
+        path: page.path,
+        title: page.title,
+      })),
+      untitledLabel,
+      new Map(carried.map((asset) => [asset.id, asset.path])),
     );
+
+    return Result.ok([...written, ...carried.map(({ contents, path }) => ({ contents, path }))]);
+  }
+
+  /** Own folder, since one file can appear on several pages. An unreadable file is skipped. */
+  private async gatherAttachments(pageIds: readonly string[]): Promise<readonly CarriedAttachment[]> {
+    const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(pageIds);
+    // Bounded so a space with hundreds of files does not open hundreds of reads at once.
+    const carried = await mapWithBoundedConcurrency(assets, EXPORT_ATTACHMENT_READS_AT_ONCE, async (asset) => {
+      try {
+        const contents = await this.storageProvider.read(asset.storageKey);
+        return { contents, id: asset.id, path: `${EXPORT_ATTACHMENTS_FOLDER}/${asset.id}-${asset.originalFilename}` };
+      } catch (error) {
+        this.logger.warn({ assetId: asset.id, err: error, message: 'An attachment could not be carried' });
+        return null;
+      }
+    });
+    return carried.filter((asset): asset is CarriedAttachment => asset !== null);
+  }
+
+  /** Liveness and lock state without loading content, enough to gate each live-document message. */
+  async readAccessState(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<PageAccessState | null> {
+    return this.pageRepository.findAccessState(pageId, workspaceId, userId, role);
   }
 
   async getAccessible(
@@ -133,52 +174,72 @@ export class PagesService {
     if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
     const page = await this.pageRepository.create({
       ...input,
-      content: content.getValue(),
+      content: givePageBlocksTheirIds(content.getValue(), randomUUID),
       propertyValues: propertyValues.getValue(),
     });
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  async update(
-    input: UpdatePageInput,
-    role: UserRole,
+  readStoredContent(pageId: string): Promise<PageContent | null> {
+    return this.pageRepository.findStoredContent(pageId);
+  }
+
+  /** The writer was already authorized when connecting to the document. */
+  storeCollaborativeContent(pageId: string, userId: string, content: PageContent): Promise<PageContentStoreOutcome> {
+    return this.pageRepository.storeContent({ content, pageId, updatedById: userId });
+  }
+
+  async authorizeContentWrite(
+    writer: PageContentWriter,
+    content: unknown,
   ): Promise<
-    Result<
-      PageSummary,
-      PageAccessDeniedError | PageContentValidationError | PageLockedError | PagePropertyValidationError
-    >
+    Result<PageContent, PageAccessDeniedError | PageContentValidationError | PageLifecycleError | PageLockedError>
   > {
-    const content = this.validateWritableContent(role, input.content);
-    if (content.isFail()) return Result.fail(content.getError());
-    const existingPage = await this.pageRepository.getAccessible(
-      input.pageId,
-      input.workspaceId,
-      input.userId,
-      input.role,
-    );
-    if (existingPage === null) return Result.fail(new PageAccessDeniedError());
-    if (existingPage.lockedAt !== null) return Result.fail(new PageLockedError());
-    const propertyValues = await this.resolvePropertyValuesForWrite(
-      existingPage.parentId,
-      input.workspaceId,
-      input.title,
-      input.propertyValues,
-    );
-    if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
-    const page = await this.pageRepository.update({
-      ...input,
-      content: content.getValue(),
-      propertyValues: propertyValues.getValue(),
-    });
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+    const allowed = await this.authorizeWrite(writer);
+    return allowed.isFail() ? Result.fail(allowed.getError()) : validatePageContent(content);
   }
 
-  /**
-   * A page's name changed on its own, without the writing being touched.
-   *
-   * Renaming from a list is not the same act as editing a page: no new version
-   * is cut for it, because nothing anyone wrote has changed.
-   */
+  async authorizeWrite(
+    writer: PageContentWriter,
+  ): Promise<Result<PageContentWriter, PageAccessDeniedError | PageLifecycleError | PageLockedError>> {
+    if (writer.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.getAccessible(writer.pageId, writer.workspaceId, writer.userId, writer.role);
+    if (page?.spaceId !== writer.spaceId) return Result.fail(new PageAccessDeniedError());
+    if (page.lifecycle !== PageLifecycle.ACTIVE) return Result.fail(new PageLifecycleError());
+    if (page.lockedAt !== null) return Result.fail(new PageLockedError());
+    return Result.ok(writer);
+  }
+
+  /** Merges only the named properties over the stored ones, so a card drag never resends a stale copy of the row. */
+  async updateProperties(
+    input: UpdatePagePropertiesInput,
+  ): Promise<Result<PageSummary, PageAccessDeniedError | PageLockedError | PagePropertyValidationError>> {
+    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const existing = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
+    if (existing === null) return Result.fail(new PageAccessDeniedError());
+    if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
+
+    const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+    const personIds = await this.resolvePersonIdsIfNeeded(schemaProperties, input.workspaceId);
+    const title = input.title ?? existing.title;
+    const page = await this.pageRepository.updatePropertyValues(
+      {
+        pageId: input.pageId,
+        ...(input.title === undefined ? {} : { title: input.title }),
+        updatedById: input.updatedById,
+      },
+      (current) =>
+        validatePageProperties(
+          schemaProperties,
+          title,
+          keepWhatThePageSchemaKnows(schemaProperties, mergePagePropertyValues(current, input.propertyValues)),
+          personIds,
+        ),
+    );
+    return page ?? Result.fail(new PageAccessDeniedError());
+  }
+
+  /** Cuts no version: renaming does not change content. */
   async rename(
     pageId: string,
     title: string,
@@ -221,13 +282,6 @@ export class PagesService {
     return copy === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(copy);
   }
 
-  /**
-   * Locks a page against edits, or lets it be written in again.
-   *
-   * Whoever may write in a page may also decide it should stop being written in,
-   * and undo that decision: a lock nobody present can lift is a page lost to the
-   * person who locked it by mistake.
-   */
   async setLocked(
     pageId: string,
     locked: boolean,
@@ -240,13 +294,7 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /**
-   * Vouches for a page, or takes that back — whoever may write in it may also vouch for it.
-   *
-   * Verifying again with a new date is treated as the same act repeated, not a
-   * separate rule: it re-stamps who verified it and when, which is how an
-   * expiration gets pushed out without a second endpoint to keep in sync.
-   */
+  /** Verifying again re-stamps who and when, which is how an expiration is extended. */
   async setVerification(
     pageId: string,
     verified: boolean,
@@ -268,7 +316,7 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /** Only somebody who actually belongs to the workspace can be handed a page to answer for. */
+  /** The owner must be a workspace member. */
   async setOwner(
     pageId: string,
     ownerId: null | string,
@@ -299,33 +347,15 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  /**
-   * The pages somebody was given, across every space they can reach.
-   *
-   * A page belongs to whoever is named in a property its collection calls a
-   * person; the schema is asked once per collection rather than once per page,
-   * since pages of the same collection answer to the same one.
-   */
+  /** Person properties are resolved once per collection, not per page, since a collection shares one schema. */
   async listAssignedTo(userId: string, workspaceId: string, role: UserRole): Promise<readonly PageSummary[]> {
     const pages = await this.pageRepository.listWithProperties(workspaceId, userId, role);
-    const personKeysByParentId = new Map<string, readonly string[]>();
-    const assigned: PageSummary[] = [];
-    for (const page of pages) {
-      const parentId = page.parentId;
-      if (parentId === null) continue;
-      if (!personKeysByParentId.has(parentId)) {
-        const properties = await this.pageSchemaRepository.resolveSchemaProperties(parentId);
-        personKeysByParentId.set(
-          parentId,
-          properties
-            .filter((property) => property.type === DatabasePropertyType.PERSON)
-            .map((property) => property.key),
-        );
-      }
-      const personKeys = personKeysByParentId.get(parentId) ?? [];
-      if (isPageAssignedTo(page.propertyValues, personKeys, userId)) assigned.push(page);
-    }
-    return assigned;
+    const collectionIds = [...new Set(pages.flatMap((page) => (page.parentId === null ? [] : [page.parentId])))];
+    const personKeysByCollection = await this.pageSchemaRepository.listPersonPropertyKeys(collectionIds);
+    return pages.filter((page) => {
+      const personKeys = page.parentId === null ? [] : (personKeysByCollection.get(page.parentId) ?? []);
+      return isPageAssignedTo(page.propertyValues, personKeys, userId);
+    });
   }
 
   async listMoveDestinations(
@@ -339,7 +369,6 @@ export class PagesService {
     return destinations === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(destinations);
   }
 
-  /** Rearranging sisters is not moving a page: nothing changes hands, so nobody else has to be told. */
   async reorderAmongSiblings(
     pageId: string,
     beforePageId: null | string,
@@ -474,7 +503,6 @@ export class PagesService {
     return Result.ok({ deletedCount: deletedPageIds.length });
   }
 
-  /** Whether a page may hang where it is being sent: a real parent there, and not one of its own. */
   validateMove(
     pageId: string,
     parentId: null | string,
@@ -489,7 +517,7 @@ export class PagesService {
 
   private validateWritableContent(
     role: UserRole,
-    content: Prisma.InputJsonValue,
+    content: JsonValue | PageContent,
   ): Result<PageContent, PageAccessDeniedError | PageContentValidationError> {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     return validatePageContent(content);
@@ -523,11 +551,21 @@ export class PagesService {
     return childPageCount === null ? Result.fail(new PageAccessDeniedError()) : Result.ok({ childPageCount });
   }
 
+  /** Logged, not thrown: the page row is already gone, but an orphaned file must leave a trace. */
   private async cleanupAttachments(pageIds: readonly string[]): Promise<void> {
     if (pageIds.length === 0) return;
     const storageKeys = await this.pageAttachmentsCleanupRepository.listStorageKeysForPages(pageIds);
     await this.pageAttachmentsCleanupRepository.deleteForPages(pageIds);
-    await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
+    const removals = await Promise.allSettled(storageKeys.map((storageKey) => this.storageProvider.delete(storageKey)));
+    for (const [index, removal] of removals.entries()) {
+      if (removal.status === 'rejected') {
+        this.logger.warn({
+          err: removal.reason,
+          message: 'An attachment outlived its page and is still in storage',
+          storageKey: storageKeys[index],
+        });
+      }
+    }
   }
 
   private async resolvePropertyValuesForWrite(

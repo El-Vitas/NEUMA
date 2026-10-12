@@ -1,68 +1,92 @@
 import {
+  MARKDOWN_BLOCK_ANCHOR_CLOSE,
+  MARKDOWN_BLOCK_ANCHOR_ID,
+  MARKDOWN_BLOCK_ANCHOR_OPEN,
+  MARKDOWN_BLOCK_COLOR_ATTRIBUTES,
   MARKDOWN_BLOCK_SEPARATOR,
+  MARKDOWN_DIRECTIVE_ATTRIBUTES,
   MARKDOWN_DIRECTIVE_FENCE,
   MARKDOWN_MARK_WRAPPERS,
+  MARKDOWN_TAG_MARKS,
 } from './constants/page-markdown.constants.js';
-import type { PageContent, PageContentJson, PageMark } from './schemas/page-content.schema.js';
+import {
+  isPageDocumentNode,
+  listPageDocumentChildren,
+  readPageDocumentBlockId,
+  readPageDocumentText,
+} from './page-document/page-document.node.lib.js';
+import type { PageDocumentNodeShape } from './page-document/page-document.types.js';
+import {
+  buildMarkdownCodeFence,
+  escapeMarkdownDirectiveValue,
+  escapeMarkdownLineStarts,
+  escapeMarkdownLinkTarget,
+  escapeMarkdownTableCell,
+  escapeMarkdownText,
+} from './page-markdown.escape.lib.js';
+import type { PageContent, PageMark } from './schemas/page-content.schema.js';
 
-/** Anything a page holds, read by shape rather than by name: a block this version does not know still has to come out. */
-type AnyNode = {
-  readonly attrs?: { readonly [key: string]: PageContentJson };
-  readonly content?: readonly unknown[];
-  readonly marks?: readonly PageMark[];
-  readonly text?: string;
-  readonly type: string;
+type AnyNode = PageDocumentNodeShape;
+
+type BlockAnchor = (node: AnyNode, written: string) => string;
+
+const childrenOf = listPageDocumentChildren;
+const attr = readPageDocumentText;
+
+const leaveUnanchored: BlockAnchor = (_node, written) => written;
+
+const writeBlockColors = (node: AnyNode): string =>
+  MARKDOWN_BLOCK_COLOR_ATTRIBUTES.map((name) => [name, attr(node, name)] as const)
+    .filter(([, color]) => color !== undefined)
+    .map(([name, color]) => ` ${name}="${color ?? ''}"`)
+    .join('');
+
+const anchorBlock: BlockAnchor = (node, written) => {
+  const blockId = readPageDocumentBlockId(node);
+  if (blockId === null || written === '' || !MARKDOWN_BLOCK_ANCHOR_ID.test(blockId)) return written;
+  return `${MARKDOWN_BLOCK_ANCHOR_OPEN}${blockId}${writeBlockColors(node)}${MARKDOWN_BLOCK_ANCHOR_CLOSE}\n${written}`;
 };
 
-const isNode = (value: unknown): value is AnyNode =>
-  typeof value === 'object' && value !== null && 'type' in value && typeof value.type === 'string';
-
-/**
- * What hangs inside a node, keeping only what is a node.
- *
- * A block this version does not know keeps its insides as plain data, and
- * plain data can be a number or nothing at all. Asking here rather than at
- * every reader keeps the question in one place.
- */
-const childrenOf = (node: AnyNode): readonly AnyNode[] => (node.content ?? []).filter(isNode);
-
-const attr = (node: AnyNode, name: string): string | undefined => {
-  const value = node.attrs?.[name];
-  return typeof value === 'string' ? value : undefined;
+const writeTagMark = (carried: string, mark: PageMark): string => {
+  switch (mark.type) {
+    case 'underline':
+      return `<${MARKDOWN_TAG_MARKS.underline}>${carried}</${MARKDOWN_TAG_MARKS.underline}>`;
+    case 'text_color':
+      return `<${MARKDOWN_TAG_MARKS.text_color} color="${mark.attrs.color}">${carried}</${MARKDOWN_TAG_MARKS.text_color}>`;
+    case 'background_color':
+      return `<${MARKDOWN_TAG_MARKS.background_color} color="${mark.attrs.color}">${carried}</${MARKDOWN_TAG_MARKS.background_color}>`;
+    default:
+      return carried;
+  }
 };
 
-/**
- * A word with whatever it wears written around it.
- *
- * A link is the outermost wrapper because that is how Markdown reads it: the
- * emphasis belongs to the words, and the link belongs to all of them together.
- */
+// The link is the outermost wrapper: emphasis belongs to the words, the link to all of them.
 const writeText = (node: AnyNode): string => {
   const marks = node.marks ?? [];
-  const written = marks
+  const isCode = marks.some((mark) => mark.type === 'code');
+  const words = isCode ? (node.text ?? '') : escapeMarkdownText(node.text ?? '');
+  const wrapped = marks
     .filter((mark) => mark.type in MARKDOWN_MARK_WRAPPERS)
     .reduce((carried, mark) => {
       const wrapper = MARKDOWN_MARK_WRAPPERS[mark.type as keyof typeof MARKDOWN_MARK_WRAPPERS];
       return `${wrapper}${carried}${wrapper}`;
-    }, node.text ?? '');
+    }, words);
+  const written = marks.reduce((carried, mark) => writeTagMark(carried, mark), wrapped);
   const link = marks.find((mark) => mark.type === 'link');
-  return link === undefined ? written : `[${written}](${link.attrs.href})`;
+  return link === undefined ? written : `[${written}](${escapeMarkdownLinkTarget(link.attrs.href)})`;
 };
 
-/**
- * What lives inside a line and is not a word.
- *
- * Each one is written as the thing Markdown already has that means the same:
- * a mention is a link to the page it names, a person is a link to who they
- * are, a formula is a formula. Nothing here invents syntax, so a plain reader
- * still reads a sentence.
- */
+const readMentionTarget = (node: AnyNode): string =>
+  ['', 'spaces', attr(node, 'spaceId') ?? '', 'pages', attr(node, 'pageId') ?? ''].join('/');
+
+/** Mentions, people and formulas use constructs Markdown already has, so a plain reader still reads a sentence. */
 const writeInline = (node: AnyNode): string => {
   if (node.type === 'text') return writeText(node);
   if (node.type === 'hard_break') return '\n';
   if (node.type === 'mention')
-    return `[${attr(node, 'label') ?? ''}](/spaces/${attr(node, 'spaceId') ?? ''}/pages/${attr(node, 'pageId') ?? ''})`;
-  if (node.type === 'person') return `[@${attr(node, 'label') ?? ''}](person:${attr(node, 'userId') ?? ''})`;
+    return `[${escapeMarkdownText(attr(node, 'label') ?? '')}](${escapeMarkdownLinkTarget(readMentionTarget(node))})`;
+  if (node.type === 'person')
+    return `[@${escapeMarkdownText(attr(node, 'label') ?? '')}](person:${escapeMarkdownLinkTarget(attr(node, 'userId') ?? '')})`;
   if (node.type === 'date') {
     const at = attr(node, 'at') ?? '';
     return `[${at}](date:${at})`;
@@ -73,27 +97,40 @@ const writeInline = (node: AnyNode): string => {
 
 const writeInlines = (nodes: readonly AnyNode[]): string => nodes.map(writeInline).join('');
 
-/** What a block says on its own, with every line of it pushed behind the same marker. */
 const indentEveryLine = (written: string, marker: string): string =>
   written
     .split('\n')
     .map((line) => `${marker}${line}`)
     .join('\n');
 
-const writeListItems = (node: AnyNode, marker: (at: number) => string): string =>
+/** The first line is the item itself and carries no id of its own; nested blocks do. */
+const writeListItemBody = (item: AnyNode, anchor: BlockAnchor): string => {
+  const children = childrenOf(item);
+  const line = children.at(0);
+  return [line === undefined ? '' : writeBlock(line, anchor), writeBlocks(children.slice(1), anchor)]
+    .filter((written) => written !== '')
+    .join(MARKDOWN_BLOCK_SEPARATOR);
+};
+
+const writeListItems = (node: AnyNode, marker: (at: number) => string, anchor: BlockAnchor): string =>
   childrenOf(node)
     .map((item, at) => {
-      const written = writeBlocks(childrenOf(item));
-      const [head = '', ...rest] = written.split('\n');
+      const [head = '', ...rest] = writeListItemBody(item, anchor).split('\n');
       const lead = marker(at);
       const tail = rest.map((line) => `${' '.repeat(lead.length)}${line}`);
-      return [`${lead}${head}`, ...tail].join('\n');
+      return anchor(item, [`${lead}${head}`, ...tail].join('\n'));
     })
     .join('\n');
 
+const writeTaskItems = (node: AnyNode, anchor: BlockAnchor): string =>
+  childrenOf(node)
+    .map((item) => anchor(item, `- [${item.attrs?.checked === true ? 'x' : ' '}] ${writeListItemBody(item, anchor)}`))
+    .join('\n');
+
+/** Cells carry no ids: a table row allows nothing between its cells. */
 const writeTableRow = (row: AnyNode): string =>
   `| ${childrenOf(row)
-    .map((cell) => writeBlocks(childrenOf(cell)))
+    .map((cell) => escapeMarkdownTableCell(writeBlocks(childrenOf(cell), leaveUnanchored)))
     .join(' | ')} |`;
 
 const writeTable = (node: AnyNode): string => {
@@ -106,12 +143,24 @@ const writeTable = (node: AnyNode): string => {
   return [writeTableRow(header), rule, ...body.map(writeTableRow)].join('\n');
 };
 
-/** The data a block carries, written where a reader can see it and a reader-back can find it. */
+const writeCodeBlock = (node: AnyNode): string => {
+  const code = childrenOf(node)
+    .map((child) => child.text ?? '')
+    .join('');
+  const fence = buildMarkdownCodeFence(code);
+  return `${fence}${attr(node, 'language') ?? ''}\n${code}\n${fence}`;
+};
+
+const readWritableAttr = (node: AnyNode, name: string): string | undefined => {
+  const value = node.attrs?.[name];
+  return typeof value === 'number' ? String(value) : attr(node, name);
+};
+
 const writeDirectiveAttrs = (node: AnyNode, names: readonly string[]): string => {
   const written = names
-    .map((name) => [name, attr(node, name)] as const)
+    .map((name) => [name, readWritableAttr(node, name)] as const)
     .filter(([, value]) => value !== undefined && value !== '')
-    .map(([name, value]) => `${name}="${value ?? ''}"`);
+    .map(([name, value]) => `${name}="${escapeMarkdownDirectiveValue(value ?? '')}"`);
   return written.length === 0 ? '' : `{${written.join(' ')}}`;
 };
 
@@ -120,45 +169,22 @@ const writeDirective = (node: AnyNode, names: readonly string[], inside: string)
     .filter((part) => part !== '')
     .join('\n');
 
-/**
- * The attributes each kind of block is written with.
- *
- * Only what a reader-back would need to rebuild the block: an id that says
- * which page a collection draws from is worth keeping, and the width a column
- * happened to have is not.
- */
-const DIRECTIVE_ATTRS: Readonly<Record<string, readonly string[]>> = {
-  bookmark: ['url'],
-  button: ['label'],
-  callout: ['icon'],
-  collection: ['pageId', 'view'],
-  embed: ['url'],
-  file: ['assetId', 'name'],
-  subpage: ['pageId'],
-  synced: ['pageId', 'blockId'],
-  toggle: ['summary'],
-};
-
-const writeBlock = (node: AnyNode): string => {
+const writeBlock = (node: AnyNode, anchor: BlockAnchor): string => {
   switch (node.type) {
     case 'paragraph':
-      return writeInlines(childrenOf(node));
+      return escapeMarkdownLineStarts(writeInlines(childrenOf(node)));
     case 'heading':
       return `${'#'.repeat(Number(node.attrs?.level ?? 1))} ${writeInlines(childrenOf(node))}`;
     case 'blockquote':
-      return indentEveryLine(writeBlocks(childrenOf(node)), '> ');
+      return indentEveryLine(writeBlocks(childrenOf(node), anchor), '> ');
     case 'bullet_list':
-      return writeListItems(node, () => '- ');
+      return writeListItems(node, () => '- ', anchor);
     case 'ordered_list':
-      return writeListItems(node, (at) => `${String(at + 1)}. `);
+      return writeListItems(node, (at) => `${String(at + 1)}. `, anchor);
     case 'task_list':
-      return childrenOf(node)
-        .map((item) => `- [${item.attrs?.checked === true ? 'x' : ' '}] ${writeBlocks(childrenOf(item))}`)
-        .join('\n');
-    case 'code_block': {
-      const language = attr(node, 'language') ?? '';
-      return `\`\`\`${language}\n${writeInlines(childrenOf(node))}\n\`\`\``;
-    }
+      return writeTaskItems(node, anchor);
+    case 'code_block':
+      return writeCodeBlock(node);
     case 'divider':
       return '---';
     case 'table':
@@ -166,28 +192,29 @@ const writeBlock = (node: AnyNode): string => {
     case 'image':
     case 'video':
     case 'audio':
-      return `![${attr(node, 'alt') ?? attr(node, 'name') ?? ''}](${attr(node, 'src') ?? attr(node, 'assetId') ?? ''})`;
+      return `![${escapeMarkdownText(attr(node, 'alt') ?? attr(node, 'name') ?? '')}](${escapeMarkdownLinkTarget(attr(node, 'src') ?? attr(node, 'assetId') ?? '')})`;
     default:
       return writeDirective(
         node,
-        DIRECTIVE_ATTRS[node.type] ?? Object.keys(node.attrs ?? {}),
-        writeBlocks(childrenOf(node)),
+        MARKDOWN_DIRECTIVE_ATTRIBUTES[node.type] ?? Object.keys(node.attrs ?? {}),
+        writeBlocks(childrenOf(node), anchor),
       );
   }
 };
 
-const writeBlocks = (nodes: readonly AnyNode[]): string =>
+const writeBlocks = (nodes: readonly AnyNode[], anchor: BlockAnchor): string =>
   nodes
-    .map(writeBlock)
+    .map((node) => anchor(node, writeBlock(node, anchor)))
     .filter((written) => written !== '')
     .join(MARKDOWN_BLOCK_SEPARATOR);
 
-/**
- * A page written as Markdown.
- *
- * What Markdown already says is said in Markdown, so the file reads as an
- * ordinary document anywhere. What it does not say is written as the nearest
- * thing that carries the same meaning — a link, or a named fence — so what
- * comes out can be read back in without guessing.
- */
-export const writePageAsMarkdown = (content: PageContent): string => writeBlocks(content.content);
+/** What Markdown cannot say is written as the nearest equivalent (a link, a named fence) so it reads back. */
+export const writePageAsMarkdown = (content: PageContent): string =>
+  writeBlocks(content.content.filter(isPageDocumentNode), leaveUnanchored);
+
+/** Read by agents, who need each block's id to reference, request or write next to it. */
+export const writePageAsAnchoredMarkdown = (content: PageContent): string =>
+  writeBlocks(content.content.filter(isPageDocumentNode), anchorBlock);
+
+export const writeBlocksAsAnchoredMarkdown = (nodes: readonly unknown[]): string =>
+  writeBlocks(nodes.filter(isPageDocumentNode), anchorBlock);

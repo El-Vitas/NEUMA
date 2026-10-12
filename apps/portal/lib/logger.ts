@@ -1,9 +1,10 @@
-import { formatChileanTime } from '@company-brain/shared';
+import { formatChileanTime } from '@neuma/shared';
 import pino from 'pino';
 import 'pino-pretty';
 import { env } from '@/config/env.config';
 
-const isProduction = env.NODE_ENV === 'production';
+/** Pretty output spawns a worker thread that crashes under the test runner, so only development uses it. */
+const wantsReadableOutput = env.NODE_ENV === 'development';
 
 export const logger = pino({
   level: env.LOG_LEVEL,
@@ -15,9 +16,8 @@ export const logger = pino({
     paths: ['password', 'token', 'secret', 'email', 'authorization'],
     censor: '[REDACTED]',
   },
-  ...(isProduction
-    ? {}
-    : {
+  ...(wantsReadableOutput
+    ? {
         transport: {
           target: 'pino-pretty',
           options: {
@@ -26,5 +26,6 @@ export const logger = pino({
             translateTime: false,
           },
         },
-      }),
+      }
+    : {}),
 });

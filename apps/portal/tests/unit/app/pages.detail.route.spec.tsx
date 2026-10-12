@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { render, screen } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 
@@ -43,6 +43,7 @@ mock.module('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
+  useSearchParams: () => new URLSearchParams(),
 }));
 mock.module('next-intl/server', () => ({
   getLocale: async () => 'en',
@@ -51,8 +52,8 @@ mock.module('next-intl/server', () => ({
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { readonly children: ReactNode; readonly href: string }) =>
     createElement('a', { href }, children),
-  /** The route sends an address that lost its page to wherever the page went. */
   redirect: () => undefined,
+  useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('@/shared/server/lib/current-user.server', () => ({ getCurrentUser: currentUser }));
 mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
@@ -61,14 +62,29 @@ mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/attachments/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
 mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
+const getPages = mock(async () => pagesResult);
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
-  getPages: async () => pagesResult,
-  /** The route asks where a page lives when the address does not find it here. */
+  getPages,
+  getPagesHolding: async () => pagesResult,
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
-  getPageView: async () => ({ getValue: () => ({ kind: 'TABLE_ROWS', rows: [] }), isOk: () => true }),
+  getPageView: async () => ({ getValue: () => ({ kind: 'FLAT_ROWS', rows: [] }), isOk: () => true }),
+}));
+// Server actions cannot be loaded in a browser-shaped test.
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  rewritePageCollectionOptionAction: async () => ({ data: null }),
+  updatePageCollectionAction: async () => ({ data: null }),
+  updatePageViewConfigurationAction: async () => ({ data: null }),
+  updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+mock.module('@/modules/pages/server/actions/pages.actions', () => ({
+  createPageAction: async () => ({ data: { id: 'row-new' } }),
+  duplicatePageAction: async () => ({ data: { id: 'row-copy' } }),
+  reorderPageAction: async () => ({ data: null }),
+  restorePageAction: async () => ({ data: null }),
+  trashPageAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/spaces/server/queries/spaces.queries', () => ({
   getSpaceMembers: async () => ({ getValue: () => [], isOk: () => true }),
@@ -84,5 +100,18 @@ describe('page detail route attachments', () => {
     render(result);
 
     expect(screen.getByTestId('page-workspace').getAttribute('data-attachment-count')).toBe('0');
+  });
+});
+
+describe('page detail route freshness', () => {
+  /** A page written from outside the portal, by an agent, is not in the kept list until it refreshes. */
+  it('opens a page the kept list does not have yet, instead of saying it does not exist', async () => {
+    getPages.mockImplementationOnce(async () => ({ ...pagesResult, getValue: () => [] }));
+
+    const result = await Page({ params: Promise.resolve({ pageId, spaceId }) });
+
+    render(result);
+
+    expect(screen.getAllByTestId('page-workspace').length).toBeGreaterThan(0);
   });
 });

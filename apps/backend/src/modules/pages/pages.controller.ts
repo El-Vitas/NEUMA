@@ -1,4 +1,3 @@
-import type { Result } from '@company-brain/shared';
 import {
   BadRequestException,
   Body,
@@ -12,9 +11,11 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Result } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { MutationId } from '../../common/infrastructure/decorators/mutation-id.decorator';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
+import { ExportThrottlerGuard } from '../../common/infrastructure/guards/export-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
@@ -31,10 +32,10 @@ import { ListPagesDto } from './dto/page.list.dto';
 import { SetPageLockDto } from './dto/page.lock.dto';
 import { MovePageDto } from './dto/page.move.dto';
 import { SetPageOwnerDto } from './dto/page.owner.dto';
+import { UpdatePagePropertiesDto } from './dto/page.properties.dto';
 import { RenamePageDto } from './dto/page.rename.dto';
 import { ReorderPageDto } from './dto/page.reorder.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
-import { UpdatePageDto } from './dto/page.update.dto';
 import { SetPageVerificationDto } from './dto/page.verification.dto';
 import { PagesService } from './pages.service';
 import type { PageDescendantsPreview, PageRestoreOutcome } from './types/page.types';
@@ -96,34 +97,34 @@ export class PagesController {
     return result.getValue();
   }
 
-  @Patch(':pageId')
+  @Patch(':pageId/title')
   @UseGuards(JwtAuthGuard)
-  async update(@Param('pageId') pageId: string, @Body() dto: UpdatePageDto, @User('payload') payload: TokenPayload) {
+  async rename(@Param('pageId') pageId: string, @Body() dto: RenamePageDto, @User('payload') payload: TokenPayload) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.update(
-      {
-        content: dto.content,
-        pageId,
-        propertyValues: dto.propertyValues ?? null,
-        role: payload.role,
-        title: dto.title,
-        updatedById: payload.sub,
-        userId: payload.sub,
-        workspaceId: workspace.id,
-      },
-      payload.role,
-    );
+    const result = await this.pagesService.rename(pageId, dto.title, payload.sub, workspace.id, payload.role);
     if (result.isFail()) {
       throw result.getError();
     }
     return result.getValue();
   }
 
-  @Patch(':pageId/title')
+  /** Separate from saving a page: resending the whole page on a card drag would overwrite concurrent edits. */
+  @Patch(':pageId/properties')
   @UseGuards(JwtAuthGuard)
-  async rename(@Param('pageId') pageId: string, @Body() dto: RenamePageDto, @User('payload') payload: TokenPayload) {
+  async updateProperties(
+    @Param('pageId') pageId: string,
+    @Body() dto: UpdatePagePropertiesDto,
+    @User('payload') payload: TokenPayload,
+  ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.rename(pageId, dto.title, payload.sub, workspace.id, payload.role);
+    const result = await this.pagesService.updateProperties({
+      pageId,
+      propertyValues: dto.propertyValues,
+      role: payload.role,
+      updatedById: payload.sub,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
     if (result.isFail()) {
       throw result.getError();
     }
@@ -246,24 +247,18 @@ export class PagesController {
     return result.getValue();
   }
 
-  /**
-   * A scope of pages as one Markdown file.
-   *
-   * Answered as text rather than as JSON because what comes back is a file
-   * somebody saves, not a shape a program reads: wrapping it in JSON would
-   * make every reader unwrap it before it were a document again.
-   */
+  /** Returns raw bytes, not JSON: a single Markdown file for one page, a zip otherwise. */
   @Get('export/markdown')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ExportThrottlerGuard)
   async exportAsMarkdown(
     @Param('spaceId') spaceId: string,
     @Query() dto: ExportPagesQueryDto,
     @User('payload') payload: TokenPayload,
     @Res({ passthrough: true }) response: FastifyReply,
   ): Promise<Buffer | string> {
-    const scope = readExportScope(dto.scope, dto.pageId ?? null);
+    const scope = readExportScope(dto.scope, dto.pageId ?? null, dto.pageIds ?? []);
     if (scope === null) {
-      throw new BadRequestException('An export of one page needs to say which page');
+      throw new BadRequestException('An export that is not the whole space needs to say which pages');
     }
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.exportAsMarkdown(
@@ -280,7 +275,7 @@ export class PagesController {
 
     const files = result.getValue();
     const onlyOne = files.length === 1 ? files[0] : undefined;
-    if (onlyOne !== undefined) {
+    if (onlyOne !== undefined && typeof onlyOne.contents === 'string') {
       response.header('Content-Type', EXPORT_MARKDOWN_MEDIA_TYPE);
       return onlyOne.contents;
     }

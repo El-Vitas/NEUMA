@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageBlockComment, PageContent, PageContentNode } from '@company-brain/shared';
+import type { PageBlockComment, PageContent, PageContentNode } from '@neuma/shared';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
@@ -37,12 +37,10 @@ const closeEditor = (mounted: { readonly container: HTMLElement; readonly view: 
   mounted.container.remove();
 };
 
-/** Chooses the text between two places of the first block, as dragging over it would. */
 const chooseFragment = (view: EditorView, from: number, to: number): void => {
   view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, from, to)));
 };
 
-/** A press on an element, as the page would report it: aimed at that very element. */
 const pressOn = (element: Element): MouseEvent => {
   let press: MouseEvent | null = null;
   element.addEventListener('click', (event) => {

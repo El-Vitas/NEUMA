@@ -16,14 +16,6 @@ interface IProps {
   readonly title: string;
 }
 
-/**
- * Where everything in a document is, and where the reader is in it.
- *
- * Each heading answers to a name of its own, so this is also how one stretch of
- * a document is sent to somebody else: the address of the page ending in the
- * name of the heading lands on the heading. The one being read is marked, which
- * is what turns a list of names into a place to stand.
- */
 export const DocsContents = ({ headings, title }: IProps) => {
   const [beingRead, setBeingRead] = useState<string | null>(null);
 

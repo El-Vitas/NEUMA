@@ -1,4 +1,4 @@
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE } from '../constants/pages.editor.blocks.constants';
 import { readPageEditorBlockRequest } from './pages.editor.block-menu.lib';
@@ -12,21 +12,13 @@ const readBlockComments = (attrs: Record<string, unknown>): readonly PageBlockCo
   return Array.isArray(comments) ? comments.filter(isPageBlockComment) : [];
 };
 
-/** What has been said about the block a gesture is aimed at. */
 export const readPageEditorBlockComments = (state: EditorState): readonly PageBlockComment[] => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return [];
   return readBlockComments(range.parent.child(range.startIndex).attrs);
 };
 
-/**
- * Leaves a remark on the block a gesture is aimed at.
- *
- * The remark is kept by the block itself, so moving the block takes its
- * comments along and reloading the page brings them back. When it was left on a
- * fragment, that stretch of text is marked with which remark it is, so the two
- * ways of commenting are one thing said in one place.
- */
+/** Comments are stored on the block; a fragment comment also marks its text with the comment id. */
 export const createPageEditorBlockCommentCommand =
   (comment: PageBlockComment): Command =>
   (state, dispatch) => {
@@ -46,12 +38,7 @@ export const createPageEditorBlockCommentCommand =
     return true;
   };
 
-/**
- * Takes a remark off the block, for when it no longer says anything useful.
- *
- * Whatever text was pointing at that remark stops pointing at it, so no
- * fragment is left underlined for a conversation that is over.
- */
+/** Also unmarks the fragment pointing at the comment, so no text stays underlined. */
 export const createPageEditorBlockCommentRemovalCommand =
   (commentId: string): Command =>
   (state, dispatch) => {

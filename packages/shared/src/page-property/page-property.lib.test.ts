@@ -51,10 +51,16 @@ describe('page property capabilities', () => {
     expect(typesNeedingDirectory).toEqual([PAGE_PROPERTY_TYPE.PERSON]);
   });
 
-  test('only a single select can group a board', () => {
+  // Free text is excluded (one column per answer), as is multi-select (one row in several columns).
+  test('a board groups by whatever answers with a single value', () => {
     const groupableTypes = PAGE_PROPERTY_TYPE_VALUES.filter(canPagePropertyGroupBoard);
 
-    expect(groupableTypes).toEqual([PAGE_PROPERTY_TYPE.SELECT]);
+    expect(groupableTypes).toEqual([
+      PAGE_PROPERTY_TYPE.SELECT,
+      PAGE_PROPERTY_TYPE.DATE,
+      PAGE_PROPERTY_TYPE.CHECKBOX,
+      PAGE_PROPERTY_TYPE.NUMBER,
+    ]);
   });
 
   test('only the title type identifies the page', () => {

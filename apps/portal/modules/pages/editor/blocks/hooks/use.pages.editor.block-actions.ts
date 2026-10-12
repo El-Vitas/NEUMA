@@ -2,52 +2,44 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import type { Node as EditorNode } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { type RefObject, useCallback } from 'react';
 import { toast } from 'sonner';
-import { hasActionError } from '@/shared/lib/action-result';
+import { callAction, hasActionError } from '@/shared/lib/action-result';
+import { copyTextToClipboard } from '@/shared/lib/clipboard.lib';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { addBlocksToPageAction } from '../../../server/actions/pages.actions';
 import type { PageDestination } from '../../menus/types/pages.editor.destination.types';
 import { buildSyncedBlockContent } from '../../structure/lib/pages.editor.synced.lib';
-import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
+import { createDeleteSentPageBlocksCommand } from '../lib/pages.editor.block-delete.lib';
 import { buildPageEditorBlockLink, readPageEditorBlockId } from '../lib/pages.editor.block-link.lib';
 import { changePageEditorBlockRequest, closePageEditorBlockRequest } from '../lib/pages.editor.block-menu.lib';
-import { readSelectedPageBlocksContent } from '../lib/pages.editor.block-travel.lib';
+import { readSelectedPageBlocks, readSelectedPageBlocksContent } from '../lib/pages.editor.block-travel.lib';
 import type { PageEditorBlockActions } from '../types/pages.editor.block-actions.types';
 import type { PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 
-/**
- * What the block menu can set in motion, kept away from the editor's own
- * plumbing: running a command on the block, copying its address, and handing
- * the selected blocks to another page.
- */
 export const usePagesEditorBlockActions = (
   editorViewRef: RefObject<EditorView | null>,
-  /** Which page is being written: a block can only be shown elsewhere once it has a page to live in. */
   shownPage: { readonly pageId: string | null; readonly spaceId: string },
 ): PageEditorBlockActions => {
   const t = useTranslations('pages');
   const router = useRouter();
 
-  /**
-   * Gives the editor the focus back once the menu that held it is gone: asking
-   * for it earlier achieves nothing, because what had the focus is about to be
-   * removed and the page would be left with nothing focused at all.
-   */
+  /** Focus is restored on the next frame: the menu that held it is still mounted until then. */
   const runCommand = useCallback(
-    (command: Command): void => {
+    (command: Command): boolean => {
       const editorView = editorViewRef.current;
-      if (editorView === null) return;
+      if (editorView === null) return false;
       closePageEditorBlockRequest(editorView, 'actions');
-      command(editorView.state, editorView.dispatch);
+      const isDone = command(editorView.state, editorView.dispatch);
       requestAnimationFrame(() => editorView.focus());
+      return isDone;
     },
     [editorViewRef],
   );
 
-  /** Asks the same blocks something else — their comments, or where they are going. */
   const ask = useCallback(
     (kind: PageEditorBlockRequestKind): void => {
       const editorView = editorViewRef.current;
@@ -57,7 +49,6 @@ export const usePagesEditorBlockActions = (
     [editorViewRef],
   );
 
-  /** Puts away what the block was asked, so leaving the menu never closes what it opened. */
   const close = useCallback(
     (kind: PageEditorBlockRequestKind): void => {
       const editorView = editorViewRef.current;
@@ -68,22 +59,24 @@ export const usePagesEditorBlockActions = (
     [editorViewRef],
   );
 
-  const copyLink = useCallback((): void => {
+  const copyLink = useCallback(async (): Promise<void> => {
     const editorView = editorViewRef.current;
     if (editorView === null) return;
     const blockId = readPageEditorBlockId(editorView.state);
     if (blockId === null) return;
     closePageEditorBlockRequest(editorView, 'actions');
 
-    void navigator.clipboard
-      .writeText(buildPageEditorBlockLink(globalThis.location.href, blockId))
-      .then(() => toast.success(t('blockLinkCopied')))
-      .catch(() => toast.error(t('blockLinkCopyFailed')));
+    if (await copyTextToClipboard(buildPageEditorBlockLink(globalThis.location.href, blockId)))
+      toast.success(t('blockLinkCopied'));
+    else toast.error(t('blockLinkCopyFailed'));
   }, [editorViewRef, t]);
 
   const announceHandover = useCallback(
-    (destination: PageDestination): void => {
-      runCommand(deletePageEditorBlocks);
+    (destination: PageDestination, sent: readonly EditorNode[]): void => {
+      if (!runCommand(createDeleteSentPageBlocksCommand(sent))) {
+        toast.warning(t('moveBlocksKept', { page: destination.label }));
+        return;
+      }
       toast.success(t('moveBlocksDone', { page: destination.label }), {
         action: {
           label: t('moveBlocksVisit'),
@@ -94,32 +87,32 @@ export const usePagesEditorBlockActions = (
     [router, runCommand, t],
   );
 
-  /**
-   * The blocks are added to the other page first and only then taken off this
-   * one, so a failure on the way leaves the page as it was.
-   */
-  const handOver = useCallback(
-    (destination: PageDestination): void => {
+  /** Adds to the other page first, then deletes the blocks that were sent, not the current selection. */
+  const sendOver = useCallback(
+    async (destination: PageDestination): Promise<void> => {
       const editorView = editorViewRef.current;
-      const travelling = editorView === null ? null : readSelectedPageBlocksContent(editorView.state);
-      if (travelling === null) return;
+      if (editorView === null) return;
+      const travelling = readSelectedPageBlocksContent(editorView.state);
+      const sent = readSelectedPageBlocks(editorView.state);
+      if (travelling === null || sent === null) return;
 
-      void addBlocksToPageAction({ content: travelling, pageId: destination.id, spaceId: destination.spaceId }).then(
-        (result) => {
-          if (hasActionError(result)) toast.error(t('moveBlocksError'));
-          else announceHandover(destination);
-        },
+      const result = await callAction(() =>
+        addBlocksToPageAction({ content: travelling, pageId: destination.id, spaceId: destination.spaceId }),
       );
+      if (hasActionError(result)) toast.error(t('moveBlocksError'));
+      else announceHandover(destination, sent);
     },
     [announceHandover, editorViewRef, t],
   );
 
-  /**
-   * Shows this block in another page too, without moving it.
-   *
-   * What travels is not the block but where it lives, so the other page shows
-   * what this one says: one block, read in two places.
-   */
+  const handOver = useCallback(
+    (destination: PageDestination): void => {
+      void sendOver(destination);
+    },
+    [sendOver],
+  );
+
+  /** Links the block by reference rather than copying it: one block, shown in two pages. */
   const syncInto = useCallback(
     (destination: PageDestination): void => {
       const editorView = editorViewRef.current;

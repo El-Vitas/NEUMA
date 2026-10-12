@@ -1,5 +1,5 @@
-import type { UserRole } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
 import { LINKS_REPOSITORY } from './constants/links.tokens';
 import type {
   BacklinksResult,

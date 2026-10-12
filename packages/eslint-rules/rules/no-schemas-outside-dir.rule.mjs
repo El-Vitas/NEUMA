@@ -1,6 +1,3 @@
-// no-schemas-outside-dir
-// Qué hace: prohíbe declarar schemas (Zod, etc.) fuera de un directorio `schemas/`.
-// Para qué: hogar único de validación; nada de schemas inline en rutas/servicios (§1.1).
 export const noSchemasOutsideDir = {
   meta: {
     type: 'suggestion',

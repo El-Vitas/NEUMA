@@ -22,7 +22,6 @@ const findEnclosingBlockStart = (resolvedPosition: ResolvedPos): number | null =
   return null;
 };
 
-/** The block that holds the one starting at `blockStart`, skipping the container its children live in. */
 const findHoldingBlockStart = (state: EditorState, blockStart: number): number | null => {
   const resolvedPosition = state.doc.resolve(blockStart);
   for (let depth = resolvedPosition.depth; depth > 0; depth -= 1) {
@@ -33,13 +32,7 @@ const findHoldingBlockStart = (state: EditorState, blockStart: number): number |
   return null;
 };
 
-/**
- * Selects the block around the cursor, and what holds it when asked again.
- *
- * A block others hang from is selected on its own first: deleting it is then a
- * decision about that block, and taking the whole nesting with its children is
- * a second, deliberate step rather than a surprise.
- */
+/** A parent block is selected alone first, so deleting its whole nesting takes a second, deliberate step. */
 export const selectEnclosingBlock: Command = (state, dispatch) => {
   const blockStart =
     state.selection instanceof NodeSelection

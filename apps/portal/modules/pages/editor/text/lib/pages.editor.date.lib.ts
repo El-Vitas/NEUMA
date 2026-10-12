@@ -1,4 +1,4 @@
-import { isPageCalendarDay, pageDateAttrsSchema } from '@company-brain/shared';
+import { isPageCalendarDay, pageDateAttrsSchema } from '@neuma/shared';
 import type { Node as EditorNode, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import { NodeSelection } from 'prosemirror-state';
@@ -7,22 +7,12 @@ import type { PageEditorDateLabels } from '../../blocks/types/pages.editor.node-
 import { canInsertPageNode, insertPageNode } from '../../lib/pages.editor.insert.lib';
 import {
   PAGE_EDITOR_DATE_FIELD_STYLE_CLASS,
+  PAGE_EDITOR_DATE_FORMAT_OPTIONS,
   PAGE_EDITOR_DATE_STYLE_CLASS,
 } from '../constants/pages.editor.date.constants';
 import type { PageDateInsert, PageEditorDayOffer } from '../types/pages.editor.date.types';
 
-const pageDateFormatOptions: Intl.DateTimeFormatOptions = {
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-  year: 'numeric',
-};
-
-/**
- * The same insert `insertPageNode` does, but leaves the new node selected —
- * for a day offered for picking, which opens its own calendar the moment it
- * lands rather than waiting to be found and clicked.
- */
+/** Like `insertPageNode` but leaves the node selected, so a day offered for picking opens its calendar at once. */
 const insertPageNodeAndSelectIt =
   (node: EditorNode): Command =>
   (state, dispatch) => {
@@ -42,31 +32,20 @@ const createValidatedDateNode = (schema: Schema, date: PageDateInsert): EditorNo
   return attrs.success ? schema.nodes.date.createChecked(attrs.data) : null;
 };
 
-/**
- * Builds a ProseMirror command that names a calendar day where the writing is.
- *
- * Returns a no-op command (reports `false`, never dispatches) when `at` fails
- * the shared `pageDateAttrsSchema` — the same contract
- * `serializePageEditorDocument` validates against at save time.
- */
+/** Reports `false` when the date fails `pageDateAttrsSchema`, the same contract validated on save. */
 export const createPageDateInsertCommand = (schema: Schema, date: PageDateInsert): Command => {
   const node = createValidatedDateNode(schema, date);
   return node === null ? () => false : insertPageNode(node);
 };
 
-/**
- * The same naming as `createPageDateInsertCommand`, but leaves the new day
- * selected — so a day offered for picking opens its own calendar the moment
- * it lands, instead of waiting to be found and clicked.
- */
+/** Like `createPageDateInsertCommand` but leaves the new day selected. */
 export const createPageDatePickCommand = (schema: Schema, date: PageDateInsert): Command => {
   const node = createValidatedDateNode(schema, date);
   return node === null ? () => false : insertPageNodeAndSelectIt(node);
 };
 
-/** The calendar day, written the way a locale writes it. */
 export const readTheDayNamed = (at: string, locale: string): string =>
-  new Intl.DateTimeFormat(locale, pageDateFormatOptions).format(new Date(`${at}T00:00:00Z`));
+  new Intl.DateTimeFormat(locale, PAGE_EDITOR_DATE_FORMAT_OPTIONS).format(new Date(`${at}T00:00:00Z`));
 
 const asCalendarDayString = (date: Date): string => {
   const year = date.getFullYear();
@@ -78,14 +57,7 @@ const asCalendarDayString = (date: Date): string => {
 const shiftedByDays = (date: Date, days: number): Date =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 
-/**
- * The four days offered when naming one: today, tomorrow, yesterday, and
- * today again for whoever means to pick another.
- *
- * Each is a calendar day in the reader's own day boundaries — computed by
- * shifting local year/month/day fields, never by adding a day in UTC, which
- * can land on the wrong side of midnight for a reader elsewhere.
- */
+/** Days are shifted by local year/month/day fields, not by adding a UTC day, which can cross midnight. */
 export const listTheDaysOffered = (today: Date): readonly PageEditorDayOffer[] => {
   const todayAt = asCalendarDayString(today);
   return [
@@ -103,14 +75,7 @@ const writeTheDayChosen = (view: EditorView, getPosition: () => number | undefin
   view.dispatch(view.state.tr.setNodeAttribute(position, 'at', at));
 };
 
-/**
- * Opens the field's own calendar without waiting for a click on it.
- *
- * `showPicker` asks for a browser permission granted only within a user
- * gesture; a reader who reaches this node by some other means still keeps
- * the focus it leaves behind, which is itself enough to open the calendar
- * from the keyboard.
- */
+/** `showPicker` throws outside a user gesture; the focus it leaves behind still lets the keyboard open the calendar. */
 const openTheCalendar = (field: HTMLInputElement): void => {
   field.focus();
   try {
@@ -120,15 +85,7 @@ const openTheCalendar = (field: HTMLInputElement): void => {
   }
 };
 
-/**
- * A calendar day named in the writing, read the way the reader's language
- * reads a day, and rewritten through the browser's own calendar.
- *
- * The calendar is a real `<input type="date">` laid over the written day, so
- * a click on what is read is a click on the field itself: nothing here draws
- * a calendar or decides what a valid day looks like. `isPageCalendarDay`
- * still refuses whatever the field lets through that the contract would not.
- */
+/** A transparent `<input type="date">` sits over the text; `isPageCalendarDay` rejects what the contract refuses. */
 export const createPageDateNodeView = (
   node: EditorNode,
   view: EditorView,

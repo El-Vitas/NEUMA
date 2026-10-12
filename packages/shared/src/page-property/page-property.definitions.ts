@@ -10,6 +10,9 @@ import { PAGE_PROPERTY_LOGICAL_TYPE } from './page-property.types.js';
 
 const titleMaximumLength = 200;
 
+/** Generous but a cell is not a document: long writing belongs in the row's page body. */
+const richTextMaximumLength = 2000;
+
 const baseCapabilities: PagePropertyCapabilities = {
   isTitle: false,
   requiresOptions: false,
@@ -51,7 +54,7 @@ const richTextDefinition: PagePropertyDefinition = {
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.TEXT,
   capabilities: baseCapabilities,
   getDefaultValue: () => '',
-  isValidValue: (value) => typeof value === 'string',
+  isValidValue: (value) => typeof value === 'string' && value.length <= richTextMaximumLength,
   isEmptyValue: isBlankText,
   toDisplayString: String,
 };
@@ -90,7 +93,8 @@ const personDefinition: PagePropertyDefinition = {
 const dateDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.DATE,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.DATE,
-  capabilities: baseCapabilities,
+  /** One board column per date the rows use; dates are not declared in advance. */
+  capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => '',
   isValidValue: (value) => typeof value === 'string' && !Number.isNaN(Date.parse(value)),
   isEmptyValue: isBlankText,
@@ -100,7 +104,8 @@ const dateDefinition: PagePropertyDefinition = {
 const checkboxDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.CHECKBOX,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN,
-  capabilities: baseCapabilities,
+  /** Two board columns: checked or not. */
+  capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => false,
   isValidValue: (value) => typeof value === 'boolean',
   isEmptyValue: isNeverEmpty,
@@ -110,7 +115,8 @@ const checkboxDefinition: PagePropertyDefinition = {
 const numberDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.NUMBER,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.NUMBER,
-  capabilities: baseCapabilities,
+  /** One board column per number the rows use, e.g. sizes, points or floors. */
+  capabilities: { ...baseCapabilities, canGroupBoard: true },
   getDefaultValue: () => 0,
   isValidValue: (value) => typeof value === 'number' && Number.isFinite(value),
   isEmptyValue: isNeverEmpty,

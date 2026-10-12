@@ -17,7 +17,6 @@ const paragraph = (text: string) => ({ content: [{ text, type: 'text' as const }
 const buildPage = (content: readonly unknown[]): PageContent =>
   ({ content, schemaVersion: 1, type: 'doc' }) as PageContent;
 
-/** What the reader would still see, once what is folded is taken out. */
 const readVisibleText = (content: readonly unknown[]): readonly string[] => {
   const state = createPageEditorState(buildPage(content), 'Select block');
   const hidden = readPageEditorFoldedRanges(state.doc);

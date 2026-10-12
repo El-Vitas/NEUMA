@@ -6,10 +6,7 @@ import { listPageMoveDestinationsAction } from '../../server/actions/pages.actio
 import { NO_PAGE_MOVE_DESTINATIONS } from '../constants/pages.move.constants';
 import type { PageMoveDestinations } from '../types/pages.move.types';
 
-/**
- * Everywhere this page could go, read once the list is open — asking earlier
- * would cost a request for a question nobody had asked yet.
- */
+/** Fetched only once the list is open, to avoid a request nobody needs yet. */
 export const usePagesMoveDestinations = (isOpen: boolean, pageId: string, spaceId: string): PageMoveDestinations => {
   const [destinations, setDestinations] = useState<PageMoveDestinations>(NO_PAGE_MOVE_DESTINATIONS);
 

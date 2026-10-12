@@ -18,7 +18,6 @@ import {
   pageCoverRepositionSchema,
 } from '../../schemas/pages.cover.schemas';
 
-/** The image a cover replaces is let go of, so a page does not hoard the pictures it stopped showing. */
 const removePreviousCoverAsset = async (previousAssetId: string | undefined): Promise<void> => {
   if (previousAssetId === undefined) return;
   await deletePageAttachmentAction({ attachmentId: previousAssetId });

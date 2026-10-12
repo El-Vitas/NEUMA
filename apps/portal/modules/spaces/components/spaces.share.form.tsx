@@ -15,7 +15,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/** Handing a private space to one more person, one pick at a time. */
 export const SpacesShareForm = ({ assignableMembers, spaceId }: IProps) => {
   const t = useTranslations('spaces.privacy');
   const tErrors = useTranslations('errors');

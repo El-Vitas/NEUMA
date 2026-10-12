@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { Command } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 import { createRef } from 'react';
 import en from '../../../../../messages/en.json';
 
@@ -62,6 +63,7 @@ mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => (
 mock.module('next/navigation', () => ({
   permanentRedirect: () => undefined,
   redirect: () => undefined,
+  unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push: () => undefined }),
 }));
@@ -69,7 +71,7 @@ mock.module('next/navigation', () => ({
 const { createEmptyPageContent, createPageEditorState } = await import('@/modules/pages/editor/lib/pages.editor.lib');
 const { createPageAssetInsertCommand } = await import('@/modules/pages/editor/lib/pages.editor.commands');
 const { pageEditorSchema } = await import('@/modules/pages/editor/lib/pages.editor.schema');
-const { pageContentSchema } = await import('@company-brain/shared');
+const { pageContentSchema } = await import('@neuma/shared');
 
 const collaborationMarkerContent = pageContentSchema.parse({
   content: [{ content: [{ text: 'from-collaboration-session', type: 'text' }], type: 'paragraph' }],
@@ -80,6 +82,12 @@ const collaborationMarkerContent = pageContentSchema.parse({
 mock.module('@/modules/pages/lib/pages.collaboration.lib', () => ({
   createCollaborativePageEditorState: () => createPageEditorState(collaborationMarkerContent, 'Select block'),
   getCollaborationStatusLabelKey: (status: string) => `collaboration.${status}`,
+  keepClicksAcrossChangesFromOthers: () => () => undefined,
+  readWhereThisPersonWrites: (view: EditorView) => ({
+    anchor: view.state.selection.anchor,
+    head: view.state.selection.head,
+  }),
+  restoreSelectionIfStillWriting: () => undefined,
 }));
 
 const { PagesProseMirrorEditor } = await import('@/modules/pages/components/pages.prose-mirror.editor');

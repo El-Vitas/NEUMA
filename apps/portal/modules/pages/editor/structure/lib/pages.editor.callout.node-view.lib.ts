@@ -1,4 +1,4 @@
-import { PAGE_CALLOUT_ICONS } from '@company-brain/shared';
+import { PAGE_CALLOUT_ICONS } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { NodeView } from 'prosemirror-view';
 import {
@@ -8,21 +8,11 @@ import {
   PAGE_EDITOR_CALLOUT_ICON_STYLE_CLASS,
 } from '../../blocks/constants/pages.editor.blocks.constants';
 
-/** How a kind of aside is drawn, or nothing at all when the page names a kind this version cannot draw. */
 const readPageCalloutGlyph = (kind: unknown): string | null => {
   const known = PAGE_CALLOUT_ICONS.find((icon) => icon === kind);
   return known === undefined ? null : PAGE_EDITOR_CALLOUT_ICON_GLYPHS[known];
 };
 
-/**
- * Renders an aside with the mark it carries beside what it says.
- *
- * The mark is drawn from the block and never written into it here: it is chosen
- * from the block's own menu, where everything else about a block is decided, so
- * there is one place to look rather than two. It is spoken as part of the aside
- * rather than announced on its own, since it says what kind of aside this is
- * and nothing more.
- */
 export const createPageCalloutNodeView = (node: EditorNode): NodeView => {
   const callout = document.createElement('aside');
   const mark = document.createElement('span');

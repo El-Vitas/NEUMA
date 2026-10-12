@@ -114,6 +114,12 @@ empezar a probar, no para ahorrarse la prueba.
 
 ## CL-10 · Debe permitir proponer cambios sin aplicarlos
 
+> Este bloque es la herramienta: escribir sin que lo escrito reemplace nada.
+> Quién está obligado a usarla y quién manda sobre lo propuesto se revisa en
+> `14-revision-y-aprobacion-de-cambios.md`. Los dos describen la misma
+> mecánica desde dos lados y se construyen juntos: lo que no puede salir de
+> aquí son dos maneras distintas de proponer un cambio.
+
 - [ ] Existe un modo de sugerencia
 - [ ] Lo escrito en ese modo se ve como propuesta, no como texto definitivo
 - [ ] Se ve quién propuso cada cambio

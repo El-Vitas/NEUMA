@@ -8,13 +8,7 @@ interface IProps {
   readonly reset: () => void;
 }
 
-/**
- * The last screen before the app has nothing left to show.
- *
- * It sits outside the part of the app that knows which language is being read,
- * so it speaks the one language it can. What it must not do is repeat the
- * message the exception carried: that is written for whoever fixes it.
- */
+/** Sits outside the locale segment, so the copy is fixed English. Never shows the exception message. */
 const ErrorPage = ({ error, reset }: IProps) => (
   <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-foreground">
     <h1 className="text-center font-semibold text-2xl">This page could not be opened</h1>

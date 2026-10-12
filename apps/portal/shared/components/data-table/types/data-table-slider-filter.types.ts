@@ -1,4 +1,5 @@
-import type { Column } from '@tanstack/react-table';
+import type { Column, RowData } from '@tanstack/react-table';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
 export interface Range {
   min: number;
@@ -7,7 +8,7 @@ export interface Range {
 
 export type RangeValue = [number, number];
 
-export interface DataTableSliderFilterProps<TData> {
-  readonly column: Column<TData, unknown>;
+export interface DataTableSliderFilterProps<TData extends RowData> {
+  readonly column: Column<DataTableFeatures, TData, unknown>;
   readonly title?: string;
 }

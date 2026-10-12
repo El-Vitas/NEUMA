@@ -1,6 +1,5 @@
-import type { PagePropertyType, PageViewType } from '@company-brain/shared';
+import type { PagePropertyOption, PagePropertyType, PageViewType } from '@neuma/shared';
 
-/** What a collection is called in the language of whoever is making it. */
 export interface PageCollectionWording {
   readonly firstProperty: string;
   readonly firstView: string;
@@ -10,7 +9,7 @@ export interface PageCollectionWording {
 export interface PageCollectionProperty {
   readonly key: string;
   readonly label: string;
-  readonly options: readonly string[] | null;
+  readonly options: readonly PagePropertyOption[] | null;
   readonly required: boolean;
   readonly type: PagePropertyType;
 }
@@ -22,15 +21,20 @@ export interface PageCollectionView {
   readonly type: PageViewType;
 }
 
-/** What a collection keeps and how it is looked at. */
 export interface PageCollectionShape {
   readonly properties: readonly PageCollectionProperty[];
   readonly views: readonly PageCollectionView[];
 }
 
-/** Which collection a block shows, and through which of its views. */
 export interface PageCollectionInsert {
   readonly pageId: string;
   readonly spaceId: string;
   readonly viewName: string | null;
+}
+
+/** `spot` remembers the cursor position: the dialog takes focus, and the block must land where typing stopped. */
+export interface PageEditorCollectionChoice {
+  readonly pageId: string;
+  readonly spot: number;
+  readonly views: readonly PageCollectionView[];
 }

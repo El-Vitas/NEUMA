@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { EditorView } from 'prosemirror-view';
 import { createPageEditorDragGhost } from '@/modules/pages/editor/blocks/lib/pages.editor.block-drag.ghost.lib';
 import { createPageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
@@ -30,11 +30,7 @@ const mountEditor = (): { readonly container: HTMLElement; readonly view: Editor
 };
 
 describe('the copy of a block that follows the pointer', () => {
-  /**
-   * Everything a page knows about how a block looks is said of what is inside
-   * the editor. A copy parked anywhere else travels as bare text: a table
-   * without its walls, a list without its marks.
-   */
+  // Block styling is scoped to the editor: a copy parked elsewhere renders as bare text (no table borders, list marks).
   it('is drawn where the editor says how a block looks, and not out on the page', () => {
     const { container, view } = mountEditor();
 

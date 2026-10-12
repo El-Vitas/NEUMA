@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { pageContentSchema } from '@company-brain/shared';
+import { pageContentSchema } from '@neuma/shared';
 import type { Command } from 'prosemirror-state';
 import { EditorState } from 'prosemirror-state';
 import { DEFAULT_PAGE_TOGGLE_SUMMARY } from '@/modules/pages/editor/constants/pages.editor.constants';

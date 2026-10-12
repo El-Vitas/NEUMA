@@ -58,8 +58,16 @@ describe('buildAddressWithSearch', () => {
 });
 
 describe('buildPagesSidePanelQueryHref', () => {
-  it('is a relative address a server-rendered row can point at', () => {
-    expect(buildPagesSidePanelQueryHref(PAGE_ID)).toBe(`?panel=${PAGE_ID}`);
+  it('is a relative address a row can point at', () => {
+    expect(buildPagesSidePanelQueryHref('', PAGE_ID)).toBe(`?panel=${PAGE_ID}`);
+  });
+
+  it('keeps the view being looked at, so opening a row does not send the collection back to another one', () => {
+    expect(buildPagesSidePanelQueryHref('view=Board', PAGE_ID)).toBe(`?view=Board&panel=${PAGE_ID}`);
+  });
+
+  it('replaces the row already open instead of naming two', () => {
+    expect(buildPagesSidePanelQueryHref('view=Board&panel=old-id', PAGE_ID)).toBe(`?view=Board&panel=${PAGE_ID}`);
   });
 });
 

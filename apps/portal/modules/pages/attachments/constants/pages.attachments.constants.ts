@@ -21,6 +21,11 @@ export const ATTACHMENT_MIME_TYPES = [
   'video/webm',
 ] as const;
 
+export const ATTACHMENT_MIME_TYPE_SET: ReadonlySet<string> = new Set<string>(ATTACHMENT_MIME_TYPES);
+
+/** Matches the RFC 5987 percent-encoded name in `content-disposition`. */
+export const ATTACHMENT_FILENAME_PATTERN = /filename\*=UTF-8''([^;]+)/iu;
+
 export const ATTACHMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
   'application/pdf': 'PDF',
   'application/zip': 'ZIP',
@@ -41,10 +46,7 @@ export const ATTACHMENT_SIZE_UNITS = [
   { threshold: 1024, unit: 'kilobyte' },
 ] as const;
 
-/**
- * What travels back with a file: what it is, what it is called, and — for
- * something that plays — which stretch of it this is and how long the whole is.
- */
+/** Backend headers forwarded to the browser; the range ones keep audio and video seekable. */
 export const PAGE_ASSET_PASSED_HEADERS: readonly string[] = [
   'accept-ranges',
   'content-disposition',

@@ -1,15 +1,6 @@
 import type { IconName } from 'lucide-react/dynamic';
 
-/**
- * Every symbol a page may be marked with.
- *
- * Only the names live here. The drawings themselves are fetched when a reader
- * actually asks for one, so offering 1929 symbols costs nothing to
- * whoever never opens the picker.
- *
- * Generated from the icon set the product already depends on; regenerate it
- * rather than editing by hand.
- */
+/** Names only; the drawings are fetched on demand. Generated from the icon set: regenerate, do not edit by hand. */
 export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'a-arrow-down',
   'a-arrow-up',
@@ -422,8 +413,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'chevron-up',
   'chevron-up-circle',
   'chevron-up-square',
-  'chrome',
-  'chromium',
   'church',
   'cigarette',
   'cigarette-off',
@@ -537,8 +526,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'club',
   'code',
   'code-2',
-  'codepen',
-  'codesandbox',
   'code-square',
   'code-xml',
   'coffee',
@@ -638,7 +625,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'download-cloud',
   'drafting-compass',
   'drama',
-  'dribbble',
   'drill',
   'drone',
   'droplet',
@@ -673,14 +659,12 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'eye',
   'eye-closed',
   'eye-off',
-  'facebook',
   'factory',
   'fan',
   'fast-forward',
   'feather',
   'fence',
   'ferris-wheel',
-  'figma',
   'file',
   'file-archive',
   'file-audio',
@@ -835,7 +819,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'form-input',
   'forward',
   'frame',
-  'framer',
   'frown',
   'fuel',
   'fullscreen',
@@ -870,8 +853,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'git-compare-arrows',
   'git-fork',
   'git-graph',
-  'github',
-  'gitlab',
   'git-merge',
   'git-merge-conflict',
   'git-pull-request',
@@ -991,7 +972,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'info',
   'inspect',
   'inspection-panel',
-  'instagram',
   'italic',
   'iteration-ccw',
   'iteration-cw',
@@ -1053,7 +1033,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'link',
   'link-2',
   'link-2-off',
-  'linkedin',
   'list',
   'list-check',
   'list-checks',
@@ -1368,7 +1347,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'plus',
   'plus-circle',
   'plus-square',
-  'pocket',
   'pocket-knife',
   'podcast',
   'pointer',
@@ -1398,7 +1376,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'radio-receiver',
   'radio-tower',
   'radius',
-  'rail-symbol',
   'rainbow',
   'rat',
   'ratio',
@@ -1562,7 +1539,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'skip-back',
   'skip-forward',
   'skull',
-  'slack',
   'slash',
   'slash-square',
   'slice',
@@ -1791,7 +1767,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'tree-palm',
   'tree-pine',
   'trees',
-  'trello',
   'trending-down',
   'trending-up',
   'trending-up-down',
@@ -1809,8 +1784,6 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'tv-2',
   'tv-minimal',
   'tv-minimal-play',
-  'twitch',
-  'twitter',
   'type',
   'type-outline',
   'umbrella',
@@ -1935,12 +1908,12 @@ export const PAGE_ICON_SYMBOL_NAMES: readonly IconName[] = [
   'x-line-top',
   'x-octagon',
   'x-square',
-  'youtube',
   'zap',
   'zap-off',
   'zoom-in',
   'zoom-out',
 ];
 
-/** How many more symbols are drawn each time the reader reaches the end of the grid. */
 export const PAGE_ICON_SYMBOL_GRID_STEP = 120;
+
+export const PAGE_ICON_SYMBOL_NAME_SET: ReadonlySet<string> = new Set<string>(PAGE_ICON_SYMBOL_NAMES);

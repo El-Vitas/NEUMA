@@ -20,10 +20,6 @@ interface IProps {
   readonly usesCommandKey: boolean;
 }
 
-/**
- * Shows every keystroke the editor answers to, read from the same list the
- * editor binds, so what is on screen cannot drift from what actually works.
- */
 export const PagesEditorShortcutsDialog = ({ usesCommandKey }: IProps) => {
   const t = useTranslations('pages');
   const shortcuts = useMemo(

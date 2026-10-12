@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent, PageContentNode } from '@company-brain/shared';
+import type { PageContent, PageContentNode } from '@neuma/shared';
 import { closeHistory, undo } from 'prosemirror-history';
 import type { Command, EditorState } from 'prosemirror-state';
 import { NodeSelection, TextSelection } from 'prosemirror-state';
@@ -48,7 +48,6 @@ const selectBlockAt = (state: EditorState, blockIndex: number): EditorState => {
   return state.apply(state.tr.setSelection(NodeSelection.create(state.doc, blockStart)));
 };
 
-/** Starts a new change, so undoing reverts only what comes next. */
 const startNewChange = (state: EditorState): EditorState => state.apply(closeHistory(state.tr));
 
 const describeBlocks = (state: EditorState): unknown =>

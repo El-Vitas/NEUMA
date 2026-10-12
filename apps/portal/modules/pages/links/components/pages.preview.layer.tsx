@@ -10,14 +10,6 @@ interface IProps {
   readonly outcome: PagePreviewOutcome | null;
 }
 
-/**
- * Where a page's own preview stands, once a mention or a link to it has been
- * rested on for long enough to be worth asking about.
- *
- * Nothing is drawn while nothing is being rested on: a card sitting empty
- * over the writing would be in the way of exactly what it is meant to stay
- * out of.
- */
 export const PagesPreviewLayer = ({ atHand, onHold, onLetGo, outcome }: IProps) => {
   if (atHand === null) return null;
 

@@ -1,1 +1,1 @@
-export type { User, UserRole } from '@company-brain/shared';
+export type { User, UserRole } from '@neuma/shared';

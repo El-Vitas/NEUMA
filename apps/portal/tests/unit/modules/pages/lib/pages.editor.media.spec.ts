@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { pageContentSchema } from '@company-brain/shared';
+import { pageContentSchema } from '@neuma/shared';
 import { EditorState } from 'prosemirror-state';
 import { createPageAssetInsertCommand } from '@/modules/pages/editor/lib/pages.editor.commands';
 import { createEmptyPageContent, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
@@ -25,7 +25,6 @@ const insert = (kind: 'audio' | 'video'): EditorState => {
 };
 
 describe('putting something that plays on a page', () => {
-  /** Handing a block that holds nothing an empty content is a shape the contract refuses. */
   it('saves a video as something that holds nothing', () => {
     const saved = serializePageEditorState(insert('video'));
 

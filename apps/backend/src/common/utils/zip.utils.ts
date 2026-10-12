@@ -13,7 +13,7 @@ import {
 } from '../constants/zip.constants';
 import type { PreparedZipEntry, ZipEntry } from '../types/zip.types';
 
-/** The polynomial spread into a table, which is what makes checking a whole file cheap. */
+/** Precomputed CRC-32 lookup table. */
 const crcTable = Array.from({ length: ZIP_CRC_TABLE_SIZE }, (_, byte) => {
   let value = byte;
   for (let bit = 0; bit < 8; bit += 1) value = (value & 1) === 1 ? ZIP_CRC_POLYNOMIAL ^ (value >>> 1) : value >>> 1;
@@ -31,8 +31,15 @@ const deflate = async (bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array<Array
   return new Uint8Array(await new Response(compressed).arrayBuffer());
 };
 
+const asBytes = (contents: string | Uint8Array): Uint8Array<ArrayBuffer> => {
+  if (typeof contents === 'string') return new TextEncoder().encode(contents);
+  const copied = new Uint8Array(new ArrayBuffer(contents.byteLength));
+  copied.set(contents);
+  return copied;
+};
+
 const prepare = async (entry: ZipEntry): Promise<PreparedZipEntry> => {
-  const contents = new TextEncoder().encode(entry.contents);
+  const contents = asBytes(entry.contents);
   return {
     checksum: crc32(contents),
     compressed: await deflate(contents),
@@ -94,14 +101,7 @@ const join = (parts: readonly Uint8Array[]): Uint8Array<ArrayBuffer> => {
   return whole;
 };
 
-/**
- * Several files handed over as one.
- *
- * Written here rather than brought in, because a zip holding only deflated
- * files is a short and settled format, and it is the whole of what an export
- * needs. The dates are fixed on purpose: exporting the same pages twice gives
- * the same bytes, which makes an export something one can compare.
- */
+/** Hand-written because deflate-only zip is small and settled; fixed dates make identical exports byte-identical. */
 export const buildZipArchive = async (entries: readonly ZipEntry[]): Promise<Uint8Array<ArrayBuffer>> => {
   const prepared = await Promise.all(entries.map(prepare));
   const body: Uint8Array[] = [];

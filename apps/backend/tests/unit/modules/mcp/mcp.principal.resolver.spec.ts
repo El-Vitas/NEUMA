@@ -1,42 +1,49 @@
 import { describe, expect, test } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
 import { ConfigService } from '@nestjs/config';
+import { ACCESS_TOKEN_PERMISSIONS, USER_ROLE } from '@neuma/shared';
 import { MCP_ACCESS_TOKEN_KEY } from '../../../../src/common/constants/env.constants';
-import { McpAuthenticatedPrincipalResolver } from '../../../../src/modules/mcp/mcp.principal.resolver';
+import type { AccessTokenPrincipal } from '../../../../src/common/types/access-token.types';
+import { McpEnvironmentPrincipalResolver } from '../../../../src/modules/mcp/mcp.principal.resolver';
 
-const tokenPayload = { email: 'worker@example.com', name: 'Worker', role: USER_ROLE.WORKER, sub: 'user-1' };
+const principal: AccessTokenPrincipal = {
+  access: { allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead], pages: [], spaces: [] },
+  role: USER_ROLE.WORKER,
+  tokenId: 'token-1',
+  userId: 'user-1',
+  workspaceId: 'workspace-1',
+};
 
-describe('MCP authenticated principal resolver', () => {
-  test('returns no principal when the MCP access token is absent', async () => {
-    const resolver = new McpAuthenticatedPrincipalResolver(new ConfigService(), {
-      verifyAccessToken: () => Promise.resolve(tokenPayload),
+describe('quién es el agente conectado por la terminal', () => {
+  test('is nobody when no access token was configured', async () => {
+    const resolver = new McpEnvironmentPrincipalResolver(new ConfigService(), {
+      resolvePrincipal: () => Promise.resolve(principal),
     });
 
-    const principal = await resolver.resolve();
-
-    expect(principal).toBeNull();
+    expect(await resolver.resolve()).toBeNull();
   });
 
-  test('maps a valid configured access token to the authenticated principal', async () => {
-    const resolver = new McpAuthenticatedPrincipalResolver(new ConfigService({ [MCP_ACCESS_TOKEN_KEY]: 'token' }), {
-      verifyAccessToken: (token) => {
-        expect(token).toBe('token');
-        return Promise.resolve(tokenPayload);
+  test('is whoever owns the configured access token, with what the token holds', async () => {
+    const resolver = new McpEnvironmentPrincipalResolver(new ConfigService({ [MCP_ACCESS_TOKEN_KEY]: 'cbk_secret' }), {
+      resolvePrincipal: (secret) => {
+        expect(secret).toBe('cbk_secret');
+        return Promise.resolve(principal);
       },
     });
 
-    const principal = await resolver.resolve();
-
-    expect(principal).toEqual({ role: USER_ROLE.WORKER, userId: 'user-1' });
+    expect(await resolver.resolve()).toEqual(principal);
   });
 
-  test('returns no principal when token verification fails', async () => {
-    const resolver = new McpAuthenticatedPrincipalResolver(new ConfigService({ [MCP_ACCESS_TOKEN_KEY]: 'invalid' }), {
-      verifyAccessToken: () => Promise.reject(new Error('invalid token')),
+  // Asked on every call, not once at startup: revoking the token must cut the agent off at its next call.
+  test('asks again on every call, so a revoked token stops working at once', async () => {
+    let calls = 0;
+    const resolver = new McpEnvironmentPrincipalResolver(new ConfigService({ [MCP_ACCESS_TOKEN_KEY]: 'cbk_secret' }), {
+      resolvePrincipal: () => {
+        calls += 1;
+        return Promise.resolve(calls === 1 ? principal : null);
+      },
     });
 
-    const principal = await resolver.resolve();
-
-    expect(principal).toBeNull();
+    expect(await resolver.resolve()).toEqual(principal);
+    expect(await resolver.resolve()).toBeNull();
   });
 });

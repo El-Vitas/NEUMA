@@ -1,10 +1,13 @@
 {
-  "name": "@company-brain/eslint-rules",
+  "name": "@neuma/eslint-rules",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./index.mjs"
   },
-  "files": ["index.mjs", "rules"]
+  "files": ["index.mjs", "rules"],
+  "devDependencies": {
+    "eslint": "^10.12.0"
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.10/schema.json",
   "plugins": [],
   "vcs": {
     "enabled": true,
@@ -144,6 +144,28 @@
       "linter": {
         "rules": {
           "style": { "useNamingConvention": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/infrastructure/persistence/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": {
+              "level": "warn",
+              "options": {
+                "strictCase": false,
+                "conventions": [
+                  {
+                    "selector": { "kind": "objectLiteralProperty" },
+                    "match": "(AND|OR|NOT)|_(avg|count|max|min|sum)|([a-z][a-zA-Z0-9]*)(?:_([a-z][a-zA-Z0-9]*))?",
+                    "formats": ["camelCase", "CONSTANT_CASE"]
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     },

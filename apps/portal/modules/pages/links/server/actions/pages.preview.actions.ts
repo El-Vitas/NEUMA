@@ -20,14 +20,8 @@ const readPagePreviewSchema = async (spaceId: string, parentId: string | null): 
 };
 
 /**
- * What a page says of itself, for whoever is only resting on its name.
- *
- * Fetched through the same door a reader is let in by — the one that already
- * refuses a page they may not open — so a preview never says more than
- * opening the page itself would. Whichever way that door refuses an answer,
- * it is thrown the same way pages.mentions.actions.ts throws its own: a
- * reason the client turns into its own words, never the words the failure
- * arrived with.
+ * Reads through the same access check as opening the page, so a preview never reveals more.
+ * Refusals are thrown as a reason code, as in pages.mentions.actions.ts, never as the raw failure message.
  */
 export const getPagePreviewAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'getPagePreview' }, async (): Promise<PagePreviewContent> => {

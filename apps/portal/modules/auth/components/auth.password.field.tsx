@@ -3,7 +3,6 @@
 import { FormField } from '@/shared/components/ui/form-field';
 
 interface IProps {
-  /** What the browser's password manager is being asked for: the stored password, or a place to invent one. */
   readonly autoComplete: 'current-password' | 'new-password';
   readonly id: string;
   readonly label: string;

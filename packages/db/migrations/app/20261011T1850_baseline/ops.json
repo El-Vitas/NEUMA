@@ -1,0 +1,4535 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "extension.unaccent",
+    "label": "Create extension \"unaccent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create extension \"unaccent\"",
+        "sql": "CREATE EXTENSION IF NOT EXISTS \"unaccent\""
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "extension.pg_trgm",
+    "label": "Create extension \"pg_trgm\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create extension \"pg_trgm\"",
+        "sql": "CREATE EXTENSION IF NOT EXISTS \"pg_trgm\""
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "function.immutable_unaccent",
+    "label": "Create function \"immutable_unaccent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'immutable_unaccent'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create function \"immutable_unaccent\"",
+        "sql": "CREATE OR REPLACE FUNCTION public.immutable_unaccent(text)\nRETURNS text\nLANGUAGE sql\nIMMUTABLE\nPARALLEL SAFE\nAS $$\n  SELECT public.unaccent('public.unaccent'::regdictionary, $1);\n$$"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'immutable_unaccent')"
+      }
+    ]
+  },
+  {
+    "id": "createNativeEnumType.AgentActionOutcome",
+    "label": "Create enum type \"AgentActionOutcome\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "AgentActionOutcome"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"AgentActionOutcome\"",
+        "sql": "CREATE TYPE \"public\".\"AgentActionOutcome\" AS ENUM ('PENDING', 'DONE', 'REFUSED', 'FAILED')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.DatabasePropertyType",
+    "label": "Create enum type \"DatabasePropertyType\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabasePropertyType"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"DatabasePropertyType\"",
+        "sql": "CREATE TYPE \"public\".\"DatabasePropertyType\" AS ENUM ('TITLE', 'RICH_TEXT', 'SELECT', 'MULTI_SELECT', 'PERSON', 'DATE', 'CHECKBOX', 'NUMBER')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.DatabaseViewType",
+    "label": "Create enum type \"DatabaseViewType\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "DatabaseViewType"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"DatabaseViewType\"",
+        "sql": "CREATE TYPE \"public\".\"DatabaseViewType\" AS ENUM ('TABLE', 'BOARD', 'LIST', 'GALLERY', 'CALENDAR', 'CHART')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.FileAssetLifecycle",
+    "label": "Create enum type \"FileAssetLifecycle\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "FileAssetLifecycle"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"FileAssetLifecycle\"",
+        "sql": "CREATE TYPE \"public\".\"FileAssetLifecycle\" AS ENUM ('ACTIVE', 'DELETED')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.OutboxStatus",
+    "label": "Create enum type \"OutboxStatus\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "OutboxStatus"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"OutboxStatus\"",
+        "sql": "CREATE TYPE \"public\".\"OutboxStatus\" AS ENUM ('PENDING', 'PROCESSING', 'PROCESSED', 'FAILED')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.PageLifecycle",
+    "label": "Create enum type \"PageLifecycle\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "PageLifecycle"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"PageLifecycle\"",
+        "sql": "CREATE TYPE \"public\".\"PageLifecycle\" AS ENUM ('ACTIVE', 'TRASHED')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.SearchIndexingState",
+    "label": "Create enum type \"SearchIndexingState\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "SearchIndexingState"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"SearchIndexingState\"",
+        "sql": "CREATE TYPE \"public\".\"SearchIndexingState\" AS ENUM ('PENDING', 'INDEXED', 'FAILED', 'PROCESSING')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.SearchSourceType",
+    "label": "Create enum type \"SearchSourceType\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "SearchSourceType"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"SearchSourceType\"",
+        "sql": "CREATE TYPE \"public\".\"SearchSourceType\" AS ENUM ('PAGE')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.SpaceVisibility",
+    "label": "Create enum type \"SpaceVisibility\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "SpaceVisibility"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"SpaceVisibility\"",
+        "sql": "CREATE TYPE \"public\".\"SpaceVisibility\" AS ENUM ('PUBLIC_INTERNAL', 'RESTRICTED', 'PRIVATE')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "createNativeEnumType.UserRole",
+    "label": "Create enum type \"UserRole\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "UserRole"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"UserRole\"",
+        "sql": "CREATE TYPE \"public\".\"UserRole\" AS ENUM ('ADMIN', 'WORKER', 'CLIENT')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.AccessToken",
+    "label": "Create table \"AccessToken\"",
+    "summary": "Creates table \"AccessToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "AccessToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"AccessToken\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"AccessToken\"",
+        "sql": "CREATE TABLE \"public\".\"AccessToken\" (\n  \"allSpacesPermissions\" text[] DEFAULT '{}' NOT NULL,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"displayPrefix\" text NOT NULL,\n  \"expiresAt\" timestamp(3),\n  \"id\" text NOT NULL,\n  \"lastUsedAt\" timestamp(3),\n  \"name\" text NOT NULL,\n  \"revokedAt\" timestamp(3),\n  \"secretHash\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  CONSTRAINT \"AccessToken_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"AccessToken\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.AccessTokenGrant",
+    "label": "Create table \"AccessTokenGrant\"",
+    "summary": "Creates table \"AccessTokenGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "AccessTokenGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"AccessTokenGrant\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"AccessTokenGrant\"",
+        "sql": "CREATE TABLE \"public\".\"AccessTokenGrant\" (\n  \"id\" text NOT NULL,\n  \"permissions\" text[],\n  \"spaceId\" text NOT NULL,\n  \"tokenId\" text NOT NULL,\n  CONSTRAINT \"AccessTokenGrant_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"AccessTokenGrant\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.AccessTokenPageGrant",
+    "label": "Create table \"AccessTokenPageGrant\"",
+    "summary": "Creates table \"AccessTokenPageGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"AccessTokenPageGrant\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"AccessTokenPageGrant\"",
+        "sql": "CREATE TABLE \"public\".\"AccessTokenPageGrant\" (\n  \"id\" text NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"permissions\" text[],\n  \"tokenId\" text NOT NULL,\n  CONSTRAINT \"AccessTokenPageGrant_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"AccessTokenPageGrant\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.AgentAction",
+    "label": "Create table \"AgentAction\"",
+    "summary": "Creates table \"AgentAction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "AgentAction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"AgentAction\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"AgentAction\"",
+        "sql": "CREATE TABLE \"public\".\"AgentAction\" (\n  \"blockIds\" text[] DEFAULT '{}',\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"detail\" jsonb NOT NULL,\n  \"finishedAt\" timestamp(3),\n  \"id\" text NOT NULL,\n  \"outcome\" \"AgentActionOutcome\" NOT NULL,\n  \"pageId\" text,\n  \"requestId\" text,\n  \"tokenId\" text NOT NULL,\n  \"tool\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  CONSTRAINT \"AgentAction_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"AgentAction\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.CollaborationSnapshot",
+    "label": "Create table \"CollaborationSnapshot\"",
+    "summary": "Creates table \"CollaborationSnapshot\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "CollaborationSnapshot"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"CollaborationSnapshot\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"CollaborationSnapshot\"",
+        "sql": "CREATE TABLE \"public\".\"CollaborationSnapshot\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"documentName\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"state\" bytea NOT NULL,\n  \"updateCount\" int4 DEFAULT 0 NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  CONSTRAINT \"CollaborationSnapshot_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"CollaborationSnapshot\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.FileAsset",
+    "label": "Create table \"FileAsset\"",
+    "summary": "Creates table \"FileAsset\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "FileAsset"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"FileAsset\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"FileAsset\"",
+        "sql": "CREATE TABLE \"public\".\"FileAsset\" (\n  \"checksum\" text NOT NULL,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"deletedAt\" timestamp(3),\n  \"id\" text NOT NULL,\n  \"lifecycle\" \"FileAssetLifecycle\" DEFAULT 'ACTIVE'::\"FileAssetLifecycle\" NOT NULL,\n  \"mimeType\" text NOT NULL,\n  \"originalFilename\" text NOT NULL,\n  \"ownerId\" text NOT NULL,\n  \"pageId\" text,\n  \"size\" int4 NOT NULL,\n  \"storageKey\" text NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  CONSTRAINT \"FileAsset_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"FileAsset\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.OutboxEvent",
+    "label": "Create table \"OutboxEvent\"",
+    "summary": "Creates table \"OutboxEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"OutboxEvent\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"OutboxEvent\"",
+        "sql": "CREATE TABLE \"public\".\"OutboxEvent\" (\n  \"aggregateId\" text NOT NULL,\n  \"aggregateType\" text NOT NULL,\n  \"attemptCount\" int4 DEFAULT 0 NOT NULL,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"eventType\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"idempotencyKey\" text NOT NULL,\n  \"lastError\" jsonb,\n  \"nextAttemptAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"payload\" jsonb NOT NULL,\n  \"payloadVersion\" int4 DEFAULT 1 NOT NULL,\n  \"processedAt\" timestamp(3),\n  \"status\" \"OutboxStatus\" DEFAULT 'PENDING'::\"OutboxStatus\" NOT NULL,\n  CONSTRAINT \"OutboxEvent_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"OutboxEvent\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Page",
+    "label": "Create table \"Page\"",
+    "summary": "Creates table \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Page\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Page\"",
+        "sql": "CREATE TABLE \"public\".\"Page\" (\n  \"content\" jsonb NOT NULL,\n  \"cover\" jsonb,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"createdById\" text NOT NULL,\n  \"icon\" jsonb,\n  \"id\" text NOT NULL,\n  \"lifecycle\" \"PageLifecycle\" DEFAULT 'ACTIVE'::\"PageLifecycle\" NOT NULL,\n  \"lockedAt\" timestamp(3),\n  \"lockedById\" text,\n  \"order\" int4 DEFAULT 0 NOT NULL,\n  \"ownerId\" text,\n  \"parentId\" text,\n  \"propertyValues\" jsonb,\n  \"spaceId\" text NOT NULL,\n  \"title\" text NOT NULL,\n  \"trashedAt\" timestamp(3),\n  \"updatedAt\" timestamp(3) NOT NULL,\n  \"updatedById\" text NOT NULL,\n  \"verificationExpiresAt\" timestamp(3),\n  \"verifiedAt\" timestamp(3),\n  \"verifiedById\" text,\n  CONSTRAINT \"Page_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Page\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageBlock",
+    "label": "Create table \"PageBlock\"",
+    "summary": "Creates table \"PageBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageBlock\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageBlock\"",
+        "sql": "CREATE TABLE \"public\".\"PageBlock\" (\n  \"blockId\" text NOT NULL,\n  \"headingPath\" text[],\n  \"pageId\" text NOT NULL,\n  \"pageVersion\" int4 NOT NULL,\n  \"parentBlockId\" text,\n  \"position\" int4 NOT NULL,\n  \"spaceId\" text NOT NULL,\n  \"text\" text NOT NULL,\n  \"type\" text NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  CONSTRAINT \"PageBlock_pkey\" PRIMARY KEY (\"pageId\", \"blockId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageBlock\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageFavorite",
+    "label": "Create table \"PageFavorite\"",
+    "summary": "Creates table \"PageFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageFavorite\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageFavorite\"",
+        "sql": "CREATE TABLE \"public\".\"PageFavorite\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"order\" int4 DEFAULT 0 NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  CONSTRAINT \"PageFavorite_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageFavorite\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageLink",
+    "label": "Create table \"PageLink\"",
+    "summary": "Creates table \"PageLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageLink\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageLink\"",
+        "sql": "CREATE TABLE \"public\".\"PageLink\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"sourcePageId\" text NOT NULL,\n  \"targetPageId\" text NOT NULL,\n  CONSTRAINT \"PageLink_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageLink\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageSchemaProperty",
+    "label": "Create table \"PageSchemaProperty\"",
+    "summary": "Creates table \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageSchemaProperty\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageSchemaProperty\"",
+        "sql": "CREATE TABLE \"public\".\"PageSchemaProperty\" (\n  \"id\" text NOT NULL,\n  \"key\" text NOT NULL,\n  \"label\" text NOT NULL,\n  \"options\" jsonb,\n  \"order\" int4 DEFAULT 0 NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"required\" bool DEFAULT false NOT NULL,\n  \"type\" \"DatabasePropertyType\" NOT NULL,\n  CONSTRAINT \"PageSchemaProperty_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageSchemaProperty\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageSchemaView",
+    "label": "Create table \"PageSchemaView\"",
+    "summary": "Creates table \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageSchemaView\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageSchemaView\"",
+        "sql": "CREATE TABLE \"public\".\"PageSchemaView\" (\n  \"configuration\" jsonb NOT NULL,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"isDefault\" bool DEFAULT false NOT NULL,\n  \"name\" text NOT NULL,\n  \"order\" int4 DEFAULT 0 NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"type\" \"DatabaseViewType\" NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  CONSTRAINT \"PageSchemaView_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageSchemaView\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageVersion",
+    "label": "Create table \"PageVersion\"",
+    "summary": "Creates table \"PageVersion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageVersion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageVersion\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageVersion\"",
+        "sql": "CREATE TABLE \"public\".\"PageVersion\" (\n  \"content\" jsonb NOT NULL,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"createdById\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"title\" text NOT NULL,\n  \"version\" int4 NOT NULL,\n  CONSTRAINT \"PageVersion_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageVersion\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PageView",
+    "label": "Create table \"PageView\"",
+    "summary": "Creates table \"PageView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PageView\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PageView\"",
+        "sql": "CREATE TABLE \"public\".\"PageView\" (\n  \"id\" text NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  \"viewedAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  CONSTRAINT \"PageView_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PageView\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.SearchDocument",
+    "label": "Create table \"SearchDocument\"",
+    "summary": "Creates table \"SearchDocument\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "SearchDocument"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"SearchDocument\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"SearchDocument\"",
+        "sql": "CREATE TABLE \"public\".\"SearchDocument\" (\n  \"contentType\" text NOT NULL,\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"extractedText\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"indexingState\" \"SearchIndexingState\" DEFAULT 'PENDING'::\"SearchIndexingState\" NOT NULL,\n  \"language\" text,\n  \"properties\" jsonb NOT NULL,\n  \"sourceId\" text NOT NULL,\n  \"sourceType\" \"SearchSourceType\" NOT NULL,\n  \"spaceId\" text NOT NULL,\n  \"tags\" jsonb NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  \"versionMarker\" int4 NOT NULL,\n  CONSTRAINT \"SearchDocument_pkey\" PRIMARY KEY (\"id\"),\n  CONSTRAINT \"SearchDocument_language_check\" CHECK (((language IS NULL) OR (language = ANY (ARRAY['en'::text, 'es'::text]))))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"SearchDocument\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Space",
+    "label": "Create table \"Space\"",
+    "summary": "Creates table \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Space\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Space\"",
+        "sql": "CREATE TABLE \"public\".\"Space\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"icon\" jsonb,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"order\" int4 DEFAULT 0 NOT NULL,\n  \"ownerId\" text,\n  \"slug\" text NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  \"visibility\" \"SpaceVisibility\" DEFAULT 'PUBLIC_INTERNAL'::\"SpaceVisibility\" NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  CONSTRAINT \"Space_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Space\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.SpaceMember",
+    "label": "Create table \"SpaceMember\"",
+    "summary": "Creates table \"SpaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "SpaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"SpaceMember\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SpaceMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"SpaceMember\"",
+        "sql": "CREATE TABLE \"public\".\"SpaceMember\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"spaceId\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  CONSTRAINT \"SpaceMember_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"SpaceMember\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SpaceMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.User",
+    "label": "Create table \"User\"",
+    "summary": "Creates table \"User\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "User"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"User\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"User\"",
+        "sql": "CREATE TABLE \"public\".\"User\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"name\" text NOT NULL,\n  \"password\" text NOT NULL,\n  \"role\" \"UserRole\" DEFAULT 'CLIENT'::\"UserRole\" NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  CONSTRAINT \"User_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"User\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Workspace",
+    "label": "Create table \"Workspace\"",
+    "summary": "Creates table \"Workspace\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Workspace"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Workspace\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Workspace\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Workspace\"",
+        "sql": "CREATE TABLE \"public\".\"Workspace\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"pageViewsEnabled\" bool DEFAULT true NOT NULL,\n  \"singletonKey\" text DEFAULT 'default' NOT NULL,\n  \"updatedAt\" timestamp(3) NOT NULL,\n  CONSTRAINT \"Workspace_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Workspace\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Workspace\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.WorkspaceMember",
+    "label": "Create table \"WorkspaceMember\"",
+    "summary": "Creates table \"WorkspaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "WorkspaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"WorkspaceMember\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"WorkspaceMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"WorkspaceMember\"",
+        "sql": "CREATE TABLE \"public\".\"WorkspaceMember\" (\n  \"createdAt\" timestamp(3) DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"role\" \"UserRole\" NOT NULL,\n  \"userId\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  CONSTRAINT \"WorkspaceMember_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"WorkspaceMember\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"WorkspaceMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessToken.AccessToken_secretHash_key",
+    "label": "Create index \"AccessToken_secretHash_key\" on \"AccessToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessToken_secretHash_key",
+        "table": "AccessToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessToken_secretHash_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken_secretHash_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessToken_secretHash_key\"",
+        "sql": "CREATE UNIQUE INDEX \"AccessToken_secretHash_key\" ON \"public\".\"AccessToken\" (\"secretHash\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessToken_secretHash_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken_secretHash_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessToken.AccessToken_userId_idx",
+    "label": "Create index \"AccessToken_userId_idx\" on \"AccessToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessToken_userId_idx",
+        "table": "AccessToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessToken_userId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken_userId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessToken_userId_idx\"",
+        "sql": "CREATE INDEX \"AccessToken_userId_idx\" ON \"public\".\"AccessToken\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessToken_userId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken_userId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessToken.AccessToken_workspaceId_idx",
+    "label": "Create index \"AccessToken_workspaceId_idx\" on \"AccessToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessToken_workspaceId_idx",
+        "table": "AccessToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessToken_workspaceId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken_workspaceId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessToken_workspaceId_idx\"",
+        "sql": "CREATE INDEX \"AccessToken_workspaceId_idx\" ON \"public\".\"AccessToken\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessToken_workspaceId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessToken_workspaceId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessTokenGrant.AccessTokenGrant_spaceId_idx",
+    "label": "Create index \"AccessTokenGrant_spaceId_idx\" on \"AccessTokenGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessTokenGrant_spaceId_idx",
+        "table": "AccessTokenGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessTokenGrant_spaceId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenGrant_spaceId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessTokenGrant_spaceId_idx\"",
+        "sql": "CREATE INDEX \"AccessTokenGrant_spaceId_idx\" ON \"public\".\"AccessTokenGrant\" (\"spaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessTokenGrant_spaceId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenGrant_spaceId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessTokenGrant.AccessTokenGrant_tokenId_spaceId_key",
+    "label": "Create index \"AccessTokenGrant_tokenId_spaceId_key\" on \"AccessTokenGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessTokenGrant_tokenId_spaceId_key",
+        "table": "AccessTokenGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessTokenGrant_tokenId_spaceId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenGrant_tokenId_spaceId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessTokenGrant_tokenId_spaceId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"AccessTokenGrant_tokenId_spaceId_key\" ON \"public\".\"AccessTokenGrant\" (\"tokenId\", \"spaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessTokenGrant_tokenId_spaceId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenGrant_tokenId_spaceId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessTokenPageGrant.AccessTokenPageGrant_pageId_idx",
+    "label": "Create index \"AccessTokenPageGrant_pageId_idx\" on \"AccessTokenPageGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessTokenPageGrant_pageId_idx",
+        "table": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessTokenPageGrant_pageId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenPageGrant_pageId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessTokenPageGrant_pageId_idx\"",
+        "sql": "CREATE INDEX \"AccessTokenPageGrant_pageId_idx\" ON \"public\".\"AccessTokenPageGrant\" (\"pageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessTokenPageGrant_pageId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenPageGrant_pageId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AccessTokenPageGrant.AccessTokenPageGrant_tokenId_pageId_key",
+    "label": "Create index \"AccessTokenPageGrant_tokenId_pageId_key\" on \"AccessTokenPageGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AccessTokenPageGrant_tokenId_pageId_key",
+        "table": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AccessTokenPageGrant_tokenId_pageId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenPageGrant_tokenId_pageId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AccessTokenPageGrant_tokenId_pageId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"AccessTokenPageGrant_tokenId_pageId_key\" ON \"public\".\"AccessTokenPageGrant\" (\"tokenId\", \"pageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AccessTokenPageGrant_tokenId_pageId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AccessTokenPageGrant_tokenId_pageId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AgentAction.AgentAction_pageId_idx",
+    "label": "Create index \"AgentAction_pageId_idx\" on \"AgentAction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AgentAction_pageId_idx",
+        "table": "AgentAction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AgentAction_pageId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_pageId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AgentAction_pageId_idx\"",
+        "sql": "CREATE INDEX \"AgentAction_pageId_idx\" ON \"public\".\"AgentAction\" (\"pageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AgentAction_pageId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_pageId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AgentAction.AgentAction_tokenId_createdAt_idx",
+    "label": "Create index \"AgentAction_tokenId_createdAt_idx\" on \"AgentAction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AgentAction_tokenId_createdAt_idx",
+        "table": "AgentAction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AgentAction_tokenId_createdAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_tokenId_createdAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AgentAction_tokenId_createdAt_idx\"",
+        "sql": "CREATE INDEX \"AgentAction_tokenId_createdAt_idx\" ON \"public\".\"AgentAction\" (\"tokenId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AgentAction_tokenId_createdAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_tokenId_createdAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AgentAction.AgentAction_tokenId_requestId_live_key",
+    "label": "Create index \"AgentAction_tokenId_requestId_live_key\" on \"AgentAction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AgentAction_tokenId_requestId_live_key",
+        "table": "AgentAction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AgentAction_tokenId_requestId_live_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_tokenId_requestId_live_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AgentAction_tokenId_requestId_live_key\"",
+        "sql": "CREATE UNIQUE INDEX \"AgentAction_tokenId_requestId_live_key\" ON \"public\".\"AgentAction\" (\"tokenId\", \"requestId\") WHERE (((\"requestId\" IS NOT NULL) AND (outcome = ANY (ARRAY['PENDING'::\"AgentActionOutcome\", 'DONE'::\"AgentActionOutcome\"]))))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AgentAction_tokenId_requestId_live_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_tokenId_requestId_live_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.AgentAction.AgentAction_workspaceId_createdAt_idx",
+    "label": "Create index \"AgentAction_workspaceId_createdAt_idx\" on \"AgentAction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "AgentAction_workspaceId_createdAt_idx",
+        "table": "AgentAction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"AgentAction_workspaceId_createdAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_workspaceId_createdAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"AgentAction_workspaceId_createdAt_idx\"",
+        "sql": "CREATE INDEX \"AgentAction_workspaceId_createdAt_idx\" ON \"public\".\"AgentAction\" (\"workspaceId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"AgentAction_workspaceId_createdAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"AgentAction_workspaceId_createdAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.CollaborationSnapshot.CollaborationSnapshot_documentName_key",
+    "label": "Create index \"CollaborationSnapshot_documentName_key\" on \"CollaborationSnapshot\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "CollaborationSnapshot_documentName_key",
+        "table": "CollaborationSnapshot"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"CollaborationSnapshot_documentName_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot_documentName_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"CollaborationSnapshot_documentName_key\"",
+        "sql": "CREATE UNIQUE INDEX \"CollaborationSnapshot_documentName_key\" ON \"public\".\"CollaborationSnapshot\" (\"documentName\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"CollaborationSnapshot_documentName_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot_documentName_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.CollaborationSnapshot.CollaborationSnapshot_updatedAt_idx",
+    "label": "Create index \"CollaborationSnapshot_updatedAt_idx\" on \"CollaborationSnapshot\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "CollaborationSnapshot_updatedAt_idx",
+        "table": "CollaborationSnapshot"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"CollaborationSnapshot_updatedAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot_updatedAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"CollaborationSnapshot_updatedAt_idx\"",
+        "sql": "CREATE INDEX \"CollaborationSnapshot_updatedAt_idx\" ON \"public\".\"CollaborationSnapshot\" (\"updatedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"CollaborationSnapshot_updatedAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"CollaborationSnapshot_updatedAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.FileAsset.FileAsset_ownerId_lifecycle_idx",
+    "label": "Create index \"FileAsset_ownerId_lifecycle_idx\" on \"FileAsset\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "FileAsset_ownerId_lifecycle_idx",
+        "table": "FileAsset"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"FileAsset_ownerId_lifecycle_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_ownerId_lifecycle_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"FileAsset_ownerId_lifecycle_idx\"",
+        "sql": "CREATE INDEX \"FileAsset_ownerId_lifecycle_idx\" ON \"public\".\"FileAsset\" (\"ownerId\", \"lifecycle\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"FileAsset_ownerId_lifecycle_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_ownerId_lifecycle_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.FileAsset.FileAsset_pageId_lifecycle_idx",
+    "label": "Create index \"FileAsset_pageId_lifecycle_idx\" on \"FileAsset\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "FileAsset_pageId_lifecycle_idx",
+        "table": "FileAsset"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"FileAsset_pageId_lifecycle_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_pageId_lifecycle_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"FileAsset_pageId_lifecycle_idx\"",
+        "sql": "CREATE INDEX \"FileAsset_pageId_lifecycle_idx\" ON \"public\".\"FileAsset\" (\"pageId\", \"lifecycle\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"FileAsset_pageId_lifecycle_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_pageId_lifecycle_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.FileAsset.FileAsset_storageKey_key",
+    "label": "Create index \"FileAsset_storageKey_key\" on \"FileAsset\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "FileAsset_storageKey_key",
+        "table": "FileAsset"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"FileAsset_storageKey_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_storageKey_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"FileAsset_storageKey_key\"",
+        "sql": "CREATE UNIQUE INDEX \"FileAsset_storageKey_key\" ON \"public\".\"FileAsset\" (\"storageKey\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"FileAsset_storageKey_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_storageKey_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.FileAsset.FileAsset_workspaceId_lifecycle_idx",
+    "label": "Create index \"FileAsset_workspaceId_lifecycle_idx\" on \"FileAsset\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "FileAsset_workspaceId_lifecycle_idx",
+        "table": "FileAsset"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"FileAsset_workspaceId_lifecycle_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_workspaceId_lifecycle_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"FileAsset_workspaceId_lifecycle_idx\"",
+        "sql": "CREATE INDEX \"FileAsset_workspaceId_lifecycle_idx\" ON \"public\".\"FileAsset\" (\"workspaceId\", \"lifecycle\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"FileAsset_workspaceId_lifecycle_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"FileAsset_workspaceId_lifecycle_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OutboxEvent.OutboxEvent_aggregateType_aggregateId_idx",
+    "label": "Create index \"OutboxEvent_aggregateType_aggregateId_idx\" on \"OutboxEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OutboxEvent_aggregateType_aggregateId_idx",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OutboxEvent_aggregateType_aggregateId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_aggregateType_aggregateId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OutboxEvent_aggregateType_aggregateId_idx\"",
+        "sql": "CREATE INDEX \"OutboxEvent_aggregateType_aggregateId_idx\" ON \"public\".\"OutboxEvent\" (\"aggregateType\", \"aggregateId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OutboxEvent_aggregateType_aggregateId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_aggregateType_aggregateId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OutboxEvent.OutboxEvent_idempotencyKey_key",
+    "label": "Create index \"OutboxEvent_idempotencyKey_key\" on \"OutboxEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OutboxEvent_idempotencyKey_key",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OutboxEvent_idempotencyKey_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_idempotencyKey_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OutboxEvent_idempotencyKey_key\"",
+        "sql": "CREATE UNIQUE INDEX \"OutboxEvent_idempotencyKey_key\" ON \"public\".\"OutboxEvent\" (\"idempotencyKey\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OutboxEvent_idempotencyKey_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_idempotencyKey_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OutboxEvent.OutboxEvent_status_nextAttemptAt_idx",
+    "label": "Create index \"OutboxEvent_status_nextAttemptAt_idx\" on \"OutboxEvent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OutboxEvent_status_nextAttemptAt_idx",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OutboxEvent_status_nextAttemptAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_status_nextAttemptAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OutboxEvent_status_nextAttemptAt_idx\"",
+        "sql": "CREATE INDEX \"OutboxEvent_status_nextAttemptAt_idx\" ON \"public\".\"OutboxEvent\" (\"status\", \"nextAttemptAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OutboxEvent_status_nextAttemptAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_status_nextAttemptAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Page.Page_ownerId_idx",
+    "label": "Create index \"Page_ownerId_idx\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Page_ownerId_idx",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Page_ownerId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_ownerId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Page_ownerId_idx\"",
+        "sql": "CREATE INDEX \"Page_ownerId_idx\" ON \"public\".\"Page\" (\"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Page_ownerId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_ownerId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Page.Page_parentId_order_idx",
+    "label": "Create index \"Page_parentId_order_idx\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Page_parentId_order_idx",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Page_parentId_order_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_parentId_order_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Page_parentId_order_idx\"",
+        "sql": "CREATE INDEX \"Page_parentId_order_idx\" ON \"public\".\"Page\" (\"parentId\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Page_parentId_order_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_parentId_order_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Page.Page_spaceId_lifecycle_order_idx",
+    "label": "Create index \"Page_spaceId_lifecycle_order_idx\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Page_spaceId_lifecycle_order_idx",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Page_spaceId_lifecycle_order_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_spaceId_lifecycle_order_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Page_spaceId_lifecycle_order_idx\"",
+        "sql": "CREATE INDEX \"Page_spaceId_lifecycle_order_idx\" ON \"public\".\"Page\" (\"spaceId\", \"lifecycle\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Page_spaceId_lifecycle_order_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_spaceId_lifecycle_order_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Page.Page_verificationExpiresAt_idx",
+    "label": "Create index \"Page_verificationExpiresAt_idx\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Page_verificationExpiresAt_idx",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Page_verificationExpiresAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_verificationExpiresAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Page_verificationExpiresAt_idx\"",
+        "sql": "CREATE INDEX \"Page_verificationExpiresAt_idx\" ON \"public\".\"Page\" (\"verificationExpiresAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Page_verificationExpiresAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_verificationExpiresAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageBlock.PageBlock_blockId_idx",
+    "label": "Create index \"PageBlock_blockId_idx\" on \"PageBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageBlock_blockId_idx",
+        "table": "PageBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageBlock_blockId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock_blockId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageBlock_blockId_idx\"",
+        "sql": "CREATE INDEX \"PageBlock_blockId_idx\" ON \"public\".\"PageBlock\" (\"blockId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageBlock_blockId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock_blockId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageBlock.PageBlock_spaceId_idx",
+    "label": "Create index \"PageBlock_spaceId_idx\" on \"PageBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageBlock_spaceId_idx",
+        "table": "PageBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageBlock_spaceId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock_spaceId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageBlock_spaceId_idx\"",
+        "sql": "CREATE INDEX \"PageBlock_spaceId_idx\" ON \"public\".\"PageBlock\" (\"spaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageBlock_spaceId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageBlock_spaceId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageFavorite.PageFavorite_userId_order_idx",
+    "label": "Create index \"PageFavorite_userId_order_idx\" on \"PageFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageFavorite_userId_order_idx",
+        "table": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageFavorite_userId_order_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageFavorite_userId_order_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageFavorite_userId_order_idx\"",
+        "sql": "CREATE INDEX \"PageFavorite_userId_order_idx\" ON \"public\".\"PageFavorite\" (\"userId\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageFavorite_userId_order_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageFavorite_userId_order_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageFavorite.PageFavorite_userId_pageId_key",
+    "label": "Create index \"PageFavorite_userId_pageId_key\" on \"PageFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageFavorite_userId_pageId_key",
+        "table": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageFavorite_userId_pageId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageFavorite_userId_pageId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageFavorite_userId_pageId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"PageFavorite_userId_pageId_key\" ON \"public\".\"PageFavorite\" (\"userId\", \"pageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageFavorite_userId_pageId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageFavorite_userId_pageId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageLink.PageLink_sourcePageId_idx",
+    "label": "Create index \"PageLink_sourcePageId_idx\" on \"PageLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageLink_sourcePageId_idx",
+        "table": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageLink_sourcePageId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink_sourcePageId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageLink_sourcePageId_idx\"",
+        "sql": "CREATE INDEX \"PageLink_sourcePageId_idx\" ON \"public\".\"PageLink\" (\"sourcePageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageLink_sourcePageId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink_sourcePageId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageLink.PageLink_sourcePageId_targetPageId_key",
+    "label": "Create index \"PageLink_sourcePageId_targetPageId_key\" on \"PageLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageLink_sourcePageId_targetPageId_key",
+        "table": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageLink_sourcePageId_targetPageId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink_sourcePageId_targetPageId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageLink_sourcePageId_targetPageId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"PageLink_sourcePageId_targetPageId_key\" ON \"public\".\"PageLink\" (\"sourcePageId\", \"targetPageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageLink_sourcePageId_targetPageId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink_sourcePageId_targetPageId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageLink.PageLink_targetPageId_idx",
+    "label": "Create index \"PageLink_targetPageId_idx\" on \"PageLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageLink_targetPageId_idx",
+        "table": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageLink_targetPageId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink_targetPageId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageLink_targetPageId_idx\"",
+        "sql": "CREATE INDEX \"PageLink_targetPageId_idx\" ON \"public\".\"PageLink\" (\"targetPageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageLink_targetPageId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageLink_targetPageId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageSchemaProperty.PageSchemaProperty_pageId_key_key",
+    "label": "Create index \"PageSchemaProperty_pageId_key_key\" on \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageSchemaProperty_pageId_key_key",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageSchemaProperty_pageId_key_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaProperty_pageId_key_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageSchemaProperty_pageId_key_key\"",
+        "sql": "CREATE UNIQUE INDEX \"PageSchemaProperty_pageId_key_key\" ON \"public\".\"PageSchemaProperty\" (\"pageId\", \"key\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageSchemaProperty_pageId_key_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaProperty_pageId_key_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageSchemaProperty.PageSchemaProperty_pageId_order_idx",
+    "label": "Create index \"PageSchemaProperty_pageId_order_idx\" on \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageSchemaProperty_pageId_order_idx",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageSchemaProperty_pageId_order_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaProperty_pageId_order_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageSchemaProperty_pageId_order_idx\"",
+        "sql": "CREATE INDEX \"PageSchemaProperty_pageId_order_idx\" ON \"public\".\"PageSchemaProperty\" (\"pageId\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageSchemaProperty_pageId_order_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaProperty_pageId_order_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageSchemaView.PageSchemaView_pageId_name_key",
+    "label": "Create index \"PageSchemaView_pageId_name_key\" on \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageSchemaView_pageId_name_key",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageSchemaView_pageId_name_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView_pageId_name_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageSchemaView_pageId_name_key\"",
+        "sql": "CREATE UNIQUE INDEX \"PageSchemaView_pageId_name_key\" ON \"public\".\"PageSchemaView\" (\"pageId\", \"name\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageSchemaView_pageId_name_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView_pageId_name_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageSchemaView.PageSchemaView_pageId_order_idx",
+    "label": "Create index \"PageSchemaView_pageId_order_idx\" on \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageSchemaView_pageId_order_idx",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageSchemaView_pageId_order_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView_pageId_order_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageSchemaView_pageId_order_idx\"",
+        "sql": "CREATE INDEX \"PageSchemaView_pageId_order_idx\" ON \"public\".\"PageSchemaView\" (\"pageId\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageSchemaView_pageId_order_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView_pageId_order_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageSchemaView.PageSchemaView_pageId_type_idx",
+    "label": "Create index \"PageSchemaView_pageId_type_idx\" on \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageSchemaView_pageId_type_idx",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageSchemaView_pageId_type_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView_pageId_type_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageSchemaView_pageId_type_idx\"",
+        "sql": "CREATE INDEX \"PageSchemaView_pageId_type_idx\" ON \"public\".\"PageSchemaView\" (\"pageId\", \"type\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageSchemaView_pageId_type_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageSchemaView_pageId_type_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageVersion.PageVersion_pageId_createdAt_idx",
+    "label": "Create index \"PageVersion_pageId_createdAt_idx\" on \"PageVersion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageVersion_pageId_createdAt_idx",
+        "table": "PageVersion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageVersion_pageId_createdAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageVersion_pageId_createdAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageVersion_pageId_createdAt_idx\"",
+        "sql": "CREATE INDEX \"PageVersion_pageId_createdAt_idx\" ON \"public\".\"PageVersion\" (\"pageId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageVersion_pageId_createdAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageVersion_pageId_createdAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageVersion.PageVersion_pageId_version_key",
+    "label": "Create index \"PageVersion_pageId_version_key\" on \"PageVersion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageVersion_pageId_version_key",
+        "table": "PageVersion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageVersion_pageId_version_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageVersion_pageId_version_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageVersion_pageId_version_key\"",
+        "sql": "CREATE UNIQUE INDEX \"PageVersion_pageId_version_key\" ON \"public\".\"PageVersion\" (\"pageId\", \"version\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageVersion_pageId_version_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageVersion_pageId_version_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageView.PageView_pageId_viewedAt_idx",
+    "label": "Create index \"PageView_pageId_viewedAt_idx\" on \"PageView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageView_pageId_viewedAt_idx",
+        "table": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageView_pageId_viewedAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageView_pageId_viewedAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageView_pageId_viewedAt_idx\"",
+        "sql": "CREATE INDEX \"PageView_pageId_viewedAt_idx\" ON \"public\".\"PageView\" (\"pageId\", \"viewedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageView_pageId_viewedAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageView_pageId_viewedAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PageView.PageView_userId_idx",
+    "label": "Create index \"PageView_userId_idx\" on \"PageView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PageView_userId_idx",
+        "table": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PageView_userId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageView_userId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PageView_userId_idx\"",
+        "sql": "CREATE INDEX \"PageView_userId_idx\" ON \"public\".\"PageView\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PageView_userId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PageView_userId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.SearchDocument.SearchDocument_contentType_idx",
+    "label": "Create index \"SearchDocument_contentType_idx\" on \"SearchDocument\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "SearchDocument_contentType_idx",
+        "table": "SearchDocument"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"SearchDocument_contentType_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument_contentType_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"SearchDocument_contentType_idx\"",
+        "sql": "CREATE INDEX \"SearchDocument_contentType_idx\" ON \"public\".\"SearchDocument\" (\"contentType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"SearchDocument_contentType_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument_contentType_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.SearchDocument.SearchDocument_sourceType_sourceId_key",
+    "label": "Create index \"SearchDocument_sourceType_sourceId_key\" on \"SearchDocument\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "SearchDocument_sourceType_sourceId_key",
+        "table": "SearchDocument"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"SearchDocument_sourceType_sourceId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument_sourceType_sourceId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"SearchDocument_sourceType_sourceId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"SearchDocument_sourceType_sourceId_key\" ON \"public\".\"SearchDocument\" (\"sourceType\", \"sourceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"SearchDocument_sourceType_sourceId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument_sourceType_sourceId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.SearchDocument.SearchDocument_spaceId_indexingState_idx",
+    "label": "Create index \"SearchDocument_spaceId_indexingState_idx\" on \"SearchDocument\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "SearchDocument_spaceId_indexingState_idx",
+        "table": "SearchDocument"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"SearchDocument_spaceId_indexingState_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument_spaceId_indexingState_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"SearchDocument_spaceId_indexingState_idx\"",
+        "sql": "CREATE INDEX \"SearchDocument_spaceId_indexingState_idx\" ON \"public\".\"SearchDocument\" (\"spaceId\", \"indexingState\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"SearchDocument_spaceId_indexingState_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SearchDocument_spaceId_indexingState_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Space.Space_ownerId_idx",
+    "label": "Create index \"Space_ownerId_idx\" on \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Space_ownerId_idx",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Space_ownerId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_ownerId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Space_ownerId_idx\"",
+        "sql": "CREATE INDEX \"Space_ownerId_idx\" ON \"public\".\"Space\" (\"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Space_ownerId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_ownerId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Space.Space_workspaceId_order_idx",
+    "label": "Create index \"Space_workspaceId_order_idx\" on \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Space_workspaceId_order_idx",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Space_workspaceId_order_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_workspaceId_order_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Space_workspaceId_order_idx\"",
+        "sql": "CREATE INDEX \"Space_workspaceId_order_idx\" ON \"public\".\"Space\" (\"workspaceId\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Space_workspaceId_order_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_workspaceId_order_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Space.Space_workspaceId_slug_key",
+    "label": "Create index \"Space_workspaceId_slug_key\" on \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Space_workspaceId_slug_key",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Space_workspaceId_slug_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_workspaceId_slug_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Space_workspaceId_slug_key\"",
+        "sql": "CREATE UNIQUE INDEX \"Space_workspaceId_slug_key\" ON \"public\".\"Space\" (\"workspaceId\", \"slug\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Space_workspaceId_slug_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_workspaceId_slug_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Space.Space_workspaceId_visibility_idx",
+    "label": "Create index \"Space_workspaceId_visibility_idx\" on \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Space_workspaceId_visibility_idx",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Space_workspaceId_visibility_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_workspaceId_visibility_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Space_workspaceId_visibility_idx\"",
+        "sql": "CREATE INDEX \"Space_workspaceId_visibility_idx\" ON \"public\".\"Space\" (\"workspaceId\", \"visibility\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Space_workspaceId_visibility_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Space_workspaceId_visibility_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.SpaceMember.SpaceMember_spaceId_userId_key",
+    "label": "Create index \"SpaceMember_spaceId_userId_key\" on \"SpaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "SpaceMember_spaceId_userId_key",
+        "table": "SpaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"SpaceMember_spaceId_userId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SpaceMember_spaceId_userId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"SpaceMember_spaceId_userId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"SpaceMember_spaceId_userId_key\" ON \"public\".\"SpaceMember\" (\"spaceId\", \"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"SpaceMember_spaceId_userId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SpaceMember_spaceId_userId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.SpaceMember.SpaceMember_userId_idx",
+    "label": "Create index \"SpaceMember_userId_idx\" on \"SpaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "SpaceMember_userId_idx",
+        "table": "SpaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"SpaceMember_userId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SpaceMember_userId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"SpaceMember_userId_idx\"",
+        "sql": "CREATE INDEX \"SpaceMember_userId_idx\" ON \"public\".\"SpaceMember\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"SpaceMember_userId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"SpaceMember_userId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.User.User_email_idx",
+    "label": "Create index \"User_email_idx\" on \"User\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "User_email_idx",
+        "table": "User"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"User_email_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User_email_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"User_email_idx\"",
+        "sql": "CREATE INDEX \"User_email_idx\" ON \"public\".\"User\" (\"email\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"User_email_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User_email_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.User.User_email_key",
+    "label": "Create index \"User_email_key\" on \"User\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "User_email_key",
+        "table": "User"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"User_email_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User_email_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"User_email_key\"",
+        "sql": "CREATE UNIQUE INDEX \"User_email_key\" ON \"public\".\"User\" (\"email\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"User_email_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User_email_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.User.User_role_idx",
+    "label": "Create index \"User_role_idx\" on \"User\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "User_role_idx",
+        "table": "User"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"User_role_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User_role_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"User_role_idx\"",
+        "sql": "CREATE INDEX \"User_role_idx\" ON \"public\".\"User\" (\"role\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"User_role_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"User_role_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Workspace.Workspace_singletonKey_key",
+    "label": "Create index \"Workspace_singletonKey_key\" on \"Workspace\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Workspace_singletonKey_key",
+        "table": "Workspace"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Workspace_singletonKey_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Workspace_singletonKey_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Workspace_singletonKey_key\"",
+        "sql": "CREATE UNIQUE INDEX \"Workspace_singletonKey_key\" ON \"public\".\"Workspace\" (\"singletonKey\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Workspace_singletonKey_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Workspace_singletonKey_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.WorkspaceMember.WorkspaceMember_userId_idx",
+    "label": "Create index \"WorkspaceMember_userId_idx\" on \"WorkspaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "WorkspaceMember_userId_idx",
+        "table": "WorkspaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"WorkspaceMember_userId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"WorkspaceMember_userId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"WorkspaceMember_userId_idx\"",
+        "sql": "CREATE INDEX \"WorkspaceMember_userId_idx\" ON \"public\".\"WorkspaceMember\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"WorkspaceMember_userId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"WorkspaceMember_userId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.WorkspaceMember.WorkspaceMember_workspaceId_userId_key",
+    "label": "Create index \"WorkspaceMember_workspaceId_userId_key\" on \"WorkspaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "WorkspaceMember_workspaceId_userId_key",
+        "table": "WorkspaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"WorkspaceMember_workspaceId_userId_key\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"WorkspaceMember_workspaceId_userId_key\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"WorkspaceMember_workspaceId_userId_key\"",
+        "sql": "CREATE UNIQUE INDEX \"WorkspaceMember_workspaceId_userId_key\" ON \"public\".\"WorkspaceMember\" (\"workspaceId\", \"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"WorkspaceMember_workspaceId_userId_key\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"WorkspaceMember_workspaceId_userId_key\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessToken.AccessToken_userId_fkey",
+    "label": "Add foreign key \"AccessToken_userId_fkey\" on \"AccessToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessToken_userId_fkey",
+        "table": "AccessToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessToken_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessToken_userId_fkey",
+          "public",
+          "\"public\".\"AccessToken\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessToken_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessToken\"\nADD CONSTRAINT \"AccessToken_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessToken_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessToken_userId_fkey",
+          "public",
+          "\"public\".\"AccessToken\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessToken.AccessToken_workspaceId_fkey",
+    "label": "Add foreign key \"AccessToken_workspaceId_fkey\" on \"AccessToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessToken_workspaceId_fkey",
+        "table": "AccessToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessToken_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessToken_workspaceId_fkey",
+          "public",
+          "\"public\".\"AccessToken\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessToken_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessToken\"\nADD CONSTRAINT \"AccessToken_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"Workspace\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessToken_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessToken_workspaceId_fkey",
+          "public",
+          "\"public\".\"AccessToken\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessTokenGrant.AccessTokenGrant_tokenId_fkey",
+    "label": "Add foreign key \"AccessTokenGrant_tokenId_fkey\" on \"AccessTokenGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessTokenGrant_tokenId_fkey",
+        "table": "AccessTokenGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessTokenGrant_tokenId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenGrant_tokenId_fkey",
+          "public",
+          "\"public\".\"AccessTokenGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessTokenGrant_tokenId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenGrant\"\nADD CONSTRAINT \"AccessTokenGrant_tokenId_fkey\"\nFOREIGN KEY (\"tokenId\")\nREFERENCES \"public\".\"AccessToken\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessTokenGrant_tokenId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenGrant_tokenId_fkey",
+          "public",
+          "\"public\".\"AccessTokenGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessTokenGrant.AccessTokenGrant_spaceId_fkey",
+    "label": "Add foreign key \"AccessTokenGrant_spaceId_fkey\" on \"AccessTokenGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessTokenGrant_spaceId_fkey",
+        "table": "AccessTokenGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessTokenGrant_spaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenGrant_spaceId_fkey",
+          "public",
+          "\"public\".\"AccessTokenGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessTokenGrant_spaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenGrant\"\nADD CONSTRAINT \"AccessTokenGrant_spaceId_fkey\"\nFOREIGN KEY (\"spaceId\")\nREFERENCES \"public\".\"Space\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessTokenGrant_spaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenGrant_spaceId_fkey",
+          "public",
+          "\"public\".\"AccessTokenGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessTokenPageGrant.AccessTokenPageGrant_tokenId_fkey",
+    "label": "Add foreign key \"AccessTokenPageGrant_tokenId_fkey\" on \"AccessTokenPageGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessTokenPageGrant_tokenId_fkey",
+        "table": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessTokenPageGrant_tokenId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_tokenId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessTokenPageGrant_tokenId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenPageGrant\"\nADD CONSTRAINT \"AccessTokenPageGrant_tokenId_fkey\"\nFOREIGN KEY (\"tokenId\")\nREFERENCES \"public\".\"AccessToken\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessTokenPageGrant_tokenId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_tokenId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessTokenPageGrant.AccessTokenPageGrant_pageId_fkey",
+    "label": "Add foreign key \"AccessTokenPageGrant_pageId_fkey\" on \"AccessTokenPageGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessTokenPageGrant_pageId_fkey",
+        "table": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessTokenPageGrant_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_pageId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessTokenPageGrant_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenPageGrant\"\nADD CONSTRAINT \"AccessTokenPageGrant_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessTokenPageGrant_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_pageId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Page.Page_spaceId_fkey",
+    "label": "Add foreign key \"Page_spaceId_fkey\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Page_spaceId_fkey",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Page_spaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_spaceId_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Page_spaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Page\"\nADD CONSTRAINT \"Page_spaceId_fkey\"\nFOREIGN KEY (\"spaceId\")\nREFERENCES \"public\".\"Space\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Page_spaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_spaceId_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Page.Page_parentId_fkey",
+    "label": "Add foreign key \"Page_parentId_fkey\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Page_parentId_fkey",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Page_parentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_parentId_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Page_parentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Page\"\nADD CONSTRAINT \"Page_parentId_fkey\"\nFOREIGN KEY (\"parentId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE SET NULL\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Page_parentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_parentId_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Page.Page_verifiedById_fkey",
+    "label": "Add foreign key \"Page_verifiedById_fkey\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Page_verifiedById_fkey",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Page_verifiedById_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_verifiedById_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Page_verifiedById_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Page\"\nADD CONSTRAINT \"Page_verifiedById_fkey\"\nFOREIGN KEY (\"verifiedById\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE SET NULL\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Page_verifiedById_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_verifiedById_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Page.Page_ownerId_fkey",
+    "label": "Add foreign key \"Page_ownerId_fkey\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Page_ownerId_fkey",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Page_ownerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_ownerId_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Page_ownerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Page\"\nADD CONSTRAINT \"Page_ownerId_fkey\"\nFOREIGN KEY (\"ownerId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE SET NULL\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Page_ownerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Page_ownerId_fkey",
+          "public",
+          "\"public\".\"Page\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageBlock.PageBlock_pageId_fkey",
+    "label": "Add foreign key \"PageBlock_pageId_fkey\" on \"PageBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageBlock_pageId_fkey",
+        "table": "PageBlock"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageBlock_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageBlock_pageId_fkey",
+          "public",
+          "\"public\".\"PageBlock\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageBlock_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageBlock\"\nADD CONSTRAINT \"PageBlock_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageBlock_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageBlock_pageId_fkey",
+          "public",
+          "\"public\".\"PageBlock\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageFavorite.PageFavorite_userId_fkey",
+    "label": "Add foreign key \"PageFavorite_userId_fkey\" on \"PageFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageFavorite_userId_fkey",
+        "table": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageFavorite_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_userId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageFavorite_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageFavorite\"\nADD CONSTRAINT \"PageFavorite_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageFavorite_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_userId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageFavorite.PageFavorite_pageId_fkey",
+    "label": "Add foreign key \"PageFavorite_pageId_fkey\" on \"PageFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageFavorite_pageId_fkey",
+        "table": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageFavorite_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_pageId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageFavorite_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageFavorite\"\nADD CONSTRAINT \"PageFavorite_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageFavorite_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_pageId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageLink.PageLink_sourcePageId_fkey",
+    "label": "Add foreign key \"PageLink_sourcePageId_fkey\" on \"PageLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageLink_sourcePageId_fkey",
+        "table": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageLink_sourcePageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageLink_sourcePageId_fkey",
+          "public",
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageLink_sourcePageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageLink\"\nADD CONSTRAINT \"PageLink_sourcePageId_fkey\"\nFOREIGN KEY (\"sourcePageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageLink_sourcePageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageLink_sourcePageId_fkey",
+          "public",
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageLink.PageLink_targetPageId_fkey",
+    "label": "Add foreign key \"PageLink_targetPageId_fkey\" on \"PageLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageLink_targetPageId_fkey",
+        "table": "PageLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageLink_targetPageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageLink_targetPageId_fkey",
+          "public",
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageLink_targetPageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageLink\"\nADD CONSTRAINT \"PageLink_targetPageId_fkey\"\nFOREIGN KEY (\"targetPageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageLink_targetPageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageLink_targetPageId_fkey",
+          "public",
+          "\"public\".\"PageLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageSchemaProperty.PageSchemaProperty_pageId_fkey",
+    "label": "Add foreign key \"PageSchemaProperty_pageId_fkey\" on \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageSchemaProperty_pageId_fkey",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageSchemaProperty_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaProperty_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageSchemaProperty_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaProperty\"\nADD CONSTRAINT \"PageSchemaProperty_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageSchemaProperty_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaProperty_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageSchemaView.PageSchemaView_pageId_fkey",
+    "label": "Add foreign key \"PageSchemaView_pageId_fkey\" on \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageSchemaView_pageId_fkey",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageSchemaView_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaView_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageSchemaView_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\"\nADD CONSTRAINT \"PageSchemaView_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageSchemaView_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaView_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageVersion.PageVersion_pageId_fkey",
+    "label": "Add foreign key \"PageVersion_pageId_fkey\" on \"PageVersion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageVersion_pageId_fkey",
+        "table": "PageVersion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageVersion_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageVersion_pageId_fkey",
+          "public",
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageVersion_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageVersion\"\nADD CONSTRAINT \"PageVersion_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageVersion_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageVersion_pageId_fkey",
+          "public",
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageView.PageView_pageId_fkey",
+    "label": "Add foreign key \"PageView_pageId_fkey\" on \"PageView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageView_pageId_fkey",
+        "table": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageView_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_pageId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageView_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageView\"\nADD CONSTRAINT \"PageView_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Page\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageView_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_pageId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageView.PageView_userId_fkey",
+    "label": "Add foreign key \"PageView_userId_fkey\" on \"PageView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageView_userId_fkey",
+        "table": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageView_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_userId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageView_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageView\"\nADD CONSTRAINT \"PageView_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageView_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_userId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Space.Space_workspaceId_fkey",
+    "label": "Add foreign key \"Space_workspaceId_fkey\" on \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Space_workspaceId_fkey",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Space_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Space_workspaceId_fkey",
+          "public",
+          "\"public\".\"Space\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Space_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Space\"\nADD CONSTRAINT \"Space_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"Workspace\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Space_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Space_workspaceId_fkey",
+          "public",
+          "\"public\".\"Space\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Space.Space_ownerId_fkey",
+    "label": "Add foreign key \"Space_ownerId_fkey\" on \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Space_ownerId_fkey",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Space_ownerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Space_ownerId_fkey",
+          "public",
+          "\"public\".\"Space\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Space_ownerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Space\"\nADD CONSTRAINT \"Space_ownerId_fkey\"\nFOREIGN KEY (\"ownerId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Space_ownerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Space_ownerId_fkey",
+          "public",
+          "\"public\".\"Space\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.SpaceMember.SpaceMember_spaceId_fkey",
+    "label": "Add foreign key \"SpaceMember_spaceId_fkey\" on \"SpaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "SpaceMember_spaceId_fkey",
+        "table": "SpaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"SpaceMember_spaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "SpaceMember_spaceId_fkey",
+          "public",
+          "\"public\".\"SpaceMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"SpaceMember_spaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"SpaceMember\"\nADD CONSTRAINT \"SpaceMember_spaceId_fkey\"\nFOREIGN KEY (\"spaceId\")\nREFERENCES \"public\".\"Space\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"SpaceMember_spaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "SpaceMember_spaceId_fkey",
+          "public",
+          "\"public\".\"SpaceMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.SpaceMember.SpaceMember_userId_fkey",
+    "label": "Add foreign key \"SpaceMember_userId_fkey\" on \"SpaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "SpaceMember_userId_fkey",
+        "table": "SpaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"SpaceMember_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "SpaceMember_userId_fkey",
+          "public",
+          "\"public\".\"SpaceMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"SpaceMember_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"SpaceMember\"\nADD CONSTRAINT \"SpaceMember_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"SpaceMember_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "SpaceMember_userId_fkey",
+          "public",
+          "\"public\".\"SpaceMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.WorkspaceMember.WorkspaceMember_workspaceId_fkey",
+    "label": "Add foreign key \"WorkspaceMember_workspaceId_fkey\" on \"WorkspaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "WorkspaceMember_workspaceId_fkey",
+        "table": "WorkspaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"WorkspaceMember_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "WorkspaceMember_workspaceId_fkey",
+          "public",
+          "\"public\".\"WorkspaceMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"WorkspaceMember_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"WorkspaceMember\"\nADD CONSTRAINT \"WorkspaceMember_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"Workspace\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"WorkspaceMember_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "WorkspaceMember_workspaceId_fkey",
+          "public",
+          "\"public\".\"WorkspaceMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.WorkspaceMember.WorkspaceMember_userId_fkey",
+    "label": "Add foreign key \"WorkspaceMember_userId_fkey\" on \"WorkspaceMember\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "WorkspaceMember_userId_fkey",
+        "table": "WorkspaceMember"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"WorkspaceMember_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "WorkspaceMember_userId_fkey",
+          "public",
+          "\"public\".\"WorkspaceMember\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"WorkspaceMember_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"WorkspaceMember\"\nADD CONSTRAINT \"WorkspaceMember_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"WorkspaceMember_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "WorkspaceMember_userId_fkey",
+          "public",
+          "\"public\".\"WorkspaceMember\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.SearchDocument.searchVector",
+    "label": "Add generated column \"searchVector\" to \"SearchDocument\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SearchDocument' AND column_name = 'searchVector'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Add generated column \"searchVector\" to \"SearchDocument\"",
+        "sql": "ALTER TABLE \"public\".\"SearchDocument\"\n  ADD COLUMN \"searchVector\" tsvector GENERATED ALWAYS AS (\n    setweight(to_tsvector(CASE \"language\"\n  WHEN 'en' THEN 'english'::regconfig\n  WHEN 'es' THEN 'spanish'::regconfig\n  ELSE 'simple'::regconfig\nEND, public.immutable_unaccent(coalesce(\"title\", ''))), 'A')\n    || setweight(to_tsvector(CASE \"language\"\n  WHEN 'en' THEN 'english'::regconfig\n  WHEN 'es' THEN 'spanish'::regconfig\n  ELSE 'simple'::regconfig\nEND, public.immutable_unaccent(coalesce(\"extractedText\", ''))), 'B')\n  ) STORED"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SearchDocument' AND column_name = 'searchVector')"
+      }
+    ]
+  },
+  {
+    "id": "column.PageBlock.searchVector",
+    "label": "Add generated column \"searchVector\" to \"PageBlock\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'PageBlock' AND column_name = 'searchVector'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Add generated column \"searchVector\" to \"PageBlock\"",
+        "sql": "ALTER TABLE \"public\".\"PageBlock\"\n  ADD COLUMN \"searchVector\" tsvector GENERATED ALWAYS AS (\n    to_tsvector('simple'::regconfig, public.immutable_unaccent(coalesce(\"text\", '')))\n  ) STORED"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'PageBlock' AND column_name = 'searchVector')"
+      }
+    ]
+  },
+  {
+    "id": "index.SearchDocument_searchVector_gin_idx",
+    "label": "Create index \"SearchDocument_searchVector_gin_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'SearchDocument_searchVector_gin_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"SearchDocument_searchVector_gin_idx\"",
+        "sql": "CREATE INDEX \"SearchDocument_searchVector_gin_idx\" ON \"public\".\"SearchDocument\" USING GIN (\"searchVector\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'SearchDocument_searchVector_gin_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.PageBlock_searchVector_gin_idx",
+    "label": "Create index \"PageBlock_searchVector_gin_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'PageBlock_searchVector_gin_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"PageBlock_searchVector_gin_idx\"",
+        "sql": "CREATE INDEX \"PageBlock_searchVector_gin_idx\" ON \"public\".\"PageBlock\" USING GIN (\"searchVector\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'PageBlock_searchVector_gin_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.PageBlock_text_unaccent_trgm_idx",
+    "label": "Create index \"PageBlock_text_unaccent_trgm_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'PageBlock_text_unaccent_trgm_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"PageBlock_text_unaccent_trgm_idx\"",
+        "sql": "CREATE INDEX \"PageBlock_text_unaccent_trgm_idx\" ON \"public\".\"PageBlock\" USING GIN (public.immutable_unaccent(\"text\") gin_trgm_ops)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'PageBlock_text_unaccent_trgm_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.SearchDocument_title_unaccent_trgm_idx",
+    "label": "Create index \"SearchDocument_title_unaccent_trgm_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'SearchDocument_title_unaccent_trgm_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"SearchDocument_title_unaccent_trgm_idx\"",
+        "sql": "CREATE INDEX \"SearchDocument_title_unaccent_trgm_idx\" ON \"public\".\"SearchDocument\" USING GIN (public.immutable_unaccent(\"title\") gin_trgm_ops)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'SearchDocument_title_unaccent_trgm_idx')"
+      }
+    ]
+  },
+  {
+    "id": "index.SearchDocument_extractedText_unaccent_trgm_idx",
+    "label": "Create index \"SearchDocument_extractedText_unaccent_trgm_idx\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not done yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'SearchDocument_extractedText_unaccent_trgm_idx'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "Create index \"SearchDocument_extractedText_unaccent_trgm_idx\"",
+        "sql": "CREATE INDEX \"SearchDocument_extractedText_unaccent_trgm_idx\" ON \"public\".\"SearchDocument\" USING GIN (public.immutable_unaccent(\"extractedText\") gin_trgm_ops)"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "done",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'SearchDocument_extractedText_unaccent_trgm_idx')"
+      }
+    ]
+  }
+]

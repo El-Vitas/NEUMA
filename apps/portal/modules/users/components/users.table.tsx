@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { EntityTable } from '@/shared/components/data-table/entity-table';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 import { formatDate } from '@/shared/utils/formatters';
 import { buildUsersInitialColumnFilters, buildUsersPageUrl } from '../lib/users.lib';
 import type { UserListItem } from '../types/users.types';
@@ -23,7 +24,7 @@ interface IProps {
 export const UsersTable = ({ items, page, pageSize, total, search }: IProps) => {
   const t = useTranslations('users');
   const locale = useLocale();
-  const columns = useMemo<ColumnDef<UserListItem>[]>(
+  const columns = useMemo<ColumnDef<DataTableFeatures, UserListItem, unknown>[]>(
     () => [
       {
         accessorKey: 'name',

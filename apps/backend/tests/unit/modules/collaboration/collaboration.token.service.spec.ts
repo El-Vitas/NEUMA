@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { PageLifecycle } from '@company-brain/db';
-import { Result, USER_ROLE } from '@company-brain/shared';
+import { PageLifecycle } from '@neuma/db';
+import { Result, USER_ROLE } from '@neuma/shared';
 import { CollaborationTokenService } from '@/modules/collaboration/collaboration.token.service';
 import type {
   CollaborationPageService,

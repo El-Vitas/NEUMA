@@ -1,5 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const ownedPage = {
@@ -11,7 +13,7 @@ const ownedPage = {
   lifecycle: 'ACTIVE',
   lockedAt: null,
   order: 0,
-  owner: { id: 'user-b', name: 'Grace Hopper' },
+  owner: { id: '44444444-4444-4444-8444-444444444444', name: 'Grace Hopper' },
   parentId: null,
   propertyValues: null,
   spaceId: '11111111-1111-4111-8111-111111111111',
@@ -35,19 +37,7 @@ mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
 }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
@@ -63,9 +53,9 @@ describe('setPageOwnerAction without an access token', () => {
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
-    const result = await setPageOwnerAction({ ownerId: 'user-b', pageId, spaceId });
+    const result = await setPageOwnerAction({ ownerId: '44444444-4444-4444-8444-444444444444', pageId, spaceId });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -77,14 +67,16 @@ describe('setPageOwnerAction with an access token', () => {
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
-    const result = await setPageOwnerAction({ ownerId: 'user-b', pageId, spaceId });
+    const result = await setPageOwnerAction({ ownerId: '44444444-4444-4444-8444-444444444444', pageId, spaceId });
 
     expect(result).toEqual({ data: ownedPage });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, requestInit] = fetchMock.mock.calls[0] ?? [];
-    expect(JSON.parse((requestInit as RequestInit).body as string)).toEqual({ ownerId: 'user-b' });
+    expect(JSON.parse((requestInit as RequestInit).body as string)).toEqual({
+      ownerId: '44444444-4444-4444-8444-444444444444',
+    });
     expect(updateTagMock).toHaveBeenCalled();
   });
 });
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);

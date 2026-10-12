@@ -1,6 +1,6 @@
 'use client';
 
-import type { Table } from '@tanstack/react-table';
+import type { RowData, Table } from '@tanstack/react-table';
 import { Check, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ComponentProps, useId, useMemo, useState } from 'react';
@@ -8,13 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 
-interface DataTableViewOptionsProps<TData> extends ComponentProps<typeof PopoverContent> {
-  readonly table: Table<TData>;
+interface DataTableViewOptionsProps<TData extends RowData> extends ComponentProps<typeof PopoverContent> {
+  readonly table: Table<DataTableFeatures, TData>;
   readonly disabled?: boolean;
 }
 
-export const DataTableViewOptions = <TData,>({ table, disabled, ...props }: DataTableViewOptionsProps<TData>) => {
+export const DataTableViewOptions = <TData extends RowData>({
+  table,
+  disabled,
+  ...props
+}: DataTableViewOptionsProps<TData>) => {
   const [open, setOpen] = useState(false);
   const t = useTranslations('common');
   const listboxId = useId();
