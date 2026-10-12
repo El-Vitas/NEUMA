@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import { DatabasePropertyType, type JsonValue, PageLifecycle } from '@neuma/db';
 import {
   givePageBlocksTheirIds,
   type PageContent,
@@ -518,7 +517,7 @@ export class PagesService {
 
   private validateWritableContent(
     role: UserRole,
-    content: Prisma.InputJsonValue,
+    content: JsonValue | PageContent,
   ): Result<PageContent, PageAccessDeniedError | PageContentValidationError> {
     if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
     return validatePageContent(content);

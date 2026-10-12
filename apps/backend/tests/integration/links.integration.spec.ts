@@ -5,7 +5,7 @@ import request from 'supertest';
 import { OUTBOX_MAX_CLAIM_BATCH_SIZE } from '@/common/constants/outbox.constants';
 import { LinksProjectionWorker } from '@/modules/links/infrastructure/worker/links.projection.worker';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -37,7 +37,7 @@ const drainLinksOutbox = async (linksProjectionWorker: LinksProjectionWorker): P
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const createSpace = async (
@@ -118,7 +118,7 @@ const getBacklinks = (testApp: TestApp, token: string, pageId: string) =>
 
 const findPageLink = async (testApp: TestApp, sourcePageId: string, targetPageId: string) => {
   const prisma = testApp.get(PrismaService);
-  return prisma.pageLink.findUnique({ where: { sourcePageId_targetPageId: { sourcePageId, targetPageId } } });
+  return prisma.models.PageLink.where({ sourcePageId, targetPageId }).first();
 };
 
 describe('Page Links (Integration)', () => {
@@ -136,8 +136,8 @@ describe('Page Links (Integration)', () => {
     const outsiderEmail = `links-outsider-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Links Admin', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Links Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Links Admin', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Links Outsider', password });
     await promoteToAdmin(testApp, adminEmail);
 
     const adminSession = await loginUser(testApp, adminEmail, password);
@@ -215,7 +215,7 @@ describe('Page Links (Integration)', () => {
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
 
       const prisma = testApp.get(PrismaService);
-      const rows = await prisma.pageLink.findMany({ where: { sourcePageId: sourceId } });
+      const rows = await prisma.models.PageLink.where({ sourcePageId: sourceId }).all();
       expect(rows).toHaveLength(1);
     });
 

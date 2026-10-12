@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@neuma/db/generated';
+import type { NeumaTransaction, OutboxConsumer } from '@neuma/db';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
+  OUTBOX_CONSUMERS,
   OUTBOX_ERROR_REDACTION_LABEL,
   OUTBOX_LEASE_SECONDS,
   OUTBOX_MAX_CLAIM_BATCH_SIZE,
   OUTBOX_RETRY_BASE_SECONDS,
 } from '../../constants/outbox.constants';
-import type { OutboxEventContract, OutboxEventInput, OutboxEventRecord } from '../../types/outbox.types';
+import type {
+  OutboxDeliveryRecord,
+  OutboxEventContract,
+  OutboxEventInput,
+  OutboxProjectionOutbox,
+} from '../../types/outbox.types';
 
 const retryDelaySeconds = (attemptCount: number): number =>
   Math.min(OUTBOX_LEASE_SECONDS, OUTBOX_RETRY_BASE_SECONDS * 2 ** Math.max(0, attemptCount - 1));
@@ -26,62 +32,86 @@ const safeErrorMessage = (error: unknown): string => {
 export class OutboxRepository implements OutboxEventContract {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(input: OutboxEventInput, transaction?: Prisma.TransactionClient): Promise<void> {
-    const client = transaction ?? this.prisma;
-    await client.outboxEvent.create({ data: input });
+  // The event and one delivery per consumer are a single insert, so no consumer can miss an event.
+  async create(input: OutboxEventInput, transaction?: NeumaTransaction): Promise<void> {
+    await this.prisma.modelsFor(transaction).OutboxEvent.create({
+      ...input,
+      deliveries: (deliveries) => deliveries.create(OUTBOX_CONSUMERS.map((consumer) => ({ consumer }))),
+    });
   }
 
-  async claimPending(limit: number): Promise<readonly OutboxEventRecord[]> {
+  forConsumer(consumer: OutboxConsumer): OutboxProjectionOutbox {
+    return {
+      claimPending: (limit) => this.claimPending(consumer, limit),
+      markFailed: (deliveryId, error) => this.markFailureState(deliveryId, 'FAILED', error, new Date()),
+      markProcessed: (deliveryId) => this.markProcessed(deliveryId),
+      markRetryable: (deliveryId, error, attemptCount) =>
+        this.markFailureState(
+          deliveryId,
+          'PENDING',
+          error,
+          new Date(Date.now() + retryDelaySeconds(attemptCount) * 1000),
+        ),
+    };
+  }
+
+  private async claimPending(consumer: OutboxConsumer, limit: number): Promise<readonly OutboxDeliveryRecord[]> {
     const boundedLimit = Math.max(1, Math.min(limit, OUTBOX_MAX_CLAIM_BATCH_SIZE));
-    return this.prisma.$queryRaw<OutboxEventRecord[]>(Prisma.sql`
+    const event = this.prisma.tables.OutboxEvent.columns;
+    const delivery = this.prisma.tables.OutboxDelivery.columns;
+    return this.prisma.runner.query(
+      this.prisma.sql`
       WITH claimed AS (
         SELECT "id"
-        FROM "OutboxEvent"
-        WHERE "nextAttemptAt" <= now()
+        FROM "OutboxDelivery"
+        WHERE "consumer" = ${consumer}::"OutboxConsumer"
+          AND "nextAttemptAt" <= now()
           AND ("status" = 'PENDING'::"OutboxStatus" OR "status" = 'PROCESSING'::"OutboxStatus")
         ORDER BY "createdAt" ASC
         FOR UPDATE SKIP LOCKED
         LIMIT ${boundedLimit}
       )
-      UPDATE "OutboxEvent" AS event
+      UPDATE "OutboxDelivery" AS delivery
       SET "status" = 'PROCESSING'::"OutboxStatus",
-          "attemptCount" = event."attemptCount" + 1,
+          "attemptCount" = delivery."attemptCount" + 1,
           "nextAttemptAt" = now() + make_interval(secs => ${OUTBOX_LEASE_SECONDS})
-      FROM claimed
-      WHERE event."id" = claimed."id"
-      RETURNING event."aggregateId", event."aggregateType", event."attemptCount", event."eventType", event."id",
-        event."idempotencyKey", event."payload", event."payloadVersion"
-    `);
+      FROM claimed, "OutboxEvent" AS event
+      WHERE delivery."id" = claimed."id" AND event."id" = delivery."eventId"
+      RETURNING event."aggregateId", event."aggregateType", delivery."attemptCount", delivery."id" AS "deliveryId",
+        event."eventType", event."idempotencyKey", event."payload", event."payloadVersion"
+    `
+        .returnsRow({
+          aggregateId: event.aggregateId,
+          aggregateType: event.aggregateType,
+          attemptCount: delivery.attemptCount,
+          deliveryId: delivery.id,
+          eventType: event.eventType,
+          idempotencyKey: event.idempotencyKey,
+          payload: event.payload,
+          payloadVersion: event.payloadVersion,
+        })
+        .build(),
+    );
   }
 
-  async markProcessed(id: string): Promise<void> {
-    await this.prisma.outboxEvent.update({
-      data: { processedAt: new Date(), status: 'PROCESSED' },
-      where: { id },
+  private async markProcessed(deliveryId: string): Promise<void> {
+    const updated = await this.prisma.models.OutboxDelivery.where({ id: deliveryId }).update({
+      processedAt: new Date(),
+      status: 'PROCESSED',
     });
-  }
-
-  async markRetryable(id: string, error: unknown, attemptCount: number): Promise<void> {
-    await this.markFailureState(id, 'PENDING', error, new Date(Date.now() + retryDelaySeconds(attemptCount) * 1000));
-  }
-
-  async markFailed(id: string, error: unknown): Promise<void> {
-    await this.markFailureState(id, 'FAILED', error, new Date());
+    if (updated === null) throw new Error(`Outbox delivery ${deliveryId} not found when marking it processed`);
   }
 
   private async markFailureState(
-    id: string,
+    deliveryId: string,
     status: 'FAILED' | 'PENDING',
     error: unknown,
     nextAttemptAt: Date,
   ): Promise<void> {
-    await this.prisma.outboxEvent.updateMany({
-      data: {
-        nextAttemptAt,
-        lastError: { message: safeErrorMessage(error), recordedAt: new Date().toISOString() },
-        status,
-      },
-      where: { id },
+    await this.prisma.models.OutboxDelivery.where({ id: deliveryId }).updateAndCount({
+      nextAttemptAt,
+      lastError: { message: safeErrorMessage(error), recordedAt: new Date().toISOString() },
+      status,
     });
   }
 }

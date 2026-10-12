@@ -20,33 +20,27 @@ export class WorkspaceContextService {
     if (existing !== null) return existing;
 
     // Concurrent first requests race here; the unique key lets one insert and skips the other.
-    await this.prisma.workspace.createMany({
-      data: [{ name: WORKSPACE_DEFAULT_NAME, singletonKey: WORKSPACE_SINGLETON_KEY }],
-      skipDuplicates: true,
-    });
+    await this.prisma.models.Workspace.createAndCount(
+      [{ name: WORKSPACE_DEFAULT_NAME, singletonKey: WORKSPACE_SINGLETON_KEY }],
+      { onConflict: 'skip' },
+    );
     const created = await this.readWorkspace();
     if (created === null) throw new Error('The workspace could not be resolved');
     return created;
   }
 
   private async readWorkspace(): Promise<null | WorkspaceSummary> {
-    return this.prisma.workspace.findUnique({
-      select: { id: true, name: true },
-      where: { singletonKey: WORKSPACE_SINGLETON_KEY },
-    });
+    return this.prisma.models.Workspace.select('id', 'name').where({ singletonKey: WORKSPACE_SINGLETON_KEY }).first();
   }
 
   private async ensureMembership(workspaceId: string, userId: string, role: UserRole): Promise<void> {
-    const membership = await this.prisma.workspaceMember.findUnique({
-      select: { role: true },
-      where: { workspaceId_userId: { userId, workspaceId } },
-    });
+    const membership = await this.prisma.models.WorkspaceMember.select('role').where({ userId, workspaceId }).first();
     if (membership?.role === role) return;
 
-    await this.prisma.workspaceMember.upsert({
+    await this.prisma.models.WorkspaceMember.upsert({
+      conflictOn: { userId, workspaceId },
       create: { role, userId, workspaceId },
       update: { role },
-      where: { workspaceId_userId: { userId, workspaceId } },
     });
   }
 }

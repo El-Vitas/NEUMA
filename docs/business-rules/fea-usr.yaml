@@ -29,18 +29,72 @@ rules:
     title: Formato de email
     rule: El email debe tener un formato válido y máximo 255 caracteres.
     why: Validación estándar de formato de email para evitar datos inválidos.
-  - id: BR-012
-    status: active
-    title: Rol por defecto al registrarse
-    rule: Al registrarse, el usuario se crea con el rol CLIENT por defecto.
-    why: Solo administradores pueden asignar roles superiores; el registro público siempre es como cliente.
-  - id: BR-013
-    status: active
-    title: Auto-login al registrarse
-    rule: Después de registrar un usuario exitosamente, el sistema debe devolver un token de sesión.
-    why: El usuario no debe hacer login aparte inmediatamente después de registrarse; la transición debe ser inmediata.
   - id: BR-014
     status: active
     title: Perfil propio
     rule: Un usuario solo puede ver su propio perfil.
     why: Privacidad — un usuario no debe poder acceder a los datos de otro usuario.
+  - id: BR-5198703
+    status: active
+    title: El primer administrador se crea desde el servidor
+    rule: >-
+      En una instalación nueva, el primer administrador se crea con un comando en el servidor, y solo mientras no exista
+      ningún administrador. La contraseña se entrega por la entrada estándar, nunca escrita como argumento ni en la
+      terminal, para que no quede en el historial ni a la vista.
+    why: >-
+      Con el registro cerrado no hay otra puerta de entrada, y tiene que ser una que solo use quien opera el servidor y
+      que se cierre sola una vez usada.
+    context: Desde que existe un administrador, el comando se niega y las cuentas se crean desde la aplicación.
+    supersedes: BR-013
+    scenarios:
+      - title: Instalación nueva
+        given: Una base sin ningún administrador
+        when: Quien opera el servidor ejecuta el comando con un correo, un nombre y la contraseña por la entrada estándar
+        then: Se crea la cuenta con rol de administrador y ya puede iniciar sesión en el portal
+      - title: Ya hay un administrador
+        given: Una base con al menos un administrador
+        when: Alguien ejecuta el comando
+        then: Se niega, explica que las cuentas se crean desde la aplicación, y no crea nada
+      - title: Contraseña escrita en la terminal
+        given: El comando se ejecuta sin nada en la entrada estándar
+        when: Espera la contraseña desde la terminal
+        then: Se niega y muestra cómo entregarla por la entrada estándar
+  - id: BR-6925d74
+    status: active
+    title: Solo un administrador crea cuentas
+    rule: >-
+      Nadie puede crearse una cuenta por su cuenta. Las cuentas las crea un administrador, que elige el rol de cada una;
+      quien crea la cuenta no queda con la sesión de la persona nueva, que entra por su lado con el correo y la
+      contraseña que le dieron.
+    why: >-
+      Neuma guarda el conocimiento interno de una organización. Con registro abierto, cualquiera que llegara al servidor
+      podía crearse una cuenta y leer todos los espacios internos.
+    context: >-
+      El formulario para crear la cuenta empieza en el rol de menor acceso, para que nadie reciba más de lo que debe por
+      descuido.
+    supersedes: BR-012
+    scenarios:
+      - title: Alguien sin cuenta intenta crearse una
+        given: Una persona que no ha iniciado sesión
+        when: Intenta crear una cuenta
+        then: Se rechaza y no se crea nada
+      - title: Un administrador crea una cuenta de trabajador
+        given: Un administrador con la sesión iniciada
+        when: Crea una cuenta y elige el rol de trabajador
+        then: La cuenta queda creada con ese rol, y la persona entra con su correo y su contraseña
+      - title: Alguien que no administra intenta crear una cuenta
+        given: Un trabajador o un cliente con la sesión iniciada
+        when: Intenta crear una cuenta
+        then: Se rechaza y no se crea nada
+  - id: BR-012
+    status: superseded
+    title: Rol por defecto al registrarse
+    rule: Al registrarse, el usuario se crea con el rol CLIENT por defecto.
+    why: Solo administradores pueden asignar roles superiores; el registro público siempre es como cliente.
+    superseded_by: BR-6925d74
+  - id: BR-013
+    status: superseded
+    title: Auto-login al registrarse
+    rule: Después de registrar un usuario exitosamente, el sistema debe devolver un token de sesión.
+    why: El usuario no debe hacer login aparte inmediatamente después de registrarse; la transición debe ser inmediata.
+    superseded_by: BR-5198703

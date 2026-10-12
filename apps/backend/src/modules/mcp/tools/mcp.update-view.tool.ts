@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonObject } from '@neuma/db';
 import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
@@ -37,7 +37,7 @@ const setViewConfiguration = async (
   call: McpCall,
   collection: McpOpenCollection,
   view: McpView,
-  configuration: Prisma.InputJsonObject,
+  configuration: JsonObject,
 ): Promise<McpOpenCollection> => {
   const { principal, workspace } = call;
   const saved = requireMcpSuccess(

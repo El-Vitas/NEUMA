@@ -3,7 +3,7 @@ import { SpaceVisibility } from '@neuma/db';
 import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -31,7 +31,7 @@ const plainContent = (text: string): PageContent => ({
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const createSpace = async (testApp: TestApp, token: string, name: string, slug: string): Promise<string> => {
@@ -82,8 +82,8 @@ describe('Page Views (Integration)', () => {
     const workerEmail = `page-views-worker-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Views Admin', password });
-    await registerUser(testApp, { email: workerEmail, name: 'Views Worker', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Views Admin', password });
+    await createAccount(testApp, { email: workerEmail, name: 'Views Worker', password });
     await promoteToAdmin(testApp, adminEmail);
 
     adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;

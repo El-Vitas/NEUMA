@@ -1,5 +1,5 @@
+import type { JsonObject } from '@neuma/db';
 import { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
 import type { PageOptionColor } from '@neuma/shared';
 import { PAGE_OPTION_COLOR_VALUES, readPagePropertyOptions } from '@neuma/shared';
 import { Transform, Type } from 'class-transformer';
@@ -75,7 +75,7 @@ export class PageSchemaViewDto {
   type!: DatabaseViewType;
 
   @IsObject()
-  configuration!: Prisma.InputJsonObject;
+  configuration!: JsonObject;
 
   @IsBoolean()
   isDefault!: boolean;
@@ -97,7 +97,7 @@ export class RewritePageOptionDto {
 
 export class SetPageViewConfigurationDto {
   @IsObject()
-  configuration!: Prisma.InputJsonObject;
+  configuration!: JsonObject;
 }
 
 export class DefinePageSchemaDto {

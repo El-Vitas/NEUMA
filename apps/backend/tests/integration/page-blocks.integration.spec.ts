@@ -7,7 +7,7 @@ import { PageBlockRepository } from '@/modules/search/infrastructure/persistence
 import { SearchService } from '@/modules/search/search.service';
 import type { PageBlockSearchQuery } from '@/modules/search/types/page-block.types';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { drainSearchProjection } from '../helpers/search.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -20,9 +20,17 @@ interface Reader {
   readonly userRole: UserRole;
 }
 
+// The pass walks every page in the run's one shared workspace, so it takes longer the later this file runs.
+const WORKSPACE_PASS_TIMEOUT_MS = 120_000;
+
 const text = (value: string) => ({ text: value, type: 'text' as const });
 
 const pageWithoutIds = (...blocks: readonly unknown[]): unknown => ({ content: blocks, schemaVersion: 1, type: 'doc' });
+
+const required = <Row>(row: Row | null, description: string): Row => {
+  if (row === null) throw new Error(`Expected ${description} to exist`);
+  return row;
+};
 
 const closedNowhere: SearchTokenScope = {
   allowedPageIds: [],
@@ -57,7 +65,7 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     testApp.get(SearchService).searchBlocks({ limit: 20, query, workspaceId, ...reader, ...extra });
 
   const readStoredContent = async (pageId: string): Promise<PageContent> => {
-    const page = await testApp.get(PrismaService).page.findUniqueOrThrow({ where: { id: pageId } });
+    const page = required(await testApp.get(PrismaService).models.Page.where({ id: pageId }).first(), 'the page');
     return page.content as PageContent;
   };
 
@@ -70,12 +78,15 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     const prisma = testApp.get(PrismaService);
     term = `Quillhaven${timestamp}`;
 
-    await registerUser(testApp, { email: adminEmail, name: 'Blocks Admin', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Blocks Outsider', password });
-    await prisma.user.update({ data: { role: 'ADMIN' }, where: { email: adminEmail } });
+    await createAccount(testApp, { email: adminEmail, name: 'Blocks Admin', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Blocks Outsider', password });
+    await prisma.models.User.where({ email: adminEmail }).update({ role: 'ADMIN' });
     adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;
-    const adminUser = await prisma.user.findUniqueOrThrow({ where: { email: adminEmail } });
-    const outsiderUser = await prisma.user.findUniqueOrThrow({ where: { email: outsiderEmail } });
+    const adminUser = required(await prisma.models.User.where({ email: adminEmail }).first(), 'the admin user');
+    const outsiderUser = required(
+      await prisma.models.User.where({ email: outsiderEmail }).first(),
+      'the outsider user',
+    );
     admin = { userId: adminUser.id, userRole: 'ADMIN' };
     outsider = { userId: outsiderUser.id, userRole: outsiderUser.role };
 
@@ -85,7 +96,7 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
       .send({ name: 'Blocks Space', slug: `blocks-space-${timestamp}`, visibility: SpaceVisibility.RESTRICTED })
       .expect(201);
     spaceId = (space.body as IdResponse).id;
-    workspaceId = (await prisma.space.findUniqueOrThrow({ where: { id: spaceId } })).workspaceId;
+    workspaceId = required(await prisma.models.Space.where({ id: spaceId }).first(), 'the space').workspaceId;
 
     rootPageId = await createPage(
       'Proyecto',
@@ -170,16 +181,10 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
 
   it('keeps only the blocks of verified pages when asked, and says which pages are verified', async () => {
     const prisma = testApp.get(PrismaService);
-    await prisma.page.update({
-      data: { verifiedAt: new Date(), verifiedById: admin.userId },
-      where: { id: childPageId },
-    });
-    await prisma.page.update({
-      data: {
-        verificationExpiresAt: new Date('2020-01-01T00:00:00.000Z'),
-        verifiedAt: new Date('2019-01-01T00:00:00.000Z'),
-      },
-      where: { id: otherPageId },
+    await prisma.models.Page.where({ id: childPageId }).update({ verifiedAt: new Date(), verifiedById: admin.userId });
+    await prisma.models.Page.where({ id: otherPageId }).update({
+      verificationExpiresAt: new Date('2020-01-01T00:00:00.000Z'),
+      verifiedAt: new Date('2019-01-01T00:00:00.000Z'),
     });
 
     const [all, verifiedOnly] = await Promise.all([
@@ -227,11 +232,11 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
   });
 
   it('does not let an older version of a page overwrite the blocks of a newer one', async () => {
-    const before = await testApp.get(PrismaService).pageBlock.findMany({ where: { pageId: otherPageId } });
+    const before = await testApp.get(PrismaService).models.PageBlock.where({ pageId: otherPageId }).all();
 
     await testApp.get(PageBlockRepository).replaceBlocks({ blocks: [], pageId: otherPageId, pageVersion: 0, spaceId });
 
-    const after = await testApp.get(PrismaService).pageBlock.findMany({ where: { pageId: otherPageId } });
+    const after = await testApp.get(PrismaService).models.PageBlock.where({ pageId: otherPageId }).all();
     expect(after).toEqual(before);
   });
 
@@ -245,11 +250,20 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
     const fill = (token: string) =>
       request(testApp.getServer()).post('/api/v1/maintenance/pages/blocks').set('Authorization', `Bearer ${token}`);
 
-    const countVersions = (pageId: string) => testApp.get(PrismaService).pageVersion.count({ where: { pageId } });
+    const countVersions = async (pageId: string): Promise<number> =>
+      (
+        await testApp
+          .get(PrismaService)
+          .models.PageVersion.where({ pageId })
+          .aggregate((aggregation) => ({ total: aggregation.count() }))
+      ).total;
 
     beforeAll(async () => {
       const prisma = testApp.get(PrismaService);
-      const outsiderEmail = (await prisma.user.findUniqueOrThrow({ where: { id: outsider.userId } })).email;
+      const outsiderEmail = required(
+        await prisma.models.User.where({ id: outsider.userId }).first(),
+        'the outsider user',
+      ).email;
       outsiderToken = (await loginUser(testApp, outsiderEmail, 'plainPassword123')).accessToken;
 
       oldPageId = await createPage('Antigua', pageWithoutIds({ content: [text(oldWord)], type: 'paragraph' }));
@@ -258,28 +272,29 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
         pageWithoutIds({ content: [text(unprojectedWord)], type: 'paragraph' }),
       );
       await drainSearchProjection(testApp);
-      await prisma.page.update({
-        data: {
-          content: { content: [{ content: [text(oldWord)], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
-        },
-        where: { id: oldPageId },
+      await prisma.models.Page.where({ id: oldPageId }).update({
+        content: { content: [{ content: [text(oldWord)], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
       });
-      await prisma.pageBlock.deleteMany({ where: { pageId: { in: [oldPageId, unprojectedPageId] } } });
+      await prisma.models.PageBlock.where((block) => block.pageId.in([oldPageId, unprojectedPageId])).deleteAndCount();
     });
 
     it('is refused to anyone who does not run the workspace', async () => {
       await fill(outsiderToken).expect(403);
     });
 
-    it('gives the blocks of an old page their ids, and makes them findable again', async () => {
-      const response = await fill(adminToken).expect(200);
-      await drainSearchProjection(testApp);
+    it(
+      'gives the blocks of an old page their ids, and makes them findable again',
+      async () => {
+        const response = await fill(adminToken).expect(200);
+        await drainSearchProjection(testApp);
 
-      const stored = await readStoredContent(oldPageId);
-      expect((response.body as { pagesGivenIds: number }).pagesGivenIds).toBeGreaterThanOrEqual(1);
-      expect(stored.content.every((block) => typeof block.attrs?.id === 'string')).toBe(true);
-      expect((await searchBlocks(admin, oldWord)).items.map((item) => item.pageId)).toEqual([oldPageId]);
-    });
+        const stored = await readStoredContent(oldPageId);
+        expect((response.body as { pagesGivenIds: number }).pagesGivenIds).toBeGreaterThanOrEqual(1);
+        expect(stored.content.every((block) => typeof block.attrs?.id === 'string')).toBe(true);
+        expect((await searchBlocks(admin, oldWord)).items.map((item) => item.pageId)).toEqual([oldPageId]);
+      },
+      WORKSPACE_PASS_TIMEOUT_MS,
+    );
 
     it('projects a page that already had its ids but was never projected', async () => {
       expect((await searchBlocks(admin, unprojectedWord)).items.map((item) => item.pageId)).toEqual([
@@ -287,14 +302,18 @@ describe('Page blocks: projected, searched and pointed at (Integration)', () => 
       ]);
     });
 
-    it('changes nothing the second time', async () => {
-      const versionsBefore = await countVersions(oldPageId);
+    it(
+      'changes nothing the second time',
+      async () => {
+        const versionsBefore = await countVersions(oldPageId);
 
-      const response = await fill(adminToken).expect(200);
+        const response = await fill(adminToken).expect(200);
 
-      expect((response.body as { pagesGivenIds: number }).pagesGivenIds).toBe(0);
-      expect(await countVersions(oldPageId)).toBe(versionsBefore);
-    });
+        expect((response.body as { pagesGivenIds: number }).pagesGivenIds).toBe(0);
+        expect(await countVersions(oldPageId)).toBe(versionsBefore);
+      },
+      WORKSPACE_PASS_TIMEOUT_MS,
+    );
   });
 
   it('forgets the blocks of a page thrown in the trash', async () => {

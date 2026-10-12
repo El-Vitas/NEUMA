@@ -1,19 +1,21 @@
+// use prisma-8
 model FileAsset {
-  id               String             @id @default(uuid(7))
+  id               String                      @id(map: "FileAsset_pkey") @default(uuid(7))
   ownerId          String
   workspaceId      String
   pageId           String?
-  storageKey       String             @unique
+  storageKey       String
   originalFilename String
   mimeType         String
   size             Int
   checksum         String
-  lifecycle        FileAssetLifecycle @default(ACTIVE)
-  deletedAt        DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  lifecycle        pg.enum(FileAssetLifecycle) @default("ACTIVE")
+  deletedAt        TimestamptzJsDate?
+  createdAt        TimestamptzJsDate           @default(now())
+  updatedAt        temporal.updatedAtJsDate()
 
-  @@index([workspaceId, lifecycle])
-  @@index([ownerId, lifecycle])
-  @@index([pageId, lifecycle])
+  @@unique([storageKey], map: "FileAsset_storageKey_key")
+  @@index([workspaceId, lifecycle], map: "FileAsset_workspaceId_lifecycle_idx")
+  @@index([ownerId, lifecycle], map: "FileAsset_ownerId_lifecycle_idx")
+  @@index([pageId, lifecycle], map: "FileAsset_pageId_lifecycle_idx")
 }

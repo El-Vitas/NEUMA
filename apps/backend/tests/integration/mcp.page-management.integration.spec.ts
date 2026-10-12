@@ -11,7 +11,7 @@ import {
   MCP_WRITTEN_UNREADABLE_NOTE,
 } from '@/modules/mcp/constants/mcp.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, readMcpText } from '../helpers/mcp.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -43,6 +43,7 @@ describe('MCP page management (Integration)', () => {
 
   const api = () => request(testApp.getServer());
   const prisma = () => testApp.get(PrismaService);
+  const storedPage = (pageId: string) => prisma().models.Page.where({ id: pageId }).all().firstOrThrow();
 
   const createPage = async (title: string, content: PageContent, parentId?: string): Promise<string> => {
     const response = await api()
@@ -68,9 +69,7 @@ describe('MCP page management (Integration)', () => {
     callMcpTool(baseUrl, secret, name, args);
 
   const storedContent = async (pageId: string): Promise<string> =>
-    JSON.stringify(
-      (await prisma().page.findUniqueOrThrow({ select: { content: true }, where: { id: pageId } })).content,
-    );
+    JSON.stringify((await prisma().models.Page.select('content').where({ id: pageId }).all().firstOrThrow()).content);
 
   const freshPage = (title: string, parentId?: string) =>
     createPage(
@@ -93,8 +92,8 @@ describe('MCP page management (Integration)', () => {
     testApp = await bootstrapTestApp();
     baseUrl = await listenForMcp(testApp);
     const email = `mcp-management-${String(Date.now())}@test.com`;
-    await registerUser(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
-    await prisma().user.update({ data: { role: 'ADMIN' }, where: { email } });
+    await createAccount(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
+    await prisma().models.User.where({ email }).update({ role: 'ADMIN' });
     ownerToken = (await loginUser(testApp, email, PASSWORD)).accessToken;
     const space = await api()
       .post('/api/v1/spaces')
@@ -267,7 +266,7 @@ describe('MCP page management (Integration)', () => {
       });
       const refused = await call(secret, 'insert_blocks', { blocks: [{ text: 'x', type: 'paragraph' }], page: pageId });
 
-      const page = await prisma().page.findUniqueOrThrow({ where: { id: pageId } });
+      const page = await storedPage(pageId);
       expect(managedShape.parse(answer.structuredContent).page.title).toBe('Nuevo nombre');
       expect(page.title).toBe('Nuevo nombre');
       expect(JSON.stringify(page.icon)).toContain('📌');
@@ -289,7 +288,7 @@ describe('MCP page management (Integration)', () => {
       ]);
 
       for (const answer of answers) expect(readMcpText(answer)).toBe(MCP_PAGE_MANAGE_REFUSED_MESSAGE);
-      const page = await prisma().page.findUniqueOrThrow({ where: { id: pageId } });
+      const page = await storedPage(pageId);
       expect(page.title).toBe('Sin gestión');
       expect(page.lockedAt).toBeNull();
       expect(page.verifiedAt).toBeNull();
@@ -306,15 +305,16 @@ describe('MCP page management (Integration)', () => {
         (await call(secret, 'duplicate_page', { page: pageId, title: 'Copia' })).structuredContent,
       );
       const trashed = managedShape.parse((await call(secret, 'trash_page', { page: pageId })).structuredContent);
-      const inTrash = await prisma().page.findMany({
-        select: { id: true },
-        where: { id: { in: [pageId, childId] }, trashedAt: { not: null } },
-      });
+      const inTrash = await prisma()
+        .models.Page.select('id')
+        .where((page) => page.id.in([pageId, childId]))
+        .where((page) => page.trashedAt.isNotNull())
+        .all();
       const restored = managedShape.parse(
         (await call(secret, 'restore_page', { page: pageId, withChildren: true })).structuredContent,
       );
 
-      const moved = await prisma().page.findUniqueOrThrow({ where: { id: pageId } });
+      const moved = await storedPage(pageId);
       expect(moved.parentId).toBe(parentId);
       expect(moved.trashedAt).toBeNull();
       expect(copy.page.title).toBe('Copia');
@@ -334,7 +334,7 @@ describe('MCP page management (Integration)', () => {
       const answer = await call(secret, 'trash_page', { page: pageId });
 
       expect(readMcpText(answer)).toContain(childId);
-      expect((await prisma().page.findUniqueOrThrow({ where: { id: pageId } })).trashedAt).toBeNull();
+      expect((await storedPage(pageId)).trashedAt).toBeNull();
     });
 
     it('refuses without naming a page under it that the token may not even read', async () => {
@@ -348,7 +348,7 @@ describe('MCP page management (Integration)', () => {
       const answer = await call(secret, 'trash_page', { page: pageId });
 
       expect(readMcpText(answer)).toBe(MCP_PROTECTED_UNREADABLE_DESCENDANT_MESSAGE);
-      expect((await prisma().page.findUniqueOrThrow({ where: { id: pageId } })).trashedAt).toBeNull();
+      expect((await storedPage(pageId)).trashedAt).toBeNull();
     });
 
     it('answers a token that writes but cannot read with ids and the link only', async () => {
@@ -370,12 +370,16 @@ describe('MCP page management (Integration)', () => {
         pages: [{ pageId, permissions: [pagesRead] }],
       });
       const tokenId = (
-        await prisma().accessToken.findFirstOrThrow({ orderBy: { createdAt: 'desc' }, select: { id: true } })
+        await prisma()
+          .models.AccessToken.select('id')
+          .orderBy((token) => token.createdAt.desc())
+          .all()
+          .firstOrThrow()
       ).id;
 
       await call(closedHere, 'insert_blocks', { blocks: [{ text: 'Hola', type: 'paragraph' }], page: pageId });
 
-      const action = await prisma().agentAction.findFirstOrThrow({ where: { tokenId, tool: 'insert_blocks' } });
+      const action = await prisma().models.AgentAction.where({ tokenId, tool: 'insert_blocks' }).all().firstOrThrow();
       expect(action.outcome).toBe('REFUSED');
       expect(action.detail).toEqual({ target: pageId });
     });
@@ -405,8 +409,12 @@ describe('MCP page management (Integration)', () => {
   });
 
   describe('reintentos con el mismo id de pedido', () => {
-    const countTitled = (title: string): Promise<number> =>
-      prisma().page.count({ where: { spaceId, title, trashedAt: null } });
+    const countTitled = async (title: string): Promise<number> =>
+      (
+        await prisma()
+          .models.Page.where({ spaceId, title, trashedAt: null })
+          .aggregate((aggregation) => ({ total: aggregation.count() }))
+      ).total;
 
     it('creates the page once and tells the retry where it is', async () => {
       const secret = await fullToken();
@@ -416,7 +424,7 @@ describe('MCP page management (Integration)', () => {
       await call(secret, 'create_page', args);
       const retry = await call(secret, 'create_page', args);
 
-      const created = await prisma().page.findFirstOrThrow({ select: { id: true }, where: { spaceId, title } });
+      const created = await prisma().models.Page.select('id').where({ spaceId, title }).all().firstOrThrow();
       expect(await countTitled(title)).toBe(1);
       expect(readMcpText(retry)).toContain(MCP_REQUEST_ALREADY_DONE_MESSAGE);
       expect(readMcpText(retry)).toContain(created.id);

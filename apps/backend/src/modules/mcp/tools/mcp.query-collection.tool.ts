@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonObject } from '@neuma/db';
 import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { readMcpOffset } from '../lib/mcp.address.lib';
@@ -25,7 +25,7 @@ const buildQueryConfiguration = (
   collection: McpOpenCollection,
   input: McpQueryCollectionInput,
   people: readonly McpPerson[],
-): Prisma.InputJsonObject => {
+): JsonObject => {
   const base = input.view === undefined ? {} : requireMcpView(collection, input.view).configuration;
   const shape = {
     ...(input.sort === undefined ? {} : { sort: input.sort }),

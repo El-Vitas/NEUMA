@@ -1,25 +1,27 @@
+// use prisma-8
+
 /// What an agent did, or tried to do, when writing to Neuma.
 /// One row per write, recorded before writing: no row means no write.
 /// No foreign keys to the page or the token, so the record survives their deletion.
 model AgentAction {
-  id          String             @id @default(uuid(7))
+  id          String                      @id(map: "AgentAction_pkey") @default(uuid(7))
   workspaceId String
   userId      String
   tokenId     String
   tool        String
   pageId      String?
-  blockIds    String[]           @default([])
-  outcome     AgentActionOutcome
+  blockIds    String[]                    @default([]) @noCheck(elementNotNull)
+  outcome     pg.enum(AgentActionOutcome)
   /// Short summary of the request: the columns changed, the view created.
-  detail      Json
-  createdAt   DateTime           @default(now())
+  detail      Jsonb
+  createdAt   TimestamptzJsDate           @default(now())
   /// Null while the outcome is still pending.
-  finishedAt  DateTime?
-  /// Agent-supplied idempotency id: the same id never runs twice for one token.
-  /// Enforced by a partial unique index over pending or done actions only (see its migration).
+  finishedAt  TimestamptzJsDate?
+  /// Agent-supplied idempotency id: the same id never runs twice for one token, among pending or done actions.
   requestId   String?
 
-  @@index([workspaceId, createdAt])
-  @@index([tokenId, createdAt])
-  @@index([pageId])
+  @@index([workspaceId, createdAt], map: "AgentAction_workspaceId_createdAt_idx")
+  @@index([tokenId, createdAt], map: "AgentAction_tokenId_createdAt_idx")
+  @@index([pageId], map: "AgentAction_pageId_idx")
+  @@index([tokenId, requestId], map: "AgentAction_tokenId_requestId_live_key", where: "((\"requestId\" IS NOT NULL) AND (outcome = ANY (ARRAY['PENDING'::\"AgentActionOutcome\", 'DONE'::\"AgentActionOutcome\"])))", unique: true)
 }

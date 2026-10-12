@@ -5,7 +5,7 @@ import request from 'supertest';
 import { z } from 'zod';
 import { MCP_INACCESSIBLE_MESSAGE, MCP_PAGE_LOCKED_MESSAGE } from '@/modules/mcp/constants/mcp.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames, readMcpText } from '../helpers/mcp.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -38,8 +38,8 @@ describe('MCP collections (Integration)', () => {
 
   const signUp = async (label: string): Promise<Session> => {
     const email = `mcp-collections-${label}-${String(Date.now())}@test.com`;
-    await registerUser(testApp, { email, name: OWNER_NAME, password: PASSWORD });
-    await testApp.get(PrismaService).user.update({ data: { role: 'ADMIN' }, where: { email } });
+    await createAccount(testApp, { email, name: OWNER_NAME, password: PASSWORD });
+    await testApp.get(PrismaService).models.User.where({ email }).update({ role: 'ADMIN' });
     const session = await loginUser(testApp, email, PASSWORD);
     return { id: session.user.id, token: session.accessToken };
   };
@@ -88,19 +88,23 @@ describe('MCP collections (Integration)', () => {
     callMcpTool(baseUrl, secret, name, args);
 
   const storedRow = (pageId: string) =>
-    testApp.get(PrismaService).page.findUniqueOrThrow({
-      select: { propertyValues: true, title: true },
-      where: { id: pageId },
-    });
+    testApp.get(PrismaService).models.Page.select('propertyValues', 'title').where({ id: pageId }).all().firstOrThrow();
 
-  const rowCount = () => testApp.get(PrismaService).page.count({ where: { parentId: collectionId } });
+  const rowCount = async () =>
+    (
+      await testApp
+        .get(PrismaService)
+        .models.Page.where({ parentId: collectionId })
+        .aggregate((aggregation) => ({ total: aggregation.count() }))
+    ).total;
 
   const actionsOn = (pageId: string) =>
-    testApp.get(PrismaService).agentAction.findMany({
-      orderBy: { createdAt: 'asc' },
-      select: { outcome: true, tool: true },
-      where: { pageId },
-    });
+    testApp
+      .get(PrismaService)
+      .models.AgentAction.select('outcome', 'tool')
+      .where({ pageId })
+      .orderBy((action) => action.createdAt.asc())
+      .all();
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
@@ -359,10 +363,12 @@ describe('MCP collections (Integration)', () => {
       });
 
       expect(answer.isError).toBeUndefined();
-      const view = await testApp.get(PrismaService).pageSchemaView.findFirstOrThrow({
-        select: { configuration: true, type: true },
-        where: { name: 'Tablero', pageId: collectionId },
-      });
+      const view = await testApp
+        .get(PrismaService)
+        .models.PageSchemaView.select('configuration', 'type')
+        .where({ name: 'Tablero', pageId: collectionId })
+        .all()
+        .firstOrThrow();
       expect(view).toMatchObject({ configuration: { groupBy: 'status' }, type: 'BOARD' });
     });
 

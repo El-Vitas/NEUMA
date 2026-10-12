@@ -1,14 +1,16 @@
+// use prisma-8
+
 /// What a token may do on a page and everything under it.
 /// With no permissions, it excludes the page and its descendants. The nearest
 /// rule wins, so a deeper rule can reopen or narrow access.
 model AccessTokenPageGrant {
-  id          String      @id @default(uuid(7))
+  id          String      @id(map: "AccessTokenPageGrant_pkey") @default(uuid(7))
   tokenId     String
   pageId      String
-  permissions String[]
-  token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
-  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  permissions String[]    @noCheck(elementNotNull)
+  token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenPageGrant_tokenId_fkey", index: "AccessTokenPageGrant_tokenId_pageId_key")
+  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenPageGrant_pageId_fkey")
 
-  @@unique([tokenId, pageId])
-  @@index([pageId])
+  @@unique([tokenId, pageId], map: "AccessTokenPageGrant_tokenId_pageId_key")
+  @@index([pageId], map: "AccessTokenPageGrant_pageId_idx")
 }

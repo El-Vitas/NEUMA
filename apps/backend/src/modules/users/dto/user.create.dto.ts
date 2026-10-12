@@ -1,5 +1,6 @@
+import { USER_ROLE_VALUES, type UserRole } from '@neuma/shared';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
 
 import {
   EMAIL_MAX_LENGTH,
@@ -26,4 +27,7 @@ export class CreateUserDto {
   @MaxLength(PASSWORD_MAX_LENGTH)
   @MinLength(PASSWORD_MIN_LENGTH)
   password!: string;
+
+  @IsIn(USER_ROLE_VALUES)
+  role!: UserRole;
 }
