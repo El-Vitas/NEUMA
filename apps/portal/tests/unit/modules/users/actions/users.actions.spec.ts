@@ -85,7 +85,12 @@ describe('createUserAction without a session', () => {
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
-    const result = await createUserAction({ email: 'ana@example.com', name: 'Ana', password: 'super-secret' });
+    const result = await createUserAction({
+      email: 'ana@example.com',
+      name: 'Ana',
+      password: 'super-secret',
+      role: 'WORKER',
+    });
 
     expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -93,29 +98,31 @@ describe('createUserAction without a session', () => {
 });
 
 describe('createUserAction signed in as whoever runs the workspace', () => {
-  it('makes the outbound request and invalidates the cache', async () => {
+  it('asks the backend as the admin, with the chosen role, and invalidates the cache', async () => {
     cookieValue = 'valid-access-token';
     signedInUser = { id: 'the-admin', role: 'ADMIN' };
     fetchMock.mockClear();
     updateTagMock.mockClear();
     fetchMock.mockImplementationOnce(
       async (): Promise<Response> =>
-        new Response(
-          JSON.stringify({
-            accessToken: 'issued-token',
-            accessTokenExpiresInSeconds: 900,
-            refreshToken: 'issued-refresh-token',
-            refreshTokenExpiresInSeconds: 604_800,
-            user: { email: 'ana@example.com', id: userId, name: 'Ana', role: 'WORKER' },
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        ),
+        new Response(JSON.stringify({ email: 'ana@example.com', id: userId, name: 'Ana', role: 'WORKER' }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        }),
     );
 
-    const result = await createUserAction({ email: 'ana@example.com', name: 'Ana', password: 'super-secret' });
+    const result = await createUserAction({
+      email: 'ana@example.com',
+      name: 'Ana',
+      password: 'super-secret',
+      role: 'WORKER',
+    });
 
     expect(result).toEqual({ data: undefined });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer valid-access-token');
+    expect(JSON.parse(String(init?.body))).toMatchObject({ role: 'WORKER' });
     expect(updateTagMock).toHaveBeenCalledWith('users');
   });
 });

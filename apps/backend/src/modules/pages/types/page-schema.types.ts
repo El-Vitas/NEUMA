@@ -1,5 +1,4 @@
-import type { PageLifecycle } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonObject, PageLifecycle } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
@@ -75,7 +74,7 @@ export interface PageRowsSummary {
 }
 
 export interface SetPageViewConfigurationInput {
-  readonly configuration: Prisma.InputJsonObject;
+  readonly configuration: JsonObject;
   readonly pageId: string;
   readonly role: UserRole;
   readonly userId: string;
@@ -111,7 +110,7 @@ export interface PageSchemaRepositoryContract {
   readonly setViewConfiguration: (
     pageId: string,
     viewName: string,
-    configuration: Prisma.InputJsonObject,
+    configuration: JsonObject,
   ) => Promise<PageSchemaDefinition>;
   readonly getSchema: (pageId: string) => Promise<PageSchemaDefinition>;
   readonly resolveSchemaProperties: (pageId: null | string) => Promise<readonly SchemaPropertyDefinition[]>;

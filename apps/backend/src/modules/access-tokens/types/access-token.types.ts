@@ -1,4 +1,5 @@
 import type { AccessTokenAccess, UserRole } from '@neuma/shared';
+import type { FilterCondition, ModelFilterScope } from '../../../common/types/model.filter.types';
 import type {
   AccessTokenCreation,
   AccessTokenOwner,
@@ -6,6 +7,8 @@ import type {
   AccessTokenWithOwner,
   AccessTokenWorkspaceRecord,
 } from '../domain/access-token.domain.types';
+
+export type AccessTokenFilter = (token: ModelFilterScope<'AccessToken'>) => FilterCondition;
 
 /** A token as read from the database, before its permissions are revalidated. */
 export interface StoredAccessToken {

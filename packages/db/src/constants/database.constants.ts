@@ -1,0 +1,1 @@
+export const UNIQUE_VIOLATION_SQL_STATE = '23505';

@@ -11,15 +11,13 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES, type User } from '@neuma/shared';
+import { API_SEGMENTS, RESOURCE_ROUTES, type User } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
 import { Action, Resource } from '../../common/constants/permission.constants';
 import { canRenameUser } from '../../common/domain/workspace.domain';
 import { Permissions } from '../../common/infrastructure/decorators/permissions.decorator';
-import { Public } from '../../common/infrastructure/decorators/public.decorator';
 import { User as AuthUser } from '../../common/infrastructure/decorators/user.decorator';
-import { CredentialsThrottlerGuard } from '../../common/infrastructure/guards/credentials-throttler.guard';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { PermissionsGuard } from '../../common/infrastructure/guards/permissions.guard';
 import { UserInterceptor } from '../../common/infrastructure/interceptors/user.interceptor';
@@ -51,16 +49,16 @@ export class UsersController {
 
   @HttpCode(HTTP_STATUS_CREATED)
   @Post()
-  @Public()
-  @UseGuards(CredentialsThrottlerGuard)
-  async register(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<AuthSession> {
+  @Permissions({ action: Action.Create, resource: Resource.User })
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  async createUser(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<User> {
     const result = await this.usersService.createUser(dto);
     if (result.isFail()) {
       throw result.getError();
     }
-    const session = result.getValue();
-    response.header('Location', `/api/v1/users/${session.user.id}`);
-    return session;
+    const created = result.getValue();
+    response.header('Location', `/api/v1/users/${created.id}`);
+    return created;
   }
 
   @Patch(':id')

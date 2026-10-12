@@ -1,5 +1,6 @@
-enum SpaceVisibility {
-  PUBLIC_INTERNAL
-  RESTRICTED
-  PRIVATE
+// use prisma-8
+native_enum SpaceVisibility {
+  PUBLIC_INTERNAL = "PUBLIC_INTERNAL"
+  RESTRICTED = "RESTRICTED"
+  PRIVATE = "PRIVATE"
 }

@@ -63,6 +63,7 @@ mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => (
 mock.module('next/navigation', () => ({
   permanentRedirect: () => undefined,
   redirect: () => undefined,
+  unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push: () => undefined }),
 }));

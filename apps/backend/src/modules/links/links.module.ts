@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { OutboxConsumer } from '@neuma/db';
 import { OutboxRepository } from '../../common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import { LINKS_PROJECTION_OUTBOX, LINKS_PROJECTION_SOURCE, LINKS_REPOSITORY } from './constants/links.tokens';
@@ -19,7 +20,11 @@ import { LinksService } from './links.service';
     OutboxRepository,
     LinksProjectionWorker,
     LinksProjectionSource,
-    { provide: LINKS_PROJECTION_OUTBOX, useExisting: OutboxRepository },
+    {
+      provide: LINKS_PROJECTION_OUTBOX,
+      useFactory: (outbox: OutboxRepository) => outbox.forConsumer(OutboxConsumer.LINKS),
+      inject: [OutboxRepository],
+    },
     { provide: LINKS_PROJECTION_SOURCE, useExisting: LinksProjectionSource },
   ],
 })

@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonValue } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
 
 export interface PageLinkReconciliationInput {
@@ -32,7 +32,7 @@ export interface PageLinkProjection {
 }
 
 export interface LinksProjectionPage {
-  readonly content: Prisma.JsonValue;
+  readonly content: JsonValue;
   readonly id: string;
   readonly lifecycle: string;
 }

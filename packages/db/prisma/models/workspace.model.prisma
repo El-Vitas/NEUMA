@@ -1,11 +1,15 @@
+// use prisma-8
 model Workspace {
-  id               String            @id @default(uuid(7))
-  singletonKey     String            @unique @default("default")
+  id               String                     @id(map: "Workspace_pkey") @default(uuid(7))
+  singletonKey     String                     @default("default")
   name             String
-  pageViewsEnabled Boolean           @default(true)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  pageViewsEnabled Boolean                    @default(true)
+  createdAt        TimestamptzJsDate          @default(now())
+  updatedAt        temporal.updatedAtJsDate()
+
   members          WorkspaceMember[]
   spaces           Space[]
   accessTokens     AccessToken[]
+
+  @@unique([singletonKey], map: "Workspace_singletonKey_key")
 }

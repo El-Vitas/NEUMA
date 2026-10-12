@@ -1,0 +1,746 @@
+[
+  {
+    "id": "timestamptz.AccessToken",
+    "label": "Store the dates of \"AccessToken\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 4 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AccessToken' AND column_name IN ('createdAt', 'expiresAt', 'lastUsedAt', 'revokedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"AccessToken\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"expiresAt\" TYPE timestamptz USING \"expiresAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"lastUsedAt\" TYPE timestamptz USING \"lastUsedAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"revokedAt\" TYPE timestamptz USING \"revokedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 4 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AccessToken' AND column_name IN ('createdAt', 'expiresAt', 'lastUsedAt', 'revokedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.AgentAction",
+    "label": "Store the dates of \"AgentAction\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AgentAction' AND column_name IN ('createdAt', 'finishedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"AgentAction\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"finishedAt\" TYPE timestamptz USING \"finishedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AgentAction' AND column_name IN ('createdAt', 'finishedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.CollaborationSnapshot",
+    "label": "Store the dates of \"CollaborationSnapshot\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'CollaborationSnapshot' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"CollaborationSnapshot\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'CollaborationSnapshot' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.FileAsset",
+    "label": "Store the dates of \"FileAsset\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 3 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'FileAsset' AND column_name IN ('createdAt', 'deletedAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"FileAsset\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"deletedAt\" TYPE timestamptz USING \"deletedAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 3 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'FileAsset' AND column_name IN ('createdAt', 'deletedAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.OutboxEvent",
+    "label": "Store the dates of \"OutboxEvent\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 3 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'OutboxEvent' AND column_name IN ('createdAt', 'nextAttemptAt', 'processedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"nextAttemptAt\" TYPE timestamptz USING \"nextAttemptAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"processedAt\" TYPE timestamptz USING \"processedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 3 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'OutboxEvent' AND column_name IN ('createdAt', 'nextAttemptAt', 'processedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.Page",
+    "label": "Store the dates of \"Page\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 6 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'Page' AND column_name IN ('createdAt', 'lockedAt', 'trashedAt', 'updatedAt', 'verificationExpiresAt', 'verifiedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"Page\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"lockedAt\" TYPE timestamptz USING \"lockedAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"trashedAt\" TYPE timestamptz USING \"trashedAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"verificationExpiresAt\" TYPE timestamptz USING \"verificationExpiresAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"verifiedAt\" TYPE timestamptz USING \"verifiedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 6 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'Page' AND column_name IN ('createdAt', 'lockedAt', 'trashedAt', 'updatedAt', 'verificationExpiresAt', 'verifiedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.PageBlock",
+    "label": "Store the dates of \"PageBlock\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageBlock' AND column_name IN ('updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"PageBlock\" ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageBlock' AND column_name IN ('updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.PageFavorite",
+    "label": "Store the dates of \"PageFavorite\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageFavorite' AND column_name IN ('createdAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"PageFavorite\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageFavorite' AND column_name IN ('createdAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.PageLink",
+    "label": "Store the dates of \"PageLink\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageLink' AND column_name IN ('createdAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"PageLink\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageLink' AND column_name IN ('createdAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.PageSchemaView",
+    "label": "Store the dates of \"PageSchemaView\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageSchemaView' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageSchemaView' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.PageVersion",
+    "label": "Store the dates of \"PageVersion\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageVersion' AND column_name IN ('createdAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"PageVersion\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageVersion' AND column_name IN ('createdAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.PageView",
+    "label": "Store the dates of \"PageView\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageView' AND column_name IN ('viewedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"PageView\" ALTER COLUMN \"viewedAt\" TYPE timestamptz USING \"viewedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageView' AND column_name IN ('viewedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.SearchDocument",
+    "label": "Store the dates of \"SearchDocument\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'SearchDocument' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"SearchDocument\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'SearchDocument' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.Space",
+    "label": "Store the dates of \"Space\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'Space' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"Space\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'Space' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.SpaceMember",
+    "label": "Store the dates of \"SpaceMember\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'SpaceMember' AND column_name IN ('createdAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"SpaceMember\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'SpaceMember' AND column_name IN ('createdAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.User",
+    "label": "Store the dates of \"User\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'User' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"User\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'User' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.Workspace",
+    "label": "Store the dates of \"Workspace\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'Workspace' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"Workspace\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC', ALTER COLUMN \"updatedAt\" TYPE timestamptz USING \"updatedAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 2 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'Workspace' AND column_name IN ('createdAt', 'updatedAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "timestamptz.WorkspaceMember",
+    "label": "Store the dates of \"WorkspaceMember\" with their time zone",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the columns still lack a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'WorkspaceMember' AND column_name IN ('createdAt') AND data_type = 'timestamp without time zone'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "convert every date column in one table rewrite",
+        "sql": "ALTER TABLE \"public\".\"WorkspaceMember\" ALTER COLUMN \"createdAt\" TYPE timestamptz USING \"createdAt\" AT TIME ZONE 'UTC'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every date column has a time zone",
+        "sql": "SELECT count(*) = 1 FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'WorkspaceMember' AND column_name IN ('createdAt') AND data_type = 'timestamp with time zone'"
+      }
+    ]
+  },
+  {
+    "id": "not-null.AccessTokenGrant.permissions",
+    "label": "Make \"AccessTokenGrant\".\"permissions\" required, as an empty list where it was null",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the column still accepts null",
+        "sql": "SELECT is_nullable = 'YES' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AccessTokenGrant' AND column_name = 'permissions'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "fill nulls",
+        "sql": "UPDATE \"public\".\"AccessTokenGrant\" SET \"permissions\" = '{}' WHERE \"permissions\" IS NULL"
+      },
+      {
+        "description": "require it",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenGrant\" ALTER COLUMN \"permissions\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "the column is required",
+        "sql": "SELECT is_nullable = 'NO' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AccessTokenGrant' AND column_name = 'permissions'"
+      }
+    ]
+  },
+  {
+    "id": "not-null.AccessTokenPageGrant.permissions",
+    "label": "Make \"AccessTokenPageGrant\".\"permissions\" required, as an empty list where it was null",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the column still accepts null",
+        "sql": "SELECT is_nullable = 'YES' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AccessTokenPageGrant' AND column_name = 'permissions'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "fill nulls",
+        "sql": "UPDATE \"public\".\"AccessTokenPageGrant\" SET \"permissions\" = '{}' WHERE \"permissions\" IS NULL"
+      },
+      {
+        "description": "require it",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenPageGrant\" ALTER COLUMN \"permissions\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "the column is required",
+        "sql": "SELECT is_nullable = 'NO' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AccessTokenPageGrant' AND column_name = 'permissions'"
+      }
+    ]
+  },
+  {
+    "id": "not-null.AgentAction.blockIds",
+    "label": "Make \"AgentAction\".\"blockIds\" required, as an empty list where it was null",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the column still accepts null",
+        "sql": "SELECT is_nullable = 'YES' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AgentAction' AND column_name = 'blockIds'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "fill nulls",
+        "sql": "UPDATE \"public\".\"AgentAction\" SET \"blockIds\" = '{}' WHERE \"blockIds\" IS NULL"
+      },
+      {
+        "description": "require it",
+        "sql": "ALTER TABLE \"public\".\"AgentAction\" ALTER COLUMN \"blockIds\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "the column is required",
+        "sql": "SELECT is_nullable = 'NO' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'AgentAction' AND column_name = 'blockIds'"
+      }
+    ]
+  },
+  {
+    "id": "not-null.PageBlock.headingPath",
+    "label": "Make \"PageBlock\".\"headingPath\" required, as an empty list where it was null",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the column still accepts null",
+        "sql": "SELECT is_nullable = 'YES' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageBlock' AND column_name = 'headingPath'"
+      }
+    ],
+    "execute": [
+      {
+        "description": "fill nulls",
+        "sql": "UPDATE \"public\".\"PageBlock\" SET \"headingPath\" = '{}' WHERE \"headingPath\" IS NULL"
+      },
+      {
+        "description": "require it",
+        "sql": "ALTER TABLE \"public\".\"PageBlock\" ALTER COLUMN \"headingPath\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "the column is required",
+        "sql": "SELECT is_nullable = 'NO' FROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'PageBlock' AND column_name = 'headingPath'"
+      }
+    ]
+  },
+  {
+    "id": "json-null.OutboxEvent.lastError",
+    "label": "Store an absent \"OutboxEvent\".\"lastError\" as SQL NULL",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "some row holds a JSON null",
+        "sql": "SELECT EXISTS (SELECT 1 FROM \"public\".\"OutboxEvent\" WHERE jsonb_typeof(\"lastError\") = 'null')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "turn JSON nulls into SQL NULL",
+        "sql": "UPDATE \"public\".\"OutboxEvent\" SET \"lastError\" = NULL WHERE jsonb_typeof(\"lastError\") = 'null'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no row holds a JSON null",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM \"public\".\"OutboxEvent\" WHERE jsonb_typeof(\"lastError\") = 'null'))"
+      }
+    ]
+  },
+  {
+    "id": "json-null.Page.cover",
+    "label": "Store an absent \"Page\".\"cover\" as SQL NULL",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "some row holds a JSON null",
+        "sql": "SELECT EXISTS (SELECT 1 FROM \"public\".\"Page\" WHERE jsonb_typeof(\"cover\") = 'null')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "turn JSON nulls into SQL NULL",
+        "sql": "UPDATE \"public\".\"Page\" SET \"cover\" = NULL WHERE jsonb_typeof(\"cover\") = 'null'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no row holds a JSON null",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM \"public\".\"Page\" WHERE jsonb_typeof(\"cover\") = 'null'))"
+      }
+    ]
+  },
+  {
+    "id": "json-null.Page.icon",
+    "label": "Store an absent \"Page\".\"icon\" as SQL NULL",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "some row holds a JSON null",
+        "sql": "SELECT EXISTS (SELECT 1 FROM \"public\".\"Page\" WHERE jsonb_typeof(\"icon\") = 'null')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "turn JSON nulls into SQL NULL",
+        "sql": "UPDATE \"public\".\"Page\" SET \"icon\" = NULL WHERE jsonb_typeof(\"icon\") = 'null'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no row holds a JSON null",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM \"public\".\"Page\" WHERE jsonb_typeof(\"icon\") = 'null'))"
+      }
+    ]
+  },
+  {
+    "id": "json-null.Page.propertyValues",
+    "label": "Store an absent \"Page\".\"propertyValues\" as SQL NULL",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "some row holds a JSON null",
+        "sql": "SELECT EXISTS (SELECT 1 FROM \"public\".\"Page\" WHERE jsonb_typeof(\"propertyValues\") = 'null')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "turn JSON nulls into SQL NULL",
+        "sql": "UPDATE \"public\".\"Page\" SET \"propertyValues\" = NULL WHERE jsonb_typeof(\"propertyValues\") = 'null'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no row holds a JSON null",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM \"public\".\"Page\" WHERE jsonb_typeof(\"propertyValues\") = 'null'))"
+      }
+    ]
+  },
+  {
+    "id": "json-null.PageSchemaProperty.options",
+    "label": "Store an absent \"PageSchemaProperty\".\"options\" as SQL NULL",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "some row holds a JSON null",
+        "sql": "SELECT EXISTS (SELECT 1 FROM \"public\".\"PageSchemaProperty\" WHERE jsonb_typeof(\"options\") = 'null')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "turn JSON nulls into SQL NULL",
+        "sql": "UPDATE \"public\".\"PageSchemaProperty\" SET \"options\" = NULL WHERE jsonb_typeof(\"options\") = 'null'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no row holds a JSON null",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM \"public\".\"PageSchemaProperty\" WHERE jsonb_typeof(\"options\") = 'null'))"
+      }
+    ]
+  },
+  {
+    "id": "json-null.Space.icon",
+    "label": "Store an absent \"Space\".\"icon\" as SQL NULL",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "some row holds a JSON null",
+        "sql": "SELECT EXISTS (SELECT 1 FROM \"public\".\"Space\" WHERE jsonb_typeof(\"icon\") = 'null')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "turn JSON nulls into SQL NULL",
+        "sql": "UPDATE \"public\".\"Space\" SET \"icon\" = NULL WHERE jsonb_typeof(\"icon\") = 'null'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no row holds a JSON null",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM \"public\".\"Space\" WHERE jsonb_typeof(\"icon\") = 'null'))"
+      }
+    ]
+  }
+]

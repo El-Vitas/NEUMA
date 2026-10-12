@@ -20,3 +20,6 @@ export const USER_ROLE_BADGE_VARIANTS = {
 } as const satisfies Record<UserRole, 'default' | 'info' | 'outline'>;
 
 export const USERS_DIALOG_INPUT_CLASS = 'h-9 bg-background';
+
+/** A new account starts with the least access; the admin raises it on purpose. */
+export const USERS_NEW_ACCOUNT_ROLE: UserRole = USER_ROLE.CLIENT;

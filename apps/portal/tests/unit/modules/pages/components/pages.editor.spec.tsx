@@ -12,6 +12,7 @@ const push = mock((_href: string) => undefined);
 mock.module('next/navigation', () => ({
   permanentRedirect: () => undefined,
   redirect: () => undefined,
+  unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push, refresh: () => undefined, replace: () => undefined }),
 }));

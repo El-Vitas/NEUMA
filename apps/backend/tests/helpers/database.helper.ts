@@ -44,7 +44,7 @@ export const assertDatabaseReachable = async (connectionUrl: string, timeoutMs: 
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'unknown connection error';
     const message = buildDiagnosticMessage(error, redactCredentials(connectionUrl), timeoutMs);
-    throw new Error(`${message} Original error: ${reason}`);
+    throw new Error(`${message} Original error: ${reason}`, { cause: error });
   } finally {
     await client.end().catch(() => undefined);
   }

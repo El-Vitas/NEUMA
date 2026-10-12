@@ -3,7 +3,7 @@ import { SpaceVisibility } from '@neuma/db';
 import request from 'supertest';
 import { EXPORT_RATE_LIMIT } from '@/common/constants/throttler.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 describe('Exporting pages (Integration)', () => {
@@ -21,8 +21,8 @@ describe('Exporting pages (Integration)', () => {
     testApp = await bootstrapTestApp();
     const email = `export-${String(Date.now())}@test.com`;
     const password = 'plainPassword123';
-    await registerUser(testApp, { email, name: 'Exporter', password });
-    await testApp.get(PrismaService).user.update({ data: { role: 'ADMIN' }, where: { email } });
+    await createAccount(testApp, { email, name: 'Exporter', password });
+    await testApp.get(PrismaService).models.User.where({ email }).update({ role: 'ADMIN' });
     token = (await loginUser(testApp, email, password)).accessToken;
     const space = await request(testApp.getServer())
       .post('/api/v1/spaces')

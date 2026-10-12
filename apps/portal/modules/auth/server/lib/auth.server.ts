@@ -6,7 +6,7 @@ import { apiServer } from '@/shared/lib/api-server';
 import { API_ROUTES, ROUTES } from '@/shared/routes/constants/routes.constants';
 import { redirect } from '../../../../i18n/navigation';
 import { authSessionSchema } from '../../schemas/auth.schemas';
-import type { AuthSession, LoginInput, RegisterInput } from '../../types/auth.types';
+import type { AuthSession, LoginInput } from '../../types/auth.types';
 
 export const requireAuth = async (): Promise<void> => {
   const cookieStore = await cookies();
@@ -18,11 +18,6 @@ export const requireAuth = async (): Promise<void> => {
 
 export const loginUser = async (input: LoginInput): Promise<AuthSession> => {
   const data = await apiServer.post<unknown>(API_ROUTES.AUTH_SESSIONS, input);
-  return authSessionSchema.parse(data);
-};
-
-export const registerUser = async (input: RegisterInput): Promise<AuthSession> => {
-  const data = await apiServer.post<unknown>(API_ROUTES.USERS, input);
   return authSessionSchema.parse(data);
 };
 

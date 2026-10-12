@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import { DatabasePropertyType, type JsonObject, type JsonValue, PageLifecycle } from '@neuma/db';
 import { type PageContent, pageContentSchema, Result, USER_ROLE } from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
@@ -160,7 +159,7 @@ describe('pages service', () => {
     expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
   });
 
-  const invalidPageContents: { content: Prisma.InputJsonObject; name: string }[] = [
+  const invalidPageContents: { content: JsonObject; name: string }[] = [
     {
       content: { content: [{ attrs: { level: 9 }, content: [], type: 'heading' }], schemaVersion: 1, type: 'doc' },
       name: 'a block it knows, malformed',
@@ -246,7 +245,7 @@ describe('pages service', () => {
   });
 
   it('forwards valid create content to the repository', async () => {
-    let receivedContent: Prisma.InputJsonValue | undefined;
+    let receivedContent: JsonValue | PageContent | undefined;
     const repository = {
       ...createRepository(),
       create: (input: Parameters<PageRepositoryContract['create']>[0]) => {
@@ -1054,12 +1053,12 @@ describe('pages service', () => {
   });
 });
 
-const buildMentionNode = (pageId: string, label: string): Prisma.JsonValue => ({
+const buildMentionNode = (pageId: string, label: string): JsonValue => ({
   attrs: { label, pageId, spaceId: 'space-a' },
   type: 'mention',
 });
 
-const buildMentionDocument = (...mentions: readonly (readonly [string, string])[]): Prisma.JsonValue => ({
+const buildMentionDocument = (...mentions: readonly (readonly [string, string])[]): JsonValue => ({
   content: mentions.map(([pageId, label]) => ({
     content: [buildMentionNode(pageId, label)],
     type: 'paragraph',
@@ -1068,7 +1067,7 @@ const buildMentionDocument = (...mentions: readonly (readonly [string, string])[
   type: 'doc',
 });
 
-const buildPageWithContent = (content: Prisma.JsonValue) => ({ ...page, content });
+const buildPageWithContent = (content: JsonValue) => ({ ...page, content });
 
 describe('mention redaction on served page content', () => {
   it('keeps the real label when the reader can access the target', async () => {
@@ -1269,7 +1268,7 @@ describe('mention redaction on served page content', () => {
 
 describe('markdown export', () => {
   it('writes a branch out as one markdown file, mother before daughter', async () => {
-    const body: Prisma.JsonValue = {
+    const body: JsonValue = {
       content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
       schemaVersion: 1,
       type: 'doc',

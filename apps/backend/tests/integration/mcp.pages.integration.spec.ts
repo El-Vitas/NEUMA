@@ -9,7 +9,7 @@ import {
   MCP_UNREACHABLE_REFERENCE_MESSAGE,
 } from '@/modules/mcp/constants/mcp.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames, readMcpText } from '../helpers/mcp.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -38,8 +38,8 @@ describe('MCP page writes (Integration)', () => {
 
   const signUp = async (): Promise<Session> => {
     const email = `mcp-pages-${String(Date.now())}@test.com`;
-    await registerUser(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
-    await testApp.get(PrismaService).user.update({ data: { role: 'ADMIN' }, where: { email } });
+    await createAccount(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
+    await testApp.get(PrismaService).models.User.where({ email }).update({ role: 'ADMIN' });
     const session = await loginUser(testApp, email, PASSWORD);
     return { id: session.user.id, token: session.accessToken };
   };
@@ -84,17 +84,29 @@ describe('MCP page writes (Integration)', () => {
   const storedContent = async (pageId: string): Promise<string> => {
     const page = await testApp
       .get(PrismaService)
-      .page.findUniqueOrThrow({ select: { content: true }, where: { id: pageId } });
+      .models.Page.select('content')
+      .where({ id: pageId })
+      .all()
+      .firstOrThrow();
     return JSON.stringify(page.content);
   };
 
+  const countPagesWhere = async (filter: { readonly parentId: string } | { readonly spaceId: string }) =>
+    (
+      await testApp
+        .get(PrismaService)
+        .models.Page.where(filter)
+        .aggregate((aggregation) => ({ total: aggregation.count() }))
+    ).total;
+
   const outcomesOn = async (pageId: string) =>
     (
-      await testApp.get(PrismaService).agentAction.findMany({
-        orderBy: { createdAt: 'asc' },
-        select: { outcome: true, tool: true },
-        where: { pageId },
-      })
+      await testApp
+        .get(PrismaService)
+        .models.AgentAction.select('outcome', 'tool')
+        .where({ pageId })
+        .orderBy((action) => action.createdAt.asc())
+        .all()
     ).map((action) => `${action.tool}:${action.outcome}`);
 
   const freshPage = (title: string) =>
@@ -161,9 +173,12 @@ describe('MCP page writes (Integration)', () => {
       expect(await storedContent(pageId)).toBe(before);
       const page = await testApp
         .get(PrismaService)
-        .page.findUniqueOrThrow({ select: { lifecycle: true, title: true }, where: { id: pageId } });
+        .models.Page.select('lifecycle', 'title')
+        .where({ id: pageId })
+        .all()
+        .firstOrThrow();
       expect(page).toEqual({ lifecycle: 'ACTIVE', title: 'Solo se lee' });
-      expect(await testApp.get(PrismaService).page.count({ where: { parentId: pageId } })).toBe(0);
+      expect(await countPagesWhere({ parentId: pageId })).toBe(0);
     });
   });
 
@@ -187,10 +202,11 @@ describe('MCP page writes (Integration)', () => {
       expect(stored).toContain('"type":"table_header"');
       expect(stored).toContain('"marks":[{"type":"strong"}]');
       expect(stored).toContain(JSON.stringify(diagram));
-      const recorded = await testApp.get(PrismaService).agentAction.findMany({
-        select: { detail: true, outcome: true },
-        where: { tool: 'create_page' },
-      });
+      const recorded = await testApp
+        .get(PrismaService)
+        .models.AgentAction.select('detail', 'outcome')
+        .where({ tool: 'create_page' })
+        .all();
       expect(recorded).toContainEqual({
         detail: { parentId: null, spaceId, title: 'Estado de servicios' },
         outcome: 'DONE',
@@ -202,12 +218,12 @@ describe('MCP page writes (Integration)', () => {
         allSpaces: [pagesRead],
         spaces: [{ permissions: [pagesRead, pagesWrite], spaceId: otherSpaceId }],
       });
-      const before = await testApp.get(PrismaService).page.count({ where: { spaceId } });
+      const before = await countPagesWhere({ spaceId });
 
       const answer = await call(secret, 'create_page', { space: spaceId, title: 'No debería existir' });
 
       expect(readMcpText(answer)).toBe(MCP_INACCESSIBLE_MESSAGE);
-      expect(await testApp.get(PrismaService).page.count({ where: { spaceId } })).toBe(before);
+      expect(await countPagesWhere({ spaceId })).toBe(before);
     });
   });
 
@@ -331,7 +347,7 @@ describe('MCP page writes (Integration)', () => {
       const answer = await call(await writerToken(), 'insert_blocks', {
         blocks: [
           { text: 'Antes del diagrama', type: 'paragraph' },
-          { source: 'architecture-beta\n    service backend["NestJS", logo:logos:nestjs]', type: 'diagram' },
+          { source: 'architecture-beta\n    service db(database)[DB]\n    db:Q -- R:db', type: 'diagram' },
         ],
         page: pageId,
       });
@@ -401,7 +417,7 @@ describe('MCP page writes (Integration)', () => {
         viewName: 'Tabla',
       });
       const collectionId = z.object({ id: z.string() }).parse(created.structuredContent).id;
-      const schema = await testApp.get(PrismaService).pageSchemaView.findMany({ where: { pageId: collectionId } });
+      const schema = await testApp.get(PrismaService).models.PageSchemaView.where({ pageId: collectionId }).all();
       expect(schema.map((view) => view.name)).toEqual(['Tabla']);
 
       const pageId = await freshPage('Con colección');

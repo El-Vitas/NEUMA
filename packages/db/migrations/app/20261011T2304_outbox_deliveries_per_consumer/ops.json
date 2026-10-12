@@ -1,0 +1,487 @@
+[
+  {
+    "id": "createNativeEnumType.OutboxConsumer",
+    "label": "Create enum type \"OutboxConsumer\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "OutboxConsumer"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"OutboxConsumer\"",
+        "sql": "CREATE TYPE \"public\".\"OutboxConsumer\" AS ENUM ('SEARCH', 'LINKS')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.OutboxDelivery",
+    "label": "Create table \"OutboxDelivery\"",
+    "summary": "Creates table \"OutboxDelivery\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "OutboxDelivery"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"OutboxDelivery\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"OutboxDelivery\"",
+        "sql": "CREATE TABLE \"public\".\"OutboxDelivery\" (\n  \"attemptCount\" int4 DEFAULT 0 NOT NULL,\n  \"consumer\" \"OutboxConsumer\" NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"eventId\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"lastError\" jsonb,\n  \"nextAttemptAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"processedAt\" timestamptz,\n  \"status\" \"OutboxStatus\" DEFAULT 'PENDING'::\"OutboxStatus\" NOT NULL,\n  CONSTRAINT \"OutboxDelivery_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"OutboxDelivery\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.OutboxDelivery.OutboxDelivery_eventId_consumer_key",
+    "label": "Add unique constraint on \"OutboxDelivery\" (eventId, consumer)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "OutboxDelivery_eventId_consumer_key",
+        "table": "OutboxDelivery"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"OutboxDelivery_eventId_consumer_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OutboxDelivery_eventId_consumer_key",
+          "public",
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"OutboxDelivery_eventId_consumer_key\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxDelivery\" ADD CONSTRAINT \"OutboxDelivery_eventId_consumer_key\" UNIQUE (\"eventId\", \"consumer\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"OutboxDelivery_eventId_consumer_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OutboxDelivery_eventId_consumer_key",
+          "public",
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OutboxDelivery.OutboxDelivery_consumer_status_nextAttemptAt_idx",
+    "label": "Create index \"OutboxDelivery_consumer_status_nextAttemptAt_idx\" on \"OutboxDelivery\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OutboxDelivery_consumer_status_nextAttemptAt_idx",
+        "table": "OutboxDelivery"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OutboxDelivery_consumer_status_nextAttemptAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxDelivery_consumer_status_nextAttemptAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OutboxDelivery_consumer_status_nextAttemptAt_idx\"",
+        "sql": "CREATE INDEX \"OutboxDelivery_consumer_status_nextAttemptAt_idx\" ON \"public\".\"OutboxDelivery\" (\"consumer\", \"status\", \"nextAttemptAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OutboxDelivery_consumer_status_nextAttemptAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxDelivery_consumer_status_nextAttemptAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.OutboxDelivery.OutboxDelivery_eventId_fkey",
+    "label": "Add foreign key \"OutboxDelivery_eventId_fkey\" on \"OutboxDelivery\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "OutboxDelivery_eventId_fkey",
+        "table": "OutboxDelivery"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"OutboxDelivery_eventId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OutboxDelivery_eventId_fkey",
+          "public",
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"OutboxDelivery_eventId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxDelivery\"\nADD CONSTRAINT \"OutboxDelivery_eventId_fkey\"\nFOREIGN KEY (\"eventId\")\nREFERENCES \"public\".\"OutboxEvent\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"OutboxDelivery_eventId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OutboxDelivery_eventId_fkey",
+          "public",
+          "\"public\".\"OutboxDelivery\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "deliveries.SEARCH",
+    "label": "Give every existing event a delivery for SEARCH",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the event state is still on the event",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'OutboxEvent' AND column_name = 'status')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "copy each event state into a delivery",
+        "sql": "INSERT INTO \"public\".\"OutboxDelivery\"\n  (\"id\", \"eventId\", \"consumer\", \"status\", \"attemptCount\", \"nextAttemptAt\", \"lastError\", \"processedAt\", \"createdAt\")\nSELECT uuidv7()::text, event.\"id\", 'SEARCH'::\"OutboxConsumer\",\n  CASE WHEN event.\"status\" = 'FAILED'::\"OutboxStatus\" THEN 'FAILED'::\"OutboxStatus\" ELSE 'PENDING'::\"OutboxStatus\" END,\n  CASE WHEN event.\"status\" = 'FAILED'::\"OutboxStatus\" THEN event.\"attemptCount\" ELSE 0 END,\n  now(),\n  CASE WHEN event.\"status\" = 'FAILED'::\"OutboxStatus\" THEN event.\"lastError\" END,\n  NULL,\n  event.\"createdAt\"\nFROM \"public\".\"OutboxEvent\" AS event\nON CONFLICT (\"eventId\", \"consumer\") DO NOTHING"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every event has a delivery for it",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"OutboxEvent\" AS event\n  WHERE NOT EXISTS (\n    SELECT 1 FROM \"public\".\"OutboxDelivery\" AS delivery\n    WHERE delivery.\"eventId\" = event.\"id\" AND delivery.\"consumer\" = 'SEARCH'::\"OutboxConsumer\"\n  )\n)"
+      }
+    ]
+  },
+  {
+    "id": "deliveries.LINKS",
+    "label": "Give every existing event a delivery for LINKS",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "the event state is still on the event",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'OutboxEvent' AND column_name = 'status')"
+      }
+    ],
+    "execute": [
+      {
+        "description": "copy each event state into a delivery",
+        "sql": "INSERT INTO \"public\".\"OutboxDelivery\"\n  (\"id\", \"eventId\", \"consumer\", \"status\", \"attemptCount\", \"nextAttemptAt\", \"lastError\", \"processedAt\", \"createdAt\")\nSELECT uuidv7()::text, event.\"id\", 'LINKS'::\"OutboxConsumer\",\n  CASE WHEN event.\"status\" = 'FAILED'::\"OutboxStatus\" THEN 'FAILED'::\"OutboxStatus\" ELSE 'PENDING'::\"OutboxStatus\" END,\n  CASE WHEN event.\"status\" = 'FAILED'::\"OutboxStatus\" THEN event.\"attemptCount\" ELSE 0 END,\n  now(),\n  CASE WHEN event.\"status\" = 'FAILED'::\"OutboxStatus\" THEN event.\"lastError\" END,\n  NULL,\n  event.\"createdAt\"\nFROM \"public\".\"OutboxEvent\" AS event\nON CONFLICT (\"eventId\", \"consumer\") DO NOTHING"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every event has a delivery for it",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"OutboxEvent\" AS event\n  WHERE NOT EXISTS (\n    SELECT 1 FROM \"public\".\"OutboxDelivery\" AS delivery\n    WHERE delivery.\"eventId\" = event.\"id\" AND delivery.\"consumer\" = 'LINKS'::\"OutboxConsumer\"\n  )\n)"
+      }
+    ]
+  },
+  {
+    "id": "dropIndex.OutboxEvent.OutboxEvent_status_nextAttemptAt_idx",
+    "label": "Drop index \"OutboxEvent_status_nextAttemptAt_idx\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OutboxEvent_status_nextAttemptAt_idx",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OutboxEvent_status_nextAttemptAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_status_nextAttemptAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop index \"OutboxEvent_status_nextAttemptAt_idx\"",
+        "sql": "DROP INDEX \"public\".\"OutboxEvent_status_nextAttemptAt_idx\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OutboxEvent_status_nextAttemptAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OutboxEvent_status_nextAttemptAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.OutboxEvent.attemptCount",
+    "label": "Drop column \"attemptCount\" from \"OutboxEvent\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "attemptCount",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"attemptCount\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "attemptCount"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"attemptCount\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" DROP COLUMN \"attemptCount\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"attemptCount\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "attemptCount"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.OutboxEvent.lastError",
+    "label": "Drop column \"lastError\" from \"OutboxEvent\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "lastError",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"lastError\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "lastError"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"lastError\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" DROP COLUMN \"lastError\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"lastError\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "lastError"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.OutboxEvent.processedAt",
+    "label": "Drop column \"processedAt\" from \"OutboxEvent\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "processedAt",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"processedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "processedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"processedAt\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" DROP COLUMN \"processedAt\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"processedAt\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "processedAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.OutboxEvent.nextAttemptAt",
+    "label": "Drop column \"nextAttemptAt\" from \"OutboxEvent\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "nextAttemptAt",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"nextAttemptAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "nextAttemptAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"nextAttemptAt\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" DROP COLUMN \"nextAttemptAt\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"nextAttemptAt\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "nextAttemptAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.OutboxEvent.status",
+    "label": "Drop column \"status\" from \"OutboxEvent\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "status",
+        "table": "OutboxEvent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"status\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "status"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"status\"",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" DROP COLUMN \"status\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"status\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "OutboxEvent",
+          "status"
+        ]
+      }
+    ]
+  }
+]

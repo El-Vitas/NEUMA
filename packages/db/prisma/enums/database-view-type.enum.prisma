@@ -1,8 +1,9 @@
-enum DatabaseViewType {
-  TABLE
-  BOARD
-  LIST
-  GALLERY
-  CALENDAR
-  CHART
+// use prisma-8
+native_enum DatabaseViewType {
+  TABLE = "TABLE"
+  BOARD = "BOARD"
+  LIST = "LIST"
+  GALLERY = "GALLERY"
+  CALENDAR = "CALENDAR"
+  CHART = "CHART"
 }
