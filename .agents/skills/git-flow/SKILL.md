@@ -254,7 +254,7 @@ client portal launch. This unblocks the auth flow.
 
 ## Testing
 
-- `pnpm run check` passes (format + lint + typecheck)
+- `bun run check` passes (format + lint + typecheck)
 - Manual: POST /api/v1/users/register with valid payload returns 201 + token
 - Manual: invalid payload returns 400 with validation errors
 
@@ -308,7 +308,7 @@ The PR description must follow this template. Fill in every section — leave no
 ## Testing
 
 - How the changes were verified
-- Commands run (e.g. `pnpm run check`)
+- Commands run (e.g. `bun run check`)
 - Manual test steps if applicable
 
 ## Checklist
