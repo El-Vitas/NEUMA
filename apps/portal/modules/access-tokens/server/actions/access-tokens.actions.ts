@@ -57,7 +57,7 @@ export const revokeAccessTokenAction = actionClient
   .inputSchema(accessTokenRevokeSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'revokeAccessToken' }, async () => {
-      await apiServer.del<unknown>(ACCESS_TOKEN_API_ROUTES.item(parsedInput.tokenId));
+      await apiServer.del(ACCESS_TOKEN_API_ROUTES.item(parsedInput.tokenId));
       updateTag(ACCESS_TOKENS_CACHE_TAG);
     }),
   );
@@ -86,7 +86,7 @@ export const revokeWorkspaceAccessTokenAction = actionClient
   .inputSchema(accessTokenRevokeSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'revokeWorkspaceAccessToken' }, async () => {
-      await apiServer.del<unknown>(ACCESS_TOKEN_API_ROUTES.workspaceItem(parsedInput.tokenId));
+      await apiServer.del(ACCESS_TOKEN_API_ROUTES.workspaceItem(parsedInput.tokenId));
       updateTag(ACCESS_TOKENS_CACHE_TAG);
     }),
   );

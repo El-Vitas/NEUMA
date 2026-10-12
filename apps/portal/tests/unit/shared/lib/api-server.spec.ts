@@ -78,9 +78,19 @@ describe('apiServer request headers', () => {
         }),
     );
 
-    await apiServer.del<{ pageId: string }>('/api/v1/favorites/page-1');
+    await apiServer.del('/api/v1/favorites/page-1');
 
     const requestInit = fetchMock.mock.calls[0]?.[1];
     expect(new Headers(requestInit?.headers).has('Content-Type')).toBe(false);
+  });
+});
+
+describe('apiServer.del', () => {
+  // Signing out answers 204 with no body; reading one made the sign-out fail before it could redirect.
+  it('accepts a deletion answered with no content', async () => {
+    cookieValue = 'valid-access-token';
+    fetchMock.mockImplementationOnce(async (): Promise<Response> => new Response(null, { status: 204 }));
+
+    await expect(apiServer.del('/api/v1/auth/sessions/current')).resolves.toBeUndefined();
   });
 });

@@ -24,7 +24,7 @@ export const addFavoriteAction = actionClient.inputSchema(favoriteMutationSchema
 
 export const removeFavoriteAction = actionClient.inputSchema(favoriteMutationSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'removeFavorite' }, async () => {
-    await apiServer.del<unknown>(FAVORITE_API_ROUTES.item(parsedInput.pageId));
+    await apiServer.del(FAVORITE_API_ROUTES.item(parsedInput.pageId));
     updateTag(FAVORITES_CACHE_TAG);
   }),
 );
