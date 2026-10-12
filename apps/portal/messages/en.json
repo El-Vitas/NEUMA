@@ -84,20 +84,6 @@
       "validationError": "Review the form fields.",
       "submit": "Sign in",
       "submitting": "Signing in..."
-    },
-    "register": {
-      "title": "Create an account",
-      "description": "Create an account to access your company workspace.",
-      "name": "Full name",
-      "namePlaceholder": "Alex Morgan",
-      "email": "Email address",
-      "emailPlaceholder": "name@example.com",
-      "password": "Password",
-      "validationError": "Review the form fields.",
-      "submit": "Create account",
-      "submitting": "Creating account...",
-      "existingAccount": "Already have an account?",
-      "signIn": "Sign in"
     }
   },
   "portal": {

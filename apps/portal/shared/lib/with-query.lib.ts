@@ -1,8 +1,11 @@
 import { Result } from '@neuma/shared';
+import { unstable_rethrow } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { requireAccessTokenCookie } from './auth.token.lib';
 
+// Next signals a redirect, a 404 or the end of a prerender by throwing; those belong to Next, not to the query.
 const logQueryFailure = (meta: { op: string; params?: unknown }, error: unknown, durationMs?: number): Error => {
+  unstable_rethrow(error);
   const wrapped = error instanceof Error ? error : new Error(String(error));
   logger.error({ ...meta, status: 'error', error: wrapped.message, stack: wrapped.stack, durationMs });
   return wrapped;

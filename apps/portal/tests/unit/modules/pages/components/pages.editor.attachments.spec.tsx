@@ -10,6 +10,7 @@ mock.module('server-only', () => ({}));
 mock.module('next/navigation', () => ({
   permanentRedirect: () => undefined,
   redirect: () => undefined,
+  unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
 }));
