@@ -1,5 +1,8 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 
+/** Drawn before the page can await anything, so it reads messages from the layout's provider, not the request. */
 export const AuthLoading = () => {
   const t = useTranslations('common');
   return (

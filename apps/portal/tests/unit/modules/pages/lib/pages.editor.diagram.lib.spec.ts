@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   isPageDiagram,
-  keepPageDiagramZoomWithinReach,
-  readPageDiagramDrawnWidth,
+  keepPageDiagramFrameHeightWithinReach,
   readPageDiagramView,
 } from '@/modules/pages/editor/media/lib/pages.editor.diagram.lib';
 
@@ -15,7 +14,6 @@ describe('which code blocks are drawings', () => {
 });
 
 describe('what is shown of a diagram', () => {
-  /** A diagram is drawn to be looked at, so the drawing is what a page shows unless someone says otherwise. */
   it('shows the drawing until someone asks for something else', () => {
     expect(readPageDiagramView(undefined)).toBe('drawing');
     expect(readPageDiagramView('nada de esto')).toBe('drawing');
@@ -24,25 +22,10 @@ describe('what is shown of a diagram', () => {
   });
 });
 
-describe('how wide a drawing was drawn', () => {
-  /** Squeezed into the column, a wide diagram is drawn at half its size and says nothing anyone can read. */
-  it('reads the width out of the box the drawing was drawn inside', () => {
-    expect(readPageDiagramDrawnWidth('0 0 1858.4 94')).toBe(1858.4);
-    expect(readPageDiagramDrawnWidth('  0   0   640   480  ')).toBe(640);
-  });
-
-  it('says nothing about a drawing that never said how wide it is', () => {
-    expect(readPageDiagramDrawnWidth(null)).toBe(0);
-    expect(readPageDiagramDrawnWidth('0 0')).toBe(0);
-    expect(readPageDiagramDrawnWidth('0 0 ancho alto')).toBe(0);
-  });
-});
-
-describe('how close a drawing can be brought', () => {
-  /** Brought close enough to read and pushed far enough to see whole, and no further either way. */
-  it('stays between the smallest and the largest it is worth reading at', () => {
-    expect(keepPageDiagramZoomWithinReach(1.5)).toBe(1.5);
-    expect(keepPageDiagramZoomWithinReach(0.01)).toBe(0.25);
-    expect(keepPageDiagramZoomWithinReach(40)).toBe(4);
+describe('how tall the frame of a drawing can be made', () => {
+  it('stays between the lowest and the tallest a frame may be, in whole pixels', () => {
+    expect(keepPageDiagramFrameHeightWithinReach(480.6)).toBe(481);
+    expect(keepPageDiagramFrameHeightWithinReach(10)).toBe(120);
+    expect(keepPageDiagramFrameHeightWithinReach(99_999)).toBe(2400);
   });
 });

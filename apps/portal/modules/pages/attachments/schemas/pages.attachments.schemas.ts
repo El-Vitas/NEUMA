@@ -1,7 +1,5 @@
 import { z } from 'zod';
-import { ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_SIZE } from '../constants/pages.attachments.constants';
-
-const allowedAttachmentMimeTypes = new Set<string>(ATTACHMENT_MIME_TYPES);
+import { ATTACHMENT_MIME_TYPE_SET, MAX_ATTACHMENT_SIZE } from '../constants/pages.attachments.constants';
 
 export const attachmentIdSchema = z.uuid();
 
@@ -17,6 +15,6 @@ export const attachmentUploadSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.size > 0 && file.size <= MAX_ATTACHMENT_SIZE, 'Invalid file size')
-    .refine((file) => allowedAttachmentMimeTypes.has(file.type), 'Invalid file type'),
+    .refine((file) => ATTACHMENT_MIME_TYPE_SET.has(file.type), 'Invalid file type'),
   pageId: attachmentIdSchema,
 });

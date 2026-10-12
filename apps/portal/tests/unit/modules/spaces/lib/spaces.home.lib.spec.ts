@@ -23,7 +23,6 @@ describe('what a space shows at its entrance', () => {
     expect(selectSpaceHomeMainPages(pages)).toEqual(pages);
   });
 
-  /** What moved last is what somebody arriving is looking for, so it is read newest first. */
   it('puts the latest writing first', () => {
     const activity = [
       buildActivity('older', '2026-01-01T00:00:00.000Z'),

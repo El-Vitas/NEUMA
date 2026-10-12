@@ -1,0 +1,15 @@
+// use prisma-8
+
+/// What a token may do in one space. Overrides the token's all-spaces permissions
+/// there; with no permissions, it excludes the space.
+model AccessTokenGrant {
+  id          String      @id(map: "AccessTokenGrant_pkey") @default(uuid(7))
+  tokenId     String
+  spaceId     String
+  permissions String[]    @noCheck(elementNotNull)
+  token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenGrant_tokenId_fkey", index: "AccessTokenGrant_tokenId_spaceId_key")
+  space       Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenGrant_spaceId_fkey")
+
+  @@unique([tokenId, spaceId], map: "AccessTokenGrant_tokenId_spaceId_key")
+  @@index([spaceId], map: "AccessTokenGrant_spaceId_idx")
+}

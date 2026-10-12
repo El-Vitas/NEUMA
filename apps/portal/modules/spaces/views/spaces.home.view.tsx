@@ -17,7 +17,6 @@ import type { SpaceSummary } from '../types/spaces.types';
 interface IProps {
   readonly activity: readonly SpaceHomeActivity[];
   readonly canCreatePage: boolean;
-  /** Only whoever owns a private space hands it to anybody else. */
   readonly canShare?: boolean;
   readonly locale: string;
   readonly mainPages: readonly SpaceHomePage[];
@@ -25,11 +24,6 @@ interface IProps {
   readonly space: SpaceSummary;
 }
 
-/**
- * Where a space begins: what it is made of, what has moved in it lately, and who
- * is in it. A space that opened on «pick a page» asked the question it was
- * supposed to answer.
- */
 export const SpacesHomeView = async ({
   activity,
   canCreatePage,
@@ -46,7 +40,7 @@ export const SpacesHomeView = async ({
     <main className="min-h-full space-y-8 p-4 sm:p-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="flex min-w-0 items-center gap-2 font-bold text-2xl">
-          {/* Drawn here rather than handed over: a drawing cannot cross into a client component. */}
+          {/* Rendered here because an icon component cannot be passed across the client boundary. */}
           {space.icon === null ? (
             <BookOpen aria-hidden="true" className="size-6 shrink-0" />
           ) : (

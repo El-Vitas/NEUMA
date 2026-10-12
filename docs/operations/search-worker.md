@@ -1,11 +1,13 @@
 # Search Projection Worker — Operations
 
 The search projection worker (`SearchProjectionWorker`, entrypoint
-`src/modules/search/infrastructure/worker/search.worker.main.ts`) drains the
-outbox (`OutboxEvent` table, written transactionally by pages/databases/spaces
-repositories) and projects each event into the `SearchDocument` full-text
-index that the portal search and the `search_company_brain` MCP tool read
-from.
+`src/modules/search/infrastructure/worker/search.worker.main.ts`) drains its
+own deliveries from the outbox and projects each event into the
+`SearchDocument` full-text index that the portal search and the MCP search
+tool read from. Every `OutboxEvent` (written transactionally by the pages and
+spaces repositories) gets one `OutboxDelivery` per consumer — `SEARCH` and
+`LINKS` — so this worker and the links worker never take each other's events
+(ADR 012).
 
 ## 1. Start PostgreSQL
 
@@ -22,21 +24,22 @@ The `postgres` service has a `pg_isready` healthcheck; wait until `ps` reports
 
 ## 2. Run migrations
 
-Migrations live in `packages/db/prisma/migrations` and are the source of
-truth for the schema — including the raw SQL for the `pg_trgm`/`unaccent`
-extensions and the generated `searchVector` column that full-text search
-depends on. Apply them with the owner (`MIGRATION_DATABASE_URL`) role:
+Migrations live in `packages/db/migrations/app` (Prisma ORM 8) and are the
+source of truth for the schema — including the raw SQL for the
+`pg_trgm`/`unaccent` extensions, the `immutable_unaccent` function, the
+trigram indexes and the generated `searchVector` columns that full-text
+search depends on (the contract cannot express those). Apply them with the
+owner (`MIGRATION_DATABASE_URL`) role:
 
 ```bash
 cd packages/db
 bun run db:migrate:deploy
 ```
 
-For local iteration against the dev schema (not test schemas) you can instead
-use `bun run db:migrate` (creates a new migration if the schema drifted) or
-`bun run db:push` (schema-only sync, no migration history — note that `db
-push` cannot express the generated `searchVector` column, so it is only
-suitable for models that don't rely on raw-SQL migration content).
+A database that Prisma 7 created is adopted automatically by that command
+before the pending migrations run. Avoid `bun run db:push` (`prisma db
+update`) on a database that matters: it syncs the contract only and would not
+create the raw-SQL search pieces.
 
 ## 3. Start the worker
 
@@ -65,10 +68,10 @@ server), then loops: claim a batch of outbox events
   practical way to verify a specific event was projected is to query the
   search endpoint (`GET /api/v1/search?query=...`, JWT-protected) or inspect
   the `SearchDocument` table directly.
-- To confirm the outbox is draining, check the `OutboxEvent` table: rows with
-  `status = 'PENDING'` and `nextAttemptAt` in the past should disappear
-  (become `PROCESSED`) within one worker idle cycle (`SEARCH_WORKER_IDLE_DELAY_MS`,
-  currently 1 second).
+- To confirm the outbox is draining, check the `OutboxDelivery` table for
+  `consumer = 'SEARCH'`: rows with `status = 'PENDING'` and `nextAttemptAt` in
+  the past should become `PROCESSED` within one worker idle cycle
+  (`SEARCH_WORKER_IDLE_DELAY_MS`, currently 1 second).
 
 ## 5. Reading the logs
 
@@ -100,6 +103,6 @@ as structured JSON — never `console.log`. Expected lines:
 | Symptom | Cause | What to check |
 |---|---|---|
 | Process exits immediately with `"Search projection worker terminated with an error"` and no `"started"` line | PostgreSQL unreachable, or a required env var is missing/invalid | Confirm `docker compose ... ps` shows `postgres` healthy; confirm `DATABASE_URL` and the other vars required by `env.schema.ts` are set |
-| Worker runs but a specific event never leaves `PENDING` | The event's projection keeps throwing (e.g. malformed page content) | Inspect `OutboxEvent.lastError` for that row — the worker stores a redacted, truncated error message there via `markRetryable`/`markFailed` |
-| An event moves to `status = 'FAILED'` | The event exceeded `SEARCH_OUTBOX_MAX_ATTEMPTS` retries | This is a poison message; it stops being retried automatically. Investigate `lastError`, fix the underlying data/code, and re-queue manually if needed |
+| Worker runs but a specific event never leaves `PENDING` | The event's projection keeps throwing (e.g. malformed page content) | Inspect `OutboxDelivery.lastError` for that event's `SEARCH` delivery — the worker stores a redacted, truncated error message there via `markRetryable`/`markFailed` |
+| A delivery moves to `status = 'FAILED'` | It exceeded `SEARCH_OUTBOX_MAX_ATTEMPTS` retries | This is a poison message for search only; the links delivery of the same event is unaffected. Investigate `lastError`, fix the underlying data/code, and re-queue by setting that delivery back to `PENDING` |
 | Worker exits cleanly but stops mid-run unexpectedly | `SIGINT`/`SIGTERM` was sent (e.g. by an orchestrator or `Ctrl+C`) | Expected — check for the `"stopping"` → `"stopped"` log pair; this is a graceful shutdown, not a crash |

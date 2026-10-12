@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { PrimaryButton } from '@/shared/components/forms/primary-button';
@@ -15,13 +15,7 @@ interface IProps {
   readonly onWrite: (body: string) => void;
 }
 
-/**
- * What has been said about a block, and where to say something more.
- *
- * The remarks belong to the block, so this only shows them and hands back what
- * was written. It opens with the cursor where one writes and not on the first
- * button, which is the one that takes a remark away.
- */
+/** Opens focused on the text area, not on the first button, which removes a comment. */
 export const PagesEditorBlockCommentsDialog = ({ comments, isOpen, onClose, onRemove, onWrite }: IProps) => {
   const t = useTranslations('pages');
   const [body, setBody] = useState('');

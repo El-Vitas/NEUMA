@@ -1,12 +1,7 @@
-import { PAGE_ICON_COLORS, pageEmojiIconSchema, pageSymbolIconSchema } from '@company-brain/shared';
+import { PAGE_ICON_COLORS, pageEmojiIconSchema, pageSymbolIconSchema } from '@neuma/shared';
 import { z } from 'zod';
 
-/**
- * What is asked for when a space is marked.
- *
- * The mark itself follows the shared contract, so a space can only carry what a
- * page could carry, and the tree can draw the two the same way.
- */
+/** Reuses the shared page icon schemas so spaces and pages render icons the same way. */
 export const spaceIconEmojiInputSchema = z.object({
   spaceId: z.string().min(1),
   value: pageEmojiIconSchema.shape.value,

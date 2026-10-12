@@ -19,14 +19,7 @@ import {
   readPageEditorBlocksTitle,
 } from '../lib/pages.editor.block-page.lib';
 
-/**
- * Blocks becoming a page of their own.
- *
- * One answer for both ways of asking — dragging them onto the tree, or asking
- * the menu — so the page is built the same way whichever gesture started it:
- * the blocks travel whole, the new page is named after their first line, and
- * what is left where they were is either a link to them or nothing at all.
- */
+/** Shared by dragging onto the tree and by the menu, so both build the page the same way. */
 export const usePagesEditorBlocksToPage = ({
   editorViewRef,
   spaceId,

@@ -1,4 +1,4 @@
-import type { PageLifecycle } from '@company-brain/db';
+import type { PageLifecycle } from '@neuma/db';
 
 export type FavoriteMoveDirection = 'down' | 'up';
 

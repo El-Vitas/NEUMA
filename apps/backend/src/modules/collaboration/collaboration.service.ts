@@ -1,7 +1,11 @@
 import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
+import type { PageContent } from '@neuma/shared';
 import { createCollaborationGateway } from './collaboration.gateway';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
+  CollaborationContentRewrite,
+  CollaborationContext,
   CollaborationGateway as CollaborationGatewayContract,
   CollaborationPersistenceAdapter,
   CollaborationTokenAdapter,
@@ -15,8 +19,9 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     token: CollaborationTokenAdapter,
     authorization: CollaborationAuthorizationAdapter,
     persistence: CollaborationPersistenceAdapter,
+    content: CollaborationContentAdapter,
   ) {
-    this.gateway = createCollaborationGateway({ authorization, persistence, token });
+    this.gateway = createCollaborationGateway({ authorization, content, persistence, token });
   }
 
   get server(): CollaborationGatewayContract['server'] {
@@ -49,8 +54,25 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     return this.gateway.authorizeUpdate(context, documentName, update);
   }
 
+  authorizeMessage(
+    ...message: Parameters<CollaborationGatewayContract['authorizeMessage']>
+  ): ReturnType<CollaborationGatewayContract['authorizeMessage']> {
+    return this.gateway.authorizeMessage(...message);
+  }
+
   shutdown(): Promise<void> {
     return this.gateway.shutdown();
+  }
+
+  writePageContent(
+    context: CollaborationContext,
+    rewrite: CollaborationContentRewrite,
+  ): ReturnType<CollaborationGatewayContract['writePageContent']> {
+    return this.gateway.writePageContent(context, rewrite);
+  }
+
+  readLoadedPageContent(pageId: string): PageContent | null {
+    return this.gateway.readLoadedPageContent(pageId);
   }
 
   onApplicationShutdown(): Promise<void> {

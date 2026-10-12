@@ -3,23 +3,26 @@ import 'server-only';
 import { config } from '@/shared/config';
 import { BEARER_PREFIX } from '@/shared/constants/auth.constants';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
-import { FILES_API_ROUTE } from '../../constants/pages.attachments.constants';
+import { NetworkError } from '@/shared/lib/parse-json-body';
+import { ATTACHMENT_FILENAME_PATTERN, FILES_API_ROUTE } from '../../constants/pages.attachments.constants';
 import { attachmentSummarySchema } from '../../schemas/pages.attachments.schemas';
 import type { AttachmentDownload } from '../../types/pages.attachments.types';
 
-const attachmentFilenamePattern = /filename\*=UTF-8''([^;]+)/iu;
+const askBackendForFile = async (address: string, init: RequestInit): Promise<Response> => {
+  try {
+    return await fetch(address, init);
+  } catch (error) {
+    throw new NetworkError(error);
+  }
+};
 
-/**
- * The stretch a player asked for travels with the request: dropping it here
- * would leave the page asking for a piece and the server answering with the
- * whole file, which is a seek bar that does not move.
- */
+/** Forwards `range`: without it the server answers with the whole file and media seeking breaks. */
 export const getPageAttachmentResponse = async (
   attachmentId: string,
   accessToken: string,
   range: string | null = null,
 ): Promise<Response> =>
-  fetch(`${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(attachmentId)}`, {
+  askBackendForFile(`${config.backendApiUrl}${FILES_API_ROUTE}/${encodeURIComponent(attachmentId)}`, {
     headers:
       range === null
         ? { authorization: `${BEARER_PREFIX}${accessToken}` }
@@ -29,7 +32,7 @@ export const getPageAttachmentResponse = async (
 export const uploadPageAttachmentAsset = async (pageId: string, file: File, accessToken: string): Promise<Response> => {
   const body = new FormData();
   body.append('file', file, file.name);
-  return fetch(`${config.backendApiUrl}${FILES_API_ROUTE}?pageId=${encodeURIComponent(pageId)}`, {
+  return askBackendForFile(`${config.backendApiUrl}${FILES_API_ROUTE}?pageId=${encodeURIComponent(pageId)}`, {
     body,
     headers: { authorization: `${BEARER_PREFIX}${accessToken}` },
     method: 'POST',
@@ -48,7 +51,7 @@ export const uploadPageImageAssetId = async (
 };
 
 const decodeFilename = (contentDisposition: string | null): string => {
-  const encodedFilename = contentDisposition?.match(attachmentFilenamePattern)?.[1];
+  const encodedFilename = contentDisposition?.match(ATTACHMENT_FILENAME_PATTERN)?.[1];
   return encodedFilename === undefined ? 'download' : decodeURIComponent(encodedFilename);
 };
 

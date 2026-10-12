@@ -1,26 +1,27 @@
-/** Why a diagram could not be drawn, and where in the writing it broke. */
 export interface PageEditorDiagramFault {
   readonly line: number | null;
   readonly said: string;
 }
 
-/** Where a drawing was taken hold of, and where it stood at that moment. */
-export interface PageEditorDiagramGrip {
-  readonly left: number;
-  readonly top: number;
-  readonly x: number;
+export interface PageEditorDiagramFrameGrip {
+  readonly height: number;
   readonly y: number;
 }
 
-/** What the buttons of a diagram are called, since none of them is a stretch of text to read. */
 export interface PageEditorDiagramLabels {
+  readonly actualSize: string;
   readonly code: string;
   readonly both: string;
   readonly download: string;
   readonly drawing: string;
+  readonly fitToFrame: string;
+  readonly frameHeight: string;
+  readonly frameHeightHint: string;
   readonly fullScreen: string;
   readonly line: string;
   readonly unknown: string;
-  /** The same three views, named after what is in the box when what is in it is a formula. */
+  readonly zoomIn: string;
+  readonly zoomOut: string;
+  /** Labels used instead of the plain ones when the content is a formula. */
   readonly formula: { readonly both: string; readonly code: string; readonly drawing: string };
 }

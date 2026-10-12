@@ -1,5 +1,6 @@
 'use client';
 
+import type { PageVerificationStatus } from '@neuma/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -7,7 +8,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from '@/shared/components/ui/popover';
 import { APP_TIME_ZONE } from '@/shared/constants/date.constants';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { PagesPropertiesPersonField } from '../../collections/components/pages.properties.person-field';
 import type { PagePersonOption } from '../../collections/types/pages.schema.types';
 import { PagesMetadataRow } from '../../components/pages.metadata.row';
@@ -15,7 +16,7 @@ import { setPageOwnerAction } from '../../server/actions/pages.owner.actions';
 import type { PageAuthor, PageSummary } from '../../types/pages.types';
 import { fromVerificationExpiryInputValue, toVerificationExpiryInputValue } from '../lib/pages.verification.lib';
 import { setPageVerificationAction } from '../server/actions/pages.verification.actions';
-import type { PageVerificationChange, PageVerificationStatus } from '../types/pages.verification.types';
+import type { PageVerificationChange } from '../types/pages.verification.types';
 import { PagesVerificationBadge } from './pages.verification.badge';
 
 interface IProps {
@@ -32,11 +33,6 @@ interface IProps {
   readonly verifiedBy: null | PageAuthor;
 }
 
-/**
- * Whether a page can be trusted, and who answers for it — both asked and set
- * from the same place, because they are both about knowing what a page is
- * worth before reading it, not about what it says.
- */
 export const PagesVerificationPanel = ({
   canEdit,
   onOwnerChange,
@@ -62,12 +58,14 @@ export const PagesVerificationPanel = ({
 
   const verify = (): void => {
     startTransition(async () => {
-      const result = await setPageVerificationAction({
-        expiresAt: fromVerificationExpiryInputValue(expiryInput),
-        pageId,
-        spaceId,
-        verified: true,
-      });
+      const result = await callAction(() =>
+        setPageVerificationAction({
+          expiresAt: fromVerificationExpiryInputValue(expiryInput),
+          pageId,
+          spaceId,
+          verified: true,
+        }),
+      );
       if (!isActionSuccess<PageSummary>(result)) {
         toast.error(t('error'));
         return;
@@ -83,7 +81,7 @@ export const PagesVerificationPanel = ({
 
   const unverify = (): void => {
     startTransition(async () => {
-      const result = await setPageVerificationAction({ pageId, spaceId, verified: false });
+      const result = await callAction(() => setPageVerificationAction({ pageId, spaceId, verified: false }));
       if (!isActionSuccess<PageSummary>(result)) {
         toast.error(t('error'));
         return;
@@ -96,7 +94,9 @@ export const PagesVerificationPanel = ({
 
   const changeOwner = (nextOwnerId: string): void => {
     startTransition(async () => {
-      const result = await setPageOwnerAction({ ownerId: nextOwnerId === '' ? null : nextOwnerId, pageId, spaceId });
+      const result = await callAction(() =>
+        setPageOwnerAction({ ownerId: nextOwnerId === '' ? null : nextOwnerId, pageId, spaceId }),
+      );
       if (!isActionSuccess<PageSummary>(result)) {
         toast.error(ownerT('error'));
         return;

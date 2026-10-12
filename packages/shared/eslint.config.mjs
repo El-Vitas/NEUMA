@@ -1,5 +1,7 @@
 // @ts-check
+
 import eslint from '@eslint/js';
+import { cleanComments } from '@neuma/eslint-rules';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -16,7 +18,11 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    plugins: {
+      local: { rules: { 'clean-comments': cleanComments } },
+    },
     rules: {
+      'local/clean-comments': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-unused-vars': 'off',

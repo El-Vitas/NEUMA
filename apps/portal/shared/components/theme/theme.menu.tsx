@@ -18,7 +18,6 @@ interface IProps {
   readonly choice: ThemeChoice;
 }
 
-/** Lets the interface be read by day, by night, or however the system is set. */
 export const ThemeMenu = ({ choice }: IProps) => {
   const t = useTranslations('theme');
   const theme = useTheme(choice);

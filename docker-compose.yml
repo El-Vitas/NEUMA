@@ -3,27 +3,28 @@ services:
     image: postgres:18.4-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-company-brain}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-company-brain}
-      POSTGRES_DB: ${POSTGRES_DB:-company-brain}
+      POSTGRES_USER: ${POSTGRES_USER:-neuma}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-neuma}
+      POSTGRES_DB: ${POSTGRES_DB:-neuma}
       POSTGRES_INITDB_ARGS: "--data-checksums"
-      # Provisions the least-privilege company-brain_app role on first init (see the script).
-      COMPANY_BRAIN_APP_PASSWORD: ${COMPANY_BRAIN_APP_PASSWORD}
+      # Provisions the least-privilege neuma_app role on first init (see the script).
+      NEUMA_APP_PASSWORD: ${NEUMA_APP_PASSWORD}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-company-brain} -d ${POSTGRES_DB:-company-brain}"]
+      # Over TCP: the first-boot server that runs the init scripts listens on the socket only, then restarts.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-neuma} -d ${POSTGRES_DB:-neuma}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # One-shot: apply Prisma migrations, then exit. Minimal image (only @company-brain/db
+  # One-shot: apply Prisma migrations, then exit. Minimal image (only @neuma/db
   # with the Prisma CLI + schema/migrations) — no NestJS/backend/Bun.
   migrate:
-    image: localhost/company-brain-migrate:latest
+    image: localhost/neuma-migrate:latest
     build:
       context: .
       dockerfile: packages/db/migrate.Dockerfile
@@ -36,13 +37,13 @@ services:
     restart: "no"
 
   backend:
-    image: localhost/company-brain-backend:latest
+    image: localhost/neuma-backend:latest
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: runner
     restart: unless-stopped
-    environment:
+    environment: &backend-environment
       NODE_ENV: production
       PORT: "3000"
       DATABASE_URL: ${DATABASE_URL}
@@ -50,34 +51,58 @@ services:
       JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN:-15m}
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3010}
+      PORTAL_URL: ${PORTAL_URL:-http://localhost:3010}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRUST_PROXY: ${TRUST_PROXY:-false}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
+    volumes:
+      - uploads:/app/apps/backend/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-    depends_on:
+    depends_on: &after-migrations
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
 
+  # Search and backlinks are projected from the outbox by their own processes, using the backend image.
+  search-worker:
+    image: localhost/neuma-backend:latest
+    restart: unless-stopped
+    environment: *backend-environment
+    command: ["bun", "run", "src/modules/search/infrastructure/worker/search.worker.main.ts"]
+    healthcheck:
+      disable: true
+    depends_on: *after-migrations
+
+  links-worker:
+    image: localhost/neuma-backend:latest
+    restart: unless-stopped
+    environment: *backend-environment
+    command: ["bun", "run", "src/modules/links/infrastructure/worker/links.worker.main.ts"]
+    healthcheck:
+      disable: true
+    depends_on: *after-migrations
+
   portal:
-    image: localhost/company-brain-portal:latest
+    image: localhost/neuma-portal:latest
     build:
       context: .
       dockerfile: apps/portal/Dockerfile
       args:
         BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:3000}
+        NEXT_PUBLIC_COLLABORATION_WS_URL: ${COLLABORATION_WS_URL:-ws://localhost:3000/api/v1/collaboration}
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: "3010"
       BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:3000}
+      MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-http://localhost:3000/api/v1/mcp}
       ACCESS_TOKEN_MAX_AGE_SECONDS: ${ACCESS_TOKEN_MAX_AGE_SECONDS:-21600}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
@@ -94,3 +119,4 @@ services:
 
 volumes:
   postgres-data:
+  uploads:

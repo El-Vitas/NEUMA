@@ -34,7 +34,6 @@ describe('the picture at the head of a page', () => {
     expect(container.firstElementChild).toBeNull();
   });
 
-  /** This is what made the old one read as a bug: the picture took the pointer without being asked. */
   it('is only a picture until somebody asks to reposition it', () => {
     renderCover(buildController({ assetId: 'asset-1', position: 50 }));
 

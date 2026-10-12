@@ -1,5 +1,6 @@
-import type { UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { and } from '@neuma/db';
+import type { UserRole } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { mapFavoritesToPageSummaries, resolveFavoriteSwapIndex } from '../../domain/favorite.domain';
@@ -11,22 +12,17 @@ import type {
 } from '../../domain/favorite.domain.types';
 import type { FavoriteRepositoryContract } from '../../types/favorite.types';
 
-const favoriteOrderBy = [{ order: 'asc' }, { createdAt: 'asc' }] as const;
-const favoriteRowSelect = { id: true, order: true, pageId: true } as const;
-const accessiblePageSelect = { id: true, lifecycle: true, spaceId: true, title: true } as const;
-
 @Injectable()
 export class FavoriteRepository implements FavoriteRepositoryContract {
   constructor(private readonly prisma: PrismaService) {}
 
   async addFavorite(userId: string, pageId: string): Promise<FavoriteRow> {
     const nextOrder = await this.resolveNextOrder(userId);
-    return this.prisma.pageFavorite.upsert({
-      create: { order: nextOrder, pageId, userId },
-      select: favoriteRowSelect,
-      update: {},
-      where: { userIdPageId: { pageId, userId } },
-    });
+    const favorites = this.prisma.models.PageFavorite;
+    await favorites.createAndCount([{ order: nextOrder, pageId, userId }], { onConflict: 'skip' });
+    const favorite = await favorites.where({ pageId, userId }).select('id', 'order', 'pageId').first();
+    if (favorite === null) throw new Error(`Favorite for page ${pageId} and user ${userId} missing after insert`);
+    return favorite;
   }
 
   async findAccessiblePage(
@@ -40,11 +36,10 @@ export class FavoriteRepository implements FavoriteRepositoryContract {
   }
 
   async listFavorites(userId: string, workspaceId: string, role: UserRole): Promise<readonly FavoritePageSummary[]> {
-    const favorites = await this.prisma.pageFavorite.findMany({
-      orderBy: [...favoriteOrderBy],
-      select: favoriteRowSelect,
-      where: { userId },
-    });
+    const favorites = await this.prisma.models.PageFavorite.where({ userId })
+      .select('id', 'order', 'pageId')
+      .orderBy([(favorite) => favorite.order.asc(), (favorite) => favorite.createdAt.asc()])
+      .all();
     if (favorites.length === 0) return [];
     const accessiblePages = await this.findAccessiblePages(
       favorites.map((favorite) => favorite.pageId),
@@ -56,12 +51,11 @@ export class FavoriteRepository implements FavoriteRepositoryContract {
   }
 
   async moveFavorite(userId: string, pageId: string, direction: FavoriteMoveDirection): Promise<boolean> {
-    return this.prisma.$transaction(async (transaction) => {
-      const favorites = await transaction.pageFavorite.findMany({
-        orderBy: [...favoriteOrderBy],
-        select: favoriteRowSelect,
-        where: { userId },
-      });
+    return this.prisma.transaction(async (transaction) => {
+      const favorites = await transaction.orm.public.PageFavorite.where({ userId })
+        .select('id', 'order', 'pageId')
+        .orderBy([(favorite) => favorite.order.asc(), (favorite) => favorite.createdAt.asc()])
+        .all();
       const currentIndex = favorites.findIndex((favorite) => favorite.pageId === pageId);
       if (currentIndex === -1) return false;
 
@@ -72,14 +66,14 @@ export class FavoriteRepository implements FavoriteRepositoryContract {
       const swapTarget = favorites.at(swapIndex);
       if (current === undefined || swapTarget === undefined) return false;
 
-      await transaction.pageFavorite.update({ data: { order: swapTarget.order }, where: { id: current.id } });
-      await transaction.pageFavorite.update({ data: { order: current.order }, where: { id: swapTarget.id } });
+      await transaction.orm.public.PageFavorite.where({ id: current.id }).update({ order: swapTarget.order });
+      await transaction.orm.public.PageFavorite.where({ id: swapTarget.id }).update({ order: current.order });
       return true;
     });
   }
 
   async removeFavorite(userId: string, pageId: string): Promise<void> {
-    await this.prisma.pageFavorite.deleteMany({ where: { pageId, userId } });
+    await this.prisma.models.PageFavorite.where({ pageId, userId }).deleteAndCount();
   }
 
   private async findAccessiblePages(
@@ -88,14 +82,17 @@ export class FavoriteRepository implements FavoriteRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<readonly AccessibleFavoritePage[]> {
-    return this.prisma.page.findMany({
-      select: accessiblePageSelect,
-      where: { id: { in: [...pageIds] }, space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId } },
-    });
+    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
+    return this.prisma.models.Page.where((page) => page.id.in([...pageIds]))
+      .where((page) => page.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))))
+      .select('id', 'lifecycle', 'spaceId', 'title')
+      .all();
   }
 
   private async resolveNextOrder(userId: string): Promise<number> {
-    const aggregate = await this.prisma.pageFavorite.aggregate({ _max: { order: true }, where: { userId } });
-    return (aggregate._max.order ?? -1) + 1;
+    const aggregate = await this.prisma.models.PageFavorite.where({ userId }).aggregate((agg) => ({
+      highestOrder: agg.max('order'),
+    }));
+    return (aggregate.highestOrder ?? -1) + 1;
   }
 }

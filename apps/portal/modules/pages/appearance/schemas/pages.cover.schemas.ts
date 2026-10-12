@@ -1,4 +1,4 @@
-import { pageCoverValueSchema } from '@company-brain/shared';
+import { pageCoverValueSchema } from '@neuma/shared';
 import { z } from 'zod';
 
 export { pageCoverValueSchema };

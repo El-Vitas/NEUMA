@@ -1,4 +1,4 @@
-import type { PageEmbedProvider } from '@company-brain/shared';
+import type { PageEmbedProvider } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {
@@ -13,11 +13,7 @@ import { framePageBlockWidth } from '../../blocks/lib/pages.editor.width.lib';
 import type { PageEditorEmbedLabels } from '../types/pages.editor.embed.types';
 import { readPageEmbedFrameUrl } from './pages.editor.embed.lib';
 
-/**
- * A link the service cannot show anything of — a channel, a home page, an
- * address that names no video — is drawn as itself and said plainly, rather
- * than as an empty frame nobody can tell apart from a slow one.
- */
+/** Shows the link as text when it has nothing to embed (channel, home page), not an empty frame that looks loading. */
 const createRefusedEmbed = (node: EditorNode, labels: PageEditorEmbedLabels): NodeView => {
   const said = document.createElement('div');
   const link = document.createElement('a');
@@ -32,13 +28,6 @@ const createRefusedEmbed = (node: EditorNode, labels: PageEditorEmbedLabels): No
   return { dom: said, ignoreMutation: () => true, stopEvent: () => true };
 };
 
-/**
- * Renders what another service holds, inside the page that points at it.
- *
- * The frame is given only what it needs to play and nothing else — no access to
- * the page around it — and it is sized like an image or a player: by its edge,
- * as a share of the column.
- */
 export const createPageEmbedNodeView = (
   node: EditorNode,
   view: EditorView,

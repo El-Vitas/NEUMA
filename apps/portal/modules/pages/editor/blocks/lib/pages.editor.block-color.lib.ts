@@ -1,10 +1,9 @@
-import type { PageBlockColor } from '@company-brain/shared';
+import type { PageBlockColor } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_COLOR_ATTRS } from '../../text/constants/pages.editor.colors.constants';
 import type { PageEditorBlockColorKind, PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
 
-/** The colour the selected blocks already carry, so the menu can show what is in use. */
 export const readPageEditorBlockColor = (state: EditorState, kind: PageEditorBlockColorKind): string | null => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;
@@ -13,18 +12,12 @@ export const readPageEditorBlockColor = (state: EditorState, kind: PageEditorBlo
   return typeof color === 'string' ? color : null;
 };
 
-/** Both colours of the selected blocks, as the menu needs them. */
 export const readPageEditorBlockColors = (state: EditorState): PageEditorBlockColors => ({
   background: readPageEditorBlockColor(state, 'background'),
   text: readPageEditorBlockColor(state, 'text'),
 });
 
-/**
- * Paints the selected blocks, or takes the colour off when given none.
- *
- * The colour lands on the blocks themselves rather than on their text, so it
- * survives editing what they say and travels with them when they move.
- */
+/** The colour is set on the blocks, not their text, so it survives edits and moves. */
 export const createPageEditorBlockColorCommand =
   (kind: PageEditorBlockColorKind, color: PageBlockColor | null): Command =>
   (state, dispatch) => {

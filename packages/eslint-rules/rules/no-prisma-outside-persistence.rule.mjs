@@ -1,6 +1,3 @@
-// no-prisma-outside-persistence
-// Qué hace: prohíbe usar el cliente Prisma fuera de la capa de persistencia/repositorios.
-// Para qué: aislar el acceso a datos; los servicios no tocan Prisma directo (§9).
 export const noPrismaOutsidePersistence = {
   meta: {
     type: 'suggestion',

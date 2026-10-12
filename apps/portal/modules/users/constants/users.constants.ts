@@ -1,5 +1,5 @@
-import type { UserRole } from '@company-brain/shared';
-import { USER_ROLE } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
+import { USER_ROLE } from '@neuma/shared';
 
 export const USERS_CACHE_TAG = 'users';
 
@@ -20,3 +20,6 @@ export const USER_ROLE_BADGE_VARIANTS = {
 } as const satisfies Record<UserRole, 'default' | 'info' | 'outline'>;
 
 export const USERS_DIALOG_INPUT_CLASS = 'h-9 bg-background';
+
+/** A new account starts with the least access; the admin raises it on purpose. */
+export const USERS_NEW_ACCOUNT_ROLE: UserRole = USER_ROLE.CLIENT;

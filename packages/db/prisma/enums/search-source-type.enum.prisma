@@ -1,3 +1,4 @@
-enum SearchSourceType {
-  PAGE
+// use prisma-8
+native_enum SearchSourceType {
+  PAGE = "PAGE"
 }

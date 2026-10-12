@@ -14,20 +14,14 @@ export const isPortalCommandShortcut = (event: KeyboardEvent): boolean =>
 export const isSidebarToggleShortcut = (event: KeyboardEvent): boolean =>
   !isEditableElement(event.target) && (event.metaKey || event.ctrlKey) && event.key === '.';
 
-/**
- * The chord that starts a page without reaching for anything.
- *
- * Shift is part of it because the browser already keeps the plain chord for
- * opening a window of its own, and a shortcut that fights the browser is a
- * shortcut nobody can trust.
- */
+/** Requires Shift because the plain chord opens a new browser window. */
 export const isStartPageShortcut = (event: KeyboardEvent): boolean =>
   !isEditableElement(event.target) &&
   (event.metaKey || event.ctrlKey) &&
   event.shiftKey &&
   event.key.toLowerCase() === 'n';
 
-/** Where a page started from the keyboard belongs: where the reader already is, or the first place they have. */
+/** Falls back to the first space when the address names none the reader can reach. */
 export const resolveSpaceToStartPageIn = (
   pathname: string,
   spaces: readonly { readonly id: string }[],

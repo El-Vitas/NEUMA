@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageBlockAlignment } from '@company-brain/shared';
+import type { PageBlockAlignment } from '@neuma/shared';
 import { EditorState, NodeSelection } from 'prosemirror-state';
 import {
   createPageBlockAlignmentCommand,
@@ -40,7 +40,6 @@ describe('where a block that is not writing stands in the column', () => {
     expect(standing(withTheBlockSelected(pageHolding('video', {})), 'right')).toMatchObject({ align: 'right' });
   });
 
-  /** Standing at full width is standing at the left with all of the room, so both are said at once. */
   it('reads taking the whole column as standing at the left with all of it', () => {
     expect(standing(withTheBlockSelected(pageHolding('video', { align: 'right' })), 'full')).toMatchObject({
       align: 'left',

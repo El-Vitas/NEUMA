@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockAlignment, PageBlockColor, PageCalloutIcon, PageFileDisplay } from '@company-brain/shared';
+import type { PageBlockAlignment, PageBlockColor, PageCalloutIcon, PageFileDisplay } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
@@ -64,12 +64,6 @@ interface IProps {
   readonly tableActions: boolean;
 }
 
-/**
- * What can be done to the block the grip belongs to.
- *
- * Only what applies to that block is on the list — a block that cannot become
- * anything else is not offered the choice — so nothing here fails when chosen.
- */
 export const PagesEditorBlockMenu = ({
   calloutIcon,
   canBecomePage,

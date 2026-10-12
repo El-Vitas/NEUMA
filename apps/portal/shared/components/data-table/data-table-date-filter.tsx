@@ -1,9 +1,10 @@
 'use client';
 
+import type { DateRange } from '@daypicker/react';
+import type { RowData } from '@tanstack/react-table';
 import { CalendarIcon, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type MouseEvent, useCallback, useMemo } from 'react';
-import type { DateRange } from 'react-day-picker';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -14,7 +15,11 @@ import { formatDate } from '@/shared/utils/formatters';
 
 import type { DataTableDateFilterProps, DateSelection } from './types/data-table-date-filter.types';
 
-export const DataTableDateFilter = <TData,>({ column, title, multiple }: DataTableDateFilterProps<TData>) => {
+export const DataTableDateFilter = <TData extends RowData>({
+  column,
+  title,
+  multiple,
+}: DataTableDateFilterProps<TData>) => {
   const t = useTranslations('common');
   const locale = useLocale();
   const columnFilterValue = column.getFilterValue();

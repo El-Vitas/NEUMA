@@ -14,13 +14,6 @@ import {
 } from '../server/actions/pages.cover.actions';
 import type { PageCoverValue, PagesCoverController } from '../types/pages.cover.types';
 
-/**
- * The cover of a page and everything one can ask of it.
- *
- * Repositioning is a state one enters and leaves on purpose, never something a
- * stray drag over the picture starts: the cover is a picture until somebody says
- * they want to move it, and only then does it take hold of the pointer.
- */
 export const usePagesCover = (
   initialCover: PageCoverValue | null,
   pageId: string,
@@ -46,7 +39,7 @@ export const usePagesCover = (
     startTransition(async () => applyResult(await mutate(), failureMessage));
   };
 
-  /** A picture too heavy to send is refused here, where it can be said out loud, and not by the throw it would cause. */
+  /** Checked here so the user gets a message instead of a thrown upload failure. */
   const upload = (file: File): void => {
     setIsRepositioning(false);
     if (file.size > MAX_ATTACHMENT_SIZE) {

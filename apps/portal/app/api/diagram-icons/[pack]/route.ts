@@ -7,16 +7,7 @@ const keptFor = [
   `stale-while-revalidate=${String(DIAGRAM_ICONS_STALE_SECONDS)}`,
 ].join(', ');
 
-/**
- * A book of the pictures a diagram may name.
- *
- * It is handed over only when a diagram names one, and it is handed over from
- * here: what a page draws is nobody else's business, and a page kept inside a
- * company has to draw itself the same with no way out to the internet.
- *
- * The books only ever change when the page itself is built anew, so whoever
- * asks is told to keep the answer for a good while.
- */
+/** Served from here so diagrams render without internet access. Packs change only on build, so caching is long. */
 export const GET = async (
   _request: Request,
   context: { readonly params: Promise<{ readonly pack: string }> },

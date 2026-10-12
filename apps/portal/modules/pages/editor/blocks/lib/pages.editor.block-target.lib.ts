@@ -17,39 +17,19 @@ import type {
   PageEditorRowColumn,
 } from '../types/pages.editor.block-drag.types';
 
-/**
- * Reads which block the pointer is on.
- *
- * Every gesture aimed at a block — hovering it to get its handle, dragging
- * another one onto it — asks this question, and the answer has to survive
- * blocks the editor lays out itself, panels floating over the page and the
- * gaps between blocks.
- */
 export const acceptsSiblingBlocks = (node: EditorNode): boolean =>
   node.type.spec.content === PAGE_EDITOR_SIBLING_BLOCK_CONTENT;
 
 /**
- * Holds blocks a person can take on their own.
- *
- * Only what exists to hold blocks hands over the ones inside it — the page, a
- * column, what hangs from a nesting. A quote, a callout or a toggle is itself
- * one thing to move, so reaching for the line written inside it hands over the
- * block, which is what the keyboard already answers when the cursor is there.
- *
- * A table is one thing to move too, and this is where its cells are set aside:
- * they keep their blocks for dropping into, but hovering a table hands over the
- * table itself, so it can be moved without hunting for the page margin.
+ * Only pure containers hand over their children; a quote, callout or toggle is itself one thing to move.
+ * Table cells are excluded so hovering a table grabs the table, though blocks can still be dropped into cells.
  */
 export const offersGrabbableBlocks = (node: EditorNode): boolean =>
   acceptsSiblingBlocks(node) &&
   node.type.spec.group !== PAGE_EDITOR_BLOCK_GROUP &&
   node.type.name !== PAGE_EDITOR_TABLE_CELL_TYPE;
 
-/**
- * Holds blocks that belong to the page itself, rather than to something drawn
- * inside it. The margin beside the text answers to these: aiming there is how
- * a whole row of columns is taken, instead of one of the blocks inside it.
- */
+/** The margin answers to these, so aiming there takes a whole column row instead of a block inside it. */
 export const holdsPageBlocks = (node: EditorNode): boolean =>
   node.type.name === PAGE_EDITOR_PAGE_TYPE || node.type.name === PAGE_EDITOR_BLOCK_CHILDREN_TYPE;
 
@@ -58,14 +38,7 @@ export const getPageEditorBlockRect = (view: EditorView, blockStart: number): DO
   return blockDom instanceof HTMLElement ? blockDom.getBoundingClientRect() : null;
 };
 
-/**
- * Turns a position that sits between two blocks into the start of one of them,
- * preferring the one whose band holds the pointer.
- *
- * Atom blocks — an image, an embed, a collection — have nothing inside, so
- * every reading of a pointer over them lands on such a boundary; without this
- * they would look like no block at all.
- */
+/** Atom blocks (image, embed, collection) have no inside, so a pointer over them always resolves to a boundary. */
 export const findBlockStartAtBoundary = (view: EditorView, resolved: ResolvedPos, clientY: number): number | null => {
   const startAfter = resolved.nodeAfter === null ? null : resolved.pos;
   const startBefore = resolved.nodeBefore === null ? null : resolved.pos - resolved.nodeBefore.nodeSize;
@@ -79,10 +52,6 @@ export const findBlockStartAtBoundary = (view: EditorView, resolved: ResolvedPos
   return startAfter ?? startBefore;
 };
 
-/**
- * Climbs from a position to the start of the block that owns it, stopping at
- * the first ancestor whose parent `holdsBlocks`.
- */
 export const findBlockStartAt = (parameters: {
   readonly clientY: number;
   readonly holdsBlocks: (node: EditorNode) => boolean;
@@ -116,15 +85,7 @@ const findNearestChildBlock = (
   return nearestStart;
 };
 
-/**
- * Reads which block of a row of columns the pointer is aiming at.
- *
- * The pointer rarely sits on the text itself: it travels through the gap
- * between columns and along their padding. A point belongs to the first column
- * that has not ended yet — the gap belongs to the column on its right, which
- * is where the handle a person is reaching for is drawn — and inside that
- * column to the block at that height.
- */
+/** The gap between columns belongs to the column on its right, where the handle being reached for is drawn. */
 const findBlockInsideRow = (
   view: EditorView,
   pointer: PageEditorDropPointer,
@@ -141,13 +102,7 @@ const findBlockInsideRow = (
   return target === undefined ? null : findNearestChildBlock(view, pointer, target.start, target.column);
 };
 
-/**
- * Reads the block under the pointer from the rendered DOM, walking every
- * element under it rather than just the topmost one, so a floating panel over
- * the page cannot hide the block behind it. When the pointer rests on a
- * container it descends into the child it is closest to, instead of climbing
- * out of the container.
- */
+/** Walks every element under the pointer, not just the topmost, so a floating panel cannot hide the block. */
 const findBlockUnderPointer = (
   view: EditorView,
   pointer: PageEditorDropPointer,
@@ -171,11 +126,7 @@ const findBlockUnderPointer = (
   return findBlockStartAt({ clientY: pointer.clientY, holdsBlocks, position: insidePosition, view });
 };
 
-/**
- * Sweeps a few pixels above and below the pointer when it falls in the gap
- * between two blocks, so a drop aimed at the margin still finds the block it
- * was aimed at instead of reporting no target.
- */
+/** Probes a few pixels above and below so a drop in the gap between blocks still finds a target. */
 const sweepForBlockNearPointer = (
   view: EditorView,
   pointer: PageEditorDropPointer,
@@ -224,20 +175,7 @@ const probeBlockAtPointer = (
   });
 };
 
-/**
- * Reads the block the pointer is aiming at.
- *
- * `holdsBlocks` decides how deep the reading goes, because grabbing and
- * dropping are different questions: a table is grabbed whole, yet a block can
- * still be dropped inside one of its cells.
- */
-/**
- * The block whose row the pointer is on, whatever it is doing sideways.
- *
- * Past the end of a short line, or out in the margin, there is no block under
- * the pointer at all — but the reader is plainly still on that line, and its
- * buttons blinking out from under them is what this answers.
- */
+/** Matches by row so the buttons do not vanish when the pointer is past a short line or in the margin. */
 export const findPageEditorBlockOnPointerRow = (view: EditorView, clientY: number): number | null => {
   let found: number | null = null;
   view.state.doc.forEach((_node, offset) => {
@@ -248,6 +186,7 @@ export const findPageEditorBlockOnPointerRow = (view: EditorView, clientY: numbe
   return found;
 };
 
+/** `holdsBlocks` sets the depth: a table is grabbed whole, yet blocks can be dropped inside its cells. */
 export const findPageEditorBlockAtPointer = (
   view: EditorView,
   pointer: PageEditorDropPointer,

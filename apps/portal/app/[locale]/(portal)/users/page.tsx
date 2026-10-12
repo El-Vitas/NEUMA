@@ -1,15 +1,19 @@
-import { USER_ROLE } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import { getLocale } from 'next-intl/server';
 import { usersListParamsSchema } from '@/modules/users/schemas/users.schemas';
 import { getUsers } from '@/modules/users/server/queries/users.queries';
 import { UsersView } from '@/modules/users/views/users.view';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
+import type { RouteSearchParams } from '@/shared/types/route-search-params.types';
 import { redirect } from '../../../../i18n/navigation';
 
 interface IProps {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<RouteSearchParams>;
 }
+
+/** Depends on the session and the search query, so it resolves fully before responding. */
+export const instant = false;
 
 export default async function Page({ searchParams }: IProps) {
   const user = await getCurrentUser();

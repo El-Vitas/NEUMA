@@ -12,7 +12,6 @@ describe('how far along something that plays is', () => {
     expect(describePageMediaTime(3671)).toBe('1:01:11');
   });
 
-  /** Nothing is known about a recording until it has been read, and a player still has to say something. */
   it('says nothing rather than something false while the length is unknown', () => {
     expect(describePageMediaTime(Number.NaN)).toBe('0:00');
     expect(describePageMediaTime(Number.POSITIVE_INFINITY)).toBe('0:00');

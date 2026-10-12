@@ -1,4 +1,4 @@
-# Verificación funcional — Company Brain
+# Verificación funcional — Neuma
 
 Lo que el producto **debe poder hacer**, escrito como comportamientos observables en la interfaz, para revisarlos uno a uno.
 
@@ -47,6 +47,7 @@ Por eso `01` no habla de tipos de contenido sino de lo que se puede hacer con cu
 | `11-administracion-y-cuenta.md` | Invitaciones, roles, grupos, auditoría, perfil, sesiones |
 | `12-automatizacion-e-integraciones.md` | Disparadores, botones, recurrencia, recordatorios, IA |
 | `13-rendimiento-y-limites.md` | Colecciones grandes, páginas largas, memoria, límites |
+| `14-revision-y-aprobacion-de-cambios.md` | Una página verificada con responsables no se edita: se propone, y ellos aprueban, rechazan o piden cambios |
 
 ## Orden sugerido
 
@@ -60,11 +61,12 @@ De lo que sostiene todo lo demás a lo que menos se usa:
 6. `10` — plantillas. Va después de las colecciones porque una plantilla las reproduce.
 7. `07` — grafo de conocimiento.
 8. `06` — colaboración y permisos.
-9. `11` — administración y cuenta.
-10. `09` — importación y exportación.
-11. `12` — automatización e integraciones.
-12. `08` — agentes y detalle.
-13. `13` — rendimiento. Se revisa al final, pero se siembra el volumen de datos desde ya.
+9. `14` — revisión y aprobación. Va pegado al `06`: se apoya en su modo sugerencia (`CL-10`), en sus comentarios y en su historial, y no se puede probar antes que ellos.
+10. `11` — administración y cuenta.
+11. `09` — importación y exportación.
+12. `12` — automatización e integraciones.
+13. `08` — agentes y detalle.
+14. `13` — rendimiento. Se revisa al final, pero se siembra el volumen de datos desde ya.
 
 Una advertencia que sale de ahí: que una colección sea un bloque **dentro** de una página —y no una página completa— es el escalón que `../../architecture/adr/008-adopt-single-page-primitive.md` dejó deliberadamente fuera. Las casillas están escritas igual, porque describen lo que el producto debe hacer; cumplirlas implica revisar esa decisión.
 

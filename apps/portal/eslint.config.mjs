@@ -1,4 +1,5 @@
 import {
+  cleanComments,
   constantsDirOnlyConstants,
   hooksDirOnlyHooks,
   libDirOnlyLib,
@@ -14,7 +15,7 @@ import {
   schemasDirOnlySchemas,
   screamingSnakeInConstants,
   typesDirOnlyTypes,
-} from '@company-brain/eslint-rules';
+} from '@neuma/eslint-rules';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
@@ -39,6 +40,7 @@ const eslintConfig = defineConfig([
     plugins: {
       local: {
         rules: {
+          'clean-comments': cleanComments,
           'no-constants-outside-dir': noConstantsOutsideDir,
           'no-direct-fetch': noDirectFetch,
           'no-function-keyword': noFunctionKeyword,
@@ -98,6 +100,7 @@ const eslintConfig = defineConfig([
       'local/no-function-keyword': 'error',
       'local/no-await-import': 'error',
       'local/no-then-async': 'error',
+      'local/clean-comments': 'error',
       'local/screaming-snake-in-constants': 'error',
     },
   },
@@ -149,9 +152,7 @@ const eslintConfig = defineConfig([
       'local/no-schemas-outside-dir': 'off',
       'local/no-direct-fetch': 'off',
       'local/no-utilities-in-components': 'off',
-      // bun:test's mock.module() does not hoist like vitest's vi.mock(); a dynamic
-      // import after mock.module() is the only way to guarantee it intercepts
-      // before the mocked module loads.
+      // mock.module() does not hoist, so only a dynamic import after it sees the mock.
       'local/no-await-import': 'off',
     },
   },
@@ -168,11 +169,8 @@ const eslintConfig = defineConfig([
     rules: { 'local/no-direct-fetch': 'off' },
   },
   {
-    // Único punto del proyecto que llama a TanStack Table. Devuelve funciones que el compilador
-    // de React no puede memoizar: es una limitación de la librería, no un defecto corregible en
-    // nuestro código, y no hay forma de evitar el aviso desde aquí (ni con la directiva
-    // 'use no memo'). La excepción se acota a este archivo para que el resto del proyecto siga
-    // avisando si alguien introduce otra librería incompatible.
+    // TanStack Table returns functions the React compiler cannot memoize, and 'use no memo' does not silence it.
+    // Scoped to this file so other incompatible libraries still warn.
     files: ['shared/hooks/use-data-table.ts'],
     rules: { 'react-hooks/incompatible-library': 'off' },
   },

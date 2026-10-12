@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { createCollaborationDocumentName } from '@company-brain/shared';
+import { createCollaborationDocumentName } from '@neuma/shared';
 import {
   computeCollaborationReconnectDelayMs,
   getCollaborationStatusLabelKey,

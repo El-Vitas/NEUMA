@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserRole } from '@company-brain/shared';
+import type { UserRole } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { FavoritesSection } from '@/modules/favorites/components/favorites.section';
@@ -54,7 +54,7 @@ export const Sidebar = ({
       className={cn(
         'relative flex h-full shrink-0 flex-col border-sidebar-border border-r bg-sidebar transition-[width] motion-reduce:transition-none',
         isCollapsed && SIDEBAR_COLLAPSED_WIDTH,
-        /** Standing in a panel that cannot be folded away means the panel already decided how wide this is, and any width of its own would leave a bare strip beside it. */
+        /** Inside a non-collapsible panel the panel sets the width; a width of its own would leave a bare strip. */
         !isCollapsed && !enableCollapsing && 'w-full',
         !isCollapsed && enableCollapsing && !canResizeTree && SIDEBAR_EXPANDED_WIDTH,
       )}

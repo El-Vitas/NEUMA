@@ -1,36 +1,36 @@
-import type { Prisma } from '@company-brain/db/generated';
+import type { JsonValue, NeumaTransaction, OutboxConsumer } from '@neuma/db';
 
 export interface OutboxEventInput {
   readonly aggregateId: string;
   readonly aggregateType: string;
   readonly eventType: string;
   readonly idempotencyKey: string;
-  readonly payload: Prisma.InputJsonValue;
+  readonly payload: JsonValue;
   readonly payloadVersion: number;
 }
 
 export interface OutboxEventContract {
-  readonly create: (input: OutboxEventInput, transaction?: Prisma.TransactionClient) => Promise<void>;
-  readonly claimPending: (limit: number) => Promise<readonly OutboxEventRecord[]>;
-  readonly markFailed: (id: string, error: unknown) => Promise<void>;
-  readonly markProcessed: (id: string) => Promise<void>;
-  readonly markRetryable: (id: string, error: unknown, attemptCount: number) => Promise<void>;
+  readonly create: (input: OutboxEventInput, transaction?: NeumaTransaction) => Promise<void>;
+  readonly forConsumer: (consumer: OutboxConsumer) => OutboxProjectionOutbox;
 }
 
-export interface OutboxEventRecord {
+/** One consumer's claimed delivery, carrying the event it delivers. */
+export interface OutboxDeliveryRecord {
   readonly aggregateId: string;
   readonly aggregateType: string;
   readonly attemptCount: number;
+  readonly deliveryId: string;
   readonly eventType: string;
-  readonly id: string;
   readonly idempotencyKey: string;
-  readonly payload: Prisma.JsonValue;
+  readonly payload: JsonValue;
   readonly payloadVersion: number;
 }
 
-export type OutboxProjectionOutbox = Pick<
-  OutboxEventContract,
-  'claimPending' | 'markFailed' | 'markProcessed' | 'markRetryable'
->;
+export interface OutboxProjectionOutbox {
+  readonly claimPending: (limit: number) => Promise<readonly OutboxDeliveryRecord[]>;
+  readonly markFailed: (deliveryId: string, error: unknown) => Promise<void>;
+  readonly markProcessed: (deliveryId: string) => Promise<void>;
+  readonly markRetryable: (deliveryId: string, error: unknown, attemptCount: number) => Promise<void>;
+}
 
-export type OutboxProjectionEvent = OutboxEventRecord;
+export type OutboxProjectionEvent = OutboxDeliveryRecord;

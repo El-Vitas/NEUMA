@@ -28,21 +28,12 @@ import {
   offersGrabbableBlocks,
 } from './pages.editor.block-target.lib';
 
-/**
- * The handle belongs to the innermost block under the pointer, read the same
- * way a drop target is read, so a block inside a column or a cell gets its own
- * pair of gutter buttons instead of the row's.
- */
+/** Innermost block, so a block inside a column or cell gets its own buttons instead of the row's. */
 export const findBlockPositionAtPointer = (view: EditorView, pointer: PageEditorDropPointer): number | null =>
   findPageEditorBlockAtPointer(view, pointer, offersGrabbableBlocks) ??
   findPageEditorBlockOnPointerRow(view, pointer.clientY);
 
-/**
- * Tells whether the pointer is close enough to a block to be asking for its
- * buttons: over the text, or in the margin beside it where those buttons are
- * drawn. The margin belongs to the page and not to the editor's own box, so
- * the reach is measured rather than inherited from the DOM.
- */
+/** The margin belongs to the page, not the editor's box, so the reach is measured, not inherited. */
 const isPointerWithinGutterReach = (view: EditorView, event: MouseEvent): boolean => {
   const box = view.dom.getBoundingClientRect();
   return (
@@ -53,11 +44,7 @@ const isPointerWithinGutterReach = (view: EditorView, event: MouseEvent): boolea
   );
 };
 
-/**
- * The strip between two columns belongs to the divider that shares their
- * width: a block's buttons must not be drawn over it, or they would eat the
- * press meant to resize the row.
- */
+/** Buttons must not cover the divider, or they would swallow the press meant to resize the row. */
 const isPointerOnColumnDivider = (event: MouseEvent): boolean =>
   event.target instanceof Element && event.target.closest(`[${PAGE_EDITOR_COLUMN_DIVIDER_ATTRIBUTE}]`) !== null;
 
@@ -124,11 +111,7 @@ const hasPointerStayedPut = (origin: MouseEvent, release: MouseEvent): boolean =
   Math.abs(release.clientX - origin.clientX) <= PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX &&
   Math.abs(release.clientY - origin.clientY) <= PAGE_EDITOR_GRIP_CLICK_TOLERANCE_PX;
 
-/**
- * A press on the grip that goes nowhere is a question, not a move: the block
- * offers what can be done to it. Dragging is the same gesture carried further,
- * so both live on one button as they do in the editors people already use.
- */
+/** A click on the grip opens the actions; dragging is the same gesture carried further. */
 const askForBlockActionsOnClick = (view: EditorView, grip: HTMLElement, position: number): void => {
   grip.addEventListener('mousedown', (origin) => {
     const releaseSurface = grip.ownerDocument;
@@ -154,46 +137,21 @@ const createHandleElement = (view: EditorView, position: number, label: string):
   return grip;
 };
 
-/**
- * Holds the `+` and the grip of one block, parked just outside its left edge.
- *
- * They belong to the block itself and not to the page margin, so a block
- * sitting inside a column keeps its own pair right beside it.
- */
-/** Kept between what still reads as a target and what would push into the margin. */
 const clampGutterButtonSize = (size: number): number =>
   Math.min(Math.max(size, PAGE_EDITOR_GUTTER_BUTTON_MIN_PX), PAGE_EDITOR_GUTTER_BUTTON_MAX_PX);
 
-/**
- * How big this block's buttons should be drawn.
- *
- * They follow the block's own line, so a heading is offered a bigger pair than
- * a line nested inside a column. They are not measured against the room beside
- * the block: that room belongs to the page margin, which the editor's own box
- * cannot see.
- */
+/** Follows the block's own line; the room beside the block is the page margin, which the editor cannot measure. */
 const measureGutterButton = (blockStyle: CSSStyleDeclaration, blockHeight: number): number => {
   const lineHeight = Number.parseFloat(blockStyle.lineHeight);
   const line = Number.isFinite(lineHeight) ? lineHeight : blockHeight;
   return clampGutterButtonSize(line * PAGE_EDITOR_GUTTER_BUTTON_RATIO);
 };
 
-/**
- * Stands the buttons beside the block, level with its middle.
- *
- * Against the block itself and not floated into the text: a float lands
- * wherever the flow happens to be, which is why beside a tall heading they rode
- * high and beside a block holding others they landed on top of them.
- */
+/** Placed against the block, not floated: a float lands wherever the flow is, riding high beside tall headings. */
 const standGutterBesideBlock = (view: EditorView, gutter: HTMLElement, position: number): void => {
   const blockDom = view.nodeDOM(position);
   if (!(blockDom instanceof HTMLElement)) return;
-  /**
-   * The box the browser will measure the gutter against — which is not the
-   * editor: the editor itself is not positioned, so both it and the gutter fall
-   * back to the same ancestor, and measuring against anything else lands the
-   * buttons a fixed distance away from the block they belong to.
-   */
+  // The editor is not positioned, so it and the gutter share an ancestor; measuring elsewhere offsets the buttons.
   const origin = blockDom.offsetParent instanceof HTMLElement ? blockDom.offsetParent : view.dom;
   const originRect = origin.getBoundingClientRect();
   const originLeft = originRect.left + origin.clientLeft;

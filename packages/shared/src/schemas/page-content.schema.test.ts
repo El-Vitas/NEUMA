@@ -1,5 +1,40 @@
 import { describe, expect, test } from 'bun:test';
-import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from './page-content.schema.js';
+import {
+  PAGE_CONTENT_SCHEMA_VERSION,
+  PAGE_DIAGRAM_FRAME_HEIGHT_LEAST,
+  PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
+  isPageLinkTarget,
+  isPageWebAddress,
+  maximumPageTextLength,
+  pageContentSchema,
+} from './page-content.schema.js';
+
+describe('isPageWebAddress', () => {
+  test('takes an http or https address and nothing else', () => {
+    expect(isPageWebAddress('https://example.com/a')).toBe(true);
+    expect(isPageWebAddress('http://example.com')).toBe(true);
+    expect(isPageWebAddress('javascript:alert(1)')).toBe(false);
+    expect(isPageWebAddress('mailto:ana@example.com')).toBe(false);
+    expect(isPageWebAddress(null)).toBe(false);
+  });
+});
+
+describe('isPageLinkTarget', () => {
+  test('takes a path of this app and the addresses a page allows', () => {
+    expect(isPageLinkTarget('/spaces/a/pages/b')).toBe(true);
+    expect(isPageLinkTarget('https://example.com')).toBe(true);
+    expect(isPageLinkTarget('mailto:ana@example.com')).toBe(true);
+  });
+
+  // Browsers strip tabs and newlines before parsing an address, so "/\t/x" becomes "//x", another site.
+  test('refuses what only looks like a path of this app and leads to another site', () => {
+    expect(isPageLinkTarget('//evil.example')).toBe(false);
+    expect(isPageLinkTarget('/\t/evil.example')).toBe(false);
+    expect(isPageLinkTarget('/\n/evil.example')).toBe(false);
+    expect(isPageLinkTarget('/\r/evil.example')).toBe(false);
+    expect(isPageLinkTarget('javascript:alert(1)')).toBe(false);
+  });
+});
 
 describe('pageContentSchema', () => {
   test('accepts an existing document with no block ids anywhere (id-less regression)', () => {
@@ -129,6 +164,22 @@ describe('pageContentSchema', () => {
     ).toBe(true);
   });
 
+  test('keeps how tall the frame of a drawing was made, within what a screen can show', () => {
+    const withFrame = (frameHeight: number) =>
+      pageContentSchema.safeParse({
+        content: [
+          { attrs: { frameHeight, language: 'mermaid' }, content: [{ text: 'pie', type: 'text' }], type: 'code_block' },
+        ],
+        schemaVersion: 1,
+        type: 'doc',
+      }).success;
+
+    expect(withFrame(480)).toBe(true);
+    expect(withFrame(PAGE_DIAGRAM_FRAME_HEIGHT_LEAST - 1)).toBe(false);
+    expect(withFrame(PAGE_DIAGRAM_FRAME_HEIGHT_MOST + 1)).toBe(false);
+    expect(withFrame(480.5)).toBe(false);
+  });
+
   test('rejects a code block written in a language this version does not know', () => {
     expect(
       pageContentSchema.safeParse({
@@ -153,6 +204,16 @@ describe('pageContentSchema', () => {
         type: 'doc',
       }).success,
     ).toBe(true);
+  });
+
+  test('rejects a card, or its icon, that leads anywhere but a web address', () => {
+    const cardWith = (attrs: Record<string, string>) =>
+      pageContentSchema.safeParse({ content: [{ attrs, type: 'bookmark' }], schemaVersion: 1, type: 'doc' }).success;
+
+    expect(cardWith({ url: 'javascript:alert(1)' })).toBe(false);
+    expect(cardWith({ url: 'data:text/html,<script>alert(1)</script>' })).toBe(false);
+    expect(cardWith({ icon: 'javascript:alert(1)', url: 'https://example.com' })).toBe(false);
+    expect(cardWith({ url: 'http://example.com' })).toBe(true);
   });
 
   test('rejects a card that points nowhere', () => {
@@ -491,6 +552,25 @@ describe('pageContentSchema', () => {
       attrs: { id: 'diagrama-1', source: 'graph TD; A-->B' },
       type: 'diagram',
     });
+  });
+
+  // Regression: without a cap, endless nesting crashed validation instead of being rejected.
+  test('refuses an unknown block nested beyond reason or carrying an endless text, without throwing', () => {
+    const blockWith = (attrs: Record<string, unknown>) => ({
+      content: [{ attrs, type: 'diagram' }],
+      schemaVersion: 1,
+      type: 'doc',
+    });
+    let nested: unknown = 'x';
+    for (let level = 0; level < 20_000; level += 1) nested = [nested];
+
+    expect(pageContentSchema.safeParse(blockWith({ deep: nested })).success).toBe(false);
+    expect(pageContentSchema.safeParse(blockWith({ source: 'x'.repeat(maximumPageTextLength + 1) })).success).toBe(
+      false,
+    );
+    expect(
+      pageContentSchema.safeParse(blockWith({ nested: { list: [1, 'dos', null, { three: true }] } })).success,
+    ).toBe(true);
   });
 
   test('still rejects a block it does know when it is malformed, rather than taking it as unknown', () => {
@@ -908,7 +988,7 @@ describe('person, date, and formula nodes', () => {
 
   test('accepts a formula written inside a paragraph', () => {
     expect(
-      pageContentSchema.safeParse(paragraphOf({ attrs: { latex: '\\frac{1}{2}' }, type: 'formula' })).success,
+      pageContentSchema.safeParse(paragraphOf({ attrs: { latex: String.raw`\frac{1}{2}` }, type: 'formula' })).success,
     ).toBe(true);
   });
 

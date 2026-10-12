@@ -1,19 +1,14 @@
 import pino from 'pino';
-import { OUTBOX_WORKER_LOG_REDACT_PATHS } from '../../constants/outbox.constants';
+import { OUTBOX_WORKER_LOG_LEVEL } from '../../constants/outbox.constants';
 import type {
   OutboxWorkerApplicationContext,
   OutboxWorkerBootstrapOptions,
   OutboxWorkerLogger,
 } from '../../types/outbox-worker.types';
+import { buildLogOptions } from '../logger.options';
 
 export const createOutboxWorkerLogger = (): OutboxWorkerLogger =>
-  pino(
-    {
-      level: 'info',
-      redact: { paths: [...OUTBOX_WORKER_LOG_REDACT_PATHS], remove: true },
-    },
-    pino.destination(2),
-  );
+  pino(buildLogOptions(OUTBOX_WORKER_LOG_LEVEL), pino.destination(2));
 
 const waitForIdleDelay = async (delayMs: number): Promise<void> => {
   await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
@@ -37,6 +32,10 @@ export const runOutboxProjectionWorkerBootstrap = async <TApplication extends Ou
     requestShutdown('SIGTERM');
   };
 
+  // Bun's types add an `off`/`removeListener` overload to `process` that hides Node's signal one.
+  // The EventEmitter view still accepts signals.
+  const processEvents: NodeJS.EventEmitter = process;
+
   process.once('SIGINT', handleSigint);
   process.once('SIGTERM', handleSigterm);
   logger.info(`${workerLabel} started`);
@@ -50,8 +49,8 @@ export const runOutboxProjectionWorkerBootstrap = async <TApplication extends Ou
     logger.error({ err: error }, `${workerLabel} failed`);
     throw error;
   } finally {
-    process.removeListener('SIGINT', handleSigint);
-    process.removeListener('SIGTERM', handleSigterm);
+    processEvents.off('SIGINT', handleSigint);
+    processEvents.off('SIGTERM', handleSigterm);
     await application.close();
     logger.info(`${workerLabel} stopped`);
   }

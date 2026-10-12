@@ -1,17 +1,10 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 const post = mock(async () => ({ token: 'short-lived-token' }));
 
 mock.module('server-only', () => ({}));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action:
-        (handler: (input: { readonly parsedInput: { readonly pageId: string } }) => Promise<unknown>) =>
-        async (input: { readonly pageId: string }) => ({ data: await handler({ parsedInput: input }) }),
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/api-server', () => ({ apiServer: { post } }));
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),

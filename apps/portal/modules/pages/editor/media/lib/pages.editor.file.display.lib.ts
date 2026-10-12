@@ -1,16 +1,10 @@
-import type { PageFileDisplay } from '@company-brain/shared';
+import type { PageFileDisplay } from '@neuma/shared';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_FILE_TYPE } from '../../blocks/constants/pages.editor.blocks.constants';
 import { findSelectedPageBlocks } from '../../blocks/lib/pages.editor.block-range.lib';
 import { readPageFileShape, showsPageFileInPlace } from './pages.editor.file.lib';
 
-/**
- * The selected file, when there is a choice to make about it.
- *
- * A file the browser cannot draw has none: offering to show a spreadsheet as a
- * document would be offering something that never happens, and a menu that does
- * nothing is worse than a menu that is not there.
- */
+/** Returns `null` for files the browser cannot render in place, so no useless display choice is offered. */
 const findSelectedFile = (
   state: EditorState,
 ): { readonly position: number; readonly shown: PageFileDisplay } | null => {
@@ -25,13 +19,12 @@ const findSelectedFile = (
   };
 };
 
-/** How the selected file is shown, so the menu says what is in use rather than what was written down. */
+/** Reports the effective display, not the stored one, which may be unset. */
 export const readPageFileDisplay = (state: EditorState): { readonly chosen: PageFileDisplay } | null => {
   const file = findSelectedFile(state);
   return file === null ? null : { chosen: file.shown };
 };
 
-/** Shows the selected file the way it was asked to be shown. */
 export const createPageFileDisplayCommand =
   (display: PageFileDisplay): Command =>
   (state, dispatch) => {

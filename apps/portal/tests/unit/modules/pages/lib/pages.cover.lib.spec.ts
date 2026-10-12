@@ -12,7 +12,6 @@ describe('where a cover is framed', () => {
     expect(clampPageCoverPosition(37.4)).toBe(37);
   });
 
-  /** Dragging down pulls the picture down, so what shows is what was above. */
   it('follows the hand rather than the window', () => {
     expect(computePageCoverDragPosition(50, 40, 200)).toBe(30);
     expect(computePageCoverDragPosition(50, -40, 200)).toBe(70);

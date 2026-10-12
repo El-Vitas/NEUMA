@@ -5,7 +5,7 @@ export class MovePageDto {
   @IsString()
   parentId?: string;
 
-  /** The space the page is going to. Left out, it stays where it is. */
+  /** Omitted keeps the page in its current space. */
   @IsOptional()
   @IsString()
   targetSpaceId?: string;

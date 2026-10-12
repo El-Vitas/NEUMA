@@ -1,4 +1,4 @@
-import { EMAIL_MAX_LENGTH } from '@company-brain/shared';
+import { EMAIL_MAX_LENGTH, USER_ROLE_VALUES } from '@neuma/shared';
 import { z } from 'zod';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
 import {
@@ -26,6 +26,7 @@ export const createUserSchema = z.object({
     .string()
     .min(PASSWORD_MIN_LENGTH, 'validation.passwordTooShort')
     .max(PASSWORD_MAX_LENGTH, 'validation.passwordTooLong'),
+  role: z.enum(USER_ROLE_VALUES),
 });
 
 export const updateUserNameSchema = z.object({

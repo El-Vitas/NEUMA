@@ -28,12 +28,6 @@ interface IProps {
   readonly preferences: PageAppearancePreferences;
 }
 
-/**
- * How a page looks to whoever is reading it, kept apart from what it holds.
- *
- * Every choice here is stored per page, never for the whole product, so what
- * is chosen for one page never leaks into another.
- */
 export const PagesAppearanceMenu = ({ onTextSizeChange, onTypographyChange, preferences }: IProps) => {
   const t = useTranslations('pages.appearance');
 

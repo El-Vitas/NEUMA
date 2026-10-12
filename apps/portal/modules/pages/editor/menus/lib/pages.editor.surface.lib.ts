@@ -33,14 +33,7 @@ import type {
 } from '../types/pages.editor.surface.types';
 import { readPageShapeTarget } from './pages.editor.page-shape.lib';
 
-/**
- * Where a block's menu opens: level with the buttons that open it, which stand
- * beside the middle of the block.
- *
- * Opening at the top of the block instead puts the menu nowhere near the hand
- * that asked for it, and on a tall block — a video, a document — off the screen
- * altogether.
- */
+/** Aligned to the block's vertical middle, where the opening buttons sit; the top can be off screen on tall blocks. */
 export const readPageEditorMenuSpot = (
   block: { readonly height: number; readonly left: number; readonly top: number },
   surfaceRect: PageEditorSurfaceRect,
@@ -82,23 +75,19 @@ const readToolbarPosition = (
   return { left: placement.left, top: placement.top };
 };
 
-/**
- * Everything the page around the editor needs to know after a change: what the
- * selected blocks are wearing, what they can become, what has been said about
- * them, and where the menu and the toolbar belong.
- *
- * It is read in one pass so the page never shows two answers from two
- * different moments.
- */
-/** The fold, read for whichever block the menu was opened for. */
 const readFoldStateOfRequestedBlock = (state: EditorState): { readonly isFolded: boolean } | null => {
   const request = readPageEditorBlockRequest(state);
   return request === null ? null : readPageEditorFoldState(state.doc, request.blockStart);
 };
 
-/** The mark, read only for a callout, so no other block is offered a choice that means nothing to it. */
 const readCalloutIconChoice = (state: EditorState): PageEditorCalloutIconChoice | null =>
   isPageEditorCalloutSelected(state) ? { chosen: readPageEditorCalloutIcon(state) } : null;
+
+/** Keeps the previous reference so React skips a re-render; JSON equality holds as both are same-order plain data. */
+export const keepPageEditorSurfaceIfSame = (
+  previous: PageEditorSurfaceState,
+  next: PageEditorSurfaceState,
+): PageEditorSurfaceState => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
 
 export const readPageEditorSurface = (
   view: EditorView,

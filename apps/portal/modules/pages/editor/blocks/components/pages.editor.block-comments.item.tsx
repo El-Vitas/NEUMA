@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageBlockComment } from '@company-brain/shared';
+import type { PageBlockComment } from '@neuma/shared';
 import { useFormatter, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +9,6 @@ interface IProps {
   readonly onRemove: (commentId: string) => void;
 }
 
-/** One remark: who said it, when, and what it says. */
 export const PagesEditorBlockCommentItem = ({ comment, onRemove }: IProps) => {
   const t = useTranslations('pages');
   const format = useFormatter();

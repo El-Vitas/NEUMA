@@ -1,16 +1,18 @@
+import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorState } from 'prosemirror-state';
 import type { PageContent } from '../../../types/pages.types';
 import { serializePageEditorDocument } from '../../lib/pages.editor.lib';
 import { findSelectedPageBlocks } from './pages.editor.block-range.lib';
 
-/**
- * The selected blocks read as page content of their own, ready to be handed to
- * another page.
- *
- * They travel as the same contract a page is saved with, so what arrives at the
- * other end is exactly what the page here would have stored — nesting,
- * children and colours included.
- */
+/** An untouched block stays the same object across states, so identity tells which blocks left. */
+export const readSelectedPageBlocks = (state: EditorState): readonly EditorNode[] | null => {
+  const range = findSelectedPageBlocks(state);
+  if (range === null) return null;
+  const blocks: EditorNode[] = [];
+  for (let index = range.startIndex; index < range.endIndex; index += 1) blocks.push(range.parent.child(index));
+  return blocks;
+};
+
 export const readSelectedPageBlocksContent = (state: EditorState): PageContent | null => {
   const range = findSelectedPageBlocks(state);
   if (range === null) return null;

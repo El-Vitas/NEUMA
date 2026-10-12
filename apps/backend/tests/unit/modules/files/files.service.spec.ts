@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
+import { USER_ROLE } from '@neuma/shared';
 import type { IStorageProvider } from '../../../../src/common/types/storage.types';
 import { FileAccessDeniedError, FileStorageError } from '../../../../src/modules/files/domain/files.error';
 import { FilesService } from '../../../../src/modules/files/files.service';

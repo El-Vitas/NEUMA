@@ -17,13 +17,7 @@ interface IProps {
   readonly wording: PagePickerWording;
 }
 
-/**
- * Asks which page of the space is meant, narrowing them as the name is typed.
- *
- * Nothing happens until one is chosen, so closing this leaves the page exactly
- * as it was. What the asking is for is said by whoever asks: the same list
- * answers for sending blocks somewhere and for showing a collection here.
- */
+/** Shared by every flow that needs a page choice (moving blocks, embedding a collection); the caller sets the copy. */
 export const PagesEditorPagePickerDialog = ({ exceptPageId, isOpen, onCancel, onChoose, spaceId, wording }: IProps) => {
   const t = useTranslations('pages');
   const [query, setQuery] = useState('');

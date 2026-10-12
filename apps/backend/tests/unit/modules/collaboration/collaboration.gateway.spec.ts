@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
 import type { Hocuspocus } from '@hocuspocus/server';
-import { Doc, encodeStateAsUpdate } from 'yjs';
+import { type PageContent, USER_ROLE } from '@neuma/shared';
 import { createCollaborationGateway } from '../../../../src/modules/collaboration/collaboration.gateway';
 import {
   MAX_COLLABORATION_STATE_BYTES,
@@ -9,13 +8,39 @@ import {
 } from '../../../../src/modules/collaboration/constants/collaboration.constants';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
   CollaborationContext,
+  CollaborationGateway as CollaborationGatewayContract,
   CollaborationPersistenceAdapter,
   CollaborationTokenAdapter,
 } from '../../../../src/modules/collaboration/types/collaboration.types';
+import {
+  encodePageContentAsCollaborationState,
+  readCollaborationDocumentContent,
+} from '../../../../src/modules/collaboration/utils/collaboration.document.utils';
 
 const pageId = '22222222-2222-4222-8222-222222222222';
 const documentName = `page:${pageId}`;
+
+const writerContext: CollaborationContext = {
+  mode: 'write',
+  pageId,
+  role: USER_ROLE.WORKER,
+  userId: 'user-1',
+  workspaceId: 'workspace-1',
+};
+
+const paragraph = (id: string, text: string): PageContent['content'][number] => ({
+  attrs: { id },
+  content: [{ text, type: 'text' }],
+  type: 'paragraph',
+});
+
+const pageOf = (...blocks: PageContent['content']): PageContent => ({ content: blocks, schemaVersion: 1, type: 'doc' });
+
+const storedPage = pageOf(paragraph('a', 'Lo guardado'));
+
+const textBeyondThePageLimit = 20_001;
 
 const createAdapters = (
   overrides: {
@@ -24,9 +49,11 @@ const createAdapters = (
     readonly state?: Uint8Array;
     readonly pageId?: string;
     readonly mode?: 'read' | 'write';
+    readonly content?: PageContent | null;
   } = {},
 ): {
   readonly authorization: CollaborationAuthorizationAdapter;
+  readonly content: CollaborationContentAdapter;
   readonly persistence: CollaborationPersistenceAdapter;
   readonly token: CollaborationTokenAdapter;
 } => {
@@ -52,8 +79,21 @@ const createAdapters = (
     load: () => Promise.resolve(overrides.state ?? null),
     store: () => Promise.resolve(),
   };
-  return { authorization, persistence, token };
+  const content: CollaborationContentAdapter = {
+    load: () => Promise.resolve(overrides.content === undefined ? storedPage : overrides.content),
+    store: () => Promise.resolve(),
+  };
+  return { authorization, content, persistence, token };
 };
+
+const openDocument = (gateway: CollaborationGatewayContract) =>
+  gateway.server.createDocument(
+    documentName,
+    new Request('https://collaboration.test'),
+    'socket-1',
+    { isAuthenticated: true, readOnly: false },
+    writerContext,
+  );
 
 const authenticatedPayload = (
   instance: Hocuspocus<CollaborationContext>,
@@ -134,6 +174,37 @@ describe('collaboration gateway', () => {
     expect(gateway.authorizeUpdate(payload.context, documentName, new Uint8Array([1]))).rejects.toThrow('forbidden');
   });
 
+  // Every connection sends messages even without writing (the first asks for the document state), so read-only users
+  // need read access only; the read-only connection drops any change they attempt.
+  test('lets a read-only viewer sync the document, asking it only to be able to read', async () => {
+    const adapters = createAdapters({ canWrite: false, mode: 'read' });
+    const gateway = createCollaborationGateway(adapters);
+    const payload = authenticatedPayload(gateway.server, 'valid-token');
+    payload.context = (await Promise.resolve(
+      gateway.server.configuration.onAuthenticate?.(payload),
+    )) as CollaborationContext;
+
+    const handled = gateway.authorizeMessage(payload.context, documentName, new Uint8Array([0]), { readOnly: true });
+
+    expect(handled).resolves.toBeUndefined();
+  });
+
+  test('still asks a connection that writes to be able to write, message by message', () => {
+    const adapters = createAdapters({ canWrite: false });
+    const gateway = createCollaborationGateway(adapters);
+    const context: CollaborationContext = {
+      mode: 'write',
+      pageId,
+      role: USER_ROLE.WORKER,
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+    };
+
+    const handled = gateway.authorizeMessage(context, documentName, new Uint8Array([0]), { readOnly: false });
+
+    expect(handled).rejects.toThrow('forbidden');
+  });
+
   test('accepts only stable page document names', () => {
     const gateway = createCollaborationGateway(createAdapters());
 
@@ -143,45 +214,130 @@ describe('collaboration gateway', () => {
     expect(() => gateway.validateDocumentName('page:not-a-uuid')).toThrow('invalid-document-name');
   });
 
-  test('loads and stores bounded Yjs binary state through the adapter', async () => {
-    const source = new Doc();
-    source.getText('content').insert(0, 'persisted');
-    const state = encodeStateAsUpdate(source);
-    const stored: Uint8Array[] = [];
-    const adapters = createAdapters({ state });
+  test('accepts the document of a page whose id is a version 7 uuid', () => {
+    const gateway = createCollaborationGateway(createAdapters());
+    const versionSevenPageId = '019ffc24-f641-739d-bc50-284c896476fc';
+
+    expect(gateway.validateDocumentName(`page:${versionSevenPageId}`)).toBe(versionSevenPageId);
+  });
+
+  test('loads the stored state, and stores the state together with the page it now says', async () => {
+    const live = pageOf(paragraph('a', 'Lo que quedó en vivo'));
+    const storedStates: Uint8Array[] = [];
+    const storedPages: PageContent[] = [];
+    const adapters = createAdapters({ state: encodePageContentAsCollaborationState(live) });
     const gateway = createCollaborationGateway({
       ...adapters,
+      content: {
+        load: adapters.content.load,
+        store: (_context, content) => {
+          storedPages.push(content);
+          return Promise.resolve();
+        },
+      },
       persistence: {
         load: adapters.persistence.load,
         store: (_name, storedState) => {
-          stored.push(storedState);
+          storedStates.push(storedState);
           return Promise.resolve();
         },
       },
     });
-    const loaded = await gateway.server.createDocument(
-      documentName,
-      new Request('https://collaboration.test'),
-      'socket-1',
-      { isAuthenticated: true, readOnly: false },
-      { mode: 'write', pageId, role: USER_ROLE.WORKER, userId: 'user-1', workspaceId: 'workspace-1' },
-    );
+    const loaded = await openDocument(gateway);
 
-    expect(loaded.getText('content').toJSON()).toBe('persisted');
+    expect(readCollaborationDocumentContent(loaded)).toEqual(live);
     await Promise.resolve(
       gateway.server.configuration.onStoreDocument?.({
         clientsCount: 1,
         document: loaded,
         documentName,
         instance: gateway.server,
-        lastContext: { mode: 'write', pageId, role: USER_ROLE.WORKER, userId: 'user-1', workspaceId: 'workspace-1' },
+        lastContext: writerContext,
         lastTransactionOrigin: undefined,
       }),
     );
-    expect(stored).toHaveLength(1);
-    expect(stored[0]).toBeInstanceOf(Uint8Array);
+    expect(storedStates).toHaveLength(1);
+    expect(storedPages).toEqual([live]);
   });
 
+  test('seeds a document nobody has opened yet with the stored page', async () => {
+    const gateway = createCollaborationGateway(createAdapters());
+
+    expect(readCollaborationDocumentContent(await openDocument(gateway))).toEqual(storedPage);
+  });
+
+  test('keeps the live state over the stored page when both exist', async () => {
+    const live = pageOf(paragraph('a', 'En vivo'));
+    const gateway = createCollaborationGateway(
+      createAdapters({ content: storedPage, state: encodePageContentAsCollaborationState(live) }),
+    );
+
+    expect(readCollaborationDocumentContent(await openDocument(gateway))).toEqual(live);
+  });
+
+  test('refuses to open the document of a page that no longer exists', () => {
+    const gateway = createCollaborationGateway(createAdapters({ content: null }));
+
+    expect(openDocument(gateway)).rejects.toThrow('page-not-found');
+  });
+});
+
+describe('collaboration gateway writing from the server', () => {
+  test('rewrites the page from what it says now, and stores the result', async () => {
+    const storedPages: PageContent[] = [];
+    const adapters = createAdapters();
+    const gateway = createCollaborationGateway({
+      ...adapters,
+      content: {
+        load: adapters.content.load,
+        store: (_context, content) => {
+          storedPages.push(content);
+          return Promise.resolve();
+        },
+      },
+    });
+
+    const written = await gateway.writePageContent(writerContext, (current) =>
+      pageOf(...current.content, paragraph('b', 'Agregado')),
+    );
+
+    const expected = pageOf(paragraph('a', 'Lo guardado'), paragraph('b', 'Agregado'));
+    expect(written).toEqual(expected);
+    expect(storedPages.at(-1)).toEqual(expected);
+  });
+
+  test('reaches a person who has the page open, live', async () => {
+    const gateway = createCollaborationGateway(createAdapters());
+    const connection = await gateway.server.openDirectConnection(documentName, writerContext);
+
+    await gateway.writePageContent(writerContext, (current) => pageOf(...current.content, paragraph('b', 'En vivo')));
+
+    const openDocumentState = connection.document;
+    if (openDocumentState === null) throw new Error('the open document went away');
+    expect(readCollaborationDocumentContent(openDocumentState).content).toHaveLength(2);
+    await connection.disconnect();
+  });
+
+  test('refuses to write for someone who may not write in the page', () => {
+    const gateway = createCollaborationGateway(createAdapters({ canWrite: false }));
+
+    expect(gateway.writePageContent(writerContext, (current) => current)).rejects.toThrow('forbidden');
+  });
+
+  test('leaves the document untouched when the new page does not fit the page shape', async () => {
+    const gateway = createCollaborationGateway(createAdapters());
+    const tooLong = pageOf(paragraph('a', 'x'.repeat(textBeyondThePageLimit)));
+
+    expect(gateway.writePageContent(writerContext, () => tooLong)).rejects.toThrow();
+    const connection = await gateway.server.openDirectConnection(documentName, writerContext);
+    const document = connection.document;
+    if (document === null) throw new Error('the document went away');
+    expect(readCollaborationDocumentContent(document)).toEqual(storedPage);
+    await connection.disconnect();
+  });
+});
+
+describe('collaboration gateway limits', () => {
   test('rejects malformed persisted Yjs state without exposing it to clients', () => {
     const gateway = createCollaborationGateway(createAdapters({ state: new Uint8Array([255, 255]) }));
 

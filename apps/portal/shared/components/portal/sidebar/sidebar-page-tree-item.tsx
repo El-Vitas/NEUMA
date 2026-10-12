@@ -1,6 +1,18 @@
 'use client';
 
-import { ChevronRight, Copy, Download, FileText, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react';
+import {
+  ChevronRight,
+  Copy,
+  Download,
+  FileText,
+  Link2,
+  MoreHorizontal,
+  PenLine,
+  Plus,
+  Smile,
+  Table2,
+  Trash2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -15,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
+import { useCopyPageLink } from '@/shared/hooks/use.copy-page-link.hook';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarPageTreeItemCheckbox } from './sidebar-page-tree-item-checkbox';
 import { SidebarTreeIcon } from './sidebar-tree-icon';
@@ -27,6 +40,7 @@ interface IProps {
   readonly isExporting: boolean;
   readonly onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => void;
   readonly onNavigate?: () => void;
+  readonly onRequestChildCollection: (page: PortalSidebarPage) => void;
   readonly onRequestChildPage: (page: PortalSidebarPage) => void;
   readonly onRequestDuplicate: (page: PortalSidebarPage, hasChildren: boolean) => void;
   readonly onRequestExport: (page: PortalSidebarPage, hasChildren: boolean) => void;
@@ -50,6 +64,7 @@ export const SidebarPageTreeItem = ({
   isExporting,
   onKeyDown,
   onNavigate,
+  onRequestChildCollection,
   onRequestChildPage,
   onRequestDuplicate,
   onRequestExport,
@@ -67,8 +82,8 @@ export const SidebarPageTreeItem = ({
   const t = useTranslations('pages');
   const tDuplicate = useTranslations('pages.duplicate');
   const tExport = useTranslations('pages.export');
+  const copyPageLink = useCopyPageLink();
   const { children, page } = treeItem;
-  /** A page nobody has named yet is still a row one has to be able to read and point at. */
   const pageTitle = page.title.length > 0 ? page.title : t('untitled');
   const hasChildren = children.length > 0;
   const isExpanded = expandedPageIds.has(page.id);
@@ -141,7 +156,6 @@ export const SidebarPageTreeItem = ({
             'relative flex min-h-11 min-w-0 flex-1 items-center gap-1.5 px-1 text-sidebar-foreground/65 text-sm hover:bg-sidebar-accent hover:text-sidebar-foreground',
             FOCUS_RING_CLASS,
             isSelected && 'bg-sidebar-accent font-medium text-sidebar-foreground',
-            /* Landing inside a page fills it; landing beside it draws the line the page would slot into. */
             'data-[sidebar-page-drop-target=nest]:bg-primary/15 data-[sidebar-page-drop-target=nest]:outline data-[sidebar-page-drop-target=nest]:outline-primary/60',
             'data-[sidebar-page-drop-target=before]:shadow-[inset_0_2px_0_0_var(--color-primary)]',
             'data-[sidebar-page-drop-target=after]:shadow-[inset_0_-2px_0_0_var(--color-primary)]',
@@ -183,12 +197,20 @@ export const SidebarPageTreeItem = ({
                     <Plus aria-hidden="true" className="size-4" />
                     {t('createChildPage')}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onRequestChildCollection(page)}>
+                    <Table2 aria-hidden="true" className="size-4" />
+                    {t('createChildCollection')}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => onRequestDuplicate(page, hasChildren)}>
                     <Copy aria-hidden="true" className="size-4" />
                     {tDuplicate('action')}
                   </DropdownMenuItem>
                 </>
               )}
+              <DropdownMenuItem onSelect={() => void copyPageLink(spaceId, page.id)}>
+                <Link2 aria-hidden="true" className="size-4" />
+                {t('copyPageLink')}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onRequestRename(page)}>
                 <PenLine aria-hidden="true" className="size-4" />
                 {t('renamePage')}
@@ -221,6 +243,7 @@ export const SidebarPageTreeItem = ({
               key={child.page.id}
               onKeyDown={onKeyDown}
               onNavigate={onNavigate}
+              onRequestChildCollection={onRequestChildCollection}
               onRequestChildPage={onRequestChildPage}
               onRequestDuplicate={onRequestDuplicate}
               onRequestExport={onRequestExport}

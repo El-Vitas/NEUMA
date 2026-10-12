@@ -1,15 +1,16 @@
-import { THEME_ROOT_ATTRIBUTE } from '@/shared/constants/theme.constants';
+import { DARK_THEME_CLASS, THEME_ROOT_ATTRIBUTE } from '@/shared/constants/theme.constants';
 
-/**
- * Watches the ground a drawing is read on, and says when it changes.
- *
- * A diagram left in the colours of the night is unreadable by day and nobody
- * thinks to retype it to fix that, so whoever holds a drawing redraws it when
- * the page changes how it is being read. What comes back stops the watching.
- */
+/** Only a light/dark change counts: the theme root has other classes, and redrawing for each would be wasted. */
 export const watchTheDiagramGround = (changed: () => void): (() => void) => {
   const ground = document.querySelector(`[${THEME_ROOT_ATTRIBUTE}]`);
-  const watching = new MutationObserver(() => changed());
-  if (ground !== null) watching.observe(ground, { attributeFilter: ['class'] });
+  if (ground === null) return () => undefined;
+  let isDark = ground.classList.contains(DARK_THEME_CLASS);
+  const watching = new MutationObserver(() => {
+    const isDarkNow = ground.classList.contains(DARK_THEME_CLASS);
+    if (isDarkNow === isDark) return;
+    isDark = isDarkNow;
+    changed();
+  });
+  watching.observe(ground, { attributeFilter: ['class'] });
   return () => watching.disconnect();
 };

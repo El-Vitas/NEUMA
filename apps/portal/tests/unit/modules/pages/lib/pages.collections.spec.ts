@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
-import { PAGE_PROPERTY_TYPE, PAGE_VIEW_TYPE } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
+import { PAGE_PROPERTY_TYPE, PAGE_VIEW_TYPE } from '@neuma/shared';
 import { NodeSelection } from 'prosemirror-state';
 import { describeANewCollection, readTheViewToShow } from '@/modules/pages/collections/lib/pages.collections.lib';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';

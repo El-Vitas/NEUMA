@@ -1,18 +1,19 @@
-import type { Table as TanstackTable } from '@tanstack/react-table';
+import type { RowData, Table as TanstackTable } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
 
 import { getEmptyMessage } from '@/shared/lib/data-table.lib';
+import type { DataTableFeatures } from '@/shared/types/table.types';
 import { MobileHeader } from './data-table-mobile-view.mobile-header';
 import { MobileRowCard } from './data-table-mobile-view.mobile-row-card';
 
-interface DataTableMobileViewProps<TData> {
-  readonly table: TanstackTable<TData>;
+interface DataTableMobileViewProps<TData extends RowData> {
+  readonly table: TanstackTable<DataTableFeatures, TData>;
   readonly emptyMessage?: string;
   readonly emptyMessageFiltered?: string;
   readonly emptyAction?: ReactNode;
 }
 
-export const DataTableMobileView = <TData,>({
+export const DataTableMobileView = <TData extends RowData>({
   table,
   emptyMessage,
   emptyMessageFiltered,

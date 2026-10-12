@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import type { PageContent } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { OUTBOX_MAX_CLAIM_BATCH_SIZE } from '@/common/constants/outbox.constants';
 import { LinksProjectionWorker } from '@/modules/links/infrastructure/worker/links.projection.worker';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -37,7 +37,7 @@ const drainLinksOutbox = async (linksProjectionWorker: LinksProjectionWorker): P
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const createSpace = async (
@@ -90,13 +90,12 @@ const updatePageContent = async (
   token: string,
   spaceId: string,
   pageId: string,
-  title: string,
   content: PageContent,
 ): Promise<void> => {
   await request(testApp.getServer())
-    .patch(`/api/v1/spaces/${spaceId}/pages/${pageId}`)
+    .put(`/api/v1/spaces/${spaceId}/pages/${pageId}/content`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ content, title })
+    .send({ content })
     .expect(200);
 };
 
@@ -110,7 +109,7 @@ const setLifecycle = async (
   await request(testApp.getServer())
     .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/${action}`)
     .set('Authorization', `Bearer ${token}`)
-    .set('x-mutation-id', `${action}-${pageId}-${String(Date.now())}`)
+    .set('x-mutation-id', crypto.randomUUID())
     .expect(201);
 };
 
@@ -119,7 +118,7 @@ const getBacklinks = (testApp: TestApp, token: string, pageId: string) =>
 
 const findPageLink = async (testApp: TestApp, sourcePageId: string, targetPageId: string) => {
   const prisma = testApp.get(PrismaService);
-  return prisma.pageLink.findUnique({ where: { sourcePageId_targetPageId: { sourcePageId, targetPageId } } });
+  return prisma.models.PageLink.where({ sourcePageId, targetPageId }).first();
 };
 
 describe('Page Links (Integration)', () => {
@@ -137,8 +136,8 @@ describe('Page Links (Integration)', () => {
     const outsiderEmail = `links-outsider-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Links Admin', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Links Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Links Admin', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Links Outsider', password });
     await promoteToAdmin(testApp, adminEmail);
 
     const adminSession = await loginUser(testApp, adminEmail, password);
@@ -194,25 +193,11 @@ describe('Page Links (Integration)', () => {
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
       expect(await findPageLink(testApp, sourceId, targetId)).not.toBeNull();
 
-      await updatePageContent(
-        testApp,
-        adminToken,
-        sharedSpaceId,
-        sourceId,
-        'Recon Source 2',
-        plainContent('no more links'),
-      );
+      await updatePageContent(testApp, adminToken, sharedSpaceId, sourceId, plainContent('no more links'));
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
       expect(await findPageLink(testApp, sourceId, targetId)).toBeNull();
 
-      await updatePageContent(
-        testApp,
-        adminToken,
-        sharedSpaceId,
-        sourceId,
-        'Recon Source 2',
-        plainContent('no more links'),
-      );
+      await updatePageContent(testApp, adminToken, sharedSpaceId, sourceId, plainContent('no more links'));
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
       expect(await findPageLink(testApp, sourceId, targetId)).toBeNull();
     });
@@ -230,7 +215,7 @@ describe('Page Links (Integration)', () => {
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
 
       const prisma = testApp.get(PrismaService);
-      const rows = await prisma.pageLink.findMany({ where: { sourcePageId: sourceId } });
+      const rows = await prisma.models.PageLink.where({ sourcePageId: sourceId }).all();
       expect(rows).toHaveLength(1);
     });
 
@@ -242,14 +227,7 @@ describe('Page Links (Integration)', () => {
         'Recon Self Reference',
         plainContent('placeholder'),
       );
-      await updatePageContent(
-        testApp,
-        adminToken,
-        sharedSpaceId,
-        sourceId,
-        'Recon Self Reference',
-        mentioningContent(sharedSpaceId, sourceId),
-      );
+      await updatePageContent(testApp, adminToken, sharedSpaceId, sourceId, mentioningContent(sharedSpaceId, sourceId));
 
       await drainLinksOutbox(testApp.get(LinksProjectionWorker));
 

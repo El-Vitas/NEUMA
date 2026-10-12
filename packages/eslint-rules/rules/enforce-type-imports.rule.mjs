@@ -1,6 +1,3 @@
-// enforce-type-imports
-// Qué hace: obliga a usar `import type` para imports que son solo de tipos.
-// Para qué: mantener separados los imports de runtime de los de tipos (tree-shaking, claridad).
 const NESTJS_CLASS_DECORATORS = new Set([
   'Injectable',
   'Controller',

@@ -1,5 +1,5 @@
-import type { Prisma } from '@company-brain/db/generated';
-import type { UserRole } from '@company-brain/shared';
+import type { JsonValue } from '@neuma/db';
+import type { UserRole } from '@neuma/shared';
 
 export interface PageLinkReconciliationInput {
   readonly sourcePageId: string;
@@ -32,7 +32,7 @@ export interface PageLinkProjection {
 }
 
 export interface LinksProjectionPage {
-  readonly content: Prisma.JsonValue;
+  readonly content: JsonValue;
   readonly id: string;
   readonly lifecycle: string;
 }

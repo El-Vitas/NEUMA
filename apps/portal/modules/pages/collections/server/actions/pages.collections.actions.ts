@@ -13,17 +13,18 @@ import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema } from '../../../schemas/pages.schemas';
 import type { PageSummary } from '../../../types/pages.types';
-import { pageCollectionCreateSchema, pageCollectionReadSchema } from '../../schemas/pages.collections.schemas';
+import {
+  pageCollectionCreateSchema,
+  pageCollectionReadSchema,
+  pageCollectionUpdateSchema,
+  pageOptionRewriteSchema,
+  pageRowPropertiesSchema,
+  pageViewConfigurationUpdateSchema,
+} from '../../schemas/pages.collections.schemas';
 import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
 import type { PageSchema } from '../../types/pages.schema.types';
 
-/**
- * Starts a collection: a page of its own, and the shape of what it keeps.
- *
- * Both in one go, because a page that was meant to be a collection and has no
- * shape yet is a page nobody can tell apart from an ordinary one, and it would
- * be left behind on the first failure.
- */
+/** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
 export const createPageCollectionAction = actionClient
   .inputSchema(pageCollectionCreateSchema)
   .action(async ({ parsedInput }) =>
@@ -43,7 +44,64 @@ export const createPageCollectionAction = actionClient
     }),
   );
 
-/** What a page keeps, or nothing at all when that page is not a collection. */
+/** Only the changed properties travel: sending the whole page would overwrite concurrent edits to its content. */
+export const updatePageRowPropertiesAction = actionClient
+  .inputSchema(pageRowPropertiesSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'updatePageRowProperties' }, async (): Promise<void> => {
+      await authenticatedRequest(PAGE_API_ROUTES.properties(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+        propertyValues: parsedInput.propertyValues,
+      });
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    }),
+  );
+
+/** Row values live on the rows, not the shape: a removed property stops showing but its stored values remain. */
+export const updatePageCollectionAction = actionClient
+  .inputSchema(pageCollectionUpdateSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'updatePageCollection' }, async (): Promise<PageSchema> => {
+      const updated = await authenticatedRequest(
+        PAGE_API_ROUTES.schema(parsedInput.spaceId, parsedInput.pageId),
+        'POST',
+        { properties: parsedInput.properties, views: parsedInput.views },
+      );
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSchemaSchema.parse(updated);
+    }),
+  );
+
+/** Separate from the shape update: resending the whole collection for one view tweak risks losing others' changes. */
+export const updatePageViewConfigurationAction = actionClient
+  .inputSchema(pageViewConfigurationUpdateSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'updatePageViewConfiguration' }, async (): Promise<PageSchema> => {
+      const updated = await authenticatedRequest(
+        PAGE_API_ROUTES.viewConfiguration(parsedInput.spaceId, parsedInput.pageId, parsedInput.viewName),
+        'POST',
+        { configuration: parsedInput.configuration },
+      );
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSchemaSchema.parse(updated);
+    }),
+  );
+
+/** Needs the old name so the server can rewrite the values rows already stored under it. */
+export const rewritePageCollectionOptionAction = actionClient
+  .inputSchema(pageOptionRewriteSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'rewritePageCollectionOption' }, async (): Promise<PageSchema> => {
+      const updated = await authenticatedRequest(
+        PAGE_API_ROUTES.rewriteOption(parsedInput.spaceId, parsedInput.pageId, parsedInput.propertyKey),
+        'POST',
+        { from: parsedInput.from, ...(parsedInput.to === null ? {} : { to: parsedInput.to }) },
+      );
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return pageSchemaSchema.parse(updated);
+    }),
+  );
+
+/** Null when the page is not a collection (404). */
 export const readPageCollectionAction = actionClient
   .inputSchema(pageCollectionReadSchema)
   .action(async ({ parsedInput }) =>

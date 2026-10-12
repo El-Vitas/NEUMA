@@ -14,7 +14,7 @@ export const updateProfileNameAction = actionClient.inputSchema(UpdateNameSchema
   withAction({ action: 'updateProfileName' }, async () => {
     const userId = await requireOwnAccountId();
     await apiServer.patch(`${API_ROUTES.USERS}/${userId}`, { name: parsedInput.name });
-    /** The name is kept for a few seconds; without saying so, the account goes on showing the old one. */
+    /** Without it the account keeps showing the old name for a few seconds. */
     updateTag(CURRENT_USER_CACHE_TAG);
   }),
 );

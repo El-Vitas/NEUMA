@@ -1,4 +1,3 @@
-import { API_SEGMENTS, type AuthSession, RESOURCE_ROUTES, type User } from '@company-brain/shared';
 import {
   Body,
   Controller,
@@ -12,13 +11,12 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { API_SEGMENTS, RESOURCE_ROUTES, type User } from '@neuma/shared';
 import type { FastifyReply } from 'fastify';
 import { HTTP_STATUS_CREATED } from '../../common/constants/http.constants';
 import { Action, Resource } from '../../common/constants/permission.constants';
 import { canRenameUser } from '../../common/domain/workspace.domain';
 import { Permissions } from '../../common/infrastructure/decorators/permissions.decorator';
-import { Public } from '../../common/infrastructure/decorators/public.decorator';
 import { User as AuthUser } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { PermissionsGuard } from '../../common/infrastructure/guards/permissions.guard';
@@ -51,16 +49,16 @@ export class UsersController {
 
   @HttpCode(HTTP_STATUS_CREATED)
   @Post()
-  @Public()
-  @UseGuards(ThrottlerGuard)
-  async register(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<AuthSession> {
+  @Permissions({ action: Action.Create, resource: Resource.User })
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  async createUser(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: FastifyReply): Promise<User> {
     const result = await this.usersService.createUser(dto);
     if (result.isFail()) {
       throw result.getError();
     }
-    const session = result.getValue();
-    response.header('Location', `/api/v1/users/${session.user.id}`);
-    return session;
+    const created = result.getValue();
+    response.header('Location', `/api/v1/users/${created.id}`);
+    return created;
   }
 
   @Patch(':id')
@@ -76,12 +74,7 @@ export class UsersController {
     return this.usersService.updateUser(id, dto);
   }
 
-  /**
-   * A password is changed by the person who knows it and nobody else, so the
-   * account is the session's own. Taking the account from the address would
-   * also hand out an oracle: anybody could try a password against any account
-   * and read the answer in the status code.
-   */
+  /** Only the session's own account may change its password, so the path id must match the token. */
   @Patch(':id/password')
   @UseGuards(JwtAuthGuard)
   @HttpCode(204)

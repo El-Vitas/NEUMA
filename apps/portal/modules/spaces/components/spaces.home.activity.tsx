@@ -12,7 +12,6 @@ interface IProps {
   readonly spaceId: string;
 }
 
-/** What has been written in lately, so the space says what is alive in it and not only what exists. */
 export const SpacesHomeActivity = ({ activity, locale, spaceId }: IProps) => {
   const t = useTranslations('spaces.home');
 

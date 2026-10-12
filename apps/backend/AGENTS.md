@@ -5,7 +5,7 @@
 ## Stack
 
 - NestJS 11 (modules, guards, interceptors)
-- Prisma 7 (PostgreSQL)
+- Prisma ORM 8 (PostgreSQL), see `packages/db/AGENTS.md`
 - TypeScript strict
 - bun
 
@@ -75,16 +75,24 @@ Dot-separated. No kebab-case. Files describe their role.
 
 ## Prisma
 
-- Schema lives in `prisma/schema.prisma` (single file).
-- `PrismaService` is the only place that instantiates `PrismaClient`.
+- The contract lives in `packages/db/prisma/{models,enums}`; `@neuma/db` exposes the client and the enums.
+- `PrismaService` (`src/prisma/prisma.service.ts`) is the only place that creates the client. Repositories use
+  `models` (or `modelsFor(transaction)` when a caller's transaction may be passed), `transaction(work)` for writes
+  that must land together, and `sql` + `tables` + `runner` (or the transaction's `query` / `execute`) for raw SQL.
+- A raw row-returning statement declares every column with `.returnsRow(...)`; enum and array columns are read as
+  text or JSON and narrowed in TypeScript. `Date`, arrays and `null` are never interpolated: use
+  `toISOString()::timestamptz`, `buildSqlTextList` (`src/prisma/prisma.sql.lib.ts`) or a literal `NULL::type`.
+- `update()` returns `null` when nothing matched; throw an error with context where a row was expected
+  (`requireRow` in `src/common/utils/required-row.utils.ts`).
+- Detect a unique violation with `isUniqueViolation(error)` from `@neuma/db`.
 - `PrismaModule` is `@Global()` so all modules can inject `PrismaService` without re-importing.
-- Use Prisma enums as the single source of truth for domain enums (e.g. `UserRole`).
+- Use the `@neuma/db` enums as the single source of truth for domain enums (e.g. `UserRole`).
 
 ## Testing
 
 ### Stack
 
-- **Bun test**, Bun runtime (no build step), Prisma 7 schema-per-worker, Fishery + Faker
+- **Bun test**, Bun runtime (no build step), one migrated database per run (ADR 011), Fishery + Faker
 
 ### Structure
 
@@ -104,7 +112,7 @@ tests/
 ### Rules
 
 - Unit tests mirror `src/` exactly. `tests/unit/auth/domain/order.domain.spec.ts` → `src/auth/domain/order.domain.ts`.
-- Integration tests by feature (`auth.integration.spec.ts`). Full NestJS bootstrap + real DB via schema-per-worker isolation.
+- Integration tests by feature (`auth.integration.spec.ts`). Full NestJS bootstrap + real DB, one migrated database per run (ADR 011).
 - Domain tests are pure (no NestJS, no Prisma).
 - Service tests mock the repository; repository tests need a real DB.
 - No `process.env` — use `test-env.config.ts` with Zod.

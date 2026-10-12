@@ -12,7 +12,6 @@ interface IProps {
   readonly document: DocsDocument;
 }
 
-/** One document of the manual, read from the top, with everything in it reachable by name. */
 export const DocsArticleView = async ({ document }: IProps) => {
   const t = await getTranslations('docs');
   const headings = readDocsHeadings(document.markdown);

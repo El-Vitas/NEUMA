@@ -163,11 +163,11 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
       updateOfflineState(false);
       triggerResumeAfterOffline();
     };
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
+    globalThis.addEventListener('offline', handleOffline);
+    globalThis.addEventListener('online', handleOnline);
     return () => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
+      globalThis.removeEventListener('offline', handleOffline);
+      globalThis.removeEventListener('online', handleOnline);
     };
   }, [triggerResumeAfterOffline, updateOfflineState]);
 
@@ -176,19 +176,19 @@ export const usePagesAutosave = ({ enabled, onSave }: PagesAutosaveOptions): Pag
     const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
       if (!hasUnsavedChangesRef.current) return;
       event.preventDefault();
-      event.returnValue = '';
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    globalThis.addEventListener('beforeunload', handleBeforeUnload);
+    return () => globalThis.removeEventListener('beforeunload', handleBeforeUnload);
   }, [enabled]);
 
-  useEffect(
-    () => () => {
+  /** Sets the flag on every mount, since React development mode unmounts and remounts effects. */
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
       isMountedRef.current = false;
       cancel();
-    },
-    [cancel],
-  );
+    };
+  }, [cancel]);
 
   return {
     cancel,

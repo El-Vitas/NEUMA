@@ -2,7 +2,7 @@
 
 import 'server-only';
 
-import { PAGE_LIFECYCLE } from '@company-brain/shared';
+import { PAGE_LIFECYCLE } from '@neuma/shared';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
@@ -15,6 +15,7 @@ import type { PageDestination } from '../../editor/menus/types/pages.editor.dest
 import type { PageMoveDestinations } from '../../navigation/types/pages.move.types';
 import {
   pageBlocksHandoverSchema,
+  pageContentReplacementSchema,
   pageDestinationsSchema,
   pageDuplicateSchema,
   pageLocatorSchema,
@@ -26,11 +27,11 @@ import {
   pageReorderSchema,
   pageRestoreMutationSchema,
   pageSummarySchema,
-  pagesListSchema,
 } from '../../schemas/pages.schemas';
 import { PAGE_TRASH_CACHE_TAG } from '../../trash/constants/pages.trash.constants';
 import { trashRestoreOutcomeSchema } from '../../trash/schemas/pages.trash.schemas';
 import type { TrashRestoreOutcome } from '../../trash/types/pages.trash.types';
+import { readPagesThatCanBeRead } from '../lib/pages.reading.server';
 
 export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
@@ -47,20 +48,18 @@ export const createPageAction = actionClient
     }),
   );
 
-export const updatePageAction = actionClient
-  .inputSchema(pageMutationSchema.extend({ pageId: pageMoveSchema.shape.pageId }))
+/** Replaces content without a live session; the server still applies it to the live document. */
+export const replacePageContentAction = actionClient
+  .inputSchema(pageContentReplacementSchema)
   .action(async ({ parsedInput }) =>
-    withAction({ action: 'updatePage' }, async () => {
-      await authenticatedRequest(PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
+    withAction({ action: 'replacePageContent' }, async () => {
+      await authenticatedRequest(PAGE_API_ROUTES.content(parsedInput.spaceId, parsedInput.pageId), 'PUT', {
         content: parsedInput.content,
-        propertyValues: parsedInput.propertyValues,
-        title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
     }),
   );
 
-/** A page's name changed from wherever it is listed, without opening it. */
 export const renamePageAction = actionClient.inputSchema(pageRenameSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'renamePage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.title(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -70,7 +69,7 @@ export const renamePageAction = actionClient.inputSchema(pageRenameSchema).actio
   }),
 );
 
-/** A page copied whole, with its branch when asked. The copy's own name is decided by whoever asks, in their language. */
+/** The caller supplies the copy's title so it can be localized. */
 export const duplicatePageAction = actionClient.inputSchema(pageDuplicateSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'duplicatePage' }, async () => {
     const copy = await authenticatedRequest(
@@ -83,7 +82,6 @@ export const duplicatePageAction = actionClient.inputSchema(pageDuplicateSchema)
   }),
 );
 
-/** A page closed to edits, or opened again. Whoever may write in it may also decide it should rest. */
 export const setPageLockAction = actionClient.inputSchema(pageLockSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'setPageLock' }, async () => {
     const page = await authenticatedRequest(PAGE_API_ROUTES.lock(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -94,7 +92,6 @@ export const setPageLockAction = actionClient.inputSchema(pageLockSchema).action
   }),
 );
 
-/** Setting a page down among its own sisters, which changes the order and nothing else. */
 export const reorderPageAction = actionClient.inputSchema(pageReorderSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'reorderPage' }, async () => {
     await authenticatedRequest(PAGE_API_ROUTES.order(parsedInput.spaceId, parsedInput.pageId), 'PATCH', {
@@ -111,16 +108,12 @@ export const movePageAction = actionClient.inputSchema(pageMoveSchema).action(as
       targetSpaceId: parsedInput.targetSpaceId,
     });
     updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
-    /** A page that changed space leaves one tree and joins another, so both have to be read again. */
+    // A moved page leaves one space tree and joins another, so both caches are stale.
     if (parsedInput.targetSpaceId !== undefined) updateTag(PAGES_CACHE_TAG(parsedInput.targetSpaceId));
   }),
 );
 
-/**
- * Everywhere this page could go: the spaces its reader reaches and the pages of
- * those spaces, minus its own branch. Asked of the server rather than worked out
- * from the space at hand, since the space at hand is only one of the answers.
- */
+/** Spans every space the reader reaches and excludes the page's own branch. */
 export const listPageMoveDestinationsAction = actionClient
   .inputSchema(pageLocatorSchema)
   .action(async ({ parsedInput }) =>
@@ -131,43 +124,26 @@ export const listPageMoveDestinationsAction = actionClient
     }),
   );
 
-/**
- * The pages of a space a block could be sent to, named so they can be picked.
- *
- * They are read from the space itself rather than from the search index, so
- * choosing a destination works the moment a page exists.
- */
+/** Reads the space directly instead of the search index, so a new page is a valid destination immediately. */
 export const listPageDestinationsAction = actionClient
   .inputSchema(pageDestinationsSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'listDestinations' }, async (): Promise<readonly PageDestination[]> => {
       const accessToken = await requireAccessTokenCookie();
       const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(parsedInput.spaceId), accessToken);
-      return pagesListSchema
-        .parse(response)
+      return readPagesThatCanBeRead(response, 'listDestinations')
         .filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE && page.id !== parsedInput.exceptPageId)
         .map((page) => ({ id: page.id, label: page.title, spaceId: page.spaceId }));
     }),
   );
 
-/**
- * Adds blocks at the end of another page.
- *
- * The page that receives them is read first and written back whole, so the
- * blocks join what is already there instead of replacing it.
- */
+/** Appended by the server inside the live document; read-modify-write here would lose concurrent edits. */
 export const addBlocksToPageAction = actionClient
   .inputSchema(pageBlocksHandoverSchema)
   .action(async ({ parsedInput }) =>
     withAction({ action: 'addBlocks' }, async () => {
-      const accessToken = await requireAccessTokenCookie();
-      const endpoint = PAGE_API_ROUTES.item(parsedInput.spaceId, parsedInput.pageId);
-      const destination = pageSummarySchema.parse(await apiRequest<unknown>(endpoint, accessToken));
-
-      await authenticatedRequest(endpoint, 'PATCH', {
-        content: { ...destination.content, content: [...destination.content.content, ...parsedInput.content.content] },
-        propertyValues: destination.propertyValues,
-        title: destination.title,
+      await authenticatedRequest(PAGE_API_ROUTES.blocks(parsedInput.spaceId, parsedInput.pageId), 'POST', {
+        blocks: parsedInput.content.content,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
     }),

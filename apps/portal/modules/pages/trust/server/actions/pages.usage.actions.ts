@@ -40,14 +40,7 @@ export const updatePageUsageSettingsAction = actionClient
     }),
   );
 
-/**
- * What a page's readership looks like, asked for only when somebody opens the
- * panel that shows it.
- *
- * Who read what is costly to gather and nobody's business by default, so it is
- * not carried along with every page: it is fetched the moment it is looked at,
- * and never before.
- */
+/** Fetched only when the usage panel opens: gathering readership is costly and not part of the page payload. */
 export const getPageUsageReportAction = actionClient
   .inputSchema(pageUsageRecordSchema)
   .action(async ({ parsedInput }) =>

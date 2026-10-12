@@ -1,5 +1,5 @@
 {
-  "name": "@company-brain/db",
+  "name": "@neuma/db",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,36 +11,31 @@
       "bun": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./generated": {
-      "bun": "./src/prisma-exports.ts",
-      "types": "./dist/prisma-exports.d.ts",
-      "default": "./dist/prisma-exports.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio",
-    "db:push": "prisma db push",
+    "build": "tsc && cp src/contract/contract.d.ts dist/contract/contract.d.ts",
+    "db:generate": "prisma contract emit",
+    "db:migrate": "prisma migration plan",
+    "db:migrate:deploy": "bun scripts/migrate-deploy.ts",
+    "db:push": "prisma db update",
     "db:seed": "bun prisma/seed/main.seed.ts",
-    "format": "biome format --write . && prisma format",
+    "format": "biome format --write . && prisma contract format",
     "format:check": "biome format .",
-    "check": "bun run format:check"
+    "check": "bun run format:check",
+    "db:verify": "prisma db verify"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7",
-    "@prisma/client": "^7",
-    "dotenv": "^16.4.7",
-    "pg": "^8.14.1",
-    "prisma": "^7"
+    "@prisma/orm-postgres": "8.0.0-rc.17",
+    "dotenv": "^18.0.7",
+    "pg": "^8.23.1",
+    "temporal-polyfill": "^1.0.5"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.11",
-    "tsx": "^4.22.4",
-    "typescript": "npm:@typescript/typescript6@^6"
+    "@types/pg": "^8.23.1",
+    "prisma": "8.0.0-rc.22",
+    "tsx": "^4.23.15",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "types": "./dist/index.d.ts"
 }

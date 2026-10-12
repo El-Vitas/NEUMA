@@ -1,6 +1,6 @@
-import type { UserRole } from '@company-brain/shared';
-import { Result } from '@company-brain/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
+import { Result } from '@neuma/shared';
 import { canCreateSpace } from '../../common/domain/workspace.domain';
 import type { AssignableMember } from '../../common/types/workspace-member.types';
 import { SPACE_REPOSITORY } from './constants/spaces.constants';
@@ -29,7 +29,6 @@ export class SpacesService {
     return Result.ok(await this.spaceRepository.create(input));
   }
 
-  /** Renaming a space is a change to it, so it is offered to whoever could have made one. */
   async rename(
     spaceId: string,
     name: string,
@@ -41,7 +40,6 @@ export class SpacesService {
     return space === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(space);
   }
 
-  /** What a space says it is for, which whoever may name it may also say. */
   async describeSpace(
     spaceId: string,
     description: null | string,
@@ -53,7 +51,6 @@ export class SpacesService {
     return space === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(space);
   }
 
-  /** The order a workspace keeps its spaces in, which anybody who could make one can rearrange. */
   async reorder(
     spaceId: string,
     beforeSpaceId: null | string,
@@ -68,7 +65,6 @@ export class SpacesService {
     return spaces === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(spaces);
   }
 
-  /** Marking a space is a change to it, so it is offered to whoever could have made one. */
   async updateIcon(
     spaceId: string,
     icon: unknown,
@@ -95,7 +91,6 @@ export class SpacesService {
     return members === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(members);
   }
 
-  /** How many people who can read the source space today would not read the destination. */
   async countMoveAccessLoss(
     sourceSpaceId: string,
     targetSpaceId: string,
@@ -113,7 +108,7 @@ export class SpacesService {
     return count === null ? Result.fail(new SpaceAccessDeniedError()) : Result.ok(count);
   }
 
-  /** Sharing a private space is the owner's call alone — nobody else, admin included, grants access to it. */
+  /** Only the owner of a private space can share it, admins included. */
   async addMember(
     spaceId: string,
     memberUserId: string,
@@ -134,7 +129,7 @@ export class SpacesService {
     }
   }
 
-  /** What other people made private and then handed to this caller, distinct from what the caller owns. */
+  /** Private spaces owned by others and shared with the caller, not the caller's own. */
   async listSharedWithMe(workspaceId: string, userId: string): Promise<readonly SpaceSummary[]> {
     return this.spaceRepository.listSharedWithMe(workspaceId, userId);
   }

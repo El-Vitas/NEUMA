@@ -4,16 +4,7 @@ import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef,
 import { readStoredNumber, writeStoredValue } from '@/shared/lib/browser-storage.lib';
 import type { ResizablePanelController, ResizablePanelSettings } from '@/shared/types/resizable-panel.types';
 
-/**
- * A panel whose edge can be dragged, and which remembers how wide it was left.
- *
- * The two panels that do this sit on opposite sides of the screen, so the same
- * pointer moving right widens one and narrows the other; that is the only thing
- * they disagree about, and it is the only thing asked for here.
- *
- * The width is written down only once somebody has chosen one, so a panel
- * nobody has touched keeps following whatever the default becomes.
- */
+/** The width is stored only once the user picks one, so an untouched panel follows the default. */
 export const useResizablePanel = ({
   clamp,
   defaultWidth,
@@ -27,14 +18,7 @@ export const useResizablePanel = ({
 
   const whereItIsKept = useRef({ clamp, storageKey });
 
-  /**
-   * Adopted once, after the first paint.
-   *
-   * The server has no way to know what this browser remembered, so the panel
-   * is first drawn at the width everybody gets and only then takes the width
-   * this reader left it at. Reading it any earlier makes the two disagree and
-   * React throws the tree away.
-   */
+  /** Adopted after the first paint: the server cannot know the stored width, and reading earlier breaks hydration. */
   useEffect(() => {
     if (hasOwnWidthChoice.current) return;
     const kept = whereItIsKept.current;

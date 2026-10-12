@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { canEditContent, canManageWorkspace, USER_ROLE, WORKSPACE_CAPABILITY_BY_ROLE } from '@company-brain/shared';
+import { canEditContent, canManageWorkspace, USER_ROLE, WORKSPACE_CAPABILITY_BY_ROLE } from '@neuma/shared';
 import {
   getSpaceFieldErrorCode,
   getSpaceVisibilityLabel,

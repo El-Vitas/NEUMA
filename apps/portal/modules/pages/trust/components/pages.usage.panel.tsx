@@ -16,18 +16,11 @@ interface IProps {
   readonly pageId: string;
 }
 
-/**
- * How much a page has been read, and by whom — visible only to whoever
- * already sees this panel at all, since the caller decides that by mounting
- * it or not.
- */
 export const PagesUsagePanel = ({ pageId }: IProps) => {
   const t = useTranslations('pages.usage');
   const format = useFormatter();
   const [isPending, startTransition] = useTransition();
-  /** The panel can stand on more than one page at a time, so its own name has to be its own. */
   const trackingToggleId = useId();
-  /** Who read what is nobody's business until it is asked for, so it is fetched on opening and not before. */
   const [report, setReport] = useState<PageUsageReport | null>(null);
   const [enabled, setEnabled] = useState(true);
 

@@ -1,11 +1,11 @@
-import type { PageBlockAlignment } from '@company-brain/shared';
+import type { PageBlockAlignment } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { Command, EditorState } from 'prosemirror-state';
 import { PAGE_EDITOR_ALIGNABLE_TYPES, PAGE_EDITOR_FILE_TYPE } from '../blocks/constants/pages.editor.blocks.constants';
 import { findSelectedPageBlocks } from '../blocks/lib/pages.editor.block-range.lib';
 import { readPageFileShape } from '../media/lib/pages.editor.file.lib';
 
-/** A file only stands somewhere once the page draws it; a line to press has nowhere to go. */
+/** A file is alignable only when shown as a document, not as a download line. */
 const standsSomewhere = (node: EditorNode): boolean =>
   node.type.name === PAGE_EDITOR_FILE_TYPE
     ? readPageFileShape(node.attrs.display, node.attrs.caption, node.attrs.mimeType) === 'document'
@@ -18,20 +18,13 @@ const findSelectedAlignable = (state: EditorState): { readonly align: unknown; r
   return standsSomewhere(node) ? { align: node.attrs.align, position: range.start } : null;
 };
 
-/** Where the selected block stands, so the menu shows what is in use — and nothing for writing. */
 export const readPageBlockAlignment = (state: EditorState): { readonly chosen: string | null } | null => {
   const block = findSelectedAlignable(state);
   if (block === null) return null;
   return { chosen: typeof block.align === 'string' ? block.align : null };
 };
 
-/**
- * Stands the selected block where it was asked to stand.
- *
- * Standing at full width is standing at the left with all of the room, so the
- * choice sets both: a block chosen to fill the page and then narrowed keeps the
- * side it was left on instead of jumping.
- */
+/** Full width is stored as left alignment plus full room, so narrowing a full-width block does not make it jump. */
 export const createPageBlockAlignmentCommand =
   (align: PageBlockAlignment): Command =>
   (state, dispatch) => {

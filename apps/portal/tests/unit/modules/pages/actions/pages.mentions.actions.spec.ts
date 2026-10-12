@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 import type { SearchPage, SearchQuery } from '@/shared/types/search.types';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 const getSearchResults = mock(
   async (_params: SearchQuery): Promise<ReturnType<typeof Result.ok<SearchPage, Error>>> =>
@@ -22,19 +23,7 @@ const getSearchResults = mock(
 
 mock.module('server-only', () => ({}));
 mock.module('@/shared/server/queries/search.queries', () => ({ getSearchResults }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
@@ -53,12 +42,12 @@ describe('searchPageMentionCandidatesAction', () => {
     expect(getSearchResults).toHaveBeenCalledWith(expect.objectContaining({ query: 'tar', sourceType: 'PAGE' }));
   });
 
-  it('surfaces a search failure as a server error', async () => {
+  it('surfaces a search failure as an unexpected failure, never as what it said', async () => {
     getSearchResults.mockClear();
     getSearchResults.mockImplementationOnce(async () => Result.fail(new Error('search unavailable')));
 
     const result = await searchPageMentionCandidatesAction({ query: 'tar' });
 
-    expect(result).toEqual({ serverError: 'search unavailable' });
+    expect(result).toEqual({ serverError: 'unexpected' });
   });
 });

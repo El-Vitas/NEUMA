@@ -1,4 +1,4 @@
-# Company Brain Current Scope
+# Neuma Current Scope
 
 This is the only scope that is allowed to receive implementation work in the current product phase. Anything not listed here belongs in `docs/scope/future-scope.md` and must not be treated as an unfinished task.
 
@@ -79,7 +79,7 @@ Remaining files: none for the currently accepted minimum. Calendar/timeline are 
 
 Status: not started. Introduced by ADR-008 as a current-scope module.
 
-Owns the page mention node, the `PageLink` graph, its outbox projection worker, and the backlinks read. Reads must filter by the requesting user's space access before counting, so the graph never discloses the existence of unreadable pages. Execution detail: `docs/superpowers/plans/2026-08-05-company-brain-single-page-primitive.md`, Phase 1.
+Owns the page mention node, the `PageLink` graph, its outbox projection worker, and the backlinks read. Reads must filter by the requesting user's space access before counting, so the graph never discloses the existence of unreadable pages. Execution detail: `docs/superpowers/plans/2026-08-05-neuma-single-page-primitive.md`, Phase 1.
 
 ### `blocks`
 
@@ -89,7 +89,7 @@ Owns the stable block ids in the editor schema and the `PageBlock` projection de
 
 ### `mcp`
 
-Status: read surface delivered (`mcp.listSpaces`, `mcp.getPage`, `search_company_brain`).
+Status: read surface delivered (`mcp.listSpaces`, `mcp.getPage`, `search_neuma`).
 
 Gains write tooling in Phase 4 so an agent can operate the brain, not only read it. Every tool resolves a principal and filters by space access — there is no agent bypass — and every write goes through the same services the portal uses, so domain validation, versioning and outbox emission are identical. Tools are modelled on the domain, never on storage.
 
@@ -108,7 +108,7 @@ Remaining files and verification:
 
 Status: FileAsset model, local storage, upload/download/delete authorization, portal attachment primitives delivered.
 
-**Placement model change.** Per `docs/architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md`, the content becomes the single source of truth for *where* a file lives, and `FileAsset.pageId` becomes the ownership/permission/collection anchor rather than a parallel placement record. The separate "Attachments" list stops being the primary surface: a file is attached where it is dropped and removed by deleting its block. The authorization path in `file.asset.repository.ts` is already correct and does not change. Execution detail: `docs/superpowers/plans/2026-08-05-company-brain-single-page-primitive.md`, Phase 5.
+**Placement model change.** Per `docs/architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md`, the content becomes the single source of truth for *where* a file lives, and `FileAsset.pageId` becomes the ownership/permission/collection anchor rather than a parallel placement record. The separate "Attachments" list stops being the primary surface: a file is attached where it is dropped and removed by deleting its block. The authorization path in `file.asset.repository.ts` is already correct and does not change. Execution detail: `docs/superpowers/plans/2026-08-05-neuma-single-page-primitive.md`, Phase 5.
 
 Remaining files and changes:
 
@@ -134,7 +134,7 @@ Remaining files and changes:
 
 ### `mcp`
 
-Status: authorized read tools and `search_company_brain` delivered.
+Status: authorized read tools and `search_neuma` delivered.
 
 Remaining files: none for the current read-only MCP scope.
 

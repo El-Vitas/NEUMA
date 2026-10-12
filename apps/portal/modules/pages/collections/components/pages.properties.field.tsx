@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_PROPERTY_TYPE } from '@company-brain/shared';
+import { PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/shared/components/ui/input';
 import { EMPTY_PAGE_PERSON_OPTIONS, PAGE_PROPERTY_COMPACT_INPUT_CLASS_NAME } from '../../constants/pages.constants';
@@ -18,7 +18,10 @@ import { PagesPropertiesSelectField } from './pages.properties.select-field';
 
 interface IProps {
   readonly ariaLabelledBy: string;
+  readonly claimsFocus?: boolean;
   readonly disabled: boolean;
+  /** Typed values are committed on blur; chosen values do not need it. */
+  readonly onBlur?: () => void;
   readonly onChange: (value: PagePropertyValue) => void;
   readonly personOptions?: readonly PagePersonOption[];
   readonly property: PageSchemaProperty;
@@ -27,7 +30,9 @@ interface IProps {
 
 export const PagesPropertiesField = ({
   ariaLabelledBy,
+  claimsFocus = false,
   disabled,
+  onBlur,
   onChange,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   property,
@@ -36,6 +41,7 @@ export const PagesPropertiesField = ({
   const t = useTranslations('pages');
   const fieldId = `page-property-${property.key}`;
   const emptyPlaceholder = t('properties.empty');
+  const typedFieldProps = { autoFocus: claimsFocus, onBlur };
 
   switch (property.type) {
     case PAGE_PROPERTY_TYPE.SELECT:
@@ -93,6 +99,7 @@ export const PagesPropertiesField = ({
           onChange={(event) => onChange(event.target.value)}
           type="date"
           value={getStringPropertyValue(value)}
+          {...typedFieldProps}
         />
       );
     case PAGE_PROPERTY_TYPE.NUMBER:
@@ -106,6 +113,7 @@ export const PagesPropertiesField = ({
           placeholder={emptyPlaceholder}
           type="number"
           value={value === undefined ? '' : String(getNumberPropertyValue(value))}
+          {...typedFieldProps}
         />
       );
     default:
@@ -119,6 +127,7 @@ export const PagesPropertiesField = ({
           placeholder={emptyPlaceholder}
           type="text"
           value={getStringPropertyValue(value)}
+          {...typedFieldProps}
         />
       );
   }

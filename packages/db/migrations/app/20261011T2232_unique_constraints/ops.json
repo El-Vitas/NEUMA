@@ -1,0 +1,444 @@
+[
+  {
+    "id": "unique.AccessToken_secretHash_key",
+    "label": "Record \"AccessToken_secretHash_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AccessToken_secretHash_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"AccessToken\" ADD CONSTRAINT \"AccessToken_secretHash_key\" UNIQUE USING INDEX \"AccessToken_secretHash_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AccessToken_secretHash_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.AccessTokenGrant_tokenId_spaceId_key",
+    "label": "Record \"AccessTokenGrant_tokenId_spaceId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AccessTokenGrant_tokenId_spaceId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenGrant\" ADD CONSTRAINT \"AccessTokenGrant_tokenId_spaceId_key\" UNIQUE USING INDEX \"AccessTokenGrant_tokenId_spaceId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AccessTokenGrant_tokenId_spaceId_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.AccessTokenPageGrant_tokenId_pageId_key",
+    "label": "Record \"AccessTokenPageGrant_tokenId_pageId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AccessTokenPageGrant_tokenId_pageId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenPageGrant\" ADD CONSTRAINT \"AccessTokenPageGrant_tokenId_pageId_key\" UNIQUE USING INDEX \"AccessTokenPageGrant_tokenId_pageId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AccessTokenPageGrant_tokenId_pageId_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.CollaborationSnapshot_documentName_key",
+    "label": "Record \"CollaborationSnapshot_documentName_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CollaborationSnapshot_documentName_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"CollaborationSnapshot\" ADD CONSTRAINT \"CollaborationSnapshot_documentName_key\" UNIQUE USING INDEX \"CollaborationSnapshot_documentName_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CollaborationSnapshot_documentName_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.FileAsset_storageKey_key",
+    "label": "Record \"FileAsset_storageKey_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FileAsset_storageKey_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"FileAsset\" ADD CONSTRAINT \"FileAsset_storageKey_key\" UNIQUE USING INDEX \"FileAsset_storageKey_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FileAsset_storageKey_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.OutboxEvent_idempotencyKey_key",
+    "label": "Record \"OutboxEvent_idempotencyKey_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'OutboxEvent_idempotencyKey_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"OutboxEvent\" ADD CONSTRAINT \"OutboxEvent_idempotencyKey_key\" UNIQUE USING INDEX \"OutboxEvent_idempotencyKey_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'OutboxEvent_idempotencyKey_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.PageFavorite_userId_pageId_key",
+    "label": "Record \"PageFavorite_userId_pageId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageFavorite_userId_pageId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"PageFavorite\" ADD CONSTRAINT \"PageFavorite_userId_pageId_key\" UNIQUE USING INDEX \"PageFavorite_userId_pageId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageFavorite_userId_pageId_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.PageLink_sourcePageId_targetPageId_key",
+    "label": "Record \"PageLink_sourcePageId_targetPageId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageLink_sourcePageId_targetPageId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"PageLink\" ADD CONSTRAINT \"PageLink_sourcePageId_targetPageId_key\" UNIQUE USING INDEX \"PageLink_sourcePageId_targetPageId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageLink_sourcePageId_targetPageId_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.PageSchemaProperty_pageId_key_key",
+    "label": "Record \"PageSchemaProperty_pageId_key_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageSchemaProperty_pageId_key_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaProperty\" ADD CONSTRAINT \"PageSchemaProperty_pageId_key_key\" UNIQUE USING INDEX \"PageSchemaProperty_pageId_key_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageSchemaProperty_pageId_key_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.PageSchemaView_pageId_name_key",
+    "label": "Record \"PageSchemaView_pageId_name_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageSchemaView_pageId_name_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\" ADD CONSTRAINT \"PageSchemaView_pageId_name_key\" UNIQUE USING INDEX \"PageSchemaView_pageId_name_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageSchemaView_pageId_name_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.PageVersion_pageId_version_key",
+    "label": "Record \"PageVersion_pageId_version_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageVersion_pageId_version_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"PageVersion\" ADD CONSTRAINT \"PageVersion_pageId_version_key\" UNIQUE USING INDEX \"PageVersion_pageId_version_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PageVersion_pageId_version_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.SearchDocument_sourceType_sourceId_key",
+    "label": "Record \"SearchDocument_sourceType_sourceId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SearchDocument_sourceType_sourceId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"SearchDocument\" ADD CONSTRAINT \"SearchDocument_sourceType_sourceId_key\" UNIQUE USING INDEX \"SearchDocument_sourceType_sourceId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SearchDocument_sourceType_sourceId_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.Space_workspaceId_slug_key",
+    "label": "Record \"Space_workspaceId_slug_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Space_workspaceId_slug_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"Space\" ADD CONSTRAINT \"Space_workspaceId_slug_key\" UNIQUE USING INDEX \"Space_workspaceId_slug_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Space_workspaceId_slug_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.SpaceMember_spaceId_userId_key",
+    "label": "Record \"SpaceMember_spaceId_userId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SpaceMember_spaceId_userId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"SpaceMember\" ADD CONSTRAINT \"SpaceMember_spaceId_userId_key\" UNIQUE USING INDEX \"SpaceMember_spaceId_userId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SpaceMember_spaceId_userId_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.User_email_key",
+    "label": "Record \"User_email_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_email_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"User\" ADD CONSTRAINT \"User_email_key\" UNIQUE USING INDEX \"User_email_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_email_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.Workspace_singletonKey_key",
+    "label": "Record \"Workspace_singletonKey_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Workspace_singletonKey_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"Workspace\" ADD CONSTRAINT \"Workspace_singletonKey_key\" UNIQUE USING INDEX \"Workspace_singletonKey_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Workspace_singletonKey_key' AND contype = 'u')"
+      }
+    ]
+  },
+  {
+    "id": "unique.WorkspaceMember_workspaceId_userId_key",
+    "label": "Record \"WorkspaceMember_workspaceId_userId_key\" as a unique constraint",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "not a constraint yet",
+        "sql": "SELECT NOT (SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'WorkspaceMember_workspaceId_userId_key' AND contype = 'u'))"
+      }
+    ],
+    "execute": [
+      {
+        "description": "promote the existing unique index",
+        "sql": "ALTER TABLE \"public\".\"WorkspaceMember\" ADD CONSTRAINT \"WorkspaceMember_workspaceId_userId_key\" UNIQUE USING INDEX \"WorkspaceMember_workspaceId_userId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "it is a constraint",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'WorkspaceMember_workspaceId_userId_key' AND contype = 'u')"
+      }
+    ]
+  }
+]

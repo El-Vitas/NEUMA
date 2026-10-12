@@ -10,13 +10,7 @@ import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema, pageVerificationSchema } from '../../../schemas/pages.schemas';
 
-/**
- * Vouches for a page, or takes that back.
- *
- * Asking to verify again — even with only a new expiration date — is the same
- * act repeated, so it re-stamps who verified it and when. That is deliberate:
- * it is what lets an expiration be pushed out without a separate endpoint.
- */
+/** Verifying again re-stamps the verifier and time on purpose: it is how an expiration is extended. */
 export const setPageVerificationAction = actionClient
   .inputSchema(pageVerificationSchema)
   .action(async ({ parsedInput }) =>

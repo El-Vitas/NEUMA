@@ -7,13 +7,7 @@ import {
   PAGE_EDITOR_TASK_ITEM_TYPE,
 } from '../../blocks/constants/pages.editor.blocks.constants';
 
-/**
- * Whatever a page calls a point of a list, it answers the same keys.
- *
- * A point of a list and a task are the same shape wearing different names, so
- * the rules of a list are written once and asked of each of them in turn: the
- * one the writing is inside answers, the other declines.
- */
+/** List items and task items share one set of rules; the type the selection is inside answers. */
 const askEveryPointType =
   (askThisOne: (pointType: NodeType) => Command): Command =>
   (state, dispatch) => {
@@ -23,28 +17,16 @@ const askEveryPointType =
     return chainCommands(...asked)(state, dispatch);
   };
 
-/** A task is born waiting to be done, however the task above it ended up. */
+/** A new task starts unchecked even when the one it splits from is checked. */
 const startOfAnotherPoint = (pointType: NodeType): Attrs | undefined =>
   pointType.name === PAGE_EDITOR_TASK_ITEM_TYPE ? { checked: false } : undefined;
 
-/**
- * Enter at the end of a point gives the list another one.
- *
- * The general rule reads the point as any other block and splits the writing
- * inside it, which a reader sees as the list quietly stopping to grow, so this
- * has to answer before it does.
- */
+/** Must run before the generic block split, which would split the text inside the item instead. */
 export const splitPageEditorListPoint: Command = askEveryPointType((pointType) =>
   splitListItem(pointType, startOfAnotherPoint(pointType)),
 );
 
-/**
- * Tab hangs a point from the point above it.
- *
- * The general nesting hangs a block from the one above it through a nested
- * block, and inside a list it reads the whole list as the block being moved: a
- * point could never gain a level, and the list would travel with it.
- */
+/** Must run before the generic nesting, which would move the whole list instead of indenting the item. */
 export const nestPageEditorListItem: Command = askEveryPointType(sinkListItem);
 
 export const unnestPageEditorListItem: Command = askEveryPointType(liftListItem);

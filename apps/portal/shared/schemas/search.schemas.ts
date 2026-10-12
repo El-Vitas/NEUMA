@@ -1,4 +1,4 @@
-import { pageIconSchema } from '@company-brain/shared';
+import { pageIconSchema } from '@neuma/shared';
 import { z } from 'zod';
 import {
   SEARCH_DEFAULT_LIMIT,
@@ -51,7 +51,7 @@ export const searchResponseSchema = z.object({
   items: z.array(
     z.object({
       contentType: z.string(),
-      /** A mark this reader's version does not understand is dropped, not carried through as something it is not. */
+      /** An unknown mark is dropped rather than carried through as another kind. */
       icon: pageIconSchema.nullable().catch(null),
       parentPageId: nullableContextText,
       parentPageTitle: nullableContextText,

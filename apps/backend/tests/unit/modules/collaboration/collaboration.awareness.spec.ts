@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { USER_ROLE } from '@company-brain/shared';
 import type { Hocuspocus } from '@hocuspocus/server';
+import { USER_ROLE } from '@neuma/shared';
 import { createCollaborationGateway } from '../../../../src/modules/collaboration/collaboration.gateway';
 import { MAX_COLLABORATION_AWARENESS_STATE_BYTES } from '../../../../src/modules/collaboration/constants/collaboration.constants';
 import type {
   CollaborationAuthorizationAdapter,
+  CollaborationContentAdapter,
   CollaborationContext,
   CollaborationPersistenceAdapter,
   CollaborationTokenAdapter,
@@ -20,6 +21,7 @@ const createAdapters = (
   } = {},
 ): {
   readonly authorization: CollaborationAuthorizationAdapter;
+  readonly content: CollaborationContentAdapter;
   readonly persistence: CollaborationPersistenceAdapter;
   readonly token: CollaborationTokenAdapter;
 } => {
@@ -39,7 +41,11 @@ const createAdapters = (
   const token: CollaborationTokenAdapter = {
     verify: () => Promise.reject(new Error('unused')),
   };
-  return { authorization, persistence, token };
+  const content: CollaborationContentAdapter = {
+    load: () => Promise.resolve({ content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' }),
+    store: () => Promise.resolve(),
+  };
+  return { authorization, content, persistence, token };
 };
 
 const buildContext = (overrides: Partial<CollaborationContext> = {}): CollaborationContext => ({

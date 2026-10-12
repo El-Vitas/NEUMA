@@ -3,13 +3,7 @@ import { SEARCH_RESULT_DATE_FORMATTER_EN, SEARCH_RESULT_DATE_FORMATTER_ES } from
 import { searchResponseSchema } from '../schemas/search.schemas';
 import type { SearchPage, SearchQuery, SearchResult, SearchSnippetPart } from '../types/search.types';
 
-/**
- * Drops the tags a snippet still carries, keeping the text between them.
- *
- * It walks the snippet instead of matching a pattern: a pattern for a tag
- * restarts at every `<`, so a snippet made of nothing but `<` would keep the
- * server busy for as long as whoever wrote the page cared to make it.
- */
+/** Walks the snippet instead of matching a pattern: a tag regex restarts at every `<`, so a run of them stalls. */
 const stripMarkup = (text: string): string => {
   let stripped = '';
   let cursor = 0;

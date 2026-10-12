@@ -1,4 +1,4 @@
-import { canEditContent, PAGE_LIFECYCLE, USER_ROLE } from '@company-brain/shared';
+import { canEditContent, PAGE_LIFECYCLE, USER_ROLE } from '@neuma/shared';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { PagesView } from '@/modules/pages/collections/views/pages.view';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
@@ -13,13 +13,7 @@ interface IProps {
   readonly params: Promise<{ spaceId: string }>;
 }
 
-/**
- * The space's own pages, shaped the way its entrance reads them.
- *
- * Shaped here rather than handed over whole because the entrance belongs to the
- * spaces side of the application, which has no business knowing what else a page
- * carries around.
- */
+/** Narrows the page so the spaces module does not depend on the rest of the page shape. */
 const toSpaceHomePage = (page: PageSummary): SpaceHomePage => ({
   icon: page.icon ?? null,
   id: page.id,

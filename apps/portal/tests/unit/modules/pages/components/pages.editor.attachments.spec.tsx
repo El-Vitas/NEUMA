@@ -10,6 +10,7 @@ mock.module('server-only', () => ({}));
 mock.module('next/navigation', () => ({
   permanentRedirect: () => undefined,
   redirect: () => undefined,
+  unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
 }));
@@ -31,10 +32,10 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
   renamePageAction: async () => ({ data: undefined }),
+  replacePageContentAction: async () => ({ data: undefined }),
   restorePageAction: async () => ({ data: undefined }),
   setPageLockAction: async () => ({ data: undefined }),
   trashPageAction: async () => ({ data: undefined }),
-  updatePageAction: async () => ({ data: undefined }),
 }));
 
 mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
@@ -57,6 +58,7 @@ mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () =
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   createPageCollectionAction: async () => ({ data: undefined }),
   readPageCollectionAction: async () => ({ data: null }),
+  updatePageRowPropertiesAction: async () => ({ data: undefined }),
 }));
 
 mock.module('@/modules/pages/links/server/actions/pages.person.actions', () => ({

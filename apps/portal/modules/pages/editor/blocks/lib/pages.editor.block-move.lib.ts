@@ -7,14 +7,7 @@ const findSelectedBlockRange = (state: EditorState): PageEditorBlockRange | null
   return range === null ? null : { from: range.start, to: range.end };
 };
 
-/**
- * Builds the command that swaps the blocks the selection covers with the
- * neighbour above or below them.
- *
- * It is the same move a drag performs, asked for with the keyboard: the blocks
- * travel together, they stay among their own neighbours — a block inside a
- * column moves within that column — and the whole swap is one step to undo.
- */
+/** The keyboard version of a drag: blocks stay among their own siblings and the swap is one undo step. */
 const createPageEditorBlockStepCommand =
   (direction: 'down' | 'up'): Command =>
   (state, dispatch) => {

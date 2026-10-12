@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
 import { pageEditorSchema } from '@/modules/pages/editor/lib/pages.editor.schema';
 import {

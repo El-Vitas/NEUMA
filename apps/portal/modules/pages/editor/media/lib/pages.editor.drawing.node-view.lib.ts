@@ -1,8 +1,9 @@
-import { PAGE_DIAGRAM_VIEWS } from '@company-brain/shared';
+import { PAGE_DIAGRAM_VIEWS } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import { drawDiagram } from '@/shared/lib/diagram.drawing.lib';
 import { isDiagramUnknown } from '@/shared/lib/diagram.fault.lib';
 import { watchTheDiagramGround } from '@/shared/lib/diagram.ground.lib';
+import { letTheDrawingBeHandled } from '@/shared/lib/diagram.handling.lib';
 import { drawFormula } from '@/shared/lib/formula.drawing.lib';
 import type { Drawn } from '@/shared/types/diagram.types';
 import {
@@ -19,11 +20,13 @@ import {
   PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_STYLE_CLASS,
   PAGE_EDITOR_DIAGRAM_WIDE_STYLE_CLASS,
+  PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS,
   PAGE_EDITOR_FORMULA_STYLE_CLASS,
 } from '../constants/pages.editor.diagram.constants';
 import type { PageEditorDiagramLabels } from '../types/pages.editor.diagram.types';
-import { letTheDrawingBeHandled } from './pages.editor.diagram.handling.lib';
+import { attachPageDiagramFrame } from './pages.editor.diagram.frame.lib';
 import { isPageDiagram, isPageDrawn, isPageFormula, readPageDiagramView } from './pages.editor.diagram.lib';
+import { createPageDiagramZoomControls } from './pages.editor.diagram.zoom.lib';
 
 const createViewChoice = (labels: PageEditorDiagramLabels): HTMLSelectElement => {
   const choice = document.createElement('select');
@@ -38,10 +41,7 @@ const createViewChoice = (labels: PageEditorDiagramLabels): HTMLSelectElement =>
   return choice;
 };
 
-/**
- * The choice says what it is choosing between: a drawing for a diagram, a
- * formula for a formula. The same three views, named after what is in the box.
- */
+/** The same three views are named after the content: drawing for diagrams, formula for formulas. */
 const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels, isFormula: boolean): void => {
   const named = isFormula ? labels.formula : labels;
   choice.setAttribute('aria-label', named.drawing);
@@ -51,32 +51,31 @@ const nameTheViews = (choice: HTMLSelectElement, labels: PageEditorDiagramLabels
   }
 };
 
-/** What a drawing is saved as: the drawing itself, which is a picture that never blurs. */
-const takeDrawingAway = (svg: string): void => {
+/** Downloads the SVG at its own size, dropping the width set by zoom. */
+const takeDrawingAway = (drawing: HTMLElement): void => {
+  const picture = drawing.querySelector('svg')?.cloneNode(true);
+  if (!(picture instanceof SVGElement)) return;
+  picture.style.removeProperty('width');
+  picture.style.removeProperty('max-width');
   const kept = document.createElement('a');
-  kept.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  kept.href = URL.createObjectURL(new Blob([picture.outerHTML], { type: 'image/svg+xml' }));
   kept.download = 'diagram.svg';
   kept.click();
-  URL.revokeObjectURL(kept.href);
+  setTimeout(() => {
+    URL.revokeObjectURL(kept.href);
+  }, PAGE_EDITOR_DRAWING_DOWNLOAD_KEPT_MS);
 };
 
 /**
- * Draws a block of code that is written in the language of diagrams.
- *
- * The writing is what the page keeps; the drawing is made from it here and
- * never saved, so a diagram is exactly what it says and nothing is left behind
- * when it changes.
- *
- * It is drawn once the writing settles rather than on every keystroke: a
- * half-written diagram is mostly a parse error, and redrawing each one of them
- * makes the page flicker at whoever is typing.
+ * Renders a diagram or formula code block. Only the source is stored; the drawing is derived and never saved.
+ * Redraws are debounced because a half-written diagram is mostly a parse error and would flicker.
  */
 export const attachPageDrawing = (parts: {
   readonly bar: HTMLElement;
   readonly container: HTMLElement;
   readonly labels: PageEditorDiagramLabels;
   readonly pre: HTMLElement;
-  readonly writeAttribute: (name: string, value: string | null) => void;
+  readonly writeAttribute: (name: string, value: number | string | null) => void;
 }): { readonly show: (node: EditorNode) => void; readonly stop: () => void } => {
   const drawing = document.createElement('div');
   const fault = document.createElement('div');
@@ -92,28 +91,33 @@ export const attachPageDrawing = (parts: {
     PAGE_EDITOR_BLOCK_BUTTON_STYLE_CLASS,
   );
 
+  const zooming = createPageDiagramZoomControls(parts.labels);
+  const frame = attachPageDiagramFrame({
+    drawing,
+    hint: parts.labels.frameHeightHint,
+    label: parts.labels.frameHeight,
+    writeHeight: (height) => parts.writeAttribute('frameHeight', height),
+  });
+
   drawing.className = PAGE_EDITOR_DIAGRAM_DRAWING_STYLE_CLASS;
   drawing.dataset.pageDiagram = 'true';
   drawing.contentEditable = 'false';
   fault.className = PAGE_EDITOR_DIAGRAM_FAULT_STYLE_CLASS;
   fault.dataset.diagramFault = 'true';
   fault.hidden = true;
-  parts.container.append(drawing, fault);
+  parts.container.append(drawing, frame.handle, fault);
   parts.bar.prepend(view);
-  parts.bar.append(keep, wide);
+  parts.bar.append(...zooming.controls, keep, wide);
 
-  const handling = letTheDrawingBeHandled(drawing);
+  const handling = letTheDrawingBeHandled(drawing, zooming.showZoom);
+  zooming.connect(handling);
   let drawn = '';
   let language = '';
   let settling: ReturnType<typeof setTimeout> | null = null;
+  // Set on removal: cancels pending draws and discards in-flight results.
+  let isStopped = false;
 
-  /**
-   * What went wrong, and — when the parser said so — the line it went wrong on.
-   *
-   * The drawing beside it is left where it is and dimmed: it is the last one
-   * that came out, it no longer says what the writing says, and taking it away
-   * at the first typo leaves whoever is writing staring at nothing.
-   */
+  // Keeps the last good drawing, dimmed, instead of blanking it at the first typo.
   const showFault = (said: string | null, line: number | null): void => {
     fault.hidden = said === null;
     drawing.classList.toggle(PAGE_EDITOR_DIAGRAM_STALE_STYLE_CLASS, said !== null);
@@ -125,16 +129,11 @@ export const attachPageDrawing = (parts: {
       fault.textContent = parts.labels.unknown;
       return;
     }
-    /** The parser often names the line itself; saying it twice helps nobody. */
+    // The parser message often already names the line.
     const names = line !== null && said.includes(String(line));
     fault.textContent = line === null || names ? said : `${said} · ${parts.labels.line} ${String(line)}`;
   };
 
-  /**
-   * What is written is set out by whoever knows how to set it out: the one that
-   * draws diagrams, or the one that sets formulas. Both hand back the same
-   * thing — what came out, or why nothing did.
-   */
   const askForTheDrawing = async (source: string): Promise<Drawn> =>
     isPageFormula(language) ? drawFormula(source) : drawDiagram(source);
 
@@ -145,9 +144,11 @@ export const attachPageDrawing = (parts: {
       return;
     }
     void askForTheDrawing(source).then((made) => {
+      if (isStopped || source !== drawn) return;
       if (made.html !== null) {
         drawing.innerHTML = made.html;
         if (!isPageFormula(language)) handling.showAtItsSize();
+        frame.refresh();
       }
       showFault(made.fault?.said ?? null, made.fault?.line ?? null);
     });
@@ -162,31 +163,45 @@ export const attachPageDrawing = (parts: {
 
   view.addEventListener('change', () => parts.writeAttribute('shown', view.value));
   keep.addEventListener('click', () => {
-    const svg = drawing.innerHTML;
-    if (svg.length > 0) takeDrawingAway(svg);
+    takeDrawingAway(drawing);
   });
   wide.addEventListener('click', () => askForTheWholeScreen(parts.container));
+  // The frame changes size on fullscreen toggle, so refit the drawing.
+  parts.container.addEventListener('fullscreenchange', handling.fitToFrame);
 
-  /** A drawing is coloured for the ground it is read on, so it is drawn again when that ground changes. */
+  // Diagram colours depend on the theme, so redraw when it changes.
   const stopWatchingTheGround = watchTheDiagramGround(() => {
     if (drawn.length === 0) return;
     draw(drawn);
   });
 
+  // Formulas, and diagrams shown as code, have no picture to zoom or frame.
+  const showTheDiagramTools = (node: EditorNode, shown: string): void => {
+    const isDiagramShown = isPageDiagram(language) && shown !== 'code';
+    for (const control of zooming.controls) control.hidden = !isDiagramShown;
+    frame.handle.hidden = !isDiagramShown;
+    if (isPageDiagram(language)) frame.show(node.attrs.frameHeight);
+  };
+
   return {
-    stop: stopWatchingTheGround,
+    stop: () => {
+      isStopped = true;
+      if (settling !== null) clearTimeout(settling);
+      stopWatchingTheGround();
+      handling.release();
+    },
     show: (node) => {
       language = typeof node.attrs.language === 'string' ? node.attrs.language : '';
       const draws = isPageDrawn(language);
       const shown = readPageDiagramView(node.attrs.shown);
       view.hidden = !draws;
-      /** A formula is set out, not drawn: there is no picture of it to take away. */
       keep.hidden = !isPageDiagram(language);
       wide.hidden = !draws;
       drawing.hidden = !draws || shown === 'code';
       drawing.className = isPageFormula(language)
         ? PAGE_EDITOR_FORMULA_STYLE_CLASS
         : PAGE_EDITOR_DIAGRAM_DRAWING_STYLE_CLASS;
+      showTheDiagramTools(node, shown);
       fault.hidden = fault.hidden || !draws;
       parts.pre.hidden = draws && shown === 'drawing';
       parts.container.className = draws

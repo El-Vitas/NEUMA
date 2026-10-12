@@ -1,11 +1,13 @@
-import type { PagePropertyContext } from '@company-brain/shared';
+import type { PagePropertyContext, PagePropertyType } from '@neuma/shared';
 import {
   formatPagePropertyValue,
   getDefaultPagePropertyValue,
+  getPagePropertyLogicalType,
   isPagePropertyValueEmpty,
   isTitlePageProperty,
+  PAGE_PROPERTY_LOGICAL_TYPE,
   pagePropertyRequiresPersonDirectory,
-} from '@company-brain/shared';
+} from '@neuma/shared';
 import type {
   PagePersonOption,
   PagePropertyValue,
@@ -15,9 +17,13 @@ import type {
 } from '../types/pages.schema.types';
 
 const toPropertyContext = (property: PageSchemaProperty): PagePropertyContext => ({
-  options: property.options,
+  options: property.options?.map((option) => option.value) ?? null,
   personIds: undefined,
 });
+
+/** A view can reference a property the collection no longer has; the key is shown instead of a blank. */
+export const readPropertyLabel = (properties: readonly PageSchemaProperty[], key: string): string =>
+  properties.find((property) => property.key === key)?.label ?? key;
 
 export const getEditableSchemaProperties = (schema: PageSchema | null): readonly PageSchemaProperty[] =>
   schema === null ? [] : schema.properties.filter((property) => !isTitlePageProperty(property.type));
@@ -28,14 +34,7 @@ export const getDefaultPropertyValue = (property: PageSchemaProperty): PagePrope
 export const buildDefaultPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(properties.map((property) => [property.key, getDefaultPropertyValue(property)]));
 
-/**
- * The defaults a row can be made with, leaving out what would be no answer.
- *
- * A collection may require an answer for every row, and it may also hold
- * properties nobody can guess — who it is for, when it is due. Sending an empty
- * one is worse than sending none: the collection reads it as an answer and
- * refuses it, and whoever pressed the button is told nothing they can act on.
- */
+/** Empty defaults are omitted: the server would read them as an answer and refuse the row. */
 export const buildRowPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(
     properties
@@ -61,6 +60,9 @@ export const formatPropertyValueForDisplay = (
   value: PagePropertyValue | undefined,
 ): string => formatPagePropertyValue(property.type, value);
 
+export const hasPropertyValueToShow = (value: PagePropertyValue | undefined): boolean =>
+  value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
+
 export const hasPersonProperty = (properties: readonly PageSchemaProperty[]): boolean =>
   properties.some((property) => pagePropertyRequiresPersonDirectory(property.type));
 
@@ -77,6 +79,26 @@ export const getPagePersonOptionLabel = (options: readonly PagePersonOption[], o
   return hasNameCollision ? `${option.name} (${option.email})` : option.name;
 };
 
-/** Which word a checkbox is read as, so the cell that shows it asks one question and not two. */
+/** Null when the assignee is unknown to the directory; empty string while the directory has not loaded. */
+export const readPagePersonDisplayName = (
+  options: readonly PagePersonOption[],
+  value: PagePropertyValue | undefined,
+): string | null => {
+  if (typeof value !== 'string' || value === '') return '';
+  if (options.length === 0) return '';
+  const person = findPagePersonOption(options, value);
+  return person === undefined ? null : getPagePersonOptionLabel(options, person);
+};
+
+/** Picked values are final at once; typed ones pass through half-written states, so they save on blur. */
+export const pagePropertyAnswersOnPick = (type: PagePropertyType): boolean => {
+  const logicalType = getPagePropertyLogicalType(type);
+  return (
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.TAG ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN
+  );
+};
+
 export const readCheckboxLabelKey = (value: PagePropertyValue | undefined): string =>
   getBooleanPropertyValue(value) ? 'properties.yes' : 'properties.no';

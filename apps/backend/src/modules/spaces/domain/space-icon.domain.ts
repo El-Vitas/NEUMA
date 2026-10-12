@@ -1,13 +1,7 @@
-import { type PageIcon, pageIconSchema, Result } from '@company-brain/shared';
+import { type PageIcon, pageIconSchema, Result } from '@neuma/shared';
 import { SpaceIconValidationError } from './space.error';
 
-/**
- * A space is marked the same way a page is.
- *
- * The shared contract is reused rather than copied: two shapes for the same
- * mark would let a space carry an icon no page could draw, and the tree draws
- * both side by side.
- */
+/** Reuses the page icon contract so a space cannot carry an icon the tree cannot draw for pages. */
 export const validateSpaceIcon = (icon: unknown): Result<PageIcon | null, SpaceIconValidationError> => {
   if (icon === null) return Result.ok(null);
   const validation = pageIconSchema.safeParse(icon);

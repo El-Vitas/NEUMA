@@ -1,5 +1,6 @@
-enum UserRole {
-  ADMIN
-  WORKER
-  CLIENT
+// use prisma-8
+native_enum UserRole {
+  ADMIN = "ADMIN"
+  WORKER = "WORKER"
+  CLIENT = "CLIENT"
 }

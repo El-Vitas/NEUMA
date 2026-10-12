@@ -10,7 +10,6 @@ interface IProps {
   readonly onDone: () => void;
 }
 
-/** Everything one can do to a cover, in one list, whether or not there is a cover yet. */
 export const PagesCoverMenu = ({ controller, onDone }: IProps) => {
   const t = useTranslations('pages.cover');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +28,7 @@ export const PagesCoverMenu = ({ controller, onDone }: IProps) => {
 
   return (
     <div className="flex flex-col">
-      {/* The button below is the control; this only carries the browser's own picker, so it is not announced twice. */}
+      {/* The button is the control; this input only holds the native picker, hidden so it is not announced twice. */}
       <input
         accept="image/*"
         aria-hidden="true"

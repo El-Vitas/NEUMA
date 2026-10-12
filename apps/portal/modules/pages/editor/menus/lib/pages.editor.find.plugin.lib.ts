@@ -11,7 +11,6 @@ import { findPageEditorMatches, pageEditorFindKey } from './pages.editor.find.li
 const isPageEditorFindMeta = (value: unknown): value is PageEditorFindMeta =>
   typeof value === 'object' && value !== null && 'type' in value;
 
-/** Where a match stands once a new query, a jump, or the writing itself has moved it. */
 const nextPageEditorFindCurrentIndex = (
   meta: PageEditorFindMeta | undefined,
   value: PageEditorFindState,
@@ -31,13 +30,7 @@ const buildPageEditorFindDecorations = (state: PageEditorFindState): readonly De
     }),
   );
 
-/**
- * Highlights every place on the page that answers to what is being looked for.
- *
- * Nothing here is written on the document — a search is not something the page
- * remembers once it is over, so it can only ever be a decoration, drawn fresh
- * from what the plugin itself remembers and gone the moment that is cleared.
- */
+/** Matches are decorations only; nothing is written to the document. */
 export const createPageEditorFindPlugin = (): EditorPlugin<PageEditorFindState> =>
   new EditorPlugin<PageEditorFindState>({
     key: pageEditorFindKey,

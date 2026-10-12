@@ -1,5 +1,4 @@
 import path from 'node:path';
-import withBundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -18,17 +17,9 @@ const securityHeaders = [
   },
 ];
 
-/** Where the files a page holds are handed over. */
 const attachmentsPath = 'api/page-assets';
 
-/**
- * Nothing of this application may be put in a frame, anywhere.
- *
- * The one exception is the attachments themselves, and only inside this same
- * origin: a document shown on a page is drawn by the browser's own viewer,
- * which reads it in a frame of its own. Denying that frame denies the viewer,
- * and the page shows an empty box instead of the document.
- */
+/** Attachments allow same-origin framing because the browser's document viewer renders them in a frame. */
 const framingHeaders = [
   { source: `/((?!${attachmentsPath}).*)`, value: 'DENY' },
   { source: `/${attachmentsPath}/:path*`, value: 'SAMEORIGIN' },
@@ -39,19 +30,15 @@ const monorepoRoot = path.join(import.meta.dirname, '../../');
 const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
-  /**
-   * How much a server action may be handed at once.
-   *
-   * Files reach the server through actions, and the pages promise ten megabytes
-   * of them; the default of one would refuse most of what the interface offers
-   * to accept, and refuse it by throwing rather than by saying so. The margin
-   * above ten is what the encoding of the file itself costs on the way.
-   */
-  experimental: { serverActions: { bodySizeLimit: '12mb' } },
-  /**
-   * The manual is written in files rather than in the code, and files nothing
-   * imports are not carried into what gets deployed unless they are named here.
-   */
+  experimental: {
+    // Files travel through server actions and the UI accepts 10 MB; the margin covers encoding overhead.
+    serverActions: { bodySizeLimit: '12mb' },
+    // The persistent Turbopack build cache makes `bun --bun next build` segfault.
+    turbopackFileSystemCacheForBuild: false,
+    // Next looks for `typescript/bin/tsc`, which `@typescript/typescript6` does not ship.
+    useTypeScriptCli: false,
+  },
+  // Nothing imports the docs content files, so tracing would drop them from the deployment.
   outputFileTracingIncludes: { '/[locale]/(portal)/docs/**': ['./content/docs/**/*'] },
   cacheComponents: true,
   logging: {
@@ -70,7 +57,4 @@ const nextConfig: NextConfig = {
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
-// biome-ignore lint/style/noProcessEnv: next.config.ts needs process.env for conditional bundle analyzer
-const analyzedConfig = process.env.ANALYZE === 'true' ? withBundleAnalyzer({ enabled: true })(nextConfig) : nextConfig;
-
-export default withNextIntl(analyzedConfig);
+export default withNextIntl(nextConfig);

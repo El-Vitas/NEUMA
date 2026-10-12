@@ -2,15 +2,14 @@ import {
   COLLABORATION_DOCUMENT_PREFIX,
   type CollaborationPresenceState,
   sanitizeCollaborationPresenceIdentity,
-} from '@company-brain/shared';
+} from '@neuma/shared';
+import { UUID_PATTERN } from '../../common/constants/validation.constants';
 import {
   MAX_COLLABORATION_AWARENESS_STATE_BYTES,
   MAX_COLLABORATION_DOCUMENT_NAME_LENGTH,
   MAX_COLLABORATION_STATE_BYTES,
   MAX_COLLABORATION_UPDATE_BYTES,
 } from './constants/collaboration.constants';
-
-const pageIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const parsePageId = (documentName: string): string => {
   if (
@@ -21,7 +20,7 @@ export const parsePageId = (documentName: string): string => {
   }
 
   const pageId = documentName.slice(COLLABORATION_DOCUMENT_PREFIX.length);
-  if (!pageIdPattern.test(pageId)) throw new Error('invalid-document-name');
+  if (!UUID_PATTERN.test(pageId)) throw new Error('invalid-document-name');
   return pageId;
 };
 

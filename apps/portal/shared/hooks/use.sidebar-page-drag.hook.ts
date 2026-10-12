@@ -25,15 +25,7 @@ import type {
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import { hasActionError } from '@/shared/lib/action-result';
 
-/**
- * Lets a page be dragged onto another to nest, dropped along a row's edge to
- * sit beside it, or dropped on the space's root to leave its parent — and
- * offers nesting and outdenting from the keyboard as well.
- *
- * Where in a row the pointer lets go is what tells the two apart: the middle
- * means inside, the edges mean next to. Both survive a reload, because the
- * order among sisters is kept rather than recomputed on the way out.
- */
+/** Where the pointer lands in a row tells nesting from placing: the middle nests, the edges sit beside. */
 export const useSidebarPageDrag = (
   pages: readonly PortalSidebarPage[],
   spaceId: string,
@@ -68,14 +60,7 @@ export const useSidebarPageDrag = (
     [isMoving, pagesT, router, spaceId],
   );
 
-  /**
-   * Sets the dragged page down beside the row it was dropped on.
-   *
-   * A page dropped next to a sister of a different mother has two things to
-   * settle, not one: whose child it is, and where among that mother's children
-   * it goes. They are asked for in that order, because asking to be third among
-   * children one does not belong to means nothing.
-   */
+  /** Dropping beside a row with a different parent sets the parent first, then the position among its children. */
   const performReorder = useCallback(
     (pageId: string, targetPage: PortalSidebarPage, intent: 'after' | 'before'): void => {
       if (isMoving) return;

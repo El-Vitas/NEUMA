@@ -1,7 +1,3 @@
-// no-types-outside-dir
-// Qué hace: prohíbe declarar tipos/interfaces fuera del `types/` dir (o `dto/`), salvo IProps.
-// En `domain/` se permiten tipos, pero solo en su propio archivo `*.types.ts` — nunca mezclados
-// con clases/lógica runtime (entidades, políticas, value objects). Para qué: hogar único (§1.1, §5).
 export const noTypesOutsideDir = {
   meta: {
     type: 'suggestion',

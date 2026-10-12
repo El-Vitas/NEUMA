@@ -1,5 +1,5 @@
-import { type AuthSession, Result, type User } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { type AuthSession, Result, type User } from '@neuma/shared';
 import { toUser } from '../../common/utils/auth.utils';
 import { assertUserIsActive } from './domain/auth.domain';
 import { type InactiveUserError, InvalidCredentialsError } from './domain/auth.error';
@@ -39,13 +39,7 @@ export class AuthService {
     return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
   }
 
-  /**
-   * Trades a refresh token for a brand new session.
-   *
-   * The user is read again on every renewal, so someone deactivated after
-   * signing in stops being renewed instead of living on until their token
-   * happens to expire.
-   */
+  /** Re-reads the user on every renewal so a deactivated user stops being renewed. */
   async refreshSession(
     refreshToken: string,
   ): Promise<Result<AuthSession, InactiveUserError | InvalidCredentialsError>> {

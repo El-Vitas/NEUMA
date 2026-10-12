@@ -1,33 +1,22 @@
-/** How long the pointer has to stay before a preview is worth showing, so passing over a link does not flash one. */
 export const PAGE_PREVIEW_OPEN_DELAY_MS = 500;
 
-/**
- * How long a preview is kept once the pointer has left.
- *
- * Between the link and the card there is writing, and crossing it is how one
- * gets to read the card. The wait has to outlast that crossing done at a
- * reading pace, not at the pace of somebody who already knew where to aim.
- */
+/** Must outlast the pointer crossing the text between the link and the card at a reading pace. */
 export const PAGE_PREVIEW_CLOSE_DELAY_MS = 400;
 
-/** Long enough to say what a page holds, short enough that a glance is still a glance. */
 export const PAGE_PREVIEW_FRAGMENT_LIMIT = 240;
 
-/** How far under the link the preview stands, past where a link's own bubble already stands. */
 export const PAGE_PREVIEW_GAP_PX = 40;
 
-/** The page a link to `pages/new` names is not written yet, so it has nothing to preview. */
 export const PAGE_PREVIEW_NEW_PAGE_SEGMENT = 'new';
 
-/** A link that stays inside this app rather than leaving it: `/spaces/:spaceId/pages/:pageId`. */
+/** Matches `/spaces/:spaceId/pages/:pageId`. */
 export const PAGE_PREVIEW_INTERNAL_HREF = /^\/spaces\/([^/?#]+)\/pages\/([^/?#]+)$/;
 
-/** The mark a page wears at the front of its own name, if it wears one at all. */
 export const PAGE_PREVIEW_LEADING_ICON = /^\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u;
 
 export const PAGE_PREVIEW_WHITESPACE = /\s+/g;
 
-/** Marks the card itself, so the pointer leaving a link onto the card it opened is not read as leaving both. */
+/** Marks the card so moving from the link onto the card is not read as leaving both. */
 export const PAGE_PREVIEW_CARD_ATTRIBUTE = 'data-page-preview-card';
 
 export const PAGE_PREVIEW_CARD_STYLE_CLASS = [

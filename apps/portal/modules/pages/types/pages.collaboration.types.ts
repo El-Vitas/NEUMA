@@ -1,7 +1,6 @@
-import type { CollaborationPresenceIdentity } from '@company-brain/shared';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
+import type { CollaborationPresenceIdentity } from '@neuma/shared';
 import type { Doc, XmlFragment } from 'yjs';
-import type { PageContent } from './pages.types';
 
 export type CollaborationStatus = 'connected' | 'connecting' | 'disconnected' | 'error' | 'exhausted' | 'reconnecting';
 
@@ -10,11 +9,6 @@ export interface PageCollaborationParticipant extends CollaborationPresenceIdent
   readonly cursor: unknown;
 }
 
-/**
- * What the editor needs of a page written together: the shared text, and who
- * else is looking at it. Everything else about the session — the provider, the
- * page it belongs to — is the business of whoever keeps the connection.
- */
 export interface PageCollaborationDraft {
   readonly awareness: HocuspocusProvider['awareness'] | null;
   readonly fragment: XmlFragment;
@@ -42,7 +36,6 @@ export interface PageCollaborationSessionCallbacks {
 export interface PageCollaborationSessionOptions {
   readonly callbacks: PageCollaborationSessionCallbacks;
   readonly getDisplayName: () => string | null;
-  readonly initialContent: PageContent;
   readonly pageId: string;
 }
 

@@ -1,12 +1,10 @@
-import { createCollaborationDocumentName } from '@company-brain/shared';
 import type { onStatusParameters } from '@hocuspocus/provider';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
-import { prosemirrorToYXmlFragment } from 'y-prosemirror';
+import { COLLABORATION_DOCUMENT_FRAGMENT, createCollaborationDocumentName } from '@neuma/shared';
 import { Doc } from 'yjs';
 import { env } from '@/config/env.config';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { MAX_COLLABORATION_RECONNECT_ATTEMPTS } from '../constants/pages.collaboration.constants';
-import { pageEditorSchema } from '../editor/lib/pages.editor.schema';
 import { getPageCollaborationToken } from '../server/actions/pages.collaboration.actions';
 import type {
   PageCollaborationSessionHandle,
@@ -17,14 +15,16 @@ import { computeCollaborationReconnectDelayMs, mapAwarenessStatesToParticipants 
 export const createPageCollaborationSession = (
   options: PageCollaborationSessionOptions,
 ): PageCollaborationSessionHandle => {
-  const { callbacks, getDisplayName, initialContent, pageId } = options;
+  const { callbacks, getDisplayName, pageId } = options;
 
   let isActive = true;
   let provider: HocuspocusProvider | null = null;
   let websocketProvider: HocuspocusProviderWebsocket | null = null;
-  let ydoc: Doc | null = null;
   let attemptsMade = 0;
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  /** Kept across reconnections: edits made while offline live here and sync on reconnect. */
+  const ydoc = new Doc();
+  const fragment = ydoc.getXmlFragment(COLLABORATION_DOCUMENT_FRAGMENT);
 
   const clearScheduledReconnect = (): void => {
     if (reconnectTimeoutId === null) return;
@@ -32,15 +32,12 @@ export const createPageCollaborationSession = (
     reconnectTimeoutId = null;
   };
 
-  const teardownSession = (): void => {
-    callbacks.onSessionChange(null);
+  const teardownConnection = (): void => {
     callbacks.onParticipantsChange([]);
     provider?.destroy();
     websocketProvider?.destroy();
-    ydoc?.destroy();
     provider = null;
     websocketProvider = null;
-    ydoc = null;
   };
 
   const setAwarenessDisplayName = (targetProvider: HocuspocusProvider): void => {
@@ -49,18 +46,12 @@ export const createPageCollaborationSession = (
     targetProvider.setAwarenessField('user', { name: trimmedDisplayName });
   };
 
-  /**
-   * One failure, one reconnection.
-   *
-   * The same failure is heard from twice — the socket refuses, and the provider
-   * reports the disconnection — and each account used to become a reconnection
-   * of its own: two sessions racing, two timers running, and the attempts spent
-   * twice as fast as the reader was told.
-   */
+  /** One failure schedules one reconnection: the socket and the provider both report the same failure. */
   const handleConnectionFailure = (): void => {
     if (reconnectTimeoutId !== null) return;
-    teardownSession();
+    teardownConnection();
     if (attemptsMade >= MAX_COLLABORATION_RECONNECT_ATTEMPTS) {
+      callbacks.onSessionChange(null);
       callbacks.onStatusChange('exhausted');
       return;
     }
@@ -90,20 +81,13 @@ export const createPageCollaborationSession = (
       throw new Error('collaboration-token-request-failed');
     }
 
-    ydoc = new Doc();
-    const fragment = ydoc.getXmlFragment('prosemirror');
     websocketProvider = new HocuspocusProviderWebsocket({
       maxAttempts: 1,
       url: env.NEXT_PUBLIC_COLLABORATION_WS_URL,
     });
     /**
-     * The socket is asked to connect here so that its refusal belongs to us.
-     *
-     * It starts connecting on its own the moment it is built, and a connection
-     * that fails ends as a rejection nobody is waiting for — which the browser
-     * then reports as a fault in the middle of writing, over something as
-     * ordinary as a page opened while the server is restarting. Asking again
-     * calls off that first attempt and hands us the answer to the second.
+     * The socket starts connecting on construction, and a failure there is an unhandled rejection.
+     * Connecting again cancels that attempt and returns a promise this code handles.
      */
     websocketProvider.connect().catch(() => {
       if (isActive) handleConnectionFailure();
@@ -115,15 +99,13 @@ export const createPageCollaborationSession = (
         if (isActive) handleConnectionFailure();
       },
       onAwarenessUpdate: ({ states }) => {
-        if (!isActive || ydoc === null) return;
+        if (!isActive) return;
         callbacks.onParticipantsChange(mapAwarenessStatesToParticipants(states, ydoc.clientID));
       },
       onStatus: setProviderStatus,
+      /** The server seeds the document once; seeding from each browser would duplicate the page. */
       onSynced: ({ state }) => {
-        if (!isActive || !state || provider === null || ydoc === null) return;
-        if (fragment.length === 0) {
-          prosemirrorToYXmlFragment(pageEditorSchema.nodeFromJSON(initialContent), fragment);
-        }
+        if (!isActive || !state || provider === null) return;
         setAwarenessDisplayName(provider);
         callbacks.onSessionChange({ fragment, pageId, provider, ydoc });
       },
@@ -147,7 +129,9 @@ export const createPageCollaborationSession = (
     destroy: (): void => {
       isActive = false;
       clearScheduledReconnect();
-      teardownSession();
+      callbacks.onSessionChange(null);
+      teardownConnection();
+      ydoc.destroy();
     },
     updateDisplayName: (): void => {
       if (provider !== null) setAwarenessDisplayName(provider);

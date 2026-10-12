@@ -1,10 +1,10 @@
-import type { PageContent, PageLifecycle } from '@company-brain/shared';
+import type { PageContent, PageLifecycle } from '@neuma/shared';
 import type { Command } from 'prosemirror-state';
 import type { PageCoverValue } from '../appearance/types/pages.cover.types';
 import type { PageIcon } from '../appearance/types/pages.icon.types';
 import type { PagePropertyValues } from '../collections/types/pages.schema.types';
 
-export type { PageContent, PageContentInlineNode, PageContentNode, PageLifecycle } from '@company-brain/shared';
+export type { PageContent, PageContentInlineNode, PageContentNode, PageLifecycle } from '@neuma/shared';
 
 export type PageEditorCommandKind = 'block' | 'mark' | 'history';
 
@@ -14,7 +14,6 @@ export interface PageEditorCommand {
   readonly group?: PageEditorCommandGroup;
   readonly kind: PageEditorCommandKind;
   readonly labelKey: string;
-  /** Which mark it puts on the writing, so a button can show that it is already on. */
   readonly mark?: string;
   readonly run: Command;
 }
@@ -48,7 +47,6 @@ export interface PageSummary {
   readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
-  /** When somebody locked the page against edits, and nothing when nobody has. */
   readonly lockedAt?: Date | null;
   readonly order: number;
   readonly owner?: null | PageAuthor;
@@ -58,9 +56,9 @@ export interface PageSummary {
   readonly title: string;
   readonly updatedAt: Date;
   readonly updatedBy: null | PageAuthor;
-  /** When the verification stops counting as valid. Left null, a verified page never goes stale on its own. */
+  /** Null means a verified page never expires. */
   readonly verificationExpiresAt?: Date | null;
-  /** When somebody last vouched for the page, and nothing when nobody has. Expiring leaves this untouched. */
+  /** Kept when the verification expires. */
   readonly verifiedAt?: Date | null;
   readonly verifiedBy?: null | PageAuthor;
   readonly version: number;

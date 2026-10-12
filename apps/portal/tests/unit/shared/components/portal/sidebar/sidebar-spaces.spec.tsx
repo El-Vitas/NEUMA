@@ -28,16 +28,16 @@ mock.module('@/shared/hooks/use.pages-start.hook', () => ({
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
-  /** The tree beneath a space now reaches the rename dialog, which pulls these in. */
+  // Pulled in by the rename dialog under the space tree.
   duplicatePageAction: mock(async () => ({ data: undefined })),
-  /** The batch move dialog reachable from selection mode pulls this in to list destinations. */
+  // Pulled in by the batch move dialog to list destinations.
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: mock(async () => ({ data: undefined })),
   renamePageAction: mock(async () => ({ data: undefined })),
   reorderPageAction: mock(async () => ({ data: undefined })),
   restorePageAction: mock(async () => ({ data: undefined })),
 }));
-/** The export entries in the space and row menus reach the server; the sidebar only needs them to exist. */
+/** The export entries in the menus reach the server; the sidebar only needs them to exist. */
 mock.module('@/modules/pages/export/server/actions/pages.export.actions', () => ({
   exportPagesAsMarkdownAction: mock(async () => ({ data: '' })),
 }));
@@ -47,7 +47,7 @@ mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', 
   batchTrashPagesAction: async () => ({ data: { failedIds: [], succeededIds: [] } }),
 }));
 
-/** The icon and rename dialogs a space now offers import server actions, which refuse to load outside a server. */
+/** The icon and rename dialogs import server actions, which refuse to load outside a server. */
 mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),
@@ -200,7 +200,6 @@ describe('SidebarSpaces', () => {
     expect(screen.queryByRole('button', { name: 'Expand Empty space' })).toBeNull();
   });
 
-  /** The tree used to have a control of its own for hiding it, which said the same thing as collapsing the sidebar and looked like it too. */
   it('leaves the whole sidebar as the only thing that folds away', () => {
     renderSidebarSpaces();
 

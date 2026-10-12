@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'bun:test';
-import { readPageEditorMenuSpot } from '@/modules/pages/editor/menus/lib/pages.editor.surface.lib';
+import { PAGE_EDITOR_QUIET_SURFACE } from '@/modules/pages/editor/menus/constants/pages.editor.surface.constants';
+import { keepPageEditorSurfaceIfSame } from '@/modules/pages/editor/menus/lib/pages.editor.surface.lib';
 
-const surface = { left: 100, top: 50, width: 900 };
+describe('keepPageEditorSurfaceIfSame', () => {
+  it('keeps what was there when nothing the editor shows changed', () => {
+    const again = { ...PAGE_EDITOR_QUIET_SURFACE, marksInUse: [...PAGE_EDITOR_QUIET_SURFACE.marksInUse] };
 
-describe('where the menu of a block opens', () => {
-  /** The menu belongs to the button that opened it, and that button stands level with the block's middle. */
-  it('opens level with the buttons, however tall the block is', () => {
-    expect(readPageEditorMenuSpot({ height: 400, left: 300, top: 250 }, surface)).toEqual({ left: 200, top: 400 });
+    expect(keepPageEditorSurfaceIfSame(PAGE_EDITOR_QUIET_SURFACE, again)).toBe(PAGE_EDITOR_QUIET_SURFACE);
   });
 
-  it('opens beside a line of writing without wandering off it', () => {
-    expect(readPageEditorMenuSpot({ height: 24, left: 300, top: 250 }, surface)).toEqual({ left: 200, top: 212 });
+  it('takes the new one when something it shows changed', () => {
+    const changed = { ...PAGE_EDITOR_QUIET_SURFACE, isInTable: !PAGE_EDITOR_QUIET_SURFACE.isInTable };
+
+    expect(keepPageEditorSurfaceIfSame(PAGE_EDITOR_QUIET_SURFACE, changed)).toBe(changed);
   });
 });

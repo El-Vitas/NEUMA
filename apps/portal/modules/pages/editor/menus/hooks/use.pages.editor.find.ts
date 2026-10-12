@@ -13,29 +13,15 @@ import {
 } from '../lib/pages.editor.find.lib';
 import type { PageEditorFindState, PagesEditorFind } from '../types/pages.editor.find.types';
 
-/**
- * The search panel's own state, kept apart from the plugin it reads: a panel
- * that has not been asked to open has nothing to show, however many matches
- * the plugin remembers from before.
- */
 export const usePagesEditorFind = (editorViewRef: RefObject<EditorView | null>): PagesEditorFind => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [replacement, setReplacement] = useState('');
   const [found, setFound] = useState<PageEditorFindState>(PAGE_EDITOR_FIND_INITIAL_STATE);
 
-  /** What the plugin remembers, read again after anything that could have changed it. */
   const sync = useCallback((view: EditorView): void => setFound(readPageEditorFindState(view)), []);
 
-  /**
-   * Runs the same search again against a state the editor was just given.
-   *
-   * The query lives here, not in the plugin: a new editor state is born with a
-   * plugin that has never heard of it, so an open search would otherwise go
-   * silent the moment the state underneath it is replaced — the panel still
-   * open, still holding what was typed, answering nothing. Asking again is
-   * what puts the matches back.
-   */
+  /** The query lives here because a replaced editor state starts with a fresh plugin that has lost it. */
   const resume = useCallback(
     (view: EditorView): void => {
       if (isOpen && query.length > 0) searchPageEditorFind(view, query);

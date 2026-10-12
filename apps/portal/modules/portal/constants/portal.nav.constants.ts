@@ -1,5 +1,5 @@
-import { USER_ROLE } from '@company-brain/shared';
-import { BookOpen, LayoutDashboard, Search, Trash2, UserCircle, Users } from 'lucide-react';
+import { USER_ROLE } from '@neuma/shared';
+import { BookOpen, LayoutDashboard, Search, Settings, Trash2, UserCircle, Users } from 'lucide-react';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 
 import type { PortalNavSection } from '../types/portal.types';
@@ -14,6 +14,7 @@ export const DASHBOARD_NAV_SECTIONS: readonly PortalNavSection[] = [
       { href: ROUTES.PORTAL_TRASH, labelKey: 'trash', icon: Trash2 },
       { href: ROUTES.PORTAL_USERS, labelKey: 'users', icon: Users, roles: [USER_ROLE.ADMIN] },
       { href: ROUTES.PORTAL_ACCOUNT, labelKey: 'account', icon: UserCircle },
+      { href: ROUTES.PORTAL_SETTINGS, labelKey: 'settings', icon: Settings },
     ],
   },
 ] as const;

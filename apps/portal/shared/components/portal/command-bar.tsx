@@ -33,12 +33,7 @@ export const PortalCommandBar = ({ onOpenChange, open }: IProps) => {
   const { startPage } = usePagesStart();
   const { isLoading, pages } = useCommandBarSearch(query);
 
-  /**
-   * Opening asks the recent pages to catch up with whatever changed while
-   * this was closed; closing lets go of what was typed. Told apart from the
-   * render already under way rather than through an effect, since neither
-   * needs anything an effect alone could reach.
-   */
+  /** Opening refreshes the recents and closing clears the query; derived during render, not in an effect. */
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) refresh();
@@ -53,7 +48,6 @@ export const PortalCommandBar = ({ onOpenChange, open }: IProps) => {
   const trimmedQuery = query.trim();
   const mostRecentSpaceId = recentPages[0]?.spaceId;
 
-  /** With a space already in mind the page is started there; without one, there is a space to pick first. */
   const startPageFromFinder = (): void => {
     onOpenChange(false);
     if (mostRecentSpaceId === undefined) {

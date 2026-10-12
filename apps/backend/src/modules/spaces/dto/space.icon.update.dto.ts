@@ -1,4 +1,4 @@
-import type { PageIcon } from '@company-brain/shared';
+import type { PageIcon } from '@neuma/shared';
 import { IsOptional } from 'class-validator';
 
 export class UpdateSpaceIconDto {

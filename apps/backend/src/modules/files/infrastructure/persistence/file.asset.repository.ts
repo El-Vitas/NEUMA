@@ -1,26 +1,29 @@
-import { FileAssetLifecycle, PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import { USER_ROLE, type UserRole } from '@company-brain/shared';
 import { Injectable } from '@nestjs/common';
+import { and, FileAssetLifecycle, PageLifecycle } from '@neuma/db';
+import { USER_ROLE, type UserRole } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { FILE_ASSET_METADATA_SELECTION, UNKNOWN_FILE_OWNER_NAME } from '../../constants/files.constants';
+import {
+  FILE_ASSET_FIELDS,
+  FILE_ASSET_METADATA_FIELDS,
+  UNKNOWN_FILE_OWNER_NAME,
+} from '../../constants/files.constants';
 import type { FileAssetMetadata, FileAssetSummary } from '../../domain/files.domain.types';
 import type { FileAssetMetadataRow, FileAssetRepository } from '../../types/files.types';
 
-const fileAssetSelection = {
-  checksum: true,
-  deletedAt: true,
-  id: true,
-  lifecycle: true,
-  mimeType: true,
-  originalFilename: true,
-  ownerId: true,
-  pageId: true,
-  size: true,
-  storageKey: true,
-  workspaceId: true,
-} satisfies Prisma.FileAssetSelect;
+const toFileAssetSummary = (asset: FileAssetSummary): FileAssetSummary => ({
+  checksum: asset.checksum,
+  deletedAt: asset.deletedAt,
+  id: asset.id,
+  lifecycle: asset.lifecycle,
+  mimeType: asset.mimeType,
+  originalFilename: asset.originalFilename,
+  ownerId: asset.ownerId,
+  pageId: asset.pageId,
+  size: asset.size,
+  storageKey: asset.storageKey,
+  workspaceId: asset.workspaceId,
+});
 
 @Injectable()
 export class FileAssetRepositoryImpl implements FileAssetRepository {
@@ -37,7 +40,8 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
   }
 
   async create(input: Parameters<FileAssetRepository['create']>[0]): Promise<FileAssetSummary> {
-    return this.prisma.fileAsset.create({ data: input, select: fileAssetSelection });
+    const asset = await this.prisma.models.FileAsset.create(input);
+    return toFileAssetSummary(asset);
   }
 
   async findAccessible(
@@ -46,10 +50,13 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
     userId: string,
     role: UserRole,
   ): Promise<FileAssetSummary | null> {
-    const asset = await this.prisma.fileAsset.findFirst({
-      select: fileAssetSelection,
-      where: { id: assetId, lifecycle: FileAssetLifecycle.ACTIVE, workspaceId },
-    });
+    const asset = await this.prisma.models.FileAsset.where({
+      id: assetId,
+      lifecycle: FileAssetLifecycle.ACTIVE,
+      workspaceId,
+    })
+      .select(...FILE_ASSET_FIELDS)
+      .first();
     if (asset === null) return null;
     if (asset.pageId !== null)
       return (await this.hasPageAccess(asset.pageId, workspaceId, userId, role)) ? asset : null;
@@ -64,27 +71,30 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
   ): Promise<FileAssetMetadata[] | null> {
     const hasAccess = await this.hasPageAccess(pageId, workspaceId, userId, role);
     if (!hasAccess) return null;
-    const assets = await this.prisma.fileAsset.findMany({
-      select: FILE_ASSET_METADATA_SELECTION,
-      where: { lifecycle: FileAssetLifecycle.ACTIVE, pageId, workspaceId },
-    });
+    const assets = await this.prisma.models.FileAsset.where({
+      lifecycle: FileAssetLifecycle.ACTIVE,
+      pageId,
+      workspaceId,
+    })
+      .select(...FILE_ASSET_METADATA_FIELDS)
+      .all();
     return this.withUploaderNames(assets);
   }
 
   async markDeleted(assetId: string, workspaceId: string, _userId: string): Promise<boolean> {
-    const result = await this.prisma.fileAsset.updateMany({
-      data: { deletedAt: new Date(), lifecycle: FileAssetLifecycle.DELETED },
-      where: { id: assetId, lifecycle: FileAssetLifecycle.ACTIVE, workspaceId },
-    });
-    return result.count > 0;
+    const updatedCount = await this.prisma.models.FileAsset.where({
+      id: assetId,
+      lifecycle: FileAssetLifecycle.ACTIVE,
+      workspaceId,
+    }).updateAndCount({ deletedAt: new Date(), lifecycle: FileAssetLifecycle.DELETED });
+    return updatedCount > 0;
   }
 
   private async withUploaderNames(assets: FileAssetMetadataRow[]): Promise<FileAssetMetadata[]> {
     const ownerIds = [...new Set(assets.map((asset) => asset.ownerId))];
-    const owners = await this.prisma.user.findMany({
-      select: { id: true, name: true },
-      where: { id: { in: ownerIds } },
-    });
+    const owners = await this.prisma.models.User.where((user) => user.id.in(ownerIds))
+      .select('id', 'name')
+      .all();
     const ownerNameById = new Map(owners.map((owner) => [owner.id, owner.name] as const));
     return assets.map((asset) => ({
       id: asset.id,
@@ -96,14 +106,13 @@ export class FileAssetRepositoryImpl implements FileAssetRepository {
   }
 
   private async hasPageAccess(pageId: string, workspaceId: string, userId: string, role: UserRole): Promise<boolean> {
-    const page = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: {
-        id: pageId,
-        lifecycle: PageLifecycle.ACTIVE,
-        space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
-      },
-    });
+    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
+    const page = await this.prisma.models.Page.where({ id: pageId, lifecycle: PageLifecycle.ACTIVE })
+      .where((candidate) =>
+        candidate.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))),
+      )
+      .select('id')
+      .first();
     return page !== null;
   }
 }

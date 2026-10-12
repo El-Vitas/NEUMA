@@ -1,0 +1,12 @@
+// use prisma-8
+
+/// How an agent write ended.
+native_enum AgentActionOutcome {
+  /// Recorded before writing and not yet closed. If it stays this way the write may have happened unnoticed: inspect it.
+  PENDING = "PENDING"
+  DONE = "DONE"
+  /// Not done because it was not allowed: permission, locked page, invalid value.
+  REFUSED = "REFUSED"
+  /// Not done because of an internal failure.
+  FAILED = "FAILED"
+}

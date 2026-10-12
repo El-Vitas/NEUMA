@@ -1,0 +1,37 @@
+import {
+  columnFacetingFeature,
+  columnFilteringFeature,
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
+  createFacetedMinMaxValues,
+  createFacetedRowModel,
+  createFacetedUniqueValues,
+  createFilteredRowModel,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  tableFeatures,
+} from '@tanstack/react-table';
+
+/** TanStack Table v9 only exposes registered features. Module level: rebuilding per render makes a new table. */
+export const dataTableFeatures = tableFeatures({
+  columnFacetingFeature,
+  columnFilteringFeature,
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  facetedMinMaxValues: createFacetedMinMaxValues(),
+  facetedRowModel: createFacetedRowModel(),
+  facetedUniqueValues: createFacetedUniqueValues(),
+  filteredRowModel: createFilteredRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+  sortedRowModel: createSortedRowModel(),
+});

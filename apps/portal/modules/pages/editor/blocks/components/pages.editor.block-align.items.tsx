@@ -1,6 +1,6 @@
 'use client';
 
-import { PAGE_BLOCK_ALIGNMENTS, type PageBlockAlignment } from '@company-brain/shared';
+import { PAGE_BLOCK_ALIGNMENTS, type PageBlockAlignment } from '@neuma/shared';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenuItem } from '@/shared/components/ui/dropdown-menu';
@@ -10,7 +10,6 @@ interface IProps {
   readonly selected: string | null;
 }
 
-/** Where a block may stand in the column of writing, including taking all of it. */
 export const PagesEditorBlockAlignItems = ({ onSelect, selected }: IProps) => {
   const t = useTranslations('pages');
 

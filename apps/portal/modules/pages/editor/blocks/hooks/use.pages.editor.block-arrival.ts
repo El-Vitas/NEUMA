@@ -13,11 +13,7 @@ import {
   watchForPageEditorBlock,
 } from '../lib/pages.editor.block-link.lib';
 
-/**
- * Arriving at a block: the page is taken to it and it is marked for a moment.
- *
- * Returns how to give up on this arrival, since another one may follow.
- */
+/** Returns a function that abandons this arrival, since another one may follow. */
 const arriveAtBlock = (editorHost: HTMLElement, blockId: string, missingMessage: string): (() => void) => {
   let unmark: (() => void) | null = null;
   let unmarkTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -41,28 +37,15 @@ const arriveAtBlock = (editorHost: HTMLElement, blockId: string, missingMessage:
 };
 
 /**
- * Takes the page to the block the address asks for, whenever it asks.
- *
- * A link to a block on the page one is already reading changes only the
- * address, so the arrival is answered again on every change and not just when
- * the page is opened. The page is watched rather than glanced at: a link opens
- * before the editor has drawn anything, and only after giving it time is the
- * block reported missing.
+ * Re-arrives on every hash change, since a link to a block on the current page changes only the address.
+ * The block is awaited because the editor has drawn nothing yet when a link opens.
  */
 export const usePagesEditorBlockArrival = (editorHostRef: RefObject<HTMLElement | null>): void => {
-  /**
-   * The message is read as a value rather than through the translator itself:
-   * the translator is a new function on every render, and depending on it would
-   * restart the wait before it ever ran out.
-   */
+  /** Read as a string because the translator changes identity every render and would restart the wait. */
   const missingMessage = useTranslations('pages')('blockLinkMissing');
 
   useEffect(() => {
-    /**
-     * The page is asked for again on each arrival rather than held from the
-     * first one: the editor may have redrawn since, and searching the page it
-     * used to be would report every block as gone.
-     */
+    /** The host is read per arrival because the editor may have redrawn since the first one. */
     const arrive = (): (() => void) | null => {
       const blockId = readPageEditorBlockLinkTarget(globalThis.location.href);
       const editorHost = editorHostRef.current;

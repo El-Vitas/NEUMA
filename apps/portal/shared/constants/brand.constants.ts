@@ -1,1 +1,1 @@
-export const BRAND_NAME = 'Company Brain';
+export const BRAND_NAME = 'Neuma';

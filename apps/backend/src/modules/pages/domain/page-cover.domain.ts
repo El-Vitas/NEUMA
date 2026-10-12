@@ -1,4 +1,4 @@
-import { type PageCoverValue, pageCoverValueSchema, Result } from '@company-brain/shared';
+import { type PageCoverValue, pageCoverValueSchema, Result } from '@neuma/shared';
 import { PageCoverValidationError } from './page.error';
 
 export const validatePageCover = (cover: unknown): Result<PageCoverValue | null, PageCoverValidationError> => {

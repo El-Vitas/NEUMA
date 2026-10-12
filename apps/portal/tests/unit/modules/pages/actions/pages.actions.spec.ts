@@ -1,5 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const createdPage = {
@@ -35,29 +37,38 @@ mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
 }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action: (handler: (input: { readonly parsedInput: unknown }) => Promise<unknown>) => async (input: unknown) => {
-        try {
-          return { data: await handler({ parsedInput: input }) };
-        } catch (error) {
-          return { serverError: error instanceof Error ? error.message : 'unknown error' };
-        }
-      },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-const { createPageAction, movePageAction, restorePageAction, trashPageAction, updatePageAction } = await import(
-  '@/modules/pages/server/actions/pages.actions'
-);
+const {
+  addBlocksToPageAction,
+  createPageAction,
+  movePageAction,
+  replacePageContentAction,
+  restorePageAction,
+  trashPageAction,
+} = await import('@/modules/pages/server/actions/pages.actions');
 
 const spaceId = '11111111-1111-4111-8111-111111111111';
 const pageId = '22222222-2222-4222-8222-222222222222';
+
+describe('pages.actions with what their schema does not accept', () => {
+  it('refuses a page with no blocks at all, without making an outbound request', async () => {
+    cookieValue = 'access-token';
+    fetchMock.mockClear();
+
+    const result = await createPageAction({
+      content: { content: [], schemaVersion: 1, type: 'doc' },
+      spaceId,
+      title: 'Untitled',
+    });
+
+    expect(result).toHaveProperty('validationErrors');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
 
 describe('pages.actions without an access token', () => {
   it('rejects createPageAction without making an outbound request', async () => {
@@ -66,29 +77,44 @@ describe('pages.actions without an access token', () => {
     updateTagMock.mockClear();
 
     const result = await createPageAction({
-      content: { content: [], schemaVersion: 1, type: 'doc' },
+      content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
       spaceId,
       title: 'Untitled',
     });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
 
-  it('rejects updatePageAction without making an outbound request', async () => {
+  it('rejects replacePageContentAction without making an outbound request', async () => {
     cookieValue = undefined;
     fetchMock.mockClear();
     updateTagMock.mockClear();
 
-    const result = await updatePageAction({
-      content: { content: [], schemaVersion: 1, type: 'doc' },
+    const result = await replacePageContentAction({
+      content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
       pageId,
       spaceId,
-      title: 'Untitled',
     });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(updateTagMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects addBlocksToPageAction without making an outbound request', async () => {
+    cookieValue = undefined;
+    fetchMock.mockClear();
+    updateTagMock.mockClear();
+
+    const result = await addBlocksToPageAction({
+      content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
+      pageId,
+      spaceId,
+    });
+
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -100,7 +126,7 @@ describe('pages.actions without an access token', () => {
 
     const result = await movePageAction({ pageId, parentId: null, spaceId });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -112,7 +138,7 @@ describe('pages.actions without an access token', () => {
 
     const result = await trashPageAction({ pageId, spaceId });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -124,7 +150,7 @@ describe('pages.actions without an access token', () => {
 
     const result = await restorePageAction({ pageId, spaceId });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateTagMock).not.toHaveBeenCalled();
   });
@@ -137,7 +163,7 @@ describe('createPageAction with an access token', () => {
     updateTagMock.mockClear();
 
     const result = await createPageAction({
-      content: { content: [], schemaVersion: 1, type: 'doc' },
+      content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
       spaceId,
       title: 'Untitled',
     });
@@ -147,4 +173,4 @@ describe('createPageAction with an access token', () => {
     expect(updateTagMock).toHaveBeenCalled();
   });
 });
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);

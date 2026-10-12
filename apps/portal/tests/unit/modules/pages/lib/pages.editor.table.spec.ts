@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { PageContent } from '@company-brain/shared';
+import type { PageContent } from '@neuma/shared';
 import type { EditorState } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { createPageEditorState, serializePageEditorState } from '@/modules/pages/editor/lib/pages.editor.lib';
@@ -32,7 +32,6 @@ const tablePage = (headerRow: boolean): PageContent =>
     type: 'doc',
   }) as PageContent;
 
-/** The cursor in the last cell, which is the aim furthest from the header row. */
 const withCursorInTheLastCell = (content: PageContent): EditorState => {
   const state = createPageEditorState(content, 'Select block');
   return state.apply(state.tr.setSelection(TextSelection.near(state.doc.resolve(state.doc.content.size), -1)));
@@ -47,7 +46,6 @@ const run = (content: PageContent): EditorState => {
   return next;
 };
 
-/** What the saved page says the first row is made of, read without trusting its shape. */
 const readSavedFirstRowTypes = (saved: PageContent): readonly string[] => {
   const table: unknown = saved.content[0];
   const firstRow: unknown = isNodeList(table) ? table.content[0] : undefined;

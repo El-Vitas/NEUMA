@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType } from '@company-brain/db';
+import { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
 import {
   pageCarriesSchema,
   validatePageProperties,
@@ -14,7 +14,10 @@ const statusProperty = {
   label: 'Status',
   type: DatabasePropertyType.SELECT,
   required: false,
-  options: ['todo', 'done'],
+  options: [
+    { color: null, value: 'todo' },
+    { color: null, value: 'done' },
+  ],
 };
 
 describe('pageCarriesSchema', () => {

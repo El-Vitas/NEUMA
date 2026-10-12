@@ -51,18 +51,7 @@ const buildHeadingFoldDecorations = (document: EditorNode, label: string): reado
   return decorations;
 };
 
-/**
- * Lets a heading hold everything under it out of sight.
- *
- * What is folded stays in the page — it is only not drawn — so it still travels
- * with the document and is there for whoever opens the heading again. What the
- * button decides is written on the heading itself, which is why the page
- * reopens the way it was left.
- *
- * The button sits at the end of the heading rather than out in the margin: it
- * is the one place where it can be both pressed and read as belonging to that
- * heading, and where a folded heading can keep saying so.
- */
+/** Folded content stays in the document and is only hidden; the state lives in the heading's `collapsed` attribute. */
 export const createPageEditorHeadingFoldPlugin = (foldHeadingLabel: string): EditorPlugin =>
   new EditorPlugin({
     props: {

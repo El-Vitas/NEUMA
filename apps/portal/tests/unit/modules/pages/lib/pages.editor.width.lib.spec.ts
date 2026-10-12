@@ -28,12 +28,10 @@ describe('how wide something on a page is left', () => {
     expect(dragging(100, 150)).toEqual({ saved: [0.5], shown: '50%' });
   });
 
-  /** Dragged past its own left edge, a block stops rather than disappearing. */
   it('refuses to be narrowed away to nothing', () => {
     expect(dragging(100, -400).saved).toEqual([0.1]);
   });
 
-  /** Taking hold of the edge and letting go without moving is not a resize. */
   it('leaves the width alone when the edge was never moved, and stops following after', () => {
     const room = measuring(document.createElement('div'), 500);
     const sized = measuring(document.createElement('div'), 200);

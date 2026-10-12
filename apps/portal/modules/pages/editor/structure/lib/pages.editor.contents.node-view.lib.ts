@@ -21,13 +21,7 @@ const createEntry = (view: EditorView, heading: PageEditorHeading): HTMLElement 
   return entry;
 };
 
-/**
- * Lists what a page holds, written by the page itself.
- *
- * It keeps nothing of its own: the headings are read from the writing every
- * time it is redrawn, so an index is never out of date with the page it belongs
- * to and there is nothing to keep in step by hand.
- */
+/** Reads the headings from the document on every redraw, so it keeps no state of its own. */
 export const createPageContentsNodeView = (
   _node: EditorNode,
   view: EditorView,
@@ -58,7 +52,6 @@ export const createPageContentsNodeView = (
 
   return {
     dom: container,
-    /** Its own writing never changes; what changes is the page around it, and that is what redraws it. */
     ignoreMutation: () => true,
     stopEvent: () => true,
     update: () => {

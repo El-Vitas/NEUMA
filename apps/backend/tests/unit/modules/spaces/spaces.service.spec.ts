@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { SpaceVisibility } from '@company-brain/db';
-import { USER_ROLE } from '@company-brain/shared';
+import { SpaceVisibility } from '@neuma/db';
+import { USER_ROLE } from '@neuma/shared';
 import { SpacesService } from '@/modules/spaces/spaces.service';
 import type { SpaceRepositoryContract, SpaceSummary } from '@/modules/spaces/types/space.types';
 
@@ -129,12 +129,8 @@ describe('spaces service — rename', () => {
     expect(result.getValue().name).toBe('Platform');
   });
 
-  /**
-   * Naming a space is no longer settled by the caller's role alone: whoever
-   * owns a private corner may name it even if they may not make spaces at all.
-   * That needs the space in hand, so the rule is applied where it is read, and
-   * what is asked of the service here is that it stops deciding on its own.
-   */
+  // Renaming is not settled by role alone: the owner of a private space may rename it without being allowed to create
+  // spaces. That needs the space in hand, so the service must stop deciding on its own.
   it('leaves to the space itself whether a reader may name it', async () => {
     const service = new SpacesService(createRepository());
 

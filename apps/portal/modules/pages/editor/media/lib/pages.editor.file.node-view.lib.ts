@@ -24,12 +24,7 @@ import { describePageFile, readPageFileShape } from './pages.editor.file.lib';
 const readFileName = (node: EditorNode): string =>
   typeof node.attrs.caption === 'string' && node.attrs.caption.length > 0 ? node.attrs.caption : node.attrs.assetId;
 
-/**
- * The line a file is named on, which is also the way it comes down.
- *
- * It is asked for by name rather than opened, so a document shown on the page
- * can still be taken away whole with one press.
- */
+/** A download link, so a document shown inline can still be saved in one press. */
 const createFileLine = (node: EditorNode, className: string, getAssetUrl: (assetId: string) => string): HTMLElement => {
   const link = document.createElement('a');
   const name = document.createElement('span');
@@ -49,13 +44,6 @@ const createFileLine = (node: EditorNode, className: string, getAssetUrl: (asset
   return link;
 };
 
-/**
- * Renders a document where it stands, with its name and a way down above it.
- *
- * The browser's own viewer draws the pages, turns them, and offers the document
- * to whoever wants to keep it or see it whole: it is the viewer every reader
- * already has, and drawing one here would answer fewer questions than it asks.
- */
 const createPageDocumentNodeView = (
   node: EditorNode,
   view: EditorView,
@@ -92,14 +80,7 @@ const createPageDocumentNodeView = (
     view.dispatch(view.state.tr.setNodeAttribute(position, 'width', width));
   });
 
-  /**
-   * The viewer is deaf to the pointer until the block is chosen.
-   *
-   * It is drawn by the browser itself, outside this page, so while it listens it
-   * swallows every press and every hover: the block's own buttons never appear
-   * and the document cannot be picked up or moved. Choosing it hands the pointer
-   * over, which is also what anyone reading a document is about to do.
-   */
+  // The browser viewer swallows pointer events, hiding the block's buttons and blocking drag, until selected.
   const showViewerListens = (listens: boolean): void => {
     viewer.style.pointerEvents = listens ? 'auto' : 'none';
   };
@@ -119,15 +100,8 @@ const createPageDocumentNodeView = (
     dom: figure,
     ignoreMutation: () => true,
     selectNode: () => showViewerListens(true),
-    /** The name, the way down and the edge are worked here; a press anywhere else picks the block. */
     stopEvent: (event) => event.target instanceof Node && head.contains(event.target),
-    /**
-     * Only what this block can draw is taken on.
-     *
-     * A file that stops being shown as a document, or that becomes another file
-     * altogether, is handed back to be drawn again: claiming the change and
-     * drawing nothing is how a block stays as it was until the page is reloaded.
-     */
+    // Returns false for changes this view cannot draw (other file, no longer a document) so ProseMirror redraws it.
     update: (updatedNode) => {
       if (updatedNode.type !== node.type) return false;
       if (updatedNode.attrs.assetId !== node.attrs.assetId) return false;
@@ -143,10 +117,6 @@ const createPageDocumentNodeView = (
   };
 };
 
-/**
- * A file on a page: a line that brings it down, or — when the page can show it
- * where it stands — the thing itself, read among the writing.
- */
 export const createPageFileNodeView = (
   node: EditorNode,
   view: EditorView,

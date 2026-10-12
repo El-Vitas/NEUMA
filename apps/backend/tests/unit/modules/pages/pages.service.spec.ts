@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'bun:test';
-import { PageLifecycle } from '@company-brain/db';
-import type { Prisma } from '@company-brain/db/generated';
-import { type PageContent, USER_ROLE } from '@company-brain/shared';
+import { DatabasePropertyType, type JsonObject, type JsonValue, PageLifecycle } from '@neuma/db';
+import { type PageContent, pageContentSchema, Result, USER_ROLE } from '@neuma/shared';
+import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
 import { PagesService } from '@/modules/pages/pages.service';
 import type {
   PageAttachmentsCleanupRepositoryContract,
+  PageContentWriter,
+  PageLogger,
   PageRepositoryContract,
-  UpdatePageInput,
+  UpdatePagePropertyValuesInput,
 } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
 
@@ -39,16 +41,13 @@ const page = {
   version: 1,
 };
 
-const buildUpdatePageInput = (content: Prisma.InputJsonValue = validPageContent): UpdatePageInput => ({
-  content,
+const contentWriter: PageContentWriter = {
   pageId: 'page-a',
-  propertyValues: null,
   role: USER_ROLE.WORKER,
-  title: 'Updated',
-  updatedById: 'user-a',
+  spaceId: 'space-a',
   userId: 'user-a',
   workspaceId: 'workspace-a',
-});
+};
 
 const createRepository = (): PageRepositoryContract => ({
   countDescendantsByLifecycle: () => Promise.resolve(0),
@@ -56,6 +55,7 @@ const createRepository = (): PageRepositoryContract => ({
   deleteForever: () => Promise.resolve('DELETED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
+  findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () =>
@@ -78,7 +78,12 @@ const createRepository = (): PageRepositoryContract => ({
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
-  update: () => Promise.resolve(page),
+  findStoredContent: () => Promise.resolve(null),
+  storeContent: () => Promise.resolve('UNCHANGED'),
+  updatePropertyValues: (_input, merge) => {
+    const merged = merge(null);
+    return Promise.resolve(merged.isOk() ? Result.ok(page) : Result.fail(merged.getError()));
+  },
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
@@ -89,15 +94,19 @@ const createRepository = (): PageRepositoryContract => ({
 });
 
 const createSchemaRepository = (): PageSchemaRepositoryContract => ({
-  defineSchema: (pageId, properties, views) => Promise.resolve({ pageId, properties, views }),
+  defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
+  rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
+  listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([]),
-  listRows: () => Promise.resolve([]),
+  setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
+  listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
   listWorkspaceMemberIds: () => Promise.resolve([]),
 });
 
 const createAttachmentsCleanupRepository = (): PageAttachmentsCleanupRepositoryContract => ({
   deleteForPages: () => Promise.resolve(),
+  listAssetsForPages: () => Promise.resolve([]),
   listStorageKeysForPages: () => Promise.resolve([]),
 });
 
@@ -107,20 +116,50 @@ const createStorageProvider = (): IStorageProvider => ({
   save: () => Promise.resolve('storage-key'),
 });
 
+const createLogger = (): PageLogger => ({ warn: () => undefined });
+
 describe('pages service', () => {
-  it('updates a page for an editor', async () => {
+  it('lets an editor write content in a page they can open', async () => {
     const service = new PagesService(
       createRepository(),
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
-    const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
+    const result = await service.authorizeContentWrite(contentWriter, validPageContent);
 
     expect(result.isOk()).toBe(true);
+    expect(result.getValue()).toEqual(validPageContent);
   });
 
-  const invalidPageContents: { content: Prisma.InputJsonObject; name: string }[] = [
+  it('refuses content from someone who may only read', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+    const result = await service.authorizeContentWrite({ ...contentWriter, role: USER_ROLE.CLIENT }, validPageContent);
+
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('refuses a page reached through the address of another space', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+    const result = await service.authorizeContentWrite({ ...contentWriter, spaceId: 'space-b' }, validPageContent);
+
+    expect(result.getError().code).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  const invalidPageContents: { content: JsonObject; name: string }[] = [
     {
       content: { content: [{ attrs: { level: 9 }, content: [], type: 'heading' }], schemaVersion: 1, type: 'doc' },
       name: 'a block it knows, malformed',
@@ -153,27 +192,19 @@ describe('pages service', () => {
     },
   ];
 
-  it.each(invalidPageContents)('rejects update content with $name before repository mutation', async ({ content }) => {
-    let updateCalls = 0;
-    const repository = {
-      ...createRepository(),
-      update: () => {
-        updateCalls += 1;
-        return Promise.resolve(page);
-      },
-    };
+  it.each(invalidPageContents)('refuses content with $name before anything is written', async ({ content }) => {
     const service = new PagesService(
-      repository,
+      createRepository(),
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
-    const result = await service.update(buildUpdatePageInput(content), USER_ROLE.WORKER);
+    const result = await service.authorizeContentWrite(contentWriter, content);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_CONTENT_INVALID');
-    expect(updateCalls).toBe(0);
   });
 
   it('rejects invalid create content before repository mutation', async () => {
@@ -190,6 +221,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.create(
@@ -213,7 +245,7 @@ describe('pages service', () => {
   });
 
   it('forwards valid create content to the repository', async () => {
-    let receivedContent: Prisma.InputJsonValue | undefined;
+    let receivedContent: JsonValue | PageContent | undefined;
     const repository = {
       ...createRepository(),
       create: (input: Parameters<PageRepositoryContract['create']>[0]) => {
@@ -226,6 +258,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.create(
@@ -244,31 +277,10 @@ describe('pages service', () => {
     );
 
     expect(result.isOk()).toBe(true);
-    expect(receivedContent).toEqual(validPageContent);
-  });
-
-  it('forwards valid update content and preserves the repository version', async () => {
-    const versionedPage = { ...page, version: 2 };
-    let receivedContent: Prisma.InputJsonValue | undefined;
-    const repository = {
-      ...createRepository(),
-      update: (input: Parameters<PageRepositoryContract['update']>[0]) => {
-        receivedContent = input.content;
-        return Promise.resolve(versionedPage);
-      },
-    };
-    const service = new PagesService(
-      repository,
-      createSchemaRepository(),
-      createAttachmentsCleanupRepository(),
-      createStorageProvider(),
-    );
-
-    const result = await service.update(buildUpdatePageInput(), USER_ROLE.WORKER);
-
-    expect(result.isOk()).toBe(true);
-    expect(receivedContent).toEqual(validPageContent);
-    expect(result.getValue().version).toBe(2);
+    const received = pageContentSchema.parse(receivedContent);
+    expect(received.content).toHaveLength(validPageContent.content.length);
+    expect(received.content[0]).toMatchObject({ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' });
+    expect(typeof received.content[0]?.attrs?.id).toBe('string');
   });
 
   it('defaults page listing to active pages and forwards explicit trash inclusion', async () => {
@@ -291,6 +303,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -305,6 +318,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -319,6 +333,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.getAccessible('private-page', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -332,6 +347,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.move(
       'page-a',
@@ -353,6 +369,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.create(
       {
@@ -393,6 +410,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
     const result = await service.move(
       'page-a',
@@ -414,6 +432,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const trashed = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -437,6 +456,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.CLIENT);
@@ -453,6 +473,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.previewTrashCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -468,6 +489,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.previewRestoreCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -502,6 +524,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER, true);
@@ -526,6 +549,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -550,6 +574,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null);
@@ -580,6 +605,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       attachmentsRepository,
       storageProvider,
+      createLogger(),
     );
 
     const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -599,6 +625,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -622,6 +649,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       attachmentsRepository,
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
@@ -631,42 +659,24 @@ describe('pages service', () => {
   });
 
   it('refuses to write in a page somebody locked', async () => {
-    let wasWritten = false;
     const repository = {
       ...createRepository(),
       getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date('2026-08-18T00:00:00.000Z') }),
-      update: () => {
-        wasWritten = true;
-        return Promise.resolve(page);
-      },
     };
     const service = new PagesService(
       repository,
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
-    const result = await service.update(
-      {
-        content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
-        pageId: 'page-a',
-        propertyValues: null,
-        role: USER_ROLE.WORKER,
-        title: 'Page A',
-        updatedById: 'user-a',
-        userId: 'user-a',
-        workspaceId: 'workspace-a',
-      },
-      USER_ROLE.WORKER,
-    );
+    const result = await service.authorizeContentWrite(contentWriter, validPageContent);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_LOCKED');
-    expect(wasWritten).toBe(false);
   });
 
-  /** Renaming a page is writing in it, so a lock stops that too. */
   it('refuses to rename a page somebody locked', async () => {
     const repository = {
       ...createRepository(),
@@ -677,6 +687,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.rename('page-a', 'Another name', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -699,6 +710,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -713,6 +725,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -735,6 +748,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateCover(
@@ -763,6 +777,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateCover(
@@ -784,6 +799,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateCover('page-a', null, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -806,6 +822,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon(
@@ -834,6 +851,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -856,6 +874,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon('page-a', { kind: 'sticker' }, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -871,6 +890,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.updateIcon(
@@ -904,6 +924,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setVerification(
@@ -935,6 +956,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setVerification('page-a', false, undefined, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -949,6 +971,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setVerification('page-a', true, undefined, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -972,6 +995,7 @@ describe('pages service', () => {
       schemaRepository,
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setOwner('page-a', 'user-b', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -995,6 +1019,7 @@ describe('pages service', () => {
       schemaRepository,
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setOwner('page-a', 'stranger', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1018,6 +1043,7 @@ describe('pages service', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.setOwner('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1027,12 +1053,12 @@ describe('pages service', () => {
   });
 });
 
-const buildMentionNode = (pageId: string, label: string): Prisma.JsonValue => ({
+const buildMentionNode = (pageId: string, label: string): JsonValue => ({
   attrs: { label, pageId, spaceId: 'space-a' },
   type: 'mention',
 });
 
-const buildMentionDocument = (...mentions: readonly (readonly [string, string])[]): Prisma.JsonValue => ({
+const buildMentionDocument = (...mentions: readonly (readonly [string, string])[]): JsonValue => ({
   content: mentions.map(([pageId, label]) => ({
     content: [buildMentionNode(pageId, label)],
     type: 'paragraph',
@@ -1041,7 +1067,7 @@ const buildMentionDocument = (...mentions: readonly (readonly [string, string])[
   type: 'doc',
 });
 
-const buildPageWithContent = (content: Prisma.JsonValue) => ({ ...page, content });
+const buildPageWithContent = (content: JsonValue) => ({ ...page, content });
 
 describe('mention redaction on served page content', () => {
   it('keeps the real label when the reader can access the target', async () => {
@@ -1055,6 +1081,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1075,6 +1102,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1095,6 +1123,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1118,6 +1147,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1148,6 +1178,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1175,6 +1206,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1194,6 +1226,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1213,6 +1246,7 @@ describe('mention redaction on served page content', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.move(
@@ -1234,7 +1268,7 @@ describe('mention redaction on served page content', () => {
 
 describe('markdown export', () => {
   it('writes a branch out as one markdown file, mother before daughter', async () => {
-    const body: Prisma.JsonValue = {
+    const body: JsonValue = {
       content: [{ content: [{ text: 'Example', type: 'text' }], type: 'paragraph' }],
       schemaVersion: 1,
       type: 'doc',
@@ -1250,6 +1284,7 @@ describe('markdown export', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1274,6 +1309,7 @@ describe('markdown export', () => {
       createSchemaRepository(),
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
+      createLogger(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1284,6 +1320,228 @@ describe('markdown export', () => {
       USER_ROLE.WORKER,
       'Sin nombre',
     );
+
+    expect(result.isFail()).toBe(true);
+  });
+});
+
+describe('pages service — updating what a row holds', () => {
+  const titleProperty = {
+    key: 'title',
+    label: 'Title',
+    options: null,
+    required: true,
+    type: DatabasePropertyType.TITLE,
+  };
+
+  const statusProperty = {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { color: null, value: 'todo' },
+      { color: null, value: 'done' },
+    ],
+    required: false,
+    type: DatabasePropertyType.SELECT,
+  };
+
+  const buildService = (schemaOverrides: Partial<PageSchemaRepositoryContract> = {}, updated = page) =>
+    new PagesService(
+      {
+        ...createRepository(),
+        updatePropertyValues: (_input, merge) => {
+          const merged = merge(page.propertyValues);
+          return Promise.resolve(merged.isOk() ? Result.ok(updated) : Result.fail(merged.getError()));
+        },
+      },
+      { ...createSchemaRepository(), ...schemaOverrides },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+  const notesProperty = {
+    key: 'notes',
+    label: 'Notes',
+    options: null,
+    required: false,
+    type: DatabasePropertyType.RICH_TEXT,
+  };
+
+  const buildServiceRecordingWrites = (
+    written: Record<string, unknown>[],
+    storedValues: SchemaPropertyValues,
+    schemaProperties: readonly SchemaPropertyDefinition[],
+  ) =>
+    new PagesService(
+      {
+        ...createRepository(),
+        getAccessible: () => Promise.resolve({ ...page, propertyValues: storedValues }),
+        updatePropertyValues: (_input, merge) => {
+          const merged = merge(storedValues);
+          if (merged.isFail()) return Promise.resolve(Result.fail(merged.getError()));
+          written.push({ ...merged.getValue() });
+          return Promise.resolve(Result.ok(page));
+        },
+      },
+      { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve(schemaProperties) },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+  it('writes only what was named, leaving the rest of the row as it was', async () => {
+    const written: Record<string, unknown>[] = [];
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue igual', status: 'todo' }, [
+      titleProperty,
+      statusProperty,
+      notesProperty,
+    ]);
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done' });
+  });
+
+  it('renames the row in the same write as its properties, so both land or neither does', async () => {
+    const received: UpdatePagePropertyValuesInput[] = [];
+    const service = new PagesService(
+      {
+        ...createRepository(),
+        getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo' } }),
+        updatePropertyValues: (input, merge) => {
+          received.push(input);
+          const merged = merge({ status: 'todo' });
+          return Promise.resolve(merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page));
+        },
+      },
+      { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      title: 'Informe entregado',
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(received).toEqual([{ pageId: 'page-a', title: 'Informe entregado', updatedById: 'user-a' }]);
+  });
+
+  // A row keeps values under a property later removed from the shape; carrying them back would be refused and block
+  // every later save, so they are dropped on the first write.
+  it('leaves behind a value the shape no longer knows, instead of locking the row', async () => {
+    const written: Record<string, unknown>[] = [];
+    const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo' }, [
+      titleProperty,
+      statusProperty,
+    ]);
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(written[0]).toEqual({ status: 'done' });
+  });
+
+  it('clears a property when what arrives for it is nothing', async () => {
+    const written: Record<string, unknown>[] = [];
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo' }, [
+      titleProperty,
+      statusProperty,
+      notesProperty,
+    ]);
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: null },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(written[0]).toEqual({ notes: 'Sigue' });
+  });
+
+  it('refuses a value the shape does not allow instead of writing it', async () => {
+    const service = buildService({ resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) });
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'inventado' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isFail()).toBe(true);
+  });
+
+  it('refuses to touch a locked page', async () => {
+    const service = new PagesService(
+      {
+        ...createRepository(),
+        getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date('2026-01-01T00:00:00.000Z') }),
+      },
+      { ...createSchemaRepository(), resolveSchemaProperties: () => Promise.resolve([titleProperty, statusProperty]) },
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+    const result = await service.updateProperties({
+      pageId: 'page-a',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
+
+    expect(result.isFail()).toBe(true);
+  });
+
+  it('refuses a page this reader could not open', async () => {
+    const service = new PagesService(
+      { ...createRepository(), getAccessible: () => Promise.resolve(null) },
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+    );
+
+    const result = await service.updateProperties({
+      pageId: 'somebody-elses-page',
+      propertyValues: { status: 'done' },
+      role: USER_ROLE.WORKER,
+      updatedById: 'user-a',
+      userId: 'user-a',
+      workspaceId: 'workspace-a',
+    });
 
     expect(result.isFail()).toBe(true);
   });

@@ -40,7 +40,6 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
   duplicatePageAction: async () => ({ data: undefined }),
   movePageAction: movePage,
-  /** The rename dialog reachable from the tree pulls this in, so the stand-in offers it too. */
   renamePageAction: async () => ({ data: undefined }),
   reorderPageAction: async () => ({ data: undefined }),
   restorePageAction: restorePage,
@@ -49,7 +48,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 mock.module('@/modules/pages/export/server/actions/pages.export.actions', () => ({
   exportPagesAsMarkdownAction: async () => ({ data: '' }),
 }));
-/** The batch move dialog reachable from selection mode pulls this in to list destinations. */
+/** Pulled in by the batch move dialog to list destinations. */
 mock.module('@/modules/pages/navigation/hooks/use.pages.move.destinations', () => ({
   usePagesMoveDestinations: () => ({
     pages: [{ id: 'sibling-page', spaceId: 'engineering', title: 'Sibling page' }],
@@ -61,7 +60,7 @@ mock.module('@/modules/portal/server/actions/portal.sidebar.selection.actions', 
   batchMovePagesAction: batchMovePages,
   batchTrashPagesAction: batchTrashPages,
 }));
-/** The icon dialog reachable from the tree imports these server actions, which refuse to load outside a server. */
+/** The icon dialog imports these server actions, which refuse to load outside a server. */
 mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () => ({
   removePageIconAction: async () => ({ data: undefined }),
   setPageIconEmojiAction: async () => ({ data: undefined }),

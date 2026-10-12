@@ -1,4 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { installFetchMock } from '../../../../mocks/global-fetch.mock';
+import { createSafeActionMock } from '../../../../mocks/safe-action.mock';
 
 let cookieValue: string | undefined;
 const fetchMock = mock(
@@ -15,26 +17,12 @@ mock.module('next/headers', () => ({
 }));
 mock.module('next-intl/server', () => ({ getLocale: async () => 'en' }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
-mock.module('@/lib/safe-action', () => ({
-  actionClient: {
-    inputSchema: () => ({
-      action:
-        (handler: (input: { readonly parsedInput: { readonly pageId: string } }) => Promise<unknown>) =>
-        async (input: { readonly pageId: string }) => {
-          try {
-            return { data: await handler({ parsedInput: input }) };
-          } catch (error) {
-            return { serverError: error instanceof Error ? error.message : 'unknown error' };
-          }
-        },
-    }),
-  },
-}));
+mock.module('@/lib/safe-action', createSafeActionMock);
 mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-globalThis.fetch = Object.assign(fetchMock, { preconnect: (): void => undefined });
+installFetchMock(fetchMock);
 
 const { getPageCollaborationToken } = await import('@/modules/pages/server/actions/pages.collaboration.actions');
 
@@ -45,7 +33,7 @@ describe('getPageCollaborationToken without an access token', () => {
 
     const result = await getPageCollaborationToken({ pageId: '22222222-2222-4222-8222-222222222222' });
 
-    expect(result).toEqual({ serverError: 'Authentication is required for this action' });
+    expect(result).toEqual({ serverError: 'forbidden' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

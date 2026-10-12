@@ -7,10 +7,7 @@ export interface PageEditorBlockRange {
 
 export type PageEditorColumnSide = 'left' | 'right';
 
-/**
- * Where the dragged blocks would land: between two blocks, or beside one of
- * them, which splits that row into columns.
- */
+/** Dropping beside a block (`column`) splits its row into columns. */
 export type PageEditorDropPlacement =
   | { readonly insertAt: number; readonly kind: 'between' }
   | { readonly blockStart: number; readonly kind: 'column'; readonly side: PageEditorColumnSide };
@@ -76,5 +73,4 @@ export interface PageEditorRowColumn {
   readonly start: number;
 }
 
-/** Decides which nodes hand over their children as blocks of their own. */
 export type PageEditorBlockHolder = (node: EditorNode) => boolean;

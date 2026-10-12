@@ -1,4 +1,4 @@
-# Company Brain Scope Documents
+# Neuma Scope Documents
 
 These documents are the scope authority for implementation work.
 
@@ -12,7 +12,7 @@ Read `future-scope.md` to see features intentionally excluded from the current p
 
 ## Execution Map
 
-Read `../superpowers/plans/2026-08-03-company-brain-module-slices.md` for the module-level slice scopes and dependencies. A slice may run in parallel only when its file scope is disjoint from the other active slices.
+Read `../superpowers/plans/2026-08-03-neuma-module-slices.md` for the module-level slice scopes and dependencies. A slice may run in parallel only when its file scope is disjoint from the other active slices.
 
 ## Model Direction
 
@@ -20,7 +20,7 @@ Read `../architecture/adr/008-adopt-single-page-primitive.md` before touching th
 
 Read `../architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md` before touching attachments. The content is the single source of truth for where a file lives; `FileAsset.pageId` is ownership and permission, not placement.
 
-Both are executed by `../superpowers/plans/2026-08-05-company-brain-single-page-primitive.md`, which supersedes the data model in `../superpowers/plans/2026-08-02-company-brain-databases.md`.
+Both are executed by `../superpowers/plans/2026-08-05-neuma-single-page-primitive.md`, which supersedes the data model in `../superpowers/plans/2026-08-02-neuma-databases.md`.
 
 ## Functional Verification
 

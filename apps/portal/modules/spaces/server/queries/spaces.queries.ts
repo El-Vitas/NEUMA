@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Result } from '@company-brain/shared';
+import { Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
@@ -22,7 +22,6 @@ const getSpacesCached = async (accessToken: string): Promise<readonly SpaceSumma
   return spacesListSchema.parse(response);
 };
 
-/** What other people made private and then shared, distinct from what the caller made public or restricted. */
 export const getSharedWithMeSpaces = async (): Promise<Result<readonly SpaceSummary[], Error>> =>
   withQuery({ op: 'getSharedWithMeSpaces' }, (accessToken) => getSharedWithMeSpacesCached(accessToken));
 
@@ -35,6 +34,14 @@ const getSharedWithMeSpacesCached = async (accessToken: string): Promise<readonl
   return spacesListSchema.parse(response);
 };
 
-/** The members of a space, read through the query `shared/` also hands the pages module — a space belongs to the spaces module, but neither module may import the other directly. */
+/** Fails whole when either list fails, so a partial list is never mistaken for the full one. */
+export const getReachableSpaces = async (): Promise<Result<readonly SpaceSummary[], Error>> => {
+  const [spaces, sharedSpaces] = await Promise.all([getSpaces(), getSharedWithMeSpaces()]);
+  if (spaces.isFail()) return spaces;
+  if (sharedSpaces.isFail()) return sharedSpaces;
+  return Result.ok([...spaces.getValue(), ...sharedSpaces.getValue()]);
+};
+
+/** Delegates to `shared/` so the pages module can read members without importing this module. */
 export const getSpaceMembers = (spaceId: string): Promise<Result<readonly SpaceMember[], Error>> =>
   getSharedSpaceMembers(spaceId);

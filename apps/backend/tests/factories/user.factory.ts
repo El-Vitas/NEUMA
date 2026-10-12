@@ -1,7 +1,7 @@
-import type { PrismaClient } from '@company-brain/db/generated';
-import { USER_ROLE_VALUES, type UserRole } from '@company-brain/shared';
 import { faker } from '@faker-js/faker';
+import { USER_ROLE_VALUES, type UserRole } from '@neuma/shared';
 import { Factory } from 'fishery';
+import type { NeumaModels } from '@/prisma/types/prisma.types';
 
 const HASH_ROUNDS = 4;
 
@@ -16,21 +16,19 @@ interface UserSeed {
   updatedAt: Date;
 }
 
-export const createUserFactory = (prisma: PrismaClient) =>
+export const createUserFactory = (models: NeumaModels) =>
   Factory.define<UserSeed>(({ onCreate, params }) => {
     onCreate(async (user) => {
       const hashedPassword = await Bun.password.hash(user.password, {
         algorithm: 'bcrypt',
         cost: HASH_ROUNDS,
       });
-      return prisma.user.create({
-        data: {
-          email: user.email,
-          isActive: user.isActive,
-          name: user.name,
-          password: hashedPassword,
-          role: user.role,
-        },
+      return models.User.create({
+        email: user.email,
+        isActive: user.isActive,
+        name: user.name,
+        password: hashedPassword,
+        role: user.role,
       });
     });
 
