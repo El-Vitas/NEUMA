@@ -9,6 +9,7 @@ const fetchMock = mock(
 
 mock.module('server-only', () => ({}));
 mock.module('next/cache', () => ({ cacheLife: () => undefined, cacheTag: () => undefined }));
+mock.module('next/server', () => ({ connection: async () => undefined }));
 mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
 }));
