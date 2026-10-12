@@ -1,5 +1,4 @@
-import type { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import type { DatabasePropertyType, DatabaseViewType, JsonObject } from '@neuma/db';
 import type { PageOptionColor, PagePropertyOption, PagePropertyValue, PagePropertyValues } from '@neuma/shared';
 
 export type SchemaPropertyValue = PagePropertyValue;
@@ -16,7 +15,7 @@ export interface SchemaPropertyDefinition {
 export interface SchemaViewDefinition {
   readonly name: string;
   readonly type: DatabaseViewType;
-  readonly configuration: Prisma.InputJsonObject;
+  readonly configuration: JsonObject;
   readonly isDefault: boolean;
 }
 

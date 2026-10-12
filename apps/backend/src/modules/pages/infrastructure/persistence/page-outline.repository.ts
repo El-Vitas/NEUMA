@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PageLifecycle } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import { and, PageLifecycle } from '@neuma/db';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { buildTokenScopeWhere } from '../../../../common/infrastructure/persistence/token-scope.filter';
+import type { FilterCondition, ModelFilterScope } from '../../../../common/types/model.filter.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_OUTLINE_MAX_DEPTH } from '../../constants/pages.constants';
 import type {
@@ -17,11 +17,16 @@ import type {
 } from '../../types/page-outline.types';
 
 /** Active pages the reader can see, narrowed to the token scope when there is one. */
-const readableBy = (reader: PageOutlineReader): Prisma.PageWhereInput => ({
-  ...(reader.tokenScope === undefined ? {} : buildTokenScopeWhere(reader.tokenScope)),
-  lifecycle: PageLifecycle.ACTIVE,
-  space: { ...buildSpaceVisibilityFilter(reader.userId, reader.role), workspaceId: reader.workspaceId },
-});
+const readableBy = (reader: PageOutlineReader) => {
+  const isVisibleSpace = buildSpaceVisibilityFilter(reader.userId, reader.role);
+  const isInTokenScope = reader.tokenScope === undefined ? null : buildTokenScopeWhere(reader.tokenScope);
+  return (page: ModelFilterScope<'Page'>): FilterCondition =>
+    and(
+      ...(isInTokenScope === null ? [] : [isInTokenScope(page)]),
+      page.lifecycle.eq(PageLifecycle.ACTIVE),
+      page.space.some((space) => and(isVisibleSpace(space), space.workspaceId.eq(reader.workspaceId))),
+    );
+};
 
 /** Page tree without content, so walking a space stays cheap. Children the reader cannot see are not counted either. */
 @Injectable()
@@ -34,39 +39,35 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     reader: PageOutlineReader,
     window: PageOutlineWindow,
   ): Promise<PageOutlineChildren> {
-    const where = { ...readableBy(reader), parentId, spaceId };
-    const [pages, total] = await Promise.all([
-      this.prisma.page.findMany({
-        orderBy: [{ order: 'asc' }, { id: 'asc' }],
-        select: {
-          _count: { select: { children: { where: readableBy(reader) }, schemaProperties: true } },
-          id: true,
-          propertyValues: true,
-          title: true,
-        },
-        skip: window.skip,
-        take: window.take,
-        where,
-      }),
-      this.prisma.page.count({ where }),
+    const isReadable = readableBy(reader);
+    const readableChildren = this.prisma.models.Page.where(isReadable).where({ parentId, spaceId });
+    const [pages, aggregate] = await Promise.all([
+      readableChildren
+        .select('id', 'propertyValues', 'title')
+        .include('children', (children) => children.where(isReadable).count())
+        .include('schemaProperties', (schemaProperties) => schemaProperties.count())
+        .orderBy([(page) => page.order.asc(), (page) => page.id.asc()])
+        .offset(window.skip)
+        .limit(window.take)
+        .all(),
+      readableChildren.aggregate((aggregation) => ({ total: aggregation.count() })),
     ]);
     const entries = pages.map((page) => ({
-      childCount: page._count.children,
+      childCount: page.children,
       id: page.id,
-      isCollection: page._count.schemaProperties > 0,
+      isCollection: page.schemaProperties > 0,
       propertyValues: parseSchemaPropertyValues(page.propertyValues),
       title: page.title,
     }));
-    return { entries, total };
+    return { entries, total: aggregate.total };
   }
 
   async listAncestors(pageId: string, reader: PageOutlineReader): Promise<readonly PageAncestor[]> {
-    const page = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { ...readableBy(reader), id: pageId },
-    });
+    const page = await this.prisma.models.Page.select('id').where(readableBy(reader)).where({ id: pageId }).first();
     if (page === null) return [];
-    const rows = await this.prisma.$queryRaw<PageAncestorRow[]>`
+    const { columns } = this.prisma.tables.Page;
+    const rows: readonly PageAncestorRow[] = await this.prisma.runner.query(
+      this.prisma.sql`
       WITH RECURSIVE "chain" AS (
         SELECT "id", "parentId", "title", 0 AS "depth" FROM "Page" WHERE "id" = ${pageId}
         UNION ALL
@@ -76,7 +77,10 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
         WHERE "chain"."depth" < ${PAGE_OUTLINE_MAX_DEPTH}
       )
       SELECT "id", "title" FROM "chain" WHERE "depth" > 0 ORDER BY "depth" DESC
-    `;
+    `
+        .returnsRow({ id: columns.id, title: columns.title })
+        .build(),
+    );
     const readable = new Set(
       (
         await this.listReadable(
@@ -95,9 +99,9 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
 
   async listReadable(pageIds: readonly string[], reader: PageOutlineReader): Promise<readonly PageOutlinePlace[]> {
     if (pageIds.length === 0) return [];
-    return this.prisma.page.findMany({
-      select: { id: true, spaceId: true, title: true },
-      where: { ...readableBy(reader), id: { in: [...pageIds] } },
-    });
+    return this.prisma.models.Page.select('id', 'spaceId', 'title')
+      .where(readableBy(reader))
+      .where((page) => page.id.in([...pageIds]))
+      .all();
   }
 }

@@ -33,9 +33,9 @@ describe('McpDrawingValidatorAdapter', () => {
   });
 
   it('refuses a diagram Mermaid cannot read, with Mermaid’s own words on where and what', async () => {
-    const checked = await validator.checkDiagram('architecture-beta\n    service backend["NestJS", logo:logos:nestjs]');
+    const checked = await validator.checkDiagram('architecture-beta\n    service db(database)[DB]\n    db:Q -- R:db');
 
-    expect(checked.getError()).toContain('line 2, column 20');
+    expect(checked.getError()).toContain('line 3, column 8');
   });
 
   it('refuses what is not a diagram at all', async () => {

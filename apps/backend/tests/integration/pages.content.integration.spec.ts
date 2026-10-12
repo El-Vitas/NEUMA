@@ -5,7 +5,7 @@ import request from 'supertest';
 import { CollaborationGateway } from '@/modules/collaboration/collaboration.service';
 import { readCollaborationDocumentContent } from '@/modules/collaboration/utils/collaboration.document.utils';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface IdResponse {
@@ -53,9 +53,11 @@ describe('Writing the content of a page through its live document (Integration)'
 
   const readStored = async (pageId: string): Promise<{ content: unknown; versions: number }> => {
     const prisma = testApp.get(PrismaService);
-    const page = await prisma.page.findUniqueOrThrow({ select: { content: true }, where: { id: pageId } });
-    const versions = await prisma.pageVersion.count({ where: { pageId } });
-    return { content: page.content, versions };
+    const page = await prisma.models.Page.where({ id: pageId }).select('content').all().firstOrThrow();
+    const stored = await prisma.models.PageVersion.where({ pageId }).aggregate((aggregate) => ({
+      total: aggregate.count(),
+    }));
+    return { content: page.content, versions: stored.total };
   };
 
   const readLive = async (pageId: string): Promise<PageContent> => {
@@ -82,13 +84,13 @@ describe('Writing the content of a page through its live document (Integration)'
     const clientEmail = `content-client-${timestamp}@test.com`;
     const prisma = testApp.get(PrismaService);
 
-    await registerUser(testApp, { email: adminEmail, name: 'Content Admin', password });
-    await registerUser(testApp, { email: clientEmail, name: 'Content Client', password });
-    await prisma.user.update({ data: { role: 'ADMIN' }, where: { email: adminEmail } });
-    await prisma.user.update({ data: { role: 'CLIENT' }, where: { email: clientEmail } });
+    await createAccount(testApp, { email: adminEmail, name: 'Content Admin', password });
+    await createAccount(testApp, { email: clientEmail, name: 'Content Client', password });
+    await prisma.models.User.where({ email: adminEmail }).update({ role: 'ADMIN' });
+    await prisma.models.User.where({ email: clientEmail }).update({ role: 'CLIENT' });
     adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;
     clientToken = (await loginUser(testApp, clientEmail, password)).accessToken;
-    adminId = (await prisma.user.findUniqueOrThrow({ select: { id: true }, where: { email: adminEmail } })).id;
+    adminId = (await prisma.models.User.where({ email: adminEmail }).select('id').all().firstOrThrow()).id;
 
     const space = await request(testApp.getServer())
       .post('/api/v1/spaces')
@@ -96,7 +98,7 @@ describe('Writing the content of a page through its live document (Integration)'
       .send({ name: 'Content Space', slug: `content-space-${timestamp}`, visibility: SpaceVisibility.PUBLIC_INTERNAL })
       .expect(201);
     spaceId = (space.body as IdResponse).id;
-    workspaceId = (await prisma.space.findUniqueOrThrow({ select: { workspaceId: true }, where: { id: spaceId } }))
+    workspaceId = (await prisma.models.Space.where({ id: spaceId }).select('workspaceId').all().firstOrThrow())
       .workspaceId;
   });
 

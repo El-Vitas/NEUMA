@@ -1,9 +1,9 @@
-import { Prisma } from '@neuma/db/generated';
+import type { JsonValue } from '@neuma/db';
 import type { PageIcon } from '@neuma/shared';
 
 /** Stores only the fields of the icon's own kind. */
-export const toPageIconInput = (icon: PageIcon | null): Prisma.InputJsonValue | typeof Prisma.JsonNull => {
-  if (icon === null) return Prisma.JsonNull;
+export const toPageIconInput = (icon: PageIcon | null): JsonValue => {
+  if (icon === null) return null;
   switch (icon.kind) {
     case 'emoji':
       return { kind: icon.kind, value: icon.value };

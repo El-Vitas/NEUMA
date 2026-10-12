@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonObject } from '@neuma/db';
 import { makeSchemaViewDefault, Result, removeSchemaView } from '@neuma/shared';
 import type { McpNameLister, McpView } from '../types/mcp.collections.types';
 import { foldMcpName, sayMcpRefusalWithNames } from './mcp.columns.lib';
@@ -36,7 +36,7 @@ export const changeMcpView = (
   views: readonly McpView[],
   current: McpView,
   changes: {
-    readonly configuration: Prisma.InputJsonObject;
+    readonly configuration: JsonObject;
     readonly makeDefault?: boolean | undefined;
     readonly name?: string | undefined;
   },

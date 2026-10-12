@@ -35,6 +35,9 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
+  "files": {
+    "includes": ["**", "!src/contract", "!migrations/snapshots", "!migrations/app/**/*.json"]
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -80,7 +83,7 @@
   },
   "overrides": [
     {
-      "includes": ["prisma/seed/**"],
+      "includes": ["prisma/seed/**", "prisma.config.ts"],
       "linter": {
         "rules": {
           "style": { "noProcessEnv": "off" }

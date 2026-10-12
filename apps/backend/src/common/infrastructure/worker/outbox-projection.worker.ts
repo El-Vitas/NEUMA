@@ -17,10 +17,10 @@ export abstract class OutboxProjectionWorker {
   private async processEvent(event: OutboxProjectionEvent): Promise<void> {
     try {
       await this.projectEvent(event);
-      await this.outbox.markProcessed(event.id);
+      await this.outbox.markProcessed(event.deliveryId);
     } catch (error) {
-      if (event.attemptCount >= this.maxAttempts) await this.outbox.markFailed(event.id, error);
-      else await this.outbox.markRetryable(event.id, error, event.attemptCount);
+      if (event.attemptCount >= this.maxAttempts) await this.outbox.markFailed(event.deliveryId, error);
+      else await this.outbox.markRetryable(event.deliveryId, error, event.attemptCount);
     }
   }
 }

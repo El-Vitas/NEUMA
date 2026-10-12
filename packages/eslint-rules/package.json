@@ -8,6 +8,6 @@
   },
   "files": ["index.mjs", "rules"],
   "devDependencies": {
-    "eslint": "^9.18.0"
+    "eslint": "^10.12.0"
   }
 }

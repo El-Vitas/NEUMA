@@ -1,4 +1,4 @@
-import type { PrismaClient } from '../../src/client.js';
+import type { NeumaDatabase, UserRole } from '../../src/index.js';
 
 export interface SeedUsers {
   adminId: string;
@@ -7,27 +7,25 @@ export interface SeedUsers {
 }
 
 const upsertUser = async (
-  prisma: PrismaClient,
+  database: NeumaDatabase,
   email: string,
   name: string,
-  role: string,
+  role: UserRole,
   password: string,
 ): Promise<string> => {
-  const user = await prisma.user.upsert({
-    where: { email },
-    create: { email, name, password, role },
-    update: { name, role },
-    select: { id: true },
-  });
-  return user.id;
+  const users = database.orm.public.User;
+  const updatedUser = await users.where({ email }).update({ name, role });
+  if (updatedUser !== null) return updatedUser.id;
+  const createdUser = await users.create({ email, name, password, role });
+  return createdUser.id;
 };
 
-export const seedUsers = async (prisma: PrismaClient): Promise<SeedUsers> => {
+export const seedUsers = async (database: NeumaDatabase): Promise<SeedUsers> => {
   const password = await Bun.password.hash('password123', { algorithm: 'bcrypt', cost: 12 });
 
-  const adminId = await upsertUser(prisma, 'admin@example.com', 'Admin User', 'ADMIN', password);
-  const workerId = await upsertUser(prisma, 'worker@example.com', 'Worker User', 'WORKER', password);
-  const clientId = await upsertUser(prisma, 'client@example.com', 'Client User', 'CLIENT', password);
+  const adminId = await upsertUser(database, 'admin@example.com', 'Admin User', 'ADMIN', password);
+  const workerId = await upsertUser(database, 'worker@example.com', 'Worker User', 'WORKER', password);
+  const clientId = await upsertUser(database, 'client@example.com', 'Client User', 'CLIENT', password);
 
   return { adminId, workerId, clientId };
 };

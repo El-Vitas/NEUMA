@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { OutboxEventRecord } from '@/common/types/outbox.types';
+import type { OutboxDeliveryRecord } from '@/common/types/outbox.types';
 import { LinksProjectionWorker } from '@/modules/links/infrastructure/worker/links.projection.worker';
 import type {
   LinksProjectionPage,
@@ -8,12 +8,12 @@ import type {
   PageLinkReconciliationInput,
 } from '@/modules/links/types/links.types';
 
-const event = (overrides: Partial<OutboxEventRecord> = {}): OutboxEventRecord => ({
+const event = (overrides: Partial<OutboxDeliveryRecord> = {}): OutboxDeliveryRecord => ({
   aggregateId: 'page-source',
   aggregateType: 'PAGE',
   attemptCount: 1,
+  deliveryId: 'event-1',
   eventType: 'PAGE_UPDATED',
-  id: 'event-1',
   idempotencyKey: 'page:page-source:version:2',
   payload: { pageId: 'page-source', version: 2 },
   payloadVersion: 1,
@@ -27,7 +27,7 @@ type OutboxStubOverrides = Partial<{
 }>;
 
 const createOutboxStub = (
-  claimPending: () => Promise<readonly OutboxEventRecord[]>,
+  claimPending: () => Promise<readonly OutboxDeliveryRecord[]>,
   overrides: OutboxStubOverrides = {},
 ) => ({
   claimPending,

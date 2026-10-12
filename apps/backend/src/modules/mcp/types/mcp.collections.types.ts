@@ -1,6 +1,7 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonObject, JsonValue } from '@neuma/db';
 import type {
   AccessTokenPlace,
+  PageContent,
   PagePropertyOption,
   PagePropertyType,
   PagePropertyValues,
@@ -87,7 +88,7 @@ export interface McpColumn extends McpSchemaColumn {
 }
 
 export interface McpView {
-  readonly configuration: Prisma.InputJsonObject;
+  readonly configuration: JsonObject;
   readonly isDefault: boolean;
   readonly name: string;
   readonly type: PageViewType;
@@ -146,7 +147,7 @@ export interface McpCollectionService {
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
   readonly setViewConfiguration: (
     input: McpActor & {
-      readonly configuration: Prisma.InputJsonObject;
+      readonly configuration: JsonObject;
       readonly pageId: string;
       readonly viewName: string;
     },
@@ -163,7 +164,7 @@ export interface McpWrittenRow {
 export interface McpRowWriter {
   readonly create: (
     input: McpActor & {
-      readonly content: Prisma.InputJsonValue;
+      readonly content: JsonValue | PageContent;
       readonly parentId: string | null;
       readonly propertyValues: PagePropertyValues | null;
       readonly spaceId: string;

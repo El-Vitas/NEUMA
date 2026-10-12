@@ -4,7 +4,7 @@ import request from 'supertest';
 import { AccessTokensService } from '@/modules/access-tokens/access-tokens.service';
 import { ACCESS_TOKEN_LIMIT_PER_USER } from '@/modules/access-tokens/constants/access-tokens.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface CreatedTokenResponse {
@@ -36,8 +36,8 @@ describe('Access tokens (Integration)', () => {
     testApp = await bootstrapTestApp();
     const timestamp = String(Date.now());
     const password = 'plainPassword123';
-    await registerUser(testApp, { email: `token-owner-${timestamp}@test.com`, name: 'Owner', password });
-    await registerUser(testApp, { email: `token-stranger-${timestamp}@test.com`, name: 'Stranger', password });
+    await createAccount(testApp, { email: `token-owner-${timestamp}@test.com`, name: 'Owner', password });
+    await createAccount(testApp, { email: `token-stranger-${timestamp}@test.com`, name: 'Stranger', password });
     const owner = await loginUser(testApp, `token-owner-${timestamp}@test.com`, password);
     ownerToken = owner.accessToken;
     ownerId = owner.user.id;
@@ -94,16 +94,18 @@ describe('Access tokens (Integration)', () => {
     const body = (await createToken(ownerToken, 'Hasta desactivar').expect(201)).body as CreatedTokenResponse;
     const prisma = testApp.get(PrismaService);
 
-    await prisma.user.update({ data: { isActive: false }, where: { id: ownerId } });
+    await prisma.models.User.where({ id: ownerId }).update({ isActive: false });
     const principal = await testApp.get(AccessTokensService).resolvePrincipal(body.secret);
-    await prisma.user.update({ data: { isActive: true }, where: { id: ownerId } });
+    await prisma.models.User.where({ id: ownerId }).update({ isActive: true });
 
     expect(principal).toBeNull();
   });
 
   it('refuses a new token once the person holds as many as allowed', async () => {
     const prisma = testApp.get(PrismaService);
-    const live = await prisma.accessToken.count({ where: { revokedAt: null, userId: ownerId } });
+    const { total: live } = await prisma.models.AccessToken.where({ revokedAt: null, userId: ownerId }).aggregate(
+      (aggregate) => ({ total: aggregate.count() }),
+    );
     for (let made = live; made < ACCESS_TOKEN_LIMIT_PER_USER; made += 1) {
       await createToken(ownerToken, `Relleno ${String(made)}`).expect(201);
     }

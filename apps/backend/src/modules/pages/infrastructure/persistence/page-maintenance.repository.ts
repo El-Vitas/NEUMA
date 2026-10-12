@@ -12,26 +12,24 @@ export class PageMaintenanceRepository implements PageMaintenanceRepositoryContr
     private readonly outboxRepository: OutboxRepository,
   ) {}
 
-  listActivePages(
+  async listActivePages(
     workspaceId: string,
     afterPageId: string | null,
     take: number,
   ): Promise<readonly PageMaintenanceRow[]> {
-    return this.prisma.page.findMany({
-      orderBy: { id: 'asc' },
-      select: { content: true, id: true },
-      take,
-      where: {
-        lifecycle: PageLifecycle.ACTIVE,
-        space: { workspaceId },
-        ...(afterPageId === null ? {} : { id: { gt: afterPageId } }),
-      },
-    });
+    const pages = this.prisma.models.Page.select('content', 'id')
+      .where({ lifecycle: PageLifecycle.ACTIVE })
+      .where((page) => page.space.some({ workspaceId }));
+    const pagesAfterCursor = afterPageId === null ? pages : pages.where((page) => page.id.gt(afterPageId));
+    return pagesAfterCursor
+      .orderBy((page) => page.id.asc())
+      .limit(take)
+      .all();
   }
 
   /** The key includes the run id: a new run notifies again, a repeat within one run does not. */
   async announceReindex(pageIds: readonly string[], runId: string): Promise<void> {
-    await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.transaction(async (transaction) => {
       for (const pageId of pageIds)
         await this.outboxRepository.create(
           {

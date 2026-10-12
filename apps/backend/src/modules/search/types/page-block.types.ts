@@ -1,3 +1,4 @@
+import type { JsonValue } from '@neuma/db';
 import type { PageBlockEntry } from '@neuma/shared';
 import type { PageBlockSearchPage, PageBlockSearchQuery } from '../../../common/types/search.types';
 
@@ -24,7 +25,7 @@ export interface PageBlocksRemoval {
 export interface PageBlockSearchRow {
   readonly blockId: string;
   readonly blockType: string;
-  readonly headingPath: string[] | null;
+  readonly headingPath: JsonValue;
   readonly isPageVerified: boolean;
   readonly pageId: string;
   readonly pageTitle: string;

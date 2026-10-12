@@ -206,6 +206,29 @@ rules:
     context: >-
       Reordenar renumera la fila completa desde arriba: dos hermanas empatadas harían caer el siguiente arrastre donde
       nadie apuntó. Una página soltada junto a las hijas de otra madre primero cambia de madre y después se coloca.
+  - id: BR-ac6957c
+    status: active
+    title: Cada cambio de una página llega a la búsqueda y a los retroenlaces, por separado
+    rule: >-
+      Cuando una página cambia, la búsqueda y la sección «Vinculado desde» reciben cada una su propio aviso del cambio.
+      Que una de las dos lo tome, lo reintente o falle no oculta el aviso a la otra, y ninguna recibe el mismo aviso dos
+      veces.
+    why: >-
+      Si las dos compartieran un solo aviso, el primero en tomarlo lo daría por atendido y la otra nunca se enteraría;
+      una mención nueva no aparecería en «Vinculado desde» o una página renombrada no se encontraría por su nuevo
+      título.
+    context: >-
+      Un aviso que falla se reintenta solo para quien falló. Al actualizar desde una versión anterior, cada cambio ya
+      registrado se vuelve a avisar una vez a las dos, porque antes pudo llegar a una sola.
+    scenarios:
+      - title: Una mención nueva
+        given: Una página que menciona a otra, con la búsqueda y los retroenlaces funcionando
+        when: Alguien guarda la página
+        then: La página se encuentra por su texto nuevo y la mencionada la muestra en «Vinculado desde»
+      - title: La búsqueda caída un momento
+        given: El índice de búsqueda falla al recibir un cambio
+        when: Los retroenlaces procesan ese mismo cambio
+        then: Los retroenlaces quedan al día y la búsqueda reintenta su aviso más tarde
   - id: BR-ac96db4
     status: active
     title: Exportar se cuenta por persona, y de a pocas por minuto

@@ -9,23 +9,22 @@ export class PageAttachmentsCleanupRepository implements PageAttachmentsCleanupR
 
   async listStorageKeysForPages(pageIds: readonly string[]): Promise<readonly string[]> {
     if (pageIds.length === 0) return [];
-    const assets = await this.prisma.fileAsset.findMany({
-      select: { storageKey: true },
-      where: { pageId: { in: [...pageIds] } },
-    });
+    const assets = await this.prisma.models.FileAsset.select('storageKey')
+      .where((asset) => asset.pageId.in([...pageIds]))
+      .all();
     return assets.map((asset) => asset.storageKey);
   }
 
   async listAssetsForPages(pageIds: readonly string[]): Promise<readonly PageAssetForExport[]> {
     if (pageIds.length === 0) return [];
-    return this.prisma.fileAsset.findMany({
-      select: { id: true, originalFilename: true, storageKey: true },
-      where: { lifecycle: FileAssetLifecycle.ACTIVE, pageId: { in: [...pageIds] } },
-    });
+    return this.prisma.models.FileAsset.select('id', 'originalFilename', 'storageKey')
+      .where({ lifecycle: FileAssetLifecycle.ACTIVE })
+      .where((asset) => asset.pageId.in([...pageIds]))
+      .all();
   }
 
   async deleteForPages(pageIds: readonly string[]): Promise<void> {
     if (pageIds.length === 0) return;
-    await this.prisma.fileAsset.deleteMany({ where: { pageId: { in: [...pageIds] } } });
+    await this.prisma.models.FileAsset.where((asset) => asset.pageId.in([...pageIds])).deleteAndCount();
   }
 }
