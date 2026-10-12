@@ -4,7 +4,7 @@ import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type PageContent } fr
 import request from 'supertest';
 import { z } from 'zod';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames, type McpToolAnswer } from '../helpers/mcp.helper';
 import { drainSearchProjection } from '../helpers/search.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
@@ -71,8 +71,8 @@ describe('MCP access (Integration)', () => {
 
   const signUp = async (label: string, role: 'ADMIN' | 'CLIENT' | 'WORKER'): Promise<Session> => {
     const email = `mcp-access-${label}-${String(Date.now())}@test.com`;
-    await registerUser(testApp, { email, name: `MCP ${label}`, password: PASSWORD });
-    await testApp.get(PrismaService).user.update({ data: { role }, where: { email } });
+    await createAccount(testApp, { email, name: `MCP ${label}`, password: PASSWORD });
+    await testApp.get(PrismaService).models.User.where({ email }).update({ role });
     const session = await loginUser(testApp, email, PASSWORD);
     return { id: session.user.id, token: session.accessToken };
   };
@@ -159,7 +159,7 @@ describe('MCP access (Integration)', () => {
     spaces.open = await createSpace(admin, 'Abierto', SpaceVisibility.PUBLIC_INTERNAL);
     spaces.restricted = await createSpace(admin, 'Restringido', SpaceVisibility.RESTRICTED);
     spaces.workerPrivate = await privateSpaceOf(worker);
-    await testApp.get(PrismaService).spaceMember.create({ data: { spaceId: spaces.restricted, userId: worker.id } });
+    await testApp.get(PrismaService).models.SpaceMember.create({ spaceId: spaces.restricted, userId: worker.id });
 
     pages.open = await createPage(admin, spaces.open, words.open);
     pages.hr = await createPage(admin, spaces.open, words.hr);
@@ -295,8 +295,8 @@ describe('MCP access (Integration)', () => {
     let mentioningPageId: string;
 
     const firstBlockIdOf = async (pageId: string): Promise<string> => {
-      const page = await testApp.get(PrismaService).page.findUniqueOrThrow({ where: { id: pageId } });
-      const blockId = (page.content as PageContent).content[0]?.attrs?.id;
+      const page = await testApp.get(PrismaService).models.Page.select('content').where({ id: pageId }).first();
+      const blockId = (page?.content as PageContent | undefined)?.content[0]?.attrs?.id;
       if (typeof blockId !== 'string') throw new Error('the page was stored without block ids');
       return blockId;
     };
@@ -421,9 +421,9 @@ describe('MCP access (Integration)', () => {
       const secret = await tokenFor(worker, access({ pages: [{ pageId: pages.holidays, permissions: [read] }] }));
 
       expect(await canRead(secret, pages.summer)).toBe(true);
-      await prisma.page.update({ data: { parentId: null }, where: { id: pages.summer } });
+      await prisma.models.Page.where({ id: pages.summer }).update({ parentId: null });
       const afterMove = await canRead(secret, pages.summer);
-      await prisma.page.update({ data: { parentId: pages.holidays }, where: { id: pages.summer } });
+      await prisma.models.Page.where({ id: pages.summer }).update({ parentId: pages.holidays });
 
       expect(afterMove).toBe(false);
     });
@@ -436,9 +436,9 @@ describe('MCP access (Integration)', () => {
       );
 
       expect(await reaches(secret, 'open')).toBe(true);
-      await prisma.page.update({ data: { parentId: pages.hr }, where: { id: pages.open } });
+      await prisma.models.Page.where({ id: pages.open }).update({ parentId: pages.hr });
       const afterMove = await reaches(secret, 'open');
-      await prisma.page.update({ data: { parentId: null }, where: { id: pages.open } });
+      await prisma.models.Page.where({ id: pages.open }).update({ parentId: null });
 
       expect(afterMove).toBe(false);
     });
@@ -448,9 +448,9 @@ describe('MCP access (Integration)', () => {
       const prisma = testApp.get(PrismaService);
 
       expect(await canRead(secret, pages.restricted)).toBe(true);
-      await prisma.spaceMember.deleteMany({ where: { spaceId: spaces.restricted, userId: worker.id } });
+      await prisma.models.SpaceMember.where({ spaceId: spaces.restricted, userId: worker.id }).deleteAndCount();
       const afterRemoval = await canRead(secret, pages.restricted);
-      await prisma.spaceMember.create({ data: { spaceId: spaces.restricted, userId: worker.id } });
+      await prisma.models.SpaceMember.create({ spaceId: spaces.restricted, userId: worker.id });
 
       expect(afterRemoval).toBe(false);
     });
@@ -489,9 +489,9 @@ describe('MCP access (Integration)', () => {
         worker,
         access({ pages: [{ pageId: '00000000-0000-4000-8000-000000000000', permissions: [read] }] }),
       ).expect(403);
-      await prisma.page.update({ data: { lifecycle: PageLifecycle.TRASHED }, where: { id: pages.bonus } });
+      await prisma.models.Page.where({ id: pages.bonus }).update({ lifecycle: PageLifecycle.TRASHED });
       const trashed = await askForToken(worker, access({ pages: [{ pageId: pages.bonus, permissions: [read] }] }));
-      await prisma.page.update({ data: { lifecycle: PageLifecycle.ACTIVE }, where: { id: pages.bonus } });
+      await prisma.models.Page.where({ id: pages.bonus }).update({ lifecycle: PageLifecycle.ACTIVE });
 
       expect(refusalCode(invisible.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');
       expect(refusalCode(missing.body)).toBe('ACCESS_TOKEN_PAGE_NOT_ACCESSIBLE');

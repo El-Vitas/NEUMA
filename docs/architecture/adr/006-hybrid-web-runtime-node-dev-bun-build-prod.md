@@ -40,3 +40,5 @@ Web `dev` must not be prefixed with `bun --bun` until the upstream Bun+Turbopack
 - Approved by: El-Vitas
 - Related: [001], [004]
 - Revisit when: oven-sh/bun#25639 / vercel/next.js#87630 (Bun+Turbopack dev) are fixed.
+- Modified: 2026-10-11 — Ambos issues están cerrados. Con Bun 1.4.2 y Next 16.4.0, `bun --bun next dev` compiló y sirvió `/es/login` sin la advertencia de `setTimeout` (3 s la primera vez, 62 ms después). La prueba fue corta y no cubrió HMR ni todas las rutas, así que la decisión sigue vigente hasta probar el desarrollo completo sobre Bun.
+- Modified: 2026-10-11 — Probado a fondo: sobre Bun, toda página que usa el logger responde 500 en desarrollo, porque Turbopack carga `pino` como módulo externo con un nombre con hash (`pino-7abf25725c5ea488`) que Bun no resuelve. El servidor además subió a 1,7 GB. La decisión se mantiene; volver a probar cuando Bun resuelva los externos de Turbopack.

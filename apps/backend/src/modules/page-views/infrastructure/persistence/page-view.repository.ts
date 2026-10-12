@@ -1,22 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@neuma/db/generated';
+import { and } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { PageViewEntry, PageViewRepositoryContract } from '../../types/page-view.types';
-
-const viewerSelect = { user: { select: { id: true, name: true } }, viewedAt: true } satisfies Prisma.PageViewSelect;
 
 @Injectable()
 export class PageViewRepository implements PageViewRepositoryContract {
   constructor(private readonly prisma: PrismaService) {}
 
   async countViews(pageId: string): Promise<number> {
-    return this.prisma.pageView.count({ where: { pageId } });
+    const { total } = await this.prisma.models.PageView.where({ pageId }).aggregate((agg) => ({ total: agg.count() }));
+    return total;
   }
 
   async createView(pageId: string, userId: string): Promise<void> {
-    await this.prisma.pageView.create({ data: { pageId, userId } });
+    await this.prisma.models.PageView.create({ pageId, userId });
   }
 
   async findAccessiblePageId(
@@ -25,46 +24,45 @@ export class PageViewRepository implements PageViewRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<null | string> {
-    const page = await this.prisma.page.findFirst({
-      select: { id: true },
-      where: { id: pageId, space: { ...buildSpaceVisibilityFilter(userId, role), workspaceId } },
-    });
+    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
+    const page = await this.prisma.models.Page.where({ id: pageId })
+      .where((candidate) =>
+        candidate.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))),
+      )
+      .select('id')
+      .first();
     return page?.id ?? null;
   }
 
   async findLastViewedAt(pageId: string, userId: string): Promise<Date | null> {
-    const lastView = await this.prisma.pageView.findFirst({
-      orderBy: { viewedAt: 'desc' },
-      select: { viewedAt: true },
-      where: { pageId, userId },
-    });
+    const lastView = await this.prisma.models.PageView.where({ pageId, userId })
+      .select('viewedAt')
+      .orderBy((view) => view.viewedAt.desc())
+      .first();
     return lastView?.viewedAt ?? null;
   }
 
   async getPageViewsEnabled(workspaceId: string): Promise<boolean> {
-    const workspace = await this.prisma.workspace.findUniqueOrThrow({
-      select: { pageViewsEnabled: true },
-      where: { id: workspaceId },
-    });
+    const workspace = await this.prisma.models.Workspace.where({ id: workspaceId }).select('pageViewsEnabled').first();
+    if (workspace === null) throw new Error(`Workspace ${workspaceId} not found while reading its page views setting`);
     return workspace.pageViewsEnabled;
   }
 
   async listViews(pageId: string, limit: number): Promise<readonly PageViewEntry[]> {
-    const views = await this.prisma.pageView.findMany({
-      orderBy: { viewedAt: 'desc' },
-      select: viewerSelect,
-      take: limit,
-      where: { pageId },
-    });
-    return views.map((view) => ({ id: view.user.id, name: view.user.name, viewedAt: view.viewedAt }));
+    const views = await this.prisma.models.PageView.where({ pageId })
+      .select('userId', 'viewedAt')
+      .orderBy((view) => view.viewedAt.desc())
+      .limit(limit)
+      .include('user', (user) => user.select('id', 'name'))
+      .all();
+    return views.flatMap(({ user, viewedAt }) => (user === null ? [] : [{ id: user.id, name: user.name, viewedAt }]));
   }
 
   async setPageViewsEnabled(workspaceId: string, enabled: boolean): Promise<boolean> {
-    const workspace = await this.prisma.workspace.update({
-      data: { pageViewsEnabled: enabled },
-      select: { pageViewsEnabled: true },
-      where: { id: workspaceId },
+    const workspace = await this.prisma.models.Workspace.where({ id: workspaceId }).update({
+      pageViewsEnabled: enabled,
     });
+    if (workspace === null) throw new Error(`Workspace ${workspaceId} not found while updating its page views setting`);
     return workspace.pageViewsEnabled;
   }
 }

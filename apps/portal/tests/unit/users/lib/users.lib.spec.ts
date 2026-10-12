@@ -38,12 +38,19 @@ describe('buildUsersInitialColumnFilters', () => {
 
 describe('isCreateUserInputValid', () => {
   it('accepts a valid input', () => {
-    expect(isCreateUserInputValid({ name: 'Test User', email: 'test@example.com', password: 'password123' })).toBe(
-      true,
-    );
+    expect(
+      isCreateUserInputValid({
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        role: 'CLIENT',
+      }),
+    ).toBe(true);
   });
 
   it('rejects a short password', () => {
-    expect(isCreateUserInputValid({ name: 'Test User', email: 'test@example.com', password: 'short' })).toBe(false);
+    expect(
+      isCreateUserInputValid({ name: 'Test User', email: 'test@example.com', password: 'short', role: 'CLIENT' }),
+    ).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
-enum FileAssetLifecycle {
-  ACTIVE
-  DELETED
+// use prisma-8
+native_enum FileAssetLifecycle {
+  ACTIVE = "ACTIVE"
+  DELETED = "DELETED"
 }

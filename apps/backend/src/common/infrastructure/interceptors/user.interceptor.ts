@@ -26,16 +26,9 @@ export class UserInterceptor implements NestInterceptor {
   }
 
   private async loadUserFromDatabase(payload: TokenPayload): Promise<NonNullable<RequestUser['data']>> {
-    const user = await this.prisma.user.findUnique({
-      select: {
-        email: true,
-        id: true,
-        isActive: true,
-        name: true,
-        role: true,
-      },
-      where: { id: payload.sub },
-    });
+    const user = await this.prisma.models.User.select('email', 'id', 'isActive', 'name', 'role')
+      .where({ id: payload.sub })
+      .first();
     if (user?.isActive !== true) {
       throw new UnauthorizedException('El usuario ya no existe o está inactivo');
     }

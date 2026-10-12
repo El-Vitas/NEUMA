@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonObject } from '@neuma/db';
 import { PAGE_FILTER_GROUP_OPERATOR, Result } from '@neuma/shared';
 import type { McpColumnsInHand, McpViewShapeInput } from '../types/mcp.collections.types';
 import type { McpPerson } from '../types/mcp.types';
@@ -18,9 +18,9 @@ const buildFilter = (
   known: McpColumnsInHand,
   where: NonNullable<McpViewShapeInput['where']>,
   people: readonly McpPerson[],
-): Result<Prisma.InputJsonObject | null, string> => {
+): Result<JsonObject | null, string> => {
   if (where.length === 0) return Result.ok(null);
-  const conditions: Prisma.InputJsonObject[] = [];
+  const conditions: JsonObject[] = [];
   for (const condition of where) {
     const column = requireMcpColumn(known.columns, condition.column, known.listNames);
     if (column.isFail()) return Result.fail(column.getError());
@@ -39,7 +39,7 @@ const buildFilter = (
 const buildSorts = (
   known: McpColumnsInHand,
   sort: NonNullable<McpViewShapeInput['sort']>,
-): Result<Prisma.InputJsonObject[], string> => {
+): Result<JsonObject[], string> => {
   const keys = requireKeys(
     known,
     sort.map((rule) => rule.column),
@@ -59,8 +59,8 @@ export const buildMcpViewConfiguration = (
   known: McpColumnsInHand,
   shape: McpViewShapeInput,
   people: readonly McpPerson[],
-  base: Prisma.InputJsonObject,
-): Result<Prisma.InputJsonObject, string> => {
+  base: JsonObject,
+): Result<JsonObject, string> => {
   const filter = shape.where === undefined ? null : buildFilter(known, shape.where, people);
   const sorts = shape.sort === undefined ? null : buildSorts(known, shape.sort);
   const groupBy = shape.groupBy === undefined ? null : buildGroupBy(known, shape.groupBy);

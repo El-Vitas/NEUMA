@@ -1,5 +1,6 @@
 'use client';
 
+import type { UserRole } from '@neuma/shared';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -17,9 +18,10 @@ import {
 import { FormField } from '@/shared/components/ui/form-field';
 import { PASSWORD_MIN_LENGTH } from '@/shared/constants/password.constants';
 import { hasActionError, readActionFailureReason } from '@/shared/lib/action-result';
-import { USERS_DIALOG_INPUT_CLASS } from '../constants/users.constants';
+import { USERS_DIALOG_INPUT_CLASS, USERS_NEW_ACCOUNT_ROLE } from '../constants/users.constants';
 import { isCreateUserInputValid } from '../lib/users.lib';
 import { createUserAction } from '../server/actions/users.actions';
+import { UsersCreateDialogRole } from './users.create.dialog.role';
 
 export const UsersCreateDialog = () => {
   const t = useTranslations('users');
@@ -28,20 +30,22 @@ export const UsersCreateDialog = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>(USERS_NEW_ACCOUNT_ROLE);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isValid = isCreateUserInputValid({ name, email, password });
+  const isValid = isCreateUserInputValid({ name, email, password, role });
 
   const resetForm = () => {
     setName('');
     setEmail('');
     setPassword('');
+    setRole(USERS_NEW_ACCOUNT_ROLE);
   };
 
   const handleCreate = async () => {
     setIsSubmitting(true);
     try {
-      const result = await createUserAction({ name, email, password });
+      const result = await createUserAction({ name, email, password, role });
 
       if (hasActionError(result)) {
         toast.error(tErrors(`reasons.${readActionFailureReason(result)}`));
@@ -99,6 +103,7 @@ export const UsersCreateDialog = () => {
             value={password}
           />
           <p className="text-muted-foreground text-xs">{t('passwordRequirement', { count: PASSWORD_MIN_LENGTH })}</p>
+          <UsersCreateDialogRole onChange={setRole} value={role} />
         </div>
 
         <DialogFooter>

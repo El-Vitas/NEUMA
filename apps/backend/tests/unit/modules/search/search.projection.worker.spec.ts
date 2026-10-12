@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { OutboxEventRecord } from '@/common/types/outbox.types';
+import type { OutboxDeliveryRecord } from '@/common/types/outbox.types';
 import { SEARCH_MAX_VERSION_MARKER } from '@/modules/search/constants/search.constants';
 import { SearchProjectionWorker } from '@/modules/search/infrastructure/worker/search.projection.worker';
 import type { PageBlocksProjection, PageBlocksRemoval } from '@/modules/search/types/page-block.types';
@@ -35,12 +35,12 @@ const activePage: SearchProjectionPage = {
   version: 12,
 };
 
-const event = (overrides: Partial<OutboxEventRecord> = {}): OutboxEventRecord => ({
+const event = (overrides: Partial<OutboxDeliveryRecord> = {}): OutboxDeliveryRecord => ({
   aggregateId: 'page-1',
   aggregateType: 'PAGE',
   attemptCount: 1,
+  deliveryId: 'event-1',
   eventType: 'PAGE_UPDATED',
-  id: 'event-1',
   idempotencyKey: 'page:page-1:version:12',
   payload: { pageId: 'page-1', version: 12 },
   payloadVersion: 1,
@@ -54,7 +54,7 @@ type OutboxStubOverrides = Partial<{
 }>;
 
 const createOutboxStub = (
-  claimPending: () => Promise<readonly OutboxEventRecord[]>,
+  claimPending: () => Promise<readonly OutboxDeliveryRecord[]>,
   overrides: OutboxStubOverrides = {},
 ) => ({
   claimPending,
@@ -82,7 +82,7 @@ const createFailingWorker = (outbox: ReturnType<typeof createOutboxStub>): Searc
   return new SearchProjectionWorker(outbox, source, createProjectionStub());
 };
 
-const createWorker = (events: readonly OutboxEventRecord[]) => {
+const createWorker = (events: readonly OutboxDeliveryRecord[]) => {
   const applied: SearchDocumentInput[] = [];
   const outbox = createOutboxStub(() => Promise.resolve(events));
   const source = createSourceStub({ findPage: () => Promise.resolve(activePage) });
@@ -297,7 +297,7 @@ describe('SearchProjectionWorker', () => {
   });
 
   test('does not use process memory as the idempotency source of truth', async () => {
-    const { applied, worker } = createWorker([event(), event({ id: 'event-2' })]);
+    const { applied, worker } = createWorker([event(), event({ deliveryId: 'event-2' })]);
 
     await worker.processBatch(10);
 

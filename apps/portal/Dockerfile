@@ -3,14 +3,14 @@
 # `turbo prune` reduces the monorepo to the portal's workspace subgraph so the
 # image installs, builds and ships only what this app needs.
 
-FROM docker.io/oven/bun:1.3-alpine AS base
+FROM docker.io/oven/bun:1.4.2-alpine AS base
 WORKDIR /app
 
 # Extract the portal subgraph: pruned manifests + lockfile land in out/json,
 # pruned sources in out/full. turbo is a glibc binary, so Alpine needs libc6-compat.
 FROM base AS pruner
 RUN apk add --no-cache libc6-compat
-RUN bun install -g turbo@2.9.14
+RUN bun install -g turbo@2.11.7
 COPY . .
 RUN turbo prune @neuma/portal --docker
 
@@ -22,6 +22,9 @@ RUN turbo prune @neuma/portal --docker
 FROM base AS builder
 ARG BACKEND_URL=http://backend:3000
 ENV BACKEND_URL=$BACKEND_URL
+# The browser opens this socket itself, so it is the backend's public address, and Next bakes it in at build time.
+ARG NEXT_PUBLIC_COLLABORATION_WS_URL=ws://localhost:3000/api/v1/collaboration
+ENV NEXT_PUBLIC_COLLABORATION_WS_URL=$NEXT_PUBLIC_COLLABORATION_WS_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=pruner /app/out/json/ ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
@@ -36,6 +39,8 @@ RUN rm -rf \
       apps/portal/.next/standalone/node_modules/.bun/@img+sharp-libvips-linux-* \
       apps/portal/.next/standalone/node_modules/.bun/@img+sharp-linux-* \
     && find apps/portal/.next -name '*.map' -delete
+# The portal ships no static files of its own today; an empty folder keeps the runner's copy valid either way.
+RUN mkdir -p apps/portal/public
 
 # Runtime image: the self-contained Next standalone server plus its static assets,
 # served by Bun under an init process.

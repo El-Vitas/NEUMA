@@ -8,9 +8,6 @@ export const MCP_ROUTE = 'mcp';
 /** The call limit counts requests, so a batch of a thousand would count as one. */
 export const MCP_BATCH_REFUSED_MESSAGE = 'Send one call per request; several calls in one request are not accepted.';
 
-/** Prisma's unique-constraint error code; here, another request with the same id. */
-export const MCP_UNIQUE_VIOLATION_CODE = 'P2002';
-
 /** Older pending requests may or may not have run, so their ids stay taken: retrying could duplicate them. */
 export const MCP_ABANDONED_REQUEST_MS = 10 * 60 * 1000;
 

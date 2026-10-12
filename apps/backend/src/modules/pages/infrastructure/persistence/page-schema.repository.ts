@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { Injectable } from '@nestjs/common';
-import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
-import { Prisma } from '@neuma/db/generated';
+import type { JsonObject } from '@neuma/db';
+import { and, DatabasePropertyType, PageLifecycle } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
 import { readPagePropertyOptionValues } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
@@ -14,6 +14,7 @@ import {
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { WorkspaceMemberRepository } from '../../../../common/infrastructure/persistence/workspace-member.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import type { NeumaModels } from '../../../../prisma/types/prisma.types';
 import { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
 import type {
   PageRowsPage,
@@ -22,30 +23,8 @@ import type {
   PageSchemaShape,
 } from '../../types/page-schema.types';
 
-const schemaPropertySelection = {
-  key: true,
-  label: true,
-  options: true,
-  required: true,
-  type: true,
-} satisfies Prisma.PageSchemaPropertySelect;
-
-const schemaViewSelection = {
-  configuration: true,
-  isDefault: true,
-  name: true,
-  type: true,
-} satisfies Prisma.PageSchemaViewSelect;
-
-const pageRowSelection = {
-  id: true,
-  lifecycle: true,
-  order: true,
-  parentId: true,
-  propertyValues: true,
-  spaceId: true,
-  title: true,
-} satisfies Prisma.PageSelect;
+const selectSchemaProperties = (properties: NeumaModels['PageSchemaProperty']) =>
+  properties.select('key', 'label', 'options', 'required', 'type');
 
 @Injectable()
 export class PageSchemaRepository implements PageSchemaRepositoryContract {
@@ -56,21 +35,20 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
 
   async resolveSchemaProperties(pageId: null | string): Promise<readonly SchemaPropertyDefinition[]> {
     if (pageId === null) return [];
-    const properties = await this.prisma.pageSchemaProperty.findMany({
-      orderBy: { order: 'asc' },
-      select: schemaPropertySelection,
-      where: { pageId },
-    });
+    const properties = await selectSchemaProperties(this.prisma.models.PageSchemaProperty)
+      .where({ pageId })
+      .orderBy((property) => property.order.asc())
+      .all();
     return properties.map(toSchemaPropertyDefinition);
   }
 
   async listPersonPropertyKeys(pageIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>> {
     if (pageIds.length === 0) return new Map();
-    const properties = await this.prisma.pageSchemaProperty.findMany({
-      orderBy: { order: 'asc' },
-      select: { key: true, pageId: true },
-      where: { pageId: { in: [...pageIds] }, type: DatabasePropertyType.PERSON },
-    });
+    const properties = await this.prisma.models.PageSchemaProperty.select('key', 'pageId')
+      .where({ type: DatabasePropertyType.PERSON })
+      .where((property) => property.pageId.in([...pageIds]))
+      .orderBy((property) => property.order.asc())
+      .all();
     const keysByPage = new Map<string, string[]>();
     for (const property of properties)
       keysByPage.set(property.pageId, [...(keysByPage.get(property.pageId) ?? []), property.key]);
@@ -78,7 +56,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
   }
 
   async getSchema(pageId: string): Promise<PageSchemaDefinition> {
-    return this.loadSchemaSummary(this.prisma, pageId);
+    return this.loadSchemaSummary(this.prisma.models, pageId);
   }
 
   async defineSchema(
@@ -86,28 +64,32 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     { properties, views }: PageSchemaShape,
     readShape?: PageSchemaShape,
   ): Promise<PageSchemaDefinition | typeof SCHEMA_CHANGED_MEANWHILE> {
-    return this.prisma.$transaction(async (transaction) => {
-      await transaction.$queryRaw`SELECT "id" FROM "Page" WHERE "id" = ${pageId} FOR UPDATE`;
-      if (readShape !== undefined && !(await this.isStillTheShape(transaction, pageId, readShape)))
+    return this.prisma.transaction(async (transaction) => {
+      await transaction.query(
+        this.prisma.sql`SELECT "id" FROM "Page" WHERE "id" = ${pageId} FOR UPDATE`
+          .returnsRow({ id: this.prisma.tables.Page.columns.id })
+          .build(),
+      );
+      if (readShape !== undefined && !(await this.isStillTheShape(transaction.orm.public, pageId, readShape)))
         return SCHEMA_CHANGED_MEANWHILE;
-      await transaction.pageSchemaProperty.deleteMany({ where: { pageId } });
-      await transaction.pageSchemaView.deleteMany({ where: { pageId } });
-      await transaction.pageSchemaProperty.createMany({
-        data: properties.map((property, order) => ({
+      await transaction.orm.public.PageSchemaProperty.where({ pageId }).deleteAndCount();
+      await transaction.orm.public.PageSchemaView.where({ pageId }).deleteAndCount();
+      await transaction.orm.public.PageSchemaProperty.createAndCount(
+        properties.map((property, order) => ({
           key: property.key,
           label: property.label,
           options:
             property.options === null
-              ? Prisma.JsonNull
+              ? null
               : property.options.map((option) => ({ color: option.color, value: option.value })),
           order,
           pageId,
           required: property.required,
           type: property.type,
         })),
-      });
-      await transaction.pageSchemaView.createMany({
-        data: views.map((view, order) => ({
+      );
+      await transaction.orm.public.PageSchemaView.createAndCount(
+        views.map((view, order) => ({
           configuration: view.configuration,
           isDefault: view.isDefault,
           name: view.name,
@@ -115,8 +97,8 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
           pageId,
           type: view.type,
         })),
-      });
-      return this.loadSchemaSummary(transaction, pageId);
+      );
+      return this.loadSchemaSummary(transaction.orm.public, pageId);
     });
   }
 
@@ -130,37 +112,43 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     rename: { readonly from: string; readonly to: null | string },
     properties: readonly SchemaPropertyDefinition[],
   ): Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED> {
-    return this.prisma.$transaction(async (transaction) => {
-      const held = await transaction.$queryRaw<{ options: unknown }[]>`
+    return this.prisma.transaction(async (transaction) => {
+      const held = await transaction.query(
+        this.prisma.sql`
         SELECT "options" FROM "PageSchemaProperty" WHERE "pageId" = ${pageId} AND "key" = ${propertyKey} FOR UPDATE
-      `;
+      `
+          .returnsRow({ options: this.prisma.tables.PageSchemaProperty.columns.options })
+          .build(),
+      );
       const stillThere = readPagePropertyOptionValues(held[0]?.options)?.includes(rename.from) ?? false;
       if (!stillThere) return SCHEMA_OPTION_ALREADY_MOVED;
       const rewritten = properties.find((property) => property.key === propertyKey);
-      await transaction.pageSchemaProperty.updateMany({
-        data: {
-          options:
-            rewritten?.options === null || rewritten?.options === undefined
-              ? Prisma.JsonNull
-              : rewritten.options.map((option) => ({ color: option.color, value: option.value })),
-        },
-        where: { key: propertyKey, pageId },
+      await transaction.orm.public.PageSchemaProperty.where({ key: propertyKey, pageId }).updateAndCount({
+        options:
+          rewritten?.options === null || rewritten?.options === undefined
+            ? null
+            : rewritten.options.map((option) => ({ color: option.color, value: option.value })),
       });
+      const page = this.prisma.tables.Page;
       // Rows are locked so a card moved meanwhile does not return to its old column.
-      const rows = await transaction.$queryRaw<{ id: string; propertyValues: Prisma.JsonValue }[]>`
+      const rows = await transaction.query(
+        this.prisma.sql`
         SELECT "id", "propertyValues" FROM "Page"
         WHERE "parentId" = ${pageId} AND "propertyValues" IS NOT NULL
         FOR UPDATE
-      `;
+      `
+          .returnsRow({ id: page.columns.id, propertyValues: page.columns.propertyValues })
+          .build(),
+      );
       for (const row of rows) {
         const stored = parseSchemaPropertyValues(row.propertyValues);
         if (stored === null || !propertyValueMentions(stored[propertyKey], rename.from)) continue;
-        await transaction.page.update({
-          data: { propertyValues: rewritePropertyValues(stored, propertyKey, rename.from, rename.to) },
-          where: { id: row.id },
+        const updated = await transaction.orm.public.Page.where({ id: row.id }).update({
+          propertyValues: rewritePropertyValues(stored, propertyKey, rename.from, rename.to),
         });
+        if (updated === null) throw new Error(`Page ${row.id} vanished while its option was rewritten`);
       }
-      return this.loadSchemaSummary(transaction, pageId);
+      return this.loadSchemaSummary(transaction.orm.public, pageId);
     });
   }
 
@@ -168,10 +156,10 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
   async setViewConfiguration(
     pageId: string,
     viewName: string,
-    configuration: Prisma.InputJsonObject,
+    configuration: JsonObject,
   ): Promise<PageSchemaDefinition> {
-    await this.prisma.pageSchemaView.updateMany({ data: { configuration }, where: { name: viewName, pageId } });
-    return this.loadSchemaSummary(this.prisma, pageId);
+    await this.prisma.models.PageSchemaView.where({ name: viewName, pageId }).updateAndCount({ configuration });
+    return this.loadSchemaSummary(this.prisma.models, pageId);
   }
 
   async listRows(
@@ -181,17 +169,22 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     role: UserRole,
     limit: number,
   ): Promise<PageRowsPage> {
+    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
     // One extra row tells a collection that fits exactly from one that was truncated.
-    const found = await this.prisma.page.findMany({
-      orderBy: { order: 'asc' },
-      select: pageRowSelection,
-      take: limit + 1,
-      where: {
-        lifecycle: PageLifecycle.ACTIVE,
-        parentId: pageId,
-        space: { workspaceId, ...buildSpaceVisibilityFilter(userId, role) },
-      },
-    });
+    const found = await this.prisma.models.Page.select(
+      'id',
+      'lifecycle',
+      'order',
+      'parentId',
+      'propertyValues',
+      'spaceId',
+      'title',
+    )
+      .where({ lifecycle: PageLifecycle.ACTIVE, parentId: pageId })
+      .where((page) => page.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))))
+      .orderBy((page) => page.order.asc())
+      .limit(limit + 1)
+      .all();
     return {
       hasMore: found.length > limit,
       rows: found.slice(0, limit).map((row) => ({
@@ -210,34 +203,25 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return this.workspaceMemberRepository.listActiveMemberIds(workspaceId);
   }
 
-  private async isStillTheShape(
-    transaction: Prisma.TransactionClient,
-    pageId: string,
-    readShape: PageSchemaShape,
-  ): Promise<boolean> {
-    const current = await this.loadSchemaSummary(transaction, pageId);
+  private async isStillTheShape(models: NeumaModels, pageId: string, readShape: PageSchemaShape): Promise<boolean> {
+    const current = await this.loadSchemaSummary(models, pageId);
     return isDeepStrictEqual(
       { properties: current.properties, views: current.views },
       { properties: readShape.properties, views: readShape.views },
     );
   }
 
-  private async loadSchemaSummary(
-    client: Pick<Prisma.TransactionClient, 'pageSchemaProperty' | 'pageSchemaView'>,
-    pageId: string,
-  ): Promise<PageSchemaDefinition> {
+  private async loadSchemaSummary(models: NeumaModels, pageId: string): Promise<PageSchemaDefinition> {
     const [properties, views] = await Promise.all([
-      client.pageSchemaProperty.findMany({
-        orderBy: { order: 'asc' },
-        select: schemaPropertySelection,
-        where: { pageId },
-      }),
+      selectSchemaProperties(models.PageSchemaProperty)
+        .where({ pageId })
+        .orderBy((property) => property.order.asc())
+        .all(),
       // Ordered by the configured tab order, not by name, so renaming a view does not move it.
-      client.pageSchemaView.findMany({
-        orderBy: { order: 'asc' },
-        select: schemaViewSelection,
-        where: { pageId },
-      }),
+      models.PageSchemaView.select('configuration', 'isDefault', 'name', 'type')
+        .where({ pageId })
+        .orderBy((view) => view.order.asc())
+        .all(),
     ]);
     return {
       pageId,

@@ -1,5 +1,4 @@
-import type { PageLifecycle } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonValue, PageLifecycle } from '@neuma/db';
 import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_CONTENT_STORE_OUTCOME, PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
@@ -21,7 +20,7 @@ export interface PageHierarchyRow extends PageParentReference {
 }
 
 export interface CreatePageInput {
-  readonly content: Prisma.InputJsonValue;
+  readonly content: JsonValue | PageContent;
   readonly createdById: string;
   readonly parentId: null | string;
   readonly propertyValues: SchemaPropertyValues | null;
@@ -40,11 +39,6 @@ export interface StorePageContentInput {
 
 export type PageContentStoreOutcome = (typeof PAGE_CONTENT_STORE_OUTCOME)[keyof typeof PAGE_CONTENT_STORE_OUTCOME];
 
-export interface StoredPageContentRow {
-  readonly content: Prisma.JsonValue;
-  readonly title: string;
-}
-
 export interface UpdatePagePropertyValuesInput {
   readonly pageId: string;
   /** Saved in the same write; omitted leaves the title untouched. */
@@ -56,10 +50,6 @@ export interface UpdatePagePropertyValuesInput {
 export type PagePropertyValuesMerge<TError> = (
   current: SchemaPropertyValues | null,
 ) => Result<SchemaPropertyValues | null, TError>;
-
-export interface StoredPagePropertyValuesRow {
-  readonly propertyValues: Prisma.JsonValue;
-}
 
 export type PageContentRewrite = (current: PageContent) => PageContent;
 
@@ -108,7 +98,7 @@ export interface UpdatePagePropertiesInput {
 }
 
 export interface PageSummary {
-  readonly content: Prisma.JsonValue;
+  readonly content: JsonValue;
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | { readonly id: string; readonly name: string };
@@ -147,10 +137,10 @@ export interface PageMoveDestinations {
 }
 
 export interface PageCopySource {
-  readonly content: Prisma.JsonValue;
-  readonly cover: Prisma.JsonValue;
-  readonly icon: Prisma.JsonValue;
-  readonly propertyValues: Prisma.JsonValue;
+  readonly content: JsonValue;
+  readonly cover: JsonValue;
+  readonly icon: JsonValue;
+  readonly propertyValues: JsonValue;
   readonly spaceId: string;
 }
 

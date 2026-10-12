@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PageLifecycle, SearchSourceType } from '@neuma/db';
-import type { Prisma } from '@neuma/db/generated';
+import { type JsonValue, PageLifecycle, SearchSourceType } from '@neuma/db';
 import { listPageBlocks, readStoredPageContent } from '@neuma/shared';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxProjectionWorker } from '../../../../common/infrastructure/worker/outbox-projection.worker';
@@ -24,7 +23,7 @@ const toPageProjection = (page: {
   authorId: string;
   authorName: string | null;
   content: unknown;
-  icon: Prisma.JsonValue;
+  icon: JsonValue;
   id: string;
   parentPageId: string | null;
   parentPageTitle: string | null;

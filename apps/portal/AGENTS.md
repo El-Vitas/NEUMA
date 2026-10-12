@@ -198,12 +198,12 @@ tests/
 - Unit tests mirror `modules/`. `tests/unit/auth/lib/auth.form.lib.spec.ts` → `modules/auth/lib/auth.form.lib.ts`.
 - Never mock `fetch` or `api-client.ts` directly — MSW intercepts at network level.
 - Default handlers in `handlers/` for happy path; `server.use(...)` for per-test overrides.
-- `onUnhandledRequest: 'error'` — any unmatched fetch fails the test.
+- `onUnhandledFrame: 'error'` — any unmatched fetch fails the test.
 - Files that `import "server-only"` or use `next/headers` cannot be imported in jsdom. Test `apiRequest` (no `next/headers` dependency) instead of `apiServer`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

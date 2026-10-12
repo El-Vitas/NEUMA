@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { Database } from 'bun:sqlite';
-import yaml from 'js-yaml';
+import { dump, load } from 'js-yaml';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
 const DB_PATH = `${ROOT}docs/business-rules/rules.db`;
@@ -116,7 +116,7 @@ const cmdBuild = () => {
   const tx = db.transaction(() => {
     for (const file of files) {
       const content = readFileSync(`${RULES_DIR}/${file}`, 'utf-8');
-      const data = yaml.load(content);
+      const data = load(content);
       insertFeature.run(data.id, data.name, data.purpose, data.scope || '');
       for (const rule of data.rules || []) {
         insertRule.run(
@@ -142,7 +142,7 @@ const cmdBuild = () => {
     );
     for (const file of files) {
       const content = readFileSync(`${RULES_DIR}/${file}`, 'utf-8');
-      const data = yaml.load(content);
+      const data = load(content);
       for (const rule of data.rules || []) {
         if (rule.supersedes) {
           updSuperseded.run(rule.id, rule.supersedes);
@@ -291,7 +291,7 @@ const cmdQuery = (args) => {
 
 const cmdAdd = () => {
   const input = readFileSync('/dev/stdin', 'utf-8');
-  const data = yaml.load(input);
+  const data = load(input);
 
   if (!data.feature || !data.rule) {
     process.exit(1);
@@ -481,7 +481,7 @@ const cmdDump = () => {
     };
 
     const cleanDoc = JSON.parse(JSON.stringify(doc));
-    const yamlContent = yaml.dump(cleanDoc, { indent: 2, lineWidth: 120, noRefs: true });
+    const yamlContent = dump(cleanDoc, { indent: 2, lineWidth: 120, noRefs: true });
     writeFileSync(`${RULES_DIR}/${feature.id.toLowerCase()}.yaml`, yamlContent);
   }
 

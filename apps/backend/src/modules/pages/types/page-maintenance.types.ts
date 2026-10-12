@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonValue } from '@neuma/db';
 import type { PageContent, UserRole } from '@neuma/shared';
 import type { PageContentStoreOutcome } from './page.types';
 
@@ -9,7 +9,7 @@ export interface PageMaintenanceViewer {
 }
 
 export interface PageMaintenanceRow {
-  readonly content: Prisma.JsonValue;
+  readonly content: JsonValue;
   readonly id: string;
 }
 

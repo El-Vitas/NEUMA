@@ -14,12 +14,6 @@ export const REDACTED_MENTION_LABEL = 'Restricted page';
 /** Serializes moves per workspace so two concurrent moves cannot close a cycle. */
 export const PAGE_MOVES_LOCK_PREFIX = 'page-moves:';
 
-/**
- * Concurrent creations can get the same number (next = highest + 1), so creation time
- * breaks the tie and the tree reads the same every time.
- */
-export const PAGE_SIBLING_ORDER = [{ order: 'asc' }, { createdAt: 'asc' }] as const;
-
 export const PAGE_CONTENT_STORE_OUTCOME = {
   missing: 'MISSING',
   stored: 'STORED',

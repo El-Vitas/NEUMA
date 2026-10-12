@@ -1,16 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { type AuthSession, Result } from '@neuma/shared';
+import { Result, USER_ROLE, type User } from '@neuma/shared';
 import { toUser } from '../../common/utils/auth.utils';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PasswordAdapter } from '../auth/infrastructure/adapters/password.adapter';
-import { TokenAdapter } from '../auth/infrastructure/adapters/token.adapter';
-import { assertEmailAvailable } from './domain/user.domain';
-import type { EmailAlreadyInUseError } from './domain/user.error';
-import { CreateUserDto } from './dto/user.create.dto';
+import { assertEmailAvailable, assertNoAdminYet } from './domain/user.domain';
+import type { AdminAlreadyExistsError, EmailAlreadyInUseError } from './domain/user.error';
 import { ListUsersDto } from './dto/user.list.dto';
 import { UpdatePasswordDto, UpdateUserDto } from './dto/user.update.dto';
 import { UserRepository } from './infrastructure/persistence/user.repository';
-import type { UserListResult } from './types/user.types';
+import type { NewAccount, UserListResult } from './types/user.types';
 
 @Injectable()
 export class UsersService {
@@ -18,7 +16,6 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly userRepository: UserRepository,
     private readonly passwordAdapter: PasswordAdapter,
-    private readonly tokenAdapter: TokenAdapter,
   ) {}
 
   async listUsers(dto: ListUsersDto): Promise<UserListResult> {
@@ -30,7 +27,7 @@ export class UsersService {
     return { items, page: dto.page, pageSize: dto.pageSize, total };
   }
 
-  async createUser(input: CreateUserDto): Promise<Result<AuthSession, EmailAlreadyInUseError>> {
+  async createUser(input: NewAccount): Promise<Result<User, EmailAlreadyInUseError>> {
     const existing = await this.userRepository.findByEmail(input.email);
     const emailError = assertEmailAvailable(existing, input.email);
     if (emailError !== null) {
@@ -38,42 +35,41 @@ export class UsersService {
     }
 
     const hashedPassword = await this.passwordAdapter.hash(input.password);
-    const created = await this.userRepository.create({
-      email: input.email,
-      name: input.name,
-      password: hashedPassword,
-    });
+    const created = await this.userRepository.create({ ...input, password: hashedPassword });
+    return Result.ok(toUser(created));
+  }
 
-    return Result.ok(await this.tokenAdapter.issueSession(toUser(created)));
+  /** The only way in on a fresh install: run from the server's command line, and only while no admin exists. */
+  async createFirstAdmin(
+    input: Omit<NewAccount, 'role'>,
+  ): Promise<Result<User, AdminAlreadyExistsError | EmailAlreadyInUseError>> {
+    const adminError = assertNoAdminYet(await this.userRepository.countAdmins());
+    if (adminError !== null) return Result.fail(adminError);
+    return this.createUser({ ...input, role: USER_ROLE.ADMIN });
   }
 
   async updateUser(id: string, dto: UpdateUserDto): Promise<{ id: string; email: string; name: string }> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.models.User.where({ id }).first();
     if (!user) throw new NotFoundException('User not found');
+    if (dto.name === undefined) return { email: user.email, id: user.id, name: user.name };
 
-    const data: { name?: string } = {};
-    if (dto.name !== undefined) data.name = dto.name;
-
-    const updated = await this.prisma.user.update({
-      where: { id },
-      data,
-      select: { id: true, email: true, name: true },
-    });
+    const updated = await this.prisma.models.User.select('id', 'email', 'name')
+      .where({ id })
+      .update({ name: dto.name });
+    if (updated === null) throw new NotFoundException('User not found');
 
     return updated;
   }
 
   async updatePassword(id: string, dto: UpdatePasswordDto): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.models.User.where({ id }).first();
     if (!user) throw new NotFoundException('User not found');
 
     const isValid = await this.passwordAdapter.compare(dto.currentPassword, user.password);
     if (!isValid) throw new BadRequestException('Current password is incorrect');
 
     const hashedPassword = await this.passwordAdapter.hash(dto.newPassword);
-    await this.prisma.user.update({
-      where: { id },
-      data: { password: hashedPassword },
-    });
+    const updated = await this.prisma.models.User.where({ id }).update({ password: hashedPassword });
+    if (updated === null) throw new NotFoundException('User not found');
   }
 }

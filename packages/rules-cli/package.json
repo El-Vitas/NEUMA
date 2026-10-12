@@ -12,6 +12,6 @@
     "clean": "bun clean-history.mjs"
   },
   "dependencies": {
-    "js-yaml": "^4.2.0"
+    "js-yaml": "^5.4.3"
   }
 }

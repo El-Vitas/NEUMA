@@ -5,12 +5,14 @@ import {
   type UserRole,
 } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
+import { requireRow } from '../../../../common/utils/required-row.utils';
+import type { NeumaModels } from '../../../../prisma/types/prisma.types';
 import type {
   AccessTokenNamedGrant,
   AccessTokenNamedPageGrant,
   AccessTokenRecord,
 } from '../../domain/access-token.domain.types';
-import type { StoredAccessToken } from '../../types/access-token.types';
+import type { AccessTokenFilter, StoredAccessToken } from '../../types/access-token.types';
 
 /** The column is free text, so a permission removed from the catalog is dropped instead of breaking the read. */
 export const readStoredPermissions = (stored: readonly string[]): readonly AccessTokenPermission[] =>
@@ -20,28 +22,71 @@ export const readStoredPermissions = (stored: readonly string[]): readonly Acces
   });
 
 /** Names come only from places the viewer can see, so an admin cannot read private names off another's token. */
-export const accessTokenRecordSelectFor = (viewerId: string, viewerRole: UserRole) =>
-  ({
-    _count: { select: { grants: true, pageGrants: true } },
-    allSpacesPermissions: true,
-    createdAt: true,
-    displayPrefix: true,
-    expiresAt: true,
-    grants: {
-      select: { permissions: true, space: { select: { id: true, name: true } } },
-      where: { space: buildSpaceVisibilityFilter(viewerId, viewerRole) },
-    },
-    id: true,
-    lastUsedAt: true,
-    name: true,
-    pageGrants: {
-      select: {
-        page: { select: { id: true, space: { select: { name: true } }, title: true } },
-        permissions: true,
-      },
-      where: { page: { space: buildSpaceVisibilityFilter(viewerId, viewerRole) } },
-    },
-  }) as const;
+export const readStoredAccessTokens = async (
+  models: NeumaModels,
+  viewerId: string,
+  viewerRole: UserRole,
+  filter: AccessTokenFilter,
+): Promise<readonly (StoredAccessToken & { readonly user: { readonly id: string; readonly name: string } })[]> => {
+  const canSeeSpace = buildSpaceVisibilityFilter(viewerId, viewerRole);
+  const rows = await models.AccessToken.select(
+    'allSpacesPermissions',
+    'createdAt',
+    'displayPrefix',
+    'expiresAt',
+    'id',
+    'lastUsedAt',
+    'name',
+  )
+    .where(filter)
+    .include('grants', (grants) =>
+      grants.combine({
+        total: grants.count(),
+        visible: grants
+          .where((grant) => grant.space.some(canSeeSpace))
+          .select('permissions')
+          .include('space', (space) => space.select('id', 'name')),
+      }),
+    )
+    .include('pageGrants', (pageGrants) =>
+      pageGrants.combine({
+        total: pageGrants.count(),
+        visible: pageGrants
+          .where((grant) => grant.page.some((page) => page.space.some(canSeeSpace)))
+          .select('permissions')
+          .include('page', (page) => page.select('id', 'title').include('space', (space) => space.select('name'))),
+      }),
+    )
+    .include('user', (user) => user.select('id', 'name'))
+    .orderBy((token) => token.createdAt.desc())
+    .all();
+  return rows.map((row) => ({
+    _count: { grants: row.grants.total, pageGrants: row.pageGrants.total },
+    allSpacesPermissions: row.allSpacesPermissions,
+    createdAt: row.createdAt,
+    displayPrefix: row.displayPrefix,
+    expiresAt: row.expiresAt,
+    grants: row.grants.visible.map((grant) => ({
+      permissions: grant.permissions,
+      space: requireRelation(grant.space, 'space of a grant'),
+    })),
+    id: row.id,
+    lastUsedAt: row.lastUsedAt,
+    name: row.name,
+    pageGrants: row.pageGrants.visible.map((grant) => {
+      const page = requireRelation(grant.page, 'page of a grant');
+      return {
+        page: { id: page.id, space: requireRelation(page.space, 'space of a page'), title: page.title },
+        permissions: grant.permissions,
+      };
+    }),
+    user: requireRelation(row.user, 'owner of a token'),
+  }));
+};
+
+/** The foreign keys are required, so a missing related row means the read raced a delete. */
+export const requireRelation = <Related>(related: Related | null, description: string): Related =>
+  requireRow(related, `The ${description}`);
 
 const toNamedGrant = (grant: StoredAccessToken['grants'][number]): AccessTokenNamedGrant => ({
   permissions: readStoredPermissions(grant.permissions),

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { OutboxConsumer } from '@neuma/db';
 import { OutboxRepository } from '../../common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import {
@@ -27,7 +28,11 @@ import { SearchService } from './search.service';
     OutboxRepository,
     SearchProjectionWorker,
     SearchProjectionSource,
-    { provide: SEARCH_PROJECTION_OUTBOX, useExisting: OutboxRepository },
+    {
+      provide: SEARCH_PROJECTION_OUTBOX,
+      useFactory: (outbox: OutboxRepository) => outbox.forConsumer(OutboxConsumer.SEARCH),
+      inject: [OutboxRepository],
+    },
     { provide: SEARCH_PROJECTION_SOURCE, useExisting: SearchProjectionSource },
   ],
 })

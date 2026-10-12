@@ -1,10 +1,12 @@
+// use prisma-8
 model CollaborationSnapshot {
-  id           String   @id @default(uuid(7))
-  documentName String   @unique
+  id           String                     @id(map: "CollaborationSnapshot_pkey") @default(uuid(7))
+  documentName String
   state        Bytes
-  updateCount  Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updateCount  Int                        @default(0)
+  createdAt    TimestamptzJsDate          @default(now())
+  updatedAt    temporal.updatedAtJsDate()
 
-  @@index([updatedAt])
+  @@unique([documentName], map: "CollaborationSnapshot_documentName_key")
+  @@index([updatedAt], map: "CollaborationSnapshot_updatedAt_idx")
 }

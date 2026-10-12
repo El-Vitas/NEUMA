@@ -1,12 +1,13 @@
+// use prisma-8
 model PageLink {
-  id           String   @id @default(uuid(7))
+  id           String            @id(map: "PageLink_pkey") @default(uuid(7))
   sourcePageId String
   targetPageId String
-  createdAt    DateTime @default(now())
-  sourcePage   Page     @relation("PageLinkSource", fields: [sourcePageId], references: [id], onDelete: Cascade)
-  targetPage   Page     @relation("PageLinkTarget", fields: [targetPageId], references: [id], onDelete: Cascade)
+  createdAt    TimestamptzJsDate @default(now())
+  sourcePage   Page              @relation(name: "PageLinkSource", fields: [sourcePageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageLink_sourcePageId_fkey")
+  targetPage   Page              @relation(name: "PageLinkTarget", fields: [targetPageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageLink_targetPageId_fkey")
 
-  @@unique([sourcePageId, targetPageId])
-  @@index([targetPageId])
-  @@index([sourcePageId])
+  @@unique([sourcePageId, targetPageId], map: "PageLink_sourcePageId_targetPageId_key")
+  @@index([targetPageId], map: "PageLink_targetPageId_idx")
+  @@index([sourcePageId], map: "PageLink_sourcePageId_idx")
 }

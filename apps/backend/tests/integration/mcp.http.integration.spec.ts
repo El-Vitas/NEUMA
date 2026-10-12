@@ -3,7 +3,7 @@ import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import request from 'supertest';
 import { MCP_RATE_LIMIT } from '@/common/constants/throttler.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames } from '../helpers/mcp.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -30,7 +30,7 @@ describe('MCP over HTTP (Integration)', () => {
 
     const email = `mcp-http-${String(Date.now())}@test.com`;
     const password = 'plainPassword123';
-    await registerUser(testApp, { email, name: 'MCP Http', password });
+    await createAccount(testApp, { email, name: 'MCP Http', password });
     const session = await loginUser(testApp, email, password);
     sessionToken = session.accessToken;
     accessTokenSecret = await createTokenSecret('Integración HTTP');
@@ -70,7 +70,8 @@ describe('MCP over HTTP (Integration)', () => {
     const secret = await createTokenSecret('Vencido');
     await testApp
       .get(PrismaService)
-      .accessToken.updateMany({ data: { expiresAt: new Date(Date.now() - 60_000) }, where: { name: 'Vencido' } });
+      .models.AccessToken.where({ name: 'Vencido' })
+      .updateAndCount({ expiresAt: new Date(Date.now() - 60_000) });
 
     await request(testApp.getServer()).post(MCP_PATH).set('Authorization', `Bearer ${secret}`).send({}).expect(401);
   });

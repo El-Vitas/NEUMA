@@ -3,7 +3,7 @@ import { SpaceVisibility } from '@neuma/db';
 import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -32,7 +32,7 @@ const plainContent = (text: string): PageContent => ({
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const createSpace = async (testApp: TestApp, token: string, name: string, slug: string): Promise<string> => {
@@ -108,7 +108,7 @@ describe('Restoring a trashed page (Integration)', () => {
     const adminEmail = `restore-admin-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Restore Admin', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Restore Admin', password });
     await promoteToAdmin(testApp, adminEmail);
 
     const adminSession = await loginUser(testApp, adminEmail, password);
@@ -213,12 +213,13 @@ describe('Restoring a trashed page (Integration)', () => {
     ]);
 
     for (const response of statuses) expect(response.status).toBeGreaterThanOrEqual(400);
-    const stored = await testApp.get(PrismaService).page.findUniqueOrThrow({
-      select: { lockedAt: true, title: true, verifiedAt: true },
-      where: { id: trashed.id },
-    });
+    const pages = testApp.get(PrismaService).models.Page;
+    const stored = await pages.where({ id: trashed.id }).select('lockedAt', 'title', 'verifiedAt').all().firstOrThrow();
     expect(stored).toEqual({ lockedAt: null, title: 'En la papelera', verifiedAt: null });
-    expect(await testApp.get(PrismaService).page.count({ where: { title: { startsWith: 'En la papelera' } } })).toBe(1);
+    const matching = await pages
+      .where((page) => page.title.like('En la papelera%'))
+      .aggregate((aggregate) => ({ total: aggregate.count() }));
+    expect(matching.total).toBe(1);
   });
 
   it('refuses to create or move a page under one in the trash', async () => {
@@ -256,8 +257,8 @@ describe('Restoring a trashed page (Integration)', () => {
 
     expect((emptied.body as { deletedCount: number }).deletedCount).toBeGreaterThanOrEqual(1);
     const prisma = testApp.get(PrismaService);
-    expect(await prisma.page.findUnique({ where: { id: gone.id } })).toBeNull();
-    expect(await prisma.page.findUnique({ select: { lifecycle: true }, where: { id: kept.id } })).toEqual({
+    expect(await prisma.models.Page.first({ id: gone.id })).toBeNull();
+    expect(await prisma.models.Page.where({ id: kept.id }).select('lifecycle').first()).toEqual({
       lifecycle: 'ACTIVE',
     });
   });

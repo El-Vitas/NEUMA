@@ -1,4 +1,5 @@
-enum PageLifecycle {
-  ACTIVE
-  TRASHED
+// use prisma-8
+native_enum PageLifecycle {
+  ACTIVE = "ACTIVE"
+  TRASHED = "TRASHED"
 }

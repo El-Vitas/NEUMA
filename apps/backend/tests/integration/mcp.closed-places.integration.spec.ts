@@ -6,7 +6,7 @@ import request from 'supertest';
 import { z } from 'zod';
 import { MCP_INACCESSIBLE_MESSAGE } from '@/modules/mcp/constants/mcp.constants';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, readMcpText } from '../helpers/mcp.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -85,24 +85,23 @@ describe('MCP closed places (Integration)', () => {
   const snapshotOf = async (pageId: string): Promise<string> => {
     const prisma = testApp.get(PrismaService);
     const [page, children] = await Promise.all([
-      prisma.page.findUniqueOrThrow({
-        select: {
-          content: true,
-          lifecycle: true,
-          parentId: true,
-          schemaProperties: true,
-          title: true,
-          updatedAt: true,
-        },
-        where: { id: pageId },
-      }),
-      prisma.page.count({ where: { parentId: pageId } }),
+      prisma.models.Page.select('content', 'lifecycle', 'parentId', 'title', 'updatedAt')
+        .include('schemaProperties')
+        .where({ id: pageId })
+        .first(),
+      prisma.models.Page.where({ parentId: pageId }).aggregate((aggregate) => ({ total: aggregate.count() })),
     ]);
-    return JSON.stringify({ children, page });
+    expect(page).not.toBeNull();
+    return JSON.stringify({ children: children.total, page });
   };
 
-  const actionsDoneOn = (pageId: string) =>
-    testApp.get(PrismaService).agentAction.count({ where: { outcome: 'DONE', pageId } });
+  const actionsDoneOn = async (pageId: string): Promise<number> => {
+    const { total } = await testApp
+      .get(PrismaService)
+      .models.AgentAction.where({ outcome: 'DONE', pageId })
+      .aggregate((aggregate) => ({ total: aggregate.count() }));
+    return total;
+  };
 
   /** Fresh token per case (the call cap is per token), revoked after (live tokens cannot share a name). */
   const asClosingToken = async <TResult>(act: (secret: string) => Promise<TResult>): Promise<TResult> => {
@@ -130,8 +129,8 @@ describe('MCP closed places (Integration)', () => {
     testApp = await bootstrapTestApp();
     baseUrl = await listenForMcp(testApp);
     const email = `mcp-closed-${String(Date.now())}@test.com`;
-    await registerUser(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
-    await testApp.get(PrismaService).user.update({ data: { role: 'ADMIN' }, where: { email } });
+    await createAccount(testApp, { email, name: 'Ana Pérez', password: PASSWORD });
+    await testApp.get(PrismaService).models.User.where({ email }).update({ role: 'ADMIN' });
     ownerToken = (await loginUser(testApp, email, PASSWORD)).accessToken;
     const space = await api()
       .post('/api/v1/spaces')

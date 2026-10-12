@@ -3,7 +3,7 @@ import { SpaceVisibility } from '@neuma/db';
 import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { drainSearchProjection } from '../helpers/search.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
@@ -30,7 +30,7 @@ interface PageResponse {
 
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const searchAs = async (testApp: TestApp, token: string, query: string): Promise<SearchResponse> => {
@@ -59,8 +59,8 @@ describe('Search Projection (Integration)', () => {
     const password = 'plainPassword123';
     searchTerm = `Zephyrine${String(timestamp)}`;
 
-    await registerUser(testApp, { email: adminEmail, name: 'Search Admin', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Search Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Search Admin', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Search Outsider', password });
     await promoteToAdmin(testApp, adminEmail);
 
     const adminSession = await loginUser(testApp, adminEmail, password);
@@ -130,15 +130,12 @@ describe('Search Projection (Integration)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ verified: false })
       .expect(200);
-    await prisma.page.update({ data: { updatedAt: longAgo }, where: { id: pageId } });
+    await prisma.models.Page.where({ id: pageId }).update({ updatedAt: longAgo });
 
     await drainSearchProjection(testApp);
 
-    const indexed = await prisma.searchDocument.findFirstOrThrow({
-      select: { updatedAt: true },
-      where: { sourceId: pageId },
-    });
-    expect(indexed.updatedAt.toISOString()).toBe(longAgo.toISOString());
+    const indexed = await prisma.models.SearchDocument.where({ sourceId: pageId }).select('updatedAt').first();
+    expect(indexed?.updatedAt.toISOString()).toBe(longAgo.toISOString());
   });
 
   it('learns the mark a page takes on after it was already indexed', async () => {

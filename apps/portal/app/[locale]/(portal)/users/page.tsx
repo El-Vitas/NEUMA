@@ -12,6 +12,9 @@ interface IProps {
   readonly searchParams: Promise<RouteSearchParams>;
 }
 
+/** Depends on the session and the search query, so it resolves fully before responding. */
+export const instant = false;
+
 export default async function Page({ searchParams }: IProps) {
   const user = await getCurrentUser();
   if (user?.role !== USER_ROLE.ADMIN) {

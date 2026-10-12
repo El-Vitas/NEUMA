@@ -1,4 +1,4 @@
-import type { Prisma } from '@neuma/db/generated';
+import type { JsonValue } from '@neuma/db';
 import type { PageIcon } from '@neuma/shared';
 import type {
   SearchQuery,
@@ -27,11 +27,11 @@ export interface SearchDocumentInput {
   readonly editedAt: Date;
   readonly extractedText: string;
   readonly language: SearchLanguage | null;
-  readonly properties: Prisma.InputJsonValue;
+  readonly properties: JsonValue;
   readonly sourceId: string;
   readonly sourceType: SearchSourceType;
   readonly spaceId: string;
-  readonly tags: Prisma.InputJsonValue;
+  readonly tags: JsonValue;
   readonly title: string;
   readonly versionMarker: number;
 }
@@ -51,14 +51,14 @@ export interface SearchQueryParams {
 
 export interface SearchRow {
   readonly contentType: string;
-  readonly icon: Prisma.JsonValue;
+  readonly icon: JsonValue;
   readonly isVerified: boolean;
   readonly parentPageId: string | null;
   readonly parentPageTitle: string | null;
   readonly rank: number;
   readonly snippet: string;
   readonly sourceId: string;
-  readonly sourceType: SearchSourceType;
+  readonly sourceType: string;
   readonly spaceId: string;
   readonly spaceName: string | null;
   readonly title: string;
@@ -107,8 +107,8 @@ export interface SearchDocumentProjection {
 export interface SearchProjectionPage {
   readonly authorId: string;
   readonly authorName: string | null;
-  readonly content: Prisma.JsonValue;
-  readonly icon: Prisma.JsonValue;
+  readonly content: JsonValue;
+  readonly icon: JsonValue;
   readonly id: string;
   readonly lifecycle: string;
   readonly parentPageId: string | null;

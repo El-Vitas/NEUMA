@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@neuma/db';
+import { DatabasePropertyType, DatabaseViewType, type JsonObject, SpaceVisibility } from '@neuma/db';
 import { type PageContent, USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
 import { COLLECTION_ROW_LIMIT } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { loginUser, registerUser } from '../helpers/auth.helper';
+import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface SpaceResponse {
@@ -36,9 +36,15 @@ const plainContent = (text: string): PageContent => ({
   type: 'doc',
 });
 
+const storedPlainContent = (text: string): JsonObject => ({
+  content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],
+  schemaVersion: 1,
+  type: 'doc',
+});
+
 const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
   const prisma = testApp.get(PrismaService);
-  await prisma.user.update({ data: { role: 'ADMIN' }, where: { email } });
+  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
 };
 
 const createSpace = async (
@@ -131,8 +137,8 @@ describe('Page Schema (Integration)', () => {
     const outsiderEmail = `schema-outsider-${String(timestamp)}@test.com`;
     const password = 'plainPassword123';
 
-    await registerUser(testApp, { email: adminEmail, name: 'Schema Admin', password });
-    await registerUser(testApp, { email: outsiderEmail, name: 'Schema Outsider', password });
+    await createAccount(testApp, { email: adminEmail, name: 'Schema Admin', password });
+    await createAccount(testApp, { email: outsiderEmail, name: 'Schema Outsider', password });
     await promoteToAdmin(testApp, adminEmail);
 
     const adminSession = await loginUser(testApp, adminEmail, password);
@@ -184,7 +190,7 @@ describe('Page Schema (Integration)', () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Concurrida');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
       const service = testApp.get(PageSchemaService);
-      const workspace = await testApp.get(PrismaService).workspace.findFirstOrThrow({ select: { id: true } });
+      const workspace = await testApp.get(PrismaService).models.Workspace.select('id').all().firstOrThrow();
       const asAdmin = { pageId: collection.id, role: USER_ROLE.ADMIN, userId: adminUserId, workspaceId: workspace.id };
       const read = (await service.getSchema(collection.id, workspace.id, adminUserId, USER_ROLE.ADMIN)).getValue();
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
@@ -276,7 +282,7 @@ describe('Page Schema (Integration)', () => {
       await Promise.all([changeProperty({ status: 'done' }), changeProperty({ priority: 'high' })]);
 
       const prisma = testApp.get(PrismaService);
-      const stored = await prisma.page.findUniqueOrThrow({ select: { propertyValues: true }, where: { id: row.id } });
+      const stored = await prisma.models.Page.select('propertyValues').where({ id: row.id }).all().firstOrThrow();
       expect(stored.propertyValues).toEqual({ priority: 'high', status: 'done' });
     });
 
@@ -289,8 +295,14 @@ describe('Page Schema (Integration)', () => {
         status: 'todo',
       });
       const prisma = testApp.get(PrismaService);
-      const before = await prisma.page.findUniqueOrThrow({ select: { content: true }, where: { id: row.id } });
-      const versionsBefore = await prisma.pageVersion.count({ where: { pageId: row.id } });
+      const countVersions = async (): Promise<number> =>
+        (
+          await prisma.models.PageVersion.where({ pageId: row.id }).aggregate((aggregation) => ({
+            total: aggregation.count(),
+          }))
+        ).total;
+      const before = await prisma.models.Page.select('content').where({ id: row.id }).all().firstOrThrow();
+      const versionsBefore = await countVersions();
 
       await request(testApp.getServer())
         .patch(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}/properties`)
@@ -298,9 +310,9 @@ describe('Page Schema (Integration)', () => {
         .send({ propertyValues: { status: 'done' } })
         .expect(200);
 
-      const after = await prisma.page.findUniqueOrThrow({ select: { content: true }, where: { id: row.id } });
+      const after = await prisma.models.Page.select('content').where({ id: row.id }).all().firstOrThrow();
       expect(after.content).toEqual(before.content);
-      expect(await prisma.pageVersion.count({ where: { pageId: row.id } })).toBe(versionsBefore);
+      expect(await countVersions()).toBe(versionsBefore);
     });
 
     it('refuses to drop a row into a column the shape does not offer', async () => {
@@ -376,9 +388,9 @@ describe('Page Schema (Integration)', () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Overgrown Collection');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
       const prisma = testApp.get(PrismaService);
-      await prisma.page.createMany({
-        data: Array.from({ length: COLLECTION_ROW_LIMIT + 1 }, (_unused, position) => ({
-          content: plainContent(`Row ${String(position)}`),
+      await prisma.models.Page.createAndCount(
+        Array.from({ length: COLLECTION_ROW_LIMIT + 1 }, (_unused, position) => ({
+          content: storedPlainContent(`Row ${String(position)}`),
           createdById: adminUserId,
           order: position,
           parentId: collection.id,
@@ -386,7 +398,7 @@ describe('Page Schema (Integration)', () => {
           title: `Row ${String(position)}`,
           updatedById: adminUserId,
         })),
-      });
+      );
 
       const listed = await listRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
 
@@ -542,7 +554,7 @@ describe('Page Schema (Integration)', () => {
       ).expect(201);
 
       const prisma = testApp.get(PrismaService);
-      await prisma.pageSchemaProperty.deleteMany({ where: { key: 'status', pageId: collection.id } });
+      await prisma.models.PageSchemaProperty.where({ key: 'status', pageId: collection.id }).deleteAndCount();
 
       const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
       expect(response.body).toEqual({
