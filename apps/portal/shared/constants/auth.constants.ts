@@ -6,6 +6,5 @@ export const BEARER_PREFIX = 'Bearer ';
 
 export const PUBLIC_API_REQUESTS: ReadonlyArray<{ readonly method: string; readonly endpoint: string }> = [
   { method: 'POST', endpoint: API_ROUTES.AUTH_SESSIONS },
-  { method: 'POST', endpoint: API_ROUTES.USERS },
   { method: 'POST', endpoint: API_ROUTES.AUTH_SESSIONS_REFRESH },
 ];

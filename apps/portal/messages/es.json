@@ -84,20 +84,6 @@
       "validationError": "Revisa los campos del formulario.",
       "submit": "Iniciar sesión",
       "submitting": "Iniciando sesión..."
-    },
-    "register": {
-      "title": "Crear una cuenta",
-      "description": "Crea una cuenta para acceder al espacio de trabajo de tu empresa.",
-      "name": "Nombre completo",
-      "namePlaceholder": "Alex Morgan",
-      "email": "Correo electrónico",
-      "emailPlaceholder": "nombre@ejemplo.com",
-      "password": "Contraseña",
-      "validationError": "Revisa los campos del formulario.",
-      "submit": "Crear cuenta",
-      "submitting": "Creando cuenta...",
-      "existingAccount": "¿Ya tienes una cuenta?",
-      "signIn": "Inicia sesión"
     }
   },
   "portal": {

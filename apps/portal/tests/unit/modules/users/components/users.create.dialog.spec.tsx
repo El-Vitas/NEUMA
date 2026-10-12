@@ -36,4 +36,29 @@ describe('UsersCreateDialog', () => {
 
     await waitFor(() => expect(createButton.disabled).toBe(false));
   });
+
+  it('starts on the role with the least access, so nobody gets more by accident', () => {
+    renderDialog();
+    fillValidForm();
+
+    expect((screen.getByRole('radio', { name: 'Client' }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('creates the account with the role the admin picks', async () => {
+    createUserAction.mockClear();
+    renderDialog();
+    fillValidForm();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Worker' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create user' }));
+
+    await waitFor(() =>
+      expect(createUserAction).toHaveBeenCalledWith({
+        email: 'ana@example.com',
+        name: 'Ana Lopez',
+        password: 'supersecret',
+        role: 'WORKER',
+      }),
+    );
+  });
 });

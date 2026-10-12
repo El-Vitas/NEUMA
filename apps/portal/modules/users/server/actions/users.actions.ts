@@ -4,7 +4,6 @@ import 'server-only';
 import { canManageWorkspace } from '@neuma/shared';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
-import { registerUser } from '@/modules/auth/server/lib/auth.server';
 import { CURRENT_USER_CACHE_TAG } from '@/shared/constants/current-user-cache.constants';
 import { apiServer } from '@/shared/lib/api-server';
 import { withAction } from '@/shared/lib/with-action.lib';
@@ -23,7 +22,7 @@ const requireWorkspaceManager = async (): Promise<void> => {
 export const createUserAction = actionClient.inputSchema(createUserSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'createUser' }, async () => {
     await requireWorkspaceManager();
-    await registerUser(parsedInput);
+    await apiServer.post(API_ROUTES.USERS, parsedInput);
     updateTag(USERS_CACHE_TAG);
   }),
 );
