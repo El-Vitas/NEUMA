@@ -22,5 +22,5 @@ export const loginUser = async (input: LoginInput): Promise<AuthSession> => {
 };
 
 export const logoutUser = async (): Promise<void> => {
-  await apiServer.del<void>(API_ROUTES.AUTH_SESSIONS_CURRENT);
+  await apiServer.del(API_ROUTES.AUTH_SESSIONS_CURRENT);
 };

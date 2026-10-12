@@ -300,9 +300,7 @@ Source: https://ui.shadcn.com/docs/components/chart
 The chart component requires the following Recharts dependencies to be installed.
 
 ```bash
-pnpm add recharts
-npm install recharts
-yarn add recharts
+bun add recharts
 ```
 
 Recharts provides the following chart types:

@@ -2,7 +2,7 @@
 name: business-rules
 description: Use when querying, adding, or modifying business rules in the docs/business-rules/ system. Do NOT read YAML files directly — use CLI commands.
 metadata:
-  version: '2.0'
+  version: '2.1'
   scope: [general]
   auto_invoke: 'When you need to understand business requirements, check rule lineage, or propose new rules'
 ---
@@ -40,32 +40,32 @@ The litmus test: **can you explain this rule to a stakeholder without naming a l
 
 ```bash
 # All active rules for a feature
-pnpm run rules:query --feature FEA-ORD
+bun run rules:query --feature FEA-ORD
 
 # All statuses in a feature (active, superseded, inactive)
-pnpm run rules:query --feature FEA-ORD --status all
+bun run rules:query --feature FEA-ORD --status all
 
 # By status within a feature
 # A specific rule with its full evolution history
-pnpm run rules:query --id BR-104
+bun run rules:query --id BR-104
 
 # Cross-cutting rules (apply system-wide)
-pnpm run rules:query --scope cross-cutting
+bun run rules:query --scope cross-cutting
 
 # All active rules across every feature
-pnpm run rules:query --all
+bun run rules:query --all
 
 # All rules across features by status
-pnpm run rules:query --status all
+bun run rules:query --status all
 
 # List all features with metadata + rule counts per status
-pnpm run rules:query --features
+bun run rules:query --features
 
 # Just feature IDs and names (to find where a requirement fits)
-pnpm run rules:query --features --names
+bun run rules:query --features --names
 
 # Search features by name or purpose
-pnpm run rules:query --search cliente
+bun run rules:query --search cliente
 ```
 
 Output is JSON. The `lineage` field in `--id` queries shows every past version with `superseded_reason`. The `--features` output includes `rules: { active, superseded, inactive }` counts.
@@ -75,7 +75,7 @@ Output is JSON. The `lineage` field in `--id` queries shows every past version w
 Pipe YAML to `rules:add`. **Do NOT include `id`** — it is auto-generated as a deterministic hash from feature + rule content:
 
 ```bash
-pnpm run rules:add << 'YAML'
+bun run rules:add << 'YAML'
 feature: FEA-XXX        # Required
 feature_name: Feature Name
 feature_purpose: What it does.
@@ -100,10 +100,19 @@ YAML
 - **Status validation** — must be one of: `active`, `superseded`, `inactive`
 - **Always add `feature_name`, `feature_purpose`, and `feature_scope` when creating a new feature.** Omit them when adding rules to an existing feature.
 
+## Supersede behavior
+
+When you set `supersedes: BR-xxx`:
+1. New rule is created with auto-generated ID
+2. Old rule (`BR-xxx`) is marked `superseded` with `superseded_by` linking to the new ID
+3. Backup is created in `history/`
+
+Validation: target must exist and be `active`. Cannot supersede already superseded or inactive rules.
+
 ## Delete — only for a mistake that never should have existed
 
 ```bash
-pnpm run rules:delete --id BR-104
+bun run rules:delete --id BR-104
 ```
 
 **This is not how you retire a rule.** A rule that turned out to be wrong, or that
@@ -128,19 +137,10 @@ It refuses to touch anything the history depends on:
 A backup lands in `history/` before the YAML is rewritten, so a delete is itself
 undoable.
 
-## Supersede behavior
-
-When you set `supersedes: BR-xxx`:
-1. New rule is created with auto-generated ID
-2. Old rule (`BR-xxx`) is marked `superseded` with `superseded_by` linking to the new ID
-3. Backup is created in `history/`
-
-Validation: target must exist and be `active`. Cannot supersede already superseded or inactive rules.
-
 ## After humans edit YAML
 
 ```bash
-pnpm run rules:build    # Sync YAML -> SQLite
+bun run rules:build    # Sync YAML -> SQLite
 ```
 
 ## Lifecycle
