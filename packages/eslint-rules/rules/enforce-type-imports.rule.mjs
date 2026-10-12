@@ -46,7 +46,7 @@ export const enforceTypeImports = {
     schema: [],
   },
   create(context) {
-    const sourceCode = context.getSourceCode();
+    const sourceCode = context.sourceCode;
     const nestJsDiTokens = new Set();
     const importNodes = [];
 
