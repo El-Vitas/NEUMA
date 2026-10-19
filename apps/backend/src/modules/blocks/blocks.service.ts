@@ -1,15 +1,26 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Result } from '@neuma/shared';
-import { BLOCK_REPOSITORY, BLOCK_SUBTREE_MAX_BLOCKS, BLOCK_TREE_MAX_DEPTH } from './constants/blocks.constants';
+import {
+  BLOCK_REPOSITORY,
+  BLOCK_SUBTREE_MAX_BLOCKS,
+  BLOCK_SYNC_MAX_TEXT_STATE_BYTES,
+  BLOCK_TREE_MAX_DEPTH,
+} from './constants/blocks.constants';
 import { buildVisibleBlocks, listRevokedBlockIds } from './domain/block.domain';
-import type { BlockRows, VisibleBlocksInput } from './domain/block.domain.types';
-import { BlockAccessDeniedError, BlockSubtreeTooLargeError, BlockTreeTooDeepError } from './domain/block.error';
+import type { BlockRows, VisibleBlock, VisibleBlocksInput } from './domain/block.domain.types';
+import {
+  BlockAccessDeniedError,
+  BlockSubtreeTooLargeError,
+  BlockSyncTextTooLargeError,
+  BlockTreeTooDeepError,
+} from './domain/block.error';
 import type {
   BlockReader,
   BlockRepositoryContract,
   BlockSyncRequest,
   BlockSyncResult,
   RequestedBlock,
+  SyncedBlock,
 } from './types/blocks.types';
 
 @Injectable()
@@ -29,7 +40,8 @@ export class BlocksService {
     if (result.targets.length > BLOCK_SUBTREE_MAX_BLOCKS) {
       return Result.fail(new BlockSubtreeTooLargeError(BLOCK_SUBTREE_MAX_BLOCKS));
     }
-    return Result.ok({ blocks });
+    const synced = this.attachTextStates(blocks, result.textStates);
+    return synced.isFail() ? Result.fail(synced.getError()) : Result.ok({ blocks: synced.getValue() });
   }
 
   private async syncChanged(requested: readonly RequestedBlock[], reader: BlockReader): Promise<BlockSyncResult> {
@@ -42,7 +54,26 @@ export class BlocksService {
       requested.map((block) => block.id),
       blocks,
     );
-    return Result.ok({ blocks, revoked });
+    const synced = this.attachTextStates(blocks, result.textStates);
+    return synced.isFail() ? Result.fail(synced.getError()) : Result.ok({ blocks: synced.getValue(), revoked });
+  }
+
+  /** Only the states of blocks the viewer can read count against the cap, so a hidden block weighs nothing. */
+  private attachTextStates(
+    blocks: readonly VisibleBlock[],
+    textStates: ReadonlyMap<string, Uint8Array>,
+  ): Result<SyncedBlock[], BlockSyncTextTooLargeError> {
+    const states = blocks.map((block) => textStates.get(block.id) ?? null);
+    const totalBytes = states.reduce((sum, state) => sum + (state?.byteLength ?? 0), 0);
+    if (totalBytes > BLOCK_SYNC_MAX_TEXT_STATE_BYTES) {
+      return Result.fail(new BlockSyncTextTooLargeError(BLOCK_SYNC_MAX_TEXT_STATE_BYTES));
+    }
+    return Result.ok(
+      blocks.map((block, index) => {
+        const state = states[index] ?? null;
+        return { ...block, textState: state === null ? null : Buffer.from(state).toString('base64') };
+      }),
+    );
   }
 
   private async buildInput(rows: BlockRows, reader: BlockReader): Promise<VisibleBlocksInput> {

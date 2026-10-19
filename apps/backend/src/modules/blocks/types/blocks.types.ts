@@ -1,6 +1,11 @@
 import type { Result, UserRole } from '@neuma/shared';
 import type { BlockRows, VisibleBlock } from '../domain/block.domain.types';
-import type { BlockAccessDeniedError, BlockSubtreeTooLargeError, BlockTreeTooDeepError } from '../domain/block.error';
+import type {
+  BlockAccessDeniedError,
+  BlockSubtreeTooLargeError,
+  BlockSyncTextTooLargeError,
+  BlockTreeTooDeepError,
+} from '../domain/block.error';
 
 export interface RequestedBlock {
   readonly id: string;
@@ -36,24 +41,35 @@ export interface BlockRow {
   readonly relation: string;
   readonly spaceId: string;
   readonly text: string;
+  readonly textState: Uint8Array | null;
   readonly type: string;
   readonly version: number;
 }
 
+/** A block row without the columns only the recursive reads add. */
+export type StoredBlockRow = Omit<BlockRow, 'isDepthExceeded' | 'relation' | 'textState'>;
+
 /** True when a chain of parents was longer than the depth limit, so the rows are incomplete. */
 export interface BlockReadResult extends BlockRows {
   readonly isDepthExceeded: boolean;
+  /** The Yjs state of each target that has one, by block id. */
+  readonly textStates: ReadonlyMap<string, Uint8Array>;
+}
+
+/** A visible block with its Yjs text state as base64, so the editor starts from the server's document. */
+export interface SyncedBlock extends VisibleBlock {
+  readonly textState: string | null;
 }
 
 export interface BlockSyncResponse {
-  readonly blocks: readonly VisibleBlock[];
+  readonly blocks: readonly SyncedBlock[];
   /** Catch-up reads only: requested ids that no longer exist or are no longer readable. */
   readonly revoked?: readonly string[];
 }
 
 export type BlockSyncResult = Result<
   BlockSyncResponse,
-  BlockAccessDeniedError | BlockSubtreeTooLargeError | BlockTreeTooDeepError
+  BlockAccessDeniedError | BlockSubtreeTooLargeError | BlockSyncTextTooLargeError | BlockTreeTooDeepError
 >;
 
 export interface BlockRepositoryContract {

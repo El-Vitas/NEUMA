@@ -21,6 +21,7 @@ interface SyncedBlock {
   id: string;
   permissions?: unknown;
   role: string;
+  textState: string | null;
 }
 
 interface SyncResponse {
@@ -173,16 +174,27 @@ describe('POST /sync: block reads (Integration)', () => {
   });
 
   describe('with a pageId', () => {
-    it('returns the page with its readable subtree, without dead blocks, hidden blocks or the text state', async () => {
+    it('returns the page with its readable subtree, without dead blocks, hidden blocks or permissions', async () => {
       const response = await sync(workerToken, { pageId });
 
       expect(idsOf(response.body).toSorted()).toEqual([pageId, introId].toSorted());
       expect(findSynced(response.body, pageId).children).toEqual([introId]);
       expect(findSynced(response.body, introId).role).toBe(BLOCK_ROLE.editor);
       for (const block of (response.body as SyncResponse).blocks) {
-        expect(block).not.toHaveProperty('textState');
         expect(block).not.toHaveProperty('permissions');
       }
+    });
+
+    it('hands out the text state as base64, and null for a block that has none', async () => {
+      await prisma.models.Block.where({ id: introId }).update({ textState: Buffer.from([1, 2, 3]) });
+
+      const response = await sync(workerToken, { pageId });
+      const catchUp = await sync(workerToken, { blocks: [{ id: introId, version: 0 }] });
+
+      expect(findSynced(response.body, introId).textState).toBe('AQID');
+      expect(findSynced(response.body, pageId).textState).toBeNull();
+      expect(findSynced(catchUp.body, introId).textState).toBe('AQID');
+      await prisma.models.Block.where({ id: introId }).update({ textState: null });
     });
 
     it('shows the hidden branch and its permissions to the one it was shared with', async () => {

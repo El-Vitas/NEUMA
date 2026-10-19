@@ -27,3 +27,12 @@ export class BlockSubtreeTooLargeError extends DomainError {
     super('The page has more blocks than a single read can return', { limit });
   }
 }
+
+export class BlockSyncTextTooLargeError extends DomainError {
+  public readonly code = 'BLOCK_SYNC_TEXT_TOO_LARGE';
+  public readonly httpStatus = 413;
+
+  constructor(limitBytes: number) {
+    super('The text states of the blocks are larger than a single read can return', { limitBytes });
+  }
+}

@@ -14,7 +14,7 @@ import type {
   VisibleBlocksInput,
 } from './block.domain.types';
 
-const indexById = (records: readonly BlockRecord[]): RecordsById =>
+export const indexById = (records: readonly BlockRecord[]): RecordsById =>
   new Map(records.map((record) => [record.id, record]));
 
 /**
@@ -45,7 +45,11 @@ const findInherited = (
 
 const toDeclaring = (record: BlockRecord): DeclaringAncestor => ({ id: record.id, permissions: record.permissions });
 
-const resolveRoles = ({ readableSpaceIds, viewer }: VisibleBlocksInput, recordsById: RecordsById): RolesById => {
+/** The role of every record for one viewer. The writes reuse it, so reads and writes agree on who may do what. */
+export const resolveRoles = (
+  { readableSpaceIds, viewer }: Pick<VisibleBlocksInput, 'readableSpaceIds' | 'viewer'>,
+  recordsById: RecordsById,
+): RolesById => {
   const memo = new Map<string, DeclaringAncestor>();
   return new Map(
     [...recordsById.values()].map((record) => {

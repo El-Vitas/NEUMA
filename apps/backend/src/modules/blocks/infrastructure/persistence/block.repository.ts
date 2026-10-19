@@ -21,6 +21,7 @@ import type {
   BlockRepositoryContract,
   BlockRow,
   RequestedBlock,
+  StoredBlockRow,
 } from '../../types/blocks.types';
 
 /** Reads blocks with the textual columns only: `textState` is binary and not part of the sync reads. */
@@ -80,7 +81,7 @@ export class BlockRepository implements BlockRepositoryContract {
         "block"."parentId", "block"."type", to_jsonb("block"."children") AS "children", "block"."properties",
         "block"."format", "block"."text", "block"."alive", "block"."lifecycle"::text AS "lifecycle",
         "block"."lockedAt", "block"."version", "block"."createdById", "block"."editedById", "block"."createdAt",
-        "block"."editedAt", "block"."permissions"
+        "block"."editedAt", "block"."permissions", "block"."textState"
       FROM "member"
       CROSS JOIN "overflow"
       INNER JOIN "Block" AS "block" ON "block"."id" = "member"."id"
@@ -142,7 +143,7 @@ export class BlockRepository implements BlockRepositoryContract {
         "block"."parentId", "block"."type", to_jsonb("block"."children") AS "children", "block"."properties",
         "block"."format", "block"."text", "block"."alive", "block"."lifecycle"::text AS "lifecycle",
         "block"."lockedAt", "block"."version", "block"."createdById", "block"."editedById", "block"."createdAt",
-        "block"."editedAt", "block"."permissions"
+        "block"."editedAt", "block"."permissions", "block"."textState"
       FROM "member"
       CROSS JOIN "overflow"
       INNER JOIN "Block" AS "block" ON "block"."id" = "member"."id"
@@ -185,13 +186,14 @@ export class BlockRepository implements BlockRepositoryContract {
       relation: 'pg/text@1',
       spaceId: columns.spaceId,
       text: columns.text,
+      textState: columns.textState,
       type: columns.type,
       version: columns.version,
     } as const;
   }
 }
 
-const toRecord = (row: BlockRow): BlockRecord => ({
+export const toRecord = (row: StoredBlockRow): BlockRecord => ({
   alive: row.alive,
   children: blockChildrenSchema.parse(row.children),
   createdAt: row.createdAt,
@@ -211,8 +213,14 @@ const toRecord = (row: BlockRow): BlockRecord => ({
   version: row.version,
 });
 
-const toReadResult = (rows: readonly BlockRow[]): BlockReadResult => ({
-  context: rows.filter((row) => blockRelationSchema.parse(row.relation) === BLOCK_RELATION.context).map(toRecord),
-  isDepthExceeded: rows.some((row) => row.isDepthExceeded),
-  targets: rows.filter((row) => blockRelationSchema.parse(row.relation) === BLOCK_RELATION.target).map(toRecord),
-});
+const toReadResult = (rows: readonly BlockRow[]): BlockReadResult => {
+  const targetRows = rows.filter((row) => blockRelationSchema.parse(row.relation) === BLOCK_RELATION.target);
+  return {
+    context: rows.filter((row) => blockRelationSchema.parse(row.relation) === BLOCK_RELATION.context).map(toRecord),
+    isDepthExceeded: rows.some((row) => row.isDepthExceeded),
+    targets: targetRows.map(toRecord),
+    textStates: new Map(
+      targetRows.flatMap((row) => (row.textState === null ? [] : [[row.id, new Uint8Array(row.textState)] as const])),
+    ),
+  };
+};
