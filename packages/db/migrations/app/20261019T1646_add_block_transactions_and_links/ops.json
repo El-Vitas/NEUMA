@@ -1,0 +1,527 @@
+[
+  {
+    "id": "table.BlockLink",
+    "label": "Create table \"BlockLink\"",
+    "summary": "Creates table \"BlockLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"BlockLink\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"BlockLink\"",
+        "sql": "CREATE TABLE \"public\".\"BlockLink\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"kind\" text NOT NULL,\n  \"sourceBlockId\" text NOT NULL,\n  \"sourcePageId\" text NOT NULL,\n  \"targetBlockId\" text NOT NULL,\n  CONSTRAINT \"BlockLink_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"BlockLink\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.BlockTransaction",
+    "label": "Create table \"BlockTransaction\"",
+    "summary": "Creates table \"BlockTransaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "BlockTransaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"BlockTransaction\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"BlockTransaction\"",
+        "sql": "CREATE TABLE \"public\".\"BlockTransaction\" (\n  \"appliedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"result\" jsonb NOT NULL,\n  \"spaceId\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  CONSTRAINT \"BlockTransaction_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"BlockTransaction\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.BlockLink.BlockLink_sourceBlockId_targetBlockId_kind_key",
+    "label": "Add unique constraint on \"BlockLink\" (sourceBlockId, targetBlockId, kind)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "BlockLink_sourceBlockId_targetBlockId_kind_key",
+        "table": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"BlockLink_sourceBlockId_targetBlockId_kind_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_sourceBlockId_targetBlockId_kind_key",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"BlockLink_sourceBlockId_targetBlockId_kind_key\"",
+        "sql": "ALTER TABLE \"public\".\"BlockLink\" ADD CONSTRAINT \"BlockLink_sourceBlockId_targetBlockId_kind_key\" UNIQUE (\"sourceBlockId\", \"targetBlockId\", \"kind\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"BlockLink_sourceBlockId_targetBlockId_kind_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_sourceBlockId_targetBlockId_kind_key",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.BlockLink.BlockLink_sourcePageId_idx",
+    "label": "Create index \"BlockLink_sourcePageId_idx\" on \"BlockLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "BlockLink_sourcePageId_idx",
+        "table": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"BlockLink_sourcePageId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockLink_sourcePageId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"BlockLink_sourcePageId_idx\"",
+        "sql": "CREATE INDEX \"BlockLink_sourcePageId_idx\" ON \"public\".\"BlockLink\" (\"sourcePageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"BlockLink_sourcePageId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockLink_sourcePageId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.BlockLink.BlockLink_targetBlockId_idx",
+    "label": "Create index \"BlockLink_targetBlockId_idx\" on \"BlockLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "BlockLink_targetBlockId_idx",
+        "table": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"BlockLink_targetBlockId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockLink_targetBlockId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"BlockLink_targetBlockId_idx\"",
+        "sql": "CREATE INDEX \"BlockLink_targetBlockId_idx\" ON \"public\".\"BlockLink\" (\"targetBlockId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"BlockLink_targetBlockId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockLink_targetBlockId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.BlockTransaction.BlockTransaction_appliedAt_idx",
+    "label": "Create index \"BlockTransaction_appliedAt_idx\" on \"BlockTransaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "BlockTransaction_appliedAt_idx",
+        "table": "BlockTransaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"BlockTransaction_appliedAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction_appliedAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"BlockTransaction_appliedAt_idx\"",
+        "sql": "CREATE INDEX \"BlockTransaction_appliedAt_idx\" ON \"public\".\"BlockTransaction\" (\"appliedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"BlockTransaction_appliedAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction_appliedAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.BlockTransaction.BlockTransaction_spaceId_idx",
+    "label": "Create index \"BlockTransaction_spaceId_idx\" on \"BlockTransaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "BlockTransaction_spaceId_idx",
+        "table": "BlockTransaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"BlockTransaction_spaceId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction_spaceId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"BlockTransaction_spaceId_idx\"",
+        "sql": "CREATE INDEX \"BlockTransaction_spaceId_idx\" ON \"public\".\"BlockTransaction\" (\"spaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"BlockTransaction_spaceId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction_spaceId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.BlockTransaction.BlockTransaction_userId_idx",
+    "label": "Create index \"BlockTransaction_userId_idx\" on \"BlockTransaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "BlockTransaction_userId_idx",
+        "table": "BlockTransaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"BlockTransaction_userId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction_userId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"BlockTransaction_userId_idx\"",
+        "sql": "CREATE INDEX \"BlockTransaction_userId_idx\" ON \"public\".\"BlockTransaction\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"BlockTransaction_userId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"BlockTransaction_userId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.BlockLink.BlockLink_sourceBlockId_fkey",
+    "label": "Add foreign key \"BlockLink_sourceBlockId_fkey\" on \"BlockLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "BlockLink_sourceBlockId_fkey",
+        "table": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"BlockLink_sourceBlockId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_sourceBlockId_fkey",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"BlockLink_sourceBlockId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"BlockLink\"\nADD CONSTRAINT \"BlockLink_sourceBlockId_fkey\"\nFOREIGN KEY (\"sourceBlockId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"BlockLink_sourceBlockId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_sourceBlockId_fkey",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.BlockLink.BlockLink_targetBlockId_fkey",
+    "label": "Add foreign key \"BlockLink_targetBlockId_fkey\" on \"BlockLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "BlockLink_targetBlockId_fkey",
+        "table": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"BlockLink_targetBlockId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_targetBlockId_fkey",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"BlockLink_targetBlockId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"BlockLink\"\nADD CONSTRAINT \"BlockLink_targetBlockId_fkey\"\nFOREIGN KEY (\"targetBlockId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"BlockLink_targetBlockId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_targetBlockId_fkey",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.BlockLink.BlockLink_sourcePageId_fkey",
+    "label": "Add foreign key \"BlockLink_sourcePageId_fkey\" on \"BlockLink\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "BlockLink_sourcePageId_fkey",
+        "table": "BlockLink"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"BlockLink_sourcePageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_sourcePageId_fkey",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"BlockLink_sourcePageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"BlockLink\"\nADD CONSTRAINT \"BlockLink_sourcePageId_fkey\"\nFOREIGN KEY (\"sourcePageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"BlockLink_sourcePageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockLink_sourcePageId_fkey",
+          "public",
+          "\"public\".\"BlockLink\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.BlockTransaction.BlockTransaction_userId_fkey",
+    "label": "Add foreign key \"BlockTransaction_userId_fkey\" on \"BlockTransaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "BlockTransaction_userId_fkey",
+        "table": "BlockTransaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"BlockTransaction_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockTransaction_userId_fkey",
+          "public",
+          "\"public\".\"BlockTransaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"BlockTransaction_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"BlockTransaction\"\nADD CONSTRAINT \"BlockTransaction_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"BlockTransaction_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockTransaction_userId_fkey",
+          "public",
+          "\"public\".\"BlockTransaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.BlockTransaction.BlockTransaction_spaceId_fkey",
+    "label": "Add foreign key \"BlockTransaction_spaceId_fkey\" on \"BlockTransaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "BlockTransaction_spaceId_fkey",
+        "table": "BlockTransaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"BlockTransaction_spaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockTransaction_spaceId_fkey",
+          "public",
+          "\"public\".\"BlockTransaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"BlockTransaction_spaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"BlockTransaction\"\nADD CONSTRAINT \"BlockTransaction_spaceId_fkey\"\nFOREIGN KEY (\"spaceId\")\nREFERENCES \"public\".\"Space\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"BlockTransaction_spaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "BlockTransaction_spaceId_fkey",
+          "public",
+          "\"public\".\"BlockTransaction\""
+        ]
+      }
+    ]
+  }
+]

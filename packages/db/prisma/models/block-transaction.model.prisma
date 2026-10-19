@@ -1,0 +1,16 @@
+// use prisma-8
+
+/// Idempotency log of applied client transactions (ADR 021): a retry gets the stored `result` back.
+model BlockTransaction {
+  id        String            @id(map: "BlockTransaction_pkey")
+  userId    String
+  spaceId   String
+  appliedAt TimestamptzJsDate @default(now())
+  result    Jsonb
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "BlockTransaction_userId_fkey", index: "BlockTransaction_userId_idx")
+  space     Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "BlockTransaction_spaceId_fkey", index: "BlockTransaction_spaceId_idx")
+
+  @@index([userId], map: "BlockTransaction_userId_idx")
+  @@index([spaceId], map: "BlockTransaction_spaceId_idx")
+  @@index([appliedAt], map: "BlockTransaction_appliedAt_idx")
+}

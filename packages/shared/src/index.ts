@@ -37,6 +37,36 @@ export type {
   AccessTokenPresetLevel,
   AccessTokenSpaceGrant,
 } from './access-token/access-token.types.js';
+export { parseBlockContent, readBlockText } from './block/block-content.lib.js';
+export { BLOCK_CONTENT_SCHEMAS, blockContentSchema } from './block/block-content.schemas.js';
+export type {
+  BlockContent,
+  BlockContentError,
+  BlockContentErrorCode,
+  BlockContentIssue,
+  BlockNodeDispositionKind,
+  BlockPlainText,
+  BlockRichText,
+  BlockTextEmbed,
+  BlockTextMarks,
+  BlockType,
+} from './block/block-content.types.js';
+export { extractPlainText } from './block/block-text.lib.js';
+export {
+  blockPlainTextSchema,
+  blockRichTextSchema,
+  blockTextEmbedSchema,
+  blockTextMarksSchema,
+} from './block/block-text.schemas.js';
+export {
+  BLOCK_CONTENT_ERROR_CODE,
+  BLOCK_NODE_DISPOSITION,
+  BLOCK_NODE_DISPOSITION_KIND,
+  BLOCK_TEXT_EMBED,
+  BLOCK_TEXT_MARK,
+  BLOCK_TYPE,
+  BLOCK_TYPE_VALUES,
+} from './block/block-type.constants.js';
 export {
   BLOCK_PERMISSION_ENTRY_LIMIT,
   BLOCK_PRINCIPAL_KIND,
@@ -329,7 +359,7 @@ export {
 } from './schemas/page-content.schema.js';
 export type { AuthSession } from './types/auth.types.js';
 export type { PageLifecycle } from './types/page.types.js';
-export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES } from './types/page.types.js';
+export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES, PAGE_TITLE_MAX_LENGTH } from './types/page.types.js';
 export type {
   PagePropertyType,
   PageViewGrouping,

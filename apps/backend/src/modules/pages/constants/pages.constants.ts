@@ -51,11 +51,7 @@ export const EXPORT_MAX_ATTACHMENT_MEGABYTES = 256;
 export const SCHEMA_PROPERTY_LIMIT = 50;
 export const SCHEMA_VIEW_LIMIT = 20;
 
-/**
- * A title shows in the sidebar, breadcrumb and export filename, so the cap fits the
- * narrowest. A property key is an identifier and stays short; its label is read.
- */
-export const PAGE_TITLE_MAX_LENGTH = 200;
+/** A property key is an identifier and stays short; its label is read. */
 export const SCHEMA_PROPERTY_KEY_MAX_LENGTH = PAGE_PROPERTY_KEY_MAX_LENGTH;
 export const SCHEMA_LABEL_MAX_LENGTH = 120;
 
