@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, type JsonObject, type JsonValue, PageLifecycle } from '@neuma/db';
-import { type PageContent, pageContentSchema, Result, USER_ROLE } from '@neuma/shared';
+import { type PageContent, pageContentSchema, Result, USER_ROLE, type UserRole } from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
@@ -9,7 +9,9 @@ import type {
   PageAttachmentsCleanupRepositoryContract,
   PageContentWriter,
   PageLogger,
+  PagePurgeRepositoryContract,
   PageRepositoryContract,
+  PageVersionRetentionRepositoryContract,
   UpdatePagePropertyValuesInput,
 } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
@@ -52,7 +54,7 @@ const contentWriter: PageContentWriter = {
 const createRepository = (): PageRepositoryContract => ({
   countDescendantsByLifecycle: () => Promise.resolve(0),
   create: () => Promise.resolve(page),
-  deleteForever: () => Promise.resolve('DELETED'),
+  deleteForever: () => Promise.resolve('SCHEDULED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
   findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
@@ -118,6 +120,18 @@ const createStorageProvider = (): IStorageProvider => ({
 
 const createLogger = (): PageLogger => ({ warn: () => undefined });
 
+const createPurgeRepository = (dueBatches: readonly (readonly string[])[] = []): PagePurgeRepositoryContract => {
+  const remaining = [...dueBatches];
+  return { purgeDue: () => Promise.resolve(remaining.shift() ?? []) };
+};
+
+const createVersionRetentionRepository = (seenCutoffs: Date[] = []): PageVersionRetentionRepositoryContract => ({
+  thin: (olderThan: Date) => {
+    seenCutoffs.push(olderThan);
+    return Promise.resolve(0);
+  },
+});
+
 describe('pages service', () => {
   it('lets an editor write content in a page they can open', async () => {
     const service = new PagesService(
@@ -126,6 +140,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.authorizeContentWrite(contentWriter, validPageContent);
 
@@ -140,6 +156,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.authorizeContentWrite({ ...contentWriter, role: USER_ROLE.CLIENT }, validPageContent);
 
@@ -153,6 +171,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.authorizeContentWrite({ ...contentWriter, spaceId: 'space-b' }, validPageContent);
 
@@ -199,6 +219,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.authorizeContentWrite(contentWriter, content);
@@ -222,6 +244,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.create(
@@ -259,6 +283,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.create(
@@ -304,6 +330,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -319,6 +347,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -334,6 +364,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.getAccessible('private-page', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
@@ -348,6 +380,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.move(
       'page-a',
@@ -370,6 +404,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.create(
       {
@@ -411,6 +447,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
     const result = await service.move(
       'page-a',
@@ -433,6 +471,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const trashed = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -457,6 +497,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.trash('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.CLIENT);
@@ -474,6 +516,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.previewTrashCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -490,6 +534,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.previewRestoreCascade('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -525,6 +571,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER, true);
@@ -550,6 +598,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.restore('page-a', 'user-a', 'workspace-a', 'mutation-a', USER_ROLE.WORKER);
@@ -564,6 +614,7 @@ describe('pages service', () => {
       deletedBy: { id: 'user-a', name: 'Ada Lovelace' },
       id: 'page-a',
       parentId: null,
+      purgeAfter: null,
       spaceId: 'space-a',
       title: 'Page A',
       trashedChildCount: 0,
@@ -575,6 +626,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null);
@@ -582,17 +635,92 @@ describe('pages service', () => {
     expect(result).toEqual([trashedSummary]);
   });
 
-  it('deletes a trashed page forever and cleans up its attachments', async () => {
+  it('schedules a trashed page for deletion in 30 days and leaves its attachments alone for now', async () => {
     let cleanedUpPageIds: readonly string[] = [];
+    let scheduledFor: Date | undefined;
+    const repository = {
+      ...createRepository(),
+      deleteForever: (_pageId: string, _workspaceId: string, _userId: string, _role: UserRole, purgeAfter: Date) => {
+        scheduledFor = purgeAfter;
+        return Promise.resolve('SCHEDULED' as const);
+      },
+    };
     const attachmentsRepository = {
       ...createAttachmentsCleanupRepository(),
       deleteForPages: (pageIds: readonly string[]) => {
         cleanedUpPageIds = pageIds;
         return Promise.resolve();
       },
-      listStorageKeysForPages: () => Promise.resolve(['storage-key-a']),
     };
+    const service = new PagesService(
+      repository,
+      createSchemaRepository(),
+      attachmentsRepository,
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+    const before = Date.now();
+
+    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.ADMIN);
+
+    expect(result.isOk()).toBe(true);
+    expect(cleanedUpPageIds).toEqual([]);
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    expect((scheduledFor?.getTime() ?? 0) - before).toBeGreaterThanOrEqual(thirtyDays);
+    expect(result.getValue().purgeAfter).toEqual(scheduledFor ?? new Date(0));
+  });
+
+  it('thins only the history older than thirty days', async () => {
+    const seenCutoffs: Date[] = [];
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(seenCutoffs),
+    );
+    const now = new Date('2026-10-31T12:00:00.000Z');
+
+    await service.thinOldVersions(now);
+
+    expect(seenCutoffs).toEqual([new Date('2026-10-01T12:00:00.000Z')]);
+  });
+
+  it('lets only an administrator delete forever', async () => {
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const fromWorker = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const emptyFromWorker = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
+
+    expect(fromWorker.isFail()).toBe(true);
+    expect(emptyFromWorker.isFail()).toBe(true);
+  });
+
+  it('purges what is past its deadline in batches and only then removes the attachment files', async () => {
+    const batches = [Array.from({ length: 100 }, (_, index) => `page-${String(index)}`), ['page-last']];
+    const cleanedUp: string[] = [];
     let deletedStorageKeys: readonly string[] = [];
+    const attachmentsRepository = {
+      ...createAttachmentsCleanupRepository(),
+      deleteForPages: (pageIds: readonly string[]) => {
+        cleanedUp.push(...pageIds);
+        return Promise.resolve();
+      },
+      listStorageKeysForPages: (pageIds: readonly string[]) =>
+        Promise.resolve(pageIds.includes('page-last') ? ['storage-key-last'] : []),
+    };
     const storageProvider = {
       ...createStorageProvider(),
       delete: (storageKey: string) => {
@@ -606,13 +734,15 @@ describe('pages service', () => {
       attachmentsRepository,
       storageProvider,
       createLogger(),
+      createPurgeRepository(batches),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const purgedCount = await service.purgeDuePages(new Date());
 
-    expect(result.isOk()).toBe(true);
-    expect(cleanedUpPageIds).toEqual(['page-a']);
-    expect(deletedStorageKeys).toEqual(['storage-key-a']);
+    expect(purgedCount).toBe(101);
+    expect(cleanedUp).toHaveLength(101);
+    expect(deletedStorageKeys).toEqual(['storage-key-last']);
   });
 
   it('rejects deleting forever a page that is not in the trash', async () => {
@@ -626,15 +756,17 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+    const result = await service.deleteForever('page-a', 'workspace-a', 'user-a', USER_ROLE.ADMIN);
 
     expect(result.isFail()).toBe(true);
     expect(result.getError().code).toBe('PAGE_INVALID_LIFECYCLE');
   });
 
-  it('empties the trash and cleans up every deleted page attachment', async () => {
+  it('empties the trash by scheduling every trashed page, deleting nothing yet', async () => {
     const repository = { ...createRepository(), emptyTrash: () => Promise.resolve(['page-a', 'page-b']) };
     let cleanedUpPageIds: readonly string[] = [];
     const attachmentsRepository = {
@@ -650,12 +782,14 @@ describe('pages service', () => {
       attachmentsRepository,
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
-    const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.WORKER, null);
+    const result = await service.emptyTrash('workspace-a', 'user-a', USER_ROLE.ADMIN, null);
 
-    expect(result.getValue()).toEqual({ deletedCount: 2 });
-    expect(cleanedUpPageIds).toEqual(['page-a', 'page-b']);
+    expect(result.getValue().scheduledCount).toBe(2);
+    expect(cleanedUpPageIds).toEqual([]);
   });
 
   it('refuses to write in a page somebody locked', async () => {
@@ -669,6 +803,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.authorizeContentWrite(contentWriter, validPageContent);
@@ -688,6 +824,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.rename('page-a', 'Another name', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -711,6 +849,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -726,6 +866,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setLocked('page-a', true, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -749,6 +891,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateCover(
@@ -778,6 +922,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateCover(
@@ -800,6 +946,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateCover('page-a', null, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -823,6 +971,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon(
@@ -852,6 +1002,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -875,6 +1027,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon('page-a', { kind: 'sticker' }, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -891,6 +1045,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateIcon(
@@ -925,6 +1081,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setVerification(
@@ -957,6 +1115,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setVerification('page-a', false, undefined, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -972,6 +1132,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setVerification('page-a', true, undefined, 'user-a', 'workspace-a', USER_ROLE.CLIENT);
@@ -996,6 +1158,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setOwner('page-a', 'user-b', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1020,6 +1184,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setOwner('page-a', 'stranger', 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1044,6 +1210,8 @@ describe('pages service', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.setOwner('page-a', null, 'user-a', 'workspace-a', USER_ROLE.WORKER);
@@ -1082,6 +1250,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1103,6 +1273,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1124,6 +1296,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1148,6 +1322,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1179,6 +1355,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1207,6 +1385,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.list('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1227,6 +1407,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     await service.getAccessible('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -1247,6 +1429,8 @@ describe('mention redaction on served page content', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.move(
@@ -1285,6 +1469,8 @@ describe('markdown export', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1310,6 +1496,8 @@ describe('markdown export', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.exportAsMarkdown(
@@ -1322,6 +1510,44 @@ describe('markdown export', () => {
     );
 
     expect(result.isFail()).toBe(true);
+  });
+
+  it('refuses an export whose attachments pass the cap, before reading any of them', async () => {
+    let reads = 0;
+    const attachmentsRepository = {
+      ...createAttachmentsCleanupRepository(),
+      listAssetsForPages: () =>
+        Promise.resolve([{ id: 'asset-a', originalFilename: 'big.zip', size: 257 * 1024 * 1024, storageKey: 'key-a' }]),
+    };
+    const storageProvider = {
+      ...createStorageProvider(),
+      read: () => {
+        reads += 1;
+        return Promise.resolve(Buffer.from(''));
+      },
+    };
+    const service = new PagesService(
+      createRepository(),
+      createSchemaRepository(),
+      attachmentsRepository,
+      storageProvider,
+      createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
+    );
+
+    const result = await service.exportAsMarkdown(
+      'space-a',
+      { kind: 'page', pageId: 'page-a' },
+      'workspace-a',
+      'user-a',
+      USER_ROLE.WORKER,
+      'Sin nombre',
+    );
+
+    expect(result.isFail()).toBe(true);
+    expect(result.getError().code).toBe('PAGE_EXPORT_TOO_LARGE');
+    expect(reads).toBe(0);
   });
 });
 
@@ -1358,6 +1584,8 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
   const notesProperty = {
@@ -1388,6 +1616,8 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
   it('writes only what was named, leaving the rest of the row as it was', async () => {
@@ -1427,6 +1657,8 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateProperties({
@@ -1511,6 +1743,8 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateProperties({
@@ -1532,6 +1766,8 @@ describe('pages service — updating what a row holds', () => {
       createAttachmentsCleanupRepository(),
       createStorageProvider(),
       createLogger(),
+      createPurgeRepository(),
+      createVersionRetentionRepository(),
     );
 
     const result = await service.updateProperties({

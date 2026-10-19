@@ -17,7 +17,7 @@ export class PageAttachmentsCleanupRepository implements PageAttachmentsCleanupR
 
   async listAssetsForPages(pageIds: readonly string[]): Promise<readonly PageAssetForExport[]> {
     if (pageIds.length === 0) return [];
-    return this.prisma.models.FileAsset.select('id', 'originalFilename', 'storageKey')
+    return this.prisma.models.FileAsset.select('id', 'originalFilename', 'size', 'storageKey')
       .where({ lifecycle: FileAssetLifecycle.ACTIVE })
       .where((asset) => asset.pageId.in([...pageIds]))
       .all();

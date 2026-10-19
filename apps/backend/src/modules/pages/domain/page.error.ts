@@ -145,6 +145,15 @@ export class PageMaintenanceAlreadyRunningError extends DomainError {
   }
 }
 
+export class PageExportTooLargeError extends DomainError {
+  public readonly code = 'PAGE_EXPORT_TOO_LARGE';
+  public readonly httpStatus = 413;
+
+  constructor(limitMegabytes: number) {
+    super(`The export carries more than ${String(limitMegabytes)} MB of attachments. Export fewer pages at a time.`);
+  }
+}
+
 export class PageLockedError extends DomainError {
   public readonly code = 'PAGE_LOCKED';
   public readonly httpStatus = 409;

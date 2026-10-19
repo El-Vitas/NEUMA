@@ -1,5 +1,6 @@
-import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
+import { type BeforeApplicationShutdown, Injectable } from '@nestjs/common';
 import type { PageContent } from '@neuma/shared';
+import type { PinoLogger } from 'nestjs-pino';
 import { createCollaborationGateway } from './collaboration.gateway';
 import type {
   CollaborationAuthorizationAdapter,
@@ -8,11 +9,12 @@ import type {
   CollaborationContext,
   CollaborationGateway as CollaborationGatewayContract,
   CollaborationPersistenceAdapter,
+  CollaborationShutdownResult,
   CollaborationTokenAdapter,
 } from './types/collaboration.types';
 
 @Injectable()
-export class CollaborationGateway implements CollaborationGatewayContract, OnApplicationShutdown {
+export class CollaborationGateway implements CollaborationGatewayContract, BeforeApplicationShutdown {
   private readonly gateway: CollaborationGatewayContract;
 
   constructor(
@@ -20,6 +22,7 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     authorization: CollaborationAuthorizationAdapter,
     persistence: CollaborationPersistenceAdapter,
     content: CollaborationContentAdapter,
+    private readonly logger: Pick<PinoLogger, 'error'>,
   ) {
     this.gateway = createCollaborationGateway({ authorization, content, persistence, token });
   }
@@ -60,7 +63,7 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     return this.gateway.authorizeMessage(...message);
   }
 
-  shutdown(): Promise<void> {
+  shutdown(): Promise<CollaborationShutdownResult> {
     return this.gateway.shutdown();
   }
 
@@ -75,7 +78,14 @@ export class CollaborationGateway implements CollaborationGatewayContract, OnApp
     return this.gateway.readLoadedPageContent(pageId);
   }
 
-  onApplicationShutdown(): Promise<void> {
-    return this.shutdown();
+  /** Runs before the database pool closes (`PrismaService` closes it in `onApplicationShutdown`). */
+  async beforeApplicationShutdown(): Promise<void> {
+    const { unsavedDocumentNames } = await this.shutdown();
+    if (unsavedDocumentNames.length > 0) {
+      this.logger.error(
+        { err: new Error('live documents not saved before shutdown'), unsavedDocumentNames },
+        'live edits lost on shutdown',
+      );
+    }
   }
 }

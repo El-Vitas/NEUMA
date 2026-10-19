@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { type AuthSession, Result, type User } from '@neuma/shared';
 import { toUser } from '../../common/utils/auth.utils';
-import { assertUserIsActive } from './domain/auth.domain';
+import { assertUserIsActive, isRefreshTokenCurrent } from './domain/auth.domain';
 import { type InactiveUserError, InvalidCredentialsError } from './domain/auth.error';
 import { LoginDto } from './dto/login.dto';
 import { PasswordAdapter } from './infrastructure/adapters/password.adapter';
@@ -36,10 +36,10 @@ export class AuthService {
       return Result.fail(new InvalidCredentialsError());
     }
 
-    return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(user), user.tokenVersion));
   }
 
-  /** Re-reads the user on every renewal so a deactivated user stops being renewed. */
+  /** Re-reads the user on every renewal so a deactivated user or a revoked token stops being renewed. */
   async refreshSession(
     refreshToken: string,
   ): Promise<Result<AuthSession, InactiveUserError | InvalidCredentialsError>> {
@@ -49,7 +49,7 @@ export class AuthService {
     }
 
     const user = await this.authRepository.findByEmail(payload.email);
-    if (user === null) {
+    if (user === null || !isRefreshTokenCurrent(payload.ver, user.tokenVersion)) {
       return Result.fail(new InvalidCredentialsError());
     }
 
@@ -58,11 +58,12 @@ export class AuthService {
       return Result.fail(inactiveError);
     }
 
-    return Result.ok(await this.tokenAdapter.issueSession(toUser(user)));
+    return Result.ok(await this.tokenAdapter.issueSession(toUser(user), user.tokenVersion));
   }
 
-  logoutUser(): void {
-    return;
+  /** Ends every session of the account: an open access token still works until it expires, minutes later. */
+  async logoutUser(userId: string): Promise<void> {
+    await this.authRepository.revokeSessions(userId);
   }
 
   async signAccessToken(user: User): Promise<string> {

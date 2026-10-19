@@ -17,9 +17,15 @@ import { mapWithBoundedConcurrency } from '../../common/utils/concurrency.utils'
 import {
   EXPORT_ATTACHMENT_READS_AT_ONCE,
   EXPORT_ATTACHMENTS_FOLDER,
+  EXPORT_MAX_ATTACHMENT_MEGABYTES,
   PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
+  PAGE_PURGE_BATCH_SIZE,
+  PAGE_PURGE_DELAY_DAYS,
+  PAGE_PURGE_REPOSITORY,
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
+  PAGE_VERSION_FULL_HISTORY_DAYS,
+  PAGE_VERSION_RETENTION_REPOSITORY,
   REDACTED_MENTION_LABEL,
 } from './constants/pages.constants';
 import { hasValidPageParent, isPageAssignedTo, isPageMoveAllowed, validatePageContent } from './domain/page.domain';
@@ -28,6 +34,7 @@ import {
   PageContentValidationError,
   PageCoverValidationError,
   PageCycleError,
+  PageExportTooLargeError,
   PageIconValidationError,
   PageLifecycleError,
   PageLockedError,
@@ -36,8 +43,9 @@ import {
   PagePropertyConformanceError,
   PagePropertyValidationError,
 } from './domain/page.error';
+import { canDeletePagesForever, computeDaysBefore, computePurgeAfter } from './domain/page.purge.domain';
 import { validatePageCover } from './domain/page-cover.domain';
-import { readExportableContent, selectPagesForExport } from './domain/page-export.domain';
+import { fitsInOneExport, readExportableContent, selectPagesForExport } from './domain/page-export.domain';
 import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
@@ -51,15 +59,19 @@ import type {
   CreatePageInput,
   ExportedFile,
   PageAccessState,
+  PageAssetForExport,
   PageAttachmentsCleanupRepositoryContract,
   PageContentStoreOutcome,
   PageContentWriter,
   PageDescendantsPreview,
   PageLogger,
   PageMoveDestinations,
+  PagePurgeRepositoryContract,
+  PagePurgeSchedule,
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
+  PageVersionRetentionRepositoryContract,
   TrashedPageSummary,
   UpdatePagePropertiesInput,
 } from './types/page.types';
@@ -74,6 +86,9 @@ export class PagesService {
     private readonly pageAttachmentsCleanupRepository: PageAttachmentsCleanupRepositoryContract,
     @Inject(STORAGE_PROVIDER) private readonly storageProvider: IStorageProvider,
     @Inject(Logger) private readonly logger: PageLogger,
+    @Inject(PAGE_PURGE_REPOSITORY) private readonly pagePurgeRepository: PagePurgeRepositoryContract,
+    @Inject(PAGE_VERSION_RETENTION_REPOSITORY)
+    private readonly pageVersionRetentionRepository: PageVersionRetentionRepositoryContract,
   ) {}
 
   async list(
@@ -95,12 +110,16 @@ export class PagesService {
     userId: string,
     role: UserRole,
     untitledLabel: string,
-  ): Promise<Result<readonly ExportedFile[], PageAccessDeniedError>> {
+  ): Promise<Result<readonly ExportedFile[], PageAccessDeniedError | PageExportTooLargeError>> {
     const pages = await this.list(spaceId, workspaceId, userId, role, false);
     const chosen = selectPagesForExport(pages, scope);
     if (chosen.length === 0) return Result.fail(new PageAccessDeniedError());
 
-    const carried = await this.gatherAttachments(chosen.map((page) => page.id));
+    const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(chosen.map((page) => page.id));
+    if (!fitsInOneExport(assets, EXPORT_MAX_ATTACHMENT_MEGABYTES)) {
+      return Result.fail(new PageExportTooLargeError(EXPORT_MAX_ATTACHMENT_MEGABYTES));
+    }
+    const carried = await this.gatherAttachments(assets);
     const written = writePagesAsMarkdownFiles(
       chosen.map((page) => ({
         content: readExportableContent(page.content),
@@ -116,8 +135,7 @@ export class PagesService {
   }
 
   /** Own folder, since one file can appear on several pages. An unreadable file is skipped. */
-  private async gatherAttachments(pageIds: readonly string[]): Promise<readonly CarriedAttachment[]> {
-    const assets = await this.pageAttachmentsCleanupRepository.listAssetsForPages(pageIds);
+  private async gatherAttachments(assets: readonly PageAssetForExport[]): Promise<readonly CarriedAttachment[]> {
     // Bounded so a space with hundreds of files does not open hundreds of reads at once.
     const carried = await mapWithBoundedConcurrency(assets, EXPORT_ATTACHMENT_READS_AT_ONCE, async (asset) => {
       try {
@@ -477,18 +495,19 @@ export class PagesService {
     return this.pageRepository.listTrashed(workspaceId, userId, role, spaceId, search);
   }
 
+  /** Schedules the deletion; the page and its attachments stay until the delay passes (ADR 017). */
   async deleteForever(
     pageId: string,
     workspaceId: string,
     userId: string,
     role: UserRole,
-  ): Promise<Result<true, PageAccessDeniedError | PageLifecycleError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const outcome = await this.pageRepository.deleteForever(pageId, workspaceId, userId, role);
+  ): Promise<Result<PagePurgeSchedule, PageAccessDeniedError | PageLifecycleError>> {
+    if (!canDeletePagesForever(role)) return Result.fail(new PageAccessDeniedError());
+    const purgeAfter = computePurgeAfter(new Date(), PAGE_PURGE_DELAY_DAYS);
+    const outcome = await this.pageRepository.deleteForever(pageId, workspaceId, userId, role, purgeAfter);
     if (outcome === 'NOT_FOUND') return Result.fail(new PageAccessDeniedError());
     if (outcome === 'NOT_TRASHED') return Result.fail(new PageLifecycleError());
-    await this.cleanupAttachments([pageId]);
-    return Result.ok(true);
+    return Result.ok({ purgeAfter, scheduledCount: 1 });
   }
 
   async emptyTrash(
@@ -496,11 +515,28 @@ export class PagesService {
     userId: string,
     role: UserRole,
     spaceId: null | string,
-  ): Promise<Result<{ deletedCount: number }, PageAccessDeniedError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const deletedPageIds = await this.pageRepository.emptyTrash(workspaceId, userId, role, spaceId);
-    await this.cleanupAttachments(deletedPageIds);
-    return Result.ok({ deletedCount: deletedPageIds.length });
+  ): Promise<Result<PagePurgeSchedule, PageAccessDeniedError>> {
+    if (!canDeletePagesForever(role)) return Result.fail(new PageAccessDeniedError());
+    const purgeAfter = computePurgeAfter(new Date(), PAGE_PURGE_DELAY_DAYS);
+    const scheduled = await this.pageRepository.emptyTrash(workspaceId, userId, role, spaceId, purgeAfter);
+    return Result.ok({ purgeAfter, scheduledCount: scheduled.length });
+  }
+
+  /** Deletes what is past its deadline, in batches, and only then removes the attachments' files. */
+  async purgeDuePages(now: Date): Promise<number> {
+    let purgedCount = 0;
+    let batch: readonly string[];
+    do {
+      batch = await this.pagePurgeRepository.purgeDue(now, PAGE_PURGE_BATCH_SIZE);
+      await this.cleanupAttachments(batch);
+      purgedCount += batch.length;
+    } while (batch.length === PAGE_PURGE_BATCH_SIZE);
+    return purgedCount;
+  }
+
+  /** The last month keeps every version; older history keeps one per page and day. */
+  thinOldVersions(now: Date): Promise<number> {
+    return this.pageVersionRetentionRepository.thin(computeDaysBefore(now, PAGE_VERSION_FULL_HISTORY_DAYS));
   }
 
   validateMove(

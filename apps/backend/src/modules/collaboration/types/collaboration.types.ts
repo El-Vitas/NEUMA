@@ -93,6 +93,16 @@ export interface CollaborationSocketConnection {
 
 export type CollaborationConnectionOpener = (socket: WebSocketLike, request: Request) => CollaborationSocketConnection;
 
+export interface CollaborationShutdownResult {
+  /** Documents whose last edits did not reach the database before the deadline. */
+  readonly unsavedDocumentNames: readonly string[];
+}
+
+/** The part of Hocuspocus that tells whether a document still has a save queued or running. */
+export interface CollaborationStoreTracker {
+  readonly debouncer: Pick<Hocuspocus['debouncer'], 'isCurrentlyExecuting' | 'isDebounced'>;
+}
+
 export interface CollaborationGateway {
   readonly handleConnection: (socket: WebSocketLike, request: Request) => ReturnType<Hocuspocus['handleConnection']>;
   readonly server: Hocuspocus<CollaborationContext>;
@@ -107,7 +117,7 @@ export interface CollaborationGateway {
     message: Uint8Array,
     connection: { readonly readOnly: boolean },
   ) => Promise<void>;
-  readonly shutdown: () => Promise<void>;
+  readonly shutdown: () => Promise<CollaborationShutdownResult>;
   /** Rewrites inside the live document, so open editors see it and it persists like any other change. */
   readonly writePageContent: (
     context: CollaborationContext,

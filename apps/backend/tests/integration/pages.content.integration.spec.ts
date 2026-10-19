@@ -60,6 +60,17 @@ describe('Writing the content of a page through its live document (Integration)'
     return { content: page.content, versions: stored.total };
   };
 
+  const readLatestVersion = async (pageId: string): Promise<{ content: unknown; version: number }> => {
+    const latest = await testApp
+      .get(PrismaService)
+      .models.PageVersion.where({ pageId })
+      .select('content', 'version')
+      .orderBy((entry) => entry.version.desc())
+      .first();
+    if (latest === null) throw new Error('the page has no version');
+    return { content: latest.content, version: latest.version };
+  };
+
   const readLive = async (pageId: string): Promise<PageContent> => {
     const gateway = testApp.get(CollaborationGateway);
     const connection = await gateway.server.openDirectConnection(`page:${pageId}`, {
@@ -106,16 +117,29 @@ describe('Writing the content of a page through its live document (Integration)'
     await testApp.close();
   });
 
-  it('replaces the content, cuts one version, and the live document says the same', async () => {
+  it('replaces the content, keeps it in the history, and the live document says the same', async () => {
     const pageId = await createPage(pageOf(paragraph('a', 'Antes')));
-    const before = await readStored(pageId);
+    const before = await readLatestVersion(pageId);
 
     await replaceContent(pageId, pageOf(paragraph('a', 'Después'))).expect(200);
 
     const after = await readStored(pageId);
     expect(after.content).toEqual(pageOf(paragraph('a', 'Después')));
-    expect(after.versions).toBe(before.versions + 1);
+    const latest = await readLatestVersion(pageId);
+    expect(latest.content).toEqual(pageOf(paragraph('a', 'Después')));
+    expect(latest.version).toBeGreaterThan(before.version);
     expect(await readLive(pageId)).toEqual(pageOf(paragraph('a', 'Después')));
+  });
+
+  it('folds saves by the same person within minutes into one history entry', async () => {
+    const pageId = await createPage(pageOf(paragraph('a', 'Uno')));
+    const before = await readStored(pageId);
+
+    await replaceContent(pageId, pageOf(paragraph('a', 'Dos'))).expect(200);
+    await replaceContent(pageId, pageOf(paragraph('a', 'Tres'))).expect(200);
+
+    expect((await readStored(pageId)).versions).toBe(before.versions);
+    expect((await readLatestVersion(pageId)).content).toEqual(pageOf(paragraph('a', 'Tres')));
   });
 
   it('cuts no version when the content did not change', async () => {
