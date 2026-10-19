@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { getLocale } from 'next-intl/server';
 import { config } from '@/shared/config';
 import { ACCESS_TOKEN_COOKIE, BEARER_PREFIX, PUBLIC_API_REQUESTS } from '@/shared/constants/auth.constants';
@@ -8,6 +8,7 @@ import { redirect } from '../../i18n/navigation';
 import { ApiError } from './api';
 import { MissingAccessTokenError } from './auth.token.error';
 import { readAccessTokenCookie } from './auth.token.lib';
+import { forwardedForHeaders, readClientIp } from './client-ip.lib';
 import { NetworkError, parseJsonBodyStrict } from './parse-json-body';
 
 export const buildHeaders = (
@@ -91,9 +92,13 @@ const request = async <T>(
     throw new MissingAccessTokenError();
   }
 
+  const forwardedInit = {
+    ...init,
+    headers: { ...init.headers, ...forwardedForHeaders(readClientIp(await headers())) },
+  };
   let caughtError: unknown;
   try {
-    return await readBody(await fetchAcceptedResponse(endpoint, accessToken, init));
+    return await readBody(await fetchAcceptedResponse(endpoint, accessToken, forwardedInit));
   } catch (error) {
     caughtError = error;
   }

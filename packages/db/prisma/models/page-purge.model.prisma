@@ -1,0 +1,21 @@
+// use prisma-8
+
+/// Who asked to delete a page forever, when it goes, and how it ended: purged, or cancelled by a restore.
+/// No foreign keys to the page or the user, so the record survives both.
+model PagePurge {
+  id            String             @id(map: "PagePurge_pkey") @default(uuid(7))
+  pageId        String
+  workspaceId   String
+  spaceId       String
+  title         String
+  requestedById String
+  requestedAt   TimestamptzJsDate  @default(now())
+  purgeAfter    TimestamptzJsDate
+  /// Null until the page is gone.
+  purgedAt      TimestamptzJsDate?
+  /// Set when the page came back from the trash before its deadline.
+  cancelledAt   TimestamptzJsDate?
+
+  @@index([pageId], map: "PagePurge_pageId_idx")
+  @@index([workspaceId, requestedAt], map: "PagePurge_workspaceId_requestedAt_idx")
+}

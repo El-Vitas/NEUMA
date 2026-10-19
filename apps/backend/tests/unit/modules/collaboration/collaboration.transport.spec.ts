@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { WebSocketLike } from '@hocuspocus/server';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerCollaborationTransport } from '../../../../src/modules/collaboration/collaboration.transport';
+import { MAX_COLLABORATION_MESSAGE_BYTES } from '../../../../src/modules/collaboration/constants/collaboration.constants';
 import type {
   CollaborationCloseEvent,
   CollaborationSocketConnection,
@@ -77,6 +78,34 @@ describe('collaboration transport', () => {
     await closeArrived;
 
     expect(closeEvent).toEqual({ code: 4000, reason: 'bye' });
+
+    await app.close();
+  });
+
+  test('closes the socket on a message over the limit and never hands it to the connection', async () => {
+    const app = Fastify({ forceCloseConnections: true });
+    let messagesHandled = 0;
+    let closeEvent: CollaborationCloseEvent | undefined;
+    let resolveClose: (() => void) | undefined;
+    const closeArrived = new Promise<void>((resolve) => {
+      resolveClose = resolve;
+    });
+    await registerCollaborationTransport(app, () => ({
+      handleClose: (event) => {
+        closeEvent = event;
+        resolveClose?.();
+      },
+      handleMessage: () => {
+        messagesHandled += 1;
+      },
+    }));
+
+    const socket = await openSocket(app);
+    socket.send(new Uint8Array(MAX_COLLABORATION_MESSAGE_BYTES + 1));
+    await closeArrived;
+
+    expect(messagesHandled).toBe(0);
+    expect(closeEvent?.code).toBe(1009);
 
     await app.close();
   });

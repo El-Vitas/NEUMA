@@ -3,12 +3,13 @@
 import 'server-only';
 import { updateTag } from 'next/cache';
 import { actionClient } from '@/lib/safe-action';
+import { signInAgain } from '@/modules/auth/server/lib/auth.server';
 import { CURRENT_USER_CACHE_TAG } from '@/shared/constants/current-user-cache.constants';
 import { apiServer } from '@/shared/lib/api-server';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { API_ROUTES } from '@/shared/routes/constants/routes.constants';
 import { UpdateNameSchema, UpdatePasswordSchema } from '../../schemas/profile.schemas';
-import { requireOwnAccountId } from '../lib/account.owner.server';
+import { requireOwnAccount, requireOwnAccountId } from '../lib/account.owner.server';
 
 export const updateProfileNameAction = actionClient.inputSchema(UpdateNameSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'updateProfileName' }, async () => {
@@ -21,10 +22,11 @@ export const updateProfileNameAction = actionClient.inputSchema(UpdateNameSchema
 
 export const updatePasswordAction = actionClient.inputSchema(UpdatePasswordSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'updatePassword' }, async () => {
-    const userId = await requireOwnAccountId();
-    await apiServer.patch(`${API_ROUTES.USERS}/${userId}/password`, {
+    const account = await requireOwnAccount();
+    await apiServer.patch(`${API_ROUTES.USERS}/${account.id}/password`, {
       currentPassword: parsedInput.currentPassword,
       newPassword: parsedInput.newPassword,
     });
+    await signInAgain({ email: account.email, password: parsedInput.newPassword });
   }),
 );

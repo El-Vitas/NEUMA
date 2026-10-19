@@ -69,7 +69,7 @@ export class UsersService {
     if (!isValid) throw new BadRequestException('Current password is incorrect');
 
     const hashedPassword = await this.passwordAdapter.hash(dto.newPassword);
-    const updated = await this.prisma.models.User.where({ id }).update({ password: hashedPassword });
-    if (updated === null) throw new NotFoundException('User not found');
+    const updated = await this.userRepository.replacePasswordAndRevokeSessions(id, hashedPassword);
+    if (!updated) throw new NotFoundException('User not found');
   }
 }

@@ -302,6 +302,34 @@ rules:
         given: Una página en la papelera
         when: Un agente le agrega un bloque
         then: No se escribe nada y se le dice que la traiga de vuelta primero
+  - id: BR-d5883eb
+    status: active
+    title: Eliminar para siempre espera 30 días y solo lo decide un administrador
+    rule: >-
+      Vaciar la papelera o eliminar para siempre una página no la borra en el acto. La página queda en la papelera con
+      la fecha en que se borrará, 30 días después, y hasta ese momento cualquiera con acceso puede restaurarla. Solo un
+      administrador puede pedir que se elimine para siempre. Cada pedido queda registrado con quién lo hizo, la página y
+      cómo terminó, borrada o cancelada por una restauración.
+    why: >-
+      Un borrado inmediato no tiene vuelta atrás, y vaciar la papelera de un espacio se lleva en un gesto el trabajo de
+      muchas personas. El plazo da tiempo a notar el error, y el registro dice quién lo pidió aunque la página ya no
+      exista.
+    context: >-
+      El servidor borra cada hora lo que pasó su fecha, y recién entonces borra los archivos adjuntos. Restaurar la
+      página antes del plazo cancela el borrado. Un agente no puede eliminar para siempre.
+    scenarios:
+      - title: Un administrador vacía la papelera
+        given: Un espacio con páginas en la papelera
+        when: Un administrador vacía la papelera
+        then: Las páginas siguen en la papelera con la fecha en que se borran, y quedan registradas a su nombre
+      - title: Se restaura antes del plazo
+        given: Una página programada para borrarse
+        when: Alguien la restaura antes de la fecha
+        then: La página vuelve con su contenido y el registro queda como cancelado
+      - title: Alguien que no administra intenta borrar
+        given: Una persona con rol de trabajador
+        when: Pide eliminar para siempre una página de la papelera
+        then: Se rechaza y la página no queda programada
   - id: BR-d829da6
     status: active
     title: Lo que se exporta se lee como Markdown y sabe volver

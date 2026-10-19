@@ -12,10 +12,11 @@ import { AppModule } from './app.module';
 import { parseCorsOrigins } from './common/config/cors.config';
 import { getTrustProxy } from './common/config/trust-proxy.config';
 import { CORS_ORIGIN_KEY, PORT_KEY } from './common/constants/env.constants';
-import { MAX_FILE_SIZE } from './common/domain/file.constants';
+import { MULTIPART_LIMITS } from './common/constants/storage.constants';
 import { GlobalExceptionFilter } from './common/infrastructure/filters/global.exception.filter';
 import { CollaborationGateway } from './modules/collaboration/collaboration.service';
 import { registerCollaborationTransport } from './modules/collaboration/collaboration.transport';
+import { PageRetentionScheduler } from './modules/pages/infrastructure/schedulers/page.retention.scheduler';
 
 const bootstrap = async (): Promise<void> => {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -38,9 +39,7 @@ const bootstrap = async (): Promise<void> => {
   });
   app.setGlobalPrefix('api/v1');
 
-  await app.register(multipart, {
-    limits: { fileSize: MAX_FILE_SIZE },
-  });
+  await app.register(multipart, { limits: MULTIPART_LIMITS });
 
   const collaborationGateway = app.get(CollaborationGateway);
   await registerCollaborationTransport(app.getHttpAdapter().getInstance(), (socket, request) =>
@@ -67,6 +66,7 @@ const bootstrap = async (): Promise<void> => {
 
   const port = configService.get<string>(PORT_KEY) ?? '3000';
   await app.listen(Number(port), '0.0.0.0');
+  app.get(PageRetentionScheduler).start();
 };
 
 void bootstrap();

@@ -96,6 +96,21 @@ describe('Files (Integration)', () => {
     await testApp.close();
   });
 
+  it('refuses an upload that carries more form fields than an upload needs', async () => {
+    const upload = request(testApp.getServer())
+      .post('/api/v1/files')
+      .query({ pageId })
+      .set('Authorization', `Bearer ${adminToken}`);
+    for (let index = 0; index < 20; index += 1) {
+      upload.field(`extra${String(index)}`, 'x');
+    }
+
+    const response = await upload.attach('file', Buffer.from('attachment contents'), 'attachment.txt');
+
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(response.status).toBeLessThan(500);
+  });
+
   it('lets an authorized member see the page attachments with only non-sensitive metadata', async () => {
     const response = await listAttachments(testApp, adminToken, pageId).expect(200);
     const attachments = response.body as FileAssetMetadataResponse[];

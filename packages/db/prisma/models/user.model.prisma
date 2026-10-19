@@ -6,6 +6,8 @@ model User {
   name                 String
   role                 pg.enum(UserRole)          @default("CLIENT")
   isActive             Boolean                    @default(true)
+  /// Every refresh token carries it; logging out or changing the password raises it, so older tokens stop renewing.
+  tokenVersion         Int                        @default(0)
   createdAt            TimestamptzJsDate          @default(now())
   updatedAt            temporal.updatedAtJsDate()
 

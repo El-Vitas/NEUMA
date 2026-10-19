@@ -14,6 +14,7 @@ mock.module('next/headers', () => ({
     get: () => (cookieValue === undefined ? undefined : { value: cookieValue }),
     delete: () => undefined,
   }),
+  headers: async () => new Headers(),
 }));
 mock.module('next-intl/server', () => ({ getLocale: async () => 'en' }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));

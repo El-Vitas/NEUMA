@@ -11,6 +11,7 @@ export const registerAttachmentTestMocks = (): void => {
   mock.module('server-only', () => ({}));
   mock.module('next/headers', () => ({
     cookies: async () => ({ get: () => (cookieState.value === undefined ? undefined : { value: cookieState.value }) }),
+    headers: async () => new Headers(),
   }));
   mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
   installFetchMock(fetchMock);

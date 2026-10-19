@@ -1,5 +1,5 @@
 import { type PageContent, pageContentSchema } from '@neuma/shared';
-import { EMPTY_EXPORTED_DOCUMENT } from './page-export.domain.constants';
+import { BYTES_PER_MEGABYTE, EMPTY_EXPORTED_DOCUMENT } from './page-export.domain.constants';
 import type { ExportablePage, OrderedExportPage, PageExportScope } from './page-export.domain.types';
 
 /** An unrecognized body falls back to an empty page so it cannot take the whole export down. */
@@ -7,6 +7,10 @@ export const readExportableContent = (stored: unknown): PageContent => {
   const understood = pageContentSchema.safeParse(stored);
   return understood.success ? understood.data : EMPTY_EXPORTED_DOCUMENT;
 };
+
+/** Decided from the stored sizes, before any file is read into memory. */
+export const fitsInOneExport = (assets: readonly { readonly size: number }[], limitMegabytes: number): boolean =>
+  assets.reduce((total, asset) => total + asset.size, 0) <= limitMegabytes * BYTES_PER_MEGABYTE;
 
 export const readExportScope = (
   kind: PageExportScope['kind'],
