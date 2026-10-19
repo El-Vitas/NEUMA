@@ -89,7 +89,6 @@ El modelo viejo sigue funcionando detrás de la bandera `NEUMA_BLOCK_MODEL` hast
 - Se limpia el outbox de lo procesado.
 - Se actualizan:
   - los diagramas de `docs/architecture/diagramas/`;
-  - el ADR 021 pasa a Accepted, y el 008 y el 020 a Superseded;
   - las reglas BR-1e9a26a y BR-585748e, reemplazadas con `rules:add`.
 
 ## Riesgos que se vigilan en cada etapa

@@ -25,6 +25,7 @@ import { McpServerDependenciesAdapter } from './mcp.server-dependencies.adapter'
 import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TokenAdapter } from './modules/auth/infrastructure/adapters/token.adapter';
+import { BlocksModule } from './modules/blocks/blocks.module';
 import { CollaborationController } from './modules/collaboration/collaboration.controller';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { CollaborationGateway } from './modules/collaboration/collaboration.service';
@@ -116,6 +117,7 @@ import { PrismaModule } from './prisma/prisma.module';
     WorkspacesModule,
     SpacesModule,
     PagesModule,
+    BlocksModule,
     PageViewsModule,
     FavoritesModule,
     FilesModule,

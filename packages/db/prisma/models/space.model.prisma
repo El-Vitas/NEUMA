@@ -16,6 +16,7 @@ model Space {
 
   members     SpaceMember[]
   pages       Page[]
+  blocks      Block[]
   tokenGrants AccessTokenGrant[]
 
   @@unique([workspaceId, slug], map: "Space_workspaceId_slug_key")
