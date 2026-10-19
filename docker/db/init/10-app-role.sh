@@ -12,14 +12,12 @@ if [ -z "${NEUMA_APP_PASSWORD:-}" ]; then
   exit 1
 fi
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
-DO \$\$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'neuma_app') THEN
-    CREATE ROLE "neuma_app" LOGIN PASSWORD '${NEUMA_APP_PASSWORD}';
-  END IF;
-END
-\$\$;
+# The password travels as a psql variable and is quoted by Postgres itself (format %L), so a generated
+# password holding a quote can neither break nor inject into the statement.
+psql -v ON_ERROR_STOP=1 -v app_password="$NEUMA_APP_PASSWORD" --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
+SELECT format('CREATE ROLE "neuma_app" LOGIN PASSWORD %L', :'app_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'neuma_app')
+\gexec
 
 GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO "neuma_app";
 GRANT USAGE ON SCHEMA public TO "neuma_app";
