@@ -16,6 +16,8 @@ model User {
   favorites            PageFavorite[]
   verifiedPages        Page[]                     @relation(name: "PageVerifiedBy")
   ownedPages           Page[]                     @relation(name: "PageOwner")
+  verifiedBlocks       Block[]                    @relation(name: "BlockVerifiedBy")
+  ownedBlocks          Block[]                    @relation(name: "BlockOwner")
   ownedSpaces          Space[]                    @relation(name: "SpaceOwner")
   pageViews            PageView[]
   accessTokens         AccessToken[]

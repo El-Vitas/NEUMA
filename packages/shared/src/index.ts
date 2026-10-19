@@ -37,6 +37,30 @@ export type {
   AccessTokenPresetLevel,
   AccessTokenSpaceGrant,
 } from './access-token/access-token.types.js';
+export {
+  BLOCK_PERMISSION_ENTRY_LIMIT,
+  BLOCK_PRINCIPAL_KIND,
+  BLOCK_ROLE,
+  BLOCK_ROLE_VALUES,
+} from './block/block.constants.js';
+export {
+  canEditBlock,
+  canManageBlockPermissions,
+  canReadBlock,
+  filterVisibleBlockIds,
+  resolveBlockRole,
+} from './block/block.permissions.lib.js';
+export { blockPermissionEntrySchema, blockPermissionsSchema, blockRoleSchema } from './block/block.schemas.js';
+export type {
+  BlockAncestorPermissions,
+  BlockPermissionEntry,
+  BlockPermissions,
+  BlockPrincipal,
+  BlockRole,
+  BlockRoleInput,
+  BlockViewer,
+  BlockWithRole,
+} from './block/block.types.js';
 export { UNASSIGNED_GROUP_KEY } from './constants/page-view.constants.js';
 export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
