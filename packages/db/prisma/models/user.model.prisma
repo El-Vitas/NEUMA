@@ -18,6 +18,7 @@ model User {
   ownedPages           Page[]                     @relation(name: "PageOwner")
   verifiedBlocks       Block[]                    @relation(name: "BlockVerifiedBy")
   ownedBlocks          Block[]                    @relation(name: "BlockOwner")
+  blockTransactions    BlockTransaction[]
   ownedSpaces          Space[]                    @relation(name: "SpaceOwner")
   pageViews            PageView[]
   accessTokens         AccessToken[]

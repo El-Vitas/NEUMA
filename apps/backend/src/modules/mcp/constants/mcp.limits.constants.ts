@@ -5,6 +5,7 @@ import {
   maximumTableColumns,
   maximumTableRows,
   maximumToggleSummaryLength,
+  PAGE_TITLE_MAX_LENGTH,
 } from '@neuma/shared';
 
 /** Fine matching is left to the blocks. */
@@ -50,7 +51,7 @@ export const MCP_ADDRESS_MAX_LENGTH = 2048;
 
 export const MCP_REQUEST_ID_MAX_LENGTH = 128;
 
-export const MCP_TITLE_MAX_LENGTH = 200;
+export const MCP_TITLE_MAX_LENGTH = PAGE_TITLE_MAX_LENGTH;
 
 export const MCP_BOOKMARK_TEXT_MAX_LENGTH = maximumBookmarkTextLength;
 

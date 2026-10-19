@@ -24,6 +24,14 @@
       "model": "Block",
       "namespace": "public"
     },
+    "BlockLink": {
+      "model": "BlockLink",
+      "namespace": "public"
+    },
+    "BlockTransaction": {
+      "model": "BlockTransaction",
+      "namespace": "public"
+    },
     "CollaborationSnapshot": {
       "model": "CollaborationSnapshot",
       "namespace": "public"
@@ -803,6 +811,51 @@
                   "namespace": "public"
                 }
               },
+              "containedLinks": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "sourcePageId"
+                  ]
+                },
+                "to": {
+                  "model": "BlockLink",
+                  "namespace": "public"
+                }
+              },
+              "incomingLinks": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "targetBlockId"
+                  ]
+                },
+                "to": {
+                  "model": "BlockLink",
+                  "namespace": "public"
+                }
+              },
+              "outgoingLinks": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "sourceBlockId"
+                  ]
+                },
+                "to": {
+                  "model": "BlockLink",
+                  "namespace": "public"
+                }
+              },
               "owner": {
                 "cardinality": "N:1",
                 "nullable": true,
@@ -948,6 +1001,220 @@
               },
               "namespaceId": "public",
               "table": "Block"
+            }
+          },
+          "BlockLink": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "kind": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sourceBlockId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "sourcePageId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "targetBlockId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "sourceBlock": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "sourceBlockId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Block",
+                  "namespace": "public"
+                }
+              },
+              "sourcePage": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "sourcePageId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Block",
+                  "namespace": "public"
+                }
+              },
+              "targetBlock": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "targetBlockId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Block",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "kind": {
+                  "column": "kind"
+                },
+                "sourceBlockId": {
+                  "column": "sourceBlockId"
+                },
+                "sourcePageId": {
+                  "column": "sourcePageId"
+                },
+                "targetBlockId": {
+                  "column": "targetBlockId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "BlockLink"
+            }
+          },
+          "BlockTransaction": {
+            "fields": {
+              "appliedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "result": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
+              "spaceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "space": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "spaceId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Space",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "appliedAt": {
+                  "column": "appliedAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "result": {
+                  "column": "result"
+                },
+                "spaceId": {
+                  "column": "spaceId"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "BlockTransaction"
             }
           },
           "CollaborationSnapshot": {
@@ -2920,6 +3187,21 @@
               }
             },
             "relations": {
+              "blockTransactions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "spaceId"
+                  ]
+                },
+                "to": {
+                  "model": "BlockTransaction",
+                  "namespace": "public"
+                }
+              },
               "blocks": {
                 "cardinality": "1:N",
                 "on": {
@@ -3219,6 +3501,21 @@
                 },
                 "to": {
                   "model": "AccessToken",
+                  "namespace": "public"
+                }
+              },
+              "blockTransactions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "BlockTransaction",
                   "namespace": "public"
                 }
               },
@@ -4507,6 +4804,250 @@
                   "id"
                 ],
                 "name": "Block_pkey"
+              },
+              "uniques": []
+            },
+            "BlockLink": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "kind": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "sourceBlockId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "sourcePageId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "targetBlockId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "name": "BlockLink_sourceBlockId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "sourceBlockId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "BlockLink"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Block"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "BlockLink_targetBlockId_idx"
+                  },
+                  "name": "BlockLink_targetBlockId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "targetBlockId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "BlockLink"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Block"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "BlockLink_sourcePageId_idx"
+                  },
+                  "name": "BlockLink_sourcePageId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "sourcePageId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "BlockLink"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Block"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "sourcePageId"
+                  ],
+                  "name": "BlockLink_sourcePageId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "targetBlockId"
+                  ],
+                  "name": "BlockLink_targetBlockId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "BlockLink_pkey"
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "sourceBlockId",
+                    "targetBlockId",
+                    "kind"
+                  ],
+                  "name": "BlockLink_sourceBlockId_targetBlockId_kind_key"
+                }
+              ]
+            },
+            "BlockTransaction": {
+              "columns": {
+                "appliedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "result": {
+                  "codecId": "pg/jsonb@1",
+                  "dataType": "pg/jsonb",
+                  "nullable": false
+                },
+                "spaceId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "BlockTransaction_userId_idx"
+                  },
+                  "name": "BlockTransaction_userId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "BlockTransaction"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "BlockTransaction_spaceId_idx"
+                  },
+                  "name": "BlockTransaction_spaceId_fkey",
+                  "onDelete": "cascade",
+                  "onUpdate": "cascade",
+                  "source": {
+                    "columns": [
+                      "spaceId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "BlockTransaction"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Space"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "appliedAt"
+                  ],
+                  "name": "BlockTransaction_appliedAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "spaceId"
+                  ],
+                  "name": "BlockTransaction_spaceId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "BlockTransaction_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ],
+                "name": "BlockTransaction_pkey"
               },
               "uniques": []
             },
@@ -6809,10 +7350,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "4fee5f375e8686981638cbd83f293b894676ddcd8da879ece508a90dad5cb2b1"
+    "storageHash": "e34575adbfc072430535fef14dc2ab29be661c6fcf2a270a95cf87c6894da39e"
   },
   "execution": {
-    "executionHash": "09c1c8c0d7dac961c8f371cae3e37a952aa2509336dc23bd26efd3b6e18aedba",
+    "executionHash": "56433f427166a1ba42bdc0d89ccb832c3bfc4e22ca7c9ab0e2e94ac95437d022",
     "mutations": {
       "defaults": [
         {
@@ -6881,6 +7422,17 @@
           },
           "ref": {
             "entry": "Block",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "BlockLink",
             "field": "id",
             "namespace": "public"
           }

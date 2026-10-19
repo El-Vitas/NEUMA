@@ -35,6 +35,9 @@ model Block {
   owner                 User?                      @relation(name: "BlockOwner", fields: [ownerId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "Block_ownerId_fkey")
 
   childBlocks           Block[]                    @relation(name: "BlockHierarchy")
+  outgoingLinks         BlockLink[]                @relation(name: "BlockLinkSourceBlock")
+  incomingLinks         BlockLink[]                @relation(name: "BlockLinkTargetBlock")
+  containedLinks        BlockLink[]                @relation(name: "BlockLinkSourcePage")
 
   @@index([parentId], map: "Block_parentId_idx")
   @@index([spaceId, lifecycle], map: "Block_spaceId_lifecycle_idx")
