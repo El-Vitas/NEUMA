@@ -11,6 +11,9 @@ export const BLOCK_SYNC_MAX_REQUESTED_BLOCKS = 500;
 /** A page larger than this is refused instead of silently truncated. */
 export const BLOCK_SUBTREE_MAX_BLOCKS = 5000;
 
+/** The Yjs states a single read hands out, summed over the blocks the viewer can read. */
+export const BLOCK_SYNC_MAX_TEXT_STATE_BYTES = 16_777_216;
+
 /** Stops a corrupt parent cycle from recursing forever, in the subtree and in the ancestor chain. */
 export const BLOCK_TREE_MAX_DEPTH = 64;
 

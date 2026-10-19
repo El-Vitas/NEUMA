@@ -8,6 +8,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { envSchema } from './common/config/env.schema';
 import { DATABASE_HEALTH_CHECK } from './common/constants/health.constants';
 import {
+  BLOCK_WRITE_RATE_LIMIT,
   CREDENTIAL_RATE_LIMIT,
   EXPORT_RATE_LIMIT,
   MCP_RATE_LIMIT,
@@ -98,6 +99,16 @@ import { PrismaModule } from './prisma/prisma.module';
           name: THROTTLER_NAMES.mcp,
           ttl: seconds(MCP_RATE_LIMIT.windowSeconds),
           limit: MCP_RATE_LIMIT.perTokenLimit,
+        },
+        {
+          name: THROTTLER_NAMES.blockWritesBurst,
+          ttl: seconds(BLOCK_WRITE_RATE_LIMIT.burstWindowSeconds),
+          limit: BLOCK_WRITE_RATE_LIMIT.burstLimit,
+        },
+        {
+          name: THROTTLER_NAMES.blockWrites,
+          ttl: seconds(BLOCK_WRITE_RATE_LIMIT.windowSeconds),
+          limit: BLOCK_WRITE_RATE_LIMIT.perUserLimit,
         },
         {
           name: THROTTLER_NAMES.mcpPerIp,
