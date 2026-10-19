@@ -1,4 +1,5 @@
 import 'server-only';
+import type { User } from '@neuma/shared';
 import { ActionRefusalError } from '@/shared/lib/action-refusal.error';
 import { getCurrentUser } from '@/shared/server/lib/current-user.server';
 
@@ -12,8 +13,10 @@ export class AccountOwnerUnknownError extends ActionRefusalError {
 }
 
 /** Read from the session, never from the input: an identifier in the input is only who the caller claims to be. */
-export const requireOwnAccountId = async (): Promise<string> => {
+export const requireOwnAccount = async (): Promise<Pick<User, 'email' | 'id'>> => {
   const user = await getCurrentUser();
   if (user === null) throw new AccountOwnerUnknownError();
-  return user.id;
+  return { email: user.email, id: user.id };
 };
+
+export const requireOwnAccountId = async (): Promise<string> => (await requireOwnAccount()).id;

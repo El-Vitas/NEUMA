@@ -5,11 +5,12 @@ import type { TrashedPage } from '../types/pages.trash.types';
 import { PagesTrashItem } from './pages.trash.item';
 
 interface IProps {
+  readonly canDeleteForever: boolean;
   readonly items: readonly TrashedPage[];
   readonly search: string;
 }
 
-export const PagesTrashList = async ({ items, search }: IProps) => {
+export const PagesTrashList = async ({ canDeleteForever, items, search }: IProps) => {
   const t = await getTranslations('pages');
   const locale = await getLocale();
 
@@ -22,7 +23,7 @@ export const PagesTrashList = async ({ items, search }: IProps) => {
   return (
     <ListRowGroup ariaLabel={t('trash')}>
       {items.map((page) => (
-        <PagesTrashItem key={page.id} locale={locale} page={page} />
+        <PagesTrashItem canDeleteForever={canDeleteForever} key={page.id} locale={locale} page={page} />
       ))}
     </ListRowGroup>
   );
