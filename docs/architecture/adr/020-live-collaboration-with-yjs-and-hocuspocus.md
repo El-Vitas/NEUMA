@@ -54,5 +54,6 @@ Los ganchos de `collaboration.gateway.ts` son el único lugar donde la colaborac
 
 - Author: El-Vitas, con Claude
 - Created: 2026-10-19, registrado después de implementar
+- Approved by: TBD
 - Implementado: 2026-08-03 (`0637519`)
 - Diagrama: `docs/architecture/diagramas/2-edicion-en-vivo.html`
