@@ -88,5 +88,9 @@ report/
 # screenshots saved at the root while checking the app in a browser
 /*.png
 
+# Archify working folders and the delivery receipts next to each diagram
+.archify/
+docs/architecture/diagramas/*.delivery.json
+
 # external references: local paths, not part of the project
 docs/referencias-externas.md
