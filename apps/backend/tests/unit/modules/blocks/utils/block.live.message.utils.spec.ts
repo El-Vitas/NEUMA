@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'bun:test';
-import { BLOCK_LIVE_TOKEN_MAX_LENGTH } from '@/modules/blocks/constants/block.live.constants';
-import { BLOCK_ID_MAX_LENGTH } from '@/modules/blocks/constants/blocks.constants';
+import {
+  BLOCK_LIVE_MAX_MESSAGE_BYTES,
+  BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES,
+  BLOCK_LIVE_REQUEST_ID_MAX_LENGTH,
+  BLOCK_LIVE_TOKEN_MAX_LENGTH,
+} from '@/modules/blocks/constants/block.live.constants';
+import {
+  BLOCK_OPERATIONS_MAX_PER_TRANSACTION,
+  BLOCK_TRANSACTION_ID_MAX_LENGTH,
+  BLOCK_TRANSACTIONS_MAX_PER_REQUEST,
+} from '@/modules/blocks/constants/block.transaction.constants';
+import {
+  BLOCK_ID_MAX_LENGTH,
+  BLOCK_SYNC_MAX_REQUESTED_BLOCKS,
+  BLOCK_VERSION_MAX,
+} from '@/modules/blocks/constants/blocks.constants';
 import type { BlockLiveClientMessage } from '@/modules/blocks/types/block.live.types';
 import {
+  isMessageWithinSizeLimit,
   parseClientMessage,
   parseVersionNotification,
   serializeServerMessage,
@@ -67,6 +82,93 @@ describe('parseClientMessage', () => {
       true,
     );
     expect(parseClientMessage(JSON.stringify({ token: longToken, type: 'auth' })).isFail()).toBe(true);
+  });
+});
+
+describe('parseClientMessage requests', () => {
+  const transaction = {
+    id: 'transaction-1',
+    operations: [{ args: {}, command: 'update', path: [], pointer: { id: BLOCK_ID, table: 'block' } }],
+    spaceId: 'space-1',
+  };
+
+  it('accepts a transactions request and both shapes of a sync request', () => {
+    const messages: BlockLiveClientMessage[] = [
+      { requestId: 'request-1', transactions: [transaction], type: 'transactions' },
+      { pageId: PAGE_ID, requestId: 'request-2', type: 'sync' },
+      { blocks: [{ id: BLOCK_ID, version: 3 }], requestId: 'request-3', type: 'sync' },
+    ];
+
+    for (const message of messages) {
+      expect(parseClientMessage(JSON.stringify(message)).getValue()).toEqual(message);
+    }
+  });
+
+  it('refuses a request without a request id or with one that is too long', () => {
+    const longId = 'x'.repeat(BLOCK_LIVE_REQUEST_ID_MAX_LENGTH + 1);
+
+    expect(parseClientMessage(JSON.stringify({ pageId: PAGE_ID, type: 'sync' })).isFail()).toBe(true);
+    expect(parseClientMessage(JSON.stringify({ pageId: PAGE_ID, requestId: '', type: 'sync' })).isFail()).toBe(true);
+    expect(parseClientMessage(JSON.stringify({ pageId: PAGE_ID, requestId: longId, type: 'sync' })).isFail()).toBe(
+      true,
+    );
+  });
+
+  it('refuses a sync request that names both a page and blocks, or neither', () => {
+    const both = { blocks: [{ id: BLOCK_ID, version: 1 }], pageId: PAGE_ID, requestId: 'request-1', type: 'sync' };
+
+    expect(parseClientMessage(JSON.stringify(both)).isFail()).toBe(true);
+    expect(parseClientMessage(JSON.stringify({ requestId: 'request-1', type: 'sync' })).isFail()).toBe(true);
+    expect(parseClientMessage(JSON.stringify({ blocks: [], requestId: 'request-1', type: 'sync' })).isFail()).toBe(
+      true,
+    );
+  });
+
+  it('bounds a sync request to the same number of blocks as the HTTP endpoint', () => {
+    const blocks = Array.from({ length: BLOCK_SYNC_MAX_REQUESTED_BLOCKS + 1 }, () => ({ id: BLOCK_ID, version: 1 }));
+
+    expect(parseClientMessage(JSON.stringify({ blocks, requestId: 'request-1', type: 'sync' })).isFail()).toBe(true);
+    expect(
+      parseClientMessage(
+        JSON.stringify({ blocks: [{ id: BLOCK_ID, version: BLOCK_VERSION_MAX + 1 }], requestId: 'r', type: 'sync' }),
+      ).isFail(),
+    ).toBe(true);
+  });
+
+  it('bounds transactions and operations to the same limits as the HTTP endpoint', () => {
+    const tooManyTransactions = Array.from({ length: BLOCK_TRANSACTIONS_MAX_PER_REQUEST + 1 }, () => transaction);
+    const tooManyOperations = Array.from({ length: BLOCK_OPERATIONS_MAX_PER_TRANSACTION + 1 }, () => ({}));
+    const request = (transactions: unknown[]): string =>
+      JSON.stringify({ requestId: 'request-1', transactions, type: 'transactions' });
+
+    expect(parseClientMessage(request([])).isFail()).toBe(true);
+    expect(parseClientMessage(request(tooManyTransactions)).isFail()).toBe(true);
+    expect(parseClientMessage(request([{ ...transaction, operations: [] }])).isFail()).toBe(true);
+    expect(parseClientMessage(request([{ ...transaction, operations: tooManyOperations }])).isFail()).toBe(true);
+    expect(parseClientMessage(request([{ ...transaction, operations: ['update'] }])).isFail()).toBe(true);
+    expect(
+      parseClientMessage(request([{ ...transaction, id: 'x'.repeat(BLOCK_TRANSACTION_ID_MAX_LENGTH + 1) }])).isFail(),
+    ).toBe(true);
+    expect(parseClientMessage(request([{ ...transaction, extra: true }])).isFail()).toBe(true);
+  });
+});
+
+describe('isMessageWithinSizeLimit', () => {
+  const ping = parseClientMessage(JSON.stringify({ type: 'ping' }));
+  const sync = parseClientMessage(JSON.stringify({ pageId: PAGE_ID, requestId: 'request-1', type: 'sync' }));
+
+  it('allows any message up to the small limit', () => {
+    expect(isMessageWithinSizeLimit(BLOCK_LIVE_MAX_MESSAGE_BYTES, ping)).toBe(true);
+  });
+
+  it('allows a request up to the request limit and nothing else above the small one', () => {
+    expect(isMessageWithinSizeLimit(BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES, sync)).toBe(true);
+    expect(isMessageWithinSizeLimit(BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES + 1, sync)).toBe(false);
+    expect(isMessageWithinSizeLimit(BLOCK_LIVE_MAX_MESSAGE_BYTES + 1, ping)).toBe(false);
+  });
+
+  it('refuses a message above the small limit that does not parse', () => {
+    expect(isMessageWithinSizeLimit(BLOCK_LIVE_MAX_MESSAGE_BYTES + 1, parseClientMessage('x'))).toBe(false);
   });
 });
 

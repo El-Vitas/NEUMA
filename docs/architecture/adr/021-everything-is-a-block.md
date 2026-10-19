@@ -136,4 +136,5 @@ El cambio entra por etapas, en el orden de `docs/superpowers/plans/2026-10-19-to
 - Author: El-Vitas, con Claude
 - Created: 2026-10-19
 - Approved by: El-Vitas, 2026-10-19
+- Modified: 2026-10-19. El editor manda sus transacciones y sus lecturas `sync` por el canal en vivo, con el mismo servicio que los endpoints HTTP. Pasar cada tecla por el servidor de Next sumaba un salto, y el WebSocket directo al backend ya está permitido (ADR 014). El MCP y las acciones del servidor siguen usando HTTP.
 - Referencia: `docs/architecture/references/notion-block-sync.md`; `docs/architecture/references/block-and-database-engines.md`

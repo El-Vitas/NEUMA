@@ -6,6 +6,8 @@ import {
   BLOCK_LIVE_CLOSE_CODE,
   BLOCK_LIVE_DEFAULT_SETTINGS,
   BLOCK_LIVE_MAX_CONNECTIONS_PER_USER,
+  BLOCK_LIVE_MAX_MESSAGE_BYTES,
+  BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES,
   BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_RATE_LIMIT,
 } from '@/modules/blocks/constants/block.live.constants';
@@ -16,6 +18,7 @@ import { BlockLiveRegistry } from '@/modules/blocks/infrastructure/registry/bloc
 import type {
   BlockLiveBroadcaster,
   BlockLivePageAccess,
+  BlockLiveRequestAnswerer,
   BlockLiveSettings,
   BlockLiveSocket,
   BlockLiveSocketHandler,
@@ -73,8 +76,21 @@ const buildSocket = (): {
   };
 };
 
+/** Answers each request with its own id and the user it acted for, so a test can tell who was served and when. */
+const echoingRequests: BlockLiveRequestAnswerer = {
+  answer: (reader, message) =>
+    Promise.resolve({
+      kind: 'reply',
+      message: { code: `${reader.userId}:${message.type}`, requestId: message.requestId, type: 'error' },
+    }),
+};
+
 const buildHarness = (
-  options: { deniedPageIds?: readonly string[]; settings?: Partial<BlockLiveSettings> } = {},
+  options: {
+    deniedPageIds?: readonly string[];
+    requests?: BlockLiveRequestAnswerer;
+    settings?: Partial<BlockLiveSettings>;
+  } = {},
 ): Harness => {
   const broadcasts: string[] = [];
   const pageAccess: BlockLivePageAccess = {
@@ -103,6 +119,7 @@ const buildHarness = (
     pageAccess,
     broadcaster,
     new InMemoryBlockPresenceStore(settings.presenceTimeToLiveMs),
+    options.requests ?? echoingRequests,
     settings,
     { error: () => undefined },
   );
@@ -356,6 +373,115 @@ describe('BlockLiveService', () => {
       connection.handler.handleClose();
 
       expect(harness.broadcasts).toEqual(['broadcast:page-1', 'broadcast:page-2']);
+    });
+  });
+
+  describe('requests', () => {
+    const buildTransactionsRequest = (requestId: string, weight = 0): object => ({
+      requestId,
+      transactions: [{ id: 'transaction-1', operations: [{ filler: 'x'.repeat(weight) }], spaceId: SPACE_ID }],
+      type: 'transactions',
+    });
+
+    it('answers a sync request to the socket that asked, as the user of that socket', async () => {
+      const harness = buildHarness();
+      const asker = await harness.open('user-1');
+      const bystander = await harness.open('user-2');
+
+      await asker.receive({ pageId: 'page-1', requestId: 'request-1', type: 'sync' });
+
+      expect(asker.sent().at(-1)).toEqual({ code: 'user-1:sync', requestId: 'request-1', type: 'error' });
+      expect(bystander.sent()).toEqual([{ type: 'ready' }]);
+    });
+
+    it('processes the requests of one socket in the order they arrive, even when the first is slower', async () => {
+      const finished: string[] = [];
+      const slowFirst: BlockLiveRequestAnswerer = {
+        answer: async (_reader, message) => {
+          await new Promise((resolve) => setTimeout(resolve, message.requestId === 'first' ? SETTLE_MS : 0));
+          finished.push(message.requestId);
+          return { kind: 'reply', message: { code: 'done', requestId: message.requestId, type: 'error' } };
+        },
+      };
+      const connection = await buildHarness({ requests: slowFirst }).open();
+
+      await Promise.all([
+        connection.receive(buildTransactionsRequest('first')),
+        connection.receive(buildTransactionsRequest('second')),
+      ]);
+
+      expect(finished).toEqual(['first', 'second']);
+      expect(
+        connection
+          .sent()
+          .slice(1)
+          .map((message) => message.requestId),
+      ).toEqual(['first', 'second']);
+    });
+
+    it('lets different sockets run their requests at the same time', async () => {
+      const running = new Set<string>();
+      let mostAtOnce = 0;
+      const tracked: BlockLiveRequestAnswerer = {
+        answer: async (reader, message) => {
+          running.add(reader.userId);
+          mostAtOnce = Math.max(mostAtOnce, running.size);
+          await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+          running.delete(reader.userId);
+          return { kind: 'reply', message: { code: 'done', requestId: message.requestId, type: 'error' } };
+        },
+      };
+      const harness = buildHarness({ requests: tracked });
+      const first = await harness.open('user-1');
+      const second = await harness.open('user-2');
+
+      await Promise.all([
+        first.receive(buildTransactionsRequest('request-1')),
+        second.receive(buildTransactionsRequest('request-2')),
+      ]);
+
+      expect(mostAtOnce).toBe(2);
+    });
+
+    it('closes the socket with 4401 when the account behind it is no longer active', async () => {
+      const inactive: BlockLiveRequestAnswerer = { answer: () => Promise.resolve({ kind: 'inactive' }) };
+      const connection = await buildHarness({ requests: inactive }).open();
+
+      await connection.receive(buildTransactionsRequest('request-1'));
+
+      expect(connection.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.unauthorized);
+      expect(connection.sent()).toEqual([{ type: 'ready' }]);
+    });
+
+    it('accepts a request above the small limit and closes anything else above it with 1009', async () => {
+      const harness = buildHarness();
+      const sender = await harness.open();
+      const offender = await harness.open('user-2');
+
+      await sender.receive(buildTransactionsRequest('request-1', BLOCK_LIVE_MAX_MESSAGE_BYTES * 2));
+      await offender.receive({ filler: 'x'.repeat(BLOCK_LIVE_MAX_MESSAGE_BYTES), type: 'ping' });
+
+      expect(sender.closed()).toBeNull();
+      expect(sender.sent().at(-1)).toEqual({ code: 'user-1:transactions', requestId: 'request-1', type: 'error' });
+      expect(offender.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.messageTooBig);
+    });
+
+    it('closes with 1009 a request above the request limit', async () => {
+      const connection = await buildHarness().open();
+
+      await connection.receive(buildTransactionsRequest('request-1', BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES));
+
+      expect(connection.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.messageTooBig);
+    });
+
+    it('closes with 1009 a socket that sends a large message before authenticating', async () => {
+      const unauthenticated = openUnauthenticated(buildHarness());
+
+      await unauthenticated.handler.handleMessage(
+        JSON.stringify(buildTransactionsRequest('r', BLOCK_LIVE_MAX_MESSAGE_BYTES)),
+      );
+
+      expect(unauthenticated.closed()?.code).toBe(BLOCK_LIVE_CLOSE_CODE.messageTooBig);
     });
   });
 });

@@ -2,7 +2,7 @@ import websocket, { type WebsocketHandler } from '@fastify/websocket';
 import type { FastifyInstance } from 'fastify';
 import {
   BLOCK_LIVE_CLOSE_CODE,
-  BLOCK_LIVE_MAX_MESSAGE_BYTES,
+  BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES,
   BLOCK_LIVE_PATH,
   BLOCK_LIVE_SOCKET_OPEN_STATE,
 } from '../../constants/block.live.constants';
@@ -38,8 +38,9 @@ const createLiveHandler =
         return;
       }
       const bytes = readMessageBytes(message);
-      // Bun's `ws` ignores `maxPayload`, so the limit is enforced here as well.
-      if (bytes.byteLength > BLOCK_LIVE_MAX_MESSAGE_BYTES) {
+      // Bun's `ws` ignores `maxPayload`, so the limit is enforced here as well. The service applies the small limit
+      // to every message that is not a request.
+      if (bytes.byteLength > BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES) {
         socket.close(BLOCK_LIVE_CLOSE_CODE.messageTooBig, 'message-too-big');
         return;
       }
@@ -59,7 +60,7 @@ export const registerBlockLiveTransport = async (
   openConnection: BlockLiveConnectionOpener,
 ): Promise<void> => {
   if (!fastify.hasDecorator('websocketServer')) {
-    await fastify.register(websocket, { options: { maxPayload: BLOCK_LIVE_MAX_MESSAGE_BYTES } });
+    await fastify.register(websocket, { options: { maxPayload: BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES } });
   }
   fastify.get(BLOCK_LIVE_PATH, { websocket: true }, createLiveHandler(openConnection));
 };

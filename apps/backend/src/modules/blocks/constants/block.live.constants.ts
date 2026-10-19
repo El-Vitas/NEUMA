@@ -1,5 +1,6 @@
+import { BLOCK_WRITE_RATE_LIMIT, THROTTLER_NAMES } from '../../../common/constants/throttler.constants';
 import type { LiveAccessContext } from '../domain/block.live.domain.types';
-import type { BlockLiveSettings } from '../types/block.live.types';
+import type { BlockLiveSettings, BlockLiveWriteThrottle } from '../types/block.live.types';
 import { BLOCK_TREE_MAX_DEPTH } from './blocks.constants';
 
 /** With no block ids to check there is nothing to read, and every block id is hidden. */
@@ -29,8 +30,13 @@ export const BLOCK_LIVE_TOKEN_EXPIRES_IN = '1m';
 
 export const BLOCK_LIVE_TOKEN_MAX_LENGTH = 2048;
 
-/** The largest message is an auth token; the socket refuses anything bigger before reading it. */
+/** The largest message that is not a request is an auth token; anything bigger is refused. */
 export const BLOCK_LIVE_MAX_MESSAGE_BYTES = 4096;
+
+/** The size of the body the HTTP endpoints accept (Fastify's default), so a transaction fits on both. */
+export const BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES = 1_048_576;
+
+export const BLOCK_LIVE_REQUEST_ID_MAX_LENGTH = 64;
 
 export const BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION = 50;
 
@@ -38,6 +44,22 @@ export const BLOCK_LIVE_MAX_CONNECTIONS_PER_USER = 10;
 
 /** A client that pings every 30 s and sends presence on every move stays far below this. */
 export const BLOCK_LIVE_RATE_LIMIT = { maxMessages: 120, windowMs: 10_000 } as const;
+
+const MILLISECONDS_PER_SECOND = 1000;
+
+/** The same two named limits the HTTP endpoint enforces, in the milliseconds the throttler storage counts in. */
+export const BLOCK_LIVE_WRITE_THROTTLES: readonly BlockLiveWriteThrottle[] = [
+  {
+    limit: BLOCK_WRITE_RATE_LIMIT.burstLimit,
+    name: THROTTLER_NAMES.blockWritesBurst,
+    ttlMs: BLOCK_WRITE_RATE_LIMIT.burstWindowSeconds * MILLISECONDS_PER_SECOND,
+  },
+  {
+    limit: BLOCK_WRITE_RATE_LIMIT.perUserLimit,
+    name: THROTTLER_NAMES.blockWrites,
+    ttlMs: BLOCK_WRITE_RATE_LIMIT.windowSeconds * MILLISECONDS_PER_SECOND,
+  },
+];
 
 export const BLOCK_LIVE_CLOSE_CODE = {
   goingAway: 1001,
