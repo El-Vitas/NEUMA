@@ -16,6 +16,7 @@ import {
   isAllowedPageEmbedUrl,
   maximumHeadingLevel,
   maximumOrderedListOrder,
+  maximumPageContentNodes,
   maximumPageTextLength,
   maximumTableColumnWidth,
   maximumTableColumns,
@@ -24,6 +25,7 @@ import {
   minimumHeadingLevel,
   pageAssetAttrsSchema,
   pageBlockCommentSchema,
+  pageBlockIdSchema,
   pageBookmarkAttrsSchema,
   pageButtonAttrsSchema,
   pageCollectionAttrsSchema,
@@ -40,15 +42,57 @@ import { pageIconSchema } from '../schemas/page-icon.schema.js';
 import { PAGE_TITLE_MAX_LENGTH } from '../types/page.types.js';
 import { blockPlainTextSchema, blockRichTextSchema } from './block-text.schemas.js';
 import { extractPlainText } from './block-text.lib.js';
-import { BLOCK_TYPE } from './block-type.constants.js';
+import { BLOCK_NESTED_LAYERS_MOST, BLOCK_TYPE } from './block-type.constants.js';
 
 const emptySchema = z.object({}).strict();
 
-const annotationShape = {
+const colorAndCommentShape = {
   backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
   comments: z.array(pageBlockCommentSchema).max(PAGE_BLOCK_COMMENTS_MOST).optional(),
   textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
 };
+
+/** What a document wrapper that dissolved into a block still said: its id, colors and comments. */
+export const blockWrapperAttributesSchema = z
+  .object({ ...colorAndCommentShape, id: pageBlockIdSchema.optional() })
+  .strict();
+
+/**
+ * A nested_block that dissolved into the block it wraps. `from` is how many of the host children existed before the
+ * block_children it carried; layers are listed from the innermost wrapper outwards.
+ */
+export const blockNestedLayerSchema = z
+  .object({
+    attrs: blockWrapperAttributesSchema.optional(),
+    childrenAttrs: blockWrapperAttributesSchema.optional(),
+    from: z.number().int().min(0).max(maximumPageContentNodes),
+  })
+  .strict();
+
+export const blockNestedLayersSchema = z.array(blockNestedLayerSchema).min(1).max(BLOCK_NESTED_LAYERS_MOST);
+
+const annotationShape = {
+  ...colorAndCommentShape,
+  nested: blockNestedLayersSchema.optional(),
+};
+
+/**
+ * `listWrapper` marks the first item of a list that had a wrapper of its own and keeps what the wrapper said.
+ * `line` keeps what the first paragraph of the item said, and is null when the item has no first paragraph.
+ */
+const listItemShape = {
+  line: blockWrapperAttributesSchema.nullable().optional(),
+  listWrapper: blockWrapperAttributesSchema.optional(),
+};
+
+const listStartSchema = z.number().int().min(1).max(maximumOrderedListOrder);
+
+/** The format keys that only exist to rebuild the page document; read from a row already checked by its type. */
+export const blockFormatMarkersSchema = z.object({
+  ...listItemShape,
+  nested: blockNestedLayersSchema.optional(),
+  start: listStartSchema.optional(),
+});
 
 /** Every block can be colored and commented, as every node of the document was. */
 const withAnnotations = <Shape extends z.ZodRawShape>(shape: Shape) =>
@@ -134,13 +178,13 @@ export const BLOCK_CONTENT_SCHEMAS = {
       })
       .strict(),
   },
-  [BLOCK_TYPE.bulletedListItem]: { format: annotationsOnlySchema, properties: titleOnlySchema },
+  [BLOCK_TYPE.bulletedListItem]: { format: withAnnotations(listItemShape), properties: titleOnlySchema },
   [BLOCK_TYPE.numberedListItem]: {
-    format: withAnnotations({ start: z.number().int().min(1).max(maximumOrderedListOrder).optional() }),
+    format: withAnnotations({ ...listItemShape, start: listStartSchema.optional() }),
     properties: titleOnlySchema,
   },
   [BLOCK_TYPE.toDo]: {
-    format: annotationsOnlySchema,
+    format: withAnnotations(listItemShape),
     properties: z.object({ checked: z.boolean().optional(), title: blockRichTextSchema }).strict(),
   },
   [BLOCK_TYPE.blockquote]: { format: annotationsOnlySchema, properties: emptySchema },
@@ -253,7 +297,7 @@ export const BLOCK_CONTENT_SCHEMAS = {
     properties: emptySchema,
   },
   [BLOCK_TYPE.unsupported]: {
-    format: z.object({}).strict(),
+    format: z.object({ nested: blockNestedLayersSchema.optional() }).strict(),
     properties: z.object({ node: unsupportedNodeSchema }).strict(),
   },
 } as const satisfies Record<(typeof BLOCK_TYPE)[keyof typeof BLOCK_TYPE], BlockContentSchemaPair>;

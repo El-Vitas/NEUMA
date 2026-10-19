@@ -76,6 +76,9 @@ El modelo viejo sigue funcionando detrás de la bandera `NEUMA_BLOCK_MODEL` hast
 - Comando de una sola vez: `Page` y `Page.content` pasan a `Block`, con el `textState` generado y los ids, versiones y papelera conservados.
 - Se prueba contra una copia de la base de desarrollo y después contra una copia de la de producción.
 - Respaldo completo antes de correrla.
+- Antes de convertir, una revisión que lista y detiene la migración en dos casos:
+  - un resumen de toggle con algo que parece una etiqueta HTML, que el texto de un bloque no admite (en la base de desarrollo hay 0);
+  - un id de bloque repetido entre dos páginas, por ejemplo en una página duplicada, que se reasigna con un id nuevo y se reescriben sus enlaces y comentarios.
 - Pruebas: cada nodo del esquema actual convertido y vuelto a armar sin perder nada.
 
 ## Etapa 7 · Retiro del modelo viejo

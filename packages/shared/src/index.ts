@@ -51,6 +51,19 @@ export type {
   BlockTextMarks,
   BlockType,
 } from './block/block-content.types.js';
+export { BLOCK_DOCUMENT_ERROR_CODE } from './block/block-document.constants.js';
+export { BlockDocumentError } from './block/block-document.error.js';
+export type { BlockDocumentErrorCode } from './block/block-document.error.js';
+export { deriveBlockId } from './block/block-document.id.lib.js';
+export { documentToBlocks } from './block/block-document.to-blocks.lib.js';
+export { blocksToDocument } from './block/block-document.to-document.lib.js';
+export type {
+  BlockDocumentPropertyValues,
+  BlockDocumentRow,
+  BlockDraft,
+  BlockTree,
+  DocumentToBlocksInput,
+} from './block/block-document.types.js';
 export { extractPlainText } from './block/block-text.lib.js';
 export {
   blockPlainTextSchema,

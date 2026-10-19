@@ -53,6 +53,9 @@ export const BLOCK_TEXT_EMBED = {
   hardBreak: 'hard_break',
 } as const;
 
+/** A block can host that many stacked nested blocks, matching how deep a page document may go. */
+export const BLOCK_NESTED_LAYERS_MOST = 10;
+
 export const BLOCK_CONTENT_ERROR_CODE = {
   unknownType: 'unknown_type',
   invalidContent: 'invalid_content',
@@ -82,21 +85,23 @@ export const BLOCK_NODE_DISPOSITION = {
   paragraph: asBlock(BLOCK_TYPE.paragraph),
   heading: asBlock(BLOCK_TYPE.heading),
   bullet_list: asWrapper(
-    'Dissolved: each list_item becomes a bulleted_list_item. Wrapper colors and comments go to every item format.',
+    'Dissolved: each list_item becomes a bulleted_list_item. The wrapper id, colors and comments go to the first item format.listWrapper, which also marks where the list starts.',
   ),
   ordered_list: asWrapper(
-    'Dissolved: each list_item becomes a numbered_list_item. Its order goes to the first item format.start.',
+    'Dissolved: each list_item becomes a numbered_list_item. Its order goes to the first item format.start; the wrapper id, colors and comments go to its format.listWrapper.',
   ),
   list_item: asBlock(BLOCK_TYPE.bulletedListItem, BLOCK_TYPE.numberedListItem),
   task_list: asWrapper(
-    'Dissolved: each task_item becomes a to_do. Wrapper colors and comments go to every item format.',
+    'Dissolved: each task_item becomes a to_do. The wrapper id, colors and comments go to the first item format.listWrapper, which also marks where the list starts.',
   ),
   task_item: asBlock(BLOCK_TYPE.toDo),
   callout: asBlock(BLOCK_TYPE.callout),
   blockquote: asBlock(BLOCK_TYPE.blockquote),
-  nested_block: asWrapper('Dissolved: its first child is the block and its block_children become that block children.'),
+  nested_block: asWrapper(
+    'Dissolved: its first child is the block and its block_children become that block children. The wrapper attributes and where its children begin go to the format.nested of the last block of its first child.',
+  ),
   block_children: asWrapper(
-    'Dissolved: its content becomes the children of the block that precedes it in a nested_block.',
+    'Dissolved: its content becomes the children of the block that precedes it in a nested_block; its own attributes go to that block format.nested.',
   ),
   code_block: asBlock(BLOCK_TYPE.codeBlock),
   table: asBlock(BLOCK_TYPE.table),

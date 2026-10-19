@@ -4,5 +4,6 @@ export const BLOCK_LIVE_ERROR_CODE = {
   internal: 'internal-error',
   invalidMessage: 'invalid-message',
   notSubscribed: 'not-subscribed',
+  rateLimited: 'rate-limited',
   tooManySubscriptions: 'too-many-subscriptions',
 } as const;

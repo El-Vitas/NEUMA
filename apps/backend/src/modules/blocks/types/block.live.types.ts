@@ -3,7 +3,12 @@ import type { Result, UserRole } from '@neuma/shared';
 import type { BlockAccessDeniedError } from '../domain/block.error';
 import type { BlockChainRow, MessageWindow, PresenceEntry, PresenceReport } from '../domain/block.live.domain.types';
 import type { BlockLiveUnauthorizedError } from '../domain/block.live.error';
-import type { BlockReader } from './blocks.types';
+import type {
+  BlockTransactionOutcome,
+  BlockTransactionRequest,
+  BlockTransactionsResponse,
+} from './block.transaction.types';
+import type { BlockReader, BlockSyncRequest, BlockSyncResponse, BlockSyncResult, RequestedBlock } from './blocks.types';
 
 /** What a client may send. The schema that validates it is typed against this, so the two cannot drift. */
 export type BlockLiveClientMessage =
@@ -11,9 +16,68 @@ export type BlockLiveClientMessage =
   | { readonly pageId: string; readonly type: 'subscribe' }
   | { readonly pageId: string; readonly type: 'unsubscribe' }
   | { readonly blockId: string | null; readonly pageId: string; readonly type: 'presence' }
-  | { readonly type: 'ping' };
+  | { readonly type: 'ping' }
+  | {
+      readonly requestId: string;
+      readonly transactions: readonly BlockTransactionRequest[];
+      readonly type: 'transactions';
+    }
+  | { readonly pageId: string; readonly requestId: string; readonly type: 'sync' }
+  | { readonly blocks: readonly RequestedBlock[]; readonly requestId: string; readonly type: 'sync' };
 
 export type BlockLivePresenceMessage = Extract<BlockLiveClientMessage, { type: 'presence' }>;
+
+/** The messages that ask for something and are answered with the same `requestId`. */
+export type BlockLiveRequestMessage = Extract<BlockLiveClientMessage, { type: 'sync' | 'transactions' }>;
+
+export type BlockLiveTransactionsMessage = Extract<BlockLiveClientMessage, { type: 'transactions' }>;
+
+export type BlockLiveSyncMessage = Extract<BlockLiveClientMessage, { type: 'sync' }>;
+
+/** What the server answers to a request, to the socket that asked and to nobody else. */
+export type BlockLiveReplyMessage =
+  | {
+      readonly requestId: string;
+      readonly transactions: readonly BlockTransactionOutcome[];
+      readonly type: 'transactionsResult';
+    }
+  | ({ readonly requestId: string; readonly type: 'syncResult' } & BlockSyncResponse)
+  | { readonly code: string; readonly requestId: string; readonly type: 'error' };
+
+export type BlockLiveAnswer =
+  | { readonly kind: 'inactive' }
+  | { readonly kind: 'reply'; readonly message: BlockLiveReplyMessage };
+
+/** Answers a request as the user of the socket, with the role and the state the account has now. */
+export interface BlockLiveRequestAnswerer {
+  readonly answer: (reader: BlockReader, message: BlockLiveRequestMessage) => Promise<BlockLiveAnswer>;
+}
+
+export interface BlockLiveReaderRefresher {
+  readonly refreshReaders: (readers: readonly BlockReader[]) => Promise<RefreshedReaders>;
+}
+
+/** False once the user went over the allowance for writes, which HTTP and the socket share. */
+export interface BlockLiveWriteLimit {
+  readonly isAllowed: (userId: string) => Promise<boolean>;
+}
+
+export interface BlockLiveWriteThrottle {
+  readonly limit: number;
+  readonly name: string;
+  readonly ttlMs: number;
+}
+
+export interface BlockLiveTransactionsApplier {
+  readonly apply: (
+    requests: readonly BlockTransactionRequest[],
+    reader: BlockReader,
+  ) => Promise<BlockTransactionsResponse>;
+}
+
+export interface BlockLiveSyncReader {
+  readonly sync: (request: BlockSyncRequest, reader: BlockReader) => Promise<BlockSyncResult>;
+}
 
 export type BlockLiveRawSocket = Parameters<WebsocketHandler>[0];
 

@@ -4,6 +4,7 @@ import { BlockLiveAccessService } from './block.live.access.service';
 import { BlockLiveController } from './block.live.controller';
 import { BlockLiveFanoutService } from './block.live.fanout.service';
 import { BlockLiveGateway } from './block.live.gateway';
+import { BlockLiveRequestService } from './block.live.request.service';
 import { BlockLiveService } from './block.live.service';
 import { BlockLiveTokenService } from './block.live.token.service';
 import { BlockTransactionsController } from './block.transactions.controller';
@@ -23,6 +24,7 @@ import { BlockRepository } from './infrastructure/persistence/block.repository';
 import { BlockTransactionRepository } from './infrastructure/persistence/block.transaction.repository';
 import { InMemoryBlockPresenceStore } from './infrastructure/presence/block.presence.store';
 import { BlockLiveRegistry } from './infrastructure/registry/block.live.registry';
+import { BlockLiveWriteLimiter } from './infrastructure/throttling/block.live.write.limiter';
 import type { BlockLiveSettings } from './types/block.live.types';
 
 @Module({
@@ -48,6 +50,8 @@ import type { BlockLiveSettings } from './types/block.live.types';
     BlockLiveTokenService,
     BlockLiveAccessService,
     BlockLiveFanoutService,
+    BlockLiveWriteLimiter,
+    BlockLiveRequestService,
     BlockLiveService,
     BlockLiveGateway,
   ],
