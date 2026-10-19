@@ -1,0 +1,210 @@
+import { Inject, Injectable } from '@nestjs/common';
+import type { UserRole } from '@neuma/shared';
+import { PinoLogger } from 'nestjs-pino';
+import { BlockLiveAccessService } from './block.live.access.service';
+import {
+  BLOCK_LIVE_CLOSE_CODE,
+  BLOCK_LIVE_EMPTY_ACCESS_CONTEXT,
+  BLOCK_PRESENCE_STORE,
+} from './constants/block.live.constants';
+import type {
+  LiveAccessContext,
+  LiveDelivery,
+  LiveSubscription,
+  PresenceEntry,
+  VersionNotification,
+} from './domain/block.live.domain.types';
+import { planPresenceDeliveries, planResync, planVersionDeliveries } from './domain/block.live.routing.domain';
+import { BlockLiveRegistry } from './infrastructure/registry/block.live.registry';
+import type {
+  BlockLiveBroadcaster,
+  BlockLiveConnection,
+  BlockLiveLogger,
+  BlockPresenceStore,
+} from './types/block.live.types';
+import type { BlockReader } from './types/blocks.types';
+import { parseVersionNotification, serializeServerMessage } from './utils/block.live.message.utils';
+
+const toPageId = (subscription: LiveSubscription): string => subscription.pageId;
+
+/** Turns a committed transaction or a presence change into the messages each subscribed socket may receive. */
+@Injectable()
+export class BlockLiveFanoutService implements BlockLiveBroadcaster {
+  private pending: Promise<void> = Promise.resolve();
+
+  constructor(
+    @Inject(BlockLiveRegistry) private readonly registry: BlockLiveRegistry,
+    @Inject(BlockLiveAccessService) private readonly accessService: BlockLiveAccessService,
+    @Inject(BLOCK_PRESENCE_STORE) private readonly presenceStore: BlockPresenceStore,
+    @Inject(PinoLogger) private readonly logger: BlockLiveLogger,
+  ) {}
+
+  /** Notifications are handled one after the other, so the versions of a page reach a socket in commit order. */
+  enqueueNotification(payload: string): void {
+    this.pending = this.handleAfter(this.pending, payload);
+  }
+
+  drain(): Promise<void> {
+    return this.pending;
+  }
+
+  /** After the listen connection was lost, notifications may be missing: every subscriber reads again. */
+  resyncEverySubscription(): void {
+    this.pending = this.resyncAfter(this.pending);
+  }
+
+  async broadcastPresence(pageId: string): Promise<void> {
+    await this.sendPresence(pageId, this.registry.listSubscriptionsOfPage(pageId), true);
+  }
+
+  async sendPresenceTo(connectionId: string, pageId: string): Promise<void> {
+    const subscriptions = this.registry
+      .listSubscriptionsOfPage(pageId)
+      .filter((subscription) => subscription.connectionId === connectionId);
+    await this.sendPresence(pageId, subscriptions, false);
+  }
+
+  async expirePresence(): Promise<void> {
+    try {
+      const pageIds = this.presenceStore.expire(Date.now());
+      await Promise.all(pageIds.map((pageId) => this.broadcastPresence(pageId)));
+    } catch (error) {
+      this.logFailure(error);
+    }
+  }
+
+  private async handleAfter(previous: Promise<void>, payload: string): Promise<void> {
+    await previous;
+    try {
+      await this.handleNotification(payload);
+    } catch (error) {
+      this.logFailure(error);
+    }
+  }
+
+  /** Queued behind the notifications already waiting, so a resync is never overtaken by an older version. */
+  private async resyncAfter(previous: Promise<void>): Promise<void> {
+    await previous;
+    try {
+      await this.deliver(planResync(this.registry.listSubscriptions()));
+    } catch (error) {
+      this.logFailure(error);
+    }
+  }
+
+  private async handleNotification(payload: string): Promise<void> {
+    const parsed = parseVersionNotification(payload);
+    if (parsed.isFail()) {
+      this.logger.error({ err: parsed.getError() }, 'live channel received a notification it could not read');
+      this.resyncEverySubscription();
+      return;
+    }
+    const notification = parsed.getValue();
+    const subscriptions = this.registry.listSubscriptionsInSpace(notification.spaceId);
+    if (subscriptions.length === 0) return;
+    if (notification.kind === 'truncated') {
+      await this.deliver(planResync(subscriptions));
+      return;
+    }
+    await this.deliver(await this.planVersions(notification, subscriptions));
+  }
+
+  private async planVersions(
+    notification: Extract<VersionNotification, { kind: 'versions' }>,
+    subscriptions: readonly LiveSubscription[],
+  ): Promise<LiveDelivery[]> {
+    try {
+      const current = await this.applyCurrentAccounts(subscriptions);
+      const seedIds = [...new Set([...notification.blocks.map((block) => block.id), ...current.map(toPageId)])];
+      const context = await this.accessService.loadContext(seedIds, this.listReaders(current));
+      return planVersionDeliveries({ blocks: notification.blocks, context, subscriptions: current });
+    } catch (error) {
+      this.logger.error({ err: error }, 'live channel could not resolve who may read a notification');
+      return planResync(subscriptions);
+    }
+  }
+
+  /**
+   * The role in a token is the one the user had when the socket opened. Before routing, the sockets take the role
+   * the account has now, and those of a user who is gone or inactive are closed and left out.
+   */
+  private async applyCurrentAccounts(subscriptions: readonly LiveSubscription[]): Promise<LiveSubscription[]> {
+    const refreshed = await this.accessService.refreshReaders(this.listReaders(subscriptions));
+    const rolesByUserId = new Map(refreshed.readers.map((reader) => [reader.userId, reader.role]));
+    for (const connectionId of new Set(subscriptions.map((subscription) => subscription.connectionId))) {
+      this.applyAccountToConnection(connectionId, rolesByUserId, refreshed.unavailableUserIds);
+    }
+    return subscriptions.filter((subscription) => !refreshed.unavailableUserIds.has(subscription.userId));
+  }
+
+  private applyAccountToConnection(
+    connectionId: string,
+    rolesByUserId: ReadonlyMap<string, UserRole>,
+    unavailableUserIds: ReadonlySet<string>,
+  ): void {
+    const connection = this.registry.find(connectionId);
+    const reader = connection?.reader;
+    if (connection === undefined || reader === null || reader === undefined) return;
+    const role = rolesByUserId.get(reader.userId);
+    if (unavailableUserIds.has(reader.userId)) {
+      connection.socket.close(BLOCK_LIVE_CLOSE_CODE.unauthorized, 'account-unavailable');
+      return;
+    }
+    if (role !== undefined) connection.reader = { ...reader, role };
+  }
+
+  private async sendPresence(
+    pageId: string,
+    subscriptions: readonly LiveSubscription[],
+    isSentWhenEmpty: boolean,
+  ): Promise<void> {
+    const entries = this.presenceStore.list(pageId, Date.now());
+    if (subscriptions.length === 0 || (entries.length === 0 && !isSentWhenEmpty)) return;
+    const context = await this.loadPresenceContext(pageId, entries, subscriptions);
+    await this.deliver(planPresenceDeliveries({ context, entries, pageId, subscriptions }));
+  }
+
+  private logFailure(error: unknown): void {
+    this.logger.error({ err: error }, 'live channel could not deliver');
+  }
+
+  private async loadPresenceContext(
+    pageId: string,
+    entries: readonly PresenceEntry[],
+    subscriptions: readonly LiveSubscription[],
+  ): Promise<LiveAccessContext> {
+    const blockIds = entries.flatMap((entry) => (entry.blockId === null ? [] : [entry.blockId]));
+    if (blockIds.length === 0) return BLOCK_LIVE_EMPTY_ACCESS_CONTEXT;
+    try {
+      return await this.accessService.loadContext([pageId, ...new Set(blockIds)], this.listReaders(subscriptions));
+    } catch (error) {
+      this.logger.error({ err: error }, 'live channel could not resolve who may see a presence block');
+      return BLOCK_LIVE_EMPTY_ACCESS_CONTEXT;
+    }
+  }
+
+  private listReaders(subscriptions: readonly LiveSubscription[]): BlockReader[] {
+    return subscriptions.flatMap((subscription) => {
+      const reader = this.registry.find(subscription.connectionId)?.reader;
+      return reader === null || reader === undefined ? [] : [reader];
+    });
+  }
+
+  private async deliver(deliveries: readonly LiveDelivery[]): Promise<void> {
+    const releasedPageIds = new Set(deliveries.flatMap((delivery) => this.applyDelivery(delivery)));
+    await Promise.all([...releasedPageIds].map((pageId) => this.broadcastPresence(pageId)));
+  }
+
+  /** Returns the pages whose presence changed because a revoked subscriber left them. */
+  private applyDelivery(delivery: LiveDelivery): string[] {
+    const connection = this.registry.find(delivery.connectionId);
+    if (connection === undefined || connection.isClosed) return [];
+    connection.socket.send(serializeServerMessage(delivery.message));
+    return delivery.message.type === 'revoked' ? this.dropSubscription(connection, delivery.message.pageId) : [];
+  }
+
+  private dropSubscription(connection: BlockLiveConnection, pageId: string): string[] {
+    connection.subscriptions.delete(pageId);
+    return this.presenceStore.remove(pageId, connection.id) ? [pageId] : [];
+  }
+}

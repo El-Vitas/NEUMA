@@ -39,6 +39,11 @@ export type DeclaringAncestor = BlockAncestorPermissions | null;
 
 export type RecordsById = ReadonlyMap<string, BlockRecord>;
 
+/** What a role is resolved from: the block, its parent, its space and the permissions it declares. */
+export type BlockRoleSource = Pick<BlockRecord, 'id' | 'parentId' | 'permissions' | 'spaceId'>;
+
+export type RoleSourcesById = ReadonlyMap<string, BlockRoleSource>;
+
 export type RolesById = ReadonlyMap<string, BlockRole>;
 
 export interface VisibleBlocksInput {

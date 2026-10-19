@@ -6,8 +6,12 @@ import type { TreeCheckInput, WorkingBlock, WriteBlocker } from './block.transac
 import { BlockCycleError, BlockTreeInvalidError } from './block.transaction.error';
 
 /** From the block up to its top ancestor. It stops one past the limit, so the caller can tell a chain too deep. */
-export const walkChain = (startId: string, recordsById: RecordsById, maxDepth: number): BlockRecord[] => {
-  const chain: BlockRecord[] = [];
+export const walkChain = <Link extends Pick<BlockRecord, 'id' | 'parentId'>>(
+  startId: string,
+  recordsById: ReadonlyMap<string, Link>,
+  maxDepth: number,
+): Link[] => {
+  const chain: Link[] = [];
   const seen = new Set<string>();
   let current = recordsById.get(startId);
   while (current !== undefined && !seen.has(current.id) && chain.length <= maxDepth) {
@@ -32,7 +36,11 @@ export const findWriteBlocker = (blockId: string, recordsById: RecordsById, maxD
 };
 
 /** The page whose backlinks list this block: the block itself when it is a page. */
-export const findSourcePageId = (blockId: string, recordsById: RecordsById, maxDepth: number): string | null =>
+export const findSourcePageId = (
+  blockId: string,
+  recordsById: ReadonlyMap<string, Pick<BlockRecord, 'id' | 'parentId' | 'type'>>,
+  maxDepth: number,
+): string | null =>
   walkChain(blockId, recordsById, maxDepth).find((record) => record.type === BLOCK_TYPE.page)?.id ?? null;
 
 const ok = (): Result<void, DomainError> => Result.ok(undefined);
