@@ -1,0 +1,200 @@
+[
+  {
+    "id": "table.PagePurge",
+    "label": "Create table \"PagePurge\"",
+    "summary": "Creates table \"PagePurge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PagePurge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PagePurge\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PagePurge\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PagePurge\"",
+        "sql": "CREATE TABLE \"public\".\"PagePurge\" (\n  \"cancelledAt\" timestamptz,\n  \"id\" text NOT NULL,\n  \"pageId\" text NOT NULL,\n  \"purgeAfter\" timestamptz NOT NULL,\n  \"purgedAt\" timestamptz,\n  \"requestedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"requestedById\" text NOT NULL,\n  \"spaceId\" text NOT NULL,\n  \"title\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  CONSTRAINT \"PagePurge_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PagePurge\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PagePurge\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.Page.purgeAfter",
+    "label": "Add column \"purgeAfter\" to \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "purgeAfter",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"purgeAfter\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Page",
+          "purgeAfter"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"purgeAfter\"",
+        "sql": "ALTER TABLE \"public\".\"Page\" ADD COLUMN \"purgeAfter\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"purgeAfter\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Page",
+          "purgeAfter"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Page.Page_purgeAfter_idx",
+    "label": "Create index \"Page_purgeAfter_idx\" on \"Page\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Page_purgeAfter_idx",
+        "table": "Page"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Page_purgeAfter_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_purgeAfter_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Page_purgeAfter_idx\"",
+        "sql": "CREATE INDEX \"Page_purgeAfter_idx\" ON \"public\".\"Page\" (\"purgeAfter\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Page_purgeAfter_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Page_purgeAfter_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PagePurge.PagePurge_pageId_idx",
+    "label": "Create index \"PagePurge_pageId_idx\" on \"PagePurge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PagePurge_pageId_idx",
+        "table": "PagePurge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PagePurge_pageId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PagePurge_pageId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PagePurge_pageId_idx\"",
+        "sql": "CREATE INDEX \"PagePurge_pageId_idx\" ON \"public\".\"PagePurge\" (\"pageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PagePurge_pageId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PagePurge_pageId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PagePurge.PagePurge_workspaceId_requestedAt_idx",
+    "label": "Create index \"PagePurge_workspaceId_requestedAt_idx\" on \"PagePurge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PagePurge_workspaceId_requestedAt_idx",
+        "table": "PagePurge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PagePurge_workspaceId_requestedAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PagePurge_workspaceId_requestedAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PagePurge_workspaceId_requestedAt_idx\"",
+        "sql": "CREATE INDEX \"PagePurge_workspaceId_requestedAt_idx\" ON \"public\".\"PagePurge\" (\"workspaceId\", \"requestedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PagePurge_workspaceId_requestedAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PagePurge_workspaceId_requestedAt_idx\""
+        ]
+      }
+    ]
+  }
+]

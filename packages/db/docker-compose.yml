@@ -1,7 +1,8 @@
+# Development only: a local Postgres for the db package, with names that never clash with another instance.
 services:
   postgres:
     image: postgres:18.4-alpine
-    container_name: neuma-postgres
+    container_name: neuma-dev-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-neuma}
@@ -20,4 +21,4 @@ services:
 
 volumes:
   postgres-data:
-    name: neuma-postgres-data
+    name: neuma-dev-postgres-data
