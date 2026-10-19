@@ -43,6 +43,8 @@ FROM base AS runner
 ENV DO_NOT_TRACK=1
 COPY --from=build /app ./
 WORKDIR /app/packages/db
+# Applying migrations only reads these files and talks to Postgres, so it needs no root.
+USER bun
 # Migrations run DDL, so they connect as the DB owner via MIGRATION_DATABASE_URL
 # (falling back to DATABASE_URL). The backend runtime uses a least-privilege role.
 CMD ["bun", "scripts/migrate-deploy.ts"]
