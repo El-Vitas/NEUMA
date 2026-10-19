@@ -1,0 +1,35 @@
+# Every version is pinned (actions by SHA, images by digest, providers by lock file); Dependabot is how they move,
+# always as a pull request that CI checks. The Postgres image is pinned too, and deploy.sh still refuses to
+# switch it without NEUMA_ALLOW_POSTGRES_UPDATE=1.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/oci-session"]
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories:
+      - /apps/backend
+      - /apps/portal
+      - /packages/db
+      - /deploy/postgres
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: terraform
+    directories: ["/infra/bootstrap", "/infra/envs/prod"]
+    schedule:
+      interval: weekly
+    groups:
+      providers:
+        patterns: ["*"]
+
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

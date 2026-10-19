@@ -1,5 +1,6 @@
 import websocket, { type WebsocketHandler } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { MAX_COLLABORATION_MESSAGE_BYTES, MESSAGE_TOO_BIG_CLOSE_CODE } from './constants/collaboration.constants';
 import type { CollaborationConnectionOpener, CollaborationSocketMessage } from './types/collaboration.types';
 
 const createWebRequest = (request: FastifyRequest): Request => {
@@ -25,7 +26,13 @@ const createCollaborationHandler =
   (socket, request): void => {
     const connection = openConnection(socket, createWebRequest(request));
     socket.on('message', (message: CollaborationSocketMessage) => {
-      connection.handleMessage(readMessageBytes(message));
+      const bytes = readMessageBytes(message);
+      // Bun's `ws` ignores `maxPayload`, so the limit is enforced here as well.
+      if (bytes.byteLength > MAX_COLLABORATION_MESSAGE_BYTES) {
+        socket.close(MESSAGE_TOO_BIG_CLOSE_CODE, 'message too big');
+        return;
+      }
+      connection.handleMessage(bytes);
     });
     socket.on('close', (code: number, reason: Buffer) => {
       connection.handleClose({ code, reason: reason.toString() });
@@ -36,6 +43,6 @@ export const registerCollaborationTransport = async (
   fastify: FastifyInstance,
   openConnection: CollaborationConnectionOpener,
 ): Promise<void> => {
-  await fastify.register(websocket);
+  await fastify.register(websocket, { options: { maxPayload: MAX_COLLABORATION_MESSAGE_BYTES } });
   fastify.get('/api/v1/collaboration', { websocket: true }, createCollaborationHandler(openConnection));
 };

@@ -35,7 +35,7 @@ export const PagesTrashEmptyTrashDialog = ({ disabled = false }: IProps) => {
         toast.error(t('trashScreen.deleteForeverError'));
         return;
       }
-      toast.success(t('trashScreen.emptyTrash'));
+      toast.success(t('trashScreen.emptyTrashScheduledToast'));
       setOpen(false);
       router.refresh();
     });

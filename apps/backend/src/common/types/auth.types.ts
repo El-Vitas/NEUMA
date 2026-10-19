@@ -15,6 +15,7 @@ export interface AuthUserRow {
   name: string;
   password: string;
   role: UserRole;
+  tokenVersion: number;
 }
 
 export interface RequestUser {
@@ -27,6 +28,12 @@ export interface TokenPayload {
   readonly name: string;
   readonly role: UserRole;
   readonly sub: string;
+}
+
+/** A refresh token renews only while its version matches the account's `tokenVersion`. */
+export interface RefreshTokenPayload extends TokenPayload {
+  /** Absent on tokens issued before versions existed; those count as version 0. */
+  readonly ver?: number;
 }
 
 export interface CollaborationTokenPayload {

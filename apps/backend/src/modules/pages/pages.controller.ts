@@ -38,7 +38,7 @@ import { ReorderPageDto } from './dto/page.reorder.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
 import { SetPageVerificationDto } from './dto/page.verification.dto';
 import { PagesService } from './pages.service';
-import type { PageDescendantsPreview, PageRestoreOutcome } from './types/page.types';
+import type { PageDescendantsPreview, PagePurgeSchedule, PageRestoreOutcome } from './types/page.types';
 
 @Controller('spaces/:spaceId/pages')
 export class PagesController {
@@ -390,7 +390,10 @@ export class PagesController {
 
   @Delete(':pageId')
   @UseGuards(JwtAuthGuard)
-  async deleteForever(@Param('pageId') pageId: string, @User('payload') payload: TokenPayload): Promise<boolean> {
+  async deleteForever(
+    @Param('pageId') pageId: string,
+    @User('payload') payload: TokenPayload,
+  ): Promise<PagePurgeSchedule> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.deleteForever(pageId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) {

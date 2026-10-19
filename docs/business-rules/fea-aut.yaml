@@ -58,6 +58,26 @@ rules:
     title: Payload del JWT
     rule: El token de sesión debe contener el id, email, nombre y rol del usuario autenticado.
     why: La aplicación necesita estos datos del usuario sin hacer una llamada adicional al servidor.
+  - id: BR-99902bf
+    status: active
+    title: Cerrar sesión o cambiar la contraseña corta todas las sesiones de la cuenta
+    rule: >-
+      Al cerrar sesión o cambiar la contraseña, ningún token de renovación emitido antes vuelve a servir, en ningún
+      dispositivo. Quien cambia su contraseña sigue con la sesión abierta en el navegador donde la cambió; los demás
+      dispositivos deben iniciar sesión otra vez.
+    why: >-
+      Una sesión que no se puede cortar sigue abierta siete días aunque la contraseña se haya filtrado o el equipo se
+      haya perdido. Cambiar la contraseña tiene que dejar afuera a quien la usaba.
+    context: El token de acceso que ya está en uso vale hasta que vence, unos minutos. Lo que se corta es la renovación.
+    scenarios:
+      - title: Cierre de sesión
+        given: Una persona con sesión abierta en dos equipos
+        when: Cierra sesión en uno
+        then: En los dos equipos la sesión deja de renovarse
+      - title: Cambio de contraseña
+        given: Una persona con sesión abierta
+        when: Cambia su contraseña
+        then: Los tokens de renovación anteriores se rechazan y el navegador donde la cambió sigue con sesión
   - id: BR-ea307b3
     status: active
     title: Un token de sesión solo sirve como sesión

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { Hocuspocus } from '@hocuspocus/server';
 import { type PageContent, USER_ROLE } from '@neuma/shared';
+import { XmlText } from 'yjs';
 import { createCollaborationGateway } from '../../../../src/modules/collaboration/collaboration.gateway';
 import {
   MAX_COLLABORATION_STATE_BYTES,
@@ -361,17 +362,43 @@ describe('collaboration gateway limits', () => {
     expect(gateway.assertStateSize(oversizedState)).rejects.toThrow('state-too-large');
   });
 
-  test('flushes pending stores and closes connections during shutdown', async () => {
+  test('closes connections, then flushes pending stores during shutdown', async () => {
     const gateway = createCollaborationGateway(createAdapters());
-    let flushed = false;
-    gateway.server.flushPendingStores = () => {
-      flushed = true;
-    };
+    const calls: string[] = [];
     gateway.server.closeConnections = () => {
-      flushed = flushed && true;
+      calls.push('close');
+    };
+    gateway.server.flushPendingStores = () => {
+      calls.push('flush');
     };
 
-    await gateway.shutdown();
-    expect(flushed).toBe(true);
+    const result = await gateway.shutdown();
+
+    expect(calls).toEqual(['close', 'flush']);
+    expect(result.unsavedDocumentNames).toEqual([]);
+  });
+
+  test('resolves shutdown only after a live document reaches the database', async () => {
+    const stored: string[] = [];
+    const adapters = createAdapters();
+    const gateway = createCollaborationGateway({
+      ...adapters,
+      persistence: {
+        ...adapters.persistence,
+        store: async (name: string) => {
+          await new Promise((resolve) => setTimeout(resolve, 30));
+          stored.push(name);
+        },
+      },
+    });
+    const connection = await gateway.server.openDirectConnection(documentName, writerContext);
+    await connection.transact((document) => {
+      document.getXmlFragment('default').insert(0, [new XmlText('Lo último que se escribió')]);
+    });
+
+    const result = await gateway.shutdown();
+
+    expect(stored).toEqual([documentName]);
+    expect(result.unsavedDocumentNames).toEqual([]);
   });
 });

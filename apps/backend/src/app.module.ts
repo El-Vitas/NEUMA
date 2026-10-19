@@ -6,6 +6,7 @@ import { USER_ROLE } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
 
 import { envSchema } from './common/config/env.schema';
+import { DATABASE_HEALTH_CHECK } from './common/constants/health.constants';
 import {
   CREDENTIAL_RATE_LIMIT,
   EXPORT_RATE_LIMIT,
@@ -14,6 +15,7 @@ import {
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
+import { DatabaseHealthRepository } from './common/infrastructure/persistence/database-health.repository';
 import { OutboxRepository } from './common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from './common/infrastructure/persistence/workspace-context.service';
 import { WorkspaceMemberRepository } from './common/infrastructure/persistence/workspace-member.repository';
@@ -204,10 +206,12 @@ import { PrismaModule } from './prisma/prisma.module';
             }
           },
         };
-        return new CollaborationGateway(token, authorization, persistence, content);
+        return new CollaborationGateway(token, authorization, persistence, content, logger);
       },
     },
     AccessTokenPlaceRepository,
+    DatabaseHealthRepository,
+    { provide: DATABASE_HEALTH_CHECK, useExisting: DatabaseHealthRepository },
     WorkspaceMemberRepository,
     McpActionRepository,
     McpDrawingValidatorAdapter,

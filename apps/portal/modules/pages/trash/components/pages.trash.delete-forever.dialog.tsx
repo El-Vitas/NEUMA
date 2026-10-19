@@ -35,7 +35,7 @@ export const PagesTrashDeleteForeverDialog = ({ onClose, onDeleted, page }: IPro
         toast.error(t('trashScreen.deleteForeverError'));
         return;
       }
-      toast.success(t('trashScreen.deleteForever'));
+      toast.success(t('trashScreen.purgeScheduledToast'));
       onDeleted?.();
       onClose();
     });

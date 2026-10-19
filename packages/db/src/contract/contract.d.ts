@@ -18,9 +18,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'efa02afd121c2a097491c0a23026a4fdad577a2102dcf7f1d2239e5421e742ce'>;
+  StorageHashBase<'d4bacf6603fdc05da1c8e9abc8626d14f56949a5cadb4fb37956781397345fc3'>;
 export type ExecutionHash =
-  ExecutionHashBase<'c825d90d7efd809bdc43fbdccb653a1431228b4fd3283060e9813b05e04130f1'>;
+  ExecutionHashBase<'2bc13bca7d324cb22a177537cc27592dd4d4dd4ab6c08de7e9250727274d5692'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -331,6 +331,7 @@ export type FieldOutputTypes = {
       readonly ownerId: CodecTypes['pg/text@1']['output'] | null;
       readonly parentId: CodecTypes['pg/text@1']['output'] | null;
       readonly propertyValues: CodecTypes['pg/jsonb@1']['output'] | null;
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['output'] | null;
       readonly spaceId: CodecTypes['pg/text@1']['output'];
       readonly title: CodecTypes['pg/text@1']['output'];
       readonly trashedAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
@@ -364,6 +365,18 @@ export type FieldOutputTypes = {
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly sourcePageId: CodecTypes['pg/text@1']['output'];
       readonly targetPageId: CodecTypes['pg/text@1']['output'];
+    };
+    readonly PagePurge: {
+      readonly cancelledAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly pageId: CodecTypes['pg/text@1']['output'];
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['output'];
+      readonly purgedAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
+      readonly requestedAt: CodecTypes['pg/timestamptz-date@1']['output'];
+      readonly requestedById: CodecTypes['pg/text@1']['output'];
+      readonly spaceId: CodecTypes['pg/text@1']['output'];
+      readonly title: CodecTypes['pg/text@1']['output'];
+      readonly workspaceId: CodecTypes['pg/text@1']['output'];
     };
     readonly PageSchemaProperty: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -452,6 +465,7 @@ export type FieldOutputTypes = {
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly password: CodecTypes['pg/text@1']['output'];
       readonly role: 'ADMIN' | 'WORKER' | 'CLIENT';
+      readonly tokenVersion: CodecTypes['pg/int4@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
     };
     readonly Workspace: {
@@ -570,6 +584,7 @@ export type FieldInputTypes = {
       readonly ownerId: CodecTypes['pg/text@1']['input'] | null;
       readonly parentId: CodecTypes['pg/text@1']['input'] | null;
       readonly propertyValues: CodecTypes['pg/jsonb@1']['input'] | null;
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['input'] | null;
       readonly spaceId: CodecTypes['pg/text@1']['input'];
       readonly title: CodecTypes['pg/text@1']['input'];
       readonly trashedAt: CodecTypes['pg/timestamptz-date@1']['input'] | null;
@@ -603,6 +618,18 @@ export type FieldInputTypes = {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly sourcePageId: CodecTypes['pg/text@1']['input'];
       readonly targetPageId: CodecTypes['pg/text@1']['input'];
+    };
+    readonly PagePurge: {
+      readonly cancelledAt: CodecTypes['pg/timestamptz-date@1']['input'] | null;
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly pageId: CodecTypes['pg/text@1']['input'];
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['input'];
+      readonly purgedAt: CodecTypes['pg/timestamptz-date@1']['input'] | null;
+      readonly requestedAt: CodecTypes['pg/timestamptz-date@1']['input'];
+      readonly requestedById: CodecTypes['pg/text@1']['input'];
+      readonly spaceId: CodecTypes['pg/text@1']['input'];
+      readonly title: CodecTypes['pg/text@1']['input'];
+      readonly workspaceId: CodecTypes['pg/text@1']['input'];
     };
     readonly PageSchemaProperty: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -691,6 +718,7 @@ export type FieldInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly password: CodecTypes['pg/text@1']['input'];
       readonly role: 'ADMIN' | 'WORKER' | 'CLIENT';
+      readonly tokenVersion: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['input'];
     };
     readonly Workspace: {
@@ -809,6 +837,7 @@ export type StorageColumnTypes = {
       readonly ownerId: CodecTypes['pg/text@1']['output'] | null;
       readonly parentId: CodecTypes['pg/text@1']['output'] | null;
       readonly propertyValues: CodecTypes['pg/jsonb@1']['output'] | null;
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['output'] | null;
       readonly spaceId: CodecTypes['pg/text@1']['output'];
       readonly title: CodecTypes['pg/text@1']['output'];
       readonly trashedAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
@@ -842,6 +871,18 @@ export type StorageColumnTypes = {
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly sourcePageId: CodecTypes['pg/text@1']['output'];
       readonly targetPageId: CodecTypes['pg/text@1']['output'];
+    };
+    readonly PagePurge: {
+      readonly cancelledAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly pageId: CodecTypes['pg/text@1']['output'];
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['output'];
+      readonly purgedAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
+      readonly requestedAt: CodecTypes['pg/timestamptz-date@1']['output'];
+      readonly requestedById: CodecTypes['pg/text@1']['output'];
+      readonly spaceId: CodecTypes['pg/text@1']['output'];
+      readonly title: CodecTypes['pg/text@1']['output'];
+      readonly workspaceId: CodecTypes['pg/text@1']['output'];
     };
     readonly PageSchemaProperty: {
       readonly id: CodecTypes['pg/text@1']['output'];
@@ -930,6 +971,7 @@ export type StorageColumnTypes = {
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly password: CodecTypes['pg/text@1']['output'];
       readonly role: 'ADMIN' | 'WORKER' | 'CLIENT';
+      readonly tokenVersion: CodecTypes['pg/int4@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
     };
     readonly Workspace: {
@@ -1048,6 +1090,7 @@ export type StorageColumnInputTypes = {
       readonly ownerId: CodecTypes['pg/text@1']['input'] | null;
       readonly parentId: CodecTypes['pg/text@1']['input'] | null;
       readonly propertyValues: CodecTypes['pg/jsonb@1']['input'] | null;
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['input'] | null;
       readonly spaceId: CodecTypes['pg/text@1']['input'];
       readonly title: CodecTypes['pg/text@1']['input'];
       readonly trashedAt: CodecTypes['pg/timestamptz-date@1']['input'] | null;
@@ -1081,6 +1124,18 @@ export type StorageColumnInputTypes = {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly sourcePageId: CodecTypes['pg/text@1']['input'];
       readonly targetPageId: CodecTypes['pg/text@1']['input'];
+    };
+    readonly PagePurge: {
+      readonly cancelledAt: CodecTypes['pg/timestamptz-date@1']['input'] | null;
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly pageId: CodecTypes['pg/text@1']['input'];
+      readonly purgeAfter: CodecTypes['pg/timestamptz-date@1']['input'];
+      readonly purgedAt: CodecTypes['pg/timestamptz-date@1']['input'] | null;
+      readonly requestedAt: CodecTypes['pg/timestamptz-date@1']['input'];
+      readonly requestedById: CodecTypes['pg/text@1']['input'];
+      readonly spaceId: CodecTypes['pg/text@1']['input'];
+      readonly title: CodecTypes['pg/text@1']['input'];
+      readonly workspaceId: CodecTypes['pg/text@1']['input'];
     };
     readonly PageSchemaProperty: {
       readonly id: CodecTypes['pg/text@1']['input'];
@@ -1169,6 +1224,7 @@ export type StorageColumnInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly password: CodecTypes['pg/text@1']['input'];
       readonly role: 'ADMIN' | 'WORKER' | 'CLIENT';
+      readonly tokenVersion: CodecTypes['pg/int4@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['input'];
     };
     readonly Workspace: {
@@ -1305,6 +1361,7 @@ export namespace Models {
     ownerId: CodecTypes['pg/text@1']['output'] | null;
     parentId: CodecTypes['pg/text@1']['output'] | null;
     propertyValues: CodecTypes['pg/jsonb@1']['output'] | null;
+    purgeAfter: CodecTypes['pg/timestamptz-date@1']['output'] | null;
     spaceId: CodecTypes['pg/text@1']['output'];
     title: CodecTypes['pg/text@1']['output'];
     trashedAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
@@ -1375,6 +1432,19 @@ export namespace Models {
     sourcePage: public_Page;
     targetPage: public_Page;
     readonly [RelationKeys]?: 'sourcePage' | 'targetPage';
+  };
+  export type public_PagePurge = {
+    cancelledAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
+    id: CodecTypes['pg/text@1']['output'];
+    pageId: CodecTypes['pg/text@1']['output'];
+    purgeAfter: CodecTypes['pg/timestamptz-date@1']['output'];
+    purgedAt: CodecTypes['pg/timestamptz-date@1']['output'] | null;
+    requestedAt: CodecTypes['pg/timestamptz-date@1']['output'];
+    requestedById: CodecTypes['pg/text@1']['output'];
+    spaceId: CodecTypes['pg/text@1']['output'];
+    title: CodecTypes['pg/text@1']['output'];
+    workspaceId: CodecTypes['pg/text@1']['output'];
+    readonly [RelationKeys]?: never;
   };
   export type public_PageSchemaProperty = {
     id: CodecTypes['pg/text@1']['output'];
@@ -1475,6 +1545,7 @@ export namespace Models {
     name: CodecTypes['pg/text@1']['output'];
     password: CodecTypes['pg/text@1']['output'];
     role: 'ADMIN' | 'WORKER' | 'CLIENT';
+    tokenVersion: CodecTypes['pg/int4@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
     accessTokens: public_AccessToken[];
     favorites: public_PageFavorite[];
@@ -1532,6 +1603,7 @@ export declare const models: {
     PageBlock: Models.public_PageBlock;
     PageFavorite: Models.public_PageFavorite;
     PageLink: Models.public_PageLink;
+    PagePurge: Models.public_PagePurge;
     PageSchemaProperty: Models.public_PageSchemaProperty;
     PageSchemaView: Models.public_PageSchemaView;
     PageVersion: Models.public_PageVersion;
@@ -2379,6 +2451,12 @@ type ContractBase = Omit<
                   readonly nullable: true;
                   readonly many: false;
                 };
+                readonly purgeAfter: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly spaceId: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -2439,6 +2517,11 @@ type ContractBase = Omit<
                 {
                   readonly name: 'Page_parentId_order_idx';
                   readonly columns: readonly ['parentId', 'order'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Page_purgeAfter_idx';
+                  readonly columns: readonly ['purgeAfter'];
                   readonly unique: false;
                 },
                 {
@@ -2759,6 +2842,86 @@ type ContractBase = Omit<
                   readonly name: 'PageLink_targetPageId_fkey';
                 },
               ];
+            };
+            readonly PagePurge: {
+              columns: {
+                readonly cancelledAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly pageId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly purgeAfter: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly purgedAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly requestedAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly many: false;
+                };
+                readonly requestedById: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly spaceId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly title: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly workspaceId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id']; readonly name: 'PagePurge_pkey' };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'PagePurge_pageId_idx';
+                  readonly columns: readonly ['pageId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'PagePurge_workspaceId_requestedAt_idx';
+                  readonly columns: readonly ['workspaceId', 'requestedAt'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [];
             };
             readonly PageSchemaProperty: {
               columns: {
@@ -3480,6 +3643,16 @@ type ContractBase = Omit<
                   readonly typeParams: { readonly typeName: 'UserRole' };
                   readonly many: false;
                 };
+                readonly tokenVersion: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                  readonly many: false;
+                };
                 readonly updatedAt: {
                   readonly dataType: 'pg/timestamptz';
                   readonly codecId: 'pg/timestamptz-date@1';
@@ -3746,6 +3919,7 @@ type ContractBase = Omit<
       readonly model: 'PageFavorite';
     };
     readonly PageLink: { readonly namespace: 'public' & NamespaceId; readonly model: 'PageLink' };
+    readonly PagePurge: { readonly namespace: 'public' & NamespaceId; readonly model: 'PagePurge' };
     readonly PageSchemaProperty: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'PageSchemaProperty';
@@ -4447,6 +4621,13 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/jsonb@1' };
               };
+              readonly purgeAfter: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
               readonly spaceId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -4657,6 +4838,7 @@ type ContractBase = Omit<
                 readonly ownerId: { readonly column: 'ownerId' };
                 readonly parentId: { readonly column: 'parentId' };
                 readonly propertyValues: { readonly column: 'propertyValues' };
+                readonly purgeAfter: { readonly column: 'purgeAfter' };
                 readonly spaceId: { readonly column: 'spaceId' };
                 readonly title: { readonly column: 'title' };
                 readonly trashedAt: { readonly column: 'trashedAt' };
@@ -4851,6 +5033,79 @@ type ContractBase = Omit<
                 readonly id: { readonly column: 'id' };
                 readonly sourcePageId: { readonly column: 'sourcePageId' };
                 readonly targetPageId: { readonly column: 'targetPageId' };
+              };
+            };
+          };
+          readonly PagePurge: {
+            readonly fields: {
+              readonly cancelledAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly pageId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly purgeAfter: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
+              readonly purgedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
+              readonly requestedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
+              readonly requestedById: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly spaceId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly title: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly workspaceId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'PagePurge';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly cancelledAt: { readonly column: 'cancelledAt' };
+                readonly id: { readonly column: 'id' };
+                readonly pageId: { readonly column: 'pageId' };
+                readonly purgeAfter: { readonly column: 'purgeAfter' };
+                readonly purgedAt: { readonly column: 'purgedAt' };
+                readonly requestedAt: { readonly column: 'requestedAt' };
+                readonly requestedById: { readonly column: 'requestedById' };
+                readonly spaceId: { readonly column: 'spaceId' };
+                readonly title: { readonly column: 'title' };
+                readonly workspaceId: { readonly column: 'workspaceId' };
               };
             };
           };
@@ -5423,6 +5678,10 @@ type ContractBase = Omit<
                   readonly typeParams: { readonly typeName: 'UserRole' };
                 };
               };
+              readonly tokenVersion: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly updatedAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -5526,6 +5785,7 @@ type ContractBase = Omit<
                 readonly name: { readonly column: 'name' };
                 readonly password: { readonly column: 'password' };
                 readonly role: { readonly column: 'role' };
+                readonly tokenVersion: { readonly column: 'tokenVersion' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
             };
@@ -5832,6 +6092,14 @@ type ContractBase = Omit<
           readonly onCreate: { readonly id: 'uuidv7'; readonly kind: 'generator' };
           readonly ref: {
             readonly entry: 'PageLink';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv7'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'PagePurge';
             readonly field: 'id';
             readonly namespace: 'public';
           };

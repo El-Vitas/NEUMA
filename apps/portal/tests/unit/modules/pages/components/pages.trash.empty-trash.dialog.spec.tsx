@@ -36,13 +36,14 @@ describe('PagesTrashEmptyTrashDialog', () => {
     expect(screen.getByRole('button', { name: 'Empty the trash' })).toHaveProperty('disabled', true);
   });
 
-  it('warns that attachments are deleted forever before emptying', () => {
+  it('says the pages go in 30 days, attachments included, before emptying', () => {
     renderDialog();
 
     fireEvent.click(screen.getByRole('button', { name: 'Empty the trash' }));
 
     expect(screen.getByText('Empty the trash?')).toBeDefined();
-    expect(screen.getByText("The page's attachments are also deleted forever.")).toBeDefined();
+    expect(screen.getByText(/erased in 30 days/)).toBeDefined();
+    expect(screen.getByText('Its attachments are erased along with the page.')).toBeDefined();
   });
 
   it('empties the trash and refreshes once confirmed', async () => {

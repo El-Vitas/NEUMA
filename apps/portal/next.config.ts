@@ -1,6 +1,12 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { env } from './config/env.config';
+import {
+  FRAME_ANCESTORS_NONE,
+  FRAME_ANCESTORS_SAME_ORIGIN,
+} from './shared/constants/content-security-policy.constants';
+import { buildContentSecurityPolicy } from './shared/lib/content-security-policy.lib';
 
 const securityHeaders = [
   {
@@ -19,11 +25,24 @@ const securityHeaders = [
 
 const attachmentsPath = 'api/page-assets';
 
+const contentSecurityPolicyFor = (frameAncestors: string): string =>
+  buildContentSecurityPolicy({
+    collaborationUrl: env.NEXT_PUBLIC_COLLABORATION_WS_URL,
+    frameAncestors,
+    isDevelopment: env.NODE_ENV === 'development',
+  });
+
 /** Attachments allow same-origin framing because the browser's document viewer renders them in a frame. */
 const framingHeaders = [
-  { source: `/((?!${attachmentsPath}).*)`, value: 'DENY' },
-  { source: `/${attachmentsPath}/:path*`, value: 'SAMEORIGIN' },
-].map(({ source, value }) => ({ headers: [{ key: 'X-Frame-Options', value }], source }));
+  { frameAncestors: FRAME_ANCESTORS_NONE, source: `/((?!${attachmentsPath}).*)`, value: 'DENY' },
+  { frameAncestors: FRAME_ANCESTORS_SAME_ORIGIN, source: `/${attachmentsPath}/:path*`, value: 'SAMEORIGIN' },
+].map(({ frameAncestors, source, value }) => ({
+  headers: [
+    { key: 'X-Frame-Options', value },
+    { key: 'Content-Security-Policy', value: contentSecurityPolicyFor(frameAncestors) },
+  ],
+  source,
+}));
 
 const monorepoRoot = path.join(import.meta.dirname, '../../');
 

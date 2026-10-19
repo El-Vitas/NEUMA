@@ -17,6 +17,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import type { NeumaModels } from '../../../../prisma/types/prisma.types';
 import { PAGE_CONTENT_STORE_OUTCOME, PAGE_MOVES_LOCK_PREFIX } from '../../constants/pages.constants';
 import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
+import { isSameEditingStretch } from '../../domain/page.version.domain';
 import { validatePageCover } from '../../domain/page-cover.domain';
 import type {
   CreatePageInput,
@@ -37,6 +38,7 @@ import type {
   UpdatePagePropertyValuesInput,
 } from '../../types/page.types';
 import { PageStoredContentInvalidError } from '../errors/page.stored-content.error';
+import { PagePurgeRepository } from './page.purge.repository';
 
 /** The editor schema types its optional fields loosely; the database stores only what survives serialization. */
 const toStoredJson = (value: unknown): JsonValue => {
@@ -97,7 +99,7 @@ const selectPageCopy = (models: NeumaModels) =>
   models.Page.select('content', 'cover', 'icon', 'id', 'order', 'parentId', 'propertyValues', 'spaceId', 'title');
 
 const selectPageHierarchy = (models: NeumaModels) =>
-  models.Page.select('id', 'lifecycle', 'parentId', 'spaceId', 'title', 'trashedAt', 'updatedById');
+  models.Page.select('id', 'lifecycle', 'parentId', 'purgeAfter', 'spaceId', 'title', 'trashedAt', 'updatedById');
 
 /**
  * Concurrent creations can get the same number (next = highest + 1), so creation time
@@ -116,6 +118,7 @@ export class PageRepository implements PageRepositoryContract {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outboxRepository: OutboxRepository,
+    private readonly pagePurgeRepository: PagePurgeRepository,
   ) {}
 
   async listAccessible(
@@ -263,7 +266,7 @@ export class PageRepository implements PageRepositoryContract {
         .first();
       if (current === null) return PAGE_CONTENT_STORE_OUTCOME.missing;
       if (isDeepStrictEqual(current.content, input.content)) return PAGE_CONTENT_STORE_OUTCOME.unchanged;
-      const latest = await transaction.orm.public.PageVersion.select('version')
+      const latest = await transaction.orm.public.PageVersion.select('createdAt', 'createdById', 'id', 'version')
         .where({ pageId: input.pageId })
         .orderBy((entry) => entry.version.desc())
         .first();
@@ -274,13 +277,20 @@ export class PageRepository implements PageRepositoryContract {
         updatedById: input.updatedById,
       });
       requireWrittenPage(updated, input.pageId);
-      await transaction.orm.public.PageVersion.create({
-        content,
-        createdById: input.updatedById,
-        pageId: input.pageId,
-        title: current.title,
-        version: nextVersion,
-      });
+      const version = { content, title: current.title, version: nextVersion };
+      if (latest !== null && isSameEditingStretch(latest, input.updatedById, new Date())) {
+        // The number still moves forward: search and backlinks project by it.
+        requireRow(
+          await transaction.orm.public.PageVersion.where({ id: latest.id }).update(version),
+          `PageVersion ${latest.id}`,
+        );
+      } else {
+        await transaction.orm.public.PageVersion.create({
+          ...version,
+          createdById: input.updatedById,
+          pageId: input.pageId,
+        });
+      }
       await this.announceNewVersion(transaction, input.pageId, nextVersion);
       return PAGE_CONTENT_STORE_OUTCOME.stored;
     });
@@ -740,6 +750,7 @@ export class PageRepository implements PageRepositoryContract {
       const restored = await transaction.orm.public.Page.where({ id: pageId }).update({
         lifecycle: PageLifecycle.ACTIVE,
         parentId: resolvedParentId,
+        purgeAfter: null,
         trashedAt: null,
         updatedById: userId,
       });
@@ -747,8 +758,9 @@ export class PageRepository implements PageRepositoryContract {
       if (trashedDescendantIds.length > 0) {
         await transaction.orm.public.Page.where((candidate) =>
           candidate.id.in([...trashedDescendantIds]),
-        ).updateAndCount({ lifecycle: PageLifecycle.ACTIVE, trashedAt: null, updatedById: userId });
+        ).updateAndCount({ lifecycle: PageLifecycle.ACTIVE, purgeAfter: null, trashedAt: null, updatedById: userId });
       }
+      await this.pagePurgeRepository.cancel(transaction, [pageId, ...trashedDescendantIds], new Date());
       await this.recordLifecycleEvents(
         transaction,
         [pageId, ...trashedDescendantIds],
@@ -789,6 +801,7 @@ export class PageRepository implements PageRepositoryContract {
       deletedBy: deletedByUsers.get(page.updatedById) ?? null,
       id: page.id,
       parentId: page.parentId,
+      purgeAfter: page.purgeAfter,
       spaceId: page.spaceId,
       title: page.title,
       trashedChildCount: this.countDescendantsInHierarchy(
@@ -799,11 +812,13 @@ export class PageRepository implements PageRepositoryContract {
     }));
   }
 
+  /** Schedules the deletion instead of deleting: the page stays restorable until `purgeAfter` (ADR 017). */
   async deleteForever(
     pageId: string,
     workspaceId: string,
     userId: string,
     role: UserRole,
+    purgeAfter: Date,
   ): Promise<PageDeleteForeverOutcome> {
     return this.prisma.transaction(async (transaction) => {
       const page = await transaction.orm.public.Page.select('id', 'lifecycle')
@@ -812,29 +827,38 @@ export class PageRepository implements PageRepositoryContract {
         .first();
       if (page === null) return 'NOT_FOUND';
       if (page.lifecycle !== PageLifecycle.TRASHED) return 'NOT_TRASHED';
-      requireWrittenPage(await transaction.orm.public.Page.where({ id: pageId }).delete(), pageId);
-      return 'DELETED';
+      await this.pagePurgeRepository.schedule(transaction, {
+        pageIds: [pageId],
+        purgeAfter,
+        requestedById: userId,
+        workspaceId,
+      });
+      return 'SCHEDULED';
     });
   }
 
+  /** Schedules every trashed page the caller can reach; returns the ones newly scheduled. */
   async emptyTrash(
     workspaceId: string,
     userId: string,
     role: UserRole,
     spaceId: null | string,
+    purgeAfter: Date,
   ): Promise<readonly string[]> {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(workspaceId, userId, role, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
-    return this.deleteTrashedPagesIn(accessibleSpaceIds);
-  }
-
-  /** Re-checks the page is still trashed in the same statement, so a just-restored page survives. */
-  private async deleteTrashedPagesIn(spaceIds: readonly string[]): Promise<readonly string[]> {
-    const deleted = await this.prisma.models.Page.select('id')
-      .where({ lifecycle: PageLifecycle.TRASHED })
-      .where((page) => page.spaceId.in([...spaceIds]))
-      .deleteAll();
-    return deleted.map((page) => page.id);
+    return this.prisma.transaction(async (transaction) => {
+      const trashed = await transaction.orm.public.Page.select('id')
+        .where({ lifecycle: PageLifecycle.TRASHED })
+        .where((page) => page.spaceId.in([...accessibleSpaceIds]))
+        .all();
+      return this.pagePurgeRepository.schedule(transaction, {
+        pageIds: trashed.map((page) => page.id),
+        purgeAfter,
+        requestedById: userId,
+        workspaceId,
+      });
+    });
   }
 
   private accessFilter(spaceId: string, workspaceId: string, userId: string, role: UserRole) {

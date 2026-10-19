@@ -5,7 +5,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Logger } from 'nestjs-pino';
 import { AppModule } from '@/app.module';
-import { MAX_FILE_SIZE } from '@/common/domain/file.constants';
+import { MULTIPART_LIMITS } from '@/common/constants/storage.constants';
 import { GlobalExceptionFilter } from '@/common/infrastructure/filters/global.exception.filter';
 
 /* eslint-disable no-restricted-syntax */
@@ -39,9 +39,7 @@ export const bootstrapTestApp = async (): Promise<TestApp> => {
   });
   app.useLogger(silentLogger);
   app.setGlobalPrefix('api/v1');
-  await app.register(multipart, {
-    limits: { fileSize: MAX_FILE_SIZE },
-  });
+  await app.register(multipart, { limits: MULTIPART_LIMITS });
   app.useGlobalPipes(
     new ValidationPipe({
       forbidNonWhitelisted: true,

@@ -19,6 +19,8 @@ model Page {
   createdById           String
   updatedById           String
   trashedAt             TimestamptzJsDate?
+  /// Set when someone deletes the trashed page forever; it stays restorable until this moment passes.
+  purgeAfter            TimestamptzJsDate?
   createdAt             TimestamptzJsDate          @default(now())
   updatedAt             temporal.updatedAtJsDate()
   space                 Space                      @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Page_spaceId_fkey", index: "Page_spaceId_lifecycle_order_idx")
@@ -41,4 +43,5 @@ model Page {
   @@index([parentId, order], map: "Page_parentId_order_idx")
   @@index([ownerId], map: "Page_ownerId_idx")
   @@index([verificationExpiresAt], map: "Page_verificationExpiresAt_idx")
+  @@index([purgeAfter], map: "Page_purgeAfter_idx")
 }

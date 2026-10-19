@@ -15,7 +15,7 @@ import {
   REFRESH_TOKEN_AUDIENCE,
 } from '../../../../common/constants/auth.constants';
 import { UUID_PATTERN } from '../../../../common/constants/validation.constants';
-import type { CollaborationTokenPayload, TokenPayload } from '../../../../common/types/auth.types';
+import type { CollaborationTokenPayload, RefreshTokenPayload, TokenPayload } from '../../../../common/types/auth.types';
 import { parseTokenLifetimeSeconds } from '../../utils/auth.token.utils';
 
 @Injectable()
@@ -37,9 +37,9 @@ export class TokenAdapter {
   }
 
   /** Its own audience keeps an access token from renewing a session and a refresh token from reaching the API. */
-  async signRefreshToken(user: User): Promise<string> {
+  async signRefreshToken(user: User, tokenVersion: number): Promise<string> {
     return this.jwtService.signAsync(
-      { ...this.toTokenPayload(user), aud: REFRESH_TOKEN_AUDIENCE },
+      { ...this.toTokenPayload(user), aud: REFRESH_TOKEN_AUDIENCE, ver: tokenVersion },
       {
         expiresIn: this.resolveRefreshExpiration() as `${number}${'d' | 'h' | 'm' | 's'}`,
         secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
@@ -47,16 +47,19 @@ export class TokenAdapter {
     );
   }
 
-  async verifyRefreshToken(token: string): Promise<TokenPayload> {
-    return this.jwtService.verifyAsync<TokenPayload>(token, {
+  async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
+    return this.jwtService.verifyAsync<RefreshTokenPayload>(token, {
       audience: REFRESH_TOKEN_AUDIENCE,
       secret: this.configService.getOrThrow<string>(JWT_SECRET_KEY),
     });
   }
 
   /** Single place that builds a session, shared by sign-in, sign-up and renewal. */
-  async issueSession(user: User): Promise<AuthSession> {
-    const [accessToken, refreshToken] = await Promise.all([this.signAccessToken(user), this.signRefreshToken(user)]);
+  async issueSession(user: User, tokenVersion: number): Promise<AuthSession> {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.signAccessToken(user),
+      this.signRefreshToken(user, tokenVersion),
+    ]);
     return {
       accessToken,
       accessTokenExpiresInSeconds: this.getAccessTokenLifetimeSeconds(),

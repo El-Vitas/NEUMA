@@ -5,7 +5,7 @@ import { WorkspaceContextService } from '../../common/infrastructure/persistence
 import type { TokenPayload } from '../../common/types/auth.types';
 import { PageTrashQueryDto } from './dto/page.trash.query.dto';
 import { PagesService } from './pages.service';
-import type { TrashedPageSummary } from './types/page.types';
+import type { PagePurgeSchedule, TrashedPageSummary } from './types/page.types';
 
 @Controller('pages/trash')
 export class PageTrashController {
@@ -32,10 +32,7 @@ export class PageTrashController {
 
   @Delete()
   @UseGuards(JwtAuthGuard)
-  async empty(
-    @Query() dto: PageTrashQueryDto,
-    @User('payload') payload: TokenPayload,
-  ): Promise<{ deletedCount: number }> {
+  async empty(@Query() dto: PageTrashQueryDto, @User('payload') payload: TokenPayload): Promise<PagePurgeSchedule> {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pagesService.emptyTrash(workspace.id, payload.sub, payload.role, dto.spaceId ?? null);
     if (result.isFail()) {
