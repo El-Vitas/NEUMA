@@ -7,23 +7,26 @@ import {
 } from '@neuma/shared';
 import type {
   BlockRecord,
+  BlockRoleSource,
   DeclaringAncestor,
   RecordsById,
+  RoleSourcesById,
   RolesById,
   VisibleBlock,
   VisibleBlocksInput,
 } from './block.domain.types';
 
-export const indexById = (records: readonly BlockRecord[]): RecordsById =>
-  new Map(records.map((record) => [record.id, record]));
+export const indexById = <Indexed extends { readonly id: string }>(
+  records: readonly Indexed[],
+): ReadonlyMap<string, Indexed> => new Map(records.map((record) => [record.id, record]));
 
 /**
  * The nearest block, from this one upwards, that declares permissions. It is memoized per id, so each block is
  * resolved once from its parent. A cycle meets the in-progress marker and counts as having no declaration.
  */
 const findDeclaringAncestor = (
-  record: BlockRecord,
-  recordsById: RecordsById,
+  record: BlockRoleSource,
+  recordsById: RoleSourcesById,
   memo: Map<string, DeclaringAncestor>,
 ): DeclaringAncestor => {
   const memoized = memo.get(record.id);
@@ -35,20 +38,23 @@ const findDeclaringAncestor = (
 };
 
 const findInherited = (
-  record: BlockRecord,
-  recordsById: RecordsById,
+  record: BlockRoleSource,
+  recordsById: RoleSourcesById,
   memo: Map<string, DeclaringAncestor>,
 ): DeclaringAncestor => {
   const parent = record.parentId === null ? undefined : recordsById.get(record.parentId);
   return parent === undefined ? null : findDeclaringAncestor(parent, recordsById, memo);
 };
 
-const toDeclaring = (record: BlockRecord): DeclaringAncestor => ({ id: record.id, permissions: record.permissions });
+const toDeclaring = (record: BlockRoleSource): DeclaringAncestor => ({
+  id: record.id,
+  permissions: record.permissions,
+});
 
 /** The role of every record for one viewer. The writes reuse it, so reads and writes agree on who may do what. */
 export const resolveRoles = (
   { readableSpaceIds, viewer }: Pick<VisibleBlocksInput, 'readableSpaceIds' | 'viewer'>,
-  recordsById: RecordsById,
+  recordsById: RoleSourcesById,
 ): RolesById => {
   const memo = new Map<string, DeclaringAncestor>();
   return new Map(
