@@ -182,6 +182,7 @@ export interface PageLogger {
 export interface PageAssetForExport {
   readonly id: string;
   readonly originalFilename: string;
+  readonly size: number;
   readonly storageKey: string;
 }
 
@@ -191,8 +192,30 @@ export interface PageAttachmentsCleanupRepositoryContract {
   readonly listStorageKeysForPages: (pageIds: readonly string[]) => Promise<readonly string[]>;
 }
 
+export interface PagePurgeRequest {
+  readonly pageIds: readonly string[];
+  readonly purgeAfter: Date;
+  readonly requestedById: string;
+  readonly workspaceId: string;
+}
+
+export interface PagePurgeRepositoryContract {
+  readonly purgeDue: (now: Date, limit: number) => Promise<readonly string[]>;
+}
+
+export interface PageVersionRetentionRepositoryContract {
+  readonly thin: (olderThan: Date) => Promise<number>;
+}
+
+export interface PagePurgeSchedule {
+  readonly purgeAfter: Date;
+  readonly scheduledCount: number;
+}
+
 export interface TrashedPageSummary {
   readonly deletedAt: Date;
+  /** Null until someone deletes it forever; then the moment it goes. */
+  readonly purgeAfter: Date | null;
   readonly deletedBy: null | { readonly id: string; readonly name: string };
   readonly id: string;
   readonly parentId: null | string;
@@ -221,12 +244,14 @@ export interface PageRepositoryContract {
     workspaceId: string,
     userId: string,
     role: UserRole,
+    purgeAfter: Date,
   ) => Promise<PageDeleteForeverOutcome>;
   readonly emptyTrash: (
     workspaceId: string,
     userId: string,
     role: UserRole,
     spaceId: null | string,
+    purgeAfter: Date,
   ) => Promise<readonly string[]>;
   readonly findAccessState: (
     pageId: string,

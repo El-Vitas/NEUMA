@@ -2,9 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { SpaceVisibility } from '@neuma/db';
 import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
+import { PAGE_PURGE_DELAY_DAYS } from '@/modules/pages/constants/pages.constants';
+import { PagesService } from '@/modules/pages/pages.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
+
+/** A moment past any deadline scheduled now, so the purge treats it as due. */
+const afterThePurgeDelay = (): Date => new Date(Date.now() + (PAGE_PURGE_DELAY_DAYS + 1) * 24 * 60 * 60 * 1000);
 
 interface SpaceResponse {
   id: string;
@@ -160,6 +165,7 @@ describe('Restoring a trashed page (Integration)', () => {
     const child = await createPage(testApp, adminToken, spaceId, 'Child Of Deleted Parent', parent.id);
     await trashPage(testApp, adminToken, spaceId, parent.id);
     await deleteForever(testApp, adminToken, spaceId, parent.id);
+    await testApp.get(PagesService).purgeDuePages(afterThePurgeDelay());
 
     const outcome = await restorePage(testApp, adminToken, spaceId, child.id);
 
@@ -242,7 +248,7 @@ describe('Restoring a trashed page (Integration)', () => {
     expect((await getPage(testApp, adminToken, spaceId, loose.id)).parentId).toBeNull();
   });
 
-  it('empties the trash of a space, leaving a page restored before it untouched', async () => {
+  it('empties the trash by scheduling, then purges after the delay, leaving a restored page untouched', async () => {
     const gone = await createPage(testApp, adminToken, spaceId, 'Se va');
     const kept = await createPage(testApp, adminToken, spaceId, 'Vuelve');
     await trashPage(testApp, adminToken, spaceId, gone.id);
@@ -255,11 +261,60 @@ describe('Restoring a trashed page (Integration)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
-    expect((emptied.body as { deletedCount: number }).deletedCount).toBeGreaterThanOrEqual(1);
+    expect((emptied.body as { scheduledCount: number }).scheduledCount).toBeGreaterThanOrEqual(1);
     const prisma = testApp.get(PrismaService);
+    const scheduled = await prisma.models.Page.where({ id: gone.id }).select('purgeAfter').first();
+    expect(scheduled?.purgeAfter).toBeInstanceOf(Date);
+
+    await testApp.get(PagesService).purgeDuePages(new Date());
+    expect(await prisma.models.Page.first({ id: gone.id })).not.toBeNull();
+
+    await testApp.get(PagesService).purgeDuePages(afterThePurgeDelay());
     expect(await prisma.models.Page.first({ id: gone.id })).toBeNull();
     expect(await prisma.models.Page.where({ id: kept.id }).select('lifecycle').first()).toEqual({
       lifecycle: 'ACTIVE',
     });
+    const record = await prisma.models.PagePurge.where({ pageId: gone.id })
+      .select('purgedAt', 'requestedById', 'title')
+      .first();
+    expect(record?.title).toBe('Se va');
+    expect(record?.purgedAt).toBeInstanceOf(Date);
+  });
+
+  it('cancels a scheduled deletion when the page comes back from the trash', async () => {
+    const page = await createPage(testApp, adminToken, spaceId, 'Casi se va');
+    await trashPage(testApp, adminToken, spaceId, page.id);
+    await deleteForever(testApp, adminToken, spaceId, page.id);
+
+    await restorePage(testApp, adminToken, spaceId, page.id);
+    await testApp.get(PagesService).purgeDuePages(afterThePurgeDelay());
+
+    const prisma = testApp.get(PrismaService);
+    expect(await prisma.models.Page.where({ id: page.id }).select('lifecycle', 'purgeAfter').first()).toEqual({
+      lifecycle: 'ACTIVE',
+      purgeAfter: null,
+    });
+    const record = await prisma.models.PagePurge.where({ pageId: page.id }).select('cancelledAt', 'purgedAt').first();
+    expect(record?.cancelledAt).toBeInstanceOf(Date);
+    expect(record?.purgedAt).toBeNull();
+  });
+
+  it('refuses to delete forever for anyone but an administrator', async () => {
+    const timestamp = String(Date.now());
+    const workerEmail = `restore-worker-${timestamp}@test.com`;
+    const password = 'plainPassword123';
+    await createAccount(testApp, { email: workerEmail, name: 'Restore Worker', password });
+    await testApp.get(PrismaService).models.User.where({ email: workerEmail }).update({ role: 'WORKER' });
+    const workerToken = (await loginUser(testApp, workerEmail, password)).accessToken;
+    const page = await createPage(testApp, adminToken, spaceId, 'Solo admin la borra');
+    await trashPage(testApp, adminToken, spaceId, page.id);
+
+    const response = await request(testApp.getServer())
+      .delete(`/api/v1/spaces/${spaceId}/pages/${page.id}`)
+      .set('Authorization', `Bearer ${workerToken}`);
+
+    expect(response.status).toBe(403);
+    const stored = await testApp.get(PrismaService).models.Page.where({ id: page.id }).select('purgeAfter').first();
+    expect(stored).toEqual({ purgeAfter: null });
   });
 });

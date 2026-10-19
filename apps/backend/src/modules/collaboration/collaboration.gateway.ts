@@ -14,7 +14,11 @@ import {
   parsePageId,
   sanitizePresenceState,
 } from './collaboration.utils';
-import { MAX_COLLABORATION_UPDATE_BYTES } from './constants/collaboration.constants';
+import {
+  COLLABORATION_SHUTDOWN_POLL_INTERVAL_MS,
+  COLLABORATION_SHUTDOWN_STORE_TIMEOUT_MS,
+  MAX_COLLABORATION_UPDATE_BYTES,
+} from './constants/collaboration.constants';
 import { CollaborationForbiddenError } from './infrastructure/errors/collaboration.forbidden.error';
 import type {
   CollaborationAuthorizationAdapter,
@@ -30,6 +34,7 @@ import {
   readCollaborationDocumentContent,
   replaceCollaborationDocumentContent,
 } from './utils/collaboration.document.utils';
+import { waitForPendingStores } from './utils/collaboration.shutdown.utils';
 
 const createForbiddenError = (): Error => new CollaborationForbiddenError();
 
@@ -188,10 +193,18 @@ export const createCollaborationGateway = (dependencies: CollaborationGatewayDep
     authorizeUpdate,
     handleConnection: (socket, request) => server.handleConnection(socket, request),
     server,
-    shutdown: () => {
-      server.flushPendingStores();
+    // Connections close first so no edit arrives after the last save; closing the last one saves its document.
+    shutdown: async () => {
+      const documentNames = [...server.documents.keys()];
       server.closeConnections();
-      return Promise.resolve();
+      server.flushPendingStores();
+      const unsavedDocumentNames = await waitForPendingStores(
+        server,
+        documentNames,
+        COLLABORATION_SHUTDOWN_STORE_TIMEOUT_MS,
+        COLLABORATION_SHUTDOWN_POLL_INTERVAL_MS,
+      );
+      return { unsavedDocumentNames };
     },
     readLoadedPageContent,
     validateDocumentName: (documentName) => parsePageId(documentName),

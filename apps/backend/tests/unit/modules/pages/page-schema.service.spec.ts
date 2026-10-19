@@ -46,7 +46,7 @@ const page: PageSummary = {
 const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): PageRepositoryContract => ({
   countDescendantsByLifecycle: () => Promise.resolve(0),
   create: () => Promise.resolve(page),
-  deleteForever: () => Promise.resolve('DELETED'),
+  deleteForever: () => Promise.resolve('SCHEDULED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
   findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),

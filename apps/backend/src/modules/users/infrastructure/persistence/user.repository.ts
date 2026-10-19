@@ -59,6 +59,18 @@ export class UserRepository {
     return total;
   }
 
+  /** The new password and the revocation land together, so no old session outlives the change. */
+  async replacePasswordAndRevokeSessions(id: string, hashedPassword: string): Promise<boolean> {
+    const { affectedRows } = await this.prisma.runner.execute(
+      this.prisma.sql`
+        UPDATE "User" SET "password" = ${hashedPassword}, "tokenVersion" = "tokenVersion" + 1 WHERE "id" = ${id}
+      `
+        .affectedCount()
+        .build(),
+    );
+    return affectedRows > 0;
+  }
+
   async findByEmail(email: string): Promise<{ id: string } | null> {
     return this.prisma.models.User.select('id').where({ email }).first();
   }
