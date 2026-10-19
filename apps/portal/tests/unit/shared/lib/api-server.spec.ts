@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { installFetchMock } from '../../../mocks/global-fetch.mock';
 
 let cookieValue: string | undefined;
+let incomingHeaders = new Headers();
 const deleteMock = mock(() => undefined);
 const fetchMock = mock(
   async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> =>
@@ -14,6 +15,7 @@ mock.module('next/headers', () => ({
     get: () => (cookieValue === undefined ? undefined : { value: cookieValue }),
     delete: deleteMock,
   }),
+  headers: async () => incomingHeaders,
 }));
 mock.module('next-intl/server', () => ({ getLocale: async () => 'en' }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
@@ -63,6 +65,31 @@ describe('apiServer against a genuinely public route', () => {
 
     expect(result).toEqual({ accessToken: 'issued-token' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('apiServer forwarding who is calling', () => {
+  it('passes the address Cloudflare saw on to the backend, so its per-IP limits count people', async () => {
+    cookieValue = undefined;
+    incomingHeaders = new Headers({ 'cf-connecting-ip': '203.0.113.7' });
+    fetchMock.mockClear();
+
+    await apiServer.post('/api/v1/auth/sessions', { email: 'ana@example.com', password: 'super-secret' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get('x-forwarded-for')).toBe('203.0.113.7');
+    incomingHeaders = new Headers();
+  });
+
+  it('sends no forwarding header when no proxy reported an address', async () => {
+    cookieValue = undefined;
+    incomingHeaders = new Headers();
+    fetchMock.mockClear();
+
+    await apiServer.post('/api/v1/auth/sessions', { email: 'ana@example.com', password: 'super-secret' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).has('x-forwarded-for')).toBe(false);
   });
 });
 

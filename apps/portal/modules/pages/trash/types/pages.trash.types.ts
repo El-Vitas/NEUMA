@@ -5,6 +5,8 @@ export interface TrashedPage {
   readonly deletedBy: null | PageAuthor;
   readonly id: string;
   readonly parentId: null | string;
+  /** Null until an administrator deletes it forever; then the day it goes. */
+  readonly purgeAfter: Date | null;
   readonly spaceId: string;
   readonly title: string;
   readonly trashedChildCount: number;

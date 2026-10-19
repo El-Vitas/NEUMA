@@ -15,6 +15,7 @@ describe('trashedPageSchema', () => {
       deletedBy: { id: 'user-a', name: 'Ada Lovelace' },
       id: 'page-a',
       parentId: null,
+      purgeAfter: null,
       spaceId: 'space-a',
       title: 'Roadmap',
       trashedChildCount: 2,
@@ -24,12 +25,28 @@ describe('trashedPageSchema', () => {
     expect(result.success && result.data.deletedAt).toBeInstanceOf(Date);
   });
 
+  it('reads the day a page scheduled for deletion goes', () => {
+    const result = trashedPageSchema.safeParse({
+      deletedAt: '2026-01-01T10:00:00.000Z',
+      deletedBy: null,
+      id: 'page-a',
+      parentId: null,
+      purgeAfter: '2026-01-31T10:00:00.000Z',
+      spaceId: 'space-a',
+      title: 'Roadmap',
+      trashedChildCount: 0,
+    });
+
+    expect(result.success && result.data.purgeAfter).toBeInstanceOf(Date);
+  });
+
   it('accepts a null deletedBy for a page whose trasher no longer resolves', () => {
     const result = trashedPageSchema.safeParse({
       deletedAt: '2026-01-01T10:00:00.000Z',
       deletedBy: null,
       id: 'page-a',
       parentId: null,
+      purgeAfter: null,
       spaceId: 'space-a',
       title: 'Roadmap',
       trashedChildCount: 0,

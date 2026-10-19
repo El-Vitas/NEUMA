@@ -6,6 +6,7 @@ export const trashedPageSchema = z.object({
   deletedBy: pageAuthorSchema.nullable(),
   id: z.string(),
   parentId: z.string().nullable(),
+  purgeAfter: z.coerce.date().nullable(),
   spaceId: z.string(),
   title: z.string(),
   trashedChildCount: z.number(),

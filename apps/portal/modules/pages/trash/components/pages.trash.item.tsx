@@ -15,11 +15,12 @@ import { PagesTrashDeleteForeverDialog } from './pages.trash.delete-forever.dial
 import { PagesTrashRestoreChildPagesDialog } from './pages.trash.restore-child-pages.dialog';
 
 interface IProps {
+  readonly canDeleteForever: boolean;
   readonly locale: string;
   readonly page: TrashedPage;
 }
 
-export const PagesTrashItem = ({ locale, page }: IProps) => {
+export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
   const t = useTranslations('pages');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -67,18 +68,25 @@ export const PagesTrashItem = ({ locale, page }: IProps) => {
           {' · '}
           {t('trashScreen.deletedBy')}: {page.deletedBy?.name ?? '—'}
         </p>
+        {page.purgeAfter !== null && (
+          <p className="mt-1 font-medium text-destructive text-sm">
+            {t('trashScreen.purgeScheduled', { date: formatDate(page.purgeAfter, { locale }) })}
+          </p>
+        )}
       </div>
       {/* The labels are long in Spanish, so the buttons stack on narrow screens. */}
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end">
-        <Button
-          className="min-h-11"
-          disabled={isPending}
-          onClick={() => setIsDeleteDialogOpen(true)}
-          type="button"
-          variant="destructive"
-        >
-          {t('trashScreen.deleteForever')}
-        </Button>
+        {canDeleteForever && page.purgeAfter === null && (
+          <Button
+            className="min-h-11"
+            disabled={isPending}
+            onClick={() => setIsDeleteDialogOpen(true)}
+            type="button"
+            variant="destructive"
+          >
+            {t('trashScreen.deleteForever')}
+          </Button>
+        )}
         <Button className="min-h-11" disabled={isPending} onClick={requestRestore} type="button" variant="outline">
           {t('restorePage')}
         </Button>

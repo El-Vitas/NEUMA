@@ -35,6 +35,7 @@ mock.module('server-only', () => ({}));
 mock.module('next/cache', () => ({ updateTag: updateTagMock }));
 mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
+  headers: async () => new Headers(),
 }));
 mock.module('@/shared/config', () => ({ config: { backendApiUrl: 'https://backend.test' } }));
 mock.module('@/lib/safe-action', createSafeActionMock);
