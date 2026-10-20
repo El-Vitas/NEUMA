@@ -16,6 +16,9 @@ export const REDACTED_MENTION_LABEL = 'Restricted page';
 /** Serializes moves per workspace so two concurrent moves cannot close a cycle. */
 export const PAGE_MOVES_LOCK_PREFIX = 'page-moves:';
 
+/** The `type` of the block that stands for a page; the blocks module owns the same value. */
+export const PAGE_BLOCK_TYPE = 'page';
+
 /** Deleting forever only schedules it: the page stays restorable this long (ADR 017). */
 export const PAGE_PURGE_DELAY_DAYS = 30;
 export const PAGE_RETENTION_INTERVAL_MS = 60 * 60 * 1000;

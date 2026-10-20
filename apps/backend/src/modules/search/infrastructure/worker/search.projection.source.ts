@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { findLatestPageVersions } from '../../../../common/infrastructure/persistence/page-latest-version.lib';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type {
   SearchProjectionPage,
@@ -25,17 +26,12 @@ export class SearchProjectionSource implements SearchProjectionSourceContract {
         'verifiedAt',
       )
       .include('space', (space) => space.select('name'))
-      .include('versions', (versions) =>
-        versions
-          .select('version')
-          .orderBy((version) => version.version.desc())
-          .limit(1),
-      )
       .first();
     if (page === null || page.space === null) return null;
-    const [author, parentPageTitle] = await Promise.all([
+    const [author, parentPageTitle, versions] = await Promise.all([
       this.prisma.models.User.where({ id: page.createdById }).select('name').first(),
       this.findParentPageTitle(page.parentId),
+      findLatestPageVersions(this.prisma, [page.id]),
     ]);
     return {
       ...page,
@@ -44,7 +40,7 @@ export class SearchProjectionSource implements SearchProjectionSourceContract {
       parentPageId: page.parentId,
       parentPageTitle,
       spaceName: page.space.name,
-      version: page.versions[0]?.version ?? 0,
+      version: versions.get(page.id) ?? 0,
     };
   }
 

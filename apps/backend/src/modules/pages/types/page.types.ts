@@ -19,6 +19,28 @@ export interface PageHierarchyRow extends PageParentReference {
   readonly updatedById: string;
 }
 
+export interface StoredPageSummary {
+  readonly content: JsonValue;
+  readonly createdAt: Date;
+  readonly createdById: string;
+  readonly cover: JsonValue;
+  readonly icon: JsonValue;
+  readonly id: string;
+  readonly lifecycle: PageLifecycle;
+  readonly lockedAt: Date | null;
+  readonly order: number;
+  readonly ownerId: null | string;
+  readonly parentId: null | string;
+  readonly propertyValues: JsonValue;
+  readonly spaceId: string;
+  readonly title: string;
+  readonly updatedAt: Date;
+  readonly updatedById: string;
+  readonly verificationExpiresAt: Date | null;
+  readonly verifiedAt: Date | null;
+  readonly verifiedById: null | string;
+}
+
 export interface CreatePageInput {
   readonly content: JsonValue | PageContent;
   readonly createdById: string;

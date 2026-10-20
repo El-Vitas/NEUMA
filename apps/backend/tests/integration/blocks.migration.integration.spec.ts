@@ -199,9 +199,6 @@ describe('Block migration (Integration)', () => {
     await createPage(trashedId, 'Trashed', 4, { order: 3, parentId: rootId, trashedAt: new Date() });
     await createPage(lockedId, 'Locked', 5, { lockedAt: new Date() });
     await createPage(rowId, 'Row', 6, { parentId: collectionId });
-    await prisma.models.PageSchemaProperty.createAndCount([
-      { key: 'title', label: 'Title', order: 0, pageId: collectionId, required: true, type: 'TITLE' },
-    ]);
     await createPage(duplicateId, 'Root copy', 7, { content: rootContent() });
   });
 
@@ -228,6 +225,9 @@ describe('Block migration (Integration)', () => {
     expect(applied.isApplied).toBe(true);
     expect(applied.migratedPageCount).toBe(8);
     expect(applied.verify?.isClean).toBe(true);
+    await prisma.models.PageSchemaProperty.createAndCount([
+      { key: 'title', label: 'Title', order: 0, pageId: collectionId, required: true, type: 'TITLE' },
+    ]);
     const verified = await service.verify(logger);
     expect(verified.problems).toEqual([]);
     expect(verified.isClean).toBe(true);

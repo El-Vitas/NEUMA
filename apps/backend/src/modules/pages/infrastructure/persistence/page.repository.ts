@@ -6,6 +6,7 @@ import { placeBefore } from '../../../../common/domain/ordering.domain';
 import { parseStoredPageIcon } from '../../../../common/domain/page-icon.domain';
 import { OutboxRepository } from '../../../../common/infrastructure/persistence/outbox.repository';
 import { toPageIconInput } from '../../../../common/infrastructure/persistence/page-icon.adapter';
+import { findLatestPageVersions } from '../../../../common/infrastructure/persistence/page-latest-version.lib';
 import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import {
   buildSpaceVisibilityFilter,
@@ -15,7 +16,7 @@ import type { ModelFilterScope } from '../../../../common/types/model.filter.typ
 import { requireRow } from '../../../../common/utils/required-row.utils';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { NeumaModels } from '../../../../prisma/types/prisma.types';
-import { PAGE_CONTENT_STORE_OUTCOME, PAGE_MOVES_LOCK_PREFIX } from '../../constants/pages.constants';
+import { PAGE_BLOCK_TYPE, PAGE_CONTENT_STORE_OUTCOME, PAGE_MOVES_LOCK_PREFIX } from '../../constants/pages.constants';
 import { collectDescendantIds, pageTitleMatchesSearch, validatePageContent } from '../../domain/page.domain';
 import { isSameEditingStretch } from '../../domain/page.version.domain';
 import { validatePageCover } from '../../domain/page-cover.domain';
@@ -33,6 +34,7 @@ import type {
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
+  StoredPageSummary,
   StorePageContentInput,
   TrashedPageSummary,
   UpdatePagePropertyValuesInput,
@@ -88,11 +90,6 @@ const summarizePages = (models: NeumaModels) =>
     'verificationExpiresAt',
     'verifiedAt',
     'verifiedById',
-  ).include('versions', (versions) =>
-    versions
-      .select('version')
-      .orderBy((entry) => entry.version.desc())
-      .limit(1),
   );
 
 const selectPageCopy = (models: NeumaModels) =>
@@ -133,8 +130,7 @@ export class PageRepository implements PageRepositoryContract {
       .where((page) => and(isAccessible(page), ...(includeTrashed ? [] : [page.lifecycle.eq(PageLifecycle.ACTIVE)])))
       .orderBy([(page) => page.parentId.asc(), (page) => page.order.asc()])
       .all();
-    const authors = await this.resolvePageAuthors(pages);
-    return pages.map((page) => this.toSummary(page, authors));
+    return this.summarizeAll(pages);
   }
 
   async findAccessState(
@@ -160,8 +156,7 @@ export class PageRepository implements PageRepositoryContract {
       .where({ id: pageId })
       .first();
     if (page === null) return null;
-    const authors = await this.resolvePageAuthors([page]);
-    return this.toSummary(page, authors);
+    return this.summarizeOne(page);
   }
 
   async findReadablePageIds(
@@ -206,9 +201,8 @@ export class PageRepository implements PageRepositoryContract {
         spaceId: input.spaceId,
         title: input.title,
         updatedById: input.createdById,
-        versions: (versions) =>
-          versions.create({ content, createdById: input.createdById, title: input.title, version: 1 }),
       });
+      await this.writeFirstVersion(transaction, page, content);
       await this.outboxRepository.create(
         {
           aggregateId: page.id,
@@ -220,8 +214,7 @@ export class PageRepository implements PageRepositoryContract {
         },
         transaction,
       );
-      const authors = await this.resolvePageAuthors([page]);
-      return this.toSummary(page, authors);
+      return this.summarizeOne(page, transaction);
     });
   }
 
@@ -244,8 +237,7 @@ export class PageRepository implements PageRepositoryContract {
       );
       if (copy === null) return null;
       if (input.includeChildren) await this.copyTheBranchUnder(transaction, original, copy.id, input.userId);
-      const authors = await this.resolvePageAuthors([copy]);
-      return this.toSummary(copy, authors);
+      return this.summarizeOne(copy, transaction);
     });
   }
 
@@ -323,8 +315,7 @@ export class PageRepository implements PageRepositoryContract {
     });
     if (updated === null) return null;
     if ('refusal' in updated) return Result.fail(updated.refusal);
-    const authors = await this.resolvePageAuthors([updated.page]);
-    return Result.ok(this.toSummary(updated.page, authors));
+    return Result.ok(await this.summarizeOne(updated.page));
   }
 
   private async announceNewVersion(transaction: NeumaTransaction, pageId: string, version: number): Promise<void> {
@@ -373,8 +364,7 @@ export class PageRepository implements PageRepositoryContract {
         pageId,
       );
       await this.announceThePageChanged(page, transaction);
-      const authors = await this.resolvePageAuthors([page]);
-      return this.toSummary(page, authors);
+      return this.summarizeOne(page, transaction);
     });
   }
 
@@ -393,8 +383,7 @@ export class PageRepository implements PageRepositoryContract {
         .update(locked ? { lockedAt: new Date(), lockedById: userId } : { lockedAt: null, lockedById: null }),
       pageId,
     );
-    const authors = await this.resolvePageAuthors([page]);
-    return this.toSummary(page, authors);
+    return this.summarizeOne(page);
   }
 
   /**
@@ -422,8 +411,7 @@ export class PageRepository implements PageRepositoryContract {
         pageId,
       );
       await this.announceThePageChanged(page, transaction);
-      const authors = await this.resolvePageAuthors([page]);
-      return this.toSummary(page, authors);
+      return this.summarizeOne(page, transaction);
     });
   }
 
@@ -440,8 +428,7 @@ export class PageRepository implements PageRepositoryContract {
       await summarizePages(this.prisma.models).where({ id: pageId }).update({ ownerId }),
       pageId,
     );
-    const authors = await this.resolvePageAuthors([page]);
-    return this.toSummary(page, authors);
+    return this.summarizeOne(page);
   }
 
   async updateCover(
@@ -458,8 +445,7 @@ export class PageRepository implements PageRepositoryContract {
         .update({ cover: toCoverInput(cover), updatedById: userId }),
       pageId,
     );
-    const authors = await this.resolvePageAuthors([page]);
-    return { ...this.toSummary(page, authors), cover };
+    return { ...(await this.summarizeOne(page)), cover };
   }
 
   async updateIcon(
@@ -478,8 +464,7 @@ export class PageRepository implements PageRepositoryContract {
         pageId,
       );
       await this.announceThePageChanged(page, transaction);
-      const authors = await this.resolvePageAuthors([page]);
-      return this.toSummary(page, authors);
+      return this.summarizeOne(page, transaction);
     });
   }
 
@@ -528,8 +513,7 @@ export class PageRepository implements PageRepositoryContract {
       )
       .orderBy((page) => page.updatedAt.desc())
       .all();
-    const authors = await this.resolvePageAuthors(pages);
-    return pages.map((page) => this.toSummary(page, authors));
+    return this.summarizeAll(pages);
   }
 
   async listMoveDestinations(
@@ -592,8 +576,7 @@ export class PageRepository implements PageRepositoryContract {
         .where({ parentId: page.parentId, spaceId: page.spaceId })
         .orderBy(orderBySiblingPosition())
         .all();
-      const authors = await this.resolvePageAuthors(rows);
-      return rows.map((row) => this.toSummary(row, authors));
+      return this.summarizeAll(rows, transaction);
     });
   }
 
@@ -645,8 +628,7 @@ export class PageRepository implements PageRepositoryContract {
         },
         transaction,
       );
-      const authors = await this.resolvePageAuthors([moved]);
-      return this.toSummary(moved, authors);
+      return this.summarizeOne(moved, transaction);
     });
   }
 
@@ -900,30 +882,55 @@ export class PageRepository implements PageRepositoryContract {
     return (sibling?.order ?? -1) + 1;
   }
 
+  /**
+   * A version now points at a block, not at the page row, so a page needs its page block before its first version.
+   * Temporary bridge until pages are stored as blocks only (ADR 021).
+   */
+  private async writeFirstVersion(
+    transaction: NeumaTransaction,
+    page: Pick<StoredPageSummary, 'createdById' | 'id' | 'parentId' | 'spaceId' | 'title'>,
+    content: JsonValue,
+  ): Promise<void> {
+    await transaction.orm.public.Block.create({
+      createdById: page.createdById,
+      editedById: page.createdById,
+      id: page.id,
+      parentId: page.parentId,
+      properties: { title: page.title },
+      spaceId: page.spaceId,
+      type: PAGE_BLOCK_TYPE,
+    });
+    await transaction.orm.public.PageVersion.create({
+      content,
+      createdById: page.createdById,
+      pageId: page.id,
+      title: page.title,
+      version: 1,
+    });
+  }
+
+  private async summarizeAll(
+    pages: readonly StoredPageSummary[],
+    transaction?: NeumaTransaction,
+  ): Promise<readonly PageSummary[]> {
+    const authors = await this.resolvePageAuthors(pages);
+    const versions = await findLatestPageVersions(
+      this.prisma,
+      pages.map((page) => page.id),
+      transaction,
+    );
+    return pages.map((page) => this.toSummary(page, authors, versions.get(page.id) ?? 0));
+  }
+
+  private async summarizeOne(page: StoredPageSummary, transaction?: NeumaTransaction): Promise<PageSummary> {
+    const [summary] = await this.summarizeAll([page], transaction);
+    return requireRow(summary ?? null, `Summary of page ${page.id}`);
+  }
+
   private toSummary(
-    page: {
-      content: JsonValue;
-      createdAt: Date;
-      createdById: string;
-      cover: JsonValue;
-      icon: JsonValue;
-      id: string;
-      lifecycle: PageLifecycle;
-      lockedAt: Date | null;
-      order: number;
-      ownerId: null | string;
-      parentId: null | string;
-      propertyValues: JsonValue;
-      spaceId: string;
-      title: string;
-      updatedAt: Date;
-      updatedById: string;
-      verificationExpiresAt: Date | null;
-      verifiedAt: Date | null;
-      verifiedById: null | string;
-      versions: readonly { version: number }[];
-    },
+    page: StoredPageSummary,
     users: ReadonlyMap<string, { id: string; name: string }>,
+    version: number,
   ): PageSummary {
     return {
       content: page.content,
@@ -945,7 +952,7 @@ export class PageRepository implements PageRepositoryContract {
       verificationExpiresAt: page.verificationExpiresAt,
       verifiedAt: page.verifiedAt,
       verifiedBy: page.verifiedById === null ? null : (users.get(page.verifiedById) ?? null),
-      version: page.versions[0]?.version ?? 0,
+      version,
     };
   }
 
@@ -1065,8 +1072,8 @@ export class PageRepository implements PageRepositoryContract {
       spaceId: original.spaceId,
       title,
       updatedById: userId,
-      versions: (versions) => versions.create({ content: storedContent, createdById: userId, title, version: 1 }),
     });
+    await this.writeFirstVersion(transaction, copy, storedContent);
     await this.outboxRepository.create(
       {
         aggregateId: copy.id,

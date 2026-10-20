@@ -9,7 +9,7 @@ model AccessTokenPageGrant {
   pageId      String
   permissions String[]    @noCheck(elementNotNull)
   token       AccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenPageGrant_tokenId_fkey", index: "AccessTokenPageGrant_tokenId_pageId_key")
-  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenPageGrant_pageId_fkey")
+  page        Block       @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "AccessTokenPageGrant_pageId_fkey")
 
   @@unique([tokenId, pageId], map: "AccessTokenPageGrant_tokenId_pageId_key")
   @@index([pageId], map: "AccessTokenPageGrant_pageId_idx")

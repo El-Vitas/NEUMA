@@ -29,15 +29,9 @@ model Page {
   owner                 User?                      @relation(name: "PageOwner", fields: [ownerId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "Page_ownerId_fkey")
 
   children              Page[]                     @relation(name: "PageHierarchy")
-  versions              PageVersion[]
   linksAsSource         PageLink[]                 @relation(name: "PageLinkSource")
   linksAsTarget         PageLink[]                 @relation(name: "PageLinkTarget")
-  schemaProperties      PageSchemaProperty[]
-  schemaViews           PageSchemaView[]
-  favorites             PageFavorite[]
-  views                 PageView[]
-  tokenPageGrants       AccessTokenPageGrant[]
-  blocks                PageBlock[]
+  blocks               PageBlock[]
 
   @@index([spaceId, lifecycle, order], map: "Page_spaceId_lifecycle_order_idx")
   @@index([parentId, order], map: "Page_parentId_order_idx")
