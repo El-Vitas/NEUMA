@@ -84,13 +84,18 @@ describe('MCP closed places (Integration)', () => {
 
   const snapshotOf = async (pageId: string): Promise<string> => {
     const prisma = testApp.get(PrismaService);
-    const [page, schemaProperties, children] = await Promise.all([
-      prisma.models.Page.select('content', 'lifecycle', 'parentId', 'title', 'updatedAt').where({ id: pageId }).first(),
+    const [page, containedBlocks, schemaProperties] = await Promise.all([
+      prisma.models.Block.select('children', 'editedAt', 'lifecycle', 'parentId', 'properties', 'version')
+        .where({ id: pageId })
+        .first(),
+      prisma.models.Block.select('id', 'alive', 'parentId', 'properties', 'text', 'type', 'version')
+        .where({ parentId: pageId })
+        .orderBy((block) => block.id.asc())
+        .all(),
       prisma.models.PageSchemaProperty.where({ pageId }).all(),
-      prisma.models.Page.where({ parentId: pageId }).aggregate((aggregate) => ({ total: aggregate.count() })),
     ]);
     expect(page).not.toBeNull();
-    return JSON.stringify({ children: children.total, page: { ...page, schemaProperties } });
+    return JSON.stringify({ containedBlocks, page: { ...page, schemaProperties } });
   };
 
   const actionsDoneOn = async (pageId: string): Promise<number> => {

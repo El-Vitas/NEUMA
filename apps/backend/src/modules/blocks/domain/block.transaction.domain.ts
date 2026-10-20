@@ -7,6 +7,8 @@ import { BlockAccessDeniedError, BlockTreeTooDeepError } from './block.error';
 import { isSameJson } from './block.json.domain';
 import { extractBlockLinkTargets } from './block.link.domain';
 import { applyBlockOperation, createWorkingBlock, writeCreatedText } from './block.operation.domain';
+import { applyPageOperation, expandPageOperations, isPageOperation } from './block.page-operation.domain';
+import { applyRootLists } from './block.root.domain';
 import type {
   AppliedOperations,
   AuthorizationInput,
@@ -32,7 +34,7 @@ const buildAuthorization = (
   before: ReadonlyMap<string, WorkingBlock>,
 ): AuthorizationInput => {
   const recordsById = indexById(records);
-  const readableSpaceIds = new Set(input.isSpaceReadable ? [input.spaceId] : []);
+  const readableSpaceIds = new Set(input.isSpaceReadable ? [input.spaceId, ...input.extraReadableSpaceIds] : []);
   return {
     before,
     isSpaceReadable: input.isSpaceReadable,
@@ -46,12 +48,13 @@ const buildAuthorization = (
 
 const applyOperations = (
   input: BlockTransactionInput,
+  operations: readonly BlockOperation[],
   before: ReadonlyMap<string, WorkingBlock>,
   engine: BlockTextEngine,
 ): Result<AppliedOperations, DomainError> => {
   const after = new Map(before);
   const counts = new Map<string, number>();
-  for (const operation of input.operations) {
+  for (const operation of operations) {
     const next = applyOperation(after, operation, input, engine);
     if (next.isFail()) return Result.fail(next.getError());
     after.set(operation.blockId, next.getValue());
@@ -71,8 +74,10 @@ const applyOperation = (
     return writeCreatedText(createWorkingBlock(operation, author), engine);
   }
   const block = blocks.get(operation.blockId);
-  return block === undefined
-    ? Result.fail(new BlockAccessDeniedError())
+  if (block === undefined) return Result.fail(new BlockAccessDeniedError());
+  if (operation.command === 'insertRoot' || operation.command === 'removeRoot') return Result.ok(block);
+  return isPageOperation(operation)
+    ? applyPageOperation(block, operation, { now: input.now, userId: input.actor.userId })
     : applyBlockOperation(block, operation, engine);
 };
 
@@ -194,7 +199,8 @@ export const planBlockTransaction = (
     buildAuthorization(input, [...context, ...locked], before),
   );
   if (authorizedTargets.isFail()) return Result.fail(authorizedTargets.getError());
-  const applied = applyOperations(input, before, engine);
+  const expanded = expandPageOperations(input.operations, locked);
+  const applied = applyOperations(input, expanded.operations, before, engine);
   if (applied.isFail()) return Result.fail(applied.getError());
   const { after, counts } = applied.getValue();
   const touchedIds = [...counts.keys()];
@@ -202,11 +208,17 @@ export const planBlockTransaction = (
     .filter((block) => !before.has(block.id))
     .map((block) => ({ ...block, permissions: null }));
   const placement = buildAuthorization(input, [...context, ...locked, ...createdRecords], before);
-  const authorizedPlacements = authorizePlacements(after, touchedIds, placement);
+  const authorizedPlacements = authorizePlacements(
+    after,
+    touchedIds.filter((id) => !expanded.placedIds.has(id)),
+    placement,
+  );
   if (authorizedPlacements.isFail()) return Result.fail(authorizedPlacements.getError());
   const recordsById = indexById([...context, ...after.values()]);
   const treeChecked = checkTreeInvariants({ after, before, maxDepth: input.maxTreeDepth, recordsById, touchedIds });
   if (treeChecked.isFail()) return Result.fail(treeChecked.getError());
+  const roots = applyRootLists(input.load.spaces, expanded.operations, before, after, touchedIds);
+  if (roots.isFail()) return Result.fail(roots.getError());
   const settled = settleBlocks(applied.getValue(), before, input);
   if (settled.isFail()) return Result.fail(settled.getError());
   const blocks = settled.getValue();
@@ -214,6 +226,7 @@ export const planBlockTransaction = (
     linkDrafts: blocks.flatMap((block) => draftLinks(block, recordsById, input.maxTreeDepth)),
     linkSourceIds: blocks.filter(({ content }) => content !== null).map(({ block }) => block.id),
     rebinds: listRebinds(blocks, before, recordsById, input.maxTreeDepth),
+    spaceWrites: roots.getValue(),
     versions: blocks.map(({ block }) => ({ id: block.id, version: block.version })),
     writes: orderWrites(blocks, before),
   });

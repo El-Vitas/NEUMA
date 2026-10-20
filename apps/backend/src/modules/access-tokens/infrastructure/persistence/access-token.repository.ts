@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { and, or, PageLifecycle } from '@neuma/db';
+import { and, or } from '@neuma/db';
 import type { AccessTokenAccess, UserRole } from '@neuma/shared';
+import { BlockAccessRepository } from '../../../../common/infrastructure/persistence/block-access.repository';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { NeumaModels } from '../../../../prisma/types/prisma.types';
@@ -34,7 +35,10 @@ const liveTokens =
 
 @Injectable()
 export class AccessTokenRepository implements AccessTokenRepositoryContract {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blockAccess: BlockAccessRepository,
+  ) {}
 
   async countAccessibleSpaces(
     spaceIds: readonly string[],
@@ -57,12 +61,8 @@ export class AccessTokenRepository implements AccessTokenRepositoryContract {
     role: UserRole,
   ): Promise<number> {
     if (pageIds.length === 0) return 0;
-    const canSeeSpace = buildSpaceVisibilityFilter(userId, role);
-    const { total } = await this.prisma.models.Page.where((page) => page.id.in([...pageIds]))
-      .where({ lifecycle: PageLifecycle.ACTIVE })
-      .where((page) => page.space.some((space) => and(space.workspaceId.eq(workspaceId), canSeeSpace(space))))
-      .aggregate((aggregate) => ({ total: aggregate.count() }));
-    return total;
+    const pages = await this.blockAccess.findReadablePages(pageIds, { role, userId, workspaceId });
+    return pages.length;
   }
 
   /** Locks the user's row first so concurrent creations serialize and cannot bypass the limit or name check. */

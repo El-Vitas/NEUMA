@@ -286,7 +286,12 @@ export const trashPageInputSchema = z.object({ page: pageAddressSchema });
 
 export const restorePageInputSchema = z.object({
   page: pageAddressSchema,
-  withChildren: z.boolean().optional().describe('Bring back the pages that went to the trash with it too.'),
+  withChildren: z
+    .boolean()
+    .optional()
+    .describe(
+      'Also bring back the pages under it that had been trashed on their own before it. The ones that went with it always come back with it.',
+    ),
 });
 
 export const listTrashInputSchema = z.object({

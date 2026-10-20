@@ -4,6 +4,7 @@ import {
   accessTokenPermissionSchema,
   type UserRole,
 } from '@neuma/shared';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { requireRow } from '../../../../common/utils/required-row.utils';
 import type { NeumaModels } from '../../../../prisma/types/prisma.types';
@@ -26,10 +27,10 @@ const readPageTitles = async (
   pageIds: readonly string[],
 ): Promise<ReadonlyMap<string, string>> => {
   if (pageIds.length === 0) return new Map();
-  const pages = await models.Page.select('id', 'title')
-    .where((page) => page.id.in([...pageIds]))
+  const pages = await models.Block.select('id', 'properties')
+    .where((block) => block.id.in([...pageIds]))
     .all();
-  return new Map(pages.map((page) => [page.id, page.title]));
+  return new Map(pages.map((page) => [page.id, readBlockTitle(page.properties)]));
 };
 
 /** Names come only from places the viewer can see, so an admin cannot read private names off another's token. */

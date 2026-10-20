@@ -51,16 +51,10 @@ const createLiveHandler =
     });
   };
 
-/**
- * The Hocuspocus collaboration transport registers the websocket plugin first when it is mounted, and the plugin
- * can be registered only once, so the live channel adds only its route in that case.
- */
 export const registerBlockLiveTransport = async (
   fastify: FastifyInstance,
   openConnection: BlockLiveConnectionOpener,
 ): Promise<void> => {
-  if (!fastify.hasDecorator('websocketServer')) {
-    await fastify.register(websocket, { options: { maxPayload: BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES } });
-  }
+  await fastify.register(websocket, { options: { maxPayload: BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES } });
   fastify.get(BLOCK_LIVE_PATH, { websocket: true }, createLiveHandler(openConnection));
 };

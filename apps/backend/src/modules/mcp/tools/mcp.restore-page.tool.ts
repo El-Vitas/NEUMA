@@ -39,7 +39,7 @@ export const restorePageTool: McpToolDefinition = {
       MCP_TOOL_NAMES.restorePage,
       {
         description:
-          'Bring a page back from the trash, and with withChildren the pages that went to the trash with it. Returns the page and how many pages under it came back. list_trash shows what is there.',
+          'Bring a page back from the trash; the pages that went to the trash with it come back with it. With withChildren, the pages under it that had been trashed on their own before also come back. Returns the page and how many of those came back. list_trash shows what is there.',
         inputSchema: restorePageInputSchema,
         outputSchema: managedPageOutputSchema,
       },

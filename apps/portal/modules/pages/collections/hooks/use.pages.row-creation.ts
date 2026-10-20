@@ -4,7 +4,7 @@ import { isTitlePageProperty } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import { createEmptyPageContent } from '../../editor/lib/pages.editor.lib';
 import { createPageAction } from '../../server/actions/pages.actions';
 import type { PageSummary } from '../../types/pages.types';
@@ -43,7 +43,7 @@ export const usePagesRowCreation = ({
           title: title.trim(),
         });
         if (!isActionSuccess<PageSummary>(created)) {
-          toast.error(tErrors('generic'));
+          toast.error(isLockedActionFailure(created) ? tErrors('reasons.locked') : tErrors('generic'));
           return;
         }
         toast.success(t('rowCreated'));

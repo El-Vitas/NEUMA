@@ -14,8 +14,6 @@ model User {
   workspaceMemberships WorkspaceMember[]
   spaceMemberships     SpaceMember[]
   favorites            PageFavorite[]
-  verifiedPages        Page[]                     @relation(name: "PageVerifiedBy")
-  ownedPages           Page[]                     @relation(name: "PageOwner")
   verifiedBlocks       Block[]                    @relation(name: "BlockVerifiedBy")
   ownedBlocks          Block[]                    @relation(name: "BlockOwner")
   blockTransactions    BlockTransaction[]

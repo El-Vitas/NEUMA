@@ -1,0 +1,65 @@
+[
+  {
+    "id": "column.public.Space.rootPageIds",
+    "label": "Add column \"rootPageIds\" to \"Space\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "rootPageIds",
+        "table": "Space"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"rootPageIds\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Space",
+          "rootPageIds"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"rootPageIds\"",
+        "sql": "ALTER TABLE \"public\".\"Space\" ADD COLUMN \"rootPageIds\" text[] DEFAULT '{}' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"rootPageIds\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Space",
+          "rootPageIds"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "backfill.Space.rootPageIds",
+    "label": "List the top-level pages of each space in the order they had",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "fill \"Space\".\"rootPageIds\" from the top-level page blocks",
+        "sql": "\nUPDATE \"public\".\"Space\" AS space\nSET \"rootPageIds\" = roots.\"ids\"\nFROM (\n  SELECT block.\"spaceId\", array_agg(block.\"id\" ORDER BY page.\"order\" NULLS LAST, block.\"createdAt\", block.\"id\") AS \"ids\"\n  FROM \"public\".\"Block\" AS block\n  LEFT JOIN \"public\".\"Page\" AS page ON page.\"id\" = block.\"id\"\n  WHERE block.\"type\" = 'page' AND block.\"parentId\" IS NULL\n  GROUP BY block.\"spaceId\"\n) AS roots\nWHERE roots.\"spaceId\" = space.\"id\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every top-level page block is listed by its space",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"Block\" AS block\n  JOIN \"public\".\"Space\" AS space ON space.\"id\" = block.\"spaceId\"\n  WHERE block.\"type\" = 'page' AND block.\"parentId\" IS NULL AND NOT (block.\"id\" = ANY (space.\"rootPageIds\"))\n)"
+      }
+    ]
+  }
+]

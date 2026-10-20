@@ -26,7 +26,6 @@ describe('SearchForm', () => {
             query: '',
             sourceType: undefined,
             spaceId: undefined,
-            tags: undefined,
             limit: 20,
           }}
           spaces={spaces}
@@ -42,6 +41,20 @@ describe('SearchForm', () => {
     expect(push).toHaveBeenCalledWith('/search?query=onboarding');
   });
 
+  it('offers no tags field, since the backend no longer accepts tags', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <SearchForm
+          initialFilters={{}}
+          initialValues={{ contentType: undefined, limit: 20, query: '', sourceType: undefined, spaceId: undefined }}
+          spaces={spaces}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.queryByLabelText('Tags')).toBeNull();
+  });
+
   it('submits the previously selected space and content type as real filter values', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
@@ -52,7 +65,6 @@ describe('SearchForm', () => {
             query: 'onboarding',
             sourceType: 'PAGE',
             spaceId: 'space-1',
-            tags: undefined,
             limit: 20,
           }}
           spaces={spaces}
@@ -75,7 +87,6 @@ describe('SearchForm', () => {
             query: '',
             sourceType: undefined,
             spaceId: undefined,
-            tags: undefined,
             limit: 20,
           }}
           spaces={spaces}
@@ -99,7 +110,6 @@ describe('SearchForm', () => {
             query: '',
             sourceType: undefined,
             spaceId: undefined,
-            tags: undefined,
             limit: 20,
           }}
           spaces={spaces}
@@ -121,7 +131,6 @@ describe('SearchForm', () => {
             query: 'roadmap',
             sourceType: undefined,
             spaceId: undefined,
-            tags: undefined,
             limit: 20,
           }}
           spaces={spaces}
@@ -144,7 +153,6 @@ describe('SearchForm', () => {
             query: 'roadmap',
             sourceType: undefined,
             spaceId: 'space-1',
-            tags: undefined,
             limit: 20,
           }}
           spaces={spaces}

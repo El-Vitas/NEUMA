@@ -37,38 +37,11 @@ export const FileAssetLifecycle = {
 } as const;
 export type FileAssetLifecycle = ValueOf<typeof FileAssetLifecycle>;
 
-export const OutboxConsumer = {
-  SEARCH: 'SEARCH',
-  LINKS: 'LINKS',
-} as const;
-export type OutboxConsumer = ValueOf<typeof OutboxConsumer>;
-
-export const OutboxStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  PROCESSED: 'PROCESSED',
-  FAILED: 'FAILED',
-} as const;
-export type OutboxStatus = ValueOf<typeof OutboxStatus>;
-
 export const PageLifecycle = {
   ACTIVE: 'ACTIVE',
   TRASHED: 'TRASHED',
 } as const;
 export type PageLifecycle = ValueOf<typeof PageLifecycle>;
-
-export const SearchIndexingState = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  INDEXED: 'INDEXED',
-  FAILED: 'FAILED',
-} as const;
-export type SearchIndexingState = ValueOf<typeof SearchIndexingState>;
-
-export const SearchSourceType = {
-  PAGE: 'PAGE',
-} as const;
-export type SearchSourceType = ValueOf<typeof SearchSourceType>;
 
 export const SpaceVisibility = {
   PUBLIC_INTERNAL: 'PUBLIC_INTERNAL',

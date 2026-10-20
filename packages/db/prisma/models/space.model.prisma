@@ -8,6 +8,8 @@ model Space {
   icon        Jsonb?
   visibility  pg.enum(SpaceVisibility)   @default("PUBLIC_INTERNAL")
   order       Int                        @default(0)
+  /// The top-level pages of the space, in order, as a block lists its children (ADR 021).
+  rootPageIds String[]                   @default([]) @noCheck(elementNotNull)
   ownerId     String?
   createdAt   TimestamptzJsDate          @default(now())
   updatedAt   temporal.updatedAtJsDate()
@@ -15,7 +17,6 @@ model Space {
   owner       User?                      @relation(name: "SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Space_ownerId_fkey")
 
   members           SpaceMember[]
-  pages             Page[]
   blocks            Block[]
   blockTransactions BlockTransaction[]
   tokenGrants       AccessTokenGrant[]

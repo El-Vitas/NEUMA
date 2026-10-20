@@ -5,11 +5,6 @@ export const BLOCK_SYNC_API_ROUTES = {
   sync: '/api/v1/sync',
 } as const;
 
-export const BLOCK_SYNC_LIVE_PATH = '/blocks/live';
-
-/** The collaboration socket and the block socket are served by the same backend, under the same prefix. */
-export const BLOCK_SYNC_COLLABORATION_PATH_SUFFIX = /\/collaboration\/?$/;
-
 /** Local edits within this window leave as one transaction, so typing does not send a request per key. */
 export const BLOCK_SYNC_COALESCE_INTERVAL_MS = 100;
 

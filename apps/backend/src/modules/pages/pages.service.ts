@@ -23,6 +23,7 @@ import {
   PAGE_PURGE_DELAY_DAYS,
   PAGE_PURGE_REPOSITORY,
   PAGE_REPOSITORY,
+  PAGE_RESTORE_VERSION_OUTCOME,
   PAGE_SCHEMA_REPOSITORY,
   PAGE_VERSION_FULL_HISTORY_DAYS,
   PAGE_VERSION_RETENTION_REPOSITORY,
@@ -42,6 +43,7 @@ import {
   PageParentError,
   PagePropertyConformanceError,
   PagePropertyValidationError,
+  PageVersionNotFoundError,
 } from './domain/page.error';
 import { canDeletePagesForever, computeDaysBefore, computePurgeAfter } from './domain/page.purge.domain';
 import { validatePageCover } from './domain/page-cover.domain';
@@ -58,10 +60,9 @@ import type {
   CarriedAttachment,
   CreatePageInput,
   ExportedFile,
-  PageAccessState,
   PageAssetForExport,
   PageAttachmentsCleanupRepositoryContract,
-  PageContentStoreOutcome,
+  PageContentRewrite,
   PageContentWriter,
   PageDescendantsPreview,
   PageLogger,
@@ -149,16 +150,6 @@ export class PagesService {
     return carried.filter((asset): asset is CarriedAttachment => asset !== null);
   }
 
-  /** Liveness and lock state without loading content, enough to gate each live-document message. */
-  async readAccessState(
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<PageAccessState | null> {
-    return this.pageRepository.findAccessState(pageId, workspaceId, userId, role);
-  }
-
   async getAccessible(
     pageId: string,
     workspaceId: string,
@@ -198,13 +189,38 @@ export class PagesService {
     return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
   }
 
-  readStoredContent(pageId: string): Promise<PageContent | null> {
-    return this.pageRepository.findStoredContent(pageId);
+  /** Applies the rewrite to the document the page has now; the page keeps every block the rewrite leaves alone. */
+  async writeContent(
+    writer: PageContentWriter,
+    rewrite: PageContentRewrite,
+  ): Promise<Result<PageContent, PageAccessDeniedError>> {
+    const content = await this.pageRepository.writeContent(writer, rewrite);
+    return content === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(content);
   }
 
-  /** The writer was already authorized when connecting to the document. */
-  storeCollaborativeContent(pageId: string, userId: string, content: PageContent): Promise<PageContentStoreOutcome> {
-    return this.pageRepository.storeContent({ content, pageId, updatedById: userId });
+  /** For whoever closes a stretch of editing the blocks module does not see: one history entry per stretch. */
+  recordVersion(pageId: string, authorId: string): Promise<void> {
+    return this.pageRepository.recordVersion(pageId, authorId);
+  }
+
+  /** Puts the page back as one of its versions said: its content and its title. */
+  async restoreVersion(
+    pageId: string,
+    version: number,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<
+    Result<PageSummary, PageAccessDeniedError | PageLifecycleError | PageLockedError | PageVersionNotFoundError>
+  > {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const existing = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
+    if (existing === null) return Result.fail(new PageAccessDeniedError());
+    if (existing.lifecycle !== PageLifecycle.ACTIVE) return Result.fail(new PageLifecycleError());
+    if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
+    const restored = await this.pageRepository.restoreVersion(pageId, version, userId, workspaceId, role);
+    if (restored === PAGE_RESTORE_VERSION_OUTCOME.missing) return Result.fail(new PageVersionNotFoundError());
+    return restored === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(restored.page);
   }
 
   async authorizeContentWrite(
@@ -243,8 +259,10 @@ export class PagesService {
     const page = await this.pageRepository.updatePropertyValues(
       {
         pageId: input.pageId,
+        role: input.role,
         ...(input.title === undefined ? {} : { title: input.title }),
         updatedById: input.updatedById,
+        workspaceId: input.workspaceId,
       },
       (current) =>
         validatePageProperties(
@@ -530,7 +548,7 @@ export class PagesService {
       batch = await this.pagePurgeRepository.purgeDue(now, PAGE_PURGE_BATCH_SIZE);
       await this.cleanupAttachments(batch);
       purgedCount += batch.length;
-    } while (batch.length === PAGE_PURGE_BATCH_SIZE);
+    } while (batch.length >= PAGE_PURGE_BATCH_SIZE);
     return purgedCount;
   }
 

@@ -57,7 +57,6 @@ const createRepository = (): PageRepositoryContract => ({
   deleteForever: () => Promise.resolve('SCHEDULED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
-  findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () =>
@@ -80,8 +79,10 @@ const createRepository = (): PageRepositoryContract => ({
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
-  findStoredContent: () => Promise.resolve(null),
-  storeContent: () => Promise.resolve('UNCHANGED'),
+  findVersion: () => Promise.resolve(null),
+  recordVersion: () => Promise.resolve(),
+  restoreVersion: () => Promise.resolve(null),
+  writeContent: () => Promise.resolve(null),
   updatePropertyValues: (_input, merge) => {
     const merged = merge(null);
     return Promise.resolve(merged.isOk() ? Result.ok(page) : Result.fail(merged.getError()));
@@ -1672,7 +1673,15 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isOk()).toBe(true);
-    expect(received).toEqual([{ pageId: 'page-a', title: 'Informe entregado', updatedById: 'user-a' }]);
+    expect(received).toEqual([
+      {
+        pageId: 'page-a',
+        role: USER_ROLE.WORKER,
+        title: 'Informe entregado',
+        updatedById: 'user-a',
+        workspaceId: 'workspace-a',
+      },
+    ]);
   });
 
   // A row keeps values under a property later removed from the shape; carrying them back would be refused and block
@@ -1780,5 +1789,70 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isFail()).toBe(true);
+  });
+});
+
+describe('pages service: the history and the content of a page', () => {
+  const buildService = (repository: Partial<PageRepositoryContract>, purge = createPurgeRepository()) =>
+    new PagesService(
+      { ...createRepository(), ...repository },
+      createSchemaRepository(),
+      createAttachmentsCleanupRepository(),
+      createStorageProvider(),
+      createLogger(),
+      purge,
+      createVersionRetentionRepository(),
+    );
+
+  it('restores a page to a version and answers with the page', async () => {
+    const service = buildService({ restoreVersion: () => Promise.resolve({ page }) });
+
+    const result = await service.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.getValue()).toBe(page);
+  });
+
+  it('says that a version that is not there is not there', async () => {
+    const service = buildService({ restoreVersion: () => Promise.resolve('MISSING_VERSION') });
+
+    const result = await service.restoreVersion('page-a', 9, 'user-a', 'workspace-a', USER_ROLE.WORKER);
+
+    expect(result.getError().code).toBe('PAGE_VERSION_NOT_FOUND');
+  });
+
+  it('never restores a version for someone who may only read, or into a page in the trash or locked', async () => {
+    const trashed = buildService({
+      getAccessible: () => Promise.resolve({ ...page, lifecycle: PageLifecycle.TRASHED }),
+    });
+    const locked = buildService({ getAccessible: () => Promise.resolve({ ...page, lockedAt: new Date() }) });
+    const reader = buildService({});
+
+    expect((await reader.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.CLIENT)).getError().code).toBe(
+      'PAGE_ACCESS_DENIED',
+    );
+    expect((await trashed.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.WORKER)).getError().code).toBe(
+      'PAGE_INVALID_LIFECYCLE',
+    );
+    expect((await locked.restoreVersion('page-a', 1, 'user-a', 'workspace-a', USER_ROLE.WORKER)).getError().code).toBe(
+      'PAGE_LOCKED',
+    );
+  });
+
+  it('writes the content through the repository and says the page is out of reach when it could not', async () => {
+    const written = validPageContent;
+    const accepted = buildService({ writeContent: () => Promise.resolve(written) });
+    const refused = buildService({ writeContent: () => Promise.resolve(null) });
+
+    expect((await accepted.writeContent(contentWriter, (current) => current)).getValue()).toBe(written);
+    expect((await refused.writeContent(contentWriter, (current) => current)).getError().code).toBe(
+      'PAGE_ACCESS_DENIED',
+    );
+  });
+
+  it('keeps purging while a batch comes back full, even when the pages below the due ones make it longer', async () => {
+    const full = Array.from({ length: 101 }, (_unused, position) => `page-${String(position)}`);
+    const service = buildService({}, createPurgeRepository([full, ['last']]));
+
+    expect(await service.purgeDuePages(new Date())).toBe(102);
   });
 });

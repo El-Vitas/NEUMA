@@ -41,7 +41,6 @@ export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) =>
   const [contentType] = useState(initialValues.contentType);
   const [sourceType, setSourceType] = useState<string>(initialValues.sourceType ?? SEARCH_FILTER_ALL_VALUE);
   const [spaceId, setSpaceId] = useState<string>(initialValues.spaceId ?? SEARCH_FILTER_ALL_VALUE);
-  const [tags, setTags] = useState(() => initialValues.tags?.join(',') ?? '');
   const [authorQuery, setAuthorQuery] = useState(initialFilters.authorQuery ?? '');
   const [editedRange, setEditedRange] = useState<string>(initialFilters.editedRange ?? SEARCH_FILTER_ALL_VALUE);
   const [verifiedOnly, setVerifiedOnly] = useState(initialFilters.verifiedOnly ?? false);
@@ -53,7 +52,6 @@ export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) =>
       contentType,
       sourceType: sourceType === SEARCH_FILTER_ALL_VALUE ? undefined : sourceType,
       spaceId: spaceId === SEARCH_FILTER_ALL_VALUE ? undefined : spaceId,
-      tags,
     });
     const parsedFilters = searchExtraFiltersSchema.parse({
       authorQuery,
@@ -122,16 +120,6 @@ export const SearchForm = ({ initialFilters, initialValues, spaces }: IProps) =>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="search-tags">{t('tagsLabel')}</Label>
-            <Input
-              className="min-h-11 text-base"
-              id="search-tags"
-              onChange={(event) => setTags(event.target.value)}
-              placeholder={t('tagsPlaceholder')}
-              value={tags}
-            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="search-author">{filtersT('authorLabel')}</Label>

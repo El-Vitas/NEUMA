@@ -21,14 +21,6 @@ export const usePagesEditorFind = (editorViewRef: RefObject<EditorView | null>):
 
   const sync = useCallback((view: EditorView): void => setFound(readPageEditorFindState(view)), []);
 
-  /** The query lives here because a replaced editor state starts with a fresh plugin that has lost it. */
-  const resume = useCallback(
-    (view: EditorView): void => {
-      if (isOpen && query.length > 0) searchPageEditorFind(view, query);
-    },
-    [isOpen, query],
-  );
-
   const open = useCallback((): void => setIsOpen(true), []);
 
   const close = useCallback((): void => {
@@ -82,7 +74,6 @@ export const usePagesEditorFind = (editorViewRef: RefObject<EditorView | null>):
     replace,
     replaceAll,
     replacement,
-    resume,
     search,
     setReplacement,
     sync,

@@ -51,9 +51,9 @@ describe('BlockTransactionRepository.run: deadlock retry (Integration)', () => {
     const lockInOrder = (ids: readonly string[]) => () =>
       repository.run(async (session) => {
         attempts += 1;
-        await session.loadBlocks([ids[0] ?? '']);
+        await session.loadBlocks([ids[0] ?? ''], []);
         await bothHoldTheirFirstRow.arrive();
-        await session.loadBlocks([ids[1] ?? '']);
+        await session.loadBlocks([ids[1] ?? ''], []);
         return Result.ok('done');
       });
 

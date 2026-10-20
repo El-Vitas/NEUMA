@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { BLOCK_COMMITS, BLOCK_WRITER } from '../../common/constants/block-writer.constants';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
+import { BlockCommitHub } from './block.commit.feed';
 import { BlockLiveAccessService } from './block.live.access.service';
 import { BlockLiveController } from './block.live.controller';
 import { BlockLiveFanoutService } from './block.live.fanout.service';
@@ -29,7 +31,11 @@ import type { BlockLiveSettings } from './types/block.live.types';
 
 @Module({
   controllers: [BlocksController, BlockTransactionsController, BlockLiveController],
+  exports: [BLOCK_WRITER, BLOCK_COMMITS],
   providers: [
+    BlockCommitHub,
+    { provide: BLOCK_COMMITS, useExisting: BlockCommitHub },
+    { provide: BLOCK_WRITER, useExisting: BlockTransactionsService },
     BlockRepository,
     { provide: BLOCK_REPOSITORY, useExisting: BlockRepository },
     BlockTransactionRepository,

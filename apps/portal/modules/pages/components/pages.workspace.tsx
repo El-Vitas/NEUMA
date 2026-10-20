@@ -23,9 +23,9 @@ import type { PageSummary } from '../types/pages.types';
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
-  /** The selected page's blocks, read on the server when the block editor is on. */
+  /** The selected page's blocks, read on the server. */
   readonly blockSync?: readonly SyncedBlock[] | null;
-  /** The block editor is on and the blocks could not be read: the page opens read-only and says why. */
+  /** The blocks could not be read: the page opens read-only and says why. */
   readonly blockSyncFailed?: boolean;
   readonly canEditContent: boolean;
   readonly canSeePageUsage?: boolean;
@@ -110,6 +110,7 @@ export const PagesWorkspace = ({
             bundle={panelBundle}
             canEditContent={canEditContent}
             currentUserDisplayName={currentUserDisplayName}
+            currentUserId={currentUserId}
             key={`${panelBundle.page.id}:${panelBundle.page.lifecycle}`}
             pages={pages}
             parentBreadcrumbPages={panelParentBreadcrumbPages}

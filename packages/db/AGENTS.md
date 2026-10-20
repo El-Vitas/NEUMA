@@ -1,7 +1,7 @@
 # AGENTS.md — DB
 
 > Database package conventions. Inherits all standards from `AGENTS.md` at the repo root.
-> Design decisions: `docs/architecture/adr/010-adopt-prisma-orm-8.md` and `012-deliver-outbox-events-per-consumer.md`.
+> Design decisions: `docs/architecture/adr/010-adopt-prisma-orm-8.md` and `021-everything-is-a-block.md`.
 
 ## Stack
 
@@ -65,5 +65,7 @@ The data model is the Prisma 8 **contract**: one `.prisma` file per model and pe
 - **One file per domain** in `prisma/seed/`, plus `main.seed.ts` as the entry point (`bun run db:seed`).
 - **Idempotent.** Each seed checks for existing data before inserting.
 - **Deterministic.** Seed the same data every time — no random values in seed scripts.
-- **Shaped like the app writes it.** Page blocks carry fixed ids, and every seeded page gets the `PAGE_CREATED`
-  outbox event with one delivery per consumer, so the search and links workers project it like any other page.
+- **Shaped like the app writes it.** A page is a `Block` row of type `page` that lists its paragraph and its subpages
+  in `children`; text carries its `text` and Yjs `textState`, mentions get their `BlockLink`, and the space lists its
+  top-level pages in `rootPageIds`. Fixed ids and a fixed Yjs client id keep every run identical. There are no outbox
+  events: search and backlinks read the blocks directly (ADR 022).

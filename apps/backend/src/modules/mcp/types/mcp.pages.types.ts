@@ -148,7 +148,7 @@ export interface McpContentWriter {
 
 export type McpContentEdit = (current: PageContent) => Result<PageContent, string>;
 
-/** Goes through the portal's live document so open viewers see the change at once. */
+/** Writes through the block transactions, so only the blocks the edit changes are touched and open editors see it. */
 export interface McpContentEditor {
   readonly edit: (writer: McpContentWriter, edit: McpContentEdit) => Promise<Result<PageContent, McpRefusal>>;
 }

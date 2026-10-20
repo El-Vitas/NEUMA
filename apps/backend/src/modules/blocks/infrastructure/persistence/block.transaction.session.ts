@@ -11,19 +11,24 @@ import { BLOCK_PAGE_TYPE, BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.co
 import type {
   BlockLinkDiff,
   BlockLoad,
+  BlockPageColumns,
   BlockWrite,
   LinkSourceRebind,
+  SpaceRoots,
   StoredBlockLink,
   WorkingBlock,
 } from '../../domain/block.transaction.domain.types';
 import { blockStoredResultSchema } from '../../schemas/block.operation.schemas';
-import { blockJsonValueSchema, blockLinkKindSchema } from '../../schemas/block.row.schemas';
+import { blockChildrenSchema, blockJsonValueSchema, blockLinkKindSchema } from '../../schemas/block.row.schemas';
 import type {
   BlockTransactionClaim,
   BlockTransactionResult,
   BlockTransactionSession,
 } from '../../types/block.transaction.types';
 import { toRecord } from './block.repository';
+
+/** Only the page columns the block carries: a block read without them must not erase what is stored. */
+const toPageColumnChanges = (block: WorkingBlock): Partial<BlockPageColumns> => block.page ?? {};
 
 /** The statements of one Postgres transaction, bound to the connection that holds its locks. */
 export class PostgresBlockTransactionSession implements BlockTransactionSession {
@@ -54,13 +59,63 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
    * Locks the named rows in id order, so two transactions that share rows never wait on each other in a circle,
    * then reads them with their text state and, apart, the ancestors their roles and lock state come from.
    */
-  async loadBlocks(blockIds: readonly string[]): Promise<BlockLoad> {
+  async loadBlocks(blockIds: readonly string[], spaceIds: readonly string[]): Promise<BlockLoad> {
+    const spaces = await this.lockSpaces(spaceIds);
     const lockedIds = await this.lockRows(blockIds);
     const ancestors = await this.readAncestorIds(lockedIds);
     const contextIds = ancestors.ids.filter((id) => !lockedIds.includes(id));
     const locked = await this.readLocked(lockedIds);
     const context = await this.readContext(contextIds);
-    return { context, isDepthExceeded: ancestors.isDepthExceeded, locked };
+    return { context, isDepthExceeded: ancestors.isDepthExceeded, locked, spaces };
+  }
+
+  async writeSpaces(spaces: readonly SpaceRoots[]): Promise<void> {
+    for (const space of spaces) {
+      const updated = await this.transaction.orm.public.Space.where({ id: space.id }).update({
+        rootPageIds: [...space.rootPageIds],
+      });
+      requireRow(updated, `Space ${space.id}`);
+    }
+  }
+
+  /**
+   * Holds each space in id order, without keeping other writers from adding blocks to it, and reads its list of
+   * top-level pages. Only the spaces whose lists the transaction may change are named.
+   */
+  private async lockSpaces(spaceIds: readonly string[]): Promise<SpaceRoots[]> {
+    if (spaceIds.length === 0) return [];
+    const { columns } = this.prisma.tables.Space;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      SELECT "id", to_jsonb("rootPageIds") AS "rootPageIds" FROM "Space"
+      WHERE "id" = ANY(${buildSqlTextList(this.prisma.sql, spaceIds)}) ORDER BY "id" FOR NO KEY UPDATE
+    `
+        .returnsRow({ id: columns.id, rootPageIds: 'pg/jsonb@1' })
+        .build(),
+    );
+    return rows.map((row) => ({ id: row.id, rootPageIds: blockChildrenSchema.parse(row.rootPageIds) }));
+  }
+
+  /** Every row below the roots, dead ones included, because a branch that changes space takes all of it along. */
+  async listDescendantIds(rootIds: readonly string[]): Promise<string[]> {
+    if (rootIds.length === 0) return [];
+    const { columns } = this.prisma.tables.Block;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      WITH RECURSIVE "descendant" AS (
+        SELECT "id", 1 AS "depth" FROM "Block" WHERE "parentId" = ANY(${buildSqlTextList(this.prisma.sql, rootIds)})
+        UNION ALL
+        SELECT "child"."id", "descendant"."depth" + 1
+        FROM "Block" AS "child"
+        INNER JOIN "descendant" ON "child"."parentId" = "descendant"."id"
+        WHERE "descendant"."depth" < ${BLOCK_TREE_MAX_DEPTH}
+      )
+      SELECT DISTINCT "id" FROM "descendant"
+    `
+        .returnsRow({ id: columns.id })
+        .build(),
+    );
+    return rows.map((row) => row.id);
   }
 
   async writeBlocks(writes: readonly BlockWrite[]): Promise<void> {
@@ -174,6 +229,15 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
     const rows = await this.transaction.orm.public.Block.where((block) => block.id.in([...blockIds])).all();
     return rows.map((row) => ({
       ...toRecord(row),
+      page: {
+        lockedById: row.lockedById,
+        ownerId: row.ownerId,
+        purgeAfter: row.purgeAfter,
+        trashedAt: row.trashedAt,
+        verificationExpiresAt: row.verificationExpiresAt,
+        verifiedAt: row.verifiedAt,
+        verifiedById: row.verifiedById,
+      },
       textState: row.textState === null ? null : new Uint8Array(row.textState),
     }));
   }
@@ -211,6 +275,7 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
         textState: block.textState === null ? null : Buffer.from(block.textState),
         type: block.type,
         version: block.version,
+        ...toPageColumnChanges(block),
       },
     ]);
   }
@@ -222,13 +287,17 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
       editedAt: block.editedAt,
       editedById: block.editedById,
       format: blockJsonValueSchema.parse(block.format),
+      lifecycle: block.lifecycle,
+      lockedAt: block.lockedAt,
       parentId: block.parentId,
       permissions: blockJsonValueSchema.parse(block.permissions),
       properties: blockJsonValueSchema.parse(block.properties),
+      spaceId: block.spaceId,
       text: block.text,
       textState: block.textState === null ? null : Buffer.from(block.textState),
       type: block.type,
       version: block.version,
+      ...toPageColumnChanges(block),
     });
     requireRow(updated, `Block ${block.id}`);
   }

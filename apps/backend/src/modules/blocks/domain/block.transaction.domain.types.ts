@@ -1,6 +1,6 @@
 import type { BlockContent, BlockPermissions, BlockViewer, Result } from '@neuma/shared';
 import type { DomainError } from '../../../common/domain/domain.error';
-import type { BlockRecord, RecordsById, RolesById } from './block.domain.types';
+import type { BlockLifecycle, BlockRecord, RecordsById, RolesById } from './block.domain.types';
 import type { BLOCK_BAG_VALUES, BLOCK_LINK_KIND, BLOCK_WRITABLE_FIELD_VALUES } from './block.operation.constants';
 
 export type BlockBag = (typeof BLOCK_BAG_VALUES)[number];
@@ -56,24 +56,104 @@ export type BlockOperation =
       readonly placement: BlockChildPlacement;
     }
   | { readonly blockId: string; readonly childId: string; readonly command: 'removeChild' }
+  | {
+      readonly blockId: string;
+      readonly command: 'insertRoot';
+      readonly placement: BlockChildPlacement;
+      readonly spaceId: string;
+    }
+  | { readonly blockId: string; readonly command: 'removeRoot'; readonly spaceId: string }
   | { readonly blockId: string; readonly command: 'applyText'; readonly property: string; readonly update: Uint8Array }
-  | { readonly blockId: string; readonly command: 'setPermissions'; readonly permissions: BlockPermissions };
+  | { readonly blockId: string; readonly command: 'setPermissions'; readonly permissions: BlockPermissions }
+  | BlockPageOperation;
+
+/**
+ * What only the backend sends, for a page. `detachFromParentId` names the parent that still lists the page and must
+ * stop listing it, because the page leaves it: a restored page whose parent is in the trash goes to the root, and a
+ * page that changes space leaves its old parent in the old space.
+ */
+export type BlockPageOperation =
+  | {
+      readonly blockId: string;
+      readonly command: 'setLifecycle';
+      readonly detachFromParentId: string | null;
+      readonly lifecycle: BlockLifecycle;
+    }
+  | { readonly blockId: string; readonly command: 'setLock'; readonly isLocked: boolean }
+  | {
+      readonly blockId: string;
+      readonly command: 'setVerification';
+      readonly expiresAt: Date | null;
+      readonly isVerified: boolean;
+    }
+  | { readonly blockId: string; readonly command: 'setOwner'; readonly ownerId: string | null }
+  | { readonly blockId: string; readonly command: 'mergePageValues'; readonly values: BlockJsonObject }
+  /** The same merge, for a change of the shape of the collection: a lock or the trash does not stop it. */
+  | { readonly blockId: string; readonly command: 'rewritePageValues'; readonly values: BlockJsonObject }
+  | {
+      readonly blockId: string;
+      readonly command: 'moveToSpaceRoot';
+      /** The sibling the page goes right after in its new place; null puts it last. */
+      readonly afterId: string | null;
+      readonly detachFromParentId: string | null;
+      /** The page of the new space that holds it; null puts it at the top of the space. */
+      readonly parentId: string | null;
+      readonly spaceId: string;
+    }
+  | { readonly blockId: string; readonly command: 'followToSpace'; readonly spaceId: string };
 
 export type BlockCreateOperation = Extract<BlockOperation, { command: 'create' }>;
 
 /** Every operation that changes a block that already exists. */
 export type BlockEditOperation = Exclude<BlockOperation, { command: 'create' }>;
 
-/** A stored block with its Yjs state, which only the write path reads. */
+export interface PageOperationAuthor {
+  readonly now: Date;
+  readonly userId: string;
+}
+
+/** The operations the planner applies, and the pages whose new place was already decided by the command itself. */
+export interface ExpandedOperations {
+  readonly operations: readonly BlockOperation[];
+  readonly placedIds: ReadonlySet<string>;
+}
+
+/** The columns that only a page carries. A block that does not carry them leaves what is stored alone. */
+export interface BlockPageColumns {
+  readonly lockedById: string | null;
+  readonly ownerId: string | null;
+  readonly purgeAfter: Date | null;
+  readonly trashedAt: Date | null;
+  readonly verificationExpiresAt: Date | null;
+  readonly verifiedAt: Date | null;
+  readonly verifiedById: string | null;
+}
+
+/**
+ * A stored block with its Yjs state, which only the write path reads. `page` is there when the block was read whole;
+ * a block without it leaves the page columns of the row alone when it is stored.
+ */
 export interface WorkingBlock extends BlockRecord {
+  readonly page?: BlockPageColumns;
   readonly textState: Uint8Array | null;
 }
+
+/** The ordered top-level pages of a space, held while a transaction changes them. */
+export interface SpaceRoots {
+  readonly id: string;
+  readonly rootPageIds: readonly string[];
+}
+
+/** The lists of top-level pages while a transaction works on them, by space. */
+export type RootLists = Map<string, string[]>;
 
 export interface BlockLoad {
   /** Context rows (ancestors) carry no text state. */
   readonly context: readonly BlockRecord[];
   readonly isDepthExceeded: boolean;
   readonly locked: readonly WorkingBlock[];
+  /** The spaces whose lists of top-level pages the transaction may change, locked. */
+  readonly spaces: readonly SpaceRoots[];
 }
 
 export interface BlockTextUpdateInput {
@@ -142,6 +222,8 @@ export interface AuthorizationInput {
 
 export interface BlockTransactionInput {
   readonly actor: BlockViewer;
+  /** Spaces other than `spaceId` that the transaction writes into and the actor was checked to read. */
+  readonly extraReadableSpaceIds: readonly string[];
   readonly isSpaceReadable: boolean;
   readonly load: BlockLoad;
   readonly maxTreeDepth: number;
@@ -192,6 +274,8 @@ export interface BlockTransactionPlan {
   readonly linkDrafts: readonly BlockLinkDraft[];
   readonly linkSourceIds: readonly string[];
   readonly rebinds: readonly LinkSourceRebind[];
+  /** The lists of top-level pages that changed. */
+  readonly spaceWrites: readonly SpaceRoots[];
   readonly versions: readonly BlockVersion[];
   readonly writes: readonly BlockWrite[];
 }

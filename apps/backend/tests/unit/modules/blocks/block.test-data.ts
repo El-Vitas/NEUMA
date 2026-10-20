@@ -40,8 +40,9 @@ export const buildInput = (
   overrides: Partial<BlockTransactionInput> = {},
 ): BlockTransactionInput => ({
   actor: { userId: USER_ID, workspaceRole: USER_ROLE.WORKER },
+  extraReadableSpaceIds: [],
   isSpaceReadable: true,
-  load: { context: [], isDepthExceeded: false, locked },
+  load: { context: [], isDepthExceeded: false, locked, spaces: [{ id: SPACE_ID, rootPageIds: [] }] },
   maxTreeDepth: MAX_TREE_DEPTH,
   now: NOW,
   operations,

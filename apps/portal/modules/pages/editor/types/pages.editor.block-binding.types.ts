@@ -3,28 +3,11 @@ import type { Selection } from 'prosemirror-state';
 import type { SyncedBlock } from '../../block-sync/types/block-sync.types';
 import type { PagePersonOption } from '../../collections/types/pages.schema.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
-import type {
-  CollaborationStatus,
-  PageCollaborationParticipant,
-  PageCollaborationSession,
-} from '../../types/pages.collaboration.types';
+import type { CollaborationStatus, PageCollaborationParticipant } from '../../types/pages.collaboration.types';
 
-/** What the editor shows of the block channel in place of the collaboration session. */
+/** What the editor shows of the block channel: who else is on the page and how the connection is. */
 export interface PagesEditorBlockCollaboration {
   readonly participants: readonly PageCollaborationParticipant[];
-  readonly status: CollaborationStatus | null;
-}
-
-export interface PagesEditorCollaborationSourceOptions {
-  readonly blockCollaboration: PagesEditorBlockCollaboration | null;
-  readonly canEdit: boolean;
-  readonly displayName: string | null;
-  readonly pageId: string | null;
-}
-
-export interface PagesEditorCollaborationSource {
-  readonly participants: readonly PageCollaborationParticipant[];
-  readonly session: PageCollaborationSession | null;
   readonly status: CollaborationStatus | null;
 }
 
@@ -33,6 +16,7 @@ export interface PagesEditorBlockBindingOptions {
   readonly fallbackSaveState: PagesAutosaveDisplayState;
   /** The blocks the server rendered the page from; the binding is off while there are none. */
   readonly initialBlocks: readonly SyncedBlock[] | null | undefined;
+  /** Whether the person can write in the page; a page that is only read opens no channel. */
   readonly isEnabled: boolean;
   readonly localUserId: string | null | undefined;
   readonly pageId: string;
@@ -45,12 +29,12 @@ export interface PagesEditorBlockBindingOptions {
 export interface PagesEditorBlockBinding {
   /** The page can still be written in: it was writable, and the channel has not revoked it. */
   readonly canWrite: boolean;
-  /** What the editor shows in place of a collaboration session; null while the binding is off. */
+  /** What the editor shows of the channel; null while the binding is off. */
   readonly collaboration: PagesEditorBlockCollaboration | null;
   readonly flush: () => Promise<boolean>;
   readonly isReadOnly: boolean;
-  /** Hands a changed document to the block channel; true when it, or a live document, now keeps the page. */
-  readonly keepContentLive: (content: PageContent, isKeptLive: boolean) => boolean;
+  /** Hands a changed document to the block channel. */
+  readonly keepContentLive: (content: PageContent) => void;
   readonly reportSelection: (selection: Selection) => void;
   readonly saveState: PagesAutosaveDisplayState;
 }

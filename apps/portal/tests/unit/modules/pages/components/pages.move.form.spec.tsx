@@ -81,6 +81,16 @@ describe('PagesMoveForm — moving across spaces', () => {
     expect(getSpaceMoveAccessLoss).not.toHaveBeenCalled();
   });
 
+  it('says the page is locked, not that the move failed, when the page cannot be moved because it is locked', async () => {
+    movePage.mockImplementation(async () => ({ serverError: 'locked' }) as never);
+    renderForm();
+
+    fireEvent.click(screen.getByRole('button', { name: /Space root/i }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Notes' }));
+
+    expect(await screen.findByText(en.errors.reasons.locked)).toBeDefined();
+  });
+
   it('moves right away across spaces when nobody would lose access', async () => {
     renderForm();
 

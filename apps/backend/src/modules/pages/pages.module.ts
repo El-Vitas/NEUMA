@@ -1,22 +1,29 @@
 import { Module } from '@nestjs/common';
-import { OutboxRepository } from '../../common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import { WorkspaceMemberRepository } from '../../common/infrastructure/persistence/workspace-member.repository';
+import { BlocksModule } from '../blocks/blocks.module';
 import {
   PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
   PAGE_OUTLINE_REPOSITORY,
   PAGE_PURGE_REPOSITORY,
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
+  PAGE_VERSION_CLOCK,
   PAGE_VERSION_RETENTION_REPOSITORY,
 } from './constants/pages.constants';
+import { PageBlockReader } from './infrastructure/persistence/page.block.reader';
+import { PageBlockWriter } from './infrastructure/persistence/page.block.writer';
 import { PagePurgeRepository } from './infrastructure/persistence/page.purge.repository';
 import { PageRepository } from './infrastructure/persistence/page.repository';
+import { PageSummaryReader } from './infrastructure/persistence/page.summary.reader';
+import { PageVersionRepository } from './infrastructure/persistence/page.version.repository';
 import { PageVersionRetentionRepository } from './infrastructure/persistence/page.version-retention.repository';
 import { PageAttachmentsCleanupRepository } from './infrastructure/persistence/page-attachments.cleanup.repository';
 import { PageOutlineRepository } from './infrastructure/persistence/page-outline.repository';
 import { PageSchemaRepository } from './infrastructure/persistence/page-schema.repository';
 import { PageRetentionScheduler } from './infrastructure/schedulers/page.retention.scheduler';
+import { systemPageVersionClock } from './infrastructure/schedulers/page.version.clock';
+import { PageVersionScheduler } from './infrastructure/schedulers/page.version.scheduler';
 import { PageAssignedController } from './page.assigned.controller';
 import { PageDestinationsController } from './page.destinations.controller';
 import { PageLocationController } from './page.location.controller';
@@ -39,16 +46,22 @@ import { PagesService } from './pages.service';
     PageAssignedController,
   ],
   exports: [PagesService, PageSchemaService, PageOutlineService, PageRetentionScheduler],
+  imports: [BlocksModule],
   providers: [
-    OutboxRepository,
     { provide: PAGE_ATTACHMENTS_CLEANUP_REPOSITORY, useClass: PageAttachmentsCleanupRepository },
     { provide: PAGE_OUTLINE_REPOSITORY, useClass: PageOutlineRepository },
     PageOutlineService,
+    PageBlockReader,
+    PageBlockWriter,
+    PageSummaryReader,
+    PageVersionRepository,
     PagePurgeRepository,
     { provide: PAGE_PURGE_REPOSITORY, useExisting: PagePurgeRepository },
     PageVersionRetentionRepository,
     { provide: PAGE_VERSION_RETENTION_REPOSITORY, useExisting: PageVersionRetentionRepository },
     PageRetentionScheduler,
+    { provide: PAGE_VERSION_CLOCK, useValue: systemPageVersionClock },
+    PageVersionScheduler,
     { provide: PAGE_REPOSITORY, useClass: PageRepository },
     { provide: PAGE_SCHEMA_REPOSITORY, useClass: PageSchemaRepository },
     PagesService,

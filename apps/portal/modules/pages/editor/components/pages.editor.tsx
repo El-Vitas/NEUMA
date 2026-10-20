@@ -68,7 +68,7 @@ import type { PagesEditorHandle } from '../types/pages.editor.handle.types';
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
-  /** The page's blocks as the server read them; used only when the block editor is on. */
+  /** The page's blocks as the server read them; null when they could not be read. */
   readonly blockSync?: readonly SyncedBlock[] | null;
   readonly canEdit: boolean;
   readonly canSeeUsage?: boolean;
@@ -76,7 +76,7 @@ interface IProps {
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
   readonly currentUserId?: string;
-  /** The block editor is on and the page's blocks could not be read, so the page is read-only and says so. */
+  /** The page's blocks could not be read, so the page is read-only and says so. */
   readonly isBlockSyncUnavailable?: boolean;
   readonly isFavorite?: boolean;
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
@@ -141,7 +141,6 @@ export const PagesEditor = forwardRef(
     const saves = usePagesEditorSaves({
       hasEditableProperties: editableProperties.length > 0,
       pageId: page.id,
-      readContent: () => contentRef.current,
       readPropertyValues: () => propertyValuesRef.current,
       readTitle: () => titleRef.current,
       spaceId,
@@ -233,11 +232,9 @@ export const PagesEditor = forwardRef(
     const handleAttachmentDeleted = (attachmentId: string): void =>
       setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId));
 
-    const handleContentChange = (content: PageContent, isKeptLive: boolean): void => {
+    const handleContentChange = (content: PageContent): void => {
       contentRef.current = content;
-      if (blockBinding.keepContentLive(content, isKeptLive)) return;
-      saves.markContentChanged();
-      autosave.schedule();
+      blockBinding.keepContentLive(content);
     };
 
     const handleGoToHeading = (position: number): void => editorHandleRef.current?.goToHeading(position);
