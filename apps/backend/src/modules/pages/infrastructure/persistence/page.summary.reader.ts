@@ -2,9 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type NeumaTransaction, PageLifecycle } from '@neuma/db';
 import type { PageContent } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { findLatestPageVersions } from '../../../../common/infrastructure/persistence/page-latest-version.lib';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { readPageCover, readPageIcon, readPageTitle, readPageValues } from '../../domain/page.block.domain';
+import { readPageCover, readPageIcon, readPageValues } from '../../domain/page.block.domain';
 import type { PageContentBlock } from '../../domain/page.block.domain.types';
 import { buildPageDocument } from '../../domain/page.document.domain';
 import { pageStoredJsonSchema } from '../../schemas/page.block.schemas';
@@ -104,7 +105,7 @@ export class PageSummaryReader {
       parentId: block.parentId,
       propertyValues: readPageValues(block.properties),
       spaceId: block.spaceId,
-      title: readPageTitle(block.properties),
+      title: readBlockTitle(block.properties),
       updatedAt: lastEdit.at,
       updatedBy: parts.users.get(lastEdit.byId) ?? null,
       verificationExpiresAt: block.verificationExpiresAt,

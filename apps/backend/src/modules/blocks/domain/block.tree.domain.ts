@@ -1,4 +1,4 @@
-import { BLOCK_TYPE, Result } from '@neuma/shared';
+import { BLOCK_TYPE, PAGE_LIFECYCLE, Result } from '@neuma/shared';
 import type { DomainError } from '../../../common/domain/domain.error';
 import type { BlockRecord, RecordsById } from './block.domain.types';
 import { BlockTreeTooDeepError } from './block.error';
@@ -30,7 +30,7 @@ const isLocked = (record: BlockRecord | undefined): boolean => record?.lockedAt 
  */
 export const findWriteBlocker = (blockId: string, recordsById: RecordsById, maxDepth: number): WriteBlocker | null => {
   const chain = walkChain(blockId, recordsById, maxDepth);
-  if (chain.some((record) => record.lifecycle === 'TRASHED')) return 'trashed';
+  if (chain.some((record) => record.lifecycle === PAGE_LIFECYCLE.TRASHED)) return 'trashed';
   const nearestPage = chain.find((record) => record.type === BLOCK_TYPE.page);
   return isLocked(chain[0]) || isLocked(nearestPage) ? 'locked' : null;
 };

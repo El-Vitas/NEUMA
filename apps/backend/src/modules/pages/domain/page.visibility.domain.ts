@@ -4,14 +4,13 @@ import {
   canReadBlock,
   type PageContent,
   pageContentSchema,
-  resolveBlockRole,
 } from '@neuma/shared';
-import type {
-  PageContentBlock,
-  PageDocumentSource,
-  PendingContentBlock,
-  ReadableContentBlocks,
-} from './page.block.domain.types';
+import {
+  indexById,
+  listDeclaringAncestors,
+  resolveRoleFromDeclaring,
+} from '../../../common/domain/block-access.domain';
+import type { PageContentBlock, PageDocumentSource, ReadableContentBlocks } from './page.block.domain.types';
 
 const collectBranch = (rootId: string, blocksById: ReadonlyMap<string, PageContentBlock>): string[] => {
   const branch: string[] = [];
@@ -35,18 +34,19 @@ export const listReadableContentBlocks = (
   viewer: BlockViewer,
 ): ReadableContentBlocks => {
   const blocksById = new Map(blocks.map((block) => [block.id, block]));
+  const declaringById = listDeclaringAncestors(
+    indexById([{ id: page.id, parentId: null, permissions: declared }, ...blocks]),
+  );
   const readable: PageContentBlock[] = [];
   const hiddenIds = new Set<string>();
-  const pending: PendingContentBlock[] = page.children.map((id) => ({ id, inherited: declared }));
+  const pending = [...page.children];
   for (let cursor = 0; cursor < pending.length; cursor += 1) {
-    const entry = pending[cursor];
-    const block = entry === undefined ? undefined : blocksById.get(entry.id);
-    if (entry === undefined || block === undefined) continue;
-    const permissions = block.permissions ?? entry.inherited;
-    const role = resolveBlockRole({ canReadSpace: true, chain: [{ id: block.id, permissions }], viewer });
+    const block = blocksById.get(pending[cursor] ?? '');
+    if (block === undefined) continue;
+    const role = resolveRoleFromDeclaring(declaringById.get(block.id) ?? null, true, viewer);
     if (canReadBlock(role)) {
       readable.push(block);
-      pending.push(...block.children.map((id) => ({ id, inherited: permissions })));
+      pending.push(...block.children);
     } else {
       for (const id of collectBranch(block.id, blocksById)) hiddenIds.add(id);
     }

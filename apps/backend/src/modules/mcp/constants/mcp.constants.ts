@@ -269,9 +269,6 @@ export const MCP_UNAUTHENTICATED_MESSAGE =
 export const MCP_UNREADABLE_PAGE_MESSAGE =
   'This page is stored in a format this version of Neuma cannot read. Ask a person to open it in the portal.';
 
-export const MCP_CLOSED_BLOCKS_BLOCK_EDIT_MESSAGE =
-  'This page holds blocks this token cannot see, laid out so that this change cannot be told apart from them. Ask a person to make it in the portal.';
-
 /** Deliberately vague: the detail stays in the server log. */
 export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Neuma side. Try again in a moment.';
 

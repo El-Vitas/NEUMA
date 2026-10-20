@@ -1,4 +1,4 @@
-import { Result } from '@neuma/shared';
+import { PAGE_LIFECYCLE, Result } from '@neuma/shared';
 import type { DomainError } from '../../../common/domain/domain.error';
 import { BLOCK_NO_PAGE_COLUMNS } from './block.page-operation.constants';
 import type {
@@ -31,9 +31,9 @@ const setLifecycle = (
   operation: Extract<BlockPageOperation, { command: 'setLifecycle' }>,
   author: PageOperationAuthor,
 ): WorkingBlock =>
-  operation.lifecycle === 'TRASHED'
-    ? withPageColumns({ ...block, lifecycle: 'TRASHED' }, { purgeAfter: null, trashedAt: author.now })
-    : withPageColumns({ ...block, lifecycle: 'ACTIVE' }, { purgeAfter: null, trashedAt: null });
+  operation.lifecycle === PAGE_LIFECYCLE.TRASHED
+    ? withPageColumns({ ...block, lifecycle: PAGE_LIFECYCLE.TRASHED }, { purgeAfter: null, trashedAt: author.now })
+    : withPageColumns({ ...block, lifecycle: PAGE_LIFECYCLE.ACTIVE }, { purgeAfter: null, trashedAt: null });
 
 /** One page command on one page. The version, the editor and the text are settled afterwards, as for any block. */
 export const applyPageOperation = (

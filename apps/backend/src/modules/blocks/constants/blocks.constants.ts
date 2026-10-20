@@ -17,9 +17,6 @@ export const BLOCK_SYNC_MAX_TEXT_STATE_BYTES = 16_777_216;
 /** Stops a corrupt parent cycle from recursing forever, in the subtree and in the ancestor chain. */
 export const BLOCK_TREE_MAX_DEPTH = 64;
 
-/** A child page is returned as a row but not opened: its own blocks load when that page is opened. */
-export const BLOCK_PAGE_TYPE = 'page';
-
 export const BLOCK_SYNC_CHOICE_MESSAGE = 'Send either pageId or blocks, not both';
 
 export const BLOCK_RELATION = {

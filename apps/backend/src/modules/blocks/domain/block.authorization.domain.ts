@@ -4,6 +4,7 @@ import {
   canEditBlock,
   canManageBlockPermissions,
   canReadBlock,
+  PAGE_LIFECYCLE,
   Result,
   resolveBlockRole,
 } from '@neuma/shared';
@@ -78,7 +79,7 @@ const listToleratedBlockers = (operation: BlockPageOperation): readonly WriteBlo
     case 'rewritePageValues':
       return ['locked', 'trashed'];
     case 'setLifecycle':
-      return operation.lifecycle === 'ACTIVE' ? ['locked', 'trashed'] : ['locked'];
+      return operation.lifecycle === PAGE_LIFECYCLE.ACTIVE ? ['locked', 'trashed'] : ['locked'];
     default:
       return ['locked'];
   }
@@ -87,8 +88,8 @@ const listToleratedBlockers = (operation: BlockPageOperation): readonly WriteBlo
 /** A page can be trashed once and restored only from the trash. */
 const checkLifecycleStep = (block: BlockRecord, operation: BlockPageOperation): Result<void, DomainError> => {
   if (operation.command !== 'setLifecycle') return ok();
-  const isTrashed = block.lifecycle === 'TRASHED';
-  if (operation.lifecycle === 'TRASHED') return isTrashed ? Result.fail(new BlockTrashedError()) : ok();
+  const isTrashed = block.lifecycle === PAGE_LIFECYCLE.TRASHED;
+  if (operation.lifecycle === PAGE_LIFECYCLE.TRASHED) return isTrashed ? Result.fail(new BlockTrashedError()) : ok();
   return isTrashed ? ok() : Result.fail(new BlockNotTrashedError());
 };
 

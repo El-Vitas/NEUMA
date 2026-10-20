@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { BLOCK_PRINCIPAL_KIND, BLOCK_ROLE, type BlockPermissions, USER_ROLE } from '@neuma/shared';
-import { indexById, resolveRoles } from '@/modules/blocks/domain/block.domain';
+import { indexById, resolveRoles } from '@/common/domain/block-access.domain';
 import type {
   BlockChainRow,
   LiveAccessContext,

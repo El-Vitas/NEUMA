@@ -13,7 +13,6 @@ import {
 } from './common/constants/throttler.constants';
 import { LoggerModule } from './common/infrastructure/logger.module';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
-import { BlockAccessRepository } from './common/infrastructure/persistence/block-access.repository';
 import { DatabaseHealthRepository } from './common/infrastructure/persistence/database-health.repository';
 import { WorkspaceContextService } from './common/infrastructure/persistence/workspace-context.service';
 import { WorkspaceMemberRepository } from './common/infrastructure/persistence/workspace-member.repository';
@@ -112,7 +111,6 @@ import { PrismaModule } from './prisma/prisma.module';
     PageContentService,
     WorkspaceContextService,
     AccessTokenPlaceRepository,
-    BlockAccessRepository,
     DatabaseHealthRepository,
     { provide: DATABASE_HEALTH_CHECK, useExisting: DatabaseHealthRepository },
     WorkspaceMemberRepository,

@@ -10,10 +10,11 @@ import {
   Result,
 } from '@neuma/shared';
 import { BLOCK_WRITER } from '../../../../common/constants/block-writer.constants';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import type { BlockWriter } from '../../../../common/types/block-writer.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_TRANSACTION_KIND } from '../../constants/pages.constants';
-import { readPageCover, readPageIcon, readPageTitle, readPageValues } from '../../domain/page.block.domain';
+import { readPageCover, readPageIcon, readPageValues } from '../../domain/page.block.domain';
 import type { PageBlockOperation, PageContentBlock, PageContentSnapshot } from '../../domain/page.block.domain.types';
 import { buildPageDocument, buildPageTree } from '../../domain/page.document.domain';
 import { listDocumentBlockIds, rewriteDocumentIds } from '../../domain/page.document.ids.domain';
@@ -307,7 +308,7 @@ export class PageBlockWriter {
     const page = await this.findPage(pageId, viewer);
     if (page === null) return null;
     if ((await this.applyContent(pageId, viewer, content)) === 'DENIED') return null;
-    if (readPageTitle(page.block.properties) !== title) {
+    if (readBlockTitle(page.block.properties) !== title) {
       const renamed = await this.apply(viewer, page.block.spaceId, [buildTitleOperation(pageId, title)]);
       if (!renamed) return null;
     }
@@ -362,7 +363,7 @@ export class PageBlockWriter {
     if (parent === undefined) return { isInTrash: false, title: null };
     const chains = await this.blockReader.readAncestry([parent.id]);
     const isInTrash = (chains.get(parent.id) ?? []).some((link) => link.lifecycle === PageLifecycle.TRASHED);
-    return { isInTrash, title: readPageTitle(parent.properties) };
+    return { isInTrash, title: readBlockTitle(parent.properties) };
   }
 
   private async listTrashedDescendantIds(page: AccessiblePage): Promise<string[]> {
@@ -424,7 +425,8 @@ export class PageBlockWriter {
         parentId: index === 0 ? page.block.parentId : (maps.pages.get(page.block.parentId ?? '') ?? null),
         propertyValues: readPageValues(page.block.properties),
         spaceId: page.block.spaceId,
-        title: index === 0 ? (rootTitle ?? readPageTitle(page.block.properties)) : readPageTitle(page.block.properties),
+        title:
+          index === 0 ? (rootTitle ?? readBlockTitle(page.block.properties)) : readBlockTitle(page.block.properties),
       });
       if (tree.isFail()) throw tree.getError();
       return { tree: tree.getValue() };

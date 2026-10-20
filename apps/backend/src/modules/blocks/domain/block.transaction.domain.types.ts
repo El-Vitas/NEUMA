@@ -1,6 +1,7 @@
-import type { BlockContent, BlockPermissions, BlockViewer, Result } from '@neuma/shared';
+import type { BlockContent, BlockPermissions, BlockViewer, PageLifecycle, Result } from '@neuma/shared';
+import type { RolesById } from '../../../common/domain/block-access.domain.types';
 import type { DomainError } from '../../../common/domain/domain.error';
-import type { BlockLifecycle, BlockRecord, RecordsById, RolesById } from './block.domain.types';
+import type { BlockRecord, RecordsById } from './block.domain.types';
 import type { BLOCK_BAG_VALUES, BLOCK_LINK_KIND, BLOCK_WRITABLE_FIELD_VALUES } from './block.operation.constants';
 
 export type BlockBag = (typeof BLOCK_BAG_VALUES)[number];
@@ -77,7 +78,7 @@ export type BlockPageOperation =
       readonly blockId: string;
       readonly command: 'setLifecycle';
       readonly detachFromParentId: string | null;
-      readonly lifecycle: BlockLifecycle;
+      readonly lifecycle: PageLifecycle;
     }
   | { readonly blockId: string; readonly command: 'setLock'; readonly isLocked: boolean }
   | {

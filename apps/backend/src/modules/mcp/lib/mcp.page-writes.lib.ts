@@ -21,7 +21,6 @@ import type {
 } from '../types/mcp.pages.types';
 import type { McpCall, McpPagePlace, McpPageSource, McpServerDependencies } from '../types/mcp.types';
 import { buildMcpPageUrl } from './mcp.address.lib';
-import { findMcpReadableBlockIds, hideClosedBlocksFromMcpEdit } from './mcp.block-access.lib';
 import { buildMcpBlockNodes } from './mcp.block-input.lib';
 import { readMcpBlockInContext } from './mcp.blocks.lib';
 import { settleMcpCollectionTargets } from './mcp.collection-targets.lib';
@@ -108,8 +107,7 @@ export const writeMcpContent = async (
     userId: principal.userId,
     workspaceId: workspace.id,
   };
-  const readable = await findMcpReadableBlockIds(dependencies, call, page.content);
-  return requireMcpSuccess(await dependencies.content.edit(writer, hideClosedBlocksFromMcpEdit(edit, readable)));
+  return requireMcpSuccess(await dependencies.content.edit(writer, edit));
 };
 
 /** A list that landed inside another no longer exists as such: its items remain and those are the ones named. */

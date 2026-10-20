@@ -8,10 +8,11 @@ import {
   type Result,
   type UserRole,
 } from '@neuma/shared';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_RESTORE_VERSION_OUTCOME } from '../../constants/pages.constants';
-import { readPageTitle, readPageValues } from '../../domain/page.block.domain';
+import { readPageValues } from '../../domain/page.block.domain';
 import { collectDescendantIds, pageTitleMatchesSearch } from '../../domain/page.domain';
 import { dropHiddenBlocks } from '../../domain/page.visibility.domain';
 import type { AccessiblePage, PageViewer } from '../../types/page.block.types';
@@ -286,7 +287,7 @@ export class PageRepository implements PageRepositoryContract {
       pages: blocks.map(({ id, parentId: blockParentId, spaceId }) => ({ id, parentId: blockParentId, spaceId })),
       propertyValues: readPageValues(page.block.properties),
       spaceId: page.block.spaceId,
-      title: readPageTitle(page.block.properties),
+      title: readBlockTitle(page.block.properties),
     };
   }
 
@@ -334,7 +335,7 @@ export class PageRepository implements PageRepositoryContract {
     return {
       pages: candidates
         .filter(({ access }) => !access.isInTrash)
-        .map(({ block }) => ({ id: block.id, spaceId: block.spaceId, title: readPageTitle(block.properties) }))
+        .map(({ block }) => ({ id: block.id, spaceId: block.spaceId, title: readBlockTitle(block.properties) }))
         .toSorted((first, second) => first.title.localeCompare(second.title)),
       spaces,
     };
@@ -370,7 +371,7 @@ export class PageRepository implements PageRepositoryContract {
     ).flat();
     const trashed = hierarchy.filter((block) => block.lifecycle === PageLifecycle.TRASHED);
     const accessible = await this.blockReader.keepAccessible(trashed, viewer);
-    const listed = accessible.filter(({ block }) => pageTitleMatchesSearch(readPageTitle(block.properties), search));
+    const listed = accessible.filter(({ block }) => pageTitleMatchesSearch(readBlockTitle(block.properties), search));
     if (listed.length === 0) return [];
     const lifecycleById = new Map(hierarchy.map((block) => [block.id, block.lifecycle]));
     const deletedBy = await this.blockReader.readUsers(listed.map(({ block }) => block.editedById));
@@ -458,7 +459,7 @@ export class PageRepository implements PageRepositoryContract {
       parentId: block.parentId,
       purgeAfter: block.purgeAfter,
       spaceId: block.spaceId,
-      title: readPageTitle(block.properties),
+      title: readBlockTitle(block.properties),
       trashedChildCount,
     };
   }

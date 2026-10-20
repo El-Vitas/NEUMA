@@ -2,9 +2,9 @@ import { isDeepStrictEqual } from 'node:util';
 import { Inject, Injectable } from '@nestjs/common';
 import { pageContentSchema } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { requireRow } from '../../../../common/utils/required-row.utils';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { readPageTitle } from '../../domain/page.block.domain';
 import { buildPageDocument } from '../../domain/page.document.domain';
 import { isSameEditingStretch } from '../../domain/page.version.domain';
 import { pageStoredJsonSchema } from '../../schemas/page.block.schemas';
@@ -38,7 +38,7 @@ export class PageVersionRepository {
         );
         return;
       }
-      const title = readPageTitle(page.properties);
+      const title = readBlockTitle(page.properties);
       const versions = transaction.orm.public.PageVersion;
       const latest = await versions
         .select('content', 'createdAt', 'createdById', 'id', 'title', 'version')

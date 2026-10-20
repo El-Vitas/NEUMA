@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { AccessTokenPlace } from '@neuma/shared';
+import { type AccessTokenPlace, BLOCK_TYPE } from '@neuma/shared';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../prisma/prisma.sql.lib';
 import { ACCESS_TOKEN_EMPTY_PAGE_REACH } from '../../constants/access-token.constants';
-import { BLOCK_ACCESS_PAGE_TYPE } from '../../constants/block-access.constants';
 import type {
   AccessTokenLineageRow,
   AccessTokenOriginLineageRow,
@@ -104,7 +103,7 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
         FROM "Block" AS "page"
         INNER JOIN "rule" ON "rule"."pageId" = "page"."id"
         INNER JOIN "Space" AS "space" ON "space"."id" = "page"."spaceId"
-        WHERE "space"."workspaceId" = ${workspaceId} AND "page"."type" = ${BLOCK_ACCESS_PAGE_TYPE}
+        WHERE "space"."workspaceId" = ${workspaceId} AND "page"."type" = ${BLOCK_TYPE.page}
         UNION ALL
         SELECT "child"."id", "child"."type", "child"."spaceId", "reach"."allows", "reach"."distance" + 1,
           "reach"."path" || "child"."id"
@@ -114,7 +113,7 @@ export class AccessTokenPlaceRepository implements AccessTokenPlaceReader {
       )
       SELECT DISTINCT ON ("id") "id", "spaceId", "allows"
       FROM "reach"
-      WHERE "type" = ${BLOCK_ACCESS_PAGE_TYPE}
+      WHERE "type" = ${BLOCK_TYPE.page}
       ORDER BY "id", "distance" ASC
     `.returnsRow({ allows: 'pg/bool@1', id: columns.id, spaceId: columns.spaceId });
     const rows: readonly AccessTokenReachRow[] = await this.prisma.runner.query(statement.build());

@@ -1,74 +1,7 @@
-import {
-  type BlockRole,
-  canManageBlockPermissions,
-  canReadBlock,
-  filterVisibleBlockIds,
-  resolveBlockRole,
-} from '@neuma/shared';
-import type {
-  BlockRecord,
-  BlockRoleSource,
-  DeclaringAncestor,
-  RecordsById,
-  RoleSourcesById,
-  RolesById,
-  VisibleBlock,
-  VisibleBlocksInput,
-} from './block.domain.types';
-
-export const indexById = <Indexed extends { readonly id: string }>(
-  records: readonly Indexed[],
-): ReadonlyMap<string, Indexed> => new Map(records.map((record) => [record.id, record]));
-
-/**
- * The nearest block, from this one upwards, that declares permissions. It is memoized per id, so each block is
- * resolved once from its parent. A cycle meets the in-progress marker and counts as having no declaration.
- */
-const findDeclaringAncestor = (
-  record: BlockRoleSource,
-  recordsById: RoleSourcesById,
-  memo: Map<string, DeclaringAncestor>,
-): DeclaringAncestor => {
-  const memoized = memo.get(record.id);
-  if (memoized !== undefined) return memoized;
-  memo.set(record.id, null);
-  const resolved = record.permissions === null ? findInherited(record, recordsById, memo) : toDeclaring(record);
-  memo.set(record.id, resolved);
-  return resolved;
-};
-
-const findInherited = (
-  record: BlockRoleSource,
-  recordsById: RoleSourcesById,
-  memo: Map<string, DeclaringAncestor>,
-): DeclaringAncestor => {
-  const parent = record.parentId === null ? undefined : recordsById.get(record.parentId);
-  return parent === undefined ? null : findDeclaringAncestor(parent, recordsById, memo);
-};
-
-const toDeclaring = (record: BlockRoleSource): DeclaringAncestor => ({
-  id: record.id,
-  permissions: record.permissions,
-});
-
-/** The role of every record for one viewer. The writes reuse it, so reads and writes agree on who may do what. */
-export const resolveRoles = (
-  { readableSpaceIds, viewer }: Pick<VisibleBlocksInput, 'readableSpaceIds' | 'viewer'>,
-  recordsById: RoleSourcesById,
-): RolesById => {
-  const memo = new Map<string, DeclaringAncestor>();
-  return new Map(
-    [...recordsById.values()].map((record) => {
-      const declaring = findDeclaringAncestor(record, recordsById, memo);
-      const role = resolveBlockRole({
-        canReadSpace: readableSpaceIds.has(record.spaceId),
-        chain: declaring === null ? [] : [declaring],
-        viewer,
-      });
-      return [record.id, role];
-    }),
-  );
-};
+import { type BlockRole, canManageBlockPermissions, canReadBlock, filterVisibleBlockIds } from '@neuma/shared';
+import { indexById, resolveRoles } from '../../../common/domain/block-access.domain';
+import type { RolesById } from '../../../common/domain/block-access.domain.types';
+import type { BlockRecord, RecordsById, VisibleBlock, VisibleBlocksInput } from './block.domain.types';
 
 /** A block is cut off with its whole branch once an ancestor among the targets is unreadable. */
 const isReachable = (

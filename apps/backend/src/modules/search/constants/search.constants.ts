@@ -31,7 +31,6 @@ export const SEARCH_MAX_ROUNDS = 4;
 /** Stops a corrupt parent cycle from recursing forever in the ancestor chain. */
 export const SEARCH_ANCESTOR_DEPTH_LIMIT = 64;
 
-export const SEARCH_PAGE_BLOCK_TYPE = 'page';
 export const SEARCH_HEADING_BLOCK_TYPE = 'heading';
 
 /** Every result is a page; the field stays for clients that filter on it. */

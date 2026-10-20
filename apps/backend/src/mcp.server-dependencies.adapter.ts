@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { PORTAL_URL_KEY } from './common/constants/env.constants';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
-import { BlockAccessRepository } from './common/infrastructure/persistence/block-access.repository';
 import { WorkspaceMemberRepository } from './common/infrastructure/persistence/workspace-member.repository';
 import { LinksService } from './modules/links/links.service';
 import { MCP_PRINCIPAL_RESOLVER } from './modules/mcp/constants/mcp.constants';
@@ -35,7 +34,6 @@ export class McpServerDependenciesAdapter {
     private readonly backlinks: LinksService,
     private readonly people: WorkspaceMemberRepository,
     private readonly placeReader: AccessTokenPlaceRepository,
-    private readonly blockAccess: BlockAccessRepository,
     @Inject(MCP_PRINCIPAL_RESOLVER) private readonly principalResolver: McpPrincipalResolver,
     private readonly searchService: SearchService,
     private readonly spacesService: SpacesService,
@@ -48,7 +46,6 @@ export class McpServerDependenciesAdapter {
     return {
       actionLog: this.actionLog,
       backlinks: this.backlinks,
-      blockAccess: this.blockAccess,
       collections: this.collections,
       content: this.content,
       drawings: this.drawings,

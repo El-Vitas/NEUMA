@@ -29,7 +29,6 @@ import type {
   McpPrincipal,
   McpServerDependencies,
 } from '../../../../src/modules/mcp/types/mcp.types';
-import { createOpenBlockAccess } from '../../../helpers/mcp.block-access.helper';
 import { createUnusedPageManager } from '../../../helpers/mcp.page-manager.helper';
 
 const SPACE = '00000000-0000-4000-8000-00000000000a';
@@ -203,7 +202,6 @@ const connect = async (
       },
     },
     backlinks: { listBacklinks: notUsedHere },
-    blockAccess: createOpenBlockAccess(),
     collections: collections.service,
     content: { edit: notUsedHere },
     drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },

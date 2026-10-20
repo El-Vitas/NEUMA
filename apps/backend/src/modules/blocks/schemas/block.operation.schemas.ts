@@ -1,10 +1,9 @@
-import { blockPermissionsSchema, PAGE_PROPERTY_KEY_MAX_LENGTH } from '@neuma/shared';
+import { blockPermissionsSchema, PAGE_LIFECYCLE_VALUES, PAGE_PROPERTY_KEY_MAX_LENGTH } from '@neuma/shared';
 import { z } from 'zod';
 import {
   BLOCK_COMMAND_VALUES,
   BLOCK_OPERATION_PATH_MAX_LENGTH,
   BLOCK_OPERATION_TABLE,
-  BLOCK_PAGE_LIFECYCLE_VALUES,
   BLOCK_PROPERTY_KEY_MAX_LENGTH,
   BLOCK_PROPERTY_KEY_PATTERN,
   BLOCK_SPACE_TABLE,
@@ -63,7 +62,7 @@ export const blockTrustedOperationEnvelopeSchema = buildEnvelopeSchema(BLOCK_TRU
 export const blockSetLifecycleArgsSchema = z
   .object({
     detachFromParentId: blockIdSchema.optional(),
-    lifecycle: z.enum(BLOCK_PAGE_LIFECYCLE_VALUES),
+    lifecycle: z.enum(PAGE_LIFECYCLE_VALUES),
   })
   .strict();
 

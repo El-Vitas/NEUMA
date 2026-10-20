@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { blockPermissionsSchema } from '@neuma/shared';
+import { BLOCK_TYPE, blockPermissionsSchema } from '@neuma/shared';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../prisma/prisma.sql.lib';
-import { BLOCK_ACCESS_PAGE_TYPE } from '../../constants/block-access.constants';
 import { listReadableBlockIds, readBlockTitle } from '../../domain/block-access.domain';
 import type { BlockAccessChainRow, BlockAccessViewer, ReadablePage } from '../../types/block-access.types';
 import { buildSpaceVisibilityFilter } from './space.visibility.filter';
@@ -27,7 +26,7 @@ export class BlockAccessRepository {
   async findReadablePages(pageIds: readonly string[], viewer: BlockAccessViewer): Promise<readonly ReadablePage[]> {
     const readableIds = await this.findReadableBlockIds(pageIds, viewer);
     if (readableIds.size === 0) return [];
-    const pages = await this.prisma.models.Block.where({ type: BLOCK_ACCESS_PAGE_TYPE })
+    const pages = await this.prisma.models.Block.where({ type: BLOCK_TYPE.page })
       .where((block) => block.id.in([...readableIds]))
       .select('id', 'properties', 'spaceId')
       .all();

@@ -1,10 +1,10 @@
 import { PageLifecycle } from '@neuma/db';
+import { BLOCK_TYPE } from '@neuma/shared';
 import type { NeumaSqlTag } from '../../../../prisma/types/prisma.types';
 import {
   SEARCH_ANCESTOR_DEPTH_LIMIT,
   SEARCH_HEADING_BLOCK_TYPE,
   SEARCH_INSIDE_WORD_RANK,
-  SEARCH_PAGE_BLOCK_TYPE,
   SEARCH_SNIPPET_OPTIONS,
   SEARCH_TEXT_RANK_NORMALIZATION,
   SEARCH_TITLE_RANK_BONUS,
@@ -31,7 +31,7 @@ const buildTsQuery = (sql: NeumaSqlTag, query: string): SqlFragment =>
 
 const buildTitleBonus = (sql: NeumaSqlTag): SqlFragment =>
   asDouble(
-    sql`(CASE WHEN "block"."type" = ${SEARCH_PAGE_BLOCK_TYPE}::text THEN ${SEARCH_TITLE_RANK_BONUS}::float8 ELSE 0::float8 END)`,
+    sql`(CASE WHEN "block"."type" = ${BLOCK_TYPE.page}::text THEN ${SEARCH_TITLE_RANK_BONUS}::float8 ELSE 0::float8 END)`,
   );
 
 /** Whole words through the vector index, and inside a word through the trigram index; accents and case ignored. */
@@ -104,7 +104,7 @@ const buildHitFilters = (
   if (query.spaceId !== undefined) filters.push(asBoolean(sql`"block"."spaceId" = ${query.spaceId}::text`));
   if (query.blockType !== undefined) filters.push(asBoolean(sql`"block"."type" = ${query.blockType}::text`));
   if (query.blockType === undefined && granularity === 'block') {
-    filters.push(asBoolean(sql`"block"."type" <> ${SEARCH_PAGE_BLOCK_TYPE}::text`));
+    filters.push(asBoolean(sql`"block"."type" <> ${BLOCK_TYPE.page}::text`));
   }
   if (query.editedRange !== undefined) {
     filters.push(buildEditedRangeFilter(sql, query.editedRange, asText(sql`"block"."editedAt"`)));
@@ -132,8 +132,8 @@ const buildAncestorSummary = (sql: NeumaSqlTag): SqlFragment =>
       WHERE "ancestor"."depth" < ${SEARCH_ANCESTOR_DEPTH_LIMIT}::int4
     )
     SELECT
-      (array_agg("id" ORDER BY "depth") FILTER (WHERE "type" = ${SEARCH_PAGE_BLOCK_TYPE}::text))[1] AS "pageId",
-      min("depth") FILTER (WHERE "type" = ${SEARCH_PAGE_BLOCK_TYPE}::text) AS "pageDepth",
+      (array_agg("id" ORDER BY "depth") FILTER (WHERE "type" = ${BLOCK_TYPE.page}::text))[1] AS "pageId",
+      min("depth") FILTER (WHERE "type" = ${BLOCK_TYPE.page}::text) AS "pageDepth",
       bool_and("isLive") AS "isLive",
       bool_or("parentId" IS NULL) AS "reachesRoot",
       coalesce(
@@ -151,7 +151,7 @@ const buildMatchChain = (sql: NeumaSqlTag): SqlFragment =>
       || coalesce("context"."chain", '[]'::jsonb) END)`);
 
 const buildPageChain = (sql: NeumaSqlTag): SqlFragment =>
-  asJson(sql`(CASE WHEN "hit"."type" = ${SEARCH_PAGE_BLOCK_TYPE}::text THEN ${buildMatchChain(sql)}
+  asJson(sql`(CASE WHEN "hit"."type" = ${BLOCK_TYPE.page}::text THEN ${buildMatchChain(sql)}
     ELSE coalesce((
       SELECT jsonb_agg("entry" ORDER BY ("entry"->>'depth')::int)
       FROM jsonb_array_elements("context"."chain") AS "entry"
@@ -257,14 +257,14 @@ export const buildCandidateStatement = (sql: NeumaSqlTag, request: SearchCandida
     ),
     "eligible" AS (
       SELECT "hit"."id", "hit"."rank",
-        (CASE WHEN "hit"."type" = ${SEARCH_PAGE_BLOCK_TYPE}::text THEN "hit"."id" ELSE "context"."pageId" END) AS "pageId",
+        (CASE WHEN "hit"."type" = ${BLOCK_TYPE.page}::text THEN "hit"."id" ELSE "context"."pageId" END) AS "pageId",
         ${buildMatchChain(sql)} AS "chain",
         ${buildPageChain(sql)} AS "pageChain",
         ${buildRuleOwner(sql)} AS "ruleOwner"
       FROM "hits" AS "hit"
       LEFT JOIN "context" ON "context"."id" = "hit"."parentId"
       INNER JOIN "Block" AS "page"
-        ON "page"."id" = (CASE WHEN "hit"."type" = ${SEARCH_PAGE_BLOCK_TYPE}::text THEN "hit"."id" ELSE "context"."pageId" END)
+        ON "page"."id" = (CASE WHEN "hit"."type" = ${BLOCK_TYPE.page}::text THEN "hit"."id" ELSE "context"."pageId" END)
       WHERE ("hit"."parentId" IS NULL OR ("context"."isLive" AND "context"."reachesRoot"))
         AND ${buildPageFilters(sql, query)}
     ),
@@ -296,7 +296,7 @@ export const buildCandidateStatement = (sql: NeumaSqlTag, request: SearchCandida
     INNER JOIN "Block" AS "hitBlock" ON "hitBlock"."id" = "ranked"."id"
     INNER JOIN "Block" AS "page" ON "page"."id" = "ranked"."pageId"
     INNER JOIN "Space" AS "space" ON "space"."id" = "hitBlock"."spaceId"
-    LEFT JOIN "Block" AS "parent" ON "parent"."id" = "page"."parentId" AND "parent"."type" = ${SEARCH_PAGE_BLOCK_TYPE}::text
+    LEFT JOIN "Block" AS "parent" ON "parent"."id" = "page"."parentId" AND "parent"."type" = ${BLOCK_TYPE.page}::text
     ${buildOrder(sql, request)}
   `;
 };

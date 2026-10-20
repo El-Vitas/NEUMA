@@ -24,7 +24,6 @@ import {
 } from '../constants/mcp.limits.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl, readMcpAddress, readMcpOffset } from '../lib/mcp.address.lib';
-import { findMcpReadableBlockIds, hideClosedMcpBlocks } from '../lib/mcp.block-access.lib';
 import { listMcpBlockComments, takeMcpPagePart } from '../lib/mcp.blocks.lib';
 import { formatMcpFetchText } from '../lib/mcp.fetch.text.lib';
 import { describeMcpPageState } from '../lib/mcp.page-state.lib';
@@ -58,8 +57,7 @@ const findReadablePage = async (
   if (result.isFail() || place === null) return null;
   const page = result.getValue();
   if (!canAccessTokenAct(principal.access, principal.role, place, ACCESS_TOKEN_PERMISSIONS.pagesRead)) return null;
-  const readable = await findMcpReadableBlockIds(dependencies, call, page.content);
-  const content = pageContentSchema.safeParse(hideClosedMcpBlocks(page.content, readable));
+  const content = pageContentSchema.safeParse(page.content);
   if (!content.success) throw new McpToolError(MCP_UNREADABLE_PAGE_MESSAGE);
   return { ...page, content: content.data };
 };

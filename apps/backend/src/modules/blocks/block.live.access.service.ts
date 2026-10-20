@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Result } from '@neuma/shared';
+import { indexById, resolveRoles } from '../../common/domain/block-access.domain';
 import { BLOCK_REPOSITORY, BLOCK_TREE_MAX_DEPTH } from './constants/blocks.constants';
-import { indexById, resolveRoles } from './domain/block.domain';
 import { BlockAccessDeniedError } from './domain/block.error';
 import { isBlockReadableInPage, isPageReadable, toViewerAccess } from './domain/block.live.access.domain';
 import type { LiveAccessContext } from './domain/block.live.domain.types';
