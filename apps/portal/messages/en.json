@@ -486,6 +486,7 @@
     "contentHelp": "Text is saved as a versioned structured block.",
     "trashReadOnly": "This page is in the trash. Restore it to edit it.",
     "readOnly": "You only have read access in this space.",
+    "blockSyncUnavailable": "The page could not be loaded for live editing, so it is read-only. Reload to try again.",
     "spaceUnavailable": "Space unavailable",
     "saveChanges": "Save changes",
     "saving": "Saving...",

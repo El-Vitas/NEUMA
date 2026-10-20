@@ -20,7 +20,9 @@ export const resolveReadOnlyMessage = (
   lifecycle: PageLifecycle,
   isLocked: boolean,
   say: (key: string) => string,
+  isBlockSyncUnavailable = false,
 ): string => {
+  if (isBlockSyncUnavailable) return say('blockSyncUnavailable');
   if (lifecycle === 'TRASHED') return say('trashReadOnly');
   return isLocked ? say('lock.banner') : say('readOnly');
 };

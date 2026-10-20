@@ -3,7 +3,7 @@
 import type { PageLifecycle } from '@neuma/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import type { Command, EditorState } from 'prosemirror-state';
+import type { Command, EditorState, Selection } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
@@ -55,6 +55,7 @@ import { PagesEditorPagePickerDialog } from '../editor/components/pages.editor.p
 import { PagesEditorToolbar } from '../editor/components/pages.editor.toolbar';
 import { PagesEditorViewPickerDialog } from '../editor/components/pages.editor.view-picker.dialog';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../editor/constants/pages.editor.constants';
+import { usePagesEditorCollaborationSource } from '../editor/hooks/use.pages.editor.collaboration-source';
 import { usePagesEditorLiveBinding } from '../editor/hooks/use.pages.editor.live-binding';
 import { isTheWritingStillInHand } from '../editor/lib/pages.editor.attention.lib';
 import { appendParagraphAtEnd } from '../editor/lib/pages.editor.commands';
@@ -113,7 +114,7 @@ import {
 } from '../editor/text/lib/pages.editor.link.lib';
 import { createPageTextColorCommand } from '../editor/text/lib/pages.editor.text-color.lib';
 import type { PageEditorLinkAtHand } from '../editor/text/types/pages.editor.link.types';
-import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
+import type { PagesEditorBlockCollaboration } from '../editor/types/pages.editor.block-binding.types';
 import { PagesPreviewLayer } from '../links/components/pages.preview.layer';
 import { usePagesPreview } from '../links/hooks/use.pages.preview';
 import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
@@ -121,6 +122,8 @@ import { createPageAction } from '../server/actions/pages.actions';
 import type { PageContent, PageSummary } from '../types/pages.types';
 
 interface IProps {
+  /** Set when the block channel keeps the page: no collaborative document is opened, and this is what is shown. */
+  readonly blockCollaboration?: PagesEditorBlockCollaboration | null;
   readonly canEdit: boolean;
   readonly content: PageContent;
   readonly currentUserDisplayName?: string;
@@ -131,6 +134,8 @@ interface IProps {
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
   /** Follows internal page links without leaving the current view, e.g. inside a side panel. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
+  /** Called after every change of the document or of where the cursor is. */
+  readonly onSelectionChange?: (selection: Selection) => void;
   readonly pageId: string | null;
   readonly pages?: readonly PageSummary[];
   readonly personOptions?: readonly PagePersonOption[];
@@ -142,6 +147,7 @@ interface IProps {
 export const PagesProseMirrorEditor = forwardRef(
   (
     {
+      blockCollaboration = null,
       canEdit,
       content,
       currentUserDisplayName,
@@ -150,6 +156,7 @@ export const PagesProseMirrorEditor = forwardRef(
       onContentChange,
       onHeadingsChange,
       onNavigateToPage,
+      onSelectionChange,
       pageId,
       pages = EMPTY_PAGE_SUMMARIES,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
@@ -201,7 +208,12 @@ export const PagesProseMirrorEditor = forwardRef(
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
-    const { participants, session, status } = usePagesCollaboration(pageId, canEdit, currentUserDisplayName ?? null);
+    const { participants, session, status } = usePagesEditorCollaborationSource({
+      blockCollaboration,
+      canEdit,
+      displayName: currentUserDisplayName ?? null,
+      pageId,
+    });
     const liveSessionRef = useRef(session);
 
     useEffect(() => {
@@ -218,6 +230,7 @@ export const PagesProseMirrorEditor = forwardRef(
       spaceId,
     });
     const contentCallbackRef = useRef(onContentChange);
+    const selectionCallbackRef = useRef(onSelectionChange);
     const headingsCallbackRef = useRef(onHeadingsChange);
     const followHeadingsRef = useRef(followThePageHeadings((headings) => headingsCallbackRef.current?.(headings)));
     const initialContentRef = useRef(content);
@@ -332,6 +345,10 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [onContentChange]);
 
     useEffect(() => {
+      selectionCallbackRef.current = onSelectionChange;
+    }, [onSelectionChange]);
+
+    useEffect(() => {
       headingsCallbackRef.current = onHeadingsChange;
     }, [onHeadingsChange]);
 
@@ -389,6 +406,7 @@ export const PagesProseMirrorEditor = forwardRef(
           }
           syncCollectionHosts();
           const selection = nextState.selection;
+          selectionCallbackRef.current?.(selection);
           const trigger = updateEditorTrigger(
             selection.empty ? selection.$from.parent.textContent.slice(0, selection.$from.parentOffset) : '',
           );
