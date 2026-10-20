@@ -62,7 +62,7 @@ mock.module('@/modules/favorites/server/queries/favorites.queries', () => ({
 mock.module('@/modules/pages/components/pages.workspace', () => ({ PagesWorkspace: workspace }));
 mock.module('@/modules/pages/attachments/server/queries/pages.attachments.queries', () => ({ getPageAttachments }));
 mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () => ({ getPageBacklinks }));
-mock.module('@/modules/pages/block-sync/server/queries/block-sync.queries', () => ({
+mock.module('@/modules/pages/block-sync/server/lib/block-sync.reading.server', () => ({
   getPageBlocks: async () => ({ getValue: () => [], isFail: () => false, isOk: () => true }),
 }));
 const getPages = mock(async () => pagesResult);

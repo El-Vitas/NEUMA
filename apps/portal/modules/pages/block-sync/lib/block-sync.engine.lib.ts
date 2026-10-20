@@ -29,11 +29,18 @@ import {
   buildApplyTextOperation,
   chunkOperationGroups,
   countOperationsByBlock,
+  listCreatedOrRevivedIds,
   listTouchedBlockIds,
+  readListedChildId,
 } from './block-sync.operations.lib';
 import { mapPresenceToParticipants, readBlockIdAtSelection } from './block-sync.presence.lib';
 import { createTransactionQueue } from './block-sync.queue.lib';
-import { areSnapshotMapsEqual, buildContentFromSnapshots, overlaySnapshots } from './block-sync.rows.lib';
+import {
+  areSnapshotMapsEqual,
+  buildContentFromSnapshots,
+  findChildrenDivergence,
+  overlaySnapshots,
+} from './block-sync.rows.lib';
 import { snapshotContent } from './block-sync.snapshot.lib';
 import { createBlockStore } from './block-sync.store.lib';
 
@@ -55,6 +62,9 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
   let isSyncingBlocks = false;
   let isRebasing = false;
   let rebaseFailures = 0;
+  let divergenceRounds = 0;
+  /** The children each parent was given since it was last read back, to check where the server put them. */
+  const verification = new Map<string, Set<string>>();
   let rebaseTouched = new Set<string>();
   let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
   let rebaseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -92,20 +102,39 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
     }
   };
 
+  /** The operations that turn `previous` into `next`, anchored only on blocks the server lists as live. */
+  const diffAgainst = (previous: BlockSnapshotMap, next: BlockSnapshotMap): readonly BlockOperationGroup[] => {
+    const pendingLive = listCreatedOrRevivedIds(queue.list().flatMap((transaction) => transaction.operations));
+    return diffSnapshots({
+      buried: store.readBuried(),
+      canAnchor: (blockId) => store.isLive(blockId) || pendingLive.has(blockId),
+      next,
+      pageId,
+      previous,
+      text: store.textWriter,
+    });
+  };
+
   const flushLocal = (): void => {
     if (coalesceTimer !== null) clearTimeout(coalesceTimer);
     coalesceTimer = null;
     if (isReadOnly || isDestroyed) return;
     const next = readSnapshotsOf(latestContent);
     if (next === null) return;
-    const groups = diffSnapshots({ next, pageId, previous: mirror, text: store.textWriter });
+    const groups = diffAgainst(mirror, next);
+    store.bury([...mirror.values()].filter((block) => block.id !== pageId && !next.has(block.id)));
     mirror = next;
     if (groups.length > 0) enqueueGroups(groups);
   };
 
   const applyToEditor = (localIds: ReadonlySet<string>): void => {
     flushLocal();
-    const merged = overlaySnapshots(store.readSnapshots(), mirror, new Set([...localIds, ...listPendingBlockIds()]));
+    const merged = overlaySnapshots(
+      store.readSnapshots(),
+      mirror,
+      new Set([...localIds, ...listPendingBlockIds()]),
+      (blockId) => store.readBuried().has(blockId),
+    );
     const built = buildContentFromSnapshots(merged, pageId);
     if (built.isFail()) return;
     const content = built.getValue();
@@ -154,10 +183,18 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
     });
   };
 
+  /** Sends what the server lacks of the writer's document; says saved at once when it lacks nothing. */
   const resendAfterRebase = (): void => {
-    const groups = diffSnapshots({ next: mirror, pageId, previous: store.readSnapshots(), text: store.textWriter });
+    store.forgetUnconfirmedBurials();
+    const groups = diffAgainst(store.readSnapshots(), mirror);
     const texts = listUnsentTextOperations(groups);
-    enqueueGroups([...groups, ...texts.map((operation): BlockOperationGroup => [operation])]);
+    const everything = [...groups, ...texts.map((operation): BlockOperationGroup => [operation])];
+    if (everything.length === 0) {
+      emitSaveState('saved');
+      resolveFlushWaiters(true);
+      return;
+    }
+    enqueueGroups(everything);
   };
 
   const rebase = async (): Promise<void> => {
@@ -200,6 +237,7 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
       giveUpOnRefusal();
       return;
     }
+    emitSaveState('failed');
     rebaseFailures += 1;
     flushLocal();
     const dropped = queue.clear();
@@ -208,10 +246,58 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
       ...listTouchedBlockIds([...transaction.operations, ...dropped.flatMap((held) => held.operations)]),
     ]);
     if (rebaseFailures > BLOCK_SYNC_REBASE_ATTEMPTS_MAX) {
-      emitSaveState('failed');
       resolveFlushWaiters(false);
       return;
     }
+    void rebase();
+  };
+
+  const requestVerification = (transaction: BlockTransaction): void => {
+    for (const operation of transaction.operations) {
+      if (operation.command !== 'listAfter' && operation.command !== 'listBefore') continue;
+      const childId = readListedChildId(operation);
+      const listed = verification.get(operation.pointer.id) ?? new Set<string>();
+      verification.set(operation.pointer.id, childId === undefined ? listed : listed.add(childId));
+    }
+  };
+
+  /** The server answered success; whether it listed the children where they were written is read back from it. */
+  const verifyStructure = async (): Promise<void> => {
+    if (queue.size() > 0 || isRebasing || isDestroyed || verification.size === 0) return;
+    const checked = new Map(verification);
+    verification.clear();
+    const response = await requestChanged([...checked.keys()].map((id) => ({ id, version: BLOCK_SYNC_FORCE_VERSION })));
+    if (response === null || queue.size() > 0) return;
+    const misplaced = response.blocks.filter((block) =>
+      findChildrenDivergence(
+        block.children,
+        mirror.get(block.id)?.children ?? block.children,
+        checked.get(block.id) ?? new Set(),
+      ),
+    );
+    if (misplaced.length > 0) {
+      handleDivergence(misplaced.flatMap((block) => [block.id, ...(checked.get(block.id) ?? [])]));
+      return;
+    }
+    divergenceRounds = 0;
+    if (store.mergeBlocks(response).length > 0) applyToEditor(new Set());
+  };
+
+  /** Not what was asked: show it, read the page again and send what the server lacks, from live anchors. */
+  const handleDivergence = (blockIds: readonly string[]): void => {
+    emitSaveState('failed');
+    divergenceRounds += 1;
+    if (divergenceRounds > BLOCK_SYNC_REBASE_ATTEMPTS_MAX) {
+      resolveFlushWaiters(false);
+      return;
+    }
+    flushLocal();
+    const dropped = queue.clear();
+    rebaseTouched = new Set([
+      ...rebaseTouched,
+      ...blockIds,
+      ...listTouchedBlockIds(dropped.flatMap((held) => held.operations)),
+    ]);
     void rebase();
   };
 
@@ -267,6 +353,7 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
     store.adoptSnapshots(listTouchedBlockIds(transaction.operations), mirror);
     const gaps = store.confirmTransaction(blocks, countOperationsByBlock(transaction.operations));
     store.confirmTexts(meta?.receipts ?? []);
+    requestVerification(transaction);
     if (gaps.length > 0) scheduleBlockSync(gaps, false);
     const withoutState = hasWrittenTextAsProperty(transaction.operations);
     if (withoutState.length > 0) scheduleBlockSync(withoutState, true);
@@ -274,7 +361,10 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
 
   const handleQueueState = (state: BlockQueueState): void => {
     emitSaveState(BLOCK_SYNC_SAVE_STATE_BY_QUEUE_STATE[state]);
-    if (state === 'idle' || state === 'backOnline') resolveFlushWaiters(true);
+    if (state === 'idle' || state === 'backOnline') {
+      resolveFlushWaiters(true);
+      void verifyStructure();
+    }
     if (state === 'offline') resolveFlushWaiters(false);
   };
 

@@ -35,23 +35,47 @@ const listPreOrder = (next: BlockSnapshotMap, pageId: string): readonly string[]
   return order;
 };
 
+/** The nearest sibling before the child that the list holds and the server lists as live. */
+const findAnchorBefore = (
+  nextChildren: readonly string[],
+  index: number,
+  working: readonly string[],
+  isAnchor: (blockId: string) => boolean,
+): string | undefined =>
+  nextChildren.slice(0, index).findLast((sibling) => working.includes(sibling) && isAnchor(sibling));
+
+const placeChild = (
+  childId: string,
+  anchors: { readonly after: string | undefined; readonly before: string | undefined },
+  isListEmpty: boolean,
+): ListPlacement => {
+  if (anchors.after !== undefined) return { after: anchors.after, childId };
+  if (anchors.before !== undefined) return { before: anchors.before, childId };
+  return isListEmpty ? { childId } : { atStart: true, childId };
+};
+
 /**
  * Where each child of a parent must be listed so that the server list ends up in the new order. A child that
- * is already in its place needs nothing; one that is not goes after its new neighbour, or before the first.
+ * is already in its place needs nothing; one that is not goes after the nearest sibling the server lists as live,
+ * or before the first such sibling. A sibling the server does not list is never an anchor: the server sends a
+ * child whose anchor it cannot find to the end of the list.
  */
 const planPlacements = (
   previousChildren: readonly string[],
   nextChildren: readonly string[],
+  canAnchor: (blockId: string) => boolean,
 ): Map<string, ListPlacement> => {
   const kept = new Set(nextChildren);
+  const known = new Set(previousChildren);
+  const isAnchor = (blockId: string): boolean => !known.has(blockId) || canAnchor(blockId);
   const working = previousChildren.filter((id) => kept.has(id));
   const placements = new Map<string, ListPlacement>();
   for (const [index, childId] of nextChildren.entries()) {
     if (working[index] === childId) continue;
-    const before = working[0];
-    const after = nextChildren[index - 1];
-    if (index === 0) placements.set(childId, before === undefined ? { childId } : { before, childId });
-    else placements.set(childId, { after, childId });
+    const after = findAnchorBefore(nextChildren, index, working, isAnchor);
+    const before = working.find((sibling) => sibling !== childId && isAnchor(sibling));
+    const isListEmpty = working.every((sibling) => sibling === childId);
+    placements.set(childId, placeChild(childId, { after, before }, isListEmpty));
     const without = working.filter((id) => id !== childId);
     working.splice(0, working.length, ...without.slice(0, index), childId, ...without.slice(index));
   }
@@ -125,6 +149,24 @@ const buildFieldOperations = (previous: BlockSnapshot, next: BlockSnapshot): rea
   return Object.keys(patch).length === 0 ? [] : [buildUpdateOperation(next.id, [], patch)];
 };
 
+/**
+ * A block the server holds dead and the document has again, as when a deletion is undone. It already exists there,
+ * so it is made alive under its parent and given what changed since it was deleted; a create would be refused.
+ */
+const buildRevivalOperations = (
+  dead: BlockSnapshot,
+  block: BlockSnapshot,
+  text: BlockTextWriter,
+): readonly BlockWireOperation[] => [
+  buildUpdateOperation(block.id, [], {
+    alive: true,
+    parentId: block.parentId,
+    ...(dead.type === block.type ? {} : { type: block.type }),
+  }),
+  ...buildPropertyOperations(dead, block, text),
+  ...buildFormatOperations(dead, block),
+];
+
 const buildRemovalGroup = (block: BlockSnapshot): BlockOperationGroup => [
   buildUpdateOperation(block.id, [], { alive: false }),
   ...(block.parentId === null ? [] : [buildListRemoveOperation(block.parentId, block.id)]),
@@ -134,12 +176,23 @@ const buildRemovalGroup = (block: BlockSnapshot): BlockOperationGroup => [
  * The operations that turn the blocks of `previous` into those of `next`. Blocks are visited parent first, so a
  * block is created after its parent and listed after its neighbour. Each block's operations form one group.
  */
-export const diffSnapshots = ({ next, pageId, previous, text }: DiffInput): readonly BlockOperationGroup[] => {
+export const diffSnapshots = ({
+  buried,
+  canAnchor = () => true,
+  next,
+  pageId,
+  previous,
+  text,
+}: DiffInput): readonly BlockOperationGroup[] => {
   const placementsByParent = new Map<string, Map<string, ListPlacement>>();
   const readPlacement = (parentId: string, childId: string): ListPlacement | undefined => {
     const cached = placementsByParent.get(parentId);
     if (cached !== undefined) return cached.get(childId);
-    const planned = planPlacements(previous.get(parentId)?.children ?? [], next.get(parentId)?.children ?? []);
+    const planned = planPlacements(
+      previous.get(parentId)?.children ?? [],
+      next.get(parentId)?.children ?? [],
+      canAnchor,
+    );
     placementsByParent.set(parentId, planned);
     return planned.get(childId);
   };
@@ -150,6 +203,8 @@ export const diffSnapshots = ({ next, pageId, previous, text }: DiffInput): read
     const hasMoved = before !== undefined && before.parentId !== block.parentId;
     const insert =
       placement === undefined || block.parentId === null ? [] : [buildListInsertOperation(block.parentId, placement)];
+    const dead = buried?.get(block.id);
+    if (before === undefined && dead !== undefined) return [...buildRevivalOperations(dead, block, text), ...insert];
     if (before === undefined) return [...buildCreationOperations(block, text), ...insert];
     const leave = hasMoved && before.parentId !== null ? [buildListRemoveOperation(before.parentId, block.id)] : [];
     return [

@@ -38,6 +38,7 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
   const docs = new Map<string, Doc>();
   const confirmedVectors = new Map<string, Map<number, number>>();
   const dirtyRevisions = new Map<string, number>();
+  const graveyard = new Map<string, BlockSnapshot>();
   let revisionCounter = 0;
 
   const ensureDoc = (blockId: string): Doc => {
@@ -80,13 +81,30 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
   const dropBlock = (blockId: string): boolean => {
     const wasKnown = snapshots.has(blockId);
     forget(blockId);
+    graveyard.delete(blockId);
     return wasKnown;
   };
 
+  /** A dead block is remembered as it was, so that one that comes back is revived rather than created again. */
+  const buryBlock = (blockId: string, fallback: BlockSnapshot, version: number): boolean => {
+    const wasLive = snapshots.has(blockId);
+    graveyard.set(blockId, snapshots.get(blockId) ?? fallback);
+    snapshots.delete(blockId);
+    roles.delete(blockId);
+    versions.set(blockId, Math.max(versions.get(blockId) ?? 0, version));
+    return wasLive;
+  };
+
+  const buryServerBlock = (block: SyncedBlock): boolean => {
+    absorbTextState(block.id, block.textState);
+    return buryBlock(block.id, toSnapshot(block), block.version);
+  };
+
   const mergeBlock = (block: SyncedBlock): boolean => {
-    if (!block.alive) return dropBlock(block.id);
+    if (!block.alive) return buryServerBlock(block);
     if (isKnownAtLeast(block)) return false;
     upsert(block);
+    graveyard.delete(block.id);
     return true;
   };
 
@@ -97,10 +115,17 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
 
   const replacePage = (blocks: readonly SyncedBlock[]): readonly string[] => {
     const incoming = new Set(blocks.map((block) => block.id));
-    const dropped = [...snapshots.keys()].filter((id) => !incoming.has(id));
-    for (const id of dropped) forget(id);
+    const absent = [...snapshots.entries()].filter(([id]) => !incoming.has(id));
+    const dropped = absent.filter(([id, snapshot]) => buryBlock(id, snapshot, versions.get(id) ?? 0)).map(([id]) => id);
     const changed = blocks.filter((block) => !isKnownAtLeast(block)).map((block) => block.id);
-    for (const block of blocks) if (block.alive) upsert(block);
+    for (const block of blocks) {
+      if (block.alive) {
+        upsert(block);
+        graveyard.delete(block.id);
+      } else {
+        buryServerBlock(block);
+      }
+    }
     return [...dropped, ...changed];
   };
 
@@ -153,9 +178,17 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
   const adoptSnapshots = (ids: Iterable<string>, adopted: BlockSnapshotMap): void => {
     for (const id of ids) {
       const snapshot = adopted.get(id);
-      if (snapshot === undefined) snapshots.delete(id);
-      else snapshots.set(id, snapshot);
+      if (snapshot === undefined) {
+        snapshots.delete(id);
+      } else {
+        snapshots.set(id, snapshot);
+        graveyard.delete(id);
+      }
     }
+  };
+
+  const forgetUnconfirmedBurials = (): void => {
+    for (const id of [...graveyard.keys()]) if (!versions.has(id)) graveyard.delete(id);
   };
 
   const createTextReceipts = (operations: readonly BlockWireOperation[]): readonly BlockTextReceipt[] =>
@@ -184,9 +217,15 @@ export const createBlockStore = (initialBlocks: readonly SyncedBlock[]): BlockSt
 
   return {
     adoptSnapshots,
+    bury: (removed) => {
+      for (const snapshot of removed) graveyard.set(snapshot.id, snapshot);
+    },
     confirmTexts,
     confirmTransaction,
     createTextReceipts,
+    forgetUnconfirmedBurials,
+    isLive: (blockId) => snapshots.has(blockId),
+    readBuried: () => graveyard,
     findBehind: (requested) =>
       requested
         .filter(({ id, version }) => version > (versions.get(id) ?? 0))

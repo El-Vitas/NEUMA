@@ -204,6 +204,34 @@ describe('createTransactionQueue', () => {
     expect(states).toEqual(['saving', 'idle']);
   });
 
+  it('never says idle after a refusal, even when the handler empties the queue', async () => {
+    const states: BlockQueueState[] = [];
+    const sent: PendingSend[] = [];
+    const queue = createTransactionQueue({
+      handlers: {
+        onApplied: () => undefined,
+        onRejected: () => {
+          queue.clear();
+        },
+        onStateChange: (state) => states.push(state),
+      },
+      send: (nextTransaction) =>
+        new Promise<BlockTransactionOutcome>((resolve, reject) => {
+          sent.push({ reject, resolve, transaction: nextTransaction });
+        }),
+    });
+    queue.enqueue(transaction('t1'));
+    await flush();
+
+    sent[0]?.resolve({
+      error: { code: 'BLOCK_ALREADY_EXISTS', details: { detail: 'p3' }, message: 'Refused' },
+      id: 't1',
+    });
+    await flush();
+
+    expect(states).toEqual(['saving']);
+  });
+
   it('sends nothing more after it was destroyed', async () => {
     const { queue, sent } = createHarness();
     queue.enqueue(transaction('t1'));

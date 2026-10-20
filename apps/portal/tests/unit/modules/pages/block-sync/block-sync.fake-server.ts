@@ -2,6 +2,7 @@ import type { PageContent } from '@neuma/shared';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import { decodeBase64, encodeBase64 } from '@/modules/pages/block-sync/lib/block-sync.base64.lib';
 import { BlockLiveRequestError } from '@/modules/pages/block-sync/lib/block-sync.errors.lib';
+import { blockLiveServerMessageSchema } from '@/modules/pages/block-sync/schemas/block-sync.schemas';
 import type {
   BlockLiveReply,
   BlockLiveRequestMessage,
@@ -28,8 +29,19 @@ interface ServerBlock {
   version: number;
 }
 
+type ServerBlockFields = Pick<
+  ServerBlock,
+  'alive' | 'children' | 'format' | 'parentId' | 'properties' | 'type' | 'version'
+>;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** The answer of the real server to a transaction it refused: a code, a message and the details it has. */
+const refuse = (id: string, code: string, detail: string): BlockTransactionOutcome => ({
+  error: { code, details: { detail }, message: `Refused: ${detail}` },
+  id,
+});
 
 const patchFields = (block: ServerBlock, args: Record<string, unknown>): void => {
   if (typeof args.alive === 'boolean') block.alive = args.alive;
@@ -66,7 +78,10 @@ const createServerBlock = (id: string, args: Record<string, unknown>): ServerBlo
 export class FakeBlockServer {
   readonly blocks = new Map<string, ServerBlock>();
   readonly receivedTransactionIds: string[] = [];
+  readonly receivedTransactions: BlockTransaction[] = [];
   readonly syncRequests: string[] = [];
+  /** Lets a test do something to the server right after a transaction was stored, such as misplacing a block. */
+  afterApply: ((transaction: BlockTransaction) => void) | null = null;
   private readonly results = new Map<string, BlockTransactionOutcome>();
   private failures: string[] = [];
 
@@ -127,7 +142,7 @@ export class FakeBlockServer {
     const revoked: string[] = [];
     for (const { id, version } of requested) {
       const block = this.blocks.get(id);
-      if (block === undefined || !block.alive) revoked.push(id);
+      if (block === undefined) revoked.push(id);
       else if (block.version > version) blocks.push(this.toSynced(block));
     }
     return { blocks, revoked };
@@ -158,20 +173,95 @@ export class FakeBlockServer {
     return this.require(blockId).children;
   }
 
+  /** Each transaction stands alone: one that fails leaves nothing behind, as on the real server. */
   apply(transaction: BlockTransaction): BlockTransactionOutcome {
     this.receivedTransactionIds.push(transaction.id);
+    this.receivedTransactions.push(transaction);
     const stored = this.results.get(transaction.id);
     if (stored !== undefined) return stored;
     const failure = this.failures.shift();
-    if (failure !== undefined) return { error: { code: failure, message: failure }, id: transaction.id };
+    if (failure !== undefined) return refuse(transaction.id, failure, failure);
+    const refusal = this.validate(transaction);
+    if (refusal !== null) return refusal;
+    const saved = this.captureFields(transaction);
     const touched = new Map<string, number>();
     for (const operation of transaction.operations) this.applyOperation(operation, touched);
+    const broken = this.findBrokenTree([...touched.keys()]);
+    if (broken !== null) {
+      this.restoreFields(saved);
+      return refuse(transaction.id, 'BLOCK_TREE_INVALID', broken);
+    }
     const outcome: BlockTransactionOutcome = {
       blocks: [...touched.keys()].map((id) => ({ id, version: this.require(id).version })),
       id: transaction.id,
     };
     this.results.set(transaction.id, outcome);
+    this.afterApply?.(transaction);
     return outcome;
+  }
+
+  private validate(transaction: BlockTransaction): BlockTransactionOutcome | null {
+    const created = new Set<string>();
+    for (const operation of transaction.operations) {
+      const id = operation.pointer.id;
+      if (operation.command === 'set') {
+        if (this.blocks.has(id) || created.has(id)) return refuse(transaction.id, 'BLOCK_ALREADY_EXISTS', id);
+        created.add(id);
+      } else if (!this.blocks.has(id) && !created.has(id)) {
+        return refuse(transaction.id, 'BLOCK_ACCESS_DENIED', id);
+      }
+    }
+    return null;
+  }
+
+  private captureFields(transaction: BlockTransaction): Map<string, ServerBlockFields | null> {
+    const saved = new Map<string, ServerBlockFields | null>();
+    for (const operation of transaction.operations) {
+      const block = this.blocks.get(operation.pointer.id);
+      if (saved.has(operation.pointer.id)) continue;
+      saved.set(
+        operation.pointer.id,
+        block === undefined
+          ? null
+          : {
+              alive: block.alive,
+              children: [...block.children],
+              format: { ...block.format },
+              parentId: block.parentId,
+              properties: { ...block.properties },
+              type: block.type,
+              version: block.version,
+            },
+      );
+    }
+    return saved;
+  }
+
+  private restoreFields(saved: ReadonlyMap<string, ServerBlockFields | null>): void {
+    for (const [id, fields] of saved) {
+      const block = this.blocks.get(id);
+      if (fields === null) this.blocks.delete(id);
+      else if (block !== undefined) Object.assign(block, fields);
+    }
+  }
+
+  /** A live block is listed in its parent exactly when it is alive, and a listed child is a live child. */
+  private findBrokenTree(touchedIds: readonly string[]): string | null {
+    for (const id of touchedIds) {
+      const block = this.require(id);
+      const parent = block.parentId === null ? undefined : this.blocks.get(block.parentId);
+      if (block.parentId !== null && parent === undefined) return `${id}: the parent does not exist`;
+      if (parent !== undefined && block.alive !== parent.children.includes(id)) {
+        return `${id}: a live block is listed in its parent children and a removed one is not`;
+      }
+      for (const childId of block.children) {
+        const child = this.blocks.get(childId);
+        if (child === undefined || !child.alive || child.parentId !== id) {
+          return `${id}: a listed child must be a live block whose parent is this block`;
+        }
+      }
+    }
+    return null;
   }
 
   private require(blockId: string): ServerBlock {
@@ -253,6 +343,20 @@ const isRichText = (value: unknown): value is readonly unknown[] =>
 
 export const PAGE_BLOCK_ID = PAGE_ID;
 
+/** What the client really receives: the server's answer as JSON, read with the schema the session uses. */
+const throughTheWire = (reply: Record<string, unknown>): BlockLiveReply => {
+  const message = blockLiveServerMessageSchema.parse(JSON.parse(JSON.stringify(reply)));
+  if (message.type === 'transactionsResult') return { transactions: message.transactions, type: 'transactionsResult' };
+  if (message.type === 'syncResult') {
+    return {
+      blocks: message.blocks,
+      ...(message.revoked === undefined ? {} : { revoked: message.revoked }),
+      type: 'syncResult',
+    };
+  }
+  throw new Error(`Not a reply: ${message.type}`);
+};
+
 /** The session as the engine sees it, wired to the fake server. Tests decide when it is connected. */
 export class FakeSession implements BlockLiveSession {
   isConnected = false;
@@ -287,13 +391,11 @@ export class FakeSession implements BlockLiveSession {
       return Promise.reject(new BlockLiveRequestError(code));
     }
     if (message.type === 'transactions') {
-      return Promise.resolve({
-        transactions: message.transactions.map((transaction) => this.server.apply(transaction)),
-        type: 'transactionsResult',
-      });
+      const transactions = message.transactions.map((transaction) => this.server.apply(transaction));
+      return Promise.resolve(throughTheWire({ requestId: 'r', transactions, type: 'transactionsResult' }));
     }
     const response = 'pageId' in message ? this.server.syncPage() : this.server.syncChanged(message.blocks);
-    return Promise.resolve({ type: 'syncResult', ...response });
+    return Promise.resolve(throughTheWire({ ...response, requestId: 'r', type: 'syncResult' }));
   };
 
   sendPresence = (blockId: string | null): void => {

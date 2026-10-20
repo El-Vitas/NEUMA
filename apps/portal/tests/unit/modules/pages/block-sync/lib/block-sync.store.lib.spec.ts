@@ -180,3 +180,70 @@ describe('text confirmation', () => {
     expect(store.textWriter.canWrite('new-block', 'title')).toBe(true);
   });
 });
+
+describe('blocks known to be dead', () => {
+  const content = documentOf(paragraph('p1', text('Hello')), paragraph('p2', text('World')));
+
+  it('are remembered as they were when this client deleted them', () => {
+    const store = createBlockStore(syncedBlocksOf(content));
+    const removed = readSnapshot(store.readSnapshots(), 'p2');
+
+    store.bury([removed]);
+
+    expect(store.readBuried().get('p2')).toEqual(removed);
+  });
+
+  it('are remembered when the server says a block is dead', () => {
+    const blocks = syncedBlocksOf(content);
+    const store = createBlockStore(blocks);
+
+    store.mergeBlocks({
+      blocks: blocks.map((block) => (block.id === 'p2' ? { ...block, alive: false, version: 2 } : block)),
+    });
+
+    expect(store.readSnapshots().has('p2')).toBe(false);
+    expect(store.readBuried().has('p2')).toBe(true);
+    expect(store.readVersion('p2')).toBe(2);
+  });
+
+  it('are remembered when a page read lists them as dead', () => {
+    const blocks = syncedBlocksOf(content);
+    const store = createBlockStore(blocks);
+
+    store.replacePage(blocks.map((block) => (block.id === 'p2' ? { ...block, alive: false, version: 2 } : block)));
+
+    expect(store.readBuried().has('p2')).toBe(true);
+  });
+
+  it('are forgotten once the server holds them alive again', () => {
+    const blocks = syncedBlocksOf(content);
+    const store = createBlockStore(blocks);
+    const removed = readSnapshot(store.readSnapshots(), 'p2');
+    store.bury([removed]);
+
+    store.adoptSnapshots(['p2'], new Map([['p2', removed]]));
+
+    expect(store.readBuried().has('p2')).toBe(false);
+    expect(store.isLive('p2')).toBe(true);
+  });
+
+  it('are not live, and a block never seen is not live either', () => {
+    const store = createBlockStore(syncedBlocksOf(content));
+    store.adoptSnapshots(['p2'], new Map());
+
+    expect(store.isLive('p1')).toBe(true);
+    expect(store.isLive('p2')).toBe(false);
+    expect(store.isLive('never-seen')).toBe(false);
+  });
+
+  it('are dropped from memory when the server never had them', () => {
+    const store = createBlockStore(syncedBlocksOf(content));
+    const removed = readSnapshot(store.readSnapshots(), 'p2');
+    store.bury([removed, { ...removed, id: 'made-here' }]);
+
+    store.forgetUnconfirmedBurials();
+
+    expect(store.readBuried().has('p2')).toBe(true);
+    expect(store.readBuried().has('made-here')).toBe(false);
+  });
+});
