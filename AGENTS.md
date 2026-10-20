@@ -8,15 +8,16 @@ Caution is preferred over speed. Clarity is preferred over cleverness. Simplicit
 
 ## Product Principle: Agent First
 
-Neuma is **Neural Enterprise Unified Memory & Agents**: the company brain, built for AI agents first and for people second. The portal exists and people use it, but every design decision starts from what an agent needs.
+Neuma is **Neural Enterprise Unified Memory & Agents**: the company brain, designed for AI agents first and for people second. The portal exists and people use it, but the product is a memory that agents think with.
 
-- **Parity.** Anything a person can do in the portal, an agent can do through the MCP: read, search, create, edit, move, comment, share, restore. A feature is not done until its MCP path exists and is tested. A read-only MCP path for something people can write is a gap, not a scope choice.
-- **Efficiency.** The agent path is the efficient one: few calls, precise results, no over-fetching. Search returns citable blocks with stable ids, reads can target a block instead of a whole page, and writes are block-level operations, not whole-document rewrites.
-- **Context.** An agent must find what it needs without guessing: stable ids, links between blocks, search before answering, and responses that say where each fact lives so it can be cited.
-- **Same rules.** Agents get exactly the permissions of the person who owns their token. There is no agent bypass and no agent-only shortcut around validation, versions or audit.
-- **Self-describing.** The MCP explains itself: how to use each tool goes in its instructions and tool descriptions, never in repository docs the agent does not read.
+Agent first is a design stance, not a checklist. Do not stop at mirroring the portal for agents: invent what only makes sense for an agent — tools, algorithms, data structures, ranking, context assembly, change feeds, ways to remember and to act. Ask "what would make an agent excellent at its job here?", not only "can the agent also do what a person does?".
 
-When a change makes the portal better and the agent path worse, the change is wrong.
+- **Agents can do everything.** What a person does in the portal, an agent can do too (today through the MCP). That is the floor, not the goal.
+- **Built for how agents work.** Agents have a context budget, act in loops, need to cite, and must not guess. Give them precise, compact, citable context with stable ids and provenance; let them read and write at block level; make operations idempotent and previewable; tell them what changed since they last looked.
+- **Same rules.** Agents get exactly the permissions of the person who owns their token. No agent bypass around validation, versions or audit.
+- **Self-describing.** How an agent should use Neuma lives in Neuma itself (MCP instructions and tool descriptions), never in repository docs the agent does not read.
+
+When a change makes the portal better and the agent experience worse, rethink it.
 
 ---
 
