@@ -56,32 +56,6 @@ rules:
     why: >-
       El código se consulta para copiarlo y para leerlo; si tabular saca el foco o las líneas se cortan, deja de poder
       trabajarse ahí.
-  - id: BR-1557ee4
-    status: active
-    title: Todo bloque tiene su propio id
-    rule: >-
-      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
-      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si una página llega entera
-      con dos bloques del mismo id, el segundo recibe uno nuevo. Un cambio que inserta o reemplaza bloques no puede
-      traer el id de otro bloque que ya está en la página: se rechaza diciendo cuál. Mover un bloque junto con otro que
-      lleva dentro lo mueve una sola vez, con lo que lleva.
-    why: >-
-      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
-      apuntan a él y no a la página entera. Dos bloques con un id son un enlace que no se sabe adónde lleva.
-    context: >-
-      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
-      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
-      administra el espacio de trabajo, de a una corrida por espacio de trabajo: dos a la vez darían ids distintos a la
-      misma página.
-    supersedes: BR-d44883b
-    superseded_reason: >-
-      Un cambio podía traer un bloque con el id de otro de la misma página, y mover un bloque junto con uno de los que
-      lleva dentro lo copiaba. Ahora lo primero se rechaza y lo segundo se mueve una vez.
-    scenarios:
-      - title: Mover una lista con uno de sus ítems
-        given: Una lista y uno de sus ítems, nombrados juntos
-        when: Se mueven al final de la página
-        then: La lista se mueve una vez, con el ítem dentro, y ningún id queda repetido
   - id: BR-2693dd5
     status: active
     title: Un enlace a esta app no recarga el navegador
@@ -259,6 +233,28 @@ rules:
       La escritura permite más combinaciones de las que una página puede guardar, y un bloque puesto donde no cabe solo
       se descubre cuando la página deja de guardarse.
     context: Por ejemplo, una cita sostiene escritura pero no un video; el video queda entonces debajo de la cita.
+  - id: BR-6dd8d27
+    status: active
+    title: Todo bloque tiene un id que no comparte con ningún otro
+    rule: >-
+      Cada bloque, incluida cada página, tiene un id que no comparte con ningún otro bloque de toda la base. Lo recibe
+      al escribirse, lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista, también al
+      moverse a otra página o a otro espacio. Duplicar una página da ids nuevos a toda la copia, y las referencias que
+      apuntaban dentro de la rama copiada pasan a apuntar a la copia. Un cambio que trae el id de un bloque que vive en
+      otra página no lo toca; el bloque escrito recibe un id nuevo.
+    why: >-
+      Con el id se llega a un bloque. El enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
+      apuntan a él y no a la página entera. Dos bloques con un mismo id son un enlace que no se sabe adónde lleva.
+    supersedes: BR-1557ee4
+    scenarios:
+      - title: Duplicar una página con una mención interna
+        given: Una página con una subpágina que la menciona
+        when: Se duplica la página con su descendencia
+        then: La copia y su subpágina tienen ids nuevos, y la mención de la subpágina copiada apunta a la copia
+      - title: Mover un bloque a otra página
+        given: Un bloque enlazado desde otra página
+        when: Se mueve a una tercera página
+        then: Conserva su id y el enlace sigue llevando a él
   - id: BR-6f1d15d
     status: active
     title: Las estampas de un diagrama viajan con la pagina
@@ -731,6 +727,30 @@ rules:
     why: >-
       Es la forma en que la gente ya escribe enlaces a mano en otras herramientas, y un enlace que no se distingue del
       texto no invita a seguirlo.
+  - id: BR-1557ee4
+    status: superseded
+    title: Todo bloque tiene su propio id
+    rule: >-
+      Cada bloque de una página tiene un id que no comparte con otro bloque de la misma página. Lo recibe al escribirse,
+      lo escriba una persona en el editor, la API o un agente, y lo conserva mientras exista. Si una página llega entera
+      con dos bloques del mismo id, el segundo recibe uno nuevo. Un cambio que inserta o reemplaza bloques no puede
+      traer el id de otro bloque que ya está en la página: se rechaza diciendo cuál. Mover un bloque junto con otro que
+      lleva dentro lo mueve una sola vez, con lo que lleva.
+    why: >-
+      Con el id se llega a un bloque: el enlace que se copia, la búsqueda que lo encuentra y el agente que lo cita
+      apuntan a él y no a la página entera. Dos bloques con un id son un enlace que no se sabe adónde lleva.
+    context: >-
+      El id es único dentro de su página, no en toda la base: duplicar una página o mover bloques a otra conserva los
+      ids. Las páginas que existían antes de esta regla se completan con el mantenimiento de bloques, que corre quien
+      administra el espacio de trabajo, de a una corrida por espacio de trabajo: dos a la vez darían ids distintos a la
+      misma página.
+    supersedes: BR-d44883b
+    superseded_by: BR-6dd8d27
+    scenarios:
+      - title: Mover una lista con uno de sus ítems
+        given: Una lista y uno de sus ítems, nombrados juntos
+        when: Se mueven al final de la página
+        then: La lista se mueve una vez, con el ítem dentro, y ningún id queda repetido
   - id: BR-d44883b
     status: superseded
     title: Todo bloque tiene su propio id
