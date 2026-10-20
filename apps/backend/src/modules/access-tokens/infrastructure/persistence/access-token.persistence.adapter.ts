@@ -21,6 +21,17 @@ export const readStoredPermissions = (stored: readonly string[]): readonly Acces
     return known.success ? [known.data] : [];
   });
 
+const readPageTitles = async (
+  models: NeumaModels,
+  pageIds: readonly string[],
+): Promise<ReadonlyMap<string, string>> => {
+  if (pageIds.length === 0) return new Map();
+  const pages = await models.Page.select('id', 'title')
+    .where((page) => page.id.in([...pageIds]))
+    .all();
+  return new Map(pages.map((page) => [page.id, page.title]));
+};
+
 /** Names come only from places the viewer can see, so an admin cannot read private names off another's token. */
 export const readStoredAccessTokens = async (
   models: NeumaModels,
@@ -53,13 +64,17 @@ export const readStoredAccessTokens = async (
         total: pageGrants.count(),
         visible: pageGrants
           .where((grant) => grant.page.some((page) => page.space.some(canSeeSpace)))
-          .select('permissions')
-          .include('page', (page) => page.select('id', 'title').include('space', (space) => space.select('name'))),
+          .select('pageId', 'permissions')
+          .include('page', (page) => page.select('id').include('space', (space) => space.select('name'))),
       }),
     )
     .include('user', (user) => user.select('id', 'name'))
     .orderBy((token) => token.createdAt.desc())
     .all();
+  const pageTitles = await readPageTitles(
+    models,
+    rows.flatMap((row) => row.pageGrants.visible.map((grant) => grant.pageId)),
+  );
   return rows.map((row) => ({
     _count: { grants: row.grants.total, pageGrants: row.pageGrants.total },
     allSpacesPermissions: row.allSpacesPermissions,
@@ -76,7 +91,11 @@ export const readStoredAccessTokens = async (
     pageGrants: row.pageGrants.visible.map((grant) => {
       const page = requireRelation(grant.page, 'page of a grant');
       return {
-        page: { id: page.id, space: requireRelation(page.space, 'space of a page'), title: page.title },
+        page: {
+          id: page.id,
+          space: requireRelation(page.space, 'space of a page'),
+          title: requireRow(pageTitles.get(page.id) ?? null, `Title of page ${page.id}`),
+        },
         permissions: grant.permissions,
       };
     }),

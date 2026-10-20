@@ -45,17 +45,17 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       readableChildren
         .select('id', 'propertyValues', 'title')
         .include('children', (children) => children.where(isReadable).count())
-        .include('schemaProperties', (schemaProperties) => schemaProperties.count())
         .orderBy([(page) => page.order.asc(), (page) => page.id.asc()])
         .offset(window.skip)
         .limit(window.take)
         .all(),
       readableChildren.aggregate((aggregation) => ({ total: aggregation.count() })),
     ]);
+    const collectionIds = await this.findCollectionIds(pages.map((page) => page.id));
     const entries = pages.map((page) => ({
       childCount: page.children,
       id: page.id,
-      isCollection: page.schemaProperties > 0,
+      isCollection: collectionIds.has(page.id),
       propertyValues: parseSchemaPropertyValues(page.propertyValues),
       title: page.title,
     }));
@@ -103,5 +103,13 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       .where(readableBy(reader))
       .where((page) => page.id.in([...pageIds]))
       .all();
+  }
+
+  private async findCollectionIds(pageIds: readonly string[]): Promise<ReadonlySet<string>> {
+    if (pageIds.length === 0) return new Set();
+    const properties = await this.prisma.models.PageSchemaProperty.select('pageId')
+      .where((property) => property.pageId.in([...pageIds]))
+      .all();
+    return new Set(properties.map((property) => property.pageId));
   }
 }

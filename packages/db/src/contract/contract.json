@@ -434,7 +434,7 @@
                   ]
                 },
                 "to": {
-                  "model": "Page",
+                  "model": "Block",
                   "namespace": "public"
                 }
               },
@@ -826,6 +826,21 @@
                   "namespace": "public"
                 }
               },
+              "favorites": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "PageFavorite",
+                  "namespace": "public"
+                }
+              },
               "incomingLinks": {
                 "cardinality": "1:N",
                 "on": {
@@ -888,6 +903,36 @@
                   "namespace": "public"
                 }
               },
+              "schemaProperties": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "PageSchemaProperty",
+                  "namespace": "public"
+                }
+              },
+              "schemaViews": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "PageSchemaView",
+                  "namespace": "public"
+                }
+              },
               "space": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -904,6 +949,21 @@
                   "namespace": "public"
                 }
               },
+              "tokenPageGrants": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "AccessTokenPageGrant",
+                  "namespace": "public"
+                }
+              },
               "verifiedBy": {
                 "cardinality": "N:1",
                 "nullable": true,
@@ -917,6 +977,36 @@
                 },
                 "to": {
                   "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "versions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "PageVersion",
+                  "namespace": "public"
+                }
+              },
+              "views": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "pageId"
+                  ]
+                },
+                "to": {
+                  "model": "PageView",
                   "namespace": "public"
                 }
               }
@@ -1854,21 +1944,6 @@
                   "namespace": "public"
                 }
               },
-              "favorites": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "pageId"
-                  ]
-                },
-                "to": {
-                  "model": "PageFavorite",
-                  "namespace": "public"
-                }
-              },
               "linksAsSource": {
                 "cardinality": "1:N",
                 "on": {
@@ -1931,36 +2006,6 @@
                   "namespace": "public"
                 }
               },
-              "schemaProperties": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "pageId"
-                  ]
-                },
-                "to": {
-                  "model": "PageSchemaProperty",
-                  "namespace": "public"
-                }
-              },
-              "schemaViews": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "pageId"
-                  ]
-                },
-                "to": {
-                  "model": "PageSchemaView",
-                  "namespace": "public"
-                }
-              },
               "space": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -1977,21 +2022,6 @@
                   "namespace": "public"
                 }
               },
-              "tokenPageGrants": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "pageId"
-                  ]
-                },
-                "to": {
-                  "model": "AccessTokenPageGrant",
-                  "namespace": "public"
-                }
-              },
               "verifiedBy": {
                 "cardinality": "N:1",
                 "nullable": true,
@@ -2005,36 +2035,6 @@
                 },
                 "to": {
                   "model": "User",
-                  "namespace": "public"
-                }
-              },
-              "versions": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "pageId"
-                  ]
-                },
-                "to": {
-                  "model": "PageVersion",
-                  "namespace": "public"
-                }
-              },
-              "views": {
-                "cardinality": "1:N",
-                "on": {
-                  "localFields": [
-                    "id"
-                  ],
-                  "targetFields": [
-                    "pageId"
-                  ]
-                },
-                "to": {
-                  "model": "PageView",
                   "namespace": "public"
                 }
               }
@@ -2294,7 +2294,7 @@
                   ]
                 },
                 "to": {
-                  "model": "Page",
+                  "model": "Block",
                   "namespace": "public"
                 }
               },
@@ -2607,7 +2607,7 @@
                   ]
                 },
                 "to": {
-                  "model": "Page",
+                  "model": "Block",
                   "namespace": "public"
                 }
               }
@@ -2725,7 +2725,7 @@
                   ]
                 },
                 "to": {
-                  "model": "Page",
+                  "model": "Block",
                   "namespace": "public"
                 }
               }
@@ -2829,7 +2829,7 @@
                   ]
                 },
                 "to": {
-                  "model": "Page",
+                  "model": "Block",
                   "namespace": "public"
                 }
               }
@@ -2906,7 +2906,7 @@
                   ]
                 },
                 "to": {
-                  "model": "Page",
+                  "model": "Block",
                   "namespace": "public"
                 }
               },
@@ -4345,7 +4345,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "Page"
+                    "tableName": "Block"
                   }
                 }
               ],
@@ -5909,7 +5909,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "Page"
+                    "tableName": "Block"
                   }
                 }
               ],
@@ -6210,7 +6210,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "Page"
+                    "tableName": "Block"
                   }
                 }
               ],
@@ -6332,7 +6332,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "Page"
+                    "tableName": "Block"
                   }
                 }
               ],
@@ -6432,7 +6432,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "Page"
+                    "tableName": "Block"
                   }
                 }
               ],
@@ -6509,7 +6509,7 @@
                       "id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "Page"
+                    "tableName": "Block"
                   }
                 },
                 {
@@ -7350,7 +7350,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e34575adbfc072430535fef14dc2ab29be661c6fcf2a270a95cf87c6894da39e"
+    "storageHash": "03e484a78007ec7a86ab2d63c8b40063d74c20fedd9957450b83573fcd902f1d"
   },
   "execution": {
     "executionHash": "56433f427166a1ba42bdc0d89ccb832c3bfc4e22ca7c9ab0e2e94ac95437d022",

@@ -8,7 +8,7 @@ model PageSchemaProperty {
   required Boolean                       @default(false)
   options  Jsonb?
   order    Int                           @default(0)
-  page     Page                          @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageSchemaProperty_pageId_fkey", index: "PageSchemaProperty_pageId_key_key")
+  page     Block                         @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageSchemaProperty_pageId_fkey", index: "PageSchemaProperty_pageId_key_key")
 
   @@unique([pageId, key], map: "PageSchemaProperty_pageId_key_key")
   @@index([pageId, order], map: "PageSchemaProperty_pageId_order_idx")

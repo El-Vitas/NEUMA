@@ -135,6 +135,19 @@ const seedPage = async (
     create: { ...page, createdById: userId, spaceId, updatedById: userId },
     update: { ...page, createdById: userId, updatedById: userId },
   });
+  const pageBlock = {
+    createdById: userId,
+    editedById: userId,
+    parentId: page.parentId,
+    properties: { title: page.title },
+    spaceId,
+    type: 'page',
+  };
+  await models.Block.upsert({
+    conflictOn: { id: page.id },
+    create: { ...pageBlock, id: page.id },
+    update: pageBlock,
+  });
   const updatedCount = await models.PageVersion.where({ pageId: page.id, version: 1 }).updateAndCount({
     content: page.content,
     createdById: userId,

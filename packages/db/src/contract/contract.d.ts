@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'e34575adbfc072430535fef14dc2ab29be661c6fcf2a270a95cf87c6894da39e'>;
+  StorageHashBase<'03e484a78007ec7a86ab2d63c8b40063d74c20fedd9957450b83573fcd902f1d'>;
 export type ExecutionHash =
   ExecutionHashBase<'56433f427166a1ba42bdc0d89ccb832c3bfc4e22ca7c9ab0e2e94ac95437d022'>;
 export type ProfileHash =
@@ -1446,7 +1446,7 @@ export namespace Models {
     pageId: CodecTypes['pg/text@1']['output'];
     permissions: ReadonlyArray<CodecTypes['pg/text@1']['output']>;
     tokenId: CodecTypes['pg/text@1']['output'];
-    page: public_Page;
+    page: public_Block;
     token: public_AccessToken;
     readonly [RelationKeys]?: 'page' | 'token';
   };
@@ -1493,21 +1493,33 @@ export namespace Models {
     version: CodecTypes['pg/int4@1']['output'];
     childBlocks: public_Block[];
     containedLinks: public_BlockLink[];
+    favorites: public_PageFavorite[];
     incomingLinks: public_BlockLink[];
     outgoingLinks: public_BlockLink[];
     owner: public_User | null;
     parent: public_Block | null;
+    schemaProperties: public_PageSchemaProperty[];
+    schemaViews: public_PageSchemaView[];
     space: public_Space;
+    tokenPageGrants: public_AccessTokenPageGrant[];
     verifiedBy: public_User | null;
+    versions: public_PageVersion[];
+    views: public_PageView[];
     readonly [RelationKeys]?:
       | 'childBlocks'
       | 'containedLinks'
+      | 'favorites'
       | 'incomingLinks'
       | 'outgoingLinks'
       | 'owner'
       | 'parent'
+      | 'schemaProperties'
+      | 'schemaViews'
       | 'space'
-      | 'verifiedBy';
+      | 'tokenPageGrants'
+      | 'verifiedBy'
+      | 'versions'
+      | 'views';
   };
   export type public_BlockLink = {
     createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
@@ -1606,33 +1618,21 @@ export namespace Models {
     verifiedById: CodecTypes['pg/text@1']['output'] | null;
     blocks: public_PageBlock[];
     children: public_Page[];
-    favorites: public_PageFavorite[];
     linksAsSource: public_PageLink[];
     linksAsTarget: public_PageLink[];
     owner: public_User | null;
     parent: public_Page | null;
-    schemaProperties: public_PageSchemaProperty[];
-    schemaViews: public_PageSchemaView[];
     space: public_Space;
-    tokenPageGrants: public_AccessTokenPageGrant[];
     verifiedBy: public_User | null;
-    versions: public_PageVersion[];
-    views: public_PageView[];
     readonly [RelationKeys]?:
       | 'blocks'
       | 'children'
-      | 'favorites'
       | 'linksAsSource'
       | 'linksAsTarget'
       | 'owner'
       | 'parent'
-      | 'schemaProperties'
-      | 'schemaViews'
       | 'space'
-      | 'tokenPageGrants'
-      | 'verifiedBy'
-      | 'versions'
-      | 'views';
+      | 'verifiedBy';
   };
   export type public_PageBlock = {
     blockId: CodecTypes['pg/text@1']['output'];
@@ -1654,7 +1654,7 @@ export namespace Models {
     order: CodecTypes['pg/int4@1']['output'];
     pageId: CodecTypes['pg/text@1']['output'];
     userId: CodecTypes['pg/text@1']['output'];
-    page: public_Page;
+    page: public_Block;
     user: public_User;
     readonly [RelationKeys]?: 'page' | 'user';
   };
@@ -1690,7 +1690,7 @@ export namespace Models {
     required: CodecTypes['pg/bool@1']['output'];
     type:
       'TITLE' | 'RICH_TEXT' | 'SELECT' | 'MULTI_SELECT' | 'PERSON' | 'DATE' | 'CHECKBOX' | 'NUMBER';
-    page: public_Page;
+    page: public_Block;
     readonly [RelationKeys]?: 'page';
   };
   export type public_PageSchemaView = {
@@ -1703,7 +1703,7 @@ export namespace Models {
     pageId: CodecTypes['pg/text@1']['output'];
     type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
     updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
-    page: public_Page;
+    page: public_Block;
     readonly [RelationKeys]?: 'page';
   };
   export type public_PageVersion = {
@@ -1714,7 +1714,7 @@ export namespace Models {
     pageId: CodecTypes['pg/text@1']['output'];
     title: CodecTypes['pg/text@1']['output'];
     version: CodecTypes['pg/int4@1']['output'];
-    page: public_Page;
+    page: public_Block;
     readonly [RelationKeys]?: 'page';
   };
   export type public_PageView = {
@@ -1722,7 +1722,7 @@ export namespace Models {
     pageId: CodecTypes['pg/text@1']['output'];
     userId: CodecTypes['pg/text@1']['output'];
     viewedAt: CodecTypes['pg/timestamptz-date@1']['output'];
-    page: public_Page;
+    page: public_Block;
     user: public_User;
     readonly [RelationKeys]?: 'page' | 'user';
   };
@@ -2142,7 +2142,7 @@ type ContractBase = Omit<
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'Page';
+                    readonly tableName: 'Block';
                     readonly columns: readonly ['id'];
                   };
                   readonly name: 'AccessTokenPageGrant_pageId_fkey';
@@ -3455,7 +3455,7 @@ type ContractBase = Omit<
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'Page';
+                    readonly tableName: 'Block';
                     readonly columns: readonly ['id'];
                   };
                   readonly name: 'PageFavorite_pageId_fkey';
@@ -3704,7 +3704,7 @@ type ContractBase = Omit<
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'Page';
+                    readonly tableName: 'Block';
                     readonly columns: readonly ['id'];
                   };
                   readonly name: 'PageSchemaProperty_pageId_fkey';
@@ -3809,7 +3809,7 @@ type ContractBase = Omit<
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'Page';
+                    readonly tableName: 'Block';
                     readonly columns: readonly ['id'];
                   };
                   readonly name: 'PageSchemaView_pageId_fkey';
@@ -3885,7 +3885,7 @@ type ContractBase = Omit<
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'Page';
+                    readonly tableName: 'Block';
                     readonly columns: readonly ['id'];
                   };
                   readonly name: 'PageVersion_pageId_fkey';
@@ -3943,7 +3943,7 @@ type ContractBase = Omit<
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'Page';
+                    readonly tableName: 'Block';
                     readonly columns: readonly ['id'];
                   };
                   readonly name: 'PageView_pageId_fkey';
@@ -4856,7 +4856,10 @@ type ContractBase = Omit<
             };
             readonly relations: {
               readonly page: {
-                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Page' };
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Block';
+                };
                 readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
@@ -5122,6 +5125,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['sourcePageId'];
                 };
               };
+              readonly favorites: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PageFavorite';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['pageId'];
+                };
+              };
               readonly incomingLinks: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -5165,6 +5179,28 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
+              readonly schemaProperties: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PageSchemaProperty';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['pageId'];
+                };
+              };
+              readonly schemaViews: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PageSchemaView';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['pageId'];
+                };
+              };
               readonly space: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -5177,6 +5213,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
+              readonly tokenPageGrants: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'AccessTokenPageGrant';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['pageId'];
+                };
+              };
               readonly verifiedBy: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
@@ -5184,6 +5231,28 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['verifiedById'];
                   readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly versions: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PageVersion';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['pageId'];
+                };
+              };
+              readonly views: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PageView';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['pageId'];
                 };
               };
             };
@@ -5785,17 +5854,6 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['parentId'];
                 };
               };
-              readonly favorites: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PageFavorite';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['pageId'];
-                };
-              };
               readonly linksAsSource: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -5836,28 +5894,6 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
-              readonly schemaProperties: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PageSchemaProperty';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['pageId'];
-                };
-              };
-              readonly schemaViews: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PageSchemaView';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['pageId'];
-                };
-              };
               readonly space: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -5870,17 +5906,6 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
-              readonly tokenPageGrants: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'AccessTokenPageGrant';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['pageId'];
-                };
-              };
               readonly verifiedBy: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
@@ -5888,28 +5913,6 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['verifiedById'];
                   readonly targetFields: readonly ['id'];
-                };
-              };
-              readonly versions: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PageVersion';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['pageId'];
-                };
-              };
-              readonly views: {
-                readonly to: {
-                  readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'PageView';
-                };
-                readonly cardinality: '1:N';
-                readonly on: {
-                  readonly localFields: readonly ['id'];
-                  readonly targetFields: readonly ['pageId'];
                 };
               };
             };
@@ -6045,7 +6048,10 @@ type ContractBase = Omit<
             };
             readonly relations: {
               readonly page: {
-                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Page' };
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Block';
+                };
                 readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
@@ -6242,7 +6248,10 @@ type ContractBase = Omit<
             };
             readonly relations: {
               readonly page: {
-                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Page' };
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Block';
+                };
                 readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
@@ -6317,7 +6326,10 @@ type ContractBase = Omit<
             };
             readonly relations: {
               readonly page: {
-                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Page' };
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Block';
+                };
                 readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
@@ -6378,7 +6390,10 @@ type ContractBase = Omit<
             };
             readonly relations: {
               readonly page: {
-                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Page' };
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Block';
+                };
                 readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {
@@ -6425,7 +6440,10 @@ type ContractBase = Omit<
             };
             readonly relations: {
               readonly page: {
-                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Page' };
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Block';
+                };
                 readonly cardinality: 'N:1';
                 readonly nullable: false;
                 readonly on: {

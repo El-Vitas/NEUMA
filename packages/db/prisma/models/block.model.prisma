@@ -38,6 +38,12 @@ model Block {
   outgoingLinks         BlockLink[]                @relation(name: "BlockLinkSourceBlock")
   incomingLinks         BlockLink[]                @relation(name: "BlockLinkTargetBlock")
   containedLinks        BlockLink[]                @relation(name: "BlockLinkSourcePage")
+  versions              PageVersion[]
+  favorites             PageFavorite[]
+  views                 PageView[]
+  schemaProperties      PageSchemaProperty[]
+  schemaViews           PageSchemaView[]
+  tokenPageGrants       AccessTokenPageGrant[]
 
   @@index([parentId], map: "Block_parentId_idx")
   @@index([spaceId, lifecycle], map: "Block_spaceId_lifecycle_idx")
