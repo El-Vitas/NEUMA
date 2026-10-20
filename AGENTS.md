@@ -17,7 +17,7 @@ Agent first is a design stance, not a checklist. Do not stop at mirroring the po
 - **Same rules.** Agents get exactly the permissions of the person who owns their token. No agent bypass around validation, versions or audit.
 - **Self-describing.** How an agent should use Neuma lives in Neuma itself (MCP instructions and tool descriptions), never in repository docs the agent does not read.
 
-When a change makes the portal better and the agent experience worse, rethink it.
+When a change makes the portal better and the agent experience worse, rethink it. Ideas waiting for their turn live in `docs/scope/agent-first-ideas.md`.
 
 ---
 
