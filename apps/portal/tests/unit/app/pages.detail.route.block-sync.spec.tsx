@@ -72,7 +72,7 @@ mock.module('@/modules/pages/attachments/server/queries/pages.attachments.querie
 mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () => ({
   getPageBacklinks: async () => emptyList,
 }));
-mock.module('@/modules/pages/block-sync/server/queries/block-sync.queries', () => ({ getPageBlocks }));
+mock.module('@/modules/pages/block-sync/server/lib/block-sync.reading.server', () => ({ getPageBlocks }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
   getPages: async () => pagesResult,
   getPagesHolding: async () => pagesResult,

@@ -10,7 +10,7 @@ import { redirect } from '@/i18n/navigation';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { getPageAttachments } from '@/modules/pages/attachments/server/queries/pages.attachments.queries';
 import { resolveBlockEditorStart, withBlockEditorContent } from '@/modules/pages/block-sync/lib/block-sync.start.lib';
-import { getPageBlocks } from '@/modules/pages/block-sync/server/queries/block-sync.queries';
+import { getPageBlocks } from '@/modules/pages/block-sync/server/lib/block-sync.reading.server';
 import type { SyncedBlock } from '@/modules/pages/block-sync/types/block-sync.types';
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';

@@ -5,8 +5,6 @@ export const BLOCK_SYNC_API_ROUTES = {
   sync: '/api/v1/sync',
 } as const;
 
-export const BLOCK_SYNC_CACHE_TAG = (pageId: string): string => `block-sync-${pageId}`;
-
 export const BLOCK_SYNC_LIVE_PATH = '/blocks/live';
 
 /** The collaboration socket and the block socket are served by the same backend, under the same prefix. */
@@ -69,7 +67,6 @@ export const BLOCK_SYNC_FORBIDDEN_ERROR_CODES: readonly string[] = [
   'BLOCK_EDIT_FORBIDDEN',
   'PAGE_LOCKED',
   'PAGE_INVALID_LIFECYCLE',
-  'BLOCK_ACCESS_DENIED',
 ];
 
 /** Sent to the server when the cursor is in no block. */

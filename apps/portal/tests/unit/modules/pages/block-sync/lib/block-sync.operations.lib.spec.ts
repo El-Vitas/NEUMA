@@ -7,6 +7,7 @@ import {
   buildUpdateOperation,
   chunkOperationGroups,
   countOperationsByBlock,
+  listCreatedOrRevivedIds,
   listTouchedBlockIds,
 } from '@/modules/pages/block-sync/lib/block-sync.operations.lib';
 
@@ -96,6 +97,30 @@ describe('listTouchedBlockIds', () => {
     ]);
 
     expect([...touched].toSorted()).toEqual(['m', 'n', 'old', 'p', 'x']);
+  });
+});
+
+describe('listing a child at the start', () => {
+  it('lists it before nothing, which the server reads as the start of the list', () => {
+    expect(buildListInsertOperation('parent', { atStart: true, childId: 'c' })).toMatchObject({
+      args: { id: 'c' },
+      command: 'listBefore',
+      path: ['children'],
+    });
+  });
+});
+
+describe('listCreatedOrRevivedIds', () => {
+  it('names the blocks a set creates and an update brings back, not the ones it only changes', () => {
+    const ids = listCreatedOrRevivedIds([
+      buildSetOperation('made', { id: 'made' }),
+      buildUpdateOperation('back', [], { alive: true, parentId: 'p' }),
+      buildUpdateOperation('gone', [], { alive: false }),
+      buildUpdateOperation('changed', ['properties'], { level: 2 }),
+      buildListInsertOperation('p', { childId: 'made' }),
+    ]);
+
+    expect([...ids].toSorted()).toEqual(['back', 'made']);
   });
 });
 

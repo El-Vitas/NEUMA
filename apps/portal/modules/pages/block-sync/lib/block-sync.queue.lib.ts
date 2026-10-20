@@ -72,15 +72,17 @@ export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueue
     );
   };
 
-  const handleOutcome = (transaction: BlockTransaction, outcome: BlockTransactionOutcome): void => {
+  /** False when the server refused it: the handler decides what follows, so the queue says nothing of being done. */
+  const handleOutcome = (transaction: BlockTransaction, outcome: BlockTransactionOutcome): boolean => {
     failures = 0;
     items = items.filter((held) => held !== transaction);
     if ('error' in outcome) {
       isBlocked = true;
       handlers.onRejected(transaction, outcome.error);
-      return;
+      return false;
     }
     handlers.onApplied(transaction, outcome.blocks);
+    return true;
   };
 
   const pump = async (): Promise<void> => {
@@ -95,8 +97,8 @@ export const createTransactionQueue = ({ handlers, send }: BlockTransactionQueue
       handleFailure(result.code);
       return;
     }
-    handleOutcome(next, result.outcome);
-    if (items.length === 0 && !isBlocked) finishWhenEmpty();
+    const wasApplied = handleOutcome(next, result.outcome);
+    if (wasApplied && items.length === 0) finishWhenEmpty();
     void pump();
   };
 

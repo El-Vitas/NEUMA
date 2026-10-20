@@ -10,6 +10,16 @@
 @import "katex/dist/katex.min.css";
 
 /*
+ * ProseMirror reads back from the page the text it shows, and expects the white
+ * space of what is written to be kept (its own style sheet sets the same). Without
+ * it the editor warns on the console, and a double space is lost on the screen.
+ */
+.ProseMirror {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/*
  * ProseMirror places a separator image after a widget that ends a block, and
  * expects it to sit inline. The base reset makes every image a block, which
  * turns that separator into a line of its own: a heading with a button at its

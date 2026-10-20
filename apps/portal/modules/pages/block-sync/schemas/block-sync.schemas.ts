@@ -27,7 +27,10 @@ const blockVersionSchema = z.object({ id: z.string(), version: z.number().int() 
 
 const transactionOutcomeSchema = z.union([
   z.object({ blocks: z.array(blockVersionSchema), id: z.string() }),
-  z.object({ error: z.object({ code: z.string(), message: z.string() }), id: z.string() }),
+  z.object({
+    error: z.object({ code: z.string(), details: z.unknown().optional(), message: z.string() }),
+    id: z.string(),
+  }),
 ]);
 
 export const blockLiveServerMessageSchema = z.discriminatedUnion('type', [

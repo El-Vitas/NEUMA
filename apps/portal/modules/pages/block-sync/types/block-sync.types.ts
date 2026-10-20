@@ -1,4 +1,5 @@
 import type { BlockRichText, PageContent } from '@neuma/shared';
+import type { Node as EditorNode } from 'prosemirror-model';
 import type { Selection } from 'prosemirror-state';
 import type { z } from 'zod';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
@@ -61,6 +62,7 @@ export interface BlockTransaction {
 
 export interface BlockTransactionError {
   readonly code: string;
+  readonly details?: unknown;
   readonly message: string;
 }
 
@@ -87,7 +89,14 @@ export interface BlockTextReceipt {
 export interface BlockStore {
   /** Takes the content the editor said for these blocks as known, once the server accepted it. */
   readonly adoptSnapshots: (ids: Iterable<string>, adopted: BlockSnapshotMap) => void;
+  /** Remembers blocks this client just removed, as they were, so that one that comes back is revived. */
+  readonly bury: (removed: readonly BlockSnapshot[]) => void;
   readonly confirmTexts: (receipts: readonly BlockTextReceipt[]) => void;
+  /** Drops the dead blocks the server never heard of, such as one made and deleted in a lost transaction. */
+  readonly forgetUnconfirmedBurials: () => void;
+  /** True for a block the server lists as live, as far as this client has read or written. */
+  readonly isLive: (blockId: string) => boolean;
+  readonly readBuried: () => ReadonlyMap<string, BlockSnapshot>;
   /** Takes the versions of a transaction as known; names the blocks that moved more than this client moved them. */
   readonly confirmTransaction: (
     blocks: readonly BlockVersion[],
@@ -223,11 +232,17 @@ export interface CursorReporter {
 
 export interface BlockListPlacement {
   readonly after?: string;
+  /** No sibling to anchor on: ask for the start of the list rather than the end. */
+  readonly atStart?: boolean;
   readonly before?: string;
   readonly childId: string;
 }
 
 export interface BlockDiffInput {
+  /** Blocks the server holds dead, as they were: one that comes back is revived, never created. */
+  readonly buried?: ReadonlyMap<string, BlockSnapshot>;
+  /** False for a sibling the server does not list as live; a list operation is never anchored on one. */
+  readonly canAnchor?: (blockId: string) => boolean;
   readonly next: BlockSnapshotMap;
   readonly pageId: string;
   readonly previous: BlockSnapshotMap;
@@ -241,6 +256,18 @@ export interface BlockSentTransaction {
 export type BlockSendResult =
   | { readonly code: string; readonly kind: 'failed' }
   | { readonly kind: 'answered'; readonly outcome: BlockTransactionOutcome };
+
+/** A node of the editor document with the position it starts at. */
+export interface BlockFoundNode {
+  readonly node: EditorNode;
+  readonly position: number;
+}
+
+/** Where a position was: the block around it and how far into that block. */
+export interface BlockSelectionAnchor {
+  readonly blockId: string;
+  readonly offset: number;
+}
 
 export interface BlockChangedRange {
   readonly currentEnd: number;
