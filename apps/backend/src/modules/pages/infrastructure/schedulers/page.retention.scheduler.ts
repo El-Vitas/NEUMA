@@ -4,8 +4,8 @@ import { PAGE_RETENTION_INTERVAL_MS } from '../../constants/pages.constants';
 import { PagesService } from '../../pages.service';
 
 /**
- * Started by the HTTP server only (`main.ts`): the workers and the admin CLI load the same module, and a timer
- * there would run the retention three times or keep a one-shot command alive.
+ * Started by the HTTP server only (`main.ts`): the admin CLI and the MCP process load the same module, and a timer
+ * there would run the retention again or keep a one-shot command alive.
  */
 @Injectable()
 export class PageRetentionScheduler implements OnApplicationShutdown {
