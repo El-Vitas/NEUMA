@@ -20,6 +20,7 @@ model User {
   ownedSpaces          Space[]                    @relation(name: "SpaceOwner")
   pageViews            PageView[]
   accessTokens         AccessToken[]
+  notifications        Notification[]
 
   @@index([email], map: "User_email_idx")
   @@unique([email], map: "User_email_key")

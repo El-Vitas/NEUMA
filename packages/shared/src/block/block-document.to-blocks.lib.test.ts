@@ -141,10 +141,22 @@ describe('documentToBlocks: structure', () => {
     expect(child.parentId).toBe(parent.id);
   });
 
-  test('colors and comments go to the format of the block', () => {
+  test('colors go to the format of the block', () => {
     const { blocks } = convert(documentWithIds({ attrs: { ...ANNOTATIONS }, content: [text('x')], type: 'paragraph' }));
 
     expect(blockAt(blocks, 0).format).toMatchObject(ANNOTATIONS);
+  });
+
+  test('the comments an older document kept in a node are left out, because discussions hold them now', () => {
+    const legacy = {
+      attrs: { comments: [{ author: 'Ana', body: 'Revisar', createdAt: '2026-10-19T10:00:00Z', id: 'c-1' }] },
+      content: [text('x')],
+      type: 'paragraph',
+    };
+
+    const { blocks } = convert(documentWithIds(legacy));
+
+    expect(blockAt(blocks, 0).format).toEqual({});
   });
 
   test('an unknown node becomes an unsupported block holding the raw node', () => {

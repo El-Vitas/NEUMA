@@ -1,4 +1,11 @@
-import type { BlockContent, BlockPermissions, BlockViewer, PageLifecycle, Result } from '@neuma/shared';
+import type {
+  BlockAccessHolder,
+  BlockContent,
+  BlockPermissions,
+  BlockViewer,
+  PageLifecycle,
+  Result,
+} from '@neuma/shared';
 import type { RolesById } from '../../../common/domain/block-access.domain.types';
 import type { DomainError } from '../../../common/domain/domain.error';
 import type { BlockRecord, RecordsById } from './block.domain.types';
@@ -228,9 +235,20 @@ export interface BlockTransactionInput {
   readonly isSpaceReadable: boolean;
   readonly load: BlockLoad;
   readonly maxTreeDepth: number;
+  /** The people of the workspace with whether they can open the space; given whenever an operation sets permissions. */
+  readonly members?: readonly BlockAccessHolder[] | undefined;
   readonly now: Date;
   readonly operations: readonly BlockOperation[];
   readonly spaceId: string;
+}
+
+export interface PermissionsLockoutInput {
+  readonly after: ReadonlyMap<string, WorkingBlock>;
+  readonly maxDepth: number;
+  /** Undefined when the transaction sets no permissions, so nobody was looked up. */
+  readonly members: readonly BlockAccessHolder[] | undefined;
+  readonly operations: readonly BlockOperation[];
+  readonly recordsById: ReadonlyMap<string, BlockRecord>;
 }
 
 export interface BlockVersion {

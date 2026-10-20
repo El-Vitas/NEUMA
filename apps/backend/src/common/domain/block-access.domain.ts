@@ -8,7 +8,7 @@ import {
   PAGE_LIFECYCLE,
   resolveBlockRole,
 } from '@neuma/shared';
-import type { BlockAccessChainRow, ReadableBlocksInput } from '../types/block-access.types';
+import type { BlockAccessChainRow, BlockStanding, ReadableBlocksInput } from '../types/block-access.types';
 import type {
   BlockDeclarationSource,
   DeclarationSourcesById,
@@ -119,6 +119,21 @@ export const listReadableBlockIds = ({ readableSpaceIds, rows, viewer }: Readabl
     if (canReadBlock(role)) readable.add(candidateId);
   }
   return readable;
+};
+
+/**
+ * The role a viewer holds on the first block of a chain and the block that decides it. Null when the block is not in
+ * the rows or is in the trash, so a missing block and a gone one read the same.
+ */
+export const readBlockStanding = ({ readableSpaceIds, rows, viewer }: ReadableBlocksInput): BlockStanding | null => {
+  const candidate = rows.at(0);
+  if (candidate === undefined || isInTrashOrRemoved(rows)) return null;
+  const declaring = findDeclaringInChain(rows);
+  const role = resolveRoleFromDeclaring(declaring, readableSpaceIds.has(candidate.spaceId), {
+    userId: viewer.userId,
+    workspaceRole: viewer.role,
+  });
+  return { declaring, inheritedDeclaring: findDeclaringInChain(rows.slice(1)), role, spaceId: candidate.spaceId };
 };
 
 /** A page title is plain text under `properties.title`; anything else reads as an empty title. */

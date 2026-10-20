@@ -27,7 +27,8 @@ const requestLiveToken = async (): Promise<string | null> => {
 export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptions): PagesEditorBlockBinding => {
   const { pageId, spaceId } = options;
   const localUserId = options.localUserId ?? null;
-  const initialBlocks = options.isEnabled ? (options.initialBlocks ?? null) : null;
+  const initialBlocks = options.initialBlocks ?? null;
+  const isViewer = !options.isEnabled;
   const [saveState, setSaveState] = useState<PagesAutosaveDisplayState>('idle');
   const [status, setStatus] = useState<CollaborationStatus | null>(null);
   const [participants, setParticipants] = useState<readonly PageCollaborationParticipant[]>([]);
@@ -56,12 +57,14 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
       createSession: (handlers) =>
         createBlockLiveSession({
           handlers,
+          onDiscussionChanged: () => optionsRef.current.onDiscussionChanged?.(),
           openSocket: openBrowserBlockLiveSocket,
           pageId,
           requestToken: requestLiveToken,
           url: env.NEXT_PUBLIC_LIVE_WS_URL,
         }),
       initialBlocks,
+      isViewer,
       localUserId,
       pageId,
       resolveParticipant: (userId) => ({
@@ -75,7 +78,7 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
       engineRef.current = null;
       engine.destroy();
     };
-  }, [initialBlocks, localUserId, pageId, spaceId]);
+  }, [initialBlocks, isViewer, localUserId, pageId, spaceId]);
 
   const isActive = initialBlocks !== null;
   return {

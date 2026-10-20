@@ -9,7 +9,6 @@ const REQUIRED: PageDocumentAttributes[string] = {};
 
 const PAGE_DOCUMENT_BLOCK_ATTRIBUTES: PageDocumentAttributes = {
   backgroundColor: OPTIONAL,
-  comments: OPTIONAL,
   id: OPTIONAL,
   textColor: OPTIONAL,
 };

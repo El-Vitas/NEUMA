@@ -10,12 +10,14 @@ import { duplicatePageTool } from '../tools/mcp.duplicate-page.tool';
 import { fetchTool } from '../tools/mcp.fetch.tool';
 import { getCollectionTool } from '../tools/mcp.get-collection.tool';
 import { insertBlocksTool } from '../tools/mcp.insert-blocks.tool';
+import { listDiscussionsTool } from '../tools/mcp.list-discussions.tool';
 import { listPagesTool } from '../tools/mcp.list-pages.tool';
 import { listSpacesTool } from '../tools/mcp.list-spaces.tool';
 import { listTrashTool } from '../tools/mcp.list-trash.tool';
 import { moveBlocksTool } from '../tools/mcp.move-blocks.tool';
 import { movePageTool } from '../tools/mcp.move-page.tool';
 import { queryCollectionTool } from '../tools/mcp.query-collection.tool';
+import { replyToDiscussionTool } from '../tools/mcp.reply-to-discussion.tool';
 import { restorePageTool } from '../tools/mcp.restore-page.tool';
 import { searchTool } from '../tools/mcp.search.tool';
 import { searchDiagramIconsTool } from '../tools/mcp.search-diagram-icons.tool';
@@ -47,6 +49,8 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = [
   moveBlocksTool,
   deleteBlocksTool,
   commentOnBlockTool,
+  listDiscussionsTool,
+  replyToDiscussionTool,
   deleteCommentTool,
   searchDiagramIconsTool,
   getCollectionTool,

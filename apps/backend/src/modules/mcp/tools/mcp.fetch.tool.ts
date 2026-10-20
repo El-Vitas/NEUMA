@@ -2,6 +2,7 @@ import { PageLifecycle } from '@neuma/db';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   canAccessTokenAct,
+  extractPlainText,
   findPageBlock,
   listPageBlocks,
   pageContentSchema,
@@ -24,8 +25,9 @@ import {
 } from '../constants/mcp.limits.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { buildMcpPageUrl, readMcpAddress, readMcpOffset } from '../lib/mcp.address.lib';
-import { listMcpBlockComments, takeMcpPagePart } from '../lib/mcp.blocks.lib';
+import { takeMcpPagePart } from '../lib/mcp.blocks.lib';
 import { formatMcpFetchText } from '../lib/mcp.fetch.text.lib';
+import { requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { describeMcpPageState } from '../lib/mcp.page-state.lib';
 import { hideUnreachableReferences, listReferencedPageIds } from '../lib/mcp.references.lib';
 import { loadMcpRowDescriber } from '../lib/mcp.rows.lib';
@@ -153,6 +155,31 @@ const describeChildren = async (
   return { children: shown, ...(more > 0 ? { moreChildren: more } : {}) };
 };
 
+/** The comments of the open discussions of blocks the token can read; the resolved ones come with list_discussions. */
+const describeOpenComments = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  page: McpPage,
+): Promise<NonNullable<McpFetchedPage['comments']>> => {
+  const listed = requireMcpSuccess(
+    await dependencies.discussions.listPageDiscussions(call.viewer, page.id, { includeResolved: false }),
+  );
+  return listed.discussions
+    .flatMap((discussion) =>
+      discussion.comments
+        .filter((comment) => !comment.isDeleted)
+        .map((comment) => ({
+          author: comment.authorName,
+          blockId: discussion.blockId,
+          body: extractPlainText(comment.body),
+          createdAt: comment.createdAt,
+          discussionId: discussion.id,
+          id: comment.id,
+        })),
+    )
+    .slice(0, MCP_FETCH_COMMENT_LIMIT);
+};
+
 const describePage = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -162,17 +189,18 @@ const describePage = async (
 ): Promise<McpFetchedPage> => {
   const visible = hideUnreachableReferences(page.content.content, reachable);
   const part = takeMcpPagePart(visible, start, MCP_FETCH_PART_MAX_CHARACTERS);
-  const [place, children, backlinks, properties] = await Promise.all([
+  const [place, children, backlinks, properties, comments] = await Promise.all([
     describePlace(dependencies, call, page),
     describeChildren(dependencies, call, page),
     listReachableBacklinks(dependencies, call, page),
     describeRowProperties(dependencies, call, page),
+    describeOpenComments(dependencies, call, page),
   ]);
   return {
     ...place,
     ...children,
     backlinks,
-    comments: listMcpBlockComments(visible).slice(0, MCP_FETCH_COMMENT_LIMIT),
+    comments,
     markdown: writeBlocksAsAnchoredMarkdown(part.nodes),
     ...(part.nextStart === null ? {} : { nextCursor: String(part.nextStart) }),
     ...(properties.length === 0 ? {} : { properties }),

@@ -16,6 +16,7 @@ interface MenuUse {
   readonly duplicated: number[];
   readonly moved: number[];
   readonly painted: string[];
+  readonly shared: number[];
 }
 
 const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversion], hasIdentity = true): MenuUse => {
@@ -28,6 +29,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
     duplicated: [],
     moved: [],
     painted: [],
+    shared: [],
   };
   render(
     <NextIntlClientProvider locale="es" messages={es}>
@@ -58,6 +60,7 @@ const showMenu = (conversions: readonly PageEditorBlockConversion[] = [conversio
         onLinkShape={() => undefined}
         onMoveToPage={() => use.moved.push(1)}
         onPageShape={() => undefined}
+        onShare={() => use.shared.push(1)}
         onSyncIntoPage={() => undefined}
         onTableAction={() => undefined}
         onUnsync={() => undefined}
@@ -121,6 +124,20 @@ describe('the actions a block offers', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Convertir en página' }));
 
     expect(use.becamePage.length).toBe(1);
+  });
+
+  it('offers restricting who has access to the block, and opens the sharing dialog when asked', () => {
+    const use = showMenu();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Restringir acceso a este bloque…' }));
+
+    expect(use.shared.length).toBe(1);
+  });
+
+  it('leaves out restricting access for a block that has no identity yet', () => {
+    showMenu([conversion], false);
+
+    expect(screen.queryByRole('menuitem', { name: 'Restringir acceso a este bloque…' })).toBeNull();
   });
 
   it('offers a colour for the text and one for the background', () => {

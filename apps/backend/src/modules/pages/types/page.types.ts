@@ -123,6 +123,8 @@ export interface PageSummary {
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | { readonly id: string; readonly name: string };
+  /** True when the page declares its own permissions instead of following an ancestor or the space. */
+  readonly hasOwnPermissions: boolean;
   readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;
@@ -244,6 +246,25 @@ export interface PageVersionSnapshot {
   readonly version: number;
 }
 
+/** One entry of a page's history: who started the stretch and when, never the content. */
+export interface PageVersionSummary {
+  readonly author: null | { readonly id: string; readonly name: string };
+  readonly createdAt: Date;
+  readonly title: string;
+  readonly version: number;
+}
+
+/** `fold: false` cuts a version of its own even when the author is still in the stretch of the latest one. */
+export interface PageVersionRecordOptions {
+  readonly fold: boolean;
+}
+
+/** Newest first; `nextCursor` is the version to pass to get the entries after the last one, or null at the end. */
+export interface PageVersionListing {
+  readonly items: readonly PageVersionSummary[];
+  readonly nextCursor: null | number;
+}
+
 export type PageRestoreVersionOutcome =
   | (typeof PAGE_RESTORE_VERSION_OUTCOME)['missing']
   | null
@@ -356,6 +377,15 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<PageVersionSnapshot | null>;
+  /** Null when the page is not there for this reader. `cursor` is exclusive: only versions below it are listed. */
+  readonly listVersions: (
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    cursor: null | number,
+    limit: number,
+  ) => Promise<null | PageVersionListing>;
   /** Cuts a version when the page now says something other than its latest one, or folds into it (same stretch). */
   readonly recordVersion: (pageId: string, authorId: string) => Promise<void>;
   readonly restoreVersion: (

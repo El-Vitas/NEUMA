@@ -194,6 +194,15 @@ describe('SidebarPageTree', () => {
     );
   });
 
+  it('marks with a lock a page that has its own access settings, and no other', () => {
+    renderSidebarPageTree([{ ...parentPage, hasOwnPermissions: true }, siblingPage]);
+
+    expect(screen.getByRole('link', { name: /Parent page/ }).textContent).toContain(
+      'This page has its own access settings',
+    );
+    expect(screen.getByRole('link', { name: 'Sibling page' }).textContent).not.toContain('own access settings');
+  });
+
   it('does not show a page that was sent to the trash, since it is now reachable from /trash instead', () => {
     renderSidebarPageTree([trashedPage]);
 

@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '../page-property/page-property.key.constants.js';
 import {
   PAGE_BLOCK_COLORS,
-  PAGE_BLOCK_COMMENTS_MOST,
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
   PAGE_CALLOUT_ICONS,
@@ -24,7 +23,6 @@ import {
   maximumToggleSummaryLength,
   minimumHeadingLevel,
   pageAssetAttrsSchema,
-  pageBlockCommentSchema,
   pageBlockIdSchema,
   pageBookmarkAttrsSchema,
   pageButtonAttrsSchema,
@@ -46,16 +44,13 @@ import { BLOCK_NESTED_LAYERS_MOST, BLOCK_TYPE } from './block-type.constants.js'
 
 const emptySchema = z.object({}).strict();
 
-const colorAndCommentShape = {
+const colorShape = {
   backgroundColor: z.enum(PAGE_BLOCK_COLORS).optional(),
-  comments: z.array(pageBlockCommentSchema).max(PAGE_BLOCK_COMMENTS_MOST).optional(),
   textColor: z.enum(PAGE_BLOCK_COLORS).optional(),
 };
 
-/** What a document wrapper that dissolved into a block still said: its id, colors and comments. */
-export const blockWrapperAttributesSchema = z
-  .object({ ...colorAndCommentShape, id: pageBlockIdSchema.optional() })
-  .strict();
+/** What a document wrapper that dissolved into a block still said: its id and colors. */
+export const blockWrapperAttributesSchema = z.object({ ...colorShape, id: pageBlockIdSchema.optional() }).strict();
 
 /**
  * A nested_block that dissolved into the block it wraps. `from` is how many of the host children existed before the
@@ -72,7 +67,7 @@ export const blockNestedLayerSchema = z
 export const blockNestedLayersSchema = z.array(blockNestedLayerSchema).min(1).max(BLOCK_NESTED_LAYERS_MOST);
 
 const annotationShape = {
-  ...colorAndCommentShape,
+  ...colorShape,
   nested: blockNestedLayersSchema.optional(),
 };
 
@@ -94,7 +89,7 @@ export const blockFormatMarkersSchema = z.object({
   start: listStartSchema.optional(),
 });
 
-/** Every block can be colored and commented, as every node of the document was. */
+/** Every block can be colored, as every node of the document was. Its conversations are discussions, not format. */
 const withAnnotations = <Shape extends z.ZodRawShape>(shape: Shape) =>
   z.object({ ...annotationShape, ...shape }).strict();
 

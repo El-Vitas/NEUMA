@@ -5,6 +5,7 @@ import {
   BLOCK_DOCUMENT_ATTRIBUTE_ROUTES,
   BLOCK_DOCUMENT_ERROR_CODE,
   BLOCK_DOCUMENT_ID_ATTRIBUTE,
+  BLOCK_DOCUMENT_LEGACY_COMMENTS_ATTRIBUTE,
 } from './block-document.constants.js';
 import { type BlockDocumentError, failBlockDocument } from './block-document.error.js';
 import type { BlockWrapperAttributes } from './block-document.types.js';
@@ -34,8 +35,9 @@ const failUnrouted = (nodeType: string | null, key: string): Result<never, Block
   );
 
 /**
- * Sorts the attributes of a document node into the block id, its properties and its format. Colors and comments go
- * to the format. A null node type means a wrapper, which only carries an id, colors and comments.
+ * Sorts the attributes of a document node into the block id, its properties and its format. Colors go to the
+ * format. A null node type means a wrapper, which only carries an id and colors. The comments an older document
+ * kept in its nodes are left out: they live in discussions now.
  */
 export const splitAttributes = (
   nodeType: string | null,
@@ -46,6 +48,7 @@ export const splitAttributes = (
   const properties: Record<string, unknown> = {};
   const format: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(attributes ?? {})) {
+    if (key === BLOCK_DOCUMENT_LEGACY_COMMENTS_ATTRIBUTE) continue;
     if (key === BLOCK_DOCUMENT_ID_ATTRIBUTE && typeof value === 'string') id = value;
     else if (isAnnotationKey(key) || route.format.includes(key)) format[key] = value;
     else if (route.properties.includes(key)) properties[key] = value;
@@ -54,7 +57,7 @@ export const splitAttributes = (
   return Result.ok({ format, id, properties });
 };
 
-/** What a dissolved wrapper keeps: its id, colors and comments. */
+/** What a dissolved wrapper keeps: its id and colors. */
 export const readWrapperAttributes = (
   attributes: Attributes | undefined,
 ): Result<BlockWrapperAttributes, BlockDocumentError> => {
@@ -66,7 +69,7 @@ export const readWrapperAttributes = (
 
 export const hasWrapperAttributes = (attributes: BlockWrapperAttributes): boolean => Object.keys(attributes).length > 0;
 
-/** The attributes a document node is written with: the block id, then colors, comments and the routed values. */
+/** The attributes a document node is written with: the block id, then colors and the routed values. */
 export const joinAttributes = (
   nodeType: string,
   id: string,

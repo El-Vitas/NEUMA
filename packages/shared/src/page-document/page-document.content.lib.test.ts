@@ -45,7 +45,7 @@ describe('writePageDocumentJsonAsContent', () => {
           type: 'heading',
         },
         {
-          attrs: { backgroundColor: null, comments: null, id: null, textColor: null },
+          attrs: { backgroundColor: null, id: null, textColor: null },
           type: 'paragraph',
         },
         {

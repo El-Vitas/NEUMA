@@ -36,6 +36,7 @@ const toVisibleBlock = (
 ): VisibleBlock => ({
   ...record,
   children: listVisibleChildren(record.children, rolesById),
+  hasOwnPermissions: permissions !== null,
   role,
   ...(canManageBlockPermissions(role) ? { permissions } : {}),
 });

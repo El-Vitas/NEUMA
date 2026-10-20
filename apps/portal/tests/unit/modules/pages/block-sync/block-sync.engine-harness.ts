@@ -20,7 +20,12 @@ export const settle = async (): Promise<void> => {
 };
 
 /** An engine for the page, wired to the fake server, with the editor played by a variable. */
-export const createClient = (server: FakeBlockServer, initial: PageContent, userId = 'user-1'): EngineClient => {
+export const createClient = (
+  server: FakeBlockServer,
+  initial: PageContent,
+  userId = 'user-1',
+  isViewer = false,
+): EngineClient => {
   let idCounter = 0;
   const participants: (readonly PageCollaborationParticipant[])[] = [];
   const replaced: PageContent[] = [];
@@ -52,6 +57,7 @@ export const createClient = (server: FakeBlockServer, initial: PageContent, user
       return session;
     },
     initialBlocks: server.readBlocks(),
+    isViewer,
     localUserId: userId,
     pageId: 'page-1',
     resolveParticipant: (id) => ({ color: null, name: `Name of ${id}` }),

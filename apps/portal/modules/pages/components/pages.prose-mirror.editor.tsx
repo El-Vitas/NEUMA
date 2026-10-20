@@ -40,16 +40,25 @@ import {
 import { buildRowPropertyValues, getEditableSchemaProperties } from '../collections/lib/pages.properties.lib';
 import { readPageCollectionAction } from '../collections/server/actions/pages.collections.actions';
 import type { PagePersonOption, PageSchema } from '../collections/types/pages.schema.types';
-import { EMPTY_PAGE_PERSON_OPTIONS, EMPTY_PAGE_SUMMARIES } from '../constants/pages.constants';
+import {
+  EMPTY_PAGE_PERSON_OPTIONS,
+  EMPTY_PAGE_SUMMARIES,
+  EMPTY_RESTRICTED_BLOCK_IDS,
+} from '../constants/pages.constants';
+import { PagesDiscussionsDialog } from '../discussions/components/pages.discussions.dialog';
 import { PagesEditorBlockActions } from '../editor/blocks/components/pages.editor.block-actions';
 import { PAGE_EDITOR_MENTION_TITLE_ATTRIBUTE } from '../editor/blocks/constants/pages.editor.blocks.constants';
 import { usePagesEditorBlockActions } from '../editor/blocks/hooks/use.pages.editor.block-actions';
 import { usePagesEditorBlockArrival } from '../editor/blocks/hooks/use.pages.editor.block-arrival';
 import { usePagesEditorBlocksToPage } from '../editor/blocks/hooks/use.pages.editor.blocks-to-page';
+import { usePagesEditorDiscussions } from '../editor/blocks/hooks/use.pages.editor.discussions';
+import { summarizePageEditorDiscussions } from '../editor/blocks/lib/pages.editor.block-comment.lib';
 import { openPageEditorFragmentComments } from '../editor/blocks/lib/pages.editor.block-menu.lib';
 import { findSelectedPageBlocks } from '../editor/blocks/lib/pages.editor.block-range.lib';
+import { restrictPageEditorBlocks } from '../editor/blocks/lib/pages.editor.block-restricted.plugin.lib';
 import { createPageEditorBlockConversionCommand } from '../editor/blocks/lib/pages.editor.convert.lib';
 import { createPageEditorNodeViews } from '../editor/blocks/lib/pages.editor.node-views.lib';
+import type { PageEditorRestrictedBlocks } from '../editor/blocks/types/pages.editor.block-restricted.types';
 import { PagesEditorCollaborationStatus } from '../editor/components/pages.editor.collaboration.status';
 import { PagesEditorPagePickerDialog } from '../editor/components/pages.editor.page-picker.dialog';
 import { PagesEditorToolbar } from '../editor/components/pages.editor.toolbar';
@@ -117,6 +126,7 @@ import { PagesPreviewLayer } from '../links/components/pages.preview.layer';
 import { usePagesPreview } from '../links/hooks/use.pages.preview';
 import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
 import { createPageAction } from '../server/actions/pages.actions';
+import type { SharingChange } from '../sharing/types/pages.sharing.types';
 import type { PageContent, PageSummary } from '../types/pages.types';
 
 interface IProps {
@@ -129,6 +139,8 @@ interface IProps {
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
   readonly onContentChange: (content: PageContent) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
+  /** Told when a block's own access was saved from the block menu, so the page can keep its locks in step. */
+  readonly onBlockSharingChanged?: (change: SharingChange) => void;
   /** Follows internal page links without leaving the current view, e.g. inside a side panel. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
   /** Called after every change of the document or of where the cursor is. */
@@ -136,6 +148,8 @@ interface IProps {
   readonly pageId: string | null;
   readonly pages?: readonly PageSummary[];
   readonly personOptions?: readonly PagePersonOption[];
+  /** The blocks of this page that declare their own access, which get a lock. */
+  readonly restrictedBlockIds?: ReadonlySet<string>;
   readonly spaceId: string;
   readonly textSize?: PageAppearanceTextSize;
   readonly typography?: PageAppearanceTypography;
@@ -147,16 +161,17 @@ export const PagesProseMirrorEditor = forwardRef(
       blockCollaboration = null,
       canEdit,
       content,
-      currentUserDisplayName,
       embeddedCollections = {},
       onAttachmentUploaded,
       onContentChange,
       onHeadingsChange,
+      onBlockSharingChanged,
       onNavigateToPage,
       onSelectionChange,
       pageId,
       pages = EMPTY_PAGE_SUMMARIES,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
+      restrictedBlockIds = EMPTY_RESTRICTED_BLOCK_IDS,
       spaceId,
       textSize = PAGE_APPEARANCE_DEFAULT_PREFERENCES.textSize,
       typography = PAGE_APPEARANCE_DEFAULT_PREFERENCES.typography,
@@ -271,6 +286,8 @@ export const PagesProseMirrorEditor = forwardRef(
     const collections = usePagesEditorCollectionHosts(editorHostRef);
     const syncCollectionHosts = collections.sync;
     const blockActions = usePagesEditorBlockActions(editorViewRef, { pageId, spaceId });
+    const editorDiscussions = usePagesEditorDiscussions(editorViewRef, surface.request);
+    const { readSummary: readDiscussionsSummary } = editorDiscussions;
     usePagesEditorBlockArrival(editorHostRef);
     usePagesEditorPageDrop({ editorViewRef, spaceId });
     const turnBlocksIntoPage = usePagesEditorBlocksToPage({ editorViewRef, spaceId });
@@ -322,6 +339,19 @@ export const PagesProseMirrorEditor = forwardRef(
         attributes: describeEditorWithTriggerMenu(triggerMenuId, activeTriggerItemId),
       });
     }, [activeTriggerItemId, triggerMenuId]);
+
+    const restrictedRef = useRef<PageEditorRestrictedBlocks>({
+      ids: restrictedBlockIds,
+      label: t('sharing.badgeBlock'),
+    });
+
+    /** The document does not know which blocks declare their own access, so the page tells the lock plugin. */
+    useEffect(() => {
+      restrictedRef.current = { ids: restrictedBlockIds, label: t('sharing.badgeBlock') };
+      const editorView = editorViewRef.current;
+      if (editorView === null) return;
+      editorView.dispatch(restrictPageEditorBlocks(editorView.state, restrictedRef.current));
+    }, [restrictedBlockIds, t]);
 
     useEffect(() => {
       contentCallbackRef.current = onContentChange;
@@ -439,6 +469,11 @@ export const PagesProseMirrorEditor = forwardRef(
         state: editorState,
       });
       editorViewRef.current = editorView;
+      editorView.dispatch(restrictPageEditorBlocks(editorView.state, restrictedRef.current));
+      const knownDiscussions = readDiscussionsSummary();
+      if (knownDiscussions !== undefined) {
+        editorView.dispatch(summarizePageEditorDiscussions(editorView.state, knownDiscussions));
+      }
       syncCollectionHosts();
       followHeadingsRef.current(editorView.state);
 
@@ -451,6 +486,7 @@ export const PagesProseMirrorEditor = forwardRef(
       labels,
       canEdit,
       computeMenuPosition,
+      readDiscussionsSummary,
       readSurfaceRect,
       rememberTriggerMenuPosition,
       syncCollectionHosts,
@@ -948,12 +984,11 @@ export const PagesProseMirrorEditor = forwardRef(
             )}
           {canEdit && (
             <PagesEditorBlockActions
-              authorName={currentUserDisplayName ?? t('collaboration.participantFallback')}
               blockAlign={surface.blockAlign}
+              blockId={surface.blockId}
               buttonAt={surface.buttonAt}
               calloutIcon={surface.calloutIcon}
               colors={surface.colors}
-              comments={surface.comments}
               conversions={surface.conversions}
               fileDisplay={surface.fileDisplay}
               foldState={surface.foldState}
@@ -970,6 +1005,7 @@ export const PagesProseMirrorEditor = forwardRef(
               onLinkShape={pastedLink.shapeLink}
               onPageShape={showThePageAs}
               onRunCommand={blockActions.runCommand}
+              onSharingChanged={(change) => onBlockSharingChanged?.(change)}
               onSyncInto={blockActions.syncInto}
               onUnsync={breakTheSync}
               pageId={pageId}
@@ -979,6 +1015,16 @@ export const PagesProseMirrorEditor = forwardRef(
               syncedTarget={surface.syncedTarget}
             />
           )}
+          <PagesDiscussionsDialog
+            blockId={surface.commentBlockId}
+            canStart={canEdit}
+            focusDiscussionId={surface.request?.discussionId ?? null}
+            fragmentQuote={surface.commentQuote}
+            isOpen={surface.request?.kind === 'comments'}
+            onAnchor={editorDiscussions.anchor}
+            onClose={() => blockActions.close('comments')}
+            onUnanchor={editorDiscussions.unanchor}
+          />
         </div>
       </section>
     );

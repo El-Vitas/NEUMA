@@ -32,6 +32,8 @@ export const PAGE_BLOCK_COLUMNS = [
   'verifiedById',
 ] as const;
 export const MAX_APPENDED_PAGE_BLOCKS = 200;
+export const PAGE_VERSION_LIST_DEFAULT_LIMIT = 20;
+export const PAGE_VERSION_LIST_MAX_LIMIT = 50;
 export const REDACTED_MENTION_LABEL = 'Restricted page';
 
 /** Deleting forever only schedules it: the page stays restorable this long (ADR 017). */

@@ -1,8 +1,9 @@
 'use client';
 
-import type { PageBlockComment } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import type { Command } from 'prosemirror-state';
+import { PagesSharingDialog } from '../../../sharing/components/pages.sharing.dialog';
+import type { SharingChange } from '../../../sharing/types/pages.sharing.types';
 import { PagesEditorPagePickerDialog } from '../../components/pages.editor.page-picker.dialog';
 import { createPageBlockAlignmentCommand } from '../../lib/pages.editor.align.lib';
 import { createPageFileDisplayCommand } from '../../media/lib/pages.editor.file.display.lib';
@@ -16,21 +17,17 @@ import type { PageSyncedReference } from '../../structure/types/pages.editor.syn
 import type { PageEditorTableAction } from '../../structure/types/pages.editor.table.types';
 import { togglePageEditorHeadingFold } from '../../text/lib/pages.editor.heading-fold.lib';
 import { createPageEditorBlockColorCommand } from '../lib/pages.editor.block-color.lib';
-import {
-  createPageEditorBlockCommentCommand,
-  createPageEditorBlockCommentRemovalCommand,
-} from '../lib/pages.editor.block-comment.lib';
 import { duplicatePageEditorBlock } from '../lib/pages.editor.block-copy.lib';
 import { deletePageEditorBlocks } from '../lib/pages.editor.block-delete.lib';
 import { createPageEditorBlockConversionCommand } from '../lib/pages.editor.convert.lib';
 import type { PageEditorBlockColors } from '../types/pages.editor.block-color.types';
 import type { PageEditorBlockRequest, PageEditorBlockRequestKind } from '../types/pages.editor.block-request.types';
 import type { PageEditorBlockConversion } from '../types/pages.editor.convert.types';
-import { PagesEditorBlockCommentsDialog } from './pages.editor.block-comments.dialog';
 import { PagesEditorBlockMenu } from './pages.editor.block-menu';
 
 interface IProps {
-  readonly authorName: string;
+  /** The id of the block the menu is about; null for a block that has none yet. */
+  readonly blockId: string | null;
   readonly calloutIcon: PageEditorCalloutIconChoice | null;
   readonly blockAlign: { readonly chosen: string | null } | null;
   readonly fileDisplay: { readonly chosen: string } | null;
@@ -44,7 +41,6 @@ interface IProps {
   readonly pageShape: PageEditorPageShapeTarget | null;
   readonly isInTable: boolean;
   readonly colors: PageEditorBlockColors;
-  readonly comments: readonly PageBlockComment[];
   readonly conversions: readonly PageEditorBlockConversion[];
   readonly foldState: { readonly isFolded: boolean } | null;
   readonly hasIdentity: boolean;
@@ -59,11 +55,12 @@ interface IProps {
   readonly onHandOver: (page: PageDestination) => void;
   readonly onSyncInto: (page: PageDestination) => void;
   readonly onRunCommand: (command: Command) => void;
+  readonly onSharingChanged: (change: SharingChange) => void;
 }
 
 /** The dialogs live here, not in the menu, because the menu closes as soon as one of them opens. */
 export const PagesEditorBlockActions = ({
-  authorName,
+  blockId,
   calloutIcon,
   colors,
   blockAlign,
@@ -77,7 +74,6 @@ export const PagesEditorBlockActions = ({
   onChooseCollection,
   pageShape,
   isInTable,
-  comments,
   conversions,
   foldState,
   hasIdentity,
@@ -89,22 +85,12 @@ export const PagesEditorBlockActions = ({
   onHandOver,
   onSyncInto,
   onRunCommand,
+  onSharingChanged,
   pageId,
   request,
   spaceId,
 }: IProps) => {
   const t = useTranslations('pages');
-
-  const writeComment = (body: string): void => {
-    onRunCommand(
-      createPageEditorBlockCommentCommand({
-        author: authorName,
-        body,
-        createdAt: new Date().toISOString(),
-        id: crypto.randomUUID(),
-      }),
-    );
-  };
 
   return (
     <>
@@ -146,6 +132,7 @@ export const PagesEditorBlockActions = ({
             }}
             onMoveToPage={() => onAsk('handover')}
             onPageShape={onPageShape}
+            onShare={() => onAsk('share')}
             onSyncIntoPage={() => onAsk('sync')}
             onTableAction={(action: PageEditorTableAction) => onRunCommand(createPageTableCommand(action))}
             onUnsync={onUnsync}
@@ -193,13 +180,16 @@ export const PagesEditorBlockActions = ({
           title: t('moveBlocksTitle'),
         }}
       />
-      <PagesEditorBlockCommentsDialog
-        comments={comments}
-        isOpen={request?.kind === 'comments'}
-        onClose={() => onClose('comments')}
-        onRemove={(commentId) => onRunCommand(createPageEditorBlockCommentRemovalCommand(commentId))}
-        onWrite={writeComment}
-      />
+      {request?.kind === 'share' && blockId !== null && (
+        <PagesSharingDialog
+          blockId={blockId}
+          onChanged={onSharingChanged}
+          onClose={() => onClose('share')}
+          scope="block"
+          spaceId={spaceId}
+          title=""
+        />
+      )}
     </>
   );
 };

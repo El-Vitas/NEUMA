@@ -15,6 +15,16 @@ mock.module('next/navigation', () => ({
   unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push, refresh: () => undefined, replace: () => undefined }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+mock.module('@/modules/pages/discussions/server/actions/pages.discussions.actions', () => ({
+  editCommentAction: async () => ({ serverError: 'unexpected' }),
+  openDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  readPageDiscussionsAction: async () => ({ data: [] }),
+  removeCommentAction: async () => ({ serverError: 'unexpected' }),
+  reopenDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  replyToDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  resolveDiscussionAction: async () => ({ serverError: 'unexpected' }),
 }));
 const renamePageAction = mock(async (_input: unknown) => ({ data: undefined }));
 const trashPageAction = mock(async (_input: unknown) => ({ data: undefined }));
@@ -115,6 +125,21 @@ describe('a page that nobody has named yet', () => {
       pageId: '22222222-2222-4222-8222-222222222222',
       title: 'Quarterly plan',
     });
+  });
+});
+
+describe('a page whose title the server changed', () => {
+  it('shows the new title without a reload, as when a version is restored', () => {
+    const view = (title: string) => (
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesEditor canEdit page={buildPage(title)} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+      </NextIntlClientProvider>
+    );
+    const { rerender } = render(view('Before'));
+
+    rerender(view('After'));
+
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLInputElement).value).toBe('After');
   });
 });
 

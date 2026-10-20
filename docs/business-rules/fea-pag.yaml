@@ -38,6 +38,30 @@ rules:
     context: >-
       El espacio entre el nombre y la tarjeta pertenece a la tarjeta, así que bajar nunca es salir. Por llevar algo
       dentro que se puede alcanzar, la tarjeta no es un rótulo de ayuda.
+  - id: BR-1091b9a
+    status: active
+    title: Compartir no deja a nadie sin quien devuelva el acceso
+    rule: >-
+      Antes de guardar un cambio de permisos, la pantalla avisa lo que le cuesta a quien lo hace. Si se quita su propio
+      acceso, o se baja su rol para que ya no pueda cambiar quién tiene acceso, hay un aviso y se pide confirmar,
+      siempre que otra persona con acceso total siga pudiendo devolverlo. Si después del cambio nadie conservaría acceso
+      total, el cambio no se puede guardar. Un cliente, o alguien que no puede abrir el espacio, no cuenta como esa
+      persona. Lo mismo vale para volver a heredar de lo que está encima.
+    why: >-
+      Quien se queda sin acceso total no puede arreglarlo, y si nadie lo conserva, la página queda cerrada para siempre
+      para quienes podrían haberla arreglado.
+    context: >-
+      El servidor sigue aceptando el cambio de quien tiene acceso total; la protección es de la pantalla, que usa las
+      mismas reglas de rol que el servidor para saber qué quedaría.
+    scenarios:
+      - title: Quitarse a uno mismo teniendo a otra persona con acceso total
+        given: Una página con dos personas con acceso total
+        when: Una de ellas se quita de la lista
+        then: Se avisa que perderá el acceso, se pide confirmar y recién entonces se guarda
+      - title: Quedar sin acceso total
+        given: Una página donde solo quien edita tiene acceso total
+        when: Esa persona baja su propio rol a editar
+        then: El cambio no se puede guardar y se explica por qué
   - id: BR-1224d28
     status: active
     title: Se exporta también una selección suelta de páginas
@@ -92,6 +116,25 @@ rules:
         given: Una página con la palabra "safe" y otra con "ÜSAFE"
         when: Alguien busca "safe"
         then: Aparecen las dos, y la que tiene la palabra entera va primero
+  - id: BR-43e3ddc
+    status: active
+    title: Quien ve la lista de personas con acceso es solo quien puede cambiarla
+    rule: >-
+      Quién tiene acceso a una página o a una parte de ella, con qué rol y de dónde viene, solo se le dice a quien tiene
+      acceso total sobre eso. A quien puede leerla pero no administrarla se le responde que no puede verlo, sin nombres
+      ni roles. A quien ni siquiera puede leerla se le responde igual que si no existiera, y lo mismo si está en la
+      papelera. Quien no puede administrar solo sabe que algo tiene permisos propios, con un candado, y nada más.
+    why: >-
+      La lista de personas es información de quien administra. Contestarle distinto a quien no puede leer un bloque
+      confirmaría que el bloque existe.
+    context: >-
+      Las personas que se ofrecen para agregar son las del espacio de trabajo, y se marca a quienes no pueden abrir el
+      espacio, porque un rol sobre una página no les abre el espacio.
+    scenarios:
+      - title: Un trabajador pide la lista
+        given: Una página abierta a todo el espacio donde un trabajador puede editar
+        when: El trabajador pide ver quién tiene acceso
+        then: Se le responde que no tiene acceso total, y no recibe nombres ni correos
   - id: BR-50fb993
     status: active
     title: Lo que la búsqueda sabe de una página es siempre lo que la página tiene
@@ -458,6 +501,33 @@ rules:
         given: Una página exportada que menciona otra que quedó fuera
         when: Se abre el archivo exportado
         then: La mención queda tal como estaba, sin apuntar a un archivo que no existe
+  - id: BR-fc54608
+    status: active
+    title: Quien tiene acceso total decide quién ve y quién edita una página o una parte de ella
+    rule: >-
+      Una página, o una parte de ella, puede tener sus propios permisos: se elige quién puede leerla, quién puede
+      editarla y quién tiene acceso total. Lo que no declara permisos propios sigue a lo que tiene encima, y si nada
+      encima los declara, a lo que permite el espacio. Lo que declara permisos queda cerrado para quien no figura en la
+      lista, incluidos los administradores. Un cliente nunca pasa de lectura, aunque la lista le dé más. Cualquier
+      persona del espacio de trabajo con acceso al espacio puede figurar, sea o no administradora.
+    why: >-
+      Una sección de una página (un presupuesto, una nota interna) se comparte con menos gente que la página, y hacerlo
+      no debe obligar a mover el texto a otra página.
+    context: >-
+      El diálogo «Compartir» muestra la lista de quien tiene acceso, de dónde viene (de qué página hereda o si es
+      propia), y permite agregar y quitar personas, cambiar su rol, dejar de heredar y volver a heredar. Se abre desde
+      la página y, para una parte de ella, desde el menú del bloque.
+    scenarios:
+      - title: Una sección restringida
+        given: >-
+          Una página abierta para todo el espacio y una sección con permisos propios que solo nombran a una
+          administradora
+        when: Un trabajador abre la página
+        then: La sección no aparece en pantalla, ni en la búsqueda, ni en lo que el navegador recibe
+      - title: Volver a heredar
+        given: Una sección con permisos propios
+        when: Quien tiene acceso total elige volver a seguir a la página
+        then: La sección vuelve a verse para quien ve la página
   - id: BR-6191a45
     status: superseded
     title: Una página que cambia de espacio se lleva su descendencia y deja su dirección andando

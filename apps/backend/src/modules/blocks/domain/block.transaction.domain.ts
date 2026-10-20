@@ -8,6 +8,7 @@ import { BlockAccessDeniedError, BlockTreeTooDeepError } from './block.error';
 import { extractBlockLinkTargets } from './block.link.domain';
 import { applyBlockOperation, createWorkingBlock, writeCreatedText } from './block.operation.domain';
 import { applyPageOperation, expandPageOperations, isPageOperation } from './block.page-operation.domain';
+import { checkPermissionsKeepAManager } from './block.permissions-lockout.domain';
 import { applyRootLists } from './block.root.domain';
 import type {
   AppliedOperations,
@@ -217,6 +218,14 @@ export const planBlockTransaction = (
   const recordsById = indexById([...context, ...after.values()]);
   const treeChecked = checkTreeInvariants({ after, before, maxDepth: input.maxTreeDepth, recordsById, touchedIds });
   if (treeChecked.isFail()) return Result.fail(treeChecked.getError());
+  const kept = checkPermissionsKeepAManager({
+    after,
+    maxDepth: input.maxTreeDepth,
+    members: input.members,
+    operations: input.operations,
+    recordsById,
+  });
+  if (kept.isFail()) return Result.fail(kept.getError());
   const roots = applyRootLists(input.load.spaces, expanded.operations, before, after, touchedIds);
   if (roots.isFail()) return Result.fail(roots.getError());
   const settled = settleBlocks(applied.getValue(), before, input);

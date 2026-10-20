@@ -16,6 +16,7 @@ const buildPage = (id: string, parentId: null | string): PageSummary => ({
   content: {},
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
+  hasOwnPermissions: false,
   icon: null,
   id,
   lifecycle: PageLifecycle.ACTIVE,

@@ -1,6 +1,5 @@
 import type { PageEditorBlockLines, PageEditorBlockTarget } from '../types/pages.editor.convert.types';
 import {
-  PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
   PAGE_EDITOR_COLUMN_ROW_TYPE,
   PAGE_EDITOR_COLUMN_TYPE,
   PAGE_EDITOR_NESTED_BLOCK_TYPE,
@@ -29,12 +28,7 @@ export const PAGE_EDITOR_ARRANGEMENT_BLOCK_TYPES: readonly string[] = [
   PAGE_EDITOR_COLUMN_TYPE,
 ];
 
-export const PAGE_EDITOR_CARRIED_BLOCK_ATTRS: readonly string[] = [
-  'id',
-  'textColor',
-  'backgroundColor',
-  PAGE_EDITOR_BLOCK_COMMENTS_ATTRIBUTE,
-];
+export const PAGE_EDITOR_CARRIED_BLOCK_ATTRS: readonly string[] = ['id', 'textColor', 'backgroundColor'];
 
 export const PAGE_EDITOR_BLOCKS_BEYOND_THEIR_LINES: readonly string[] = [
   PAGE_EDITOR_NESTED_BLOCK_TYPE,

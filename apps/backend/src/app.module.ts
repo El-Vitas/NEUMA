@@ -23,6 +23,7 @@ import { McpServerDependenciesAdapter } from './mcp.server-dependencies.adapter'
 import { AccessTokensModule } from './modules/access-tokens/access-tokens.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BlocksModule } from './modules/blocks/blocks.module';
+import { CommentsModule } from './modules/comments/comments.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { FilesModule } from './modules/files/files.module';
 import { LinksModule } from './modules/links/links.module';
@@ -32,6 +33,7 @@ import { McpActionRepository } from './modules/mcp/infrastructure/persistence/mc
 import { McpController } from './modules/mcp/mcp.controller';
 import { McpModule } from './modules/mcp/mcp.module';
 import type { McpServerDependencies } from './modules/mcp/types/mcp.types';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PageViewsModule } from './modules/page-views/page-views.module';
 import { PageContentController } from './modules/pages/page.content.controller';
 import { PageContentService } from './modules/pages/page.content.service';
@@ -98,6 +100,8 @@ import { PrismaModule } from './prisma/prisma.module';
     SpacesModule,
     PagesModule,
     BlocksModule,
+    CommentsModule,
+    NotificationsModule,
     PageViewsModule,
     FavoritesModule,
     FilesModule,

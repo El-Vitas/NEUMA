@@ -179,6 +179,8 @@ export interface BlockChainReader {
 }
 
 export interface BlockVersionListenerHandlers {
+  /** A comment or notification event: who to tell, not which blocks changed. */
+  readonly onCommentEvent: (payload: string) => void;
   readonly onNotification: (payload: string) => void;
   /** The connection came back after being lost, so notifications in between may be missing. */
   readonly onRecovered: () => void;

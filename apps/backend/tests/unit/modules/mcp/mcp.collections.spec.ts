@@ -204,6 +204,13 @@ const connect = async (
     backlinks: { listBacklinks: notUsedHere },
     collections: collections.service,
     content: { edit: notUsedHere },
+    discussions: {
+      getDiscussion: notUsedHere,
+      listPageDiscussions: notUsedHere,
+      openDiscussion: notUsedHere,
+      removeComment: notUsedHere,
+      reply: notUsedHere,
+    },
     drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
     pages: createUnusedPageManager(),
     observer: { callFinished: () => undefined, unexpected: () => undefined },

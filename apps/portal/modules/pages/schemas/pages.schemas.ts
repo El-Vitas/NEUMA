@@ -16,6 +16,7 @@ export const pageSummarySchema = z.object({
   cover: pageCoverValueSchema.nullable().catch(null).default(null),
   createdAt: z.coerce.date(),
   createdBy: pageAuthorSchema.nullable(),
+  hasOwnPermissions: z.boolean().catch(false).default(false),
   icon: pageIconSchema.nullable().optional(),
   id: z.string(),
   lifecycle: pageLifecycleSchema,

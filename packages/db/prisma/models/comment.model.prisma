@@ -1,0 +1,18 @@
+// use prisma-8
+
+/// One message of a discussion. `body` is the rich text delta of a block (`BlockRichText`); a deleted comment keeps
+/// its row with an empty body so the thread keeps its shape.
+model Comment {
+  id           String            @id(map: "Comment_pkey") @default(uuid(7))
+  discussionId String
+  body         Jsonb             @default(json`[]`)
+  authorId     String
+  createdAt    TimestamptzJsDate @default(now())
+  editedAt     TimestamptzJsDate?
+  deletedAt    TimestamptzJsDate?
+  discussion   Discussion        @relation(fields: [discussionId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Comment_discussionId_fkey", index: "Comment_discussionId_createdAt_idx")
+
+  notifications Notification[]
+
+  @@index([discussionId, createdAt], map: "Comment_discussionId_createdAt_idx")
+}
