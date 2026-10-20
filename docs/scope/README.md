@@ -16,11 +16,13 @@ Read `../superpowers/plans/2026-08-03-neuma-module-slices.md` for the module-lev
 
 ## Model Direction
 
-Read `../architecture/adr/008-adopt-single-page-primitive-notion-alignment.md` before touching the page, database, or content-storage models. It establishes `Page` as the only content primitive, turns databases into collections that select pages instead of storing rows, puts page mentions and backlinks into the current scope, fixes `Page.content` as the canonical source of truth for content, and records the four-level storage ladder for blocks with level 3 as the target.
+Read `../architecture/adr/021-everything-is-a-block.md` before touching the page, database, or content-storage models. It makes `Block` the only entity: a page is a block of type `page`, a collection is a page block with a schema whose rows are its children, and blocks are canonical. There is no `Page.content`. Changes are transactions of operations over block rows, permissions are declared per block and inherited, and search and backlinks are read from `Block` and `BlockLink` in the same transaction. `../architecture/adr/022-retire-the-outbox-and-projection-workers.md` retires the outbox and the projection workers.
+
+`../architecture/adr/008-adopt-single-page-primitive-notion-alignment.md` is still the origin of the mention graph and of collections as pages; its storage decisions (`Page.content` as the source of truth, the `PageBlock` projection) are superseded by 021.
 
 Read `../architecture/adr/009-files-live-in-content-not-in-a-parallel-list.md` before touching attachments. The content is the single source of truth for where a file lives; `FileAsset.pageId` is ownership and permission, not placement.
 
-Both are executed by `../superpowers/plans/2026-08-05-neuma-notion-alignment.md`, which supersedes the data model in `../superpowers/plans/2026-08-02-neuma-databases.md`.
+The block model is executed by `../superpowers/plans/2026-10-19-todo-es-un-bloque.md`. The attachment decision (009) follows `../superpowers/plans/2026-08-05-neuma-notion-alignment.md`, Phase 5.
 
 ## Functional Verification
 
