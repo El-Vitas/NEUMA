@@ -126,22 +126,12 @@ export class PageCoverValidationError extends DomainError {
   }
 }
 
-export class PageMaintenanceAdminOnlyError extends DomainError {
-  public readonly code = 'PAGE_MAINTENANCE_ADMIN_ONLY';
-  public readonly httpStatus = 403;
+export class PageVersionNotFoundError extends DomainError {
+  public readonly code = 'PAGE_VERSION_NOT_FOUND';
+  public readonly httpStatus = 404;
 
   constructor() {
-    super('Only a workspace admin can run page maintenance.');
-  }
-}
-
-/** Two runs at once would overwrite each other's ids. */
-export class PageMaintenanceAlreadyRunningError extends DomainError {
-  public readonly code = 'PAGE_MAINTENANCE_ALREADY_RUNNING';
-  public readonly httpStatus = 409;
-
-  constructor() {
-    super('Page maintenance is already running in this workspace. Try again when it finishes.');
+    super('Page version not found');
   }
 }
 

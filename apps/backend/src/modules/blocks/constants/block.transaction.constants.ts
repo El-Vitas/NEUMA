@@ -2,6 +2,11 @@ export const BLOCK_TRANSACTION_REPOSITORY = 'BLOCK_TRANSACTION_REPOSITORY';
 
 export const BLOCK_OPERATION_TABLE = 'block';
 
+/** A pointer at a space addresses the list of its top-level pages. */
+export const BLOCK_SPACE_TABLE = 'space';
+
+export const BLOCK_ROOT_PAGES_PATH = 'rootPageIds';
+
 /** One request carries at most this many client transactions, each applied on its own. */
 export const BLOCK_TRANSACTIONS_MAX_PER_REQUEST = 20;
 
@@ -70,6 +75,35 @@ export const BLOCK_COMMAND_VALUES = [
   BLOCK_COMMAND.applyText,
   BLOCK_COMMAND.setPermission,
 ] as const;
+
+/**
+ * Commands that only the backend itself sends, on behalf of the pages module. A client never reaches them through
+ * `POST /transactions`, because each carries a rule that lives outside the pipeline (who may own a page, which
+ * space a branch moves to).
+ */
+export const BLOCK_PAGE_COMMAND = {
+  mergePageValues: 'mergePageValues',
+  moveToSpaceRoot: 'moveToSpaceRoot',
+  rewritePageValues: 'rewritePageValues',
+  setLifecycle: 'setLifecycle',
+  setLock: 'setLock',
+  setOwner: 'setOwner',
+  setVerification: 'setVerification',
+} as const;
+
+export const BLOCK_PAGE_COMMAND_VALUES = [
+  BLOCK_PAGE_COMMAND.setLifecycle,
+  BLOCK_PAGE_COMMAND.setLock,
+  BLOCK_PAGE_COMMAND.setVerification,
+  BLOCK_PAGE_COMMAND.setOwner,
+  BLOCK_PAGE_COMMAND.mergePageValues,
+  BLOCK_PAGE_COMMAND.rewritePageValues,
+  BLOCK_PAGE_COMMAND.moveToSpaceRoot,
+] as const;
+
+export const BLOCK_TRUSTED_COMMAND_VALUES = [...BLOCK_COMMAND_VALUES, ...BLOCK_PAGE_COMMAND_VALUES] as const;
+
+export const BLOCK_PAGE_LIFECYCLE_VALUES = ['ACTIVE', 'TRASHED'] as const;
 
 export const BLOCK_CHILDREN_PATH = 'children';
 

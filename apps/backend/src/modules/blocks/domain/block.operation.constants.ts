@@ -1,3 +1,6 @@
+/** An ordinary operation tolerates no blocker: a locked or trashed block refuses it. */
+export const BLOCK_NO_TOLERATED_BLOCKERS = [] as const;
+
 export const BLOCK_PROPERTIES_BAG = 'properties';
 
 export const BLOCK_FORMAT_BAG = 'format';

@@ -35,7 +35,8 @@
     "@types/pg": "^8.23.1",
     "prisma": "8.0.0-rc.22",
     "tsx": "^4.23.15",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "yjs": "^13.6.33"
   },
   "types": "./dist/index.d.ts"
 }

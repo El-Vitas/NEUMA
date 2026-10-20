@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { OutboxRepository } from '../../common/infrastructure/persistence/outbox.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import { WorkspaceMemberRepository } from '../../common/infrastructure/persistence/workspace-member.repository';
 import { SPACE_REPOSITORY } from './constants/spaces.constants';
@@ -11,7 +10,6 @@ import { SpacesService } from './spaces.service';
   controllers: [SpacesController],
   exports: [SpacesService],
   providers: [
-    OutboxRepository,
     { provide: SPACE_REPOSITORY, useClass: SpaceRepository },
     SpacesService,
     WorkspaceContextService,

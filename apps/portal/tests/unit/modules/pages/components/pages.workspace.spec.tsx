@@ -43,6 +43,14 @@ mock.module('@/modules/pages/editor/components/pages.editor', () => ({
   ),
 }));
 
+mock.module('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+mock.module('@/i18n/navigation', () => ({
+  usePathname: () => '/spaces/s/pages/p',
+  useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
+}));
+
 // Starting a page reaches a server action, which refuses to load outside a server.
 mock.module('@/shared/components/portal/start-page-button', () => ({
   StartPageButton: ({ label }: { readonly label: string }) => <button type="button">{label}</button>,
@@ -156,6 +164,74 @@ describe('PagesWorkspace collaboration propagation', () => {
     const editor = screen.getByTestId('selected-page');
     expect(editor.getAttribute('data-can-edit')).toBe('false');
     expect(editor.getAttribute('data-block-unavailable')).toBe('true');
+  });
+
+  it('hands the side panel editor its own page blocks and the user, like the main editor', () => {
+    const panelPage: PageSummary = { ...handbook, id: '55555555-5555-4555-8555-555555555555', title: 'Panel page' };
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          blockSync={[]}
+          canEditContent
+          currentUserId="user-1"
+          pages={[handbook, panelPage]}
+          panelBundle={{
+            attachments: [],
+            backlinks: { count: 0, items: [] },
+            blockSync: [],
+            blockSyncFailed: false,
+            collectionSection: null,
+            embeddedCollections: {},
+            isFavorite: false,
+            page: panelPage,
+            parentSchema: null,
+            personOptions: [],
+          }}
+          selectedPageId={handbook.id}
+          spaceId={handbook.spaceId}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const panelEditor = screen
+      .getAllByTestId('selected-page')
+      .find((editor) => editor.getAttribute('data-page-id') === panelPage.id);
+    expect(panelEditor?.getAttribute('data-block-count')).toBe('0');
+    expect(panelEditor?.getAttribute('data-user-id')).toBe('user-1');
+    expect(panelEditor?.getAttribute('data-can-edit')).toBe('true');
+  });
+
+  it('makes the side panel page read-only, and says why, when its blocks could not be read', () => {
+    const panelPage: PageSummary = { ...handbook, id: '55555555-5555-4555-8555-555555555555', title: 'Panel page' };
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          blockSync={[]}
+          canEditContent
+          pages={[handbook, panelPage]}
+          panelBundle={{
+            attachments: [],
+            backlinks: { count: 0, items: [] },
+            blockSync: null,
+            blockSyncFailed: true,
+            collectionSection: null,
+            embeddedCollections: {},
+            isFavorite: false,
+            page: panelPage,
+            parentSchema: null,
+            personOptions: [],
+          }}
+          selectedPageId={handbook.id}
+          spaceId={handbook.spaceId}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const panelEditor = screen
+      .getAllByTestId('selected-page')
+      .find((editor) => editor.getAttribute('data-page-id') === panelPage.id);
+    expect(panelEditor?.getAttribute('data-can-edit')).toBe('false');
+    expect(panelEditor?.getAttribute('data-block-unavailable')).toBe('true');
   });
 
   it('offers to start a page instead of an editor over nothing', () => {

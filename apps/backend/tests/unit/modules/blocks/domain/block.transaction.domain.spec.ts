@@ -233,7 +233,7 @@ describe('planBlockTransaction', () => {
       expect(
         plannedOf(
           buildInput(edit, [inside], {
-            load: { context: [lockedParent, sub], isDepthExceeded: false, locked: [inside] },
+            load: { context: [lockedParent, sub], isDepthExceeded: false, locked: [inside], spaces: [] },
           }),
         ).versions,
       ).toHaveLength(1);
@@ -244,7 +244,9 @@ describe('planBlockTransaction', () => {
 
       expect(
         refusalOf(
-          buildInput(edit, [paragraph], { load: { context: [trashed], isDepthExceeded: false, locked: [paragraph] } }),
+          buildInput(edit, [paragraph], {
+            load: { context: [trashed], isDepthExceeded: false, locked: [paragraph], spaces: [] },
+          }),
         ),
       ).toBe('PAGE_INVALID_LIFECYCLE');
     });

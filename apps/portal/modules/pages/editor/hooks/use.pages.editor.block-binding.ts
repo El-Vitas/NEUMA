@@ -6,7 +6,6 @@ import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { createBlockSyncEngine } from '../../block-sync/lib/block-sync.engine.lib';
 import { createBlockLiveSession } from '../../block-sync/lib/block-sync.session.lib';
 import { openBrowserBlockLiveSocket } from '../../block-sync/lib/block-sync.socket.lib';
-import { buildBlockLiveUrl } from '../../block-sync/lib/block-sync.url.lib';
 import { getBlockLiveToken } from '../../block-sync/server/actions/block-sync.actions';
 import type { BlockSyncEngine } from '../../block-sync/types/block-sync.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
@@ -22,13 +21,13 @@ const requestLiveToken = async (): Promise<string | null> => {
 };
 
 /**
- * Keeps the editor on the page's blocks through the live channel, in place of the collaborative document.
- * The socket is the one place where state arrives from outside React, like the collaboration session it replaces.
+ * Keeps the editor on the page's blocks through the live channel.
+ * The socket is the one place where state arrives from outside React.
  */
 export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptions): PagesEditorBlockBinding => {
   const { pageId, spaceId } = options;
   const localUserId = options.localUserId ?? null;
-  const initialBlocks = env.NEXT_PUBLIC_BLOCK_EDITOR && options.isEnabled ? (options.initialBlocks ?? null) : null;
+  const initialBlocks = options.isEnabled ? (options.initialBlocks ?? null) : null;
   const [saveState, setSaveState] = useState<PagesAutosaveDisplayState>('idle');
   const [status, setStatus] = useState<CollaborationStatus | null>(null);
   const [participants, setParticipants] = useState<readonly PageCollaborationParticipant[]>([]);
@@ -60,7 +59,7 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
           openSocket: openBrowserBlockLiveSocket,
           pageId,
           requestToken: requestLiveToken,
-          url: buildBlockLiveUrl(env.NEXT_PUBLIC_COLLABORATION_WS_URL),
+          url: env.NEXT_PUBLIC_LIVE_WS_URL,
         }),
       initialBlocks,
       localUserId,
@@ -84,10 +83,7 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
     collaboration: isActive ? { participants, status } : null,
     flush: () => engineRef.current?.flush() ?? Promise.resolve(true),
     isReadOnly,
-    keepContentLive: (content, isKeptLive) => {
-      engineRef.current?.notifyContentChange(content);
-      return isKeptLive || isActive;
-    },
+    keepContentLive: (content) => engineRef.current?.notifyContentChange(content),
     reportSelection: (selection) => engineRef.current?.reportSelection(selection),
     saveState: isActive ? saveState : options.fallbackSaveState,
   };

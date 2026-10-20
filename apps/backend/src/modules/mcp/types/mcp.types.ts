@@ -177,6 +177,14 @@ export interface McpPeopleReader {
   readonly listAssignableMembers: (workspaceId: string) => Promise<readonly McpPerson[]>;
 }
 
+/** Which blocks a person may read, whatever the token says: a block can close itself to people. */
+export interface McpBlockAccessReader {
+  readonly findReadableBlockIds: (
+    blockIds: readonly string[],
+    viewer: { readonly role: UserRole; readonly userId: string; readonly workspaceId: string },
+  ) => Promise<ReadonlySet<string>>;
+}
+
 export interface McpBacklink {
   readonly id: string;
   readonly spaceId: string;
@@ -285,6 +293,7 @@ export interface McpPageReader {
 export interface McpServerDependencies {
   readonly actionLog: McpActionLog;
   readonly backlinks: McpBacklinkReader;
+  readonly blockAccess: McpBlockAccessReader;
   readonly collections: McpCollectionService;
   readonly content: McpContentEditor;
   readonly drawings: McpDrawingValidator;

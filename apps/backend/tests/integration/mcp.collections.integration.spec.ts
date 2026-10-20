@@ -7,6 +7,7 @@ import { MCP_INACCESSIBLE_MESSAGE, MCP_PAGE_LOCKED_MESSAGE } from '@/modules/mcp
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames, readMcpText } from '../helpers/mcp.helper';
+import { countChildPages, readStoredPage } from '../helpers/mcp.stored-page.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const PASSWORD = 'plainPassword123';
@@ -87,16 +88,12 @@ describe('MCP collections (Integration)', () => {
   const call = (secret: string, name: string, args: Record<string, unknown>) =>
     callMcpTool(baseUrl, secret, name, args);
 
-  const storedRow = (pageId: string) =>
-    testApp.get(PrismaService).models.Page.select('propertyValues', 'title').where({ id: pageId }).all().firstOrThrow();
+  const storedRow = async (pageId: string) => {
+    const { propertyValues, title } = await readStoredPage(testApp, owner.token, pageId);
+    return { propertyValues, title };
+  };
 
-  const rowCount = async () =>
-    (
-      await testApp
-        .get(PrismaService)
-        .models.Page.where({ parentId: collectionId })
-        .aggregate((aggregation) => ({ total: aggregation.count() }))
-    ).total;
+  const rowCount = () => countChildPages(testApp, collectionId);
 
   const actionsOn = (pageId: string) =>
     testApp
@@ -377,11 +374,11 @@ describe('MCP collections (Integration)', () => {
 
       const answer = await call(secret, 'update_collection_columns', {
         collection: collectionId,
-        renameOptions: [{ column: 'Estado', from: 'hecho', to: 'Listo' }],
+        renameOptions: [{ column: 'Estado', from: 'por hacer', to: 'Pendiente' }],
       });
 
       expect(answer.isError).toBeUndefined();
-      expect((await storedRow(lockedRowId)).propertyValues).toEqual({ status: 'Listo' });
+      expect((await storedRow(closedRowId)).propertyValues).toEqual({ status: 'Pendiente' });
     });
   });
 });

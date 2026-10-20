@@ -15,7 +15,6 @@ import type { PageDestination } from '../../editor/menus/types/pages.editor.dest
 import type { PageMoveDestinations } from '../../navigation/types/pages.move.types';
 import {
   pageBlocksHandoverSchema,
-  pageContentReplacementSchema,
   pageDestinationsSchema,
   pageDuplicateSchema,
   pageLocatorSchema,
@@ -45,18 +44,6 @@ export const createPageAction = actionClient
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
       return pageSummarySchema.parse(createdPage);
-    }),
-  );
-
-/** Replaces content without a live session; the server still applies it to the live document. */
-export const replacePageContentAction = actionClient
-  .inputSchema(pageContentReplacementSchema)
-  .action(async ({ parsedInput }) =>
-    withAction({ action: 'replacePageContent' }, async () => {
-      await authenticatedRequest(PAGE_API_ROUTES.content(parsedInput.spaceId, parsedInput.pageId), 'PUT', {
-        content: parsedInput.content,
-      });
-      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
     }),
   );
 

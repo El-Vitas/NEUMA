@@ -8,6 +8,9 @@ import {
 
 export const mcpIdSchema = z.string().max(MCP_ID_MAX_LENGTH);
 
+/** A stored document, read only for its top-level nodes. */
+export const mcpDocumentNodesSchema = z.looseObject({ content: z.array(z.unknown()) });
+
 export const buildMcpAddressSchema = (description: string): z.ZodString =>
   z.string().trim().min(1).max(MCP_ADDRESS_MAX_LENGTH).describe(description);
 

@@ -23,8 +23,8 @@ FROM base AS builder
 ARG BACKEND_URL=http://backend:3000
 ENV BACKEND_URL=$BACKEND_URL
 # The browser opens this socket itself, so it is the backend's public address, and Next bakes it in at build time.
-ARG NEXT_PUBLIC_COLLABORATION_WS_URL=ws://localhost:3000/api/v1/collaboration
-ENV NEXT_PUBLIC_COLLABORATION_WS_URL=$NEXT_PUBLIC_COLLABORATION_WS_URL
+ARG NEXT_PUBLIC_LIVE_WS_URL=ws://localhost:3000/api/v1/blocks/live
+ENV NEXT_PUBLIC_LIVE_WS_URL=$NEXT_PUBLIC_LIVE_WS_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=pruner /app/out/json/ ./
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile

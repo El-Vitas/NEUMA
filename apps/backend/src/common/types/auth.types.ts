@@ -35,14 +35,3 @@ export interface RefreshTokenPayload extends TokenPayload {
   /** Absent on tokens issued before versions existed; those count as version 0. */
   readonly ver?: number;
 }
-
-export interface CollaborationTokenPayload {
-  readonly [claim: string]: unknown;
-  readonly aud: string;
-  readonly mode: 'read' | 'write';
-  readonly pageId: string;
-  readonly purpose: string;
-  readonly role: UserRole;
-  readonly sub: string;
-  readonly workspaceId: string;
-}

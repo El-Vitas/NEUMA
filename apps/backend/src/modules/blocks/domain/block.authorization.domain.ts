@@ -1,5 +1,6 @@
 import {
   BLOCK_ROLE,
+  BLOCK_TYPE,
   canEditBlock,
   canManageBlockPermissions,
   canReadBlock,
@@ -9,16 +10,22 @@ import {
 import type { DomainError } from '../../../common/domain/domain.error';
 import type { BlockRecord } from './block.domain.types';
 import { BlockAccessDeniedError } from './block.error';
+import { BLOCK_NO_TOLERATED_BLOCKERS } from './block.operation.constants';
+import { isPageOperation } from './block.page-operation.domain';
 import type {
   AuthorizationInput,
   AuthorizationPower,
   BlockOperation,
+  BlockPageOperation,
   WorkingBlock,
+  WriteBlocker,
 } from './block.transaction.domain.types';
 import {
   BlockAlreadyExistsError,
   BlockEditForbiddenError,
   BlockLockedError,
+  BlockNotTrashedError,
+  BlockOperationInvalidError,
   BlockPermissionsForbiddenError,
   BlockTrashedError,
 } from './block.transaction.error';
@@ -26,10 +33,15 @@ import { findWriteBlocker } from './block.tree.domain';
 
 const ok = (): Result<void, DomainError> => Result.ok(undefined);
 
-const checkWritable = (blockId: string, input: AuthorizationInput): Result<void, DomainError> => {
+/** A blocker the command tolerates is not a refusal: unlocking a page has to work on a locked page. */
+const checkWritable = (
+  blockId: string,
+  input: AuthorizationInput,
+  tolerated: readonly WriteBlocker[],
+): Result<void, DomainError> => {
   const blocker = findWriteBlocker(blockId, input.recordsById, input.maxDepth);
-  if (blocker === 'trashed') return Result.fail(new BlockTrashedError());
-  return blocker === 'locked' ? Result.fail(new BlockLockedError()) : ok();
+  if (blocker === null || tolerated.includes(blocker)) return ok();
+  return Result.fail(blocker === 'trashed' ? new BlockTrashedError() : new BlockLockedError());
 };
 
 const hasPower = (power: AuthorizationPower, block: BlockRecord, input: AuthorizationInput): boolean => {
@@ -42,15 +54,59 @@ const authorizeExisting = (
   block: BlockRecord | undefined,
   power: AuthorizationPower,
   input: AuthorizationInput,
+  tolerated: readonly WriteBlocker[],
+  spaceId: string = input.spaceId,
 ): Result<void, DomainError> => {
   const role = block === undefined ? BLOCK_ROLE.none : (input.rolesById.get(block.id) ?? BLOCK_ROLE.none);
-  if (block === undefined || block.spaceId !== input.spaceId || !canReadBlock(role)) {
+  if (block === undefined || block.spaceId !== spaceId || !canReadBlock(role)) {
     return Result.fail(new BlockAccessDeniedError());
   }
   if (!hasPower(power, block, input)) {
     return Result.fail(power === 'manage' ? new BlockPermissionsForbiddenError() : new BlockEditForbiddenError());
   }
-  return checkWritable(block.id, input);
+  return checkWritable(block.id, input, tolerated);
+};
+
+/**
+ * Which refusals a page command does not make. Locking, verifying, giving an owner, trashing, restoring and moving
+ * a page are not edits of what it says, so a lock does not stop them; only the property values are.
+ */
+const listToleratedBlockers = (operation: BlockPageOperation): readonly WriteBlocker[] => {
+  switch (operation.command) {
+    case 'mergePageValues':
+      return BLOCK_NO_TOLERATED_BLOCKERS;
+    case 'rewritePageValues':
+      return ['locked', 'trashed'];
+    case 'setLifecycle':
+      return operation.lifecycle === 'ACTIVE' ? ['locked', 'trashed'] : ['locked'];
+    default:
+      return ['locked'];
+  }
+};
+
+/** A page can be trashed once and restored only from the trash. */
+const checkLifecycleStep = (block: BlockRecord, operation: BlockPageOperation): Result<void, DomainError> => {
+  if (operation.command !== 'setLifecycle') return ok();
+  const isTrashed = block.lifecycle === 'TRASHED';
+  if (operation.lifecycle === 'TRASHED') return isTrashed ? Result.fail(new BlockTrashedError()) : ok();
+  return isTrashed ? ok() : Result.fail(new BlockNotTrashedError());
+};
+
+const authorizePageCommand = (operation: BlockPageOperation, input: AuthorizationInput): Result<void, DomainError> => {
+  const block = input.before.get(operation.blockId);
+  const authorized = authorizeExisting(block, 'edit', input, listToleratedBlockers(operation));
+  if (authorized.isFail() || block === undefined) return authorized;
+  if (block.type !== BLOCK_TYPE.page)
+    return Result.fail(new BlockOperationInvalidError('The command applies to a page'));
+  const placed = authorizeNewParent(operation, input);
+  return placed.isFail() ? placed : checkLifecycleStep(block, operation);
+};
+
+/** The page of another space that takes the moved page must be one its mover can edit, and that is not locked. */
+const authorizeNewParent = (operation: BlockPageOperation, input: AuthorizationInput): Result<void, DomainError> => {
+  if (operation.command !== 'moveToSpaceRoot' || operation.parentId === null) return ok();
+  const parent = input.recordsById.get(operation.parentId);
+  return authorizeExisting(parent, 'edit', input, BLOCK_NO_TOLERATED_BLOCKERS, operation.spaceId);
 };
 
 const authorizeCreation = (
@@ -72,8 +128,9 @@ const authorizeOperation = (
   const isCreatedHere = createdIds.has(operation.blockId);
   if (operation.command === 'create') return authorizeCreation(operation.blockId, isCreatedHere, input);
   if (isCreatedHere) return ok();
+  if (isPageOperation(operation)) return authorizePageCommand(operation, input);
   const power: AuthorizationPower = operation.command === 'setPermissions' ? 'manage' : 'edit';
-  return authorizeExisting(input.before.get(operation.blockId), power, input);
+  return authorizeExisting(input.before.get(operation.blockId), power, input, BLOCK_NO_TOLERATED_BLOCKERS);
 };
 
 /**
@@ -95,7 +152,9 @@ export const authorizeTargets = (
 };
 
 const authorizeParent = (parentId: string | null, input: AuthorizationInput): Result<void, DomainError> => {
-  if (parentId !== null) return authorizeExisting(input.recordsById.get(parentId), 'edit', input);
+  if (parentId !== null) {
+    return authorizeExisting(input.recordsById.get(parentId), 'edit', input, BLOCK_NO_TOLERATED_BLOCKERS);
+  }
   const rootRole = resolveBlockRole({ canReadSpace: input.isSpaceReadable, chain: [], viewer: input.viewer });
   return canEditBlock(rootRole) ? ok() : Result.fail(new BlockEditForbiddenError());
 };

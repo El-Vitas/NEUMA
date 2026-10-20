@@ -144,6 +144,7 @@ describe('Restoring a trashed page (Integration)', () => {
   it('restores a page to the root of its space when its parent stays trashed', async () => {
     const parent = await createPage(testApp, adminToken, spaceId, 'Still Trashed Parent');
     const child = await createPage(testApp, adminToken, spaceId, 'Child Of Trashed Parent', parent.id);
+    await trashPage(testApp, adminToken, spaceId, child.id);
     await trashPage(testApp, adminToken, spaceId, parent.id);
 
     const outcome = await restorePage(testApp, adminToken, spaceId, child.id);
@@ -156,25 +157,23 @@ describe('Restoring a trashed page (Integration)', () => {
     expect(restoredChild.parentId).toBeNull();
   });
 
-  /**
-   * `Page.parentId` is `onDelete: SetNull`, so deleting the parent for good nulls every reference to it before restore
-   * runs. Nothing is left to name, so the page lands like one that was always at the root, with no notice.
-   */
-  it('restores a page to the root of its space when its parent was deleted forever, without a notice to name her by', async () => {
+  /** A page block owns its subtree: deleting it for good deletes the pages below it too, so none is left to restore. */
+  it('takes the pages below a page with it when the page is deleted forever', async () => {
     const parent = await createPage(testApp, adminToken, spaceId, 'Deleted Forever Parent');
     const child = await createPage(testApp, adminToken, spaceId, 'Child Of Deleted Parent', parent.id);
     await trashPage(testApp, adminToken, spaceId, parent.id);
     await deleteForever(testApp, adminToken, spaceId, parent.id);
     await testApp.get(PagesService).purgeDuePages(afterThePurgeDelay());
 
-    const outcome = await restorePage(testApp, adminToken, spaceId, child.id);
-
-    expect(outcome.restoredToRoot).toBe(false);
-    expect(outcome.parentTitle).toBeNull();
-    expect(outcome.spaceName).toBeNull();
-
-    const restoredChild = await getPage(testApp, adminToken, spaceId, child.id);
-    expect(restoredChild.parentId).toBeNull();
+    const prisma = testApp.get(PrismaService);
+    expect(await prisma.models.Block.first({ id: parent.id })).toBeNull();
+    expect(await prisma.models.Block.first({ id: child.id })).toBeNull();
+    await request(testApp.getServer())
+      .post(`/api/v1/spaces/${spaceId}/pages/${child.id}/restore`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('x-mutation-id', crypto.randomUUID())
+      .send({ includeChildren: false })
+      .expect(409);
   });
 
   it('carries no restore notice when the page had no parent to begin with', async () => {
@@ -219,11 +218,12 @@ describe('Restoring a trashed page (Integration)', () => {
     ]);
 
     for (const response of statuses) expect(response.status).toBeGreaterThanOrEqual(400);
-    const pages = testApp.get(PrismaService).models.Page;
-    const stored = await pages.where({ id: trashed.id }).select('lockedAt', 'title', 'verifiedAt').all().firstOrThrow();
-    expect(stored).toEqual({ lockedAt: null, title: 'En la papelera', verifiedAt: null });
-    const matching = await pages
-      .where((page) => page.title.like('En la papelera%'))
+    const blocks = testApp.get(PrismaService).models.Block;
+    const stored = await blocks.where({ id: trashed.id }).select('lockedAt', 'text', 'verifiedAt').all().firstOrThrow();
+    expect(stored).toEqual({ lockedAt: null, text: 'En la papelera', verifiedAt: null });
+    const matching = await blocks
+      .where({ type: 'page' })
+      .where((block) => block.text.like('En la papelera%'))
       .aggregate((aggregate) => ({ total: aggregate.count() }));
     expect(matching.total).toBe(1);
   });
@@ -263,15 +263,15 @@ describe('Restoring a trashed page (Integration)', () => {
 
     expect((emptied.body as { scheduledCount: number }).scheduledCount).toBeGreaterThanOrEqual(1);
     const prisma = testApp.get(PrismaService);
-    const scheduled = await prisma.models.Page.where({ id: gone.id }).select('purgeAfter').first();
+    const scheduled = await prisma.models.Block.where({ id: gone.id }).select('purgeAfter').first();
     expect(scheduled?.purgeAfter).toBeInstanceOf(Date);
 
     await testApp.get(PagesService).purgeDuePages(new Date());
-    expect(await prisma.models.Page.first({ id: gone.id })).not.toBeNull();
+    expect(await prisma.models.Block.first({ id: gone.id })).not.toBeNull();
 
     await testApp.get(PagesService).purgeDuePages(afterThePurgeDelay());
-    expect(await prisma.models.Page.first({ id: gone.id })).toBeNull();
-    expect(await prisma.models.Page.where({ id: kept.id }).select('lifecycle').first()).toEqual({
+    expect(await prisma.models.Block.first({ id: gone.id })).toBeNull();
+    expect(await prisma.models.Block.where({ id: kept.id }).select('lifecycle').first()).toEqual({
       lifecycle: 'ACTIVE',
     });
     const record = await prisma.models.PagePurge.where({ pageId: gone.id })
@@ -290,7 +290,7 @@ describe('Restoring a trashed page (Integration)', () => {
     await testApp.get(PagesService).purgeDuePages(afterThePurgeDelay());
 
     const prisma = testApp.get(PrismaService);
-    expect(await prisma.models.Page.where({ id: page.id }).select('lifecycle', 'purgeAfter').first()).toEqual({
+    expect(await prisma.models.Block.where({ id: page.id }).select('lifecycle', 'purgeAfter').first()).toEqual({
       lifecycle: 'ACTIVE',
       purgeAfter: null,
     });
@@ -314,7 +314,7 @@ describe('Restoring a trashed page (Integration)', () => {
       .set('Authorization', `Bearer ${workerToken}`);
 
     expect(response.status).toBe(403);
-    const stored = await testApp.get(PrismaService).models.Page.where({ id: page.id }).select('purgeAfter').first();
+    const stored = await testApp.get(PrismaService).models.Block.where({ id: page.id }).select('purgeAfter').first();
     expect(stored).toEqual({ purgeAfter: null });
   });
 });

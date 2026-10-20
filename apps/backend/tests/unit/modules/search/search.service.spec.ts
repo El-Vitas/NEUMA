@@ -1,137 +1,141 @@
 import { describe, expect, test } from 'bun:test';
 import { SearchService } from '@/modules/search/search.service';
-import type { PageBlockRepositoryContract, PageBlockSearchQuery } from '@/modules/search/types/page-block.types';
 import type {
-  SearchQuery,
+  PageBlockSearchQuery,
+  SearchCandidate,
+  SearchCandidateRequest,
   SearchRepositoryContract,
-  SearchResultWithContext,
 } from '@/modules/search/types/search.types';
+import { decodeSearchCursor } from '@/modules/search/utils/search.cursor.utils';
 
-const searchResult: SearchResultWithContext = {
-  contentType: 'PAGE',
+const candidate = (blockId: string, rank: number): SearchCandidate => ({
+  blockId,
+  blockType: 'paragraph',
+  chain: [],
+  editedAt: new Date('2026-10-20T00:00:00.000Z'),
+  headings: [{ level: 1, text: 'Setup' }],
   icon: null,
-  isVerified: false,
-  parentPageId: null,
+  isPageVerified: false,
+  pageChain: [],
+  pageId: `page-of-${blockId}`,
+  pageParentId: null,
+  pageRank: rank,
+  pageTitle: 'Roadmap',
   parentPageTitle: null,
-  rank: 0.8,
+  rank,
+  snippet: '<mark>Roadmap</mark>',
   spaceId: 'space-1',
   spaceName: 'Engineering',
-  sourceId: 'page-1',
-  sourceType: 'PAGE',
-  snippet: '<mark>Roadmap</mark>',
-  title: 'Roadmap',
-  updatedAt: '2026-08-02T00:00:00.000Z',
-};
-
-const unusedBlockRepository: PageBlockRepositoryContract = {
-  locateBlock: () => Promise.resolve([]),
-  removeBlocks: () => Promise.resolve(),
-  replaceBlocks: () => Promise.resolve(),
-  searchBlocks: () => Promise.resolve({ items: [] }),
-};
-
-const unusedSearchRepository: SearchRepositoryContract = {
-  removeDocument: () => Promise.resolve(),
-  search: () => Promise.resolve({ items: [] }),
-  upsertDocument: () => Promise.resolve(),
-};
+});
 
 const blockQuery: PageBlockSearchQuery = {
-  limit: 10,
+  limit: 2,
   query: 'lanzamiento',
   userId: 'user-1',
   userRole: 'WORKER',
   workspaceId: 'workspace-1',
 };
 
-describe('SearchService — blocks', () => {
-  test('finds no blocks for an empty query, without asking the repository', async () => {
-    const repository: PageBlockRepositoryContract = {
-      ...unusedBlockRepository,
-      searchBlocks: () => {
-        throw new Error('empty queries must not reach the repository');
-      },
-    };
-
-    const service = new SearchService(unusedSearchRepository, repository);
-
-    expect(await service.searchBlocks({ ...blockQuery, query: '   ' })).toEqual({ items: [] });
-  });
-
-  test('passes the block query to the repository as it came', async () => {
-    let received: PageBlockSearchQuery | undefined;
-    const repository: PageBlockRepositoryContract = {
-      ...unusedBlockRepository,
-      searchBlocks: (query) => {
-        received = query;
-        return Promise.resolve({ items: [] });
-      },
-    };
-
-    await new SearchService(unusedSearchRepository, repository).searchBlocks(blockQuery);
-
-    expect(received).toEqual(blockQuery);
-  });
+const repositoryAnswering = (
+  answer: (request: SearchCandidateRequest) => readonly SearchCandidate[],
+  requests: SearchCandidateRequest[] = [],
+): SearchRepositoryContract => ({
+  findCandidates: (request) => {
+    requests.push(request);
+    return Promise.resolve(answer(request));
+  },
+  locateBlock: () => Promise.resolve([]),
 });
 
 describe('SearchService', () => {
-  test('returns no results for an empty normalized query', async () => {
-    const repository: SearchRepositoryContract = {
-      search: (): Promise<{ items: readonly SearchResultWithContext[] }> => {
-        throw new Error('empty queries must not reach the repository');
-      },
-      removeDocument: (): Promise<void> => Promise.resolve(),
-      upsertDocument: (): Promise<void> => Promise.resolve(),
-    };
+  test('finds nothing for an empty query, without asking the repository', async () => {
+    const requests: SearchCandidateRequest[] = [];
+    const service = new SearchService(repositoryAnswering(() => [candidate('a', 1)], requests));
 
-    const service = new SearchService(repository, unusedBlockRepository);
-
-    expect(
-      await service.search({ limit: 20, query: '', userId: 'user-1', userRole: 'CLIENT', workspaceId: 'workspace-1' }),
-    ).toEqual({ items: [] });
+    expect(await service.searchBlocks({ ...blockQuery, query: '   ' })).toEqual({ items: [] });
+    expect(await service.search({ ...blockQuery, query: '' })).toEqual({ items: [] });
+    expect(requests).toEqual([]);
   });
 
-  test('passes one authorized query contract to the repository', async () => {
-    let receivedQuery: SearchQuery | undefined;
-    const repository: SearchRepositoryContract = {
-      search: (query): Promise<{ items: readonly SearchResultWithContext[] }> => {
-        receivedQuery = query;
-        return Promise.resolve({ items: [searchResult] });
-      },
-      removeDocument: (): Promise<void> => Promise.resolve(),
-      upsertDocument: (): Promise<void> => Promise.resolve(),
-    };
+  test('finds no pages for a content type other than pages', async () => {
+    const requests: SearchCandidateRequest[] = [];
+    const service = new SearchService(repositoryAnswering(() => [candidate('a', 1)], requests));
 
-    const service = new SearchService(repository, unusedBlockRepository);
-    const query: SearchQuery = {
-      contentType: 'PAGE',
-      limit: 10,
-      query: 'roadmap',
-      sourceType: 'PAGE',
-      tags: ['planning'],
-      userId: 'user-1',
-      userRole: 'CLIENT',
-      workspaceId: 'workspace-1',
-    };
-
-    expect(await service.search(query)).toEqual({ items: [searchResult] });
-    expect(receivedQuery).toEqual(query);
+    expect(await service.search({ ...blockQuery, contentType: 'FILE' })).toEqual({ items: [] });
+    expect(requests).toEqual([]);
   });
 
-  test('removes an inactive projection through the repository contract', async () => {
-    let receivedSourceId = '';
-    const repository: SearchRepositoryContract = {
-      removeDocument: (input): Promise<void> => {
-        receivedSourceId = input.sourceId;
-        return Promise.resolve();
-      },
-      search: (): Promise<{ items: readonly SearchResultWithContext[] }> => Promise.resolve({ items: [] }),
-      upsertDocument: (): Promise<void> => Promise.resolve(),
+  test('answers a page of blocks with the heading path and a single statement', async () => {
+    const requests: SearchCandidateRequest[] = [];
+    const service = new SearchService(repositoryAnswering(() => [candidate('a', 1)], requests));
+
+    const page = await service.searchBlocks(blockQuery);
+
+    expect(page.items.map((item) => item.blockId)).toEqual(['a']);
+    expect(page.items[0]?.headingPath).toEqual(['Setup']);
+    expect(page.nextCursor).toBeUndefined();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.granularity).toBe('block');
+  });
+
+  test('answers pages as results of the page, stood for by their best block', async () => {
+    const service = new SearchService(repositoryAnswering(() => [candidate('a', 1)]));
+
+    const page = await service.search({ ...blockQuery, contentType: 'PAGE' });
+
+    expect(page.items[0]).toMatchObject({ sourceId: 'page-of-a', sourceType: 'PAGE', title: 'Roadmap' });
+  });
+
+  test('hands out a cursor on the last result when more were fetched than a page holds', async () => {
+    const rows = [candidate('a', 3), candidate('b', 2), candidate('c', 1)];
+    const service = new SearchService(repositoryAnswering(() => rows));
+
+    const page = await service.searchBlocks(blockQuery);
+
+    expect(page.items.map((item) => item.blockId)).toEqual(['a', 'b']);
+    expect(decodeSearchCursor(page.nextCursor)).toEqual({ id: 'b', matching: 'words', rank: 2 });
+  });
+
+  test('starts the next statement from the cursor it was given', async () => {
+    const requests: SearchCandidateRequest[] = [];
+    const service = new SearchService(repositoryAnswering(() => [], requests));
+    const cursor = Buffer.from(JSON.stringify({ id: 'b', matching: 'words', rank: 2 })).toString('base64url');
+
+    await service.searchBlocks({ ...blockQuery, cursor });
+
+    expect(requests[0]?.cursor).toEqual({ id: 'b', rank: 2 });
+  });
+
+  test('looks for a typo only when the words found nothing', async () => {
+    const requests: SearchCandidateRequest[] = [];
+    const service = new SearchService(
+      repositoryAnswering((request) => (request.matching === 'typo' ? [candidate('a', 0.6)] : []), requests),
+    );
+
+    const page = await service.searchBlocks(blockQuery);
+
+    expect(requests.map((request) => request.matching)).toEqual(['words', 'typo']);
+    expect(page.items.map((item) => item.blockId)).toEqual(['a']);
+  });
+
+  test('asks again from where it stopped when the rows fetched were hidden from the viewer', async () => {
+    const hiddenRow: SearchCandidate = {
+      ...candidate('hidden', 5),
+      chain: [{ depth: 1, id: 'secret', permissions: [] }],
     };
-    const service = new SearchService(repository, unusedBlockRepository);
+    const requests: SearchCandidateRequest[] = [];
+    const service = new SearchService(
+      repositoryAnswering(
+        (request) =>
+          request.cursor === null ? [hiddenRow, hiddenRow, hiddenRow, hiddenRow, hiddenRow] : [candidate('a', 1)],
+        requests,
+      ),
+    );
 
-    await service.removeProjection({ sourceId: 'page-1', sourceType: 'PAGE', versionMarker: 1 });
+    const page = await service.searchBlocks(blockQuery);
 
-    expect(receivedSourceId).toBe('page-1');
+    expect(page.items.map((item) => item.blockId)).toEqual(['a']);
+    expect(requests).toHaveLength(2);
+    expect(requests[1]?.cursor).toEqual({ id: 'hidden', rank: 5 });
   });
 });

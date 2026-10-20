@@ -7,10 +7,22 @@ import type {
   BlockVersion,
   BlockWrite,
   LinkSourceRebind,
+  SpaceRoots,
   StoredBlockLink,
 } from '../domain/block.transaction.domain.types';
 
 export type BlockParsedOperation = Result<BlockOperation, DomainError>;
+
+/** Reads the operations of one request into their typed form. */
+export type BlockOperationReader = (raw: readonly unknown[]) => Result<BlockOperation[], DomainError>;
+
+/** An operation whose envelope was checked and whose arguments are still to be read by its command. */
+export interface BlockOperationEnvelope {
+  readonly args: unknown;
+  readonly command: string;
+  readonly path: string[];
+  readonly pointer: { readonly id: string; readonly table: string };
+}
 
 /** One position of a rich text: a UTF-16 unit of text or an embed, with the marks it carries. */
 export interface BlockTextUnit {
@@ -56,7 +68,9 @@ export type BlockTransactionClaim =
 /** The statements of one Postgres transaction, called inside `run` in the order the service decides. */
 export interface BlockTransactionSession {
   claim(transactionId: string, userId: string, spaceId: string): Promise<BlockTransactionClaim>;
-  loadBlocks(blockIds: readonly string[]): Promise<BlockLoad>;
+  listDescendantIds(rootIds: readonly string[]): Promise<string[]>;
+  /** Holds the named spaces too, because a transaction that changes their lists of top-level pages must be alone. */
+  loadBlocks(blockIds: readonly string[], spaceIds: readonly string[]): Promise<BlockLoad>;
   lockTreeMoves(spaceId: string): Promise<void>;
   notify(payload: string): Promise<void>;
   readLinks(sourceBlockIds: readonly string[]): Promise<StoredBlockLink[]>;
@@ -64,6 +78,7 @@ export interface BlockTransactionSession {
   recordResult(result: BlockTransactionResult): Promise<void>;
   writeBlocks(writes: readonly BlockWrite[]): Promise<void>;
   writeLinks(diff: BlockLinkDiff): Promise<void>;
+  writeSpaces(spaces: readonly SpaceRoots[]): Promise<void>;
 }
 
 export interface BlockTransactionRepositoryContract {

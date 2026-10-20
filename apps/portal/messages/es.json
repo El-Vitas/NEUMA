@@ -110,9 +110,7 @@
       "allContentTypes": "Todos los tipos de contenido",
       "spaceFilter": "Espacio",
       "contentTypeFilter": "Tipo de contenido",
-      "tagsLabel": "Etiquetas",
-      "tagsPlaceholder": "etiqueta-uno, etiqueta-dos",
-      "filterHint": "Separa las etiquetas con comas. Solo se muestra contenido al que tienes acceso.",
+      "filterHint": "Solo se muestra contenido al que tienes acceso.",
       "sourceTypes": {
         "PAGE": "Página",
         "DATABASE_RECORD": "Registro de base de datos"
@@ -293,6 +291,7 @@
       "forbidden": "No puedes dar ese acceso: alguno de esos permisos, espacios o páginas no los tienes tú, o la página está en la papelera.",
       "missing": "Ese token ya no existe. Puede que alguien lo haya revocado.",
       "conflict": "Ya tienes un token activo con ese nombre, o llegaste al máximo de tokens activos. Cambia el nombre o revoca uno que no uses.",
+      "locked": "Una página de este acceso está bloqueada. Desbloquéala para cambiarla.",
       "tooLarge": "El acceso que armaste es demasiado grande para guardarlo. Quita algunos lugares.",
       "rateLimited": "Hiciste demasiados intentos seguidos. Espera un momento e inténtalo de nuevo.",
       "offline": "No se pudo conectar con el servidor. Verifica tu conexión.",
@@ -1396,6 +1395,7 @@
       "forbidden": "No tienes permiso para hacer esto.",
       "missing": "Esto ya no existe. Puede que se haya eliminado.",
       "conflict": "Otra persona lo cambió antes. Recarga para ver cómo quedó.",
+      "locked": "Esta página está bloqueada. Desbloquéala para cambiarla.",
       "tooLarge": "Es demasiado grande para guardarlo de una vez. Divídelo en partes más pequeñas.",
       "rateLimited": "Hiciste demasiados cambios seguidos. Espera un momento e inténtalo de nuevo.",
       "offline": "No se pudo contactar con el servidor. Revisa tu conexión.",

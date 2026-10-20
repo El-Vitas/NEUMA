@@ -1,12 +1,15 @@
-import { blockPermissionsSchema } from '@neuma/shared';
+import { blockPermissionsSchema, PAGE_PROPERTY_KEY_MAX_LENGTH } from '@neuma/shared';
 import { z } from 'zod';
 import {
   BLOCK_COMMAND_VALUES,
   BLOCK_OPERATION_PATH_MAX_LENGTH,
   BLOCK_OPERATION_TABLE,
+  BLOCK_PAGE_LIFECYCLE_VALUES,
   BLOCK_PROPERTY_KEY_MAX_LENGTH,
   BLOCK_PROPERTY_KEY_PATTERN,
+  BLOCK_SPACE_TABLE,
   BLOCK_TEXT_UPDATE_MAX_BASE64_LENGTH,
+  BLOCK_TRUSTED_COMMAND_VALUES,
   BLOCK_TYPE_MAX_LENGTH,
 } from '../constants/block.transaction.constants';
 import { BLOCK_ID_MAX_LENGTH } from '../constants/blocks.constants';
@@ -42,12 +45,47 @@ export const blockEntryValueSchema = z.json();
 
 export const blockEntriesSchema = jsonObjectSchema;
 
-export const blockOperationEnvelopeSchema = z
+const buildEnvelopeSchema = <Commands extends readonly [string, ...string[]]>(commands: Commands) =>
+  z
+    .object({
+      args: z.unknown(),
+      command: z.enum(commands),
+      path: z.array(z.string().max(BLOCK_PROPERTY_KEY_MAX_LENGTH)).max(BLOCK_OPERATION_PATH_MAX_LENGTH),
+      pointer: z.object({ id: blockIdSchema, table: z.enum([BLOCK_OPERATION_TABLE, BLOCK_SPACE_TABLE]) }).strict(),
+    })
+    .strict();
+
+export const blockOperationEnvelopeSchema = buildEnvelopeSchema(BLOCK_COMMAND_VALUES);
+
+/** What the backend itself may send: the commands a client sends plus the page commands. */
+export const blockTrustedOperationEnvelopeSchema = buildEnvelopeSchema(BLOCK_TRUSTED_COMMAND_VALUES);
+
+export const blockSetLifecycleArgsSchema = z
   .object({
-    args: z.unknown(),
-    command: z.enum(BLOCK_COMMAND_VALUES),
-    path: z.array(z.string().max(BLOCK_PROPERTY_KEY_MAX_LENGTH)).max(BLOCK_OPERATION_PATH_MAX_LENGTH),
-    pointer: z.object({ id: blockIdSchema, table: z.literal(BLOCK_OPERATION_TABLE) }).strict(),
+    detachFromParentId: blockIdSchema.optional(),
+    lifecycle: z.enum(BLOCK_PAGE_LIFECYCLE_VALUES),
+  })
+  .strict();
+
+export const blockSetLockArgsSchema = z.object({ locked: z.boolean() }).strict();
+
+export const blockSetVerificationArgsSchema = z
+  .object({ expiresAt: z.iso.datetime().nullable().optional(), verified: z.boolean() })
+  .strict();
+
+export const blockSetOwnerArgsSchema = z.object({ ownerId: blockIdSchema.nullable() }).strict();
+
+/** A `null` value removes the key from the page values. */
+export const blockMergePageValuesArgsSchema = z
+  .object({ values: z.record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), z.json()) })
+  .strict();
+
+export const blockMoveToSpaceRootArgsSchema = z
+  .object({
+    afterId: blockIdSchema.optional(),
+    detachFromParentId: blockIdSchema.optional(),
+    parentId: blockIdSchema.optional(),
+    spaceId: blockIdSchema,
   })
   .strict();
 

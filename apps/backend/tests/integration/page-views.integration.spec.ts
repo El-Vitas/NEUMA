@@ -1,18 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { SpaceVisibility } from '@neuma/db';
-import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { createAccount, loginUser } from '../helpers/auth.helper';
+import { createBlockFactory } from '../factories/block.factory';
+import {
+  createSeededSpace,
+  createSeededUser,
+  onlyUserPermissions,
+  type SeededUser,
+} from '../helpers/block-access.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
-
-interface SpaceResponse {
-  id: string;
-}
-
-interface PageResponse {
-  id: string;
-}
 
 interface SettingsResponse {
   enabled: boolean;
@@ -22,35 +19,6 @@ interface UsageSummaryResponse {
   viewCount: number;
   viewers: Array<{ id: string; name: string; viewedAt: string }>;
 }
-
-const plainContent = (text: string): PageContent => ({
-  content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],
-  schemaVersion: 1,
-  type: 'doc',
-});
-
-const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
-  const prisma = testApp.get(PrismaService);
-  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
-};
-
-const createSpace = async (testApp: TestApp, token: string, name: string, slug: string): Promise<string> => {
-  const response = await request(testApp.getServer())
-    .post('/api/v1/spaces')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ name, slug, visibility: SpaceVisibility.PUBLIC_INTERNAL })
-    .expect(201);
-  return (response.body as SpaceResponse).id;
-};
-
-const createPage = async (testApp: TestApp, token: string, spaceId: string, title: string): Promise<string> => {
-  const response = await request(testApp.getServer())
-    .post(`/api/v1/spaces/${spaceId}/pages`)
-    .set('Authorization', `Bearer ${token}`)
-    .send({ content: plainContent(title), title })
-    .expect(201);
-  return (response.body as PageResponse).id;
-};
 
 const recordView = (testApp: TestApp, token: string, pageId: string) =>
   request(testApp.getServer()).post(`/api/v1/page-views/pages/${pageId}`).set('Authorization', `Bearer ${token}`);
@@ -69,27 +37,36 @@ const updateSettings = (testApp: TestApp, token: string, enabled: boolean) =>
 
 describe('Page Views (Integration)', () => {
   let testApp: TestApp;
+  let prisma: PrismaService;
+  let admin: SeededUser;
+  let worker: SeededUser;
   let adminToken: string;
-  let adminEmail: string;
   let workerToken: string;
   let spaceId: string;
 
+  const createPage = async (
+    title: string,
+    overrides: { lifecycle?: 'ACTIVE' | 'TRASHED'; permissions?: ReturnType<typeof onlyUserPermissions> } = {},
+  ): Promise<string> => {
+    const page = await createBlockFactory(prisma.models).create({
+      createdById: admin.id,
+      editedById: admin.id,
+      spaceId,
+      title,
+      type: 'page',
+      ...overrides,
+    });
+    return page.id;
+  };
+
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
-
-    const timestamp = Date.now();
-    adminEmail = `page-views-admin-${String(timestamp)}@test.com`;
-    const workerEmail = `page-views-worker-${String(timestamp)}@test.com`;
-    const password = 'plainPassword123';
-
-    await createAccount(testApp, { email: adminEmail, name: 'Views Admin', password });
-    await createAccount(testApp, { email: workerEmail, name: 'Views Worker', password });
-    await promoteToAdmin(testApp, adminEmail);
-
-    adminToken = (await loginUser(testApp, adminEmail, password)).accessToken;
-    workerToken = (await loginUser(testApp, workerEmail, password)).accessToken;
-
-    spaceId = await createSpace(testApp, adminToken, 'Views Space', `views-space-${String(timestamp)}`);
+    prisma = testApp.get(PrismaService);
+    admin = await createSeededUser(testApp, 'Views Admin', 'ADMIN');
+    worker = await createSeededUser(testApp, 'Views Worker', 'WORKER');
+    adminToken = admin.token;
+    workerToken = worker.token;
+    spaceId = await createSeededSpace(testApp, adminToken, SpaceVisibility.PUBLIC_INTERNAL);
   });
 
   afterAll(async () => {
@@ -97,7 +74,7 @@ describe('Page Views (Integration)', () => {
   });
 
   it('counts a view and reports who viewed the page, for an admin only', async () => {
-    const pageId = await createPage(testApp, adminToken, spaceId, 'Tracked Page');
+    const pageId = await createPage('Tracked Page');
 
     await recordView(testApp, workerToken, pageId).expect(201);
 
@@ -109,8 +86,29 @@ describe('Page Views (Integration)', () => {
     await getUsageSummary(testApp, workerToken, pageId).expect(403);
   });
 
+  it('records no view of a page the reader can no longer read, and hides its summary', async () => {
+    const hiddenPageId = await createPage('Hidden Page', { permissions: onlyUserPermissions(admin.id) });
+    const trashedPageId = await createPage('Trashed Page', { lifecycle: 'TRASHED' });
+
+    await recordView(testApp, workerToken, hiddenPageId).expect(201);
+    await recordView(testApp, workerToken, trashedPageId).expect(201);
+
+    expect(await prisma.models.PageView.where({ pageId: hiddenPageId }).all()).toHaveLength(0);
+    expect(await prisma.models.PageView.where({ pageId: trashedPageId }).all()).toHaveLength(0);
+    await getUsageSummary(testApp, adminToken, hiddenPageId).expect(200);
+    await getUsageSummary(testApp, adminToken, trashedPageId).expect(403);
+  });
+
+  it('stops reporting a page once it becomes hidden to the reader of the summary', async () => {
+    const pageId = await createPage('Hidden Later Page');
+    await recordView(testApp, workerToken, pageId).expect(201);
+    await prisma.models.Block.where({ id: pageId }).update({ lifecycle: 'TRASHED' });
+
+    await getUsageSummary(testApp, adminToken, pageId).expect(403);
+  });
+
   it('does not count a second view from the same reader inside the cooldown window', async () => {
-    const pageId = await createPage(testApp, adminToken, spaceId, 'Repeated Read Page');
+    const pageId = await createPage('Repeated Read Page');
 
     await recordView(testApp, workerToken, pageId).expect(201);
     await recordView(testApp, workerToken, pageId).expect(201);
@@ -120,7 +118,7 @@ describe('Page Views (Integration)', () => {
   });
 
   it('lets an admin turn tracking off, and no view is stored while it is off', async () => {
-    const pageId = await createPage(testApp, adminToken, spaceId, 'Toggle Page');
+    const pageId = await createPage('Toggle Page');
 
     await updateSettings(testApp, adminToken, false).expect(200);
     await recordView(testApp, workerToken, pageId).expect(201);

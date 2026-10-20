@@ -54,6 +54,16 @@ export class BlockTrashedError extends DomainError {
   }
 }
 
+/** Same code as the page lifecycle refusal: only a page in the trash can be restored. */
+export class BlockNotTrashedError extends DomainError {
+  public readonly code = 'PAGE_INVALID_LIFECYCLE';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('This page is not in the trash.');
+  }
+}
+
 export class BlockContentInvalidError extends DomainError {
   public readonly code = 'BLOCK_CONTENT_INVALID';
   public readonly httpStatus = 400;

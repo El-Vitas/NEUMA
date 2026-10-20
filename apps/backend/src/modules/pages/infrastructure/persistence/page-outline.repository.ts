@@ -1,37 +1,35 @@
 import { Injectable } from '@nestjs/common';
-import { and, PageLifecycle } from '@neuma/db';
-import { parseSchemaPropertyValues } from '../../../../common/infrastructure/persistence/schema-json.adapter';
-import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
-import { buildTokenScopeWhere } from '../../../../common/infrastructure/persistence/token-scope.filter';
-import type { FilterCondition, ModelFilterScope } from '../../../../common/types/model.filter.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { PAGE_OUTLINE_MAX_DEPTH } from '../../constants/pages.constants';
+import { readPageTitle, readPageValues } from '../../domain/page.block.domain';
+import { isPageInTokenScope } from '../../domain/page.token-scope.domain';
+import type { PageViewer } from '../../types/page.block.types';
+import type { StoredPageBlock } from '../../types/page.types';
 import type {
   PageAncestor,
-  PageAncestorRow,
   PageOutlineChildren,
   PageOutlinePlace,
   PageOutlineReader,
   PageOutlineRepositoryContract,
   PageOutlineWindow,
 } from '../../types/page-outline.types';
+import { PageBlockReader } from './page.block.reader';
 
-/** Active pages the reader can see, narrowed to the token scope when there is one. */
-const readableBy = (reader: PageOutlineReader) => {
-  const isVisibleSpace = buildSpaceVisibilityFilter(reader.userId, reader.role);
-  const isInTokenScope = reader.tokenScope === undefined ? null : buildTokenScopeWhere(reader.tokenScope);
-  return (page: ModelFilterScope<'Page'>): FilterCondition =>
-    and(
-      ...(isInTokenScope === null ? [] : [isInTokenScope(page)]),
-      page.lifecycle.eq(PageLifecycle.ACTIVE),
-      page.space.some((space) => and(isVisibleSpace(space), space.workspaceId.eq(reader.workspaceId))),
-    );
-};
+const toViewer = (reader: PageOutlineReader): PageViewer => ({
+  role: reader.role,
+  userId: reader.userId,
+  workspaceId: reader.workspaceId,
+});
+
+const compareByCreation = (first: StoredPageBlock, second: StoredPageBlock): number =>
+  first.createdAt.getTime() - second.createdAt.getTime() || first.id.localeCompare(second.id);
 
 /** Page tree without content, so walking a space stays cheap. Children the reader cannot see are not counted either. */
 @Injectable()
 export class PageOutlineRepository implements PageOutlineRepositoryContract {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blockReader: PageBlockReader,
+  ) {}
 
   async listChildren(
     spaceId: string,
@@ -39,70 +37,92 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     reader: PageOutlineReader,
     window: PageOutlineWindow,
   ): Promise<PageOutlineChildren> {
-    const isReadable = readableBy(reader);
-    const readableChildren = this.prisma.models.Page.where(isReadable).where({ parentId, spaceId });
-    const [pages, aggregate] = await Promise.all([
-      readableChildren
-        .select('id', 'propertyValues', 'title')
-        .include('children', (children) => children.where(isReadable).count())
-        .orderBy([(page) => page.order.asc(), (page) => page.id.asc()])
-        .offset(window.skip)
-        .limit(window.take)
-        .all(),
-      readableChildren.aggregate((aggregation) => ({ total: aggregation.count() })),
+    const candidates = await this.blockReader.readChildPageBlocks(spaceId, parentId);
+    const ordered = await this.sortSiblings(candidates, spaceId, parentId);
+    const readable = await this.keepReadable(ordered, reader);
+    const shown = readable.slice(window.skip, window.skip + window.take);
+    const [childCounts, collectionIds] = await Promise.all([
+      this.countReadableChildren(
+        shown.map((page) => page.id),
+        reader,
+      ),
+      this.findCollectionIds(shown.map((page) => page.id)),
     ]);
-    const collectionIds = await this.findCollectionIds(pages.map((page) => page.id));
-    const entries = pages.map((page) => ({
-      childCount: page.children,
+    const entries = shown.map((page) => ({
+      childCount: childCounts.get(page.id) ?? 0,
       id: page.id,
       isCollection: collectionIds.has(page.id),
-      propertyValues: parseSchemaPropertyValues(page.propertyValues),
-      title: page.title,
+      propertyValues: readPageValues(page.properties),
+      title: readPageTitle(page.properties),
     }));
-    return { entries, total: aggregate.total };
+    return { entries, total: readable.length };
   }
 
   async listAncestors(pageId: string, reader: PageOutlineReader): Promise<readonly PageAncestor[]> {
-    const page = await this.prisma.models.Page.select('id').where(readableBy(reader)).where({ id: pageId }).first();
-    if (page === null) return [];
-    const { columns } = this.prisma.tables.Page;
-    const rows: readonly PageAncestorRow[] = await this.prisma.runner.query(
-      this.prisma.sql`
-      WITH RECURSIVE "chain" AS (
-        SELECT "id", "parentId", "title", 0 AS "depth" FROM "Page" WHERE "id" = ${pageId}
-        UNION ALL
-        SELECT "ancestor"."id", "ancestor"."parentId", "ancestor"."title", "chain"."depth" + 1
-        FROM "Page" AS "ancestor"
-        INNER JOIN "chain" ON "ancestor"."id" = "chain"."parentId"
-        WHERE "chain"."depth" < ${PAGE_OUTLINE_MAX_DEPTH}
-      )
-      SELECT "id", "title" FROM "chain" WHERE "depth" > 0 ORDER BY "depth" DESC
-    `
-        .returnsRow({ id: columns.id, title: columns.title })
-        .build(),
-    );
-    const readable = new Set(
-      (
-        await this.listReadable(
-          rows.map((row) => row.id),
-          reader,
-        )
-      ).map((place) => place.id),
-    );
-    return rows.map(
-      (row): PageAncestor =>
-        readable.has(row.id)
-          ? { id: row.id, isReadable: true, title: row.title }
-          : { id: null, isReadable: false, title: null },
-    );
+    const [page] = await this.keepReadable(await this.blockReader.readPageBlocks([pageId]), reader);
+    if (page === undefined) return [];
+    const chains = await this.blockReader.readAncestry([pageId]);
+    const ancestorIds = (chains.get(pageId) ?? []).slice(1).map((link) => link.id);
+    const ancestors = await this.blockReader.readPageBlocks(ancestorIds);
+    const readableIds = new Set((await this.keepReadable(ancestors, reader)).map((ancestor) => ancestor.id));
+    const titles = new Map(ancestors.map((ancestor) => [ancestor.id, readPageTitle(ancestor.properties)]));
+    return ancestorIds
+      .toReversed()
+      .map(
+        (id): PageAncestor =>
+          readableIds.has(id)
+            ? { id, isReadable: true, title: titles.get(id) ?? '' }
+            : { id: null, isReadable: false, title: null },
+      );
   }
 
   async listReadable(pageIds: readonly string[], reader: PageOutlineReader): Promise<readonly PageOutlinePlace[]> {
-    if (pageIds.length === 0) return [];
-    return this.prisma.models.Page.select('id', 'spaceId', 'title')
-      .where(readableBy(reader))
-      .where((page) => page.id.in([...pageIds]))
-      .all();
+    const readable = await this.keepReadable(await this.blockReader.readPageBlocks(pageIds), reader);
+    return readable.map(
+      (page): PageOutlinePlace => ({
+        id: page.id,
+        spaceId: page.spaceId,
+        title: readPageTitle(page.properties),
+      }),
+    );
+  }
+
+  /** The pages of a page in the order it lists them; the ones at the top of a space, by when they were created. */
+  private async sortSiblings(
+    siblings: readonly StoredPageBlock[],
+    spaceId: string,
+    parentId: null | string,
+  ): Promise<StoredPageBlock[]> {
+    const listed = await this.blockReader.readSiblingIds(spaceId, parentId);
+    const positions = new Map(listed.map((id, position) => [id, position]));
+    const positionOf = (page: StoredPageBlock): number => positions.get(page.id) ?? positions.size;
+    return siblings.toSorted(
+      (first, second) => positionOf(first) - positionOf(second) || compareByCreation(first, second),
+    );
+  }
+
+  /** Active pages the reader can see, narrowed to the token scope when there is one. */
+  private async keepReadable(
+    blocks: readonly StoredPageBlock[],
+    reader: PageOutlineReader,
+  ): Promise<StoredPageBlock[]> {
+    const accessible = await this.blockReader.keepAccessible(blocks, toViewer(reader));
+    return accessible
+      .filter(({ access }) => !access.isInTrash)
+      .map(({ block }) => block)
+      .filter((block) => isPageInTokenScope(block, reader.tokenScope));
+  }
+
+  private async countReadableChildren(
+    parentIds: readonly string[],
+    reader: PageOutlineReader,
+  ): Promise<ReadonlyMap<string, number>> {
+    const children = await this.keepReadable(await this.blockReader.readPagesUnder(parentIds), reader);
+    const counts = new Map<string, number>();
+    for (const child of children) {
+      if (child.parentId !== null) counts.set(child.parentId, (counts.get(child.parentId) ?? 0) + 1);
+    }
+    return counts;
   }
 
   private async findCollectionIds(pageIds: readonly string[]): Promise<ReadonlySet<string>> {

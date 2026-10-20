@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { and } from '@neuma/db';
+import { PageLifecycle } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
-import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
+import { BlockAccessRepository } from '../../../../common/infrastructure/persistence/block-access.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { mapFavoritesToPageSummaries, resolveFavoriteSwapIndex } from '../../domain/favorite.domain';
 import type {
@@ -14,7 +14,10 @@ import type { FavoriteRepositoryContract } from '../../types/favorite.types';
 
 @Injectable()
 export class FavoriteRepository implements FavoriteRepositoryContract {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blockAccess: BlockAccessRepository,
+  ) {}
 
   async addFavorite(userId: string, pageId: string): Promise<FavoriteRow> {
     const nextOrder = await this.resolveNextOrder(userId);
@@ -82,11 +85,8 @@ export class FavoriteRepository implements FavoriteRepositoryContract {
     userId: string,
     role: UserRole,
   ): Promise<readonly AccessibleFavoritePage[]> {
-    const isVisibleSpace = buildSpaceVisibilityFilter(userId, role);
-    return this.prisma.models.Page.where((page) => page.id.in([...pageIds]))
-      .where((page) => page.space.some((space) => and(space.workspaceId.eq(workspaceId), isVisibleSpace(space))))
-      .select('id', 'lifecycle', 'spaceId', 'title')
-      .all();
+    const pages = await this.blockAccess.findReadablePages(pageIds, { role, userId, workspaceId });
+    return pages.map((page) => ({ ...page, lifecycle: PageLifecycle.ACTIVE }));
   }
 
   private async resolveNextOrder(userId: string): Promise<number> {

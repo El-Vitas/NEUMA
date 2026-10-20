@@ -5,16 +5,7 @@ import { type Command, TextSelection } from 'prosemirror-state';
 import { createRef } from 'react';
 import en from '../../../../../messages/en.json';
 
-const requestedTokens: unknown[] = [];
-
 mock.module('server-only', () => ({}));
-
-mock.module('@/modules/pages/server/actions/pages.collaboration.actions', () => ({
-  getPageCollaborationToken: async (input: unknown) => {
-    requestedTokens.push(input);
-    return { data: { token: 'token' } };
-  },
-}));
 
 mock.module('@/modules/pages/hooks/use.pages.mention-search', () => ({
   usePagesMentionSearch: () => ({ candidates: [], isLoading: false }),
@@ -62,28 +53,6 @@ type Handle = {
 };
 
 describe('PagesProseMirrorEditor on the block channel', () => {
-  it('does not open the collaborative document', async () => {
-    requestedTokens.length = 0;
-
-    render(
-      <NextIntlClientProvider locale="en" messages={en}>
-        <PagesProseMirrorEditor
-          blockCollaboration={{ participants: [], status: 'connected' }}
-          canEdit
-          content={createEmptyPageContent()}
-          onContentChange={() => undefined}
-          pageId={PAGE_ID}
-          spaceId="space-1"
-        />
-      </NextIntlClientProvider>,
-    );
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(requestedTokens).toEqual([]);
-  });
-
   it('shows the status and the people of the block channel', async () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>

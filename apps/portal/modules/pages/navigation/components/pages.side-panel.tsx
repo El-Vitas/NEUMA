@@ -19,6 +19,7 @@ interface IProps {
   readonly bundle: PagesSidePanelBundle;
   readonly canEditContent: boolean;
   readonly currentUserDisplayName?: string;
+  readonly currentUserId?: string;
   readonly pages: readonly PageSummary[];
   readonly parentBreadcrumbPages: readonly PageSummary[];
   readonly spaceId: string;
@@ -33,6 +34,7 @@ export const PagesSidePanel = ({
   bundle,
   canEditContent,
   currentUserDisplayName,
+  currentUserId,
   pages,
   parentBreadcrumbPages,
   spaceId,
@@ -41,6 +43,8 @@ export const PagesSidePanel = ({
   const {
     attachments,
     backlinks,
+    blockSync,
+    blockSyncFailed,
     collectionSection,
     embeddedCollections,
     isFavorite,
@@ -109,10 +113,13 @@ export const PagesSidePanel = ({
             <PagesEditor
               attachments={attachments}
               backlinks={backlinks}
-              canEdit={canEditPage(canEditContent, page.lifecycle)}
+              blockSync={blockSync}
+              canEdit={canEditPage(canEditContent, page.lifecycle) && !blockSyncFailed}
               collectionSection={collectionSection}
               currentUserDisplayName={currentUserDisplayName}
+              currentUserId={currentUserId}
               embeddedCollections={embeddedCollections}
+              isBlockSyncUnavailable={blockSyncFailed}
               isFavorite={isFavorite}
               key={`${page.id}:${page.lifecycle}`}
               onNavigateToPage={sidePanel.navigateWithinPanel}

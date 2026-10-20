@@ -62,31 +62,3 @@
     visibility: hidden;
   }
 }
-
-/*
- * Where somebody else is writing: a thin caret in their colour, with their
- * name in a small flag above it. Neither takes room in the writing nor takes
- * a click, so nobody's text moves and nobody's click lands in somebody
- * else's line because of it.
- */
-.ProseMirror-yjs-cursor {
-  position: relative;
-  margin-inline: -1px;
-  border-inline-start: 2px solid;
-  word-break: normal;
-  pointer-events: none;
-}
-
-.ProseMirror-yjs-cursor > div {
-  position: absolute;
-  bottom: 100%;
-  left: -2px;
-  padding: 0 0.25rem;
-  color: #1a1a1a;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.25rem;
-  white-space: nowrap;
-  user-select: none;
-  pointer-events: none;
-}

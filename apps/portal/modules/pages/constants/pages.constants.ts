@@ -46,7 +46,6 @@ export const PAGE_API_ROUTES = {
   list: (spaceId: string, includeTrashed = false) =>
     `/api/v1/spaces/${spaceId}/pages?includeTrashed=${String(includeTrashed)}`,
   item: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}`,
-  content: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/content`,
   blocks: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/blocks`,
   exportMarkdown: (spaceId: string, query: string) => `/api/v1/spaces/${spaceId}/pages/export/markdown?${query}`,
   duplicate: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/duplicate`,

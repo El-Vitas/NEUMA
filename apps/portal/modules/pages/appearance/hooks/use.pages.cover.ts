@@ -3,7 +3,12 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { hasActionError, isActionSuccess, readActionFailureReason } from '@/shared/lib/action-result';
+import {
+  hasActionError,
+  isActionSuccess,
+  isLockedActionFailure,
+  readActionFailureReason,
+} from '@/shared/lib/action-result';
 import { MAX_ATTACHMENT_SIZE } from '../../attachments/constants/pages.attachments.constants';
 import { formatAttachmentSize } from '../../attachments/lib/pages.attachments.lib';
 import type { PageSummary } from '../../types/pages.types';
@@ -30,6 +35,10 @@ export const usePagesCover = (
   const applyResult = (result: unknown, failureMessage: string): void => {
     if (isActionSuccess<PageSummary>(result)) {
       setCover(result.data.cover ?? null);
+      return;
+    }
+    if (isLockedActionFailure(result)) {
+      toast.error(tErrors('reasons.locked'));
       return;
     }
     toast.error(hasActionError(result) ? failureMessage : tErrors(`reasons.${readActionFailureReason(result)}`));

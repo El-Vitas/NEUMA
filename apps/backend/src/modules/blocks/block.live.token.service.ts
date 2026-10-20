@@ -13,7 +13,7 @@ import { blockLiveTokenPayloadSchema } from './schemas/block.live.schemas';
 import type { BlockLiveTokenVerifier } from './types/block.live.types';
 import type { BlockReader } from './types/blocks.types';
 
-/** Its own audience and purpose keep an access or collaboration token from opening the live channel. */
+/** Its own audience and purpose keep an access or refresh token from opening the live channel. */
 @Injectable()
 export class BlockLiveTokenService implements BlockLiveTokenVerifier {
   constructor(
