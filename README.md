@@ -4,6 +4,8 @@
 
 Neuma es la memoria interna de una organización. Todo es un bloque, incluso la página: espacios con páginas que se editan en vivo entre varias personas, colecciones con vistas, búsqueda de texto completo y retroenlaces. Los agentes de IA trabajan en ella como una persona más, a través de un servidor MCP con los mismos permisos que la aplicación.
 
+**Primero los agentes.** Neuma se piensa antes para agentes de IA que para personas: todo lo que una persona hace en el portal, un agente lo hace por el MCP, y el camino del agente es el más eficiente, con pocas llamadas, resultados precisos y bloques citables. El portal existe y se usa, pero cada decisión parte de lo que necesita un agente (ver «Product Principle: Agent First» en `AGENTS.md`).
+
 Para los agentes, Neuma es una arquitectura de memoria unificada (*Neural Enterprise Unified Memory Architecture*): cada conocimiento tiene un id estable que se puede citar, se enlaza con otros y se encuentra con una búsqueda, y cada agente solo ve lo que puede leer la persona dueña de su token.
 
 El nombre también viene de los neumas, la primera notación musical: signos pequeños que, juntos, forman el canto. Aquí cada bloque es un neuma.
