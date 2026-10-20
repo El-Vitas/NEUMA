@@ -1,4 +1,5 @@
 import type { NeumaTransaction } from '@neuma/db';
+import { BLOCK_TYPE } from '@neuma/shared';
 import { requireRow } from '../../../../common/utils/required-row.utils';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../../prisma/prisma.sql.lib';
@@ -7,7 +8,7 @@ import {
   BLOCK_RECORD_COLUMNS,
   BLOCK_TREE_LOCK_PREFIX,
 } from '../../constants/block.transaction.constants';
-import { BLOCK_PAGE_TYPE, BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.constants';
+import { BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.constants';
 import type {
   BlockLinkDiff,
   BlockLoad,
@@ -130,12 +131,12 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
       await this.transaction.execute(
         this.prisma.sql`
         WITH RECURSIVE "descendant" AS (
-          SELECT "id", 1 AS "depth" FROM "Block" WHERE "parentId" = ${rootBlockId} AND "type" <> ${BLOCK_PAGE_TYPE}
+          SELECT "id", 1 AS "depth" FROM "Block" WHERE "parentId" = ${rootBlockId} AND "type" <> ${BLOCK_TYPE.page}
           UNION ALL
           SELECT "child"."id", "descendant"."depth" + 1
           FROM "Block" AS "child"
           INNER JOIN "descendant" ON "child"."parentId" = "descendant"."id"
-          WHERE "child"."type" <> ${BLOCK_PAGE_TYPE} AND "descendant"."depth" < ${BLOCK_TREE_MAX_DEPTH}
+          WHERE "child"."type" <> ${BLOCK_TYPE.page} AND "descendant"."depth" < ${BLOCK_TREE_MAX_DEPTH}
         )
         UPDATE "BlockLink" SET "sourcePageId" = ${sourcePageId}
         WHERE "sourceBlockId" IN (SELECT "id" FROM "descendant")

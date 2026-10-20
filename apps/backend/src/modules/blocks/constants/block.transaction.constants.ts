@@ -103,8 +103,6 @@ export const BLOCK_PAGE_COMMAND_VALUES = [
 
 export const BLOCK_TRUSTED_COMMAND_VALUES = [...BLOCK_COMMAND_VALUES, ...BLOCK_PAGE_COMMAND_VALUES] as const;
 
-export const BLOCK_PAGE_LIFECYCLE_VALUES = ['ACTIVE', 'TRASHED'] as const;
-
 export const BLOCK_CHILDREN_PATH = 'children';
 
 export const BLOCK_NOTIFY_CHANNEL = 'block_versions';

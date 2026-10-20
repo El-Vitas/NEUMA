@@ -1,10 +1,10 @@
 import { BLOCK_TYPE, parseBlockContent, Result, readBlockText } from '@neuma/shared';
+import { indexById, resolveRoles } from '../../../common/domain/block-access.domain';
 import type { DomainError } from '../../../common/domain/domain.error';
+import { isSameJson } from '../../../common/domain/json.domain';
 import { authorizePlacements, authorizeTargets } from './block.authorization.domain';
-import { indexById, resolveRoles } from './block.domain';
 import type { BlockRecord } from './block.domain.types';
 import { BlockAccessDeniedError, BlockTreeTooDeepError } from './block.error';
-import { isSameJson } from './block.json.domain';
 import { extractBlockLinkTargets } from './block.link.domain';
 import { applyBlockOperation, createWorkingBlock, writeCreatedText } from './block.operation.domain';
 import { applyPageOperation, expandPageOperations, isPageOperation } from './block.page-operation.domain';

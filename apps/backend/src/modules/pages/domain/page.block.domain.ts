@@ -1,10 +1,4 @@
-import {
-  blockPlainTextSchema,
-  extractPlainText,
-  type PageCoverValue,
-  type PageIcon,
-  pageIconSchema,
-} from '@neuma/shared';
+import { type PageCoverValue, type PageIcon, pageIconSchema } from '@neuma/shared';
 import type { SchemaPropertyValue, SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { isPropertyValue } from '../../../common/domain/schema-property.domain';
 import { PAGE_FORMAT_KEY, PAGE_PROPERTY_KEY } from './page.block.domain.constants';
@@ -14,12 +8,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const readEntry = (bag: unknown, key: string): unknown => (isRecord(bag) ? bag[key] : undefined);
-
-/** The title is plain text on the page block; one that does not fit that shape reads as no title. */
-export const readPageTitle = (properties: unknown): string => {
-  const title = blockPlainTextSchema.safeParse(readEntry(properties, PAGE_PROPERTY_KEY.title));
-  return title.success ? extractPlainText(title.data) : '';
-};
 
 /** A page without a title stores an empty list, not an empty segment. */
 export const toPageTitleText = (title: string): { readonly insert: string }[] =>

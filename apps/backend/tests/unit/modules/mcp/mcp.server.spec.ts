@@ -34,7 +34,6 @@ import type {
 } from '../../../../src/modules/mcp/types/mcp.types';
 import type { PageSummary } from '../../../../src/modules/pages/types/page.types';
 import type { SpaceSummary } from '../../../../src/modules/spaces/types/space.types';
-import { createOpenBlockAccess } from '../../../helpers/mcp.block-access.helper';
 import { createUnusedPageManager } from '../../../helpers/mcp.page-manager.helper';
 
 const PORTAL = 'https://brain.example.com';
@@ -182,7 +181,6 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
     start: () => Promise.resolve('action-1'),
   },
   backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
-  blockAccess: createOpenBlockAccess(),
   collections: collectionWith([]),
   content: { edit: notUsedHere },
   drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },

@@ -1,3 +1,0 @@
-export const BLOCK_ACCESS_PAGE_TYPE = 'page';
-
-export const BLOCK_ACCESS_TRASHED_LIFECYCLE = 'TRASHED';

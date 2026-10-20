@@ -1,6 +1,6 @@
-import { Result } from '@neuma/shared';
+import { PAGE_LIFECYCLE, Result } from '@neuma/shared';
 import type { DomainError } from '../../../common/domain/domain.error';
-import { isSameJson } from './block.json.domain';
+import { isSameJson } from '../../../common/domain/json.domain';
 import type {
   BlockChildPlacement,
   BlockCreateOperation,
@@ -81,7 +81,7 @@ export const createWorkingBlock = (
   editedById: author.userId,
   format: fields.format,
   id: blockId,
-  lifecycle: 'ACTIVE',
+  lifecycle: PAGE_LIFECYCLE.ACTIVE,
   lockedAt: null,
   parentId: fields.parentId,
   permissions: null,

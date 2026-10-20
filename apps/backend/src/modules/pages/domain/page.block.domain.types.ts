@@ -15,12 +15,6 @@ export interface PageContentBlock {
   readonly type: string;
 }
 
-/** A block still to be judged, with the permissions it inherits from the block above it. */
-export interface PendingContentBlock {
-  readonly id: string;
-  readonly inherited: BlockPermissions;
-}
-
 /** The blocks of a page a viewer may read, and the ids of the ones left out with their branches. */
 export interface ReadableContentBlocks {
   readonly hiddenIds: ReadonlySet<string>;

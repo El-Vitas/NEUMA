@@ -1,4 +1,4 @@
-import type { BlockDraft, BlockTree, PageCoverValue, PageIcon } from '@neuma/shared';
+import type { BlockDraft, BlockTree, PageCoverValue, PageIcon, PageLifecycle } from '@neuma/shared';
 import {
   BLOCK_WRITE_COMMAND,
   BLOCK_WRITE_ROOT_PAGES_PATH,
@@ -134,7 +134,7 @@ export const buildOwnerOperation = (pageId: string, ownerId: null | string): Pag
 /** A restored page whose parent is in the trash goes to the root: `detachFromParentId` names the parent to leave. */
 export const buildLifecycleOperation = (
   pageId: string,
-  lifecycle: 'ACTIVE' | 'TRASHED',
+  lifecycle: PageLifecycle,
   detachFromParentId: null | string,
 ): PageBlockOperation =>
   operate(

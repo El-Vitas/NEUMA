@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PageLifecycle } from '@neuma/db';
+import { BLOCK_TYPE } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   SEARCH_ANCESTOR_DEPTH_LIMIT,
-  SEARCH_PAGE_BLOCK_TYPE,
   SEARCH_STRICT_WORD_SIMILARITY_SETTING,
   SEARCH_TYPO_WORD_SIMILARITY_THRESHOLD,
 } from '../../constants/search.constants';
@@ -73,7 +73,7 @@ export class SearchRepository implements SearchRepositoryContract {
         SELECT "ancestor"."id" AS "pageId"
         FROM "ancestor"
         INNER JOIN "Space" AS "space" ON "space"."id" = "ancestor"."spaceId"
-        WHERE "ancestor"."type" = ${SEARCH_PAGE_BLOCK_TYPE}::text
+        WHERE "ancestor"."type" = ${BLOCK_TYPE.page}::text
           AND "ancestor"."lifecycle" = ${PageLifecycle.ACTIVE}::"PageLifecycle"
           AND "space"."workspaceId" = ${workspaceId}::text
         ORDER BY "ancestor"."depth" ASC

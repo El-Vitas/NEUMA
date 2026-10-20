@@ -1,5 +1,4 @@
-import type { PageLifecycle } from '@neuma/db';
-import type { BlockPermissions, BlockRole } from '@neuma/shared';
+import type { BlockPermissions, BlockRole, PageLifecycle } from '@neuma/shared';
 
 /** One page of the chain that runs from a page up to the top of its tree, the page itself first. */
 export interface PageAncestryLink {

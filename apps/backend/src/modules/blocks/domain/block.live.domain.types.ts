@@ -1,5 +1,5 @@
 import type { BlockPermissions } from '@neuma/shared';
-import type { RolesById } from './block.domain.types';
+import type { RolesById } from '../../../common/domain/block-access.domain.types';
 import type { BLOCK_LIVE_ERROR_CODE } from './block.live.constants';
 import type { BlockVersion } from './block.transaction.domain.types';
 

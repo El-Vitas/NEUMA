@@ -1,24 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  readPageCover,
-  readPageIcon,
-  readPageTitle,
-  readPageValues,
-  toPageTitleText,
-} from '@/modules/pages/domain/page.block.domain';
+import { readPageCover, readPageIcon, readPageValues, toPageTitleText } from '@/modules/pages/domain/page.block.domain';
 
 describe('what a page block says about the page', () => {
-  it('reads the title out of the plain text of the block', () => {
-    expect(readPageTitle({ title: [{ insert: 'Plan' }, { insert: ' anual' }] })).toBe('Plan anual');
-  });
-
-  it('reads no title from a block with none or with one it cannot read', () => {
-    expect(readPageTitle({ title: [] })).toBe('');
-    expect(readPageTitle({})).toBe('');
-    expect(readPageTitle({ title: 'Plan' })).toBe('');
-    expect(readPageTitle(null)).toBe('');
-  });
-
   it('writes an empty title as an empty list', () => {
     expect(toPageTitleText('Plan')).toEqual([{ insert: 'Plan' }]);
     expect(toPageTitleText('')).toEqual([]);

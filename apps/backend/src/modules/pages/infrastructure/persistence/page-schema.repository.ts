@@ -4,6 +4,7 @@ import type { JsonObject } from '@neuma/db';
 import { DatabasePropertyType, PageLifecycle } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
 import { readPagePropertyOptionValues } from '@neuma/shared';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
 import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
 import {
@@ -14,7 +15,7 @@ import { WorkspaceMemberRepository } from '../../../../common/infrastructure/per
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { NeumaModels } from '../../../../prisma/types/prisma.types';
 import { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
-import { readPageTitle, readPageValues } from '../../domain/page.block.domain';
+import { readPageValues } from '../../domain/page.block.domain';
 import { PageAccessDeniedError } from '../../domain/page.error';
 import { buildValueRewriteOperations, diffPageValues } from '../../domain/page.operation.domain';
 import type { PageViewer } from '../../types/page.block.types';
@@ -180,7 +181,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         parentId: row.parentId,
         propertyValues: readPageValues(row.properties),
         spaceId: row.spaceId,
-        title: readPageTitle(row.properties),
+        title: readBlockTitle(row.properties),
       })),
     };
   }

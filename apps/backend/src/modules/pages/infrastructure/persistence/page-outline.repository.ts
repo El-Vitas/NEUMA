@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { readPageTitle, readPageValues } from '../../domain/page.block.domain';
+import { readPageValues } from '../../domain/page.block.domain';
 import { isPageInTokenScope } from '../../domain/page.token-scope.domain';
 import type { PageViewer } from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
@@ -53,7 +54,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       id: page.id,
       isCollection: collectionIds.has(page.id),
       propertyValues: readPageValues(page.properties),
-      title: readPageTitle(page.properties),
+      title: readBlockTitle(page.properties),
     }));
     return { entries, total: readable.length };
   }
@@ -65,7 +66,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
     const ancestorIds = (chains.get(pageId) ?? []).slice(1).map((link) => link.id);
     const ancestors = await this.blockReader.readPageBlocks(ancestorIds);
     const readableIds = new Set((await this.keepReadable(ancestors, reader)).map((ancestor) => ancestor.id));
-    const titles = new Map(ancestors.map((ancestor) => [ancestor.id, readPageTitle(ancestor.properties)]));
+    const titles = new Map(ancestors.map((ancestor) => [ancestor.id, readBlockTitle(ancestor.properties)]));
     return ancestorIds
       .toReversed()
       .map(
@@ -82,7 +83,7 @@ export class PageOutlineRepository implements PageOutlineRepositoryContract {
       (page): PageOutlinePlace => ({
         id: page.id,
         spaceId: page.spaceId,
-        title: readPageTitle(page.properties),
+        title: readBlockTitle(page.properties),
       }),
     );
   }

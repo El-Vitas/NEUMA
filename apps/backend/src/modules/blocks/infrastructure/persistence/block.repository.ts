@@ -1,13 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { blockPermissionsSchema } from '@neuma/shared';
+import { BLOCK_TYPE, blockPermissionsSchema } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import {
-  BLOCK_PAGE_TYPE,
-  BLOCK_RELATION,
-  BLOCK_SUBTREE_MAX_BLOCKS,
-  BLOCK_TREE_MAX_DEPTH,
-} from '../../constants/blocks.constants';
+import { BLOCK_RELATION, BLOCK_SUBTREE_MAX_BLOCKS, BLOCK_TREE_MAX_DEPTH } from '../../constants/blocks.constants';
 import type { BlockRecord } from '../../domain/block.domain.types';
 import {
   blockChildrenSchema,
@@ -43,7 +38,7 @@ export class BlockRepository implements BlockRepositoryContract {
         FROM "Block" AS "child"
         INNER JOIN "subtree" ON "child"."parentId" = "subtree"."id"
         WHERE "child"."alive" AND "subtree"."depth" < ${BLOCK_TREE_MAX_DEPTH}
-          AND ("subtree"."depth" = 0 OR "subtree"."type" <> ${BLOCK_PAGE_TYPE})
+          AND ("subtree"."depth" = 0 OR "subtree"."type" <> ${BLOCK_TYPE.page})
       ),
       "limited" AS (
         SELECT "id" FROM "subtree" ORDER BY "depth" LIMIT ${BLOCK_SUBTREE_MAX_BLOCKS + 1}
@@ -65,7 +60,7 @@ export class BlockRepository implements BlockRepositoryContract {
             SELECT 1 FROM "subtree"
             INNER JOIN "Block" AS "deeper" ON "deeper"."parentId" = "subtree"."id"
             WHERE "subtree"."depth" = ${BLOCK_TREE_MAX_DEPTH} AND "deeper"."alive"
-              AND "subtree"."type" <> ${BLOCK_PAGE_TYPE}
+              AND "subtree"."type" <> ${BLOCK_TYPE.page}
           )
           OR EXISTS (
             SELECT 1 FROM "ancestor" WHERE "depth" = ${BLOCK_TREE_MAX_DEPTH} AND "parentId" IS NOT NULL

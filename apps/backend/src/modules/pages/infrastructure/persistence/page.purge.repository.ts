@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { type NeumaTransaction, PageLifecycle } from '@neuma/db';
 import { BLOCK_TYPE } from '@neuma/shared';
+import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../../prisma/prisma.sql.lib';
 import { PAGE_PURGE_LOCK_KEY, PAGE_TREE_MAX_DEPTH } from '../../constants/pages.constants';
-import { readPageTitle } from '../../domain/page.block.domain';
 import type { PageDueForPurge } from '../../types/page.block.types';
 import type { PagePurgeRequest } from '../../types/page.types';
 
@@ -30,7 +30,7 @@ export class PagePurgeRepository {
           purgeAfter: request.purgeAfter,
           requestedById: request.requestedById,
           spaceId: page.spaceId,
-          title: readPageTitle(page.properties),
+          title: readBlockTitle(page.properties),
           workspaceId: request.workspaceId,
         })),
       );

@@ -1,4 +1,5 @@
-import { type BlockViewer, canReadBlock, resolveBlockRole } from '@neuma/shared';
+import { type BlockViewer, canReadBlock } from '@neuma/shared';
+import { resolveRoleFromDeclaring } from '../../../common/domain/block-access.domain';
 import type { DeclaringAncestor, HeadingEntry } from './search.domain.types';
 
 /**
@@ -6,7 +7,7 @@ import type { DeclaringAncestor, HeadingEntry } from './search.domain.types';
  * cut off from stays hidden even where a deeper block grants them access. The space itself was checked in SQL.
  */
 export const canReadCandidate = (viewer: BlockViewer, chain: readonly DeclaringAncestor[]): boolean =>
-  chain.every((ancestor) => canReadBlock(resolveBlockRole({ canReadSpace: true, chain: [ancestor], viewer })));
+  chain.every((ancestor) => canReadBlock(resolveRoleFromDeclaring(ancestor, true, viewer)));
 
 const nestUnder = (outline: readonly HeadingEntry[], heading: HeadingEntry): HeadingEntry[] => [
   ...outline.filter((enclosing) => enclosing.level < heading.level),
