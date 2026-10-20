@@ -5,9 +5,13 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
+import { env } from '@/config/env.config';
 import { redirect } from '@/i18n/navigation';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { getPageAttachments } from '@/modules/pages/attachments/server/queries/pages.attachments.queries';
+import { resolveBlockEditorStart, withBlockEditorContent } from '@/modules/pages/block-sync/lib/block-sync.start.lib';
+import { getPageBlocks } from '@/modules/pages/block-sync/server/queries/block-sync.queries';
+import type { SyncedBlock } from '@/modules/pages/block-sync/types/block-sync.types';
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
 import { PAGE_COLLECTION_VIEW_SEARCH_PARAM } from '@/modules/pages/collections/constants/pages.collections.constants';
@@ -75,6 +79,12 @@ const readPagesHolding = async (spaceId: string, pageId: string): Promise<readon
   const rereadResult = await getPagesHolding(spaceId, pageId);
   return rereadResult.isOk() ? rereadResult.getValue() : listed;
 };
+
+/** Read together with the rest of the page, only when the block editor is on. */
+const readBlocksWhenTheBlockEditorIsOn = async (
+  pageId: string,
+): Promise<Result<readonly SyncedBlock[], Error> | null> =>
+  env.NEXT_PUBLIC_BLOCK_EDITOR ? getPageBlocks(pageId) : null;
 
 export const generateMetadata = async ({ params }: IProps): Promise<Metadata> => {
   const { pageId, spaceId } = await params;
@@ -223,18 +233,20 @@ export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
   if (!areRecordIds(pageId, spaceId)) notFound();
 
-  const [spacesResult, user, pages, favoritesResult, resolvedSearchParams] = await Promise.all([
+  const [spacesResult, user, pages, favoritesResult, resolvedSearchParams, blockSyncResult] = await Promise.all([
     getSpaces(),
     getCurrentUser(),
     readPagesHolding(spaceId, pageId),
     getFavoritePages(),
     searchParams ?? Promise.resolve<RouteSearchParams>({}),
+    readBlocksWhenTheBlockEditorIsOn(pageId),
   ]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const selectedPage = pages?.find((page) => page.id === pageId);
   if (selectedPage === undefined) await followThePageToItsSpace(pageId, spaceId);
   if (space === undefined || pages === null || selectedPage === undefined) notFound();
 
+  const blockStart = resolveBlockEditorStart(blockSyncResult, pageId);
   const canEditRole = canEditContent(user?.role ?? USER_ROLE.CLIENT);
   const canSeePageUsage = canManageWorkspace(user?.role ?? USER_ROLE.CLIENT);
   const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pages, pageId);
@@ -253,13 +265,16 @@ export default async function Page({ params, searchParams }: IProps) {
       <PagesWorkspace
         attachments={mainBundle.attachments}
         backlinks={mainBundle.backlinks}
+        blockSync={blockStart.blocks}
+        blockSyncFailed={blockStart.isFailed}
         canEditContent={canEditRole}
         canSeePageUsage={canSeePageUsage}
         collectionSection={mainBundle.collectionSection}
         currentUserDisplayName={user?.name}
+        currentUserId={user?.id}
         embeddedCollections={mainBundle.embeddedCollections}
         isFavorite={mainBundle.isFavorite}
-        pages={pages}
+        pages={withBlockEditorContent(pages, pageId, blockStart)}
         panelBundle={panelBundle}
         parentSchema={mainBundle.parentSchema}
         personOptions={mainBundle.personOptions}

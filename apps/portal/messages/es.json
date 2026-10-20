@@ -486,6 +486,7 @@
     "contentHelp": "El texto se guarda como un bloque estructurado versionado.",
     "trashReadOnly": "Esta página está en la papelera. Restáurala para editarla.",
     "readOnly": "Solo tienes permiso de lectura en este espacio.",
+    "blockSyncUnavailable": "No se pudo cargar la página para edición en vivo, por eso está en solo lectura. Recarga para intentarlo de nuevo.",
     "spaceUnavailable": "Espacio no disponible",
     "saveChanges": "Guardar cambios",
     "saving": "Guardando...",
