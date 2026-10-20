@@ -53,10 +53,6 @@ export class SearchQueryDto {
   spaceId?: string;
 
   @IsOptional()
-  @IsString()
-  tags?: string;
-
-  @IsOptional()
   @IsBoolean()
   @Transform(({ value }: { value: unknown }) => {
     if (typeof value !== 'string') return value;

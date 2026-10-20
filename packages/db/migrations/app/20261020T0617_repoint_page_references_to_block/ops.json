@@ -1,0 +1,662 @@
+[
+  {
+    "id": "orphans.AccessTokenPageGrant",
+    "label": "Check that every \"AccessTokenPageGrant\".\"pageId\" exists in \"Block\"",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "every \"AccessTokenPageGrant\".\"pageId\" has a \"Block\" row; migrate the missing pages to blocks first",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"AccessTokenPageGrant\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ],
+    "execute": [
+      {
+        "description": "nothing to change, this step only verifies",
+        "sql": "SELECT 1"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no orphan in \"AccessTokenPageGrant\"",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"AccessTokenPageGrant\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ]
+  },
+  {
+    "id": "orphans.PageFavorite",
+    "label": "Check that every \"PageFavorite\".\"pageId\" exists in \"Block\"",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "every \"PageFavorite\".\"pageId\" has a \"Block\" row; migrate the missing pages to blocks first",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageFavorite\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ],
+    "execute": [
+      {
+        "description": "nothing to change, this step only verifies",
+        "sql": "SELECT 1"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no orphan in \"PageFavorite\"",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageFavorite\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ]
+  },
+  {
+    "id": "orphans.PageSchemaProperty",
+    "label": "Check that every \"PageSchemaProperty\".\"pageId\" exists in \"Block\"",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "every \"PageSchemaProperty\".\"pageId\" has a \"Block\" row; migrate the missing pages to blocks first",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageSchemaProperty\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ],
+    "execute": [
+      {
+        "description": "nothing to change, this step only verifies",
+        "sql": "SELECT 1"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no orphan in \"PageSchemaProperty\"",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageSchemaProperty\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ]
+  },
+  {
+    "id": "orphans.PageSchemaView",
+    "label": "Check that every \"PageSchemaView\".\"pageId\" exists in \"Block\"",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "every \"PageSchemaView\".\"pageId\" has a \"Block\" row; migrate the missing pages to blocks first",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageSchemaView\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ],
+    "execute": [
+      {
+        "description": "nothing to change, this step only verifies",
+        "sql": "SELECT 1"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no orphan in \"PageSchemaView\"",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageSchemaView\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ]
+  },
+  {
+    "id": "orphans.PageVersion",
+    "label": "Check that every \"PageVersion\".\"pageId\" exists in \"Block\"",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "every \"PageVersion\".\"pageId\" has a \"Block\" row; migrate the missing pages to blocks first",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageVersion\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ],
+    "execute": [
+      {
+        "description": "nothing to change, this step only verifies",
+        "sql": "SELECT 1"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no orphan in \"PageVersion\"",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageVersion\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ]
+  },
+  {
+    "id": "orphans.PageView",
+    "label": "Check that every \"PageView\".\"pageId\" exists in \"Block\"",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "every \"PageView\".\"pageId\" has a \"Block\" row; migrate the missing pages to blocks first",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageView\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ],
+    "execute": [
+      {
+        "description": "nothing to change, this step only verifies",
+        "sql": "SELECT 1"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no orphan in \"PageView\"",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"PageView\" AS referencing\n  WHERE NOT EXISTS (SELECT 1 FROM \"public\".\"Block\" AS block WHERE block.\"id\" = referencing.\"pageId\")\n)"
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.AccessTokenPageGrant.AccessTokenPageGrant_pageId_fkey",
+    "label": "Drop constraint \"AccessTokenPageGrant_pageId_fkey\" on \"AccessTokenPageGrant\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessTokenPageGrant_pageId_fkey",
+        "table": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"AccessTokenPageGrant_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_pageId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"AccessTokenPageGrant_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenPageGrant\" DROP CONSTRAINT \"AccessTokenPageGrant_pageId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"AccessTokenPageGrant_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_pageId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.PageFavorite.PageFavorite_pageId_fkey",
+    "label": "Drop constraint \"PageFavorite_pageId_fkey\" on \"PageFavorite\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageFavorite_pageId_fkey",
+        "table": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PageFavorite_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_pageId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PageFavorite_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageFavorite\" DROP CONSTRAINT \"PageFavorite_pageId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PageFavorite_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_pageId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.PageSchemaProperty.PageSchemaProperty_pageId_fkey",
+    "label": "Drop constraint \"PageSchemaProperty_pageId_fkey\" on \"PageSchemaProperty\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageSchemaProperty_pageId_fkey",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PageSchemaProperty_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaProperty_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PageSchemaProperty_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaProperty\" DROP CONSTRAINT \"PageSchemaProperty_pageId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PageSchemaProperty_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaProperty_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.PageSchemaView.PageSchemaView_pageId_fkey",
+    "label": "Drop constraint \"PageSchemaView_pageId_fkey\" on \"PageSchemaView\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageSchemaView_pageId_fkey",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PageSchemaView_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaView_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PageSchemaView_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\" DROP CONSTRAINT \"PageSchemaView_pageId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PageSchemaView_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaView_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.PageVersion.PageVersion_pageId_fkey",
+    "label": "Drop constraint \"PageVersion_pageId_fkey\" on \"PageVersion\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageVersion_pageId_fkey",
+        "table": "PageVersion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PageVersion_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageVersion_pageId_fkey",
+          "public",
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PageVersion_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageVersion\" DROP CONSTRAINT \"PageVersion_pageId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PageVersion_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageVersion_pageId_fkey",
+          "public",
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.PageView.PageView_pageId_fkey",
+    "label": "Drop constraint \"PageView_pageId_fkey\" on \"PageView\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageView_pageId_fkey",
+        "table": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PageView_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_pageId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"PageView_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageView\" DROP CONSTRAINT \"PageView_pageId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PageView_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_pageId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.AccessTokenPageGrant.AccessTokenPageGrant_pageId_fkey",
+    "label": "Add foreign key \"AccessTokenPageGrant_pageId_fkey\" on \"AccessTokenPageGrant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "AccessTokenPageGrant_pageId_fkey",
+        "table": "AccessTokenPageGrant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"AccessTokenPageGrant_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_pageId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"AccessTokenPageGrant_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"AccessTokenPageGrant\"\nADD CONSTRAINT \"AccessTokenPageGrant_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"AccessTokenPageGrant_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "AccessTokenPageGrant_pageId_fkey",
+          "public",
+          "\"public\".\"AccessTokenPageGrant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageFavorite.PageFavorite_pageId_fkey",
+    "label": "Add foreign key \"PageFavorite_pageId_fkey\" on \"PageFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageFavorite_pageId_fkey",
+        "table": "PageFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageFavorite_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_pageId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageFavorite_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageFavorite\"\nADD CONSTRAINT \"PageFavorite_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageFavorite_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageFavorite_pageId_fkey",
+          "public",
+          "\"public\".\"PageFavorite\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageSchemaProperty.PageSchemaProperty_pageId_fkey",
+    "label": "Add foreign key \"PageSchemaProperty_pageId_fkey\" on \"PageSchemaProperty\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageSchemaProperty_pageId_fkey",
+        "table": "PageSchemaProperty"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageSchemaProperty_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaProperty_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageSchemaProperty_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaProperty\"\nADD CONSTRAINT \"PageSchemaProperty_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageSchemaProperty_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaProperty_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaProperty\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageSchemaView.PageSchemaView_pageId_fkey",
+    "label": "Add foreign key \"PageSchemaView_pageId_fkey\" on \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageSchemaView_pageId_fkey",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageSchemaView_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaView_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageSchemaView_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\"\nADD CONSTRAINT \"PageSchemaView_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageSchemaView_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageSchemaView_pageId_fkey",
+          "public",
+          "\"public\".\"PageSchemaView\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageVersion.PageVersion_pageId_fkey",
+    "label": "Add foreign key \"PageVersion_pageId_fkey\" on \"PageVersion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageVersion_pageId_fkey",
+        "table": "PageVersion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageVersion_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageVersion_pageId_fkey",
+          "public",
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageVersion_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageVersion\"\nADD CONSTRAINT \"PageVersion_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageVersion_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageVersion_pageId_fkey",
+          "public",
+          "\"public\".\"PageVersion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PageView.PageView_pageId_fkey",
+    "label": "Add foreign key \"PageView_pageId_fkey\" on \"PageView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PageView_pageId_fkey",
+        "table": "PageView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PageView_pageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_pageId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PageView_pageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PageView\"\nADD CONSTRAINT \"PageView_pageId_fkey\"\nFOREIGN KEY (\"pageId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PageView_pageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PageView_pageId_fkey",
+          "public",
+          "\"public\".\"PageView\""
+        ]
+      }
+    ]
+  }
+]

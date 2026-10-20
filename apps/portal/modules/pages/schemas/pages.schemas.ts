@@ -70,8 +70,6 @@ export const pageBlocksHandoverSchema = z.object({
   spaceId: recordIdSchema,
 });
 
-export const pageContentReplacementSchema = pageBlocksHandoverSchema;
-
 export const pageLocatorSchema = z.object({
   pageId: recordIdSchema,
   spaceId: recordIdSchema,

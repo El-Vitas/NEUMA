@@ -1,14 +1,19 @@
 import type { JsonValue } from '@neuma/db';
 import type { PageIcon } from '@neuma/shared';
 import type {
+  PageBlockSearchQuery,
   SearchQuery,
   SearchQueryFilters,
   SearchResult,
-  SearchSourceType,
+  SearchTokenScope,
 } from '../../../common/types/search.types';
-import type { PageBlocksProjection, PageBlocksRemoval } from './page-block.types';
+import type { SearchCandidate, SearchGranularity } from '../domain/search.domain.types';
 
 export type {
+  PageBlockSearchPage,
+  PageBlockSearchQuery,
+  PageBlockSearchReader,
+  PageBlockSearchResult,
   SearchEditedRange,
   SearchPage,
   SearchQuery,
@@ -16,25 +21,18 @@ export type {
   SearchReader,
   SearchResult,
 } from '../../../common/types/search.types';
-
-export type SearchLanguage = 'en' | 'es';
+export type {
+  DeclaringAncestor,
+  HeadingEntry,
+  ReadableSlice,
+  SearchCandidate,
+  SearchGranularity,
+} from '../domain/search.domain.types';
 
 export type SearchQueryWithFilters = SearchQuery & SearchQueryFilters;
 
-export interface SearchDocumentInput {
-  readonly contentType: string;
-  /** When the content was edited, not indexed: reindexing does not make it recent. */
-  readonly editedAt: Date;
-  readonly extractedText: string;
-  readonly language: SearchLanguage | null;
-  readonly properties: JsonValue;
-  readonly sourceId: string;
-  readonly sourceType: SearchSourceType;
-  readonly spaceId: string;
-  readonly tags: JsonValue;
-  readonly title: string;
-  readonly versionMarker: number;
-}
+/** `words` is the normal match; `typo` is the fallback when nothing matched, so it is never mixed into a page. */
+export type SearchMatching = 'words' | 'typo';
 
 export interface SearchQueryParams {
   readonly authorQuery?: string;
@@ -43,26 +41,9 @@ export interface SearchQueryParams {
   readonly editedRange?: string;
   readonly limit?: number | string;
   readonly query?: string;
-  readonly sourceType?: SearchSourceType;
+  readonly sourceType?: SearchResult['sourceType'];
   readonly spaceId?: string;
-  readonly tags?: string;
   readonly verifiedOnly?: boolean;
-}
-
-export interface SearchRow {
-  readonly contentType: string;
-  readonly icon: JsonValue;
-  readonly isVerified: boolean;
-  readonly parentPageId: string | null;
-  readonly parentPageTitle: string | null;
-  readonly rank: number;
-  readonly snippet: string;
-  readonly sourceId: string;
-  readonly sourceType: string;
-  readonly spaceId: string;
-  readonly spaceName: string | null;
-  readonly title: string;
-  readonly updatedAt: Date;
 }
 
 export interface SearchResultContext {
@@ -79,49 +60,56 @@ export interface SearchPageWithContext {
   readonly nextCursor?: string;
 }
 
-export interface SearchCursor {
+export interface SearchCursorPosition {
+  readonly id: string;
   readonly rank: number;
-  readonly sourceId: string;
-  readonly updatedAt: string;
+}
+
+export interface SearchCursor extends SearchCursorPosition {
+  readonly matching: SearchMatching;
+}
+
+/** What both kinds of search ask of the blocks. */
+export interface SearchCandidateQuery extends SearchQueryFilters {
+  readonly blockType?: string;
+  readonly query: string;
+  /** Restricts the search to blocks under this page. */
+  readonly rootPageId?: string;
+  readonly spaceId?: string;
+  readonly tokenScope?: SearchTokenScope;
+  readonly userId: string;
+  readonly userRole: PageBlockSearchQuery['userRole'];
+  readonly workspaceId: string;
+}
+
+export interface SearchCandidateRequest {
+  readonly cursor: SearchCursorPosition | null;
+  readonly fetchSize: number;
+  readonly granularity: SearchGranularity;
+  readonly matching: SearchMatching;
+  readonly query: SearchCandidateQuery;
+}
+
+/** A statement row, before the JSON columns are checked. */
+export type SearchCandidateRow = Omit<SearchCandidate, 'chain' | 'headings' | 'pageChain'> & {
+  readonly chain: JsonValue;
+  readonly pageChain: JsonValue;
+  readonly headings: JsonValue;
+};
+
+export interface CollectRequest {
+  readonly cursor: string | undefined;
+  readonly granularity: SearchGranularity;
+  readonly limit: number;
+  readonly query: SearchCandidateQuery;
+}
+
+export interface CollectedPage {
+  readonly items: readonly SearchCandidate[];
+  readonly nextCursor: string | undefined;
 }
 
 export interface SearchRepositoryContract {
-  readonly removeDocument: (input: SearchDocumentRemoval) => Promise<void>;
-  readonly search: (query: SearchQueryWithFilters) => Promise<SearchPageWithContext>;
-  readonly upsertDocument: (input: SearchDocumentInput) => Promise<void>;
-}
-
-export interface SearchDocumentRemoval {
-  readonly sourceId: string;
-  readonly sourceType: SearchSourceType;
-  readonly versionMarker: number;
-}
-
-export interface SearchDocumentProjection {
-  readonly applyBlocksProjection: (input: PageBlocksProjection) => Promise<void>;
-  readonly applyProjection: (input: SearchDocumentInput) => Promise<void>;
-  readonly removeBlocksProjection: (input: PageBlocksRemoval) => Promise<void>;
-  readonly removeProjection: (input: SearchDocumentRemoval) => Promise<void>;
-}
-
-export interface SearchProjectionPage {
-  readonly authorId: string;
-  readonly authorName: string | null;
-  readonly content: JsonValue;
-  readonly icon: JsonValue;
-  readonly id: string;
-  readonly lifecycle: string;
-  readonly parentPageId: string | null;
-  readonly parentPageTitle: string | null;
-  readonly spaceId: string;
-  readonly spaceName: string;
-  readonly title: string;
-  readonly updatedAt: Date;
-  readonly verificationExpiresAt: Date | null;
-  readonly verifiedAt: Date | null;
-  readonly version: number;
-}
-
-export interface SearchProjectionSource {
-  readonly findPage: (pageIdentifier: string) => Promise<SearchProjectionPage | null>;
+  readonly findCandidates: (request: SearchCandidateRequest) => Promise<readonly SearchCandidate[]>;
+  readonly locateBlock: (blockId: string, workspaceId: string) => Promise<readonly string[]>;
 }

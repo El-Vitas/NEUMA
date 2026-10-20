@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
-import { isActionSuccess } from '@/shared/lib/action-result';
+import { isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { createPageAction } from '../../../server/actions/pages.actions';
 import type { PageSummary } from '../../../types/pages.types';
@@ -25,6 +25,7 @@ export const usePagesEditorBlocksToPage = ({
   spaceId,
 }: PageEditorPageDropParameters): ((request: PageEditorBlocksToPage) => void) => {
   const t = useTranslations('pages');
+  const tErrors = useTranslations('errors');
   const router = useRouter();
 
   const announce = useCallback(
@@ -49,7 +50,7 @@ export const usePagesEditorBlocksToPage = ({
 
       void createPageAction({ content, parentId: parentPageId, spaceId, title }).then((result) => {
         if (!isActionSuccess(result)) {
-          toast.error(t('blocksMadePageError'));
+          toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : t('blocksMadePageError'));
           return;
         }
         const leaveBehind = leaveLink
@@ -59,6 +60,6 @@ export const usePagesEditorBlocksToPage = ({
         announce(result.data);
       });
     },
-    [announce, editorViewRef, spaceId, t],
+    [announce, editorViewRef, spaceId, t, tErrors],
   );
 };

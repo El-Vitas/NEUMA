@@ -1,6 +1,7 @@
 # 020: Colaboración en vivo con Yjs y Hocuspocus dentro del backend
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** 021
 **Date:** 2026-10-19
 
 ## Context

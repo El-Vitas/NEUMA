@@ -33,7 +33,6 @@ export interface PagesEditorFind {
   readonly replace: () => void;
   readonly replaceAll: () => void;
   readonly replacement: string;
-  readonly resume: (view: EditorView) => void;
   readonly search: (query: string) => void;
   readonly setReplacement: (replacement: string) => void;
   readonly sync: (view: EditorView) => void;

@@ -18,12 +18,7 @@ const database = createNeumaDatabase(databaseUrl);
 const clearAllTables = async (client: NeumaDatabase): Promise<void> => {
   await client
     .runtime()
-    .execute(
-      client.raw
-        .sql`TRUNCATE TABLE "Workspace", "User", "OutboxEvent", "SearchDocument", "CollaborationSnapshot", "FileAsset" CASCADE`
-        .affectedCount()
-        .build(),
-    );
+    .execute(client.raw.sql`TRUNCATE TABLE "Workspace", "User", "FileAsset" CASCADE`.affectedCount().build());
 };
 
 try {

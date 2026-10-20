@@ -113,6 +113,7 @@ export class PageSchemaService {
       input.propertyKey,
       { from: input.from, to: input.to },
       rewritten.getValue(),
+      { role: input.role, userId: input.userId, workspaceId: input.workspaceId },
     );
     // The option changed between read and write: fail instead of overwriting the other edit.
     if (written === SCHEMA_OPTION_ALREADY_MOVED) {

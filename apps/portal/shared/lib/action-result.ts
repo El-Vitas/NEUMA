@@ -1,5 +1,9 @@
 import type { ActionFailure } from '@/shared/types/action-result.types';
-import { ACTION_FAILURE_REASONS, ACTION_OFFLINE_REASON } from '../constants/action-failure.constants';
+import {
+  ACTION_FAILURE_REASONS,
+  ACTION_LOCKED_REASON,
+  ACTION_OFFLINE_REASON,
+} from '../constants/action-failure.constants';
 import type { ActionFailureReason } from '../types/action-failure.types';
 
 export const hasActionError = (result: unknown): result is ActionFailure => {
@@ -25,6 +29,10 @@ export const callAction = async <TResult>(send: () => Promise<TResult>): Promise
     return { serverError: ACTION_OFFLINE_REASON };
   }
 };
+
+/** A locked page refuses the change; screens say so instead of their generic message. */
+export const isLockedActionFailure = (result: unknown): boolean =>
+  hasActionError(result) && readActionFailureReason(result) === ACTION_LOCKED_REASON;
 
 export const readActionFailureReason = (result: unknown): ActionFailureReason => {
   if (typeof result !== 'object' || result === null || !('serverError' in result)) return 'unexpected';

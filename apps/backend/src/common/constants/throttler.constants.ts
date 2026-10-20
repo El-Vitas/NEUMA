@@ -4,6 +4,20 @@ export const THROTTLER_NAMES = {
   exports: 'exports-per-user',
   mcp: 'mcp-per-token',
   mcpPerIp: 'mcp-per-ip',
+  blockWritesBurst: 'block-writes-burst',
+  blockWrites: 'block-writes-per-user',
+} as const;
+
+/**
+ * Live typing sends one transaction per batch of keystrokes, about 4 to 10 a second from a single editor.
+ * The burst limit leaves room for a paste, a second tab and the retries after a reconnect; the minute limit holds
+ * a person to the pace of fast typing (10 a second on average) and cuts a looping client. Counted per user.
+ */
+export const BLOCK_WRITE_RATE_LIMIT = {
+  burstWindowSeconds: 1,
+  burstLimit: 100,
+  windowSeconds: 60,
+  perUserLimit: 600,
 } as const;
 
 /** Unauthenticated endpoints: the per-IP limit stops one machine, the shared limit stops distributed guessing. */

@@ -15,10 +15,6 @@ mock.module('next/navigation', () => ({
   useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
 }));
 
-mock.module('@/modules/pages/hooks/use.pages.collaboration', () => ({
-  usePagesCollaboration: () => ({ participants: [], session: null, status: null }),
-}));
-
 mock.module('@/modules/pages/hooks/use.pages.mention-search', () => ({
   usePagesMentionSearch: () => ({ candidates: [], isLoading: false }),
 }));
@@ -32,7 +28,6 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
   renamePageAction: async () => ({ data: undefined }),
-  replacePageContentAction: async () => ({ data: undefined }),
   restorePageAction: async () => ({ data: undefined }),
   setPageLockAction: async () => ({ data: undefined }),
   trashPageAction: async () => ({ data: undefined }),

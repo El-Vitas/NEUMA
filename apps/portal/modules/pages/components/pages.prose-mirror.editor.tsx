@@ -3,7 +3,7 @@
 import type { PageLifecycle } from '@neuma/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import type { Command, EditorState } from 'prosemirror-state';
+import type { Command, EditorState, Selection } from 'prosemirror-state';
 import { TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import {
@@ -55,7 +55,6 @@ import { PagesEditorPagePickerDialog } from '../editor/components/pages.editor.p
 import { PagesEditorToolbar } from '../editor/components/pages.editor.toolbar';
 import { PagesEditorViewPickerDialog } from '../editor/components/pages.editor.view-picker.dialog';
 import { PAGE_EDITOR_COMMANDS, PAGE_EDITOR_SURFACE_CLASS_NAME } from '../editor/constants/pages.editor.constants';
-import { usePagesEditorLiveBinding } from '../editor/hooks/use.pages.editor.live-binding';
 import { isTheWritingStillInHand } from '../editor/lib/pages.editor.attention.lib';
 import { appendParagraphAtEnd } from '../editor/lib/pages.editor.commands';
 import { buildPageEditorLabels } from '../editor/lib/pages.editor.labels.lib';
@@ -113,7 +112,7 @@ import {
 } from '../editor/text/lib/pages.editor.link.lib';
 import { createPageTextColorCommand } from '../editor/text/lib/pages.editor.text-color.lib';
 import type { PageEditorLinkAtHand } from '../editor/text/types/pages.editor.link.types';
-import { usePagesCollaboration } from '../hooks/use.pages.collaboration';
+import type { PagesEditorBlockCollaboration } from '../editor/types/pages.editor.block-binding.types';
 import { PagesPreviewLayer } from '../links/components/pages.preview.layer';
 import { usePagesPreview } from '../links/hooks/use.pages.preview';
 import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
@@ -121,16 +120,19 @@ import { createPageAction } from '../server/actions/pages.actions';
 import type { PageContent, PageSummary } from '../types/pages.types';
 
 interface IProps {
+  /** What the block channel reports (connection and other people on the page); null while no channel is open. */
+  readonly blockCollaboration?: PagesEditorBlockCollaboration | null;
   readonly canEdit: boolean;
   readonly content: PageContent;
   readonly currentUserDisplayName?: string;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly onAttachmentUploaded?: (attachment: AttachmentSummary) => void;
-  /** `isKeptLive` is true when the live document already stores the page, so nothing has to be sent. */
-  readonly onContentChange: (content: PageContent, isKeptLive: boolean) => void;
+  readonly onContentChange: (content: PageContent) => void;
   readonly onHeadingsChange?: (headings: readonly PageEditorHeading[]) => void;
   /** Follows internal page links without leaving the current view, e.g. inside a side panel. */
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
+  /** Called after every change of the document or of where the cursor is. */
+  readonly onSelectionChange?: (selection: Selection) => void;
   readonly pageId: string | null;
   readonly pages?: readonly PageSummary[];
   readonly personOptions?: readonly PagePersonOption[];
@@ -142,6 +144,7 @@ interface IProps {
 export const PagesProseMirrorEditor = forwardRef(
   (
     {
+      blockCollaboration = null,
       canEdit,
       content,
       currentUserDisplayName,
@@ -150,6 +153,7 @@ export const PagesProseMirrorEditor = forwardRef(
       onContentChange,
       onHeadingsChange,
       onNavigateToPage,
+      onSelectionChange,
       pageId,
       pages = EMPTY_PAGE_SUMMARIES,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
@@ -201,23 +205,16 @@ export const PagesProseMirrorEditor = forwardRef(
     const [surface, setSurface] = useState<PageEditorSurfaceState>(PAGE_EDITOR_QUIET_SURFACE);
     const [usesCommandKey, setUsesCommandKey] = useState(false);
 
-    const { participants, session, status } = usePagesCollaboration(pageId, canEdit, currentUserDisplayName ?? null);
-    const liveSessionRef = useRef(session);
-
-    useEffect(() => {
-      liveSessionRef.current = session;
-    }, [session]);
     const editorHostRef = useRef<HTMLDivElement>(null);
     const surfaceRef = useRef<HTMLDivElement>(null);
     const editorViewRef = useRef<EditorView | null>(null);
-    /** State rather than a ref: the live document must rebind to each rebuilt editor. */
-    const [mountedEditorView, setMountedEditorView] = useState<EditorView | null>(null);
     const embedding = usePagesEditorCollectionEmbedding({
       editorViewRef,
       onInserted: () => router.refresh(),
       spaceId,
     });
     const contentCallbackRef = useRef(onContentChange);
+    const selectionCallbackRef = useRef(onSelectionChange);
     const headingsCallbackRef = useRef(onHeadingsChange);
     const followHeadingsRef = useRef(followThePageHeadings((headings) => headingsCallbackRef.current?.(headings)));
     const initialContentRef = useRef(content);
@@ -279,7 +276,6 @@ export const PagesProseMirrorEditor = forwardRef(
     const turnBlocksIntoPage = usePagesEditorBlocksToPage({ editorViewRef, spaceId });
     const find = usePagesEditorFind(editorViewRef);
     const syncFind = find.sync;
-    const resumeFind = find.resume;
 
     const becomePage = useCallback((): void => {
       const editorView = editorViewRef.current;
@@ -332,6 +328,10 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [onContentChange]);
 
     useEffect(() => {
+      selectionCallbackRef.current = onSelectionChange;
+    }, [onSelectionChange]);
+
+    useEffect(() => {
       headingsCallbackRef.current = onHeadingsChange;
     }, [onHeadingsChange]);
 
@@ -356,7 +356,7 @@ export const PagesProseMirrorEditor = forwardRef(
         return;
       }
       toldOfTooMuchRef.current = false;
-      contentCallbackRef.current(kept, liveSessionRef.current !== null);
+      contentCallbackRef.current(kept);
     });
 
     useEffect(() => {
@@ -378,7 +378,6 @@ export const PagesProseMirrorEditor = forwardRef(
       );
       const editorView = new EditorView(editorHost, {
         dispatchTransaction: (transaction) => {
-          // Nothing is lost between teardown and rebinding: the live document keeps it and the new editor starts there.
           if (editorView.isDestroyed) return;
           const nextState = editorView.state.apply(transaction);
           editorView.updateState(nextState);
@@ -389,6 +388,7 @@ export const PagesProseMirrorEditor = forwardRef(
           }
           syncCollectionHosts();
           const selection = nextState.selection;
+          selectionCallbackRef.current?.(selection);
           const trigger = updateEditorTrigger(
             selection.empty ? selection.$from.parent.textContent.slice(0, selection.$from.parentOffset) : '',
           );
@@ -439,7 +439,6 @@ export const PagesProseMirrorEditor = forwardRef(
         state: editorState,
       });
       editorViewRef.current = editorView;
-      setMountedEditorView(editorView);
       syncCollectionHosts();
       followHeadingsRef.current(editorView.state);
 
@@ -459,17 +458,6 @@ export const PagesProseMirrorEditor = forwardRef(
       updateEditorTrigger,
       uploadPastedFile,
     ]);
-
-    usePagesEditorLiveBinding({
-      editorViewRef,
-      followHeadingsRef,
-      keepWhatCanBeKeptRef,
-      labels,
-      mountedEditorView,
-      resumeFind,
-      session,
-      syncFind,
-    });
 
     const pressTheButtonRef = useRef((at: number): void => {
       const editorView = editorViewRef.current;
@@ -794,7 +782,12 @@ export const PagesProseMirrorEditor = forwardRef(
           onChoose={embedding.chooseView}
           views={embedding.choosableViews}
         />
-        {pageId !== null && canEdit && <PagesEditorCollaborationStatus participants={participants} status={status} />}
+        {pageId !== null && canEdit && blockCollaboration !== null && (
+          <PagesEditorCollaborationStatus
+            participants={blockCollaboration.participants}
+            status={blockCollaboration.status}
+          />
+        )}
         {canEdit && pageId !== null && (
           <div className="flex justify-end">
             <PagesEditorAttachmentUpload

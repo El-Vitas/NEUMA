@@ -38,7 +38,10 @@ const formatTrashText = (output: McpListTrashOutput): string => {
   if (output.pages.length === 0) return 'Nothing in the trash that this token can read.';
   const lines = output.pages.map((page) => {
     const by = page.deletedBy === null ? '' : ` by ${page.deletedBy.name}`;
-    const along = page.trashedChildCount === 0 ? '' : `, ${String(page.trashedChildCount)} pages under it went along`;
+    const along =
+      page.trashedChildCount === 0
+        ? ''
+        : `, ${String(page.trashedChildCount)} pages under it were trashed on their own`;
     return `- ${page.title} (page ${page.id}, trashed ${page.deletedAt.slice(0, 10)}${by}${along})`;
   });
   const more =
@@ -55,7 +58,7 @@ export const listTrashTool: McpToolDefinition = {
       MCP_TOOL_NAMES.listTrash,
       {
         description:
-          'List the pages in the trash, the latest first, with who trashed them and how many pages went along. Search does not find trashed pages: look here, then bring one back with restore_page.',
+          'List the pages in the trash, the latest first, with who trashed them and how many pages under each had been trashed on their own (restore_page with withChildren brings those back too). Search does not find trashed pages: look here, then bring one back with restore_page.',
         inputSchema: listTrashInputSchema,
         outputSchema: listTrashOutputSchema,
       },

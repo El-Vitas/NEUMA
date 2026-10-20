@@ -1,7 +1,7 @@
 import type { JsonValue, PageLifecycle } from '@neuma/db';
 import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
-import { PAGE_CONTENT_STORE_OUTCOME, PAGE_DELETE_FOREVER_OUTCOMES } from '../constants/pages.constants';
+import { PAGE_DELETE_FOREVER_OUTCOMES, PAGE_RESTORE_VERSION_OUTCOME } from '../constants/pages.constants';
 import type { PageParentReference } from '../domain/page.domain.types';
 import type {
   PageAccessDeniedError,
@@ -19,6 +19,29 @@ export interface PageHierarchyRow extends PageParentReference {
   readonly updatedById: string;
 }
 
+/** A page block as the database holds it, before its title, icon and values are read out of its JSON. */
+export interface StoredPageBlock {
+  readonly children: readonly string[];
+  readonly createdAt: Date;
+  readonly createdById: string;
+  readonly editedAt: Date;
+  readonly editedById: string;
+  readonly format: JsonValue;
+  readonly id: string;
+  readonly lifecycle: PageLifecycle;
+  readonly lockedAt: Date | null;
+  readonly ownerId: null | string;
+  readonly parentId: null | string;
+  readonly permissions: JsonValue;
+  readonly properties: JsonValue;
+  readonly purgeAfter: Date | null;
+  readonly spaceId: string;
+  readonly trashedAt: Date | null;
+  readonly verificationExpiresAt: Date | null;
+  readonly verifiedAt: Date | null;
+  readonly verifiedById: null | string;
+}
+
 export interface CreatePageInput {
   readonly content: JsonValue | PageContent;
   readonly createdById: string;
@@ -31,22 +54,21 @@ export interface CreatePageInput {
   readonly workspaceId: string;
 }
 
-export interface StorePageContentInput {
+/** A page to write: the content is already a document, and every block of it has an id. */
+export interface NewPageInput extends Omit<CreatePageInput, 'content'> {
   readonly content: PageContent;
-  readonly pageId: string;
-  readonly updatedById: string;
 }
-
-export type PageContentStoreOutcome = (typeof PAGE_CONTENT_STORE_OUTCOME)[keyof typeof PAGE_CONTENT_STORE_OUTCOME];
 
 export interface UpdatePagePropertyValuesInput {
   readonly pageId: string;
+  readonly role: UserRole;
   /** Saved in the same write; omitted leaves the title untouched. */
   readonly title?: string;
   readonly updatedById: string;
+  readonly workspaceId: string;
 }
 
-/** Must stay pure: it runs under the row lock, and a query would take a second connection. */
+/** Must stay pure: it decides from the values the page has when it is read. */
 export type PagePropertyValuesMerge<TError> = (
   current: SchemaPropertyValues | null,
 ) => Result<SchemaPropertyValues | null, TError>;
@@ -63,6 +85,11 @@ export interface PageWriteAuthorizer {
   readonly authorizeWrite: (
     writer: PageContentWriter,
   ) => Promise<Result<PageContentWriter, PageAccessDeniedError | PageLifecycleError | PageLockedError>>;
+  /** The rewrite sees the content the page has when it is read, and the result is applied as block operations. */
+  readonly writeContent: (
+    writer: PageContentWriter,
+    rewrite: PageContentRewrite,
+  ) => Promise<Result<PageContent, PageAccessDeniedError>>;
 }
 
 export type PageContentWriteError =
@@ -70,12 +97,6 @@ export type PageContentWriteError =
   | PageContentValidationError
   | PageLifecycleError
   | PageLockedError;
-
-export interface PageLiveDocument {
-  /** Null when nobody has the document open. */
-  readonly readLoadedPageContent: (pageId: string) => PageContent | null;
-  readonly writePageContent: (writer: PageContentWriter, rewrite: PageContentRewrite) => Promise<PageContent>;
-}
 
 export interface PageContentWriter {
   readonly pageId: string;
@@ -134,14 +155,6 @@ export interface PageMoveContext {
 export interface PageMoveDestinations {
   readonly pages: readonly { readonly id: string; readonly spaceId: string; readonly title: string }[];
   readonly spaces: readonly { readonly id: string; readonly name: string }[];
-}
-
-export interface PageCopySource {
-  readonly content: JsonValue;
-  readonly cover: JsonValue;
-  readonly icon: JsonValue;
-  readonly propertyValues: JsonValue;
-  readonly spaceId: string;
 }
 
 export interface DuplicatePageInput {
@@ -224,10 +237,17 @@ export interface TrashedPageSummary {
   readonly trashedChildCount: number;
 }
 
-export interface PageAccessState {
-  readonly lifecycle: PageLifecycle;
-  readonly lockedAt: Date | null;
+/** What a version keeps of a page: its title and its content as a document. */
+export interface PageVersionSnapshot {
+  readonly content: PageContent;
+  readonly title: string;
+  readonly version: number;
 }
+
+export type PageRestoreVersionOutcome =
+  | (typeof PAGE_RESTORE_VERSION_OUTCOME)['missing']
+  | null
+  | { readonly page: PageSummary };
 
 export interface PageRepositoryContract {
   readonly countDescendantsByLifecycle: (
@@ -237,7 +257,7 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
   ) => Promise<null | number>;
-  readonly create: (input: CreatePageInput) => Promise<PageSummary | null>;
+  readonly create: (input: NewPageInput) => Promise<PageSummary | null>;
   readonly duplicate: (input: DuplicatePageInput) => Promise<PageSummary | null>;
   readonly deleteForever: (
     pageId: string,
@@ -253,12 +273,6 @@ export interface PageRepositoryContract {
     spaceId: null | string,
     purgeAfter: Date,
   ) => Promise<readonly string[]>;
-  readonly findAccessState: (
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ) => Promise<PageAccessState | null>;
   readonly findReadablePageIds: (
     pageIds: readonly string[],
     workspaceId: string,
@@ -332,9 +346,26 @@ export interface PageRepositoryContract {
     role: UserRole,
     mutationId: string,
   ) => Promise<boolean>;
-  readonly findStoredContent: (pageId: string) => Promise<PageContent | null>;
-  readonly storeContent: (input: StorePageContentInput) => Promise<PageContentStoreOutcome>;
-  /** Merges under the row lock; null when the page does not exist. */
+  /** Null when the page does not exist or the writer cannot change it. */
+  readonly writeContent: (writer: PageContentWriter, rewrite: PageContentRewrite) => Promise<PageContent | null>;
+  /** Null when the page or the version is not there for this reader; blocks closed to them are cut from it. */
+  readonly findVersion: (
+    pageId: string,
+    version: number,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ) => Promise<PageVersionSnapshot | null>;
+  /** Cuts a version when the page now says something other than its latest one, or folds into it (same stretch). */
+  readonly recordVersion: (pageId: string, authorId: string) => Promise<void>;
+  readonly restoreVersion: (
+    pageId: string,
+    version: number,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageRestoreVersionOutcome>;
+  /** Merges only the named values into those the page has when the write lands; null if it cannot be changed. */
   readonly updatePropertyValues: <TError>(
     input: UpdatePagePropertyValuesInput,
     merge: PagePropertyValuesMerge<TError>,

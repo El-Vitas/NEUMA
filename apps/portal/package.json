@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@daypicker/react": "^10.0.2",
-    "@hocuspocus/provider": "^4.7.0",
     "@iconify-json/logos": "^1.2.15",
     "@iconify-json/mdi": "^1.2.3",
     "@mermaid-js/layout-elk": "^1.0.1",
@@ -67,7 +66,6 @@
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
-    "y-prosemirror": "^1.3.7",
     "yjs": "^13.6.33",
     "zod": "4"
   },

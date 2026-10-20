@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { DatabasePropertyType, DatabaseViewType, type JsonObject, SpaceVisibility } from '@neuma/db';
+import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@neuma/db';
 import { type PageContent, USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
 import { COLLECTION_ROW_LIMIT } from '@/modules/pages/constants/pages.constants';
@@ -31,12 +31,6 @@ interface PageSchemaResponse {
 }
 
 const plainContent = (text: string): PageContent => ({
-  content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],
-  schemaVersion: 1,
-  type: 'doc',
-});
-
-const storedPlainContent = (text: string): JsonObject => ({
   content: [{ content: [{ text, type: 'text' }], type: 'paragraph' }],
   schemaVersion: 1,
   type: 'doc',
@@ -282,8 +276,8 @@ describe('Page Schema (Integration)', () => {
       await Promise.all([changeProperty({ status: 'done' }), changeProperty({ priority: 'high' })]);
 
       const prisma = testApp.get(PrismaService);
-      const stored = await prisma.models.Page.select('propertyValues').where({ id: row.id }).all().firstOrThrow();
-      expect(stored.propertyValues).toEqual({ priority: 'high', status: 'done' });
+      const stored = await prisma.models.Block.select('properties').where({ id: row.id }).all().firstOrThrow();
+      expect(stored.properties).toMatchObject({ values: { priority: 'high', status: 'done' } });
     });
 
     it('leaves the content and the versions of the row alone when a property changes', async () => {
@@ -301,7 +295,14 @@ describe('Page Schema (Integration)', () => {
             total: aggregation.count(),
           }))
         ).total;
-      const before = await prisma.models.Page.select('content').where({ id: row.id }).all().firstOrThrow();
+      const readContent = async (): Promise<unknown> => {
+        const page = await request(testApp.getServer())
+          .get(`/api/v1/spaces/${sharedSpaceId}/pages/${row.id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+        return (page.body as PageResponse & { content: unknown }).content;
+      };
+      const before = await readContent();
       const versionsBefore = await countVersions();
 
       await request(testApp.getServer())
@@ -310,8 +311,7 @@ describe('Page Schema (Integration)', () => {
         .send({ propertyValues: { status: 'done' } })
         .expect(200);
 
-      const after = await prisma.models.Page.select('content').where({ id: row.id }).all().firstOrThrow();
-      expect(after.content).toEqual(before.content);
+      expect(await readContent()).toEqual(before);
       expect(await countVersions()).toBe(versionsBefore);
     });
 
@@ -388,17 +388,17 @@ describe('Page Schema (Integration)', () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Overgrown Collection');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
       const prisma = testApp.get(PrismaService);
-      await prisma.models.Page.createAndCount(
-        Array.from({ length: COLLECTION_ROW_LIMIT + 1 }, (_unused, position) => ({
-          content: storedPlainContent(`Row ${String(position)}`),
-          createdById: adminUserId,
-          order: position,
-          parentId: collection.id,
-          spaceId: sharedSpaceId,
-          title: `Row ${String(position)}`,
-          updatedById: adminUserId,
-        })),
-      );
+      const rows = Array.from({ length: COLLECTION_ROW_LIMIT + 1 }, (_unused, position) => ({
+        createdById: adminUserId,
+        editedById: adminUserId,
+        id: crypto.randomUUID(),
+        parentId: collection.id,
+        properties: { title: [{ insert: `Row ${String(position)}` }] },
+        spaceId: sharedSpaceId,
+        type: 'page',
+      }));
+      await prisma.models.Block.createAndCount(rows);
+      await prisma.models.Block.where({ id: collection.id }).update({ children: rows.map((row) => row.id) });
 
       const listed = await listRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
 

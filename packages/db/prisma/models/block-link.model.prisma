@@ -1,0 +1,19 @@
+// use prisma-8
+
+/// Directed link between blocks (mention, subpage reference, synced block), reconciled in the write transaction.
+/// `sourcePageId` is the page holding the source block, so backlinks list pages. `kind` is validated by the app.
+model BlockLink {
+  id            String            @id(map: "BlockLink_pkey") @default(uuid(7))
+  sourceBlockId String
+  targetBlockId String
+  sourcePageId  String
+  kind          String
+  createdAt     TimestamptzJsDate @default(now())
+  sourceBlock   Block             @relation(name: "BlockLinkSourceBlock", fields: [sourceBlockId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "BlockLink_sourceBlockId_fkey", index: false)
+  targetBlock   Block             @relation(name: "BlockLinkTargetBlock", fields: [targetBlockId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "BlockLink_targetBlockId_fkey", index: "BlockLink_targetBlockId_idx")
+  sourcePage    Block             @relation(name: "BlockLinkSourcePage", fields: [sourcePageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "BlockLink_sourcePageId_fkey", index: "BlockLink_sourcePageId_idx")
+
+  @@unique([sourceBlockId, targetBlockId, kind], map: "BlockLink_sourceBlockId_targetBlockId_kind_key")
+  @@index([targetBlockId], map: "BlockLink_targetBlockId_idx")
+  @@index([sourcePageId], map: "BlockLink_sourcePageId_idx")
+}

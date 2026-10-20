@@ -19,13 +19,18 @@ describe('search.lib', () => {
       searchQuerySchema.parse({
         contentType: '  guide  ',
         query: '  onboarding  ',
-        tags: '  hr,security  ',
       }),
     ).toEqual({
       contentType: 'guide',
       limit: 20,
       query: 'onboarding',
-      tags: ['hr', 'security'],
+    });
+  });
+
+  it('drops a tags parameter instead of carrying it to the backend, which rejects it', () => {
+    expect(searchQuerySchema.parse({ query: 'onboarding', tags: 'hr,security' })).toEqual({
+      limit: 20,
+      query: 'onboarding',
     });
   });
 
@@ -38,10 +43,9 @@ describe('search.lib', () => {
         query: 'onboarding',
         sourceType: 'PAGE',
         spaceId: 'space-1',
-        tags: ['hr', 'security'],
       }),
     ).toBe(
-      '/api/v1/search?contentType=guide&cursor=next-page&limit=20&query=onboarding&sourceType=PAGE&spaceId=space-1&tags=hr%2Csecurity',
+      '/api/v1/search?contentType=guide&cursor=next-page&limit=20&query=onboarding&sourceType=PAGE&spaceId=space-1',
     );
   });
 

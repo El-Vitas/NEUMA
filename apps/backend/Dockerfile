@@ -2,8 +2,7 @@
 # Backend image. Bun is both the package manager and the runtime: the NestJS
 # server runs from TypeScript sources, no compile step. `turbo prune` reduces the
 # monorepo to the backend's workspace subgraph so the image installs and ships
-# only what this service needs. The same image runs the search and links
-# projection workers, with another command.
+# only what this service needs.
 
 FROM docker.io/oven/bun:1.4.2-alpine AS base
 WORKDIR /app

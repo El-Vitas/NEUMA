@@ -15,6 +15,12 @@ describe('readActionFailureReasonOf', () => {
     expect(readActionFailureReasonOf(new ApiError(503, 'Down'))).toBe('unexpected');
   });
 
+  it('tells a locked page apart from any other conflict, by the code the API answers with', () => {
+    expect(readActionFailureReasonOf(new ApiError(409, 'Page is locked', { code: 'PAGE_LOCKED' }))).toBe('locked');
+    expect(readActionFailureReasonOf(new ApiError(409, 'Stale write', { code: 'STALE_WRITE' }))).toBe('conflict');
+    expect(readActionFailureReasonOf(new ApiError(409, 'Conflict'))).toBe('conflict');
+  });
+
   it('reads a refusal made here by the reason it carries', () => {
     expect(readActionFailureReasonOf(new MissingAccessTokenError())).toBe('forbidden');
     expect(readActionFailureReasonOf(new UsersAdministrationDeniedError())).toBe('forbidden');

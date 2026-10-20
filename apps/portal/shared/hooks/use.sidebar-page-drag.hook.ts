@@ -23,7 +23,7 @@ import type {
   PortalSidebarPageKeyboardMove,
 } from '@/modules/portal/types/portal.sidebar.drag.types';
 import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
-import { hasActionError } from '@/shared/lib/action-result';
+import { hasActionError, isLockedActionFailure } from '@/shared/lib/action-result';
 
 /** Where the pointer lands in a row tells nesting from placing: the middle nests, the edges sit beside. */
 export const useSidebarPageDrag = (
@@ -32,6 +32,7 @@ export const useSidebarPageDrag = (
 ): PortalSidebarPageDragController => {
   const t = useTranslations('pages.treePanel');
   const pagesT = useTranslations('pages');
+  const tErrors = useTranslations('errors');
   const router = useRouter();
   const [isMoving, startTransition] = useTransition();
   const [dragState, setDragState] = useState<PortalSidebarPageDragState | null>(null);
@@ -50,14 +51,14 @@ export const useSidebarPageDrag = (
       startTransition(async () => {
         const result = await movePageAction({ pageId, parentId, spaceId });
         if (hasActionError(result)) {
-          toast.error(pagesT('moveError'));
+          toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : pagesT('moveError'));
           return;
         }
         toast.success(pagesT('moved'));
         router.refresh();
       });
     },
-    [isMoving, pagesT, router, spaceId],
+    [isMoving, pagesT, router, spaceId, tErrors],
   );
 
   /** Dropping beside a row with a different parent sets the parent first, then the position among its children. */
@@ -76,7 +77,7 @@ export const useSidebarPageDrag = (
         if (dragged.parentId !== targetPage.parentId) {
           const moved = await movePageAction({ pageId, parentId: targetPage.parentId, spaceId });
           if (hasActionError(moved)) {
-            toast.error(pagesT('moveError'));
+            toast.error(isLockedActionFailure(moved) ? tErrors('reasons.locked') : pagesT('moveError'));
             return;
           }
         }
@@ -89,7 +90,7 @@ export const useSidebarPageDrag = (
         router.refresh();
       });
     },
-    [isMoving, pages, pagesT, router, spaceId],
+    [isMoving, pages, pagesT, router, spaceId, tErrors],
   );
 
   const handleDragStart = useCallback(

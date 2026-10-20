@@ -6,8 +6,6 @@ import {
   SEARCH_MAX_CURSOR_LENGTH,
   SEARCH_MAX_LIMIT,
   SEARCH_MAX_QUERY_LENGTH,
-  SEARCH_MAX_TAG_LENGTH,
-  SEARCH_MAX_TAGS,
 } from '../../../common/constants/search.constants';
 import type { SearchEditedRange, SearchQueryParams, SearchQueryWithFilters } from '../types/search.types';
 
@@ -15,16 +13,6 @@ const normalizeOptionalText = (value: string | undefined, maxLength: number): st
   if (value === undefined) return;
   const normalized = value.trim();
   return normalized === '' ? undefined : normalized.slice(0, maxLength);
-};
-
-const normalizeTags = (value: string | undefined): readonly string[] | undefined => {
-  if (value === undefined) return;
-  const tags = value
-    .split(',')
-    .map((tag) => tag.trim().slice(0, SEARCH_MAX_TAG_LENGTH))
-    .filter((tag) => tag.length > 0)
-    .slice(0, SEARCH_MAX_TAGS);
-  return tags.length === 0 ? undefined : tags;
 };
 
 const normalizeLimit = (value: number | string | undefined): number => {
@@ -45,7 +33,6 @@ export const normalizeSearchQuery = (
   const cursor = normalizeOptionalText(params.cursor, SEARCH_MAX_CURSOR_LENGTH);
   const editedRange = normalizeEditedRange(params.editedRange);
   const spaceId = normalizeOptionalText(params.spaceId, 128);
-  const tags = normalizeTags(params.tags);
   return {
     ...(authorQuery === undefined ? {} : { authorQuery }),
     ...(contentType === undefined ? {} : { contentType }),
@@ -55,7 +42,6 @@ export const normalizeSearchQuery = (
     query: normalizedQuery,
     ...(params.sourceType === undefined ? {} : { sourceType: params.sourceType }),
     ...(spaceId === undefined ? {} : { spaceId }),
-    ...(tags === undefined ? {} : { tags }),
     ...(params.verifiedOnly === true ? { verifiedOnly: true } : {}),
   };
 };
