@@ -11,6 +11,7 @@ import {
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
 import { callMcpTool, listenForMcp, listMcpToolNames, readMcpText } from '../helpers/mcp.helper';
+import { countChildPages, countSpacePages, readStoredContent, readStoredPage } from '../helpers/mcp.stored-page.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const PASSWORD = 'plainPassword123';
@@ -81,23 +82,10 @@ describe('MCP page writes (Integration)', () => {
   const call = (secret: string, name: string, args: Record<string, unknown>) =>
     callMcpTool(baseUrl, secret, name, args);
 
-  const storedContent = async (pageId: string): Promise<string> => {
-    const page = await testApp
-      .get(PrismaService)
-      .models.Page.select('content')
-      .where({ id: pageId })
-      .all()
-      .firstOrThrow();
-    return JSON.stringify(page.content);
-  };
+  const storedContent = (pageId: string): Promise<string> => readStoredContent(testApp, owner.token, pageId);
 
-  const countPagesWhere = async (filter: { readonly parentId: string } | { readonly spaceId: string }) =>
-    (
-      await testApp
-        .get(PrismaService)
-        .models.Page.where(filter)
-        .aggregate((aggregation) => ({ total: aggregation.count() }))
-    ).total;
+  const countPagesWhere = (filter: { readonly parentId: string } | { readonly spaceId: string }): Promise<number> =>
+    'parentId' in filter ? countChildPages(testApp, filter.parentId) : countSpacePages(testApp, filter.spaceId);
 
   const outcomesOn = async (pageId: string) =>
     (
@@ -109,15 +97,25 @@ describe('MCP page writes (Integration)', () => {
         .all()
     ).map((action) => `${action.tool}:${action.outcome}`);
 
-  const freshPage = (title: string) =>
-    createPage(title, {
+  // A block id belongs to one page for good, so every page gets ids of its own.
+  const openingBlocks = new Map<string, { readonly intro: string; readonly outro: string }>();
+
+  const freshPage = async (title: string): Promise<string> => {
+    const blocks = { intro: crypto.randomUUID(), outro: crypto.randomUUID() };
+    const pageId = await createPage(title, {
       content: [
-        { attrs: { id: 'intro' }, content: [{ text: 'Introducción', type: 'text' }], type: 'paragraph' },
-        { attrs: { id: 'outro' }, content: [{ text: 'Cierre', type: 'text' }], type: 'paragraph' },
+        { attrs: { id: blocks.intro }, content: [{ text: 'Introducción', type: 'text' }], type: 'paragraph' },
+        { attrs: { id: blocks.outro }, content: [{ text: 'Cierre', type: 'text' }], type: 'paragraph' },
       ],
       schemaVersion: 1,
       type: 'doc',
     });
+    openingBlocks.set(pageId, blocks);
+    return pageId;
+  };
+
+  const introOf = (pageId: string): string => openingBlocks.get(pageId)?.intro ?? 'no intro';
+  const outroOf = (pageId: string): string => openingBlocks.get(pageId)?.outro ?? 'no outro';
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
@@ -150,9 +148,9 @@ describe('MCP page writes (Integration)', () => {
       const paragraph = { text: 'Intruso', type: 'paragraph' };
       const attempts: readonly (readonly [string, Record<string, unknown>])[] = [
         ['insert_blocks', { blocks: [paragraph], page: pageId }],
-        ['update_block', { block: 'intro', page: pageId, text: 'Cambiado' }],
-        ['delete_blocks', { blocks: ['intro'], page: pageId }],
-        ['comment_on_block', { block: 'intro', page: pageId, text: 'Ojo' }],
+        ['update_block', { block: introOf(pageId), page: pageId, text: 'Cambiado' }],
+        ['delete_blocks', { blocks: [introOf(pageId)], page: pageId }],
+        ['comment_on_block', { block: introOf(pageId), page: pageId, text: 'Ojo' }],
         ['update_page', { page: pageId, title: 'Renombrada' }],
         ['create_page', { parent: pageId, title: 'Hija' }],
         ['trash_page', { page: pageId }],
@@ -171,13 +169,8 @@ describe('MCP page writes (Integration)', () => {
 
       expect(refusals).toEqual(attempts.map(() => true));
       expect(await storedContent(pageId)).toBe(before);
-      const page = await testApp
-        .get(PrismaService)
-        .models.Page.select('lifecycle', 'title')
-        .where({ id: pageId })
-        .all()
-        .firstOrThrow();
-      expect(page).toEqual({ lifecycle: 'ACTIVE', title: 'Solo se lee' });
+      const page = await readStoredPage(testApp, owner.token, pageId);
+      expect({ lifecycle: page.lifecycle, title: page.title }).toEqual({ lifecycle: 'ACTIVE', title: 'Solo se lee' });
       expect(await countPagesWhere({ parentId: pageId })).toBe(0);
     });
   });
@@ -232,7 +225,7 @@ describe('MCP page writes (Integration)', () => {
       const pageId = await freshPage('Insertar');
 
       const answer = await call(await writerToken(), 'insert_blocks', {
-        after: 'intro',
+        after: introOf(pageId),
         blocks: [{ items: ['Uno', 'Dos'], type: 'bullet_list' }],
         page: pageId,
       });
@@ -248,10 +241,14 @@ describe('MCP page writes (Integration)', () => {
     it('changes a block and keeps its id, so its links keep working', async () => {
       const pageId = await freshPage('Cambiar');
 
-      await call(await writerToken(), 'update_block', { block: 'intro', page: pageId, text: 'Introducción *nueva*' });
+      await call(await writerToken(), 'update_block', {
+        block: introOf(pageId),
+        page: pageId,
+        text: 'Introducción *nueva*',
+      });
 
       const stored = await storedContent(pageId);
-      expect(stored).toContain('"id":"intro"');
+      expect(stored).toContain(`"id":"${introOf(pageId)}"`);
       expect(stored).toContain('"marks":[{"type":"em"}]');
       expect(stored).not.toContain('Introducción"');
     });
@@ -260,11 +257,11 @@ describe('MCP page writes (Integration)', () => {
       const pageId = await freshPage('Mover');
       const secret = await writerToken();
 
-      await call(secret, 'move_blocks', { at: 'start', blocks: ['outro'], page: pageId });
+      await call(secret, 'move_blocks', { at: 'start', blocks: [outroOf(pageId)], page: pageId });
       const moved = await storedContent(pageId);
       expect(moved.indexOf('Cierre')).toBeLessThan(moved.indexOf('Introducción'));
 
-      await call(secret, 'delete_blocks', { blocks: ['intro'], page: pageId });
+      await call(secret, 'delete_blocks', { blocks: [introOf(pageId)], page: pageId });
       expect(await storedContent(pageId)).not.toContain('Introducción');
     });
 
@@ -272,7 +269,10 @@ describe('MCP page writes (Integration)', () => {
       const pageId = await freshPage('Sin bloque');
       const before = await storedContent(pageId);
 
-      const answer = await call(await writerToken(), 'delete_blocks', { blocks: ['intro', 'missing'], page: pageId });
+      const answer = await call(await writerToken(), 'delete_blocks', {
+        blocks: [introOf(pageId), 'missing'],
+        page: pageId,
+      });
 
       expect(readMcpText(answer)).toContain('missing');
       expect(await storedContent(pageId)).toBe(before);
@@ -383,7 +383,11 @@ describe('MCP page writes (Integration)', () => {
       );
       const before = await storedContent(pageId);
 
-      const sentence = await call(secret, 'update_block', { block: 'intro', page: pageId, text: 'Vale $\\frac{a}{$' });
+      const sentence = await call(secret, 'update_block', {
+        block: introOf(pageId),
+        page: pageId,
+        text: 'Vale $\\frac{a}{$',
+      });
       const diagram = await call(secret, 'update_block', {
         block: inserted.blockIds[0] ?? 'no id',
         page: pageId,
@@ -451,7 +455,7 @@ describe('MCP page writes (Integration)', () => {
       const before = await storedContent(closedPageId);
 
       const answer = await call(await writerToken(), 'update_block', {
-        block: 'intro',
+        block: introOf(closedPageId),
         page: closedPageId,
         text: 'Filtrado',
       });

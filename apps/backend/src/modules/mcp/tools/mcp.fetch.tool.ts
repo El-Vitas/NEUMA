@@ -62,7 +62,7 @@ const findReadablePage = async (
   return { ...page, content: content.data };
 };
 
-/** Duplicating a page keeps block ids, so the first visible match wins. */
+/** A block closed to the person is not looked up: it answers as a block that is nowhere. */
 const findPageHoldingBlock = async (
   dependencies: McpServerDependencies,
   call: McpCall,
@@ -70,7 +70,7 @@ const findPageHoldingBlock = async (
 ): Promise<McpPage | null> => {
   for (const pageId of await dependencies.searchService.locateBlock(blockId, call.workspace.id)) {
     const page = await findReadablePage(dependencies, call, pageId);
-    if (page !== null) return page;
+    if (page !== null && findPageBlock(page.content.content, blockId) !== null) return page;
   }
   return null;
 };

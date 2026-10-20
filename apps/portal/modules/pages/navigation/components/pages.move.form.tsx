@@ -15,7 +15,7 @@ import {
 } from '@/shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
-import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
+import { hasActionError, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
 import { getSpaceMoveAccessLossAction } from '@/shared/server/actions/space-move-access.actions';
 import type { SpaceMoveAccessLoss } from '@/shared/types/space-move-access.types';
 import { movePageAction } from '../../server/actions/pages.actions';
@@ -37,6 +37,7 @@ interface IProps {
 
 export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
   const t = useTranslations('pages');
+  const tErrors = useTranslations('errors');
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [pendingAccessLossMove, setPendingAccessLossMove] = useState<PendingAccessLossPageMove | null>(null);
@@ -53,7 +54,7 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
         targetSpaceId: destination.spaceId === page.spaceId ? undefined : destination.spaceId,
       });
       if (hasActionError(result)) {
-        toast.error(t('moveError'));
+        toast.error(isLockedActionFailure(result) ? tErrors('reasons.locked') : t('moveError'));
         return;
       }
       toast.success(t('moved'));

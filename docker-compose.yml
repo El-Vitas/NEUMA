@@ -43,7 +43,7 @@ services:
       dockerfile: apps/backend/Dockerfile
       target: runner
     restart: unless-stopped
-    environment: &backend-environment
+    environment:
       NODE_ENV: production
       PORT: "3000"
       DATABASE_URL: ${DATABASE_URL}
@@ -64,30 +64,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-    depends_on: &after-migrations
+    depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-
-  # Search and backlinks are projected from the outbox by their own processes, using the backend image.
-  search-worker:
-    image: localhost/neuma-backend:latest
-    restart: unless-stopped
-    environment: *backend-environment
-    command: ["bun", "run", "src/modules/search/infrastructure/worker/search.worker.main.ts"]
-    healthcheck:
-      disable: true
-    depends_on: *after-migrations
-
-  links-worker:
-    image: localhost/neuma-backend:latest
-    restart: unless-stopped
-    environment: *backend-environment
-    command: ["bun", "run", "src/modules/links/infrastructure/worker/links.worker.main.ts"]
-    healthcheck:
-      disable: true
-    depends_on: *after-migrations
 
   portal:
     image: localhost/neuma-portal:latest
@@ -96,7 +77,7 @@ services:
       dockerfile: apps/portal/Dockerfile
       args:
         BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:3000}
-        NEXT_PUBLIC_COLLABORATION_WS_URL: ${COLLABORATION_WS_URL:-ws://localhost:3000/api/v1/collaboration}
+        NEXT_PUBLIC_LIVE_WS_URL: ${LIVE_WS_URL:-ws://localhost:3000/api/v1/blocks/live}
     restart: unless-stopped
     environment:
       NODE_ENV: production

@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { redirect } from '@/i18n/navigation';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { getPageAttachments } from '@/modules/pages/attachments/server/queries/pages.attachments.queries';
+import { resolveBlockEditorStart, withBlockEditorContent } from '@/modules/pages/block-sync/lib/block-sync.start.lib';
+import { getPageBlocks } from '@/modules/pages/block-sync/server/lib/block-sync.reading.server';
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
 import { PAGE_COLLECTION_VIEW_SEARCH_PARAM } from '@/modules/pages/collections/constants/pages.collections.constants';
@@ -23,7 +25,7 @@ import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
 import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
 import { getPageBacklinks } from '@/modules/pages/links/server/queries/pages.backlinks.queries';
-import type { PagesSidePanelBundle } from '@/modules/pages/navigation/types/pages.side-panel.types';
+import type { PagesEditorBundle, PagesSidePanelBundle } from '@/modules/pages/navigation/types/pages.side-panel.types';
 import { getPageSpaceId, getPages, getPagesHolding } from '@/modules/pages/server/queries/pages.queries';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
@@ -179,7 +181,7 @@ const buildPageEditorBundle = async (
   canEditRole: boolean,
   favoritesResult: Result<readonly FavoritePage[], Error>,
   requestedViewName: null | string,
-): Promise<PagesSidePanelBundle> => {
+): Promise<PagesEditorBundle> => {
   const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
     getPageBacklinks(targetPage.id),
@@ -216,6 +218,27 @@ const buildPageEditorBundle = async (
   };
 };
 
+/** The panel edits its page through the block channel too, so it starts from that page's own blocks. */
+const buildPanelBundle = async (
+  spaceId: string,
+  panelPage: PageSummary,
+  pages: readonly PageSummary[],
+  canEditRole: boolean,
+  favoritesResult: Result<readonly FavoritePage[], Error>,
+): Promise<PagesSidePanelBundle> => {
+  const [bundle, blocksResult] = await Promise.all([
+    buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null),
+    getPageBlocks(panelPage.id),
+  ]);
+  const blockStart = resolveBlockEditorStart(blocksResult, panelPage.id);
+  return {
+    ...bundle,
+    blockSync: blockStart.blocks,
+    blockSyncFailed: blockStart.isFailed,
+    page: { ...bundle.page, content: blockStart.content ?? bundle.page.content },
+  };
+};
+
 /** Depends on the session and the space, so it resolves fully before responding. */
 export const instant = false;
 
@@ -223,18 +246,20 @@ export default async function Page({ params, searchParams }: IProps) {
   const { pageId, spaceId } = await params;
   if (!areRecordIds(pageId, spaceId)) notFound();
 
-  const [spacesResult, user, pages, favoritesResult, resolvedSearchParams] = await Promise.all([
+  const [spacesResult, user, pages, favoritesResult, resolvedSearchParams, blockSyncResult] = await Promise.all([
     getSpaces(),
     getCurrentUser(),
     readPagesHolding(spaceId, pageId),
     getFavoritePages(),
     searchParams ?? Promise.resolve<RouteSearchParams>({}),
+    getPageBlocks(pageId),
   ]);
   const space = spacesResult.isOk() ? spacesResult.getValue().find((candidate) => candidate.id === spaceId) : undefined;
   const selectedPage = pages?.find((page) => page.id === pageId);
   if (selectedPage === undefined) await followThePageToItsSpace(pageId, spaceId);
   if (space === undefined || pages === null || selectedPage === undefined) notFound();
 
+  const blockStart = resolveBlockEditorStart(blockSyncResult, pageId);
   const canEditRole = canEditContent(user?.role ?? USER_ROLE.CLIENT);
   const canSeePageUsage = canManageWorkspace(user?.role ?? USER_ROLE.CLIENT);
   const panelPageId = resolvePanelPageId(resolvedSearchParams?.panel, pages, pageId);
@@ -245,7 +270,7 @@ export default async function Page({ params, searchParams }: IProps) {
     buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName),
     panelPage === undefined
       ? Promise.resolve(null)
-      : buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null),
+      : buildPanelBundle(spaceId, panelPage, pages, canEditRole, favoritesResult),
   ]);
 
   return (
@@ -253,13 +278,16 @@ export default async function Page({ params, searchParams }: IProps) {
       <PagesWorkspace
         attachments={mainBundle.attachments}
         backlinks={mainBundle.backlinks}
+        blockSync={blockStart.blocks}
+        blockSyncFailed={blockStart.isFailed}
         canEditContent={canEditRole}
         canSeePageUsage={canSeePageUsage}
         collectionSection={mainBundle.collectionSection}
         currentUserDisplayName={user?.name}
+        currentUserId={user?.id}
         embeddedCollections={mainBundle.embeddedCollections}
         isFavorite={mainBundle.isFavorite}
-        pages={pages}
+        pages={withBlockEditorContent(pages, pageId, blockStart)}
         panelBundle={panelBundle}
         parentSchema={mainBundle.parentSchema}
         personOptions={mainBundle.personOptions}

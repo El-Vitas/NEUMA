@@ -4,7 +4,6 @@ import {
   buildClearAllFiltersUrl,
   buildFilteredSearchPageUrl,
   buildSearchPageUrlWithoutFilter,
-  buildSearchPageUrlWithoutTag,
   hasAnyActiveFilter,
   toSearchExtraFilterParams,
 } from '@/modules/search/lib/search.filters.lib';
@@ -17,7 +16,6 @@ const categoryLabels: SearchFilterCategoryLabels = {
   editedRange: 'Edited date',
   sourceType: 'Content type',
   space: 'Space',
-  tags: 'Tags',
   verifiedOnly: 'Verified only',
 };
 
@@ -64,18 +62,6 @@ describe('buildSearchPageUrlWithoutFilter', () => {
   });
 });
 
-describe('buildSearchPageUrlWithoutTag', () => {
-  it('drops a single tag while keeping the others', () => {
-    const params: SearchQuery = { ...baseParams, tags: ['alpha', 'beta'] };
-    expect(buildSearchPageUrlWithoutTag(params, {}, 'alpha')).toBe('/search?query=roadmap&tags=beta');
-  });
-
-  it('drops the tags filter entirely once the last tag is removed', () => {
-    const params: SearchQuery = { ...baseParams, tags: ['alpha'] };
-    expect(buildSearchPageUrlWithoutTag(params, {}, 'alpha')).toBe('/search?query=roadmap');
-  });
-});
-
 describe('buildClearAllFiltersUrl', () => {
   it('keeps the query text but drops every filter', () => {
     const params: SearchQuery = {
@@ -83,7 +69,6 @@ describe('buildClearAllFiltersUrl', () => {
       contentType: 'guide',
       spaceId: 'space-1',
       sourceType: 'PAGE',
-      tags: ['alpha'],
     };
     expect(buildClearAllFiltersUrl(params)).toBe('/search?query=roadmap');
   });
@@ -108,8 +93,8 @@ describe('hasAnyActiveFilter', () => {
 });
 
 describe('buildActiveSearchFilterChips', () => {
-  it('builds one chip per applied filter, including one per tag', () => {
-    const params: SearchQuery = { ...baseParams, spaceId: 'space-1', tags: ['alpha', 'beta'] };
+  it('builds one chip per applied filter', () => {
+    const params: SearchQuery = { ...baseParams, spaceId: 'space-1' };
     const filters: SearchExtraFilters = { authorQuery: 'Ada', editedRange: 'TODAY' };
 
     const chips = buildActiveSearchFilterChips({
@@ -121,13 +106,7 @@ describe('buildActiveSearchFilterChips', () => {
       spaces: [{ id: 'space-1', name: 'Engineering' }],
     });
 
-    expect(chips.map((chip) => chip.label)).toEqual([
-      'Space: Engineering',
-      'Tags: alpha',
-      'Tags: beta',
-      'Author: Ada',
-      'Edited date: Today',
-    ]);
+    expect(chips.map((chip) => chip.label)).toEqual(['Space: Engineering', 'Author: Ada', 'Edited date: Today']);
   });
 
   it('returns no chips when nothing is filtered', () => {

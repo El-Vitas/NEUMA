@@ -1,6 +1,7 @@
 # 008: Adopt a single page primitive and a link graph (Notion alignment)
 
-**Status:** Accepted
+**Status:** Superseded
+**Superseded by:** 021
 **Date:** 2026-08-05
 **Supersedes (in part):** the data model established by `docs/superpowers/plans/2026-08-02-neuma-databases.md`
 **Changes scope:** moves Mentions and Backlinks from `docs/scope/future-scope.md` into `docs/scope/current-scope.md`

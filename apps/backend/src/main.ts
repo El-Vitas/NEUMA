@@ -14,14 +14,12 @@ import { getTrustProxy } from './common/config/trust-proxy.config';
 import { CORS_ORIGIN_KEY, PORT_KEY } from './common/constants/env.constants';
 import { MULTIPART_LIMITS } from './common/constants/storage.constants';
 import { GlobalExceptionFilter } from './common/infrastructure/filters/global.exception.filter';
-import { CollaborationGateway } from './modules/collaboration/collaboration.service';
-import { registerCollaborationTransport } from './modules/collaboration/collaboration.transport';
 import { PageRetentionScheduler } from './modules/pages/infrastructure/schedulers/page.retention.scheduler';
 
 const bootstrap = async (): Promise<void> => {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    // A collaboration socket never goes idle, so without this the server would
+    // A live socket never goes idle, so without this the server would
     // wait forever for it while shutting down.
     new FastifyAdapter({ forceCloseConnections: true, trustProxy: getTrustProxy() }),
     { bufferLogs: true },
@@ -40,11 +38,6 @@ const bootstrap = async (): Promise<void> => {
   app.setGlobalPrefix('api/v1');
 
   await app.register(multipart, { limits: MULTIPART_LIMITS });
-
-  const collaborationGateway = app.get(CollaborationGateway);
-  await registerCollaborationTransport(app.getHttpAdapter().getInstance(), (socket, request) =>
-    collaborationGateway.handleConnection(socket, request),
-  );
 
   if (configService.get('NODE_ENV') !== 'production') {
     const uploadsPath = join(process.cwd(), 'uploads');

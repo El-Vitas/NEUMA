@@ -4,7 +4,7 @@ import { envSchema } from '../schemas/env.schema';
 // In the browser `process.env` is empty: Next only inlines a public variable written out by its full name.
 export const env = envSchema.parse({
   ...process.env,
-  NEXT_PUBLIC_COLLABORATION_WS_URL: process.env.NEXT_PUBLIC_COLLABORATION_WS_URL,
+  NEXT_PUBLIC_LIVE_WS_URL: process.env.NEXT_PUBLIC_LIVE_WS_URL,
 });
 
 export type Env = z.infer<typeof envSchema>;

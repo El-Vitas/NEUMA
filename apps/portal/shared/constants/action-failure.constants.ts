@@ -4,6 +4,7 @@ export const ACTION_FAILURE_REASONS = [
   'forbidden',
   'missing',
   'conflict',
+  'locked',
   'tooLarge',
   'rateLimited',
   'offline',
@@ -11,6 +12,13 @@ export const ACTION_FAILURE_REASONS = [
 ] as const;
 
 export const ACTION_OFFLINE_REASON: (typeof ACTION_FAILURE_REASONS)[number] = 'offline';
+
+export const HTTP_CONFLICT = 409;
+
+/** The code the API gives a 409 when the page is locked, so that case is not told apart from a stale write. */
+export const ACTION_LOCKED_PAGE_ERROR_CODE = 'PAGE_LOCKED';
+
+export const ACTION_LOCKED_REASON: (typeof ACTION_FAILURE_REASONS)[number] = 'locked';
 
 export const ACTION_FAILURE_REASON_BY_STATUS: Readonly<Record<number, (typeof ACTION_FAILURE_REASONS)[number]>> = {
   400: 'invalid',

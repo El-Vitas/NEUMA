@@ -1,10 +1,8 @@
 import type { PagePropertyValue, PagePropertyValues } from '../../collections/types/pages.schema.types';
-import type { PageContent } from '../../types/pages.types';
 
 export interface PagesEditorSavesOptions {
   readonly hasEditableProperties: boolean;
   readonly pageId: string;
-  readonly readContent: () => PageContent;
   readonly readPropertyValues: () => PagePropertyValues;
   readonly readTitle: () => string;
   readonly spaceId: string;
@@ -13,7 +11,6 @@ export interface PagesEditorSavesOptions {
 }
 
 export interface PagesEditorSaves {
-  readonly markContentChanged: () => void;
   readonly markPropertyChanged: (key: string, value: PagePropertyValue) => void;
   readonly markTitleChanged: () => void;
   /** Resolves to whether every pending part was saved. */

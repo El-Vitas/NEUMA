@@ -5,6 +5,7 @@ import { type ReactNode, useMemo } from 'react';
 import { StartPageButton } from '@/shared/components/portal/start-page-button';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import type { AttachmentSummary } from '../attachments/types/pages.attachments.types';
+import type { SyncedBlock } from '../block-sync/types/block-sync.types';
 import type { PagePersonOption, PageSchema } from '../collections/types/pages.schema.types';
 import {
   EMPTY_PAGE_ATTACHMENTS,
@@ -22,11 +23,16 @@ import type { PageSummary } from '../types/pages.types';
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
+  /** The selected page's blocks, read on the server. */
+  readonly blockSync?: readonly SyncedBlock[] | null;
+  /** The blocks could not be read: the page opens read-only and says why. */
+  readonly blockSyncFailed?: boolean;
   readonly canEditContent: boolean;
   readonly canSeePageUsage?: boolean;
   readonly collectionSection?: ReactNode;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
+  readonly currentUserId?: string;
   readonly isFavorite?: boolean;
   readonly pages: readonly PageSummary[];
   readonly panelBundle?: PagesSidePanelBundle | null;
@@ -40,11 +46,14 @@ interface IProps {
 export const PagesWorkspace = ({
   attachments = EMPTY_PAGE_ATTACHMENTS,
   backlinks = EMPTY_PAGE_BACKLINKS,
+  blockSync,
+  blockSyncFailed = false,
   canEditContent,
   canSeePageUsage = false,
   collectionSection = null,
   embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   currentUserDisplayName,
+  currentUserId,
   isFavorite,
   pages,
   panelBundle = null,
@@ -78,11 +87,14 @@ export const PagesWorkspace = ({
         <PagesEditor
           attachments={attachments}
           backlinks={backlinks}
-          canEdit={canEditPage(canEditContent, selectedPage.lifecycle)}
+          blockSync={blockSync}
+          canEdit={canEditPage(canEditContent, selectedPage.lifecycle) && !blockSyncFailed}
           canSeeUsage={canSeePageUsage}
           collectionSection={collectionSection}
           currentUserDisplayName={currentUserDisplayName}
+          currentUserId={currentUserId}
           embeddedCollections={embeddedCollections}
+          isBlockSyncUnavailable={blockSyncFailed}
           isFavorite={isFavorite}
           key={`${selectedPage.id}:${selectedPage.lifecycle}`}
           page={selectedPage}
@@ -98,6 +110,7 @@ export const PagesWorkspace = ({
             bundle={panelBundle}
             canEditContent={canEditContent}
             currentUserDisplayName={currentUserDisplayName}
+            currentUserId={currentUserId}
             key={`${panelBundle.page.id}:${panelBundle.page.lifecycle}`}
             pages={pages}
             parentBreadcrumbPages={panelParentBreadcrumbPages}

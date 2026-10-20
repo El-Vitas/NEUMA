@@ -6,6 +6,7 @@ import type {
   SchemaViewDefinition,
 } from '../../../common/domain/schema.domain.types';
 import type { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../constants/pages.constants';
+import type { PageViewer } from './page.block.types';
 
 export type {
   SchemaPropertyDefinition,
@@ -106,6 +107,7 @@ export interface PageSchemaRepositoryContract {
     propertyKey: string,
     rename: { readonly from: string; readonly to: null | string },
     properties: readonly SchemaPropertyDefinition[],
+    writer: PageViewer,
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED>;
   readonly setViewConfiguration: (
     pageId: string,

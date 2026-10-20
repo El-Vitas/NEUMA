@@ -9,7 +9,6 @@ describe('normalizeSearchQuery', () => {
       query: '  roadmap  ',
       sourceType: 'PAGE',
       spaceId: 'space-1',
-      tags: 'planning, roadmap',
     });
 
     expect(result).toEqual({
@@ -18,7 +17,6 @@ describe('normalizeSearchQuery', () => {
       query: 'roadmap',
       sourceType: 'PAGE',
       spaceId: 'space-1',
-      tags: ['planning', 'roadmap'],
     });
   });
 

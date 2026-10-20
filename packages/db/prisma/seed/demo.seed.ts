@@ -3,10 +3,10 @@ import {
   DatabaseViewType,
   type JsonObject,
   type NeumaDatabase,
-  OutboxConsumer,
   SpaceVisibility,
   UserRole,
 } from '../../src/index.js';
+import { encodeTextState, type SeedSegment, toPlainText, toRichText } from './rich-text.seed.js';
 import type { SeedUsers } from './users.seed.js';
 
 type SeedModels = NeumaDatabase['orm']['public'];
@@ -49,33 +49,31 @@ const setupEnvironmentBlockId = 'c5555555-5555-4555-8555-555555555555';
 const documentArchitectureBlockId = 'c6666666-6666-4666-8666-666666666666';
 const reviewPortalContentBlockId = 'c7777777-7777-4777-8777-777777777777';
 
-/** Blocks carry fixed ids, as the editor would give them, so search and links can point at them. */
-const pageContent = (blockId: string, text: string): JsonObject => ({
-  content: [{ attrs: { id: blockId }, content: [{ text, type: 'text' }], type: 'paragraph' }],
+const toInlineNode = (segment: SeedSegment): JsonObject =>
+  typeof segment === 'string'
+    ? { text: segment, type: 'text' }
+    : { attrs: { label: segment.label, pageId: segment.pageId, spaceId }, type: 'mention' };
+
+/** The document a version keeps; its paragraph carries the id of the block that holds the same text. */
+const toPageContent = (blockId: string, segments: readonly SeedSegment[]): JsonObject => ({
+  content: [{ attrs: { id: blockId }, content: segments.map(toInlineNode), type: 'paragraph' }],
   schemaVersion: 1,
   type: 'doc',
 });
 
-const pageContentWithMention = (
-  blockId: string,
-  leadText: string,
-  mention: { label: string; pageId: string },
-  trailingText: string,
-): JsonObject => ({
-  content: [
-    {
-      attrs: { id: blockId },
-      content: [
-        { text: leadText, type: 'text' },
-        { attrs: { label: mention.label, pageId: mention.pageId, spaceId }, type: 'mention' },
-        { text: trailingText, type: 'text' },
-      ],
-      type: 'paragraph',
-    },
-  ],
-  schemaVersion: 1,
-  type: 'doc',
-});
+const isMentionSegment = (segment: SeedSegment): segment is Exclude<SeedSegment, string> => typeof segment !== 'string';
+
+interface SeedPageRow {
+  id: string;
+  paragraphId: string;
+  parentId: string | null;
+  paragraph: readonly SeedSegment[];
+  title: string;
+  propertyValues?: JsonObject;
+}
+
+/** The operations a page takes to be written: its own `set`, plus one listing for each child it holds. */
+const countPageOperations = (childCount: number): number => 1 + childCount;
 
 const seedWorkspace = async (models: SeedModels): Promise<void> => {
   const updatedCount = await models.Workspace.where({ singletonKey: 'default' }).updateAndCount({ name: 'Neuma' });
@@ -118,99 +116,113 @@ const seedSpace = async (models: SeedModels): Promise<void> => {
   });
 };
 
-const seedPage = async (
+/** A page is a block that lists its paragraph first and its subpages after it, as the app writes it (ADR 021). */
+const seedPageBlocks = async (
   models: SeedModels,
-  page: {
-    id: string;
-    parentId: string | null;
-    title: string;
-    content: JsonObject;
-    order: number;
-    propertyValues?: JsonObject;
-  },
+  page: SeedPageRow,
+  subpageIds: readonly string[],
   userId: string,
 ): Promise<void> => {
-  await models.Page.upsert({
-    conflictOn: { id: page.id },
-    create: { ...page, createdById: userId, spaceId, updatedById: userId },
-    update: { ...page, createdById: userId, updatedById: userId },
+  const titleText = toRichText([page.title], spaceId);
+  const paragraphText = toRichText(page.paragraph, spaceId);
+  const children = [page.paragraphId, ...subpageIds];
+  const authorship = { createdById: userId, editedById: userId, spaceId };
+  const pageBlock = {
+    ...authorship,
+    children,
+    parentId: page.parentId,
+    properties: { title: titleText, ...(page.propertyValues === undefined ? {} : { values: page.propertyValues }) },
+    text: page.title,
+    textState: encodeTextState('title', titleText),
+    type: 'page',
+    version: countPageOperations(children.length),
+  };
+  const paragraphBlock = {
+    ...authorship,
+    parentId: page.id,
+    properties: { title: paragraphText },
+    text: toPlainText(page.paragraph),
+    textState: encodeTextState('title', paragraphText),
+    type: 'paragraph',
+    version: 1,
+  };
+  await models.Block.upsert({ conflictOn: { id: page.id }, create: { ...pageBlock, id: page.id }, update: pageBlock });
+  await models.Block.upsert({
+    conflictOn: { id: page.paragraphId },
+    create: { ...paragraphBlock, id: page.paragraphId },
+    update: paragraphBlock,
   });
+};
+
+const seedPageVersion = async (models: SeedModels, page: SeedPageRow, userId: string): Promise<void> => {
+  const content = toPageContent(page.paragraphId, page.paragraph);
   const updatedCount = await models.PageVersion.where({ pageId: page.id, version: 1 }).updateAndCount({
-    content: page.content,
+    content,
     createdById: userId,
     title: page.title,
   });
   if (updatedCount > 0) return;
-  await models.PageVersion.create({
-    content: page.content,
-    createdById: userId,
-    pageId: page.id,
-    title: page.title,
-    version: 1,
-  });
+  await models.PageVersion.create({ content, createdById: userId, pageId: page.id, title: page.title, version: 1 });
 };
 
-/** The same event the backend writes when a page is created, so the projection workers index seeded pages too. */
-const announcePages = async (models: SeedModels, pageIds: readonly string[]): Promise<void> => {
-  for (const pageId of pageIds) {
-    await models.OutboxEvent.create({
-      aggregateId: pageId,
-      aggregateType: 'PAGE',
-      deliveries: (deliveries) => deliveries.create(Object.values(OutboxConsumer).map((consumer) => ({ consumer }))),
-      eventType: 'PAGE_CREATED',
-      idempotencyKey: `page:${pageId}:version:1`,
-      payload: { pageId, spaceId, version: 1 },
-      payloadVersion: 1,
-    });
+/** The mentions of each paragraph, as the backend reconciles them in the transaction that writes the block. */
+const seedBlockLinks = async (models: SeedModels, pages: readonly SeedPageRow[]): Promise<void> => {
+  for (const page of pages) {
+    const targetBlockIds = page.paragraph.filter(isMentionSegment).map((mention) => mention.pageId);
+    await models.BlockLink.where({ sourceBlockId: page.paragraphId })
+      .where((link) => link.targetBlockId.notIn(targetBlockIds))
+      .deleteAndCount();
+    await models.BlockLink.createAndCount(
+      targetBlockIds.map((targetBlockId) => ({
+        kind: 'mention',
+        sourceBlockId: page.paragraphId,
+        sourcePageId: page.id,
+        targetBlockId,
+      })),
+      { onConflict: 'skip' },
+    );
   }
 };
 
 const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> => {
   const userId = users.adminId;
-  const pages = [
+  const pages: readonly SeedPageRow[] = [
     {
-      content: pageContent(rootBlockId, 'A practical guide to how the Engineering team works.'),
       id: rootPageId,
-      order: 0,
+      paragraph: ['A practical guide to how the Engineering team works.'],
+      paragraphId: rootBlockId,
       parentId: null,
       title: 'Engineering Handbook',
     },
     {
-      content: pageContent(
-        gettingStartedBlockId,
-        'Start here to set up your local environment and make your first change.',
-      ),
       id: gettingStartedPageId,
-      order: 0,
+      paragraph: ['Start here to set up your local environment and make your first change.'],
+      paragraphId: gettingStartedBlockId,
       parentId: rootPageId,
       title: 'Getting Started',
     },
     {
-      content: pageContent(
-        architectureBlockId,
-        'The system is organized into a portal, backend, and shared database packages.',
-      ),
       id: architecturePageId,
-      order: 1,
+      paragraph: ['The system is organized into a portal, backend, and shared database packages.'],
+      paragraphId: architectureBlockId,
       parentId: rootPageId,
       title: 'Architecture',
     },
     {
-      content: pageContent(tasksBlockId, 'Track engineering work as a table or as a board grouped by status.'),
       id: tasksPageId,
-      order: 1,
+      paragraph: ['Track engineering work as a table or as a board grouped by status.'],
+      paragraphId: tasksBlockId,
       parentId: null,
       title: 'Tasks',
     },
     {
-      content: pageContentWithMention(
-        setupEnvironmentBlockId,
+      id: taskRowSetupEnvironmentId,
+      paragraph: [
         'Prepare the local development environment. See ',
         { label: 'Getting Started', pageId: gettingStartedPageId },
         ' for the setup steps.',
-      ),
-      id: taskRowSetupEnvironmentId,
-      order: 0,
+      ],
+      paragraphId: setupEnvironmentBlockId,
       parentId: tasksPageId,
       propertyValues: {
         assignee: users.workerId,
@@ -222,14 +234,13 @@ const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> =>
       title: 'Set up local development',
     },
     {
-      content: pageContentWithMention(
-        documentArchitectureBlockId,
+      id: taskRowDocumentArchitectureId,
+      paragraph: [
         'Document the service boundaries and data flow, building on ',
         { label: 'Architecture', pageId: architecturePageId },
         '.',
-      ),
-      id: taskRowDocumentArchitectureId,
-      order: 1,
+      ],
+      paragraphId: documentArchitectureBlockId,
       parentId: tasksPageId,
       propertyValues: {
         assignee: users.adminId,
@@ -241,9 +252,9 @@ const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> =>
       title: 'Document service architecture',
     },
     {
-      content: pageContent(reviewPortalContentBlockId, 'Review the first portal content and share feedback.'),
       id: taskRowReviewPortalContentId,
-      order: 2,
+      paragraph: ['Review the first portal content and share feedback.'],
+      paragraphId: reviewPortalContentBlockId,
       parentId: tasksPageId,
       propertyValues: {
         assignee: users.clientId,
@@ -254,16 +265,20 @@ const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> =>
       },
       title: 'Review portal content',
     },
-  ] as const;
+  ];
 
-  await models.Page.where({ spaceId })
-    .where((page) => page.id.notIn(pages.map((seedPageRow) => seedPageRow.id)))
+  const seededBlockIds = pages.flatMap((page) => [page.id, page.paragraphId]);
+  await models.Block.where({ spaceId })
+    .where((block) => block.id.notIn(seededBlockIds))
     .deleteAndCount();
-  for (const page of pages) await seedPage(models, page, userId);
-  await announcePages(
-    models,
-    pages.map((page) => page.id),
-  );
+  for (const page of pages) {
+    const subpageIds = pages.filter((candidate) => candidate.parentId === page.id).map((subpage) => subpage.id);
+    await seedPageBlocks(models, page, subpageIds, userId);
+    await seedPageVersion(models, page, userId);
+  }
+  const rootPageIds = pages.filter((page) => page.parentId === null).map((page) => page.id);
+  await models.Space.where({ id: spaceId }).updateAndCount({ rootPageIds });
+  await seedBlockLinks(models, pages);
 };
 
 const seedPageSchema = async (models: SeedModels): Promise<void> => {
@@ -372,24 +387,6 @@ const seedPageSchema = async (models: SeedModels): Promise<void> => {
   }
 };
 
-const seedPageLinks = async (models: SeedModels): Promise<void> => {
-  const links = [
-    { sourcePageId: taskRowSetupEnvironmentId, targetPageId: gettingStartedPageId },
-    { sourcePageId: taskRowDocumentArchitectureId, targetPageId: architecturePageId },
-  ] as const;
-
-  for (const sourcePageId of new Set(links.map((link) => link.sourcePageId))) {
-    const targetPageIds = links.filter((link) => link.sourcePageId === sourcePageId).map((link) => link.targetPageId);
-    await models.PageLink.where({ sourcePageId })
-      .where((link) => link.targetPageId.notIn(targetPageIds))
-      .deleteAndCount();
-  }
-  await models.PageLink.createAndCount(
-    links.map((link) => ({ ...link })),
-    { onConflict: 'skip' },
-  );
-};
-
 export const seedDemo = async (database: NeumaDatabase, users: SeedUsers): Promise<void> => {
   await database.transaction(async (transaction) => {
     const models = transaction.orm.public;
@@ -398,6 +395,5 @@ export const seedDemo = async (database: NeumaDatabase, users: SeedUsers): Promi
     await seedSpace(models);
     await seedPages(models, users);
     await seedPageSchema(models);
-    await seedPageLinks(models);
   });
 };

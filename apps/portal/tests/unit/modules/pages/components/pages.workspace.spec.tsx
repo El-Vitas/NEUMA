@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
+import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
 
 const attachment = {
@@ -14,20 +15,40 @@ const attachment = {
 mock.module('@/modules/pages/editor/components/pages.editor', () => ({
   PagesEditor: ({
     attachments,
+    blockSync,
+    canEdit,
+    currentUserId,
+    isBlockSyncUnavailable,
     page,
     parentBreadcrumbPages,
   }: {
     readonly attachments: readonly (typeof attachment)[];
+    readonly blockSync?: readonly unknown[] | null;
+    readonly canEdit: boolean;
+    readonly currentUserId?: string;
+    readonly isBlockSyncUnavailable?: boolean;
     readonly page: { readonly id: string };
     readonly parentBreadcrumbPages: readonly { readonly id: string }[];
   }) => (
     <div
       data-attachment-count={attachments.length}
+      data-block-count={blockSync?.length ?? 'none'}
+      data-block-unavailable={String(isBlockSyncUnavailable ?? false)}
+      data-can-edit={String(canEdit)}
       data-page-id={page.id}
       data-parent-page-ids={parentBreadcrumbPages.map((candidate) => candidate.id).join(',')}
       data-testid="selected-page"
+      data-user-id={currentUserId ?? 'none'}
     />
   ),
+}));
+
+mock.module('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+mock.module('@/i18n/navigation', () => ({
+  usePathname: () => '/spaces/s/pages/p',
+  useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
 }));
 
 // Starting a page reaches a server action, which refuses to load outside a server.
@@ -89,6 +110,128 @@ describe('PagesWorkspace collaboration propagation', () => {
     expect(screen.getByTestId('selected-page').getAttribute('data-parent-page-ids')).toBe(
       '11111111-1111-4111-8111-111111111111',
     );
+  });
+
+  const handbook: PageSummary = {
+    content: { content: [], schemaVersion: 1, type: 'doc' },
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    createdBy: null,
+    id: '11111111-1111-4111-8111-111111111111',
+    lifecycle: 'ACTIVE',
+    order: 0,
+    parentId: null,
+    propertyValues: null,
+    spaceId: '33333333-3333-4333-8333-333333333333',
+    title: 'Handbook',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedBy: null,
+    version: 1,
+  };
+
+  it('hands the blocks and the user to the editor', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          blockSync={[]}
+          canEditContent
+          currentUserId="user-1"
+          pages={[handbook]}
+          selectedPageId={handbook.id}
+          spaceId={handbook.spaceId}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const editor = screen.getByTestId('selected-page');
+    expect(editor.getAttribute('data-block-count')).toBe('0');
+    expect(editor.getAttribute('data-user-id')).toBe('user-1');
+    expect(editor.getAttribute('data-can-edit')).toBe('true');
+  });
+
+  it('makes the page read-only, and says why, when its blocks could not be read', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          blockSyncFailed
+          canEditContent
+          pages={[handbook]}
+          selectedPageId={handbook.id}
+          spaceId={handbook.spaceId}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const editor = screen.getByTestId('selected-page');
+    expect(editor.getAttribute('data-can-edit')).toBe('false');
+    expect(editor.getAttribute('data-block-unavailable')).toBe('true');
+  });
+
+  it('hands the side panel editor its own page blocks and the user, like the main editor', () => {
+    const panelPage: PageSummary = { ...handbook, id: '55555555-5555-4555-8555-555555555555', title: 'Panel page' };
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          blockSync={[]}
+          canEditContent
+          currentUserId="user-1"
+          pages={[handbook, panelPage]}
+          panelBundle={{
+            attachments: [],
+            backlinks: { count: 0, items: [] },
+            blockSync: [],
+            blockSyncFailed: false,
+            collectionSection: null,
+            embeddedCollections: {},
+            isFavorite: false,
+            page: panelPage,
+            parentSchema: null,
+            personOptions: [],
+          }}
+          selectedPageId={handbook.id}
+          spaceId={handbook.spaceId}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const panelEditor = screen
+      .getAllByTestId('selected-page')
+      .find((editor) => editor.getAttribute('data-page-id') === panelPage.id);
+    expect(panelEditor?.getAttribute('data-block-count')).toBe('0');
+    expect(panelEditor?.getAttribute('data-user-id')).toBe('user-1');
+    expect(panelEditor?.getAttribute('data-can-edit')).toBe('true');
+  });
+
+  it('makes the side panel page read-only, and says why, when its blocks could not be read', () => {
+    const panelPage: PageSummary = { ...handbook, id: '55555555-5555-4555-8555-555555555555', title: 'Panel page' };
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesWorkspace
+          blockSync={[]}
+          canEditContent
+          pages={[handbook, panelPage]}
+          panelBundle={{
+            attachments: [],
+            backlinks: { count: 0, items: [] },
+            blockSync: null,
+            blockSyncFailed: true,
+            collectionSection: null,
+            embeddedCollections: {},
+            isFavorite: false,
+            page: panelPage,
+            parentSchema: null,
+            personOptions: [],
+          }}
+          selectedPageId={handbook.id}
+          spaceId={handbook.spaceId}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const panelEditor = screen
+      .getAllByTestId('selected-page')
+      .find((editor) => editor.getAttribute('data-page-id') === panelPage.id);
+    expect(panelEditor?.getAttribute('data-can-edit')).toBe('false');
+    expect(panelEditor?.getAttribute('data-block-unavailable')).toBe('true');
   });
 
   it('offers to start a page instead of an editor over nothing', () => {

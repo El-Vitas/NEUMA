@@ -37,6 +37,73 @@ export type {
   AccessTokenPresetLevel,
   AccessTokenSpaceGrant,
 } from './access-token/access-token.types.js';
+export { parseBlockContent, readBlockText } from './block/block-content.lib.js';
+export { BLOCK_CONTENT_SCHEMAS, blockContentSchema } from './block/block-content.schemas.js';
+export type {
+  BlockContent,
+  BlockContentError,
+  BlockContentErrorCode,
+  BlockContentIssue,
+  BlockNodeDispositionKind,
+  BlockPlainText,
+  BlockRichText,
+  BlockTextEmbed,
+  BlockTextMarks,
+  BlockType,
+} from './block/block-content.types.js';
+export { BLOCK_DOCUMENT_ERROR_CODE } from './block/block-document.constants.js';
+export { BlockDocumentError } from './block/block-document.error.js';
+export type { BlockDocumentErrorCode } from './block/block-document.error.js';
+export { deriveBlockId } from './block/block-document.id.lib.js';
+export { documentToBlocks } from './block/block-document.to-blocks.lib.js';
+export { blocksToDocument } from './block/block-document.to-document.lib.js';
+export type {
+  BlockDocumentPropertyValues,
+  BlockDocumentRow,
+  BlockDraft,
+  BlockTree,
+  DocumentToBlocksInput,
+} from './block/block-document.types.js';
+export { extractPlainText } from './block/block-text.lib.js';
+export {
+  blockPlainTextSchema,
+  blockRichTextSchema,
+  blockTextEmbedSchema,
+  blockTextMarksSchema,
+} from './block/block-text.schemas.js';
+export {
+  BLOCK_CONTENT_ERROR_CODE,
+  BLOCK_NODE_DISPOSITION,
+  BLOCK_NODE_DISPOSITION_KIND,
+  BLOCK_TEXT_EMBED,
+  BLOCK_TEXT_MARK,
+  BLOCK_TYPE,
+  BLOCK_TYPE_VALUES,
+} from './block/block-type.constants.js';
+export {
+  BLOCK_PERMISSION_ENTRY_LIMIT,
+  BLOCK_PRINCIPAL_KIND,
+  BLOCK_ROLE,
+  BLOCK_ROLE_VALUES,
+} from './block/block.constants.js';
+export {
+  canEditBlock,
+  canManageBlockPermissions,
+  canReadBlock,
+  filterVisibleBlockIds,
+  resolveBlockRole,
+} from './block/block.permissions.lib.js';
+export { blockPermissionEntrySchema, blockPermissionsSchema, blockRoleSchema } from './block/block.schemas.js';
+export type {
+  BlockAncestorPermissions,
+  BlockPermissionEntry,
+  BlockPermissions,
+  BlockPrincipal,
+  BlockRole,
+  BlockRoleInput,
+  BlockViewer,
+  BlockWithRole,
+} from './block/block.types.js';
 export { UNASSIGNED_GROUP_KEY } from './constants/page-view.constants.js';
 export { DEFAULT_TAX_RATE, PRICING_LIMITS } from './constants/pricing.constants.js';
 export { API_SEGMENTS, RESOURCE_ROUTES } from './constants/route.constants.js';
@@ -283,6 +350,7 @@ export {
   PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
+  PAGE_TEXT_TAG_PATTERN,
   maximumBookmarkTextLength,
   maximumFormulaLatexLength,
   maximumPageTextLength,
@@ -305,7 +373,7 @@ export {
 } from './schemas/page-content.schema.js';
 export type { AuthSession } from './types/auth.types.js';
 export type { PageLifecycle } from './types/page.types.js';
-export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES } from './types/page.types.js';
+export { PAGE_LIFECYCLE, PAGE_LIFECYCLE_VALUES, PAGE_TITLE_MAX_LENGTH } from './types/page.types.js';
 export type {
   PagePropertyType,
   PageViewGrouping,

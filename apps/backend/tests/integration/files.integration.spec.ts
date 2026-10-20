@@ -1,18 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { SpaceVisibility } from '@neuma/db';
-import type { PageContent } from '@neuma/shared';
 import request from 'supertest';
 import { PrismaService } from '@/prisma/prisma.service';
-import { createAccount, loginUser } from '../helpers/auth.helper';
+import { createBlockFactory } from '../factories/block.factory';
+import {
+  createSeededSpace,
+  createSeededUser,
+  onlyUserPermissions,
+  type SeededUser,
+} from '../helpers/block-access.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
-
-interface SpaceResponse {
-  id: string;
-}
-
-interface PageResponse {
-  id: string;
-}
 
 interface FileAssetMetadataResponse {
   id: string;
@@ -22,74 +19,66 @@ interface FileAssetMetadataResponse {
   uploadedBy: string;
 }
 
-const promoteToAdmin = async (testApp: TestApp, email: string): Promise<void> => {
-  const prisma = testApp.get(PrismaService);
-  await prisma.models.User.where({ email }).update({ role: 'ADMIN' });
-};
-
-const createRestrictedPage = async (testApp: TestApp, token: string, timestamp: number): Promise<string> => {
-  const spaceResponse = await request(testApp.getServer())
-    .post('/api/v1/spaces')
-    .set('Authorization', `Bearer ${token}`)
-    .send({
-      name: 'Restricted Files Space',
-      slug: `restricted-files-${String(timestamp)}`,
-      visibility: SpaceVisibility.RESTRICTED,
-    })
-    .expect(201);
-  const space = spaceResponse.body as SpaceResponse;
-
-  const content: PageContent = {
-    content: [{ content: [{ text: 'attachment host page', type: 'text' }], type: 'paragraph' }],
-    schemaVersion: 1,
-    type: 'doc',
-  };
-  const pageResponse = await request(testApp.getServer())
-    .post(`/api/v1/spaces/${space.id}/pages`)
-    .set('Authorization', `Bearer ${token}`)
-    .send({ content, title: 'Attachment host page' })
-    .expect(201);
-  const page = pageResponse.body as PageResponse;
-  return page.id;
-};
-
-const uploadAttachment = async (testApp: TestApp, token: string, pageId: string): Promise<void> => {
-  await request(testApp.getServer())
-    .post('/api/v1/files')
-    .query({ pageId })
-    .set('Authorization', `Bearer ${token}`)
-    .attach('file', Buffer.from('attachment contents'), 'attachment.txt')
-    .expect(201);
-};
-
-const listAttachments = (testApp: TestApp, token: string, pageId: string) =>
-  request(testApp.getServer()).get(`/api/v1/files/page/${pageId}`).set('Authorization', `Bearer ${token}`);
+const HTTP_OK = 200;
+const HTTP_CREATED = 201;
+const HTTP_FORBIDDEN = 403;
 
 describe('Files (Integration)', () => {
   let testApp: TestApp;
-  let adminToken: string;
-  let outsiderToken: string;
+  let prisma: PrismaService;
+  let admin: SeededUser;
+  let outsider: SeededUser;
+  let publicSpaceId: string;
+  let restrictedSpaceId: string;
   let pageId: string;
+
+  const blocks = () => createBlockFactory(prisma.models);
+
+  const createPage = async (spaceId: string, title: string): Promise<string> =>
+    (await blocks().create({ createdById: admin.id, editedById: admin.id, spaceId, title, type: 'page' })).id;
+
+  const uploadAttachment = async (token: string, targetPageId: string): Promise<string> => {
+    const response = await request(testApp.getServer())
+      .post('/api/v1/files')
+      .query({ pageId: targetPageId })
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('attachment contents'), 'attachment.txt')
+      .expect(HTTP_CREATED);
+    return (response.body as FileAssetMetadataResponse).id;
+  };
+
+  const listAttachments = (token: string, targetPageId: string) =>
+    request(testApp.getServer()).get(`/api/v1/files/page/${targetPageId}`).set('Authorization', `Bearer ${token}`);
+
+  const download = (token: string, assetId: string) =>
+    request(testApp.getServer()).get(`/api/v1/files/${assetId}`).set('Authorization', `Bearer ${token}`);
+
+  const createReferencingBlock = async (
+    parentId: string,
+    spaceId: string,
+    assetId: string,
+    permissions: ReturnType<typeof onlyUserPermissions> | null = null,
+  ): Promise<void> => {
+    await blocks().create({
+      createdById: admin.id,
+      editedById: admin.id,
+      parentId,
+      permissions,
+      properties: { assetId },
+      spaceId,
+      type: 'image',
+    });
+  };
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
-
-    const timestamp = Date.now();
-    const adminEmail = `files-admin-${String(timestamp)}@test.com`;
-    const outsiderEmail = `files-outsider-${String(timestamp)}@test.com`;
-    const password = 'plainPassword123';
-
-    await createAccount(testApp, { email: adminEmail, name: 'Files Admin', password });
-    await createAccount(testApp, { email: outsiderEmail, name: 'Files Outsider', password });
-    await promoteToAdmin(testApp, adminEmail);
-
-    const adminSession = await loginUser(testApp, adminEmail, password);
-    const outsiderSession = await loginUser(testApp, outsiderEmail, password);
-    adminToken = adminSession.accessToken;
-    outsiderToken = outsiderSession.accessToken;
-
-    pageId = await createRestrictedPage(testApp, adminToken, timestamp);
-    await uploadAttachment(testApp, adminToken, pageId);
+    prisma = testApp.get(PrismaService);
+    admin = await createSeededUser(testApp, 'Files Admin', 'ADMIN');
+    outsider = await createSeededUser(testApp, 'files-outsider', 'CLIENT');
+    publicSpaceId = await createSeededSpace(testApp, admin.token, SpaceVisibility.PUBLIC_INTERNAL);
+    restrictedSpaceId = await createSeededSpace(testApp, admin.token, SpaceVisibility.RESTRICTED);
+    pageId = await createPage(restrictedSpaceId, 'Attachment host page');
+    await uploadAttachment(admin.token, pageId);
   });
 
   afterAll(async () => {
@@ -100,7 +89,7 @@ describe('Files (Integration)', () => {
     const upload = request(testApp.getServer())
       .post('/api/v1/files')
       .query({ pageId })
-      .set('Authorization', `Bearer ${adminToken}`);
+      .set('Authorization', `Bearer ${admin.token}`);
     for (let index = 0; index < 20; index += 1) {
       upload.field(`extra${String(index)}`, 'x');
     }
@@ -112,7 +101,7 @@ describe('Files (Integration)', () => {
   });
 
   it('lets an authorized member see the page attachments with only non-sensitive metadata', async () => {
-    const response = await listAttachments(testApp, adminToken, pageId).expect(200);
+    const response = await listAttachments(admin.token, pageId).expect(HTTP_OK);
     const attachments = response.body as FileAssetMetadataResponse[];
 
     expect(attachments).toHaveLength(1);
@@ -129,6 +118,34 @@ describe('Files (Integration)', () => {
   });
 
   it('denies a non-member, non-admin user from enumerating the page attachments', async () => {
-    await listAttachments(testApp, outsiderToken, pageId).expect(403);
+    await listAttachments(outsider.token, pageId).expect(HTTP_FORBIDDEN);
+  });
+
+  describe('assets referenced by a block', () => {
+    it('makes an asset readable through a readable block that references it', async () => {
+      const assetId = await uploadAttachment(admin.token, pageId);
+      await download(outsider.token, assetId).expect(HTTP_FORBIDDEN);
+      const readerPageId = await createPage(publicSpaceId, 'Page that shows the asset');
+      await createReferencingBlock(readerPageId, publicSpaceId, assetId);
+
+      await download(outsider.token, assetId).expect(HTTP_OK);
+    });
+
+    it('does not make an asset readable through a block the reader cannot read', async () => {
+      const assetId = await uploadAttachment(admin.token, pageId);
+      const hiddenPageId = await createPage(publicSpaceId, 'Page with a hidden block');
+      await createReferencingBlock(hiddenPageId, publicSpaceId, assetId, onlyUserPermissions(admin.id));
+
+      await download(outsider.token, assetId).expect(HTTP_FORBIDDEN);
+    });
+
+    it('does not make an asset readable through a block in the trash', async () => {
+      const assetId = await uploadAttachment(admin.token, pageId);
+      const trashedPageId = await createPage(publicSpaceId, 'Trashed page with the asset');
+      await createReferencingBlock(trashedPageId, publicSpaceId, assetId);
+      await prisma.models.Block.where({ id: trashedPageId }).update({ lifecycle: 'TRASHED' });
+
+      await download(outsider.token, assetId).expect(HTTP_FORBIDDEN);
+    });
   });
 });

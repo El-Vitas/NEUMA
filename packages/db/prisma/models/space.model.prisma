@@ -8,15 +8,18 @@ model Space {
   icon        Jsonb?
   visibility  pg.enum(SpaceVisibility)   @default("PUBLIC_INTERNAL")
   order       Int                        @default(0)
+  /// The top-level pages of the space, in order, as a block lists its children (ADR 021).
+  rootPageIds String[]                   @default([]) @noCheck(elementNotNull)
   ownerId     String?
   createdAt   TimestamptzJsDate          @default(now())
   updatedAt   temporal.updatedAtJsDate()
   workspace   Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Space_workspaceId_fkey", index: "Space_workspaceId_order_idx")
   owner       User?                      @relation(name: "SpaceOwner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "Space_ownerId_fkey")
 
-  members     SpaceMember[]
-  pages       Page[]
-  tokenGrants AccessTokenGrant[]
+  members           SpaceMember[]
+  blocks            Block[]
+  blockTransactions BlockTransaction[]
+  tokenGrants       AccessTokenGrant[]
 
   @@unique([workspaceId, slug], map: "Space_workspaceId_slug_key")
   @@index([workspaceId, visibility], map: "Space_workspaceId_visibility_idx")

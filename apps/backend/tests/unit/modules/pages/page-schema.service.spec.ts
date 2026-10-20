@@ -49,7 +49,6 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   deleteForever: () => Promise.resolve('SCHEDULED'),
   duplicate: () => Promise.resolve(page),
   emptyTrash: () => Promise.resolve([]),
-  findAccessState: () => Promise.resolve({ lifecycle: page.lifecycle, lockedAt: page.lockedAt }),
   findReadablePageIds: (pageIds) => Promise.resolve(pageIds),
   getAccessible: () => Promise.resolve(page),
   findMoveContext: () => Promise.resolve(null),
@@ -62,8 +61,10 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
-  findStoredContent: () => Promise.resolve(null),
-  storeContent: () => Promise.resolve('UNCHANGED'),
+  findVersion: () => Promise.resolve(null),
+  recordVersion: () => Promise.resolve(),
+  restoreVersion: () => Promise.resolve(null),
+  writeContent: () => Promise.resolve(null),
   updatePropertyValues: (_input, merge) => {
     const merged = merge(null);
     return Promise.resolve(merged.isOk() ? Result.ok(page) : Result.fail(merged.getError()));

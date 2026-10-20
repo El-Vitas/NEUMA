@@ -22,20 +22,18 @@ El contrato de Prisma ya emitido viene commiteado en `packages/db/src/contract`,
 ```bash
 bun run dev            # bun --watch src/main.ts  → http://localhost:3000
 bun run start          # bun src/main.ts (producción)
-bun run search:worker  # proyecta los cambios al índice de búsqueda
-bun run links:worker   # proyecta los cambios a los retroenlaces
 bun run test           # bun test (unit + integration; requiere Postgres)
 bun run check          # depcruise + biome + eslint + tsc --noEmit (TS 7)
 ```
 
-No hay `build`: en producción se ejecuta `bun src/main.ts` directamente. Sin los dos workers, la búsqueda devuelve cero resultados y la sección «Vinculado desde» no aparece.
+No hay `build`: en producción se ejecuta `bun src/main.ts` directamente. Es un solo proceso: la búsqueda y «Vinculado desde» leen los bloques, sin procesos aparte.
 
 ## Arquitectura
 
 - **HTTP:** Fastify (`@nestjs/platform-fastify`). Subida de archivos con `@fastify/multipart`.
 - **Auth:** JWT (Bearer). Contraseñas con `Bun.password` (bcrypt, compatible con hashes `$2b$` existentes).
 - **Datos:** Prisma ORM 8 (`@prisma/orm-postgres`), con el contrato y las migraciones en `packages/db`.
-- **Proyecciones:** un outbox con una entrega por consumidor; los workers de búsqueda y de retroenlaces corren aparte.
+- **Búsqueda y retroenlaces:** salen de `Block` y `BlockLink`, que la misma transacción de bloques mantiene al día (ADR 021 y 022).
 - **Tests:** `bun test` contra una base de datos nueva por ejecución, migrada con las mismas migraciones de producción. Convenciones en `apps/backend/AGENTS.md`.
 
-Las decisiones de arquitectura (Bun, Fastify, `Bun.password`, `bun test`, TypeScript 7, Prisma 8, aislamiento de pruebas, outbox por consumidor) están en `docs/architecture/adr/`.
+Las decisiones de arquitectura (Bun, Fastify, `Bun.password`, `bun test`, TypeScript 7, Prisma 8, aislamiento de pruebas) están en `docs/architecture/adr/`.

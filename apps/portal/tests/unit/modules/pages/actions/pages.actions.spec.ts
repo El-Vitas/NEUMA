@@ -43,14 +43,9 @@ mock.module('@/shared/lib/with-action.lib', () => ({
   withAction: async (_meta: unknown, operation: () => Promise<unknown>) => operation(),
 }));
 
-const {
-  addBlocksToPageAction,
-  createPageAction,
-  movePageAction,
-  replacePageContentAction,
-  restorePageAction,
-  trashPageAction,
-} = await import('@/modules/pages/server/actions/pages.actions');
+const { addBlocksToPageAction, createPageAction, movePageAction, restorePageAction, trashPageAction } = await import(
+  '@/modules/pages/server/actions/pages.actions'
+);
 
 const spaceId = '11111111-1111-4111-8111-111111111111';
 const pageId = '22222222-2222-4222-8222-222222222222';
@@ -81,22 +76,6 @@ describe('pages.actions without an access token', () => {
       content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
       spaceId,
       title: 'Untitled',
-    });
-
-    expect(result).toEqual({ serverError: 'forbidden' });
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(updateTagMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects replacePageContentAction without making an outbound request', async () => {
-    cookieValue = undefined;
-    fetchMock.mockClear();
-    updateTagMock.mockClear();
-
-    const result = await replacePageContentAction({
-      content: { content: [{ content: [], type: 'paragraph' }], schemaVersion: 1, type: 'doc' },
-      pageId,
-      spaceId,
     });
 
     expect(result).toEqual({ serverError: 'forbidden' });

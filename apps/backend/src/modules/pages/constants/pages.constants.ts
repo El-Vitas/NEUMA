@@ -6,15 +6,33 @@ export const PAGE_PURGE_REPOSITORY = 'PAGE_PURGE_REPOSITORY';
 export const PAGE_VERSION_RETENTION_REPOSITORY = 'PAGE_VERSION_RETENTION_REPOSITORY';
 export const PAGE_SCHEMA_REPOSITORY = 'PAGE_SCHEMA_REPOSITORY';
 export const PAGE_OUTLINE_REPOSITORY = 'PAGE_OUTLINE_REPOSITORY';
-export const PAGE_MAINTENANCE_REPOSITORY = 'PAGE_MAINTENANCE_REPOSITORY';
-export const PAGE_MAINTENANCE_BATCH_SIZE = 100;
-/** Deeper than any real tree; bounds the walk should a cycle appear. */
-export const PAGE_OUTLINE_MAX_DEPTH = 64;
-export const PAGE_LIVE_DOCUMENT = 'PAGE_LIVE_DOCUMENT';
+/** Deeper than any real tree; bounds every walk up or down it, should a cycle appear. */
+export const PAGE_TREE_MAX_DEPTH = 64;
+
+/** The columns of a block that make a page. */
+export const PAGE_BLOCK_COLUMNS = [
+  'children',
+  'createdAt',
+  'createdById',
+  'editedAt',
+  'editedById',
+  'format',
+  'id',
+  'lifecycle',
+  'lockedAt',
+  'ownerId',
+  'parentId',
+  'permissions',
+  'properties',
+  'purgeAfter',
+  'spaceId',
+  'trashedAt',
+  'verificationExpiresAt',
+  'verifiedAt',
+  'verifiedById',
+] as const;
 export const MAX_APPENDED_PAGE_BLOCKS = 200;
 export const REDACTED_MENTION_LABEL = 'Restricted page';
-/** Serializes moves per workspace so two concurrent moves cannot close a cycle. */
-export const PAGE_MOVES_LOCK_PREFIX = 'page-moves:';
 
 /** Deleting forever only schedules it: the page stays restorable this long (ADR 017). */
 export const PAGE_PURGE_DELAY_DAYS = 30;
@@ -25,10 +43,23 @@ export const PAGE_PURGE_BATCH_SIZE = 100;
 /** One purge at a time across processes, so two runs never delete the same pages twice. */
 export const PAGE_PURGE_LOCK_KEY = 'page-purge';
 
-export const PAGE_CONTENT_STORE_OUTCOME = {
-  missing: 'MISSING',
-  stored: 'STORED',
-  unchanged: 'UNCHANGED',
+export const PAGE_VERSION_CLOCK = 'PAGE_VERSION_CLOCK';
+
+/**
+ * The live save of the old design (ADR 020) ran 250 ms after the last change and at most 2 s after the first one, and
+ * each save was a version, folded into the one before it when the same person saved within five minutes. A version
+ * is cut on that cadence for what the editor writes now, and the folding is the same rule.
+ */
+export const PAGE_VERSION_IDLE_MS = 250;
+export const PAGE_VERSION_MAX_WAIT_MS = 2000;
+
+export const PAGE_RESTORE_VERSION_OUTCOME = { missing: 'MISSING_VERSION' } as const;
+
+/** A transaction id carries what the write is, so a retried mutation id finds its own result and no other. */
+export const PAGE_TRANSACTION_KIND = {
+  move: 'page-move',
+  restore: 'page-restore',
+  trash: 'page-trash',
 } as const;
 
 /** Each page opens its own transaction, so the whole selection at once would exhaust the connection pool. */
@@ -51,11 +82,7 @@ export const EXPORT_MAX_ATTACHMENT_MEGABYTES = 256;
 export const SCHEMA_PROPERTY_LIMIT = 50;
 export const SCHEMA_VIEW_LIMIT = 20;
 
-/**
- * A title shows in the sidebar, breadcrumb and export filename, so the cap fits the
- * narrowest. A property key is an identifier and stays short; its label is read.
- */
-export const PAGE_TITLE_MAX_LENGTH = 200;
+/** A property key is an identifier and stays short; its label is read. */
 export const SCHEMA_PROPERTY_KEY_MAX_LENGTH = PAGE_PROPERTY_KEY_MAX_LENGTH;
 export const SCHEMA_LABEL_MAX_LENGTH = 120;
 

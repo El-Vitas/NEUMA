@@ -27,6 +27,8 @@ import {
   mapAttachmentMimeTypeToPageAssetNodeType,
 } from '../../attachments/lib/pages.attachments.lib';
 import type { AttachmentSummary } from '../../attachments/types/pages.attachments.types';
+import { createReplaceContentCommand } from '../../block-sync/lib/block-sync.remote.lib';
+import type { SyncedBlock } from '../../block-sync/types/block-sync.types';
 import { PagesPropertiesPanel } from '../../collections/components/pages.properties.panel';
 import { buildDefaultPropertyValues, getEditableSchemaProperties } from '../../collections/lib/pages.properties.lib';
 import type {
@@ -56,6 +58,7 @@ import { PagesVerificationPanel } from '../../trust/components/pages.verificatio
 import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
+import { usePagesEditorBlockBinding } from '../hooks/use.pages.editor.block-binding';
 import { usePagesEditorSaves } from '../hooks/use.pages.editor.saves';
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
@@ -65,11 +68,16 @@ import type { PagesEditorHandle } from '../types/pages.editor.handle.types';
 interface IProps {
   readonly attachments?: readonly AttachmentSummary[];
   readonly backlinks?: PageBacklinksResult;
+  /** The page's blocks as the server read them; null when they could not be read. */
+  readonly blockSync?: readonly SyncedBlock[] | null;
   readonly canEdit: boolean;
   readonly canSeeUsage?: boolean;
   readonly collectionSection?: ReactNode;
   readonly embeddedCollections?: Readonly<Record<string, ReactNode>>;
   readonly currentUserDisplayName?: string;
+  readonly currentUserId?: string;
+  /** The page's blocks could not be read, so the page is read-only and says so. */
+  readonly isBlockSyncUnavailable?: boolean;
   readonly isFavorite?: boolean;
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
   /** Called once a save by this editor has reached the server, so other views of the page can refresh. */
@@ -88,11 +96,14 @@ export const PagesEditor = forwardRef(
     {
       attachments = EMPTY_PAGE_ATTACHMENTS,
       backlinks = EMPTY_PAGE_BACKLINKS,
+      blockSync,
       canEdit,
       canSeeUsage = false,
       collectionSection = null,
       embeddedCollections = EMPTY_PAGE_EMBEDDED_COLLECTIONS,
       currentUserDisplayName,
+      currentUserId,
+      isBlockSyncUnavailable,
       isFavorite,
       onNavigateToPage,
       onSaved,
@@ -130,7 +141,6 @@ export const PagesEditor = forwardRef(
     const saves = usePagesEditorSaves({
       hasEditableProperties: editableProperties.length > 0,
       pageId: page.id,
-      readContent: () => contentRef.current,
       readPropertyValues: () => propertyValuesRef.current,
       readTitle: () => titleRef.current,
       spaceId,
@@ -149,9 +159,8 @@ export const PagesEditor = forwardRef(
     };
 
     const isLocked = lockedAt !== null;
-    const canWrite = canEdit && !isLocked;
-    const canAutosave = canWrite && page.lifecycle === 'ACTIVE';
-    const canTrash = canWrite && page.lifecycle === 'ACTIVE';
+    const isWritable = canEdit && !isLocked;
+    const canAutosave = isWritable && page.lifecycle === 'ACTIVE';
 
     const handlePageTrashed = (): void => router.push(ROUTES.PORTAL_SPACE(spaceId));
 
@@ -160,14 +169,31 @@ export const PagesEditor = forwardRef(
       onSave: updateCurrentPage,
     });
 
+    const blockBinding = usePagesEditorBlockBinding({
+      fallbackSaveState: canAutosave ? autosave.displayState : 'idle',
+      initialBlocks: blockSync,
+      isEnabled: isWritable,
+      localUserId: currentUserId,
+      pageId: page.id,
+      personOptions,
+      readContent: () => contentRef.current,
+      replaceContent: (content) => {
+        editorHandleRef.current?.runCommand(createReplaceContentCommand(content));
+      },
+      spaceId,
+    });
+    const { canWrite } = blockBinding;
+    const canTrash = canWrite && page.lifecycle === 'ACTIVE';
+
     useImperativeHandle(
       handleRef,
       () => ({
         flushPendingChanges: async () => {
+          await blockBinding.flush();
           await autosave.saveNow();
         },
       }),
-      [autosave],
+      [autosave, blockBinding],
     );
 
     /** An untitled page opens with the title focused. */
@@ -206,20 +232,18 @@ export const PagesEditor = forwardRef(
     const handleAttachmentDeleted = (attachmentId: string): void =>
       setPageAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId));
 
-    const handleContentChange = (content: PageContent, isKeptLive: boolean): void => {
+    const handleContentChange = (content: PageContent): void => {
       contentRef.current = content;
-      if (isKeptLive) return;
-      saves.markContentChanged();
-      autosave.schedule();
+      blockBinding.keepContentLive(content);
     };
 
     const handleGoToHeading = (position: number): void => editorHandleRef.current?.goToHeading(position);
 
     const handleTitleLeft = (): void => editorHandleRef.current?.goToWriting();
 
-    const autosaveDisplayState: PagesAutosaveDisplayState = canAutosave ? autosave.displayState : 'idle';
+    const autosaveDisplayState: PagesAutosaveDisplayState = blockBinding.saveState;
     const visiblePageAttachments = excludePageAssetAttachments(pageAttachments, pageIcon, cover.cover);
-    const readOnlyMessage = resolveReadOnlyMessage(page.lifecycle, isLocked, t);
+    const readOnlyMessage = resolveReadOnlyMessage(page.lifecycle, isLocked, t, isBlockSyncUnavailable);
     const layoutStyleClasses = getPageAppearanceLayoutStyleClasses();
     const workspaceClassName = cn('w-full min-w-0 space-y-8', layoutStyleClasses.width);
     const sectionClassName = cn('min-w-0 bg-surface', layoutStyleClasses.sectionPadding);
@@ -301,6 +325,7 @@ export const PagesEditor = forwardRef(
             {/* Rendered before the body: a page with a collection is mostly that collection. */}
             {collectionSection}
             <PagesProseMirrorEditor
+              blockCollaboration={blockBinding.collaboration}
               canEdit={canWrite}
               content={page.content}
               currentUserDisplayName={currentUserDisplayName}
@@ -309,6 +334,7 @@ export const PagesEditor = forwardRef(
               onContentChange={handleContentChange}
               onHeadingsChange={setHeadings}
               onNavigateToPage={onNavigateToPage}
+              onSelectionChange={blockBinding.reportSelection}
               pageId={page.id}
               pages={pages}
               personOptions={personOptions}

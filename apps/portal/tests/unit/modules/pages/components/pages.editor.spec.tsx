@@ -17,7 +17,6 @@ mock.module('next/navigation', () => ({
   useRouter: () => ({ push, refresh: () => undefined, replace: () => undefined }),
 }));
 const renamePageAction = mock(async (_input: unknown) => ({ data: undefined }));
-const replacePageContentAction = mock(async (_input: unknown) => ({ data: undefined }));
 const trashPageAction = mock(async (_input: unknown) => ({ data: undefined }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   setPageLockAction: async () => ({ data: undefined }),
@@ -25,7 +24,6 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   listPageMoveDestinationsAction: async () => ({ data: { pages: [], spaces: [] } }),
   movePageAction: async () => ({ data: undefined }),
   renamePageAction,
-  replacePageContentAction,
   trashPageAction,
 }));
 const updatePageRowPropertiesAction = mock(async (_input: unknown) => ({ data: undefined }));
@@ -103,7 +101,6 @@ describe('a page that nobody has named yet', () => {
 
   it('keeps what is written without anybody pressing anything', async () => {
     renamePageAction.mockClear();
-    replacePageContentAction.mockClear();
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor canEdit page={buildPage('')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
@@ -118,7 +115,6 @@ describe('a page that nobody has named yet', () => {
       pageId: '22222222-2222-4222-8222-222222222222',
       title: 'Quarterly plan',
     });
-    expect(replacePageContentAction).not.toHaveBeenCalled();
   });
 });
 

@@ -7,16 +7,16 @@ Cada despliegue atiende a una sola organización, y solo entran las personas a l
 ## Qué hace
 
 - **Páginas y espacios.** Jerarquía de páginas con historial de versiones, papelera, favoritas, íconos y exportación. Los espacios pueden ser internos, restringidos o privados.
-- **Editor en vivo.** Editor ProseMirror sobre Yjs y Hocuspocus, con diagramas Mermaid, fórmulas, tablas, adjuntos y menciones entre páginas.
+- **Editor en vivo.** Editor ProseMirror sobre bloques, con un canal en vivo y Yjs para el texto de cada bloque, con diagramas Mermaid, fórmulas, tablas, adjuntos y menciones entre páginas.
 - **Colecciones.** Una página puede llevar un esquema de propiedades, y sus páginas hijas se ven como tabla, tablero, lista, galería o calendario.
-- **Búsqueda y retroenlaces.** Búsqueda de texto completo en PostgreSQL por página y por bloque, y la sección «Vinculado desde». Las dos se proyectan desde un outbox en procesos aparte.
+- **Búsqueda y retroenlaces.** Búsqueda de texto completo en PostgreSQL por página y por bloque, y la sección «Vinculado desde». Las dos salen de los bloques y están al día apenas se confirma el cambio.
 - **Agentes.** Servidor MCP en `/api/v1/mcp` con tokens de acceso de alcance limitado. Cada acción de un agente queda auditada.
 
 ## Estructura
 
 | Workspace | Qué es | Puerto |
 |---|---|---|
-| `apps/backend` | API NestJS 11 sobre Fastify y Bun, el servidor MCP, la colaboración en vivo y los workers de búsqueda y retroenlaces | 3000 |
+| `apps/backend` | API NestJS 11 sobre Fastify y Bun, el servidor MCP y el canal en vivo del editor | 3000 |
 | `apps/portal` | Next.js 16 (App Router), React 19 y Tailwind 4 | 3010 |
 | `packages/db` | Contrato de Prisma ORM 8, migraciones y seed para PostgreSQL 18 | — |
 | `packages/shared` | Tipos, esquemas y lógica compartida entre backend y portal | — |
@@ -36,12 +36,7 @@ cd packages/db && bun run db:migrate:deploy && bun run db:seed && cd ../..
 bun run dev
 ```
 
-`bun run dev` levanta el backend y el portal. La búsqueda y los retroenlaces necesitan además sus workers, cada uno en su terminal:
-
-```bash
-cd apps/backend && bun run search:worker
-cd apps/backend && bun run links:worker
-```
+`bun run dev` levanta el backend y el portal; no hace falta ningún otro proceso.
 
 El seed crea tres usuarios, `admin@example.com`, `worker@example.com` y `client@example.com`, con la contraseña definida en `packages/db/prisma/seed/users.seed.ts`.
 
@@ -57,7 +52,7 @@ bun run rules:query  # consultar las reglas de negocio
 
 ## Despliegue
 
-`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend, los dos workers y el portal. `deploy/podman/` trae las mismas piezas como unidades Quadlet de systemd, y su README explica el despliegue en una VM.
+`docker-compose.yml` levanta PostgreSQL, las migraciones (una vez), el backend y el portal. `deploy/podman/` trae las mismas piezas como unidades Quadlet de systemd, y su README explica el despliegue en una VM.
 
 No hay registro abierto. En una instalación nueva, el primer administrador se crea una sola vez desde el servidor, y después los administradores crean las cuentas desde «Usuarios»:
 

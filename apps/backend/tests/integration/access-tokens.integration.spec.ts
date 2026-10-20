@@ -1,10 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { SpaceVisibility } from '@neuma/db';
 import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import request from 'supertest';
 import { AccessTokensService } from '@/modules/access-tokens/access-tokens.service';
 import { ACCESS_TOKEN_LIMIT_PER_USER } from '@/modules/access-tokens/constants/access-tokens.constants';
 import { PrismaService } from '@/prisma/prisma.service';
+import { createBlockFactory } from '../factories/block.factory';
 import { createAccount, loginUser } from '../helpers/auth.helper';
+import {
+  createSeededSpace,
+  createSeededUser,
+  onlyUserPermissions,
+  type SeededUser,
+} from '../helpers/block-access.helper';
 import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 interface CreatedTokenResponse {
@@ -16,6 +24,7 @@ interface ListedTokenResponse {
   displayPrefix: string;
   id: string;
   name: string;
+  pages?: { pageId: string; pageTitle: string }[];
   secret?: string;
   secretHash?: string;
 }
@@ -113,6 +122,57 @@ describe('Access tokens (Integration)', () => {
     const refused = await createToken(ownerToken, 'Uno de más').expect(409);
 
     expect((refused.body as { error: { code: string } }).error.code).toBe('ACCESS_TOKEN_LIMIT_REACHED');
+  });
+
+  describe('page grants', () => {
+    const grantPage = (sessionToken: string, pageId: string, name: string) =>
+      request(testApp.getServer())
+        .post('/api/v1/access-tokens')
+        .set('Authorization', `Bearer ${sessionToken}`)
+        .send({
+          access: { allSpaces: [], pages: [{ pageId, permissions: [ACCESS_TOKEN_PERMISSIONS.pagesRead] }], spaces: [] },
+          name,
+        });
+
+    const createGrantPage = async (
+      admin: SeededUser,
+      title: string,
+      permissions?: ReturnType<typeof onlyUserPermissions>,
+    ) => {
+      const spaceId = await createSeededSpace(testApp, admin.token, SpaceVisibility.PUBLIC_INTERNAL);
+      return createBlockFactory(testApp.get(PrismaService).models).create({
+        createdById: admin.id,
+        editedById: admin.id,
+        spaceId,
+        title,
+        type: 'page',
+        ...(permissions === undefined ? {} : { permissions }),
+      });
+    };
+
+    it('shows the title of a page grant as the page block has it', async () => {
+      const admin = await createSeededUser(testApp, 'token-grants-admin', 'ADMIN');
+      const page = await createGrantPage(admin, 'Granted From Block');
+      const created = (await grantPage(admin.token, page.id, 'Con página').expect(201)).body as CreatedTokenResponse;
+
+      const listed = await request(testApp.getServer())
+        .get('/api/v1/access-tokens')
+        .set('Authorization', `Bearer ${admin.token}`)
+        .expect(200);
+
+      const found = (listed.body as ListedTokenResponse[]).find((token) => token.id === created.token.id);
+      expect(found?.pages?.map((grant) => ({ pageId: grant.pageId, pageTitle: grant.pageTitle }))).toEqual([
+        { pageId: page.id, pageTitle: 'Granted From Block' },
+      ]);
+    });
+
+    it('refuses a grant on a page its owner cannot read', async () => {
+      const admin = await createSeededUser(testApp, 'token-grants-owner', 'ADMIN');
+      const worker = await createSeededUser(testApp, 'token-grants-worker', 'WORKER');
+      const page = await createGrantPage(admin, 'Admin Only Page', onlyUserPermissions(admin.id));
+
+      await grantPage(worker.token, page.id, 'Sin permiso').expect(403);
+    });
   });
 
   it('refuses a name made only of spaces', async () => {

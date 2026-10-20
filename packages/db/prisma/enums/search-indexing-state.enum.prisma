@@ -1,9 +1,0 @@
-// use prisma-8
-
-// PROCESSING was added after the type existed, so PostgreSQL keeps it last.
-native_enum SearchIndexingState {
-  PENDING = "PENDING"
-  INDEXED = "INDEXED"
-  FAILED = "FAILED"
-  PROCESSING = "PROCESSING"
-}

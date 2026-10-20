@@ -27,7 +27,7 @@ const attachmentsPath = 'api/page-assets';
 
 const contentSecurityPolicyFor = (frameAncestors: string): string =>
   buildContentSecurityPolicy({
-    collaborationUrl: env.NEXT_PUBLIC_COLLABORATION_WS_URL,
+    collaborationUrl: env.NEXT_PUBLIC_LIVE_WS_URL,
     frameAncestors,
     isDevelopment: env.NODE_ENV === 'development',
   });
