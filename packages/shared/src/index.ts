@@ -350,6 +350,7 @@ export {
   PAGE_CONTENT_NODE_TYPES,
   PAGE_CONTENT_SCHEMA_VERSION,
   PAGE_EMBED_PROVIDERS,
+  PAGE_TEXT_TAG_PATTERN,
   maximumBookmarkTextLength,
   maximumFormulaLatexLength,
   maximumPageTextLength,

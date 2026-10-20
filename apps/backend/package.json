@@ -26,7 +26,8 @@
     "test:cov": "bun test tests/unit tests/integration --timeout 30000 --coverage --coverage-reporter=lcov --coverage-dir=coverage",
     "test:watch": "bun test tests/unit tests/integration --watch",
     "links:worker": "bun src/modules/links/infrastructure/worker/links.worker.main.ts",
-    "admin:create": "bun src/modules/users/infrastructure/cli/admin.create.main.ts"
+    "admin:create": "bun src/modules/users/infrastructure/cli/admin.create.main.ts",
+    "blocks:migrate": "bun src/modules/blocks/migration/block.migrate.main.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",
