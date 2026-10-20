@@ -96,6 +96,7 @@ export class PageSummaryReader {
       cover: readPageCover(block.format),
       createdAt: block.createdAt,
       createdBy: parts.users.get(block.createdById) ?? null,
+      hasOwnPermissions: block.permissions !== null,
       icon: readPageIcon(block.format),
       id: block.id,
       lifecycle: access.isInTrash ? PageLifecycle.TRASHED : block.lifecycle,

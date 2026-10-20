@@ -33,12 +33,14 @@ export const MCP_TOOL_NAMES = {
   fetch: 'fetch',
   getCollection: 'get_collection',
   insertBlocks: 'insert_blocks',
+  listDiscussions: 'list_discussions',
   listPages: 'list_pages',
   listSpaces: 'list_spaces',
   listTrash: 'list_trash',
   moveBlocks: 'move_blocks',
   movePage: 'move_page',
   queryCollection: 'query_collection',
+  replyToDiscussion: 'reply_to_discussion',
   restorePage: 'restore_page',
   search: 'search',
   searchDiagramIcons: 'search_diagram_icons',
@@ -74,8 +76,8 @@ export const MCP_INLINE_OBJECT_PLACEHOLDER = '￼';
 
 export const MCP_BLOCK_COLOR_NAMES = ['backgroundColor', 'textColor'] as const;
 
-/** Attributes carried over to a replacement block: comments and colors. */
-export const MCP_BLOCK_KEPT_ATTRIBUTES = ['comments', ...MCP_BLOCK_COLOR_NAMES] as const;
+/** Attributes carried over to a replacement block: its colors. Its discussions stay with its id. */
+export const MCP_BLOCK_KEPT_ATTRIBUTES = MCP_BLOCK_COLOR_NAMES;
 
 /** Message the diagram worker posts once Mermaid is loaded. */
 export const MCP_DIAGRAM_WORKER_READY = 'ready';
@@ -156,7 +158,12 @@ export const MCP_CREATE_PAGE_PLACE_MESSAGE =
 export const MCP_NOTHING_TO_CHANGE_MESSAGE = 'Nothing to change: say what should change.';
 
 /** Refusals answered as "not found": saying more would confirm the resource exists. */
-export const MCP_INACCESSIBLE_REFUSAL_CODES: readonly string[] = ['PAGE_ACCESS_DENIED', 'PAGE_SCHEMA_NOT_FOUND'];
+export const MCP_INACCESSIBLE_REFUSAL_CODES: readonly string[] = [
+  'COMMENT_NOT_FOUND',
+  'DISCUSSION_NOT_FOUND',
+  'PAGE_ACCESS_DENIED',
+  'PAGE_SCHEMA_NOT_FOUND',
+];
 
 export const MCP_LOCKED_REFUSAL_CODE = 'PAGE_LOCKED';
 
@@ -168,6 +175,11 @@ export const MCP_PAGE_MANAGE_REFUSED_MESSAGE =
 export const MCP_PAGE_ICON_INVALID_MESSAGE = 'The icon must be one emoji.';
 
 export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
+  [
+    'COMMENT_FORBIDDEN',
+    'Only the author of a comment can change it, and only an admin can delete one of someone else.',
+  ],
+  ['COMMENT_NOT_ALLOWED', 'The owner of this token can read that block but cannot comment on it.'],
   ['PAGE_CYCLE', 'A page cannot go under itself or under a page that hangs from it.'],
   ['PAGE_ICON_INVALID', MCP_PAGE_ICON_INVALID_MESSAGE],
   [
@@ -183,6 +195,7 @@ export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
 
 /** Only these refusals pass their detail to the agent, since it helps correct what it wrote. */
 export const MCP_DETAILED_REFUSAL_CODES: readonly string[] = [
+  'COMMENT_BODY_INVALID',
   'PAGE_BLOCK_EDIT_INVALID',
   'PAGE_CONTENT_INVALID',
   'PAGE_COVER_INVALID',
@@ -289,7 +302,7 @@ export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
   'If your token can write pages, read the page with fetch first to get its block ids, then write with insert_blocks, update_block, move_blocks or delete_blocks; create_page makes a new page. Write each block by what it means: a table as a table, code or a diagram drawn with spaces as a code_block.',
   'Diagrams are Mermaid, any kind, and can show product logos and icons (never emojis in their place): find their names with search_diagram_icons before drawing.',
   'Besides text, a page holds columns side by side, link cards, videos from YouTube, Vimeo, Loom or Figma, and blocks synced from another page: write them as blocks too.',
-  'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
+  'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Comments live in discussions: list_discussions shows the conversations of a page and reply_to_discussion answers one, so before commenting on something look whether it already has a discussion. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
   'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status.',
   'When the person asks to add, note or change a task of the team or of "our board", do it on a Neuma collection, never in your own session\'s task list.',
   'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',

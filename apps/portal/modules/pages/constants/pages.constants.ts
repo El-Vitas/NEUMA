@@ -21,6 +21,8 @@ export const EMPTY_PAGE_PERSON_OPTIONS: readonly PagePersonOption[] = [];
 
 export const EMPTY_PAGE_SUMMARIES: readonly PageSummary[] = [];
 
+export const EMPTY_RESTRICTED_BLOCK_IDS: ReadonlySet<string> = new Set();
+
 export const EMPTY_PAGE_HEADINGS: readonly PageEditorHeading[] = [];
 
 export const EMPTY_PAGE_EMBEDDED_COLLECTIONS: Readonly<Record<string, ReactNode>> = {};

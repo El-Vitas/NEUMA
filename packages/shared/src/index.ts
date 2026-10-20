@@ -66,6 +66,28 @@ export type {
 } from './block/block-document.types.js';
 export { extractPlainText } from './block/block-text.lib.js';
 export {
+  COMMENT_MENTIONS_MAX,
+  COMMENT_TEXT_MAX_LENGTH,
+  DISCUSSION_QUOTE_MAX_LENGTH,
+  DISCUSSIONS_PAGE_SIZE_DEFAULT,
+  DISCUSSIONS_PAGE_SIZE_MAX,
+  NOTIFICATION_EXCERPT_MAX_LENGTH,
+  NOTIFICATION_KIND,
+  NOTIFICATION_KIND_VALUES,
+  NOTIFICATION_READ_RETENTION_DAYS,
+  NOTIFICATIONS_PAGE_SIZE_DEFAULT,
+  NOTIFICATIONS_PAGE_SIZE_MAX,
+} from './discussion/discussion.constants.js';
+export { isCommentBodyEmpty, listMentionedUserIds, readCommentExcerpt } from './discussion/discussion.lib.js';
+export type {
+  CommentView,
+  DiscussionPageView,
+  DiscussionView,
+  NotificationKind,
+  NotificationPageView,
+  NotificationView,
+} from './discussion/discussion.types.js';
+export {
   blockPlainTextSchema,
   blockRichTextSchema,
   blockTextEmbedSchema,
@@ -91,10 +113,13 @@ export {
   canManageBlockPermissions,
   canReadBlock,
   filterVisibleBlockIds,
+  holdsFullBlockAccess,
+  isBlockManageable,
   resolveBlockRole,
 } from './block/block.permissions.lib.js';
 export { blockPermissionEntrySchema, blockPermissionsSchema, blockRoleSchema } from './block/block.schemas.js';
 export type {
+  BlockAccessHolder,
   BlockAncestorPermissions,
   BlockPermissionEntry,
   BlockPermissions,

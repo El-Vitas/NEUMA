@@ -14,7 +14,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_RESTORE_VERSION_OUTCOME } from '../../constants/pages.constants';
 import { readPageValues } from '../../domain/page.block.domain';
 import { collectDescendantIds, pageTitleMatchesSearch } from '../../domain/page.domain';
-import { dropHiddenBlocks } from '../../domain/page.visibility.domain';
+import { dropHiddenBlocks, listClosedBlockIds, listNodeIds } from '../../domain/page.visibility.domain';
 import type { AccessiblePage, PageViewer } from '../../types/page.block.types';
 import type {
   DuplicatePageInput,
@@ -29,6 +29,7 @@ import type {
   PageRestoreOutcome,
   PageRestoreVersionOutcome,
   PageSummary,
+  PageVersionListing,
   PageVersionSnapshot,
   TrashedPageSummary,
   UpdatePagePropertyValuesInput,
@@ -121,8 +122,21 @@ export class PageRepository implements PageRepositoryContract {
     const snapshot = page === null ? null : await this.versionRepository.find(pageId, version);
     if (page === null || snapshot === null) return null;
     const visible = await this.blockReader.readVisibleContentBlocks([page]);
-    const hiddenIds = visible.get(pageId)?.hiddenIds ?? new Set<string>();
+    const chains = await this.blockReader.readAncestry(listNodeIds(snapshot.content));
+    const hiddenIds = new Set([...(visible.get(pageId)?.hiddenIds ?? []), ...listClosedBlockIds(chains, page.viewer)]);
     return { ...snapshot, content: dropHiddenBlocks(snapshot.content, hiddenIds) };
+  }
+
+  async listVersions(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    cursor: null | number,
+    limit: number,
+  ): Promise<null | PageVersionListing> {
+    const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
+    return page === null ? null : this.versionRepository.list(pageId, cursor, limit);
   }
 
   recordVersion(pageId: string, authorId: string): Promise<void> {

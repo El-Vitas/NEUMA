@@ -1,0 +1,758 @@
+[
+  {
+    "id": "createNativeEnumType.NotificationKind",
+    "label": "Create enum type \"NotificationKind\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "type",
+        "name": "NotificationKind"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create enum type \"NotificationKind\"",
+        "sql": "CREATE TYPE \"public\".\"NotificationKind\" AS ENUM ('MENTION', 'REPLY', 'PAGE_CHANGE')",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.Comment",
+    "label": "Create table \"Comment\"",
+    "summary": "Creates table \"Comment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Comment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Comment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Comment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Comment\"",
+        "sql": "CREATE TABLE \"public\".\"Comment\" (\n  \"authorId\" text NOT NULL,\n  \"body\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"deletedAt\" timestamptz,\n  \"discussionId\" text NOT NULL,\n  \"editedAt\" timestamptz,\n  \"id\" text NOT NULL,\n  CONSTRAINT \"Comment_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Comment\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Comment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Discussion",
+    "label": "Create table \"Discussion\"",
+    "summary": "Creates table \"Discussion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Discussion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Discussion\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Discussion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Discussion\"",
+        "sql": "CREATE TABLE \"public\".\"Discussion\" (\n  \"anchorMarkId\" text,\n  \"blockId\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"createdById\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"quote\" text,\n  \"resolvedAt\" timestamptz,\n  \"resolvedById\" text,\n  \"spaceId\" text NOT NULL,\n  CONSTRAINT \"Discussion_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Discussion\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Discussion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Notification",
+    "label": "Create table \"Notification\"",
+    "summary": "Creates table \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Notification\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Notification\"",
+        "sql": "CREATE TABLE \"public\".\"Notification\" (\n  \"actorId\" text NOT NULL,\n  \"blockId\" text NOT NULL,\n  \"commentId\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"discussionId\" text,\n  \"id\" text NOT NULL,\n  \"kind\" \"NotificationKind\" NOT NULL,\n  \"readAt\" timestamptz,\n  \"recipientId\" text NOT NULL,\n  CONSTRAINT \"Notification_pkey\" PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Notification\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Comment.Comment_discussionId_createdAt_idx",
+    "label": "Create index \"Comment_discussionId_createdAt_idx\" on \"Comment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Comment_discussionId_createdAt_idx",
+        "table": "Comment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Comment_discussionId_createdAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Comment_discussionId_createdAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Comment_discussionId_createdAt_idx\"",
+        "sql": "CREATE INDEX \"Comment_discussionId_createdAt_idx\" ON \"public\".\"Comment\" (\"discussionId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Comment_discussionId_createdAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Comment_discussionId_createdAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Discussion.Discussion_blockId_createdAt_idx",
+    "label": "Create index \"Discussion_blockId_createdAt_idx\" on \"Discussion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Discussion_blockId_createdAt_idx",
+        "table": "Discussion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Discussion_blockId_createdAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Discussion_blockId_createdAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Discussion_blockId_createdAt_idx\"",
+        "sql": "CREATE INDEX \"Discussion_blockId_createdAt_idx\" ON \"public\".\"Discussion\" (\"blockId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Discussion_blockId_createdAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Discussion_blockId_createdAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Discussion.Discussion_spaceId_idx",
+    "label": "Create index \"Discussion_spaceId_idx\" on \"Discussion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Discussion_spaceId_idx",
+        "table": "Discussion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Discussion_spaceId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Discussion_spaceId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Discussion_spaceId_idx\"",
+        "sql": "CREATE INDEX \"Discussion_spaceId_idx\" ON \"public\".\"Discussion\" (\"spaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Discussion_spaceId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Discussion_spaceId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Notification.Notification_blockId_idx",
+    "label": "Create index \"Notification_blockId_idx\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Notification_blockId_idx",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Notification_blockId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_blockId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Notification_blockId_idx\"",
+        "sql": "CREATE INDEX \"Notification_blockId_idx\" ON \"public\".\"Notification\" (\"blockId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Notification_blockId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_blockId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Notification.Notification_commentId_idx",
+    "label": "Create index \"Notification_commentId_idx\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Notification_commentId_idx",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Notification_commentId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_commentId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Notification_commentId_idx\"",
+        "sql": "CREATE INDEX \"Notification_commentId_idx\" ON \"public\".\"Notification\" (\"commentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Notification_commentId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_commentId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Notification.Notification_discussionId_idx",
+    "label": "Create index \"Notification_discussionId_idx\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Notification_discussionId_idx",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Notification_discussionId_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_discussionId_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Notification_discussionId_idx\"",
+        "sql": "CREATE INDEX \"Notification_discussionId_idx\" ON \"public\".\"Notification\" (\"discussionId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Notification_discussionId_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_discussionId_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Notification.Notification_readAt_idx",
+    "label": "Create index \"Notification_readAt_idx\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Notification_readAt_idx",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Notification_readAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_readAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Notification_readAt_idx\"",
+        "sql": "CREATE INDEX \"Notification_readAt_idx\" ON \"public\".\"Notification\" (\"readAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Notification_readAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_readAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Notification.Notification_recipientId_readAt_createdAt_idx",
+    "label": "Create index \"Notification_recipientId_readAt_createdAt_idx\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Notification_recipientId_readAt_createdAt_idx",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Notification_recipientId_readAt_createdAt_idx\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_recipientId_readAt_createdAt_idx\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Notification_recipientId_readAt_createdAt_idx\"",
+        "sql": "CREATE INDEX \"Notification_recipientId_readAt_createdAt_idx\" ON \"public\".\"Notification\" (\"recipientId\", \"readAt\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Notification_recipientId_readAt_createdAt_idx\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Notification_recipientId_readAt_createdAt_idx\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Comment.Comment_discussionId_fkey",
+    "label": "Add foreign key \"Comment_discussionId_fkey\" on \"Comment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Comment_discussionId_fkey",
+        "table": "Comment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Comment_discussionId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Comment_discussionId_fkey",
+          "public",
+          "\"public\".\"Comment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Comment_discussionId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Comment\"\nADD CONSTRAINT \"Comment_discussionId_fkey\"\nFOREIGN KEY (\"discussionId\")\nREFERENCES \"public\".\"Discussion\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Comment_discussionId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Comment_discussionId_fkey",
+          "public",
+          "\"public\".\"Comment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Discussion.Discussion_blockId_fkey",
+    "label": "Add foreign key \"Discussion_blockId_fkey\" on \"Discussion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Discussion_blockId_fkey",
+        "table": "Discussion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Discussion_blockId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Discussion_blockId_fkey",
+          "public",
+          "\"public\".\"Discussion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Discussion_blockId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Discussion\"\nADD CONSTRAINT \"Discussion_blockId_fkey\"\nFOREIGN KEY (\"blockId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Discussion_blockId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Discussion_blockId_fkey",
+          "public",
+          "\"public\".\"Discussion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Notification.Notification_recipientId_fkey",
+    "label": "Add foreign key \"Notification_recipientId_fkey\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Notification_recipientId_fkey",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Notification_recipientId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_recipientId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Notification_recipientId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Notification\"\nADD CONSTRAINT \"Notification_recipientId_fkey\"\nFOREIGN KEY (\"recipientId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Notification_recipientId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_recipientId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Notification.Notification_blockId_fkey",
+    "label": "Add foreign key \"Notification_blockId_fkey\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Notification_blockId_fkey",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Notification_blockId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_blockId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Notification_blockId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Notification\"\nADD CONSTRAINT \"Notification_blockId_fkey\"\nFOREIGN KEY (\"blockId\")\nREFERENCES \"public\".\"Block\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Notification_blockId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_blockId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Notification.Notification_discussionId_fkey",
+    "label": "Add foreign key \"Notification_discussionId_fkey\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Notification_discussionId_fkey",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Notification_discussionId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_discussionId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Notification_discussionId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Notification\"\nADD CONSTRAINT \"Notification_discussionId_fkey\"\nFOREIGN KEY (\"discussionId\")\nREFERENCES \"public\".\"Discussion\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Notification_discussionId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_discussionId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Notification.Notification_commentId_fkey",
+    "label": "Add foreign key \"Notification_commentId_fkey\" on \"Notification\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Notification_commentId_fkey",
+        "table": "Notification"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Notification_commentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_commentId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Notification_commentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Notification\"\nADD CONSTRAINT \"Notification_commentId_fkey\"\nFOREIGN KEY (\"commentId\")\nREFERENCES \"public\".\"Comment\" (\"id\")\nON DELETE CASCADE\nON UPDATE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Notification_commentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Notification_commentId_fkey",
+          "public",
+          "\"public\".\"Notification\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "function.neuma_strip_comments",
+    "label": "Create the helper that removes comments from a block format",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"neuma_strip_comments\"",
+        "sql": "\nCREATE FUNCTION \"public\".\"neuma_strip_comments\"(value jsonb) RETURNS jsonb LANGUAGE plpgsql IMMUTABLE AS $function$\nDECLARE\n  entry record;\n  result jsonb;\nBEGIN\n  IF jsonb_typeof(value) = 'object' THEN\n    result := '{}'::jsonb;\n    FOR entry IN SELECT key, item FROM jsonb_each(value) AS each(key, item) LOOP\n      IF entry.key <> 'comments' THEN\n        result := result || jsonb_build_object(entry.key, \"public\".\"neuma_strip_comments\"(entry.item));\n      END IF;\n    END LOOP;\n    RETURN result;\n  END IF;\n  IF jsonb_typeof(value) = 'array' THEN\n    SELECT COALESCE(jsonb_agg(\"public\".\"neuma_strip_comments\"(item) ORDER BY position), '[]'::jsonb)\n    INTO result\n    FROM jsonb_array_elements(value) WITH ORDINALITY AS each(item, position);\n    RETURN result;\n  END IF;\n  RETURN value;\nEND\n$function$"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "backfill.Discussion.fromBlockComments",
+    "label": "Turn the comments kept in each block into discussions of one message",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create a discussion and a comment per old comment",
+        "sql": "\nDO $migration$\nDECLARE\n  legacy_total integer;\n  inserted_total integer;\n  unresolved record;\n  unresolved_total integer := 0;\nBEGIN\n  CREATE TEMP TABLE \"legacy_comment\" ON COMMIT DROP AS\n  SELECT\n    block.\"id\" AS \"blockId\",\n    block.\"spaceId\",\n    block.\"createdAt\" AS \"blockCreatedAt\",\n    block.\"createdById\" AS \"blockCreatorId\",\n    (position(entry.item ->> 'id' IN block.\"properties\"::text) > 0) AS \"isAnchored\",\n    entry.item ->> 'id' AS \"commentId\",\n    COALESCE(entry.item ->> 'author', '') AS \"authorName\",\n    COALESCE(entry.item ->> 'body', '') AS \"text\",\n    CASE\n      WHEN entry.item ->> 'createdAt' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' THEN (entry.item ->> 'createdAt')::timestamptz\n      ELSE date_trunc('milliseconds', block.\"createdAt\")\n    END AS \"createdAt\"\n  FROM \"public\".\"Block\" AS block\n  CROSS JOIN LATERAL jsonb_path_query(block.\"format\", 'strict $.**.comments') AS found(list)\n  CROSS JOIN LATERAL jsonb_array_elements(found.list) AS entry(item)\n  WHERE block.\"format\" IS NOT NULL AND jsonb_typeof(found.list) = 'array';\n\n  SELECT count(*) INTO legacy_total FROM \"legacy_comment\";\n\n  CREATE TEMP TABLE \"legacy_author\" ON COMMIT DROP AS\n  SELECT\n    legacy.\"commentId\",\n    (\n      SELECT CASE WHEN count(*) = 1 THEN min(person.\"id\") END\n      FROM \"public\".\"Space\" AS space\n      JOIN \"public\".\"WorkspaceMember\" AS member ON member.\"workspaceId\" = space.\"workspaceId\"\n      JOIN \"public\".\"User\" AS person ON person.\"id\" = member.\"userId\"\n      WHERE space.\"id\" = legacy.\"spaceId\" AND person.\"name\" = legacy.\"authorName\"\n    ) AS \"userId\"\n  FROM \"legacy_comment\" AS legacy;\n\n  INSERT INTO \"public\".\"Discussion\" (\"id\", \"blockId\", \"spaceId\", \"anchorMarkId\", \"createdById\", \"createdAt\")\n  SELECT\n    legacy.\"commentId\",\n    legacy.\"blockId\",\n    legacy.\"spaceId\",\n    CASE WHEN legacy.\"isAnchored\" THEN legacy.\"commentId\" END,\n    COALESCE(author.\"userId\", legacy.\"blockCreatorId\"),\n    legacy.\"createdAt\"\n  FROM \"legacy_comment\" AS legacy\n  JOIN \"legacy_author\" AS author ON author.\"commentId\" = legacy.\"commentId\";\n\n  INSERT INTO \"public\".\"Comment\" (\"id\", \"discussionId\", \"body\", \"authorId\", \"createdAt\")\n  SELECT\n    legacy.\"commentId\",\n    legacy.\"commentId\",\n    CASE\n      WHEN author.\"userId\" IS NULL THEN jsonb_build_array(jsonb_build_object('insert', legacy.\"authorName\" || ': ' || legacy.\"text\"))\n      WHEN legacy.\"text\" = '' THEN '[]'::jsonb\n      ELSE jsonb_build_array(jsonb_build_object('insert', legacy.\"text\"))\n    END,\n    COALESCE(author.\"userId\", legacy.\"blockCreatorId\"),\n    legacy.\"createdAt\"\n  FROM \"legacy_comment\" AS legacy\n  JOIN \"legacy_author\" AS author ON author.\"commentId\" = legacy.\"commentId\";\n\n  FOR unresolved IN\n    SELECT legacy.\"commentId\", legacy.\"blockId\", legacy.\"authorName\"\n    FROM \"legacy_comment\" AS legacy\n    JOIN \"legacy_author\" AS author ON author.\"commentId\" = legacy.\"commentId\"\n    WHERE author.\"userId\" IS NULL\n  LOOP\n    unresolved_total := unresolved_total + 1;\n    RAISE WARNING 'comment % of block %: author \"%\" matches none or several workspace members, the block creator stands in',\n      unresolved.\"commentId\", unresolved.\"blockId\", unresolved.\"authorName\";\n  END LOOP;\n\n  SELECT count(*) INTO inserted_total\n  FROM \"public\".\"Discussion\" AS discussion\n  WHERE discussion.\"id\" IN (SELECT \"commentId\" FROM \"legacy_comment\");\n\n  IF inserted_total <> legacy_total THEN\n    RAISE EXCEPTION 'comments migration: % comments found, % discussions created', legacy_total, inserted_total;\n  END IF;\n\n  RAISE WARNING 'comments migration: % comments moved to discussions, % with the block creator as author', legacy_total, unresolved_total;\n\n  UPDATE \"public\".\"Block\"\n  SET \"format\" = \"public\".\"neuma_strip_comments\"(\"format\")\n  WHERE \"format\" IS NOT NULL AND jsonb_path_exists(\"format\", 'strict $.**.comments');\nEND\n$migration$"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "no block format keeps comments",
+        "sql": "SELECT NOT EXISTS (\n  SELECT 1 FROM \"public\".\"Block\" WHERE \"format\" IS NOT NULL AND jsonb_path_exists(\"format\", 'strict $.**.comments')\n)"
+      }
+    ]
+  },
+  {
+    "id": "function.drop.neuma_strip_comments",
+    "label": "Drop the helper that removed comments from a block format",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop \"neuma_strip_comments\"",
+        "sql": "DROP FUNCTION \"public\".\"neuma_strip_comments\"(jsonb)"
+      }
+    ],
+    "postcheck": []
+  }
+]

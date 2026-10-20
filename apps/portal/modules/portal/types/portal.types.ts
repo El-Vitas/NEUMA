@@ -24,6 +24,8 @@ export interface PortalLayoutSpace {
 }
 
 export interface PortalSidebarPage {
+  /** True when the page declares its own access instead of following its parent or the space. */
+  readonly hasOwnPermissions?: boolean;
   readonly icon: null | PageIcon;
   readonly id: string;
   readonly lifecycle: PageLifecycle;

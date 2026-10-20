@@ -28,6 +28,8 @@ export interface BlockRows {
 }
 
 export interface VisibleBlock extends Omit<BlockRecord, 'permissions'> {
+  /** Told to every reader so a lock can be drawn; who is on the block stays with `permissions`. */
+  readonly hasOwnPermissions: boolean;
   /** Present only when the viewer can manage the block's permissions. */
   readonly permissions?: BlockPermissions;
   readonly role: BlockRole;

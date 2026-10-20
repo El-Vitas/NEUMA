@@ -307,11 +307,13 @@ export class PageBlockWriter {
     const viewer = toViewer(workspaceId, userId, role);
     const page = await this.findPage(pageId, viewer);
     if (page === null) return null;
-    if ((await this.applyContent(pageId, viewer, content)) === 'DENIED') return null;
+    await this.versionRepository.record(pageId, userId, { fold: false });
+    if ((await this.applyContent(pageId, viewer, content, false)) === 'DENIED') return null;
     if (readBlockTitle(page.block.properties) !== title) {
       const renamed = await this.apply(viewer, page.block.spaceId, [buildTitleOperation(pageId, title)]);
       if (!renamed) return null;
     }
+    await this.versionRepository.record(pageId, userId, { fold: false });
     return this.readSummary(pageId, viewer);
   }
 
@@ -476,6 +478,7 @@ export class PageBlockWriter {
     pageId: string,
     viewer: PageViewer,
     content: PageContent,
+    shouldRecord = true,
   ): Promise<'APPLIED' | 'DENIED' | 'UNCHANGED'> {
     const viewed = await this.findPage(pageId, viewer);
     if (viewed === null) return 'DENIED';
@@ -503,7 +506,7 @@ export class PageBlockWriter {
     const operations = planContentOperations(snapshot, tree.getValue());
     if (operations.length === 0) return 'UNCHANGED';
     if (!(await this.apply(viewer, page.spaceId, operations))) return 'DENIED';
-    await this.versionRepository.record(pageId, viewer.userId);
+    if (shouldRecord) await this.versionRepository.record(pageId, viewer.userId);
     return 'APPLIED';
   }
 

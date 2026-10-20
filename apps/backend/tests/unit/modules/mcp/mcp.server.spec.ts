@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
-import { ACCESS_TOKEN_PERMISSIONS, type PagePropertyType, Result, USER_ROLE, type UserRole } from '@neuma/shared';
+import {
+  ACCESS_TOKEN_PERMISSIONS,
+  type DiscussionView,
+  type PagePropertyType,
+  Result,
+  USER_ROLE,
+  type UserRole,
+} from '@neuma/shared';
 import { z } from 'zod';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
 import type {
@@ -25,6 +32,7 @@ import { MCP_FETCH_CHILD_LIMIT } from '../../../../src/modules/mcp/constants/mcp
 import { writeMcpServerInstructions } from '../../../../src/modules/mcp/lib/mcp.instructions.lib';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type { McpCollectionService, McpColumn } from '../../../../src/modules/mcp/types/mcp.collections.types';
+import type { McpDiscussions } from '../../../../src/modules/mcp/types/mcp.discussions.types';
 import type {
   McpOutlineEntry,
   McpOutlineReader,
@@ -85,6 +93,7 @@ const page: PageSummary = {
   },
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
+  hasOwnPermissions: false,
   id: PAGE,
   lifecycle: 'ACTIVE',
   lockedAt: null,
@@ -174,6 +183,21 @@ const outline: McpOutlineReader = {
 const createPageReadResult = (pageSummary: PageSummary | null): McpPageReadResult =>
   pageSummary === null ? Result.fail(new Error('No page')) : Result.ok(pageSummary);
 
+const createDiscussions = (listed: readonly DiscussionView[]): McpDiscussions => ({
+  getDiscussion: (_viewer, discussionId) => {
+    const found = listed.find((discussion) => discussion.id === discussionId);
+    return Promise.resolve(
+      found === undefined
+        ? Result.fail({ code: 'DISCUSSION_NOT_FOUND', details: 'Discussion not found' })
+        : Result.ok(found),
+    );
+  },
+  listPageDiscussions: () => Promise.resolve(Result.ok({ discussions: listed, nextCursor: null })),
+  openDiscussion: () => Promise.reject(new Error('Not used in this test')),
+  removeComment: () => Promise.reject(new Error('Not used in this test')),
+  reply: () => Promise.reject(new Error('Not used in this test')),
+});
+
 const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal): McpServerDependencies => ({
   actionLog: {
     findLiveRequest: () => Promise.resolve(null),
@@ -183,6 +207,7 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   backlinks: { listBacklinks: () => Promise.resolve({ items: [] }) },
   collections: collectionWith([]),
   content: { edit: notUsedHere },
+  discussions: createDiscussions([]),
   drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
   pages: createUnusedPageManager(),
   observer: { callFinished: () => undefined, unexpected: () => undefined },
@@ -274,6 +299,7 @@ describe('MCP read contract', () => {
       'list_spaces',
       'list_pages',
       'list_trash',
+      'list_discussions',
       'get_collection',
       'query_collection',
     ]);
@@ -756,25 +782,56 @@ describe('MCP fetch — rows, comments and long pages', () => {
     expect(result.structuredContent).not.toHaveProperty('page.properties');
   });
 
-  test('hands over what was said on each block', async () => {
-    const comment = { author: 'Ana', body: 'Revisar', createdAt: '2026-09-01T10:00:00.000Z', id: 'c1' };
-    const commented: PageSummary = {
-      ...page,
-      content: {
-        content: [
-          { attrs: { comments: [comment], id: BLOCK }, content: [{ text: 'Uno', type: 'text' }], type: 'paragraph' },
-        ],
-        schemaVersion: 1,
-        type: 'doc',
-      },
+  test('hands over what was said in the open discussions, and leaves out the deleted comments', async () => {
+    const createdAt = '2026-09-01T10:00:00.000Z';
+    const discussion: DiscussionView = {
+      anchorMarkId: null,
+      blockId: BLOCK,
+      canComment: true,
+      comments: [
+        {
+          authorId: 'u-1',
+          authorName: 'Ana',
+          body: [{ insert: 'Revisar' }],
+          canDelete: true,
+          canEdit: true,
+          createdAt,
+          discussionId: 'd1',
+          editedAt: null,
+          id: 'c1',
+          isDeleted: false,
+        },
+        {
+          authorId: 'u-1',
+          authorName: 'Ana',
+          body: [],
+          canDelete: false,
+          canEdit: false,
+          createdAt,
+          discussionId: 'd1',
+          editedAt: null,
+          id: 'c2',
+          isDeleted: true,
+        },
+      ],
+      createdAt,
+      createdById: 'u-1',
+      id: 'd1',
+      pageId: PAGE,
+      quote: null,
+      resolvedAt: null,
+      resolvedById: null,
     };
 
-    const result = await fetchAddress(PAGE, servingPage(commented));
+    const result = await fetchAddress(PAGE, { ...createDependencies(), discussions: createDiscussions([discussion]) });
 
     expect(result.structuredContent).toMatchObject({
-      page: { comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt: comment.createdAt, id: 'c1' }] },
+      page: {
+        comments: [{ author: 'Ana', blockId: BLOCK, body: 'Revisar', createdAt, discussionId: 'd1', id: 'c1' }],
+      },
     });
-    expect(textOf(result)).toContain(`- Comment c1 by Ana on block ${BLOCK}`);
+    expect(textOf(result)).toContain(`- Comment c1 in discussion d1 by Ana on block ${BLOCK}`);
+    expect(textOf(result)).not.toContain('Comment c2');
   });
 
   test('hands a long page over in parts, and the cursor leads to the next one', async () => {

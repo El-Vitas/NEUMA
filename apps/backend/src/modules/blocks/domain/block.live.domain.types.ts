@@ -64,7 +64,28 @@ export type LiveServerMessage =
   | { readonly blocks: readonly BlockVersion[]; readonly pageId: string; readonly type: 'versions' }
   | { readonly pageId: string; readonly type: 'resync' }
   | { readonly pageId: string; readonly type: 'revoked' }
-  | { readonly pageId: string; readonly type: 'presence'; readonly users: readonly PresenceUser[] };
+  | { readonly pageId: string; readonly type: 'presence'; readonly users: readonly PresenceUser[] }
+  | { readonly blockId: string; readonly discussionId: string; readonly pageId: string; readonly type: 'discussion' }
+  | { readonly notificationId: string; readonly type: 'notification' };
+
+/** An open socket whose user is known, which is all that a notification needs to find its recipient. */
+export interface NotificationConnection {
+  readonly connectionId: string;
+  readonly userId: string;
+}
+
+export interface DiscussionDeliveryInput {
+  readonly blockId: string;
+  readonly context: LiveAccessContext;
+  readonly discussionId: string;
+  readonly subscriptions: readonly LiveSubscription[];
+}
+
+export interface CommentNotificationDeliveryInput {
+  readonly connections: readonly NotificationConnection[];
+  readonly notificationId: string;
+  readonly recipientId: string;
+}
 
 export interface LiveDelivery {
   readonly connectionId: string;

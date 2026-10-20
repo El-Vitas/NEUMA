@@ -71,6 +71,21 @@ export const blockVersionNotificationSchema = z.union([
   }),
 ]);
 
+/** What `pg_notify` carries on the comment channel: a notification for one person, or a discussion that changed. */
+export const commentEventSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('notification'),
+    notificationId: z.string().min(1),
+    recipientId: z.string().min(1),
+  }),
+  z.strictObject({
+    blockId: z.string().min(1),
+    discussionId: z.string().min(1),
+    kind: z.literal('discussion'),
+    spaceId: z.string().min(1),
+  }),
+]);
+
 export const blockLiveTokenPayloadSchema = z.object({
   aud: z.literal(BLOCK_LIVE_TOKEN_AUDIENCE),
   purpose: z.literal(BLOCK_LIVE_TOKEN_PURPOSE),

@@ -26,6 +26,7 @@ const page = {
   content: {},
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   createdBy: null,
+  hasOwnPermissions: false,
   id: 'page-a',
   lifecycle: PageLifecycle.ACTIVE,
   lockedAt: null,
@@ -80,6 +81,7 @@ const createRepository = (): PageRepositoryContract => ({
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
   findVersion: () => Promise.resolve(null),
+  listVersions: () => Promise.resolve({ items: [], nextCursor: null }),
   recordVersion: () => Promise.resolve(),
   restoreVersion: () => Promise.resolve(null),
   writeContent: () => Promise.resolve(null),
@@ -1818,6 +1820,45 @@ describe('pages service: the history and the content of a page', () => {
     const result = await service.restoreVersion('page-a', 9, 'user-a', 'workspace-a', USER_ROLE.WORKER);
 
     expect(result.getError().code).toBe('PAGE_VERSION_NOT_FOUND');
+  });
+
+  it('lists the versions of a page the reader can reach, and nothing for one who may not', async () => {
+    const listing = {
+      items: [{ author: { id: 'user-a', name: 'Ana' }, createdAt: new Date(0), title: 'Page A', version: 2 }],
+      nextCursor: null,
+    };
+    const service = buildService({ listVersions: () => Promise.resolve(listing) });
+    const unreachable = buildService({ listVersions: () => Promise.resolve(null) });
+
+    expect((await service.listVersions('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER, null, 20)).getValue()).toBe(
+      listing,
+    );
+    expect(
+      (await service.listVersions('page-a', 'workspace-a', 'user-a', USER_ROLE.CLIENT, null, 20)).getError().code,
+    ).toBe('PAGE_ACCESS_DENIED');
+    expect(
+      (await unreachable.listVersions('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER, null, 20)).getError().code,
+    ).toBe('PAGE_ACCESS_DENIED');
+  });
+
+  it('reads one version, and tells a version that is not there from a page that cannot be reached', async () => {
+    const snapshot = { content: validPageContent, title: 'Page A', version: 1 };
+    const service = buildService({ findVersion: () => Promise.resolve(snapshot) });
+    const missing = buildService({});
+    const unreachable = buildService({ getAccessible: () => Promise.resolve(null) });
+
+    expect((await service.readVersion('page-a', 1, 'workspace-a', 'user-a', USER_ROLE.WORKER)).getValue()).toBe(
+      snapshot,
+    );
+    expect((await missing.readVersion('page-a', 9, 'workspace-a', 'user-a', USER_ROLE.WORKER)).getError().code).toBe(
+      'PAGE_VERSION_NOT_FOUND',
+    );
+    expect(
+      (await unreachable.readVersion('page-a', 1, 'workspace-a', 'user-a', USER_ROLE.WORKER)).getError().code,
+    ).toBe('PAGE_ACCESS_DENIED');
+    expect((await service.readVersion('page-a', 1, 'workspace-a', 'user-a', USER_ROLE.CLIENT)).getError().code).toBe(
+      'PAGE_ACCESS_DENIED',
+    );
   });
 
   it('never restores a version for someone who may only read, or into a page in the trash or locked', async () => {

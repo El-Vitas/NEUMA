@@ -85,14 +85,14 @@ export const BLOCK_NODE_DISPOSITION = {
   paragraph: asBlock(BLOCK_TYPE.paragraph),
   heading: asBlock(BLOCK_TYPE.heading),
   bullet_list: asWrapper(
-    'Dissolved: each list_item becomes a bulleted_list_item. The wrapper id, colors and comments go to the first item format.listWrapper, which also marks where the list starts.',
+    'Dissolved: each list_item becomes a bulleted_list_item. The wrapper id and colors go to the first item format.listWrapper, which also marks where the list starts.',
   ),
   ordered_list: asWrapper(
-    'Dissolved: each list_item becomes a numbered_list_item. Its order goes to the first item format.start; the wrapper id, colors and comments go to its format.listWrapper.',
+    'Dissolved: each list_item becomes a numbered_list_item. Its order goes to the first item format.start; the wrapper id and colors go to its format.listWrapper.',
   ),
   list_item: asBlock(BLOCK_TYPE.bulletedListItem, BLOCK_TYPE.numberedListItem),
   task_list: asWrapper(
-    'Dissolved: each task_item becomes a to_do. The wrapper id, colors and comments go to the first item format.listWrapper, which also marks where the list starts.',
+    'Dissolved: each task_item becomes a to_do. The wrapper id and colors go to the first item format.listWrapper, which also marks where the list starts.',
   ),
   task_item: asBlock(BLOCK_TYPE.toDo),
   callout: asBlock(BLOCK_TYPE.callout),

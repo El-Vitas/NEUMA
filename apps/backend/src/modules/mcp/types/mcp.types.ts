@@ -30,6 +30,7 @@ import type {
   McpRowWriter,
   McpSchemaColumn,
 } from './mcp.collections.types';
+import type { McpDiscussions } from './mcp.discussions.types';
 import type { McpPageManager } from './mcp.page-management.types';
 import type { McpContentEditor, McpDrawingValidator } from './mcp.pages.types';
 
@@ -53,14 +54,6 @@ export type McpRowDescriber = (row: {
   readonly propertyValues: PagePropertyValues | null;
   readonly title: string;
 }) => McpRowProperty[];
-
-export interface McpBlockComment {
-  readonly author: string;
-  readonly blockId: string;
-  readonly body: string;
-  readonly createdAt: string;
-  readonly id: string;
-}
 
 export interface McpHeldBlock {
   readonly holder: PageDocumentNodeShape | null;
@@ -287,6 +280,7 @@ export interface McpServerDependencies {
   readonly backlinks: McpBacklinkReader;
   readonly collections: McpCollectionService;
   readonly content: McpContentEditor;
+  readonly discussions: McpDiscussions;
   readonly drawings: McpDrawingValidator;
   readonly observer: McpObserver;
   readonly outline: McpOutlineReader;

@@ -23,7 +23,6 @@ const USER_ID = '0192f3a0-7c1e-7d2a-9b4e-3f5a6b7c8d9e';
 
 const annotations = {
   backgroundColor: 'yellow',
-  comments: [{ author: 'Ana', body: 'Revisar', createdAt: '2026-10-19T10:00:00Z', id: 'comment-1' }],
   textColor: 'red',
 };
 

@@ -164,6 +164,7 @@ const mcpFetchedPageSchema = z.object({
         blockId: idSchema,
         body: z.string().max(MCP_TEXT_MAX_LENGTH),
         createdAt: z.string().max(MCP_COMMENT_DATE_MAX_LENGTH),
+        discussionId: idSchema,
         id: idSchema,
       }),
     )

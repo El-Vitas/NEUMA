@@ -24,6 +24,8 @@ export type BlockSnapshotMap = ReadonlyMap<string, BlockSnapshot>;
 /** A block as the server sends it, with the Yjs state of its text as base64. */
 export interface SyncedBlock extends BlockSnapshot {
   readonly alive: boolean;
+  /** True when the block declares its own access; who is on it is told only to those with full access. */
+  readonly hasOwnPermissions?: boolean;
   readonly role: string;
   readonly spaceId: string;
   readonly textState: string | null;
@@ -152,6 +154,8 @@ export interface BlockLiveSessionHandlers {
 
 export interface BlockLiveSessionOptions {
   readonly handlers: BlockLiveSessionHandlers;
+  /** A discussion of a block of this page changed; the page reads its discussions again. */
+  readonly onDiscussionChanged?: () => void;
   readonly openSocket: (url: string) => BlockLiveSocket;
   readonly pageId: string;
   readonly requestToken: () => Promise<string | null>;
@@ -205,6 +209,8 @@ export interface BlockSyncEngineOptions {
   readonly createId: () => string;
   readonly createSession: (handlers: BlockLiveSessionHandlers) => BlockLiveSession;
   readonly initialBlocks: readonly SyncedBlock[];
+  /** A viewer receives what others do, and never sends a transaction or a cursor. */
+  readonly isViewer?: boolean;
   readonly localUserId: string | null;
   readonly pageId: string;
   readonly resolveParticipant: (userId: string) => PageCollaborationParticipantIdentity;

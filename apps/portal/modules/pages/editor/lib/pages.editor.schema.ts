@@ -30,7 +30,6 @@ import {
   PAGE_EDITOR_COLUMN_CLASS,
   PAGE_EDITOR_COLUMN_LIST_CLASS,
   PAGE_EDITOR_COMMENT_ID_ATTRIBUTE,
-  PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS,
   PAGE_EDITOR_TASK_ITEM_STYLE_CLASS,
   PAGE_EDITOR_TASK_LIST_CLASS,
   PAGE_EDITOR_TEXT_COLOR_ATTRIBUTE,
@@ -803,15 +802,11 @@ const getPageEditorCommentAttrs = (element: Element): { readonly id: string } | 
 export const pageEditorSchema = new Schema({
   marks: {
     code: { ...PAGE_DOCUMENT_MARKS.code, toDOM: (): DOMOutputSpec => ['code', 0] },
-    // Holds only the comment id; the comment text is stored on the block.
+    // Holds only the id of the discussion; the plugin of discussions underlines it while the discussion is open.
     comment: {
       ...PAGE_DOCUMENT_MARKS.comment,
       parseDOM: [{ getAttrs: getPageEditorCommentAttrs, tag: `span[${PAGE_EDITOR_COMMENT_ID_ATTRIBUTE}]` }],
-      toDOM: (mark): DOMOutputSpec => [
-        'span',
-        { [PAGE_EDITOR_COMMENT_ID_ATTRIBUTE]: mark.attrs.id, class: PAGE_EDITOR_COMMENTED_TEXT_STYLE_CLASS },
-        0,
-      ],
+      toDOM: (mark): DOMOutputSpec => ['span', { [PAGE_EDITOR_COMMENT_ID_ATTRIBUTE]: mark.attrs.id }, 0],
     },
     em: { ...PAGE_DOCUMENT_MARKS.em, toDOM: (): DOMOutputSpec => ['em', 0] },
     link: {

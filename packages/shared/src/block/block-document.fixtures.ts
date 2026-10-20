@@ -67,7 +67,6 @@ export const nestedBlock = (
 
 export const ANNOTATIONS = {
   backgroundColor: 'yellow',
-  comments: [{ author: 'Ana', body: 'Revisar esto', createdAt: '2026-10-19T10:00:00Z', id: 'comment-1' }],
   textColor: 'red',
 };
 

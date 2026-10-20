@@ -33,6 +33,7 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
         name: space.name,
         pages: pagesResult.isOk()
           ? pagesResult.getValue().map((page) => ({
+              hasOwnPermissions: page.hasOwnPermissions,
               icon: page.icon ?? null,
               id: page.id,
               lifecycle: page.lifecycle,

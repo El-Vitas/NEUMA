@@ -128,6 +128,16 @@ export class BlockPermissionsForbiddenError extends DomainError {
   }
 }
 
+/** Nobody who can open the space would hold full access, so nobody could ever give access back. */
+export class BlockPermissionsLockoutError extends DomainError {
+  public readonly code = 'BLOCK_PERMISSIONS_LOCKOUT';
+  public readonly httpStatus = 409;
+
+  constructor() {
+    super('That would leave nobody with full access to this block');
+  }
+}
+
 /** The id was already used by another user; the stored result is not theirs to read. */
 export class BlockTransactionIdTakenError extends DomainError {
   public readonly code = 'BLOCK_TRANSACTION_ID_TAKEN';

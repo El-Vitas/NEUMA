@@ -210,6 +210,52 @@ describe('planBlockTransaction', () => {
     });
   });
 
+  describe('leaving nobody able to change who has access', () => {
+    const members = [
+      { canReadSpace: true, id: USER_ID, workspaceRole: USER_ROLE.ADMIN },
+      { canReadSpace: true, id: 'worker', workspaceRole: USER_ROLE.WORKER },
+      { canReadSpace: true, id: 'client', workspaceRole: USER_ROLE.CLIENT },
+    ];
+    const entry = (userId: string, role: 'editor' | 'full' | 'reader') => ({
+      principal: { kind: 'user' as const, userId },
+      role,
+    });
+    const setting = (permissions: ReturnType<typeof entry>[] | null): BlockOperation[] => [
+      { blockId: 'p1', command: 'setPermissions', permissions },
+    ];
+    const admin = { ...asRole('ADMIN'), members };
+
+    it('refuses a declaration after which nobody who can open the space holds full access', () => {
+      expect(refusalOf(buildInput(setting([entry('worker', 'editor')]), [page, paragraph], admin))).toBe(
+        'BLOCK_PERMISSIONS_LOCKOUT',
+      );
+      expect(refusalOf(buildInput(setting([entry('client', 'full')]), [page, paragraph], admin))).toBe(
+        'BLOCK_PERMISSIONS_LOCKOUT',
+      );
+      expect(refusalOf(buildInput(setting([]), [page, paragraph], admin))).toBe('BLOCK_PERMISSIONS_LOCKOUT');
+    });
+
+    it('lets the declaration through while someone keeps full access, the actor or not', () => {
+      expect(plannedOf(buildInput(setting([entry(USER_ID, 'full')]), [page, paragraph], admin)).writes).toHaveLength(1);
+      expect(plannedOf(buildInput(setting([entry('worker', 'full')]), [page, paragraph], admin)).writes).toHaveLength(
+        1,
+      );
+    });
+
+    it('judges going back to inherit by what the ancestors declare', () => {
+      const closedPage = buildPage({
+        children: ['p1'],
+        id: 'page-1',
+        permissions: [entry('worker', 'editor')],
+        version: 4,
+      });
+      const own = buildBlock({ id: 'p1', parentId: 'page-1', permissions: [entry(USER_ID, 'full')], version: 2 });
+
+      expect(refusalOf(buildInput(setting(null), [closedPage, own], admin))).toBe('BLOCK_PERMISSIONS_LOCKOUT');
+      expect(plannedOf(buildInput(setting(null), [page, own], admin)).writes).toHaveLength(1);
+    });
+  });
+
   describe('locked and trashed pages', () => {
     const edit: BlockOperation[] = [
       { bag: 'format', blockId: 'p1', command: 'replaceEntry', key: 'textColor', value: 'red' },

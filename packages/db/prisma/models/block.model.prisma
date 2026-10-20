@@ -44,6 +44,8 @@ model Block {
   schemaProperties      PageSchemaProperty[]
   schemaViews           PageSchemaView[]
   tokenPageGrants       AccessTokenPageGrant[]
+  discussions           Discussion[]
+  notifications         Notification[]
 
   @@index([parentId], map: "Block_parentId_idx")
   @@index([spaceId, lifecycle], map: "Block_spaceId_lifecycle_idx")

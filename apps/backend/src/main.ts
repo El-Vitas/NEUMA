@@ -14,6 +14,7 @@ import { getTrustProxy } from './common/config/trust-proxy.config';
 import { CORS_ORIGIN_KEY, PORT_KEY } from './common/constants/env.constants';
 import { MULTIPART_LIMITS } from './common/constants/storage.constants';
 import { GlobalExceptionFilter } from './common/infrastructure/filters/global.exception.filter';
+import { NotificationRetentionScheduler } from './modules/notifications/infrastructure/schedulers/notification.retention.scheduler';
 import { PageRetentionScheduler } from './modules/pages/infrastructure/schedulers/page.retention.scheduler';
 
 const bootstrap = async (): Promise<void> => {
@@ -60,6 +61,7 @@ const bootstrap = async (): Promise<void> => {
   const port = configService.get<string>(PORT_KEY) ?? '3000';
   await app.listen(Number(port), '0.0.0.0');
   app.get(PageRetentionScheduler).start();
+  app.get(NotificationRetentionScheduler).start();
 };
 
 void bootstrap();

@@ -6,6 +6,7 @@ export const syncedBlockSchema = z.object({
   alive: z.boolean(),
   children: z.array(z.string()),
   format: jsonObjectSchema.nullable().transform((format) => format ?? {}),
+  hasOwnPermissions: z.boolean().optional().default(false),
   id: z.string(),
   parentId: z.string().nullable(),
   properties: jsonObjectSchema,
@@ -46,6 +47,7 @@ export const blockLiveServerMessageSchema = z.discriminatedUnion('type', [
   z.object({ blocks: z.array(blockVersionSchema), pageId: z.string(), type: z.literal('versions') }),
   z.object({ pageId: z.string(), type: z.literal('resync') }),
   z.object({ pageId: z.string(), type: z.literal('revoked') }),
+  z.object({ blockId: z.string(), discussionId: z.string(), pageId: z.string(), type: z.literal('discussion') }),
   z.object({
     pageId: z.string(),
     type: z.literal('presence'),

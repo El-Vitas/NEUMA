@@ -72,7 +72,9 @@ import type {
   PageRepositoryContract,
   PageRestoreOutcome,
   PageSummary,
+  PageVersionListing,
   PageVersionRetentionRepositoryContract,
+  PageVersionSnapshot,
   TrashedPageSummary,
   UpdatePagePropertiesInput,
 } from './types/page.types';
@@ -201,6 +203,35 @@ export class PagesService {
   /** For whoever closes a stretch of editing the blocks module does not see: one history entry per stretch. */
   recordVersion(pageId: string, authorId: string): Promise<void> {
     return this.pageRepository.recordVersion(pageId, authorId);
+  }
+
+  /** History is an editing tool: a reader who may only read has no use for what the page said before. */
+  async listVersions(
+    pageId: string,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+    cursor: null | number,
+    limit: number,
+  ): Promise<Result<PageVersionListing, PageAccessDeniedError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const listing = await this.pageRepository.listVersions(pageId, workspaceId, userId, role, cursor, limit);
+    return listing === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(listing);
+  }
+
+  /** The version as a document, with the blocks closed to this reader already left out. */
+  async readVersion(
+    pageId: string,
+    version: number,
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<Result<PageVersionSnapshot, PageAccessDeniedError | PageVersionNotFoundError>> {
+    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const snapshot = await this.pageRepository.findVersion(pageId, version, workspaceId, userId, role);
+    return snapshot === null ? Result.fail(new PageVersionNotFoundError()) : Result.ok(snapshot);
   }
 
   /** Puts the page back as one of its versions said: its content and its title. */

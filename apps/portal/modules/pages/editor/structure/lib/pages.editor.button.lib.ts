@@ -45,11 +45,11 @@ const findTheSpot = (state: EditorState, pressed: PageButtonPressed): number => 
   return node === null ? state.doc.content.size : pressed.at + node.nodeSize;
 };
 
-/** Copies drop ids and comments: an id cannot repeat on a page and comments belong to the original block. */
+/** Copies drop ids: an id cannot repeat on a page, and the discussions belong to the original block. */
 const asFreshBlocks = (content: Fragment): Fragment =>
   Fragment.fromArray(
     content.content.map((block: EditorNode) =>
-      block.type.create({ ...block.attrs, comments: null, id: null }, block.content, block.marks),
+      block.type.create({ ...block.attrs, id: null }, block.content, block.marks),
     ),
   );
 

@@ -44,6 +44,8 @@ export interface PageSummary {
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;
   readonly createdBy: null | PageAuthor;
+  /** True when the page declares its own access instead of following its parent or the space. */
+  readonly hasOwnPermissions?: boolean;
   readonly icon?: PageIcon | null;
   readonly id: string;
   readonly lifecycle: PageLifecycle;

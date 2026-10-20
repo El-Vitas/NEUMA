@@ -63,9 +63,9 @@ const describeComments = (page: FetchedPage): string => {
   if (page.comments === undefined || page.comments.length === 0) return '';
   const lines = page.comments.map(
     (comment) =>
-      `- Comment ${comment.id} by ${comment.author} on block ${comment.blockId} (${comment.createdAt}): ${comment.body}`,
+      `- Comment ${comment.id} in discussion ${comment.discussionId} by ${comment.author} on block ${comment.blockId} (${comment.createdAt}): ${comment.body}`,
   );
-  return `Comments:\n${lines.join('\n')}`;
+  return `Comments of the open discussions (answer one with reply_to_discussion):\n${lines.join('\n')}`;
 };
 
 const describeNextPart = (page: FetchedPage): string =>

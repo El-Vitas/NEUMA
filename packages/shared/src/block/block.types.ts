@@ -32,6 +32,13 @@ export interface BlockRoleInput {
   chain: readonly BlockAncestorPermissions[];
 }
 
+/** A person of the workspace as far as the roles of one block are concerned. */
+export interface BlockAccessHolder {
+  canReadSpace: boolean;
+  id: string;
+  workspaceRole: UserRole;
+}
+
 export interface BlockWithRole {
   id: string;
   role: BlockRole;

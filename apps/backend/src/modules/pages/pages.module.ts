@@ -29,6 +29,7 @@ import { PageDestinationsController } from './page.destinations.controller';
 import { PageLocationController } from './page.location.controller';
 import { PageOutlineService } from './page.outline.service';
 import { PageTrashController } from './page.trash.controller';
+import { PageVersionsController } from './page.versions.controller';
 import { PageSchemaController } from './page-schema.controller';
 import { PageSchemaService } from './page-schema.service';
 import { PagesBatchController } from './pages.batch.controller';
@@ -44,6 +45,7 @@ import { PagesService } from './pages.service';
     PageDestinationsController,
     PageLocationController,
     PageAssignedController,
+    PageVersionsController,
   ],
   exports: [PagesService, PageSchemaService, PageOutlineService, PageRetentionScheduler],
   imports: [BlocksModule],

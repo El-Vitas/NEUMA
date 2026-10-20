@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BLOCK_COMMITS, BLOCK_WRITER } from '../../common/constants/block-writer.constants';
+import { BlockAccessRepository } from '../../common/infrastructure/persistence/block-access.repository';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import { BlockCommitHub } from './block.commit.feed';
 import { BlockLiveAccessService } from './block.live.access.service';
@@ -9,6 +10,8 @@ import { BlockLiveGateway } from './block.live.gateway';
 import { BlockLiveRequestService } from './block.live.request.service';
 import { BlockLiveService } from './block.live.service';
 import { BlockLiveTokenService } from './block.live.token.service';
+import { BlockSharingController } from './block.sharing.controller';
+import { BlockSharingService } from './block.sharing.service';
 import { BlockTransactionsController } from './block.transactions.controller';
 import { BlockTransactionsService } from './block.transactions.service';
 import { BlocksController } from './blocks.controller';
@@ -23,6 +26,7 @@ import { BLOCK_REPOSITORY } from './constants/blocks.constants';
 import { BlockVersionListener } from './infrastructure/listener/block.version.listener';
 import { BlockLiveRepository } from './infrastructure/persistence/block.live.repository';
 import { BlockRepository } from './infrastructure/persistence/block.repository';
+import { BlockSharingRepository } from './infrastructure/persistence/block.sharing.repository';
 import { BlockTransactionRepository } from './infrastructure/persistence/block.transaction.repository';
 import { InMemoryBlockPresenceStore } from './infrastructure/presence/block.presence.store';
 import { BlockLiveRegistry } from './infrastructure/registry/block.live.registry';
@@ -30,7 +34,7 @@ import { BlockLiveWriteLimiter } from './infrastructure/throttling/block.live.wr
 import type { BlockLiveSettings } from './types/block.live.types';
 
 @Module({
-  controllers: [BlocksController, BlockTransactionsController, BlockLiveController],
+  controllers: [BlocksController, BlockTransactionsController, BlockLiveController, BlockSharingController],
   exports: [BLOCK_WRITER, BLOCK_COMMITS],
   providers: [
     BlockCommitHub,
@@ -42,6 +46,9 @@ import type { BlockLiveSettings } from './types/block.live.types';
     { provide: BLOCK_TRANSACTION_REPOSITORY, useExisting: BlockTransactionRepository },
     BlocksService,
     BlockTransactionsService,
+    BlockAccessRepository,
+    BlockSharingRepository,
+    BlockSharingService,
     WorkspaceContextService,
     { provide: BLOCK_LIVE_SETTINGS, useValue: BLOCK_LIVE_DEFAULT_SETTINGS },
     {

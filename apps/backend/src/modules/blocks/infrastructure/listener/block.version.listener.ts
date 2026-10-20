@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { Client } from 'pg';
+import { COMMENT_EVENTS_CHANNEL } from '../../../../common/constants/comment-events.constants';
 import { DATABASE_URL_KEY } from '../../../../common/constants/env.constants';
 import {
   BLOCK_LIVE_APPLICATION_NAME,
@@ -54,9 +55,9 @@ export class BlockVersionListener {
     });
     this.client = client;
     client.on('notification', (message) => {
-      if (message.channel === BLOCK_NOTIFY_CHANNEL && message.payload !== undefined) {
-        this.handlers?.onNotification(message.payload);
-      }
+      if (message.payload === undefined) return;
+      if (message.channel === BLOCK_NOTIFY_CHANNEL) this.handlers?.onNotification(message.payload);
+      if (message.channel === COMMENT_EVENTS_CHANNEL) this.handlers?.onCommentEvent(message.payload);
     });
     client.on('error', (error) => {
       void this.handleLost(client, error);
@@ -71,6 +72,7 @@ export class BlockVersionListener {
         BLOCK_LIVE_APPLICATION_NAME,
       ]);
       await client.query(`LISTEN ${BLOCK_NOTIFY_CHANNEL}`);
+      await client.query(`LISTEN ${COMMENT_EVENTS_CHANNEL}`);
     } catch (error) {
       await this.handleLost(client, error);
       return;

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Result } from '@neuma/shared';
+import { type BlockAccessHolder, Result } from '@neuma/shared';
 import type { DomainError } from '../../common/domain/domain.error';
 import { BlockCommitHub } from './block.commit.feed';
 import { BLOCK_TRANSACTION_REPOSITORY } from './constants/block.transaction.constants';
@@ -7,9 +7,11 @@ import { BLOCK_REPOSITORY, BLOCK_TREE_MAX_DEPTH } from './constants/blocks.const
 import { BlockAccessDeniedError } from './domain/block.error';
 import { diffBlockLinks } from './domain/block.link.domain';
 import { buildVersionNotification } from './domain/block.notification.domain';
+import { toAccessMembers } from './domain/block.sharing.domain';
 import { planBlockTransaction } from './domain/block.transaction.domain';
 import type { BlockOperation, BlockTransactionPlan } from './domain/block.transaction.domain.types';
 import { BlockTransactionIdTakenError } from './domain/block.transaction.error';
+import { BlockSharingRepository } from './infrastructure/persistence/block.sharing.repository';
 import type {
   BlockOperationReader,
   BlockTransactionOutcome,
@@ -42,6 +44,7 @@ export class BlockTransactionsService {
     @Inject(BLOCK_TRANSACTION_REPOSITORY) private readonly transactionRepository: BlockTransactionRepositoryContract,
     @Inject(BLOCK_REPOSITORY) private readonly blockRepository: BlockRepositoryContract,
     private readonly commitHub: BlockCommitHub,
+    private readonly sharingRepository: BlockSharingRepository,
   ) {}
 
   /**
@@ -119,6 +122,7 @@ export class BlockTransactionsService {
         isSpaceReadable: true,
         load,
         maxTreeDepth: BLOCK_TREE_MAX_DEPTH,
+        members: await this.listHoldersWhenSettingPermissions(operations, request.spaceId, reader),
         now: new Date(),
         operations,
         spaceId: request.spaceId,
@@ -127,6 +131,25 @@ export class BlockTransactionsService {
     );
     if (planned.isFail()) return Result.fail(planned.getError());
     return Result.ok(await this.store(session, request, planned.getValue()));
+  }
+
+  /** Only a transaction that sets permissions needs to know who could still hold full access afterwards. */
+  private async listHoldersWhenSettingPermissions(
+    operations: readonly BlockOperation[],
+    spaceId: string,
+    reader: BlockReader,
+  ): Promise<readonly BlockAccessHolder[] | undefined> {
+    if (!operations.some((operation) => operation.command === 'setPermissions')) return undefined;
+    const [members, spaceFacts] = await Promise.all([
+      this.sharingRepository.listMembers(reader.workspaceId),
+      this.sharingRepository.readSpaceFacts(spaceId),
+    ]);
+    if (spaceFacts === null) return [];
+    return toAccessMembers(members, spaceFacts).map(({ canReadSpace, id, workspaceRole }) => ({
+      canReadSpace,
+      id,
+      workspaceRole,
+    }));
   }
 
   /** Blocks first, then their links, then the result that a retry will read, then the notice that commits with them. */

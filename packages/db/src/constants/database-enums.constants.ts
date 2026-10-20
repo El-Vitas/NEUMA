@@ -37,6 +37,13 @@ export const FileAssetLifecycle = {
 } as const;
 export type FileAssetLifecycle = ValueOf<typeof FileAssetLifecycle>;
 
+export const NotificationKind = {
+  MENTION: 'MENTION',
+  REPLY: 'REPLY',
+  PAGE_CHANGE: 'PAGE_CHANGE',
+} as const;
+export type NotificationKind = ValueOf<typeof NotificationKind>;
+
 export const PageLifecycle = {
   ACTIVE: 'ACTIVE',
   TRASHED: 'TRASHED',

@@ -8,7 +8,9 @@ import { RecentPageRecorder } from '@/shared/components/portal/recents-recorder'
 import { EMPTY_PAGE_INFO } from '../../constants/pages.constants';
 import { PagesEditorSaveState } from '../../editor/components/pages.editor.save-state';
 import { createEmptyPageContent } from '../../editor/lib/pages.editor.lib';
+import { PagesHistoryPanel } from '../../history/components/pages.history.panel';
 import { usePagesDocumentTitle } from '../../hooks/use.pages.document-title';
+import { PagesInboxBell } from '../../inbox/components/pages.inbox.bell';
 import { buildPageDocumentTitle } from '../../lib/pages.lib';
 import { PagesBreadcrumb } from '../../navigation/components/pages.breadcrumb';
 import { PagesInfoPanel } from '../../trust/components/pages.info.panel';
@@ -97,6 +99,7 @@ export const PagesHeader = ({
           {canEdit && cover !== undefined && <PagesCoverField controller={cover} />}
           {pageId !== null && <PagesInfoPanel content={content ?? createEmptyPageContent()} info={info} />}
           {pageId !== null && usageControl}
+          {pageId !== null && <PagesHistoryPanel canEdit={canEdit} pageId={pageId} spaceId={spaceId} />}
           <PagesAppearanceMenu
             onTextSizeChange={appearance.setTextSize}
             onTypographyChange={appearance.setTypography}
@@ -107,6 +110,7 @@ export const PagesHeader = ({
             <PageFavoriteToggle isFavorite={isFavorite} pageId={pageId} title={title} />
           )}
           {trashControl}
+          <PagesInboxBell />
         </div>
       </div>
       {pageId !== null && (

@@ -13,6 +13,16 @@ mock.module('next/navigation', () => ({
   unstable_rethrow: () => undefined,
   usePathname: () => '/',
   useRouter: () => ({ push: () => undefined, refresh: () => undefined, replace: () => undefined }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+mock.module('@/modules/pages/discussions/server/actions/pages.discussions.actions', () => ({
+  editCommentAction: async () => ({ serverError: 'unexpected' }),
+  openDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  readPageDiscussionsAction: async () => ({ data: [] }),
+  removeCommentAction: async () => ({ serverError: 'unexpected' }),
+  reopenDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  replyToDiscussionAction: async () => ({ serverError: 'unexpected' }),
+  resolveDiscussionAction: async () => ({ serverError: 'unexpected' }),
 }));
 
 mock.module('@/modules/pages/hooks/use.pages.mention-search', () => ({

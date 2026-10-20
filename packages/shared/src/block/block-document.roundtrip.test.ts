@@ -289,12 +289,12 @@ describe('round trip: lists', () => {
     );
   });
 
-  test('two adjacent lists of the same kind keep their own colors and comments', () => {
+  test('two adjacent lists of the same kind keep their own colors', () => {
     expectRoundTrip(
       documentWithIds(
         { attrs: { textColor: 'red' }, content: [listItem(paragraph(text('a')))], type: 'bullet_list' },
         {
-          attrs: { backgroundColor: 'blue', comments: ANNOTATIONS.comments },
+          attrs: { backgroundColor: 'blue', textColor: 'green' },
           content: [listItem(paragraph(text('b')))],
           type: 'bullet_list',
         },
@@ -359,7 +359,7 @@ describe('round trip: lists', () => {
     );
   });
 
-  test('a first paragraph with its own id, colors and comments', () => {
+  test('a first paragraph with its own id and colors', () => {
     expectRoundTrip(
       documentWithIds(
         bulletList(listItem({ attrs: { ...ANNOTATIONS }, content: [text('con atributos')], type: 'paragraph' })),
@@ -528,8 +528,8 @@ describe('round trip: nested blocks', () => {
   });
 });
 
-describe('round trip: colors and comments', () => {
-  test('every kind of node carries colors and comments, list wrappers included', () => {
+describe('round trip: colors', () => {
+  test('every kind of node carries colors, list wrappers included', () => {
     const everyKind = Object.values(NODE_CASES).flat();
     const nested = nestedBlock(paragraph(text('Padre')), [paragraph(text('Hijo'))]);
 

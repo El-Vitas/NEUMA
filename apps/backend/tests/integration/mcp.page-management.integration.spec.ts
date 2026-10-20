@@ -19,7 +19,13 @@ import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 const PASSWORD = 'plainPassword123';
 const { pagesManage, pagesRead, pagesTrash, pagesWrite } = ACCESS_TOKEN_PERMISSIONS;
 
-const commentedShape = z.object({ comment: z.object({ id: z.string() }) });
+const commentedShape = z.object({ comment: z.object({ discussionId: z.string(), id: z.string() }) });
+const discussionShape = z.object({
+  comments: z.array(z.object({ text: z.string() })),
+  id: z.string(),
+});
+const discussionsShape = z.object({ discussions: z.array(discussionShape) });
+const repliedShape = z.object({ discussion: discussionShape });
 const trashShape = z.object({
   pages: z.array(
     z.object({
@@ -183,9 +189,14 @@ describe('MCP page management (Integration)', () => {
   });
 
   describe('comentarios', () => {
-    it('comments on some words of a block, signed by the token owner, and deletes the comment', async () => {
+    let secret = '';
+
+    beforeAll(async () => {
+      secret = await fullToken();
+    });
+
+    it('opens a discussion on some words of a block, signed by the token owner, and deletes the comment', async () => {
       const pageId = await freshPage('Comentarios');
-      const secret = await fullToken();
 
       const commented = await call(secret, 'comment_on_block', {
         block: introOf(pageId),
@@ -193,19 +204,91 @@ describe('MCP page management (Integration)', () => {
         quote: 'fecha',
         text: '¿Es la fecha final?',
       });
-      const commentId = commentedShape.parse(commented.structuredContent).comment.id;
+      const { comment } = commentedShape.parse(commented.structuredContent);
 
       const stored = await storedContent(pageId);
-      expect(stored).toContain('"author":"Ana Pérez"');
       expect(stored).toContain('"type":"comment"');
-      expect(stored.split(commentId).length - 1).toBe(2);
+      expect(stored).toContain(comment.discussionId);
+      expect(stored).not.toContain('"comments"');
       expect(readMcpText(await call(secret, 'fetch', { address: pageId }))).toContain(
-        `Comment ${commentId} by Ana Pérez`,
+        `Comment ${comment.id} in discussion ${comment.discussionId} by Ana Pérez`,
       );
 
-      await call(secret, 'delete_comment', { block: introOf(pageId), comment: commentId, page: pageId });
+      await call(secret, 'delete_comment', { block: introOf(pageId), comment: comment.id, page: pageId });
 
-      expect(await storedContent(pageId)).not.toContain(commentId);
+      expect(await storedContent(pageId)).not.toContain(comment.discussionId);
+    });
+
+    it('lists the discussions of a page and replies to one as the token owner', async () => {
+      const pageId = await freshPage('Hilos');
+      const commented = await call(secret, 'comment_on_block', {
+        block: introOf(pageId),
+        page: pageId,
+        text: '¿Quién revisa esto?',
+      });
+      const { comment } = commentedShape.parse(commented.structuredContent);
+
+      const replied = await call(secret, 'reply_to_discussion', { discussion: comment.discussionId, text: 'Yo' });
+      const listed = await call(secret, 'list_discussions', { page: pageId });
+
+      expect(repliedShape.parse(replied.structuredContent).discussion.comments.map((entry) => entry.text)).toEqual([
+        '¿Quién revisa esto?',
+        'Yo',
+      ]);
+      const [discussion] = discussionsShape.parse(listed.structuredContent).discussions;
+      expect(discussion?.id).toBe(comment.discussionId);
+      expect(discussion?.comments).toHaveLength(2);
+    });
+
+    it('hides resolved discussions until asked for them', async () => {
+      const pageId = await freshPage('Resueltos');
+      const commented = await call(secret, 'comment_on_block', { block: introOf(pageId), page: pageId, text: 'Hecho' });
+      const { comment } = commentedShape.parse(commented.structuredContent);
+      await api()
+        .post(`/api/v1/discussions/${comment.discussionId}/resolve`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(201);
+
+      const open = await call(secret, 'list_discussions', { page: pageId });
+      const all = await call(secret, 'list_discussions', { includeResolved: true, page: pageId });
+
+      expect(discussionsShape.parse(open.structuredContent).discussions).toHaveLength(0);
+      expect(discussionsShape.parse(all.structuredContent).discussions).toHaveLength(1);
+    });
+
+    it('never shows, lists or lets reply to a discussion on a block its owner cannot read', async () => {
+      const pageId = await freshPage('Bloque oculto');
+      const strangerEmail = `mcp-stranger-${crypto.randomUUID()}@test.com`;
+      const created = await createAccount(testApp, { email: strangerEmail, name: 'Extraña', password: PASSWORD });
+      await prisma().models.User.where({ id: created.user.id }).update({ role: 'ADMIN' });
+      const stranger = await loginUser(testApp, strangerEmail, PASSWORD);
+      const hiddenBlockId = crypto.randomUUID();
+      await prisma().models.Block.create({
+        createdById: stranger.user.id,
+        editedById: stranger.user.id,
+        id: hiddenBlockId,
+        parentId: pageId,
+        permissions: [{ principal: { kind: 'user', userId: stranger.user.id }, role: 'full' }],
+        properties: { title: [{ insert: 'Reservado' }] },
+        spaceId,
+        type: 'paragraph',
+      });
+      const secretDiscussion = (
+        await api()
+          .post(`/api/v1/blocks/${hiddenBlockId}/discussions`)
+          .set('Authorization', `Bearer ${stranger.accessToken}`)
+          .send({ body: [{ insert: 'Confidencial' }] })
+          .expect(201)
+      ).body as { id: string };
+
+      const listed = await call(secret, 'list_discussions', { page: pageId });
+      const fetched = await call(secret, 'fetch', { address: pageId });
+      const reply = await call(secret, 'reply_to_discussion', { discussion: secretDiscussion.id, text: 'Intruso' });
+
+      expect(JSON.stringify(listed)).not.toContain('Confidencial');
+      expect(readMcpText(fetched)).not.toContain('Confidencial');
+      expect(reply.isError).toBe(true);
+      expect(readMcpText(reply)).not.toContain('Confidencial');
     });
   });
 

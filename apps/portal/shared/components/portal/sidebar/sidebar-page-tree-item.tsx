@@ -17,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { PagesSharingBadge } from '@/modules/pages/sharing/components/pages.sharing.badge';
 import { buildSidebarTreeIndent, isPortalSidebarPageMoveShortcut } from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalSidebarPageDragController } from '@/modules/portal/types/portal.sidebar.drag.types';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '@/modules/portal/types/portal.types';
@@ -175,6 +176,7 @@ export const SidebarPageTreeItem = ({
           {isSelected && <span aria-hidden="true" className="absolute inset-y-1 left-0 w-0.5 bg-primary" />}
           <SidebarTreeIcon fallback={FileText} icon={page.icon} />
           <span className="min-w-0 truncate">{pageTitle}</span>
+          <PagesSharingBadge isVisible={page.hasOwnPermissions === true} scope="page" />
         </Link>
         {canEdit && !selectionMode && (
           <DropdownMenu>

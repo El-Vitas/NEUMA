@@ -1,7 +1,7 @@
 'use client';
 
 import { resolvePageVerificationStatus } from '@neuma/shared';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type ComponentRef,
@@ -10,6 +10,7 @@ import {
   type ReactNode,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -37,7 +38,6 @@ import type {
   PagePropertyValues,
   PageSchema,
 } from '../../collections/types/pages.schema.types';
-import { PagesLockToggle } from '../../components/pages.lock.toggle';
 import { PagesProseMirrorEditor } from '../../components/pages.prose-mirror.editor';
 import {
   EMPTY_PAGE_ATTACHMENTS,
@@ -46,20 +46,28 @@ import {
   EMPTY_PAGE_HEADINGS,
   EMPTY_PAGE_PERSON_OPTIONS,
 } from '../../constants/pages.constants';
+import { PagesDiscussionsProvider } from '../../discussions/components/pages.discussions.provider';
+import { DISCUSSION_QUERY_PARAMETER } from '../../discussions/constants/pages.discussions.constants';
+import { usePageDiscussions } from '../../discussions/hooks/use.pages.discussions';
 import { usePagesAutosave } from '../../hooks/use.pages.autosave';
 import { resolveReadOnlyMessage } from '../../lib/pages.lib';
 import { PagesBacklinks } from '../../links/components/pages.backlinks';
 import type { PageBacklinksResult } from '../../links/types/pages.backlinks.types';
 import { PagesOutline } from '../../navigation/components/pages.outline';
 import { usePagesReadingPosition } from '../../navigation/hooks/use.pages.reading-position';
+import { PagesSharingControls } from '../../sharing/components/pages.sharing.controls';
+import { listRestrictedBlockIds, updateRestrictedBlockIds } from '../../sharing/lib/pages.sharing.lib';
+import type { SharingChange } from '../../sharing/types/pages.sharing.types';
 import { PagesTrashButton } from '../../trash/components/pages.trash.button';
 import { PagesUsagePanel } from '../../trust/components/pages.usage.panel';
 import { PagesVerificationPanel } from '../../trust/components/pages.verification.panel';
 import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
+import { createPageEditorOpenDiscussionsCommand } from '../blocks/lib/pages.editor.block-comment.lib';
 import { usePagesEditorBlockBinding } from '../hooks/use.pages.editor.block-binding';
 import { usePagesEditorSaves } from '../hooks/use.pages.editor.saves';
+import { usePagesEditorTitle } from '../hooks/use.pages.editor.title';
 import { createPageAssetInsertCommand } from '../lib/pages.editor.commands';
 import { pageEditorSchema } from '../lib/pages.editor.schema';
 import type { PageEditorHeading } from '../structure/types/pages.editor.contents.types';
@@ -119,9 +127,8 @@ export const PagesEditor = forwardRef(
   ) => {
     const router = useRouter();
     const t = useTranslations('pages');
-    const [title, setTitle] = useState(page.title);
+    const { setTitle, title, titleRef } = usePagesEditorTitle(page.title);
     const titleInputRef = useRef<HTMLInputElement>(null);
-    const titleRef = useRef(title);
     const contentRef = useRef<PageContent>(page.content);
     const editorHandleRef = useRef<ComponentRef<typeof PagesProseMirrorEditor>>(null);
     const [pageAttachments, setPageAttachments] = useState(attachments);
@@ -147,6 +154,10 @@ export const PagesEditor = forwardRef(
       storedPropertyValues: page.propertyValues,
     });
     const [headings, setHeadings] = useState<readonly PageEditorHeading[]>(EMPTY_PAGE_HEADINGS);
+    const [restrictedBlockIds, setRestrictedBlockIds] = useState(() => listRestrictedBlockIds(blockSync, page.id));
+
+    const handleBlockSharingChanged = (change: SharingChange): void =>
+      setRestrictedBlockIds((current) => updateRestrictedBlockIds(current, change));
     const appearance = usePagesAppearance(page.id);
     const cover = usePagesCover(page.cover ?? null, page.id, spaceId);
     const pageRef = useRef<HTMLElement>(null);
@@ -169,9 +180,31 @@ export const PagesEditor = forwardRef(
       onSave: updateCurrentPage,
     });
 
+    const discussions = usePageDiscussions(page.id);
+    const discussionsContext = useMemo(
+      () => ({ api: discussions, currentUserId: currentUserId ?? null, personOptions }),
+      [currentUserId, discussions, personOptions],
+    );
+    const searchParams = useSearchParams();
+    const wantedDiscussionId = searchParams.get(DISCUSSION_QUERY_PARAMETER);
+
+    /** A link from a notification names the discussion: once it is read, its block opens on it. */
+    useEffect(() => {
+      if (wantedDiscussionId === null || discussions.status !== 'ready') return;
+      const wanted = discussions.discussions.find((discussion) => discussion.id === wantedDiscussionId);
+      if (wanted !== undefined) {
+        editorHandleRef.current?.runCommand(createPageEditorOpenDiscussionsCommand(wanted.blockId, wanted.id));
+      }
+      const withoutDiscussion = new URLSearchParams(searchParams.toString());
+      withoutDiscussion.delete(DISCUSSION_QUERY_PARAMETER);
+      const query = withoutDiscussion.toString();
+      router.replace(`${globalThis.location.pathname}${query === '' ? '' : `?${query}`}${globalThis.location.hash}`);
+    }, [discussions.discussions, discussions.status, router, searchParams, wantedDiscussionId]);
+
     const blockBinding = usePagesEditorBlockBinding({
       fallbackSaveState: canAutosave ? autosave.displayState : 'idle',
       initialBlocks: blockSync,
+      onDiscussionChanged: () => void discussions.refresh(),
       isEnabled: isWritable,
       localUserId: currentUserId,
       pageId: page.id,
@@ -254,102 +287,114 @@ export const PagesEditor = forwardRef(
       );
 
     return (
-      <section aria-label={t('editor')} className={sectionClassName} ref={pageRef}>
-        {renderReadOnlyBanner()}
-        <div className={layoutStyleClasses.outlineLayout}>
-          <div className={workspaceClassName} data-testid="page-editor-workspace">
-            <PagesCover controller={cover} />
-            <PagesHeader
-              appearance={appearance}
-              canEdit={canWrite}
-              content={page.content}
-              cover={cover}
-              displayState={autosaveDisplayState}
-              icon={pageIcon}
-              info={toPageInfoMetadata(page)}
-              isFavorite={isFavorite}
-              lockToggle={
-                canEdit ? (
-                  <PagesLockToggle isLocked={isLocked} onLockChange={setLockedAt} pageId={page.id} spaceId={spaceId} />
-                ) : null
-              }
-              onIconChange={setPageIcon}
-              onTitleChange={handleTitleChange}
-              onTitleLeft={handleTitleLeft}
-              pageId={page.id}
-              parentPages={parentBreadcrumbPages}
-              savedAt={autosave.savedAt}
-              spaceId={spaceId}
-              spaceName={spaceName}
-              title={title}
-              titleInputRef={titleInputRef}
-              trashControl={
-                canTrash ? (
-                  <PagesTrashButton onTrashed={handlePageTrashed} pageId={page.id} spaceId={spaceId} title={title} />
-                ) : null
-              }
-              usageControl={canSeeUsage ? <PagesUsagePanel pageId={page.id} /> : null}
-              verificationControl={
-                <PagesVerificationPanel
-                  canEdit={canEdit}
-                  onOwnerChange={setOwner}
-                  onVerificationChange={setVerification}
-                  owner={owner}
-                  pageId={page.id}
-                  personOptions={personOptions}
-                  spaceId={spaceId}
-                  status={resolvePageVerificationStatus(
-                    verification.verifiedAt,
-                    verification.verificationExpiresAt,
-                    new Date(),
-                  )}
-                  verificationExpiresAt={verification.verificationExpiresAt}
-                  verifiedAt={verification.verifiedAt}
-                  verifiedBy={verification.verifiedBy}
-                />
-              }
-            />
-            <PagesPropertiesPanel
-              attachments={visiblePageAttachments}
-              canEdit={canWrite}
-              onAttachmentDeleted={handleAttachmentDeleted}
-              onAttachmentUploaded={addUploadedAttachment}
-              onPropertyValueChange={handlePropertyValueChange}
-              page={page}
-              pageId={page.id}
-              parentSchema={parentSchema}
-              personOptions={personOptions}
-              propertyValues={propertyValues}
-              spaceId={spaceId}
-            />
-            {/* Rendered before the body: a page with a collection is mostly that collection. */}
-            {collectionSection}
-            <PagesProseMirrorEditor
-              blockCollaboration={blockBinding.collaboration}
-              canEdit={canWrite}
-              content={page.content}
-              currentUserDisplayName={currentUserDisplayName}
-              embeddedCollections={embeddedCollections}
-              onAttachmentUploaded={addUploadedAttachment}
-              onContentChange={handleContentChange}
-              onHeadingsChange={setHeadings}
-              onNavigateToPage={onNavigateToPage}
-              onSelectionChange={blockBinding.reportSelection}
-              pageId={page.id}
-              pages={pages}
-              personOptions={personOptions}
-              ref={editorHandleRef}
-              spaceId={spaceId}
-              textSize={appearance.preferences.textSize}
-              typography={appearance.preferences.typography}
-            />
-            <PagesBacklinks backlinks={backlinks} />
+      <PagesDiscussionsProvider value={discussionsContext}>
+        <section aria-label={t('editor')} className={sectionClassName} ref={pageRef}>
+          {renderReadOnlyBanner()}
+          <div className={layoutStyleClasses.outlineLayout}>
+            <div className={workspaceClassName} data-testid="page-editor-workspace">
+              <PagesCover controller={cover} />
+              <PagesHeader
+                appearance={appearance}
+                canEdit={canWrite}
+                content={page.content}
+                cover={cover}
+                displayState={autosaveDisplayState}
+                icon={pageIcon}
+                info={toPageInfoMetadata(page)}
+                isFavorite={isFavorite}
+                lockToggle={
+                  canEdit ? (
+                    <PagesSharingControls
+                      canEdit={canEdit}
+                      hasOwnPermissions={page.hasOwnPermissions === true}
+                      isLocked={isLocked}
+                      onLockChange={setLockedAt}
+                      pageId={page.id}
+                      spaceId={spaceId}
+                      title={title}
+                    />
+                  ) : null
+                }
+                onIconChange={setPageIcon}
+                onTitleChange={handleTitleChange}
+                onTitleLeft={handleTitleLeft}
+                pageId={page.id}
+                parentPages={parentBreadcrumbPages}
+                savedAt={autosave.savedAt}
+                spaceId={spaceId}
+                spaceName={spaceName}
+                title={title}
+                titleInputRef={titleInputRef}
+                trashControl={
+                  canTrash ? (
+                    <PagesTrashButton onTrashed={handlePageTrashed} pageId={page.id} spaceId={spaceId} title={title} />
+                  ) : null
+                }
+                usageControl={canSeeUsage ? <PagesUsagePanel pageId={page.id} /> : null}
+                verificationControl={
+                  <PagesVerificationPanel
+                    canEdit={canEdit}
+                    onOwnerChange={setOwner}
+                    onVerificationChange={setVerification}
+                    owner={owner}
+                    pageId={page.id}
+                    personOptions={personOptions}
+                    spaceId={spaceId}
+                    status={resolvePageVerificationStatus(
+                      verification.verifiedAt,
+                      verification.verificationExpiresAt,
+                      new Date(),
+                    )}
+                    verificationExpiresAt={verification.verificationExpiresAt}
+                    verifiedAt={verification.verifiedAt}
+                    verifiedBy={verification.verifiedBy}
+                  />
+                }
+              />
+              <PagesPropertiesPanel
+                attachments={visiblePageAttachments}
+                canEdit={canWrite}
+                onAttachmentDeleted={handleAttachmentDeleted}
+                onAttachmentUploaded={addUploadedAttachment}
+                onPropertyValueChange={handlePropertyValueChange}
+                page={page}
+                pageId={page.id}
+                parentSchema={parentSchema}
+                personOptions={personOptions}
+                propertyValues={propertyValues}
+                spaceId={spaceId}
+              />
+              {/* Rendered before the body: a page with a collection is mostly that collection. */}
+              {collectionSection}
+              <PagesProseMirrorEditor
+                blockCollaboration={blockBinding.collaboration}
+                canEdit={canWrite}
+                content={page.content}
+                currentUserDisplayName={currentUserDisplayName}
+                embeddedCollections={embeddedCollections}
+                onAttachmentUploaded={addUploadedAttachment}
+                onBlockSharingChanged={handleBlockSharingChanged}
+                onContentChange={handleContentChange}
+                onHeadingsChange={setHeadings}
+                onNavigateToPage={onNavigateToPage}
+                onSelectionChange={blockBinding.reportSelection}
+                pageId={page.id}
+                pages={pages}
+                personOptions={personOptions}
+                ref={editorHandleRef}
+                restrictedBlockIds={restrictedBlockIds}
+                spaceId={spaceId}
+                textSize={appearance.preferences.textSize}
+                typography={appearance.preferences.typography}
+              />
+              <PagesBacklinks backlinks={backlinks} />
+            </div>
+            <aside className={layoutStyleClasses.outlineSide}>
+              <PagesOutline headings={headings} onGoToHeading={handleGoToHeading} title={t('pageContents')} />
+            </aside>
           </div>
-          <aside className={layoutStyleClasses.outlineSide}>
-            <PagesOutline headings={headings} onGoToHeading={handleGoToHeading} title={t('pageContents')} />
-          </aside>
-        </div>
-      </section>
+        </section>
+      </PagesDiscussionsProvider>
     );
   },
 );

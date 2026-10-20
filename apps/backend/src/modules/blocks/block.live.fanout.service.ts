@@ -1,16 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { UserRole } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
+import type { CommentEvent } from '../../common/types/comment-events.types';
 import { BlockLiveAccessService } from './block.live.access.service';
 import {
   BLOCK_LIVE_CLOSE_CODE,
   BLOCK_LIVE_EMPTY_ACCESS_CONTEXT,
   BLOCK_PRESENCE_STORE,
 } from './constants/block.live.constants';
+import { planCommentNotificationDeliveries, planDiscussionDeliveries } from './domain/block.live.discussion.domain';
 import type {
   LiveAccessContext,
   LiveDelivery,
   LiveSubscription,
+  NotificationConnection,
   PresenceEntry,
   VersionNotification,
 } from './domain/block.live.domain.types';
@@ -23,7 +26,7 @@ import type {
   BlockPresenceStore,
 } from './types/block.live.types';
 import type { BlockReader } from './types/blocks.types';
-import { parseVersionNotification, serializeServerMessage } from './utils/block.live.message.utils';
+import { parseCommentEvent, parseVersionNotification, serializeServerMessage } from './utils/block.live.message.utils';
 
 const toPageId = (subscription: LiveSubscription): string => subscription.pageId;
 
@@ -42,6 +45,11 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
   /** Notifications are handled one after the other, so the versions of a page reach a socket in commit order. */
   enqueueNotification(payload: string): void {
     this.pending = this.handleAfter(this.pending, payload);
+  }
+
+  /** Comment events share the queue, so they reach a socket in the order the transactions committed. */
+  enqueueCommentEvent(payload: string): void {
+    this.pending = this.handleCommentEventAfter(this.pending, payload);
   }
 
   drain(): Promise<void> {
@@ -80,6 +88,60 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
     } catch (error) {
       this.logFailure(error);
     }
+  }
+
+  private async handleCommentEventAfter(previous: Promise<void>, payload: string): Promise<void> {
+    await previous;
+    try {
+      await this.handleCommentEvent(payload);
+    } catch (error) {
+      this.logFailure(error);
+    }
+  }
+
+  /** An event that cannot be read is dropped and logged: the next read over HTTP is always right. */
+  private async handleCommentEvent(payload: string): Promise<void> {
+    const parsed = parseCommentEvent(payload);
+    if (parsed.isFail()) {
+      this.logger.error({ err: parsed.getError() }, 'live channel received a comment event it could not read');
+      return;
+    }
+    const event = parsed.getValue();
+    if (event.kind === 'notification') {
+      await this.deliver(
+        planCommentNotificationDeliveries({
+          connections: this.listAuthenticatedConnections(),
+          notificationId: event.notificationId,
+          recipientId: event.recipientId,
+        }),
+      );
+      return;
+    }
+    await this.deliver(await this.planDiscussion(event));
+  }
+
+  private async planDiscussion(event: Extract<CommentEvent, { kind: 'discussion' }>): Promise<LiveDelivery[]> {
+    const subscriptions = this.registry.listSubscriptionsInSpace(event.spaceId);
+    if (subscriptions.length === 0) return [];
+    const current = await this.applyCurrentAccounts(subscriptions);
+    const seedIds = [...new Set([event.blockId, ...current.map(toPageId)])];
+    const context = await this.accessService.loadContext(seedIds, this.listReaders(current));
+    return planDiscussionDeliveries({
+      blockId: event.blockId,
+      context,
+      discussionId: event.discussionId,
+      subscriptions: current,
+    });
+  }
+
+  private listAuthenticatedConnections(): NotificationConnection[] {
+    return this.registry
+      .listConnections()
+      .flatMap((connection) =>
+        connection.reader === null || connection.isClosed
+          ? []
+          : [{ connectionId: connection.id, userId: connection.reader.userId }],
+      );
   }
 
   /** Queued behind the notifications already waiting, so a resync is never overtaken by an older version. */

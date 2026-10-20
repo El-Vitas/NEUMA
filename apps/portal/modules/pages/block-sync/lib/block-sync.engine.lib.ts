@@ -57,7 +57,8 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
   let mirror: BlockSnapshotMap = new Map();
   let latestContent: PageContent = bridge.readContent();
   let isApplyingRemote = false;
-  let isReadOnly = false;
+  const isViewer = options.isViewer === true;
+  let isReadOnly = isViewer;
   let isDestroyed = false;
   let isSyncingBlocks = false;
   let isRebasing = false;
@@ -412,7 +413,9 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
         );
     },
   });
-  const cursor = createCursorReporter((blockId) => session.sendPresence(blockId));
+  const cursor = createCursorReporter((blockId) => {
+    if (!isViewer) session.sendPresence(blockId);
+  });
 
   return {
     destroy: () => {

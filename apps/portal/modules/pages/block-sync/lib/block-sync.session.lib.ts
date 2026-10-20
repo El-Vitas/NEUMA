@@ -38,6 +38,7 @@ const isRateLimitClose = (code: number): boolean =>
  */
 export const createBlockLiveSession = ({
   handlers,
+  onDiscussionChanged,
   openSocket,
   pageId,
   requestToken,
@@ -115,6 +116,9 @@ export const createBlockLiveSession = ({
         return;
       case 'presence':
         handlers.onPresence(message.users);
+        return;
+      case 'discussion':
+        onDiscussionChanged?.();
         return;
       case 'transactionsResult':
         settleRequest(message.requestId, (request) =>
