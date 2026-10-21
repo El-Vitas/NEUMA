@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_OPTION_COLOR, type PagePropertyType } from '@neuma/shared';
+import { DEFAULT_PAGE_PROPERTY_CONFIG, PAGE_OPTION_COLOR, type PagePropertyType } from '@neuma/shared';
 import {
   applyMcpColumnChanges,
   describeMcpColumnChanges,
@@ -15,9 +15,16 @@ const column = (
   type: PagePropertyType,
   options: readonly string[] | null = null,
 ): McpColumn => ({
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key,
   label,
-  options: options?.map((value) => ({ color: PAGE_OPTION_COLOR.GRAY, value })) ?? null,
+  options:
+    options?.map((value, index) => ({
+      color: PAGE_OPTION_COLOR.GRAY,
+      group: null,
+      id: `${key}-${String(index)}`,
+      value,
+    })) ?? null,
   required: type === 'TITLE',
   type,
 });
@@ -36,6 +43,34 @@ describe('applyMcpColumnChanges', () => {
     expect(added).toMatchObject({ key: 'prioridad', label: 'Prioridad', required: false, type: 'SELECT' });
     expect(added?.options?.map((option) => option.value)).toEqual(['Alta', 'Baja']);
     expect(added?.options?.every((option) => option.color !== null)).toBe(true);
+  });
+
+  it('adds a column of the new kinds with its settings, a status starting on its own options', () => {
+    const changed = applyMcpColumnChanges(known, {
+      addColumns: [
+        { currency: 'CLP', decimals: 0, name: 'Presupuesto', numberFormat: 'CURRENCY', type: 'NUMBER' },
+        { name: 'Código', prefix: 'TSK', type: 'UNIQUE_ID' },
+        { name: 'Responsables', multiple: true, type: 'PERSON' },
+        { name: 'Etapa', options: ['ignored'], type: 'STATUS' },
+      ],
+    }).getValue();
+
+    const [, , budget, code, owners, stage] = changed.properties;
+    expect(budget?.config).toMatchObject({ currency: 'CLP', decimals: 0, numberFormat: 'CURRENCY' });
+    expect(code?.config.prefix).toBe('TSK');
+    expect(owners?.config.allowsMultiple).toBe(true);
+    expect(stage?.options).toBeNull();
+  });
+
+  it('puts an option added to a status in the group of what has not begun', () => {
+    const withStage = [...columns, column('stage', 'Etapa', 'STATUS')];
+
+    const changed = applyMcpColumnChanges(
+      { columns: withStage, listNames: listMcpNames },
+      { addOptions: [{ column: 'Etapa', options: ['Bloqueado'] }] },
+    ).getValue();
+
+    expect(changed.properties[2]?.options?.[0]).toMatchObject({ group: 'TO_DO', id: null, value: 'Bloqueado' });
   });
 
   it('renames a column by its name and keeps its key, so the rows keep their values', () => {
@@ -70,8 +105,8 @@ describe('applyMcpColumnChanges', () => {
     }).getValue();
 
     expect(changed.optionRewrites).toEqual([
-      { from: 'Por hacer', propertyKey: 'status', to: 'Pendiente' },
-      { from: 'Hecho', propertyKey: 'status', to: null },
+      { from: 'Por hacer', optionId: 'status-0', propertyKey: 'status', to: 'Pendiente' },
+      { from: 'Hecho', optionId: 'status-1', propertyKey: 'status', to: null },
     ]);
     expect(changed.properties[1]?.options?.map((option) => option.value)).toEqual(['Pendiente']);
   });

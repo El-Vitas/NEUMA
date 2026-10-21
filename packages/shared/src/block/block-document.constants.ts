@@ -1,5 +1,5 @@
-import { BLOCK_TYPE } from './block-type.constants.js';
 import type { BlockType } from './block-content.types.js';
+import { BLOCK_TYPE } from './block-type.constants.js';
 
 export const BLOCK_DOCUMENT_ERROR_CODE = {
   brokenTree: 'broken_tree',

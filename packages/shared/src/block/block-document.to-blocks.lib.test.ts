@@ -1,16 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { type PageContent } from '../schemas/page-content.schema.js';
+import type { PageContent } from '../schemas/page-content.schema.js';
 import { BLOCK_DOCUMENT_ERROR_CODE } from './block-document.constants.js';
 import { BlockDocumentError } from './block-document.error.js';
 import {
-  FIXTURE_PAGE_ID,
-  FIXTURE_SPACE_ID,
   ANNOTATIONS,
   blockAt,
   bulletList,
   cell,
   document,
   documentWithIds,
+  FIXTURE_PAGE_ID,
+  FIXTURE_SPACE_ID,
   heading,
   listItem,
   nestedBlock,

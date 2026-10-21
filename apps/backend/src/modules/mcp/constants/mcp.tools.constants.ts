@@ -28,6 +28,7 @@ import { updatePageTool } from '../tools/mcp.update-page.tool';
 import { updateRowTool } from '../tools/mcp.update-row.tool';
 import { updateTableTool } from '../tools/mcp.update-table.tool';
 import { updateViewTool } from '../tools/mcp.update-view.tool';
+import { uploadFileTool } from '../tools/mcp.upload-file.tool';
 import type { McpToolDefinition } from '../types/mcp.types';
 
 /** Listed in the order they are presented to the agent. */
@@ -58,6 +59,7 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = [
   createCollectionTool,
   createRowTool,
   updateRowTool,
+  uploadFileTool,
   updateCollectionColumnsTool,
   createViewTool,
   updateViewTool,

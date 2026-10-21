@@ -18,6 +18,7 @@ import {
   PAGE_FILTER_GROUP_OPERATOR,
   PAGE_FILTER_MAXIMUM_DEPTH,
   PAGE_FILTER_OPERATOR,
+  PAGE_PROPERTY_LOGICAL_TYPE,
   PAGE_ROW_HEIGHT,
   PAGE_SORT_DIRECTION,
   PAGE_VIEW_CALCULATION,
@@ -35,8 +36,14 @@ import type { PageFilterPath } from '../types/pages.view-filtering.types';
 export const filterOperatorNeedsValue = (operator: PageFilterOperator): boolean =>
   !PAGE_FILTER_OPERATORS_WITHOUT_VALUE.includes(operator);
 
-export const listFilterOperatorsFor = (property: PageSchemaProperty): readonly PageFilterOperator[] =>
-  getPageFilterOperators(getPagePropertyLogicalType(property.type));
+/** A relation is filtered by whether it holds anything: naming one of its rows would need a row picker here. */
+export const listFilterOperatorsFor = (property: PageSchemaProperty): readonly PageFilterOperator[] => {
+  const logicalType = getPagePropertyLogicalType(property.type);
+  const operators = getPageFilterOperators(logicalType);
+  return logicalType === PAGE_PROPERTY_LOGICAL_TYPE.RELATION
+    ? operators.filter((operator) => !filterOperatorNeedsValue(operator))
+    : operators;
+};
 
 /** Looked up in the allowed list rather than trusted: a select yields plain text. */
 export const readFilterOperatorFor = (property: PageSchemaProperty, chosen: string): PageFilterOperator => {

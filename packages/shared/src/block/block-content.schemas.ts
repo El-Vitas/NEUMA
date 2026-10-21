@@ -1,6 +1,17 @@
 import { z } from 'zod';
 import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '../page-property/page-property.key.constants.js';
+import type { PageContentUnknownNode } from '../schemas/page-content.schema.js';
 import {
+  isAllowedPageEmbedUrl,
+  maximumHeadingLevel,
+  maximumOrderedListOrder,
+  maximumPageContentNodes,
+  maximumPageTextLength,
+  maximumTableColumns,
+  maximumTableColumnWidth,
+  maximumTableRows,
+  maximumToggleSummaryLength,
+  minimumHeadingLevel,
   PAGE_BLOCK_COLORS,
   PAGE_BUTTON_DEEDS,
   PAGE_BUTTON_PLACES,
@@ -12,16 +23,6 @@ import {
   PAGE_DIAGRAM_FRAME_HEIGHT_MOST,
   PAGE_DIAGRAM_VIEWS,
   PAGE_FILE_DISPLAYS,
-  isAllowedPageEmbedUrl,
-  maximumHeadingLevel,
-  maximumOrderedListOrder,
-  maximumPageContentNodes,
-  maximumPageTextLength,
-  maximumTableColumnWidth,
-  maximumTableColumns,
-  maximumTableRows,
-  maximumToggleSummaryLength,
-  minimumHeadingLevel,
   pageAssetAttrsSchema,
   pageBlockIdSchema,
   pageBookmarkAttrsSchema,
@@ -34,12 +35,11 @@ import {
   pageSubpageAttrsSchema,
   pageSyncedAttrsSchema,
 } from '../schemas/page-content.schema.js';
-import type { PageContentUnknownNode } from '../schemas/page-content.schema.js';
 import { pageCoverValueSchema } from '../schemas/page-cover.schema.js';
 import { pageIconSchema } from '../schemas/page-icon.schema.js';
 import { PAGE_TITLE_MAX_LENGTH } from '../types/page.types.js';
-import { blockPlainTextSchema, blockRichTextSchema } from './block-text.schemas.js';
 import { extractPlainText } from './block-text.lib.js';
+import { blockPlainTextSchema, blockRichTextSchema } from './block-text.schemas.js';
 import { BLOCK_NESTED_LAYERS_MOST, BLOCK_TYPE } from './block-type.constants.js';
 
 const emptySchema = z.object({}).strict();
@@ -111,11 +111,16 @@ const unsupportedNodeSchema = z.custom<PageContentUnknownNode>(isPreservableUnkn
   message: 'The node must keep the shape an unknown node has in a page document',
 });
 
+const pageDateValueSchema = z
+  .object({ end: z.string().max(maximumPageTextLength).optional(), start: z.string().max(maximumPageTextLength) })
+  .strict();
+
 const pagePropertyValueSchema = z.union([
   z.string().max(maximumPageTextLength),
   z.number(),
   z.boolean(),
   z.array(z.string().max(maximumPageTextLength)),
+  pageDateValueSchema,
 ]);
 
 const pageTitleIsShortEnough = (properties: { readonly title: z.infer<typeof blockPlainTextSchema> }): boolean =>

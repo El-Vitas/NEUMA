@@ -6,10 +6,13 @@ import { authorizePlacements, authorizeTargets } from './block.authorization.dom
 import type { BlockRecord } from './block.domain.types';
 import { BlockAccessDeniedError, BlockTreeTooDeepError } from './block.error';
 import { extractBlockLinkTargets } from './block.link.domain';
+import { BLOCK_NO_RELATIONS, BLOCK_NO_RULES } from './block.operation.constants';
 import { applyBlockOperation, createWorkingBlock, writeCreatedText } from './block.operation.domain';
 import { applyPageOperation, expandPageOperations, isPageOperation } from './block.page-operation.domain';
 import { checkPermissionsKeepAManager } from './block.permissions-lockout.domain';
+import { applyRelationOperation, expandRelationOperations, isRelationOperation } from './block.relation.domain';
 import { applyRootLists } from './block.root.domain';
+import { findServerAssignedWrite } from './block.row-defaults.domain';
 import type {
   AppliedOperations,
   AuthorizationInput,
@@ -23,7 +26,7 @@ import type {
   SettledBlock,
   WorkingBlock,
 } from './block.transaction.domain.types';
-import { BlockContentInvalidError } from './block.transaction.error';
+import { BlockContentInvalidError, ServerAssignedPropertyError } from './block.transaction.error';
 import { checkTreeInvariants, findSourcePageId } from './block.tree.domain';
 
 const indexWorking = (blocks: readonly WorkingBlock[]): Map<string, WorkingBlock> =>
@@ -77,6 +80,7 @@ const applyOperation = (
   const block = blocks.get(operation.blockId);
   if (block === undefined) return Result.fail(new BlockAccessDeniedError());
   if (operation.command === 'insertRoot' || operation.command === 'removeRoot') return Result.ok(block);
+  if (isRelationOperation(operation)) return applyRelationOperation(block, operation);
   return isPageOperation(operation)
     ? applyPageOperation(block, operation, { now: input.now, userId: input.actor.userId })
     : applyBlockOperation(block, operation, engine);
@@ -195,15 +199,22 @@ export const planBlockTransaction = (
   if (!input.isSpaceReadable) return Result.fail(new BlockAccessDeniedError());
   if (isDepthExceeded) return Result.fail(new BlockTreeTooDeepError(input.maxTreeDepth));
   const before = indexWorking(locked);
-  const authorizedTargets = authorizeTargets(
-    input.operations,
-    buildAuthorization(input, [...context, ...locked], before),
-  );
+  const authorization = buildAuthorization(input, [...context, ...locked], before);
+  const authorizedTargets = authorizeTargets(input.operations, authorization);
   if (authorizedTargets.isFail()) return Result.fail(authorizedTargets.getError());
-  const expanded = expandPageOperations(input.operations, locked);
+  const related = expandRelationOperations(
+    input.operations,
+    before,
+    input.relationSchemas ?? BLOCK_NO_RELATIONS,
+    authorization,
+  );
+  if (related.isFail()) return Result.fail(related.getError());
+  const expanded = expandPageOperations(related.getValue(), locked);
   const applied = applyOperations(input, expanded.operations, before, engine);
   if (applied.isFail()) return Result.fail(applied.getError());
   const { after, counts } = applied.getValue();
+  const assignedKey = findServerAssignedWrite(before, after, input.guardedRules ?? BLOCK_NO_RULES);
+  if (assignedKey !== null) return Result.fail(new ServerAssignedPropertyError(assignedKey));
   const touchedIds = [...counts.keys()];
   const createdRecords = [...after.values()]
     .filter((block) => !before.has(block.id))

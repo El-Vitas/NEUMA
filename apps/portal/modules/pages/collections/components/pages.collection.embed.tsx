@@ -1,10 +1,14 @@
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
+import { EMPTY_PAGE_COLLECTION_LOOKUPS } from '../constants/pages.lookups.constants';
+import type { PageCollectionLookups } from '../types/pages.lookups.types';
 import type { PageSchema, PageSchemaProperty, PageSchemaView, PageViewOutcome } from '../types/pages.schema.types';
+import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provider';
 import { PagesCollectionView } from './pages.collection.view';
 
 interface IProps {
+  readonly lookups?: PageCollectionLookups;
   readonly outcome: PageViewOutcome | null;
   readonly properties: readonly PageSchemaProperty[];
   readonly schema: PageSchema;
@@ -14,7 +18,15 @@ interface IProps {
 }
 
 /** Read-only view of a collection inside another page; it omits the collection page's own heading. */
-export const PagesCollectionEmbed = async ({ outcome, properties, schema, spaceId, title, view }: IProps) => (
+export const PagesCollectionEmbed = async ({
+  lookups = EMPTY_PAGE_COLLECTION_LOOKUPS,
+  outcome,
+  properties,
+  schema,
+  spaceId,
+  title,
+  view,
+}: IProps) => (
   <section aria-label={title} className="my-4 space-y-3 border-border border-s ps-4">
     <div className="flex items-baseline gap-2">
       <Link
@@ -26,6 +38,8 @@ export const PagesCollectionEmbed = async ({ outcome, properties, schema, spaceI
       </Link>
       <span className="text-muted-foreground text-xs uppercase tracking-wide">{view.name}</span>
     </div>
-    {await PagesCollectionView({ canEdit: false, outcome, properties, schema, spaceId, view })}
+    <PagesCollectionLookupsProvider lookups={lookups}>
+      {await PagesCollectionView({ canEdit: false, outcome, properties, schema, spaceId, view })}
+    </PagesCollectionLookupsProvider>
   </section>
 );

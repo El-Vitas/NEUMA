@@ -57,10 +57,12 @@ export const BLOCK_TRANSACTION_MAX_ATTEMPTS = 3;
 export const BLOCK_TRANSACTION_RETRY_BACKOFF_MS = 25;
 
 export const BLOCK_COMMAND = {
+  addRelation: 'addRelation',
   applyText: 'applyText',
   listAfter: 'listAfter',
   listBefore: 'listBefore',
   listRemove: 'listRemove',
+  removeRelation: 'removeRelation',
   set: 'set',
   setPermission: 'setPermission',
   update: 'update',
@@ -74,6 +76,8 @@ export const BLOCK_COMMAND_VALUES = [
   BLOCK_COMMAND.listRemove,
   BLOCK_COMMAND.applyText,
   BLOCK_COMMAND.setPermission,
+  BLOCK_COMMAND.addRelation,
+  BLOCK_COMMAND.removeRelation,
 ] as const;
 
 /**

@@ -8,7 +8,7 @@ import type {
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -22,7 +22,14 @@ mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchPara
 const { PagesCollectionList } = await import('@/modules/pages/collections/components/pages.collection.list');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const personOptions: readonly PagePersonOption[] = [];
@@ -77,8 +84,8 @@ describe('PagesCollectionList', () => {
   it('says what each row holds besides its name', async () => {
     await drawList(ungrouped, false);
 
-    expect(screen.getByText('Todo')).toBeDefined();
-    expect(screen.getByText('Done')).toBeDefined();
+    expect(screen.getByText('todo')).toBeDefined();
+    expect(screen.getByText('done')).toBeDefined();
   });
 
   it('heads every group with its value and how many rows it carries', async () => {

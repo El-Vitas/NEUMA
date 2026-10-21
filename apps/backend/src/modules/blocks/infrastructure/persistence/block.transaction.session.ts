@@ -14,6 +14,7 @@ import type {
   BlockLoad,
   BlockPageColumns,
   BlockWrite,
+  CollectionFacts,
   LinkSourceRebind,
   SpaceRoots,
   StoredBlockLink,
@@ -26,6 +27,7 @@ import type {
   BlockTransactionResult,
   BlockTransactionSession,
 } from '../../types/block.transaction.types';
+import { toCollectionFacts } from './block.collection-facts.lib';
 import { toRecord } from './block.repository';
 
 /** Only the page columns the block carries: a block read without them must not erase what is stored. */
@@ -47,6 +49,36 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
     const stored = requireRow(await transactions.where({ id: transactionId }).first(), `Transaction ${transactionId}`);
     if (stored.userId !== userId) return { kind: 'taken' };
     return { kind: 'replayed', result: blockStoredResultSchema.parse(stored.result) };
+  }
+
+  async readCollectionFacts(collectionIds: readonly string[]): Promise<CollectionFacts> {
+    if (collectionIds.length === 0) return { relations: new Map(), rules: new Map() };
+    const properties = await this.transaction.orm.public.PageSchemaProperty.select(
+      'config',
+      'key',
+      'options',
+      'pageId',
+      'type',
+    )
+      .where((property) => property.pageId.in([...collectionIds]))
+      .orderBy((property) => property.order.asc())
+      .all();
+    return toCollectionFacts(properties);
+  }
+
+  /** The counter row is locked by the update until this transaction ends, so two rows never get the same number. */
+  async takeUniqueIds(collectionId: string, key: string, count: number): Promise<number> {
+    const { columns } = this.prisma.tables.PageSchemaProperty;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      UPDATE "PageSchemaProperty" SET "nextValue" = "nextValue" + ${count}
+      WHERE "pageId" = ${collectionId} AND "key" = ${key}
+      RETURNING "nextValue" - ${count} AS "firstValue"
+    `
+        .returnsRow({ firstValue: columns.nextValue })
+        .build(),
+    );
+    return requireRow(rows[0] ?? null, `Unique id counter ${collectionId}/${key}`).firstValue;
   }
 
   async lockTreeMoves(spaceId: string): Promise<void> {

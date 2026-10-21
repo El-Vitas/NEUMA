@@ -25,6 +25,13 @@ export const pagePropertyRequiresPersonDirectory = (type: PagePropertyType): boo
 export const canPagePropertyGroupBoard = (type: PagePropertyType): boolean =>
   getPagePropertyDefinition(type).capabilities.canGroupBoard;
 
+/** The server fills these: creation and edition data and the unique id. A client write is refused. */
+export const isPagePropertySystemManaged = (type: PagePropertyType): boolean =>
+  getPagePropertyDefinition(type).capabilities.isSystemManaged;
+
+export const canPagePropertyBeRequired = (type: PagePropertyType): boolean =>
+  getPagePropertyDefinition(type).capabilities.canBeRequired;
+
 export const getDefaultPagePropertyValue = (type: PagePropertyType, context: PagePropertyContext): PagePropertyValue =>
   getPagePropertyDefinition(type).getDefaultValue(context);
 
@@ -45,5 +52,8 @@ export const isPagePropertyValueEmpty = (type: PagePropertyType, value: PageProp
 export const getPagePropertyLogicalType = (type: PagePropertyType): PagePropertyLogicalType =>
   getPagePropertyDefinition(type).logicalType;
 
-export const formatPagePropertyValue = (type: PagePropertyType, value: PagePropertyValue | undefined): string =>
-  value === undefined ? '' : getPagePropertyDefinition(type).toDisplayString(value);
+export const formatPagePropertyValue = (
+  type: PagePropertyType,
+  value: PagePropertyValue | undefined,
+  context: PagePropertyContext,
+): string => (value === undefined ? '' : getPagePropertyDefinition(type).toDisplayString(value, context));

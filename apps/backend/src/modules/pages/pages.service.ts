@@ -12,6 +12,7 @@ import {
 import { Logger } from 'nestjs-pino';
 import { STORAGE_PROVIDER } from '../../common/constants/storage.constants';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../common/domain/schema.domain.types';
+import { withoutServerValues } from '../../common/domain/schema-property.domain';
 import type { IStorageProvider } from '../../common/types/storage.types';
 import { mapWithBoundedConcurrency } from '../../common/utils/concurrency.utils';
 import {
@@ -52,7 +53,9 @@ import type { PageExportScope } from './domain/page-export.domain.types';
 import { validatePageIcon } from './domain/page-icon.domain';
 import { extractMentionTargetPageIds, redactUnreadableMentions } from './domain/page-mention.domain';
 import {
+  checkValuesAreWritableHere,
   keepWhatThePageSchemaKnows,
+  listFileIds,
   mergePagePropertyValues,
   validatePageProperties,
 } from './domain/page-schema.domain';
@@ -181,6 +184,7 @@ export class PagesService {
       input.workspaceId,
       input.title,
       input.propertyValues,
+      { pageId: null, userId: input.userId },
     );
     if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
     const page = await this.pageRepository.create({
@@ -188,7 +192,12 @@ export class PagesService {
       content: givePageBlocksTheirIds(content.getValue(), randomUUID),
       propertyValues: propertyValues.getValue(),
     });
-    return page === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(page);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    await this.pageSchemaRepository.attachFilesToPage(
+      page.id,
+      listFileIds(await this.pageSchemaRepository.resolveSchemaProperties(input.parentId), input.propertyValues ?? {}),
+    );
+    return Result.ok(page);
   }
 
   /** Applies the rewrite to the document the page has now; the page keeps every block the rewrite leaves alone. */
@@ -285,6 +294,14 @@ export class PagesService {
     if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
 
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+    const writable = checkValuesAreWritableHere(schemaProperties, input.propertyValues);
+    if (writable.isFail()) return Result.fail(writable.getError());
+    const files = await this.checkFilesCanBeAttached(schemaProperties, input.propertyValues, {
+      pageId: input.pageId,
+      userId: input.updatedById,
+      workspaceId: input.workspaceId,
+    });
+    if (files.isFail()) return Result.fail(files.getError());
     const personIds = await this.resolvePersonIdsIfNeeded(schemaProperties, input.workspaceId);
     const title = input.title ?? existing.title;
     const page = await this.pageRepository.updatePropertyValues(
@@ -300,10 +317,17 @@ export class PagesService {
           schemaProperties,
           title,
           keepWhatThePageSchemaKnows(schemaProperties, mergePagePropertyValues(current, input.propertyValues)),
-          personIds,
+          { personIds, written: Object.keys(input.propertyValues) },
         ),
     );
-    return page ?? Result.fail(new PageAccessDeniedError());
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    if (page.isOk()) {
+      await this.pageSchemaRepository.attachFilesToPage(
+        input.pageId,
+        listFileIds(schemaProperties, input.propertyValues),
+      );
+    }
+    return page;
   }
 
   /** Cuts no version: renaming does not change content. */
@@ -653,15 +677,41 @@ export class PagesService {
     }
   }
 
+  /** A row is created or moved into a collection: every required property is asked for; relations are not written. */
   private async resolvePropertyValuesForWrite(
     parentId: null | string,
     workspaceId: string,
     title: string,
     propertyValues: Readonly<Record<string, unknown>> | null,
+    attaching: { readonly pageId: null | string; readonly userId: string } | null = null,
   ): Promise<Result<SchemaPropertyValues | null, PagePropertyValidationError>> {
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(parentId);
+    if (attaching !== null) {
+      const writable = checkValuesAreWritableHere(schemaProperties, propertyValues ?? {});
+      if (writable.isFail()) return Result.fail(writable.getError());
+      const files = await this.checkFilesCanBeAttached(schemaProperties, propertyValues ?? {}, {
+        ...attaching,
+        workspaceId,
+      });
+      if (files.isFail()) return Result.fail(files.getError());
+    }
     const personIds = await this.resolvePersonIdsIfNeeded(schemaProperties, workspaceId);
-    return validatePageProperties(schemaProperties, title, propertyValues, personIds);
+    const values = attaching === null ? withoutServerValues(schemaProperties, propertyValues) : propertyValues;
+    return validatePageProperties(schemaProperties, title, values, { personIds });
+  }
+
+  /** The files named must exist, be active and be the writer's or the row's already: an id alone grants nothing. */
+  private async checkFilesCanBeAttached(
+    schemaProperties: readonly SchemaPropertyDefinition[],
+    propertyValues: Readonly<Record<string, unknown>>,
+    scope: { readonly pageId: null | string; readonly userId: string; readonly workspaceId: string },
+  ): Promise<Result<void, PagePropertyValidationError>> {
+    const wanted = listFileIds(schemaProperties, propertyValues);
+    const usable = await this.pageSchemaRepository.findAttachableFileIds(wanted, scope);
+    const refused = wanted.find((fileId) => !usable.has(fileId));
+    return refused === undefined
+      ? Result.ok(undefined)
+      : Result.fail(new PagePropertyValidationError(`The file ${refused} cannot be attached`));
   }
 
   private async resolvePersonIdsIfNeeded(

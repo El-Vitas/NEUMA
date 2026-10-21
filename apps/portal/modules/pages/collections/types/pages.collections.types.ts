@@ -1,4 +1,10 @@
-import type { PagePropertyOption, PagePropertyType, PageViewType } from '@neuma/shared';
+import type {
+  PageOptionColor,
+  PagePropertyConfig,
+  PagePropertyType,
+  PageStatusGroup,
+  PageViewType,
+} from '@neuma/shared';
 
 export interface PageCollectionWording {
   readonly firstProperty: string;
@@ -6,11 +12,22 @@ export interface PageCollectionWording {
   readonly titleProperty: string;
 }
 
+/** A new option has no id yet, and the server gives it one. */
+export interface PageCollectionOption {
+  readonly color: PageOptionColor | null;
+  readonly group?: PageStatusGroup | null;
+  readonly id?: string | null;
+  readonly value: string;
+}
+
+/** What the collection is created or saved with. */
 export interface PageCollectionProperty {
+  readonly config?: PagePropertyConfig;
   readonly key: string;
   readonly label: string;
-  readonly options: readonly PagePropertyOption[] | null;
+  readonly options: readonly PageCollectionOption[] | null;
   readonly required: boolean;
+  readonly twoWay?: boolean;
   readonly type: PagePropertyType;
 }
 

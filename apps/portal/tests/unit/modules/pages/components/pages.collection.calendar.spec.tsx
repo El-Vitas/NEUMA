@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import type { PageRow, PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
+import { defaultConfig } from '../lib/pages.options.fixture';
 
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const created: { propertyValues: Record<string, unknown>; title: string }[] = [];
@@ -16,6 +17,8 @@ mock.module('@/i18n/navigation', () => ({
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction: async (input: {
     pageId: string;
     propertyValues: Record<string, unknown>;
@@ -35,7 +38,7 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 const { PagesCollectionCalendar } = await import('@/modules/pages/collections/components/pages.collection.calendar');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' },
+  { config: defaultConfig, key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' },
 ];
 
 const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [] };
@@ -45,7 +48,7 @@ const rowOn = (id: string, title: string, dueDate: null | string): PageRow => ({
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: 'collection-1',
-  propertyValues: dueDate === null ? {} : { dueDate },
+  propertyValues: dueDate === null ? {} : { dueDate: { start: dueDate } },
   spaceId: 'space-1',
   title,
 });
@@ -113,7 +116,11 @@ describe('PagesCollectionCalendar', () => {
     fireEvent.keyDown(screen.getAllByTestId('calendar-entry')[0] as HTMLElement, { altKey: true, key: 'ArrowRight' });
 
     await waitFor(() => expect(written).toHaveLength(1));
-    expect(written[0]).toEqual({ pageId: 'row-1', propertyValues: { dueDate: '2026-09-11' }, spaceId: 'space-1' });
+    expect(written[0]).toEqual({
+      pageId: 'row-1',
+      propertyValues: { dueDate: { start: '2026-09-11' } },
+      spaceId: 'space-1',
+    });
   });
 
   it('shows the entry on its new day before the server answers', () => {
@@ -136,7 +143,7 @@ describe('PagesCollectionCalendar', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
 
     await waitFor(() => expect(created).toHaveLength(1));
-    expect(created[0]?.propertyValues).toEqual({ dueDate: '2026-09-15' });
+    expect(created[0]?.propertyValues).toEqual({ dueDate: { start: '2026-09-15' } });
     expect(created[0]?.title).toBe('Preparar la demo');
   });
 

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { readPagePropertyConfig } from '@neuma/shared';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
@@ -26,10 +27,18 @@ export class PageSchemaController {
     const result = await this.pageSchemaService.defineSchema({
       pageId,
       properties: dto.properties.map((property) => ({
+        config: readPagePropertyConfig(property.config ?? null),
         key: property.key,
         label: property.label,
-        options: property.options?.map((option) => ({ color: option.color ?? null, value: option.value })) ?? null,
+        options:
+          property.options?.map((option) => ({
+            color: option.color ?? null,
+            group: option.group ?? null,
+            id: option.id ?? null,
+            value: option.value,
+          })) ?? null,
         required: property.required,
+        twoWay: property.twoWay ?? false,
         type: property.type,
       })),
       role: payload.role,
@@ -57,7 +66,7 @@ export class PageSchemaController {
   ) {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.rewriteOption({
-      from: dto.from,
+      optionId: dto.optionId,
       pageId,
       propertyKey,
       role: payload.role,
@@ -114,9 +123,9 @@ export class PageSchemaController {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.listRows(pageId, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
-    const { hasMore, rows } = this.assertSpaceMatch(result.getValue(), spaceId);
+    const { attachedFiles, hasMore, relatedRows, rows } = this.assertSpaceMatch(result.getValue(), spaceId);
     // hasMore keeps a truncated list from being read as the whole collection.
-    return { hasMore, rows };
+    return { attachedFiles, hasMore, relatedRows, rows };
   }
 
   @Get('views/:viewName')
@@ -130,8 +139,11 @@ export class PageSchemaController {
     const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
     const result = await this.pageSchemaService.getView(pageId, viewName, workspace.id, payload.sub, payload.role);
     if (result.isFail()) throw result.getError();
-    const { hasMore, outcome, rowCount, totalRowCount } = this.assertSpaceMatch(result.getValue(), spaceId);
-    return { hasMore, outcome, rowCount, totalRowCount };
+    const { attachedFiles, hasMore, outcome, relatedRows, rowCount, totalRowCount } = this.assertSpaceMatch(
+      result.getValue(),
+      spaceId,
+    );
+    return { attachedFiles, hasMore, outcome, relatedRows, rowCount, totalRowCount };
   }
 
   private assertSpaceMatch<TValue extends { readonly spaceId: string }>(value: TValue, spaceId: string): TValue {

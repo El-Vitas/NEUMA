@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import type { PageRow, PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 const written: { pageId: string; propertyValues: Record<string, unknown> }[] = [];
 const trashed: string[] = [];
@@ -20,6 +20,8 @@ mock.module('@/i18n/navigation', () => ({
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction: async (input: { pageId: string; propertyValues: Record<string, unknown> }) => {
     written.push(input);
     return { data: null };
@@ -47,7 +49,14 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 const { PagesCollectionTable } = await import('@/modules/pages/collections/components/pages.collection.table');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const rowOf = (id: string, title: string, status: string): PageRow => ({

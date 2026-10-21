@@ -94,6 +94,14 @@ export const blockListBeforeArgsSchema = z.object({ before: blockIdSchema.option
 
 export const blockListRemoveArgsSchema = z.object({ id: blockIdSchema }).strict();
 
+export const blockAddRelationArgsSchema = z
+  .object({ after: blockIdSchema.optional(), property: blockPropertyKeySchema, targetId: blockIdSchema })
+  .strict();
+
+export const blockRemoveRelationArgsSchema = z
+  .object({ property: blockPropertyKeySchema, targetId: blockIdSchema })
+  .strict();
+
 export const blockApplyTextArgsSchema = z
   .object({
     property: blockPropertyKeySchema,

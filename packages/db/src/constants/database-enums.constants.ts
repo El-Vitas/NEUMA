@@ -18,6 +18,17 @@ export const DatabasePropertyType = {
   DATE: 'DATE',
   CHECKBOX: 'CHECKBOX',
   NUMBER: 'NUMBER',
+  STATUS: 'STATUS',
+  RELATION: 'RELATION',
+  URL: 'URL',
+  EMAIL: 'EMAIL',
+  PHONE: 'PHONE',
+  FILES: 'FILES',
+  CREATED_TIME: 'CREATED_TIME',
+  EDITED_TIME: 'EDITED_TIME',
+  CREATED_BY: 'CREATED_BY',
+  EDITED_BY: 'EDITED_BY',
+  UNIQUE_ID: 'UNIQUE_ID',
 } as const;
 export type DatabasePropertyType = ValueOf<typeof DatabasePropertyType>;
 

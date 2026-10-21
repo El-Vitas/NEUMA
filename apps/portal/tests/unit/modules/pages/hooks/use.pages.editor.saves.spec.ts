@@ -23,6 +23,8 @@ const renamePageAction = mock((input: { title: string }) => {
 
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({ renamePageAction }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction: mock(() => Promise.resolve({ data: {} })),
 }));
 
@@ -73,6 +75,32 @@ describe('lo que se escribe mientras un guardado va en camino', () => {
     await second;
 
     expect(sentTitles).toEqual(['A', 'AB']);
+  });
+
+  it('sends an emptied property as a removal, since an empty text is an answer and a date cannot be one', async () => {
+    const { updatePageRowPropertiesAction } = await import(
+      '@/modules/pages/collections/server/actions/pages.collections.actions'
+    );
+    const { result } = renderHook(() =>
+      usePagesEditorSaves({
+        hasEditableProperties: true,
+        pageId: 'page-a',
+        readPropertyValues: () => ({}),
+        readTitle: () => 'A',
+        spaceId: 'space-a',
+        storedPropertyValues: {},
+      }),
+    );
+
+    result.current.markPropertyChanged('due', '');
+    result.current.markPropertyChanged('note', 'text');
+    await result.current.saveWhatIsPending();
+
+    expect(updatePageRowPropertiesAction).toHaveBeenCalledWith({
+      pageId: 'page-a',
+      propertyValues: { due: null, note: 'text' },
+      spaceId: 'space-a',
+    });
   });
 
   it('sends nothing again once everything arrived', async () => {

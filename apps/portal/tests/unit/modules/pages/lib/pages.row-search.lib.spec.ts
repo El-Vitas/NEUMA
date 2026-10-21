@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'bun:test';
 import { buildRowSearchText, rowMatchesQuery } from '@/modules/pages/collections/lib/pages.row-search.lib';
 import type { PageRow, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const properties: PageSchemaProperty[] = [
-  { key: 'description', label: 'Description', options: null, required: false, type: 'RICH_TEXT' },
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: false, type: 'SELECT' },
-  { key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' },
+  {
+    config: defaultConfig,
+    key: 'description',
+    label: 'Description',
+    options: null,
+    required: false,
+    type: 'RICH_TEXT',
+  },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: false,
+    type: 'SELECT',
+  },
+  { config: defaultConfig, key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' },
 ];
 
 const row: PageRow = {
@@ -14,7 +28,11 @@ const row: PageRow = {
   lifecycle: 'ACTIVE',
   order: 0,
   parentId: 'collection-1',
-  propertyValues: { description: 'Preparar la reunión con Dirección', dueDate: '2026-08-14', status: 'todo' },
+  propertyValues: {
+    description: 'Preparar la reunión con Dirección',
+    dueDate: { start: '2026-08-14' },
+    status: 'todo',
+  },
   spaceId: 'space-1',
   title: 'Revisar el informe',
 };

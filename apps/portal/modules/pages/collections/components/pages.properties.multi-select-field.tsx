@@ -1,10 +1,9 @@
 'use client';
 
-import { humanizeSelectOption } from '@neuma/shared';
-import { cn } from '@/lib/utils';
 import { Checkbox } from '@/shared/components/ui/checkbox';
-import { readPageOptionColorClass } from '../lib/pages.option-color.lib';
+import { listPropertyOptions } from '../lib/pages.option-groups.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
+import { PagesPropertiesOptionChip } from './pages.properties.option-chip';
 
 interface IProps {
   readonly ariaLabelledBy: string;
@@ -23,31 +22,27 @@ export const PagesPropertiesMultiSelectField = ({
   property,
   value,
 }: IProps) => {
-  const selectedValues = new Set(value);
+  const selectedIds = new Set(value);
 
   return (
     <fieldset aria-labelledby={ariaLabelledBy} className="m-0 flex flex-col gap-1 border-0 p-0">
-      {(property.options ?? []).map((option) => {
-        const optionId = `${fieldId}-${option.value}`;
+      {listPropertyOptions(property).map((option) => {
+        const checkboxId = `${fieldId}-${option.id}`;
         return (
           <label
             className="flex min-h-11 cursor-pointer items-center gap-2 text-foreground text-sm"
-            htmlFor={optionId}
-            key={option.value}
+            htmlFor={checkboxId}
+            key={option.id}
           >
             <Checkbox
-              checked={selectedValues.has(option.value)}
+              checked={selectedIds.has(option.id)}
               disabled={disabled}
-              id={optionId}
+              id={checkboxId}
               onCheckedChange={(checked) =>
-                onChange(
-                  checked === true ? [...value, option.value] : value.filter((current) => current !== option.value),
-                )
+                onChange(checked === true ? [...value, option.id] : value.filter((current) => current !== option.id))
               }
             />
-            <span className={cn('rounded-sm px-2 py-0.5', readPageOptionColorClass(option.color))}>
-              {humanizeSelectOption(option.value)}
-            </span>
+            <PagesPropertiesOptionChip option={option} />
           </label>
         );
       })}

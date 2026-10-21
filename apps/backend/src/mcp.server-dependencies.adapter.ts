@@ -3,20 +3,23 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Result } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
+import { BLOCK_WRITER } from './common/constants/block-writer.constants';
 import { PORTAL_URL_KEY } from './common/constants/env.constants';
 import type { DomainError } from './common/domain/domain.error';
 import { AccessTokenPlaceRepository } from './common/infrastructure/persistence/access-token-place.repository';
 import { WorkspaceMemberRepository } from './common/infrastructure/persistence/workspace-member.repository';
+import type { BlockWriter } from './common/types/block-writer.types';
 import { CommentsService } from './modules/comments/comments.service';
+import { FilesService } from './modules/files/files.service';
 import { LinksService } from './modules/links/links.service';
 import { MCP_PRINCIPAL_RESOLVER } from './modules/mcp/constants/mcp.constants';
 import { McpDrawingValidatorAdapter } from './modules/mcp/infrastructure/adapters/mcp.drawing.validator';
 import { McpActionRepository } from './modules/mcp/infrastructure/persistence/mcp.action.repository';
 import { createMcpObserver } from './modules/mcp/lib/mcp.observer.lib';
-import type { McpRefusal, McpRowWriter } from './modules/mcp/types/mcp.collections.types';
+import type { McpCollectionService, McpRefusal, McpRowWriter } from './modules/mcp/types/mcp.collections.types';
 import type { McpDiscussions } from './modules/mcp/types/mcp.discussions.types';
 import type { McpPageManager } from './modules/mcp/types/mcp.page-management.types';
-import type { McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
+import type { McpFileUploader, McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
 import { PageContentService } from './modules/pages/page.content.service';
 import { PageOutlineService } from './modules/pages/page.outline.service';
 import { PageSchemaService } from './modules/pages/page-schema.service';
@@ -36,10 +39,12 @@ export class McpServerDependenciesAdapter {
   constructor(
     private readonly actionLog: McpActionRepository,
     private readonly drawings: McpDrawingValidatorAdapter,
+    @Inject(BLOCK_WRITER) private readonly blockWriter: BlockWriter,
     private readonly pagesService: PagesService,
     private readonly collections: PageSchemaService,
     private readonly commentsService: CommentsService,
     private readonly content: PageContentService,
+    private readonly filesService: FilesService,
     private readonly outline: PageOutlineService,
     private readonly backlinks: LinksService,
     private readonly people: WorkspaceMemberRepository,
@@ -56,10 +61,11 @@ export class McpServerDependenciesAdapter {
     return {
       actionLog: this.actionLog,
       backlinks: this.backlinks,
-      collections: this.collections,
+      collections: this.buildCollections(),
       content: this.content,
       discussions: this.buildDiscussions(),
       drawings: this.drawings,
+      files: this.buildFileUploader(),
       observer: createMcpObserver(this.logger),
       outline: this.outline,
       pages: this.buildPageManager(),
@@ -72,6 +78,35 @@ export class McpServerDependenciesAdapter {
       searchService: this.searchService,
       spacesService: this.spacesService,
       workspacesService: this.workspacesService,
+    };
+  }
+
+  /** The portal's upload, so an agent's file is held to the same size, type, name and page access as a person's. */
+  private buildFileUploader(): McpFileUploader {
+    const { filesService } = this;
+    return {
+      upload: async (input) => {
+        const stored = toMcpResult(await filesService.create(input));
+        if (stored.isFail()) return Result.fail(stored.getError());
+        const { id, mimeType, originalFilename, size } = stored.getValue();
+        return Result.ok({ id, mimeType, originalFilename, size });
+      },
+    };
+  }
+
+  /** A relation asks for its way back only when it is being added; the columns already there never do. */
+  private buildCollections(): McpCollectionService {
+    const { collections } = this;
+    return {
+      defineSchema: ({ properties, ...input }) =>
+        collections.defineSchema({
+          ...input,
+          properties: properties.map((column) => ({ ...column, twoWay: column.twoWay === true })),
+        }),
+      getSchema: (pageId, workspaceId, userId, role) => collections.getSchema(pageId, workspaceId, userId, role),
+      queryRows: (input) => collections.queryRows(input),
+      rewriteOption: (input) => collections.rewriteOption(input),
+      setViewConfiguration: (input) => collections.setViewConfiguration(input),
     };
   }
 
@@ -124,6 +159,29 @@ export class McpServerDependenciesAdapter {
   private buildRowWriter(): McpRowWriter {
     const { pagesService } = this;
     return {
+      changeRelations: async ({ changes, role, rowId, spaceId, userId, workspaceId }) => {
+        const response = await this.blockWriter.applyTrusted(
+          [
+            {
+              id: randomUUID(),
+              operations: changes.map((change) => ({
+                args: { property: change.propertyKey, targetId: change.targetId },
+                command: change.kind === 'ADD' ? 'addRelation' : 'removeRelation',
+                path: [],
+                pointer: { id: rowId, table: 'block' },
+              })),
+              spaceId,
+            },
+          ],
+          { role, userId, workspaceId },
+        );
+        const failure = response.transactions
+          .map((outcome) => ('error' in outcome ? outcome.error : null))
+          .find(Boolean);
+        return failure === undefined || failure === null
+          ? Result.ok(true)
+          : Result.fail({ code: failure.code, details: failure.message });
+      },
       create: (input) => pagesService.create({ ...input, createdById: input.userId }, input.role),
       rename: (pageId, title, userId, workspaceId, role) =>
         pagesService.rename(pageId, title, userId, workspaceId, role),

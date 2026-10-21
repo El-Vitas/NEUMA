@@ -21,7 +21,13 @@ import type {
   McpUpdateViewInput,
   McpView,
 } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+import type {
+  McpAssignablePerson,
+  McpCall,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
 const asksForAnyChange = (input: McpUpdateViewInput): boolean =>
   [input.groupBy, input.makeDefault, input.name, input.sort, input.visibleColumns, input.where].some(
@@ -57,7 +63,7 @@ const changeView = (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
   input: McpUpdateViewInput,
 ): Promise<McpOpenCollection> => {
   const { properties, views } = collection.shape;

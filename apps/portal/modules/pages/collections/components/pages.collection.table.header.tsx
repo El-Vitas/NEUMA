@@ -7,6 +7,7 @@ import { Table, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { usePagesTableColumns } from '../hooks/use.pages.table-columns';
 import {
   listTableColumnKeys,
+  readColumnLabel,
   readTableColumnLabelId,
   readTableColumnOffsets,
   readTableColumnWidth,
@@ -106,7 +107,7 @@ export const PagesCollectionTableHeader = ({
                   label={
                     columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY
                       ? titleLabel
-                      : (properties[position - 1]?.label ?? columnKey)
+                      : readColumnLabel(properties[position - 1], columnKey)
                   }
                   leading={
                     canEdit && columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY ? (

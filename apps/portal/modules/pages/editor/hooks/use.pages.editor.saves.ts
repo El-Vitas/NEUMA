@@ -10,6 +10,10 @@ import type { PagesEditorSaves, PagesEditorSavesOptions } from '../types/pages.e
 /** A request that never reached the server counts as not arrived, like one the server refused. */
 const didArrive = async (send: () => Promise<unknown>): Promise<boolean> => !hasActionError(await callAction(send));
 
+/** An emptied field is sent as a removal: the server reads an empty text as an answer, and a date cannot be one. */
+const withEmptiesAsRemovals = (values: PagePropertyValues): Record<string, PagePropertyValue | null> =>
+  Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value === '' ? null : value]));
+
 /**
  * Content travels through the block channel, not from here. Title and each property travel separately,
  * so one property's change is never sent back stale. A part that fails stays pending for the next save.
@@ -36,7 +40,11 @@ export const usePagesEditorSaves = (options: PagesEditorSavesOptions): PagesEdit
     if (Object.keys(changed).length === 0) return true;
     pendingPropertyValuesRef.current = {};
     const arrived = await didArrive(() =>
-      updatePageRowPropertiesAction({ pageId: options.pageId, propertyValues: changed, spaceId: options.spaceId }),
+      updatePageRowPropertiesAction({
+        pageId: options.pageId,
+        propertyValues: withEmptiesAsRemovals(changed),
+        spaceId: options.spaceId,
+      }),
     );
     if (!arrived) {
       pendingPropertyValuesRef.current = { ...changed, ...pendingPropertyValuesRef.current };

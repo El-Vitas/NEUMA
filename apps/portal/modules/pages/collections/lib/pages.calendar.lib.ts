@@ -1,5 +1,11 @@
-import type { PageCalendarDay } from '@neuma/shared';
-import { listPageCalendarDays, PAGE_PROPERTY_TYPE, readPageCalendarMonth, shiftPageCalendarMonth } from '@neuma/shared';
+import type { PageCalendarDay, PageDateValue } from '@neuma/shared';
+import {
+  isPageDateValue,
+  listPageCalendarDays,
+  PAGE_PROPERTY_TYPE,
+  readPageCalendarMonth,
+  shiftPageCalendarMonth,
+} from '@neuma/shared';
 import { PAGE_CALENDAR_DATE_LENGTH, PAGE_CALENDAR_MONTH_LENGTH } from '../constants/pages.calendar.constants';
 import type { PageCalendarCell } from '../types/pages.calendar.types';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
@@ -7,11 +13,15 @@ import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
 export const listDatePropertyKeys = (properties: readonly PageSchemaProperty[]): readonly string[] =>
   properties.filter((property) => property.type === PAGE_PROPERTY_TYPE.DATE).map((property) => property.key);
 
-/** Drops the time: the calendar places rows by day only. */
-export const readRowDate = (row: PageRow, dateProperty: string): null | string => {
+export const readRowDateValue = (row: PageRow, dateProperty: string): null | PageDateValue => {
   const value = row.propertyValues?.[dateProperty];
-  if (typeof value !== 'string' || value === '') return null;
-  return value.slice(0, PAGE_CALENDAR_DATE_LENGTH);
+  return value !== undefined && isPageDateValue(value) ? value : null;
+};
+
+/** Drops the time and the end: the calendar places a row on the day it starts. */
+export const readRowDate = (row: PageRow, dateProperty: string): null | string => {
+  const value = readRowDateValue(row, dateProperty);
+  return value === null ? null : value.start.slice(0, PAGE_CALENDAR_DATE_LENGTH);
 };
 
 /** Defaults to the month of the first dated row, then today, so the grid does not open empty. */

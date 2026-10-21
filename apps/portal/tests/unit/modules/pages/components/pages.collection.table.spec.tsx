@@ -11,7 +11,7 @@ import type {
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const saved: { configuration: Record<string, unknown>; viewName: string }[] = [];
@@ -35,6 +35,8 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   trashPageAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction: async (input: {
     pageId: string;
     propertyValues: Record<string, unknown>;
@@ -60,7 +62,14 @@ const renderWithMessages = (ui: ReactNode) =>
   );
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const rows: PageRow[] = [
@@ -139,7 +148,7 @@ describe('PagesCollectionTable', () => {
   it('says which column a cell answers by its header, instead of repeating the name on every row', async () => {
     renderWithMessages(await drawTable(true));
 
-    expect(screen.getByRole('columnheader', { name: 'Status' }).id).toBe('collection-column-collection-1-status');
+    expect(screen.getByRole('columnheader', { name: 'Status *' }).id).toBe('collection-column-collection-1-status');
   });
 
   it('sends only the property that was answered, and leaves the rest of the row alone', async () => {
@@ -147,8 +156,8 @@ describe('PagesCollectionTable', () => {
     renderWithMessages(await drawTable(true));
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit Status' })[1]);
-    fireEvent.click(screen.getByRole('combobox', { name: 'Status' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Done' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Status *' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'done' }));
 
     await waitFor(() => expect(written).toHaveLength(1));
     expect(written[0]).toEqual({ pageId: 'row-1', propertyValues: { status: 'done' }, spaceId: 'space-1' });
@@ -169,7 +178,7 @@ describe('PagesCollectionTable', () => {
     saved.length = 0;
     renderWithMessages(await drawTable(true));
 
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Width of the Status column' }), {
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Width of the Status * column' }), {
       altKey: true,
       key: 'ArrowRight',
     });

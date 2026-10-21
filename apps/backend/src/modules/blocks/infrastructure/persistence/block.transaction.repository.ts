@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { Injectable } from '@nestjs/common';
-import { isRetryableTransactionFailure } from '@neuma/db';
+import { isRetryableTransactionFailure, type NeumaTransaction } from '@neuma/db';
 import { Result } from '@neuma/shared';
 import type { DomainError } from '../../../../common/domain/domain.error';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -37,6 +37,17 @@ export class BlockTransactionRepository implements BlockTransactionRepositoryCon
         await sleep(BLOCK_TRANSACTION_RETRY_BACKOFF_MS * attempt);
       }
     }
+  }
+
+  /**
+   * Runs the work inside a transaction the caller already holds, so what it writes commits or rolls back with the
+   * caller's. It cannot be retried here: the caller owns the whole transaction and must roll it back on a failure.
+   */
+  runWithin<Value>(
+    transaction: NeumaTransaction,
+    work: (session: BlockTransactionSession) => Promise<Result<Value, DomainError>>,
+  ): Promise<Result<Value, DomainError>> {
+    return work(new PostgresBlockTransactionSession(this.prisma, transaction));
   }
 
   private async runOnce<Value>(

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, setSystemTime, test } from 'bun:
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import {
   ACCESS_TOKEN_PERMISSIONS,
+  DEFAULT_PAGE_PROPERTY_CONFIG,
   type DiscussionView,
   type PagePropertyType,
   Result,
@@ -209,17 +210,20 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
   content: { edit: notUsedHere },
   discussions: createDiscussions([]),
   drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
+  files: { upload: notUsedHere },
   pages: createUnusedPageManager(),
   observer: { callFinished: () => undefined, unexpected: () => undefined },
   outline,
   pagesService: {
     getAccessible: (pageId) => Promise.resolve(createPageReadResult(pageId === PAGE ? page : null)),
   },
-  people: { listAssignableMembers: () => Promise.resolve([{ id: 'u-1', name: 'Ana Pérez' }]) },
+  people: {
+    listAssignableMembers: () => Promise.resolve([{ email: 'ana@example.com', id: 'u-1', name: 'Ana Pérez' }]),
+  },
   placeReader,
   portalUrl: PORTAL,
   principalResolver: { resolve: () => Promise.resolve(resolvedPrincipal) },
-  rows: { create: notUsedHere, rename: notUsedHere, updateProperties: notUsedHere },
+  rows: { changeRelations: notUsedHere, create: notUsedHere, rename: notUsedHere, updateProperties: notUsedHere },
   searchService: {
     locateBlock: (blockId) => Promise.resolve(blockId === BLOCK ? [PAGE] : []),
     search: () => Promise.resolve(pageHits),
@@ -231,10 +235,16 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
 
 const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
 
-const column = (key: string, label: string, type: PagePropertyType): McpColumn => ({
+const column = (
+  key: string,
+  label: string,
+  type: PagePropertyType,
+  options: readonly string[] | null = null,
+): McpColumn => ({
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key,
   label,
-  options: null,
+  options: options?.map((value, index) => ({ color: null, group: null, id: `${key}-${String(index)}`, value })) ?? null,
   required: false,
   type,
 });
@@ -697,14 +707,14 @@ describe('MCP fetch — whether a page can be trusted', () => {
 
 describe('MCP fetch — rows, comments and long pages', () => {
   test('gives a row its properties, named by the columns of its collection, empty ones included', async () => {
-    const row = { ...page, parentId: MISSING, propertyValues: { status: 'En curso', tags: ['a', 'b'] } };
+    const row = { ...page, parentId: MISSING, propertyValues: { status: 'status-0', tags: ['tags-0', 'tags-1'] } };
     const result = await fetchAddress(
       PAGE,
       servingPage(row, {
         collections: collectionWith([
-          column('status', 'Estado', 'SELECT'),
+          column('status', 'Estado', 'SELECT', ['En curso']),
           column('owner', 'Responsable', 'RICH_TEXT'),
-          column('tags', 'Etiquetas', 'MULTI_SELECT'),
+          column('tags', 'Etiquetas', 'MULTI_SELECT', ['a', 'b']),
         ]),
       }),
     );
@@ -723,7 +733,7 @@ describe('MCP fetch — rows, comments and long pages', () => {
   });
 
   test('names the person a row is assigned to, not just their id', async () => {
-    const row = { ...page, parentId: MISSING, propertyValues: { assignee: 'u-1' } };
+    const row = { ...page, parentId: MISSING, propertyValues: { assignee: ['u-1'] } };
     const result = await fetchAddress(
       PAGE,
       servingPage(row, {
@@ -945,15 +955,15 @@ describe('MCP list_pages', () => {
       childCount: 0,
       id: `task-${String(at)}`,
       isCollection: false,
-      propertyValues: { assignee: 'u-1', status },
+      propertyValues: { assignee: ['u-1'], status },
       title: `Tarea ${String(at)}`,
     });
     const client = await connectClient({
       ...createDependencies(),
-      outline: { ...outline, listChildren: childrenOf([task(1, 'todo'), task(2, 'done')]) },
+      outline: { ...outline, listChildren: childrenOf([task(1, 'status-0'), task(2, 'status-1')]) },
       collections: collectionWith([
         column('title', 'Título', 'TITLE'),
-        column('status', 'Estado', 'SELECT'),
+        column('status', 'Estado', 'SELECT', ['todo', 'done']),
         column('assignee', 'Asignada a', 'PERSON'),
       ]),
     });

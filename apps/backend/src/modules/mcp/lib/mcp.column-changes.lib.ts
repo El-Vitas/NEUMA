@@ -1,33 +1,68 @@
 import { DatabasePropertyType } from '@neuma/db';
-import { buildPagePropertyKey, pickPageOptionColor, Result } from '@neuma/shared';
+import {
+  buildPagePropertyKey,
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  PAGE_NUMBER_FORMAT,
+  PAGE_STATUS_GROUP,
+  pagePropertyRequiresOptions,
+  pickPageOptionColor,
+  Result,
+} from '@neuma/shared';
 import type {
-  McpColumn,
   McpColumnChanges,
   McpColumnChangesPlan,
+  McpColumnDraft,
   McpColumnStep,
   McpColumnsInHand,
   McpNameLister,
+  McpNewColumn,
   McpOptionRewrite,
 } from '../types/mcp.collections.types';
 import {
+  findMcpOption,
   hideMcpNames,
   listMcpOptionNames,
-  pickMcpOption,
   requireMcpColumn,
   sayMcpRefusalWithNames,
 } from './mcp.columns.lib';
 
+/** Options added by a request have no id: the server gives them one when the collection is saved. */
 const withColors = (values: readonly string[], firstIndex: number) =>
-  values.map((value, at) => ({ color: pickPageOptionColor(firstIndex + at), value }));
+  values.map((value, at) => ({ color: pickPageOptionColor(firstIndex + at), group: null, id: null, value }));
+
+const toNewColumnConfig = (column: McpNewColumn) => ({
+  ...DEFAULT_PAGE_PROPERTY_CONFIG,
+  allowsMultiple: column.multiple ?? false,
+  currency: column.currency ?? null,
+  decimals: column.decimals ?? null,
+  numberFormat: column.numberFormat ?? PAGE_NUMBER_FORMAT.NUMBER,
+  prefix: column.prefix ?? '',
+  targetCollectionId: column.target ?? null,
+});
+
+/** A status brings its own options, one in each group, so the ones an agent names are not read for it. */
+const toNewColumnOptions = (column: McpNewColumn) => {
+  if (column.type === DatabasePropertyType.STATUS || !pagePropertyRequiresOptions(column.type)) {
+    return column.options !== undefined && column.type !== DatabasePropertyType.STATUS
+      ? withColors(column.options, 0)
+      : null;
+  }
+  return withColors(column.options ?? [], 0);
+};
 
 const addColumns: McpColumnStep = (columns, changes) => {
   const added = [...columns];
   for (const column of changes.addColumns ?? []) {
+    if (column.type === DatabasePropertyType.RELATION && column.target === undefined) {
+      return Result.fail(`${column.name} is a relation: say which collection it links with target.`);
+    }
     added.push({
+      config: toNewColumnConfig(column),
       key: buildPagePropertyKey(column.name, added),
       label: column.name,
-      options: column.options === undefined ? null : withColors(column.options, 0),
+      options: toNewColumnOptions(column),
       required: false,
+      ...(column.type === DatabasePropertyType.RELATION ? { twoWay: column.twoWay === true } : {}),
       type: column.type,
     });
   }
@@ -57,18 +92,24 @@ const removeColumns: McpColumnStep = (columns, changes, listNames) => {
   return Result.ok(kept);
 };
 
-const sayOptionTaken = (column: McpColumn, taken: string, listNames: McpNameLister): string =>
+const sayOptionTaken = (column: McpColumnDraft, taken: string, listNames: McpNameLister): string =>
   sayMcpRefusalWithNames(`${column.label} already has "${taken}".`, 'options', listMcpOptionNames(column), listNames);
 
+/** An option an agent adds to a status goes to the group of what has not begun, like the portal's first option. */
+const withGroupFor = (column: McpColumnDraft, values: readonly string[], firstIndex: number) =>
+  withColors(values, firstIndex).map((option) =>
+    column.type === DatabasePropertyType.STATUS ? { ...option, group: PAGE_STATUS_GROUP.TO_DO } : option,
+  );
+
 const addOptionsTo = (
-  column: McpColumn,
+  column: McpColumnDraft,
   values: readonly string[],
   listNames: McpNameLister,
-): Result<McpColumn, string> => {
-  const taken = values.find((value) => pickMcpOption(column, value, listNames).isOk());
+): Result<McpColumnDraft, string> => {
+  const taken = values.find((value) => findMcpOption(column, value, listNames).isOk());
   if (taken !== undefined) return Result.fail(sayOptionTaken(column, taken, listNames));
   const current = column.options ?? [];
-  return Result.ok({ ...column, options: [...current, ...withColors(values, current.length)] });
+  return Result.ok({ ...column, options: [...current, ...withGroupFor(column, values, current.length)] });
 };
 
 const addOptions: McpColumnStep = (columns, changes, listNames) => {
@@ -85,10 +126,11 @@ const addOptions: McpColumnStep = (columns, changes, listNames) => {
   return Result.ok(changed);
 };
 
-const findCollidingOption = (column: McpColumn, from: string, to: string | null): string | null => {
+/** The name another option already answers to, when the new name is taken by an option other than this one. */
+const findCollidingOption = (column: McpColumnDraft, optionId: string | null, to: string | null): string | null => {
   if (to === null) return null;
-  const existing = pickMcpOption(column, to, hideMcpNames);
-  return existing.isOk() && existing.getValue() !== from ? existing.getValue() : null;
+  const existing = findMcpOption(column, to, hideMcpNames);
+  return existing.isOk() && existing.getValue().id !== optionId ? existing.getValue().value : null;
 };
 
 const planRewrite = (
@@ -99,30 +141,33 @@ const planRewrite = (
 ): Result<McpOptionRewrite, string> => {
   const column = requireMcpColumn(known.columns, reference, known.listNames);
   if (column.isFail()) return Result.fail(column.getError());
-  const option = pickMcpOption(column.getValue(), from, known.listNames);
+  const option = findMcpOption(column.getValue(), from, known.listNames);
   if (option.isFail()) return Result.fail(option.getError());
-  const colliding = findCollidingOption(column.getValue(), option.getValue(), to);
+  const { id, value } = option.getValue();
+  if (id === null)
+    return Result.fail(`${column.getValue().label}: "${from}" was just added. Save the collection first.`);
+  const colliding = findCollidingOption(column.getValue(), id, to);
   if (colliding !== null) return Result.fail(sayOptionTaken(column.getValue(), colliding, known.listNames));
-  return Result.ok({ from: option.getValue(), propertyKey: column.getValue().key, to });
+  return Result.ok({ from: value, optionId: id, propertyKey: column.getValue().key, to });
 };
 
-const rewriteOptionInShape = (columns: readonly McpColumn[], rewrite: McpOptionRewrite): McpColumn[] =>
+const rewriteOptionInShape = (columns: readonly McpColumnDraft[], rewrite: McpOptionRewrite): McpColumnDraft[] =>
   columns.map((column) => {
     if (column.key !== rewrite.propertyKey) return column;
     const options = column.options ?? [];
-    if (rewrite.to === null) return { ...column, options: options.filter((option) => option.value !== rewrite.from) };
+    if (rewrite.to === null) return { ...column, options: options.filter((option) => option.id !== rewrite.optionId) };
     const renamed = rewrite.to;
     return {
       ...column,
-      options: options.map((option) => (option.value === rewrite.from ? { ...option, value: renamed } : option)),
+      options: options.map((option) => (option.id === rewrite.optionId ? { ...option, value: renamed } : option)),
     };
   });
 
 const findRewriteOfRemovedColumn = (
   rewrites: readonly McpOptionRewrite[],
-  original: readonly McpColumn[],
-  final: readonly McpColumn[],
-): McpColumn | null => {
+  original: readonly McpColumnDraft[],
+  final: readonly McpColumnDraft[],
+): McpColumnDraft | null => {
   const removed = rewrites.find((rewrite) => !final.some((column) => column.key === rewrite.propertyKey));
   return original.find((column) => column.key === removed?.propertyKey) ?? null;
 };
@@ -140,11 +185,11 @@ const planOptionRewrites = (known: McpColumnsInHand, changes: McpColumnChanges):
 
 /** Each step starts from the columns the previous one left; the first failure stops the chain. */
 const applyColumnSteps = (
-  columns: readonly McpColumn[],
+  columns: readonly McpColumnDraft[],
   changes: McpColumnChanges,
   listNames: McpNameLister,
-): Result<McpColumn[], string> =>
-  [addColumns, renameColumns, removeColumns, addOptions].reduce<Result<McpColumn[], string>>(
+): Result<McpColumnDraft[], string> =>
+  [addColumns, renameColumns, removeColumns, addOptions].reduce<Result<McpColumnDraft[], string>>(
     (current, step) => (current.isFail() ? current : step(current.getValue(), changes, listNames)),
     Result.ok([...columns]),
   );

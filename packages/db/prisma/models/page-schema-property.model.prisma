@@ -1,14 +1,18 @@
 // use prisma-8
 model PageSchemaProperty {
-  id       String                        @id(map: "PageSchemaProperty_pkey") @default(uuid(7))
-  pageId   String
-  key      String
-  label    String
-  type     pg.enum(DatabasePropertyType)
-  required Boolean                       @default(false)
-  options  Jsonb?
-  order    Int                           @default(0)
-  page     Block                         @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageSchemaProperty_pageId_fkey", index: "PageSchemaProperty_pageId_key_key")
+  id        String                        @id(map: "PageSchemaProperty_pkey") @default(uuid(7))
+  pageId    String
+  key       String
+  label     String
+  type      pg.enum(DatabasePropertyType)
+  required  Boolean                       @default(false)
+  options   Jsonb?
+  /// What a type needs beyond its options (ADR 024): number format, unique id prefix, relation target.
+  config    Jsonb?
+  /// Unique id only: the number the next row of the collection receives. Read and bumped under the row lock.
+  nextValue Int                           @default(1)
+  order     Int                           @default(0)
+  page      Block                         @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "PageSchemaProperty_pageId_fkey", index: "PageSchemaProperty_pageId_key_key")
 
   @@unique([pageId, key], map: "PageSchemaProperty_pageId_key_key")
   @@index([pageId, order], map: "PageSchemaProperty_pageId_order_idx")

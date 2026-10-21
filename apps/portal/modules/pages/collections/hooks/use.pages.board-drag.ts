@@ -7,6 +7,7 @@ import { hasActionError } from '@/shared/lib/action-result';
 import { reorderPageAction } from '../../server/actions/pages.actions';
 import { resolveBoardKeyboardTarget } from '../lib/pages.board-drag.lib';
 import { applyBoardMoveToBands, findBandHoldingRow, resolveBoardGridDrop } from '../lib/pages.board-grid.lib';
+import { toGroupPropertyValue } from '../lib/pages.group-values.lib';
 import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type {
   PageBoardDragController,
@@ -15,7 +16,7 @@ import type {
   PageBoardGridMove,
   PageBoardMoveDirection,
 } from '../types/pages.board-drag.types';
-import type { PageViewBand } from '../types/pages.schema.types';
+import type { PagePropertyValue, PageSchemaProperty, PageViewBand } from '../types/pages.schema.types';
 
 /**
  * Column and band values are written together: a diagonal move sent as two writes would leave the card
@@ -25,6 +26,7 @@ export const usePagesBoardDrag = (
   bands: readonly PageViewBand[],
   groupByKey: string,
   spaceId: string,
+  properties: readonly PageSchemaProperty[],
   subGroupByKey = '',
 ): PageBoardDragController => {
   const t = useTranslations('pages.collection');
@@ -39,9 +41,12 @@ export const usePagesBoardDrag = (
       applyBoardMoveToBands(current, moved.rowId, moved.move, groupByKey, subGroupByKey),
   );
 
-  const landedPropertyValues = (move: PageBoardGridMove): Readonly<Record<string, null | string>> => ({
-    ...(move.changesGroup ? { [groupByKey]: move.propertyValue } : {}),
-    ...(move.changesBand && subGroupByKey !== '' ? { [subGroupByKey]: move.bandValue } : {}),
+  const toWritten = (propertyKey: string, groupValue: null | string): null | PagePropertyValue =>
+    groupValue === null ? null : toGroupPropertyValue(properties, propertyKey, groupValue);
+
+  const landedPropertyValues = (move: PageBoardGridMove): Readonly<Record<string, null | PagePropertyValue>> => ({
+    ...(move.changesGroup ? { [groupByKey]: toWritten(groupByKey, move.propertyValue) } : {}),
+    ...(move.changesBand && subGroupByKey !== '' ? { [subGroupByKey]: toWritten(subGroupByKey, move.bandValue) } : {}),
   });
 
   const write = async (rowId: string, move: PageBoardGridMove): Promise<boolean> => {

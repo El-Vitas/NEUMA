@@ -8,7 +8,7 @@ import type {
   PageViewOutcome,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -20,6 +20,8 @@ mock.module('@/i18n/navigation', () => ({
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
   updatePageViewConfigurationAction: async () => ({ data: null }),
@@ -36,7 +38,14 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 const { PagesCollectionView } = await import('@/modules/pages/collections/components/pages.collection.view');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const boardView: PageSchemaView = {

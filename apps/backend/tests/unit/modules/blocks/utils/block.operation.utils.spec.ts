@@ -219,6 +219,82 @@ describe('parseBlockOperation', () => {
   });
 });
 
+describe('parseBlockOperation, relations', () => {
+  it('reads addRelation with the property, the row it points to and where it goes', () => {
+    const operation = parseValue({
+      args: { after: 'r0', property: 'project', targetId: 'r1' },
+      command: 'addRelation',
+      path: [],
+      pointer: pointer('row-1'),
+    });
+
+    expect(operation).toEqual({
+      afterId: 'r0',
+      blockId: 'row-1',
+      command: 'addRelation',
+      property: 'project',
+      targetId: 'r1',
+    });
+  });
+
+  it('puts the row last when addRelation names no anchor', () => {
+    const operation = parseValue({
+      args: { property: 'project', targetId: 'r1' },
+      command: 'addRelation',
+      path: [],
+      pointer: pointer('row-1'),
+    });
+
+    expect(operation).toMatchObject({ afterId: null });
+  });
+
+  it('reads removeRelation', () => {
+    const operation = parseValue({
+      args: { property: 'project', targetId: 'r1' },
+      command: 'removeRelation',
+      path: [],
+      pointer: pointer('row-1'),
+    });
+
+    expect(operation).toEqual({ blockId: 'row-1', command: 'removeRelation', property: 'project', targetId: 'r1' });
+  });
+
+  it('refuses a relation command that carries the mirror flag or an unknown argument', () => {
+    expect(
+      parseCode({
+        args: { isMirror: true, property: 'project', targetId: 'r1' },
+        command: 'addRelation',
+        path: [],
+        pointer: pointer('row-1'),
+      }),
+    ).toBe('BLOCK_OPERATION_INVALID');
+  });
+
+  it('refuses a relation command addressed to a path', () => {
+    expect(
+      parseCode({
+        args: { property: 'project', targetId: 'r1' },
+        command: 'addRelation',
+        path: ['properties'],
+        pointer: pointer('row-1'),
+      }),
+    ).toBe('BLOCK_OPERATION_INVALID');
+  });
+
+  it('lists the row it points to among the rows to lock', () => {
+    const operations = [
+      parseValue({
+        args: { property: 'project', targetId: 'r1' },
+        command: 'addRelation',
+        path: [],
+        pointer: pointer('row-1'),
+      }),
+    ];
+
+    expect(listOperationBlockIds(operations).toSorted()).toEqual(['r1', 'row-1']);
+  });
+});
+
 describe('parseBlockOperations', () => {
   it('names the position of the operation that cannot be read', () => {
     const parsed = parseBlockOperations([

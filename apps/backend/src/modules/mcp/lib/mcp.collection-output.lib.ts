@@ -13,13 +13,24 @@ import { describeMcpRowPropertiesInOneLine } from './mcp.fetch.text.lib';
 const nameColumn = (columns: readonly McpColumn[], key: string): string =>
   columns.find((column) => column.key === key)?.label ?? key;
 
+/** A filter on options stores their ids; the agent reads the names people see. */
+const nameOptionIn = (column: McpColumn | undefined, value: Extract<PageFilter, { kind: 'CONDITION' }>['value']) => {
+  const named = (entry: string): string => column?.options?.find((option) => option.id === entry)?.value ?? entry;
+  if (typeof value === 'string') return named(value);
+  return Array.isArray(value) ? value.map(named) : value;
+};
+
 const describeCondition = (
   columns: readonly McpColumn[],
   filter: Extract<PageFilter, { kind: 'CONDITION' }>,
 ): string => {
   const column = nameColumn(columns, filter.propertyKey);
   if (MCP_VALUELESS_FILTER_OPERATORS.includes(filter.operator)) return `${column} ${filter.operator}`;
-  return `${column} ${filter.operator} ${JSON.stringify(filter.value)}`;
+  const value = nameOptionIn(
+    columns.find((candidate) => candidate.key === filter.propertyKey),
+    filter.value,
+  );
+  return `${column} ${filter.operator} ${JSON.stringify(value)}`;
 };
 
 /** Nested groups are parenthesized. */

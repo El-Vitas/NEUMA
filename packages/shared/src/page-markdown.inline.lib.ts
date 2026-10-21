@@ -14,7 +14,6 @@ import {
   MARKDOWN_TAG_OPENING_MAX_LENGTH,
 } from './constants/page-markdown.constants.js';
 import { Result } from './result.js';
-import { isOneOf } from './value-list.lib.js';
 import {
   isPageCalendarDay,
   isPageLinkTarget,
@@ -25,6 +24,7 @@ import {
   type PageContentInlineNode,
   type PageMark,
 } from './schemas/page-content.schema.js';
+import { isOneOf } from './value-list.lib.js';
 
 type InlineNode = PageContentInlineNode;
 

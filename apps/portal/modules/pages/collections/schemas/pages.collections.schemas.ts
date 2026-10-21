@@ -1,22 +1,27 @@
 import {
   PAGE_OPTION_COLOR_VALUES,
   PAGE_PROPERTY_TYPE_VALUES,
+  PAGE_STATUS_GROUP_VALUES,
   PAGE_VIEW_TYPE_VALUES,
   pageContentSchema,
 } from '@neuma/shared';
 import { z } from 'zod';
-import { pagePropertyValueSchema } from './pages.schema.schemas';
+import { pagePropertyConfigSchema, pagePropertyValueSchema } from './pages.schema.schemas';
 
 const pageCollectionOptionSchema = z.object({
   color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
+  group: z.enum(PAGE_STATUS_GROUP_VALUES).nullable().optional(),
+  id: z.string().min(1).max(40).nullable().optional(),
   value: z.string().min(1).max(200),
 });
 
 const pageCollectionPropertySchema = z.object({
+  config: pagePropertyConfigSchema.optional(),
   key: z.string().min(1).max(80),
   label: z.string().min(1).max(200),
   options: z.array(pageCollectionOptionSchema).max(50).readonly().nullable(),
   required: z.boolean(),
+  twoWay: z.boolean().optional(),
   type: z.enum(PAGE_PROPERTY_TYPE_VALUES),
 });
 
@@ -49,6 +54,20 @@ export const pageRowPropertiesSchema = z.object({
   spaceId: z.string().min(1),
 });
 
+/** A relation cell changes one row at a time, so two people editing the same cell never overwrite each other. */
+export const pageRowRelationChangeSchema = z.object({
+  change: z.enum(['ADD', 'REMOVE']),
+  propertyKey: z.string().min(1).max(80),
+  rowId: z.string().min(1),
+  spaceId: z.string().min(1),
+  targetId: z.string().min(1),
+});
+
+export const pageRelationCandidatesSchema = z.object({
+  collectionId: z.string().min(1),
+  spaceId: z.string().min(1),
+});
+
 export const pageViewConfigurationUpdateSchema = z.object({
   // Passed through: the server validates what a configuration may hold.
   configuration: z.record(z.string(), z.unknown()),
@@ -57,9 +76,9 @@ export const pageViewConfigurationUpdateSchema = z.object({
   viewName: z.string().min(1).max(200),
 });
 
-/** `from` is required because the shape alone cannot tell a rename from a remove plus add. A null `to` removes. */
+/** The option is named by its id, since its name may change. A null `to` removes it. */
 export const pageOptionRewriteSchema = z.object({
-  from: z.string().min(1).max(120),
+  optionId: z.string().min(1).max(40),
   pageId: z.string().min(1),
   propertyKey: z.string().min(1).max(80),
   spaceId: z.string().min(1),

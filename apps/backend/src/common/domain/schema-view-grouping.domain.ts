@@ -1,5 +1,5 @@
 import { DatabasePropertyType, type DatabaseViewType } from '@neuma/db';
-import type { PageDateBucket } from '@neuma/shared';
+import type { PageDateBucket, PagePropertyOption } from '@neuma/shared';
 import {
   canPagePropertyGroupBoard,
   PAGE_DATE_BUCKET,
@@ -7,6 +7,8 @@ import {
   pageViewSupportsGrouping,
   Result,
   readPageDateBucketKey,
+  readPageDateValue,
+  sortPageOptionsByGroup,
   UNASSIGNED_GROUP_KEY,
 } from '@neuma/shared';
 import type {
@@ -43,11 +45,16 @@ const readGroupKeyFrom = (value: unknown): null | string => {
   return null;
 };
 
-/** For dates the key is the bucket's; the row still stores the exact day. */
+const isTimeProperty = (property: SchemaPropertyDefinition): boolean =>
+  property.type === DatabasePropertyType.DATE ||
+  property.type === DatabasePropertyType.CREATED_TIME ||
+  property.type === DatabasePropertyType.EDITED_TIME;
+
+/** For dates the key is the bucket's, taken from where a range starts; the row still stores the exact day. */
 const readGroupKeyOf = (property: SchemaPropertyDefinition, bucket: PageDateBucket, value: unknown): null | string => {
-  const named = readGroupKeyFrom(value);
-  if (named === null || property.type !== DatabasePropertyType.DATE) return named;
-  return readPageDateBucketKey(named, bucket);
+  if (!isTimeProperty(property)) return readGroupKeyFrom(value);
+  const start = readPageDateValue(value)?.start;
+  return start === undefined ? null : readPageDateBucketKey(start, bucket);
 };
 
 /** Columns come from the values rows actually hold, sorted; a checkbox always offers both answers. */
@@ -64,6 +71,16 @@ const listUndeclaredGroupKeys = (
   }
   return [...named].sort((left, right) => left.localeCompare(right));
 };
+
+/** A status reads its columns by group, from start to finish, whatever order its options were created in. */
+const listOptionsInOrder = (property: SchemaPropertyDefinition): readonly PagePropertyOption[] =>
+  property.type === DatabasePropertyType.STATUS
+    ? sortPageOptionsByGroup(property.options ?? [])
+    : (property.options ?? []);
+
+/** A status always has a value, so there is no row to put in a column of rows without one. */
+const hasNoUnassignedGroup = (property: SchemaPropertyDefinition): boolean =>
+  property.type === DatabasePropertyType.STATUS;
 
 export const compareRowsByOrder = (left: SchemaOrderedRow, right: SchemaOrderedRow): number =>
   left.order - right.order || left.id.localeCompare(right.id);
@@ -94,9 +111,9 @@ export const groupRowsForView = <TRow extends SchemaGroupableRow>(
           label: key,
           rows: [] as TRow[],
         }))
-      : property.options.map((option) => ({
+      : listOptionsInOrder(property).map((option) => ({
           color: option.color,
-          key: option.value,
+          key: option.id,
           label: option.value,
           rows: [] as TRow[],
         }));
@@ -107,5 +124,5 @@ export const groupRowsForView = <TRow extends SchemaGroupableRow>(
     const group = value === null ? undefined : groupsByKey.get(value);
     (group ?? unassigned).rows.push(row);
   }
-  return Result.ok([...groups, unassigned]);
+  return Result.ok(hasNoUnassignedGroup(property) ? groups : [...groups, unassigned]);
 };

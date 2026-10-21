@@ -19,12 +19,12 @@ import type {
   McpQueryCollectionInput,
   McpQueryCollectionOutput,
 } from '../types/mcp.collections.types';
-import type { McpPerson, McpToolDefinition } from '../types/mcp.types';
+import type { McpAssignablePerson, McpToolDefinition } from '../types/mcp.types';
 
 const buildQueryConfiguration = (
   collection: McpOpenCollection,
   input: McpQueryCollectionInput,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
 ): JsonObject => {
   const base = input.view === undefined ? {} : requireMcpView(collection, input.view).configuration;
   const shape = {
@@ -84,11 +84,16 @@ export const queryCollectionTool: McpToolDefinition = {
             );
             const start = readMcpOffset(input.cursor);
             const end = start + input.limit;
+            // The titles of related rows are left out: a row of another collection may be closed to this token.
+            const lookups = {
+              files: new Map(found.attachedFiles.map((file) => [file.id, file.name])),
+              rows: new Map<string, string>(),
+            };
             return queryCollectionOutputSchema.parse({
               ...(end < readable.length ? { nextCursor: String(end) } : {}),
               rows: readable
                 .slice(start, end)
-                .map((row) => describeMcpRow(dependencies.portalUrl, collection.shape, row, people)),
+                .map((row) => describeMcpRow(dependencies.portalUrl, collection.shape, row, people, lookups)),
               total: readable.length,
               truncated: found.hasMore,
             });

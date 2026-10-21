@@ -1,8 +1,10 @@
 import {
   PAGE_FILTER_OPERATOR_VALUES,
+  PAGE_NUMBER_FORMAT_VALUES,
   PAGE_PROPERTY_TYPE,
   PAGE_PROPERTY_TYPE_VALUES,
   PAGE_SORT_DIRECTION_VALUES,
+  PAGE_UNIQUE_ID_PREFIX_MAX_LENGTH,
   PAGE_VIEW_TYPE_VALUES,
 } from '@neuma/shared';
 import { z } from 'zod';
@@ -32,7 +34,7 @@ const columnSchema = z
 
 const textSchema = z.string().max(MCP_VALUE_TEXT_MAX_LENGTH);
 
-const cellValueSchema = z.union([
+const conditionValueSchema = z.union([
   textSchema,
   z.number(),
   z.boolean(),
@@ -40,13 +42,34 @@ const cellValueSchema = z.union([
   z.null(),
 ]);
 
+const relationEditSchema = z
+  .object({
+    add: z.array(textSchema).max(MCP_COLLECTION_CHANGE_LIMIT).optional().describe('Rows to link.'),
+    remove: z.array(textSchema).max(MCP_COLLECTION_CHANGE_LIMIT).optional().describe('Rows to unlink.'),
+  })
+  .describe('Rows to link and unlink, each by its page id or its title.');
+
+const cellValueSchema = z.union([conditionValueSchema, relationEditSchema]);
+
 const cellValuesSchema = z
   .record(z.string().max(MCP_COLUMN_NAME_MAX_LENGTH), cellValueSchema)
   .refine((values) => Object.keys(values).length <= MCP_COLLECTION_CHANGE_LIMIT, {
     message: `Give at most ${String(MCP_COLLECTION_CHANGE_LIMIT)} columns at once.`,
   })
   .describe(
-    'Values by column (key or name). An option is given by its name; a person by their name or id; a date as YYYY-MM-DD; null empties the cell.',
+    [
+      'Values by column (key or name); null empties the cell. What each type takes:',
+      'text, select and status: a string (a select or a status by the name of the option or by its id; a status always keeps a value, so it cannot be emptied);',
+      'multi-select: a list of option names;',
+      'person: a list of people, each by name, email or id (a single person unless the column allows several);',
+      'date: YYYY-MM-DD, a range as YYYY-MM-DD/YYYY-MM-DD, or an instant with its time zone for a column that holds moments;',
+      'number: a number, a percent as people read it (25 for 25 %), money in its units;',
+      'checkbox: true or false;',
+      'url, email, phone: text in that form;',
+      'files: a list of the ids of files already uploaded to Neuma (this server cannot upload files);',
+      'relation: { "add": [...], "remove": [...] } with rows of the other collection by page id or title, or a list that replaces all links, or null to unlink all. For a two-way relation the other side follows, and it is refused whole if the token cannot edit the row on that side;',
+      'unique id, created time, created by, edited time, edited by: filled in by Neuma, never written.',
+    ].join(' '),
   );
 
 const whereSchema = z
@@ -54,7 +77,7 @@ const whereSchema = z
     z.object({
       column: columnSchema,
       operator: z.enum(PAGE_FILTER_OPERATOR_VALUES),
-      value: cellValueSchema.optional(),
+      value: conditionValueSchema.optional(),
     }),
   )
   .max(MCP_WHERE_CONDITION_LIMIT)
@@ -71,20 +94,50 @@ const cursorSchema = buildMcpOffsetCursorSchema('To read the next part: the curs
 
 const addableColumnTypes = PAGE_PROPERTY_TYPE_VALUES.filter((type) => type !== PAGE_PROPERTY_TYPE.TITLE);
 
+/** A new collection has no other collection to point to yet: a relation is added to it afterwards. */
+const addableFirstColumnTypes = addableColumnTypes.filter((type) => type !== PAGE_PROPERTY_TYPE.RELATION);
+
 const newColumnSchema = z.object({
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional()
+    .describe('A number shown as money: its ISO currency code, such as USD or CLP.'),
+  decimals: z.number().int().min(0).max(8).optional().describe('A number: the most decimals a value may have.'),
+  multiple: z.boolean().optional().describe('A person column: whether a row may name more than one person.'),
   name: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH),
+  numberFormat: z.enum(PAGE_NUMBER_FORMAT_VALUES).optional().describe('A number: plain, a percent or money.'),
   options: z
     .array(z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH))
     .max(MCP_COLLECTION_CHANGE_LIMIT)
-    .optional(),
+    .optional()
+    .describe('A selection: its options. A status has three fixed groups and starts with one option in each.'),
+  prefix: z
+    .string()
+    .max(PAGE_UNIQUE_ID_PREFIX_MAX_LENGTH)
+    .optional()
+    .describe('A unique id: the text shown before the number, such as TSK.'),
+  target: collectionSchema
+    .optional()
+    .describe(
+      'A relation: the collection whose rows it links (a Neuma link to it, or its page id). It is chosen once and cannot change.',
+    ),
+  twoWay: z
+    .boolean()
+    .optional()
+    .describe(
+      'A relation: also add to the other collection a column that links back, kept in step with this one. Linking then needs edit access to the rows on both sides.',
+    ),
   type: z.enum(addableColumnTypes),
 });
+
+const newFirstColumnSchema = newColumnSchema.extend({ type: z.enum(addableFirstColumnTypes) });
 
 const namedInTheirLanguageSchema = z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH);
 
 export const createCollectionInputSchema = z.object({
   columns: z
-    .array(newColumnSchema)
+    .array(newFirstColumnSchema)
     .max(MCP_COLLECTION_CHANGE_LIMIT)
     .optional()
     .describe('Its columns besides the one that names each row, such as a status with its options or a due date.'),
@@ -221,6 +274,8 @@ const outputPropertySchema = z.object({
   key: z.string(),
   label: z.string(),
   people: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  /** On a relation: the rows it points to that the reader may open. */
+  related: z.array(z.object({ id: z.string(), title: z.string() })).optional(),
   type: z.string(),
   value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
 });

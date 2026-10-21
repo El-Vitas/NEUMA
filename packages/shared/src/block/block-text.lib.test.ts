@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import {
-  PAGE_TEXT_MARKS_MOST,
   maximumFormulaLatexLength,
   maximumPageContentNodes,
   maximumPageTextLength,
+  PAGE_TEXT_MARKS_MOST,
 } from '../schemas/page-content.schema.js';
 import type { BlockRichText } from './block-content.types.js';
-import { blockPlainTextSchema, blockRichTextSchema, blockTextMarksSchema } from './block-text.schemas.js';
 import { extractPlainText } from './block-text.lib.js';
+import { blockPlainTextSchema, blockRichTextSchema, blockTextMarksSchema } from './block-text.schemas.js';
 
 const USER_ID = '0192f3a0-7c1e-7d2a-9b4e-3f5a6b7c8d9e';
 const LONG_LABEL = 'a'.repeat(201);

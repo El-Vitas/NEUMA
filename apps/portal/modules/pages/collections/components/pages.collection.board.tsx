@@ -51,7 +51,7 @@ export const PagesCollectionBoard = ({
 }: IProps) => {
   const t = useTranslations('pages');
   const isBanded = subGroupByKey !== '';
-  const drag = usePagesBoardDrag(bands, groupByKey, spaceId, subGroupByKey);
+  const drag = usePagesBoardDrag(bands, groupByKey, spaceId, schema.properties, subGroupByKey);
   const {
     onDragLeave: stopEdgeScrolling,
     onDragOver: scrollAtEdge,

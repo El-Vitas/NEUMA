@@ -25,6 +25,7 @@ import { PageRetentionScheduler } from './infrastructure/schedulers/page.retenti
 import { systemPageVersionClock } from './infrastructure/schedulers/page.version.clock';
 import { PageVersionScheduler } from './infrastructure/schedulers/page.version.scheduler';
 import { PageAssignedController } from './page.assigned.controller';
+import { PageCollectionsController } from './page.collections.controller';
 import { PageDestinationsController } from './page.destinations.controller';
 import { PageLocationController } from './page.location.controller';
 import { PageOutlineService } from './page.outline.service';
@@ -41,6 +42,7 @@ import { PagesService } from './pages.service';
     PagesController,
     PagesBatchController,
     PageSchemaController,
+    PageCollectionsController,
     PageTrashController,
     PageDestinationsController,
     PageLocationController,

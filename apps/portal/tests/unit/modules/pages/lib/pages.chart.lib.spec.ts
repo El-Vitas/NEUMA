@@ -7,8 +7,10 @@ import {
   readChartTopValue,
 } from '@/modules/pages/collections/lib/pages.chart.lib';
 import type { PageSchemaProperty, PageViewGroup } from '@/modules/pages/collections/types/pages.schema.types';
+import { defaultConfig } from './pages.options.fixture';
 
 const amount: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'amount',
   label: 'Amount',
   options: null,

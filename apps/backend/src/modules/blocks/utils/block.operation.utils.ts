@@ -16,6 +16,7 @@ import {
 import type { BlockFieldPatch, BlockOperation } from '../domain/block.transaction.domain.types';
 import { BlockFieldNotWritableError, BlockOperationInvalidError } from '../domain/block.transaction.error';
 import {
+  blockAddRelationArgsSchema,
   blockApplyTextArgsSchema,
   blockCreateArgsSchema,
   blockEntriesSchema,
@@ -28,6 +29,7 @@ import {
   blockMoveToSpaceRootArgsSchema,
   blockOperationEnvelopeSchema,
   blockPropertyKeySchema,
+  blockRemoveRelationArgsSchema,
   blockSetLifecycleArgsSchema,
   blockSetLockArgsSchema,
   blockSetOwnerArgsSchema,
@@ -154,6 +156,31 @@ const parseListRemove = (blockId: string, path: readonly string[], args: unknown
   const parsed = blockListRemoveArgsSchema.safeParse(args);
   if (!parsed.success) return invalidArguments(parsed.error);
   return Result.ok({ blockId, childId: parsed.data.id, command: 'removeChild' });
+};
+
+const parseAddRelation = (blockId: string, path: readonly string[], args: unknown): Parsed => {
+  if (path.length !== 0) return invalid('addRelation addresses the block');
+  const parsed = blockAddRelationArgsSchema.safeParse(args);
+  if (!parsed.success) return invalidArguments(parsed.error);
+  return Result.ok({
+    afterId: parsed.data.after ?? null,
+    blockId,
+    command: 'addRelation',
+    property: parsed.data.property,
+    targetId: parsed.data.targetId,
+  });
+};
+
+const parseRemoveRelation = (blockId: string, path: readonly string[], args: unknown): Parsed => {
+  if (path.length !== 0) return invalid('removeRelation addresses the block');
+  const parsed = blockRemoveRelationArgsSchema.safeParse(args);
+  if (!parsed.success) return invalidArguments(parsed.error);
+  return Result.ok({
+    blockId,
+    command: 'removeRelation',
+    property: parsed.data.property,
+    targetId: parsed.data.targetId,
+  });
 };
 
 const parseApplyText = (blockId: string, path: readonly string[], args: unknown): Parsed => {
@@ -308,6 +335,10 @@ const parseBlockCommand = ({ args, command, path, pointer }: ReadEnvelope): Pars
       return parseApplyText(pointer.id, path, args);
     case BLOCK_COMMAND.setPermission:
       return parseSetPermission(pointer.id, path, args);
+    case BLOCK_COMMAND.addRelation:
+      return parseAddRelation(pointer.id, path, args);
+    case BLOCK_COMMAND.removeRelation:
+      return parseRemoveRelation(pointer.id, path, args);
     default:
       return invalid('The command is not known');
   }
@@ -372,6 +403,9 @@ const listReferencedIds = (operation: BlockOperation): string[] => {
       return listParentId(operation.placement.anchorId);
     case 'setLifecycle':
       return listParentId(operation.detachFromParentId);
+    case 'addRelation':
+    case 'removeRelation':
+      return [operation.targetId];
     case 'moveToSpaceRoot':
       return [
         ...listParentId(operation.detachFromParentId),
@@ -437,6 +471,22 @@ export const listRootSpaceIds = (operations: readonly BlockOperation[], spaceId:
     operation.command === 'insertRoot' || operation.command === 'removeRoot' ? [operation.spaceId] : [],
   );
   return [...new Set([spaceId, ...named, ...listDestinationSpaceIds(operations, spaceId)])].toSorted();
+};
+
+/**
+ * The collections whose schema a transaction must read: the ones that get a new row, and the ones whose rows it
+ * changes in any way. `locked` holds the rows the operations name, so it tells where those rows live.
+ */
+export const listCollectionIds = (
+  operations: readonly BlockOperation[],
+  locked: readonly { readonly id: string; readonly parentId: string | null }[],
+): string[] => {
+  const parentOf = new Map(locked.map((row) => [row.id, row.parentId]));
+  const parents = operations.flatMap((operation) => {
+    if (operation.command === 'create') return listParentId(operation.fields.parentId);
+    return listParentId(parentOf.get(operation.blockId));
+  });
+  return [...new Set(parents)];
 };
 
 /** The pages that leave their space with their whole branch: the rows to read below them. */

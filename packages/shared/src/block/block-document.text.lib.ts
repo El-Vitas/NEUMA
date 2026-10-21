@@ -1,7 +1,7 @@
 import { isPageDocumentNode } from '../page-document/page-document.node.lib.js';
 import type { PageDocumentNodeShape } from '../page-document/page-document.types.js';
-import type { PageContentInlineNode, PageContentText, PageMark } from '../schemas/page-content.schema.js';
 import { Result } from '../result.js';
+import type { PageContentInlineNode, PageContentText, PageMark } from '../schemas/page-content.schema.js';
 import type { BlockPlainText, BlockRichText, BlockTextEmbed, BlockTextMarks } from './block-content.types.js';
 import { BLOCK_DOCUMENT_ERROR_CODE } from './block-document.constants.js';
 import { type BlockDocumentError, failBlockDocument } from './block-document.error.js';

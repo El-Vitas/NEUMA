@@ -51,6 +51,7 @@ export const MCP_TOOL_NAMES = {
   updateRow: 'update_row',
   updateTable: 'update_table',
   updateView: 'update_view',
+  uploadFile: 'upload_file',
 } as const;
 
 export const MCP_HARD_BREAK_NODE = { type: 'hard_break' } as const;
@@ -139,6 +140,14 @@ export const MCP_OFFSET_CURSOR_PATTERN = /^\d{1,6}$/;
 export const MCP_NOT_A_COLLECTION_MESSAGE =
   'This page is not a collection: it has no columns. To find the collections, list the spaces with list_spaces and the pages at their top with list_pages: collections are marked as such.';
 
+/** Base64 may arrive wrapped in lines; the breaks carry no bytes. */
+export const MCP_UPLOAD_LINE_BREAKS = /[\r\n]/g;
+
+export const MCP_UPLOAD_NOT_BASE64_MESSAGE =
+  'The file is not valid base64. Send the bytes of the file encoded as standard base64, with padding.';
+
+export const MCP_UPLOAD_TOO_LARGE_MESSAGE = 'The file is larger than the 10 MB the portal accepts.';
+
 export const MCP_NOT_A_ROW_MESSAGE =
   'This page is not a row of a collection. A row is a page right under a collection; list_pages or query_collection give their ids.';
 
@@ -161,6 +170,7 @@ export const MCP_NOTHING_TO_CHANGE_MESSAGE = 'Nothing to change: say what should
 export const MCP_INACCESSIBLE_REFUSAL_CODES: readonly string[] = [
   'COMMENT_NOT_FOUND',
   'DISCUSSION_NOT_FOUND',
+  'FILE_ACCESS_DENIED',
   'PAGE_ACCESS_DENIED',
   'PAGE_SCHEMA_NOT_FOUND',
 ];
@@ -175,6 +185,11 @@ export const MCP_PAGE_MANAGE_REFUSED_MESSAGE =
 export const MCP_PAGE_ICON_INVALID_MESSAGE = 'The icon must be one emoji.';
 
 export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
+  ['BLOCK_EDIT_FORBIDDEN', 'The owner of this token cannot edit that row, so its links were not changed.'],
+  [
+    'RELATION_MIRROR_FORBIDDEN',
+    'The other side of this two-way relation is a row the owner of this token cannot edit, so no link was added or removed. Ask for edit access to that row.',
+  ],
   [
     'COMMENT_FORBIDDEN',
     'Only the author of a comment can change it, and only an admin can delete one of someone else.',
@@ -196,12 +211,14 @@ export const MCP_REFUSAL_EXPLANATIONS: ReadonlyMap<string, string> = new Map([
 /** Only these refusals pass their detail to the agent, since it helps correct what it wrote. */
 export const MCP_DETAILED_REFUSAL_CODES: readonly string[] = [
   'COMMENT_BODY_INVALID',
+  'FILE_VALIDATION_FAILED',
   'PAGE_BLOCK_EDIT_INVALID',
   'PAGE_CONTENT_INVALID',
   'PAGE_COVER_INVALID',
   'PAGE_PROPERTY_CONFORMANCE',
   'PAGE_PROPERTY_INVALID',
   'PAGE_SCHEMA_DEFINITION_INVALID',
+  'RELATION_LIMIT_EXCEEDED',
   'SCHEMA_PROPERTY_DEFINITION_INVALID',
   'SCHEMA_PROPERTY_VALUE_INVALID',
   'SCHEMA_VIEW_INVALID',
@@ -260,6 +277,18 @@ export const MCP_BLOCK_NOT_FOUND_NOTE =
 export const MCP_REDACTED_REFERENCE_WORD = { text: MCP_REDACTED_REFERENCE_LABEL, type: 'text' } as const;
 
 export const MCP_VALUELESS_FILTER_OPERATORS: readonly string[] = ['IS_EMPTY', 'IS_NOT_EMPTY'];
+
+/** These compare a status with the name of one of its three groups, not with an option. */
+export const MCP_STATUS_GROUP_OPERATORS: readonly string[] = ['IS_IN_GROUP', 'IS_NOT_IN_GROUP'];
+
+/** A row read where no other rows or files were looked up has nothing to name them with. */
+export const MCP_NO_ROW_LOOKUPS: {
+  readonly files: ReadonlyMap<string, string>;
+  readonly rows: ReadonlyMap<string, string>;
+} = {
+  files: new Map(),
+  rows: new Map(),
+};
 
 /** Combining accent marks, stripped when matching agent input against names. */
 export const MCP_ACCENT_MARKS = /\p{M}/gu;

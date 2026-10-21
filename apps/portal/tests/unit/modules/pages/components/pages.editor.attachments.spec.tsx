@@ -61,6 +61,8 @@ mock.module('@/modules/pages/appearance/server/actions/pages.icon.actions', () =
 }));
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   createPageCollectionAction: async () => ({ data: undefined }),
   readPageCollectionAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: undefined }),

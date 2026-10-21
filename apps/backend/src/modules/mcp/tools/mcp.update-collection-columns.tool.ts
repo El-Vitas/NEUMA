@@ -16,6 +16,7 @@ import {
   hasMcpShapeChanges,
 } from '../lib/mcp.column-changes.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
+import { resolveMcpNewRelationTargets } from '../lib/mcp.relations.lib';
 import { collectionOutputSchema, updateCollectionColumnsInputSchema } from '../schemas/mcp.collections.schemas';
 import type {
   McpCollectionOutput,
@@ -88,8 +89,9 @@ const changeColumns = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  changes: McpColumnChanges,
+  requested: McpColumnChanges,
 ): Promise<McpOpenCollection> => {
+  const changes = await resolveMcpNewRelationTargets(dependencies, call, requested);
   const plan = requireMcpInput(applyMcpColumnChanges(readMcpColumnsInHand(collection), changes));
   const done: string[] = [];
   try {
@@ -134,7 +136,7 @@ export const updateCollectionColumnsTool: McpToolDefinition = {
       MCP_TOOL_NAMES.updateCollectionColumns,
       {
         description:
-          'Change the columns of a collection: add, rename or remove columns, and add, rename or remove the options of a select column (the columns of a board grouped by it). Renaming keeps what the rows had; removing an option leaves the rows that had it empty in that column. Name columns and options as get_collection shows them.',
+          'Change the columns of a collection: add, rename or remove columns, and add, rename or remove the options of a select column (the columns of a board grouped by it). Renaming keeps what the rows had; removing an option leaves the rows that had it empty in that column. Name columns and options as get_collection shows them. Column types: text, number (plain, percent or money), select, multi-select, status (to do / in progress / complete groups; rows always keep a status), person (one or several), date (a day or a range), checkbox, url, email, phone, files, relation (needs target, the collection whose rows it links, and optionally twoWay so the other collection links back), unique id (a number Neuma gives each new row, with an optional prefix), and created/edited time and person (filled in by Neuma). A relation cannot change its target afterwards.',
         inputSchema: updateCollectionColumnsInputSchema,
         outputSchema: collectionOutputSchema,
       },

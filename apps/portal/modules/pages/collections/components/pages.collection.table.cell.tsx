@@ -1,5 +1,6 @@
 'use client';
 
+import { isPagePropertyValueEmpty, PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
 import { useOptimistic, useState, useTransition } from 'react';
@@ -7,7 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { hasActionError } from '@/shared/lib/action-result';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
-import { pagePropertyAnswersOnPick } from '../lib/pages.properties.lib';
+import { isPropertyEditableInPlace, pagePropertyAnswersOnPick } from '../lib/pages.properties.lib';
 import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
 import { PagesPropertiesField } from './pages.properties.field';
@@ -46,17 +47,18 @@ export const PagesCollectionTableCell = ({
   const [, startWriting] = useTransition();
   const [shown, showWritten] = useOptimistic(
     value,
-    (_current: PagePropertyValue | undefined, written: PagePropertyValue) => written,
+    (_current: PagePropertyValue | undefined, written: PagePropertyValue | undefined) => written,
   );
 
   const write = (written: PagePropertyValue): void => {
     setIsEditing(false);
     if (written === value) return;
+    const sent = isPagePropertyValueEmpty(property.type, written) ? null : written;
     startWriting(async () => {
-      showWritten(written);
+      showWritten(sent ?? undefined);
       const saved = await updatePageRowPropertiesAction({
         pageId: rowId,
-        propertyValues: { [property.key]: written },
+        propertyValues: { [property.key]: sent },
         spaceId,
       });
       if (hasActionError(saved)) {
@@ -83,7 +85,7 @@ export const PagesCollectionTableCell = ({
     setIsEditing(false);
   };
 
-  if (!canEdit) {
+  if (!canEdit || !isPropertyEditableInPlace(property)) {
     return (
       <span className={cn('block min-w-0', contentClass)}>
         <PagesPropertyValue personOptions={personOptions} property={property} value={shown} />
@@ -106,7 +108,7 @@ export const PagesCollectionTableCell = ({
         type="button"
       >
         <span className={cn('block min-w-0', contentClass)}>
-          <PagesPropertyValue personOptions={personOptions} property={property} value={shown} />
+          <PagesPropertyValue isLinked={false} personOptions={personOptions} property={property} value={shown} />
         </span>
       </button>
     );
@@ -126,7 +128,9 @@ export const PagesCollectionTableCell = ({
         onChange={answer}
         personOptions={personOptions}
         property={property}
-        value={draft}
+        rowId={rowId}
+        spaceId={spaceId}
+        value={property.type === PAGE_PROPERTY_TYPE.RELATION ? shown : draft}
       />
     </fieldset>
   );

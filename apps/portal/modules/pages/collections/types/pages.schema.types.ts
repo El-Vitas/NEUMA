@@ -1,6 +1,7 @@
 import type {
   PageLifecycle,
   PageOptionColor,
+  PagePropertyConfig,
   PagePropertyOption,
   PagePropertyType,
   PagePropertyValues,
@@ -11,11 +12,14 @@ import type { ReactNode } from 'react';
 export type { PagePropertyValue, PagePropertyValues } from '@neuma/shared';
 
 export interface PageSchemaProperty {
+  readonly config: PagePropertyConfig;
   readonly key: string;
   readonly label: string;
   readonly type: PagePropertyType;
   readonly required: boolean;
   readonly options: readonly PagePropertyOption[] | null;
+  /** Only while a relation is being added: the other collection also gets the property that points back. */
+  readonly twoWay?: boolean;
 }
 
 export interface PagePersonOption {
@@ -77,7 +81,23 @@ export type PageViewOutcome =
   | { readonly groups: readonly PageViewGroup[]; readonly kind: 'GROUPED_ROWS' }
   | { readonly kind: 'MISSING_GROUPING_PROPERTY' };
 
+export interface PageAttachedFile {
+  readonly id: string;
+  readonly mimeType: string;
+  readonly name: string;
+  readonly size: number;
+}
+
+export interface PageRelatedRow {
+  readonly id: string;
+  readonly title: string;
+}
+
 export interface PageViewReading {
+  /** The files the cells of the rows hold, so a cell can show their names. */
+  readonly attachedFiles: readonly PageAttachedFile[];
+  /** The rows the relation cells point to that the reader may open. */
+  readonly relatedRows: readonly PageRelatedRow[];
   /** True when the collection stores more rows than the server returned. */
   readonly hasMore: boolean;
   readonly outcome: PageViewOutcome;

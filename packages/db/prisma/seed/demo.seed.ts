@@ -37,6 +37,13 @@ const tasksAssigneePropertyId = 'a6666666-6666-4666-8666-666666666666';
 const tasksPriorityPropertyId = 'a7777777-7777-4777-8777-777777777777';
 const tasksDueDatePropertyId = 'a8888888-8888-4888-8888-888888888888';
 const tasksDescriptionPropertyId = 'a9999999-9999-4999-8999-999999999999';
+/** An option is told apart by an id of eight letters or digits (ADR 024); fixed here so every seed run is the same. */
+const statusTodoOptionId = 'sttodo01';
+const statusInProgressOptionId = 'stdoing1';
+const statusDoneOptionId = 'stdone01';
+const priorityLowOptionId = 'prlow001';
+const priorityMediumOptionId = 'prmid001';
+const priorityHighOptionId = 'prhigh01';
 const taskRowSetupEnvironmentId = 'b1111111-1111-4111-8111-111111111111';
 const taskRowDocumentArchitectureId = 'b2222222-2222-4222-8222-222222222222';
 const taskRowReviewPortalContentId = 'b3333333-3333-4333-8333-333333333333';
@@ -225,11 +232,11 @@ const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> =>
       paragraphId: setupEnvironmentBlockId,
       parentId: tasksPageId,
       propertyValues: {
-        assignee: users.workerId,
+        assignee: [users.workerId],
         description: 'Prepare the local development environment.',
-        dueDate: '2026-08-10',
-        priority: 'high',
-        status: 'in_progress',
+        dueDate: { start: '2026-08-10' },
+        priority: priorityHighOptionId,
+        status: statusInProgressOptionId,
       },
       title: 'Set up local development',
     },
@@ -243,11 +250,11 @@ const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> =>
       paragraphId: documentArchitectureBlockId,
       parentId: tasksPageId,
       propertyValues: {
-        assignee: users.adminId,
+        assignee: [users.adminId],
         description: 'Document the service boundaries and data flow.',
-        dueDate: '2026-08-14',
-        priority: 'medium',
-        status: 'todo',
+        dueDate: { start: '2026-08-14' },
+        priority: priorityMediumOptionId,
+        status: statusTodoOptionId,
       },
       title: 'Document service architecture',
     },
@@ -257,11 +264,11 @@ const seedPages = async (models: SeedModels, users: SeedUsers): Promise<void> =>
       paragraphId: reviewPortalContentBlockId,
       parentId: tasksPageId,
       propertyValues: {
-        assignee: users.clientId,
+        assignee: [users.clientId],
         description: 'Review the first portal content and share feedback.',
-        dueDate: '2026-08-21',
-        priority: 'low',
-        status: 'done',
+        dueDate: { start: '2026-08-21' },
+        priority: priorityLowOptionId,
+        status: statusDoneOptionId,
       },
       title: 'Review portal content',
     },
@@ -297,9 +304,9 @@ const seedPageSchema = async (models: SeedModels): Promise<void> => {
       key: 'status',
       label: 'Status',
       options: [
-        { color: 'GRAY', value: 'todo' },
-        { color: 'BLUE', value: 'in_progress' },
-        { color: 'GREEN', value: 'done' },
+        { color: 'GRAY', id: statusTodoOptionId, value: 'todo' },
+        { color: 'BLUE', id: statusInProgressOptionId, value: 'in_progress' },
+        { color: 'GREEN', id: statusDoneOptionId, value: 'done' },
       ],
       order: 1,
       required: true,
@@ -319,9 +326,9 @@ const seedPageSchema = async (models: SeedModels): Promise<void> => {
       key: 'priority',
       label: 'Priority',
       options: [
-        { color: 'GRAY', value: 'low' },
-        { color: 'YELLOW', value: 'medium' },
-        { color: 'RED', value: 'high' },
+        { color: 'GRAY', id: priorityLowOptionId, value: 'low' },
+        { color: 'YELLOW', id: priorityMediumOptionId, value: 'medium' },
+        { color: 'RED', id: priorityHighOptionId, value: 'high' },
       ],
       order: 3,
       required: false,

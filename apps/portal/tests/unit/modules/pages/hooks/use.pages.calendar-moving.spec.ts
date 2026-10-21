@@ -38,7 +38,7 @@ describe('llevar una entrada a otro día', () => {
     updatePageRowPropertiesAction.mockImplementationOnce(
       () => new Promise((resolve) => (settle = () => resolve({ data: { id: 'row-a' } }))),
     );
-    const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a'));
+    const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a', [row]));
 
     act(() => result.current.moveTo('row-a', '2026-03-14'));
 
@@ -46,9 +46,36 @@ describe('llevar una entrada a otro día', () => {
     await act(async () => settle());
   });
 
+  it('writes the day as a date record', async () => {
+    const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a', [row]));
+
+    await act(async () => {
+      result.current.moveTo('row-a', '2026-03-14');
+    });
+
+    expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).toEqual({
+      pageId: 'row-a',
+      propertyValues: { due: { start: '2026-03-14' } },
+      spaceId: 'space-a',
+    });
+  });
+
+  it('keeps the length of a range when it is moved', async () => {
+    const ranged: PageRow = { ...row, propertyValues: { due: { end: '2026-03-03', start: '2026-03-01' } } };
+    const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a', [ranged]));
+
+    await act(async () => {
+      result.current.moveTo('row-a', '2026-03-10');
+    });
+
+    expect(updatePageRowPropertiesAction.mock.calls[0]?.[0]).toMatchObject({
+      propertyValues: { due: { end: '2026-03-12', start: '2026-03-10' } },
+    });
+  });
+
   it('puts the entry back where it was when the write fails', async () => {
     updatePageRowPropertiesAction.mockImplementationOnce(() => Promise.resolve({ serverError: 'nope' }));
-    const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a'));
+    const { result } = renderHook(() => usePagesCalendarMoving('due', 'space-a', [row]));
 
     await act(async () => {
       result.current.moveTo('row-a', '2026-03-14');
@@ -59,7 +86,7 @@ describe('llevar una entrada a otro día', () => {
   });
 
   it('writes nothing when the view has no date property', () => {
-    const { result } = renderHook(() => usePagesCalendarMoving(null, 'space-a'));
+    const { result } = renderHook(() => usePagesCalendarMoving(null, 'space-a', [row]));
 
     act(() => result.current.moveTo('row-a', '2026-03-14'));
 
