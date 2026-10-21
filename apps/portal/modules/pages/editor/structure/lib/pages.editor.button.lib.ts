@@ -20,7 +20,12 @@ export const createPageButtonCollectionCommand =
     if (node?.type.name !== PAGE_EDITOR_BUTTON_TYPE) return false;
     if (dispatch === undefined) return true;
     const written = state.tr.setNodeAttribute(at, 'pageId', pageId);
-    dispatch(written.setNodeAttribute(at, 'spaceId', spaceId).setNodeAttribute(at, 'deed', 'row'));
+    dispatch(
+      written
+        .setNodeAttribute(at, 'spaceId', spaceId)
+        .setNodeAttribute(at, 'deed', 'row')
+        .setNodeAttribute(at, 'templateId', null),
+    );
     return true;
   };
 
@@ -35,6 +40,7 @@ export const readThePressedButton = (state: EditorState, at: number): PageButton
     pageId: typeof node.attrs.pageId === 'string' ? node.attrs.pageId : null,
     place: node.attrs.place === 'top' || node.attrs.place === 'bottom' ? node.attrs.place : 'below',
     spaceId: typeof node.attrs.spaceId === 'string' ? node.attrs.spaceId : null,
+    templateId: typeof node.attrs.templateId === 'string' ? node.attrs.templateId : null,
   };
 };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import { PAGE_ROW_QUERY_CONTEXT } from '@/modules/pages/collections/constants/pages.row-context.constants';
@@ -19,6 +19,7 @@ mock.module('@/i18n/navigation', () => ({
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  applyPageViewOperationsAction: async () => ({ data: { configuration: {}, id: 'view-calendar', version: 1 } }),
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction: async (input: {
@@ -64,7 +65,14 @@ const rows: PageRow[] = [
 const drawCalendar = (
   dateProperty: null | string = 'dueDate',
   ui: readonly PageRow[] = rows,
-  extra: { isTruncated?: boolean; month?: string; search?: string; undated?: number } = {},
+  extra: {
+    day?: string;
+    isTruncated?: boolean;
+    month?: string;
+    scale?: 'MONTH' | 'WEEK';
+    search?: string;
+    undated?: number;
+  } = {},
 ): ReactNode => (
   <NextIntlClientProvider locale="en" messages={en}>
     <PAGE_ROW_QUERY_CONTEXT value={{ quickFilter: null, search: extra.search ?? '' }}>
@@ -72,9 +80,11 @@ const drawCalendar = (
         activeViewName="Calendar"
         canEdit
         dateProperty={dateProperty}
+        day={extra.day ?? '2026-09-01'}
         isTruncated={extra.isTruncated ?? false}
         month={extra.month ?? '2026-09'}
         rows={ui}
+        scale={extra.scale ?? 'MONTH'}
         schema={schema}
         spaceId="space-1"
         undated={extra.undated ?? 1}
@@ -82,6 +92,13 @@ const drawCalendar = (
     </PAGE_ROW_QUERY_CONTEXT>
   </NextIntlClientProvider>
 );
+
+const rangedRows: PageRow[] = [
+  {
+    ...rowOn('row-range', 'Viaje', null),
+    propertyValues: { dueDate: { end: '2026-09-12', start: '2026-09-10' } },
+  },
+];
 
 describe('PagesCollectionCalendar', () => {
   it('opens on the month the server read, not on the month of today', () => {
@@ -183,6 +200,65 @@ describe('PagesCollectionCalendar', () => {
     await waitFor(() => expect(created).toHaveLength(1));
     expect(created[0]?.propertyValues).toEqual({ dueDate: { start: '2026-09-15' } });
     expect(created[0]?.title).toBe('Preparar la demo');
+  });
+
+  it('draws a range on every day it lasts, naming it where it starts', () => {
+    cleanup();
+    render(drawCalendar('dueDate', rangedRows));
+
+    for (const day of ['September 10', 'September 11', 'September 12']) {
+      expect(within(screen.getByRole('region', { name: day })).getAllByTestId('calendar-entry')).toHaveLength(1);
+    }
+    expect(
+      screen.queryByRole('region', { name: 'September 13' })?.querySelector('[data-testid="calendar-entry"]'),
+    ).toBeNull();
+    expect(screen.getByRole('region', { name: 'September 10' }).textContent).toContain('Viaje');
+    expect(screen.getByRole('region', { name: 'September 11' }).textContent).not.toContain('Viaje');
+  });
+
+  it('moves the whole range by the day it is grabbed by, writing one date', async () => {
+    cleanup();
+    written.length = 0;
+    render(drawCalendar('dueDate', rangedRows));
+
+    const entries = within(screen.getByRole('region', { name: 'September 11' })).getAllByTestId('calendar-entry');
+    fireEvent.dragStart(entries[0] as HTMLElement);
+    fireEvent.drop(screen.getByRole('region', { name: 'September 15' }));
+
+    await waitFor(() => expect(written).toHaveLength(1));
+    expect(written[0]).toEqual({
+      pageId: 'row-range',
+      propertyValues: { dueDate: { end: '2026-09-16', start: '2026-09-14' } },
+      spaceId: 'space-1',
+    });
+  });
+
+  it('draws a week as seven tall days, titled by the days it covers', () => {
+    cleanup();
+    render(drawCalendar('dueDate', rows, { day: '2026-09-10', scale: 'WEEK' }));
+
+    expect(screen.getAllByTestId('calendar-day')).toHaveLength(7);
+    expect(screen.getByRole('heading', { name: 'September 7 – September 13' })).toBeDefined();
+    expect(screen.getByRole('region', { name: 'September 10' }).textContent).toContain('Escribir el informe');
+  });
+
+  it('asks the server for the week before and the week after, around a day', () => {
+    cleanup();
+    navigated.length = 0;
+    render(drawCalendar('dueDate', rows, { day: '2026-09-10', scale: 'WEEK' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next week' }));
+
+    expect(navigated).toEqual(['?view=Calendar&day=2026-09-03', '?view=Calendar&day=2026-09-17']);
+  });
+
+  it('offers to look at a week or at a month, and tells which one is on', () => {
+    cleanup();
+    render(drawCalendar());
+
+    expect(screen.getByTestId('date-scale-month').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTestId('date-scale-week').getAttribute('aria-pressed')).toBe('false');
   });
 
   it('says the view still does not name a date instead of drawing an empty month', () => {

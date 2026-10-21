@@ -69,6 +69,7 @@ export const PAGE_DOCUMENT_NODES = {
       pageId: OPTIONAL,
       place: OPTIONAL,
       spaceId: OPTIONAL,
+      templateId: OPTIONAL,
     }),
     content: 'block+',
     group: 'block',

@@ -91,6 +91,22 @@ rules:
         given: Ninguna página marcada
         when: Se pide exportar la selección
         then: No se exporta nada y el botón permanece inactivo
+  - id: BR-1dfe765
+    status: active
+    title: Un botón de fila puede crear la fila desde una plantilla de la colección elegida
+    rule: >-
+      Un botón que agrega una fila a una colección puede llevar una plantilla elegida de esa colección. Al pulsarlo se
+      crea la fila con esa plantilla; si no tiene ninguna elegida se usa la plantilla por defecto de la colección. Lo
+      que el botón trae escrito, su título y su contenido, gana sobre la plantilla.
+    why: >-
+      Un botón de «nueva incidencia» debe poder partir siempre de la plantilla de incidencias aunque la colección tenga
+      otra por defecto.
+    context: Si la plantilla elegida se borra después, pulsar el botón avisa que la plantilla ya no existe y no crea la fila.
+    scenarios:
+      - title: El botón usa su plantilla
+        given: Un botón con la plantilla «Incidencia» y una colección cuya plantilla por defecto es otra
+        when: Se pulsa el botón
+        then: La fila nace con el contenido y los valores de «Incidencia»
   - id: BR-2a1ce65
     status: active
     title: Lo buscado se encuentra también dentro de una palabra más larga

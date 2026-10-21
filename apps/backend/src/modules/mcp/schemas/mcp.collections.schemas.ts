@@ -1,5 +1,7 @@
 import {
   isValidPageTimeZone,
+  PAGE_CARD_SIZE_VALUES,
+  PAGE_DATE_SCALE_VALUES,
   PAGE_FILTER_OPERATOR_VALUES,
   PAGE_NUMBER_FORMAT_VALUES,
   PAGE_PROPERTY_TYPE,
@@ -29,9 +31,10 @@ import {
   MCP_VALUE_TEXT_MAX_LENGTH,
   MCP_WHERE_CONDITION_LIMIT,
 } from '../constants/mcp.limits.constants';
+import { MCP_DAY_PATTERN } from '../constants/mcp.views.constants';
 import { buildMcpAddressSchema, mcpRequestIdShape } from './mcp.common.schemas';
 
-const collectionSchema = buildMcpAddressSchema(
+export const collectionSchema = buildMcpAddressSchema(
   'The collection (a table or board): a Neuma link to it, or its page id.',
 );
 
@@ -61,7 +64,7 @@ const relationEditSchema = z
 
 const cellValueSchema = z.union([conditionValueSchema, relationEditSchema]);
 
-const cellValuesSchema = z
+export const cellValuesSchema = z
   .record(z.string().max(MCP_COLUMN_NAME_MAX_LENGTH), cellValueSchema)
   .refine((values) => Object.keys(values).length <= MCP_COLLECTION_CHANGE_LIMIT, {
     message: `Give at most ${String(MCP_COLLECTION_CHANGE_LIMIT)} columns at once.`,
@@ -236,16 +239,46 @@ export const queryCollectionInputSchema = z.object({
     .optional()
     .describe('Read the rows as this view shows them, with its filter and order; where and sort replace its own.'),
   where: whereSchema.optional(),
+  window: z
+    .object({
+      column: columnSchema.describe('A date column.'),
+      from: z.string().regex(MCP_DAY_PATTERN).describe('The first day, as YYYY-MM-DD.'),
+      to: z.string().regex(MCP_DAY_PATTERN).describe('The last day, as YYYY-MM-DD, included.'),
+    })
+    .optional()
+    .describe(
+      'Only the rows whose dates in that column overlap these days, as a calendar or a timeline shows them: a range that starts before the window and ends inside it counts. Sums with where and the view’s own filter. Rows with no date are left out.',
+    ),
 });
 
 export const createRowInputSchema = z.object({
   collection: collectionSchema,
   properties: cellValuesSchema.optional(),
+  template: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MCP_TITLE_MAX_LENGTH)
+    .nullable()
+    .optional()
+    .describe(
+      'The template the row starts from, by its name or its id (list_templates shows them). Left out, the default template of the collection is used if it has one; null starts a blank row. A template gives the row its text and its values, and fills a date with "today" and a person with you when it says so; what you give in properties and text wins over the template.',
+    ),
   text: z
     .string()
     .max(MCP_ROW_TEXT_MAX_LENGTH)
     .optional()
     .describe('What the row page says, as plain paragraphs separated by blank lines.'),
+  timeZone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MCP_TIME_ZONE_MAX_LENGTH)
+    .refine(isValidPageTimeZone, { message: 'timeZone is not an IANA zone name, such as America/Santiago.' })
+    .optional()
+    .describe(
+      'The zone whose calendar decides what "today" is when the template fills a date, as an IANA name such as America/Santiago. UTC when left out.',
+    ),
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH),
   ...mcpRequestIdShape,
 });
@@ -311,7 +344,32 @@ export const updateCollectionColumnsInputSchema = z.object({
 });
 
 const viewShapeSchema = {
+  cardSize: z.enum(PAGE_CARD_SIZE_VALUES).optional().describe('How big the cards of a gallery or a board are.'),
+  coverColumn: columnSchema
+    .nullable()
+    .optional()
+    .describe('A gallery or a board: the files column whose first image is the cover of each card. null removes it.'),
+  dateColumn: columnSchema
+    .nullable()
+    .optional()
+    .describe(
+      'A calendar or a timeline: the date column that places each row (where it starts, for a timeline). A date range in it gives the row its length.',
+    ),
+  endDateColumn: columnSchema
+    .nullable()
+    .optional()
+    .describe(
+      'A timeline: another date column where each row ends. Leave it out to read the end from the range in dateColumn.',
+    ),
   groupBy: columnSchema.nullable().optional().describe('The column that makes the groups; a board needs one.'),
+  scale: z
+    .enum(PAGE_DATE_SCALE_VALUES)
+    .optional()
+    .describe('How much time one screen holds: WEEK or MONTH for a calendar, DAY, WEEK or MONTH for a timeline.'),
+  subGroupBy: columnSchema
+    .nullable()
+    .optional()
+    .describe('A board: a second column that cuts every group into bands (swimlanes). null removes it.'),
   sort: sortSchema.optional(),
   visibleColumns: z.array(columnSchema).max(MCP_COLLECTION_CHANGE_LIMIT).optional().describe('The columns it shows.'),
   where: whereSchema.optional(),
@@ -345,10 +403,16 @@ const outputColumnSchema = z.object({
 });
 
 const outputViewSchema = z.object({
+  cardSize: z.string().optional(),
+  coverColumn: z.string().optional(),
+  dateColumn: z.string().optional(),
+  endDateColumn: z.string().optional(),
   filter: z.string().nullable(),
   groupBy: z.string().nullable(),
   isDefault: z.boolean(),
   name: z.string(),
+  scale: z.string().optional(),
+  subGroupBy: z.string().optional(),
   type: z.string(),
 });
 
@@ -360,7 +424,7 @@ export const collectionOutputSchema = z.object({
   views: z.array(outputViewSchema),
 });
 
-const outputPropertySchema = z.object({
+export const outputPropertySchema = z.object({
   key: z.string(),
   label: z.string(),
   people: z.array(z.object({ id: z.string(), name: z.string() })).optional(),

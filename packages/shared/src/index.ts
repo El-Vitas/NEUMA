@@ -299,11 +299,28 @@ export {
   listPageCalculationsFor,
 } from './page-view/page-view.calculation.lib.js';
 export {
+  layoutPageCalendarLanes,
   listPageCalendarDays,
+  listPageCalendarWeekDays,
   readPageCalendarMonth,
   shiftPageCalendarDate,
   shiftPageCalendarMonth,
 } from './page-view/page-view.calendar.lib.js';
+export type {
+  PageTimelineBar,
+  PageTimelineChangeInput,
+  PageTimelineChangeMode,
+  PageTimelineTick,
+} from './page-view/page-view.timeline.lib.js';
+export {
+  buildPageTimelineChange,
+  layoutPageTimelineBar,
+  listPageTimelineTicks,
+  readPageTimelineOffset,
+  readPageTimelinePeriod,
+  readPageTimelineWindow,
+  shiftPageTimelineAnchor,
+} from './page-view/page-view.timeline.lib.js';
 export { listPageChartMeasuresFor, readPageChartValue } from './page-view/page-view.chart.lib.js';
 export type { PageViewDefinition } from './page-view/page-view.definitions.js';
 export { makeSchemaViewDefault, removeSchemaView } from './page-view/page-view.editing.lib.js';
@@ -333,6 +350,27 @@ export {
   resolvePageRelativeRange,
 } from './page-view/page-view.relative.lib.js';
 export type { PageDayRange, PageFilterViewer, PageRelativeDate } from './page-view/page-view.relative.types.js';
+export {
+  PAGE_DEFAULT_TEMPLATE_KEY,
+  PAGE_TEMPLATE_KEY,
+  PAGE_TEMPLATE_MAXIMUM_PER_COLLECTION,
+  PAGE_TEMPLATE_VARIABLE,
+  PAGE_TEMPLATE_VARIABLE_VALUES,
+} from './page-template/page-template.constants.js';
+export {
+  findInvalidPageTemplateVariable,
+  isPageContentBlank,
+  isPageTemplate,
+  readPageDefaultTemplateId,
+  readPageTemplate,
+  resolvePageTemplateVariables,
+} from './page-template/page-template.lib.js';
+export type {
+  PageTemplateMarker,
+  PageTemplateVariable,
+  PageTemplateVariables,
+  PageTemplateViewer,
+} from './page-template/page-template.types.js';
 export {
   addPageDays,
   isValidPageTimeZone,
@@ -412,10 +450,14 @@ export {
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
 export type {
   PageCalendarDay,
+  PageCalendarLane,
+  PageCalendarPeriod,
+  PageCardSize,
   PageChartKind,
   PageChartMeasure,
   PageColumnAlignment,
   PageDateBucket,
+  PageDateScale,
   PageFilter,
   PageFilterCondition,
   PageFilterGroup,
@@ -430,6 +472,8 @@ export type {
   PageViewProperty,
 } from './page-view/page-view.types.js';
 export {
+  PAGE_CARD_SIZE,
+  PAGE_CARD_SIZE_VALUES,
   PAGE_CHART_KIND,
   PAGE_CHART_KIND_VALUES,
   PAGE_CHART_MEASURE,
@@ -438,6 +482,8 @@ export {
   PAGE_COLUMN_ALIGNMENT_VALUES,
   PAGE_DATE_BUCKET,
   PAGE_DATE_BUCKET_VALUES,
+  PAGE_DATE_SCALE,
+  PAGE_DATE_SCALE_VALUES,
   PAGE_FILTER_GROUP_OPERATOR,
   PAGE_FILTER_MAXIMUM_DEPTH,
   PAGE_FILTER_OPERATOR,

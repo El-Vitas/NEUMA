@@ -153,6 +153,33 @@ export class PageLockedError extends DomainError {
   }
 }
 
+export class PageTemplateNotFoundError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_NOT_FOUND';
+  public readonly httpStatus = 404;
+
+  constructor() {
+    super('The collection has no template with that id');
+  }
+}
+
+export class PageTemplateInvalidError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_INVALID';
+  public readonly httpStatus = 400;
+
+  constructor(details: string) {
+    super(`The template cannot be saved that way: ${details}`, details);
+  }
+}
+
+export class PageTemplateLimitError extends DomainError {
+  public readonly code = 'PAGE_TEMPLATE_LIMIT';
+  public readonly httpStatus = 409;
+
+  constructor(limit: number) {
+    super(`A collection keeps at most ${String(limit)} templates`);
+  }
+}
+
 export class PageOwnerInvalidError extends DomainError {
   public readonly code = 'PAGE_OWNER_INVALID';
   public readonly httpStatus = 400;

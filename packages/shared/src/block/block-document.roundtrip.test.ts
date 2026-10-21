@@ -104,6 +104,17 @@ const NODE_CASES: Readonly<Record<string, readonly unknown[]>> = {
       content: [paragraph(text('Nuevo bloque'))],
       type: 'button',
     },
+    {
+      attrs: {
+        deed: 'row',
+        label: 'Nueva fila',
+        pageId: 'page-1',
+        spaceId: FIXTURE_SPACE_ID,
+        templateId: 'template-1',
+      },
+      content: [paragraph(text('Fila'))],
+      type: 'button',
+    },
   ],
   callout: [{ attrs: { icon: 'warning' }, content: [paragraph(text('Ojo')), paragraph()], type: 'callout' }],
   code_block: [

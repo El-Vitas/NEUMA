@@ -127,6 +127,8 @@ import { usePagesPreview } from '../links/hooks/use.pages.preview';
 import { resolveInternalPageHref } from '../navigation/lib/pages.side-panel.lib';
 import { createPageAction } from '../server/actions/pages.actions';
 import type { SharingChange } from '../sharing/types/pages.sharing.types';
+import { readButtonRowTitle } from '../templates/lib/pages.templates.lib';
+import { readButtonTemplates, readPageTemplatesFromBrowser } from '../templates/lib/pages.templates.reading.lib';
 import type { PageContent, PageSummary } from '../types/pages.types';
 
 interface IProps {
@@ -465,6 +467,7 @@ export const PagesProseMirrorEditor = forwardRef(
           (userId) => findPersonForHoverRef.current(userId),
           (mentionedPageId) => readPageIconRef.current(mentionedPageId),
           (mentionedPageId) => readPageLifecycleRef.current(mentionedPageId),
+          readButtonTemplates,
         ),
         state: editorState,
       });
@@ -515,8 +518,9 @@ export const PagesProseMirrorEditor = forwardRef(
       addTheRow(
         pressed.pageId,
         pressed.spaceId,
-        readTheRowTitle(pressed.content, labels.untitled),
+        readTheRowTitle(pressed.content, ''),
         readTheRowContent(pressed.content),
+        pressed.templateId,
       );
     });
 
@@ -661,7 +665,13 @@ export const PagesProseMirrorEditor = forwardRef(
     };
 
     /** The schema is read first because required properties need default values, or an empty row would be refused. */
-    const addTheRow = (collectionId: string, collectionSpaceId: string, title: string, content: PageContent): void => {
+    const addTheRow = (
+      collectionId: string,
+      collectionSpaceId: string,
+      writtenTitle: string,
+      content: PageContent,
+      templateId: string | null,
+    ): void => {
       startMakingChild(async () => {
         const asked = await callAction(() =>
           readPageCollectionAction({ pageId: collectionId, spaceId: collectionSpaceId }),
@@ -675,12 +685,15 @@ export const PagesProseMirrorEditor = forwardRef(
           return;
         }
         const schema = asked.data;
+        const templates = await readPageTemplatesFromBrowser(collectionId, collectionSpaceId);
+        const title = readButtonRowTitle(writtenTitle, templateId, templates, labels.untitled);
         const made = await callAction(() =>
           createPageAction({
             content,
+            defaultValues: buildRowPropertyValues(getEditableSchemaProperties(schema)),
             parentId: collectionId,
-            propertyValues: buildRowPropertyValues(getEditableSchemaProperties(schema)),
             spaceId: collectionSpaceId,
+            ...(templateId === null ? {} : { templateId }),
             title,
           }),
         );
@@ -688,7 +701,7 @@ export const PagesProseMirrorEditor = forwardRef(
           toast.error(tErrors(`reasons.${readActionFailureReason(made)}`));
           return;
         }
-        toast.success(t('buttonRowDone', { page: readPageTitleRef.current(collectionId) ?? title }));
+        toast.success(t('buttonRowDone', { page: readPageTitleRef.current(collectionId) ?? made.data.title }));
         router.refresh();
       });
     };

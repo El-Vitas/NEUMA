@@ -3402,7 +3402,8 @@
                 "LIST",
                 "GALLERY",
                 "CALENDAR",
-                "CHART"
+                "CHART",
+                "TIMELINE"
               ],
               "typeName": "DatabaseViewType"
             },
@@ -6273,7 +6274,8 @@
                 "LIST",
                 "GALLERY",
                 "CALENDAR",
-                "CHART"
+                "CHART",
+                "TIMELINE"
               ]
             },
             "FileAssetLifecycle": {
@@ -6320,7 +6322,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "89d5dc74953b2cee64368ffd005871d78f50ee4f6c191d2e9a2cd9f6baeea8af"
+    "storageHash": "9970e97ad3f0138b9e610ebfce7fe6c205245c7be7c30b3077673c092c48225a"
   },
   "execution": {
     "executionHash": "0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc",

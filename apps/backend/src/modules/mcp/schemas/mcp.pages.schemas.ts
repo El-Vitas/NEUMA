@@ -312,6 +312,9 @@ export const listTrashOutputSchema = z.object({
         deletedAt: z.iso.datetime(),
         deletedBy: z.object({ id: mcpIdSchema, name: z.string().max(MCP_TITLE_MAX_LENGTH) }).nullable(),
         id: mcpIdSchema,
+        isTemplate: z
+          .boolean()
+          .describe('True for a template of a collection: restore_page puts it back among its templates.'),
         spaceId: mcpIdSchema,
         title: z.string().max(MCP_TITLE_MAX_LENGTH),
         trashedChildCount: z.number().int().nonnegative(),

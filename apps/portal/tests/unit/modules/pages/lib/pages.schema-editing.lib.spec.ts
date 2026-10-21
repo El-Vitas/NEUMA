@@ -217,6 +217,15 @@ describe('addSchemaView', () => {
     expect(addSchemaView([table], { name: 'Board', type: 'BOARD' }, [title, status])[0]?.isDefault).toBe(true);
   });
 
+  it('starts a timeline on the first date property, as a calendar does', () => {
+    const due: PageSchemaProperty = { ...notes, key: 'due', label: 'Due', type: 'DATE' };
+
+    expect(addSchemaView([table], { name: 'Plan', type: 'TIMELINE' }, [title, due])[1]?.configuration).toEqual({
+      dateProperty: 'due',
+    });
+    expect(addSchemaView([table], { name: 'Plan', type: 'TIMELINE' }, [title, status])[1]?.configuration).toEqual({});
+  });
+
   it('refuses a name another view already has, because the address nombra la vista por su nombre', () => {
     expect(addSchemaView([table], { name: 'Table', type: 'BOARD' }, [title, status])).toEqual([table]);
   });
@@ -403,6 +412,30 @@ describe('convertSchemaView', () => {
 
   it('leaves the view alone when it already is what it was asked to become', () => {
     expect(convertSchemaView([board], 'Board', 'BOARD', [title, status])).toEqual([board]);
+  });
+
+  it('keeps the date a calendar was placed by when it becomes a timeline, instead of choosing another', () => {
+    const due: PageSchemaProperty = { ...title, key: 'due', label: 'Due', required: false, type: 'DATE' };
+    const start: PageSchemaProperty = { ...due, key: 'start', label: 'Start' };
+    const calendar: PageSchemaViewDraft = {
+      configuration: { dateProperty: 'due' },
+      isDefault: false,
+      name: 'Calendar',
+      type: 'CALENDAR',
+    };
+
+    const converted = convertSchemaView([calendar], 'Calendar', 'TIMELINE', [title, start, due])[0];
+
+    expect(readPageViewConfiguration(converted?.configuration).dateProperty).toBe('due');
+  });
+
+  it('puts a timeline on the first date property when the view had none', () => {
+    const due: PageSchemaProperty = { ...title, key: 'due', label: 'Due', required: false, type: 'DATE' };
+    const table: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+
+    const converted = convertSchemaView([table], 'Table', 'TIMELINE', [title, due])[0];
+
+    expect(readPageViewConfiguration(converted?.configuration).dateProperty).toBe('due');
   });
 });
 

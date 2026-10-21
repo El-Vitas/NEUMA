@@ -24,3 +24,6 @@ export const PAGE_EDITOR_BUTTON_FIELD_STYLE_CLASS = [
 ].join(' ');
 
 export const PAGE_EDITOR_BUTTON_TEMPLATE_STYLE_CLASS = 'min-w-0';
+
+/** The value of the choice that keeps no template of its own and follows the default of the collection. */
+export const PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE = '';

@@ -18,6 +18,7 @@ interface IProps {
   readonly appearance: PageTableAppearance;
   readonly canEdit: boolean;
   readonly collectionPageId: string;
+  readonly columnAppearances: Readonly<Record<string, PageTableAppearance>>;
   readonly columnCount: number;
   readonly frozenCells: readonly { readonly className?: string; readonly style?: { readonly left: number } }[];
   readonly paging: PagesRowPagingInput;
@@ -34,6 +35,7 @@ export const PagesCollectionTableMoreRows = ({
   appearance,
   canEdit,
   collectionPageId,
+  columnAppearances,
   columnCount,
   frozenCells,
   paging,
@@ -71,6 +73,7 @@ export const PagesCollectionTableMoreRows = ({
             appearance={appearance}
             canEdit={canEdit}
             collectionPageId={collectionPageId}
+            columnAppearances={columnAppearances}
             frozenCells={frozenCells}
             index={window.indexes === null ? undefined : position}
             key={row.id}
@@ -78,6 +81,7 @@ export const PagesCollectionTableMoreRows = ({
             personOptions={personOptions}
             properties={properties}
             row={row}
+            scope={scope}
             selectLabel={t('collection.selectRow', { title: row.title.length > 0 ? row.title : t('untitled') })}
             spaceId={spaceId}
             untitledLabel={t('untitled')}

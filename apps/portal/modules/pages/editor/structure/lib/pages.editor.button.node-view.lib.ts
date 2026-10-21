@@ -2,6 +2,7 @@ import { PAGE_BUTTON_DEEDS, PAGE_BUTTON_PLACES } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import {
+  PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE,
   PAGE_EDITOR_BUTTON_FIELD_STYLE_CLASS,
   PAGE_EDITOR_BUTTON_HEAD_STYLE_CLASS,
   PAGE_EDITOR_BUTTON_PANEL_STYLE_CLASS,
@@ -10,7 +11,11 @@ import {
   PAGE_EDITOR_BUTTON_STYLE_CLASS,
   PAGE_EDITOR_BUTTON_TEMPLATE_STYLE_CLASS,
 } from '../constants/pages.editor.button.constants';
-import type { PageEditorButtonLabels } from '../types/pages.editor.button.types';
+import type {
+  PageButtonTemplateChoice,
+  PageButtonTemplatesReader,
+  PageEditorButtonLabels,
+} from '../types/pages.editor.button.types';
 
 const createChoice = (
   name: string,
@@ -33,12 +38,31 @@ const createChoice = (
   return choice;
 };
 
+/** The default of the collection first, then its templates; a template that is gone falls back to the default. */
+const fillTemplateChoice = (
+  choice: HTMLSelectElement,
+  templates: readonly PageButtonTemplateChoice[],
+  chosen: string,
+  defaultLabel: string,
+): void => {
+  choice.replaceChildren(
+    ...[{ id: PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE, title: defaultLabel }, ...templates].map((template) => {
+      const one = document.createElement('option');
+      one.value = template.id;
+      one.textContent = template.title;
+      return one;
+    }),
+  );
+  choice.value = templates.some((template) => template.id === chosen) ? chosen : PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE;
+};
+
 export const createPageButtonNodeView = (
   node: EditorNode,
   view: EditorView,
   getPosition: () => number | undefined,
   labels: PageEditorButtonLabels,
   press: (at: number) => void,
+  readTemplates: PageButtonTemplatesReader,
 ): NodeView => {
   const container = document.createElement('div');
   const head = document.createElement('div');
@@ -62,6 +86,13 @@ export const createPageButtonNodeView = (
     (one) => places[one] ?? labels.places.below,
   );
   const template = document.createElement('div');
+  const templateChoice = createChoice(
+    'template',
+    PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE,
+    [PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE],
+    labels.template,
+    () => labels.templateDefault,
+  );
 
   container.className = PAGE_EDITOR_BUTTON_STYLE_CLASS;
   container.dataset.pageButton = 'true';
@@ -91,11 +122,11 @@ export const createPageButtonNodeView = (
   const controls = document.createElement('div');
   controls.className = PAGE_EDITOR_BUTTON_HEAD_STYLE_CLASS;
   controls.contentEditable = 'false';
-  controls.append(name, deed, place);
+  controls.append(name, deed, place, templateChoice);
   panel.append(controls, template);
   container.append(head, panel);
 
-  const writeAttribute = (attribute: string, value: string): void => {
+  const writeAttribute = (attribute: string, value: null | string): void => {
     const position = getPosition();
     if (position === undefined) return;
     view.dispatch(view.state.tr.setNodeAttribute(position, attribute, value));
@@ -110,7 +141,32 @@ export const createPageButtonNodeView = (
     place.hidden = chosen === 'row';
   };
 
+  let templatesFor = '';
+
+  /** Only a button that adds a row to a collection offers templates, and they are asked once for each collection. */
+  const showTemplates = (attrs: EditorNode['attrs']): void => {
+    const isForRows = attrs.deed === 'row' && typeof attrs.pageId === 'string' && typeof attrs.spaceId === 'string';
+    templateChoice.hidden = !isForRows;
+    if (!isForRows) return;
+    const chosen = typeof attrs.templateId === 'string' ? attrs.templateId : PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE;
+    const asked = `${attrs.spaceId}:${attrs.pageId}`;
+    if (asked === templatesFor) {
+      if (templateChoice.querySelector(`option[value="${CSS.escape(chosen)}"]`) !== null) templateChoice.value = chosen;
+      return;
+    }
+    templatesFor = asked;
+    readTemplates(attrs.pageId, attrs.spaceId).then(
+      (templates) => {
+        if (templatesFor === asked) fillTemplateChoice(templateChoice, templates, chosen, labels.templateDefault);
+      },
+      () => {
+        templatesFor = '';
+      },
+    );
+  };
+
   showWhatIsAsked(node.attrs.deed ?? PAGE_BUTTON_DEEDS[0]);
+  showTemplates(node.attrs);
   setup.addEventListener('mousedown', (event) => event.preventDefault());
   setup.addEventListener('click', () => showSetup(setup.getAttribute('aria-expanded') !== 'true'));
   pressed.addEventListener('mousedown', (event) => event.preventDefault());
@@ -126,6 +182,12 @@ export const createPageButtonNodeView = (
     showWhatIsAsked(deed.value);
   });
   place.addEventListener('change', () => writeAttribute('place', place.value));
+  templateChoice.addEventListener('change', () =>
+    writeAttribute(
+      'templateId',
+      templateChoice.value === PAGE_EDITOR_BUTTON_DEFAULT_TEMPLATE ? null : templateChoice.value,
+    ),
+  );
 
   return {
     contentDOM: template,
@@ -139,6 +201,7 @@ export const createPageButtonNodeView = (
       deed.value = updated.attrs.deed ?? PAGE_BUTTON_DEEDS[0];
       place.value = updated.attrs.place ?? PAGE_BUTTON_PLACES[0];
       showWhatIsAsked(deed.value);
+      showTemplates(updated.attrs);
       return true;
     },
   };

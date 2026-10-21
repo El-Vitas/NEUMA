@@ -19,6 +19,16 @@ import { buildView } from '../lib/pages.views.fixture';
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/shared/server/lib/time-zone.server', () => ({ readRequestTimeZone: async () => null }));
 mock.module('@/shared/server/actions/time-zone.actions', () => ({ rememberTimeZoneAction: async () => undefined }));
+mock.module('@/modules/pages/templates/server/queries/pages.templates.queries', () => ({
+  getPageTemplates: async () => ({ isFail: () => true }),
+}));
+mock.module('@/modules/pages/templates/server/actions/pages.templates.actions', () => ({
+  createPageTemplateAction: async () => undefined,
+  deletePageTemplateAction: async () => undefined,
+  listPageTemplatesAction: async () => undefined,
+  setDefaultPageTemplateAction: async () => undefined,
+  updatePageTemplateAction: async () => undefined,
+}));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getSpaceCollections: async () => ({ getValue: () => [{ id: 'collection-2', title: 'Projects' }], isOk: () => true }),

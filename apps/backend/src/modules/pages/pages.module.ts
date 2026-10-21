@@ -18,6 +18,7 @@ import { PageBlockWriter } from './infrastructure/persistence/page.block.writer'
 import { PagePurgeRepository } from './infrastructure/persistence/page.purge.repository';
 import { PageRepository } from './infrastructure/persistence/page.repository';
 import { PageSummaryReader } from './infrastructure/persistence/page.summary.reader';
+import { PageTemplateRepository } from './infrastructure/persistence/page.template.repository';
 import { PageVersionRepository } from './infrastructure/persistence/page.version.repository';
 import { PageVersionRetentionRepository } from './infrastructure/persistence/page.version-retention.repository';
 import { PageAttachmentsCleanupRepository } from './infrastructure/persistence/page-attachments.cleanup.repository';
@@ -40,6 +41,8 @@ import { PageQueryController } from './page-query.controller';
 import { PageQueryService } from './page-query.service';
 import { PageSchemaController } from './page-schema.controller';
 import { PageSchemaService } from './page-schema.service';
+import { PageTemplateController } from './page-template.controller';
+import { PageTemplateService } from './page-template.service';
 import { PageViewOperationsController } from './page-view-operations.controller';
 import { PageViewOperationsService } from './page-view-operations.service';
 import { PagesBatchController } from './pages.batch.controller';
@@ -59,9 +62,11 @@ import { PagesService } from './pages.service';
     PageLocationController,
     PageAssignedController,
     PageVersionsController,
+    PageTemplateController,
   ],
   exports: [
     PagesService,
+    PageTemplateService,
     PageSchemaService,
     PageQueryService,
     PageChangesService,
@@ -89,6 +94,8 @@ import { PagesService } from './pages.service';
     { provide: PAGE_SCHEMA_REPOSITORY, useClass: PageSchemaRepository },
     PageQueryRepository,
     PageChangesRepository,
+    PageTemplateRepository,
+    PageTemplateService,
     { provide: PAGE_QUERY_CLOCK, useValue: systemPageQueryClock },
     PageQueryService,
     PageChangesService,

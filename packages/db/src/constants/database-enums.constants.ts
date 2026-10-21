@@ -39,6 +39,7 @@ export const DatabaseViewType = {
   GALLERY: 'GALLERY',
   CALENDAR: 'CALENDAR',
   CHART: 'CHART',
+  TIMELINE: 'TIMELINE',
 } as const;
 export type DatabaseViewType = ValueOf<typeof DatabaseViewType>;
 

@@ -1,4 +1,5 @@
-import type { BlockDraft, BlockTree, PageCoverValue, PageIcon, PageLifecycle } from '@neuma/shared';
+import type { BlockDraft, BlockTree, PageCoverValue, PageIcon, PageLifecycle, PageTemplateMarker } from '@neuma/shared';
+import { PAGE_DEFAULT_TEMPLATE_KEY, PAGE_TEMPLATE_KEY } from '@neuma/shared';
 import {
   BLOCK_WRITE_COMMAND,
   BLOCK_WRITE_ROOT_PAGES_PATH,
@@ -105,6 +106,14 @@ export const buildIconOperation = (pageId: string, icon: PageIcon | null): PageB
 
 export const buildCoverOperation = (pageId: string, cover: PageCoverValue | null): PageBlockOperation =>
   operate(pageId, BLOCK_WRITE_COMMAND.update, ['format'], { [PAGE_FORMAT_KEY.cover]: cover });
+
+/** The words a template leaves in its columns; the marker itself is written when the template is created. */
+export const buildTemplateMarkerOperation = (pageId: string, marker: PageTemplateMarker): PageBlockOperation =>
+  operate(pageId, BLOCK_WRITE_COMMAND.update, ['properties'], { [PAGE_TEMPLATE_KEY]: marker });
+
+/** A null template takes the default away: a merge drops the entries that are set to null. */
+export const buildDefaultTemplateOperation = (collectionId: string, templateId: null | string): PageBlockOperation =>
+  operate(collectionId, BLOCK_WRITE_COMMAND.update, ['properties'], { [PAGE_DEFAULT_TEMPLATE_KEY]: templateId });
 
 export const buildValuesOperation = (pageId: string, changes: PageValueChanges): PageBlockOperation =>
   operate(pageId, BLOCK_WRITE_COMMAND.mergePageValues, [], { values: changes });

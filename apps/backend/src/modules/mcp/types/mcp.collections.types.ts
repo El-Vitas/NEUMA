@@ -105,7 +105,21 @@ export type McpCellValue = string | number | boolean | string[] | PageDateValue 
 /** What a condition compares with: one plain value, or nothing for the emptiness conditions. */
 export type McpConditionValue = Exclude<McpCellValue, PageDateValue>;
 
-export type McpViewShapeInput = Partial<Pick<McpCreateViewInput, 'groupBy' | 'sort' | 'visibleColumns' | 'where'>>;
+export type McpViewShapeInput = Partial<
+  Pick<
+    McpCreateViewInput,
+    | 'cardSize'
+    | 'coverColumn'
+    | 'dateColumn'
+    | 'endDateColumn'
+    | 'groupBy'
+    | 'scale'
+    | 'sort'
+    | 'subGroupBy'
+    | 'visibleColumns'
+    | 'where'
+  >
+>;
 
 /** Removed when it has no new name. Rows keep the id, so a rename moves none; a removal clears the rows. */
 export interface McpOptionRewrite {
@@ -316,6 +330,9 @@ export interface McpRowWriter {
       readonly parentId: string | null;
       readonly propertyValues: PagePropertyValues | null;
       readonly spaceId: string;
+      /** Undefined takes the default template of the collection; null asks for none. */
+      readonly templateId?: null | string;
+      readonly timeZone?: string;
       readonly title: string;
     },
   ) => Promise<Result<McpWrittenRow, McpRefusal>>;

@@ -52,7 +52,11 @@ const PROPERTIES = [
   { key: 'notes', label: 'Notes', options: null, required: false, type: DatabasePropertyType.RICH_TEXT },
   { key: 'site', label: 'Site', options: null, required: false, type: DatabasePropertyType.URL },
   { key: 'contact', label: 'Contact', options: null, required: false, type: DatabasePropertyType.EMAIL },
+  { key: 'when', label: 'When', options: null, required: false, type: DatabasePropertyType.DATE },
 ];
+
+/** Every row of the timeline lasts a few days of the month, so a window of the month holds all of them. */
+const TIMELINE_WINDOW = { end: '2026-09-30', start: '2026-09-01' };
 
 interface SchemaResponse {
   properties: { key: string; options?: { group?: string; id: string; value: string }[] | null }[];
@@ -135,6 +139,10 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
                   priority: priorities[position % priorities.length] ?? null,
                   site: `https://example.com/rows/${String(position)}`,
                   status: statuses[position % statuses.length] ?? null,
+                  when: {
+                    end: `2026-09-${String((position % 25) + 4).padStart(2, '0')}`,
+                    start: `2026-09-${String((position % 25) + 1).padStart(2, '0')}`,
+                  },
                 },
               }
             : {},
@@ -367,6 +375,61 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
     it('counts and calculates through the index too', async () => {
       const plan = await planOf(tableId, {}, (_observer, scope) =>
         repository.readAggregates(scope, [{ calculation: 'SUM', id: 'sum', propertyKey: 'points' }], null),
+      );
+
+      expect(plan).not.toContain('Seq Scan on "Block"');
+    });
+  });
+
+  describe('a timeline over two thousand rows', () => {
+    const windowFilter: PageFilter = {
+      kind: 'CONDITION',
+      operator: 'IS',
+      propertyKey: 'when',
+      value: { end: TIMELINE_WINDOW.end, start: TIMELINE_WINDOW.start },
+    };
+
+    it('reads a page of its window within the budget', async () => {
+      const api = await timed(async () => {
+        await run(
+          { quickFilter: windowFilter, reducers: [{ id: 'rows', kind: 'results', limit: 100 }] },
+          boardId,
+        ).expect(200);
+      });
+
+      report('timeline window page (API, 2,000 rows)', api.p95);
+
+      expect(api.p95).toBeLessThan(REQUEST_BUDGET_MS);
+    });
+
+    it('reads the whole window page after page without leaving a row out or repeating one', async () => {
+      const ids = new Set<string>();
+      let cursor: null | string = null;
+      let pages = 0;
+      do {
+        const response = (
+          await run(
+            {
+              quickFilter: windowFilter,
+              reducers: [{ ...(cursor === null ? {} : { cursor }), id: 'rows', kind: 'results', limit: 100 }],
+            },
+            boardId,
+          ).expect(200)
+        ).body as PageQueryResponse;
+        const outcome = response.reducers.rows;
+        if (outcome?.kind !== 'results') throw new Error('not results');
+        for (const id of outcome.ids) ids.add(id);
+        cursor = outcome.nextCursor;
+        pages += 1;
+      } while (cursor !== null && pages < 50);
+
+      expect(ids.size).toBe(BOARD_CARDS);
+      expect(pages).toBe(BOARD_CARDS / 100);
+    });
+
+    it('counts what lasts into the window through the index, not the whole table', async () => {
+      const plan = await planOf(boardId, { filter: windowFilter }, (_observer, scope) =>
+        repository.readAggregates(scope, [{ calculation: 'COUNT_ALL', id: 'count', propertyKey: null }], null),
       );
 
       expect(plan).not.toContain('Seq Scan on "Block"');

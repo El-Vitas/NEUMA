@@ -63,7 +63,7 @@ export const PAGE_PROPERTY_TYPE_VALUES = [
   PAGE_PROPERTY_TYPE.UNIQUE_ID,
 ] as const;
 
-export type PageViewType = 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
+export type PageViewType = 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';
 
 export const PAGE_VIEW_TYPE = {
   TABLE: 'TABLE',
@@ -72,6 +72,7 @@ export const PAGE_VIEW_TYPE = {
   GALLERY: 'GALLERY',
   CALENDAR: 'CALENDAR',
   CHART: 'CHART',
+  TIMELINE: 'TIMELINE',
 } as const satisfies Record<PageViewType, PageViewType>;
 
 export const PAGE_VIEW_TYPE_VALUES = [
@@ -81,6 +82,7 @@ export const PAGE_VIEW_TYPE_VALUES = [
   PAGE_VIEW_TYPE.GALLERY,
   PAGE_VIEW_TYPE.CALENDAR,
   PAGE_VIEW_TYPE.CHART,
+  PAGE_VIEW_TYPE.TIMELINE,
 ] as const;
 
 /** How rows arrive, not how they are drawn: a table and a gallery are both FLAT. */

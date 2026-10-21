@@ -1,5 +1,7 @@
 import type {
+  PageCardSize,
   PageColumnAlignment,
+  PageDateScale,
   PageFilter,
   PageFilterCondition,
   PageFilterGroup,
@@ -362,6 +364,70 @@ export const toggleViewWrapsText = (
     const grows = wrapsText && configuration.rowHeight === PAGE_ROW_HEIGHT.SHORT;
     return { ...configuration, wrapsText, ...(grows ? { rowHeight: PAGE_ROW_HEIGHT.MEDIUM } : {}) };
   });
+
+export const readViewColumnWraps = (view: PageSchemaViewDraft): Readonly<Record<string, true>> =>
+  readPageViewConfiguration(view.configuration).columnWraps;
+
+/**
+ * Not wrapping is the default, so it is stored by removing the key. As with the whole table, wrapping raises a short
+ * row to a medium one: the extra lines would be cut off.
+ */
+export const toggleViewColumnWrap = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+  propertyKey: string,
+): readonly PageSchemaViewDraft[] =>
+  rewriteView(views, viewName, (configuration) => {
+    const { [propertyKey]: wasWrapped, ...rest } = configuration.columnWraps;
+    const isWrapping = wasWrapped !== true;
+    const grows = isWrapping && configuration.rowHeight === PAGE_ROW_HEIGHT.SHORT;
+    return {
+      ...configuration,
+      columnWraps: isWrapping ? { ...rest, [propertyKey]: true } : rest,
+      ...(grows ? { rowHeight: PAGE_ROW_HEIGHT.MEDIUM } : {}),
+    };
+  });
+
+export const readViewHiddenGroups = (view: PageSchemaViewDraft): readonly string[] =>
+  readPageViewConfiguration(view.configuration).hiddenGroups;
+
+export const toggleViewHiddenGroup = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+  groupKey: string,
+): readonly PageSchemaViewDraft[] =>
+  rewriteView(views, viewName, (configuration) => ({
+    ...configuration,
+    hiddenGroups: configuration.hiddenGroups.includes(groupKey)
+      ? configuration.hiddenGroups.filter((candidate) => candidate !== groupKey)
+      : [...configuration.hiddenGroups, groupKey],
+  }));
+
+export const setViewEndDateProperty = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+  propertyKey: null | string,
+): readonly PageSchemaViewDraft[] =>
+  rewriteView(views, viewName, (configuration) => ({ ...configuration, endDateProperty: propertyKey }));
+
+export const setViewDateScale = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+  dateScale: PageDateScale,
+): readonly PageSchemaViewDraft[] => rewriteView(views, viewName, (configuration) => ({ ...configuration, dateScale }));
+
+export const setViewCardSize = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+  cardSize: PageCardSize,
+): readonly PageSchemaViewDraft[] => rewriteView(views, viewName, (configuration) => ({ ...configuration, cardSize }));
+
+export const setViewCoverProperty = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+  propertyKey: null | string,
+): readonly PageSchemaViewDraft[] =>
+  rewriteView(views, viewName, (configuration) => ({ ...configuration, coverProperty: propertyKey }));
 
 export const readViewColumnAlignments = (view: PageSchemaViewDraft): Readonly<Record<string, PageColumnAlignment>> =>
   readPageViewConfiguration(view.configuration).columnAlignments;

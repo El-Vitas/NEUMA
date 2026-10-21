@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   buildCollectionViewHref,
+  readCollectionDay,
   readCollectionMonth,
   readCollectionQuickFilter,
   readCollectionSearch,
@@ -112,6 +113,26 @@ describe('readCollectionMonth', () => {
     expect(readCollectionMonth('2026-13')).toBeNull();
     expect(readCollectionMonth('agosto')).toBeNull();
     expect(readCollectionMonth(undefined)).toBeNull();
+  });
+});
+
+describe('readCollectionDay', () => {
+  it('reads a real day of the address, and the first one when it repeats', () => {
+    expect(readCollectionDay('2026-09-16')).toBe('2026-09-16');
+    expect(readCollectionDay(['2026-09-16', '2026-09-17'])).toBe('2026-09-16');
+  });
+
+  it('reads nothing from something that is not a day, instead of failing the page', () => {
+    expect(readCollectionDay('2026-02-30')).toBeNull();
+    expect(readCollectionDay('2026-09-16T10:00:00Z')).toBeNull();
+    expect(readCollectionDay('mañana')).toBeNull();
+    expect(readCollectionDay(undefined)).toBeNull();
+  });
+
+  it('is carried by the address after the words searched', () => {
+    expect(buildCollectionViewHref('Timeline', { day: '2026-09-16', search: 'informe' })).toBe(
+      '?view=Timeline&q=informe&day=2026-09-16',
+    );
   });
 });
 

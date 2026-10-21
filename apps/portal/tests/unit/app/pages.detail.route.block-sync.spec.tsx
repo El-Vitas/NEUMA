@@ -95,6 +95,16 @@ mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', (
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
   getSpaceCollections: async () => ({ getValue: () => [], isOk: () => true }),
 }));
+mock.module('@/modules/pages/templates/server/queries/pages.templates.queries', () => ({
+  getPageTemplates: async () => ({ isFail: () => true }),
+}));
+mock.module('@/modules/pages/templates/server/actions/pages.templates.actions', () => ({
+  createPageTemplateAction: async () => undefined,
+  deletePageTemplateAction: async () => undefined,
+  listPageTemplatesAction: async () => undefined,
+  setDefaultPageTemplateAction: async () => undefined,
+  updatePageTemplateAction: async () => undefined,
+}));
 mock.module('@/modules/pages/collections/server/lib/pages.view-reading.server', () => ({
   readPageViewReading: async () => null,
 }));

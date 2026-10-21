@@ -39,9 +39,16 @@ export const toRefinementPart = (
   ...(quickFilter === null || quickFilter === undefined ? {} : { quickFilter }),
 });
 
-/** A row must pass both: what the person filtered by and what the screen needs (the days of a calendar grid). */
-export const andQuickFilters = (own: null | PageFilter, other: PageFilter): PageFilter =>
-  own === null ? other : { conditions: [own, other], kind: 'GROUP', operator: 'AND' };
+/**
+ * A row must pass both: what the person filtered by and what the screen needs (the days of a calendar grid). A group of
+ * theirs that already needs everything takes the screen's filter as one more condition, because the server accepts
+ * three levels and wrapping it again would put its conditions on the fourth.
+ */
+export const andQuickFilters = (own: null | PageFilter, other: PageFilter): PageFilter => {
+  if (own === null) return other;
+  if (own.kind === 'GROUP' && own.operator === 'AND') return { ...own, conditions: [...own.conditions, other] };
+  return { conditions: [own, other], kind: 'GROUP', operator: 'AND' };
+};
 
 const rowsReducerOf = (view: PageSchemaViewDraft, configuration: PageViewConfiguration): PageQueryReducer => {
   if (view.type === PAGE_VIEW_TYPE.CALENDAR) {

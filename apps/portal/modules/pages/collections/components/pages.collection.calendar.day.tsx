@@ -1,44 +1,42 @@
 'use client';
 
-import { shiftPageCalendarDate } from '@neuma/shared';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
-import { Card } from '@/shared/components/ui/card';
-import { PagesSidePanelLink } from '../../navigation/components/pages.side-panel.link';
-import { PAGE_CALENDAR_KEYBOARD_STEPS } from '../constants/pages.calendar.constants';
 import type { PageCalendarCell, PagesCalendarMoving } from '../types/pages.calendar.types';
+import { PagesCollectionCalendarEntry } from './pages.collection.calendar.entry';
 
 interface IProps {
   readonly canEdit: boolean;
   readonly cell: PageCalendarCell;
   readonly dayLabel: string;
+  /** A week gives each day more room than a month, which has to fit six rows of them on one screen. */
+  readonly isTall?: boolean;
   readonly isToday: boolean;
   readonly moving: PagesCalendarMoving;
   readonly onCreate: () => void;
 }
 
 /** Days of the adjacent months render dimmed, not omitted, so weeks stay whole. */
-export const PagesCollectionCalendarDay = ({ canEdit, cell, dayLabel, isToday, moving, onCreate }: IProps) => {
+export const PagesCollectionCalendarDay = ({
+  canEdit,
+  cell,
+  dayLabel,
+  isTall = false,
+  isToday,
+  moving,
+  onCreate,
+}: IProps) => {
   const t = useTranslations('pages');
   const isTarget = canEdit && moving.carried !== null;
-
-  /** Keyboard alternative to dragging: Alt + arrows step by day or by week on a seven-column grid. */
-  const moveOnArrow = (event: KeyboardEvent<HTMLDivElement>, rowId: string): void => {
-    if (!canEdit || !event.altKey) return;
-    const days = PAGE_CALENDAR_KEYBOARD_STEPS[event.key];
-    if (days === undefined) return;
-    event.preventDefault();
-    moving.moveTo(rowId, shiftPageCalendarDate(cell.date, days));
-  };
 
   return (
     <section
       aria-label={dayLabel}
       className={cn(
-        'flex min-h-24 flex-col gap-1 border-border/60 border-t border-l p-1 transition-colors',
+        'flex flex-col gap-1 border-border/60 border-t border-l p-1 transition-colors',
+        isTall ? 'min-h-64' : 'min-h-24',
         cell.isOfTheMonth ? 'bg-background' : 'bg-muted/30',
         isTarget && 'hover:bg-primary/10',
       )}
@@ -76,27 +74,19 @@ export const PagesCollectionCalendarDay = ({ canEdit, cell, dayLabel, isToday, m
           </Button>
         )}
       </div>
-      {cell.rows.map((row) => (
-        <Card
-          aria-label={canEdit ? t('collection.entryMoveHint', { title: row.title }) : undefined}
-          className={cn(
-            'gap-0 rounded-sm border-0 bg-muted px-1.5 py-1 text-xs shadow-none',
-            canEdit && 'cursor-grab active:cursor-grabbing',
-            moving.carried === row.id && 'opacity-40',
-          )}
-          data-testid="calendar-entry"
-          draggable={canEdit}
-          key={row.id}
-          onDragEnd={moving.forget}
-          onDragStart={() => moving.take(row.id)}
-          onKeyDown={(event) => moveOnArrow(event, row.id)}
-          tabIndex={canEdit ? 0 : undefined}
-        >
-          <PagesSidePanelLink className="block truncate underline-offset-2 hover:underline" pageId={row.id}>
-            {row.title.length > 0 ? row.title : t('untitled')}
-          </PagesSidePanelLink>
-        </Card>
-      ))}
+      {cell.slots.map((slot, lane) =>
+        slot === null ? (
+          <div aria-hidden="true" className="h-6" key={`empty-${String(lane)}`} />
+        ) : (
+          <PagesCollectionCalendarEntry
+            canEdit={canEdit}
+            date={cell.date}
+            key={slot.row.id}
+            moving={moving}
+            slot={slot}
+          />
+        ),
+      )}
     </section>
   );
 };

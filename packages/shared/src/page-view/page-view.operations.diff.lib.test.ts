@@ -65,6 +65,16 @@ describe('diffing two configurations into operations', () => {
     ],
     ['all properties becoming a chosen few', base, { ...base, visibleProperties: ['b', 'a'] }],
     [
+      'a timeline that gains its end, its scale and a cover',
+      base,
+      { ...base, cardSize: 'LARGE', coverProperty: 'photos', dateScale: 'WEEK', endDateProperty: 'due' },
+    ],
+    [
+      'a table that wraps one column and then another',
+      { ...base, columnWraps: { notes: true } },
+      { ...base, columnWraps: { summary: true } },
+    ],
+    [
       'sorts that gain, flip and lose',
       {
         ...base,

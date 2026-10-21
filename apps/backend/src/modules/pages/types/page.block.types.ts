@@ -9,6 +9,11 @@ export interface PageBlockRow extends Omit<StoredPageBlock, 'children' | 'permis
   readonly permissions: unknown;
 }
 
+/** Templates are pages of the collection that are not part of any listing (ADR 027): ask for them to carry them. */
+export interface PageListingOptions {
+  readonly includeTemplates?: boolean;
+}
+
 /** A page whose deadline passed, and the page that holds it. */
 export interface PageDueForPurge {
   readonly id: string;

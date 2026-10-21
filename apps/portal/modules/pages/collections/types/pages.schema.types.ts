@@ -1,4 +1,6 @@
 import type {
+  PageDateScale,
+  PageDayRange,
   PageLifecycle,
   PageOptionColor,
   PagePropertyConfig,
@@ -90,11 +92,30 @@ export interface PageViewBand {
 
 /** What a calendar was drawn from: the month it opens on, and what the rows of its grid leave out. */
 export interface PageCalendarReading {
+  /** The day the week is drawn around; the first of the month for a month. */
+  readonly day: string;
   /** The grid holds more rows than a calendar reads, so it shows the first ones. */
   readonly isTruncated: boolean;
   readonly month: string;
+  readonly scale: Extract<PageDateScale, 'MONTH' | 'WEEK'>;
   /** Rows with no date, which fall on no day. */
   readonly undated: number;
+}
+
+/** What a timeline was drawn from: the days of its window, today, and the rows that have no place in it. */
+export interface PageTimelineReading {
+  /** The day the window was drawn around, which a step forward or back starts from. */
+  readonly anchor: string;
+  /** The window holds more rows than a timeline reads, so it shows the first ones. */
+  readonly isTruncated: boolean;
+  readonly scale: PageDateScale;
+  /** Today in the calendar of the server, where the marker goes. */
+  readonly today: string;
+  /** All the rows with no start. */
+  readonly undated: number;
+  /** The first of them, to list them apart. */
+  readonly undatedRows: readonly PageRow[];
+  readonly window: PageDayRange;
 }
 
 export type PageViewOutcome =
@@ -104,6 +125,7 @@ export type PageViewOutcome =
       readonly kind: 'FLAT_ROWS';
       readonly nextCursor?: string | null;
       readonly rows: readonly PageRow[];
+      readonly timeline?: PageTimelineReading;
     }
   | { readonly groups: readonly PageViewGroup[]; readonly kind: 'GROUPED_ROWS' }
   | { readonly kind: 'MISSING_GROUPING_PROPERTY' };

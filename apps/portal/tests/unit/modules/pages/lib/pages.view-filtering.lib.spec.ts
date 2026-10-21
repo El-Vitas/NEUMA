@@ -11,16 +11,24 @@ import {
   moveViewProperty,
   moveViewPropertySideways,
   readViewColumnWidths,
+  readViewColumnWraps,
   readViewFilterRoot,
   readViewFrozenColumns,
+  readViewHiddenGroups,
   readViewSorts,
   removeViewFilterNode,
   removeViewSort,
+  setViewCardSize,
   setViewColumnWidth,
+  setViewCoverProperty,
+  setViewDateScale,
+  setViewEndDateProperty,
   setViewFilterConditionOperator,
   setViewFilterConditionValue,
   setViewFilterGroupOperator,
   setViewFrozenColumns,
+  toggleViewColumnWrap,
+  toggleViewHiddenGroup,
   toggleViewSortDirection,
 } from '@/modules/pages/collections/lib/pages.view-filtering.lib';
 import type { PageSchemaProperty, PageSchemaViewDraft } from '@/modules/pages/collections/types/pages.schema.types';
@@ -331,5 +339,57 @@ describe('lo que una tabla guarda de sus propias columnas', () => {
     const [frozen] = setViewFrozenColumns(views, 'Table', -3);
 
     expect(readViewFrozenColumns(frozen as PageSchemaViewDraft)).toBe(0);
+  });
+});
+
+describe('lo que una vista guarda de sus fechas y de sus tarjetas', () => {
+  const configurationOf = (updated: readonly PageSchemaViewDraft[]) =>
+    readPageViewConfiguration(updated.find((view) => view.name === 'Table')?.configuration);
+
+  it('keeps the property a timeline ends in, and takes it off again', () => {
+    expect(configurationOf(setViewEndDateProperty(views, 'Table', 'dueDate')).endDateProperty).toBe('dueDate');
+    const withEnd = setViewEndDateProperty(views, 'Table', 'dueDate');
+    expect(configurationOf(setViewEndDateProperty(withEnd, 'Table', null)).endDateProperty).toBeNull();
+  });
+
+  it('keeps how much time one screen holds', () => {
+    expect(configurationOf(setViewDateScale(views, 'Table', 'WEEK')).dateScale).toBe('WEEK');
+  });
+
+  it('keeps how big the cards are, and where their cover comes from', () => {
+    expect(configurationOf(setViewCardSize(views, 'Table', 'LARGE')).cardSize).toBe('LARGE');
+    expect(configurationOf(setViewCoverProperty(views, 'Table', 'photos')).coverProperty).toBe('photos');
+    const covered = setViewCoverProperty(views, 'Table', 'photos');
+    expect(configurationOf(setViewCoverProperty(covered, 'Table', null)).coverProperty).toBeNull();
+  });
+
+  it('wraps the text of one column and leaves the others as they were', () => {
+    const wrapped = toggleViewColumnWrap(views, 'Table', 'status');
+
+    expect(readViewColumnWraps(wrapped.find((view) => view.name === 'Table') as PageSchemaViewDraft)).toEqual({
+      status: true,
+    });
+    expect(readViewColumnWraps(toggleViewColumnWrap(wrapped, 'Table', 'status')[0] as PageSchemaViewDraft)).toEqual({});
+  });
+
+  it('raises a short row to a medium one when a column starts to wrap, since the extra lines would be cut off', () => {
+    const wrapped = toggleViewColumnWrap(views, 'Table', 'status');
+
+    expect(readPageViewConfiguration(wrapped.find((view) => view.name === 'Table')?.configuration).rowHeight).toBe(
+      'MEDIUM',
+    );
+  });
+
+  it('hides a group and shows it again', () => {
+    const hidden = toggleViewHiddenGroup(views, 'Table', 'done');
+
+    expect(readViewHiddenGroups(hidden.find((view) => view.name === 'Table') as PageSchemaViewDraft)).toEqual(['done']);
+    expect(readViewHiddenGroups(toggleViewHiddenGroup(hidden, 'Table', 'done')[0] as PageSchemaViewDraft)).toEqual([]);
+  });
+
+  it('touches only the view it was asked about', () => {
+    const updated = setViewDateScale(views, 'Table', 'DAY');
+
+    expect(updated.find((view) => view.name === 'Board')).toEqual(other);
   });
 });

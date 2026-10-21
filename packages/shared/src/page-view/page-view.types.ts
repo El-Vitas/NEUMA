@@ -201,9 +201,48 @@ export const PAGE_COLUMN_ALIGNMENT_VALUES = [
   PAGE_COLUMN_ALIGNMENT.END,
 ] as const;
 
+/** How much time a screen of a calendar or a timeline holds; a calendar takes MONTH and WEEK, a timeline all three. */
+export type PageDateScale = 'DAY' | 'WEEK' | 'MONTH';
+
+export const PAGE_DATE_SCALE = {
+  DAY: 'DAY',
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+} as const satisfies Record<PageDateScale, PageDateScale>;
+
+export const PAGE_DATE_SCALE_VALUES = [PAGE_DATE_SCALE.DAY, PAGE_DATE_SCALE.WEEK, PAGE_DATE_SCALE.MONTH] as const;
+
+export type PageCardSize = 'SMALL' | 'MEDIUM' | 'LARGE';
+
+export const PAGE_CARD_SIZE = {
+  SMALL: 'SMALL',
+  MEDIUM: 'MEDIUM',
+  LARGE: 'LARGE',
+} as const satisfies Record<PageCardSize, PageCardSize>;
+
+export const PAGE_CARD_SIZE_VALUES = [PAGE_CARD_SIZE.SMALL, PAGE_CARD_SIZE.MEDIUM, PAGE_CARD_SIZE.LARGE] as const;
+
 export interface PageCalendarDay {
   readonly date: string;
   readonly isOfTheMonth: boolean;
+}
+
+/** The days a row lasts, first and last included, as `YYYY-MM-DD`. */
+export interface PageCalendarPeriod {
+  readonly end: string;
+  readonly id: string;
+  readonly start: string;
+}
+
+/** Where an entry sits in the seven columns of a week: the columns it takes, and whether it is cut at either edge. */
+export interface PageCalendarLane {
+  readonly endColumn: number;
+  readonly endsInWeek: boolean;
+  readonly id: string;
+  /** Entries that share a day take different lanes, counted from the top. */
+  readonly lane: number;
+  readonly startColumn: number;
+  readonly startsInWeek: boolean;
 }
 
 /** What the engine needs to read a column: its options give a select its order and a status its groups. */
@@ -227,6 +266,16 @@ export interface PageViewConfiguration {
   readonly groupByDateBucket: PageDateBucket;
   /** Separate from `groupBy`: it places each row on its day, and a collection may hold several date properties. */
   readonly dateProperty: string | null;
+  /** A timeline whose rows end in another property than they start in; null reads start and end from `dateProperty`. */
+  readonly endDateProperty: string | null;
+  /** Per view: a calendar opens on a week or a month, a timeline on days, weeks or months. */
+  readonly dateScale: PageDateScale;
+  /** Gallery and board cards. */
+  readonly cardSize: PageCardSize;
+  /** A files property whose first image is the cover of a card; null shows no cover. */
+  readonly coverProperty: string | null;
+  /** Columns whose text wraps, on top of `wrapsText` that wraps all of them; only true entries are kept. */
+  readonly columnWraps: Readonly<Record<string, true>>;
   readonly filter: PageFilter | null;
   readonly sorts: readonly PageSort[];
   /** Null means all properties, in collection order; an empty list means show none. */

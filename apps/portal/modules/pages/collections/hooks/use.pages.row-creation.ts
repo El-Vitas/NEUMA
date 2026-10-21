@@ -32,10 +32,10 @@ export const usePagesRowCreation = ({
       startCreating(async () => {
         const created = await createPageAction({
           content: createEmptyPageContent(),
+          // The title is sent separately, not as a property value. Under the default template of the collection.
+          defaultValues: buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
           parentId: collectionPageId,
           propertyValues: {
-            // The title is sent separately, not as a property value.
-            ...buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
             ...buildNewRowPropertyValues(properties, placedByKey, placedValue),
             ...(bandedByKey === '' ? {} : buildNewRowPropertyValues(properties, bandedByKey, bandValue)),
           },

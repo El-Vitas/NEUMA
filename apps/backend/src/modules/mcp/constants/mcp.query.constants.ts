@@ -23,6 +23,7 @@ export const MCP_QUERY_DESCRIPTION = [
   'The same words work on created time and edited time. Weeks run from Monday to Sunday.',
   'They are read in the calendar of timeZone (an IANA name such as America/Santiago; UTC when left out), so pass the zone of the person you work for.',
   'Rows with nothing in a column do not match a condition that asks for a value, so an empty date is never overdue.',
+  'What a calendar or a timeline shows: window { column, from, to } (days as YYYY-MM-DD) keeps the rows whose dates overlap those days, so a task that starts last month and ends inside the window is there. It adds to where and to the view.',
   'Mine: "@me" in a person, created-by or edited-by condition stands for the owner of your token, as for that person in the portal. Example: where [{ column: "Owner", operator: "CONTAINS", value: "@me" }].',
   'You can read the rows as one of its views shows them; where and sort given here replace its filter and order.',
   'The rows you are not allowed to read are never counted.',

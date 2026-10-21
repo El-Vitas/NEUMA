@@ -36,13 +36,14 @@ export class BlockLiveRepository implements BlockChainReader {
         WHERE "chain"."depth" < ${BLOCK_TREE_MAX_DEPTH}
       )
       SELECT "block"."id", "block"."parentId", "block"."spaceId", "block"."type", "block"."alive",
-        "block"."permissions"
+        "block"."permissions", ("block"."properties" -> 'template' IS NOT NULL) AS "isTemplate"
       FROM "Block" AS "block"
       WHERE "block"."id" IN (SELECT "id" FROM "chain")
     `
         .returnsRow({
           alive: columns.alive,
           id: columns.id,
+          isTemplate: 'pg/bool@1',
           parentId: columns.parentId,
           permissions: columns.permissions,
           spaceId: columns.spaceId,
@@ -53,6 +54,7 @@ export class BlockLiveRepository implements BlockChainReader {
     return rows.map((row) => ({
       alive: row.alive,
       id: row.id,
+      isTemplate: row.isTemplate,
       parentId: row.parentId,
       permissions: blockPermissionsSchema.parse(row.permissions),
       spaceId: row.spaceId,

@@ -16,10 +16,12 @@ import {
 import {
   readViewCollapsedGroups,
   readViewColumnLimits,
+  readViewHiddenGroups,
   readViewHidesEmptyGroups,
   readViewHidesUnassignedColumn,
   setViewColumnLimit,
   toggleViewCollapsedGroup,
+  toggleViewHiddenGroup,
   toggleViewHidesUnassignedColumn,
 } from '../lib/pages.view-filtering.lib';
 import { rewritePageCollectionOptionAction } from '../server/actions/pages.collections.actions';
@@ -83,6 +85,7 @@ export const usePagesBoardColumns = (
       if (!refuseTakenName(name)) saveShape(addSchemaOption(schema.properties, groupByKey, name));
     },
     collapsedColumns: activeView === null ? [] : readViewCollapsedGroups(activeView),
+    hiddenColumns: activeView === null ? [] : readViewHiddenGroups(activeView),
     hidesEmptyGroups: activeView !== null && readViewHidesEmptyGroups(activeView),
     hidesUnassignedColumn: activeView !== null && readViewHidesUnassignedColumn(activeView),
     isBusy: isRewriting || shape.isSaving || viewSaving.isSaving,
@@ -101,6 +104,8 @@ export const usePagesBoardColumns = (
       viewSaving.apply((current) => setViewColumnLimit(current, activeViewName, value, limit)),
     toggleCollapsed: (value: string) =>
       viewSaving.apply((current) => toggleViewCollapsedGroup(current, activeViewName, value)),
+    toggleHidden: (value: string) =>
+      viewSaving.apply((current) => toggleViewHiddenGroup(current, activeViewName, value)),
     toggleUnassignedColumn: () =>
       viewSaving.apply((current) => toggleViewHidesUnassignedColumn(current, activeViewName)),
   };

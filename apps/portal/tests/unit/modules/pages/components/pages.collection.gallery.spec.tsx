@@ -2,9 +2,14 @@ import { describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import { PagesCollectionCardAppearanceProvider } from '@/modules/pages/collections/components/pages.collection.card-appearance.provider';
 import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
+import { EMPTY_PAGE_COLLECTION_LOOKUPS } from '@/modules/pages/collections/constants/pages.lookups.constants';
+import { PAGE_COLLECTION_LOOKUPS_CONTEXT } from '@/modules/pages/collections/constants/pages.lookups.context.constants';
 import type {
+  PageAttachedFile,
   PagePersonOption,
+  PageSchema,
   PageSchemaProperty,
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
@@ -21,6 +26,7 @@ mock.module('@/i18n/navigation', () => ({
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 const asked: Record<string, unknown>[] = [];
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  applyPageViewOperationsAction: async () => ({ data: { configuration: {}, id: 'view-gallery', version: 1 } }),
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   readPageMatchingRowsAction: async () => ({ data: null }),
@@ -95,22 +101,83 @@ const renderWithMessages = (ui: ReactNode) =>
     </NextIntlClientProvider>,
   );
 
-const drawGallery = async (groups: PageViewGroup[], isGrouped: boolean, nextCursor: null | string = null) => {
+const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [] };
+
+const drawGallery = async (
+  groups: PageViewGroup[],
+  isGrouped: boolean,
+  nextCursor: null | string = null,
+  extra: { cardSize?: 'LARGE' | 'MEDIUM' | 'SMALL'; coverProperty?: null | string; files?: PageAttachedFile[] } = {},
+) => {
   cleanup();
   return renderWithMessages(
-    await PagesCollectionGallery({
-      aggregates: NO_PAGE_AGGREGATES,
-      groups,
-      isGrouped,
-      nextCursor,
-      pageId: 'collection-1',
-      personOptions,
-      properties,
-      spaceId: 'space-1',
-      viewId: 'view-gallery',
-    }),
+    <PAGE_COLLECTION_LOOKUPS_CONTEXT value={{ ...EMPTY_PAGE_COLLECTION_LOOKUPS, attachedFiles: extra.files ?? [] }}>
+      <PagesCollectionCardAppearanceProvider
+        coverProperty={extra.coverProperty ?? null}
+        size={extra.cardSize ?? 'MEDIUM'}
+      >
+        {
+          await PagesCollectionGallery({
+            activeViewName: 'Gallery',
+            aggregates: NO_PAGE_AGGREGATES,
+            canEdit: true,
+            cardSize: extra.cardSize ?? 'MEDIUM',
+            groups,
+            isGrouped,
+            nextCursor,
+            pageId: 'collection-1',
+            personOptions,
+            properties,
+            schema,
+            spaceId: 'space-1',
+            viewId: 'view-gallery',
+          })
+        }
+      </PagesCollectionCardAppearanceProvider>
+    </PAGE_COLLECTION_LOOKUPS_CONTEXT>,
   );
 };
+
+describe('the size and the cover of the cards of a gallery', () => {
+  const photographed: PageViewGroup[] = [
+    {
+      color: null,
+      key: '',
+      label: '',
+      rows: [
+        { ...rowIn('row-1', 'With a photo', 'todo'), propertyValues: { photos: ['file-1'], status: 'todo' } },
+        { ...rowIn('row-2', 'Without', 'todo'), propertyValues: { photos: [], status: 'todo' } },
+      ],
+    },
+  ];
+  const files = [{ id: 'file-1', mimeType: 'image/png', name: 'a.png', size: 10 }];
+
+  it('draws a cover only on the cards whose row has an image in the property of the view', async () => {
+    await drawGallery(photographed, false, null, { coverProperty: 'photos', files });
+
+    expect(screen.getAllByTestId('collection-card-cover')).toHaveLength(1);
+  });
+
+  it('draws no cover when the view names none', async () => {
+    await drawGallery(photographed, false, null, { files });
+
+    expect(screen.queryByTestId('collection-card-cover')).toBeNull();
+  });
+
+  it('packs more cards in a row the smaller they are', async () => {
+    await drawGallery(ungrouped, false, null, { cardSize: 'SMALL' });
+    expect(screen.getAllByTestId('collection-gallery-card')[0]?.parentElement?.className).toContain('10rem');
+
+    await drawGallery(ungrouped, false, null, { cardSize: 'LARGE' });
+    expect(screen.getAllByTestId('collection-gallery-card')[0]?.parentElement?.className).toContain('22rem');
+  });
+
+  it('offers to change both to whoever may edit the view', async () => {
+    await drawGallery(ungrouped, false);
+
+    expect(screen.getByRole('button', { name: 'How the cards look' })).toBeDefined();
+  });
+});
 
 describe('PagesCollectionGallery', () => {
   it('gives every row a card of its own', async () => {

@@ -58,13 +58,21 @@ export const PagesCollectionTable = async ({
     calculations,
     columnAlignments,
     columnWidths,
+    columnWraps,
     frozenColumns,
     groupBy,
     hidesEmptyGroups,
     rowHeight,
+    sorts,
     wrapsText,
   } = readPageViewConfiguration(activeView?.configuration ?? {});
   const appearance = readTableAppearance(rowHeight, wrapsText);
+  const columnAppearances = Object.fromEntries(
+    properties.map((property) => [
+      property.key,
+      readTableAppearance(rowHeight, wrapsText || columnWraps[property.key] === true),
+    ]),
+  );
   const alignmentClasses = Object.fromEntries(
     properties.map((property) => [property.key, readAlignmentClass(columnAlignments, property.key)]),
   );
@@ -78,6 +86,7 @@ export const PagesCollectionTable = async ({
       activeViewName={activeViewName}
       aggregates={aggregates}
       canEdit={canEdit}
+      isOrderable={canEdit && sorts.length === 0}
       personOptions={personOptions}
       properties={properties}
       rowIds={rows.map((row) => row.id)}
@@ -108,12 +117,14 @@ export const PagesCollectionTable = async ({
                     appearance={appearance}
                     canEdit={canEdit}
                     collectionPageId={schema.pageId}
+                    columnAppearances={columnAppearances}
                     frozenCells={frozenCells}
                     key={row.id}
                     openFullPageLabel={t('sidePanel.openFullPage')}
                     personOptions={personOptions}
                     properties={properties}
                     row={row}
+                    scope={group.key}
                     selectLabel={t('collection.selectRow', { title: row.title.length > 0 ? row.title : t('untitled') })}
                     spaceId={spaceId}
                     untitledLabel={t('untitled')}
@@ -125,6 +136,7 @@ export const PagesCollectionTable = async ({
                     appearance={appearance}
                     canEdit={canEdit}
                     collectionPageId={schema.pageId}
+                    columnAppearances={columnAppearances}
                     columnCount={columnKeys.length}
                     frozenCells={frozenCells}
                     paging={{

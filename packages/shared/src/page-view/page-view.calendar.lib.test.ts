@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  layoutPageCalendarLanes,
   listPageCalendarDays,
+  listPageCalendarWeekDays,
   readPageCalendarMonth,
   shiftPageCalendarDate,
   shiftPageCalendarMonth,
@@ -69,5 +71,68 @@ describe('the days a month is drawn with', () => {
     // March 2026 opens on a Sunday, so the grid starts the Monday before.
     expect(days[0]).toBe('2026-02-23');
     expect(days.at(-1)).toBe('2026-04-05');
+  });
+});
+
+describe('the days a week is drawn with', () => {
+  test('are the seven days from the monday to the sunday that hold the day asked', () => {
+    expect(listPageCalendarWeekDays('2026-09-16')).toEqual([
+      '2026-09-14',
+      '2026-09-15',
+      '2026-09-16',
+      '2026-09-17',
+      '2026-09-18',
+      '2026-09-19',
+      '2026-09-20',
+    ]);
+  });
+
+  test('a sunday belongs to the week that ends on it', () => {
+    expect(listPageCalendarWeekDays('2026-09-20')[0]).toBe('2026-09-14');
+  });
+
+  test('a monday opens its own week', () => {
+    expect(listPageCalendarWeekDays('2026-09-14')[0]).toBe('2026-09-14');
+  });
+});
+
+describe('where the entries of a week lie side by side', () => {
+  const week = listPageCalendarWeekDays('2026-09-16');
+
+  test('an entry of one day takes one column', () => {
+    expect(layoutPageCalendarLanes(week, [{ end: '2026-09-16', id: 'a', start: '2026-09-16' }])).toEqual([
+      { endColumn: 2, endsInWeek: true, id: 'a', lane: 0, startColumn: 2, startsInWeek: true },
+    ]);
+  });
+
+  test('an entry that spans days takes a column for each of them, in the same lane', () => {
+    expect(layoutPageCalendarLanes(week, [{ end: '2026-09-18', id: 'a', start: '2026-09-15' }])).toEqual([
+      { endColumn: 4, endsInWeek: true, id: 'a', lane: 0, startColumn: 1, startsInWeek: true },
+    ]);
+  });
+
+  test('is cut at the edges of the week and says that it goes on', () => {
+    expect(layoutPageCalendarLanes(week, [{ end: '2026-09-30', id: 'a', start: '2026-09-10' }])).toEqual([
+      { endColumn: 6, endsInWeek: false, id: 'a', lane: 0, startColumn: 0, startsInWeek: false },
+    ]);
+  });
+
+  test('leaves out what does not touch the week', () => {
+    expect(layoutPageCalendarLanes(week, [{ end: '2026-09-13', id: 'a', start: '2026-09-01' }])).toEqual([]);
+    expect(layoutPageCalendarLanes(week, [{ end: '2026-09-30', id: 'b', start: '2026-09-21' }])).toEqual([]);
+  });
+
+  test('entries that share a day go in different lanes, and one that fits an earlier lane takes it', () => {
+    const lanes = layoutPageCalendarLanes(week, [
+      { end: '2026-09-17', id: 'long', start: '2026-09-14' },
+      { end: '2026-09-15', id: 'overlapping', start: '2026-09-15' },
+      { end: '2026-09-19', id: 'after', start: '2026-09-18' },
+    ]);
+
+    expect(lanes.map((lane) => [lane.id, lane.lane])).toEqual([
+      ['long', 0],
+      ['overlapping', 1],
+      ['after', 0],
+    ]);
   });
 });

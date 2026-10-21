@@ -1,4 +1,4 @@
-import { BLOCK_TYPE } from '@neuma/shared';
+import { BLOCK_TYPE, isPageTemplate } from '@neuma/shared';
 import { isSameJson } from '../../../common/domain/json.domain';
 import type {
   BlockJsonObject,
@@ -16,6 +16,7 @@ const isRowCreation = (
   operation.command === 'create' &&
   operation.fields.type === BLOCK_TYPE.page &&
   operation.fields.parentId !== null &&
+  !isPageTemplate(operation.fields.properties) &&
   rules.has(operation.fields.parentId);
 
 const isRecord = (value: unknown): value is BlockJsonObject =>

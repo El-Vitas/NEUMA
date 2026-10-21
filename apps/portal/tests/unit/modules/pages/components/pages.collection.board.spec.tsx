@@ -29,6 +29,7 @@ const reordered: { beforePageId?: string; pageId: string; spaceId: string }[] = 
 const created: { parentId?: string; propertyValues?: Record<string, unknown>; title?: string }[] = [];
 const rewritten: { optionId: string; to: null | string }[] = [];
 const reshaped: { properties: unknown }[] = [];
+const viewOperations: { operations: { args: unknown; command: string; path: string[] }[] }[] = [];
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -50,7 +51,12 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     reshaped.push(input);
     return { data: { pageId: 'collection-1', properties: input.properties, spaceId: 'space-1', views: [] } };
   },
-  applyPageViewOperationsAction: async () => ({ data: { configuration: {}, id: view.id, version: 1 } }),
+  applyPageViewOperationsAction: async (input: {
+    operations: { args: unknown; command: string; path: string[] }[];
+  }) => {
+    viewOperations.push(input);
+    return { data: { configuration: {}, id: view.id, version: 1 } };
+  },
   loadMorePageRowsAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
   refreshPageRowsAction: async () => ({ data: null }),
@@ -512,6 +518,66 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     expect(saved?.options?.slice(0, 2)).toEqual([...asPropertyOptions('todo', 'done')]);
     expect(saved?.options?.[2]).toMatchObject({ color: 'ORANGE', group: null, value: 'blocked' });
     expect(saved?.options?.[2]?.id).toStartWith('draft-');
+  });
+});
+
+describe('PagesCollectionBoard — grupos ocultos, bandas y portadas', () => {
+  it('hides a group from its menu, as a change of that one list of the view', async () => {
+    viewOperations.length = 0;
+    drawBoard(true);
+
+    openColumnMenu();
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Hide the group' }));
+
+    await waitFor(() => expect(viewOperations).toHaveLength(1));
+    expect(viewOperations[0]?.operations).toHaveLength(1);
+    expect(viewOperations[0]?.operations[0]).toMatchObject({
+      args: { id: 'todo' },
+      path: ['configuration', 'hiddenGroups'],
+    });
+  });
+
+  it('lists the hidden groups apart, with a way to show each again', async () => {
+    const hidden = { ...view, configuration: { ...view.configuration, hiddenGroups: ['done'] } };
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesCollectionBoard
+          activeViewName={hidden.name}
+          aggregates={NO_PAGE_AGGREGATES}
+          bands={[{ color: null, groups: [groups[0] as PageViewGroup], key: '', label: '' }]}
+          canEdit
+          groupByKey="status"
+          isManualOrder
+          properties={[]}
+          schema={{ ...schema, views: [hidden] }}
+          spaceId="space-1"
+          subGroupByKey=""
+          viewId={hidden.id}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: '1 hidden group' }), {
+      button: 0,
+      ctrlKey: false,
+      pointerType: 'mouse',
+    });
+
+    expect(await screen.findByRole('menuitem', { name: /Show “done”/ })).toBeDefined();
+  });
+
+  it('offers no way to hide groups to whoever cannot edit', () => {
+    cleanup();
+    drawBoard(false);
+
+    expect(screen.queryByRole('button', { name: 'How the cards look' })).toBeNull();
+  });
+
+  it('offers the size and the cover of the cards to whoever may edit', () => {
+    cleanup();
+    drawBoard(true);
+
+    expect(screen.getByRole('button', { name: 'How the cards look' })).toBeDefined();
   });
 });
 

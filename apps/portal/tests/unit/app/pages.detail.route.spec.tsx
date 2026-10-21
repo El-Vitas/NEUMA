@@ -80,6 +80,16 @@ mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', (
 mock.module('@/modules/pages/collections/server/lib/pages.view-reading.server', () => ({
   readPageViewReading: async () => null,
 }));
+mock.module('@/modules/pages/templates/server/queries/pages.templates.queries', () => ({
+  getPageTemplates: async () => ({ isFail: () => true }),
+}));
+mock.module('@/modules/pages/templates/server/actions/pages.templates.actions', () => ({
+  createPageTemplateAction: async () => undefined,
+  deletePageTemplateAction: async () => undefined,
+  listPageTemplatesAction: async () => undefined,
+  setDefaultPageTemplateAction: async () => undefined,
+  updatePageTemplateAction: async () => undefined,
+}));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),

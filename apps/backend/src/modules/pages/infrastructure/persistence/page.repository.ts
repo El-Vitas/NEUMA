@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { and, PageLifecycle } from '@neuma/db';
 import {
   BLOCK_TYPE,
+  isPageTemplate,
   type PageContent,
   type PageCoverValue,
   type PageIcon,
   type Result,
+  readPageTemplate,
   type UserRole,
 } from '@neuma/shared';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
@@ -34,10 +36,12 @@ import type {
   TrashedPageSummary,
   UpdatePagePropertyValuesInput,
 } from '../../types/page.types';
+import type { PageRowTemplate } from '../../types/page-template.types';
 import { PageBlockReader } from './page.block.reader';
 import { PageBlockWriter } from './page.block.writer';
 import { PagePurgeRepository } from './page.purge.repository';
 import { PageSummaryReader } from './page.summary.reader';
+import { PageTemplateRepository } from './page.template.repository';
 import { PageVersionRepository } from './page.version.repository';
 
 const toViewer = (workspaceId: string, userId: string, role: UserRole): PageViewer => ({ role, userId, workspaceId });
@@ -58,6 +62,7 @@ export class PageRepository implements PageRepositoryContract {
     private readonly blockWriter: PageBlockWriter,
     private readonly versionRepository: PageVersionRepository,
     private readonly purgeRepository: PagePurgeRepository,
+    private readonly templateRepository: PageTemplateRepository,
   ) {}
 
   async listAccessible(
@@ -97,6 +102,27 @@ export class PageRepository implements PageRepositoryContract {
 
   create(input: NewPageInput): Promise<PageSummary | null> {
     return this.blockWriter.create(input);
+  }
+
+  /** Null when no template applies; the default one of the collection when none is named. */
+  async readRowTemplate(
+    collectionId: string,
+    templateId: null | string | undefined,
+    viewer: PageViewer,
+  ): Promise<PageRowTemplate | 'NOT_FOUND' | null> {
+    if (templateId === null) return null;
+    const template =
+      templateId === undefined
+        ? await this.findDefaultTemplate(collectionId, viewer)
+        : await this.templateRepository.findTemplate(collectionId, templateId, viewer);
+    if (template === null) return templateId === undefined ? null : 'NOT_FOUND';
+    const summary = await this.summaryReader.summarizeOne(template);
+    return {
+      content: summary.content,
+      propertyValues: readPageValues(template.block.properties) ?? {},
+      title: summary.title,
+      variables: readPageTemplate(template.block.properties)?.variables ?? {},
+    };
   }
 
   duplicate(input: DuplicatePageInput): Promise<PageSummary | null> {
@@ -199,6 +225,16 @@ export class PageRepository implements PageRepositoryContract {
     role: UserRole,
   ): Promise<PageSummary | null> {
     return this.blockWriter.setVerification(pageId, verified, expiresAt, userId, workspaceId, role);
+  }
+
+  setDefaultTemplate(
+    collectionId: string,
+    templateId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ): Promise<PageSummary | null> {
+    return this.blockWriter.setDefaultTemplate(collectionId, templateId, userId, workspaceId, role);
   }
 
   setOwner(
@@ -364,7 +400,7 @@ export class PageRepository implements PageRepositoryContract {
   ): Promise<null | number> {
     const page = await this.findAccessiblePage(pageId, toViewer(workspaceId, userId, role));
     if (page === null) return null;
-    const hierarchy = await this.blockReader.readSpacePageBlocks(page.block.spaceId);
+    const hierarchy = await this.blockReader.readSpacePageBlocks(page.block.spaceId, { includeTemplates: true });
     const lifecycleById = new Map(hierarchy.map((entry) => [entry.id, entry.lifecycle]));
     return collectDescendantIds(pageId, hierarchy).filter((id) => lifecycleById.get(id) === lifecycle).length;
   }
@@ -381,7 +417,11 @@ export class PageRepository implements PageRepositoryContract {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(viewer, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
     const hierarchy = (
-      await Promise.all(accessibleSpaceIds.map((accessibleId) => this.blockReader.readSpacePageBlocks(accessibleId)))
+      await Promise.all(
+        accessibleSpaceIds.map((accessibleId) =>
+          this.blockReader.readSpacePageBlocks(accessibleId, { includeTemplates: true }),
+        ),
+      )
     ).flat();
     const trashed = hierarchy.filter((block) => block.lifecycle === PageLifecycle.TRASHED);
     const accessible = await this.blockReader.keepAccessible(trashed, viewer);
@@ -421,7 +461,11 @@ export class PageRepository implements PageRepositoryContract {
     const accessibleSpaceIds = await this.findAccessibleSpaceIds(viewer, spaceId);
     if (accessibleSpaceIds.length === 0) return [];
     const pages = (
-      await Promise.all(accessibleSpaceIds.map((accessibleId) => this.blockReader.readSpacePageBlocks(accessibleId)))
+      await Promise.all(
+        accessibleSpaceIds.map((accessibleId) =>
+          this.blockReader.readSpacePageBlocks(accessibleId, { includeTemplates: true }),
+        ),
+      )
     ).flat();
     const accessible = await this.blockReader.keepAccessible(
       pages.filter((block) => block.lifecycle === PageLifecycle.TRASHED),
@@ -435,6 +479,11 @@ export class PageRepository implements PageRepositoryContract {
         workspaceId,
       }),
     );
+  }
+
+  private async findDefaultTemplate(collectionId: string, viewer: PageViewer): Promise<AccessiblePage | null> {
+    const collection = await this.templateRepository.findCollection(collectionId, viewer);
+    return collection === null ? null : this.templateRepository.findDefaultTemplate(collection, viewer);
   }
 
   private async findAccessiblePage(pageId: string, viewer: PageViewer): Promise<AccessiblePage | null> {
@@ -470,6 +519,7 @@ export class PageRepository implements PageRepositoryContract {
       deletedAt: block.trashedAt ?? block.editedAt,
       deletedBy: deletedBy.get(block.editedById) ?? null,
       id: block.id,
+      isTemplate: isPageTemplate(block.properties),
       parentId: block.parentId,
       purgeAfter: block.purgeAfter,
       spaceId: block.spaceId,

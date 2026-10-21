@@ -39,6 +39,8 @@ const buildNodeViewLabels = (say: PageEditorSay, locale: string): PageEditorLabe
     place: say('buttonPlace'),
     places: { below: say('buttonPlaceBelow'), bottom: say('buttonPlaceBottom'), top: say('buttonPlaceTop') },
     setup: say('buttonSetup'),
+    template: say('buttonTemplate'),
+    templateDefault: say('buttonTemplateDefault'),
   },
   code: buildCodeLabels(say),
   collection: say('collectionBlock'),

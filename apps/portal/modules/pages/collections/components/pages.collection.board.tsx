@@ -24,6 +24,7 @@ import type {
 } from '../types/pages.schema.types';
 import { PagesCollectionBoardColumn } from './pages.collection.board.column';
 import { PagesCollectionBoardNewColumn } from './pages.collection.board.new-column';
+import { PagesCollectionBoardToolbar } from './pages.collection.board.toolbar';
 import { PagesCollectionGroupCount } from './pages.collection.group-count';
 
 interface IProps {
@@ -68,11 +69,13 @@ export const PagesCollectionBoard = ({
   const t = useTranslations('pages');
   const isBanded = subGroupByKey !== '';
   const paging = usePagesBoardPaging({ bands, pageId: schema.pageId, spaceId, viewId });
+  const groupByMode = readPageViewConfiguration(
+    schema.views.find((view) => view.id === viewId)?.configuration ?? {},
+  ).groupByMode;
   const drag = usePagesBoardDrag({
     bands: paging.bands,
     groupByKey,
-    groupByMode: readPageViewConfiguration(schema.views.find((view) => view.id === viewId)?.configuration ?? {})
-      .groupByMode,
+    groupByMode,
     isManualOrder,
     pageId: schema.pageId,
     properties: schema.properties,
@@ -136,6 +139,18 @@ export const PagesCollectionBoard = ({
       <output aria-live="polite" className="sr-only">
         {drag.announcement}
       </output>
+      {canEdit && (
+        <PagesCollectionBoardToolbar
+          activeViewName={activeViewName}
+          aggregates={aggregates}
+          columns={columns}
+          groupByKey={groupByKey}
+          mode={groupByMode}
+          schema={schema}
+          spaceId={spaceId}
+          subGroupByKey={subGroupByKey}
+        />
+      )}
       {/* Bleeds past the body margin to use the full width; the padding restores it inside. */}
       <section
         aria-label={t('collection.boardColumns')}

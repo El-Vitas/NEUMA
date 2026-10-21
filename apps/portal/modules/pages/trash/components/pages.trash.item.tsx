@@ -63,6 +63,11 @@ export const PagesTrashItem = ({ canDeleteForever, locale, page }: IProps) => {
     <li className="flex flex-col gap-3 bg-surface px-4 py-3 transition-colors hover:bg-surface-container-low sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 sm:py-4">
       <div className="min-w-0">
         <p className="truncate font-semibold text-base text-foreground">{title}</p>
+        {page.isTemplate && (
+          <p className="mt-1 text-muted-foreground text-xs uppercase tracking-wide" data-testid="trash-template-badge">
+            {t('trashScreen.templateBadge')}
+          </p>
+        )}
         <p className="mt-1 text-muted-foreground text-sm">
           {t('trashScreen.deletedAt')}: {formatDate(page.deletedAt, { includeTime: true, locale })}
           {' · '}

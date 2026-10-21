@@ -10,6 +10,12 @@ export const PAGE_VIEW_CALENDAR_ROWS = 100;
 /** The most rows of a grid a calendar reads; beyond it the screen says that it shows only the first ones. */
 export const PAGE_VIEW_CALENDAR_MAXIMUM_ROWS = 1000;
 
+/** The most rows a timeline reads for its window; beyond it the screen says that it shows only the first ones. */
+export const PAGE_VIEW_TIMELINE_MAXIMUM_ROWS = 2000;
+
+/** The rows without a date a timeline lists apart; the count it shows is of all of them. */
+export const PAGE_VIEW_TIMELINE_UNDATED_ROWS = 100;
+
 /** The most rows "select all that match" can take (ADR 025: the ids a response carries). */
 export const PAGE_VIEW_MATCHING_MAXIMUM_ROWS = 1000;
 

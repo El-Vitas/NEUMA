@@ -20,6 +20,49 @@ rules:
         given: Una vista filtrada por responsable igual a yo, y filas de Ana y de Bo
         when: Ana y Bo la abren
         then: Ana ve las filas de Ana y Bo las de Bo
+  - id: BR-0e8cbda
+    status: active
+    title: La portada de una tarjeta sale de la primera imagen de una propiedad de archivos
+    rule: >-
+      Una galería o un tablero puede mostrar sobre cada tarjeta la primera imagen de una propiedad de archivos que la
+      vista nombra, y puede dibujar las tarjetas en tres tamaños que se guardan en la vista. Una fila sin imagen en esa
+      propiedad no lleva portada, y un archivo que no es una imagen no cuenta. La portada no sale del contenido de la
+      página de la fila.
+    why: >-
+      Las imágenes de una propiedad viajan con la fila y se pueden pedir de una vez; leer el cuerpo de cada fila para
+      encontrar una imagen costaría una lectura por tarjeta y obligaría a avisar cada vez que alguien edita un cuerpo.
+    context: >-
+      Una portada desde el contenido queda pendiente hasta que haya un aviso de cambios del cuerpo de las filas. Tamaño
+      y portada son de la vista y la ven todas las personas que la miran.
+    scenarios:
+      - title: Fila con una foto y un PDF
+        given: Una propiedad de archivos con un PDF primero y una imagen después
+        when: Se dibuja la galería con esa propiedad como portada
+        then: La tarjeta muestra la imagen, no el PDF
+  - id: BR-1de6648
+    status: active
+    title: Una fila nueva copia su plantilla con identificadores nuevos y en una sola operación, y lo que se da gana
+    rule: >-
+      Crear una fila desde una plantilla copia su contenido y sus valores con identificadores nuevos, y todo queda
+      escrito junto o no queda nada. Lo que quien crea la fila da de forma explícita gana sobre la plantilla, y la
+      plantilla gana sobre el valor inicial de cada columna. Si la fila no trae título, toma el de la plantilla; si no
+      trae contenido, toma el de la plantilla.
+    why: >-
+      Quien crea una fila desde una columna del tablero o un día del calendario ya dijo dónde va, y la plantilla debe
+      completar el resto sin deshacer lo que ya se dijo. Con identificadores nuevos, editar la fila no toca la plantilla
+      ni otra fila.
+    context: >-
+      Pedir una plantilla que no existe en esa colección se rechaza y no crea nada. Pedir expresamente «sin plantilla»
+      crea una fila en blanco aunque haya una por defecto.
+    scenarios:
+      - title: Lo dado gana
+        given: Una plantilla con puntos igual a 3
+        when: Se crea una fila desde ella con puntos igual a 8
+        then: La fila queda con 8 puntos y el resto de la plantilla
+      - title: La plantilla gana al valor inicial
+        given: Una columna con valor inicial 1 y una plantilla con 3
+        when: Se crea una fila desde la plantilla sin dar la columna
+        then: La fila queda con 3
   - id: BR-1f4ab0f
     status: active
     title: Quién creó una fila y cuándo lo dice la propia fila, y nadie lo escribe
@@ -53,6 +96,26 @@ rules:
         given: Una tarea con estado «Por hacer» y prioridad «Baja»
         when: Una la pasa a «Hecho» y otra, al mismo tiempo, sube la prioridad a «Alta»
         then: La tarea queda en «Hecho» y con prioridad «Alta»
+  - id: BR-313962a
+    status: active
+    title: Un tablero deja ocultar grupos y cruzarlos en bandas desde el propio tablero
+    rule: >-
+      Quien puede editar una vista de tablero puede ocultar un grupo desde el menú de su columna. Los grupos ocultos no
+      se dibujan, se listan aparte con la cantidad de filas que guardan y se pueden volver a mostrar uno por uno; sus
+      filas siguen existiendo y se cuentan. También puede cruzar el tablero en bandas por una segunda propiedad, o
+      quitarlas, y elegir el tamaño y la portada de las tarjetas, sin abrir la configuración de la colección. El grupo
+      de filas sin valor se oculta con su propio botón.
+    why: >-
+      Un grupo que sobra a un equipo, como los terminados, ocupa pantalla que otro equipo necesita, y ocultarlo no debe
+      cambiar los datos ni obligar a borrar la opción.
+    context: >-
+      Ocultar es de la vista y no cambia lo que dice ninguna fila. Mover una tarjeta al grupo oculto no es posible
+      mientras está oculto, porque no hay dónde soltarla.
+    scenarios:
+      - title: Ocultar y volver a mostrar
+        given: Un tablero con las columnas Pendiente y Hecho
+        when: Se oculta Hecho desde su menú
+        then: Hecho sale de la pantalla, aparece en la lista de grupos ocultos con su cantidad, y se puede mostrar de nuevo
   - id: BR-3695f4e
     status: active
     title: Una vista abierta se entera de lo que otras personas cambian en su colección, solo de lo que puede leer
@@ -276,6 +339,31 @@ rules:
         given: Una fecha que empieza el día 10
         when: Se intenta guardar con fin el día 8
         then: Se rechaza
+  - id: BR-65a2252
+    status: active
+    title: Una ventana de fechas trae todas las filas que alcanzan esos días, y avisa si no caben
+    rule: >-
+      Una línea de tiempo o un calendario pide al servidor las filas cuyas fechas se superponen con los días que
+      muestra, no solo las que empiezan en ellos; una fila que empezó antes y llega a la ventana se dibuja. Cuando el
+      final está en otra propiedad, la superposición cubre también la fila que solo tiene inicio, que dura el día en que
+      empieza. Si en la ventana hay más filas de las que la pantalla lee, la pantalla dice cuántas dibuja en vez de
+      pasar las primeras por todas. Un agente pide lo mismo con una ventana de días sobre una columna de fecha, que se
+      suma al filtro de la vista.
+    why: >-
+      Pedir solo las filas que empiezan dentro de la ventana esconde las tareas largas justo cuando están en curso, que
+      son las que más importan. Y un corte silencioso hace creer que no hay nada más.
+    context: >-
+      La ventana se compara por días en el calendario de quien mira. Una fila sin fecha nunca está en una ventana; se
+      cuenta aparte.
+    scenarios:
+      - title: Una tarea que empezó el mes pasado
+        given: Una fila del 28 de septiembre al 5 de octubre
+        when: Se pide la ventana de octubre
+        then: La fila viene, porque su rango toca octubre
+      - title: Una ventana demasiado llena
+        given: Una ventana con más filas de las que la pantalla lee
+        when: Se abre la línea de tiempo
+        then: La pantalla avisa que dibuja solo las primeras
   - id: BR-6972f50
     status: active
     title: Un número tiene formato, y un enlace, un correo y un teléfono se comprueban al guardarse
@@ -368,6 +456,47 @@ rules:
         given: Una colección bloqueada
         when: Alguien intenta poner un filtro a una de sus vistas
         then: El cambio se rechaza y la vista queda como estaba
+  - id: BR-8986494
+    status: active
+    title: Un agente puede crear y configurar vistas de fechas y de tarjetas, con los nombres que ven las personas
+    rule: >-
+      Un agente puede crear una vista de línea de tiempo y cambiar, en cualquier vista, la columna de fecha que coloca
+      las filas, la columna donde termina cada fila, la escala, la columna de la que sale la portada, el tamaño de las
+      tarjetas y la segunda agrupación de un tablero, nombrando columnas como las ven las personas. Una columna que no
+      es del tipo que ese ajuste pide se rechaza diciendo cuál. Lo que el agente cambia llega como el cambio de esas
+      claves de la vista, así que no pisa lo que otra persona cambió entretanto, y al leer la colección ve esos ajustes
+      con los nombres de las columnas.
+    why: >-
+      Un agente que solo puede mirar una línea de tiempo o dejarla como la creó la persona no puede prepararla para
+      quien la va a usar. Y si las vistas del agente se guardaran enteras, borrarían los ajustes que la persona hizo en
+      la pantalla.
+    context: >-
+      Los permisos son los de la persona dueña del token. Las vistas se crean con la configuración completa solo al
+      nacer.
+    scenarios:
+      - title: Una columna que no es fecha
+        given: Una colección con una columna de texto llamada Notas
+        when: Un agente pide que la línea de tiempo empiece en Notas
+        then: Se rechaza diciendo que no es una columna de fecha
+  - id: BR-8bd78a9
+    status: active
+    title: Un agente maneja las plantillas con las mismas reglas que una persona
+    rule: >-
+      Un agente puede listar las plantillas de una colección, crear una fila nombrando una plantilla por su nombre o su
+      identificador, y crear, cambiar y borrar plantillas. Recibe exactamente los permisos de la persona dueña de su
+      ficha, así que quien no puede editar la colección no cambia sus plantillas por el agente. Las descripciones del
+      servicio del agente explican cómo funcionan la plantilla por defecto y las palabras de hoy y yo.
+    why: >-
+      Un agente que no pudiera usar plantillas tendría que reproducir a mano lo que la plantilla ya sabe, y lo haría
+      distinto cada vez.
+    context: >-
+      Nombrar una plantilla con un nombre repetido pide el identificador. Pedir una plantilla que no existe lista las
+      que sí existen solo si la ficha puede leer la colección.
+    scenarios:
+      - title: Un agente crea una fila sin nombrar plantilla
+        given: Una colección con plantilla por defecto
+        when: Un agente crea una fila con solo un título
+        then: La fila nace con el contenido y los valores de la plantilla por defecto
   - id: BR-8e6b1f4
     status: active
     title: Una tarjeta arrastrada cambia el valor de la columna y queda donde se soltó, en una sola escritura
@@ -399,6 +528,48 @@ rules:
         given: Una fila que no se puede editar
         when: Se intenta moverla de columna
         then: Ni su valor ni su lugar cambian
+  - id: BR-951dca7
+    status: active
+    title: Una tabla deja poner las filas en otro lugar a mano y ajustar el texto por columna
+    rule: >-
+      En una tabla que no ordena sus filas por ninguna propiedad, quien puede editar puede llevar una fila a otro lugar
+      arrastrándola por su asa o con el teclado, y la fila queda junto a la vecina sobre la que se la soltó. El lugar es
+      el orden propio de esa vista y lo ven todas las personas que la miran; otras vistas de la colección no cambian.
+      Cuando la vista ordena por una propiedad, el lugar de la fila es el de ese orden y no se ofrece el asa. Cada
+      columna puede, además, ajustar su texto en varias líneas aunque la tabla en conjunto no lo haga, y el ancho y las
+      columnas fijas de la vista también se guardan en ella.
+    why: >-
+      Un orden a mano que cambia el orden de la colección entera desordena el árbol lateral y las demás vistas. Y
+      envolver el texto de todas las columnas por una sola larga vuelve la tabla ilegible.
+    context: >-
+      Una fila solo se lleva entre las de su mismo grupo cuando la tabla agrupa. Ajustar una columna sube una fila corta
+      a mediana, porque las líneas de más quedarían cortadas.
+    scenarios:
+      - title: Llevar una fila antes de otra
+        given: Una tabla sin orden por propiedad con las filas A, B y C
+        when: Se suelta C en la mitad superior de A
+        then: Queda C, A, B, con una sola escritura que nombra a A como vecina
+      - title: Tabla ordenada
+        given: Una tabla ordenada por prioridad
+        when: Se mira por quien puede editar
+        then: No hay asa para llevar filas a otro lugar
+  - id: BR-974f23f
+    status: active
+    title: Un calendario se ve por semana o por mes y dibuja los rangos día a día
+    rule: >-
+      Un calendario se puede ver por mes o por semana, y la escala se guarda en la vista. Una fila con rango de fechas
+      aparece en cada día que dura, a la misma altura en todos ellos y nombrada donde empieza cada tramo; las filas que
+      comparten un día no se tapan. Arrastrar un tramo mueve el rango entero tomando como referencia el día por el que
+      se lo agarró, y con el teclado el día se mueve de uno en uno o de siete en siete.
+    why: >-
+      Una tarea de tres días dibujada en un solo día miente sobre la carga real de esos días. Y mover un rango por su
+      primer día cuando se lo agarró por el último lo deja lejos de donde la mano lo soltó.
+    context: Cambiar de mes o de semana pide al servidor los días nuevos; la escala no cambia por eso.
+    scenarios:
+      - title: Rango agarrado por su segundo día
+        given: Un rango del 10 al 12 de septiembre
+        when: Se agarra por el 11 y se suelta sobre el 15
+        then: El rango queda del 14 al 16
   - id: BR-991f4fd
     status: active
     title: Un filtro rápido se suma a la vista sin cambiarla
@@ -412,6 +583,25 @@ rules:
       Mirar «lo mío de esta semana» un momento no debería obligar a editar la vista del equipo ni a crear otra, ni dejar
       un filtro que el siguiente en abrirla no sabe de dónde salió.
     context: Lo pueden usar también quienes solo leen la colección.
+  - id: BR-9afad17
+    status: active
+    title: La plantilla por defecto se usa al crear una fila por cualquier camino, y solo hay una por colección
+    rule: >-
+      Una colección tiene como máximo una plantilla por defecto. Cuando se crea una fila sin nombrar plantilla, desde
+      una tabla, un tablero, un calendario o un agente, se usa la plantilla por defecto si existe. Cambiar la plantilla
+      por defecto es una sola escritura sobre la colección, y borrar la plantilla que lo era deja la colección sin
+      plantilla por defecto.
+    why: >-
+      Si el valor por defecto dependiera de la vista, una misma fila nacería distinta según desde dónde se creó y un
+      agente no tendría forma de saber con qué empieza.
+    context: >-
+      La plantilla por defecto es de la colección y no de cada vista. Una plantilla por vista podría sumarse después sin
+      cambiar esta regla. Una colección guarda como máximo cincuenta plantillas.
+    scenarios:
+      - title: Una columna del tablero usa la plantilla por defecto
+        given: Una colección con una plantilla por defecto
+        when: Alguien agrega una tarjeta en una columna del tablero
+        then: La tarjeta nace con el contenido y los valores de esa plantilla y con el valor de la columna
   - id: BR-aa08c26
     status: active
     title: Una fila sin valor no cumple lo que pide un valor
@@ -443,6 +633,53 @@ rules:
         given: Una selección con las opciones Alta, Media y Baja en ese orden
         when: Se ordenan las filas de menor a mayor por esa selección
         then: Salen las de Alta, luego Media, luego Baja, y las sin valor al final
+  - id: BR-af673e9
+    status: active
+    title: Una plantilla es el punto de partida de una fila y nunca es una fila, y una plantilla borrada se puede recuperar
+    rule: >-
+      Una colección puede tener plantillas, y cada una guarda un nombre, un contenido y los valores con que empieza una
+      fila. Una plantilla no es una fila de la colección, así que no aparece en ninguna vista, conteo, resultado de
+      búsqueda, lista de cambios, árbol lateral ni listado de un agente, y no consume un identificador único. Solo se ve
+      en la lista de plantillas de la colección y abriéndola por su dirección. Una plantilla borrada va a la papelera,
+      donde se muestra como plantilla de su colección y no como fila, y al restaurarla vuelve a las plantillas de la
+      colección, sin volver a ser la plantilla por defecto.
+    why: >-
+      Si una plantilla contara como fila, los totales mentirían y un tablero mostraría una tarjeta que nadie creó. Y un
+      borrado por accidente no puede ser irrecuperable mientras cualquier otra página se recupera de la papelera.
+    context: >-
+      Una plantilla se edita como cualquier página y hereda los permisos de su colección. Duplicar una colección con sus
+      páginas se lleva también sus plantillas y la plantilla por defecto. Vaciar la papelera también borra las
+      plantillas que hay en ella.
+    supersedes: BR-554783b
+    scenarios:
+      - title: Un conteo no incluye plantillas
+        given: Una colección con tres filas y dos plantillas
+        when: Alguien pide el conteo de la vista
+        then: El conteo dice tres
+      - title: Recuperar una plantilla borrada
+        given: Una plantilla por defecto que alguien borró por error
+        when: Alguien la restaura desde la papelera
+        then: Vuelve a la lista de plantillas de la colección y la colección queda sin plantilla por defecto
+  - id: BR-c00503a
+    status: active
+    title: «Hoy» y «yo» en una plantilla se resuelven al crear la fila, para quien la crea
+    rule: >-
+      Una plantilla puede dejar una columna de fecha para llenarse con el día de hoy y una columna de persona para
+      llenarse con quien crea la fila. Son las únicas dos palabras que una plantilla admite. Se resuelven en el momento
+      de crear cada fila, con el calendario de la zona horaria de quien la crea, y la fila resultante guarda el día y la
+      persona, nunca la palabra.
+    why: >-
+      Una plantilla de reunión semanal que siempre dijera la fecha en que se hizo la plantilla sería inútil, y una que
+      apuntara siempre a su autor asignaría el trabajo a quien no corresponde.
+    context: >-
+      «Hoy» solo cabe en una columna de fecha y «yo» solo en una de persona; cualquier otra combinación se rechaza al
+      guardar la plantilla. Sin zona horaria se usa UTC. Lo que quien crea la fila da de forma explícita gana sobre
+      estas palabras.
+    scenarios:
+      - title: Hoy según la zona de quien crea
+        given: Una plantilla con la fecha de vencimiento marcada como hoy
+        when: Una persona en Santiago crea una fila a las 23:30 hora local
+        then: La fecha de vencimiento es el día local de Santiago
   - id: BR-c0f99c2
     status: active
     title: Una colección se lee por páginas, y nunca se presenta cortada como si fuera entera
@@ -496,6 +733,32 @@ rules:
         given: Una transacción que empezó antes de que se entregara el cursor y se confirma después
         when: El agente pide los cambios desde ese cursor
         then: La fila de esa transacción aparece
+  - id: BR-d1358d5
+    status: active
+    title: Una línea de tiempo pone cada fila en los días que dura
+    rule: >-
+      Una vista de línea de tiempo dibuja cada fila como una barra desde su día de inicio hasta su día de fin, sobre una
+      escala de días, semanas o meses que se guarda en la vista. El inicio y el fin salen de una sola propiedad de fecha
+      con rango, o de dos propiedades de fecha cuando la vista nombra una para el final. Una fila sin inicio no tiene
+      lugar en el tiempo, así que se lista aparte con su cantidad total, y la barra de una fila que sigue más allá de
+      los días mostrados se corta en el borde diciendo que continúa. Una marca señala el día de hoy en el calendario de
+      quien mira.
+    why: >-
+      Una fecha de inicio y una de fin dicen cuánto dura algo, y eso es lo que un equipo necesita ver para planear. Una
+      fila sin fecha que desaparece del dibujo parece borrada, y una escala fija obliga a elegir entre ver el año o ver
+      la semana.
+    context: >-
+      Los días se leen sin la hora; un final anterior al inicio se lee como el día del inicio. La escala es de la vista,
+      no de quien mira. Si la vista aún no dice qué fecha guarda el inicio, la pantalla lo pide en vez de dibujar vacío.
+    scenarios:
+      - title: Una fila con rango
+        given: Una fila con fecha del 14 al 18 de septiembre y una línea de tiempo por días
+        when: Se abre la línea de tiempo en esos días
+        then: La fila se dibuja como una barra de cinco días que empieza el 14
+      - title: Una fila sin inicio
+        given: Una fila sin fecha de inicio
+        when: Se abre la línea de tiempo
+        then: No tiene barra y aparece en la lista de filas sin inicio, que dice cuántas son en total
   - id: BR-d39ee9c
     status: active
     title: Lo que alguien no puede abrir no entra en sus conteos, y si no se puede calcular bien se dice
@@ -547,6 +810,30 @@ rules:
         given: Una fila que figura en el orden de un tablero
         when: Se borra para siempre
         then: El tablero ya no la lleva en su orden ni la cuenta en ninguna relación
+  - id: BR-dd13106
+    status: active
+    title: Arrastrar o estirar una barra cambia las fechas de esa fila y nada más
+    rule: >-
+      Mover una barra de la línea de tiempo desplaza el inicio y el fin juntos, conservando la duración y la hora del
+      día. Estirar uno de sus extremos cambia solo ese extremo, sin dejar que cruce al otro. Cada gesto es una sola
+      escritura que lleva únicamente las fechas que cambiaron, de modo que no pisa lo que otra persona editó en la fila
+      entretanto, y la barra se ve en su lugar nuevo antes de que el servidor responda y vuelve a donde estaba si lo
+      rechaza. Todo gesto tiene su equivalente con el teclado, y quien no puede editar mira pero no arrastra.
+    why: >-
+      Si el arrastre mandara la fila entera, dos personas moviendo cosas distintas de la misma fila se deshacerían entre
+      sí. Y un gesto que solo se puede hacer con el ratón deja fuera a quien no puede usarlo.
+    context: >-
+      Con el final en otra propiedad, mover escribe las dos propiedades en la misma escritura; estirar el final de una
+      fila que no tenía fin le crea uno.
+    scenarios:
+      - title: Mover una barra
+        given: Una barra del 14 al 18 de septiembre
+        when: Se arrastra tres días a la derecha
+        then: La fila queda del 17 al 21, con una sola escritura de su fecha
+      - title: Estirar más allá del inicio
+        given: Una barra del 14 al 18 de septiembre
+        when: Se estira su final nueve días a la izquierda
+        then: El final se queda en el día del inicio y no lo cruza
   - id: BR-f45f95c
     status: active
     title: Una relación enlaza filas de otra colección, y cada enlace se agrega o se quita de uno en uno
@@ -802,6 +1089,31 @@ rules:
         given: Una colección de 800 tareas donde solo la fila 700 está bloqueada
         when: Un agente consulta las tareas bloqueadas
         then: Recibe la fila 700
+  - id: BR-554783b
+    status: superseded
+    title: Una plantilla es el punto de partida de una fila y nunca es una fila
+    rule: >-
+      Una colección puede tener plantillas, y cada una guarda un nombre, un contenido y los valores con que empieza una
+      fila. Una plantilla no es una fila de la colección, así que no aparece en ninguna vista, conteo, resultado de
+      búsqueda, lista de cambios, papelera ni listado de un agente, y no consume un identificador único. Solo se ve en
+      la lista de plantillas de la colección y abriéndola por su dirección.
+    why: >-
+      Si una plantilla contara como fila, los totales mentirían, un tablero mostraría una tarjeta que nadie creó y un
+      agente actuaría sobre algo que es solo un molde.
+    context: >-
+      Una plantilla se edita como cualquier página, con el mismo editor y las mismas versiones, y hereda los permisos de
+      su colección. Borrarla la manda a la papelera con plazo, sin pasar por el listado de la papelera. Duplicar una
+      colección con sus páginas se lleva también sus plantillas y la plantilla por defecto.
+    superseded_by: BR-af673e9
+    scenarios:
+      - title: Un conteo no incluye plantillas
+        given: Una colección con tres filas y dos plantillas
+        when: Alguien pide el conteo de la vista
+        then: El conteo dice tres
+      - title: Una búsqueda no encuentra el contenido de una plantilla
+        given: Una plantilla cuyo texto contiene una palabra única
+        when: Alguien busca esa palabra
+        then: No hay resultados
   - id: BR-5a97271
     status: superseded
     title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa

@@ -28,6 +28,7 @@ const describeTrashedPage = (portalUrl: string, page: McpTrashedPage): McpListTr
   deletedAt: page.deletedAt.toISOString(),
   deletedBy: page.deletedBy,
   id: page.id,
+  isTemplate: page.isTemplate,
   spaceId: page.spaceId,
   title: page.title,
   trashedChildCount: page.trashedChildCount,
@@ -42,7 +43,8 @@ const formatTrashText = (output: McpListTrashOutput): string => {
       page.trashedChildCount === 0
         ? ''
         : `, ${String(page.trashedChildCount)} pages under it were trashed on their own`;
-    return `- ${page.title} (page ${page.id}, trashed ${page.deletedAt.slice(0, 10)}${by}${along})`;
+    const kind = page.isTemplate ? 'template' : 'page';
+    return `- ${page.title} (${kind} ${page.id}, trashed ${page.deletedAt.slice(0, 10)}${by}${along})`;
   });
   const more =
     output.total > output.pages.length

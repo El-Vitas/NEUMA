@@ -14,10 +14,13 @@ export interface PagesBoardColumns {
   readonly renameColumn: (from: string, to: string) => void;
 
   readonly collapsedColumns: readonly string[];
+  /** Columns the view keeps out of sight; the server does not draw them until they are shown again. */
+  readonly hiddenColumns: readonly string[];
   readonly hidesEmptyGroups: boolean;
   readonly hidesUnassignedColumn: boolean;
   readonly limits: Readonly<Record<string, number>>;
   readonly setLimit: (value: string, limit: null | number) => void;
   readonly toggleCollapsed: (value: string) => void;
+  readonly toggleHidden: (value: string) => void;
   readonly toggleUnassignedColumn: () => void;
 }

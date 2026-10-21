@@ -7,6 +7,8 @@ import type { BlockVersion, NotifiedBlock, NotifiedView } from './block.transact
 export interface BlockChainRow {
   readonly alive: boolean;
   readonly id: string;
+  /** A template page is not a row of its collection (ADR 027). */
+  readonly isTemplate?: boolean;
   readonly parentId: string | null;
   readonly permissions: BlockPermissions;
   readonly spaceId: string;

@@ -46,6 +46,8 @@ export const pageEditorTestLabels: Parameters<typeof createPageEditorNodeViews>[
     place: 'Dónde',
     places: { below: 'Debajo', bottom: 'Al final', top: 'Al principio' },
     setup: 'Configurar',
+    template: 'Plantilla de la fila nueva',
+    templateDefault: 'Plantilla por defecto de la colección',
   },
   subpage: { subpage: 'Subpágina', untitled: 'Sin título' },
   synced: { lost: 'ya no está', source: 'ver dónde vive', synced: 'Sincronizado' },

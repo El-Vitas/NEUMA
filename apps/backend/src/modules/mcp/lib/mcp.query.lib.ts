@@ -1,6 +1,7 @@
 import type { JsonObject } from '@neuma/db';
 import { DatabasePropertyType } from '@neuma/db';
 import type {
+  PageFilter,
   PageQueryAggregateValue,
   PageQueryAggregationItem,
   PageQueryAggregationsOutcome,
@@ -9,7 +10,15 @@ import type {
   PageQueryRequest,
   PageQueryResultsOutcome,
 } from '@neuma/shared';
-import { PAGE_QUERY_LIMITS, Result, readPageViewConfiguration, UNASSIGNED_GROUP_KEY } from '@neuma/shared';
+import {
+  isValidPageDateValue,
+  PAGE_FILTER_OPERATOR,
+  PAGE_PROPERTY_TYPE,
+  PAGE_QUERY_LIMITS,
+  Result,
+  readPageViewConfiguration,
+  UNASSIGNED_GROUP_KEY,
+} from '@neuma/shared';
 import { MCP_QUERY_ROWS_PER_GROUP_MAX } from '../constants/mcp.limits.constants';
 import {
   MCP_COUNTS_REDUCER_ID,
@@ -151,16 +160,46 @@ const buildRowsReducer = (
   };
 };
 
+/** The rows whose dates overlap a run of days: the question a calendar or a timeline asks for what it draws. */
+const buildWindowFilter = (
+  collection: McpOpenCollection,
+  window: NonNullable<McpQueryCollectionInput['window']>,
+): Result<PageFilter, string> => {
+  const column = requireMcpColumn(collection.shape.properties, window.column, collection.listNames);
+  if (column.isFail()) return Result.fail(column.getError());
+  if (column.getValue().type !== PAGE_PROPERTY_TYPE.DATE) {
+    return Result.fail(`"${window.column}" is not a date column, so a window cannot be cut on it.`);
+  }
+  const days = { end: window.to, start: window.from };
+  if (!isValidPageDateValue(days)) {
+    return Result.fail('The window is not a run of real days: from and to are YYYY-MM-DD, and to is not before from.');
+  }
+  return Result.ok({
+    kind: 'CONDITION',
+    operator: PAGE_FILTER_OPERATOR.IS,
+    propertyKey: column.getValue().key,
+    value: days,
+  });
+};
+
+const andFilters = (own: PageFilter | undefined, other: PageFilter): PageFilter =>
+  own === undefined ? other : { conditions: [own, other], kind: 'GROUP', operator: 'AND' };
+
 /** The view's own order and manual placement are kept unless the agent replaced its filter or order. */
 const buildScope = (
   collection: McpOpenCollection,
   input: McpQueryCollectionInput,
   configuration: ReturnType<typeof readPageViewConfiguration>,
+  windowFilter: PageFilter | undefined,
 ): Pick<PageQueryRequest, 'quickFilter' | 'sorts' | 'viewId'> => {
   const view = input.view === undefined ? null : requireMcpView(collection, input.view);
-  if (view?.id !== undefined && input.where === undefined && input.sort === undefined) return { viewId: view.id };
+  if (view?.id !== undefined && input.where === undefined && input.sort === undefined) {
+    return { ...(windowFilter === undefined ? {} : { quickFilter: windowFilter }), viewId: view.id };
+  }
+  const filter = configuration.filter === null ? undefined : configuration.filter;
+  const narrowed = windowFilter === undefined ? filter : andFilters(filter, windowFilter);
   return {
-    ...(configuration.filter === null ? {} : { quickFilter: configuration.filter }),
+    ...(narrowed === undefined ? {} : { quickFilter: narrowed }),
     ...(configuration.sorts.length === 0 ? {} : { sorts: configuration.sorts }),
   };
 };
@@ -182,6 +221,8 @@ export const planMcpQuery = (
   if (groupKey.isFail()) return Result.fail(groupKey.getError());
   const aggregates = planAggregates(collection, input);
   if (aggregates.isFail()) return Result.fail(aggregates.getError());
+  const windowFilter = input.window === undefined ? Result.ok(null) : buildWindowFilter(collection, input.window);
+  if (windowFilter.isFail()) return Result.fail(windowFilter.getError());
   const rows = buildRowsReducer(input, column, groupKey.getValue());
   const counts: PageQueryReducer = {
     by: column === null ? 'NONE' : 'GROUP',
@@ -195,7 +236,7 @@ export const planMcpQuery = (
     groupColumn: column,
     groupKey: groupKey.getValue(),
     request: {
-      ...buildScope(collection, input, configuration),
+      ...buildScope(collection, input, configuration, windowFilter.getValue() ?? undefined),
       reducers: rows === null ? [counts] : [rows, counts],
       ...(input.search === undefined || input.search === '' ? {} : { search: input.search }),
       ...(input.timeZone === undefined ? {} : { timeZone: input.timeZone }),

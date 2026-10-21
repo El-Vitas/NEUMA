@@ -512,6 +512,42 @@ describe('Querying with relative dates and "me" (Integration)', () => {
     });
   });
 
+  describe('a window of days, which is what a timeline and a calendar ask for', () => {
+    const windowOf = (start: string, end: string): PageFilter => condition('due', 'IS', { end, start });
+
+    it('brings the rows whose dates overlap the window, ranges that start before it included', async () => {
+      const titles = await titlesOf({ quickFilter: windowOf('2026-10-24', '2026-10-25'), timeZone: 'UTC' });
+
+      expect(titles).toEqual(['a long night', 'a trip', 'saturday', 'sunday']);
+    });
+
+    it('leaves out the rows that lie wholly outside it, and the rows with no date', async () => {
+      const titles = await titlesOf({ quickFilter: windowOf('2026-11-02', '2026-11-30'), timeZone: 'UTC' });
+
+      expect(titles).toEqual([]);
+    });
+
+    it('says the same as the shared engine, in two zones', async () => {
+      const filter = windowOf('2026-10-25', '2026-10-26');
+
+      expect(await titlesOf({ quickFilter: filter, timeZone: SANTIAGO })).toEqual(
+        await oracleTitles(filter, SANTIAGO, adminId),
+      );
+      expect(await titlesOf({ quickFilter: filter, timeZone: KIRITIMATI })).toEqual(
+        await oracleTitles(filter, KIRITIMATI, adminId),
+      );
+    });
+
+    it('refuses a window that is not made of a start and an end', async () => {
+      const response = await query({
+        quickFilter: condition('due', 'IS', { from: '2026-10-24' }),
+        reducers: [{ id: 'rows', kind: 'results' }],
+      });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
   describe('markers that mean nothing', () => {
     it('refuses a date marker that is not one, with a code', async () => {
       const response = await query({
