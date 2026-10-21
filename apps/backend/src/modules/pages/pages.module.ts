@@ -20,6 +20,7 @@ import { PageVersionRepository } from './infrastructure/persistence/page.version
 import { PageVersionRetentionRepository } from './infrastructure/persistence/page.version-retention.repository';
 import { PageAttachmentsCleanupRepository } from './infrastructure/persistence/page-attachments.cleanup.repository';
 import { PageOutlineRepository } from './infrastructure/persistence/page-outline.repository';
+import { PageQueryRepository } from './infrastructure/persistence/page-query.repository';
 import { PageSchemaRepository } from './infrastructure/persistence/page-schema.repository';
 import { PageRetentionScheduler } from './infrastructure/schedulers/page.retention.scheduler';
 import { systemPageVersionClock } from './infrastructure/schedulers/page.version.clock';
@@ -31,8 +32,12 @@ import { PageLocationController } from './page.location.controller';
 import { PageOutlineService } from './page.outline.service';
 import { PageTrashController } from './page.trash.controller';
 import { PageVersionsController } from './page.versions.controller';
+import { PageQueryController } from './page-query.controller';
+import { PageQueryService } from './page-query.service';
 import { PageSchemaController } from './page-schema.controller';
 import { PageSchemaService } from './page-schema.service';
+import { PageViewOperationsController } from './page-view-operations.controller';
+import { PageViewOperationsService } from './page-view-operations.service';
 import { PagesBatchController } from './pages.batch.controller';
 import { PagesController } from './pages.controller';
 import { PagesService } from './pages.service';
@@ -42,6 +47,8 @@ import { PagesService } from './pages.service';
     PagesController,
     PagesBatchController,
     PageSchemaController,
+    PageQueryController,
+    PageViewOperationsController,
     PageCollectionsController,
     PageTrashController,
     PageDestinationsController,
@@ -49,7 +56,14 @@ import { PagesService } from './pages.service';
     PageAssignedController,
     PageVersionsController,
   ],
-  exports: [PagesService, PageSchemaService, PageOutlineService, PageRetentionScheduler],
+  exports: [
+    PagesService,
+    PageSchemaService,
+    PageQueryService,
+    PageViewOperationsService,
+    PageOutlineService,
+    PageRetentionScheduler,
+  ],
   imports: [BlocksModule],
   providers: [
     { provide: PAGE_ATTACHMENTS_CLEANUP_REPOSITORY, useClass: PageAttachmentsCleanupRepository },
@@ -68,6 +82,9 @@ import { PagesService } from './pages.service';
     PageVersionScheduler,
     { provide: PAGE_REPOSITORY, useClass: PageRepository },
     { provide: PAGE_SCHEMA_REPOSITORY, useClass: PageSchemaRepository },
+    PageQueryRepository,
+    PageQueryService,
+    PageViewOperationsService,
     PagesService,
     PageSchemaService,
     WorkspaceContextService,

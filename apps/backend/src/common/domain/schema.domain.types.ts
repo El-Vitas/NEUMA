@@ -25,7 +25,17 @@ export interface SchemaValuesCheck {
   readonly written?: readonly string[] | undefined;
 }
 
+/** What a view must have to be checked: a configuration as read, from storage or from a client, and its kind. */
+export interface ViewToValidate {
+  readonly configuration: Readonly<Record<string, unknown>>;
+  readonly type: DatabaseViewType;
+}
+
 export interface SchemaViewDefinition {
+  /** Set on a view read from storage. A view that is new has none; one that keeps its id keeps its manual order. */
+  readonly id?: string | undefined;
+  /** Rises with every operation on the view; the client compares it to know its copy is stale. */
+  readonly version?: number | undefined;
   readonly name: string;
   readonly type: DatabaseViewType;
   readonly configuration: JsonObject;

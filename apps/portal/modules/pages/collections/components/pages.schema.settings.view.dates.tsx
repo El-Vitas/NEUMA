@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { PAGE_VIEW_NO_GROUP } from '../constants/pages.collections.constants';
 import { listDatePropertyKeys } from '../lib/pages.calendar.lib';
-import type { PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import type { PagesSchemaSettingsRoute } from '../types/pages.schema-settings.types';
 import { PagesSchemaSettingsMissingProperty } from './pages.schema.settings.missing-property';
@@ -13,7 +13,7 @@ import { PagesSchemaSettingsMissingProperty } from './pages.schema.settings.miss
 interface IProps {
   readonly editor: PagesSchemaEditor;
   readonly onGo: (route: PagesSchemaSettingsRoute) => void;
-  readonly view: PageSchemaView;
+  readonly view: PageSchemaViewDraft;
 }
 
 export const PagesSchemaSettingsViewDates = ({ editor, onGo, view }: IProps) => {

@@ -16,6 +16,7 @@ import { listSpacesTool } from '../tools/mcp.list-spaces.tool';
 import { listTrashTool } from '../tools/mcp.list-trash.tool';
 import { moveBlocksTool } from '../tools/mcp.move-blocks.tool';
 import { movePageTool } from '../tools/mcp.move-page.tool';
+import { moveRowTool } from '../tools/mcp.move-row.tool';
 import { queryCollectionTool } from '../tools/mcp.query-collection.tool';
 import { replyToDiscussionTool } from '../tools/mcp.reply-to-discussion.tool';
 import { restorePageTool } from '../tools/mcp.restore-page.tool';
@@ -59,6 +60,7 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = [
   createCollectionTool,
   createRowTool,
   updateRowTool,
+  moveRowTool,
   uploadFileTool,
   updateCollectionColumnsTool,
   createViewTool,

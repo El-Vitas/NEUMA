@@ -853,11 +853,13 @@ describe('Pages stored as blocks (Integration)', () => {
         title: [{ insert: 'Fila' }],
         values: { notes: 'hola', status: 'todo' },
       });
-      const rows = await request(testApp.getServer())
-        .get(`${pagePath(collection.id)}/rows`)
+      const queried = await request(testApp.getServer())
+        .post(`${pagePath(collection.id)}/query`)
         .set(asAdmin())
+        .send({ reducers: [{ id: 'rows', kind: 'results' }] })
         .expect(HTTP_OK);
-      expect((rows.body as { rows: PageResponse[] }).rows.map((entry) => entry.propertyValues)).toEqual([
+      const body = queried.body as { reducers: { rows: { ids: string[] } }; rows: Record<string, PageResponse> };
+      expect(body.reducers.rows.ids.map((id) => body.rows[id]?.propertyValues)).toEqual([
         { notes: 'hola', status: 'todo' },
       ]);
     });

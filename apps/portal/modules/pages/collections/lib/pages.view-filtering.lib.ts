@@ -30,7 +30,7 @@ import {
   PAGE_FILTER_OPERATORS_WITHOUT_VALUE,
   PAGE_NESTED_FILTER_GROUP_LEVELS,
 } from '../constants/pages.view-filtering.constants';
-import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PageFilterPath } from '../types/pages.view-filtering.types';
 
 export const filterOperatorNeedsValue = (operator: PageFilterOperator): boolean =>
@@ -58,7 +58,7 @@ const readFilterRootOf = ({ filter }: PageViewConfiguration): PageFilterGroup =>
   return { conditions: [filter], kind: 'GROUP', operator: PAGE_FILTER_GROUP_OPERATOR.AND };
 };
 
-export const readViewFilterRoot = (view: PageSchemaView): PageFilterGroup =>
+export const readViewFilterRoot = (view: PageSchemaViewDraft): PageFilterGroup =>
   readFilterRootOf(readPageViewConfiguration(view.configuration));
 
 export const countFilterConditions = (filter: PageFilter): number =>
@@ -72,7 +72,7 @@ export const canNestFilterGroup = (path: PageFilterPath): boolean =>
 
 export const readFilterNodeKey = (path: PageFilterPath): string => path.join('.');
 
-export const readViewSorts = (view: PageSchemaView): readonly PageSort[] =>
+export const readViewSorts = (view: PageSchemaViewDraft): readonly PageSort[] =>
   readPageViewConfiguration(view.configuration).sorts;
 
 /** A filter with no conditions is stored as null. */
@@ -80,10 +80,10 @@ const toFilter = (root: PageFilterGroup): PageFilter | null => (countFilterCondi
 
 /** Receives the parsed configuration: stored keys unknown to the contract would make the server reject it. */
 const rewriteView = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   rewrite: (configuration: PageViewConfiguration) => PageViewConfiguration,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   views.map((view) =>
     view.name === viewName
       ? { ...view, configuration: { ...rewrite(readPageViewConfiguration(view.configuration)) } }
@@ -118,10 +118,10 @@ const rewriteGroupAt = (
     : rewriteChildAt(group, path, (node) => (node.kind === 'GROUP' ? rewrite(node) : node));
 
 const rewriteFilter = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   rewrite: (root: PageFilterGroup) => PageFilterGroup,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...configuration,
     filter: toFilter(rewrite(readFilterRootOf(configuration))),
@@ -132,11 +132,11 @@ export const readFilterConditionKey = (condition: PageFilterCondition): string =
   `${condition.propertyKey}|${condition.operator}|${condition.value === null ? '' : String(condition.value)}`;
 
 export const addViewFilterCondition = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
   property: PageSchemaProperty,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteFilter(views, viewName, (root) =>
     rewriteGroupAt(root, path, (group) => {
       const arriving: PageFilterCondition = {
@@ -154,10 +154,10 @@ export const addViewFilterCondition = (
 
 /** Starts as OR: nesting inside an AND is only useful for what AND cannot express. */
 export const addViewFilterGroup = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
-): readonly PageSchemaView[] => {
+): readonly PageSchemaViewDraft[] => {
   if (!canNestFilterGroup(path)) return views;
   return rewriteFilter(views, viewName, (root) =>
     rewriteGroupAt(root, path, (group) => ({
@@ -168,21 +168,21 @@ export const addViewFilterGroup = (
 };
 
 const rewriteConditionAt = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
   rewrite: (condition: PageFilterCondition) => PageFilterCondition,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteFilter(views, viewName, (root) =>
     rewriteChildAt(root, path, (node) => (node.kind === 'CONDITION' ? rewrite(node) : node)),
   );
 
 export const setViewFilterConditionOperator = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
   operator: PageFilterOperator,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteConditionAt(views, viewName, path, (condition) => ({
     ...condition,
     operator,
@@ -190,42 +190,46 @@ export const setViewFilterConditionOperator = (
   }));
 
 export const setViewFilterConditionValue = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
   value: PagePropertyValue | null,
-): readonly PageSchemaView[] => rewriteConditionAt(views, viewName, path, (condition) => ({ ...condition, value }));
+): readonly PageSchemaViewDraft[] =>
+  rewriteConditionAt(views, viewName, path, (condition) => ({ ...condition, value }));
 
 export const removeViewFilterNode = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
-): readonly PageSchemaView[] => rewriteFilter(views, viewName, (root) => rewriteChildAt(root, path, () => null));
+): readonly PageSchemaViewDraft[] => rewriteFilter(views, viewName, (root) => rewriteChildAt(root, path, () => null));
 
-export const clearViewFilter = (views: readonly PageSchemaView[], viewName: string): readonly PageSchemaView[] =>
+export const clearViewFilter = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({ ...configuration, filter: null }));
 
 export const setViewFilterGroupOperator = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   path: PageFilterPath,
   operator: PageFilterGroupOperator,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteFilter(views, viewName, (root) => rewriteGroupAt(root, path, (group) => ({ ...group, operator })));
 
 const rewriteSorts = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   rewrite: (sorts: readonly PageSort[]) => readonly PageSort[],
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({ ...configuration, sorts: rewrite(configuration.sorts) }));
 
 /** Sorting twice by the same property is a no-op. */
 export const addViewSort = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   propertyKey: string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteSorts(views, viewName, (sorts) =>
     sorts.some((sort) => sort.propertyKey === propertyKey)
       ? sorts
@@ -233,10 +237,10 @@ export const addViewSort = (
   );
 
 export const toggleViewSortDirection = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   index: number,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteSorts(views, viewName, (sorts) =>
     sorts.map((sort, position) =>
       position === index
@@ -252,38 +256,38 @@ export const toggleViewSortDirection = (
   );
 
 export const removeViewSort = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   index: number,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteSorts(views, viewName, (sorts) => sorts.filter((_sort, position) => position !== index));
 
-export const readViewCollapsedGroups = (view: PageSchemaView): readonly string[] =>
+export const readViewCollapsedGroups = (view: PageSchemaViewDraft): readonly string[] =>
   readPageViewConfiguration(view.configuration).collapsedGroups;
 
-export const readViewColumnLimits = (view: PageSchemaView): Readonly<Record<string, number>> =>
+export const readViewColumnLimits = (view: PageSchemaViewDraft): Readonly<Record<string, number>> =>
   readPageViewConfiguration(view.configuration).columnLimits;
 
-export const readViewHidesUnassignedColumn = (view: PageSchemaView): boolean =>
+export const readViewHidesUnassignedColumn = (view: PageSchemaViewDraft): boolean =>
   readPageViewConfiguration(view.configuration).hidesUnassignedColumn;
 
-export const readViewHidesEmptyGroups = (view: PageSchemaView): boolean =>
+export const readViewHidesEmptyGroups = (view: PageSchemaViewDraft): boolean =>
   readPageViewConfiguration(view.configuration).hidesEmptyGroups;
 
 export const toggleViewHidesEmptyGroups = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...configuration,
     hidesEmptyGroups: !configuration.hidesEmptyGroups,
   }));
 
 export const toggleViewCollapsedGroup = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   groupKey: string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...configuration,
     collapsedGroups: configuration.collapsedGroups.includes(groupKey)
@@ -293,79 +297,82 @@ export const toggleViewCollapsedGroup = (
 
 /** No limit is stored by removing the key: a limit of zero would mean a column where nothing fits. */
 export const setViewColumnLimit = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   columnValue: string,
   limit: null | number,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const { [columnValue]: _replaced, ...rest } = configuration.columnLimits;
     return { ...configuration, columnLimits: limit === null ? rest : { ...rest, [columnValue]: limit } };
   });
 
 export const toggleViewHidesUnassignedColumn = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...configuration,
     hidesUnassignedColumn: !configuration.hidesUnassignedColumn,
   }));
 
-export const readViewColumnWidths = (view: PageSchemaView): Readonly<Record<string, number>> =>
+export const readViewColumnWidths = (view: PageSchemaViewDraft): Readonly<Record<string, number>> =>
   readPageViewConfiguration(view.configuration).columnWidths;
 
-export const readViewFrozenColumns = (view: PageSchemaView): number =>
+export const readViewFrozenColumns = (view: PageSchemaViewDraft): number =>
   readPageViewConfiguration(view.configuration).frozenColumns;
 
 export const setViewColumnWidth = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   propertyKey: string,
   width: number,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...configuration,
     columnWidths: { ...configuration.columnWidths, [propertyKey]: width },
   }));
 
 export const setViewFrozenColumns = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   count: number,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({ ...configuration, frozenColumns: Math.max(count, 0) }));
 
-export const readViewRowHeight = (view: PageSchemaView): PageRowHeight =>
+export const readViewRowHeight = (view: PageSchemaViewDraft): PageRowHeight =>
   readPageViewConfiguration(view.configuration).rowHeight;
 
 export const setViewRowHeight = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   rowHeight: PageRowHeight,
-): readonly PageSchemaView[] => rewriteView(views, viewName, (configuration) => ({ ...configuration, rowHeight }));
+): readonly PageSchemaViewDraft[] => rewriteView(views, viewName, (configuration) => ({ ...configuration, rowHeight }));
 
-export const readViewWrapsText = (view: PageSchemaView): boolean =>
+export const readViewWrapsText = (view: PageSchemaViewDraft): boolean =>
   readPageViewConfiguration(view.configuration).wrapsText;
 
 /** Enabling wrap raises a SHORT row to MEDIUM (extra lines would be clipped); disabling it never lowers the height. */
-export const toggleViewWrapsText = (views: readonly PageSchemaView[], viewName: string): readonly PageSchemaView[] =>
+export const toggleViewWrapsText = (
+  views: readonly PageSchemaViewDraft[],
+  viewName: string,
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const wrapsText = !configuration.wrapsText;
     const grows = wrapsText && configuration.rowHeight === PAGE_ROW_HEIGHT.SHORT;
     return { ...configuration, wrapsText, ...(grows ? { rowHeight: PAGE_ROW_HEIGHT.MEDIUM } : {}) };
   });
 
-export const readViewColumnAlignments = (view: PageSchemaView): Readonly<Record<string, PageColumnAlignment>> =>
+export const readViewColumnAlignments = (view: PageSchemaViewDraft): Readonly<Record<string, PageColumnAlignment>> =>
   readPageViewConfiguration(view.configuration).columnAlignments;
 
 /** START is the default, so it is stored by removing the key. */
 export const setViewColumnAlignment = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   columnKey: string,
   alignment: PageColumnAlignment,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const { [columnKey]: _replaced, ...rest } = configuration.columnAlignments;
     return {
@@ -376,12 +383,12 @@ export const setViewColumnAlignment = (
 
 /** A view that never chose has no list, so the currently shown keys are written out first and then reordered. */
 export const moveViewProperty = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   shownKeys: readonly string[],
   propertyKey: string,
   beforeKey: null | string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const chosen = configuration.visibleProperties ?? shownKeys;
     if (propertyKey === beforeKey || !chosen.includes(propertyKey)) return configuration;
@@ -392,12 +399,12 @@ export const moveViewProperty = (
   });
 
 export const moveViewPropertySideways = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   shownKeys: readonly string[],
   propertyKey: string,
   direction: 'EARLIER' | 'LATER',
-): readonly PageSchemaView[] => {
+): readonly PageSchemaViewDraft[] => {
   const from = shownKeys.indexOf(propertyKey);
   const to = direction === 'EARLIER' ? from - 1 : from + 1;
   if (from === -1 || to < 0 || to >= shownKeys.length) return views;
@@ -408,16 +415,16 @@ export const moveViewPropertySideways = (
 export const readPageCalculation = (chosen: string): PageViewCalculation | undefined =>
   PAGE_VIEW_CALCULATION_VALUES.find((candidate) => candidate === chosen);
 
-export const readViewCalculations = (view: PageSchemaView): Readonly<Record<string, PageViewCalculation>> =>
+export const readViewCalculations = (view: PageSchemaViewDraft): Readonly<Record<string, PageViewCalculation>> =>
   readPageViewConfiguration(view.configuration).calculations;
 
 /** NONE is stored by removing the key, so the configuration holds no empty entries. */
 export const setViewCalculation = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   propertyKey: string,
   calculation: PageViewCalculation,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const { [propertyKey]: _replaced, ...rest } = configuration.calculations;
     return {

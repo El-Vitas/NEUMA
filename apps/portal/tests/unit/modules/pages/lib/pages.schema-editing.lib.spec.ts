@@ -25,7 +25,7 @@ import {
   updateSchemaProperty,
   updateSchemaPropertyConfig,
 } from '@/modules/pages/collections/lib/pages.schema-editing.lib';
-import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '@/modules/pages/collections/types/pages.schema.types';
 import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const title: PageSchemaProperty = {
@@ -48,7 +48,7 @@ const status: PageSchemaProperty = {
 describe('toSavableView', () => {
   // A view saved before the server fixed what a configuration may hold must not block changes to other properties.
   it('drops from a configuration what the server would refuse', () => {
-    const view: PageSchemaView = {
+    const view: PageSchemaViewDraft = {
       configuration: { columns: ['status'], groupBy: 'status' },
       isDefault: true,
       name: 'Board',
@@ -59,7 +59,7 @@ describe('toSavableView', () => {
   });
 
   it('keeps the name, the type and which view is the default', () => {
-    const view: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+    const view: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
 
     expect(toSavableView(view)).toEqual({
       configuration: { ...EMPTY_PAGE_VIEW_CONFIGURATION },
@@ -182,7 +182,7 @@ describe('updateSchemaProperty', () => {
 });
 
 describe('addSchemaView', () => {
-  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const table: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
   const notes: PageSchemaProperty = {
     config: defaultConfig,
     key: 'notes',
@@ -231,8 +231,8 @@ describe('addSchemaView', () => {
 });
 
 describe('renameSchemaView', () => {
-  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+  const table: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const board: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
 
   it('renames a view without touching what it was set to show', () => {
     expect(renameSchemaView([table, board], 'Board', 'Tablero')[1]).toEqual({ ...board, name: 'Tablero' });
@@ -248,9 +248,9 @@ describe('renameSchemaView', () => {
 });
 
 describe('moveSchemaView', () => {
-  const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
-  const calendar: PageSchemaView = { configuration: {}, isDefault: false, name: 'Calendar', type: 'TABLE' };
+  const table: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+  const board: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+  const calendar: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Calendar', type: 'TABLE' };
 
   it('moves a view one place earlier', () => {
     expect(moveSchemaView([table, board, calendar], 'Board', 'EARLIER').map((view) => view.name)).toEqual([
@@ -325,13 +325,13 @@ describe('moveSchemaProperty', () => {
 });
 
 describe('duplicateSchemaView', () => {
-  const table: PageSchemaView = {
+  const table: PageSchemaViewDraft = {
     configuration: { groupBy: 'status', sorts: [{ direction: 'ASCENDING', propertyKey: 'status' }] },
     isDefault: true,
     name: 'Table',
     type: 'TABLE',
   };
-  const board: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
+  const board: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };
 
   it('leaves the copy right next to the one it came from', () => {
     expect(duplicateSchemaView([table, board], 'Table').map((view) => view.name)).toEqual([
@@ -353,7 +353,7 @@ describe('duplicateSchemaView', () => {
   });
 
   it('keeps looking for a free name when the obvious one is taken', () => {
-    const taken: PageSchemaView = { configuration: {}, isDefault: false, name: 'Table (2)', type: 'TABLE' };
+    const taken: PageSchemaViewDraft = { configuration: {}, isDefault: false, name: 'Table (2)', type: 'TABLE' };
 
     expect(duplicateSchemaView([table, taken], 'Table').map((view) => view.name)).toEqual([
       'Table',
@@ -368,7 +368,7 @@ describe('duplicateSchemaView', () => {
 });
 
 describe('convertSchemaView', () => {
-  const board: PageSchemaView = {
+  const board: PageSchemaViewDraft = {
     configuration: { columnWidths: { title: 320 }, groupBy: 'status', subGroupBy: 'priority' },
     isDefault: false,
     name: 'Board',
@@ -395,7 +395,7 @@ describe('convertSchemaView', () => {
   });
 
   it('gives a grouping to what cannot be drawn without one', () => {
-    const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+    const table: PageSchemaViewDraft = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
     const converted = convertSchemaView([table], 'Table', 'BOARD', [title, status])[0];
 
     expect(readPageViewConfiguration(converted?.configuration).groupBy).toBe('status');
@@ -407,7 +407,7 @@ describe('convertSchemaView', () => {
 });
 
 describe('listWhatConvertingDrops', () => {
-  const board: PageSchemaView = {
+  const board: PageSchemaViewDraft = {
     configuration: { groupBy: 'status', subGroupBy: 'priority' },
     isDefault: false,
     name: 'Board',

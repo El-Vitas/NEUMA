@@ -46,6 +46,7 @@ import {
   PagePropertyValidationError,
   PageVersionNotFoundError,
 } from './domain/page.error';
+import { buildValueListOperation } from './domain/page.operation.domain';
 import { canDeletePagesForever, computeDaysBefore, computePurgeAfter } from './domain/page.purge.domain';
 import { validatePageCover } from './domain/page-cover.domain';
 import { fitsInOneExport, readExportableContent, selectPagesForExport } from './domain/page-export.domain';
@@ -59,6 +60,7 @@ import {
   mergePagePropertyValues,
   validatePageProperties,
 } from './domain/page-schema.domain';
+import { applyValueListChanges } from './domain/page-value-list.domain';
 import type {
   CarriedAttachment,
   CreatePageInput,
@@ -294,6 +296,13 @@ export class PagesService {
     if (existing.lockedAt !== null) return Result.fail(new PageLockedError());
 
     const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(existing.parentId);
+    const listChanges = input.listChanges ?? {};
+    const extraOperations = [
+      ...(input.extraOperations ?? []),
+      ...Object.entries(listChanges).map(([property, change]) =>
+        buildValueListOperation(input.pageId, property, change),
+      ),
+    ];
     const writable = checkValuesAreWritableHere(schemaProperties, input.propertyValues);
     if (writable.isFail()) return Result.fail(writable.getError());
     const files = await this.checkFilesCanBeAttached(schemaProperties, input.propertyValues, {
@@ -306,19 +315,32 @@ export class PagesService {
     const title = input.title ?? existing.title;
     const page = await this.pageRepository.updatePropertyValues(
       {
+        ...(extraOperations.length === 0 ? {} : { extraOperations }),
         pageId: input.pageId,
         role: input.role,
         ...(input.title === undefined ? {} : { title: input.title }),
         updatedById: input.updatedById,
         workspaceId: input.workspaceId,
       },
-      (current) =>
-        validatePageProperties(
+      (current) => {
+        const outcome = validatePageProperties(
           schemaProperties,
           title,
           keepWhatThePageSchemaKnows(schemaProperties, mergePagePropertyValues(current, input.propertyValues)),
           { personIds, written: Object.keys(input.propertyValues) },
-        ),
+        );
+        if (outcome.isFail() || Object.keys(listChanges).length === 0) return outcome;
+        const afterLists = validatePageProperties(
+          schemaProperties,
+          title,
+          keepWhatThePageSchemaKnows(
+            schemaProperties,
+            mergePagePropertyValues(applyValueListChanges(current, listChanges), input.propertyValues),
+          ),
+          { personIds, written: [...Object.keys(input.propertyValues), ...Object.keys(listChanges)] },
+        );
+        return afterLists.isFail() ? afterLists : outcome;
+      },
     );
     if (page === null) return Result.fail(new PageAccessDeniedError());
     if (page.isOk()) {

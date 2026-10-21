@@ -1,5 +1,10 @@
 import type { JsonObject } from '@neuma/db';
-import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
+import {
+  ACCESS_TOKEN_PERMISSIONS,
+  diffPageViewConfigurations,
+  readPageViewConfiguration,
+  toPageViewEnvelope,
+} from '@neuma/shared';
 import { MCP_NOTHING_TO_CHANGE_MESSAGE, MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import { runMcpWrite } from '../lib/mcp.actions.lib';
@@ -37,8 +42,11 @@ const asksForAnyChange = (input: McpUpdateViewInput): boolean =>
 const changesOnlyWhatItShows = (input: McpUpdateViewInput): boolean =>
   input.name === undefined && input.makeDefault !== true;
 
-/** Saving the whole collection for a filter could overwrite someone else's concurrent change. */
-const setViewConfiguration = async (
+/**
+ * Only what changed is sent, as operations on the view: saving the whole collection or the whole configuration for
+ * a filter would overwrite what someone else changed meanwhile.
+ */
+const applyViewChanges = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
@@ -46,17 +54,30 @@ const setViewConfiguration = async (
   configuration: JsonObject,
 ): Promise<McpOpenCollection> => {
   const { principal, workspace } = call;
-  const saved = requireMcpSuccess(
-    await dependencies.collections.setViewConfiguration({
-      configuration,
+  if (view.id === undefined) throw new McpToolError(`The view "${view.name}" was not saved yet.`);
+  const viewId = view.id;
+  const operations = diffPageViewConfigurations(
+    readPageViewConfiguration(view.configuration),
+    readPageViewConfiguration(configuration),
+  ).map((operation) => {
+    const { args, command, path } = toPageViewEnvelope(viewId, operation);
+    return { args, command, path: [...path] };
+  });
+  if (operations.length === 0) return collection;
+  const changed = requireMcpSuccess(
+    await dependencies.collections.applyViewOperations({
+      operations,
       pageId: collection.id,
       role: principal.role,
       userId: principal.userId,
-      viewName: view.name,
+      viewId,
       workspaceId: workspace.id,
     }),
   );
-  return { ...collection, shape: { properties: saved.properties, views: saved.views } };
+  const views = collection.shape.views.map((candidate) =>
+    candidate.id === changed.id ? { ...candidate, configuration: changed.configuration } : candidate,
+  );
+  return { ...collection, shape: { properties: collection.shape.properties, views } };
 };
 
 const changeView = (
@@ -71,7 +92,7 @@ const changeView = (
   const configuration = requireMcpInput(
     buildMcpViewConfiguration(readMcpColumnsInHand(collection), input, people, view.configuration),
   );
-  if (changesOnlyWhatItShows(input)) return setViewConfiguration(dependencies, call, collection, view, configuration);
+  if (changesOnlyWhatItShows(input)) return applyViewChanges(dependencies, call, collection, view, configuration);
   const changed = requireMcpInput(
     changeMcpView(views, view, { configuration, makeDefault: input.makeDefault, name: input.name }),
   );

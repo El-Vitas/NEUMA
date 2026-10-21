@@ -1,4 +1,4 @@
-import type { PageCalendarDay, PageDateValue } from '@neuma/shared';
+import type { PageCalendarDay, PageDateValue, PageFilter } from '@neuma/shared';
 import {
   isPageDateValue,
   listPageCalendarDays,
@@ -6,8 +6,12 @@ import {
   readPageCalendarMonth,
   shiftPageCalendarMonth,
 } from '@neuma/shared';
-import { PAGE_CALENDAR_DATE_LENGTH, PAGE_CALENDAR_MONTH_LENGTH } from '../constants/pages.calendar.constants';
-import type { PageCalendarCell } from '../types/pages.calendar.types';
+import {
+  PAGE_CALENDAR_DATE_LENGTH,
+  PAGE_CALENDAR_MILLISECONDS_IN_A_DAY,
+  PAGE_CALENDAR_MONTH_LENGTH,
+} from '../constants/pages.calendar.constants';
+import type { PageCalendarCell, PageCalendarRange } from '../types/pages.calendar.types';
 import type { PageRow, PageSchemaProperty } from '../types/pages.schema.types';
 
 export const listDatePropertyKeys = (properties: readonly PageSchemaProperty[]): readonly string[] =>
@@ -65,6 +69,44 @@ export const buildCalendarCells = (
     rows: byDate.get(day.date) ?? [],
   }));
 };
+
+const shiftDay = (date: string, days: number): string =>
+  new Date(Date.parse(`${date}T00:00:00.000Z`) + days * PAGE_CALENDAR_MILLISECONDS_IN_A_DAY)
+    .toISOString()
+    .slice(0, PAGE_CALENDAR_DATE_LENGTH);
+
+/** The first and the last day the grid of a month draws, leading and trailing days included. */
+export const readCalendarGridRange = (month: string): PageCalendarRange => {
+  const days = listPageCalendarDays(month);
+  return { from: days[0]?.date ?? `${month}-01`, to: days.at(-1)?.date ?? `${month}-01` };
+};
+
+/**
+ * Rows that start on a day of the range, made only of operators the server and the shared engine agree on: a start
+ * after the day before the range, and a start not after the last day (it ends before the next day, or overlaps it).
+ */
+export const buildCalendarRangeFilter = (dateProperty: string, range: PageCalendarRange): PageFilter => ({
+  conditions: [
+    { kind: 'CONDITION', operator: 'IS_AFTER', propertyKey: dateProperty, value: shiftDay(range.from, -1) },
+    {
+      conditions: [
+        { kind: 'CONDITION', operator: 'IS_BEFORE', propertyKey: dateProperty, value: shiftDay(range.to, 1) },
+        { kind: 'CONDITION', operator: 'IS', propertyKey: dateProperty, value: range.to },
+      ],
+      kind: 'GROUP',
+      operator: 'OR',
+    },
+  ],
+  kind: 'GROUP',
+  operator: 'AND',
+});
+
+export const buildCalendarUndatedFilter = (dateProperty: string): PageFilter => ({
+  kind: 'CONDITION',
+  operator: 'IS_EMPTY',
+  propertyKey: dateProperty,
+  value: null,
+});
 
 export const listRowsWithoutDate = (
   rows: readonly PageRow[],

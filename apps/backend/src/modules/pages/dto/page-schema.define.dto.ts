@@ -136,6 +136,12 @@ export class PageSchemaPropertyDto {
 }
 
 export class PageSchemaViewDto {
+  /** The id the view has; sent back so the view keeps its manual order when its tab is renamed or moved. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(OPTION_ID_MAX_LENGTH)
+  id?: string;
+
   @IsString()
   @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
@@ -163,11 +169,6 @@ export class RewritePageOptionDto {
   @MaxLength(SCHEMA_LABEL_MAX_LENGTH)
   @MinLength(1)
   to?: string;
-}
-
-export class SetPageViewConfigurationDto {
-  @IsObject()
-  configuration!: JsonObject;
 }
 
 export class DefinePageSchemaDto {

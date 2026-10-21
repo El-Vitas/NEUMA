@@ -22,7 +22,9 @@ import type { McpPageManager } from './modules/mcp/types/mcp.page-management.typ
 import type { McpFileUploader, McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
 import { PageContentService } from './modules/pages/page.content.service';
 import { PageOutlineService } from './modules/pages/page.outline.service';
+import { PageQueryService } from './modules/pages/page-query.service';
 import { PageSchemaService } from './modules/pages/page-schema.service';
+import { PageViewOperationsService } from './modules/pages/page-view-operations.service';
 import { PagesService } from './modules/pages/pages.service';
 import { SearchService } from './modules/search/search.service';
 import { SpacesService } from './modules/spaces/spaces.service';
@@ -42,6 +44,8 @@ export class McpServerDependenciesAdapter {
     @Inject(BLOCK_WRITER) private readonly blockWriter: BlockWriter,
     private readonly pagesService: PagesService,
     private readonly collections: PageSchemaService,
+    private readonly queryService: PageQueryService,
+    private readonly viewOperations: PageViewOperationsService,
     private readonly commentsService: CommentsService,
     private readonly content: PageContentService,
     private readonly filesService: FilesService,
@@ -96,17 +100,23 @@ export class McpServerDependenciesAdapter {
 
   /** A relation asks for its way back only when it is being added; the columns already there never do. */
   private buildCollections(): McpCollectionService {
-    const { collections } = this;
+    const { collections, queryService, viewOperations } = this;
     return {
+      applyViewOperations: async (input) => toMcpResult(await viewOperations.apply(input)),
+      moveRow: async (input) => toMcpResult(await viewOperations.moveRow(input)),
       defineSchema: ({ properties, ...input }) =>
         collections.defineSchema({
           ...input,
           properties: properties.map((column) => ({ ...column, twoWay: column.twoWay === true })),
         }),
       getSchema: (pageId, workspaceId, userId, role) => collections.getSchema(pageId, workspaceId, userId, role),
-      queryRows: (input) => collections.queryRows(input),
+      queryCollection: async (input) => {
+        const answered = toMcpResult(await queryService.run(input));
+        if (answered.isFail()) return Result.fail(answered.getError());
+        const { attachedFiles, reducers, rows } = answered.getValue();
+        return Result.ok({ attachedFiles, reducers, rows });
+      },
       rewriteOption: (input) => collections.rewriteOption(input),
-      setViewConfiguration: (input) => collections.setViewConfiguration(input),
     };
   }
 

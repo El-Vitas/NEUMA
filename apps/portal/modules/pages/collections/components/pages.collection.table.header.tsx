@@ -2,8 +2,9 @@
 
 import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@neuma/shared';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Table, TableHeader, TableRow } from '@/shared/components/ui/table';
+import { PAGE_LOADED_ROWS_CONTEXT } from '../constants/pages.row-context.constants';
 import { usePagesTableColumns } from '../hooks/use.pages.table-columns';
 import {
   listTableColumnKeys,
@@ -13,10 +14,15 @@ import {
   readTableColumnWidth,
   readTableFrozenCellProps,
 } from '../lib/pages.table-columns.lib';
-import type { PagePersonOption, PagePropertyValues, PageSchema, PageSchemaProperty } from '../types/pages.schema.types';
-import { PagesCollectionSearchProvider } from './pages.collection.search.provider';
-import { PagesCollectionSearchEmpty } from './pages.collection.search-empty';
-import { PagesCollectionSearchField } from './pages.collection.search-field';
+import type { PagesLoadedRows } from '../types/pages.loaded-rows.types';
+import type {
+  PagePersonOption,
+  PagePropertyValues,
+  PageRow,
+  PageSchema,
+  PageSchemaProperty,
+  PageViewAggregates,
+} from '../types/pages.schema.types';
 import { PagesCollectionSelectionProvider } from './pages.collection.selection.provider';
 import { PagesCollectionSelectionBar } from './pages.collection.selection-bar';
 import { PagesCollectionTableAppearance } from './pages.collection.table.appearance';
@@ -25,16 +31,17 @@ import { PagesCollectionTableSelectAll } from './pages.collection.table.select-a
 
 interface IProps {
   readonly activeViewName: string;
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
   readonly children: ReactNode;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly rowIds: readonly string[];
-  readonly searchTexts: readonly string[];
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly titleLabel: string;
   readonly valuesByRow: Readonly<Record<string, PagePropertyValues>>;
+  readonly viewId: string;
 }
 
 /**
@@ -43,21 +50,33 @@ interface IProps {
  */
 export const PagesCollectionTableHeader = ({
   activeViewName,
+  aggregates,
   canEdit,
   children,
   personOptions,
   properties,
   rowIds,
   schema,
-  searchTexts,
   spaceId,
   titleLabel,
   valuesByRow,
+  viewId,
 }: IProps) => {
   const columnKeys = listTableColumnKeys(properties.map((property) => property.key));
   const columns = usePagesTableColumns(schema, activeViewName, columnKeys.slice(1), spaceId);
   const [stretching, setStretching] = useState<null | { readonly columnKey: string; readonly width: number }>(null);
   const [carried, setCarried] = useState<null | string>(null);
+  const [loadedByScope, setLoadedByScope] = useState<Readonly<Record<string, readonly PageRow[]>>>({});
+  const loadedRows = useMemo<PagesLoadedRows>(
+    () => ({ report: (scope, rows) => setLoadedByScope((current) => ({ ...current, [scope]: rows })) }),
+    [],
+  );
+  const loaded = Object.values(loadedByScope).flat();
+  const allRowIds = [...rowIds, ...loaded.map((row) => row.id)];
+  const allValuesByRow = {
+    ...valuesByRow,
+    ...Object.fromEntries(loaded.map((row) => [row.id, row.propertyValues ?? {}])),
+  };
 
   /** The width being dragged wins over the saved one so the edge follows the pointer. */
   const widthOf = (columnKey: string): number =>
@@ -75,18 +94,20 @@ export const PagesCollectionTableHeader = ({
   const total = columnKeys.reduce((sum, columnKey) => sum + widthOf(columnKey), 0);
 
   return (
-    <PagesCollectionSearchProvider searchTexts={searchTexts}>
-      <PagesCollectionSelectionProvider>
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <PagesCollectionSearchField />
+    <PagesCollectionSelectionProvider>
+      <PAGE_LOADED_ROWS_CONTEXT value={loadedRows}>
+        <div className="mb-1 flex items-center justify-end gap-2">
           {canEdit && <PagesCollectionTableAppearance columns={columns} />}
         </div>
         {canEdit && (
           <PagesCollectionSelectionBar
+            aggregates={aggregates}
+            pageId={schema.pageId}
             personOptions={personOptions}
             properties={properties}
             spaceId={spaceId}
-            valuesByRow={valuesByRow}
+            valuesByRow={allValuesByRow}
+            viewId={viewId}
           />
         )}
         <Table className="table-fixed" data-testid="collection-table" style={{ width: total }}>
@@ -111,7 +132,7 @@ export const PagesCollectionTableHeader = ({
                   }
                   leading={
                     canEdit && columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY ? (
-                      <PagesCollectionTableSelectAll rowIds={rowIds} />
+                      <PagesCollectionTableSelectAll rowIds={allRowIds} />
                     ) : null
                   }
                   movable={columnKey !== PAGE_COLLECTION_TITLE_PROPERTY_KEY}
@@ -132,8 +153,7 @@ export const PagesCollectionTableHeader = ({
           </TableHeader>
           {children}
         </Table>
-        <PagesCollectionSearchEmpty />
-      </PagesCollectionSelectionProvider>
-    </PagesCollectionSearchProvider>
+      </PAGE_LOADED_ROWS_CONTEXT>
+    </PagesCollectionSelectionProvider>
   );
 };

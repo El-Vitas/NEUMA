@@ -12,6 +12,8 @@ import {
   PAGE_FILTER_GROUP_OPERATOR,
   PAGE_FILTER_MAXIMUM_DEPTH,
   PAGE_FILTER_OPERATOR_VALUES,
+  PAGE_GROUP_BY_MODE,
+  PAGE_GROUP_BY_MODE_VALUES,
   PAGE_ROW_HEIGHT,
   PAGE_ROW_HEIGHT_VALUES,
   PAGE_SORT_DIRECTION_VALUES,
@@ -24,6 +26,8 @@ const maximumVisibleProperties = 50;
 const maximumPropertyKeyLength = 100;
 const maximumFilterTextLength = 500;
 const maximumFilterEntries = 50;
+const maximumFilterNodeIdLength = 64;
+const maximumHiddenGroups = 200;
 
 /** One emoji, counting multi-character ones such as a flag or a family. */
 const maximumIconLength = 16;
@@ -34,10 +38,10 @@ const maximumColumnValueLength = 200;
 const minimumColumnWidth = 80;
 const maximumColumnWidth = 960;
 
-const propertyKeySchema = z.string().min(1).max(maximumPropertyKeyLength);
+export const propertyKeySchema = z.string().min(1).max(maximumPropertyKeyLength);
 
 /** A column is identified by its value, which is not a property key. */
-const columnValueSchema = z.string().min(1).max(maximumColumnValueLength);
+export const columnValueSchema = z.string().min(1).max(maximumColumnValueLength);
 
 const filterValueSchema: z.ZodType<PagePropertyValue> = z.union([
   z.string().max(maximumFilterTextLength),
@@ -46,8 +50,11 @@ const filterValueSchema: z.ZodType<PagePropertyValue> = z.union([
   z.array(z.string().max(maximumFilterTextLength)).max(maximumFilterEntries),
 ]);
 
+const filterNodeIdSchema = z.string().min(1).max(maximumFilterNodeIdLength);
+
 const filterConditionSchema = z
   .object({
+    id: filterNodeIdSchema.optional(),
     kind: z.literal('CONDITION'),
     operator: z.enum(PAGE_FILTER_OPERATOR_VALUES),
     propertyKey: propertyKeySchema,
@@ -59,6 +66,7 @@ const filterGroupSchema: z.ZodType<PageFilter> = z.lazy(() =>
   z
     .object({
       conditions: z.array(filterSchema).max(maximumFilterConditions),
+      id: filterNodeIdSchema.optional(),
       kind: z.literal('GROUP'),
       operator: z.enum([PAGE_FILTER_GROUP_OPERATOR.AND, PAGE_FILTER_GROUP_OPERATOR.OR]),
     })
@@ -70,11 +78,11 @@ const filterSchema: z.ZodType<PageFilter> = z.lazy(() => z.union([filterConditio
 const countFilterDepth = (filter: PageFilter): number =>
   filter.kind === 'CONDITION' ? 1 : 1 + Math.max(0, ...filter.conditions.map(countFilterDepth));
 
-const rootFilterSchema = filterSchema.refine((filter) => countFilterDepth(filter) <= PAGE_FILTER_MAXIMUM_DEPTH, {
+export const rootFilterSchema = filterSchema.refine((filter) => countFilterDepth(filter) <= PAGE_FILTER_MAXIMUM_DEPTH, {
   message: 'Filter exceeds the maximum nesting depth',
 });
 
-const sortSchema = z
+export const sortSchema = z
   .object({
     direction: z.enum(PAGE_SORT_DIRECTION_VALUES),
     propertyKey: propertyKeySchema,
@@ -100,6 +108,8 @@ const configurationShape = {
   hidesUnassignedColumn: z.boolean().nullish(),
   groupBy: propertyKeySchema.nullish(),
   groupByDateBucket: z.enum(PAGE_DATE_BUCKET_VALUES).nullish(),
+  groupByMode: z.enum(PAGE_GROUP_BY_MODE_VALUES).nullish(),
+  hiddenGroups: z.array(columnValueSchema).max(maximumHiddenGroups).nullish(),
   sorts: z.array(sortSchema).max(maximumSorts).optional(),
   subGroupBy: propertyKeySchema.nullish(),
   visibleProperties: z.array(propertyKeySchema).max(maximumVisibleProperties).nullish(),
@@ -128,6 +138,8 @@ const toConfiguration = (parsed: z.infer<typeof storedConfigurationSchema>): Pag
   hidesUnassignedColumn: parsed.hidesUnassignedColumn ?? false,
   groupBy: parsed.groupBy ?? null,
   groupByDateBucket: parsed.groupByDateBucket ?? PAGE_DATE_BUCKET.DAY,
+  groupByMode: parsed.groupByMode ?? PAGE_GROUP_BY_MODE.OPTION,
+  hiddenGroups: parsed.hiddenGroups ?? [],
   sorts: parsed.sorts ?? [],
   subGroupBy: parsed.subGroupBy ?? null,
   visibleProperties: parsed.visibleProperties ?? null,
@@ -152,6 +164,8 @@ export const EMPTY_PAGE_VIEW_CONFIGURATION: PageViewConfiguration = {
   wrapsText: false,
   groupBy: null,
   groupByDateBucket: PAGE_DATE_BUCKET.DAY,
+  groupByMode: PAGE_GROUP_BY_MODE.OPTION,
+  hiddenGroups: [],
   sorts: [],
   subGroupBy: null,
   visibleProperties: null,

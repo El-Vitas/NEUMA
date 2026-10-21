@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useOptimistic, useState, useTransition } from 'react';
+import { useOptimistic, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { hasActionError, isActionSuccess } from '@/shared/lib/action-result';
 import {
@@ -35,6 +35,7 @@ export const usePagesRelationEditing = ({
   const [candidates, setCandidates] = useState<readonly PageRelatedRow[] | null>(null);
   const [picked, setPicked] = useState<readonly PageRelatedRow[]>([]);
   const [shownIds, showChange] = useOptimistic(value, withChange);
+  const latestAsk = useRef(0);
 
   const change = (kind: 'ADD' | 'REMOVE', target: PageRelatedRow): void => {
     startChanging(async () => {
@@ -58,9 +59,12 @@ export const usePagesRelationEditing = ({
     });
   };
 
-  const loadCandidates = (): void => {
+  const loadCandidates = (search = ''): void => {
+    latestAsk.current += 1;
+    const ask = latestAsk.current;
     startChanging(async () => {
-      const listed = await listPageRelationCandidatesAction({ collectionId, spaceId });
+      const listed = await listPageRelationCandidatesAction({ collectionId, search, spaceId });
+      if (ask !== latestAsk.current) return;
       if (!isActionSuccess<readonly PageRelatedRow[]>(listed)) {
         toast.error(t('relationLoadError'));
         return;

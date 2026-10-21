@@ -52,9 +52,11 @@ export const pageViewTypeSchema = z.enum(PAGE_VIEW_TYPE_VALUES);
 
 export const pageSchemaViewSchema = z.object({
   configuration: z.record(z.string(), z.unknown()),
+  id: z.string(),
   isDefault: z.boolean(),
   name: z.string(),
   type: pageViewTypeSchema,
+  version: z.number().int(),
 });
 
 export const pageSchemaSchema = z.object({
@@ -76,8 +78,51 @@ export const pageRowSchema = z.object({
 
 export const pageRowsSchema = z.array(pageRowSchema);
 
-export const pageRelationCandidatesResponseSchema = z.object({
-  rows: z.array(z.object({ id: z.string(), title: z.string() })),
+const pageQueryAggregateValueSchema = z.union([z.number(), z.string(), z.null()]);
+
+const pageQueryOutcomeSchema = z.discriminatedUnion('kind', [
+  z.object({ ids: z.array(z.string()), kind: z.literal('results'), nextCursor: z.string().nullable() }),
+  z.object({
+    groups: z.array(
+      z.object({
+        ids: z.array(z.string()),
+        isHidden: z.boolean(),
+        key: z.string(),
+        nextCursor: z.string().nullable(),
+        subKey: z.string().nullable(),
+      }),
+    ),
+    hasMoreGroups: z.boolean(),
+    kind: z.literal('groups'),
+  }),
+  z.object({
+    distinctRowCount: z.number().int(),
+    groups: z.array(
+      z.object({
+        key: z.string(),
+        subKey: z.string().nullable(),
+        values: z.record(z.string(), pageQueryAggregateValueSchema),
+      }),
+    ),
+    kind: z.literal('aggregations'),
+    totals: z.record(z.string(), pageQueryAggregateValueSchema),
+  }),
+]);
+
+/** What a view query answers (ADR 025): the outcome of each reducer by id, and one record per row they name. */
+export const pageQueryResponseSchema = z.object({
+  attachedFiles: z.array(z.object({ id: z.string(), mimeType: z.string(), name: z.string(), size: z.number() })),
+  reducers: z.record(z.string(), pageQueryOutcomeSchema),
+  relatedRows: z.array(z.object({ id: z.string(), title: z.string() })),
+  rows: z.record(z.string(), pageRowSchema),
+  spaceId: z.string(),
+  viewVersion: z.number().int().nullable(),
+});
+
+export const pageChangedViewSchema = z.object({
+  configuration: z.record(z.string(), z.unknown()),
+  id: z.string(),
+  version: z.number().int(),
 });
 
 export const pageSpaceCollectionsResponseSchema = z.array(z.object({ id: z.string(), title: z.string() }));
@@ -89,35 +134,4 @@ export const pageTransactionsResponseSchema = z.object({
       id: z.string(),
     }),
   ),
-});
-
-export const pageViewGroupSchema = z.object({
-  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
-  key: z.string(),
-  label: z.string(),
-  rows: pageRowsSchema,
-});
-
-export const pageViewBandSchema = z.object({
-  color: z.enum(PAGE_OPTION_COLOR_VALUES).nullable(),
-  groups: z.array(pageViewGroupSchema),
-  key: z.string(),
-  label: z.string(),
-});
-
-export const pageViewOutcomeSchema = z.discriminatedUnion('kind', [
-  z.object({ bands: z.array(pageViewBandSchema), kind: z.literal('BANDED_ROWS') }),
-  z.object({ kind: z.literal('FLAT_ROWS'), rows: pageRowsSchema }),
-  z.object({ groups: z.array(pageViewGroupSchema), kind: z.literal('GROUPED_ROWS') }),
-  z.object({ kind: z.literal('MISSING_GROUPING_PROPERTY') }),
-]);
-
-/** Counts come from the server because only it sees all rows; the client receives just those the view lets through. */
-export const pageViewReadingSchema = z.object({
-  attachedFiles: z.array(z.object({ id: z.string(), mimeType: z.string(), name: z.string(), size: z.number() })),
-  hasMore: z.boolean(),
-  outcome: pageViewOutcomeSchema,
-  relatedRows: z.array(z.object({ id: z.string(), title: z.string() })),
-  rowCount: z.number().int().min(0),
-  totalRowCount: z.number().int().min(0),
 });

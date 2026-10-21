@@ -186,6 +186,7 @@ export class PageBlockWriter {
     const operations = [
       ...(input.title === undefined ? [] : [buildTitleOperation(input.pageId, input.title)]),
       ...buildValueChangeOperations(input.pageId, diffPageValues(current, merged.getValue())),
+      ...(input.extraOperations ?? []),
     ];
     if (operations.length > 0 && !(await this.apply(viewer, page.block.spaceId, operations))) return null;
     const summary = await this.readSummary(input.pageId, viewer);

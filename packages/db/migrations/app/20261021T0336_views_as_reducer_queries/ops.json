@@ -1,0 +1,187 @@
+[
+  {
+    "id": "column.public.PageSchemaView.manualOrder",
+    "label": "Add column \"manualOrder\" to \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "manualOrder",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"manualOrder\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaView",
+          "manualOrder"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"manualOrder\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\" ADD COLUMN \"manualOrder\" text[]"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"manualOrder\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaView",
+          "manualOrder"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.PageSchemaView.version",
+    "label": "Add column \"version\" to \"PageSchemaView\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "version",
+        "table": "PageSchemaView"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"version\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaView",
+          "version"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"version\"",
+        "sql": "ALTER TABLE \"public\".\"PageSchemaView\" ADD COLUMN \"version\" int4 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"version\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "PageSchemaView",
+          "version"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Block_rows_order_idx",
+    "label": "Create the partial index that reads the rows of a collection in order",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"Block_rows_order_idx\"",
+        "sql": "\nCREATE INDEX \"Block_rows_order_idx\" ON \"public\".\"Block\" (\"parentId\", \"createdAt\", \"id\")\nWHERE \"type\" = 'page' AND \"lifecycle\" = 'ACTIVE'"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "function.neuma_identify_filter",
+    "label": "Create the helper that gives each filter node an id",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"neuma_identify_filter\"",
+        "sql": "\nCREATE FUNCTION \"public\".\"neuma_identify_filter\"(filter jsonb) RETURNS jsonb\nLANGUAGE plpgsql VOLATILE AS $function$\nDECLARE\n  identified jsonb;\nBEGIN\n  IF filter IS NULL OR jsonb_typeof(filter) <> 'object' THEN\n    RETURN filter;\n  END IF;\n  IF filter ->> 'kind' = 'GROUP' THEN\n    SELECT COALESCE(jsonb_agg(\"public\".\"neuma_identify_filter\"(item) ORDER BY position), '[]'::jsonb)\n    INTO identified\n    FROM jsonb_array_elements(COALESCE(filter -> 'conditions', '[]'::jsonb)) WITH ORDINALITY AS each(item, position);\n    filter := jsonb_set(filter, '{conditions}', identified);\n  END IF;\n  IF filter ->> 'id' IS NULL THEN\n    filter := filter || jsonb_build_object('id', substr(replace(gen_random_uuid()::text, '-', ''), 1, 12));\n  END IF;\n  RETURN filter;\nEND\n$function$"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "function.neuma_count_filter_nodes",
+    "label": "Create the helper that counts the nodes of a filter",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "create \"neuma_count_filter_nodes\"",
+        "sql": "\nCREATE FUNCTION \"public\".\"neuma_count_filter_nodes\"(filter jsonb) RETURNS integer\nLANGUAGE sql IMMUTABLE AS $function$\n  SELECT CASE\n    WHEN filter IS NULL OR jsonb_typeof(filter) <> 'object' THEN 0\n    WHEN filter ->> 'kind' = 'GROUP' THEN 1 + COALESCE((\n      SELECT sum(\"public\".\"neuma_count_filter_nodes\"(item))::integer\n      FROM jsonb_array_elements(COALESCE(filter -> 'conditions', '[]'::jsonb)) AS each(item)\n    ), 0)\n    ELSE 1\n  END\n$function$"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "backfill.PageSchemaView.filterIds",
+    "label": "Give each filter node an id and add the hidden groups and the status grouping mode to each view",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "identify filter nodes",
+        "sql": "\nDO $migration$\nDECLARE\n  nodes_before integer;\n  nodes_after integer;\nBEGIN\n  SELECT COALESCE(sum(\"public\".\"neuma_count_filter_nodes\"(\"configuration\" -> 'filter')), 0) INTO nodes_before\n  FROM \"public\".\"PageSchemaView\";\n\n  UPDATE \"public\".\"PageSchemaView\"\n  SET \"configuration\" = jsonb_set(\n    \"configuration\",\n    '{filter}',\n    \"public\".\"neuma_identify_filter\"(\"configuration\" -> 'filter')\n  )\n  WHERE jsonb_typeof(\"configuration\" -> 'filter') = 'object';\n\n  UPDATE \"public\".\"PageSchemaView\"\n  SET \"configuration\" =\n    CASE WHEN \"configuration\" ? 'hiddenGroups' THEN \"configuration\" ELSE \"configuration\" || '{\"hiddenGroups\": []}'::jsonb END\n    || CASE WHEN \"configuration\" ? 'groupByMode' THEN '{}'::jsonb ELSE '{\"groupByMode\": \"OPTION\"}'::jsonb END;\n\n  SELECT COALESCE(sum(\"public\".\"neuma_count_filter_nodes\"(\"configuration\" -> 'filter')), 0) INTO nodes_after\n  FROM \"public\".\"PageSchemaView\";\n  IF nodes_before <> nodes_after THEN\n    RAISE EXCEPTION 'Filter nodes changed from % to %', nodes_before, nodes_after;\n  END IF;\nEND\n$migration$"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "every filter node has an id",
+        "sql": "\nSELECT count(*) = 0 AS \"ok\" FROM \"public\".\"PageSchemaView\" AS view_row\nWHERE jsonb_typeof(view_row.\"configuration\" -> 'filter') = 'object' AND view_row.\"configuration\" -> 'filter' ->> 'id' IS NULL"
+      }
+    ]
+  },
+  {
+    "id": "function.drop.neuma_identify_filter",
+    "label": "Drop the helper that gave each filter node an id",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop \"neuma_identify_filter\"",
+        "sql": "DROP FUNCTION \"public\".\"neuma_identify_filter\"(jsonb)"
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "function.drop.neuma_count_filter_nodes",
+    "label": "Drop the helper that counted the nodes of a filter",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "drop \"neuma_count_filter_nodes\"",
+        "sql": "DROP FUNCTION \"public\".\"neuma_count_filter_nodes\"(jsonb)"
+      }
+    ],
+    "postcheck": []
+  }
+]

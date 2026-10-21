@@ -28,6 +28,17 @@ interface Session {
 }
 
 const queriedShape = z.object({ rows: z.array(z.object({ id: z.string() })), total: z.number() });
+const groupedShape = z.object({
+  groups: z.array(
+    z.object({
+      count: z.number(),
+      name: z.string(),
+      rows: z.array(z.object({ id: z.string(), properties: z.array(z.object({ key: z.string() })) })),
+    }),
+  ),
+  rows: z.array(z.object({ id: z.string() })),
+  total: z.number(),
+});
 const writtenRowShape = z.object({ id: z.string() });
 
 /** Cases check the database, not only the response: rejected writes change nothing, attempts are logged. */
@@ -265,12 +276,88 @@ describe('MCP collections (Integration)', () => {
       });
 
     it('leaves the closed row out of a query, and out of the count', async () => {
-      const answer = await call(await closedRowToken(), 'query_collection', { collection: collectionId, limit: 200 });
+      const answer = await call(await closedRowToken(), 'query_collection', { collection: collectionId, limit: 100 });
 
       const queried = queriedShape.parse(answer.structuredContent);
       expect(queried.rows.map((row) => row.id)).not.toContain(closedRowId);
       expect(queried.rows.map((row) => row.id)).toContain(lockedRowId);
       expect(queried.total).toBe(queried.rows.length);
+    });
+
+    /** Its own collection, since other cases rename options and add rows to the shared one. */
+    const seedQueryCollection = async () => {
+      const queryCollectionId = await createPage('Consultas');
+      const defined = await api()
+        .post(`/api/v1/spaces/${spaceId}/pages/${queryCollectionId}/schema`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({
+          properties: [
+            { key: 'title', label: 'Título', options: null, required: true, type: 'TITLE' },
+            {
+              key: 'status',
+              label: 'Estado',
+              options: [
+                { color: 'GRAY', value: 'Por hacer' },
+                { color: 'GREEN', value: 'Hecho' },
+              ],
+              required: false,
+              type: 'SELECT',
+            },
+          ],
+          views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
+        })
+        .expect(201);
+      const options = (
+        defined.body as { properties: { key: string; options?: { id: string; value: string }[] }[] }
+      ).properties.find((property) => property.key === 'status')?.options;
+      const idOf = (value: string) => options?.find((option) => option.value === value)?.id ?? '';
+      const openId = await createPage('Abierta', queryCollectionId, { status: idOf('Por hacer') });
+      const closedId = await createPage('Cerrada', queryCollectionId, { status: idOf('Por hacer') });
+      const doneRowId = await createPage('Lista', queryCollectionId, { status: idOf('Hecho') });
+      return { closedId, collection: queryCollectionId, doneRowId, openId };
+    };
+
+    it('counts by group without rows, and leaves the closed row out of each group count', async () => {
+      const seeded = await seedQueryCollection();
+      const closedRowId = seeded.closedId;
+      const counter = await signUp('counter', 'WORKER');
+      const asked = { collection: seeded.collection, groupBy: 'Estado', limit: 0 };
+      const wide = groupedShape.parse(
+        (await call(await tokenFor({ allSpaces: [pagesRead, collectionsRead] }, counter), 'query_collection', asked))
+          .structuredContent,
+      );
+      const narrowToken = await tokenFor(
+        { allSpaces: [pagesRead, collectionsRead], pages: [{ pageId: closedRowId, permissions: [] }] },
+        counter,
+      );
+
+      const narrow = groupedShape.parse((await call(narrowToken, 'query_collection', asked)).structuredContent);
+
+      expect(wide.total).toBe(3);
+      expect(narrow.total).toBe(2);
+      expect(narrow.rows).toEqual([]);
+      expect(narrow.groups.every((group) => group.rows.length === 0)).toBe(true);
+      const countOf = (answer: typeof wide, name: string) => answer.groups.find((group) => group.name === name)?.count;
+      expect(countOf(wide, 'Por hacer')).toBe(2);
+      expect(countOf(narrow, 'Por hacer')).toBe(1);
+      expect(countOf(narrow, 'Hecho')).toBe(1);
+    });
+
+    it('reads one group by the name of its option, with only the column asked for', async () => {
+      const seeded = await seedQueryCollection();
+      const secret = await tokenFor({ allSpaces: [pagesRead, collectionsRead] }, await signUp('grouper', 'WORKER'));
+      const answer = await call(secret, 'query_collection', {
+        collection: seeded.collection,
+        columns: ['Estado'],
+        group: 'Por hacer',
+        groupBy: 'Estado',
+      });
+
+      const queried = groupedShape.parse(answer.structuredContent);
+      expect(queried.groups.map((group) => group.name)).toEqual(['Por hacer']);
+      expect(queried.groups[0]?.count).toBe(2);
+      expect(queried.groups[0]?.rows.map((row) => row.id).sort()).toEqual([seeded.closedId, seeded.openId].sort());
+      expect(queried.groups[0]?.rows[0]?.properties.map((property) => property.key)).toEqual(['status']);
     });
 
     it('answers a change to the closed row as if it were not there, and leaves it as it was', async () => {

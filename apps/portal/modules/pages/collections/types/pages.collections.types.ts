@@ -43,6 +43,18 @@ export interface PageCollectionShape {
   readonly views: readonly PageCollectionView[];
 }
 
+/** What the address asks of the rows a view is read with: the words searched, and the month of a calendar. */
+export interface CollectionRowsRequest {
+  readonly month: null | string;
+  readonly search: string;
+}
+
+/** What an address to a view can carry besides the view: the words searched, and the month of a calendar. */
+export interface CollectionHrefOptions {
+  readonly month?: string;
+  readonly search?: string;
+}
+
 export interface PageCollectionInsert {
   readonly pageId: string;
   readonly spaceId: string;

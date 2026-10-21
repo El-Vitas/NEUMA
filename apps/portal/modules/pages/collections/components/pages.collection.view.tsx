@@ -7,12 +7,15 @@ import type {
   PageSchema,
   PageSchemaProperty,
   PageSchemaView,
+  PageViewAggregates,
   PageViewOutcome,
 } from '../types/pages.schema.types';
 import { PagesCollectionBoardMissingGrouping } from './pages.collection.board.missing-grouping';
 import { PageViewRenderers } from './pages.collection.view-registry';
 
 interface IProps {
+  /** The counts and calculations, which arrive after the rows. */
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
   readonly outcome: PageViewOutcome | null;
   readonly personOptions?: readonly PagePersonOption[];
@@ -24,6 +27,7 @@ interface IProps {
 
 /** A shape mismatch is shown explicitly: a view drawn from rows it cannot read would look empty, not broken. */
 export const PagesCollectionView = async ({
+  aggregates,
   canEdit,
   outcome,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
@@ -40,19 +44,19 @@ export const PagesCollectionView = async ({
 
   const renderer = PageViewRenderers[view.type];
   if (renderer.shape === PAGE_VIEW_SHAPE.FLAT && outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS) {
-    return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
+    return renderer.render({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
   if (
     renderer.shape === 'EITHER' &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS)
   ) {
-    return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
+    return renderer.render({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
   if (
     renderer.shape === PAGE_VIEW_SHAPE.GROUPED &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.BANDED_ROWS)
   ) {
-    return renderer.render({ canEdit, outcome, personOptions, properties, schema, spaceId, view });
+    return renderer.render({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view });
   }
   return <FormErrorBanner message={t('collection.shapeMismatch')} />;
 };

@@ -89,12 +89,14 @@ describe('page property capabilities', () => {
     expect(typesNeedingDirectory).toEqual([PAGE_PROPERTY_TYPE.PERSON]);
   });
 
-  // Free text is excluded (one column per answer), as is anything a row can hold several of.
-  test('a board groups by whatever answers with a single value', () => {
+  // Free text is excluded (one column per answer). A row with several answers sits in a column for each (ADR 025).
+  test('a board groups by whatever has a fixed set of answers, a day, a number or a state', () => {
     const groupableTypes = PAGE_PROPERTY_TYPE_VALUES.filter(canPagePropertyGroupBoard);
 
     expect(groupableTypes).toEqual([
       PAGE_PROPERTY_TYPE.SELECT,
+      PAGE_PROPERTY_TYPE.MULTI_SELECT,
+      PAGE_PROPERTY_TYPE.PERSON,
       PAGE_PROPERTY_TYPE.DATE,
       PAGE_PROPERTY_TYPE.CHECKBOX,
       PAGE_PROPERTY_TYPE.NUMBER,

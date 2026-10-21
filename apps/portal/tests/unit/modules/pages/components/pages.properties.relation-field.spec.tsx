@@ -14,6 +14,8 @@ interface RelationChange {
 }
 
 const changes: RelationChange[] = [];
+const searches: string[] = [];
+let manyMore: { id: string; title: string }[] = [];
 const errors: string[] = [];
 let outcome: 'CHANGED' | 'MIRROR_FORBIDDEN' = 'CHANGED';
 
@@ -22,12 +24,12 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     changes.push(input);
     return { data: outcome };
   },
-  listPageRelationCandidatesAction: async () => ({
-    data: [
-      { id: 'row-1', title: 'Roadmap' },
-      { id: 'row-2', title: 'Budget' },
-    ],
-  }),
+  listPageRelationCandidatesAction: async (input: { search?: string }) => {
+    searches.push(input.search ?? '');
+    return {
+      data: [{ id: 'row-1', title: 'Roadmap' }, { id: 'row-2', title: 'Budget' }, ...manyMore],
+    };
+  },
   updatePageRowPropertiesAction: async () => ({ data: undefined }),
 }));
 mock.module('sonner', () => ({
@@ -71,6 +73,8 @@ const draw = (value: readonly string[], disabled = false) =>
 
 beforeEach(() => {
   changes.length = 0;
+  searches.length = 0;
+  manyMore = [];
   errors.length = 0;
   outcome = 'CHANGED';
 });
@@ -109,6 +113,37 @@ describe('the cell of a relation', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Search for a row' }), { target: { value: 'zzz' } });
     expect(screen.getByText('There are no rows to add.')).toBeDefined();
+  });
+
+  it('asks the server for the rows that hold what was typed instead of reading the whole collection', async () => {
+    draw([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a row to Related' }));
+    await screen.findByRole('button', { name: 'Budget' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search for a row' }), { target: { value: 'bud' } });
+
+    await waitFor(() => expect(searches).toEqual(['', 'bud']));
+  });
+
+  it('says there are more rows when the server filled a whole screenful', async () => {
+    manyMore = Array.from({ length: 48 }, (_, position) => ({
+      id: `more-${String(position)}`,
+      title: `Row ${String(position)}`,
+    }));
+    draw([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a row to Related' }));
+
+    expect(await screen.findByText('There are more rows. Type to narrow them down.')).toBeDefined();
+  });
+
+  it('says nothing about more rows when the answer is short', async () => {
+    draw([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a row to Related' }));
+    await screen.findByRole('button', { name: 'Budget' });
+
+    expect(screen.queryByText('There are more rows. Type to narrow them down.')).toBeNull();
   });
 
   it('removes one row at a time', async () => {

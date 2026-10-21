@@ -8,7 +8,7 @@ import type {
   PageStatusGroup,
   PageViewType,
 } from '@neuma/shared';
-import type { PageSchemaProperty, PageSchemaView } from './pages.schema.types';
+import type { PageSchemaProperty, PageSchemaViewDraft } from './pages.schema.types';
 
 export interface PagesSchemaEditor {
   /** A status option goes in the group given; for any other type the group is ignored. */
@@ -46,5 +46,5 @@ export interface PagesSchemaEditor {
   readonly save: () => void;
   readonly toggleViewEmptyGroups: (viewName: string) => void;
   readonly toggleViewProperty: (viewName: string, propertyKey: string) => void;
-  readonly views: readonly PageSchemaView[];
+  readonly views: readonly PageSchemaViewDraft[];
 }

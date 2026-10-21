@@ -3,34 +3,34 @@
 import type { PageViewCalculation } from '@neuma/shared';
 import { listPageCalculationsFor, PAGE_VIEW_CALCULATION, readPageViewConfiguration } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
+import { Suspense } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { TableCell, TableFooter, TableRow } from '@/shared/components/ui/table';
-import { usePagesCalculationLabel } from '../hooks/use.pages.calculation-label';
 import { usePagesViewFiltering } from '../hooks/use.pages.view-filtering';
 import { listTableColumnKeys, readTableColumnOffsets, readTableFrozenCellProps } from '../lib/pages.table-columns.lib';
 import { readPageCalculation } from '../lib/pages.view-filtering.lib';
-import type { PagePropertyValues, PageSchema, PageSchemaProperty } from '../types/pages.schema.types';
+import type { PageSchema, PageSchemaProperty, PageViewAggregates } from '../types/pages.schema.types';
+import { PagesCollectionCalculationValue } from './pages.collection.calculation-value';
 
 interface IProps {
   readonly activeViewName: string;
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
   readonly properties: readonly PageSchemaProperty[];
-  readonly rowValues: readonly PagePropertyValues[];
   readonly schema: PageSchema;
   readonly spaceId: string;
 }
 
-/** Computed over the rows the filter let through, client-side, so changing a calculation shows instantly. */
+/** Computed by the database over every row the filter lets through, so it is right however many rows are drawn. */
 export const PagesCollectionTableFooter = ({
   activeViewName,
+  aggregates,
   canEdit,
   properties,
-  rowValues,
   schema,
   spaceId,
 }: IProps) => {
   const t = useTranslations('pages.collection');
-  const label = usePagesCalculationLabel();
   const filtering = usePagesViewFiltering(schema, activeViewName, spaceId);
 
   const chosenFor = (propertyKey: string): PageViewCalculation =>
@@ -40,13 +40,6 @@ export const PagesCollectionTableFooter = ({
     const calculation = readPageCalculation(chosen);
     if (calculation !== undefined) filtering.setCalculation(propertyKey, calculation);
   };
-
-  const said = (property: PageSchemaProperty): string =>
-    label(
-      chosenFor(property.key),
-      property,
-      rowValues.map((values) => values[property.key]),
-    ) ?? t('calculate');
 
   const columnKeys = listTableColumnKeys(properties.map((property) => property.key));
   const activeView = schema.views.find((view) => view.name === activeViewName);
@@ -72,7 +65,19 @@ export const PagesCollectionTableFooter = ({
                 className="w-full rounded-none border-transparent bg-transparent px-2 text-muted-foreground text-xs shadow-none hover:border-border data-[size=default]:h-11 dark:bg-transparent"
                 data-testid="collection-calculation"
               >
-                <SelectValue>{said(property)}</SelectValue>
+                <SelectValue>
+                  {chosenFor(property.key) === PAGE_VIEW_CALCULATION.NONE ? (
+                    t('calculate')
+                  ) : (
+                    <Suspense fallback={t('calculating')}>
+                      <PagesCollectionCalculationValue
+                        aggregates={aggregates}
+                        calculation={chosenFor(property.key)}
+                        propertyKey={property.key}
+                      />
+                    </Suspense>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {listPageCalculationsFor(property.type).map((calculation) => (

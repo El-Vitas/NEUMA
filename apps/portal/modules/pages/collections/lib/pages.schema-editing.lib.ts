@@ -27,13 +27,13 @@ import {
   PAGE_ADDABLE_PROPERTY_TYPES,
   PAGE_TYPE_CHANGE_LOCKED_TYPES,
 } from '../constants/pages.schema-editing.constants';
-import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
 
 /**
  * The collection shape is sent whole, views included. Re-sending a configuration verbatim would fail when it
  * holds something the server no longer accepts, taking an unrelated property change down with it.
  */
-export const toSavableView = (view: PageSchemaView): PageSchemaView => ({
+export const toSavableView = (view: PageSchemaViewDraft): PageSchemaViewDraft => ({
   ...view,
   configuration: { ...readPageViewConfiguration(view.configuration) },
 });
@@ -45,7 +45,7 @@ export const toSavableView = (view: PageSchemaView): PageSchemaView => ({
 const describeANewView = (
   type: PageViewType,
   properties: readonly PageSchemaProperty[],
-): PageSchemaView['configuration'] => {
+): PageSchemaViewDraft['configuration'] => {
   if (type === PAGE_VIEW_TYPE.CALENDAR) {
     const dateProperty = properties.find((property) => property.type === PAGE_PROPERTY_TYPE.DATE)?.key;
     return dateProperty === undefined ? {} : { dateProperty };
@@ -57,10 +57,10 @@ const describeANewView = (
 
 /** Never becomes the default. The name is the view's address, so names must be unique after trimming. */
 export const addSchemaView = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   added: { readonly name: string; readonly type: PageViewType },
   properties: readonly PageSchemaProperty[],
-): readonly PageSchemaView[] => {
+): readonly PageSchemaViewDraft[] => {
   const named = added.name.trim();
   if (named === '' || views.some((view) => view.name === named)) return views;
   return [
@@ -70,7 +70,7 @@ export const addSchemaView = (
 };
 
 /** "Name (2)", or the next free number. */
-const nameTheCopyOf = (name: string, views: readonly PageSchemaView[]): string => {
+const nameTheCopyOf = (name: string, views: readonly PageSchemaViewDraft[]): string => {
   const taken = new Set(views.map((view) => view.name));
   let attempt = 2;
   while (taken.has(`${name} (${attempt})`)) attempt += 1;
@@ -78,11 +78,14 @@ const nameTheCopyOf = (name: string, views: readonly PageSchemaView[]): string =
 };
 
 /** The copy sits right after the original and is never the default. */
-export const duplicateSchemaView = (views: readonly PageSchemaView[], name: string): readonly PageSchemaView[] => {
+export const duplicateSchemaView = (
+  views: readonly PageSchemaViewDraft[],
+  name: string,
+): readonly PageSchemaViewDraft[] => {
   const from = views.findIndex((view) => view.name === name);
   const original = views[from];
   if (original === undefined) return views;
-  const copy: PageSchemaView = {
+  const copy: PageSchemaViewDraft = {
     configuration: { ...original.configuration },
     isDefault: false,
     name: nameTheCopyOf(name, views),
@@ -92,7 +95,7 @@ export const duplicateSchemaView = (views: readonly PageSchemaView[], name: stri
 };
 
 /** Only what the new type cannot draw; merely unused settings stay so converting back is lossless. */
-export const listWhatConvertingDrops = (view: PageSchemaView, type: PageViewType): readonly string[] => {
+export const listWhatConvertingDrops = (view: PageSchemaViewDraft, type: PageViewType): readonly string[] => {
   const configuration = readPageViewConfiguration(view.configuration);
   const dropped: string[] = [];
   if (configuration.subGroupBy !== null && type !== PAGE_VIEW_TYPE.BOARD) dropped.push('BANDS');
@@ -113,11 +116,11 @@ const regroupForConversion = (
 
 /** Fills in what the new type requires (a board's grouping): an undrawable view would fail the whole save. */
 export const convertSchemaView = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   name: string,
   type: PageViewType,
   properties: readonly PageSchemaProperty[],
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   views.map((view) => {
     if (view.name !== name || view.type === type) return view;
     const configuration = readPageViewConfiguration(view.configuration);
@@ -135,10 +138,10 @@ export const convertSchemaView = (
 
 /** Links using the old name fall back to the default view, which is better than an empty screen. */
 export const renameSchemaView = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   name: string,
   renamedTo: string,
-): readonly PageSchemaView[] => {
+): readonly PageSchemaViewDraft[] => {
   const named = renamedTo.trim();
   if (named === '' || views.some((view) => view.name === named)) return views;
   return views.map((view) => (view.name === name ? { ...view, name: named } : view));
@@ -146,10 +149,10 @@ export const renameSchemaView = (
 
 /** Tab order only; which view opens by default is set separately. */
 export const moveSchemaView = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   name: string,
   direction: 'EARLIER' | 'LATER',
-): readonly PageSchemaView[] => {
+): readonly PageSchemaViewDraft[] => {
   const from = views.findIndex((view) => view.name === name);
   const to = direction === 'EARLIER' ? from - 1 : from + 1;
   if (from === -1 || to < 0 || to >= views.length) return views;

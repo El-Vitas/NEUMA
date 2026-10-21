@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { type NeumaTransaction, PageLifecycle } from '@neuma/db';
+import { DatabasePropertyType, type NeumaTransaction, PageLifecycle } from '@neuma/db';
 import { BLOCK_TYPE } from '@neuma/shared';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -82,6 +82,7 @@ export class PagePurgeRepository {
         ...new Set([...deletedIds, ...[...deletedIds].flatMap((rootId) => belowByRoot.get(rootId) ?? [])]),
       ];
       if (purgedIds.length > 0) {
+        await this.cleanReferencesTo(transaction, purgedIds);
         await transaction.orm.public.PagePurge.where((purge) => purge.pageId.in(purgedIds))
           .where((purge) => purge.purgedAt.isNull())
           .where((purge) => purge.cancelledAt.isNull())
@@ -89,6 +90,46 @@ export class PagePurgeRepository {
       }
       return purgedIds;
     });
+  }
+
+  /**
+   * Nothing keeps the id of a row that is gone: the manual order of every view forgets it, and so does every relation
+   * cell that pointed at it. A count over a relation then never includes a row that does not exist (ADR 025).
+   */
+  private async cleanReferencesTo(transaction: NeumaTransaction, purgedIds: readonly string[]): Promise<void> {
+    const gone = buildSqlTextList(this.prisma.sql, purgedIds);
+    await transaction.execute(
+      this.prisma.sql`
+      UPDATE "PageSchemaView"
+      SET "manualOrder" = ARRAY(SELECT "entry" FROM unnest("manualOrder") AS "entry" WHERE "entry" <> ALL(${gone})),
+        "version" = "version" + 1
+      WHERE "manualOrder" && ${gone}
+    `
+        .affectedCount()
+        .build(),
+    );
+    const relations = await transaction.orm.public.PageSchemaProperty.select('key')
+      .where({ type: DatabasePropertyType.RELATION })
+      .all();
+    for (const key of new Set(relations.map((relation) => relation.key))) {
+      await transaction.execute(
+        this.prisma.sql`
+        UPDATE "Block"
+        SET "properties" = jsonb_set(
+            "properties",
+            ARRAY['values', ${key}::text],
+            (SELECT COALESCE(jsonb_agg("cell"), '[]'::jsonb)
+              FROM jsonb_array_elements("properties" -> 'values' -> ${key}::text) AS "cell"
+              WHERE ("cell" #>> '{}') <> ALL(${gone}))
+          ),
+          "version" = "version" + 1
+        WHERE jsonb_typeof("properties" -> 'values' -> ${key}::text) = 'array'
+          AND ("properties" -> 'values' -> ${key}::text) ?| ${gone}
+      `
+          .affectedCount()
+          .build(),
+      );
+    }
   }
 
   /** The pages below each root, found before the root goes, because the delete takes them with it. */

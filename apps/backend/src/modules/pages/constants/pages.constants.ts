@@ -94,17 +94,13 @@ export const SCHEMA_LABEL_MAX_LENGTH = 120;
 export const EXPORT_UNTITLED_LABEL_MAX_LENGTH = 80;
 
 /**
- * Reading groups, filters and computes in one request, so an unbounded collection
- * (an inbox, a log) would cost memory and time in proportion to its size. The response
- * reports the cap rather than silently showing 500 of 1000.
+ * Rows that declare permissions of their own, and so may be closed to a reader, are looked up one by one. Past this
+ * many, counting exactly what the reader may see needs another plan, so the query refuses instead of guessing.
  */
-export const COLLECTION_ROW_LIMIT = 500;
+export const PAGE_QUERY_RESTRICTED_ROW_LIMIT = 5000;
 
-/**
- * Filtering only the first 500 rows would miss matches further down, so a query reads up
- * to this cap and only then trims what it returns.
- */
-export const COLLECTION_QUERY_ROW_LIMIT = 5000;
+/** A view query that takes longer than this is cancelled, so one heavy view cannot hold the database. */
+export const PAGE_QUERY_STATEMENT_TIMEOUT_MS = 5000;
 
 /** Someone else renamed or removed the option after it was read; the write is undone to keep their change. */
 export const SCHEMA_OPTION_ALREADY_MOVED = 'SCHEMA_OPTION_ALREADY_MOVED';

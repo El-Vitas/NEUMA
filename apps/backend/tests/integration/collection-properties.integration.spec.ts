@@ -27,6 +27,12 @@ interface RowsResponse {
   rows: PageResponse[];
 }
 
+interface QueryResponse {
+  reducers: Record<string, { ids?: string[] } | undefined>;
+  relatedRows: { id: string; title: string }[];
+  rows: Record<string, PageResponse | undefined>;
+}
+
 interface Outcome {
   error?: { code: string; details?: unknown };
   id: string;
@@ -87,13 +93,17 @@ describe('Collection property types (Integration)', () => {
         .expect(200)
     ).body as SchemaResponse;
 
-  const listRows = async (pageId: string, token = adminToken): Promise<RowsResponse> =>
-    (
+  const listRows = async (pageId: string, token = adminToken): Promise<RowsResponse> => {
+    const answered = (
       await request(testApp.getServer())
-        .get(`/api/v1/spaces/${spaceId}/pages/${pageId}/rows`)
+        .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/query`)
         .set(as(token))
+        .send({ reducers: [{ id: 'rows', kind: 'results', limit: 100 }] })
         .expect(200)
-    ).body as RowsResponse;
+    ).body as QueryResponse;
+    const ids = answered.reducers.rows?.ids ?? [];
+    return { relatedRows: answered.relatedRows, rows: ids.flatMap((id) => answered.rows[id] ?? []) };
+  };
 
   const patchValues = (rowId: string, propertyValues: Record<string, unknown>) =>
     request(testApp.getServer())

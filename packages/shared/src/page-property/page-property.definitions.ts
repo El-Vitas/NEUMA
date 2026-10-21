@@ -102,7 +102,7 @@ const selectDefinition: PagePropertyDefinition = {
 const multiSelectDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.MULTI_SELECT,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG,
-  capabilities: { ...baseCapabilities, requiresOptions: true },
+  capabilities: { ...baseCapabilities, canGroupBoard: true, requiresOptions: true },
   getDefaultValue: () => [],
   isValidValue: (value, context) =>
     isStringArray(value) && hasUniqueEntries(value) && value.every((entry) => isDeclaredOption(entry, context)),
@@ -126,7 +126,7 @@ const statusDefinition: PagePropertyDefinition = {
 const personDefinition: PagePropertyDefinition = {
   type: PAGE_PROPERTY_TYPE.PERSON,
   logicalType: PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG,
-  capabilities: { ...baseCapabilities, requiresPersonDirectory: true },
+  capabilities: { ...baseCapabilities, canGroupBoard: true, requiresPersonDirectory: true },
   getDefaultValue: () => [],
   isValidValue: (value, context) =>
     isStringArray(value) &&

@@ -13,30 +13,40 @@ import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema } from '../../../schemas/pages.schemas';
 import type { PageSummary } from '../../../types/pages.types';
+import { PAGE_VIEW_MATCHING_MAXIMUM_ROWS, PAGE_VIEW_ROWS_REDUCER } from '../../constants/pages.query.constants';
 import {
   PAGE_BLOCK_TABLE,
   PAGE_RELATION_COMMAND,
   PAGE_RELATION_MIRROR_FORBIDDEN_CODE,
+  PAGE_RELATION_PICKER_VISIBLE_LIMIT,
 } from '../../constants/pages.relations.constants';
 import { PageRelationRefusedError } from '../../lib/pages.relations.errors';
 import { toRequestedProperty } from '../../lib/pages.schema-request.lib';
+import { toSearchPart } from '../../lib/pages.view-query.lib';
 import {
   pageCollectionCreateSchema,
   pageCollectionReadSchema,
   pageCollectionUpdateSchema,
+  pageMatchingRowsSchema,
   pageOptionRewriteSchema,
   pageRelationCandidatesSchema,
+  pageRowMoveSchema,
   pageRowPropertiesSchema,
   pageRowRelationChangeSchema,
-  pageViewConfigurationUpdateSchema,
+  pageRowsContinuationSchema,
+  pageRowsRefreshSchema,
+  pageViewOperationsSchema,
 } from '../../schemas/pages.collections.schemas';
 import {
-  pageRelationCandidatesResponseSchema,
+  pageChangedViewSchema,
+  pageQueryResponseSchema,
   pageSchemaSchema,
   pageTransactionsResponseSchema,
 } from '../../schemas/pages.schema.schemas';
+import type { PageChangedView, PageMatchingRows, PageRowsContinuation } from '../../types/pages.query.types';
 import type { PageRelationChangeOutcome } from '../../types/pages.relations.types';
 import type { PageRelatedRow, PageSchema } from '../../types/pages.schema.types';
+import { readRowsInScope } from '../lib/pages.rows-reading.server';
 
 /** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
 export const createPageCollectionAction = actionClient
@@ -85,18 +95,115 @@ export const updatePageCollectionAction = actionClient
     }),
   );
 
-/** Separate from the shape update: resending the whole collection for one view tweak risks losing others' changes. */
-export const updatePageViewConfigurationAction = actionClient
-  .inputSchema(pageViewConfigurationUpdateSchema)
+/** Each operation changes one key or one element of the view, so two people editing it do not undo each other. */
+export const applyPageViewOperationsAction = actionClient
+  .inputSchema(pageViewOperationsSchema)
   .action(async ({ parsedInput }) =>
-    withAction({ action: 'updatePageViewConfiguration' }, async (): Promise<PageSchema> => {
-      const updated = await authenticatedRequest(
-        PAGE_API_ROUTES.viewConfiguration(parsedInput.spaceId, parsedInput.pageId, parsedInput.viewName),
+    withAction({ action: 'applyPageViewOperations' }, async (): Promise<PageChangedView> => {
+      const changed = await authenticatedRequest(
+        PAGE_API_ROUTES.viewOperations(parsedInput.spaceId, parsedInput.pageId, parsedInput.viewId),
         'POST',
-        { configuration: parsedInput.configuration },
+        { mutationId: parsedInput.mutationId, operations: parsedInput.operations },
       );
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
-      return pageSchemaSchema.parse(updated);
+      return pageChangedViewSchema.parse(changed);
+    }),
+  );
+
+/** The value and the place in the view are written together: a card is never half moved. */
+export const movePageRowAction = actionClient.inputSchema(pageRowMoveSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'movePageRow' }, async (): Promise<PageChangedView> => {
+    const changed = await authenticatedRequest(
+      PAGE_API_ROUTES.moveRow(parsedInput.spaceId, parsedInput.pageId, parsedInput.viewId),
+      'POST',
+      {
+        after: parsedInput.after,
+        before: parsedInput.before,
+        listChanges: parsedInput.listChanges,
+        rowId: parsedInput.rowId,
+        values: parsedInput.values,
+      },
+    );
+    updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    return pageChangedViewSchema.parse(changed);
+  }),
+);
+
+/** Read on demand, not cached: the next page must continue from where the last one ended, as of now. */
+export const loadMorePageRowsAction = actionClient
+  .inputSchema(pageRowsContinuationSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'loadMorePageRows' }, async (): Promise<PageRowsContinuation> => {
+      const accessToken = await requireAccessTokenCookie();
+      const reducer =
+        parsedInput.group === undefined
+          ? ({ cursor: parsedInput.cursor, id: 'more', kind: 'results' } as const)
+          : ({ cursor: parsedInput.cursor, group: parsedInput.group, id: 'more', kind: 'groupResults' } as const);
+      const response = await apiRequest<unknown>(
+        PAGE_API_ROUTES.query(parsedInput.spaceId, parsedInput.pageId),
+        accessToken,
+        {
+          body: JSON.stringify({
+            reducers: [reducer],
+            ...toSearchPart(parsedInput.search),
+            viewId: parsedInput.viewId,
+          }),
+          method: 'POST',
+        },
+      );
+      const result = pageQueryResponseSchema.parse(response);
+      const outcome = result.reducers.more;
+      if (outcome?.kind !== 'results') throw new Error('The continuation of a view arrived as something else');
+      return {
+        attachedFiles: result.attachedFiles,
+        nextCursor: outcome.nextCursor,
+        relatedRows: result.relatedRows,
+        rows: outcome.ids.flatMap((id) => result.rows[id] ?? []),
+      };
+    }),
+  );
+
+/** A scope read again from where the server's rows end, as far as the reader had scrolled: a redraw loses nothing. */
+export const refreshPageRowsAction = actionClient.inputSchema(pageRowsRefreshSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'refreshPageRows' }, async (): Promise<PageRowsContinuation> => {
+    const read = await readRowsInScope({
+      group: parsedInput.group,
+      pageId: parsedInput.pageId,
+      search: parsedInput.search,
+      spaceId: parsedInput.spaceId,
+      startCursor: parsedInput.cursor,
+      viewId: parsedInput.viewId,
+      wanted: parsedInput.wanted,
+    });
+    if (read === null) throw new Error('The rows a view had loaded could not be read again');
+    return {
+      attachedFiles: read.attachedFiles,
+      nextCursor: read.nextCursor,
+      relatedRows: read.relatedRows,
+      rows: read.rows,
+    };
+  }),
+);
+
+/** Every row that matches, to act on all of them; refused beyond the limit rather than acting on part. */
+export const readPageMatchingRowsAction = actionClient
+  .inputSchema(pageMatchingRowsSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'matchingRows' }, async (): Promise<PageMatchingRows> => {
+      const read = await readRowsInScope({
+        pageId: parsedInput.pageId,
+        search: parsedInput.search,
+        spaceId: parsedInput.spaceId,
+        viewId: parsedInput.viewId,
+        wanted: PAGE_VIEW_MATCHING_MAXIMUM_ROWS,
+      });
+      if (read === null) throw new Error('The rows that match could not be read');
+      if (read.nextCursor !== null) return { isTooMany: true, rowIds: [], valuesByRow: {} };
+      return {
+        isTooMany: false,
+        rowIds: read.rows.map((row) => row.id),
+        valuesByRow: Object.fromEntries(read.rows.map((row) => [row.id, row.propertyValues ?? {}])),
+      };
     }),
   );
 
@@ -151,10 +258,23 @@ export const listPageRelationCandidatesAction = actionClient
     withAction({ action: 'listPageRelationCandidates' }, async (): Promise<readonly PageRelatedRow[]> => {
       const accessToken = await requireAccessTokenCookie();
       const response = await apiRequest<unknown>(
-        PAGE_API_ROUTES.rows(parsedInput.spaceId, parsedInput.collectionId),
+        PAGE_API_ROUTES.query(parsedInput.spaceId, parsedInput.collectionId),
         accessToken,
+        {
+          body: JSON.stringify({
+            reducers: [{ id: PAGE_VIEW_ROWS_REDUCER, kind: 'results', limit: PAGE_RELATION_PICKER_VISIBLE_LIMIT }],
+            ...(parsedInput.search === undefined || parsedInput.search === '' ? {} : { search: parsedInput.search }),
+          }),
+          method: 'POST',
+        },
       );
-      return pageRelationCandidatesResponseSchema.parse(response).rows.map(({ id, title }) => ({ id, title }));
+      const answered = pageQueryResponseSchema.parse(response);
+      const outcome = answered.reducers[PAGE_VIEW_ROWS_REDUCER];
+      const ids = outcome?.kind === 'results' ? outcome.ids : [];
+      return ids.flatMap((id) => {
+        const row = answered.rows[id];
+        return row === undefined ? [] : [{ id: row.id, title: row.title }];
+      });
     }),
   );
 

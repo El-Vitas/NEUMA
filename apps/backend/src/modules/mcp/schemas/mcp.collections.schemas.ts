@@ -9,17 +9,22 @@ import {
 } from '@neuma/shared';
 import { z } from 'zod';
 import {
+  MCP_AGGREGATE_CALCULATIONS,
+  MCP_AGGREGATE_LIMIT,
   MCP_COLLECTION_CHANGE_LIMIT,
   MCP_COLUMN_NAME_MAX_LENGTH,
-  MCP_LISTED_PAGE_PART_DEFAULT,
-  MCP_LISTED_PAGE_PART_MAX,
+  MCP_QUERY_COLUMN_LIMIT,
+  MCP_QUERY_CURSOR_MAX_LENGTH,
+  MCP_QUERY_ROWS_DEFAULT,
+  MCP_QUERY_ROWS_MAX,
+  MCP_QUERY_SEARCH_MAX_LENGTH,
   MCP_ROW_TEXT_MAX_LENGTH,
   MCP_SORT_RULE_LIMIT,
   MCP_TITLE_MAX_LENGTH,
   MCP_VALUE_TEXT_MAX_LENGTH,
   MCP_WHERE_CONDITION_LIMIT,
 } from '../constants/mcp.limits.constants';
-import { buildMcpAddressSchema, buildMcpOffsetCursorSchema, mcpRequestIdShape } from './mcp.common.schemas';
+import { buildMcpAddressSchema, mcpRequestIdShape } from './mcp.common.schemas';
 
 const collectionSchema = buildMcpAddressSchema(
   'The collection (a table or board): a Neuma link to it, or its page id.',
@@ -90,8 +95,6 @@ const sortSchema = z
 
 const viewNameSchema = z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH);
 
-const cursorSchema = buildMcpOffsetCursorSchema('To read the next part: the cursor the previous part returned.');
-
 const addableColumnTypes = PAGE_PROPERTY_TYPE_VALUES.filter((type) => type !== PAGE_PROPERTY_TYPE.TITLE);
 
 /** A new collection has no other collection to point to yet: a relation is added to it afterwards. */
@@ -155,12 +158,64 @@ export const createCollectionInputSchema = z.object({
 
 export const getCollectionInputSchema = z.object({ collection: collectionSchema });
 
+const queryCursorSchema = z
+  .string()
+  .max(MCP_QUERY_CURSOR_MAX_LENGTH)
+  .optional()
+  .describe('To read the next part: the cursor the previous part returned, for the same question.');
+
+const aggregateSchema = z
+  .array(
+    z.object({
+      calculation: z.enum(MCP_AGGREGATE_CALCULATIONS),
+      column: columnSchema.optional().describe('Not needed to count rows; the other calculations work on a column.'),
+    }),
+  )
+  .max(MCP_AGGREGATE_LIMIT)
+  .describe(
+    'Totals over every row that matches, not only the ones returned: a sum, an average, a count of empty cells.',
+  );
+
 export const queryCollectionInputSchema = z.object({
+  aggregate: aggregateSchema.optional(),
   collection: collectionSchema,
-  cursor: cursorSchema,
-  limit: z.number().int().min(1).max(MCP_LISTED_PAGE_PART_MAX).default(MCP_LISTED_PAGE_PART_DEFAULT),
+  columns: z
+    .array(columnSchema)
+    .max(MCP_QUERY_COLUMN_LIMIT)
+    .optional()
+    .describe('Return only these columns of each row (the title is always there). Leave out to get every column.'),
+  cursor: queryCursorSchema,
+  group: z
+    .string()
+    .max(MCP_COLUMN_NAME_MAX_LENGTH)
+    .optional()
+    .describe(
+      'With a grouping, read the rows of this one group only, by the name get_collection shows for it (or "(no value)"), a part at a time with the cursor.',
+    ),
+  groupBy: columnSchema
+    .optional()
+    .describe(
+      'Group the answer by this column: every group comes with how many rows it has. Without it the answer is not grouped, even if the view groups its rows.',
+    ),
+  limit: z
+    .number()
+    .int()
+    .min(0)
+    .max(MCP_QUERY_ROWS_MAX)
+    .default(MCP_QUERY_ROWS_DEFAULT)
+    .describe(
+      'Rows to return (per group when grouped, at most 50 there). 0 returns no rows, only the count, the group counts and the totals asked for.',
+    ),
+  search: z
+    .string()
+    .trim()
+    .max(MCP_QUERY_SEARCH_MAX_LENGTH)
+    .optional()
+    .describe('Only rows whose title or text cells contain this.'),
   sort: sortSchema.optional(),
-  view: viewNameSchema.optional().describe('Read the rows as this view shows them, with its filter and order.'),
+  view: viewNameSchema
+    .optional()
+    .describe('Read the rows as this view shows them, with its filter and order; where and sort replace its own.'),
   where: whereSchema.optional(),
 });
 
@@ -180,6 +235,22 @@ export const updateRowInputSchema = z.object({
   properties: cellValuesSchema.optional(),
   row: buildMcpAddressSchema('The row: a Neuma link to it, or its page id.'),
   title: z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH).optional(),
+});
+
+const neighbourRowSchema = buildMcpAddressSchema('The row to put it beside: a Neuma link to it, or its page id.');
+
+export const moveRowInputSchema = z.object({
+  after: neighbourRowSchema.optional().describe('Put the row right after this one in the order of the view.'),
+  before: neighbourRowSchema.optional().describe('Put the row right before this one in the order of the view.'),
+  properties: cellValuesSchema
+    .optional()
+    .describe(
+      'What the row takes where it lands, by column: the status of the column of a board, the owner of its band. Only text, selection, status, person, date, number and checkbox columns; relations are linked with update_row.',
+    ),
+  row: buildMcpAddressSchema('The row: a Neuma link to it, or its page id.'),
+  view: viewNameSchema.describe(
+    'The view whose order the row is placed in, by the name get_collection shows. Each view keeps its own order.',
+  ),
 });
 
 export const updateCollectionColumnsInputSchema = z.object({
@@ -287,12 +358,29 @@ const outputRowSchema = z.object({
   url: z.url(),
 });
 
-export const queryCollectionOutputSchema = z.object({
+const aggregateValueSchema = z.union([z.string(), z.number(), z.null()]);
+
+const aggregatesSchema = z.record(z.string(), aggregateValueSchema);
+
+const outputGroupSchema = z.object({
+  aggregates: aggregatesSchema.optional(),
+  count: z.number().int().nonnegative(),
+  name: z.string(),
   nextCursor: z.string().optional(),
   rows: z.array(outputRowSchema),
+});
+
+export const queryCollectionOutputSchema = z.object({
+  aggregates: aggregatesSchema.optional(),
+  /** Present when the answer is grouped, or a single group was asked for. */
+  groups: z.array(outputGroupSchema).optional(),
+  /** There are more groups than one answer carries. */
+  hasMoreGroups: z.boolean().optional(),
+  nextCursor: z.string().optional(),
+  /** Of an ungrouped answer; a grouped one has its rows in each group. */
+  rows: z.array(outputRowSchema),
+  /** Every row that matches, not only the ones returned. */
   total: z.number().int().nonnegative(),
-  /** Rows beyond the read cap are not in the total. */
-  truncated: z.boolean(),
 });
 
 export const rowOutputSchema = outputRowSchema;

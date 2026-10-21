@@ -14,7 +14,8 @@ export interface PagesRelationEditing {
   /** Null until the picker has been opened once. */
   readonly candidates: readonly PageRelatedRow[] | null;
   readonly isChanging: boolean;
-  readonly loadCandidates: () => void;
+  /** Asks the server for the rows that hold what was typed; an answer to an older question is dropped. */
+  readonly loadCandidates: (search?: string) => void;
   readonly remove: (target: PageRelatedRow) => void;
   /** The rows the cell points to, with the title of each when it is known. */
   readonly shown: readonly PageRelatedRow[];

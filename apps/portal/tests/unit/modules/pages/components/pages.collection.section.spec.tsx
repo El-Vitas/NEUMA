@@ -1,16 +1,20 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import {
+  EMPTY_PAGE_VIEW_AGGREGATES,
+  NO_PAGE_AGGREGATES,
+} from '@/modules/pages/collections/constants/pages.aggregates.constants';
 import type {
   PageSchema,
   PageSchemaProperty,
-  PageSchemaView,
   PageViewOutcome,
   PageViewReading,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 // Server actions cannot be loaded in a browser-shaped test.
@@ -22,7 +26,11 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
-  updatePageViewConfigurationAction: async () => ({ data: null }),
+  applyPageViewOperationsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
@@ -52,14 +60,21 @@ const properties: PageSchemaProperty[] = [
   },
 ];
 
-const boardView: PageSchemaView = {
-  configuration: { groupBy: 'status' },
-  isDefault: true,
-  name: 'Board',
-  type: 'BOARD',
-};
+const boardView = buildView('Board', 'BOARD', { configuration: { groupBy: 'status' }, isDefault: true });
 
-const tableView: PageSchemaView = { configuration: {}, isDefault: false, name: 'Table', type: 'TABLE' };
+const tableView = buildView('Table', 'TABLE');
+
+const filteredBoardView = buildView('Board', 'BOARD', {
+  configuration: {
+    filter: {
+      conditions: [{ kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo' }],
+      kind: 'GROUP',
+      operator: 'AND',
+    },
+    groupBy: 'status',
+  },
+  isDefault: true,
+});
 
 const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [boardView, tableView] };
 
@@ -78,13 +93,11 @@ const emptyBoard: PageViewOutcome = {
   kind: 'GROUPED_ROWS',
 };
 
-const asReading = (outcome: PageViewOutcome, rowCount = 0, totalRowCount = 0, hasMore = false): PageViewReading => ({
+const asReading = (outcome: PageViewOutcome): PageViewReading => ({
+  aggregates: NO_PAGE_AGGREGATES,
   attachedFiles: [],
-  hasMore,
   outcome,
   relatedRows: [],
-  rowCount,
-  totalRowCount,
 });
 
 describe('PagesCollectionSection', () => {
@@ -181,13 +194,13 @@ describe('PagesCollectionSection', () => {
   it('explains that the filter is hiding everything instead of saying the collection is empty', async () => {
     renderWithMessages(
       await PagesCollectionSection({
-        activeView: boardView,
+        activeView: filteredBoardView,
         canEdit: true,
         properties,
-        reading: asReading(emptyBoard, 0, 13),
-        schema,
+        reading: asReading(emptyBoard),
+        schema: { ...schema, views: [filteredBoardView] },
         spaceId: 'space-1',
-        views: [boardView],
+        views: [filteredBoardView],
       }),
     );
 
@@ -195,51 +208,38 @@ describe('PagesCollectionSection', () => {
     expect(screen.queryByTestId('collection-board')).toBeNull();
   });
 
-  it('says how many rows are being looked at, of how many there are', async () => {
+  it('does not say the filter hides everything when the view has no filter', async () => {
     renderWithMessages(
       await PagesCollectionSection({
         activeView: boardView,
         canEdit: true,
         properties,
-        reading: asReading(emptyBoard, 4, 13),
+        reading: asReading(emptyBoard),
         schema,
         spaceId: 'space-1',
         views: [boardView],
       }),
     );
 
-    expect(screen.getByText('collection.rowCount')).toBeDefined();
+    expect(screen.queryByText('collection.everythingFiltered')).toBeNull();
   });
 
-  it('says so when the collection held more rows than were brought', async () => {
-    renderWithMessages(
-      await PagesCollectionSection({
-        activeView: boardView,
-        canEdit: true,
-        properties,
-        reading: asReading(emptyBoard, 500, 500, true),
-        schema,
-        spaceId: 'space-1',
-        views: [boardView],
-      }),
-    );
+  it('says how many rows the view holds in all once the database has counted them', async () => {
+    const counted = Promise.resolve({ ...EMPTY_PAGE_VIEW_AGGREGATES, distinctRowCount: 13 });
+    const section = await PagesCollectionSection({
+      activeView: boardView,
+      canEdit: true,
+      properties,
+      reading: { ...asReading(emptyBoard), aggregates: counted },
+      schema,
+      spaceId: 'space-1',
+      views: [boardView],
+    });
 
-    expect(screen.getByTestId('collection-partial')).toBeDefined();
-  });
+    await act(async () => {
+      renderWithMessages(section);
+    });
 
-  it('says nothing about a cut when the whole collection fits', async () => {
-    renderWithMessages(
-      await PagesCollectionSection({
-        activeView: boardView,
-        canEdit: true,
-        properties,
-        reading: asReading(emptyBoard, 4, 13),
-        schema,
-        spaceId: 'space-1',
-        views: [boardView],
-      }),
-    );
-
-    expect(screen.queryByTestId('collection-partial')).toBeNull();
+    expect(screen.getByText('13 rows')).toBeDefined();
   });
 });

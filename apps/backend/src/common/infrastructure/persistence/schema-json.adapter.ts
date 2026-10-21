@@ -28,13 +28,22 @@ export const toSchemaPropertyDefinition = (property: {
 });
 
 export const toSchemaViewDefinition = (view: {
+  id: string;
   name: string;
   type: DatabaseViewType;
   configuration: JsonValue;
   isDefault: boolean;
+  version: number;
 }): SchemaViewDefinition | null => {
   if (!isJsonObject(view.configuration)) return null;
-  return { configuration: view.configuration, isDefault: view.isDefault, name: view.name, type: view.type };
+  return {
+    configuration: view.configuration,
+    id: view.id,
+    isDefault: view.isDefault,
+    name: view.name,
+    type: view.type,
+    version: view.version,
+  };
 };
 
 export const parseSchemaPropertyValues = (value: JsonValue): SchemaPropertyValues | null => {

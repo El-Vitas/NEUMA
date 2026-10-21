@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'ccffce6b1b5f94cf6fa5b6ef5e69d2bb6e95bde33a50d1bffa3986772973a498'>;
+  StorageHashBase<'d8cd53b7c78910ad6f1f6b97372a97cce8610fc69aa588e12cbea574ab8bd9b0'>;
 export type ExecutionHash =
   ExecutionHashBase<'0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc'>;
 export type ProfileHash =
@@ -416,11 +416,13 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly isDefault: CodecTypes['pg/bool@1']['output'];
+      readonly manualOrder: ReadonlyArray<CodecTypes['pg/text@1']['output']> | null;
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly order: CodecTypes['pg/int4@1']['output'];
       readonly pageId: CodecTypes['pg/text@1']['output'];
       readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
+      readonly version: CodecTypes['pg/int4@1']['output'];
     };
     readonly PageVersion: {
       readonly content: CodecTypes['pg/jsonb@1']['output'];
@@ -669,11 +671,13 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly isDefault: CodecTypes['pg/bool@1']['input'];
+      readonly manualOrder: ReadonlyArray<CodecTypes['pg/text@1']['input']> | null;
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly order: CodecTypes['pg/int4@1']['input'];
       readonly pageId: CodecTypes['pg/text@1']['input'];
       readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['input'];
+      readonly version: CodecTypes['pg/int4@1']['input'];
     };
     readonly PageVersion: {
       readonly content: CodecTypes['pg/jsonb@1']['input'];
@@ -922,11 +926,13 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly isDefault: CodecTypes['pg/bool@1']['output'];
+      readonly manualOrder: ReadonlyArray<CodecTypes['pg/text@1']['output']> | null;
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly order: CodecTypes['pg/int4@1']['output'];
       readonly pageId: CodecTypes['pg/text@1']['output'];
       readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
+      readonly version: CodecTypes['pg/int4@1']['output'];
     };
     readonly PageVersion: {
       readonly content: CodecTypes['pg/jsonb@1']['output'];
@@ -1175,11 +1181,13 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly isDefault: CodecTypes['pg/bool@1']['input'];
+      readonly manualOrder: ReadonlyArray<CodecTypes['pg/text@1']['input']> | null;
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly order: CodecTypes['pg/int4@1']['input'];
       readonly pageId: CodecTypes['pg/text@1']['input'];
       readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['input'];
+      readonly version: CodecTypes['pg/int4@1']['input'];
     };
     readonly PageVersion: {
       readonly content: CodecTypes['pg/jsonb@1']['input'];
@@ -1499,11 +1507,13 @@ export namespace Models {
     createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
     id: CodecTypes['pg/text@1']['output'];
     isDefault: CodecTypes['pg/bool@1']['output'];
+    manualOrder: ReadonlyArray<CodecTypes['pg/text@1']['output']> | null;
     name: CodecTypes['pg/text@1']['output'];
     order: CodecTypes['pg/int4@1']['output'];
     pageId: CodecTypes['pg/text@1']['output'];
     type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
     updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
+    version: CodecTypes['pg/int4@1']['output'];
     page: public_Block;
     readonly [RelationKeys]?: 'page';
   };
@@ -3204,6 +3214,12 @@ type ContractBase = Omit<
                   };
                   readonly many: false;
                 };
+                readonly manualOrder: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                  readonly many: { readonly elementNullable: false };
+                };
                 readonly name: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -3237,6 +3253,16 @@ type ContractBase = Omit<
                   readonly dataType: 'pg/timestamptz';
                   readonly codecId: 'pg/timestamptz-date@1';
                   readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly version: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
                   readonly many: false;
                 };
               };
@@ -5405,6 +5431,11 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
+              readonly manualOrder: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+                readonly many: { readonly elementNullable: false };
+              };
               readonly name: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -5432,6 +5463,10 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-date@1';
                 };
               };
+              readonly version: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
             };
             readonly relations: {
               readonly page: {
@@ -5455,11 +5490,13 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly id: { readonly column: 'id' };
                 readonly isDefault: { readonly column: 'isDefault' };
+                readonly manualOrder: { readonly column: 'manualOrder' };
                 readonly name: { readonly column: 'name' };
                 readonly order: { readonly column: 'order' };
                 readonly pageId: { readonly column: 'pageId' };
                 readonly type: { readonly column: 'type' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly version: { readonly column: 'version' };
               };
             };
           };

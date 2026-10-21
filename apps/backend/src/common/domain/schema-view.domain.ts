@@ -4,13 +4,13 @@ import {
   pageViewRequiresGrouping,
   Result,
 } from '@neuma/shared';
-import type { SchemaPropertyDefinition, SchemaViewDefinition } from './schema.domain.types';
+import type { SchemaPropertyDefinition, ViewToValidate } from './schema.domain.types';
 import { SchemaViewValidationError } from './schema.error';
 
-export const validateSchemaView = (
-  view: SchemaViewDefinition,
+export const validateSchemaView = <TView extends ViewToValidate>(
+  view: TView,
   properties: readonly SchemaPropertyDefinition[],
-): Result<SchemaViewDefinition, SchemaViewValidationError> => {
+): Result<TView, SchemaViewValidationError> => {
   if (!pageViewConfigurationSchema.safeParse(view.configuration).success) {
     return Result.fail(new SchemaViewValidationError('View configuration is not valid'));
   }
