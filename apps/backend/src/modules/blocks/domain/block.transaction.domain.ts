@@ -6,6 +6,7 @@ import { authorizePlacements, authorizeTargets } from './block.authorization.dom
 import type { BlockRecord } from './block.domain.types';
 import { BlockAccessDeniedError, BlockTreeTooDeepError } from './block.error';
 import { extractBlockLinkTargets } from './block.link.domain';
+import { buildBlockNotices, buildViewNotices } from './block.notification.domain';
 import { BLOCK_NO_RELATIONS, BLOCK_NO_RULES } from './block.operation.constants';
 import { applyBlockOperation, createWorkingBlock, writeCreatedText } from './block.operation.domain';
 import { applyPageOperation, expandPageOperations, isPageOperation } from './block.page-operation.domain';
@@ -259,9 +260,14 @@ export const planBlockTransaction = (
   return Result.ok({
     linkDrafts: blocks.flatMap((block) => draftLinks(block, recordsById, input.maxTreeDepth)),
     linkSourceIds: blocks.filter(({ content }) => content !== null).map(({ block }) => block.id),
+    notices: buildBlockNotices(
+      blocks.map(({ block }) => block),
+      before,
+    ),
     rebinds: listRebinds(blocks, before, recordsById, input.maxTreeDepth),
     spaceWrites: roots.getValue(),
     versions: blocks.map(({ block }) => ({ id: block.id, version: block.version })),
+    viewNotices: buildViewNotices(viewPlan.getValue().versions, input.views ?? []),
     viewVersions: viewPlan.getValue().versions,
     viewWrites: viewPlan.getValue().writes,
     writes: orderWrites(blocks, before),

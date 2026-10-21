@@ -4,16 +4,21 @@ import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
 import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
+import { PAGE_CHANGES_DEFAULT_LIMIT } from './constants/page-changes.constants';
 import { PageAccessDeniedError } from './domain/page.error';
 import { PageQueryInvalidError } from './domain/page-query.error';
+import { PageChangesDto } from './dto/page-changes.dto';
 import { PageQueryDto } from './dto/page-query.dto';
+import { PageChangesService } from './page-changes.service';
 import { PageQueryService } from './page-query.service';
+import type { PageChanges } from './types/page-changes.types';
 import type { PageQueryResult } from './types/page-query.types';
 
 @Controller('spaces/:spaceId/pages/:pageId')
 export class PageQueryController {
   constructor(
     private readonly pageQueryService: PageQueryService,
+    private readonly pageChangesService: PageChangesService,
     private readonly workspaceContextService: WorkspaceContextService,
   ) {}
 
@@ -32,6 +37,30 @@ export class PageQueryController {
     const result = await this.pageQueryService.run({
       pageId,
       request: request.data,
+      role: payload.role,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
+    if (result.isFail()) throw result.getError();
+    if (result.getValue().spaceId !== spaceId) throw new PageAccessDeniedError();
+    return result.getValue();
+  }
+
+  /** What changed in the collection since the cursor of the last answer; ADR 026. */
+  @Post('changes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async changes(
+    @Param('spaceId') spaceId: string,
+    @Param('pageId') pageId: string,
+    @Body() dto: PageChangesDto,
+    @User('payload') payload: TokenPayload,
+  ): Promise<PageChanges> {
+    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
+    const result = await this.pageChangesService.read({
+      cursor: dto.cursor,
+      limit: dto.limit ?? PAGE_CHANGES_DEFAULT_LIMIT,
+      pageId,
       role: payload.role,
       userId: payload.sub,
       workspaceId: workspace.id,

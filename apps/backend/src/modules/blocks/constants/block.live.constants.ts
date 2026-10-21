@@ -40,6 +40,9 @@ export const BLOCK_LIVE_REQUEST_ID_MAX_LENGTH = 64;
 
 export const BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION = 50;
 
+/** Views of many collections can be open on one page, each one following its collection. */
+export const BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION = 20;
+
 export const BLOCK_LIVE_MAX_CONNECTIONS_PER_USER = 10;
 
 /** A client that pings every 30 s and sends presence on every move stays far below this. */

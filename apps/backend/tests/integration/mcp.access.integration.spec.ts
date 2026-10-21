@@ -635,7 +635,12 @@ describe('MCP access (Integration)', () => {
         worker,
         access({ spaces: [{ permissions: [ACCESS_TOKEN_PERMISSIONS.collectionsRead], spaceId: spaces.open }] }),
       );
-      expect(await listMcpToolNames(baseUrl, secret)).toEqual(['list_spaces', 'get_collection', 'query_collection']);
+      expect(await listMcpToolNames(baseUrl, secret)).toEqual([
+        'list_spaces',
+        'get_collection',
+        'query_collection',
+        'collection_changes',
+      ]);
     });
   });
 

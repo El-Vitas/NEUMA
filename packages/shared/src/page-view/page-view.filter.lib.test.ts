@@ -246,6 +246,55 @@ describe('filtering rows by nested groups', () => {
   });
 });
 
+describe('filtering rows that have no value for the property', () => {
+  const bare = {};
+
+  test('does not match a condition that asks for something to be there', () => {
+    expect(matchesPageFilter(condition('status', PAGE_FILTER_OPERATOR.IS, 'doing'), bare, properties)).toBe(false);
+    expect(matchesPageFilter(condition('title', PAGE_FILTER_OPERATOR.CONTAINS, 'a'), bare, properties)).toBe(false);
+    expect(matchesPageFilter(condition('labels', PAGE_FILTER_OPERATOR.CONTAINS, 'urgent'), bare, properties)).toBe(
+      false,
+    );
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.CONTAINS, 'user-1'), bare, properties)).toBe(
+      false,
+    );
+    expect(matchesPageFilter(condition('estimate', PAGE_FILTER_OPERATOR.IS_GREATER_THAN, 1), bare, properties)).toBe(
+      false,
+    );
+    expect(
+      matchesPageFilter(condition('dueDate', PAGE_FILTER_OPERATOR.IS_BEFORE, '2026-09-01'), bare, properties),
+    ).toBe(false);
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_IN_GROUP, PAGE_STATUS_GROUP.TO_DO),
+        bare,
+        properties,
+      ),
+    ).toBe(false);
+  });
+
+  test('matches a condition that asks for something not to be there', () => {
+    expect(matchesPageFilter(condition('status', PAGE_FILTER_OPERATOR.IS_NOT, 'doing'), bare, properties)).toBe(true);
+    expect(matchesPageFilter(condition('title', PAGE_FILTER_OPERATOR.NOT_CONTAINS, 'a'), bare, properties)).toBe(true);
+    expect(matchesPageFilter(condition('owners', PAGE_FILTER_OPERATOR.NOT_CONTAINS, 'user-1'), bare, properties)).toBe(
+      true,
+    );
+    expect(matchesPageFilter(condition('estimate', PAGE_FILTER_OPERATOR.IS_NOT, 5), bare, properties)).toBe(true);
+    expect(
+      matchesPageFilter(
+        condition('stage', PAGE_FILTER_OPERATOR.IS_NOT_IN_GROUP, PAGE_STATUS_GROUP.COMPLETE),
+        bare,
+        properties,
+      ),
+    ).toBe(true);
+  });
+
+  test('reads a checkbox that was never touched as unchecked', () => {
+    expect(matchesPageFilter(condition('done', PAGE_FILTER_OPERATOR.IS, false), bare, properties)).toBe(true);
+    expect(matchesPageFilter(condition('done', PAGE_FILTER_OPERATOR.IS, true), bare, properties)).toBe(false);
+  });
+});
+
 describe('filtering rows when the filter cannot be honoured', () => {
   test('lets rows through when the property does not exist', () => {
     expect(matchesPageFilter(condition('missing', PAGE_FILTER_OPERATOR.IS, 'x'), row, properties)).toBe(true);

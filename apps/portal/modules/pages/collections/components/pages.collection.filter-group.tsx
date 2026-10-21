@@ -8,12 +8,12 @@ import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { canNestFilterGroup, readFilterNodeKey } from '../lib/pages.view-filtering.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
-import type { PageFilterPath, PagesViewFiltering } from '../types/pages.view-filtering.types';
+import type { PageFilterPath, PagesFilterEditing } from '../types/pages.view-filtering.types';
 import { PagesCollectionFilterCondition } from './pages.collection.filter-condition';
 import { PagesCollectionFilterJoin } from './pages.collection.filter-join';
 
 interface IProps {
-  readonly filtering: PagesViewFiltering;
+  readonly filtering: PagesFilterEditing;
   readonly group: PageFilterGroup;
   /** Empty for the root group, which cannot be removed. */
   readonly path: PageFilterPath;

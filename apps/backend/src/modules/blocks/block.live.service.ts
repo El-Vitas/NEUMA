@@ -7,6 +7,7 @@ import { BlockLiveRequestService } from './block.live.request.service';
 import { BlockLiveTokenService } from './block.live.token.service';
 import {
   BLOCK_LIVE_CLOSE_CODE,
+  BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_MAX_CONNECTIONS_PER_USER,
   BLOCK_LIVE_MAX_MESSAGE_BYTES,
   BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION,
@@ -187,6 +188,14 @@ export class BlockLiveService {
       await this.unsubscribe(connection, message.pageId);
       return;
     }
+    if (message.type === 'subscribe-collection') {
+      await this.subscribeCollection(connection, reader, message.collectionId);
+      return;
+    }
+    if (message.type === 'unsubscribe-collection') {
+      connection.collectionSubscriptions.delete(message.collectionId);
+      return;
+    }
     if (message.type === 'transactions' || message.type === 'sync') {
       await this.answerRequest(connection, reader, message);
       return;
@@ -226,6 +235,30 @@ export class BlockLiveService {
     connection.subscriptions.set(pageId, access.getValue().spaceId);
     this.send(connection, { pageId, type: 'subscribed' });
     await this.broadcaster.sendPresenceTo(connection.id, pageId);
+  }
+
+  /** A collection is a page, so the same access rule decides; it carries no presence. */
+  private async subscribeCollection(
+    connection: BlockLiveConnection,
+    reader: BlockReader,
+    collectionId: string,
+  ): Promise<void> {
+    if (connection.collectionSubscriptions.has(collectionId)) {
+      this.send(connection, { collectionId, type: 'subscribed-collection' });
+      return;
+    }
+    if (connection.collectionSubscriptions.size >= BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION) {
+      this.sendCollectionError(connection, BLOCK_LIVE_ERROR_CODE.tooManySubscriptions, collectionId);
+      return;
+    }
+    const access = await this.pageAccess.resolvePageAccess(reader, collectionId);
+    if (connection.isClosed) return;
+    if (access.isFail()) {
+      this.sendCollectionError(connection, BLOCK_LIVE_ERROR_CODE.accessDenied, collectionId);
+      return;
+    }
+    connection.collectionSubscriptions.set(collectionId, access.getValue().spaceId);
+    this.send(connection, { collectionId, type: 'subscribed-collection' });
   }
 
   private async unsubscribe(connection: BlockLiveConnection, pageId: string): Promise<void> {
@@ -288,6 +321,10 @@ export class BlockLiveService {
 
   private send(connection: BlockLiveConnection, message: BlockLiveReplyMessage | LiveServerMessage): void {
     connection.socket.send(serializeServerMessage(message));
+  }
+
+  private sendCollectionError(connection: BlockLiveConnection, code: LiveErrorCode, collectionId: string): void {
+    this.send(connection, { code, collectionId, type: 'error' });
   }
 
   private sendError(connection: BlockLiveConnection, code: LiveErrorCode, pageId?: string): void {

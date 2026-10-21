@@ -5,6 +5,7 @@ import {
   PAGE_STATUS_GROUP_VALUES,
   PAGE_VIEW_TYPE_VALUES,
   pageContentSchema,
+  pageFilterSchema,
 } from '@neuma/shared';
 import { z } from 'zod';
 import { PAGE_VIEW_REFRESH_MAXIMUM_ROWS } from '../constants/pages.query.constants';
@@ -57,6 +58,9 @@ export const pageRowPropertiesSchema = z.object({
   spaceId: z.string().min(1),
 });
 
+/** A change notice reached an open view: the space's cached reads are dropped so the next one is fresh. */
+export const pageCollectionRefreshSchema = z.object({ spaceId: z.string().min(1) });
+
 /** A relation cell changes one row at a time, so two people editing the same cell never overwrite each other. */
 export const pageRowRelationChangeSchema = z.object({
   change: z.enum(['ADD', 'REMOVE']),
@@ -105,6 +109,7 @@ export const pageRowsContinuationSchema = z.object({
   cursor: z.string().min(1),
   group: z.object({ key: z.string().min(1), subKey: z.string().min(1).optional() }).optional(),
   pageId: z.string().min(1),
+  quickFilter: pageFilterSchema.nullable().default(null),
   search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
   spaceId: z.string().min(1),
   viewId: z.string().min(1),
@@ -118,6 +123,7 @@ export const pageRowsRefreshSchema = pageRowsContinuationSchema.extend({
 /** Every row the view lets through with the search applied, to act on all of them. */
 export const pageMatchingRowsSchema = z.object({
   pageId: z.string().min(1),
+  quickFilter: pageFilterSchema.nullable().default(null),
   search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
   spaceId: z.string().min(1),
   viewId: z.string().min(1),

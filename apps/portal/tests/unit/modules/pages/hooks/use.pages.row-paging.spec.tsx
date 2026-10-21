@@ -46,7 +46,7 @@ const baseInput: PagesRowPagingInput = {
 let searched = '';
 
 const Searching = ({ children }: { children: ReactNode }) => (
-  <PAGE_ROW_QUERY_CONTEXT value={{ search: searched }}>{children}</PAGE_ROW_QUERY_CONTEXT>
+  <PAGE_ROW_QUERY_CONTEXT value={{ quickFilter: null, search: searched }}>{children}</PAGE_ROW_QUERY_CONTEXT>
 );
 
 const loadFirstPage = async (result: { current: ReturnType<typeof usePagesRowPaging> }): Promise<void> => {
@@ -68,7 +68,14 @@ describe('usePagesRowPaging', () => {
     await loadFirstPage(result);
 
     expect(asked[0]).toEqual({
-      input: { cursor: 'after-b', pageId: 'collection-1', search: 'informe', spaceId: 'space-1', viewId: 'view-1' },
+      input: {
+        cursor: 'after-b',
+        pageId: 'collection-1',
+        quickFilter: null,
+        search: 'informe',
+        spaceId: 'space-1',
+        viewId: 'view-1',
+      },
       kind: 'more',
     });
   });
@@ -89,6 +96,7 @@ describe('usePagesRowPaging', () => {
     expect(asked.find((call) => call.kind === 'refresh')?.input).toEqual({
       cursor: 'after-a',
       pageId: 'collection-1',
+      quickFilter: null,
       search: '',
       spaceId: 'space-1',
       viewId: 'view-1',

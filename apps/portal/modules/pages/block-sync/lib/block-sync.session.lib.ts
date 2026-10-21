@@ -37,7 +37,9 @@ const isRateLimitClose = (code: number): boolean =>
  * good for opening the socket. Requests are matched to their answers by id; a closed socket fails them all.
  */
 export const createBlockLiveSession = ({
+  collectionId,
   handlers,
+  onCollectionMessage,
   onDiscussionChanged,
   openSocket,
   pageId,
@@ -100,10 +102,18 @@ export const createBlockLiveSession = ({
     if (message === null) return;
     switch (message.type) {
       case 'ready':
-        send({ pageId, type: 'subscribe' });
+        send(
+          collectionId === undefined ? { pageId, type: 'subscribe' } : { collectionId, type: 'subscribe-collection' },
+        );
         return;
       case 'subscribed':
+      case 'subscribed-collection':
         handleSubscribed();
+        return;
+      case 'collection-changes':
+      case 'collection-resync':
+      case 'collection-revoked':
+        onCollectionMessage?.(message);
         return;
       case 'versions':
         handlers.onVersions(message.blocks);

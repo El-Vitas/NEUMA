@@ -1,3 +1,6 @@
+/** A message that would list more rows than this asks the reader to query again instead. */
+export const BLOCK_LIVE_COLLECTION_MESSAGE_MAX_ROWS = 500;
+
 export const BLOCK_LIVE_ERROR_CODE = {
   accessDenied: 'access-denied',
   alreadyAuthenticated: 'already-authenticated',

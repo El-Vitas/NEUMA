@@ -6,13 +6,16 @@ import {
   isValidPageEmail,
   isValidPagePhone,
   isValidPageUrl,
+  PAGE_FILTER_ME,
   PAGE_NUMBER_FORMAT,
   PAGE_STATUS_GROUP_VALUES,
   percentToFraction,
   Result,
+  readPageRelativeDate,
 } from '@neuma/shared';
 import {
   MCP_ACCENT_MARKS,
+  MCP_RELATIVE_DATES_HINT,
   MCP_STATUS_GROUP_OPERATORS,
   MCP_VALUELESS_FILTER_OPERATORS,
 } from '../constants/mcp.constants';
@@ -235,11 +238,23 @@ const readStatusGroup = (column: McpColumnDraft, input: McpCellInput): Result<st
     : Result.ok(group);
 };
 
-/** A date to compare against is a day: the condition looks at the day, not at a range. */
-const readConditionDay = (column: McpColumnDraft, input: McpCellInput): Result<string, string> =>
-  typeof input === 'string' && isPageCalendarDay(input)
-    ? Result.ok(input)
-    : Result.fail(`${column.label} compares with a date as YYYY-MM-DD.`);
+/** A date to compare against is a day, or a relative one that moves with the day the question is asked. */
+const readConditionDay = (column: McpColumnDraft, input: McpCellInput): Result<string, string> => {
+  if (typeof input === 'string' && (isPageCalendarDay(input) || readPageRelativeDate(input) !== null)) {
+    return Result.ok(input);
+  }
+  return Result.fail(`${column.label} compares with a date as YYYY-MM-DD or ${MCP_RELATIVE_DATES_HINT}.`);
+};
+
+/** "@me" stands for whoever asks, which for an agent is the owner of its token. */
+const readConditionPerson = (
+  column: McpColumnDraft,
+  input: McpCellInput,
+  people: readonly McpAssignablePerson[],
+): Result<string, string> => {
+  if (typeof input !== 'string') return Result.fail(`${column.label} takes a person.`);
+  return input === PAGE_FILTER_ME ? Result.ok(input) : pickPerson(column, input, people);
+};
 
 const readConditionOperand = (
   column: McpColumnDraft,
@@ -259,9 +274,7 @@ const readConditionOperand = (
     case DatabasePropertyType.PERSON:
     case DatabasePropertyType.CREATED_BY:
     case DatabasePropertyType.EDITED_BY:
-      return typeof input === 'string'
-        ? pickPerson(column, input, people)
-        : Result.fail(`${column.label} takes a person.`);
+      return readConditionPerson(column, input, people);
     case DatabasePropertyType.MULTI_SELECT:
       return typeof input === 'string'
         ? pickMcpOption(column, input, listNames)

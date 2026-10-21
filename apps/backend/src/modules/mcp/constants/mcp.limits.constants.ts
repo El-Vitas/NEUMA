@@ -37,7 +37,17 @@ export const MCP_QUERY_ROWS_MAX = 100;
 export const MCP_QUERY_ROWS_PER_GROUP_MAX = 50;
 export const MCP_QUERY_COLUMN_LIMIT = 50;
 export const MCP_QUERY_CURSOR_MAX_LENGTH = 2000;
+/** Changed rows one `collection_changes` answer carries. */
+export const MCP_CHANGES_ROWS_DEFAULT = 50;
+export const MCP_CHANGES_ROWS_MAX = 100;
+/** The longest a call waits for a change, kept under what a client usually allows a tool call to take. */
+export const MCP_CHANGES_WAIT_MAX_SECONDS = 25;
+export const MCP_CHANGES_POLL_INTERVAL_MS = 1000;
+export const MCP_MILLISECONDS_PER_SECOND = 1000;
 export const MCP_QUERY_SEARCH_MAX_LENGTH = 200;
+
+/** The longest IANA zone name in use is well under this; the shared query schema allows the same. */
+export const MCP_TIME_ZONE_MAX_LENGTH = 64;
 export const MCP_AGGREGATE_LIMIT = 10;
 export const MCP_AGGREGATE_CALCULATIONS = [
   'COUNT_ALL',

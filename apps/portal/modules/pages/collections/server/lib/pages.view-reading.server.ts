@@ -1,5 +1,6 @@
 import 'server-only';
 
+import type { PageFilter } from '@neuma/shared';
 import { PAGE_VIEW_TYPE, readPageViewConfiguration } from '@neuma/shared';
 import { PAGE_VIEW_CALENDAR_MAXIMUM_ROWS } from '../../constants/pages.query.constants';
 import { readCalendarGridRange, resolveCalendarMonth } from '../../lib/pages.calendar.lib';
@@ -21,8 +22,9 @@ const readAggregates = async (
   pageId: string,
   view: PageSchemaView,
   search: string,
+  quickFilter: null | PageFilter,
 ): Promise<PageViewAggregates | null> => {
-  const counted = await queryPageView(spaceId, pageId, buildViewCountsQuery(view, search));
+  const counted = await queryPageView(spaceId, pageId, buildViewCountsQuery(view, search, quickFilter));
   return toViewAggregates(counted.isOk() ? counted.getValue() : null);
 };
 
@@ -35,6 +37,7 @@ const readCalendarReading = async (
   pageId: string,
   view: PageSchemaView,
   search: string,
+  quickFilter: null | PageFilter,
   requestedMonth: null | string,
   firstRows: readonly PageRow[],
 ): Promise<Pick<PageViewReading, 'attachedFiles' | 'outcome' | 'relatedRows'> | null> => {
@@ -45,6 +48,7 @@ const readCalendarReading = async (
     dateProperty,
     maximumRows: PAGE_VIEW_CALENDAR_MAXIMUM_ROWS,
     pageId,
+    quickFilter,
     range: readCalendarGridRange(month),
     search,
     spaceId,
@@ -75,18 +79,19 @@ export const readPageViewReading = async (
   statusGroupLabel: (group: string) => string,
   search = '',
   requestedMonth: null | string = null,
+  quickFilter: null | PageFilter = null,
 ): Promise<PageViewReading | null> => {
-  const aggregates = readAggregates(spaceId, pageId, view, search);
+  const aggregates = readAggregates(spaceId, pageId, view, search, quickFilter);
   if (view.type === PAGE_VIEW_TYPE.CHART) {
     return { aggregates, attachedFiles: [], outcome: { groups: [], kind: 'GROUPED_ROWS' }, relatedRows: [] };
   }
-  const readResult = await queryPageView(spaceId, pageId, buildViewRowsQuery(view, search));
+  const readResult = await queryPageView(spaceId, pageId, buildViewRowsQuery(view, search, quickFilter));
   const read = readResult.isOk() ? readResult.getValue() : null;
   if (read === null) return null;
   const outcome = toViewOutcome(read, view, properties, statusGroupLabel);
   const calendar =
     view.type === PAGE_VIEW_TYPE.CALENDAR && outcome.kind === 'FLAT_ROWS'
-      ? await readCalendarReading(spaceId, pageId, view, search, requestedMonth, outcome.rows)
+      ? await readCalendarReading(spaceId, pageId, view, search, quickFilter, requestedMonth, outcome.rows)
       : null;
   return {
     aggregates,

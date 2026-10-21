@@ -20,7 +20,12 @@ import {
 } from '@neuma/shared';
 import type { DomainError } from '../../common/domain/domain.error';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../common/domain/schema.domain.types';
-import { PAGE_REPOSITORY, PAGE_SCHEMA_REPOSITORY } from './constants/pages.constants';
+import {
+  PAGE_QUERY_CLOCK,
+  PAGE_QUERY_DEFAULT_TIME_ZONE,
+  PAGE_REPOSITORY,
+  PAGE_SCHEMA_REPOSITORY,
+} from './constants/pages.constants';
 import { PageAccessDeniedError, PageSchemaNotFoundError } from './domain/page.error';
 import { PageQueryInvalidError, PageQueryViewNotFoundError } from './domain/page-query.error';
 import { resolveGrouping } from './domain/page-query.grouping.domain';
@@ -30,15 +35,25 @@ import {
   listReferencedKeys,
   listRelationTargets,
   readAggregateNumber,
+  resolveQueryFilter,
 } from './domain/page-query.plan.domain';
 import { pageCarriesSchema } from './domain/page-schema.domain';
+import { PageChangesRepository } from './infrastructure/persistence/page-changes.repository';
 import { groupInclusionSql, groupJoinSql, groupMembershipSql } from './infrastructure/persistence/page-query.group.sql';
 import { PageQueryRepository } from './infrastructure/persistence/page-query.repository';
 import { allOf, frag, sqlText } from './infrastructure/persistence/page-query.sql.lib';
 import type { PageRepositoryContract } from './types/page.types';
 import type { GroupAxis, GroupLine, QueryScope, UnreadableRelations } from './types/page-query.sql.types';
-import type { Axis, PageQueryResult, QueryContext, ReducerRun, RunPageQueryInput } from './types/page-query.types';
+import type {
+  Axis,
+  PageQueryClock,
+  PageQueryResult,
+  QueryContext,
+  ReducerRun,
+  RunPageQueryInput,
+} from './types/page-query.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
+import { encodeChangesCursor } from './utils/page-changes.cursor.utils';
 import { signOrder } from './utils/page-query.cursor.utils';
 
 const toPublicKey = (key: string | null): string => key ?? UNASSIGNED_GROUP_KEY;
@@ -53,7 +68,9 @@ export class PageQueryService {
   constructor(
     @Inject(PAGE_REPOSITORY) private readonly pageRepository: PageRepositoryContract,
     @Inject(PAGE_SCHEMA_REPOSITORY) private readonly pageSchemaRepository: PageSchemaRepositoryContract,
+    @Inject(PAGE_QUERY_CLOCK) private readonly clock: PageQueryClock,
     private readonly queryRepository: PageQueryRepository,
+    private readonly changesRepository: PageChangesRepository,
   ) {}
 
   /** Answers the reducers a request names, for the rows the reader may open and nobody else's. */
@@ -67,31 +84,47 @@ export class PageQueryService {
     if (view.isFail()) return Result.fail(view.getError());
     const viewer = { role, userId, workspaceId };
     const configuration = this.readConfiguration(view.getValue());
-    const filter = combineFilters(configuration.filter, request.quickFilter);
+    const timeZone = request.timeZone ?? PAGE_QUERY_DEFAULT_TIME_ZONE;
+    const filter = resolveQueryFilter(combineFilters(configuration.filter, request.quickFilter), schema.properties, {
+      now: this.clock.now().getTime(),
+      timeZone,
+      viewerId: userId,
+    });
+    if (filter.isFail()) return Result.fail(filter.getError());
     const sorts = request.sorts ?? configuration.sorts;
     const items = request.reducers.flatMap((reducer) => (reducer.kind === 'aggregations' ? reducer.items : []));
-    const referenced = listReferencedKeys(filter, sorts, items, configuration);
+    const referenced = listReferencedKeys(filter.getValue(), sorts, items, configuration);
     const closed = await this.queryRepository.readClosedRowIds(pageId, viewer, { includeInactive: false });
     if (closed.isFail()) return Result.fail(closed.getError());
     const unreadable = await this.readUnreadableRelations(schema.properties, referenced, viewer);
     if (unreadable.isFail()) return Result.fail(unreadable.getError());
     const search = request.search?.trim() ?? '';
     const properties = new Map(schema.properties.map((property) => [property.key, property]));
-    const outcomes = await this.queryRepository.inSnapshot(async (runner) => {
+    const answered = await this.queryRepository.inSnapshot(async (runner) => {
+      const changesCursor = encodeChangesCursor({
+        after: null,
+        fresh: null,
+        since: await this.changesRepository.readWatermark(runner),
+      });
       const scope = this.queryRepository.buildScope({
         collectionId: pageId,
         deniedIds: [...new Set([...closed.getValue(), ...(input.excludedRowIds ?? [])])],
-        filter,
+        filter: filter.getValue(),
         properties: schema.properties,
         runner,
         search: search === '' ? null : search,
         signature: signOrder(sorts, null),
         sorts,
+        timeZone,
         unreadableRelations: unreadable.getValue(),
         viewId: view.getValue()?.id ?? null,
       });
-      return this.runReducers(request.reducers, { configuration, properties, scope });
+      return {
+        changesCursor,
+        outcomes: await this.runReducers(request.reducers, { configuration, properties, scope }),
+      };
     });
+    const { changesCursor, outcomes } = answered;
     if (outcomes.isFail()) return Result.fail(outcomes.getError());
     const ids = [...new Set(Object.values(outcomes.getValue()).flatMap(listOutcomeIds))];
     if (ids.length > PAGE_QUERY_LIMITS.maximumIdsPerResponse) {
@@ -100,6 +133,7 @@ export class PageQueryService {
     const found = await this.pageSchemaRepository.readRowsById(pageId, ids, workspaceId, userId, role);
     return Result.ok({
       attachedFiles: found.attachedFiles,
+      changesCursor,
       reducers: outcomes.getValue(),
       relatedRows: found.relatedRows,
       rows: Object.fromEntries(found.rows.map((row) => [row.id, row])),

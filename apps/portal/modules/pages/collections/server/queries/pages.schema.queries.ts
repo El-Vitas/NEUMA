@@ -6,6 +6,7 @@ import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
+import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import {
   pageQueryResponseSchema,
@@ -51,10 +52,13 @@ export const queryPageView = async (
   spaceId: string,
   pageId: string,
   request: PageQueryRequest,
-): Promise<Result<PageQueryResult | null, Error>> =>
-  withQuery({ op: 'queryPageView', params: { pageId, request, spaceId } }, (accessToken) =>
-    queryPageViewCached(accessToken, spaceId, pageId, JSON.stringify(request)),
+): Promise<Result<PageQueryResult | null, Error>> => {
+  const timeZone = await readRequestTimeZone();
+  const sent: PageQueryRequest = timeZone === null ? request : { ...request, timeZone };
+  return withQuery({ op: 'queryPageView', params: { pageId, request: sent, spaceId } }, (accessToken) =>
+    queryPageViewCached(accessToken, spaceId, pageId, JSON.stringify(sent)),
   );
+};
 
 const queryPageViewCached = async (
   accessToken: string,

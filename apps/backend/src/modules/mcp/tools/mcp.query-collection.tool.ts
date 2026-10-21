@@ -2,13 +2,13 @@ import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
 import { MCP_QUERY_DESCRIPTION } from '../constants/mcp.query.constants';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import { canMcpActOnRow, openMcpCollection } from '../lib/mcp.collections.lib';
+import { listMcpClosedRowIds, openMcpCollection } from '../lib/mcp.collections.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
 import { describeMcpQueryAnswer, pickMcpQueryColumns, planMcpQuery } from '../lib/mcp.query.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
 import { queryCollectionInputSchema, queryCollectionOutputSchema } from '../schemas/mcp.collections.schemas';
-import type { McpOpenCollection, McpQueryCollectionOutput } from '../types/mcp.collections.types';
-import type { McpCall, McpToolDefinition } from '../types/mcp.types';
+import type { McpQueryCollectionOutput } from '../types/mcp.collections.types';
+import type { McpToolDefinition } from '../types/mcp.types';
 
 const formatGroupLine = (group: NonNullable<McpQueryCollectionOutput['groups']>[number]): string => {
   const aggregates = group.aggregates === undefined ? '' : ` ${JSON.stringify(group.aggregates)}`;
@@ -28,12 +28,6 @@ const formatQueryText = (output: McpQueryCollectionOutput): string => {
   const next = output.nextCursor === undefined ? '' : `\nRead the rest with cursor ${output.nextCursor}.`;
   return `${header}${rows === '' ? '' : `\n${rows}`}${next}`;
 };
-
-/** Rows the token has a rule against: they are left out of every count, not only hidden from the list. */
-const listClosedRowIds = (call: McpCall, collection: McpOpenCollection): readonly string[] =>
-  call.principal.access.pages
-    .map((grant) => grant.pageId)
-    .filter((pageId) => !canMcpActOnRow(call, collection, pageId, ACCESS_TOKEN_PERMISSIONS.collectionsRead));
 
 /** Uses the portal's query, so what an agent counts is what a person sees; counts only rows the token can read. */
 export const queryCollectionTool: McpToolDefinition = {
@@ -61,7 +55,7 @@ export const queryCollectionTool: McpToolDefinition = {
             const columns = requireMcpInput(pickMcpQueryColumns(collection, input));
             const answer = requireMcpSuccess(
               await dependencies.collections.queryCollection({
-                excludedRowIds: listClosedRowIds(call, collection),
+                excludedRowIds: listMcpClosedRowIds(call, collection),
                 pageId: collection.id,
                 request: plan.request,
                 role: principal.role,

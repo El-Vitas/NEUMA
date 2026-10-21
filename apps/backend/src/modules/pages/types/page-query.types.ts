@@ -5,6 +5,11 @@ import type { GroupingPlan } from '../domain/page-query.grouping.domain.types';
 import type { QueryScope } from './page-query.sql.types';
 import type { PageRowSummary, PageRowsPage } from './page-schema.types';
 
+/** Where "now" comes from, so a test can stand still on a moment. */
+export interface PageQueryClock {
+  readonly now: () => Date;
+}
+
 /** What the reducers of one request share: the configuration they read, the properties and the scope of rows. */
 export interface QueryContext {
   readonly configuration: PageViewConfiguration;
@@ -33,6 +38,8 @@ export interface RunPageQueryInput {
 
 /** What a query answers: the outcome of each reducer by id, and one record for every row they name. */
 export interface PageQueryResult extends Pick<PageRowsPage, 'attachedFiles' | 'relatedRows'> {
+  /** Where to start reading what changed after this answer, taken before the rows it holds were read. */
+  readonly changesCursor: string;
   readonly reducers: Readonly<Record<string, PageQueryOutcome>>;
   readonly rows: Readonly<Record<string, PageRowSummary>>;
   readonly spaceId: string;

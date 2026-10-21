@@ -246,7 +246,7 @@ export class BlockTransactionsService {
     await session.writeLinks(diffBlockLinks(storedLinks, wanted));
     const result = { blocks: plan.versions, id: request.id, views: plan.viewVersions };
     await session.recordResult(result);
-    await session.notify(buildVersionNotification(request.id, request.spaceId, plan.versions));
+    await session.notify(buildVersionNotification(request.id, request.spaceId, plan.notices, plan.viewNotices));
     return result;
   }
 }

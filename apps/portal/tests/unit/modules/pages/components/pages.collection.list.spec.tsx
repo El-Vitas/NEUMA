@@ -155,7 +155,14 @@ describe('PagesCollectionList', () => {
 
     expect(await screen.findByText('Third task')).toBeDefined();
     expect(asked).toEqual([
-      { cursor: 'cursor-1', pageId: 'collection-1', search: '', spaceId: 'space-1', viewId: 'view-list' },
+      {
+        cursor: 'cursor-1',
+        pageId: 'collection-1',
+        quickFilter: null,
+        search: '',
+        spaceId: 'space-1',
+        viewId: 'view-list',
+      },
     ]);
     expect(screen.queryByTestId('collection-load-more')).toBeNull();
   });

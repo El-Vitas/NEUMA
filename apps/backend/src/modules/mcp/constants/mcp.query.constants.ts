@@ -18,8 +18,25 @@ export const MCP_QUERY_DESCRIPTION = [
   'One group: groupBy with group "In progress" returns the rows of that group, a part at a time with the cursor.',
   'A page of rows: limit and cursor, and columns to bring only the columns you need (the title is always there).',
   'Totals over every matching row, not only the returned ones: aggregate with SUM, AVERAGE, COUNT_EMPTY and so on.',
+  'Dates that move with the day: in where, a date column takes @today, @yesterday, @tomorrow, @this_week, @last_week, @next_week, @this_month, @last_month, @next_month, @past_days:N and @next_days:N (the N days that end or start today).',
+  'IS_BEFORE @today finds what is overdue; IS_ON_OR_BEFORE and IS_ON_OR_AFTER keep the day itself; a range of dates matches when it overlaps the days asked for.',
+  'The same words work on created time and edited time. Weeks run from Monday to Sunday.',
+  'They are read in the calendar of timeZone (an IANA name such as America/Santiago; UTC when left out), so pass the zone of the person you work for.',
+  'Rows with nothing in a column do not match a condition that asks for a value, so an empty date is never overdue.',
+  'Mine: "@me" in a person, created-by or edited-by condition stands for the owner of your token, as for that person in the portal. Example: where [{ column: "Owner", operator: "CONTAINS", value: "@me" }].',
   'You can read the rows as one of its views shows them; where and sort given here replace its filter and order.',
   'The rows you are not allowed to read are never counted.',
+].join(' ');
+
+export const MCP_CHANGES_DESCRIPTION = [
+  'Follow a collection: the rows that changed since your last read, instead of reading the whole collection again.',
+  'Start with query_collection and keep its changesCursor, or call this tool without since to get a cursor to watch from now.',
+  'Then call it with since set to the cursor of your last read: you get the rows that changed (as they are now, with the columns you ask for), the ids of rows that went to the trash, and a new cursor to use next time.',
+  'Rows repeat sometimes: a row you already hold is the same unless it differs. Compare total with the rows you hold: if they differ, a row was hidden from you or removed, so read again with query_collection.',
+  'If reset is true, the cursor is no longer valid: read again with query_collection.',
+  'waitSeconds makes the call wait for a change (up to 25 seconds) instead of answering empty, so you can wait without polling.',
+  'If hasMore is true, call again with the cursor you got until it is false.',
+  'Rows you are not allowed to read are never named or counted.',
 ].join(' ');
 
 export const MCP_MOVE_NEEDS_A_PLACE_MESSAGE =

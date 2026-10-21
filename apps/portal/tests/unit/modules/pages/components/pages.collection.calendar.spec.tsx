@@ -67,7 +67,7 @@ const drawCalendar = (
   extra: { isTruncated?: boolean; month?: string; search?: string; undated?: number } = {},
 ): ReactNode => (
   <NextIntlClientProvider locale="en" messages={en}>
-    <PAGE_ROW_QUERY_CONTEXT value={{ search: extra.search ?? '' }}>
+    <PAGE_ROW_QUERY_CONTEXT value={{ quickFilter: null, search: extra.search ?? '' }}>
       <PagesCollectionCalendar
         activeViewName="Calendar"
         canEdit

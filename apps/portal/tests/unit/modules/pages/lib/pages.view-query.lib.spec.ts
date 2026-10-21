@@ -21,6 +21,16 @@ describe('lo que se pide primero a una vista', () => {
     expect(buildViewRowsQuery(view)).not.toHaveProperty('search');
   });
 
+  it('sends the quick filter on top of the view, in the first rows and in the counts', () => {
+    const view = buildView('Table', 'TABLE');
+    const quickFilter = { kind: 'CONDITION', operator: 'IS', propertyKey: 'owner', value: '@me' } as const;
+
+    expect(buildViewRowsQuery(view, '', quickFilter).quickFilter).toEqual(quickFilter);
+    expect(buildViewCountsQuery(view, '', quickFilter).quickFilter).toEqual(quickFilter);
+    expect(buildViewRowsQuery(view)).not.toHaveProperty('quickFilter');
+    expect(buildViewRowsQuery(view, '', null)).not.toHaveProperty('quickFilter');
+  });
+
   it('asks a board for its first cards of every column', () => {
     const request = buildViewRowsQuery(buildView('Board', 'BOARD', { configuration: { groupBy: 'status' } }));
 

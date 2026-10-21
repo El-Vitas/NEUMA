@@ -10,6 +10,7 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
+import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema } from '../../../schemas/pages.schemas';
 import type { PageSummary } from '../../../types/pages.types';
@@ -22,10 +23,11 @@ import {
 } from '../../constants/pages.relations.constants';
 import { PageRelationRefusedError } from '../../lib/pages.relations.errors';
 import { toRequestedProperty } from '../../lib/pages.schema-request.lib';
-import { toSearchPart } from '../../lib/pages.view-query.lib';
+import { toRefinementPart } from '../../lib/pages.view-query.lib';
 import {
   pageCollectionCreateSchema,
   pageCollectionReadSchema,
+  pageCollectionRefreshSchema,
   pageCollectionUpdateSchema,
   pageMatchingRowsSchema,
   pageOptionRewriteSchema,
@@ -129,6 +131,18 @@ export const movePageRowAction = actionClient.inputSchema(pageRowMoveSchema).act
   }),
 );
 
+/**
+ * Drops the cached reads of the space, so the view draws again from what others changed. Server actions run one at
+ * a time in the order the browser sent them, so this one waits behind the writes the same browser still has in flight.
+ */
+export const refreshPageCollectionAction = actionClient
+  .inputSchema(pageCollectionRefreshSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'refreshPageCollection' }, async (): Promise<void> => {
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+    }),
+  );
+
 /** Read on demand, not cached: the next page must continue from where the last one ended, as of now. */
 export const loadMorePageRowsAction = actionClient
   .inputSchema(pageRowsContinuationSchema)
@@ -139,13 +153,15 @@ export const loadMorePageRowsAction = actionClient
         parsedInput.group === undefined
           ? ({ cursor: parsedInput.cursor, id: 'more', kind: 'results' } as const)
           : ({ cursor: parsedInput.cursor, group: parsedInput.group, id: 'more', kind: 'groupResults' } as const);
+      const timeZone = await readRequestTimeZone();
       const response = await apiRequest<unknown>(
         PAGE_API_ROUTES.query(parsedInput.spaceId, parsedInput.pageId),
         accessToken,
         {
           body: JSON.stringify({
             reducers: [reducer],
-            ...toSearchPart(parsedInput.search),
+            ...toRefinementPart(parsedInput.search, parsedInput.quickFilter),
+            ...(timeZone === null ? {} : { timeZone }),
             viewId: parsedInput.viewId,
           }),
           method: 'POST',
@@ -169,6 +185,7 @@ export const refreshPageRowsAction = actionClient.inputSchema(pageRowsRefreshSch
     const read = await readRowsInScope({
       group: parsedInput.group,
       pageId: parsedInput.pageId,
+      quickFilter: parsedInput.quickFilter,
       search: parsedInput.search,
       spaceId: parsedInput.spaceId,
       startCursor: parsedInput.cursor,
@@ -192,6 +209,7 @@ export const readPageMatchingRowsAction = actionClient
     withAction({ action: 'matchingRows' }, async (): Promise<PageMatchingRows> => {
       const read = await readRowsInScope({
         pageId: parsedInput.pageId,
+        quickFilter: parsedInput.quickFilter,
         search: parsedInput.search,
         spaceId: parsedInput.spaceId,
         viewId: parsedInput.viewId,

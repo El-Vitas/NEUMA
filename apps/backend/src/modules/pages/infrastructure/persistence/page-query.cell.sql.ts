@@ -73,6 +73,15 @@ export const dateStartOf = (cell: SqlFragment): SqlFragment =>
 export const dateEndOf = (cell: SqlFragment): SqlFragment =>
   frag`(CASE WHEN ${isDateCell(cell)} THEN ${instantOf(frag`COALESCE(${cell} ->> 'end', ${cell} ->> 'start')`)} END)`;
 
+/** A date written without a time, which belongs to a calendar day and not to an instant. */
+export const isDayCell = (cell: SqlFragment): SqlFragment => frag`((${cell} ->> 'start') ~ ${sqlText(DAY_PATTERN)})`;
+
+/** Only for a cell that `isDateCell` and `isDayCell` accept: the first and the last day of a date. */
+export const dayStartOf = (cell: SqlFragment): SqlFragment => frag`((${cell} ->> 'start')::date)`;
+
+export const dayEndOf = (cell: SqlFragment): SqlFragment =>
+  frag`(COALESCE(${cell} ->> 'end', ${cell} ->> 'start')::date)`;
+
 /** The same meaning of empty as the shared engine: a blank text, a list with nothing, no date, or no cell at all. */
 export const isEmptyCell = (property: SchemaPropertyDefinition, cell: SqlFragment): SqlFragment => {
   switch (EMPTINESS_BY_TYPE[property.type]) {

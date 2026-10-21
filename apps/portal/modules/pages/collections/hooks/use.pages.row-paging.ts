@@ -5,6 +5,7 @@ import { useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT } from '../constants/pages.lookups.context.constants';
+import { readRowQueryKey } from '../lib/pages.row-query.lib';
 import { loadMorePageRowsAction, refreshPageRowsAction } from '../server/actions/pages.collections.actions';
 import type { PageRowsContinuation } from '../types/pages.query.types';
 import type {
@@ -31,25 +32,27 @@ export const usePagesRowPaging = ({
 }: PagesRowPagingInput): PagesRowPaging => {
   const t = useTranslations('pages.collection');
   const addLookups = useContext(PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT);
-  const { search } = usePagesRowQuery();
+  const rowQuery = usePagesRowQuery();
+  const { quickFilter, search } = rowQuery;
+  const queryKey = readRowQueryKey(rowQuery);
   const [state, setState] = useState<PagesRowPagingState>({
     cursor: firstCursor,
     firstCursor,
     loaded: [],
+    queryKey,
     refreshFrom: null,
-    search,
   });
   const [isLoading, startLoading] = useTransition();
   const [, startRefreshing] = useTransition();
 
-  if (state.search !== search) {
-    setState({ cursor: firstCursor, firstCursor, loaded: [], refreshFrom: null, search });
+  if (state.queryKey !== queryKey) {
+    setState({ cursor: firstCursor, firstCursor, loaded: [], queryKey, refreshFrom: null });
   } else if (state.firstCursor !== firstCursor) {
     const isWindowKept = state.loaded.length > 0 && firstCursor !== null;
     setState(
       isWindowKept
         ? { ...state, firstCursor, refreshFrom: firstCursor }
-        : { cursor: firstCursor, firstCursor, loaded: [], refreshFrom: null, search },
+        : { cursor: firstCursor, firstCursor, loaded: [], queryKey, refreshFrom: null },
     );
   }
 
@@ -60,6 +63,7 @@ export const usePagesRowPaging = ({
       ? {}
       : { group: { key: groupKey, ...(groupSubKey === undefined ? {} : { subKey: groupSubKey }) } }),
     pageId,
+    quickFilter,
     search,
     spaceId,
     viewId,

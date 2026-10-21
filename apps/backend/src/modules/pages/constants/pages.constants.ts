@@ -47,6 +47,11 @@ export const PAGE_PURGE_LOCK_KEY = 'page-purge';
 
 export const PAGE_VERSION_CLOCK = 'PAGE_VERSION_CLOCK';
 
+export const PAGE_QUERY_CLOCK = 'PAGE_QUERY_CLOCK';
+
+/** The zone a query is read in when the request names none. */
+export const PAGE_QUERY_DEFAULT_TIME_ZONE = 'UTC';
+
 /**
  * The live save of the old design (ADR 020) ran 250 ms after the last change and at most 2 s after the first one, and
  * each save was a version, folded into the one before it when the same person saved within five minutes. A version

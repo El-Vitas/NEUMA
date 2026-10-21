@@ -198,13 +198,14 @@ export const planMcpQuery = (
       ...buildScope(collection, input, configuration),
       reducers: rows === null ? [counts] : [rows, counts],
       ...(input.search === undefined || input.search === '' ? {} : { search: input.search }),
+      ...(input.timeZone === undefined ? {} : { timeZone: input.timeZone }),
     },
   });
 };
 
 export const pickMcpQueryColumns = (
   collection: McpOpenCollection,
-  input: McpQueryCollectionInput,
+  input: { readonly columns?: readonly string[] | undefined },
 ): Result<readonly McpColumn[], string> => {
   if (input.columns === undefined) return Result.ok(collection.shape.properties);
   const chosen: McpColumn[] = [];
@@ -320,6 +321,7 @@ export const describeMcpQueryAnswer = (
   const aggregates = readAggregates(plan, totals);
   const base = {
     ...(aggregates === null ? {} : { aggregates }),
+    changesCursor: answer.changesCursor,
     total: counts?.distinctRowCount ?? readCount(totals),
   };
   if (counts !== null && plan.groupColumn !== null) {

@@ -1,5 +1,6 @@
 'use client';
 
+import type { PageFilter } from '@neuma/shared';
 import { Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
@@ -10,6 +11,8 @@ import { buildCollectionViewHref } from '../lib/pages.collection.view-selection.
 
 interface IProps {
   readonly activeViewName: string;
+  /** Kept in the address when the words change. */
+  readonly quickFilter: null | PageFilter;
   /** The words the server is filtering the rows by right now. */
   readonly search: string;
 }
@@ -18,7 +21,7 @@ interface IProps {
  * The server reads the rows, so searching asks it again: the words go in the address and the view is read with them.
  * Rows, counts and the next pages then agree on what matches, instead of the screen filtering only what it has loaded.
  */
-export const PagesCollectionSearchField = ({ activeViewName, search }: IProps) => {
+export const PagesCollectionSearchField = ({ activeViewName, quickFilter, search }: IProps) => {
   const t = useTranslations('pages.collection');
   const router = useRouter();
   const [typed, setTyped] = useState(search);
@@ -31,7 +34,9 @@ export const PagesCollectionSearchField = ({ activeViewName, search }: IProps) =
   }
 
   const searchFor = (words: string): void =>
-    startReading(() => router.replace(buildCollectionViewHref(activeViewName, { search: words }), { scroll: false }));
+    startReading(() =>
+      router.replace(buildCollectionViewHref(activeViewName, { quickFilter, search: words }), { scroll: false }),
+    );
 
   return (
     <search className="flex items-center gap-1">

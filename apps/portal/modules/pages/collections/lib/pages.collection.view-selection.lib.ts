@@ -1,7 +1,10 @@
-import { PAGE_QUERY_LIMITS, readPageCalendarMonth } from '@neuma/shared';
+import type { PageFilter } from '@neuma/shared';
+import { PAGE_QUERY_LIMITS, pageFilterSchema, readPageCalendarMonth } from '@neuma/shared';
 import type { RouteSearchParamValue } from '@/shared/types/route-search-params.types';
 import {
   PAGE_COLLECTION_MONTH_SEARCH_PARAM,
+  PAGE_COLLECTION_QUICK_FILTER_MAXIMUM_LENGTH,
+  PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM,
   PAGE_COLLECTION_ROW_SEARCH_PARAM,
   PAGE_COLLECTION_VIEW_SEARCH_PARAM,
 } from '../constants/pages.collections.constants';
@@ -23,6 +26,9 @@ export const buildCollectionViewHref = (viewName: string, options: CollectionHre
   const words = (options.search ?? '').trim();
   const parameters = new URLSearchParams({ [PAGE_COLLECTION_VIEW_SEARCH_PARAM]: viewName });
   if (words !== '') parameters.set(PAGE_COLLECTION_ROW_SEARCH_PARAM, words);
+  if (options.quickFilter !== undefined && options.quickFilter !== null) {
+    parameters.set(PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM, JSON.stringify(options.quickFilter));
+  }
   if (options.month !== undefined) parameters.set(PAGE_COLLECTION_MONTH_SEARCH_PARAM, options.month);
   return `?${parameters.toString()}`;
 };
@@ -31,6 +37,18 @@ export const buildCollectionViewHref = (viewName: string, options: CollectionHre
 export const readCollectionMonth = (raw: RouteSearchParamValue): null | string => {
   const candidate = Array.isArray(raw) ? raw[0] : raw;
   return candidate === undefined ? null : readPageCalendarMonth(candidate);
+};
+
+/** What is not a filter the server would accept is read as no filter, so a mistyped address still opens the view. */
+export const readCollectionQuickFilter = (raw: RouteSearchParamValue): null | PageFilter => {
+  const candidate = Array.isArray(raw) ? raw[0] : raw;
+  if (candidate === undefined || candidate.length > PAGE_COLLECTION_QUICK_FILTER_MAXIMUM_LENGTH) return null;
+  try {
+    const parsed = pageFilterSchema.safeParse(JSON.parse(candidate));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
 };
 
 /** A repeated parameter keeps only the first value; words longer than the server accepts are cut. */

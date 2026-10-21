@@ -29,10 +29,6 @@ export const INSTANT_PATTERN = "'^[0-9]{4}-[0-9]{2}-[0-9]{2}T'";
 
 export const DATE_PREFIX_PATTERN = "'^[0-9]{4}-[0-9]{2}-[0-9]{2}'";
 
-export const MILLISECONDS_IN_A_DAY = 86_400_000;
-
-export const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-
 export const COUNT_ALL: SqlFragment = { parts: ['count(*)'], values: [] };
 
 export const NULLABLE_TEXT: TextColumn = { codecId: 'pg/text@1', nullable: true };

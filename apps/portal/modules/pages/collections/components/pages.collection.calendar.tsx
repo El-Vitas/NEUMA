@@ -46,7 +46,7 @@ export const PagesCollectionCalendar = ({
   undated,
 }: IProps) => {
   const t = useTranslations('pages.collection');
-  const { search } = usePagesRowQuery();
+  const { quickFilter, search } = usePagesRowQuery();
   const locale = useLocale();
   const router = useRouter();
   const [isReading, startReading] = useTransition();
@@ -60,7 +60,9 @@ export const PagesCollectionCalendar = ({
   });
   const goToMonth = (target: string): void =>
     startReading(() =>
-      router.replace(buildCollectionViewHref(activeViewName, { month: target, search }), { scroll: false }),
+      router.replace(buildCollectionViewHref(activeViewName, { month: target, quickFilter, search }), {
+        scroll: false,
+      }),
     );
   const [namingOn, setNamingOn] = useState<null | string>(null);
   /** Built once per locale: creating a date formatter is costly and the calendar re-renders on every drag. */

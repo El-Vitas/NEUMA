@@ -1,3 +1,4 @@
+import { collectionChangesTool } from '../tools/mcp.collection-changes.tool';
 import { commentOnBlockTool } from '../tools/mcp.comment-on-block.tool';
 import { createCollectionTool } from '../tools/mcp.create-collection.tool';
 import { createPageTool } from '../tools/mcp.create-page.tool';
@@ -57,6 +58,7 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = [
   searchDiagramIconsTool,
   getCollectionTool,
   queryCollectionTool,
+  collectionChangesTool,
   createCollectionTool,
   createRowTool,
   updateRowTool,

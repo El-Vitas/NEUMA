@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { columnValueSchema, propertyKeySchema, rootFilterSchema, sortSchema } from './page-view.schemas.js';
 import { PAGE_QUERY_LIMITS } from './page-view.query.types.js';
 import { PAGE_VIEW_CALCULATION_VALUES } from './page-view.types.js';
+import { isValidPageTimeZone } from './page-view.zone.lib.js';
 
 const reducerIdSchema = z.string().min(1).max(64);
 
@@ -74,7 +75,12 @@ export const pageQueryRequestSchema = z
     reducers: z.array(reducerSchema).min(1).max(PAGE_QUERY_LIMITS.maximumReducers),
     search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).optional(),
     sorts: z.array(sortSchema).max(5).optional(),
-    timeZone: z.string().min(1).max(64).optional(),
+    timeZone: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(isValidPageTimeZone, { message: 'Time zone is not an IANA zone name' })
+      .optional(),
     viewId: z.string().min(1).max(64).optional(),
   })
   .strict()

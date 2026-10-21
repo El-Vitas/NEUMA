@@ -14,12 +14,14 @@ import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pag
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
 import {
   PAGE_COLLECTION_MONTH_SEARCH_PARAM,
+  PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM,
   PAGE_COLLECTION_ROW_SEARCH_PARAM,
   PAGE_COLLECTION_VIEW_SEARCH_PARAM,
   UNSEARCHED_ROWS_REQUEST,
 } from '@/modules/pages/collections/constants/pages.collections.constants';
 import {
   readCollectionMonth,
+  readCollectionQuickFilter,
   readCollectionSearch,
   resolveActiveCollectionView,
 } from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
@@ -174,6 +176,7 @@ const buildCollectionSection = async (
     (group) => t(`statusGroups.${group}`),
     rowsRequest.search,
     rowsRequest.month,
+    rowsRequest.quickFilter,
   );
   return (
     <PagesCollectionSection
@@ -181,6 +184,7 @@ const buildCollectionSection = async (
       canEdit={canEdit}
       personOptions={personOptions}
       properties={properties}
+      quickFilter={rowsRequest.quickFilter}
       reading={reading}
       schema={ownSchema}
       search={rowsRequest.search}
@@ -303,6 +307,7 @@ export default async function Page({ params, searchParams }: IProps) {
   const [mainBundle, panelBundle] = await Promise.all([
     buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName, {
       month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
+      quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
       search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
     }),
     panelPage === undefined

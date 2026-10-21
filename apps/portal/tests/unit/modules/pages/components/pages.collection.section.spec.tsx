@@ -17,6 +17,8 @@ import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 import { buildView } from '../lib/pages.views.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+mock.module('@/shared/server/lib/time-zone.server', () => ({ readRequestTimeZone: async () => null }));
+mock.module('@/shared/server/actions/time-zone.actions', () => ({ rememberTimeZoneAction: async () => undefined }));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getSpaceCollections: async () => ({ getValue: () => [{ id: 'collection-2', title: 'Projects' }], isOk: () => true }),
@@ -32,6 +34,10 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   refreshPageRowsAction: async () => ({ data: null }),
   movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+// The live follower opens a socket and loads server actions, which a test of the section does not need.
+mock.module('@/modules/pages/collections/components/pages.collection.live-follower', () => ({
+  PagesCollectionLiveFollower: () => null,
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),

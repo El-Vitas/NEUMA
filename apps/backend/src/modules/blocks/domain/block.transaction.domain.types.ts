@@ -415,14 +415,34 @@ export interface BlockLinkDiff {
   readonly drafts: readonly BlockLinkDraft[];
 }
 
+/** A touched block; it says when the transaction moved it to another parent or changed who may read it. */
+export interface NotifiedBlock extends BlockVersion {
+  readonly hasAccessChange?: true | undefined;
+  readonly previousParentId?: string | undefined;
+}
+
+/** What a notice needs of a block: its version, where it hangs and who may read it. */
+export interface NoticeSource extends BlockVersion {
+  readonly parentId: string | null;
+  readonly permissions: unknown;
+}
+
+/** A touched view and the collection it belongs to. */
+export interface NotifiedView extends BlockVersion {
+  readonly pageId: string;
+}
+
 /** What a transaction does once every rule passed: rows to write, links wanted and versions to report. */
 export interface BlockTransactionPlan {
   readonly linkDrafts: readonly BlockLinkDraft[];
   readonly linkSourceIds: readonly string[];
+  /** The touched blocks as the live channel reports them: flagged when moved or when their permissions changed. */
+  readonly notices: readonly NotifiedBlock[];
   readonly rebinds: readonly LinkSourceRebind[];
   /** The lists of top-level pages that changed. */
   readonly spaceWrites: readonly SpaceRoots[];
   readonly versions: readonly BlockVersion[];
+  readonly viewNotices: readonly NotifiedView[];
   readonly viewVersions: readonly BlockVersion[];
   readonly viewWrites: readonly ViewWrite[];
   readonly writes: readonly BlockWrite[];

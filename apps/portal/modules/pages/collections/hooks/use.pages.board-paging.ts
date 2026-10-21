@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT } from '../constants/pages.lookups.context.constants';
 import { listColumnsToRefresh, mergeLoadedCards } from '../lib/pages.board-paging.lib';
+import { readRowQueryKey } from '../lib/pages.row-query.lib';
 import { loadMorePageRowsAction, refreshPageRowsAction } from '../server/actions/pages.collections.actions';
 import type {
   ColumnToRefresh,
@@ -31,16 +32,18 @@ const addressOf = (bandKey: string, groupKey: string) => ({
 export const usePagesBoardPaging = ({ bands, pageId, spaceId, viewId }: PagesBoardPagingInput): PagesBoardPaging => {
   const t = useTranslations('pages.collection');
   const addLookups = useContext(PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT);
-  const { search } = usePagesRowQuery();
+  const rowQuery = usePagesRowQuery();
+  const { quickFilter, search } = rowQuery;
+  const queryKey = readRowQueryKey(rowQuery);
   const [loaded, setLoaded] = useState<Readonly<Record<string, PagesBoardLoaded>>>({});
-  const [loadedBy, setLoadedBy] = useState(search);
+  const [loadedBy, setLoadedBy] = useState(queryKey);
   const [loading, setLoading] = useState<ReadonlySet<string>>(new Set());
   const [, startLoading] = useTransition();
   const [, startRefreshing] = useTransition();
   const claimed = useRef<ReadonlySet<string>>(new Set());
 
-  if (loadedBy !== search) {
-    setLoadedBy(search);
+  if (loadedBy !== queryKey) {
+    setLoadedBy(queryKey);
     setLoaded({});
   }
 
@@ -63,6 +66,7 @@ export const usePagesBoardPaging = ({ bands, pageId, spaceId, viewId }: PagesBoa
         ...addressOf(column.bandKey, column.groupKey),
         cursor: column.drawnCursor,
         pageId,
+        quickFilter,
         search,
         spaceId,
         viewId,
@@ -108,6 +112,7 @@ export const usePagesBoardPaging = ({ bands, pageId, spaceId, viewId }: PagesBoa
         cursor,
         ...addressOf(bandKey, groupKey),
         pageId,
+        quickFilter,
         search,
         spaceId,
         viewId,

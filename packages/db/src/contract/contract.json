@@ -604,6 +604,13 @@
                   "kind": "scalar"
                 }
               },
+              "changeXid": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int8@1",
+                  "kind": "scalar"
+                }
+              },
               "children": {
                 "many": {
                   "elementNullable": false
@@ -1029,6 +1036,9 @@
               "fields": {
                 "alive": {
                   "column": "alive"
+                },
+                "changeXid": {
+                  "column": "changeXid"
                 },
                 "children": {
                   "column": "children"
@@ -3936,6 +3946,15 @@
                   },
                   "nullable": false
                 },
+                "changeXid": {
+                  "codecId": "pg/int8@1",
+                  "dataType": "pg/int8",
+                  "default": {
+                    "kind": "literal",
+                    "value": "0"
+                  },
+                  "nullable": false
+                },
                 "children": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -4189,6 +4208,14 @@
                     "ownerId"
                   ],
                   "name": "Block_ownerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "parentId",
+                    "changeXid"
+                  ],
+                  "name": "Block_parentId_changeXid_idx",
                   "unique": false
                 },
                 {
@@ -6293,7 +6320,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "d8cd53b7c78910ad6f1f6b97372a97cce8610fc69aa588e12cbea574ab8bd9b0"
+    "storageHash": "89d5dc74953b2cee64368ffd005871d78f50ee4f6c191d2e9a2cd9f6baeea8af"
   },
   "execution": {
     "executionHash": "0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc",

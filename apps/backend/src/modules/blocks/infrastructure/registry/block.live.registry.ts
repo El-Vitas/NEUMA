@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import type { LiveSubscription } from '../../domain/block.live.domain.types';
+import type { CollectionSubscription, LiveSubscription } from '../../domain/block.live.domain.types';
 import { createMessageWindow } from '../../domain/block.live.rate.domain';
 import type { BlockLiveConnection, BlockLiveSocket } from '../../types/block.live.types';
 
@@ -15,6 +15,17 @@ const toSubscriptions = (connection: BlockLiveConnection): LiveSubscription[] =>
   }));
 };
 
+const toCollectionSubscriptions = (connection: BlockLiveConnection): CollectionSubscription[] => {
+  const userId = connection.reader?.userId;
+  if (userId === undefined) return [];
+  return [...connection.collectionSubscriptions].map(([collectionId, spaceId]) => ({
+    collectionId,
+    connectionId: connection.id,
+    spaceId,
+    userId,
+  }));
+};
+
 /** The sockets open in this process and what each is subscribed to. Scans are fine at the scale of one node. */
 @Injectable()
 export class BlockLiveRegistry {
@@ -23,6 +34,7 @@ export class BlockLiveRegistry {
   open(socket: BlockLiveSocket, now: number): BlockLiveConnection {
     const connection: BlockLiveConnection = {
       ageTimer: null,
+      collectionSubscriptions: new Map(),
       deadlineTimer: null,
       id: randomUUID(),
       isClosed: false,
@@ -62,5 +74,13 @@ export class BlockLiveRegistry {
 
   listSubscriptionsInSpace(spaceId: string): readonly LiveSubscription[] {
     return this.listSubscriptions().filter((subscription) => subscription.spaceId === spaceId);
+  }
+
+  listCollectionSubscriptions(): readonly CollectionSubscription[] {
+    return this.listConnections().flatMap(toCollectionSubscriptions);
+  }
+
+  listCollectionSubscriptionsInSpace(spaceId: string): readonly CollectionSubscription[] {
+    return this.listCollectionSubscriptions().filter((subscription) => subscription.spaceId === spaceId);
   }
 }

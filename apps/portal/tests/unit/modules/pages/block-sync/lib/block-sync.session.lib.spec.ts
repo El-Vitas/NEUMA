@@ -331,3 +331,92 @@ describe('createBlockLiveSession', () => {
     expect(harness.sockets).toHaveLength(1);
   });
 });
+
+describe('createBlockLiveSession following a collection', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  const createCollectionHarness = () => {
+    const sockets: FakeSocket[] = [];
+    const events: Record<string, unknown>[] = [];
+    const connections: string[] = [];
+    createBlockLiveSession({
+      collectionId: 'collection-1',
+      handlers: {
+        onConnected: () => connections.push('connected'),
+        onDisconnected: () => connections.push('disconnected'),
+        onPresence: () => undefined,
+        onResync: () => undefined,
+        onRevoked: () => undefined,
+        onStatusChange: () => undefined,
+        onVersions: () => undefined,
+      },
+      onCollectionMessage: (message) => events.push(message),
+      openSocket: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket;
+      },
+      pageId: 'collection-1',
+      requestToken: () => Promise.resolve('token-1'),
+      url: 'ws://localhost/api/v1/blocks/live',
+    });
+    return { connections, events, sockets };
+  };
+
+  const open = async (harness: ReturnType<typeof createCollectionHarness>): Promise<FakeSocket> => {
+    await flush();
+    const socket = harness.sockets.at(-1);
+    if (socket === undefined) throw new Error('No socket was opened');
+    socket.open();
+    socket.receive({ type: 'ready' });
+    return socket;
+  };
+
+  it('follows the collection instead of the page once the server is ready', async () => {
+    const harness = createCollectionHarness();
+
+    const socket = await open(harness);
+
+    expect(socket.sentOfType('subscribe-collection')).toEqual([
+      { collectionId: 'collection-1', type: 'subscribe-collection' },
+    ]);
+    expect(socket.sentOfType('subscribe')).toEqual([]);
+  });
+
+  it('counts as connected when the server accepts the collection', async () => {
+    const harness = createCollectionHarness();
+    const socket = await open(harness);
+
+    socket.receive({ collectionId: 'collection-1', type: 'subscribed-collection' });
+
+    expect(harness.connections).toEqual(['connected']);
+  });
+
+  it('hands the notices of the collection to its listener', async () => {
+    const harness = createCollectionHarness();
+    const socket = await open(harness);
+    const changes = {
+      collectionId: 'collection-1',
+      rows: [{ id: 'row-1', version: 3 }],
+      type: 'collection-changes',
+      views: [],
+    };
+
+    socket.receive(changes);
+    socket.receive({ collectionId: 'collection-1', type: 'collection-resync' });
+    socket.receive({ collectionId: 'collection-1', type: 'collection-revoked' });
+
+    expect(harness.events).toEqual([
+      changes,
+      { collectionId: 'collection-1', type: 'collection-resync' },
+      { collectionId: 'collection-1', type: 'collection-revoked' },
+    ]);
+  });
+});
