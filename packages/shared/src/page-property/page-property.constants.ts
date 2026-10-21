@@ -23,5 +23,8 @@ export const PAGE_UNIQUE_ID_PREFIX_MAX_LENGTH = 10;
 
 export const PAGE_PERCENT_FACTOR = 100;
 
+/** A computed number has no stored precision: without decimals set it reads with up to this many, zeros trimmed. */
+export const PAGE_COMPUTED_MAXIMUM_DECIMALS = 2;
+
 /** The currency a new currency property starts on. */
 export const PAGE_DEFAULT_CURRENCY = 'USD';

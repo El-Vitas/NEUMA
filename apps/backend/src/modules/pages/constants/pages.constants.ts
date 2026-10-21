@@ -56,6 +56,21 @@ export const PAGE_VERSION_CLOCK = 'PAGE_VERSION_CLOCK';
 
 export const PAGE_QUERY_CLOCK = 'PAGE_QUERY_CLOCK';
 
+/** Rows read in one statement to compute rollups: a bound on the list of ids the statement carries. */
+export const PAGE_COMPUTED_READ_BATCH_SIZE = 1000;
+
+/** A query that filters, sorts, groups or totals by a computed property evaluates up to this many rows (ADR 028). */
+export const PAGE_COMPUTED_CANDIDATE_LIMIT = 20_000;
+
+/** Collections read while a schema with rollups is saved; a chain is at most three long, so this is ample. */
+export const REACHABLE_COLLECTIONS_LIMIT = 20;
+
+/** The key of a column under test while a formula or rollup is checked; it never passes the pattern of a real key. */
+export const PREVIEW_PROPERTY_KEY = '__preview';
+
+/** How many rows a check is tried on: enough to see a pattern, few enough to read. */
+export const PREVIEW_ROW_LIMIT = 5;
+
 /** The zone a query is read in when the request names none. */
 export const PAGE_QUERY_DEFAULT_TIME_ZONE = 'UTC';
 

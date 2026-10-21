@@ -1,5 +1,6 @@
 import type { PageContent } from '@neuma/shared';
 import { computeCollaborationReconnectDelayMs } from '../../lib/pages.collaboration.lib';
+import type { StoredTextPreview } from '../../local-cache/types/local-cache.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import {
   BLOCK_SYNC_COALESCE_INTERVAL_MS,
@@ -11,11 +12,13 @@ import {
 } from '../constants/block-sync.constants';
 import type {
   BlockOperationGroup,
+  BlockQueuePersistence,
   BlockQueueState,
   BlockSentTransaction,
   BlockSnapshotMap,
   BlockSyncEngine,
   BlockSyncEngineOptions,
+  BlockSyncOutbox,
   BlockSyncResponse,
   BlockTransaction,
   BlockTransactionError,
@@ -34,6 +37,7 @@ import {
   readListedChildId,
 } from './block-sync.operations.lib';
 import { mapPresenceToParticipants, readBlockIdAtSelection } from './block-sync.presence.lib';
+import { describeTransactionText } from './block-sync.preview.lib';
 import { createTransactionQueue } from './block-sync.queue.lib';
 import {
   areSnapshotMapsEqual,
@@ -52,6 +56,8 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
   const { bridge, callbacks, createId, initialBlocks, localUserId, pageId, resolveParticipant, spaceId } = options;
   const store = createBlockStore(initialBlocks);
   const sent = new Map<string, BlockSentTransaction>();
+  /** The words each transaction holds, read from the editor when it was made, until it is kept on disk. */
+  const keptPreviews = new Map<string, readonly StoredTextPreview[]>();
   const pendingSyncIds = new Set<string>();
   const forcedSyncIds = new Set<string>();
   let mirror: BlockSnapshotMap = new Map();
@@ -99,6 +105,10 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
     for (const operations of chunkOperationGroups(groups, BLOCK_SYNC_OPERATIONS_PER_TRANSACTION_MAX)) {
       const transaction: BlockTransaction = { id: createId(), operations, spaceId };
       sent.set(transaction.id, { receipts: store.createTextReceipts(operations) });
+      keptPreviews.set(
+        transaction.id,
+        describeTransactionText(operations, (blockId, property) => mirror.get(blockId)?.properties[property]),
+      );
       queue.enqueue(transaction);
     }
   };
@@ -377,10 +387,29 @@ export const createBlockSyncEngine = (options: BlockSyncEngineOptions): BlockSyn
     return outcome;
   };
 
+  const toPersistence = (outbox: BlockSyncOutbox): BlockQueuePersistence => ({
+    drop: (transactionId) => {
+      keptPreviews.delete(transactionId);
+      return outbox.drop(transactionId);
+    },
+    keep: (transaction) => outbox.keep(transaction, keptPreviews.get(transaction.id) ?? []),
+    setAside: (transaction, error) => outbox.setAside(transaction, error),
+  });
+
   const queue = createTransactionQueue({
     handlers: { onApplied: handleApplied, onRejected: handleRejected, onStateChange: handleQueueState },
+    ...(options.outbox === undefined ? {} : { persistence: toPersistence(options.outbox) }),
     send,
   });
+
+  /** What an earlier visit left unanswered is sent first, as it was, with the ids it already had. */
+  const restoreFromDisk = async (): Promise<void> => {
+    if (options.outbox === undefined || isViewer) return;
+    const restored = await options.outbox.restore();
+    if (isDestroyed || restored.length === 0) return;
+    queue.restore(restored);
+  };
+  void restoreFromDisk();
 
   const handleConnected = (): void => {
     cursor.resend();

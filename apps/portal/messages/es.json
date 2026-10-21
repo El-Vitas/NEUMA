@@ -70,6 +70,7 @@
     "account": "Cuenta",
     "profile": "Perfil",
     "logout": "Cerrar sesión",
+    "logoutPending": "Tienes {count, plural, one {# cambio sin enviar} other {# cambios sin enviar}}. Si cierras sesión se pierden. ¿Cerrar sesión de todos modos?",
     "mobileMenu": "Menú de navegación",
     "administrator": "Administrador",
     "adminEmail": "admin@example.com"
@@ -487,6 +488,20 @@
     "contentHelp": "El texto se guarda como un bloque estructurado versionado.",
     "trashReadOnly": "Esta página está en la papelera. Restáurala para editarla.",
     "readOnly": "Solo tienes permiso de lectura en este espacio.",
+    "rejectedChanges": {
+      "title": "{count, plural, one {# cambio no se aplicó} other {# cambios no se aplicaron}}",
+      "help": "El servidor los rechazó. Lo que escribiste se guarda aquí hasta que decidas qué hacer.",
+      "copy": "Copiar texto",
+      "copied": "Copiado",
+      "discard": "Descartar",
+      "noText": "Este cambio no tenía texto que mostrar.",
+      "causes": {
+        "forbidden": "Ya no tienes permiso para editar esto.",
+        "invalid": "No se pudo leer de nuevo desde este navegador.",
+        "missing": "Lo que cambiaba ya no existe.",
+        "other": "El servidor no lo aceptó."
+      }
+    },
     "blockSyncUnavailable": "No se pudo cargar la página para edición en vivo, por eso está en solo lectura. Recarga para intentarlo de nuevo.",
     "spaceUnavailable": "Espacio no disponible",
     "saveChanges": "Guardar cambios",
@@ -784,6 +799,7 @@
       "no": "No",
       "unknownPerson": "Miembro desconocido",
       "editCell": "Editar {property}",
+      "computedError": "Error",
       "dateEnd": "Fecha de fin (opcional)",
       "relationAdd": "Agregar una fila a {property}",
       "relationRemove": "Quitar {title}",
@@ -870,7 +886,10 @@
         "MINIMUM": "Mínimo",
         "MAXIMUM": "Máximo",
         "MEDIAN": "Mediana",
-        "PERCENT_CHECKED": "Marcadas"
+        "PERCENT_CHECKED": "Marcadas",
+        "PERCENT_FILLED": "% con valor",
+        "PERCENT_EMPTY": "% vacías",
+        "SHOW_ORIGINAL": "Mostrar originales"
       },
       "newTitle": "Colección sin título",
       "titleProperty": "Nombre",
@@ -1185,8 +1204,30 @@
         "EDITED_TIME": "Última edición",
         "CREATED_BY": "Creada por",
         "EDITED_BY": "Editada por",
-        "UNIQUE_ID": "Identificador único"
+        "UNIQUE_ID": "Identificador único",
+        "FORMULA": "Fórmula",
+        "ROLLUP": "Resumen"
       },
+      "formulaText": "Fórmula",
+      "formulaPlaceholder": "prop(\"Precio\") * prop(\"Cantidad\")",
+      "formulaHint": "Lee una propiedad con prop(\"Nombre\"). Usa + - * /, comparaciones, if(condición, a, b) y funciones de texto y fecha.",
+      "formulaGives": "Da {type}.",
+      "formulaSuggestions": "¿Quisiste decir: {names}?",
+      "formulaTypes": {
+        "NUMBER": "un número",
+        "TEXT": "texto",
+        "BOOLEAN": "verdadero o falso",
+        "DATE": "una fecha",
+        "LIST": "una lista"
+      },
+      "rollupRelation": "Relación",
+      "rollupRelationPlaceholder": "Elige una relación",
+      "rollupProperty": "Propiedad",
+      "rollupPropertyPlaceholder": "Elige una propiedad",
+      "rollupCalculation": "Cálculo",
+      "rollupCalculationPlaceholder": "Elige un cálculo",
+      "rollupSaved": "Guardado con: {calculation}. Elige la relación otra vez para cambiarlo.",
+      "rollupHint": "Resume una propiedad de las filas que esta fila enlaza. Solo cuenta las filas que puedes abrir.",
       "colors": {
         "GRAY": "Gris",
         "BROWN": "Café",

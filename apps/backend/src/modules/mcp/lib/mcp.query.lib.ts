@@ -268,6 +268,20 @@ const readAggregates = (
     ? null
     : Object.fromEntries(plan.aggregates.map((aggregate) => [aggregate.label, values[aggregate.id] ?? null]));
 
+/** How many cells of a totalled formula or rollup column failed, by the name of the total; null when none did. */
+const readFailedCells = (
+  plan: McpQueryPlan,
+  counts: PageQueryAggregationsOutcome | null,
+): Record<string, number> | null => {
+  const failures = counts?.errorCounts;
+  if (failures === undefined) return null;
+  const named = plan.aggregates.flatMap((aggregate) => {
+    const failed = failures[aggregate.id];
+    return failed === undefined ? [] : [[aggregate.label, failed] as const];
+  });
+  return named.length === 0 ? null : Object.fromEntries(named);
+};
+
 const readCount = (values: McpAggregateValues): number => Number(values[MCP_TOTAL_ITEM_ID] ?? 0);
 
 const readCounts = (answer: McpQueryAnswer): PageQueryAggregationsOutcome | null => {
@@ -360,8 +374,10 @@ export const describeMcpQueryAnswer = (
   const describer = buildDescriber(portalUrl, collection, people, plan, answer, columns);
   const totals = counts?.totals ?? {};
   const aggregates = readAggregates(plan, totals);
+  const failed = readFailedCells(plan, counts);
   const base = {
     ...(aggregates === null ? {} : { aggregates }),
+    ...(failed === null ? {} : { aggregateErrors: failed }),
     changesCursor: answer.changesCursor,
     total: counts?.distinctRowCount ?? readCount(totals),
   };

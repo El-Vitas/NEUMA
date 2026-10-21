@@ -21,7 +21,10 @@ export const PagesCollectionCardProperties = ({
   properties,
   row,
 }: IProps) => {
-  const answered = properties.filter((property) => hasPropertyValueToShow(row.propertyValues?.[property.key]));
+  const answered = properties.filter(
+    (property) =>
+      hasPropertyValueToShow(row.propertyValues?.[property.key]) || row.computedErrors?.[property.key] !== undefined,
+  );
   if (answered.length === 0) return null;
 
   return (
@@ -36,6 +39,7 @@ export const PagesCollectionCardProperties = ({
           <dt className="sr-only">{property.label}</dt>
           <dd className="m-0 min-w-0 truncate">
             <PagesPropertyValue
+              computedError={row.computedErrors?.[property.key]}
               personOptions={personOptions}
               property={property}
               value={row.propertyValues?.[property.key]}

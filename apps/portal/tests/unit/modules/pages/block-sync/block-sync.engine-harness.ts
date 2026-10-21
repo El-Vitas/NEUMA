@@ -2,7 +2,7 @@ import { jest } from 'bun:test';
 import { blocksToDocument, type PageContent } from '@neuma/shared';
 import { BLOCK_SYNC_COALESCE_INTERVAL_MS } from '@/modules/pages/block-sync/constants/block-sync.constants';
 import { createBlockSyncEngine } from '@/modules/pages/block-sync/lib/block-sync.engine.lib';
-import type { BlockSyncEngine } from '@/modules/pages/block-sync/types/block-sync.types';
+import type { BlockSyncEngine, BlockSyncOutbox } from '@/modules/pages/block-sync/types/block-sync.types';
 import type { PagesAutosaveDisplayState } from '@/modules/pages/types/pages.autosave.types';
 import type { PageCollaborationParticipant } from '@/modules/pages/types/pages.collaboration.types';
 import { type FakeBlockServer, FakeSession } from './block-sync.fake-server';
@@ -25,6 +25,7 @@ export const createClient = (
   initial: PageContent,
   userId = 'user-1',
   isViewer = false,
+  outbox?: BlockSyncOutbox,
 ): EngineClient => {
   let idCounter = 0;
   const participants: (readonly PageCollaborationParticipant[])[] = [];
@@ -59,6 +60,7 @@ export const createClient = (
     initialBlocks: server.readBlocks(),
     isViewer,
     localUserId: userId,
+    ...(outbox === undefined ? {} : { outbox }),
     pageId: 'page-1',
     resolveParticipant: (id) => ({ color: null, name: `Name of ${id}` }),
     spaceId: 'space-1',

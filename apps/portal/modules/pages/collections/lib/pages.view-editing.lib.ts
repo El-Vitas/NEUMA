@@ -10,6 +10,7 @@ import {
   PAGE_VIEW_OUTCOME_KIND,
   PAGE_VIEW_TYPE_VALUES,
   pageViewRequiresGrouping,
+  readPageEffectivePropertyType,
   readPageViewConfiguration,
   readVisiblePropertyKeys,
 } from '@neuma/shared';
@@ -39,7 +40,9 @@ export const readPageChartMeasure = (chosen: string): PageChartMeasure =>
 
 /** Only closed lists of values: a date would make a column per day, free text a column per answer. */
 export const listGroupablePropertyKeys = (properties: readonly PageSchemaProperty[]): readonly string[] =>
-  properties.filter((property) => canPagePropertyGroupBoard(property.type)).map((property) => property.key);
+  properties
+    .filter((property) => canPagePropertyGroupBoard(readPageEffectivePropertyType(property)))
+    .map((property) => property.key);
 
 /**
  * Found client-side so the problem can be reported while configuring; the server would reject the whole

@@ -43,7 +43,7 @@ export const resolveSchemaDrafts = (
   stored: readonly SchemaPropertyDefinition[],
   generate: () => string,
 ): readonly SchemaPropertyDefinition[] =>
-  drafts.map(({ twoWay: _twoWay, ...draft }) => ({
+  drafts.map(({ computedDraft: _computedDraft, twoWay: _twoWay, ...draft }) => ({
     ...draft,
     options: toOptions(
       { ...draft, twoWay: false },

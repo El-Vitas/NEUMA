@@ -5,6 +5,8 @@ export interface PagesBoardPaging {
   readonly bands: readonly PageViewBand[];
   readonly isLoading: (bandKey: string, groupKey: string) => boolean;
   readonly loadMore: (bandKey: string, groupKey: string) => void;
+  /** Forgets what the columns loaded: the bands the live view holds already include it. */
+  readonly resetLoaded: () => void;
 }
 
 export interface PagesBoardPagingInput {

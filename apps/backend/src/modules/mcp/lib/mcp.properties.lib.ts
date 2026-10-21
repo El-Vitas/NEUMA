@@ -1,9 +1,16 @@
 import { DatabasePropertyType } from '@neuma/db';
 import type { PageDateValue, PagePropertyValue, PagePropertyValues } from '@neuma/shared';
-import { formatPageUniqueId, fractionToPercent, PAGE_NUMBER_FORMAT, readPageDateValue } from '@neuma/shared';
+import {
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  formatPageComputedNumber,
+  formatPageUniqueId,
+  fractionToPercent,
+  PAGE_NUMBER_FORMAT,
+  readPageDateValue,
+} from '@neuma/shared';
 import { MCP_NO_ROW_LOOKUPS } from '../constants/mcp.constants';
 import type { McpDescribedColumn, McpRowLookups } from '../types/mcp.collections.types';
-import type { McpPerson, McpRowProperty } from '../types/mcp.types';
+import type { McpComputedErrors, McpPerson, McpRowProperty } from '../types/mcp.types';
 
 const listIds = (value: McpRowProperty['value']): readonly string[] => {
   if (typeof value === 'string') return [value];
@@ -77,14 +84,41 @@ const describeStored = (
   return stored === undefined ? null : describeValue(column, stored, lookups);
 };
 
+const isComputedColumn = (column: McpDescribedColumn): boolean =>
+  column.type === DatabasePropertyType.FORMULA || column.type === DatabasePropertyType.ROLLUP;
+
+/** What a formula or a rollup gave: a date reads as a day or an interval, a list as its entries, the rest as is. */
+const describeComputed = (stored: PagePropertyValue | undefined): McpRowProperty['value'] => {
+  if (stored === undefined) return null;
+  const date = readPageDateValue(stored);
+  if (date !== null) return writeDate(date);
+  if (Array.isArray(stored)) return [...asIds(stored)];
+  return typeof stored === 'object' ? null : stored;
+};
+
+/** The number as a person reads it, only when that differs from the raw number the value keeps. */
+const describeComputedNumber = (stored: PagePropertyValue | undefined, column: McpDescribedColumn): string | null => {
+  if (typeof stored !== 'number') return null;
+  const text = formatPageComputedNumber(stored, column.config ?? DEFAULT_PAGE_PROPERTY_CONFIG);
+  return text === String(stored) ? null : text;
+};
+
 const describeColumn = (
   column: McpDescribedColumn,
   values: PagePropertyValues | null,
-  title: string,
+  row: { readonly computedErrors?: McpComputedErrors | undefined; readonly title: string },
   people: ReadonlyMap<string, string>,
   lookups: McpRowLookups,
 ): McpRowProperty => {
   const stored = values?.[column.key];
+  const { title } = row;
+  if (isComputedColumn(column)) {
+    const error = row.computedErrors?.[column.key];
+    const described = { key: column.key, label: column.label, type: column.type, value: describeComputed(stored) };
+    if (error !== undefined) return { ...described, error, value: null };
+    const text = describeComputedNumber(stored, column);
+    return text === null ? described : { ...described, text };
+  }
   const value = describeStored(column, stored, title, lookups);
   const described = { key: column.key, label: column.label, type: column.type, value };
   if (column.type === DatabasePropertyType.RELATION) return { ...described, related: describeRelated(value, lookups) };
@@ -104,4 +138,6 @@ export const describeMcpRowProperties = (
   title: string,
   people: ReadonlyMap<string, string>,
   lookups: McpRowLookups = MCP_NO_ROW_LOOKUPS,
-): McpRowProperty[] => columns.map((column) => describeColumn(column, values, title, people, lookups));
+  computedErrors?: McpComputedErrors,
+): McpRowProperty[] =>
+  columns.map((column) => describeColumn(column, values, { computedErrors, title }, people, lookups));

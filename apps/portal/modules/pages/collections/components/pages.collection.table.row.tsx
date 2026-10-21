@@ -1,5 +1,8 @@
+'use client';
+
 import { cn } from '@/lib/utils';
 import { TableCell } from '@/shared/components/ui/table';
+import { usePagesRowComputed } from '../hooks/use.pages.row-computed';
 import { readTableColumnLabelId } from '../lib/pages.table-columns.lib';
 import type { PagePersonOption, PageRow, PageSchemaProperty } from '../types/pages.schema.types';
 import type { PageTableAppearance } from '../types/pages.table-appearance.types';
@@ -47,6 +50,8 @@ export const PagesCollectionTableRow = ({
   spaceId,
   untitledLabel,
 }: IProps) => {
+  const computed = usePagesRowComputed(row, properties);
+
   return (
     <PagesCollectionTableRowShell index={index} rowId={row.id} scope={scope}>
       <TableCell {...frozenCells[0]} className={cn(frozenCells[0]?.className, appearance.cellClass)}>
@@ -79,13 +84,15 @@ export const PagesCollectionTableRow = ({
               alignmentClass={alignmentClasses[property.key] ?? ''}
               ariaLabelledBy={readTableColumnLabelId(collectionPageId, property.key)}
               canEdit={canEdit}
+              computedError={computed.errorOf(property.key)}
               contentClass={columnAppearance.contentClass}
               controlClass={columnAppearance.controlClass}
+              onWriting={computed.onWriting}
               personOptions={personOptions}
               property={property}
               rowId={row.id}
               spaceId={spaceId}
-              value={row.propertyValues?.[property.key]}
+              value={computed.valueOf(property.key)}
             />
           </TableCell>
         );

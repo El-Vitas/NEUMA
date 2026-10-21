@@ -11,6 +11,7 @@ import {
   PAGE_STATUS_GROUP_VALUES,
   percentToFraction,
   Result,
+  readPageEffectivePropertyType,
   readPageRelativeDate,
 } from '@neuma/shared';
 import {
@@ -223,6 +224,8 @@ const readCellValue = (
     case DatabasePropertyType.CREATED_BY:
     case DatabasePropertyType.EDITED_BY:
     case DatabasePropertyType.UNIQUE_ID:
+    case DatabasePropertyType.FORMULA:
+    case DatabasePropertyType.ROLLUP:
       return Result.fail(sayCannotWrite(column));
     default:
       return typeof input === 'string' ? Result.ok(input) : Result.fail(`${column.label} takes text.`);
@@ -299,11 +302,12 @@ const toConditionValue = (cell: Result<McpCellValue, string>): Result<McpConditi
 
 /** An emptiness condition carries no value; a title condition compares the raw text. */
 export const readMcpConditionValue = (
-  column: McpColumnDraft,
+  computedColumn: McpColumnDraft,
   condition: { readonly operator: string; readonly value?: McpCellInput | undefined },
   people: readonly McpAssignablePerson[],
   listNames: McpNameLister,
 ): Result<McpConditionValue, string> => {
+  const column = { ...computedColumn, type: readPageEffectivePropertyType(computedColumn) };
   const { operator, value: input } = condition;
   if (MCP_VALUELESS_FILTER_OPERATORS.includes(operator)) return Result.ok(null);
   if (input === undefined || input === null) return Result.fail(`${column.label} ${operator} needs a value.`);

@@ -20,6 +20,10 @@ export interface Labelling {
 /** What a view query answers (ADR 025): the outcome of each reducer by id, and one record per row they name. */
 export interface PageQueryResult {
   readonly attachedFiles: readonly PageAttachedFile[];
+  /** Where to read what changed after this answer; taken before its rows were read, so no change falls between. */
+  readonly changesCursor: string;
+  /** Collections the formulas and rollups read: a change there can change a value here (ADR 028). */
+  readonly computedDependsOn?: readonly string[] | undefined;
   readonly reducers: Readonly<Record<string, PageQueryOutcome>>;
   readonly relatedRows: readonly PageRelatedRow[];
   readonly rows: Readonly<Record<string, PageRow>>;
@@ -33,6 +37,21 @@ export interface PageRowsContinuation {
   readonly nextCursor: string | null;
   readonly relatedRows: readonly PageRelatedRow[];
   readonly rows: readonly PageRow[];
+}
+
+/** What changed in a collection since a cursor, for the rows the reader may open and nobody else's. */
+export interface PageCollectionChanges {
+  readonly attachedFiles: readonly PageAttachedFile[];
+  /** Pass it back to read what changed after this answer. */
+  readonly cursor: string;
+  readonly hasMore: boolean;
+  /** True when the cursor was not one the server wrote: the view has to be read again. */
+  readonly isReset: boolean;
+  readonly relatedRows: readonly PageRelatedRow[];
+  readonly rows: readonly PageRow[];
+  /** The rows the reader can open and are active, to notice one that was hidden. */
+  readonly total: number;
+  readonly trashedIds: readonly string[];
 }
 
 /** Every row the view lets through with the search applied, or the fact that they are too many to act on. */

@@ -78,11 +78,28 @@ const describeView = (columns: readonly McpColumn[], view: McpView): McpCollecti
   };
 };
 
+/** A formula column says its text and a rollup column what it summarises, both with the type of what they give. */
+const describeComputedColumn = (
+  columns: readonly McpColumn[],
+  column: McpColumn,
+): { formula?: string; resultType?: string; rollup?: string } => {
+  const formula = column.computed?.formula;
+  if (formula !== null && formula !== undefined) return { formula: formula.source, resultType: formula.resultType };
+  const rollup = column.computed?.rollup;
+  if (rollup === null || rollup === undefined) return {};
+  const relation = columns.find((candidate) => candidate.key === rollup.relationPropertyKey)?.label;
+  return {
+    resultType: rollup.resultType,
+    rollup: `${rollup.calculation} of ${rollup.targetPropertyKey} over ${relation ?? rollup.relationPropertyKey}`,
+  };
+};
+
 /** Everything is named as people see it. */
 export const describeMcpCollection = (portalUrl: string, collection: McpOpenCollection): McpCollectionOutput => {
   const { properties, views } = collection.shape;
   return {
     columns: properties.map((column) => ({
+      ...describeComputedColumn(properties, column),
       key: column.key,
       label: column.label,
       options: column.options === null ? null : column.options.map((option) => option.value),

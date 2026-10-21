@@ -135,5 +135,15 @@ export const usePagesBoardPaging = ({ bands, pageId, spaceId, viewId }: PagesBoa
     });
   };
 
-  return { bands: merged, isLoading: (bandKey, groupKey) => loading.has(cellKey(bandKey, groupKey)), loadMore };
+  const resetLoaded = (): void => {
+    claimed.current = new Set();
+    setLoaded({});
+  };
+
+  return {
+    bands: merged,
+    isLoading: (bandKey, groupKey) => loading.has(cellKey(bandKey, groupKey)),
+    loadMore,
+    resetLoaded,
+  };
 };

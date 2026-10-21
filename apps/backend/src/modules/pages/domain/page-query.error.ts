@@ -34,6 +34,19 @@ export class PageQueryTimeoutError extends DomainError {
   }
 }
 
+/** Filtering, sorting, grouping or totalling by a formula or rollup evaluates the candidates, and they are too many. */
+export class PageQueryComputedTooLargeError extends DomainError {
+  public readonly code = PAGE_QUERY_ERROR_CODE.computedTooLarge;
+  public readonly httpStatus = 422;
+
+  constructor(limit: number) {
+    super(
+      `More than ${String(limit)} rows would have to be evaluated; filter by stored properties first to narrow them`,
+      { limit },
+    );
+  }
+}
+
 /** More rows than the cap are closed to this reader, so the counts cannot be made exact without a different plan. */
 export class PageQueryTooManyRestrictedRowsError extends DomainError {
   public readonly code = PAGE_QUERY_ERROR_CODE.tooManyRestrictedRows;

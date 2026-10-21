@@ -29,6 +29,8 @@ describe('page schema contracts', () => {
       PAGE_PROPERTY_TYPE.CREATED_BY,
       PAGE_PROPERTY_TYPE.EDITED_BY,
       PAGE_PROPERTY_TYPE.UNIQUE_ID,
+      PAGE_PROPERTY_TYPE.FORMULA,
+      PAGE_PROPERTY_TYPE.ROLLUP,
     ]);
   });
 

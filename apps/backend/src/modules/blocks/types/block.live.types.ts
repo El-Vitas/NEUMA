@@ -88,6 +88,14 @@ export type BlockLiveRawSocketMessage = ArrayBuffer | Buffer | Buffer[];
 export interface BlockLiveSettings {
   /** A socket that has not authenticated by then is closed. */
   readonly authTimeoutMs: number;
+  /** A notification handled for longer than this is given up on, so one stuck read cannot stop the ones behind it. */
+  readonly deliveryTimeoutMs: number;
+  /** How often the listen connection sends itself a message to prove it still hears. */
+  readonly heartbeatIntervalMs: number;
+  /** The listen connection is taken for dead when its own message does not come back within this. */
+  readonly heartbeatTimeoutMs: number;
+  /** How long the listen socket idles before the operating system starts probing it. */
+  readonly keepAliveInitialDelayMs: number;
   /** A socket that sends nothing for this long is closed; clients ping well inside it. */
   readonly idleTimeoutMs: number;
   /** The token is checked once, at connect; a socket older than this is closed so the next one needs a fresh token. */
@@ -181,6 +189,18 @@ export interface BlockChainReader {
   /** The rows of the seeds and of every ancestor above them, with no content. */
   readonly readChains: (seedIds: readonly string[]) => Promise<readonly BlockChainRow[]>;
 }
+
+/** The part of a `pg` client the listener uses, so a test can make one that goes silent. */
+export interface BlockListenClient {
+  readonly connect: () => Promise<unknown>;
+  readonly end: () => Promise<void>;
+  readonly onEnd: (handler: () => void) => void;
+  readonly onError: (handler: (error: Error) => void) => void;
+  readonly onNotification: (handler: (message: { channel: string; payload?: string }) => void) => void;
+  readonly query: (text: string, values?: readonly unknown[]) => Promise<unknown>;
+}
+
+export type BlockListenClientFactory = (connectionString: string, keepAliveInitialDelayMs: number) => BlockListenClient;
 
 export interface BlockVersionListenerHandlers {
   /** A comment or notification event: who to tell, not which blocks changed. */

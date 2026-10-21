@@ -1,4 +1,5 @@
 import {
+  PAGE_FORMULA_SOURCE_MAX_LENGTH,
   PAGE_OPTION_COLOR_VALUES,
   PAGE_PROPERTY_TYPE_VALUES,
   PAGE_QUERY_LIMITS,
@@ -18,7 +19,19 @@ const pageCollectionOptionSchema = z.object({
   value: z.string().min(1).max(200),
 });
 
+const pageComputedDraftSchema = z.object({
+  formula: z.string().max(PAGE_FORMULA_SOURCE_MAX_LENGTH).nullable(),
+  rollup: z
+    .object({
+      calculation: z.string().min(1).max(80),
+      relationPropertyKey: z.string().min(1).max(80),
+      targetPropertyKey: z.string().min(1).max(80),
+    })
+    .nullable(),
+});
+
 const pageCollectionPropertySchema = z.object({
+  computedDraft: pageComputedDraftSchema.optional(),
   config: pagePropertyConfigSchema.optional(),
   key: z.string().min(1).max(80),
   label: z.string().min(1).max(200),
@@ -60,6 +73,24 @@ export const pageRowPropertiesSchema = z.object({
 
 /** A change notice reached an open view: the space's cached reads are dropped so the next one is fresh. */
 export const pageCollectionRefreshSchema = z.object({ spaceId: z.string().min(1) });
+
+/** The counts of a view read again, because cards were placed in the browser and the totals are the server's. */
+export const pageAggregatesRefreshSchema = z.object({
+  configuration: z.record(z.string(), z.unknown()),
+  pageId: z.string().min(1),
+  quickFilter: pageFilterSchema.nullable().default(null),
+  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+  spaceId: z.string().min(1),
+  viewId: z.string().min(1),
+  viewType: z.enum(PAGE_VIEW_TYPE_VALUES),
+});
+
+/** What changed in a collection after the cursor of the last answer (ADR 026). */
+export const pageCollectionChangesSchema = z.object({
+  cursor: z.string().min(1).max(300),
+  pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+});
 
 /** A relation cell changes one row at a time, so two people editing the same cell never overwrite each other. */
 export const pageRowRelationChangeSchema = z.object({
@@ -117,6 +148,8 @@ export const pageRowsContinuationSchema = z.object({
 
 /** The rows a scope held beyond what the server drew, read again from where the server's rows end. */
 export const pageRowsRefreshSchema = pageRowsContinuationSchema.extend({
+  /** Absent to read the scope from its first row, as a column does when a card moved into it. */
+  cursor: z.string().min(1).optional(),
   wanted: z.number().int().min(1).max(PAGE_VIEW_REFRESH_MAXIMUM_ROWS),
 });
 

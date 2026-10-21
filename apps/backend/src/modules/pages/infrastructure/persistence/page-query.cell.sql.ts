@@ -18,6 +18,10 @@ const derivedTime = (column: string): SqlFragment =>
 export const storedCell = (key: string): SqlFragment =>
   frag`NULLIF(${row('properties')} -> 'values' -> ${sqlParameter(key, 'text')}, 'null'::jsonb)`;
 
+/** The value of a computed property for this row, looked up by the id of the row in the object the service computed. */
+const computedCell = (valuesByRow: string): SqlFragment =>
+  frag`NULLIF(${sqlParameter(valuesByRow, 'jsonb')} -> ${row('id')}, 'null'::jsonb)`;
+
 const relationCell = (property: SchemaPropertyDefinition, context: CellContext): SqlFragment => {
   const unreadable = context.unreadableRelations.get(property.key) ?? [];
   if (unreadable === 'ALL') return sqlText('NULL::jsonb');
@@ -30,6 +34,8 @@ const relationCell = (property: SchemaPropertyDefinition, context: CellContext):
  * such as who made it and when, are composed from its columns, as the shared engine does with `withPageDerivedValues`.
  */
 export const cellOf = (property: SchemaPropertyDefinition, context: CellContext): SqlFragment => {
+  const computed = context.computedValues.get(property.key);
+  if (computed !== undefined) return computedCell(computed);
   switch (property.type) {
     case DatabasePropertyType.TITLE:
       return frag`to_jsonb(${row('text')})`;

@@ -44,4 +44,6 @@ export interface PageQueryResult extends Pick<PageRowsPage, 'attachedFiles' | 'r
   readonly rows: Readonly<Record<string, PageRowSummary>>;
   readonly spaceId: string;
   readonly viewVersion: number | null;
+  /** Collections the computed columns read besides this one: a change there can change a value here. */
+  readonly computedDependsOn: readonly string[];
 }

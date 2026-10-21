@@ -5,6 +5,7 @@ import type {
   AccessTokenPlace,
   PageContent,
   PageDocumentNodeShape,
+  PageFormulaCellError,
   PageLifecycle,
   PagePropertyValues,
   Result,
@@ -45,14 +46,22 @@ export type McpPageState = NonNullable<McpFetchedPage['state']>;
 export type McpListPagesInput = z.infer<typeof listPagesInputSchema>;
 export type McpListPagesOutput = z.infer<typeof listPagesOutputSchema>;
 
+/** The formulas and rollups of a row that could not be computed, by column key. */
+export type McpComputedErrors = Readonly<Record<string, PageFormulaCellError>>;
+
 export interface McpRowProperty extends McpSchemaColumn {
+  /** A formula or rollup that could not be computed for this row. */
+  readonly error?: { readonly code: string; readonly message: string };
   readonly people?: McpPerson[];
   /** On a relation: the rows it points to that the reader may open. */
   readonly related?: { readonly id: string; readonly title: string }[];
+  /** On a computed number: how a person reads it (rounded to the column's format); `value` keeps the raw number. */
+  readonly text?: string;
   readonly value: boolean | number | string[] | string | null;
 }
 
 export type McpRowDescriber = (row: {
+  readonly computedErrors?: Readonly<Record<string, PageFormulaCellError>> | undefined;
   readonly id: string;
   readonly propertyValues: PagePropertyValues | null;
   readonly title: string;

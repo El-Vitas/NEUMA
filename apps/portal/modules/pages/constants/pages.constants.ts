@@ -70,6 +70,7 @@ export const PAGE_API_ROUTES = {
   transactions: '/api/v1/transactions',
   collections: (spaceId: string) => `/api/v1/spaces/${spaceId}/collections`,
   query: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/query`,
+  changes: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/changes`,
   viewOperations: (spaceId: string, pageId: string, viewId: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewId)}/operations`,
   moveRow: (spaceId: string, pageId: string, viewId: string) =>

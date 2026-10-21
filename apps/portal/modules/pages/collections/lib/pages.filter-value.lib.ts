@@ -1,5 +1,5 @@
 import type { PageFilterOperator } from '@neuma/shared';
-import { getPagePropertyLogicalType, PAGE_PROPERTY_LOGICAL_TYPE } from '@neuma/shared';
+import { getPagePropertyLogicalType, PAGE_PROPERTY_LOGICAL_TYPE, readPageEffectivePropertyType } from '@neuma/shared';
 import {
   PAGE_FILTER_GROUP_OPERATORS,
   PAGE_FILTER_PERSON_PROPERTY_TYPES,
@@ -16,7 +16,7 @@ export const readFilterValueKind = (
   if (!filterOperatorNeedsValue(operator)) return 'NONE';
   if (PAGE_FILTER_GROUP_OPERATORS.includes(operator)) return 'STATUS_GROUP';
   if (PAGE_FILTER_PERSON_PROPERTY_TYPES.includes(property.type)) return 'PERSON';
-  switch (getPagePropertyLogicalType(property.type)) {
+  switch (getPagePropertyLogicalType(readPageEffectivePropertyType(property))) {
     case PAGE_PROPERTY_LOGICAL_TYPE.TAG:
     case PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG:
     case PAGE_PROPERTY_LOGICAL_TYPE.STATUS:

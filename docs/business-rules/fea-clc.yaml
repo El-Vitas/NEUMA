@@ -80,6 +80,25 @@ rules:
         given: Una colección con la propiedad «Creada»
         when: Una petición intenta escribir ese valor en una fila
         then: Se rechaza, y la fila sigue mostrando su fecha real
+  - id: BR-26daa9e
+    status: active
+    title: Un cambio en las filas que un rollup lee avisa a quien mira la colección
+    rule: >-
+      Cuando cambia una fila de una colección que otra colección lee con un rollup, quien tiene abierta la segunda
+      colección se entera y sus valores se vuelven a calcular. Quien pregunta qué cambió en una colección recibe también
+      las filas cuyo rollup puede haber cambiado porque una fila enlazada cambió, marcadas como tales y no como cambios
+      propios.
+    why: >-
+      Si el rollup se queda con el valor de la última vez que se miró, el total de un proyecto contradice las partidas
+      que se acaban de editar.
+    context: >-
+      Una persona editando una fila ve al instante cómo cambian las fórmulas de esa misma fila, sin esperar al servidor;
+      el valor del servidor lo confirma después.
+    scenarios:
+      - title: Se edita una partida
+        given: Un proyecto que suma las partidas y alguien mirándolo
+        when: Otra persona cambia el costo de una partida
+        then: El total del proyecto se actualiza
   - id: BR-2a96107
     status: active
     title: Una propiedad cambia sola, sobre lo que la fila tiene en ese momento
@@ -142,6 +161,34 @@ rules:
         given: Una persona que no puede leer una fila de la colección
         when: Otra persona edita esa fila
         then: La primera no recibe ningún aviso que la nombre
+  - id: BR-38653c2
+    status: active
+    title: Una fórmula calcula un valor de la fila con lo que la propia fila guarda
+    rule: >-
+      Una colección puede tener propiedades de tipo fórmula. Una fórmula se escribe con un lenguaje propio (operaciones,
+      comparaciones, condiciones, funciones de texto, número, fecha y lista) y lee otras propiedades de la misma fila
+      por su nombre. Su resultado es un número, un texto, una casilla, una fecha o una lista, y la columna se trata como
+      una propiedad de ese tipo, así que se muestra, se filtra, se ordena, se agrupa y se calcula como tal. El valor no
+      se escribe a mano ni se guarda en la fila, se calcula cada vez que se lee, así que nunca muestra algo viejo. Una
+      fórmula mal escrita, que lee una propiedad que no existe, que mezcla tipos que no se pueden mezclar o que depende
+      de sí misma, se rechaza al guardar con un mensaje que dice qué pasa y, si hay propiedades parecidas, cuáles eran.
+    why: >-
+      Quien lleva un presupuesto o una lista de tareas necesita un total, un plazo o un estado que se deduce de otros
+      datos, y mantenerlo a mano se desactualiza el día en que alguien cambia un dato.
+    context: >-
+      Una fórmula puede leer otras fórmulas y rollups, con un tope de profundidad. La misma fórmula da el mismo
+      resultado en el portal, en la consulta del servidor y para los agentes. El texto de una fórmula, su tamaño y el
+      trabajo que puede hacer por celda tienen topes, y una celda que se pasa de ellos muestra un error en lugar de
+      colgar la vista.
+    scenarios:
+      - title: Un total se recalcula solo
+        given: Una colección con precio y cantidad, y una fórmula que los multiplica
+        when: Alguien cambia la cantidad de una fila
+        then: El total de esa fila muestra el valor nuevo sin que nadie lo edite
+      - title: Una fórmula con un nombre mal escrito
+        given: Una fórmula que lee la propiedad Prise
+        when: Se intenta guardar
+        then: Se rechaza y se sugiere Price
   - id: BR-3dcf9e7
     status: active
     title: Una propiedad obligatoria se exige al crear la fila y al escribir esa propiedad
@@ -160,6 +207,23 @@ rules:
         given: Filas antiguas sin valor en una propiedad que ahora es obligatoria
         when: Alguien edita otra propiedad de una de esas filas
         then: La edición se acepta
+  - id: BR-3de097e
+    status: active
+    title: Una propiedad que otra lee no se puede quitar ni cambiar de modo que la rompa
+    rule: >-
+      Una propiedad que lee una fórmula, o que un rollup de esta o de otra colección usa, no se puede quitar mientras
+      algo la lea, y el rechazo dice cuál fórmula o rollup la necesita. Si se renombra, las fórmulas que la nombran se
+      actualizan para seguir leyéndola. Una fórmula o un rollup no se puede marcar como obligatorio ni escribir a mano,
+      ni convertir desde otro tipo ni a otro tipo.
+    why: >-
+      Quitar en silencio una propiedad dejaría fórmulas y rollups que fallan en todas las filas sin que nadie sepa por
+      qué.
+    context: La misma regla aplica a quien cambia la forma desde el portal y a un agente.
+    scenarios:
+      - title: Quitar una propiedad que una fórmula lee
+        given: Una fórmula que usa el precio
+        when: Se intenta quitar el precio
+        then: Se rechaza nombrando la fórmula que lo usa
   - id: BR-4d9da78
     status: active
     title: Cambiar la forma de una colección y completar sus filas es una sola operación
@@ -339,6 +403,23 @@ rules:
         given: Una fecha que empieza el día 10
         when: Se intenta guardar con fin el día 8
         then: Se rechaza
+  - id: BR-6571dc2
+    status: active
+    title: Un rollup nunca cuenta una fila que quien mira no puede abrir
+    rule: >-
+      Al calcular un rollup para alguien, las filas enlazadas que esa persona no puede abrir, y las que están en la
+      papelera, no se leen y por lo tanto no se cuentan, no se suman y no se muestran. Dos personas pueden ver valores
+      distintos en el mismo rollup, y eso es lo correcto. Vale igual para el portal y para los agentes, que tienen los
+      permisos de la persona dueña de su token.
+    why: >-
+      Un total que incluye una fila secreta le dice a quien lo mira que la fila existe y cuánto vale, aunque no pueda
+      abrirla.
+    context: Lo mismo vale al filtrar, ordenar, agrupar y calcular totales de la vista por un rollup.
+    scenarios:
+      - title: Una partida cerrada no suma
+        given: Un proyecto con tres partidas y una persona que solo puede abrir dos
+        when: Esa persona lee el rollup de suma
+        then: La suma no incluye la tercera partida
   - id: BR-65a2252
     status: active
     title: Una ventana de fechas trae todas las filas que alcanzan esos días, y avisa si no caben
@@ -602,6 +683,28 @@ rules:
         given: Una colección con una plantilla por defecto
         when: Alguien agrega una tarjeta en una columna del tablero
         then: La tarjeta nace con el contenido y los valores de esa plantilla y con el valor de la columna
+  - id: BR-a4aa5e3
+    status: active
+    title: Un rollup resume una propiedad de las filas que una relación enlaza
+    rule: >-
+      Una colección puede tener propiedades de tipo rollup. Un rollup sigue una relación de la colección, toma una
+      propiedad de las filas enlazadas y la resume con un cálculo (contar, sumar, promedio, mínimo, máximo, mediana,
+      porcentajes de llenado, o mostrar los valores originales). Los cálculos que se ofrecen son los que tienen sentido
+      para el tipo de la propiedad elegida, y el resultado es un valor del tipo que corresponde, que se filtra, se
+      ordena y se agrupa como cualquier otro. Los valores originales sirven para mostrar y para los agentes, pero no se
+      pueden filtrar, ordenar ni agrupar. Un rollup puede leer una propiedad de otra colección que a su vez sea un
+      rollup o una fórmula, hasta un tope de profundidad, y nunca puede formar un ciclo.
+    why: >-
+      El total de partidas de un proyecto, el avance de sus tareas o la próxima fecha de entrega viven en filas de otra
+      colección, y sin esto cada quien los suma a mano o los exporta a una planilla.
+    context: >-
+      Un rollup lee solo filas de la colección a la que apunta la relación y no se puede cambiar de relación sin volver
+      a elegir la propiedad y el cálculo.
+    scenarios:
+      - title: Suma de las partidas de un proyecto
+        given: Un proyecto enlazado con tres partidas de 10, 20 y 30
+        when: Se lee el rollup que suma el costo
+        then: Muestra 60
   - id: BR-aa08c26
     status: active
     title: Una fila sin valor no cumple lo que pide un valor
@@ -660,6 +763,20 @@ rules:
         given: Una plantilla por defecto que alguien borró por error
         when: Alguien la restaura desde la papelera
         then: Vuelve a la lista de plantillas de la colección y la colección queda sin plantilla por defecto
+  - id: BR-b52cd07
+    status: active
+    title: Los totales de una vista dicen qué porcentaje de las filas tiene valor
+    rule: >-
+      Además de contar y sumar, el pie de una vista puede mostrar el porcentaje de filas con valor y el porcentaje de
+      filas vacías de una propiedad. El resultado es el mismo para las propiedades guardadas y para las calculadas, y
+      cuando no hay filas el porcentaje no se inventa.
+    why: Saber que el 40 % de las tareas no tiene responsable dice más que saber que son 12 de 30.
+    context: Un porcentaje de una propiedad calculada se mide entre las filas que se pudieron calcular.
+    scenarios:
+      - title: Porcentaje con valor
+        given: Cuatro filas y una propiedad con valor en tres
+        when: Se pide el porcentaje con valor
+        then: El resultado es 75 %
   - id: BR-c00503a
     status: active
     title: «Hoy» y «yo» en una plantilla se resuelven al crear la fila, para quien la crea
@@ -810,6 +927,25 @@ rules:
         given: Una fila que figura en el orden de un tablero
         when: Se borra para siempre
         then: El tablero ya no la lleva en su orden ni la cuenta en ninguna relación
+  - id: BR-dcdbcbc
+    status: active
+    title: Una celda que no se puede calcular lo dice, y no estropea el resto
+    rule: >-
+      Cuando una fórmula o un rollup no se puede calcular para una fila (por ejemplo, una división por cero, un texto
+      que no es un número o un dato que depende de otro que falló), esa celda muestra un error con su código y su
+      motivo, y las demás celdas y filas se calculan con normalidad. Un agente recibe el mismo error en la propiedad de
+      la fila. Los totales de la vista no cuentan esas celdas como valores y dicen cuántas fallaron.
+    why: >-
+      Un error escondido como una celda vacía hace pensar que no hay dato, y un error que tumba la tabla entera por una
+      sola fila impide trabajar con las demás.
+    context: >-
+      Si el cálculo de la vista pide mirar más filas de las que se pueden calcular de una vez, la consulta se rechaza
+      con un mensaje que pide acotar el filtro, en lugar de devolver algo parcial sin decirlo.
+    scenarios:
+      - title: Una división por cero
+        given: Una fórmula que divide por la cantidad y una fila con cantidad 0
+        when: Se lee la tabla
+        then: Esa celda muestra un error de división por cero y las otras filas muestran su resultado
   - id: BR-dd13106
     status: active
     title: Arrastrar o estirar una barra cambia las fechas de esa fila y nada más

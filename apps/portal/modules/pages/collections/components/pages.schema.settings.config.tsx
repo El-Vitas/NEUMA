@@ -3,9 +3,11 @@
 import { PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import type { PageRelatedRow, PageSchemaProperty } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
+import { PagesSchemaSettingsConfigFormula } from './pages.schema.settings.config.formula';
 import { PagesSchemaSettingsConfigNumber } from './pages.schema.settings.config.number';
 import { PagesSchemaSettingsConfigPerson } from './pages.schema.settings.config.person';
 import { PagesSchemaSettingsConfigRelation } from './pages.schema.settings.config.relation';
+import { PagesSchemaSettingsConfigRollup } from './pages.schema.settings.config.rollup';
 import { PagesSchemaSettingsConfigUniqueId } from './pages.schema.settings.config.unique-id';
 
 interface IProps {
@@ -25,6 +27,10 @@ export const PagesSchemaSettingsConfig = ({ collections, editor, property }: IPr
       return <PagesSchemaSettingsConfigUniqueId editor={editor} property={property} />;
     case PAGE_PROPERTY_TYPE.RELATION:
       return <PagesSchemaSettingsConfigRelation collections={collections} editor={editor} property={property} />;
+    case PAGE_PROPERTY_TYPE.FORMULA:
+      return <PagesSchemaSettingsConfigFormula editor={editor} property={property} />;
+    case PAGE_PROPERTY_TYPE.ROLLUP:
+      return <PagesSchemaSettingsConfigRollup editor={editor} property={property} />;
     default:
       return null;
   }

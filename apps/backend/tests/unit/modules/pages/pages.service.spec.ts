@@ -113,6 +113,7 @@ const createSchemaRepository = (): PageSchemaRepositoryContract => ({
   findAttachableFileIds: () => Promise.resolve(new Set<string>()),
   findCollectionIds: () => Promise.resolve(new Set<string>()),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
+  listRollupDependents: () => Promise.resolve([]),
   rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),
   listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([]),

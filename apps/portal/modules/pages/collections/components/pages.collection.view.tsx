@@ -17,6 +17,8 @@ interface IProps {
   /** The counts and calculations, which arrive after the rows. */
   readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
+  /** Where to read what changed after these rows were read; null when the view cannot follow changes. */
+  readonly changesCursor: null | string;
   readonly outcome: PageViewOutcome | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
@@ -29,6 +31,7 @@ interface IProps {
 export const PagesCollectionView = async ({
   aggregates,
   canEdit,
+  changesCursor,
   outcome,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   properties,
@@ -44,19 +47,49 @@ export const PagesCollectionView = async ({
 
   const renderer = PageViewRenderers[view.type];
   if (renderer.shape === PAGE_VIEW_SHAPE.FLAT && outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS) {
-    return renderer.render({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view });
+    return renderer.render({
+      aggregates,
+      canEdit,
+      changesCursor,
+      outcome,
+      personOptions,
+      properties,
+      schema,
+      spaceId,
+      view,
+    });
   }
   if (
     renderer.shape === 'EITHER' &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS)
   ) {
-    return renderer.render({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view });
+    return renderer.render({
+      aggregates,
+      canEdit,
+      changesCursor,
+      outcome,
+      personOptions,
+      properties,
+      schema,
+      spaceId,
+      view,
+    });
   }
   if (
     renderer.shape === PAGE_VIEW_SHAPE.GROUPED &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.BANDED_ROWS)
   ) {
-    return renderer.render({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view });
+    return renderer.render({
+      aggregates,
+      canEdit,
+      changesCursor,
+      outcome,
+      personOptions,
+      properties,
+      schema,
+      spaceId,
+      view,
+    });
   }
   return <FormErrorBanner message={t('collection.shapeMismatch')} />;
 };

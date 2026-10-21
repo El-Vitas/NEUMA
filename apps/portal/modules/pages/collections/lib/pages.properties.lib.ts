@@ -1,9 +1,11 @@
 import type { PagePropertyContext, PagePropertyType } from '@neuma/shared';
 import {
+  formatPageComputedNumber,
   formatPagePropertyValue,
   formatPageUniqueId,
   getDefaultPagePropertyValue,
   getPagePropertyLogicalType,
+  isPageComputedPropertyType,
   isPageDateValue,
   isPagePropertySystemManaged,
   isPagePropertyValueEmpty,
@@ -11,6 +13,7 @@ import {
   PAGE_PROPERTY_LOGICAL_TYPE,
   PAGE_PROPERTY_TYPE,
   pagePropertyRequiresPersonDirectory,
+  readPageEffectivePropertyType,
   toValueList,
 } from '@neuma/shared';
 import type {
@@ -112,8 +115,28 @@ export const formatPropertyValueForDisplay = (
   if (property.type === PAGE_PROPERTY_TYPE.UNIQUE_ID && typeof value === 'number') {
     return formatPageUniqueId(property.config.prefix, value);
   }
-  return formatPagePropertyValue(property.type, value, toPropertyContext(property));
+  const shown = readShownProperty(property);
+  if (shown.type === PAGE_PROPERTY_TYPE.NUMBER && typeof value === 'number' && hasComputedDefinition(property)) {
+    return formatPageComputedNumber(value, shown.config);
+  }
+  return formatPagePropertyValue(shown.type, value, toPropertyContext(shown));
 };
+
+const hasComputedDefinition = (property: PageSchemaProperty): boolean =>
+  property.computed?.formula != null || property.computed?.rollup != null;
+
+/**
+ * A formula or rollup is shown the way a stored property of the type of its result is, so a number, a date or a
+ * checkbox it gives reads exactly as it would in a column of that type.
+ */
+export const readShownProperty = (property: PageSchemaProperty): PageSchemaProperty =>
+  isPageComputedPropertyType(property.type)
+    ? { ...property, options: null, type: readPageEffectivePropertyType(property) }
+    : property;
+
+/** The original values a rollup shows are a list of any kind of value, read as words. */
+export const isComputedListProperty = (property: PageSchemaProperty): boolean =>
+  property.computed?.formula?.resultType === 'LIST' || property.computed?.rollup?.resultType === 'LIST';
 
 export const hasPropertyValueToShow = (value: PagePropertyValue | undefined): boolean =>
   value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);

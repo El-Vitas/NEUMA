@@ -1,5 +1,11 @@
 import type { PageCollectionReference, Result } from '@neuma/shared';
-import { canEditContent, canManageWorkspace, extractPageCollectionReferences, USER_ROLE } from '@neuma/shared';
+import {
+  canEditContent,
+  canManageWorkspace,
+  extractPageCollectionReferences,
+  isPageComputedPropertyType,
+  USER_ROLE,
+} from '@neuma/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -41,7 +47,12 @@ import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants'
 import { buildPageDocumentTitle, canEditPage } from '@/modules/pages/lib/pages.lib';
 import { getPageBacklinks } from '@/modules/pages/links/server/queries/pages.backlinks.queries';
 import type { PagesEditorBundle, PagesSidePanelBundle } from '@/modules/pages/navigation/types/pages.side-panel.types';
-import { getPageSpaceId, getPages, getPagesHolding } from '@/modules/pages/server/queries/pages.queries';
+import {
+  getPageComputedValues,
+  getPageSpaceId,
+  getPages,
+  getPagesHolding,
+} from '@/modules/pages/server/queries/pages.queries';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import { getSpaceMembers, getSpaces } from '@/modules/spaces/server/queries/spaces.queries';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
@@ -231,6 +242,7 @@ const buildPageEditorBundle = async (
     resolveParentSchema(spaceId, targetPage.parentId),
   ]);
   const ownSchema = ownSchemaResult.isOk() ? ownSchemaResult.getValue() : null;
+  const pageWithComputed = await withComputedValues(spaceId, targetPage, parentSchema);
   const personOptions = await resolvePersonOptionsIfNeeded(
     spaceId,
     [ownSchema, parentSchema],
@@ -255,10 +267,24 @@ const buildPageEditorBundle = async (
     collectionSection,
     embeddedCollections,
     isFavorite: resolveIsFavorite(favoritesResult, targetPage.id),
-    page: targetPage,
+    page: pageWithComputed,
     parentSchema,
     personOptions,
   };
+};
+
+/** The list leaves out the formulas and rollups, so a row that has some asks for its own values. */
+const withComputedValues = async (
+  spaceId: string,
+  page: PageSummary,
+  parentSchema: PageSchema | null,
+): Promise<PageSummary> => {
+  const hasComputedProperties = parentSchema?.properties.some((property) => isPageComputedPropertyType(property.type));
+  if (hasComputedProperties !== true) return page;
+  const computed = await getPageComputedValues(spaceId, page.id);
+  if (computed.isFail()) return page;
+  const { computedErrors, propertyValues } = computed.getValue();
+  return { ...page, ...(computedErrors === undefined ? {} : { computedErrors }), propertyValues };
 };
 
 /** The panel edits its page through the block channel too, so it starts from that page's own blocks. */
@@ -335,7 +361,11 @@ export default async function Page({ params, searchParams }: IProps) {
         currentUserId={user?.id}
         embeddedCollections={mainBundle.embeddedCollections}
         isFavorite={mainBundle.isFavorite}
-        pages={withBlockEditorContent(pages, pageId, blockStart)}
+        pages={withBlockEditorContent(
+          pages.map((entry) => (entry.id === mainBundle.page.id ? mainBundle.page : entry)),
+          pageId,
+          blockStart,
+        )}
         panelBundle={panelBundle}
         parentSchema={mainBundle.parentSchema}
         personOptions={mainBundle.personOptions}

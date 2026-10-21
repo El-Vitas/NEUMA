@@ -36,12 +36,13 @@ export const PageViewRenderers: PageViewRendererRegistry = {
     shape: 'EITHER',
   },
   [PAGE_VIEW_TYPE.BOARD]: {
-    render: ({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view }) => (
+    render: ({ aggregates, canEdit, changesCursor, outcome, personOptions, properties, schema, spaceId, view }) => (
       <PagesCollectionBoard
         activeViewName={view.name}
         aggregates={aggregates}
         bands={readBoardBands(outcome)}
         canEdit={canEdit}
+        changesCursor={changesCursor}
         groupByKey={readPageViewConfiguration(view.configuration).groupBy ?? ''}
         isManualOrder={readPageViewConfiguration(view.configuration).sorts.length === 0}
         personOptions={personOptions}
@@ -49,6 +50,7 @@ export const PageViewRenderers: PageViewRendererRegistry = {
         schema={schema}
         spaceId={spaceId}
         subGroupByKey={readPageViewConfiguration(view.configuration).subGroupBy ?? ''}
+        view={view}
         viewId={view.id}
       />
     ),

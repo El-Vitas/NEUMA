@@ -31,6 +31,21 @@ const readZoneParts = (instant: number, timeZone: string): Record<string, number
   return parts;
 };
 
+export interface PageZonedParts {
+  readonly day: number;
+  readonly hour: number;
+  readonly minute: number;
+  readonly month: number;
+  readonly second: number;
+  readonly year: number;
+}
+
+/** The wall clock of an instant for someone in the zone. */
+export const readPageZonedParts = (instant: number, timeZone: string): PageZonedParts => {
+  const { day = 1, hour = 0, minute = 0, month = 1, second = 0, year = 1970 } = readZoneParts(instant, timeZone);
+  return { day, hour, minute, month, second, year };
+};
+
 const toDayText = (year: number, month: number, day: number): string =>
   `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 

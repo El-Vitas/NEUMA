@@ -26,6 +26,7 @@ import { restorePageTool } from '../tools/mcp.restore-page.tool';
 import { saveTemplateTool } from '../tools/mcp.save-template.tool';
 import { searchTool } from '../tools/mcp.search.tool';
 import { searchDiagramIconsTool } from '../tools/mcp.search-diagram-icons.tool';
+import { testFormulaTool } from '../tools/mcp.test-formula.tool';
 import { trashPageTool } from '../tools/mcp.trash-page.tool';
 import { updateBlockTool } from '../tools/mcp.update-block.tool';
 import { updateCollectionColumnsTool } from '../tools/mcp.update-collection-columns.tool';
@@ -62,6 +63,7 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = [
   getCollectionTool,
   queryCollectionTool,
   collectionChangesTool,
+  testFormulaTool,
   createCollectionTool,
   createRowTool,
   listTemplatesTool,

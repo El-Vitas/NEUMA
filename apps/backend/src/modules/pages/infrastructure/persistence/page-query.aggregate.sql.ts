@@ -17,6 +17,10 @@ const overProperty = (
       return frag`count(*) FILTER (WHERE ${negate(isEmptyCell(property, cell))})`;
     case PAGE_VIEW_CALCULATION.COUNT_EMPTY:
       return frag`count(*) FILTER (WHERE ${isEmptyCell(property, cell)})`;
+    case PAGE_VIEW_CALCULATION.PERCENT_FILLED:
+      return frag`(count(*) FILTER (WHERE ${negate(isEmptyCell(property, cell))}))::numeric / NULLIF(count(*), 0)`;
+    case PAGE_VIEW_CALCULATION.PERCENT_EMPTY:
+      return frag`(count(*) FILTER (WHERE ${isEmptyCell(property, cell)}))::numeric / NULLIF(count(*), 0)`;
     case PAGE_VIEW_CALCULATION.SUM:
       return frag`sum(${numberOf(cell)})`;
     case PAGE_VIEW_CALCULATION.AVERAGE:

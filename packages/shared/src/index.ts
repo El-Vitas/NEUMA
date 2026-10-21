@@ -188,6 +188,62 @@ export type {
 } from './page-document/page-document.types.js';
 export type { ExportedPageFile, PageForExport } from './page-export.lib.js';
 export { writePageAsMarkdownFile, writePagesAsMarkdownFiles } from './page-export.lib.js';
+export {
+  readPageComputedConfig,
+  validatePageComputedConfig,
+  writePageComputedConfig,
+} from './page-formula/page-formula.config.lib.js';
+export {
+  PAGE_FORMULA_MAX_DEPTH,
+  PAGE_FORMULA_MAX_NODES,
+  PAGE_FORMULA_RESULT_TYPE_VALUES,
+  PAGE_FORMULA_RUNTIME_ERROR,
+  PAGE_FORMULA_SAVE_ERROR,
+  PAGE_FORMULA_SOURCE_MAX_LENGTH,
+  PAGE_FORMULA_STEP_BUDGET,
+  PAGE_FORMULA_TEXT_MAX_LENGTH,
+  PAGE_FORMULA_TYPE,
+  PAGE_ROLLUP_MAX_DEPTH,
+} from './page-formula/page-formula.constants.js';
+export { evaluatePageFormula } from './page-formula/page-formula.evaluate.lib.js';
+export { findPageReferenceCycle, measurePageReferenceDepth } from './page-formula/page-formula.graph.lib.js';
+export { parsePageFormula, parsePageFormulaTree } from './page-formula/page-formula.parse.lib.js';
+export {
+  isPageComputedPropertyType,
+  readPageComputedEffectiveType,
+  readPageEffectivePropertyType,
+  readPageFormulaPropertyType,
+  readPageFormulaStoredValue,
+} from './page-formula/page-formula.property.lib.js';
+export { listPageFormulaReferences } from './page-formula/page-formula.references.lib.js';
+export { renamePageFormulaProperties, renamePageFormulaProperty } from './page-formula/page-formula.rename.lib.js';
+export {
+  computePageRollup,
+  listPageRollupCalculationsFor,
+  PAGE_ROLLUP_SHOW_ORIGINAL,
+  readPageRollupResultType,
+  readPageRollupTargetType,
+} from './page-formula/page-formula.rollup.lib.js';
+export type { PageFormulaTraceStep } from './page-formula/page-formula.trace.lib.js';
+export { tracePageFormula } from './page-formula/page-formula.trace.lib.js';
+export type {
+  PageComputedConfig,
+  PageFormulaCellError,
+  PageFormulaContext,
+  PageFormulaDefinition,
+  PageFormulaNode,
+  PageFormulaOutcome,
+  PageFormulaPropertyInfo,
+  PageFormulaRuntimeErrorCode,
+  PageFormulaSaveError,
+  PageFormulaSaveErrorCode,
+  PageFormulaScalar,
+  PageFormulaScope,
+  PageFormulaType,
+  PageFormulaValue,
+  PageRollupCalculation,
+  PageRollupDefinition,
+} from './page-formula/page-formula.types.js';
 export { readMarkdownInline, readPageLinkAddress } from './page-markdown.inline.lib.js';
 export {
   writeBlocksAsAnchoredMarkdown,
@@ -248,6 +304,7 @@ export {
   readPagePropertyValue,
 } from './page-property/page-property.lib.js';
 export {
+  formatPageComputedNumber,
   formatPageNumber,
   formatPageUniqueId,
   fractionToPercent,
@@ -290,66 +347,6 @@ export {
   PAGE_STATUS_GROUP_VALUES,
 } from './page-property/page-property.types.js';
 export { isStringList, toValueList } from './page-property/page-property.value.lib.js';
-export type { PageVerificationStatus } from './page-verification/page-verification.definitions.js';
-export { PAGE_VERIFICATION_STATUSES } from './page-verification/page-verification.definitions.js';
-export { resolvePageVerificationStatus } from './page-verification/page-verification.lib.js';
-export {
-  computePageCalculation,
-  isPageCalculationAPortion,
-  listPageCalculationsFor,
-} from './page-view/page-view.calculation.lib.js';
-export {
-  layoutPageCalendarLanes,
-  listPageCalendarDays,
-  listPageCalendarWeekDays,
-  readPageCalendarMonth,
-  shiftPageCalendarDate,
-  shiftPageCalendarMonth,
-} from './page-view/page-view.calendar.lib.js';
-export type {
-  PageTimelineBar,
-  PageTimelineChangeInput,
-  PageTimelineChangeMode,
-  PageTimelineTick,
-} from './page-view/page-view.timeline.lib.js';
-export {
-  buildPageTimelineChange,
-  layoutPageTimelineBar,
-  listPageTimelineTicks,
-  readPageTimelineOffset,
-  readPageTimelinePeriod,
-  readPageTimelineWindow,
-  shiftPageTimelineAnchor,
-} from './page-view/page-view.timeline.lib.js';
-export { listPageChartMeasuresFor, readPageChartValue } from './page-view/page-view.chart.lib.js';
-export type { PageViewDefinition } from './page-view/page-view.definitions.js';
-export { makeSchemaViewDefault, removeSchemaView } from './page-view/page-view.editing.lib.js';
-export type { PageDateArgument } from './page-view/page-view.date-argument.lib.js';
-export { readPageDateArgument } from './page-view/page-view.date-argument.lib.js';
-export type { PageFilterContext } from './page-view/page-view.filter.lib.js';
-export {
-  getPageFilterOperators,
-  hasPageFilterPredicate,
-  matchesMissingPageValue,
-  matchesPageFilter,
-} from './page-view/page-view.filter.lib.js';
-export {
-  PAGE_FILTER_ME,
-  PAGE_FILTER_ME_PROPERTY_TYPES,
-  PAGE_RELATIVE_DATE,
-  PAGE_RELATIVE_DATE_PROPERTY_TYPES,
-  PAGE_RELATIVE_DATE_VALUES,
-  PAGE_RELATIVE_MAXIMUM_DAYS,
-  PAGE_RELATIVE_NEXT_DAYS_PREFIX,
-  PAGE_RELATIVE_PAST_DAYS_PREFIX,
-} from './page-view/page-view.relative.constants.js';
-export {
-  findInvalidPageFilterToken,
-  readPageRelativeDate,
-  resolvePageFilter,
-  resolvePageRelativeRange,
-} from './page-view/page-view.relative.lib.js';
-export type { PageDayRange, PageFilterViewer, PageRelativeDate } from './page-view/page-view.relative.types.js';
 export {
   PAGE_DEFAULT_TEMPLATE_KEY,
   PAGE_TEMPLATE_KEY,
@@ -371,13 +368,34 @@ export type {
   PageTemplateVariables,
   PageTemplateViewer,
 } from './page-template/page-template.types.js';
+export type { PageVerificationStatus } from './page-verification/page-verification.definitions.js';
+export { PAGE_VERIFICATION_STATUSES } from './page-verification/page-verification.definitions.js';
+export { resolvePageVerificationStatus } from './page-verification/page-verification.lib.js';
 export {
-  addPageDays,
-  isValidPageTimeZone,
-  readPageLocalDay,
-  readPageWeekday,
-  readPageZonedDayStart,
-} from './page-view/page-view.zone.lib.js';
+  computePageCalculation,
+  isPageCalculationAPortion,
+  listPageCalculationsFor,
+} from './page-view/page-view.calculation.lib.js';
+export {
+  layoutPageCalendarLanes,
+  listPageCalendarDays,
+  listPageCalendarWeekDays,
+  readPageCalendarMonth,
+  shiftPageCalendarDate,
+  shiftPageCalendarMonth,
+} from './page-view/page-view.calendar.lib.js';
+export { listPageChartMeasuresFor, readPageChartValue } from './page-view/page-view.chart.lib.js';
+export type { PageDateArgument } from './page-view/page-view.date-argument.lib.js';
+export { readPageDateArgument } from './page-view/page-view.date-argument.lib.js';
+export type { PageViewDefinition } from './page-view/page-view.definitions.js';
+export { makeSchemaViewDefault, removeSchemaView } from './page-view/page-view.editing.lib.js';
+export type { PageFilterContext } from './page-view/page-view.filter.lib.js';
+export {
+  getPageFilterOperators,
+  hasPageFilterPredicate,
+  matchesMissingPageValue,
+  matchesPageFilter,
+} from './page-view/page-view.filter.lib.js';
 export { readPageDateBucketKey } from './page-view/page-view.grouping.lib.js';
 export {
   getPageViewDefinition,
@@ -386,12 +404,6 @@ export {
   pageViewSupportsGrouping,
   readPageViewShape,
 } from './page-view/page-view.lib.js';
-export {
-  EMPTY_PAGE_VIEW_CONFIGURATION,
-  pageViewConfigurationSchema,
-  rootFilterSchema as pageFilterSchema,
-  readPageViewConfiguration,
-} from './page-view/page-view.schemas.js';
 export { diffPageViewConfigurations } from './page-view/page-view.operations.diff.lib.js';
 export { applyPageViewOperation } from './page-view/page-view.operations.lib.js';
 export type {
@@ -447,7 +459,45 @@ export {
   PAGE_QUERY_LIMITS,
   PAGE_QUERY_REDUCER_KIND,
 } from './page-view/page-view.query.types.js';
+export {
+  PAGE_FILTER_ME,
+  PAGE_FILTER_ME_PROPERTY_TYPES,
+  PAGE_RELATIVE_DATE,
+  PAGE_RELATIVE_DATE_PROPERTY_TYPES,
+  PAGE_RELATIVE_DATE_VALUES,
+  PAGE_RELATIVE_MAXIMUM_DAYS,
+  PAGE_RELATIVE_NEXT_DAYS_PREFIX,
+  PAGE_RELATIVE_PAST_DAYS_PREFIX,
+} from './page-view/page-view.relative.constants.js';
+export {
+  findInvalidPageFilterToken,
+  readPageRelativeDate,
+  resolvePageFilter,
+  resolvePageRelativeRange,
+} from './page-view/page-view.relative.lib.js';
+export type { PageDayRange, PageFilterViewer, PageRelativeDate } from './page-view/page-view.relative.types.js';
+export {
+  EMPTY_PAGE_VIEW_CONFIGURATION,
+  pageViewConfigurationSchema,
+  readPageViewConfiguration,
+  rootFilterSchema as pageFilterSchema,
+} from './page-view/page-view.schemas.js';
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
+export type {
+  PageTimelineBar,
+  PageTimelineChangeInput,
+  PageTimelineChangeMode,
+  PageTimelineTick,
+} from './page-view/page-view.timeline.lib.js';
+export {
+  buildPageTimelineChange,
+  layoutPageTimelineBar,
+  listPageTimelineTicks,
+  readPageTimelineOffset,
+  readPageTimelinePeriod,
+  readPageTimelineWindow,
+  shiftPageTimelineAnchor,
+} from './page-view/page-view.timeline.lib.js';
 export type {
   PageCalendarDay,
   PageCalendarLane,
@@ -498,6 +548,13 @@ export {
   PAGE_VIEW_CALCULATION_VALUES,
 } from './page-view/page-view.types.js';
 export { readVisiblePropertyKeys } from './page-view/page-view.visibility.lib.js';
+export {
+  addPageDays,
+  isValidPageTimeZone,
+  readPageLocalDay,
+  readPageWeekday,
+  readPageZonedDayStart,
+} from './page-view/page-view.zone.lib.js';
 export { Result } from './result.js';
 export type {
   PageContentDocument,

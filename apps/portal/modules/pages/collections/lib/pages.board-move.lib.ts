@@ -1,5 +1,11 @@
 import type { PageGroupByMode } from '@neuma/shared';
-import { canPagePropertyGroupBoard, PAGE_GROUP_BY_MODE, PAGE_PROPERTY_TYPE, UNASSIGNED_GROUP_KEY } from '@neuma/shared';
+import {
+  canPagePropertyGroupBoard,
+  PAGE_GROUP_BY_MODE,
+  PAGE_PROPERTY_TYPE,
+  readPageEffectivePropertyType,
+  UNASSIGNED_GROUP_KEY,
+} from '@neuma/shared';
 import type { PageBoardGridDropTarget } from '../types/pages.board-drag.types';
 import type {
   BoardAxisInput,
@@ -71,7 +77,8 @@ export const buildBoardMoveValues = ({
 }: BoardValuesInput): BoardMoveWrite => {
   const grouping = properties.find((property) => property.key === groupByKey);
   const banding = properties.find((property) => property.key === subGroupByKey);
-  const changesColumn = move.changesGroup && grouping !== undefined && canPagePropertyGroupBoard(grouping.type);
+  const changesColumn =
+    move.changesGroup && grouping !== undefined && canPagePropertyGroupBoard(readPageEffectivePropertyType(grouping));
   const afterColumn = changesColumn
     ? addAxisWrite(
         { listChanges: {}, values: {} },

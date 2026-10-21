@@ -26,6 +26,7 @@ const status: PageSchemaProperty = {
 
 const resultWith = (reducer: PageQueryResult['reducers'][string]): PageQueryResult => ({
   attachedFiles: [],
+  changesCursor: 'cursor',
   reducers: { rows: reducer },
   relatedRows: [],
   rows: { a: rowOf('a'), b: rowOf('b') },

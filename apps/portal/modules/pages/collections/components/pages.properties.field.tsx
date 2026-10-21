@@ -17,7 +17,12 @@ import {
   getNumberPropertyValue,
   getStringPropertyValue,
 } from '../lib/pages.properties.lib';
-import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
+import type {
+  PageComputedError,
+  PagePersonOption,
+  PagePropertyValue,
+  PageSchemaProperty,
+} from '../types/pages.schema.types';
 import { PagesPropertiesCheckboxField } from './pages.properties.checkbox-field';
 import { PagesPropertiesDateField } from './pages.properties.date-field';
 import { PagesPropertiesFilesField } from './pages.properties.files-field';
@@ -34,6 +39,8 @@ interface IProps {
   /** The files of the row's own page, which a files property chooses from. */
   readonly attachments?: readonly AttachmentSummary[];
   readonly claimsFocus?: boolean;
+  /** Why a formula or rollup could not be computed in this row. */
+  readonly computedError?: PageComputedError | undefined;
   readonly disabled: boolean;
   /** Typed values are committed on blur; chosen values do not need it. */
   readonly onBlur?: () => void;
@@ -50,6 +57,7 @@ export const PagesPropertiesField = ({
   ariaLabelledBy,
   attachments = EMPTY_PAGE_ATTACHMENTS,
   claimsFocus = false,
+  computedError,
   disabled,
   onBlur,
   onChange,
@@ -67,7 +75,12 @@ export const PagesPropertiesField = ({
   if (isPagePropertySystemManaged(property.type)) {
     return (
       <span className="block min-h-11 content-center px-2 text-sm" id={fieldId}>
-        <PagesPropertyValue personOptions={personOptions} property={property} value={value} />
+        <PagesPropertyValue
+          computedError={computedError}
+          personOptions={personOptions}
+          property={property}
+          value={value}
+        />
       </span>
     );
   }

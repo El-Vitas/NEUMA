@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BLOCK_SYNC_COMMAND } from '../constants/block-sync.constants';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 
@@ -20,6 +21,21 @@ export const syncedBlockSchema = z.object({
 export const blockSyncResponseSchema = z.object({
   blocks: z.array(syncedBlockSchema),
   revoked: z.array(z.string()).optional(),
+});
+
+/** What a transaction read back from disk must look like before it is sent again: the disk is not trusted. */
+export const blockWireOperationSchema = z.object({
+  args: z.unknown(),
+  command: z.enum([
+    BLOCK_SYNC_COMMAND.applyText,
+    BLOCK_SYNC_COMMAND.listAfter,
+    BLOCK_SYNC_COMMAND.listBefore,
+    BLOCK_SYNC_COMMAND.listRemove,
+    BLOCK_SYNC_COMMAND.set,
+    BLOCK_SYNC_COMMAND.update,
+  ]),
+  path: z.array(z.string()),
+  pointer: z.object({ id: z.string(), table: z.literal('block') }),
 });
 
 export const blockLiveTokenResponseSchema = z.object({ token: z.string().min(1) });

@@ -2,6 +2,7 @@ import type { JsonObject } from '@neuma/db';
 import { DatabasePropertyType, DatabaseViewType } from '@neuma/db';
 import type { PageNumberFormat, PageOptionColor, PagePropertyOptionDraft, PageStatusGroup } from '@neuma/shared';
 import {
+  PAGE_FORMULA_SOURCE_MAX_LENGTH,
   PAGE_NUMBER_FORMAT_VALUES,
   PAGE_NUMBER_MAX_DECIMALS,
   PAGE_OPTION_COLOR_VALUES,
@@ -99,11 +100,42 @@ export class PageSchemaPropertyConfigDto {
   targetCollectionId?: string;
 }
 
+/** A rollup in the keys of the properties it reads; the server finds the related collection and the type of result. */
+export class PageSchemaRollupDto {
+  @IsString()
+  @MaxLength(SCHEMA_PROPERTY_KEY_MAX_LENGTH)
+  @MinLength(1)
+  relationPropertyKey!: string;
+
+  @IsString()
+  @MaxLength(SCHEMA_PROPERTY_KEY_MAX_LENGTH)
+  @MinLength(1)
+  targetPropertyKey!: string;
+
+  @IsString()
+  @MaxLength(SCHEMA_PROPERTY_KEY_MAX_LENGTH)
+  @MinLength(1)
+  calculation!: string;
+}
+
 export class PageSchemaPropertyDto {
   @IsString()
   @MaxLength(SCHEMA_PROPERTY_KEY_MAX_LENGTH)
   @MinLength(1)
   key!: string;
+
+  /** A formula property: its text, with the labels of the properties it reads. Without it the stored one is kept. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(PAGE_FORMULA_SOURCE_MAX_LENGTH)
+  formula?: string;
+
+  /** A rollup property. Without it the stored one is kept. */
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PageSchemaRollupDto)
+  rollup?: PageSchemaRollupDto;
 
   @IsString()
   @MaxLength(SCHEMA_LABEL_MAX_LENGTH)

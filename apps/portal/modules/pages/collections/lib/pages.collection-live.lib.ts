@@ -1,4 +1,9 @@
+import type { BlockCollectionMessage } from '../../block-sync/types/block-sync.types';
 import type { CollectionRefreshCoalescer } from '../types/pages.collection-live.types';
+
+/** Only a list of changed rows can be followed in place; anything else the server could not describe. */
+export const routeCollectionMessage = (message: BlockCollectionMessage, hasFollowers: boolean): 'follow' | 'refresh' =>
+  message.type === 'collection-changes' && hasFollowers ? 'follow' : 'refresh';
 
 /**
  * Turns a burst of change notices into one refresh. A notice that arrives while a refresh is running is kept and

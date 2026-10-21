@@ -6,10 +6,12 @@ import type { PagePropertyOption, UserRole } from '@neuma/shared';
 import {
   isPageTemplate,
   pickDefaultStatusOption,
+  readPageComputedConfig,
   readPagePropertyConfig,
   readPagePropertyOptions,
   toValueList,
   withPageDerivedValues,
+  writePageComputedConfig,
   writePagePropertyConfig,
 } from '@neuma/shared';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
@@ -19,6 +21,7 @@ import type {
   SchemaViewDefinition,
 } from '../../../../common/domain/schema.domain.types';
 import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
+import { NO_COMPUTED_CONFIG } from '../../../../common/domain/schema-property.constants';
 import {
   toSchemaPropertyDefinition,
   toSchemaViewDefinition,
@@ -32,7 +35,7 @@ import { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../../con
 import { readPageValues } from '../../domain/page.block.domain';
 import { PageAccessDeniedError } from '../../domain/page.error';
 import { buildValueRewriteOperations, diffPageValues } from '../../domain/page.operation.domain';
-import type { PageSchemaSideEffects } from '../../domain/page-schema.domain.types';
+import type { PageSchemaSideEffects, RollupDependent } from '../../domain/page-schema.domain.types';
 import type { PageViewer } from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
 import type {
@@ -67,6 +70,13 @@ const toViewTab = (view: SchemaViewDefinition) => ({
 const selectSchemaProperties = (properties: NeumaModels['PageSchemaProperty']) =>
   properties.select('config', 'key', 'label', 'options', 'required', 'type');
 
+/** The fields of the type plus, for a formula or a rollup, what it computes. */
+const toStoredConfig = (property: SchemaPropertyDefinition): JsonObject | null => {
+  const shared = writePagePropertyConfig(property.type, property.config);
+  const computed = writePageComputedConfig(property.type, property.computed ?? NO_COMPUTED_CONFIG);
+  return shared === null && computed === null ? null : ({ ...shared, ...computed } as JsonObject);
+};
+
 const toStoredOptions = (options: readonly PagePropertyOption[] | null) =>
   options === null
     ? null
@@ -93,6 +103,25 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
       .orderBy((property) => property.order.asc())
       .all();
     return properties.map(toSchemaPropertyDefinition);
+  }
+
+  async listRollupDependents(pageId: string): Promise<readonly RollupDependent[]> {
+    const rollups = await this.prisma.models.PageSchemaProperty.select('config', 'key', 'pageId')
+      .where({ type: DatabasePropertyType.ROLLUP })
+      .all();
+    return rollups.flatMap((stored) => {
+      const rollup = readPageComputedConfig(stored.config).rollup;
+      return rollup?.targetCollectionId === pageId && stored.pageId !== pageId
+        ? [
+            {
+              calculation: rollup.calculation,
+              collectionId: stored.pageId,
+              key: stored.key,
+              targetPropertyKey: rollup.targetPropertyKey,
+            },
+          ]
+        : [];
+    });
   }
 
   async listPersonPropertyKeys(pageIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>> {
@@ -147,7 +176,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
       await transaction.orm.public.PageSchemaProperty.where({ pageId }).deleteAndCount();
       await transaction.orm.public.PageSchemaProperty.createAndCount(
         properties.map((property, order) => ({
-          config: writePagePropertyConfig(property.type, property.config) as JsonObject | null,
+          config: toStoredConfig(property),
           key: property.key,
           label: property.label,
           nextValue:

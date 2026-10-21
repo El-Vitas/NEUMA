@@ -1,12 +1,17 @@
 import type { PageLifecycle } from '@neuma/db';
-import type { UserRole } from '@neuma/shared';
+import type { PageFormulaCellError, UserRole } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValues,
   SchemaViewDefinition,
 } from '../../../common/domain/schema.domain.types';
 import type { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../constants/pages.constants';
-import type { PageSchemaSideEffects, SchemaPropertyDraft } from '../domain/page-schema.domain.types';
+import type {
+  ComputedDraft,
+  PageSchemaSideEffects,
+  RollupDependent,
+  SchemaPropertyDraft,
+} from '../domain/page-schema.domain.types';
 import type { PageViewer } from './page.block.types';
 
 export type {
@@ -42,6 +47,21 @@ export interface DefinePageSchemaInput {
   readonly readShape?: PageSchemaShape;
 }
 
+/** A formula or rollup to check against a collection without saving it. */
+export interface PreviewComputedInput {
+  readonly computedDraft: ComputedDraft;
+  readonly pageId: string;
+  readonly role: UserRole;
+  readonly userId: string;
+  readonly workspaceId: string;
+}
+
+export interface PreviewedSchema {
+  /** The schema with the checked column last, its formula or rollup planned. */
+  readonly properties: readonly SchemaPropertyDefinition[];
+  readonly spaceId: string;
+}
+
 export interface PageRowAuthorshipSummary {
   readonly createdAt: Date;
   readonly createdById: string;
@@ -50,6 +70,8 @@ export interface PageRowAuthorshipSummary {
 }
 
 export interface PageRowSummary extends PageRowAuthorshipSummary {
+  /** The formulas and rollups of the row that could not be computed, with why (ADR 028). */
+  readonly computedErrors?: Readonly<Record<string, PageFormulaCellError>> | undefined;
   readonly id: string;
   readonly parentId: null | string;
   readonly spaceId: string;
@@ -102,6 +124,8 @@ export interface PageSchemaRepositoryContract {
     writer: PageViewer,
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED>;
   readonly getSchema: (pageId: string) => Promise<PageSchemaDefinition>;
+  /** The rollups of other collections that read a property of this one. */
+  readonly listRollupDependents: (pageId: string) => Promise<readonly RollupDependent[]>;
   readonly resolveSchemaProperties: (pageId: null | string) => Promise<readonly SchemaPropertyDefinition[]>;
   readonly listPersonPropertyKeys: (pageIds: readonly string[]) => Promise<ReadonlyMap<string, readonly string[]>>;
   readonly readRowsById: (

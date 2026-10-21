@@ -262,6 +262,24 @@ const uniqueIdDefinition: PagePropertyDefinition = {
     typeof value === 'number' ? formatPageUniqueId(context.config.prefix, value) : '',
 };
 
+/**
+ * A formula or rollup is computed on every read and never stored, so a write is always refused. What its value is
+ * (number, text, date) depends on its configuration: the engine reads it as the type of its result.
+ */
+const computedDefinition: PagePropertyDefinition = {
+  type: PAGE_PROPERTY_TYPE.FORMULA,
+  logicalType: PAGE_PROPERTY_LOGICAL_TYPE.TEXT,
+  capabilities: systemManagedCapabilities,
+  getDefaultValue: () => '',
+  isValidValue: () => false,
+  isEmptyValue: (value) => isBlankText(value) || isEmptyCollection(value),
+  toDisplayString: (value) => (isStringArray(value) ? value.join(', ') : toPlainText(value)),
+};
+
+const formulaDefinition: PagePropertyDefinition = computedDefinition;
+
+const rollupDefinition: PagePropertyDefinition = { ...computedDefinition, type: PAGE_PROPERTY_TYPE.ROLLUP };
+
 export const PAGE_PROPERTY_DEFINITIONS = {
   [PAGE_PROPERTY_TYPE.TITLE]: titleDefinition,
   [PAGE_PROPERTY_TYPE.RICH_TEXT]: richTextDefinition,
@@ -282,4 +300,6 @@ export const PAGE_PROPERTY_DEFINITIONS = {
   [PAGE_PROPERTY_TYPE.CREATED_BY]: createdByDefinition,
   [PAGE_PROPERTY_TYPE.EDITED_BY]: editedByDefinition,
   [PAGE_PROPERTY_TYPE.UNIQUE_ID]: uniqueIdDefinition,
+  [PAGE_PROPERTY_TYPE.FORMULA]: formulaDefinition,
+  [PAGE_PROPERTY_TYPE.ROLLUP]: rollupDefinition,
 } as const satisfies Record<PagePropertyType, PagePropertyDefinition>;

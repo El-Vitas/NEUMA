@@ -19,4 +19,6 @@ native_enum DatabasePropertyType {
   CREATED_BY = "CREATED_BY"
   EDITED_BY = "EDITED_BY"
   UNIQUE_ID = "UNIQUE_ID"
+  FORMULA = "FORMULA"
+  ROLLUP = "ROLLUP"
 }

@@ -1,8 +1,12 @@
 import type { JsonObject, JsonValue } from '@neuma/db';
 import type {
   AccessTokenPlace,
+  PageComputedConfig,
   PageContent,
   PageDateValue,
+  PageFormulaCellError,
+  PageFormulaOutcome,
+  PageFormulaTraceStep,
   PagePropertyConfig,
   PagePropertyOption,
   PagePropertyOptionDraft,
@@ -28,6 +32,8 @@ import type {
   queryCollectionInputSchema,
   queryCollectionOutputSchema,
   rowOutputSchema,
+  testFormulaInputSchema,
+  testFormulaOutputSchema,
   updateCollectionColumnsInputSchema,
   updateRowInputSchema,
   updateViewInputSchema,
@@ -37,6 +43,9 @@ export type McpCreateCollectionInput = z.infer<typeof createCollectionInputSchem
 export type McpQueryCollectionInput = z.infer<typeof queryCollectionInputSchema>;
 export type McpCollectionChangesInput = z.infer<typeof collectionChangesInputSchema>;
 export type McpCollectionChangesOutput = z.infer<typeof collectionChangesOutputSchema>;
+export type McpTestFormulaInput = z.infer<typeof testFormulaInputSchema>;
+export type McpTestFormulaOutput = z.infer<typeof testFormulaOutputSchema>;
+export type McpPreviewValue = McpTestFormulaOutput['rows'][number]['value'];
 export type McpCreateRowInput = z.infer<typeof createRowInputSchema>;
 export type McpUpdateRowInput = z.infer<typeof updateRowInputSchema>;
 export type McpMoveRowInput = z.infer<typeof moveRowInputSchema>;
@@ -154,8 +163,22 @@ export interface McpSchemaColumn {
   readonly type: string;
 }
 
+/** What a request says of a formula or a rollup column, in the names people read; the server turns them into keys. */
+export interface McpComputedDraft {
+  readonly formula: string | null;
+  readonly rollup: {
+    readonly calculation: string;
+    readonly relationPropertyKey: string;
+    readonly targetPropertyKey: string;
+  } | null;
+}
+
 /** A column as a request is shaping it: an option added in this request has no id until the collection is saved. */
 export interface McpColumnDraft extends McpSchemaColumn {
+  /** A formula or rollup the column has, as it is saved. */
+  readonly computed?: PageComputedConfig | undefined;
+  /** A formula or rollup the request gives; without it the column keeps the one it has. */
+  readonly computedDraft?: McpComputedDraft | null | undefined;
   readonly config: PagePropertyConfig;
   readonly options: readonly PagePropertyOptionDraft[] | null;
   readonly required: boolean;
@@ -201,7 +224,7 @@ export interface McpRow {
 }
 
 /** What describing a row needs of a column: the shape alone, and the settings when the collection has been read. */
-export type McpDescribedColumn = McpSchemaColumn & Partial<Pick<McpColumnDraft, 'config' | 'options'>>;
+export type McpDescribedColumn = McpSchemaColumn & Partial<Pick<McpColumnDraft, 'computed' | 'config' | 'options'>>;
 
 /** A column an agent asks to add, as the request names it. */
 export type McpNewColumn = NonNullable<McpColumnChanges['addColumns']>[number];
@@ -250,6 +273,16 @@ export interface McpCollectionService {
     userId: string,
     role: UserRole,
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
+  /** Tries a formula or a rollup on a few rows without saving it: its type, what it reads and its values. */
+  readonly previewComputed: (
+    input: McpActor & {
+      readonly computedDraft: McpComputedDraft;
+      readonly excludedRowIds: readonly string[];
+      readonly pageId: string;
+      readonly rowIds?: readonly string[] | undefined;
+      readonly trace: boolean;
+    },
+  ) => Promise<Result<McpComputedPreview, McpRefusal>>;
   /** The new values of the row and its place in the view are written together: it never moves halfway. */
   readonly moveRow: (
     input: McpActor & {
@@ -288,11 +321,27 @@ export interface McpCollectionService {
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
 }
 
+export interface McpComputedPreview {
+  /** The columns the formula reads, by name. */
+  readonly reads: readonly string[];
+  readonly resultType: string;
+  readonly rows: readonly {
+    readonly id: string;
+    readonly outcome: PageFormulaOutcome;
+    readonly title: string;
+    readonly trace?: readonly PageFormulaTraceStep[] | undefined;
+  }[];
+  readonly spaceId: string;
+}
+
 export interface McpChangesAnswer {
   readonly attachedFiles: readonly { readonly id: string; readonly name: string }[];
   readonly cursor: string;
   readonly hasMore: boolean;
   readonly isReset: boolean;
+  /** Rows whose rollups may have changed because a row they summarise did. */
+  readonly possiblyChanged: readonly McpWrittenRow[];
+  readonly possiblyChangedIsTruncated: boolean;
   readonly rows: readonly McpWrittenRow[];
   readonly total: number;
   readonly trashedIds: readonly string[];
@@ -306,6 +355,8 @@ export interface McpQueryAnswer {
 }
 
 export interface McpWrittenRow {
+  /** The formulas and rollups of the row that could not be computed, with why. */
+  readonly computedErrors?: Readonly<Record<string, PageFormulaCellError>> | undefined;
   readonly id: string;
   readonly propertyValues: PagePropertyValues | null;
   readonly spaceId: string;

@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'9970e97ad3f0138b9e610ebfce7fe6c205245c7be7c30b3077673c092c48225a'>;
+  StorageHashBase<'bebe6bf2b37a2ece7a33f798ca44592f439fbd42f62697d8ac80ad6023567da4'>;
 export type ExecutionHash =
   ExecutionHashBase<'0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc'>;
 export type ProfileHash =
@@ -410,7 +410,9 @@ export type FieldOutputTypes = {
         | 'EDITED_TIME'
         | 'CREATED_BY'
         | 'EDITED_BY'
-        | 'UNIQUE_ID';
+        | 'UNIQUE_ID'
+        | 'FORMULA'
+        | 'ROLLUP';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['output'];
@@ -666,7 +668,9 @@ export type FieldInputTypes = {
         | 'EDITED_TIME'
         | 'CREATED_BY'
         | 'EDITED_BY'
-        | 'UNIQUE_ID';
+        | 'UNIQUE_ID'
+        | 'FORMULA'
+        | 'ROLLUP';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['input'];
@@ -922,7 +926,9 @@ export type StorageColumnTypes = {
         | 'EDITED_TIME'
         | 'CREATED_BY'
         | 'EDITED_BY'
-        | 'UNIQUE_ID';
+        | 'UNIQUE_ID'
+        | 'FORMULA'
+        | 'ROLLUP';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['output'];
@@ -1178,7 +1184,9 @@ export type StorageColumnInputTypes = {
         | 'EDITED_TIME'
         | 'CREATED_BY'
         | 'EDITED_BY'
-        | 'UNIQUE_ID';
+        | 'UNIQUE_ID'
+        | 'FORMULA'
+        | 'ROLLUP';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['input'];
@@ -1503,7 +1511,9 @@ export namespace Models {
       | 'EDITED_TIME'
       | 'CREATED_BY'
       | 'EDITED_BY'
-      | 'UNIQUE_ID';
+      | 'UNIQUE_ID'
+      | 'FORMULA'
+      | 'ROLLUP';
     page: public_Block;
     readonly [RelationKeys]?: 'page';
   };
@@ -3940,6 +3950,8 @@ type ContractBase = Omit<
                 'CREATED_BY',
                 'EDITED_BY',
                 'UNIQUE_ID',
+                'FORMULA',
+                'ROLLUP',
               ];
             };
             readonly DatabaseViewType: {

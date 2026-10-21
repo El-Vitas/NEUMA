@@ -8,6 +8,7 @@ import type { PageQueryResult } from '@/modules/pages/collections/types/pages.qu
 
 const resultWith = (counts: PageQueryResult['reducers'][string]): PageQueryResult => ({
   attachedFiles: [],
+  changesCursor: 'cursor',
   reducers: { counts },
   relatedRows: [],
   rows: {},

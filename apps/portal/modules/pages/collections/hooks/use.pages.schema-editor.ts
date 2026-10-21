@@ -29,6 +29,7 @@ import {
   setSchemaRelationTwoWay,
   updateSchemaOptionColor,
   updateSchemaProperty,
+  updateSchemaPropertyComputed,
   updateSchemaPropertyConfig,
 } from '../lib/pages.schema-editing.lib';
 import {
@@ -42,7 +43,12 @@ import {
   toggleViewProperty,
 } from '../lib/pages.view-editing.lib';
 import { toggleViewHidesEmptyGroups } from '../lib/pages.view-filtering.lib';
-import type { PageSchema, PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
+import type {
+  PageComputedDraft,
+  PageSchema,
+  PageSchemaProperty,
+  PageSchemaViewDraft,
+} from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import { usePagesShapeSaving } from './use.pages.shape-saving';
 
@@ -71,6 +77,8 @@ export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): Pages
       setViews((current) => addSchemaView(current, { name, type }, properties)),
     changeOptionColor: (key: string, optionId: string, color: PageOptionColor) =>
       setProperties((current) => updateSchemaOptionColor(current, key, optionId, color)),
+    changePropertyComputed: (key: string, draft: PageComputedDraft) =>
+      setProperties((current) => updateSchemaPropertyComputed(current, key, draft)),
     changePropertyConfig: (key: string, changes: Partial<PagePropertyConfig>) =>
       setProperties((current) => updateSchemaPropertyConfig(current, key, changes)),
     renameOption: (key: string, optionId: string, name: string) =>
@@ -110,6 +118,7 @@ export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): Pages
       setProperties((current) => updateSchemaProperty(current, key, { label })),
     renameView: (viewName: string, name: string) => setViews((current) => renameSchemaView(current, viewName, name)),
     save,
+    spaceId,
     setViewIcon: (viewName: string, icon: null | string) => setViews((current) => setViewIcon(current, viewName, icon)),
     subGroupViewBy: (viewName: string, propertyKey: null | string) =>
       setViews((current) => setViewSubGroupBy(current, viewName, propertyKey)),

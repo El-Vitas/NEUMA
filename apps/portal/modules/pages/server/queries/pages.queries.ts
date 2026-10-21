@@ -8,8 +8,8 @@ import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_API_ROUTES, PAGE_LOCATION_CACHE_TAG, PAGES_ASSIGNED_CACHE_TAG } from '../../constants/pages.constants';
-import { pageLocationSchema } from '../../schemas/pages.schemas';
-import type { PageSummary } from '../../types/pages.types';
+import { pageComputedValuesSchema, pageLocationSchema } from '../../schemas/pages.schemas';
+import type { PageComputedValues, PageSummary } from '../../types/pages.types';
 import { readPagesThatCanBeRead } from '../lib/pages.reading.server';
 
 export const getPages = async (spaceId: string): Promise<Result<readonly PageSummary[], Error>> =>
@@ -69,6 +69,19 @@ const getPageSpaceIdCached = async (accessToken: string, pageId: string): Promis
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.location(pageId), accessToken);
   return pageLocationSchema.parse(response).spaceId;
 };
+
+/**
+ * The values of a row with its formulas and rollups computed for the reader. The list leaves them out, since
+ * computing them for every page of a space would cost far more than one row on its own page needs.
+ */
+export const getPageComputedValues = async (
+  spaceId: string,
+  pageId: string,
+): Promise<Result<PageComputedValues, Error>> =>
+  withQuery({ op: 'getPageComputedValues', params: { pageId, spaceId } }, async (accessToken) => {
+    const response = await apiRequest<unknown>(PAGE_API_ROUTES.item(spaceId, pageId), accessToken);
+    return pageComputedValuesSchema.parse(response);
+  });
 
 export const getAssignedPages = async (): Promise<Result<readonly PageSummary[], Error>> =>
   withQuery({ op: 'getAssignedPages' }, (accessToken) => getAssignedPagesCached(accessToken));

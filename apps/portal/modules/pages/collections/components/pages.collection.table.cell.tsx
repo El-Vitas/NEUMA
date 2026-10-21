@@ -10,7 +10,12 @@ import { hasActionError } from '@/shared/lib/action-result';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import { isPropertyEditableInPlace, pagePropertyAnswersOnPick } from '../lib/pages.properties.lib';
 import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
-import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
+import type {
+  PageComputedError,
+  PagePersonOption,
+  PagePropertyValue,
+  PageSchemaProperty,
+} from '../types/pages.schema.types';
 import { PagesPropertiesField } from './pages.properties.field';
 import { PagesPropertyValue } from './pages.properties.value';
 
@@ -18,8 +23,12 @@ interface IProps {
   readonly alignmentClass: string;
   readonly ariaLabelledBy: string;
   readonly canEdit: boolean;
+  /** Why a formula or rollup could not be computed in this row. */
+  readonly computedError?: PageComputedError | undefined;
   readonly contentClass: string;
   readonly controlClass: string;
+  /** Tells the row a value is being written, so the formulas that read it can follow at once. */
+  readonly onWriting?: ((propertyKey: string, value: PagePropertyValue | undefined) => void) | undefined;
   readonly personOptions?: readonly PagePersonOption[];
   readonly property: PageSchemaProperty;
   readonly rowId: string;
@@ -32,8 +41,10 @@ export const PagesCollectionTableCell = ({
   alignmentClass,
   ariaLabelledBy,
   canEdit,
+  computedError,
   contentClass,
   controlClass,
+  onWriting,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   property,
   rowId,
@@ -56,6 +67,7 @@ export const PagesCollectionTableCell = ({
     const sent = isPagePropertyValueEmpty(property.type, written) ? null : written;
     startWriting(async () => {
       showWritten(sent ?? undefined);
+      onWriting?.(property.key, sent ?? undefined);
       const saved = await updatePageRowPropertiesAction({
         pageId: rowId,
         propertyValues: { [property.key]: sent },
@@ -88,7 +100,12 @@ export const PagesCollectionTableCell = ({
   if (!canEdit || !isPropertyEditableInPlace(property)) {
     return (
       <span className={cn('block min-w-0', contentClass)}>
-        <PagesPropertyValue personOptions={personOptions} property={property} value={shown} />
+        <PagesPropertyValue
+          computedError={computedError}
+          personOptions={personOptions}
+          property={property}
+          value={shown}
+        />
       </span>
     );
   }

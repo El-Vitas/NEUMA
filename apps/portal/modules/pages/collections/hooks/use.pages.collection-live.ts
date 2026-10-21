@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { env } from '@/config/env.config';
 import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { createBlockLiveSession } from '../../block-sync/lib/block-sync.session.lib';
 import { openBrowserBlockLiveSocket } from '../../block-sync/lib/block-sync.socket.lib';
 import { getBlockLiveToken } from '../../block-sync/server/actions/block-sync.actions';
-import { PAGE_COLLECTION_LIVE_COALESCE_MS } from '../constants/pages.collection-live.constants';
-import { createCollectionRefreshCoalescer } from '../lib/pages.collection-live.lib';
-import { refreshPageCollectionAction } from '../server/actions/pages.collections.actions';
+import { PAGE_COLLECTION_NOTICES_CONTEXT } from '../constants/pages.collection-notices.context.constants';
 
 const requestLiveToken = async (): Promise<string | null> => {
   const result = await callAction(() => getBlockLiveToken({}));
@@ -16,38 +14,34 @@ const requestLiveToken = async (): Promise<string | null> => {
 };
 
 /**
- * Follows a collection on the live channel: when someone else changes a row, a view or the schema, the view is drawn
- * again. A burst of notices is one refresh, and a reconnection refreshes once because notices in between are lost.
+ * Follows a collection on the live channel and hands what arrives to the views through the notices of the page. A
+ * reconnection draws the page again, because the notices in between were lost.
  */
-export const usePagesCollectionLive = (collectionId: string, spaceId: string): void => {
+export const usePagesCollectionLive = (collectionId: string): void => {
+  const notices = useContext(PAGE_COLLECTION_NOTICES_CONTEXT);
+
   useEffect(() => {
-    const coalescer = createCollectionRefreshCoalescer(async () => {
-      await callAction(() => refreshPageCollectionAction({ spaceId }));
-    }, PAGE_COLLECTION_LIVE_COALESCE_MS);
     let hasConnected = false;
     const session = createBlockLiveSession({
       collectionId,
       handlers: {
         onConnected: () => {
-          if (hasConnected) coalescer.request();
+          if (hasConnected) notices.requestRefresh('reconnected');
           hasConnected = true;
         },
         onDisconnected: () => undefined,
         onPresence: () => undefined,
         onResync: () => undefined,
-        onRevoked: () => coalescer.request(),
+        onRevoked: () => notices.requestRefresh('revoked'),
         onStatusChange: () => undefined,
         onVersions: () => undefined,
       },
-      onCollectionMessage: () => coalescer.request(),
+      onCollectionMessage: notices.dispatch,
       openSocket: openBrowserBlockLiveSocket,
       pageId: collectionId,
       requestToken: requestLiveToken,
       url: env.NEXT_PUBLIC_LIVE_WS_URL,
     });
-    return () => {
-      coalescer.cancel();
-      session.destroy();
-    };
-  }, [collectionId, spaceId]);
+    return () => session.destroy();
+  }, [collectionId, notices]);
 };

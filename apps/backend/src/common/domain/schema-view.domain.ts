@@ -9,6 +9,7 @@ import {
 } from '@neuma/shared';
 import type { SchemaPropertyDefinition, ViewToValidate } from './schema.domain.types';
 import { SchemaViewValidationError } from './schema.error';
+import { toEffectiveSchemaProperties } from './schema-computed.domain';
 
 /** A marker such as "me" or "@this_week" that the filter of the view carries but means nothing on its property. */
 const findInvalidViewFilterToken = (
@@ -42,8 +43,9 @@ const findWronglyTypedReference = (
 
 export const validateSchemaView = <TView extends ViewToValidate>(
   view: TView,
-  properties: readonly SchemaPropertyDefinition[],
+  schemaProperties: readonly SchemaPropertyDefinition[],
 ): Result<TView, SchemaViewValidationError> => {
+  const properties = toEffectiveSchemaProperties(schemaProperties);
   if (!pageViewConfigurationSchema.safeParse(view.configuration).success) {
     return Result.fail(new SchemaViewValidationError('View configuration is not valid'));
   }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { DEFAULT_PAGE_PROPERTY_CONFIG } from './page-property.config.lib.js';
 import {
+  formatPageComputedNumber,
   formatPageNumber,
   fractionToPercent,
   hasAllowedDecimals,
@@ -39,6 +40,23 @@ describe('percent conversion', () => {
     expect(percentToFraction(7)).toBe(0.07);
     expect(fractionToPercent(0.07)).toBe(7);
     expect(fractionToPercent(0.255)).toBe(25.5);
+  });
+});
+
+describe('formatPageComputedNumber', () => {
+  test('rounds to two decimals and trims the zeros when the column sets none', () => {
+    expect(formatPageComputedNumber(10 / 3, config({}))).toBe('3.33');
+    expect(formatPageComputedNumber(1.25, config({}))).toBe('1.25');
+    expect(formatPageComputedNumber(30, config({}))).toBe('30');
+    expect(formatPageComputedNumber(0.1 + 0.2, config({}))).toBe('0.3');
+  });
+
+  test('follows the number format and the decimals of the column when it sets them', () => {
+    expect(formatPageComputedNumber(10 / 3, config({ decimals: 1 }))).toBe('3.3');
+    expect(formatPageComputedNumber(0.255, config({ numberFormat: PAGE_NUMBER_FORMAT.PERCENT }))).toBe('25.5%');
+    expect(
+      formatPageComputedNumber(2 / 3, config({ currency: 'USD', numberFormat: PAGE_NUMBER_FORMAT.CURRENCY })),
+    ).toBe('USD 0.67');
   });
 });
 

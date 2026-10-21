@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { env } from '@/config/env.config';
 import { callAction, isActionSuccess } from '@/shared/lib/action-result';
+import { openBrowserBlockSyncOutbox } from '../../block-sync/lib/block-sync.browser-outbox.lib';
 import { createBlockSyncEngine } from '../../block-sync/lib/block-sync.engine.lib';
 import { createBlockLiveSession } from '../../block-sync/lib/block-sync.session.lib';
 import { openBrowserBlockLiveSocket } from '../../block-sync/lib/block-sync.socket.lib';
@@ -66,6 +67,7 @@ export const usePagesEditorBlockBinding = (options: PagesEditorBlockBindingOptio
       initialBlocks,
       isViewer,
       localUserId,
+      ...(localUserId === null || isViewer ? {} : { outbox: openBrowserBlockSyncOutbox(localUserId, pageId) }),
       pageId,
       resolveParticipant: (userId) => ({
         color: null,

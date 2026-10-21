@@ -27,6 +27,10 @@ export class PageSchemaController {
     const result = await this.pageSchemaService.defineSchema({
       pageId,
       properties: dto.properties.map((property) => ({
+        computedDraft:
+          property.formula === undefined && property.rollup === undefined
+            ? null
+            : { formula: property.formula ?? null, rollup: property.rollup ?? null },
         config: readPagePropertyConfig(property.config ?? null),
         key: property.key,
         label: property.label,

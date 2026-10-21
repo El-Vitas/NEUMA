@@ -92,6 +92,50 @@ describe('a cell of the table', () => {
     expect(written[0]?.propertyValues).toEqual({ p: { start: '2026-04-02' } });
   });
 
+  it('shows a rollup as a value of the type it gives and never offers to edit it', () => {
+    draw(
+      property('ROLLUP', {
+        computed: {
+          formula: null,
+          rollup: {
+            calculation: 'SUM',
+            relationPropertyKey: 'parts',
+            resultType: 'NUMBER',
+            targetCollectionId: 'collection-2',
+            targetPropertyKey: 'cost',
+          },
+        },
+      }),
+      42,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Edit Field' })).toBeNull();
+    expect(screen.getByText('42')).toBeDefined();
+  });
+
+  it('says a formula could not be computed, with the reason at hand', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <PagesCollectionTableCell
+          alignmentClass=""
+          ariaLabelledBy="header"
+          canEdit
+          computedError={{ code: 'DIVISION_BY_ZERO', message: 'Cannot divide by zero.' }}
+          contentClass=""
+          controlClass=""
+          property={property('FORMULA')}
+          rowId="row-1"
+          spaceId="space-1"
+          value={undefined}
+        />
+      </NextIntlClientProvider>,
+    );
+
+    const badge = screen.getByTestId('computed-error');
+    expect(badge.textContent).toBe('Error');
+    expect(badge.getAttribute('title')).toBe('DIVISION_BY_ZERO: Cannot divide by zero.');
+  });
+
   it('shows a plain value to whoever may not edit', () => {
     draw(property('RICH_TEXT'), 'note', false);
 

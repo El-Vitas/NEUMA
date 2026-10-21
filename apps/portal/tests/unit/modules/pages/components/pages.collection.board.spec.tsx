@@ -58,7 +58,11 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     return { data: { configuration: {}, id: view.id, version: 1 } };
   },
   loadMorePageRowsAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageCollectionAction: async () => ({ data: null }),
   refreshPageRowsAction: async () => ({ data: null }),
   movePageRowAction: async (input: MovedRow) => {
     moved.push(input);
@@ -165,12 +169,14 @@ const drawBoard = (
         aggregates={NO_PAGE_AGGREGATES}
         bands={[{ color: null, groups: boardGroups, key: '', label: '' }]}
         canEdit={canEdit}
+        changesCursor={null}
         groupByKey="status"
         isManualOrder
         properties={properties}
         schema={schema}
         spaceId="space-1"
         subGroupByKey=""
+        view={view}
         viewId={view.id}
       />
     </NextIntlClientProvider>,
@@ -415,12 +421,14 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
           aggregates={NO_PAGE_AGGREGATES}
           bands={[{ color: null, groups, key: '', label: '' }]}
           canEdit
+          changesCursor={null}
           groupByKey="status"
           isManualOrder
           properties={[]}
           schema={{ ...schema, views: [collapsed] }}
           spaceId="space-1"
           subGroupByKey=""
+          view={collapsed}
           viewId={collapsed.id}
         />
       </NextIntlClientProvider>,
@@ -442,12 +450,14 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
           aggregates={NO_PAGE_AGGREGATES}
           bands={[{ color: null, groups: crowded as PageViewGroup[], key: '', label: '' }]}
           canEdit
+          changesCursor={null}
           groupByKey="status"
           isManualOrder
           properties={[]}
           schema={{ ...schema, views: [limited] }}
           spaceId="space-1"
           subGroupByKey=""
+          view={limited}
           viewId={limited.id}
         />
       </NextIntlClientProvider>,
@@ -546,12 +556,14 @@ describe('PagesCollectionBoard — grupos ocultos, bandas y portadas', () => {
           aggregates={NO_PAGE_AGGREGATES}
           bands={[{ color: null, groups: [groups[0] as PageViewGroup], key: '', label: '' }]}
           canEdit
+          changesCursor={null}
           groupByKey="status"
           isManualOrder
           properties={[]}
           schema={{ ...schema, views: [hidden] }}
           spaceId="space-1"
           subGroupByKey=""
+          view={hidden}
           viewId={hidden.id}
         />
       </NextIntlClientProvider>,

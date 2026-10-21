@@ -26,6 +26,11 @@ export interface FragmentBuilder {
 export type UnreadableRelations = ReadonlyMap<string, 'ALL' | readonly string[]>;
 
 export interface CellContext {
+  /**
+   * The value of each computed property for the candidate rows, as the JSON text of an object by row id (ADR 028).
+   * A computed property reads from here as a stored one reads from the row: the compiler has one way to read a cell.
+   */
+  readonly computedValues: ReadonlyMap<string, string>;
   /** The zone of the viewer, which decides what day an instant belongs to. */
   readonly timeZone: string;
   readonly unreadableRelations: UnreadableRelations;
@@ -84,6 +89,7 @@ export interface QueryScope {
 
 export interface QueryScopeInput {
   readonly collectionId: string;
+  readonly computedValues?: ReadonlyMap<string, string> | undefined;
   readonly deniedIds: readonly string[];
   readonly filter: PageFilter | null;
   readonly onStatement?: StatementObserver | undefined;
@@ -100,6 +106,18 @@ export interface QueryScopeInput {
 export interface GroupAxis {
   readonly inclusion: SqlFragment;
   readonly plan: GroupingPlan;
+}
+
+/** A row the scope lets through, with what formulas and rollups read from it (ADR 028). */
+export interface CandidateRow {
+  readonly createdAt: string;
+  readonly createdById: string;
+  readonly editedAt: string;
+  readonly editedById: string;
+  readonly id: string;
+  readonly title: string;
+  /** The JSON text of the values the row stores. */
+  readonly valuesJson: string | null;
 }
 
 export interface RowPage {
