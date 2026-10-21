@@ -13,13 +13,19 @@ import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { addMcpView } from '../lib/mcp.views.lib';
 import { collectionOutputSchema, createViewInputSchema } from '../schemas/mcp.collections.schemas';
 import type { McpCollectionOutput, McpCreateViewInput, McpOpenCollection } from '../types/mcp.collections.types';
-import type { McpCall, McpPerson, McpServerDependencies, McpToolDefinition, McpWriteSession } from '../types/mcp.types';
+import type {
+  McpAssignablePerson,
+  McpCall,
+  McpServerDependencies,
+  McpToolDefinition,
+  McpWriteSession,
+} from '../types/mcp.types';
 
 const addView = (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
   input: McpCreateViewInput,
 ): Promise<McpOpenCollection> => {
   const { properties, views } = collection.shape;

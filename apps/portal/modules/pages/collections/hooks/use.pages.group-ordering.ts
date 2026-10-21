@@ -18,7 +18,7 @@ export const usePagesGroupOrdering = (schema: PageSchema, groupByKey: string, sp
     canMove: (groupKey: string) =>
       declaredValues !== null &&
       groupKey !== UNASSIGNED_GROUP_KEY &&
-      declaredValues.some((option) => option.value === groupKey),
+      declaredValues.some((option) => option.id === groupKey),
     isBusy: shape.isSaving,
     move: (groupKey: string, direction: 'EARLIER' | 'LATER') =>
       shape.save(moveSchemaOptionSideways(schema.properties, groupByKey, groupKey, direction), schema.views),

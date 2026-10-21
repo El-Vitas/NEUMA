@@ -4,9 +4,13 @@ import {
   addSchemaOption,
   addSchemaProperty,
   addSchemaView,
+  canSchemaOptionBeRemoved,
+  canSchemaPropertyChangeType,
   changeSchemaPropertyType,
   convertSchemaView,
   duplicateSchemaView,
+  findRelationWithoutTarget,
+  isSchemaRelationNew,
   listWhatConvertingDrops,
   moveSchemaOption,
   moveSchemaProperty,
@@ -15,15 +19,25 @@ import {
   removeSchemaProperty,
   renameSchemaOption,
   renameSchemaView,
+  setSchemaRelationTwoWay,
   toSavableView,
   updateSchemaOptionColor,
   updateSchemaProperty,
+  updateSchemaPropertyConfig,
 } from '@/modules/pages/collections/lib/pages.schema-editing.lib';
 import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
-const title: PageSchemaProperty = { key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' };
+const title: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'title',
+  label: 'Title',
+  options: null,
+  required: true,
+  type: 'TITLE',
+};
 const status: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
@@ -62,6 +76,7 @@ describe('addSchemaProperty', () => {
 
     expect(properties.map((property) => property.key)).toEqual(['title', 'status', 'team']);
     expect(properties[2]).toEqual({
+      config: defaultConfig,
       key: 'team',
       label: 'Team',
       options: [],
@@ -74,6 +89,73 @@ describe('addSchemaProperty', () => {
     const properties = addSchemaProperty([title], { label: 'Notes', type: 'RICH_TEXT' });
 
     expect(properties[1]?.options).toBeNull();
+  });
+
+  it('starts a status with an option in each of its three groups', () => {
+    const options = addSchemaProperty([title], { label: 'Stage', type: 'STATUS' })[1]?.options ?? [];
+
+    expect(options.map((option) => option.group).sort()).toEqual(['COMPLETE', 'IN_PROGRESS', 'TO_DO']);
+    expect(new Set(options.map((option) => option.id)).size).toBe(options.length);
+  });
+
+  it('carries the configuration it was given on top of the defaults', () => {
+    const properties = addSchemaProperty([title], {
+      config: { numberFormat: 'PERCENT' },
+      label: 'Progress',
+      type: 'NUMBER',
+    });
+
+    expect(properties[1]?.config).toEqual({ ...defaultConfig, numberFormat: 'PERCENT' });
+  });
+
+  it('marks a relation that is new as one that has not been saved, with or without its way back', () => {
+    const oneWay = addSchemaProperty([title], { label: 'Parts', type: 'RELATION' })[1];
+    const twoWay = addSchemaProperty([title], { label: 'Parts', twoWay: true, type: 'RELATION' })[1];
+
+    expect(oneWay && isSchemaRelationNew(oneWay)).toBe(true);
+    expect(oneWay?.twoWay).toBe(false);
+    expect(twoWay?.twoWay).toBe(true);
+    expect(isSchemaRelationNew(status)).toBe(false);
+  });
+});
+
+describe('what keeps a relation from being saved', () => {
+  it('finds a relation that points nowhere yet', () => {
+    const relation = addSchemaProperty([title], { label: 'Parts', type: 'RELATION' })[1];
+
+    expect(findRelationWithoutTarget([title, ...(relation ? [relation] : [])])?.key).toBe('parts');
+  });
+
+  it('finds nothing once every relation points somewhere', () => {
+    const relation = addSchemaProperty([title], {
+      config: { targetCollectionId: 'other' },
+      label: 'Parts',
+      type: 'RELATION',
+    })[1];
+
+    expect(findRelationWithoutTarget([title, ...(relation ? [relation] : [])])).toBeUndefined();
+  });
+
+  it('lets the way back be chosen only while the relation is new', () => {
+    const added = addSchemaProperty([title], { label: 'Parts', type: 'RELATION' });
+    const saved = [
+      title,
+      { ...status, config: { ...defaultConfig, targetCollectionId: 'other' }, type: 'RELATION' as const },
+    ];
+
+    expect(setSchemaRelationTwoWay(added, 'parts', true)[1]?.twoWay).toBe(true);
+    expect(setSchemaRelationTwoWay(saved, 'status', true)).toEqual(saved);
+  });
+});
+
+describe('updateSchemaPropertyConfig', () => {
+  it('changes what the type needs and leaves the rest of the property alone', () => {
+    const amount: PageSchemaProperty = { ...title, key: 'amount', label: 'Amount', required: false, type: 'NUMBER' };
+
+    const properties = updateSchemaPropertyConfig([title, amount], 'amount', { decimals: 2, numberFormat: 'CURRENCY' });
+
+    expect(properties[1]).toEqual({ ...amount, config: { ...defaultConfig, decimals: 2, numberFormat: 'CURRENCY' } });
+    expect(properties[0]).toEqual(title);
   });
 });
 
@@ -101,7 +183,14 @@ describe('updateSchemaProperty', () => {
 
 describe('addSchemaView', () => {
   const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
-  const notes: PageSchemaProperty = { key: 'notes', label: 'Notes', options: null, required: false, type: 'RICH_TEXT' };
+  const notes: PageSchemaProperty = {
+    config: defaultConfig,
+    key: 'notes',
+    label: 'Notes',
+    options: null,
+    required: false,
+    type: 'RICH_TEXT',
+  };
 
   it('adds a view at the end, without touching the one that was already there', () => {
     const views = addSchemaView([table], { name: 'Second', type: 'TABLE' }, [title, status]);
@@ -197,7 +286,14 @@ describe('moveSchemaView', () => {
 });
 
 describe('moveSchemaProperty', () => {
-  const due: PageSchemaProperty = { key: 'due', label: 'Due', options: null, required: false, type: 'DATE' };
+  const due: PageSchemaProperty = {
+    config: defaultConfig,
+    key: 'due',
+    label: 'Due',
+    options: null,
+    required: false,
+    type: 'DATE',
+  };
 
   it('moves a property one place earlier', () => {
     expect(moveSchemaProperty([title, status, due], 'due', 'EARLIER').map((property) => property.key)).toEqual([
@@ -342,6 +438,7 @@ describe('changeSchemaPropertyType', () => {
 
   it('starts an empty list when the new type needs one and the old had none', () => {
     const notes: PageSchemaProperty = {
+      config: defaultConfig,
       key: 'notes',
       label: 'Notes',
       options: null,
@@ -351,6 +448,29 @@ describe('changeSchemaPropertyType', () => {
     const properties = changeSchemaPropertyType([title, notes], 'notes', 'SELECT');
 
     expect(properties[1]).toEqual({ ...notes, options: [], type: 'SELECT' });
+  });
+
+  it('refuses to turn a property into a status or a relation, which keep ids the old values are not', () => {
+    expect(changeSchemaPropertyType([title, status], 'status', 'STATUS')).toEqual([title, status]);
+    expect(changeSchemaPropertyType([title, status], 'status', 'RELATION')).toEqual([title, status]);
+  });
+
+  it('refuses to turn a status into something else', () => {
+    const stage = addSchemaProperty([title], { label: 'Stage', type: 'STATUS' });
+
+    expect(changeSchemaPropertyType(stage, 'stage', 'SELECT')).toEqual(stage);
+    expect(canSchemaPropertyChangeType('STATUS', 'SELECT')).toBe(false);
+    expect(canSchemaPropertyChangeType('RICH_TEXT', 'URL')).toBe(true);
+  });
+
+  it('starts the new type from its neutral configuration', () => {
+    const percent = addSchemaProperty([title], {
+      config: { numberFormat: 'PERCENT' },
+      label: 'Progress',
+      type: 'NUMBER',
+    });
+
+    expect(changeSchemaPropertyType(percent, 'progress', 'RICH_TEXT')[1]?.config).toEqual(defaultConfig);
   });
 
   it('refuses to change the type of the property that names each row', () => {
@@ -381,6 +501,21 @@ describe('addSchemaOption', () => {
   it('refuses an option with no name', () => {
     expect(addSchemaOption([title, status], 'status', '   ')).toEqual([title, status]);
   });
+
+  it('gives the new option an identifier of its own, which the server replaces on saving', () => {
+    const added = addSchemaOption([title, status], 'status', 'blocked')[1]?.options?.[2];
+
+    expect(added?.id).toStartWith('draft-');
+    expect(added?.group).toBeNull();
+  });
+
+  it('puts a status option in the group it was added to', () => {
+    const stage = addSchemaProperty([title], { label: 'Stage', type: 'STATUS' });
+
+    const added = addSchemaOption(stage, 'stage', 'Reviewing', 'IN_PROGRESS')[1]?.options?.at(-1);
+
+    expect(added).toMatchObject({ group: 'IN_PROGRESS', value: 'Reviewing' });
+  });
 });
 
 describe('renameSchemaOption', () => {
@@ -393,6 +528,12 @@ describe('renameSchemaOption', () => {
   it('refuses to rename onto a name another option already has', () => {
     expect(renameSchemaOption([title, status], 'status', 'todo', 'done')).toEqual([title, status]);
   });
+
+  it('keeps the identifier, so the rows that hold the option keep holding it', () => {
+    const renamed = renameSchemaOption([title, status], 'status', 'todo', 'por hacer')[1]?.options?.[0];
+
+    expect(renamed).toMatchObject({ id: 'todo', value: 'por hacer' });
+  });
 });
 
 describe('updateSchemaOptionColor', () => {
@@ -400,8 +541,8 @@ describe('updateSchemaOptionColor', () => {
     const properties = updateSchemaOptionColor([title, status], 'status', 'done', 'RED');
 
     expect(properties[1]?.options).toEqual([
-      { color: null, value: 'todo' },
-      { color: 'RED', value: 'done' },
+      { color: null, group: null, id: 'todo', value: 'todo' },
+      { color: 'RED', group: null, id: 'done', value: 'done' },
     ]);
   });
 });
@@ -432,5 +573,20 @@ describe('removeSchemaOption', () => {
     const properties = removeSchemaOption([title, status], 'status', 'todo');
 
     expect(properties[1]?.options?.map((option) => option.value)).toEqual(['done']);
+  });
+
+  it('keeps the last option of a group in a status, since a new row needs somewhere to start', () => {
+    const stage = addSchemaProperty([title], { label: 'Stage', type: 'STATUS' });
+    const onlyToDo = stage[1]?.options?.find((option) => option.group === 'TO_DO');
+
+    expect(onlyToDo && canSchemaOptionBeRemoved(stage[1] as PageSchemaProperty, onlyToDo.id)).toBe(false);
+    expect(removeSchemaOption(stage, 'stage', onlyToDo?.id ?? '')).toEqual(stage);
+  });
+
+  it('removes a status option when its group has another', () => {
+    const stage = addSchemaOption(addSchemaProperty([title], { label: 'Stage', type: 'STATUS' }), 'stage', 'Later');
+    const first = stage[1]?.options?.find((option) => option.group === 'TO_DO');
+
+    expect(removeSchemaOption(stage, 'stage', first?.id ?? '')[1]?.options).toHaveLength(3);
   });
 });

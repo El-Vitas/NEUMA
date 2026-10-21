@@ -3,40 +3,44 @@ name: Colecciones, propiedades y vistas
 purpose: Reúne las reglas de qué guarda una colección, cómo se define su forma y cómo se mira.
 scope: collections
 rules:
-  - id: BR-12b587f
+  - id: BR-1f4ab0f
     status: active
-    title: Cada opción de una propiedad lleva su nombre y su color
+    title: Quién creó una fila y cuándo lo dice la propia fila, y nadie lo escribe
     rule: >-
-      Una propiedad de selección, simple o múltiple, define sus opciones, y cada opción es un nombre y un color. El
-      color es opcional: una opción sin color se muestra igual que las demás, con el fondo neutro. Los colores son un
-      conjunto cerrado y con nombre, no un valor libre, para que la misma opción se vea igual en la tabla, en la columna
-      de un tablero y en cualquier pantalla que la muestre. Un color que el producto no conoce se descarta al leerlo, y
-      la opción se queda sin color en vez de romper la página.
+      Las propiedades de fecha de creación, fecha de última edición, creada por y editada por muestran lo que la fila
+      dice de sí misma: cuándo se creó, cuándo se editó por última vez y quién lo hizo. El servidor las llena y no se
+      pueden escribir, ni por la pantalla ni por una petición armada por fuera. Se pueden filtrar, ordenar y agrupar
+      como cualquier fecha o persona, y se actualizan solas cuando la fila cambia.
     why: >-
-      En un tablero, la columna es un valor de la propiedad por la que se agrupa. Sin color, todas las columnas se ven
-      iguales y hay que leer cada encabezado para saber dónde está uno. El color es lo que hace que un tablero se lea de
-      un vistazo. Y que sea un conjunto cerrado evita que cada quien escriba un color distinto para lo mismo.
-    context: >-
-      Las opciones se guardan como objetos con nombre y color. Las colecciones creadas antes las guardaban como una
-      lista de nombres, y esas se siguen leyendo: llegan sin color. El color nunca es la única señal de nada, porque el
-      nombre de la opción siempre se muestra al lado.
+      Copiar esos datos como valores obligaría a mantenerlos al día en cada edición, y alguien podría escribir un autor
+      o una fecha que no es. Leerlos de la fila los hace siempre ciertos.
+    context: Una propiedad de este tipo no se marca como obligatoria ni cambia de tipo.
     scenarios:
-      - title: Una opción con color
-        given: Una propiedad de selección con la opción «hecho» en verde
-        when: Se mira una fila que la tiene
-        then: La opción se muestra con su nombre sobre un fondo verde
-      - title: Una opción sin color
-        given: Una propiedad cuyas opciones no tienen color
-        when: Se mira una fila
-        then: La opción se muestra con el fondo neutro, sin perder su nombre
-      - title: Una colección escrita antes
-        given: Una colección cuyas opciones se guardaron como una lista de nombres
-        when: Se abre
-        then: Las opciones se leen igual, y se muestran sin color
-      - title: Un color que no existe
-        given: Una opción guardada con un color que el producto no conoce
-        when: Se lee
-        then: La opción se muestra sin color, y la página se abre igual
+      - title: Escribir una fecha de creación
+        given: Una colección con la propiedad «Creada»
+        when: Una petición intenta escribir ese valor en una fila
+        then: Se rechaza, y la fila sigue mostrando su fecha real
+  - id: BR-22dc232
+    status: active
+    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    rule: >-
+      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
+      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
+      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar o quitar una opción de una
+      propiedad: la opción se nombra por su identificador, y si ya fue quitada por otra persona el cambio no se aplica y
+      se dice que la opción ya se movió, en lugar de escribir encima. Renombrar ya no puede chocar con otro renombre,
+      porque el nombre no es la dirección de la opción.
+    why: >-
+      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
+      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
+      algo que sí se había configurado.
+    context: Un estado no puede quedarse sin opción en uno de sus grupos, así que quitar la última de un grupo se rechaza.
+    supersedes: BR-699e037
+    scenarios:
+      - title: Quitar una opción ya quitada
+        given: Dos personas con la misma opción abierta
+        when: Las dos la quitan
+        then: La segunda recibe que la opción ya se movió y no se escribe nada
   - id: BR-2a96107
     status: active
     title: Una propiedad cambia sola, sobre lo que la fila tiene en ese momento
@@ -53,44 +57,6 @@ rules:
         given: Una tarea con estado «Por hacer» y prioridad «Baja»
         when: Una la pasa a «Hecho» y otra, al mismo tiempo, sube la prioridad a «Alta»
         then: La tarea queda en «Hecho» y con prioridad «Alta»
-  - id: BR-37f128e
-    status: active
-    title: La forma de una colección se cambia después de crearla
-    rule: >-
-      Una colección ya creada se puede reconfigurar: agregar propiedades propias del tipo que se quiera, renombrarlas,
-      quitarlas, y decidir qué opciones ofrece una selección y de qué color es cada una. Nada de eso viaja hasta que se
-      guarda, así que una colección nunca queda en una forma a medias. La propiedad de título no se puede quitar, porque
-      es la que abre cada fila. Cambiar el tipo de una propiedad no se ofrece aquí. Solo quien puede escribir la página
-      ve por dónde entrar.
-    why: >-
-      Una colección cuya forma se decide el día que nace obliga a saber de antemano qué se va a necesitar, que es
-      justamente lo que nadie sabe al empezar. Sin esto, agregar una columna significa rehacer la colección entera.
-    context: >-
-      Lo que las filas ya escribieron no se toca: los valores viven en cada fila, no en la forma, así que renombrar una
-      propiedad o cambiar el color de una opción no mueve ninguna fila. Renombrar una opción tampoco cambia lo que las
-      filas guardaron, y eso se avisa antes de hacerlo. Cambiar el tipo de una propiedad queda fuera porque es una
-      pregunta sobre qué pasa con cada fila que ya respondió, y no la resuelve un desplegable de paso.
-    scenarios:
-      - title: Agregar una propiedad
-        given: Una colección ya creada
-        when: Se agrega una propiedad de selección llamada «Familia» y se guarda
-        then: La propiedad aparece en la tabla y en las filas, con la clave que le corresponde
-      - title: Poner color a una opción
-        given: Una propiedad de selección con sus opciones
-        when: Se le da color a una opción y se guarda
-        then: La opción se ve con ese color en la tabla y como columna del tablero
-      - title: Quitar una propiedad sin dejar filas atascadas
-        given: Filas que guardaron un valor bajo una propiedad
-        when: Se quita esa propiedad de la forma
-        then: Las filas se siguen pudiendo mover y guardar, y lo que quedó bajo la propiedad quitada se deja atrás
-      - title: El título no se quita
-        given: La forma de una colección
-        when: Se busca quitar la propiedad de título
-        then: No se ofrece, y se explica que es la que abre cada fila
-      - title: Quien solo puede leer
-        given: Alguien sin permiso de escribir la página
-        when: Abre la colección
-        then: No se le dibuja la manera de entrar a la configuración
   - id: BR-3c85c11
     status: active
     title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
@@ -115,6 +81,47 @@ rules:
         given: Una colección de 800 tareas donde solo la fila 700 está bloqueada
         when: Un agente consulta las tareas bloqueadas
         then: Recibe la fila 700
+  - id: BR-3dcf9e7
+    status: active
+    title: Una propiedad obligatoria se exige al crear la fila y al escribir esa propiedad
+    rule: >-
+      Una propiedad puede marcarse como obligatoria. Una fila nueva no se crea si le falta un valor en una propiedad
+      obligatoria, y quien escribe esa propiedad en una fila no puede dejarla vacía. Editar otra propiedad de una fila
+      no se bloquea porque a esa fila le falte un valor obligatorio que se marcó después. Un estado, una casilla, un
+      identificador único y los datos de creación y edición no se marcan como obligatorios, porque siempre tienen valor.
+    why: >-
+      Exigir los obligatorios en cada edición bloquearía filas viejas por una regla que se agregó después, y nadie
+      podría tocarlas hasta completar lo que no se pidió al crearlas. Exigirlos solo al crear dejaría vaciarlos después
+      sin que nadie lo note.
+    context: En el portal el nombre de la propiedad lleva un asterisco.
+    scenarios:
+      - title: Una propiedad que se hizo obligatoria después
+        given: Filas antiguas sin valor en una propiedad que ahora es obligatoria
+        when: Alguien edita otra propiedad de una de esas filas
+        then: La edición se acepta
+  - id: BR-4d9da78
+    status: active
+    title: Cambiar la forma de una colección y completar sus filas es una sola operación
+    rule: >-
+      Al guardar la forma de una colección, lo que ese cambio exige a las filas que ya existen ocurre en la misma
+      operación que el cambio: el estado inicial de una propiedad de estado nueva, el número de una propiedad de
+      identificador único nueva, y la limpieza de las opciones que se quitaron. Si algún paso falla, por ejemplo porque
+      quien guarda no puede editar una de las filas, no queda ni la forma nueva ni ninguna fila cambiada.
+    why: >-
+      Una propiedad creada con las filas viejas a medio completar obliga a adivinar qué falta y deja números o estados
+      distintos según quién llegó primero.
+    context: >-
+      Los avisos a quienes tienen la colección abierta salen cuando la operación entera ya se confirmó. Volver a guardar
+      la forma después de un rechazo completa las filas sin repetir números.
+    scenarios:
+      - title: Una fila que no se puede editar
+        given: Una colección con una fila que quien guarda solo puede leer
+        when: Agrega una propiedad de identificador único
+        then: Se rechaza, la propiedad no existe y la fila no cambió
+      - title: Todo bien
+        given: Una colección con tres filas
+        when: Se agrega una propiedad de estado
+        then: Las tres filas quedan en el estado inicial junto con la propiedad
   - id: BR-4fef023
     status: active
     title: Una colección se mira de varias formas, y cada una recuerda la suya
@@ -144,29 +151,32 @@ rules:
         given: Una vista de tablero a la que no se le eligió propiedad de agrupación
         when: Se intenta guardar la configuración
         then: Se dice qué falta y no se guarda
-  - id: BR-699e037
+  - id: BR-59b630f
     status: active
-    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    title: Un estado siempre tiene valor y sus opciones viven en tres grupos
     rule: >-
-      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
-      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
-      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar una opción de una
-      propiedad: si esa opción ya fue renombrada o quitada por otra persona, el cambio no se aplica y se dice que la
-      opción ya se movió, en lugar de escribir encima.
+      Una propiedad de estado ofrece sus opciones repartidas en tres grupos fijos: por hacer, en curso y completado.
+      Cada grupo conserva al menos una opción. Una propiedad de estado nace con una opción en cada grupo, una fila nueva
+      empieza en la primera opción de «por hacer», y una fila nunca se queda sin estado: borrarlo no se permite. Se
+      puede filtrar por una opción o por todo un grupo, y las filas se ordenan por grupo y, dentro de él, por la
+      posición de la opción.
     why: >-
-      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
-      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
-      algo que sí se había configurado.
+      Un estado es lo que dice en qué punto está el trabajo. Si una fila pudiera quedarse sin estado, la columna de «sin
+      asignar» de un tablero escondería trabajo que nadie sabe en qué punto está. Y los grupos permiten preguntar «qué
+      sigue abierto» sin tener que listar todas las opciones que cada equipo se inventó.
+    context: >-
+      Un estado no se puede obligar, porque ya siempre tiene valor. Quitar una opción mueve sus filas a otra del mismo
+      grupo. El estado no se convierte desde otro tipo ni se convierte en otro.
     scenarios:
-      - title: Una agrupación puesta mientras la configuración estaba abierta
-        given: Una vista que alguien acaba de agrupar por estado
-        when: Desde la configuración abierta de antes se pone un filtro
-        then: La vista queda con el filtro nuevo y con la agrupación por estado
-      - title: Una opción que ya se movió
-        given: Una opción que otra persona acaba de renombrar
-        when: Alguien intenta renombrarla desde lo que había leído antes
-        then: El cambio se rechaza diciendo que la opción ya se movió, y el renombre de la otra persona se conserva
-  - id: BR-d7ada57
+      - title: Una fila nueva
+        given: Una colección con una propiedad de estado
+        when: Se crea una fila sin decir el estado
+        then: La fila empieza en la primera opción del grupo «por hacer»
+      - title: Intentar dejar una fila sin estado
+        given: Una fila con estado
+        when: Alguien pide borrar el valor
+        then: Se rechaza, y el estado queda como estaba
+  - id: BR-5a97271
     status: active
     title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
     rule: >-
@@ -174,7 +184,8 @@ rules:
       a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
       quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
       asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
-      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas.
+      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas. En un tablero agrupado
+      por estado nunca hay columna de filas sin valor, porque un estado siempre tiene valor.
     why: >-
       Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
       uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
@@ -182,29 +193,176 @@ rules:
     context: >-
       Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
       sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
-      uno de los que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque alguien lo pida por su
-      cuenta.
+      el identificador de una de las opciones que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque
+      alguien lo pida por su cuenta. Si la columna es un día, la fila recibe esa fecha, y si tenía un rango de fechas,
+      el rango conserva su duración.
+    supersedes: BR-d7ada57
     scenarios:
-      - title: Mover con el ratón
-        given: Una tarjeta en la columna «por hacer»
-        when: Se arrastra a la columna «hecho»
-        then: La fila pasa a valer «hecho» y la tarjeta se queda ahí al recargar
-      - title: Mover con el teclado
-        given: Una tarjeta con el foco puesto
-        when: Se pulsa Alt y la flecha derecha
-        then: La tarjeta pasa a la columna siguiente y se anuncia a dónde fue
-      - title: Soltar donde ya estaba
-        given: Una tarjeta en «por hacer»
-        when: Se suelta en «por hacer»
-        then: No se escribe nada
-      - title: Quitar el valor
-        given: Una tarjeta con valor
-        when: Se suelta en la columna de las filas sin valor
-        then: La fila deja de tener ese valor
-      - title: Quien solo puede leer
-        given: Alguien sin permiso de escribir la página
-        when: Intenta mover una tarjeta
-        then: Las tarjetas no se pueden arrastrar, y el servidor rechaza el intento hecho por fuera
+      - title: Mover una tarjeta de estado
+        given: Un tablero agrupado por estado
+        when: Se arrastra una tarjeta de «Por hacer» a «Completado»
+        then: La fila guarda el identificador de la opción de esa columna y nada más
+  - id: BR-5bd97c6
+    status: active
+    title: Cada opción de una propiedad lleva su nombre, su color y un identificador propio
+    rule: >-
+      Una propiedad de selección, de selección múltiple o de estado define sus opciones, y cada opción es un nombre, un
+      color y un identificador que el servidor le da al crearla y que no cambia nunca. Las filas, los filtros, las
+      agrupaciones y los topes de columna guardan el identificador, no el nombre. Renombrar una opción cambia solo la
+      forma de la colección y ninguna fila se toca. Quitar una opción deja sin ese valor a las filas que la tenían, y en
+      un estado esas filas pasan a otra opción del mismo grupo. El color es opcional y es un conjunto cerrado y con
+      nombre; uno que el producto no conoce se descarta al leerlo y la opción queda sin color.
+    why: >-
+      Con el nombre como valor, renombrar una opción obligaba a reescribir cada fila que la tenía, y dos personas
+      renombrando a la vez dejaban filas apuntando a un nombre que ya no existía. Con un identificador estable el nombre
+      es solo lo que se lee, y cambiarlo es inmediato y no puede romper nada.
+    context: >-
+      Los identificadores son únicos dentro de cada propiedad, no entre propiedades. Por eso una fila que se mueve a
+      otra colección cuyas opciones tienen otros identificadores se rechaza, en lugar de guardar un valor que aquella
+      colección no entiende. Las colecciones creadas antes guardaban el nombre: una migración les dio identificador a
+      cada opción y reescribió filas, filtros y agrupaciones. El nombre de la opción siempre se muestra al lado del
+      color.
+    supersedes: BR-12b587f
+    scenarios:
+      - title: Renombrar no toca las filas
+        given: Una selección con la opción «Alta» que dos filas tienen elegida
+        when: Alguien la renombra a «Urgente»
+        then: Las dos filas siguen eligiéndola y la muestran como «Urgente», sin que se haya escrito ninguna fila
+      - title: Quitar una opción de un estado
+        given: Un estado con dos opciones en el grupo «En curso» y una fila en la que se quitará
+        when: Se quita esa opción
+        then: La fila pasa a la otra opción del grupo «En curso»
+  - id: BR-61a1857
+    status: active
+    title: Una fecha puede ser un día o un rango, y una persona puede ser una o varias
+    rule: >-
+      Una propiedad de fecha guarda un día o un instante de inicio y, si se quiere, un fin que nunca es anterior al
+      inicio; los dos extremos son ambos días o ambos instantes. Una fecha que cae en un rango coincide con cualquier
+      día del rango, y «antes de» y «después de» comparan contra el fin y el inicio del rango. Una propiedad de persona
+      guarda siempre una lista de miembros del espacio. Por defecto admite una sola persona; la propiedad puede permitir
+      varias, y entonces se filtra con «contiene» y «no contiene».
+    why: >-
+      Un trabajo dura días y no cabe en una fecha suelta. Y un trabajo con varios responsables obligaba a crear una
+      propiedad de persona por cada uno.
+    context: >-
+      El calendario coloca una fila el día en que empieza. Mover una fila de un día a otro conserva la duración de su
+      rango. Cambiar una propiedad de persona de varias a una sola no reescribe las filas que ya tienen más de una.
+    scenarios:
+      - title: Un fin anterior al inicio
+        given: Una fecha que empieza el día 10
+        when: Se intenta guardar con fin el día 8
+        then: Se rechaza
+  - id: BR-6972f50
+    status: active
+    title: Un número tiene formato, y un enlace, un correo y un teléfono se comprueban al guardarse
+    rule: >-
+      Una propiedad de número elige cómo se muestra: número, porcentaje o moneda, con un máximo de decimales que se
+      exige al guardar. Un porcentaje se escribe y se muestra como porcentaje pero se guarda como fracción, así que
+      cambiar el formato no cambia lo que las filas guardaron. Una moneda lleva su código de tres letras. Una propiedad
+      de enlace solo admite direcciones web, la de correo exige un correo con forma válida y la de teléfono exige un
+      número con la cantidad de dígitos razonable; un enlace nunca se abre si no es una dirección web. Una propiedad de
+      archivos guarda hasta diez archivos que ya estaban subidos y que quien escribe puede adjuntar.
+    why: >-
+      Un campo de texto libre deja pasar un enlace que no abre, un correo con un error de tecleo o un número sin su
+      moneda, y el error se descubre cuando alguien intenta usarlo. Y un porcentaje guardado como 25 en una fila y como
+      0,25 en otra no se puede sumar.
+    context: >-
+      Los archivos de una celda se eligen entre los que se subieron a la página de la fila. Quien puede leer la fila
+      puede leer los nombres de esos archivos, no más.
+    scenarios:
+      - title: Un enlace que no es web
+        given: Una propiedad de enlace
+        when: Alguien guarda «javascript:alert(1)»
+        then: Se rechaza
+  - id: BR-6d4a26c
+    status: active
+    title: Un identificador único numera las filas sin repetir ni reutilizar un número
+    rule: >-
+      Una propiedad de identificador único da a cada fila nueva el siguiente número de la colección, empezando por uno.
+      El número lo escribe el servidor al crear la fila; nadie lo escribe ni lo cambia, y un número que alguien mande se
+      ignora. Un número nunca se vuelve a dar, ni cuando la fila se borra. La propiedad puede llevar un prefijo que solo
+      cambia cómo se muestra el número, no el número guardado. Al agregar la propiedad a una colección con filas, cada
+      fila existente recibe su número en el orden en que se creó.
+    why: >-
+      Un identificador que se reutiliza o que se puede escribir deja de identificar: dos filas distintas acabarían con
+      el mismo número en una conversación, y nadie sabría de cuál se habla.
+    context: >-
+      Dos filas creadas a la vez reciben números distintos. No se puede marcar como obligatoria, porque la llena el
+      servidor.
+    scenarios:
+      - title: Una fila borrada
+        given: Una colección con las filas 1, 2 y 3
+        when: Se borra la 3 y se crea otra fila
+        then: La fila nueva recibe el 4
+  - id: BR-6d8414e
+    status: active
+    title: Lo que llena el servidor no lo escribe nadie, entre por el camino que entre
+    rule: >-
+      El número de un identificador único y los campos de quién creó o editó una fila y cuándo los llena el servidor.
+      Una escritura de bloques que intente fijarlos o cambiarlos, venga de una transacción enviada a mano o del canal en
+      vivo, se rechaza entera con el código BLOCK_PROPERTY_SERVER_ASSIGNED y no cambia nada. Crear una fila que pide un
+      número propio no se rechaza: el servidor le da el siguiente y descarta el pedido.
+    why: >-
+      Si solo la API de páginas lo vigilara, bastaría una transacción de bloques para ponerle a una fila el número de
+      otra o firmarla con el nombre de alguien más. La regla vale en un solo lugar, donde pasan todas las escrituras.
+    context: >-
+      El servidor sigue escribiendo estos valores por su propia vía. Los demás valores de la fila se escriben con
+      normalidad en la misma transacción.
+    scenarios:
+      - title: Un número escrito a mano
+        given: Una fila con el número 3 en una colección con identificador único
+        when: Una transacción de bloques intenta dejarlo en 99
+        then: Se rechaza con BLOCK_PROPERTY_SERVER_ASSIGNED y la fila sigue con el 3
+      - title: Una firma ajena
+        given: Una colección con un campo de quién creó la fila
+        when: Una transacción crea una fila con otra persona en ese campo
+        then: Se rechaza y la fila no se crea
+  - id: BR-ae2730d
+    status: active
+    title: Una selección se ordena por la posición de sus opciones, no por su nombre
+    rule: >-
+      Al ordenar las filas por una selección, una selección múltiple o un estado, el orden es el de la lista de opciones
+      de la propiedad, no el alfabético: la primera opción va primero. Un estado ordena por grupo y, dentro de cada
+      grupo, por posición. Una fecha ordena por su inicio y después por su fin, y una relación, por cuántos enlaces
+      tiene. Las filas sin valor van siempre al final.
+    why: >-
+      Un orden alfabético de «alta», «baja» y «media» no es el orden que alguien le dio a la prioridad, y obliga a
+      numerar las opciones para que salgan bien.
+    context: Cambiar el orden de las opciones cambia el orden de las filas.
+    scenarios:
+      - title: Prioridades
+        given: Una selección con las opciones Alta, Media y Baja en ese orden
+        when: Se ordenan las filas de menor a mayor por esa selección
+        then: Salen las de Alta, luego Media, luego Baja, y las sin valor al final
+  - id: BR-f45f95c
+    status: active
+    title: Una relación enlaza filas de otra colección, y cada enlace se agrega o se quita de uno en uno
+    rule: >-
+      Una propiedad de relación apunta a las filas de otra colección del mismo espacio. Se puede crear en un solo
+      sentido, o en ambos: en ese caso la otra colección recibe una propiedad que apunta de vuelta, y agregar o quitar
+      un enlace en un lado lo agrega o lo quita en el otro en el mismo acto. Los enlaces se cambian de a uno, con una
+      orden de agregar y otra de quitar, de modo que dos personas que editan la misma celda a la vez no se pisan; no se
+      escribe la lista entera. Una celda enlaza hasta cien filas y respeta el orden en que se agregaron. Quien lee solo
+      ve los enlaces a filas que puede abrir. Para cambiar una relación en ambos sentidos hace falta poder editar
+      también la fila del otro lado: si no se puede, la operación entera se rechaza con un error que nombra ese lado, y
+      no cambia nada. Quitar una propiedad de relación deja la del otro lado como relación de un solo sentido, con sus
+      valores.
+    why: >-
+      Sin relaciones, enlazar dos colecciones obliga a copiar nombres a mano, que se desactualizan. Y si una persona
+      pudiera editar una fila ajena a través del espejo de una relación, la relación sería una puerta para saltarse los
+      permisos de esa fila.
+    context: >-
+      La colección a la que apunta se elige una sola vez, al crear la propiedad. La propiedad de vuelta nunca se nombra
+      desde fuera: la crea el servidor. Una relación no se agrega desde un agente externo hoy; solo se lee.
+    scenarios:
+      - title: Enlazar en ambos sentidos
+        given: Una relación en ambos sentidos entre Tareas y Proyectos
+        when: Se enlaza la tarea T1 al proyecto P1
+        then: P1 muestra T1 en la propiedad de vuelta, sin otro cambio
+      - title: Sin permiso para editar el otro lado
+        given: Una persona que puede editar T1 pero solo leer P1
+        when: Intenta enlazar T1 a P1 en una relación en ambos sentidos
+        then: Se rechaza todo, con un error que dice que el lado espejo no se puede editar
   - id: BR-f6f03fe
     status: active
     title: Un cambio de columnas no pisa el que otro hizo mientras tanto
@@ -241,6 +399,33 @@ rules:
         given: Un filtro con una condición sobre una propiedad que se quitó
         when: Se mira la vista
         then: Esa condición no se aplica ni se dibuja, y el resto del filtro sigue valiendo
+  - id: BR-f94b138
+    status: active
+    title: La forma de una colección se cambia después de crearla
+    rule: >-
+      Una colección ya creada se puede reconfigurar: agregar propiedades de cualquiera de los tipos que existen,
+      renombrarlas, quitarlas, marcarlas como obligatorias, fijar lo que cada tipo necesita (el formato de un número, el
+      prefijo de un identificador único, a qué colección apunta una relación, si una persona admite varias) y decidir
+      qué opciones ofrece una propiedad de lista y de qué color es cada una. Nada de eso viaja hasta que se guarda, así
+      que una colección nunca queda en una forma a medias. La propiedad de título no se puede quitar, porque es la que
+      abre cada fila. Una propiedad conserva su tipo cuando lo que guarda no cabría en otro: un estado, una relación,
+      los archivos, el identificador único y los datos de creación y edición no cambian de tipo ni se convierten desde
+      otro. Solo quien puede escribir la página ve por dónde entrar.
+    why: >-
+      Una colección cuya forma se decide el día que nace obliga a saber de antemano qué se va a necesitar, que es
+      justamente lo que nadie sabe al empezar. Y cambiar a mitad de camino el tipo de lo que guarda ids de opciones, de
+      filas o de archivos dejaría filas con valores que la propiedad ya no sabe leer.
+    context: >-
+      Lo que las filas ya escribieron no se toca: los valores viven en cada fila, no en la forma. Renombrar una
+      propiedad o una opción, o cambiar el color de una opción, no mueve ninguna fila. Entre tipos de texto, número,
+      fecha, persona, casilla y selección sí se puede cambiar, y lo que no encaje con el tipo nuevo hay que volver a
+      responderlo.
+    supersedes: BR-37f128e
+    scenarios:
+      - title: Un estado no se convierte en otra cosa
+        given: Una propiedad de estado con filas en distintos grupos
+        when: Alguien intenta cambiarle el tipo a selección
+        then: El tipo no se ofrece, porque los valores de las filas son identificadores de las opciones del estado
   - id: BR-fb3c415
     status: active
     title: Una colección tiene un tope de propiedades y de vistas, lo pida quien lo pida
@@ -261,6 +446,143 @@ rules:
         given: Una petición con más propiedades que el tope, armada fuera del portal
         when: Se manda
         then: Se rechaza por inválida y la colección se queda como estaba
+  - id: BR-12b587f
+    status: superseded
+    title: Cada opción de una propiedad lleva su nombre y su color
+    rule: >-
+      Una propiedad de selección, simple o múltiple, define sus opciones, y cada opción es un nombre y un color. El
+      color es opcional: una opción sin color se muestra igual que las demás, con el fondo neutro. Los colores son un
+      conjunto cerrado y con nombre, no un valor libre, para que la misma opción se vea igual en la tabla, en la columna
+      de un tablero y en cualquier pantalla que la muestre. Un color que el producto no conoce se descarta al leerlo, y
+      la opción se queda sin color en vez de romper la página.
+    why: >-
+      En un tablero, la columna es un valor de la propiedad por la que se agrupa. Sin color, todas las columnas se ven
+      iguales y hay que leer cada encabezado para saber dónde está uno. El color es lo que hace que un tablero se lea de
+      un vistazo. Y que sea un conjunto cerrado evita que cada quien escriba un color distinto para lo mismo.
+    context: >-
+      Las opciones se guardan como objetos con nombre y color. Las colecciones creadas antes las guardaban como una
+      lista de nombres, y esas se siguen leyendo: llegan sin color. El color nunca es la única señal de nada, porque el
+      nombre de la opción siempre se muestra al lado.
+    superseded_by: BR-5bd97c6
+    scenarios:
+      - title: Una opción con color
+        given: Una propiedad de selección con la opción «hecho» en verde
+        when: Se mira una fila que la tiene
+        then: La opción se muestra con su nombre sobre un fondo verde
+      - title: Una opción sin color
+        given: Una propiedad cuyas opciones no tienen color
+        when: Se mira una fila
+        then: La opción se muestra con el fondo neutro, sin perder su nombre
+      - title: Una colección escrita antes
+        given: Una colección cuyas opciones se guardaron como una lista de nombres
+        when: Se abre
+        then: Las opciones se leen igual, y se muestran sin color
+      - title: Un color que no existe
+        given: Una opción guardada con un color que el producto no conoce
+        when: Se lee
+        then: La opción se muestra sin color, y la página se abre igual
+  - id: BR-37f128e
+    status: superseded
+    title: La forma de una colección se cambia después de crearla
+    rule: >-
+      Una colección ya creada se puede reconfigurar: agregar propiedades propias del tipo que se quiera, renombrarlas,
+      quitarlas, y decidir qué opciones ofrece una selección y de qué color es cada una. Nada de eso viaja hasta que se
+      guarda, así que una colección nunca queda en una forma a medias. La propiedad de título no se puede quitar, porque
+      es la que abre cada fila. Cambiar el tipo de una propiedad no se ofrece aquí. Solo quien puede escribir la página
+      ve por dónde entrar.
+    why: >-
+      Una colección cuya forma se decide el día que nace obliga a saber de antemano qué se va a necesitar, que es
+      justamente lo que nadie sabe al empezar. Sin esto, agregar una columna significa rehacer la colección entera.
+    context: >-
+      Lo que las filas ya escribieron no se toca: los valores viven en cada fila, no en la forma, así que renombrar una
+      propiedad o cambiar el color de una opción no mueve ninguna fila. Renombrar una opción tampoco cambia lo que las
+      filas guardaron, y eso se avisa antes de hacerlo. Cambiar el tipo de una propiedad queda fuera porque es una
+      pregunta sobre qué pasa con cada fila que ya respondió, y no la resuelve un desplegable de paso.
+    superseded_by: BR-f94b138
+    scenarios:
+      - title: Agregar una propiedad
+        given: Una colección ya creada
+        when: Se agrega una propiedad de selección llamada «Familia» y se guarda
+        then: La propiedad aparece en la tabla y en las filas, con la clave que le corresponde
+      - title: Poner color a una opción
+        given: Una propiedad de selección con sus opciones
+        when: Se le da color a una opción y se guarda
+        then: La opción se ve con ese color en la tabla y como columna del tablero
+      - title: Quitar una propiedad sin dejar filas atascadas
+        given: Filas que guardaron un valor bajo una propiedad
+        when: Se quita esa propiedad de la forma
+        then: Las filas se siguen pudiendo mover y guardar, y lo que quedó bajo la propiedad quitada se deja atrás
+      - title: El título no se quita
+        given: La forma de una colección
+        when: Se busca quitar la propiedad de título
+        then: No se ofrece, y se explica que es la que abre cada fila
+      - title: Quien solo puede leer
+        given: Alguien sin permiso de escribir la página
+        when: Abre la colección
+        then: No se le dibuja la manera de entrar a la configuración
+  - id: BR-699e037
+    status: superseded
+    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    rule: >-
+      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
+      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
+      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar una opción de una
+      propiedad: si esa opción ya fue renombrada o quitada por otra persona, el cambio no se aplica y se dice que la
+      opción ya se movió, en lugar de escribir encima.
+    why: >-
+      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
+      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
+      algo que sí se había configurado.
+    superseded_by: BR-22dc232
+    scenarios:
+      - title: Una agrupación puesta mientras la configuración estaba abierta
+        given: Una vista que alguien acaba de agrupar por estado
+        when: Desde la configuración abierta de antes se pone un filtro
+        then: La vista queda con el filtro nuevo y con la agrupación por estado
+      - title: Una opción que ya se movió
+        given: Una opción que otra persona acaba de renombrar
+        when: Alguien intenta renombrarla desde lo que había leído antes
+        then: El cambio se rechaza diciendo que la opción ya se movió, y el renombre de la otra persona se conserva
+  - id: BR-d7ada57
+    status: superseded
+    title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
+    rule: >-
+      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta de una columna
+      a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
+      quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
+      asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
+      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas.
+    why: >-
+      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
+      uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
+      exclusión que se nota todos los días.
+    context: >-
+      Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
+      sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
+      uno de los que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque alguien lo pida por su
+      cuenta.
+    superseded_by: BR-5a97271
+    scenarios:
+      - title: Mover con el ratón
+        given: Una tarjeta en la columna «por hacer»
+        when: Se arrastra a la columna «hecho»
+        then: La fila pasa a valer «hecho» y la tarjeta se queda ahí al recargar
+      - title: Mover con el teclado
+        given: Una tarjeta con el foco puesto
+        when: Se pulsa Alt y la flecha derecha
+        then: La tarjeta pasa a la columna siguiente y se anuncia a dónde fue
+      - title: Soltar donde ya estaba
+        given: Una tarjeta en «por hacer»
+        when: Se suelta en «por hacer»
+        then: No se escribe nada
+      - title: Quitar el valor
+        given: Una tarjeta con valor
+        when: Se suelta en la columna de las filas sin valor
+        then: La fila deja de tener ese valor
+      - title: Quien solo puede leer
+        given: Alguien sin permiso de escribir la página
+        when: Intenta mover una tarjeta
+        then: Las tarjetas no se pueden arrastrar, y el servidor rechaza el intento hecho por fuera
   - id: BR-e248700
     status: superseded
     title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera

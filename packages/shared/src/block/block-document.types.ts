@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { PagePropertyValues } from '../page-property/page-property.types.js';
 import type { PageContent } from '../schemas/page-content.schema.js';
 import type { PageCoverValue } from '../schemas/page-cover.schema.js';
 import type { PageIcon } from '../schemas/page-icon.schema.js';
@@ -27,7 +28,7 @@ export interface BlockDocumentRow {
   readonly type: string;
 }
 
-export type BlockDocumentPropertyValues = Readonly<Record<string, string | number | boolean | readonly string[]>>;
+export type BlockDocumentPropertyValues = PagePropertyValues;
 
 export interface DocumentToBlocksInput {
   readonly content: PageContent;

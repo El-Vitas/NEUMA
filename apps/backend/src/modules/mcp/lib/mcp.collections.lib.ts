@@ -5,6 +5,7 @@ import {
   canAccessTokenAct,
 } from '@neuma/shared';
 import {
+  MCP_NO_ROW_LOOKUPS,
   MCP_NOT_A_COLLECTION_MESSAGE,
   MCP_NOT_A_ROW_MESSAGE,
   MCP_REDACTED_REFERENCE_LABEL,
@@ -16,11 +17,13 @@ import type {
   McpColumnsInHand,
   McpNameLister,
   McpOpenCollection,
+  McpRowLookups,
   McpRowOutput,
+  McpShapeDraft,
   McpView,
   McpWrittenRow,
 } from '../types/mcp.collections.types';
-import type { McpCall, McpOpenRow, McpPerson, McpServerDependencies } from '../types/mcp.types';
+import type { McpAssignablePerson, McpCall, McpOpenRow, McpPerson, McpServerDependencies } from '../types/mcp.types';
 import { buildMcpPageUrl } from './mcp.address.lib';
 import { describeMcpCollection } from './mcp.collection-output.lib';
 import { hideMcpNames, listMcpNames } from './mcp.columns.lib';
@@ -106,7 +109,7 @@ export const saveMcpCollectionShape = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   collection: McpOpenCollection,
-  shape: McpCollectionShape,
+  shape: McpShapeDraft,
 ): Promise<McpOpenCollection> => {
   const { principal, workspace } = call;
   const saved = requireMcpSuccess(
@@ -128,7 +131,7 @@ export const openMcpCollectionWithPeople = (
   call: McpCall,
   address: string,
   permission: AccessTokenPermission,
-): Promise<readonly [McpOpenCollection, readonly McpPerson[]]> =>
+): Promise<readonly [McpOpenCollection, readonly McpAssignablePerson[]]> =>
   Promise.all([
     openMcpCollection(dependencies, call, address, permission),
     dependencies.people.listAssignableMembers(call.workspace.id),
@@ -191,6 +194,7 @@ export const describeMcpRow = (
   shape: McpCollectionShape,
   row: McpWrittenRow,
   people: readonly McpPerson[],
+  lookups: McpRowLookups = MCP_NO_ROW_LOOKUPS,
 ): McpRowOutput => ({
   id: row.id,
   properties: describeMcpRowProperties(
@@ -198,6 +202,7 @@ export const describeMcpRow = (
     row.propertyValues,
     row.title,
     new Map(people.map((person) => [person.id, person.name])),
+    lookups,
   ),
   title: row.title,
   url: buildMcpPageUrl(portalUrl, row.spaceId, row.id, null),

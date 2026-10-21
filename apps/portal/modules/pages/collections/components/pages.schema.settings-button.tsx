@@ -6,15 +6,17 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
-import type { PageSchema } from '../types/pages.schema.types';
+import type { PageRelatedRow, PageSchema } from '../types/pages.schema.types';
 import { PagesSchemaSettingsDialog } from './pages.schema.settings-dialog';
 
 interface IProps {
+  /** The collections of the space, which a relation property may point to. */
+  readonly collections: readonly PageRelatedRow[];
   readonly schema: PageSchema;
   readonly spaceId: string;
 }
 
-export const PagesSchemaSettingsButton = ({ schema, spaceId }: IProps) => {
+export const PagesSchemaSettingsButton = ({ collections, schema, spaceId }: IProps) => {
   const t = useTranslations('pages.collection');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -32,7 +34,14 @@ export const PagesSchemaSettingsButton = ({ schema, spaceId }: IProps) => {
         <Settings2 aria-hidden="true" className="size-4" />
         <span className="sr-only">{t('configure')}</span>
       </Button>
-      {isOpen && <PagesSchemaSettingsDialog onClose={() => setIsOpen(false)} schema={schema} spaceId={spaceId} />}
+      {isOpen && (
+        <PagesSchemaSettingsDialog
+          collections={collections}
+          onClose={() => setIsOpen(false)}
+          schema={schema}
+          spaceId={spaceId}
+        />
+      )}
     </>
   );
 };

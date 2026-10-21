@@ -3,16 +3,24 @@ import type {
   PageChartMeasure,
   PageDateBucket,
   PageOptionColor,
+  PagePropertyConfig,
   PagePropertyType,
+  PageStatusGroup,
   PageViewType,
 } from '@neuma/shared';
 import type { PageSchemaProperty, PageSchemaView } from './pages.schema.types';
 
 export interface PagesSchemaEditor {
-  readonly addOption: (key: string, value: string) => void;
+  /** A status option goes in the group given; for any other type the group is ignored. */
+  readonly addOption: (key: string, name: string, group?: PageStatusGroup) => void;
   readonly addProperty: (label: string, type: PagePropertyType) => void;
   readonly addView: (name: string, type: PageViewType) => void;
-  readonly changeOptionColor: (key: string, value: string, color: PageOptionColor) => void;
+  readonly changeOptionColor: (key: string, optionId: string, color: PageOptionColor) => void;
+  readonly changePropertyConfig: (key: string, changes: Partial<PagePropertyConfig>) => void;
+  readonly renameOption: (key: string, optionId: string, name: string) => void;
+  readonly setPropertyRequired: (key: string, isRequired: boolean) => void;
+  /** Only for a relation that is new: the other collection also gets the property that points back. */
+  readonly setRelationTwoWay: (key: string, isTwoWay: boolean) => void;
   readonly changePropertyType: (key: string, type: PagePropertyType) => void;
   readonly convertView: (viewName: string, type: PageViewType) => void;
   readonly duplicateView: (viewName: string) => void;
@@ -29,7 +37,7 @@ export interface PagesSchemaEditor {
   readonly moveView: (viewName: string, direction: 'EARLIER' | 'LATER') => void;
   readonly isSaving: boolean;
   readonly properties: readonly PageSchemaProperty[];
-  readonly removeOption: (key: string, value: string) => void;
+  readonly removeOption: (key: string, optionId: string) => void;
   readonly removeProperty: (key: string) => void;
   readonly removeView: (name: string) => void;
   readonly renameProperty: (key: string, label: string) => void;

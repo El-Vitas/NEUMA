@@ -6,7 +6,6 @@ import type {
   PageContent,
   PageDocumentNodeShape,
   PageLifecycle,
-  PagePropertyValue,
   PagePropertyValues,
   Result,
   SpaceVisibility,
@@ -27,6 +26,7 @@ import type {
   McpCollectionService,
   McpCollectionShape,
   McpNameLister,
+  McpRefusal,
   McpRowWriter,
   McpSchemaColumn,
 } from './mcp.collections.types';
@@ -46,7 +46,9 @@ export type McpListPagesOutput = z.infer<typeof listPagesOutputSchema>;
 
 export interface McpRowProperty extends McpSchemaColumn {
   readonly people?: McpPerson[];
-  readonly value: Exclude<PagePropertyValue, readonly string[]> | string[] | null;
+  /** On a relation: the rows it points to that the reader may open. */
+  readonly related?: { readonly id: string; readonly title: string }[];
+  readonly value: boolean | number | string[] | string | null;
 }
 
 export type McpRowDescriber = (row: {
@@ -166,8 +168,36 @@ export interface McpPerson {
   readonly name: string;
 }
 
+/** A member a row can be given to: named by name, by email or by id. */
+export interface McpAssignablePerson extends McpPerson {
+  readonly email: string;
+}
+
+/** A file as the portal's upload takes it: the page it is attached to decides who may upload it. */
+export interface McpFileUpload {
+  readonly buffer: Buffer;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+  readonly ownerId: string;
+  readonly pageId: string;
+  readonly role: UserRole;
+  readonly size: number;
+  readonly workspaceId: string;
+}
+
+export interface McpUploadedFile {
+  readonly id: string;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+  readonly size: number;
+}
+
+export interface McpFileUploader {
+  readonly upload: (input: McpFileUpload) => Promise<Result<McpUploadedFile, McpRefusal>>;
+}
+
 export interface McpPeopleReader {
-  readonly listAssignableMembers: (workspaceId: string) => Promise<readonly McpPerson[]>;
+  readonly listAssignableMembers: (workspaceId: string) => Promise<readonly McpAssignablePerson[]>;
 }
 
 export interface McpBacklink {
@@ -282,6 +312,7 @@ export interface McpServerDependencies {
   readonly content: McpContentEditor;
   readonly discussions: McpDiscussions;
   readonly drawings: McpDrawingValidator;
+  readonly files: McpFileUploader;
   readonly observer: McpObserver;
   readonly outline: McpOutlineReader;
   readonly pages: McpPageManager;

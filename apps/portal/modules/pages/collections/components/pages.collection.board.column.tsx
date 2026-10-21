@@ -74,7 +74,7 @@ export const PagesCollectionBoardColumn = ({
 
   const renameTo = (name: string): void => {
     setMode('NAMED');
-    if (name.trim() !== '' && name !== group.key) columns?.renameColumn(group.key, name.trim());
+    if (name.trim() !== '' && name !== group.label) columns?.renameColumn(group.key, name.trim());
   };
 
   if (isCollapsed) {

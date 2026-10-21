@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, type JsonObject, type JsonValue, PageLifecycle } from '@neuma/db';
-import { type PageContent, pageContentSchema, Result, USER_ROLE, type UserRole } from '@neuma/shared';
+import {
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  type PageContent,
+  pageContentSchema,
+  Result,
+  USER_ROLE,
+  type UserRole,
+} from '@neuma/shared';
 import type { SchemaPropertyDefinition, SchemaPropertyValues } from '@/common/domain/schema.domain.types';
 import type { IStorageProvider } from '@/common/types/storage.types';
 import { REDACTED_MENTION_LABEL } from '@/modules/pages/constants/pages.constants';
@@ -99,13 +106,16 @@ const createRepository = (): PageRepositoryContract => ({
 });
 
 const createSchemaRepository = (): PageSchemaRepositoryContract => ({
+  attachFilesToPage: () => Promise.resolve(),
   defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
+  findAttachableFileIds: () => Promise.resolve(new Set<string>()),
+  findCollectionIds: () => Promise.resolve(new Set<string>()),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
-  rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
+  rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),
   listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([]),
   setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
-  listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
+  listRows: () => Promise.resolve({ attachedFiles: [], hasMore: false, relatedRows: [], rows: [] }),
   listWorkspaceMemberIds: () => Promise.resolve([]),
 });
 
@@ -1556,6 +1566,7 @@ describe('markdown export', () => {
 
 describe('pages service — updating what a row holds', () => {
   const titleProperty = {
+    config: DEFAULT_PAGE_PROPERTY_CONFIG,
     key: 'title',
     label: 'Title',
     options: null,
@@ -1564,11 +1575,12 @@ describe('pages service — updating what a row holds', () => {
   };
 
   const statusProperty = {
+    config: DEFAULT_PAGE_PROPERTY_CONFIG,
     key: 'status',
     label: 'Status',
     options: [
-      { color: null, value: 'todo' },
-      { color: null, value: 'done' },
+      { color: null, group: null, id: 'todo0001', value: 'todo' },
+      { color: null, group: null, id: 'done0001', value: 'done' },
     ],
     required: false,
     type: DatabasePropertyType.SELECT,
@@ -1592,6 +1604,7 @@ describe('pages service — updating what a row holds', () => {
     );
 
   const notesProperty = {
+    config: DEFAULT_PAGE_PROPERTY_CONFIG,
     key: 'notes',
     label: 'Notes',
     options: null,
@@ -1625,7 +1638,7 @@ describe('pages service — updating what a row holds', () => {
 
   it('writes only what was named, leaving the rest of the row as it was', async () => {
     const written: Record<string, unknown>[] = [];
-    const service = buildServiceRecordingWrites(written, { notes: 'Sigue igual', status: 'todo' }, [
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue igual', status: 'todo0001' }, [
       titleProperty,
       statusProperty,
       notesProperty,
@@ -1633,7 +1646,7 @@ describe('pages service — updating what a row holds', () => {
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1641,7 +1654,7 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isOk()).toBe(true);
-    expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done' });
+    expect(written[0]).toEqual({ notes: 'Sigue igual', status: 'done0001' });
   });
 
   it('renames the row in the same write as its properties, so both land or neither does', async () => {
@@ -1649,10 +1662,10 @@ describe('pages service — updating what a row holds', () => {
     const service = new PagesService(
       {
         ...createRepository(),
-        getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo' } }),
+        getAccessible: () => Promise.resolve({ ...page, propertyValues: { status: 'todo0001' } }),
         updatePropertyValues: (input, merge) => {
           received.push(input);
-          const merged = merge({ status: 'todo' });
+          const merged = merge({ status: 'todo0001' });
           return Promise.resolve(merged.isFail() ? Result.fail(merged.getError()) : Result.ok(page));
         },
       },
@@ -1666,7 +1679,7 @@ describe('pages service — updating what a row holds', () => {
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       title: 'Informe entregado',
       updatedById: 'user-a',
@@ -1690,14 +1703,14 @@ describe('pages service — updating what a row holds', () => {
   // every later save, so they are dropped on the first write.
   it('leaves behind a value the shape no longer knows, instead of locking the row', async () => {
     const written: Record<string, unknown>[] = [];
-    const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo' }, [
+    const service = buildServiceRecordingWrites(written, { removed: 'Quedó huérfano', status: 'todo0001' }, [
       titleProperty,
       statusProperty,
     ]);
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1705,12 +1718,12 @@ describe('pages service — updating what a row holds', () => {
     });
 
     expect(result.isOk()).toBe(true);
-    expect(written[0]).toEqual({ status: 'done' });
+    expect(written[0]).toEqual({ status: 'done0001' });
   });
 
   it('clears a property when what arrives for it is nothing', async () => {
     const written: Record<string, unknown>[] = [];
-    const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo' }, [
+    const service = buildServiceRecordingWrites(written, { notes: 'Sigue', status: 'todo0001' }, [
       titleProperty,
       statusProperty,
       notesProperty,
@@ -1760,7 +1773,7 @@ describe('pages service — updating what a row holds', () => {
 
     const result = await service.updateProperties({
       pageId: 'page-a',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',
@@ -1783,7 +1796,7 @@ describe('pages service — updating what a row holds', () => {
 
     const result = await service.updateProperties({
       pageId: 'somebody-elses-page',
-      propertyValues: { status: 'done' },
+      propertyValues: { status: 'done0001' },
       role: USER_ROLE.WORKER,
       updatedById: 'user-a',
       userId: 'user-a',

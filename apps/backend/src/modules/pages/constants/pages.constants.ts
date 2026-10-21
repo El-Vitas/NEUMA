@@ -86,6 +86,9 @@ export const SCHEMA_VIEW_LIMIT = 20;
 
 /** A property key is an identifier and stays short; its label is read. */
 export const SCHEMA_PROPERTY_KEY_MAX_LENGTH = PAGE_PROPERTY_KEY_MAX_LENGTH;
+
+/** A caller may send an id it read, or one that is not valid; the longer ones are refused before anything else. */
+export const OPTION_ID_MAX_LENGTH = 64;
 export const SCHEMA_LABEL_MAX_LENGTH = 120;
 
 export const EXPORT_UNTITLED_LABEL_MAX_LENGTH = 80;

@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { getDefaultPropertyValue } from '../lib/pages.properties.lib';
+import { getDefaultPropertyValue, isPropertyBulkAssignable } from '../lib/pages.properties.lib';
 import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
 import { PagesPropertiesField } from './pages.properties.field';
 
@@ -36,7 +36,7 @@ export const PagesCollectionSelectionAssign = ({ onAssign, personOptions, proper
           <SelectValue placeholder={t('bulkWhich')} />
         </SelectTrigger>
         <SelectContent>
-          {properties.map((property) => (
+          {properties.filter(isPropertyBulkAssignable).map((property) => (
             <SelectItem key={property.key} value={property.key}>
               {property.label}
             </SelectItem>

@@ -1,5 +1,5 @@
 import type { DatabasePropertyType, DatabaseViewType, JsonObject, JsonValue } from '@neuma/db';
-import { readPagePropertyOptions } from '@neuma/shared';
+import { readPagePropertyConfig, readPagePropertyOptions } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
   SchemaPropertyValue,
@@ -12,12 +12,14 @@ const isJsonObject = (value: JsonValue): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export const toSchemaPropertyDefinition = (property: {
+  config: JsonValue | null;
   key: string;
   label: string;
   type: DatabasePropertyType;
   required: boolean;
   options: JsonValue | null;
 }): SchemaPropertyDefinition => ({
+  config: readPagePropertyConfig(property.config),
   key: property.key,
   label: property.label,
   options: readPagePropertyOptions(property.options),

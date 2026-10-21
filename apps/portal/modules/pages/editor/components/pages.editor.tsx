@@ -359,6 +359,7 @@ export const PagesEditor = forwardRef(
                 onPropertyValueChange={handlePropertyValueChange}
                 page={page}
                 pageId={page.id}
+                pages={pages}
                 parentSchema={parentSchema}
                 personOptions={personOptions}
                 propertyValues={propertyValues}

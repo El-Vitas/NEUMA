@@ -1,12 +1,17 @@
 import type { PagePropertyContext, PagePropertyType } from '@neuma/shared';
 import {
   formatPagePropertyValue,
+  formatPageUniqueId,
   getDefaultPagePropertyValue,
   getPagePropertyLogicalType,
+  isPageDateValue,
+  isPagePropertySystemManaged,
   isPagePropertyValueEmpty,
   isTitlePageProperty,
   PAGE_PROPERTY_LOGICAL_TYPE,
+  PAGE_PROPERTY_TYPE,
   pagePropertyRequiresPersonDirectory,
+  toValueList,
 } from '@neuma/shared';
 import type {
   PagePersonOption,
@@ -17,9 +22,13 @@ import type {
 } from '../types/pages.schema.types';
 
 const toPropertyContext = (property: PageSchemaProperty): PagePropertyContext => ({
-  options: property.options?.map((option) => option.value) ?? null,
+  config: property.config,
+  options: property.options,
   personIds: undefined,
 });
+
+const isAuthorProperty = (type: PagePropertyType): boolean =>
+  type === PAGE_PROPERTY_TYPE.CREATED_BY || type === PAGE_PROPERTY_TYPE.EDITED_BY;
 
 /** A view can reference a property the collection no longer has; the key is shown instead of a blank. */
 export const readPropertyLabel = (properties: readonly PageSchemaProperty[], key: string): string =>
@@ -34,14 +43,48 @@ export const getDefaultPropertyValue = (property: PageSchemaProperty): PagePrope
 export const buildDefaultPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(properties.map((property) => [property.key, getDefaultPropertyValue(property)]));
 
-/** Empty defaults are omitted: the server would read them as an answer and refuse the row. */
+/**
+ * Empty defaults are omitted: the server would read them as an answer and refuse the row. What the server fills
+ * itself (unique ids, who made it and when) is not sent either, since a client write to it is refused.
+ */
 export const buildRowPropertyValues = (properties: readonly PageSchemaProperty[]): PagePropertyValues =>
   Object.fromEntries(
     properties
+      .filter((property) => !isPagePropertySystemManaged(property.type))
       .map((property) => [property, getDefaultPropertyValue(property)] as const)
       .filter(([property, value]) => !isPagePropertyValueEmpty(property.type, value))
       .map(([property, value]) => [property.key, value]),
   );
+
+/** What the server fills cannot be written, and files are chosen among the ones uploaded to the row's own page. */
+export const isPropertyEditableInPlace = (property: PageSchemaProperty): boolean =>
+  !isPagePropertySystemManaged(property.type) && property.type !== PAGE_PROPERTY_TYPE.FILES;
+
+/** The address a value opens: a web link as it is, a mail or a phone number with its scheme. */
+export const readPropertyLinkHref = (type: PagePropertyType, text: string): string => {
+  if (type === PAGE_PROPERTY_TYPE.EMAIL) return `mailto:${text}`;
+  if (type === PAGE_PROPERTY_TYPE.PHONE) return `tel:${text.replaceAll(/\s+/g, '')}`;
+  return text;
+};
+
+/** Names of people, rows or files side by side; a name that could not be resolved leaves no empty gap. */
+export const joinPropertyNames = (names: readonly string[]): string => names.filter((name) => name !== '').join(', ');
+
+/**
+ * One value for many rows only makes sense for what a person types or picks: the server fills some properties, a
+ * relation changes one row at a time, and the files of a row are the ones uploaded to that row's page.
+ */
+export const isPropertyBulkAssignable = (property: PageSchemaProperty): boolean =>
+  !isPagePropertySystemManaged(property.type) &&
+  property.type !== PAGE_PROPERTY_TYPE.RELATION &&
+  property.type !== PAGE_PROPERTY_TYPE.FILES;
+
+/** People, rows and files are held as ids: a summary with no directory at hand would print the ids. */
+export const isPropertyReadableWithoutLookups = (property: PageSchemaProperty): boolean =>
+  !pagePropertyRequiresPersonDirectory(property.type) &&
+  !isAuthorProperty(property.type) &&
+  property.type !== PAGE_PROPERTY_TYPE.RELATION &&
+  property.type !== PAGE_PROPERTY_TYPE.FILES;
 
 export const getStringPropertyValue = (value: PagePropertyValue | undefined): string =>
   typeof value === 'string' ? value : '';
@@ -52,19 +95,31 @@ export const getNumberPropertyValue = (value: PagePropertyValue | undefined): nu
 export const getBooleanPropertyValue = (value: PagePropertyValue | undefined): boolean =>
   typeof value === 'boolean' && value;
 
-export const getMultiSelectPropertyValue = (value: PagePropertyValue | undefined): readonly string[] =>
-  Array.isArray(value) ? value : [];
+/** Option ids, person ids, file ids or row ids: every list a cell can hold. */
+export const getListPropertyValue = (value: PagePropertyValue | undefined): readonly string[] =>
+  value === undefined ? [] : toValueList(value);
 
+export const getDatePropertyValue = (
+  value: PagePropertyValue | undefined,
+): { readonly end?: string; readonly start: string } | null =>
+  value !== undefined && isPageDateValue(value) ? value : null;
+
+/** The text a cell shows for a value that needs no lookup; names of people, rows and files are resolved apart. */
 export const formatPropertyValueForDisplay = (
   property: PageSchemaProperty,
   value: PagePropertyValue | undefined,
-): string => formatPagePropertyValue(property.type, value);
+): string => {
+  if (property.type === PAGE_PROPERTY_TYPE.UNIQUE_ID && typeof value === 'number') {
+    return formatPageUniqueId(property.config.prefix, value);
+  }
+  return formatPagePropertyValue(property.type, value, toPropertyContext(property));
+};
 
 export const hasPropertyValueToShow = (value: PagePropertyValue | undefined): boolean =>
   value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
 
 export const hasPersonProperty = (properties: readonly PageSchemaProperty[]): boolean =>
-  properties.some((property) => pagePropertyRequiresPersonDirectory(property.type));
+  properties.some((property) => pagePropertyRequiresPersonDirectory(property.type) || isAuthorProperty(property.type));
 
 export const schemaNeedsPersonOptions = (schema: PageSchema | null): boolean =>
   hasPersonProperty(getEditableSchemaProperties(schema));
@@ -79,14 +134,10 @@ export const getPagePersonOptionLabel = (options: readonly PagePersonOption[], o
   return hasNameCollision ? `${option.name} (${option.email})` : option.name;
 };
 
-/** Null when the assignee is unknown to the directory; empty string while the directory has not loaded. */
-export const readPagePersonDisplayName = (
-  options: readonly PagePersonOption[],
-  value: PagePropertyValue | undefined,
-): string | null => {
-  if (typeof value !== 'string' || value === '') return '';
-  if (options.length === 0) return '';
-  const person = findPagePersonOption(options, value);
+/** Null when the person is unknown to the directory; empty string while the directory has not loaded. */
+export const readPagePersonDisplayName = (options: readonly PagePersonOption[], personId: string): string | null => {
+  if (personId === '' || options.length === 0) return '';
+  const person = findPagePersonOption(options, personId);
   return person === undefined ? null : getPagePersonOptionLabel(options, person);
 };
 
@@ -96,7 +147,10 @@ export const pagePropertyAnswersOnPick = (type: PagePropertyType): boolean => {
   return (
     logicalType === PAGE_PROPERTY_LOGICAL_TYPE.TAG ||
     logicalType === PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG ||
-    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.STATUS ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.RELATION ||
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.FILES
   );
 };
 

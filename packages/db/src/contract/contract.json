@@ -2102,6 +2102,13 @@
           },
           "PageSchemaProperty": {
             "fields": {
+              "config": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -2120,6 +2127,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "nextValue": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
                   "kind": "scalar"
                 }
               },
@@ -2182,6 +2196,9 @@
             },
             "storage": {
               "fields": {
+                "config": {
+                  "column": "config"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -2190,6 +2207,9 @@
                 },
                 "label": {
                   "column": "label"
+                },
+                "nextValue": {
+                  "column": "nextValue"
                 },
                 "options": {
                   "column": "options"
@@ -3326,7 +3346,18 @@
                 "PERSON",
                 "DATE",
                 "CHECKBOX",
-                "NUMBER"
+                "NUMBER",
+                "STATUS",
+                "RELATION",
+                "URL",
+                "EMAIL",
+                "PHONE",
+                "FILES",
+                "CREATED_TIME",
+                "EDITED_TIME",
+                "CREATED_BY",
+                "EDITED_BY",
+                "UNIQUE_ID"
               ],
               "typeName": "DatabasePropertyType"
             },
@@ -5120,6 +5151,11 @@
             },
             "PageSchemaProperty": {
               "columns": {
+                "config": {
+                  "codecId": "pg/jsonb@1",
+                  "dataType": "pg/jsonb",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -5133,6 +5169,15 @@
                 "label": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
+                  "nullable": false
+                },
+                "nextValue": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "kind": "literal",
+                    "value": 1
+                  },
                   "nullable": false
                 },
                 "options": {
@@ -6136,7 +6181,18 @@
                 "PERSON",
                 "DATE",
                 "CHECKBOX",
-                "NUMBER"
+                "NUMBER",
+                "STATUS",
+                "RELATION",
+                "URL",
+                "EMAIL",
+                "PHONE",
+                "FILES",
+                "CREATED_TIME",
+                "EDITED_TIME",
+                "CREATED_BY",
+                "EDITED_BY",
+                "UNIQUE_ID"
               ]
             },
             "DatabaseViewType": {
@@ -6194,7 +6250,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "320028ff7455f2461c84b5e4c8cc6eb8157387f33a6acdba31a69fa798fafa99"
+    "storageHash": "ccffce6b1b5f94cf6fa5b6ef5e69d2bb6e95bde33a50d1bffa3986772973a498"
   },
   "execution": {
     "executionHash": "0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc",

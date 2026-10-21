@@ -10,12 +10,12 @@ import type {
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 const moved: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const reordered: { beforePageId?: string; pageId: string; spaceId: string }[] = [];
 const created: { parentId?: string; propertyValues?: Record<string, unknown>; title?: string }[] = [];
-const rewritten: { from: string; to: null | string }[] = [];
+const rewritten: { optionId: string; to: null | string }[] = [];
 const reshaped: { properties: unknown }[] = [];
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
@@ -28,7 +28,9 @@ mock.module('@/i18n/navigation', () => ({
 // The address selects the board view.
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams('view=Board') }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
-  rewritePageCollectionOptionAction: async (input: { from: string; to: null | string }) => {
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  rewritePageCollectionOptionAction: async (input: { optionId: string; to: null | string }) => {
     rewritten.push(input);
     return { data: null };
   },
@@ -105,10 +107,18 @@ const giveCardHeight = (card: HTMLElement, box: { height: number; top: number })
 };
 
 const shownProperties: PageSchemaProperty[] = [
-  { key: 'priority', label: 'Priority', options: asPropertyOptions('low', 'high'), required: false, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'priority',
+    label: 'Priority',
+    options: asPropertyOptions('low', 'high'),
+    required: false,
+    type: 'SELECT',
+  },
 ];
 
 const statusProperty: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
@@ -275,7 +285,7 @@ describe('PagesCollectionBoard', () => {
     ] as PageViewGroup[];
     drawBoard(false, withPriority, shownProperties);
 
-    expect(screen.getByText('High')).toBeDefined();
+    expect(screen.getByText('high')).toBeDefined();
   });
 
   it('leaves out of the card a property the row did not answer', () => {
@@ -327,7 +337,7 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
 
     await waitFor(() => expect(rewritten).toHaveLength(1));
-    expect(rewritten[0]).toMatchObject({ from: 'todo', propertyKey: 'status', to: 'pendiente' });
+    expect(rewritten[0]).toMatchObject({ optionId: 'todo', propertyKey: 'status', to: 'pendiente' });
   });
 
   it('asks before removing a column, saying how many rows are left without a value', async () => {
@@ -342,7 +352,7 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove the column' }));
     await waitFor(() => expect(rewritten).toHaveLength(1));
-    expect(rewritten[0]).toMatchObject({ from: 'todo', propertyKey: 'status', to: null });
+    expect(rewritten[0]).toMatchObject({ optionId: 'todo', propertyKey: 'status', to: null });
   });
 
   it('refuses a name another column already answers to, without asking the server', async () => {
@@ -461,9 +471,11 @@ describe('PagesCollectionBoard — mandando sobre las columnas', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
 
     await waitFor(() => expect(reshaped).toHaveLength(1));
-    expect(reshaped[0]?.properties).toEqual([
-      { ...statusProperty, options: [...asPropertyOptions('todo', 'done'), { color: 'ORANGE', value: 'blocked' }] },
-    ]);
+    const savedProperties = (reshaped[0]?.properties ?? []) as PageSchemaProperty[];
+    const saved = savedProperties.at(0);
+    expect(saved?.options?.slice(0, 2)).toEqual([...asPropertyOptions('todo', 'done')]);
+    expect(saved?.options?.[2]).toMatchObject({ color: 'ORANGE', group: null, value: 'blocked' });
+    expect(saved?.options?.[2]?.id).toStartWith('draft-');
   });
 });
 

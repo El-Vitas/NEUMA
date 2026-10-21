@@ -14,15 +14,29 @@ import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema } from '../../../schemas/pages.schemas';
 import type { PageSummary } from '../../../types/pages.types';
 import {
+  PAGE_BLOCK_TABLE,
+  PAGE_RELATION_COMMAND,
+  PAGE_RELATION_MIRROR_FORBIDDEN_CODE,
+} from '../../constants/pages.relations.constants';
+import { PageRelationRefusedError } from '../../lib/pages.relations.errors';
+import { toRequestedProperty } from '../../lib/pages.schema-request.lib';
+import {
   pageCollectionCreateSchema,
   pageCollectionReadSchema,
   pageCollectionUpdateSchema,
   pageOptionRewriteSchema,
+  pageRelationCandidatesSchema,
   pageRowPropertiesSchema,
+  pageRowRelationChangeSchema,
   pageViewConfigurationUpdateSchema,
 } from '../../schemas/pages.collections.schemas';
-import { pageSchemaSchema } from '../../schemas/pages.schema.schemas';
-import type { PageSchema } from '../../types/pages.schema.types';
+import {
+  pageRelationCandidatesResponseSchema,
+  pageSchemaSchema,
+  pageTransactionsResponseSchema,
+} from '../../schemas/pages.schema.schemas';
+import type { PageRelationChangeOutcome } from '../../types/pages.relations.types';
+import type { PageRelatedRow, PageSchema } from '../../types/pages.schema.types';
 
 /** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
 export const createPageCollectionAction = actionClient
@@ -36,7 +50,7 @@ export const createPageCollectionAction = actionClient
       });
       const page = pageSummarySchema.parse(created);
       await authenticatedRequest(PAGE_API_ROUTES.schema(parsedInput.spaceId, page.id), 'POST', {
-        properties: parsedInput.properties,
+        properties: parsedInput.properties.map(toRequestedProperty),
         views: parsedInput.views,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
@@ -64,7 +78,7 @@ export const updatePageCollectionAction = actionClient
       const updated = await authenticatedRequest(
         PAGE_API_ROUTES.schema(parsedInput.spaceId, parsedInput.pageId),
         'POST',
-        { properties: parsedInput.properties, views: parsedInput.views },
+        { properties: parsedInput.properties.map(toRequestedProperty), views: parsedInput.views },
       );
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
       return pageSchemaSchema.parse(updated);
@@ -86,7 +100,7 @@ export const updatePageViewConfigurationAction = actionClient
     }),
   );
 
-/** Needs the old name so the server can rewrite the values rows already stored under it. */
+/** Names the option by its id: a rename touches the shape only, and a removal clears it from the rows. */
 export const rewritePageCollectionOptionAction = actionClient
   .inputSchema(pageOptionRewriteSchema)
   .action(async ({ parsedInput }) =>
@@ -94,10 +108,53 @@ export const rewritePageCollectionOptionAction = actionClient
       const updated = await authenticatedRequest(
         PAGE_API_ROUTES.rewriteOption(parsedInput.spaceId, parsedInput.pageId, parsedInput.propertyKey),
         'POST',
-        { from: parsedInput.from, ...(parsedInput.to === null ? {} : { to: parsedInput.to }) },
+        { optionId: parsedInput.optionId, ...(parsedInput.to === null ? {} : { to: parsedInput.to }) },
       );
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
       return pageSchemaSchema.parse(updated);
+    }),
+  );
+
+/** One row at a time through the block transaction, so the other side of a two-way relation follows. */
+export const changePageRowRelationAction = actionClient
+  .inputSchema(pageRowRelationChangeSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'changePageRowRelation' }, async (): Promise<PageRelationChangeOutcome> => {
+      const response = await authenticatedRequest<unknown>(PAGE_API_ROUTES.transactions, 'POST', {
+        transactions: [
+          {
+            id: crypto.randomUUID(),
+            operations: [
+              {
+                args: { property: parsedInput.propertyKey, targetId: parsedInput.targetId },
+                command: PAGE_RELATION_COMMAND[parsedInput.change],
+                path: [],
+                pointer: { id: parsedInput.rowId, table: PAGE_BLOCK_TABLE },
+              },
+            ],
+            spaceId: parsedInput.spaceId,
+          },
+        ],
+      });
+      const refusal = pageTransactionsResponseSchema.parse(response).transactions.at(0)?.error;
+      if (refusal?.code === PAGE_RELATION_MIRROR_FORBIDDEN_CODE) return 'MIRROR_FORBIDDEN';
+      if (refusal !== undefined) throw new PageRelationRefusedError(refusal.code);
+      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+      return 'CHANGED';
+    }),
+  );
+
+/** The rows a relation can point to, for the picker. Read on demand: it must be what the reader can open now. */
+export const listPageRelationCandidatesAction = actionClient
+  .inputSchema(pageRelationCandidatesSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'listPageRelationCandidates' }, async (): Promise<readonly PageRelatedRow[]> => {
+      const accessToken = await requireAccessTokenCookie();
+      const response = await apiRequest<unknown>(
+        PAGE_API_ROUTES.rows(parsedInput.spaceId, parsedInput.collectionId),
+        accessToken,
+      );
+      return pageRelationCandidatesResponseSchema.parse(response).rows.map(({ id, title }) => ({ id, title }));
     }),
   );
 

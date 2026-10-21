@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { PAGE_APPEARANCE_WIDTH_STYLE_CLASS } from '@/modules/pages/appearance/constants/pages.appearance.constants';
 import type { PageSummary } from '@/modules/pages/types/pages.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 mock.module('server-only', () => ({}));
 
@@ -38,6 +38,8 @@ mock.module('@/modules/pages/server/actions/pages.actions', () => ({
 }));
 const updatePageRowPropertiesAction = mock(async (_input: unknown) => ({ data: undefined }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction,
 }));
 mock.module('@/modules/pages/trash/server/actions/pages.trash.actions', () => ({
@@ -156,15 +158,23 @@ describe('a page hanging from a collection', () => {
           parentSchema={{
             pageId: 'collection-1',
             properties: [
-              { key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' },
+              { config: defaultConfig, key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' },
               {
+                config: defaultConfig,
                 key: 'status',
                 label: 'Status',
                 options: asPropertyOptions('todo', 'in_progress', 'done'),
                 required: true,
                 type: 'SELECT',
               },
-              { key: 'blocked', label: 'Blocked', options: null, required: false, type: 'CHECKBOX' },
+              {
+                config: defaultConfig,
+                key: 'blocked',
+                label: 'Blocked',
+                options: null,
+                required: false,
+                type: 'CHECKBOX',
+              },
             ],
             spaceId: SPACE_ID,
             views: [],
@@ -196,15 +206,23 @@ describe('a page hanging from a collection', () => {
           parentSchema={{
             pageId: 'collection-1',
             properties: [
-              { key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' },
+              { config: defaultConfig, key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' },
               {
+                config: defaultConfig,
                 key: 'status',
                 label: 'Status',
                 options: asPropertyOptions('todo', 'in_progress', 'done'),
                 required: true,
                 type: 'SELECT',
               },
-              { key: 'blocked', label: 'Blocked', options: null, required: false, type: 'CHECKBOX' },
+              {
+                config: defaultConfig,
+                key: 'blocked',
+                label: 'Blocked',
+                options: null,
+                required: false,
+                type: 'CHECKBOX',
+              },
             ],
             spaceId: SPACE_ID,
             views: [],

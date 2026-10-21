@@ -1,7 +1,7 @@
 import type { JsonObject } from '@neuma/db';
 import { PAGE_FILTER_GROUP_OPERATOR, Result } from '@neuma/shared';
 import type { McpColumnsInHand, McpViewShapeInput } from '../types/mcp.collections.types';
-import type { McpPerson } from '../types/mcp.types';
+import type { McpAssignablePerson } from '../types/mcp.types';
 import { readMcpConditionValue, requireMcpColumn } from './mcp.columns.lib';
 
 const requireKeys = (known: McpColumnsInHand, references: readonly string[]): Result<string[], string> => {
@@ -17,7 +17,7 @@ const requireKeys = (known: McpColumnsInHand, references: readonly string[]): Re
 const buildFilter = (
   known: McpColumnsInHand,
   where: NonNullable<McpViewShapeInput['where']>,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
 ): Result<JsonObject | null, string> => {
   if (where.length === 0) return Result.ok(null);
   const conditions: JsonObject[] = [];
@@ -58,7 +58,7 @@ const buildGroupBy = (known: McpColumnsInHand, groupBy: string | null): Result<s
 export const buildMcpViewConfiguration = (
   known: McpColumnsInHand,
   shape: McpViewShapeInput,
-  people: readonly McpPerson[],
+  people: readonly McpAssignablePerson[],
   base: JsonObject,
 ): Result<JsonObject, string> => {
   const filter = shape.where === undefined ? null : buildFilter(known, shape.where, people);

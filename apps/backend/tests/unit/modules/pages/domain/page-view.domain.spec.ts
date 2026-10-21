@@ -1,21 +1,34 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@neuma/db';
+import { DEFAULT_PAGE_PROPERTY_CONFIG } from '@neuma/shared';
 import { buildPageViewOutcome, countPageViewRows } from '@/modules/pages/domain/page-view.domain';
 import type { PageRowSummary } from '@/modules/pages/types/page-schema.types';
 
-const titleProperty = { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null };
+const titleProperty = {
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
+  key: 'title',
+  label: 'Title',
+  type: DatabasePropertyType.TITLE,
+  required: true,
+  options: null,
+};
 const statusProperty = {
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key: 'status',
   label: 'Status',
   type: DatabasePropertyType.SELECT,
   required: false,
   options: [
-    { color: null, value: 'todo' },
-    { color: null, value: 'done' },
+    { color: null, group: null, id: 'todo0001', value: 'todo' },
+    { color: null, group: null, id: 'done0001', value: 'done' },
   ],
 };
 
 const buildRow = (overrides: Partial<PageRowSummary>): PageRowSummary => ({
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdById: 'user-a',
+  editedAt: new Date('2026-01-01T00:00:00.000Z'),
+  editedById: 'user-a',
   id: 'row-a',
   lifecycle: PageLifecycle.ACTIVE,
   order: 0,
@@ -43,8 +56,8 @@ describe('buildPageViewOutcome — table view', () => {
 describe('buildPageViewOutcome — board view', () => {
   it('groups rows into columns by the configured select property', () => {
     const rows = [
-      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo' } }),
-      buildRow({ id: 'b', order: 1, propertyValues: { status: 'done' } }),
+      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo0001' } }),
+      buildRow({ id: 'b', order: 1, propertyValues: { status: 'done0001' } }),
     ];
 
     const outcome = buildPageViewOutcome(
@@ -55,7 +68,7 @@ describe('buildPageViewOutcome — board view', () => {
 
     expect(outcome.kind).toBe('GROUPED_ROWS');
     if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
-    expect(outcome.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
+    expect(outcome.groups.map((group) => group.key)).toEqual(['todo0001', 'done0001', 'unassigned']);
   });
 
   it('treats a row with no property values as unassigned rather than crashing', () => {
@@ -74,7 +87,7 @@ describe('buildPageViewOutcome — board view', () => {
   });
 
   it('signals a missing grouping property instead of returning a silently empty board', () => {
-    const rows = [buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo' } })];
+    const rows = [buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo0001' } })];
 
     const outcome = buildPageViewOutcome(
       { configuration: { groupBy: 'status' }, isDefault: true, name: 'Board', type: DatabaseViewType.BOARD },
@@ -89,13 +102,13 @@ describe('buildPageViewOutcome — board view', () => {
 describe('buildPageViewOutcome — filtering', () => {
   it('keeps only the rows matching the stored filter', () => {
     const rows = [
-      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo' } }),
-      buildRow({ id: 'b', order: 1, propertyValues: { status: 'done' } }),
+      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo0001' } }),
+      buildRow({ id: 'b', order: 1, propertyValues: { status: 'done0001' } }),
     ];
 
     const outcome = buildPageViewOutcome(
       {
-        configuration: { filter: { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo' } },
+        configuration: { filter: { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo0001' } },
         isDefault: true,
         name: 'Table',
         type: DatabaseViewType.TABLE,
@@ -142,15 +155,15 @@ describe('buildPageViewOutcome — filtering', () => {
 });
 
 describe('buildPageViewOutcome — ordering', () => {
-  it('applies the stored sort ahead of the row order', () => {
+  it('applies the stored sort ahead of the row order, a selection by the position of its options', () => {
     const rows = [
-      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo' } }),
-      buildRow({ id: 'b', order: 1, propertyValues: { status: 'done' } }),
+      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo0001' } }),
+      buildRow({ id: 'b', order: 1, propertyValues: { status: 'done0001' } }),
     ];
 
     const outcome = buildPageViewOutcome(
       {
-        configuration: { sorts: [{ direction: 'ASCENDING', propertyKey: 'status' }] },
+        configuration: { sorts: [{ direction: 'DESCENDING', propertyKey: 'status' }] },
         isDefault: true,
         name: 'Table',
         type: DatabaseViewType.TABLE,
@@ -166,8 +179,8 @@ describe('buildPageViewOutcome — ordering', () => {
 
   it('orders the cards inside a board column by the stored sort', () => {
     const rows = [
-      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo', title: 'Zeta' }, title: 'Zeta' }),
-      buildRow({ id: 'b', order: 1, propertyValues: { status: 'todo', title: 'Alpha' }, title: 'Alpha' }),
+      buildRow({ id: 'a', order: 0, propertyValues: { status: 'todo0001', title: 'Zeta' }, title: 'Zeta' }),
+      buildRow({ id: 'b', order: 1, propertyValues: { status: 'todo0001', title: 'Alpha' }, title: 'Alpha' }),
     ];
 
     const outcome = buildPageViewOutcome(
@@ -183,7 +196,7 @@ describe('buildPageViewOutcome — ordering', () => {
 
     expect(outcome.kind).toBe('GROUPED_ROWS');
     if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
-    const todoGroup = outcome.groups.find((group) => group.key === 'todo');
+    const todoGroup = outcome.groups.find((group) => group.key === 'todo0001');
     expect(todoGroup?.rows.map((row) => row.id)).toEqual(['b', 'a']);
   });
 });
@@ -198,8 +211,8 @@ describe('countPageViewRows', () => {
       { configuration: { groupBy: 'status' }, isDefault: true, name: 'Board', type: DatabaseViewType.BOARD },
       [titleProperty, statusProperty],
       [
-        buildRow({ id: 'a', propertyValues: { status: 'todo' } }),
-        buildRow({ id: 'b', propertyValues: { status: 'done' } }),
+        buildRow({ id: 'a', propertyValues: { status: 'todo0001' } }),
+        buildRow({ id: 'b', propertyValues: { status: 'done0001' } }),
         buildRow({ id: 'c', propertyValues: {} }),
       ],
     );

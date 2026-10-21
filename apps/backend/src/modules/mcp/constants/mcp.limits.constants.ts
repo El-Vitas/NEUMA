@@ -7,6 +7,7 @@ import {
   maximumToggleSummaryLength,
   PAGE_TITLE_MAX_LENGTH,
 } from '@neuma/shared';
+import { MAX_FILE_SIZE } from '../../../common/domain/file.constants';
 
 /** Fine matching is left to the blocks. */
 export const MCP_SEARCH_PAGE_TITLE_LIMIT = 5;
@@ -87,6 +88,16 @@ export const MCP_TABLE_COLUMNS_MAX = maximumTableColumns;
 export const MCP_TOGGLE_SUMMARY_MAX_LENGTH = maximumToggleSummaryLength;
 
 export const MCP_ID_MAX_LENGTH = 128;
+
+/** What the portal's upload accepts, as base64 text: four characters carry three bytes. */
+export const MCP_UPLOAD_BASE64_MAX_LENGTH = Math.ceil(MAX_FILE_SIZE / 3) * 4;
+
+/** Fastify refuses bodies over 1 MiB by default: the MCP route takes a file in base64 plus the rest of the call. */
+export const MCP_REQUEST_BODY_LIMIT_BYTES = MCP_UPLOAD_BASE64_MAX_LENGTH + 64 * 1024;
+
+export const MCP_UPLOAD_NAME_MAX_LENGTH = 255;
+
+export const MCP_UPLOAD_CONTENT_TYPE_MAX_LENGTH = 255;
 
 export const MCP_COMMENT_DATE_MAX_LENGTH = 64;
 

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@neuma/db';
-import { BLOCK_ROLE, type PageContent, USER_ROLE } from '@neuma/shared';
+import { BLOCK_ROLE, DEFAULT_PAGE_PROPERTY_CONFIG, type PageContent, USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
 import { PAGE_PURGE_DELAY_DAYS } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
@@ -727,11 +727,10 @@ describe('Pages stored as blocks (Integration)', () => {
     });
   });
 
-  describe('renaming an option of a collection', () => {
-    it('rewrites the value of every row, the locked ones and the ones in the trash too', async () => {
-      const collection = await createPage('Estados');
-      await request(testApp.getServer())
-        .post(`${pagePath(collection.id)}/schema`)
+  describe('changing an option of a collection', () => {
+    const defineStatus = async (collectionId: string): Promise<string> => {
+      const defined = await request(testApp.getServer())
+        .post(`${pagePath(collectionId)}/schema`)
         .set(asAdmin())
         .send({
           properties: [
@@ -747,9 +746,37 @@ describe('Pages stored as blocks (Integration)', () => {
           views: [],
         })
         .expect(HTTP_CREATED);
-      const open = await createPage('Abierta', { parentId: collection.id, propertyValues: { status: 'todo' } });
-      const locked = await createPage('Bloqueada', { parentId: collection.id, propertyValues: { status: 'todo' } });
-      const trashed = await createPage('Borrada', { parentId: collection.id, propertyValues: { status: 'todo' } });
+      const schema = defined.body as { properties: { key: string; options?: { id: string; value: string }[] }[] };
+      const todo = schema.properties
+        .find((property) => property.key === 'status')
+        ?.options?.find((o) => o.value === 'todo');
+      if (todo === undefined) throw new Error('The schema has no todo option');
+      return todo.id;
+    };
+
+    it('renames it without writing a single row, because the rows hold its id', async () => {
+      const collection = await createPage('Renombrar');
+      const todo = await defineStatus(collection.id);
+      const row = await createPage('Fila', { parentId: collection.id, propertyValues: { status: todo } });
+      const before = await readBlock(row.id);
+
+      await request(testApp.getServer())
+        .post(`${pagePath(collection.id)}/schema/properties/status/rewrite-option`)
+        .set(asAdmin())
+        .send({ optionId: todo, to: 'later' })
+        .expect(HTTP_CREATED);
+
+      const after = await readBlock(row.id);
+      expect(after.properties).toEqual(before.properties);
+      expect(after.version).toBe(before.version);
+    });
+
+    it('clears the value of every row that held a removed option, the locked ones and the ones in the trash too', async () => {
+      const collection = await createPage('Estados');
+      const todo = await defineStatus(collection.id);
+      const open = await createPage('Abierta', { parentId: collection.id, propertyValues: { status: todo } });
+      const locked = await createPage('Bloqueada', { parentId: collection.id, propertyValues: { status: todo } });
+      const trashed = await createPage('Borrada', { parentId: collection.id, propertyValues: { status: todo } });
       await request(testApp.getServer())
         .patch(`${pagePath(locked.id)}/lock`)
         .set(asAdmin())
@@ -763,11 +790,12 @@ describe('Pages stored as blocks (Integration)', () => {
       await request(testApp.getServer())
         .post(`${pagePath(collection.id)}/schema/properties/status/rewrite-option`)
         .set(asAdmin())
-        .send({ from: 'todo', to: 'later' })
+        .send({ optionId: todo })
         .expect(HTTP_CREATED);
 
       for (const row of [open, locked, trashed]) {
-        expect((await readBlock(row.id)).properties).toMatchObject({ values: { status: 'later' } });
+        expect((await readBlock(row.id)).properties).toMatchObject({ values: {} });
+        expect((await readBlock(row.id)).properties).not.toHaveProperty('values.status');
       }
       expect((await readBlock(locked.id)).lockedAt).toBeInstanceOf(Date);
     });
@@ -779,9 +807,33 @@ describe('Pages stored as blocks (Integration)', () => {
       await testApp.get(PageSchemaService).defineSchema({
         pageId: collection.id,
         properties: [
-          { key: 'title', label: 'Nombre', options: null, required: true, type: DatabasePropertyType.TITLE },
-          { key: 'status', label: 'Estado', options: null, required: false, type: DatabasePropertyType.RICH_TEXT },
-          { key: 'notes', label: 'Notas', options: null, required: false, type: DatabasePropertyType.RICH_TEXT },
+          {
+            config: DEFAULT_PAGE_PROPERTY_CONFIG,
+            key: 'title',
+            label: 'Nombre',
+            options: null,
+            required: true,
+            twoWay: false,
+            type: DatabasePropertyType.TITLE,
+          },
+          {
+            config: DEFAULT_PAGE_PROPERTY_CONFIG,
+            key: 'status',
+            label: 'Estado',
+            options: null,
+            required: false,
+            twoWay: false,
+            type: DatabasePropertyType.RICH_TEXT,
+          },
+          {
+            config: DEFAULT_PAGE_PROPERTY_CONFIG,
+            key: 'notes',
+            label: 'Notas',
+            options: null,
+            required: false,
+            twoWay: false,
+            type: DatabasePropertyType.RICH_TEXT,
+          },
         ],
         role: USER_ROLE.ADMIN,
         userId: adminId,

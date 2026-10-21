@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { PAGE_OPTION_COLOR, type PagePropertyType } from '@neuma/shared';
+import { DEFAULT_PAGE_PROPERTY_CONFIG, PAGE_OPTION_COLOR, type PagePropertyType } from '@neuma/shared';
 import { describeMcpCollection, formatMcpCollectionText } from '@/modules/mcp/lib/mcp.collection-output.lib';
 import { listMcpNames } from '@/modules/mcp/lib/mcp.columns.lib';
 import type { McpColumn } from '@/modules/mcp/types/mcp.collections.types';
@@ -10,9 +10,16 @@ const column = (
   type: PagePropertyType,
   options: readonly string[] | null = null,
 ): McpColumn => ({
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key,
   label,
-  options: options?.map((value) => ({ color: PAGE_OPTION_COLOR.GRAY, value })) ?? null,
+  options:
+    options?.map((value, index) => ({
+      color: PAGE_OPTION_COLOR.GRAY,
+      group: null,
+      id: `${key}-${String(index)}`,
+      value,
+    })) ?? null,
   required: type === 'TITLE',
   type,
 });
@@ -29,7 +36,7 @@ const collection = {
         configuration: {
           filter: {
             conditions: [
-              { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'Hecho' },
+              { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'status-1' },
               { kind: 'CONDITION', operator: 'IS_NOT_EMPTY', propertyKey: 'title', value: null },
             ],
             kind: 'GROUP',

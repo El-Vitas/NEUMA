@@ -73,7 +73,60 @@ export type BlockOperation =
   | { readonly blockId: string; readonly command: 'removeRoot'; readonly spaceId: string }
   | { readonly blockId: string; readonly command: 'applyText'; readonly property: string; readonly update: Uint8Array }
   | { readonly blockId: string; readonly command: 'setPermissions'; readonly permissions: BlockPermissions }
+  | BlockRelationOperation
   | BlockPageOperation;
+
+/**
+ * A row points at another row through a relation property (ADR 024). Both are relative to a row, so two people who
+ * add different rows to the same cell never overwrite each other. `isMirror` marks the half the backend adds on the
+ * other row of a two-way relation, which needs edit access of its own.
+ */
+export type BlockRelationOperation =
+  | {
+      readonly afterId: string | null;
+      readonly blockId: string;
+      readonly command: 'addRelation';
+      readonly isMirror?: boolean;
+      readonly property: string;
+      readonly targetId: string;
+    }
+  | {
+      readonly blockId: string;
+      readonly command: 'removeRelation';
+      readonly isMirror?: boolean;
+      readonly property: string;
+      readonly targetId: string;
+    };
+
+/** How many numbers a collection must hand out for one unique id property in a transaction. */
+export interface UniqueIdDemand {
+  readonly collectionId: string;
+  readonly count: number;
+  readonly key: string;
+}
+
+export type RowCreation = Extract<BlockOperation, { command: 'create' }>;
+
+/** What a collection fills in when a row is created in it: the starting option of each status, and its numbers. */
+export interface CollectionRowRules {
+  /** The properties only the server writes: unique ids, and who made a row and when it was made or edited. */
+  readonly serverAssignedKeys: readonly string[];
+  readonly statusDefaults: readonly { readonly key: string; readonly optionId: string }[];
+  readonly uniqueIdKeys: readonly string[];
+}
+
+/** What the schema of the collections a transaction writes into says about relations and about new rows. */
+export interface CollectionFacts {
+  readonly relations: ReadonlyMap<string, readonly RelationProperty[]>;
+  readonly rules: ReadonlyMap<string, CollectionRowRules>;
+}
+
+/** The relation properties of a collection, as the transaction needs them. */
+export interface RelationProperty {
+  readonly key: string;
+  readonly mirrorPropertyKey: string | null;
+  readonly targetCollectionId: string;
+}
 
 /**
  * What only the backend sends, for a page. `detachFromParentId` names the parent that still lists the page and must
@@ -239,6 +292,13 @@ export interface BlockTransactionInput {
   readonly members?: readonly BlockAccessHolder[] | undefined;
   readonly now: Date;
   readonly operations: readonly BlockOperation[];
+  /**
+   * The row rules of the collections the operations write into. Given for a client transaction, which may not
+   * write what the server assigns; left out for the backend's own, which does.
+   */
+  readonly guardedRules?: ReadonlyMap<string, CollectionRowRules> | undefined;
+  /** The relation properties of the collections whose rows a relation operation names, by collection id. */
+  readonly relationSchemas?: ReadonlyMap<string, readonly RelationProperty[]>;
   readonly spaceId: string;
 }
 

@@ -36,8 +36,8 @@ export const usePagesRowCreation = ({
           propertyValues: {
             // The title is sent separately, not as a property value.
             ...buildRowPropertyValues(properties.filter((property) => !isTitlePageProperty(property.type))),
-            ...buildNewRowPropertyValues(placedByKey, placedValue),
-            ...(bandedByKey === '' ? {} : buildNewRowPropertyValues(bandedByKey, bandValue)),
+            ...buildNewRowPropertyValues(properties, placedByKey, placedValue),
+            ...(bandedByKey === '' ? {} : buildNewRowPropertyValues(properties, bandedByKey, bandValue)),
           },
           spaceId,
           title: title.trim(),

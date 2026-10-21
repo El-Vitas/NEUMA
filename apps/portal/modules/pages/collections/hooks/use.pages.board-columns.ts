@@ -54,10 +54,10 @@ export const usePagesBoardColumns = (
 
   const saveShape = (properties: PageSchema['properties']): void => shape.save(properties, viewSaving.views);
 
-  const rewrite = (from: string, to: null | string): void => {
+  const rewrite = (optionId: string, to: null | string): void => {
     startRewriting(async () => {
       const written = await rewritePageCollectionOptionAction({
-        from,
+        optionId,
         pageId: schema.pageId,
         propertyKey: groupByKey,
         spaceId,
@@ -93,9 +93,9 @@ export const usePagesBoardColumns = (
       saveShape(moveSchemaOptionSideways(schema.properties, groupByKey, value, direction)),
     paintColumn: (value: string, color: PageOptionColor | null) =>
       saveShape(updateSchemaOptionColor(schema.properties, groupByKey, value, color)),
-    removeColumn: (value: string) => rewrite(value, null),
-    renameColumn: (from: string, to: string) => {
-      if (!refuseTakenName(to)) rewrite(from, to);
+    removeColumn: (optionId: string) => rewrite(optionId, null),
+    renameColumn: (optionId: string, to: string) => {
+      if (!refuseTakenName(to)) rewrite(optionId, to);
     },
     setLimit: (value: string, limit: null | number) =>
       viewSaving.apply((current) => setViewColumnLimit(current, activeViewName, value, limit)),

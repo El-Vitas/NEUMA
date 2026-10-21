@@ -18,6 +18,8 @@ mock.module('@/modules/pages/attachments/server/actions/pages.attachments.action
 }));
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   createPageCollectionAction: async () => ({ data: { id: 'page-3', title: 'Colección' } }),
   readPageCollectionAction: async () => ({ data: null }),
 }));

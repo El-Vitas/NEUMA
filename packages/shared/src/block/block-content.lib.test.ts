@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { PAGE_DOCUMENT_NODES } from '../page-document/page-document.structure.js';
 import {
-  PAGE_CONTENT_NODE_TYPES,
-  maximumTableColumnWidth,
   maximumTableColumns,
+  maximumTableColumnWidth,
   maximumToggleSummaryLength,
+  PAGE_CONTENT_NODE_TYPES,
 } from '../schemas/page-content.schema.js';
 import { PAGE_TITLE_MAX_LENGTH } from '../types/page.types.js';
-import { BLOCK_CONTENT_SCHEMAS, blockContentSchema } from './block-content.schemas.js';
 import { parseBlockContent, readBlockText } from './block-content.lib.js';
+import { BLOCK_CONTENT_SCHEMAS, blockContentSchema } from './block-content.schemas.js';
 import type { BlockType } from './block-content.types.js';
 import {
   BLOCK_CONTENT_ERROR_CODE,

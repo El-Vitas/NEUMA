@@ -1,15 +1,28 @@
 import type { DatabasePropertyType, DatabaseViewType, JsonObject } from '@neuma/db';
-import type { PageOptionColor, PagePropertyOption, PagePropertyValue, PagePropertyValues } from '@neuma/shared';
+import type {
+  PageOptionColor,
+  PagePropertyConfig,
+  PagePropertyOption,
+  PagePropertyValue,
+  PagePropertyValues,
+} from '@neuma/shared';
 
 export type SchemaPropertyValue = PagePropertyValue;
 export type SchemaPropertyValues = PagePropertyValues;
 
 export interface SchemaPropertyDefinition {
+  readonly config: PagePropertyConfig;
   readonly key: string;
   readonly label: string;
   readonly type: DatabasePropertyType;
   readonly required: boolean;
   readonly options: readonly PagePropertyOption[] | null;
+}
+
+export interface SchemaValuesCheck {
+  readonly personIds?: ReadonlySet<string> | undefined;
+  /** The keys the caller writes now. Without it every key is a write, as when a row is created. */
+  readonly written?: readonly string[] | undefined;
 }
 
 export interface SchemaViewDefinition {
@@ -19,9 +32,9 @@ export interface SchemaViewDefinition {
   readonly isDefault: boolean;
 }
 
-/** A `to` of `null` removes the option. */
+/** The option is named by its id. A `to` of `null` removes it. */
 export interface SchemaOptionRename {
-  readonly from: string;
+  readonly optionId: string;
   readonly propertyKey: string;
   readonly to: null | string;
 }

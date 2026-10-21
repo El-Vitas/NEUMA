@@ -1,4 +1,4 @@
-import type { PagePropertyValue } from '../page-property/page-property.types.js';
+import type { PagePropertyOption, PagePropertyValue } from '../page-property/page-property.types.js';
 import type { PagePropertyType } from '../types/page-schema.types.js';
 
 export type PageFilterOperator =
@@ -11,7 +11,9 @@ export type PageFilterOperator =
   | 'IS_GREATER_THAN'
   | 'IS_LESS_THAN'
   | 'IS_BEFORE'
-  | 'IS_AFTER';
+  | 'IS_AFTER'
+  | 'IS_IN_GROUP'
+  | 'IS_NOT_IN_GROUP';
 
 export const PAGE_FILTER_OPERATOR = {
   IS: 'IS',
@@ -24,6 +26,8 @@ export const PAGE_FILTER_OPERATOR = {
   IS_LESS_THAN: 'IS_LESS_THAN',
   IS_BEFORE: 'IS_BEFORE',
   IS_AFTER: 'IS_AFTER',
+  IS_IN_GROUP: 'IS_IN_GROUP',
+  IS_NOT_IN_GROUP: 'IS_NOT_IN_GROUP',
 } as const satisfies Record<PageFilterOperator, PageFilterOperator>;
 
 export const PAGE_FILTER_OPERATOR_VALUES = [
@@ -37,6 +41,8 @@ export const PAGE_FILTER_OPERATOR_VALUES = [
   PAGE_FILTER_OPERATOR.IS_LESS_THAN,
   PAGE_FILTER_OPERATOR.IS_BEFORE,
   PAGE_FILTER_OPERATOR.IS_AFTER,
+  PAGE_FILTER_OPERATOR.IS_IN_GROUP,
+  PAGE_FILTER_OPERATOR.IS_NOT_IN_GROUP,
 ] as const;
 
 export type PageFilterGroupOperator = 'AND' | 'OR';
@@ -181,8 +187,10 @@ export interface PageCalendarDay {
   readonly isOfTheMonth: boolean;
 }
 
+/** What the engine needs to read a column: its options give a select its order and a status its groups. */
 export interface PageViewProperty {
   readonly key: string;
+  readonly options?: readonly PagePropertyOption[] | null;
   readonly type: PagePropertyType;
 }
 

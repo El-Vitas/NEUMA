@@ -11,7 +11,7 @@ import {
 } from '@neuma/shared';
 import { BLOCK_WRITER } from '../../../../common/constants/block-writer.constants';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
-import type { BlockWriter } from '../../../../common/types/block-writer.types';
+import type { BlockWriter, BlockWriteWithin } from '../../../../common/types/block-writer.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { PAGE_TRANSACTION_KIND } from '../../constants/pages.constants';
 import { readPageCover, readPageIcon, readPageValues } from '../../domain/page.block.domain';
@@ -534,8 +534,13 @@ export class PageBlockWriter {
     spaceId: string,
     operations: readonly PageBlockOperation[],
     transactionId: string = randomUUID(),
+    within?: BlockWriteWithin,
   ): Promise<boolean> {
-    const response = await this.blockWriter.applyTrusted([{ id: transactionId, operations, spaceId }], viewer);
+    const requests = [{ id: transactionId, operations, spaceId }];
+    const response =
+      within === undefined
+        ? await this.blockWriter.applyTrusted(requests, viewer)
+        : await this.blockWriter.applyTrustedWithin(requests, viewer, within);
     const [outcome] = response.transactions;
     if (outcome === undefined) throw new PageBlockWriteError('NO_OUTCOME', 'The blocks module answered nothing', null);
     if (!('error' in outcome)) return true;

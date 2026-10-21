@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'320028ff7455f2461c84b5e4c8cc6eb8157387f33a6acdba31a69fa798fafa99'>;
+  StorageHashBase<'ccffce6b1b5f94cf6fa5b6ef5e69d2bb6e95bde33a50d1bffa3986772973a498'>;
 export type ExecutionHash =
   ExecutionHashBase<'0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc'>;
 export type ProfileHash =
@@ -381,9 +381,11 @@ export type FieldOutputTypes = {
       readonly workspaceId: CodecTypes['pg/text@1']['output'];
     };
     readonly PageSchemaProperty: {
+      readonly config: CodecTypes['pg/jsonb@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly key: CodecTypes['pg/text@1']['output'];
       readonly label: CodecTypes['pg/text@1']['output'];
+      readonly nextValue: CodecTypes['pg/int4@1']['output'];
       readonly options: CodecTypes['pg/jsonb@1']['output'] | null;
       readonly order: CodecTypes['pg/int4@1']['output'];
       readonly pageId: CodecTypes['pg/text@1']['output'];
@@ -396,7 +398,18 @@ export type FieldOutputTypes = {
         | 'PERSON'
         | 'DATE'
         | 'CHECKBOX'
-        | 'NUMBER';
+        | 'NUMBER'
+        | 'STATUS'
+        | 'RELATION'
+        | 'URL'
+        | 'EMAIL'
+        | 'PHONE'
+        | 'FILES'
+        | 'CREATED_TIME'
+        | 'EDITED_TIME'
+        | 'CREATED_BY'
+        | 'EDITED_BY'
+        | 'UNIQUE_ID';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['output'];
@@ -621,9 +634,11 @@ export type FieldInputTypes = {
       readonly workspaceId: CodecTypes['pg/text@1']['input'];
     };
     readonly PageSchemaProperty: {
+      readonly config: CodecTypes['pg/jsonb@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly key: CodecTypes['pg/text@1']['input'];
       readonly label: CodecTypes['pg/text@1']['input'];
+      readonly nextValue: CodecTypes['pg/int4@1']['input'];
       readonly options: CodecTypes['pg/jsonb@1']['input'] | null;
       readonly order: CodecTypes['pg/int4@1']['input'];
       readonly pageId: CodecTypes['pg/text@1']['input'];
@@ -636,7 +651,18 @@ export type FieldInputTypes = {
         | 'PERSON'
         | 'DATE'
         | 'CHECKBOX'
-        | 'NUMBER';
+        | 'NUMBER'
+        | 'STATUS'
+        | 'RELATION'
+        | 'URL'
+        | 'EMAIL'
+        | 'PHONE'
+        | 'FILES'
+        | 'CREATED_TIME'
+        | 'EDITED_TIME'
+        | 'CREATED_BY'
+        | 'EDITED_BY'
+        | 'UNIQUE_ID';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['input'];
@@ -861,9 +887,11 @@ export type StorageColumnTypes = {
       readonly workspaceId: CodecTypes['pg/text@1']['output'];
     };
     readonly PageSchemaProperty: {
+      readonly config: CodecTypes['pg/jsonb@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly key: CodecTypes['pg/text@1']['output'];
       readonly label: CodecTypes['pg/text@1']['output'];
+      readonly nextValue: CodecTypes['pg/int4@1']['output'];
       readonly options: CodecTypes['pg/jsonb@1']['output'] | null;
       readonly order: CodecTypes['pg/int4@1']['output'];
       readonly pageId: CodecTypes['pg/text@1']['output'];
@@ -876,7 +904,18 @@ export type StorageColumnTypes = {
         | 'PERSON'
         | 'DATE'
         | 'CHECKBOX'
-        | 'NUMBER';
+        | 'NUMBER'
+        | 'STATUS'
+        | 'RELATION'
+        | 'URL'
+        | 'EMAIL'
+        | 'PHONE'
+        | 'FILES'
+        | 'CREATED_TIME'
+        | 'EDITED_TIME'
+        | 'CREATED_BY'
+        | 'EDITED_BY'
+        | 'UNIQUE_ID';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['output'];
@@ -1101,9 +1140,11 @@ export type StorageColumnInputTypes = {
       readonly workspaceId: CodecTypes['pg/text@1']['input'];
     };
     readonly PageSchemaProperty: {
+      readonly config: CodecTypes['pg/jsonb@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly key: CodecTypes['pg/text@1']['input'];
       readonly label: CodecTypes['pg/text@1']['input'];
+      readonly nextValue: CodecTypes['pg/int4@1']['input'];
       readonly options: CodecTypes['pg/jsonb@1']['input'] | null;
       readonly order: CodecTypes['pg/int4@1']['input'];
       readonly pageId: CodecTypes['pg/text@1']['input'];
@@ -1116,7 +1157,18 @@ export type StorageColumnInputTypes = {
         | 'PERSON'
         | 'DATE'
         | 'CHECKBOX'
-        | 'NUMBER';
+        | 'NUMBER'
+        | 'STATUS'
+        | 'RELATION'
+        | 'URL'
+        | 'EMAIL'
+        | 'PHONE'
+        | 'FILES'
+        | 'CREATED_TIME'
+        | 'EDITED_TIME'
+        | 'CREATED_BY'
+        | 'EDITED_BY'
+        | 'UNIQUE_ID';
     };
     readonly PageSchemaView: {
       readonly configuration: CodecTypes['pg/jsonb@1']['input'];
@@ -1410,15 +1462,35 @@ export namespace Models {
     readonly [RelationKeys]?: never;
   };
   export type public_PageSchemaProperty = {
+    config: CodecTypes['pg/jsonb@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
     key: CodecTypes['pg/text@1']['output'];
     label: CodecTypes['pg/text@1']['output'];
+    nextValue: CodecTypes['pg/int4@1']['output'];
     options: CodecTypes['pg/jsonb@1']['output'] | null;
     order: CodecTypes['pg/int4@1']['output'];
     pageId: CodecTypes['pg/text@1']['output'];
     required: CodecTypes['pg/bool@1']['output'];
     type:
-      'TITLE' | 'RICH_TEXT' | 'SELECT' | 'MULTI_SELECT' | 'PERSON' | 'DATE' | 'CHECKBOX' | 'NUMBER';
+      | 'TITLE'
+      | 'RICH_TEXT'
+      | 'SELECT'
+      | 'MULTI_SELECT'
+      | 'PERSON'
+      | 'DATE'
+      | 'CHECKBOX'
+      | 'NUMBER'
+      | 'STATUS'
+      | 'RELATION'
+      | 'URL'
+      | 'EMAIL'
+      | 'PHONE'
+      | 'FILES'
+      | 'CREATED_TIME'
+      | 'EDITED_TIME'
+      | 'CREATED_BY'
+      | 'EDITED_BY'
+      | 'UNIQUE_ID';
     page: public_Block;
     readonly [RelationKeys]?: 'page';
   };
@@ -2994,6 +3066,12 @@ type ContractBase = Omit<
             };
             readonly PageSchemaProperty: {
               columns: {
+                readonly config: {
+                  readonly dataType: 'pg/jsonb';
+                  readonly codecId: 'pg/jsonb@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly id: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -3010,6 +3088,16 @@ type ContractBase = Omit<
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly nextValue: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 1>;
+                  };
                   readonly many: false;
                 };
                 readonly options: {
@@ -3795,6 +3883,17 @@ type ContractBase = Omit<
                 'DATE',
                 'CHECKBOX',
                 'NUMBER',
+                'STATUS',
+                'RELATION',
+                'URL',
+                'EMAIL',
+                'PHONE',
+                'FILES',
+                'CREATED_TIME',
+                'EDITED_TIME',
+                'CREATED_BY',
+                'EDITED_BY',
+                'UNIQUE_ID',
               ];
             };
             readonly DatabaseViewType: {
@@ -5209,6 +5308,10 @@ type ContractBase = Omit<
           };
           readonly PageSchemaProperty: {
             readonly fields: {
+              readonly config: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/jsonb@1' };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -5220,6 +5323,10 @@ type ContractBase = Omit<
               readonly label: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly nextValue: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly options: {
                 readonly nullable: true;
@@ -5264,9 +5371,11 @@ type ContractBase = Omit<
               readonly table: 'PageSchemaProperty';
               readonly namespaceId: 'public';
               readonly fields: {
+                readonly config: { readonly column: 'config' };
                 readonly id: { readonly column: 'id' };
                 readonly key: { readonly column: 'key' };
                 readonly label: { readonly column: 'label' };
+                readonly nextValue: { readonly column: 'nextValue' };
                 readonly options: { readonly column: 'options' };
                 readonly order: { readonly column: 'order' };
                 readonly pageId: { readonly column: 'pageId' };

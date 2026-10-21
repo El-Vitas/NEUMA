@@ -14,6 +14,8 @@ import { getTrustProxy } from './common/config/trust-proxy.config';
 import { CORS_ORIGIN_KEY, PORT_KEY } from './common/constants/env.constants';
 import { MULTIPART_LIMITS } from './common/constants/storage.constants';
 import { GlobalExceptionFilter } from './common/infrastructure/filters/global.exception.filter';
+import { MCP_ROUTE } from './modules/mcp/constants/mcp.constants';
+import { MCP_REQUEST_BODY_LIMIT_BYTES } from './modules/mcp/constants/mcp.limits.constants';
 import { NotificationRetentionScheduler } from './modules/notifications/infrastructure/schedulers/notification.retention.scheduler';
 import { PageRetentionScheduler } from './modules/pages/infrastructure/schedulers/page.retention.scheduler';
 
@@ -37,6 +39,12 @@ const bootstrap = async (): Promise<void> => {
     origin: parseCorsOrigins(corsOrigin),
   });
   app.setGlobalPrefix('api/v1');
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onRoute', (route) => {
+      if (route.url === `/api/v1/${MCP_ROUTE}`) route.bodyLimit = MCP_REQUEST_BODY_LIMIT_BYTES;
+    });
 
   await app.register(multipart, { limits: MULTIPART_LIMITS });
 

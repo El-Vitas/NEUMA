@@ -1,8 +1,8 @@
 import { Result } from '../result.js';
-import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from '../schemas/page-content.schema.js';
 import type { PageContent } from '../schemas/page-content.schema.js';
-import { blockFormatMarkersSchema } from './block-content.schemas.js';
+import { PAGE_CONTENT_SCHEMA_VERSION, pageContentSchema } from '../schemas/page-content.schema.js';
 import { parseBlockContent } from './block-content.lib.js';
+import { blockFormatMarkersSchema } from './block-content.schemas.js';
 import type { BlockContent, BlockRichText } from './block-content.types.js';
 import { joinAttributes, joinWrapperAttributes } from './block-document.attributes.lib.js';
 import {
@@ -341,6 +341,16 @@ const indexRows = (page: BlockDocumentRow, blocks: readonly BlockDocumentRow[]):
 };
 
 /**
+ * The pages under a page (the rows of a collection, or its subpages) are listed among its children, after the
+ * content. They are pages of their own, not blocks of this document, so they take no place in the body.
+ */
+const claimChildPages = (pageRow: ParsedRow, context: BuildContext): Built<readonly string[]> => {
+  const pageIds = pageRow.children.filter((id) => context.rows.get(id)?.content.type === BLOCK_TYPE.page);
+  const claimed = claimChildren(pageIds, pageRow, context);
+  return claimed.isFail() ? forwardFailure(claimed) : Result.ok(pageIds);
+};
+
+/**
  * Rebuilds the page document from its page block and every block below it. Consecutive list items of one kind
  * become one list again unless the first item says it starts another. The result is checked against the page schema.
  */
@@ -355,7 +365,13 @@ export const blocksToDocument = (
     return failBlockDocument(BLOCK_DOCUMENT_ERROR_CODE.brokenTree, `The block ${page.id} is not a page`);
   }
   const context: BuildContext = { claimed: new Set([page.id]), rows: rows.getValue() };
-  const nodes = buildSiblings(pageRow.children, pageRow, context);
+  const pages = claimChildPages(pageRow, context);
+  if (pages.isFail()) return forwardFailure(pages);
+  const nodes = buildSiblings(
+    pageRow.children.filter((id) => !pages.getValue().includes(id)),
+    pageRow,
+    context,
+  );
   if (nodes.isFail()) return forwardFailure(nodes);
   if (context.claimed.size !== rows.getValue().size) {
     return failBlockDocument(BLOCK_DOCUMENT_ERROR_CODE.brokenTree, 'Some blocks are not reachable from the page');

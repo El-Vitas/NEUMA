@@ -24,16 +24,24 @@ import {
   toggleViewSortDirection,
 } from '@/modules/pages/collections/lib/pages.view-filtering.lib';
 import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const status: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
   required: false,
   type: 'SELECT',
 };
-const dueDate: PageSchemaProperty = { key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' };
+const dueDate: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'dueDate',
+  label: 'Due date',
+  options: null,
+  required: false,
+  type: 'DATE',
+};
 
 const table: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
 const other: PageSchemaView = { configuration: {}, isDefault: false, name: 'Board', type: 'BOARD' };

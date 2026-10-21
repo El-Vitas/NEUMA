@@ -70,6 +70,8 @@ export const PAGE_API_ROUTES = {
   viewConfiguration: (spaceId: string, pageId: string, viewName: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/views/${encodeURIComponent(viewName)}/configuration`,
   rows: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/rows`,
+  transactions: '/api/v1/transactions',
+  collections: (spaceId: string) => `/api/v1/spaces/${spaceId}/collections`,
   view: (spaceId: string, pageId: string, viewName: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,
 } as const;

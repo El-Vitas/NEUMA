@@ -13,6 +13,8 @@ const successes: { label: string; undo: (() => void) | undefined }[] = [];
 const errors: string[] = [];
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
   updatePageRowPropertiesAction,
 }));
 

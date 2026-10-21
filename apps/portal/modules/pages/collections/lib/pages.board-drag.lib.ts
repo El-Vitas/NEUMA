@@ -5,7 +5,8 @@ import type {
   PageBoardMove,
   PageBoardMoveDirection,
 } from '../types/pages.board-drag.types';
-import type { PageRow, PageViewGroup } from '../types/pages.schema.types';
+import type { PagePropertyValues, PageRow, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
+import { toGroupPropertyValue } from './pages.group-values.lib';
 
 /** The unassigned column is not a value: dropping there clears the property instead of writing its key. */
 export const readBoardGroupValue = (groupKey: string): null | string =>
@@ -20,9 +21,13 @@ export const readDropSideFromPointer = (
   card: { readonly height: number; readonly top: number },
 ): PageBoardDropSide => (pointerY < card.top + card.height / 2 ? 'BEFORE' : 'AFTER');
 
-export const buildNewRowPropertyValues = (groupByKey: string, groupKey: string): Readonly<Record<string, string>> => {
+export const buildNewRowPropertyValues = (
+  properties: readonly PageSchemaProperty[],
+  groupByKey: string,
+  groupKey: string,
+): PagePropertyValues => {
   const value = readBoardGroupValue(groupKey);
-  return value === null ? {} : { [groupByKey]: value };
+  return value === null ? {} : { [groupByKey]: toGroupPropertyValue(properties, groupByKey, value) };
 };
 
 const findGroupOf = (groups: readonly PageViewGroup[], rowId: string): PageViewGroup | undefined =>

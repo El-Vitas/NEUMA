@@ -6,17 +6,32 @@ import {
   toggleViewProperty,
 } from '@/modules/pages/collections/lib/pages.view-editing.lib';
 import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
-import { asPropertyOptions } from './pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const status: PageSchemaProperty = {
+  config: defaultConfig,
   key: 'status',
   label: 'Status',
   options: asPropertyOptions('todo', 'done'),
   required: false,
   type: 'SELECT',
 };
-const dueDate: PageSchemaProperty = { key: 'dueDate', label: 'Due date', options: null, required: false, type: 'DATE' };
-const title: PageSchemaProperty = { key: 'title', label: 'Title', options: null, required: true, type: 'TITLE' };
+const dueDate: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'dueDate',
+  label: 'Due date',
+  options: null,
+  required: false,
+  type: 'DATE',
+};
+const title: PageSchemaProperty = {
+  config: defaultConfig,
+  key: 'title',
+  label: 'Title',
+  options: null,
+  required: true,
+  type: 'TITLE',
+};
 
 const board: PageSchemaView = {
   configuration: { groupBy: 'status' },

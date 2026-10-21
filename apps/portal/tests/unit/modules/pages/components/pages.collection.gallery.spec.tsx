@@ -8,7 +8,7 @@ import type {
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
-import { asPropertyOptions } from '../lib/pages.options.fixture';
+import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -22,7 +22,14 @@ mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchPara
 const { PagesCollectionGallery } = await import('@/modules/pages/collections/components/pages.collection.gallery');
 
 const properties: PageSchemaProperty[] = [
-  { key: 'status', label: 'Status', options: asPropertyOptions('todo', 'done'), required: true, type: 'SELECT' },
+  {
+    config: defaultConfig,
+    key: 'status',
+    label: 'Status',
+    options: asPropertyOptions('todo', 'done'),
+    required: true,
+    type: 'SELECT',
+  },
 ];
 
 const personOptions: readonly PagePersonOption[] = [];

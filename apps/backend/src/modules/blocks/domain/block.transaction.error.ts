@@ -138,6 +138,41 @@ export class BlockPermissionsLockoutError extends DomainError {
   }
 }
 
+/**
+ * The other half of a two-way relation lives on a row the viewer cannot edit. The whole operation is refused: a
+ * reader must not be able to change a page by pointing one of their own at it.
+ */
+export class RelationMirrorForbiddenError extends DomainError {
+  public readonly code = 'RELATION_MIRROR_FORBIDDEN';
+  public readonly httpStatus = 403;
+
+  constructor(targetId: string) {
+    super('The other side of this two-way relation is a row you cannot edit', { targetId });
+  }
+}
+
+/**
+ * A unique id, or who made a row and when, is the server's to give. A client transaction that writes one is
+ * refused whole, so no path around the pages API lets a person choose them.
+ */
+export class ServerAssignedPropertyError extends DomainError {
+  public readonly code = 'BLOCK_PROPERTY_SERVER_ASSIGNED';
+  public readonly httpStatus = 403;
+
+  constructor(key: string) {
+    super('A property the server fills in cannot be written', { key });
+  }
+}
+
+export class RelationLimitExceededError extends DomainError {
+  public readonly code = 'RELATION_LIMIT_EXCEEDED';
+  public readonly httpStatus = 409;
+
+  constructor(limit: number) {
+    super('A relation cell cannot point to more rows than its limit', { limit });
+  }
+}
+
 /** The id was already used by another user; the stored result is not theirs to read. */
 export class BlockTransactionIdTakenError extends DomainError {
   public readonly code = 'BLOCK_TRANSACTION_ID_TAKEN';

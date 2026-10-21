@@ -99,6 +99,11 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
 
   return (
     <PagesCollectionEmbed
+      lookups={
+        reading === null
+          ? undefined
+          : { attachedFiles: reading.attachedFiles, people: [], relatedRows: reading.relatedRows }
+      }
       outcome={reading === null ? null : reading.outcome}
       properties={getEditableSchemaProperties(schema)}
       schema={schema}

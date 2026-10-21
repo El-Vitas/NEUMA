@@ -1,5 +1,14 @@
+import type { CollectionRowRules } from './block.transaction.domain.types';
+
 /** An ordinary operation tolerates no blocker: a locked or trashed block refuses it. */
 export const BLOCK_NO_TOLERATED_BLOCKERS = [] as const;
+
+/** The same words for a row that is not there, one that is hidden and one that is outside the relation. */
+export const BLOCK_CANNOT_RELATE_MESSAGE = 'The row cannot be related';
+
+export const BLOCK_NO_RELATIONS: ReadonlyMap<string, readonly never[]> = new Map();
+
+export const BLOCK_NO_RULES: ReadonlyMap<string, CollectionRowRules> = new Map();
 
 export const BLOCK_PROPERTIES_BAG = 'properties';
 

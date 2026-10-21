@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { SpaceVisibility } from '@neuma/db';
-import { ACCESS_TOKEN_PERMISSIONS, type AccessTokenAccess, type AccessTokenPermission } from '@neuma/shared';
+import {
+  ACCESS_TOKEN_PERMISSIONS,
+  type AccessTokenAccess,
+  type AccessTokenPermission,
+  type BlockDocumentRow,
+  blocksToDocument,
+} from '@neuma/shared';
 import request from 'supertest';
 import { z } from 'zod';
 import { MCP_INACCESSIBLE_MESSAGE, MCP_PAGE_LOCKED_MESSAGE } from '@/modules/mcp/constants/mcp.constants';
@@ -35,12 +41,18 @@ describe('MCP collections (Integration)', () => {
   let openRowId = '';
   let closedRowId = '';
   let lockedRowId = '';
+  let todoId = '';
+  let doneId = '';
   let tokenCount = 0;
 
-  const signUp = async (label: string): Promise<Session> => {
+  const signUp = async (label: string, role: 'ADMIN' | 'WORKER' = 'ADMIN'): Promise<Session> => {
     const email = `mcp-collections-${label}-${String(Date.now())}@test.com`;
-    await createAccount(testApp, { email, name: OWNER_NAME, password: PASSWORD });
-    await testApp.get(PrismaService).models.User.where({ email }).update({ role: 'ADMIN' });
+    await createAccount(testApp, {
+      email,
+      name: role === 'ADMIN' ? OWNER_NAME : `Trabajador ${label}`,
+      password: PASSWORD,
+    });
+    await testApp.get(PrismaService).models.User.where({ email }).update({ role });
     const session = await loginUser(testApp, email, PASSWORD);
     return { id: session.user.id, token: session.accessToken };
   };
@@ -70,11 +82,11 @@ describe('MCP collections (Integration)', () => {
     return (response.body as { id: string }).id;
   };
 
-  const tokenFor = async (rules: Partial<AccessTokenAccess>): Promise<string> => {
+  const tokenFor = async (rules: Partial<AccessTokenAccess>, session: Session = owner): Promise<string> => {
     tokenCount += 1;
     const response = await api()
       .post('/api/v1/access-tokens')
-      .set('Authorization', `Bearer ${owner.token}`)
+      .set('Authorization', `Bearer ${session.token}`)
       .send({
         access: { allSpaces: [], pages: [], spaces: [], ...rules },
         name: `Agente de colecciones ${String(tokenCount)}`,
@@ -111,7 +123,7 @@ describe('MCP collections (Integration)', () => {
     otherSpaceId = await createSpace('Otro');
 
     collectionId = await createPage('Tablero');
-    await api()
+    const defined = await api()
       .post(`/api/v1/spaces/${spaceId}/pages/${collectionId}/schema`)
       .set('Authorization', `Bearer ${owner.token}`)
       .send({
@@ -132,10 +144,15 @@ describe('MCP collections (Integration)', () => {
         views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
       })
       .expect(201);
+    const options = (
+      defined.body as { properties: { key: string; options?: { id: string; value: string }[] }[] }
+    ).properties.find((property) => property.key === 'status')?.options;
+    todoId = options?.find((option) => option.value === 'Por hacer')?.id ?? '';
+    doneId = options?.find((option) => option.value === 'Hecho')?.id ?? '';
 
-    openRowId = await createPage('Escribir el informe', collectionId, { status: 'Por hacer' });
-    closedRowId = await createPage('Sueldos', collectionId, { status: 'Por hacer' });
-    lockedRowId = await createPage('Contrato firmado', collectionId, { status: 'Hecho' });
+    openRowId = await createPage('Escribir el informe', collectionId, { status: todoId });
+    closedRowId = await createPage('Sueldos', collectionId, { status: todoId });
+    lockedRowId = await createPage('Contrato firmado', collectionId, { status: doneId });
     await api()
       .patch(`/api/v1/spaces/${spaceId}/pages/${lockedRowId}/lock`)
       .set('Authorization', `Bearer ${owner.token}`)
@@ -180,7 +197,7 @@ describe('MCP collections (Integration)', () => {
       expect(answer.isError).toBeUndefined();
       const created = writtenRowShape.parse(answer.structuredContent);
       expect(await storedRow(created.id)).toEqual({
-        propertyValues: { owner: owner.id, status: 'Hecho' },
+        propertyValues: { owner: [owner.id], status: doneId },
         title: 'Revisar contrato',
       });
       expect(await actionsOn(created.id)).toContainEqual({ outcome: 'DONE', tool: 'create_row' });
@@ -225,7 +242,7 @@ describe('MCP collections (Integration)', () => {
       });
 
       expect(answer.isError).toBeUndefined();
-      expect(await storedRow(openRowId)).toEqual({ propertyValues: { status: 'Hecho' }, title: 'Informe entregado' });
+      expect(await storedRow(openRowId)).toEqual({ propertyValues: { status: doneId }, title: 'Informe entregado' });
       expect(await actionsOn(openRowId)).toContainEqual({ outcome: 'DONE', tool: 'update_row' });
     });
 
@@ -235,7 +252,7 @@ describe('MCP collections (Integration)', () => {
       const answer = await call(secret, 'update_row', { properties: { Estado: 'Por hacer' }, row: lockedRowId });
 
       expect(readMcpText(answer)).toBe(MCP_PAGE_LOCKED_MESSAGE);
-      expect(await storedRow(lockedRowId)).toEqual({ propertyValues: { status: 'Hecho' }, title: 'Contrato firmado' });
+      expect(await storedRow(lockedRowId)).toEqual({ propertyValues: { status: doneId }, title: 'Contrato firmado' });
       expect(await actionsOn(lockedRowId)).toEqual([{ outcome: 'REFUSED', tool: 'update_row' }]);
     });
   });
@@ -369,7 +386,7 @@ describe('MCP collections (Integration)', () => {
       expect(view).toMatchObject({ configuration: { groupBy: 'status' }, type: 'BOARD' });
     });
 
-    it('renames an option and rewrites the rows that had it', async () => {
+    it('renames an option and leaves the rows that had it as they were, since they hold its id', async () => {
       const secret = await tokenEverywhere([collectionsRead, collectionsConfigure]);
 
       const answer = await call(secret, 'update_collection_columns', {
@@ -378,7 +395,228 @@ describe('MCP collections (Integration)', () => {
       });
 
       expect(answer.isError).toBeUndefined();
-      expect((await storedRow(closedRowId)).propertyValues).toEqual({ status: 'Pendiente' });
+      expect((await storedRow(closedRowId)).propertyValues).toEqual({ status: todoId });
+    });
+  });
+
+  describe('relaciones, estados, archivos y personas', () => {
+    let projectsId = '';
+    let alfaId = '';
+    let betaId = '';
+    let relatedKey = '';
+    let writerSecret = '';
+
+    const projectPropertyValues = async (pageId: string) => (await storedRow(pageId)).propertyValues;
+
+    beforeAll(async () => {
+      projectsId = await createPage('Proyectos');
+      await api()
+        .post(`/api/v1/spaces/${spaceId}/pages/${projectsId}/schema`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({
+          properties: [{ key: 'title', label: 'Nombre', options: null, required: true, type: 'TITLE' }],
+          views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
+        })
+        .expect(201);
+      alfaId = await createPage('Alfa', projectsId);
+      betaId = await createPage('Beta', projectsId);
+      writerSecret = await tokenEverywhere([collectionsRead, collectionsWrite, collectionsConfigure]);
+      const added = await call(writerSecret, 'update_collection_columns', {
+        addColumns: [
+          { name: 'Proyectos', target: projectsId, twoWay: true, type: 'RELATION' },
+          { name: 'Etapa', type: 'STATUS' },
+          { name: 'Archivos', type: 'FILES' },
+          { name: 'Ticket', prefix: 'TK', type: 'UNIQUE_ID' },
+          { multiple: true, name: 'Revisores', type: 'PERSON' },
+          { name: 'Ventana', type: 'DATE' },
+        ],
+        collection: collectionId,
+      });
+      expect(added.isError).toBeUndefined();
+      relatedKey = 'proyectos';
+    });
+
+    it('creates the column with its way back in the other collection', async () => {
+      const schema = await api()
+        .get(`/api/v1/spaces/${spaceId}/pages/${projectsId}/schema`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(200);
+
+      const keys = (schema.body as { properties: { key: string; type: string }[] }).properties;
+      expect(keys.some((property) => property.type === 'RELATION')).toBe(true);
+    });
+
+    it('creates a row linked to two projects, with a status by name, a person by email and a range', async () => {
+      const answer = await call(writerSecret, 'create_row', {
+        collection: collectionId,
+        properties: {
+          Etapa: 'En curso',
+          Proyectos: { add: ['alfa', betaId] },
+          Revisores: [OWNER_NAME.toLowerCase()],
+          Ventana: '2026-10-20/2026-10-25',
+        },
+        title: 'Con relaciones',
+      });
+
+      expect(answer.isError).toBeUndefined();
+      const rowId = writtenRowShape.parse(answer.structuredContent).id;
+      const stored = await projectPropertyValues(rowId);
+      expect(stored).toMatchObject({ ventana: { end: '2026-10-25', start: '2026-10-20' } });
+      expect([...((stored?.[relatedKey] ?? []) as string[])].sort()).toEqual([alfaId, betaId].sort());
+      expect(stored?.revisores).toEqual([owner.id]);
+      expect(typeof stored?.ticket).toBe('number');
+      const mirror = Object.values((await projectPropertyValues(alfaId)) ?? {}).flat();
+      expect(mirror).toContain(rowId);
+    });
+
+    it('unlinks a project and keeps the other, and the way back follows', async () => {
+      const created = await call(writerSecret, 'create_row', {
+        collection: collectionId,
+        properties: { Proyectos: [alfaId, betaId] },
+        title: 'Para desligar',
+      });
+      const rowId = writtenRowShape.parse(created.structuredContent).id;
+
+      const answer = await call(writerSecret, 'update_row', {
+        properties: { Proyectos: { remove: ['Alfa'] } },
+        row: rowId,
+      });
+
+      expect(answer.isError).toBeUndefined();
+      expect((await projectPropertyValues(rowId))?.[relatedKey]).toEqual([betaId]);
+      expect(Object.values((await projectPropertyValues(alfaId)) ?? {}).flat()).not.toContain(rowId);
+    });
+
+    it('opens as a document a collection whose rows were made by the API and by an agent', async () => {
+      const apiRowId = await createPage('Fila por API', collectionId);
+      const made = await call(writerSecret, 'create_row', { collection: collectionId, title: 'Fila por MCP' });
+      const agentRowId = writtenRowShape.parse(made.structuredContent).id;
+
+      const synced = await api()
+        .post('/api/v1/sync')
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({ pageId: collectionId })
+        .expect(200);
+      const blocks = (synced.body as { blocks: BlockDocumentRow[] }).blocks;
+      const page = blocks.find((block) => block.id === collectionId);
+      const document = blocksToDocument(
+        page as BlockDocumentRow,
+        blocks.filter((block) => block.id !== collectionId),
+      );
+
+      const syncedIds = blocks.map((block) => block.id);
+      expect(syncedIds).toContain(apiRowId);
+      expect(syncedIds).toContain(agentRowId);
+      expect(document.isOk()).toBe(true);
+    });
+
+    it('stores a file sent as base64 on a row, and attaches it by the id it answers', async () => {
+      const rowId = await createPage('Con adjunto', collectionId);
+      const bytes = Buffer.from('informe de ventas', 'utf8');
+
+      const uploaded = await call(writerSecret, 'upload_file', {
+        contentBase64: bytes.toString('base64'),
+        contentType: 'text/plain',
+        name: 'informe.txt',
+        page: rowId,
+      });
+      const fileId = z.object({ id: z.string() }).parse(uploaded.structuredContent).id;
+      const attached = await call(writerSecret, 'update_row', { properties: { Archivos: [fileId] }, row: rowId });
+
+      expect(uploaded.isError).toBeUndefined();
+      expect(attached.isError).toBeUndefined();
+      expect((await projectPropertyValues(rowId))?.archivos).toEqual([fileId]);
+      const downloaded = await api()
+        .get(`/api/v1/files/${fileId}`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(200);
+      expect(downloaded.text).toBe('informe de ventas');
+    });
+
+    it('refuses the types the portal refuses, and stores nothing', async () => {
+      const rowId = await createPage('Sin adjunto', collectionId);
+
+      const answer = await call(writerSecret, 'upload_file', {
+        contentBase64: Buffer.from('MZ').toString('base64'),
+        contentType: 'application/x-msdownload',
+        name: 'virus.exe',
+        page: rowId,
+      });
+
+      expect(answer.isError).toBe(true);
+      const listed = await api()
+        .get(`/api/v1/files/page/${rowId}`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .expect(200);
+      expect(listed.body).toEqual([]);
+    });
+
+    it('refuses to upload to a page the token has closed, as if it were not there', async () => {
+      const secret = await tokenFor({
+        allSpaces: [pagesRead, pagesWrite],
+        pages: [{ pageId: closedRowId, permissions: [] }],
+      });
+
+      const answer = await call(secret, 'upload_file', {
+        contentBase64: Buffer.from('x').toString('base64'),
+        contentType: 'text/plain',
+        name: 'x.txt',
+        page: closedRowId,
+      });
+
+      expect(answer.isError).toBe(true);
+      expect(readMcpText(answer)).toBe(MCP_INACCESSIBLE_MESSAGE);
+    });
+
+    it('refuses the whole link, naming the other side, when a worker cannot edit the row there', async () => {
+      const worker = await signUp('worker', 'WORKER');
+      const secret = await tokenFor({ allSpaces: [collectionsRead, collectionsWrite] }, worker);
+      const rowId = await createPage('Fila del trabajador', collectionId);
+      const sealedProjectId = await createPage('Solo lectura', projectsId);
+      await testApp
+        .get(PrismaService)
+        .models.Block.where({ id: sealedProjectId })
+        .update({ permissions: [{ principal: { kind: 'space' }, role: 'reader' }] });
+
+      const answer = await call(secret, 'update_row', {
+        properties: { Proyectos: { add: [sealedProjectId] } },
+        row: rowId,
+      });
+
+      expect(answer.isError).toBe(true);
+      expect(readMcpText(answer)).toContain('The other side of this two-way relation');
+      expect((await projectPropertyValues(rowId))?.[relatedKey] ?? []).toEqual([]);
+      expect(Object.values((await projectPropertyValues(sealedProjectId)) ?? {}).flat()).not.toContain(rowId);
+    });
+
+    it('refuses to write the unique id, and creates nothing', async () => {
+      const before = await rowCount();
+
+      const answer = await call(writerSecret, 'create_row', {
+        collection: collectionId,
+        properties: { Ticket: 99 },
+        title: 'Con número propio',
+      });
+
+      expect(answer.isError).toBe(true);
+      expect(await rowCount()).toBe(before);
+    });
+
+    it('refuses a project the token has closed, as if there were none by that name', async () => {
+      const closedProject = await createPage('Reservado', projectsId);
+      const secret = await tokenFor({
+        allSpaces: [collectionsRead, collectionsWrite],
+        pages: [{ pageId: closedProject, permissions: [] }],
+      });
+
+      const answer = await call(secret, 'create_row', {
+        collection: collectionId,
+        properties: { Proyectos: { add: ['Reservado'] } },
+        title: 'Hacia lo cerrado',
+      });
+
+      expect(answer.isError).toBe(true);
+      expect(readMcpText(answer)).not.toContain(closedProject);
     });
   });
 });

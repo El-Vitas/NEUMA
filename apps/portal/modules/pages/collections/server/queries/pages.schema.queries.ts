@@ -7,8 +7,12 @@ import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
-import { pageSchemaSchema, pageViewReadingSchema } from '../../schemas/pages.schema.schemas';
-import type { PageSchema, PageViewReading } from '../../types/pages.schema.types';
+import {
+  pageSchemaSchema,
+  pageSpaceCollectionsResponseSchema,
+  pageViewReadingSchema,
+} from '../../schemas/pages.schema.schemas';
+import type { PageRelatedRow, PageSchema, PageViewReading } from '../../types/pages.schema.types';
 
 const isNotFoundError = (error: unknown): boolean => error instanceof ApiError && error.status === 404;
 
@@ -24,6 +28,21 @@ const getPageSchemaCached = async (accessToken: string, spaceId: string, pageId:
 
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.schema(spaceId, pageId), accessToken);
   return pageSchemaSchema.parse(response);
+};
+
+/** The collections of a space the caller can open, which is what a relation property may point to. */
+export const getSpaceCollections = async (spaceId: string): Promise<Result<readonly PageRelatedRow[], Error>> =>
+  withQuery({ op: 'getSpaceCollections', params: { spaceId } }, (accessToken) =>
+    getSpaceCollectionsCached(accessToken, spaceId),
+  );
+
+const getSpaceCollectionsCached = async (accessToken: string, spaceId: string): Promise<readonly PageRelatedRow[]> => {
+  'use cache';
+  cacheLife('seconds');
+  cacheTag(PAGES_CACHE_TAG(spaceId));
+
+  const response = await apiRequest<unknown>(PAGE_API_ROUTES.collections(spaceId), accessToken);
+  return pageSpaceCollectionsResponseSchema.parse(response);
 };
 
 export const getPageView = async (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, PageLifecycle } from '@neuma/db';
-import { Result, USER_ROLE } from '@neuma/shared';
+import { DEFAULT_PAGE_PROPERTY_CONFIG, Result, USER_ROLE } from '@neuma/shared';
 import {
   COLLECTION_QUERY_ROW_LIMIT,
   COLLECTION_ROW_LIMIT,
@@ -10,17 +10,27 @@ import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import type { PageRepositoryContract, PageSummary } from '@/modules/pages/types/page.types';
 import type { PageSchemaRepositoryContract } from '@/modules/pages/types/page-schema.types';
 
-const titleProperty = { key: 'title', label: 'Title', type: DatabasePropertyType.TITLE, required: true, options: null };
+const titleProperty = {
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
+  key: 'title',
+  label: 'Title',
+  type: DatabasePropertyType.TITLE,
+  required: true,
+  options: null,
+};
 const statusProperty = {
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
   key: 'status',
   label: 'Status',
   type: DatabasePropertyType.SELECT,
   required: false,
   options: [
-    { color: null, value: 'todo' },
-    { color: null, value: 'done' },
+    { color: null, group: null, id: 'todo0001', value: 'todo' },
+    { color: null, group: null, id: 'done0001', value: 'done' },
   ],
 };
+const titleDraft = { ...titleProperty, twoWay: false };
+const statusDraft = { ...statusProperty, twoWay: false };
 
 const page: PageSummary = {
   content: {},
@@ -81,16 +91,28 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   ...overrides,
 });
 
+const noRows = { attachedFiles: [], hasMore: false, relatedRows: [], rows: [] };
+
+const rowFields = {
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdById: 'user-a',
+  editedAt: new Date('2026-01-01T00:00:00.000Z'),
+  editedById: 'user-a',
+};
+
 const createSchemaRepository = (
   overrides: Partial<PageSchemaRepositoryContract> = {},
 ): PageSchemaRepositoryContract => ({
+  attachFilesToPage: () => Promise.resolve(),
   defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
+  findAttachableFileIds: () => Promise.resolve(new Set<string>()),
+  findCollectionIds: () => Promise.resolve(new Set<string>()),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
-  rewriteOption: (pageId, _propertyKey, _rename, properties) => Promise.resolve({ pageId, properties, views: [] }),
+  rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),
   listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([titleProperty]),
   setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
-  listRows: () => Promise.resolve({ hasMore: false, rows: [] }),
+  listRows: () => Promise.resolve(noRows),
   listWorkspaceMemberIds: () => Promise.resolve([]),
   ...overrides,
 });
@@ -101,7 +123,7 @@ describe('page schema service — defineSchema', () => {
 
     const result = await service.defineSchema({
       pageId: 'page-a',
-      properties: [titleProperty],
+      properties: [titleDraft],
       role: USER_ROLE.CLIENT,
       userId: 'user-a',
       views: [],
@@ -120,7 +142,7 @@ describe('page schema service — defineSchema', () => {
 
     const result = await service.defineSchema({
       pageId: 'page-a',
-      properties: [titleProperty],
+      properties: [titleDraft],
       role: USER_ROLE.WORKER,
       userId: 'user-a',
       views: [],
@@ -145,7 +167,7 @@ describe('page schema service — defineSchema', () => {
 
     const result = await service.defineSchema({
       pageId: 'page-a',
-      properties: [statusProperty],
+      properties: [statusDraft],
       role: USER_ROLE.WORKER,
       userId: 'user-a',
       views: [],
@@ -162,7 +184,7 @@ describe('page schema service — defineSchema', () => {
 
     const result = await service.defineSchema({
       pageId: 'page-a',
-      properties: [titleProperty],
+      properties: [titleDraft],
       role: USER_ROLE.WORKER,
       userId: 'user-a',
       views: [{ name: 'Board', type: DatabaseViewType.BOARD, configuration: { groupBy: 'title' }, isDefault: true }],
@@ -174,11 +196,16 @@ describe('page schema service — defineSchema', () => {
   });
 
   it('persists a well-formed schema and returns the owning page space', async () => {
-    const service = new PageSchemaService(createPageRepository(), createSchemaRepository());
+    const service = new PageSchemaService(
+      createPageRepository(),
+      createSchemaRepository({
+        getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
+      }),
+    );
 
     const result = await service.defineSchema({
       pageId: 'page-a',
-      properties: [titleProperty, statusProperty],
+      properties: [titleDraft, statusDraft],
       role: USER_ROLE.WORKER,
       userId: 'user-a',
       views: [],
@@ -189,11 +216,43 @@ describe('page schema service — defineSchema', () => {
     expect(result.getValue().spaceId).toBe('space-a');
     expect(result.getValue().properties).toEqual([titleProperty, statusProperty]);
   });
+
+  it('gives a new option an id of its own and keeps the id of one that was already saved', async () => {
+    const service = new PageSchemaService(
+      createPageRepository(),
+      createSchemaRepository({
+        getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
+      }),
+    );
+
+    const result = await service.defineSchema({
+      pageId: 'page-a',
+      properties: [
+        titleDraft,
+        {
+          ...statusDraft,
+          options: [
+            { color: null, group: null, id: 'todo0001', value: 'pendiente' },
+            { color: null, group: null, id: null, value: 'blocked' },
+          ],
+        },
+      ],
+      role: USER_ROLE.WORKER,
+      userId: 'user-a',
+      views: [],
+      workspaceId: 'workspace-a',
+    });
+
+    const options = result.getValue().properties[1]?.options ?? [];
+    expect(options[0]).toMatchObject({ id: 'todo0001', value: 'pendiente' });
+    expect(options[1]?.id).toMatch(/^[a-z0-9]{8}$/);
+    expect(options[1]?.value).toBe('blocked');
+  });
 });
 
 describe('page schema service — rewriteOption', () => {
   const renaming = {
-    from: 'todo',
+    optionId: 'todo0001',
     pageId: 'page-a',
     propertyKey: 'status',
     role: USER_ROLE.WORKER,
@@ -252,13 +311,13 @@ describe('page schema service — rewriteOption', () => {
   });
 
   it('hands the rewritten shape to the repository, together with where the name comes from', async () => {
-    const asked: { properties?: unknown; rename?: unknown }[] = [];
+    const asked: { change?: unknown; properties?: unknown }[] = [];
     const service = new PageSchemaService(
       createPageRepository(),
       createSchemaRepository({
         getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty, statusProperty], views: [] }),
-        rewriteOption: (pageId, _propertyKey, rename, properties) => {
-          asked.push({ properties, rename });
+        rewriteOption: (pageId, _propertyKey, change, properties) => {
+          asked.push({ change, properties });
           return Promise.resolve({ pageId, properties, views: [] });
         },
       }),
@@ -267,21 +326,23 @@ describe('page schema service — rewriteOption', () => {
     const result = await service.rewriteOption(renaming);
 
     expect(result.isOk()).toBe(true);
-    expect(asked[0]?.rename).toEqual({ from: 'todo', to: 'pendiente' });
+    expect(asked[0]?.change).toEqual({ optionId: 'todo0001', replacementId: null, to: 'pendiente' });
     expect(asked).toHaveLength(1);
     expect(result.getValue().properties[1]?.options).toEqual([
-      { color: null, value: 'pendiente' },
-      { color: null, value: 'done' },
+      { color: null, group: null, id: 'todo0001', value: 'pendiente' },
+      { color: null, group: null, id: 'done0001', value: 'done' },
     ]);
   });
 
-  it('removes the column when no new name is given, leaving the rest of the options alone', async () => {
+  it('removes the option when no new name is given, leaving the rest of the options alone', async () => {
     const service = new PageSchemaService(createPageRepository(), schemaWithStatus());
 
     const result = await service.rewriteOption({ ...renaming, to: null });
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue().properties[1]?.options).toEqual([{ color: null, value: 'done' }]);
+    expect(result.getValue().properties[1]?.options).toEqual([
+      { color: null, group: null, id: 'done0001', value: 'done' },
+    ]);
   });
 });
 
@@ -339,25 +400,26 @@ describe('page schema service — listRows', () => {
       lifecycle: PageLifecycle.ACTIVE,
       order: 0,
       parentId: 'page-a',
-      propertyValues: { status: 'todo' },
+      ...rowFields,
+      propertyValues: { status: 'todo0001' },
       spaceId: 'space-a',
       title: 'Row A',
     };
     const service = new PageSchemaService(
       createPageRepository(),
-      createSchemaRepository({ listRows: () => Promise.resolve({ hasMore: false, rows: [row] }) }),
+      createSchemaRepository({ listRows: () => Promise.resolve({ ...noRows, rows: [row] }) }),
     );
 
     const result = await service.listRows('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(result.isOk()).toBe(true);
-    expect(result.getValue()).toEqual({ hasMore: false, rows: [row], spaceId: 'space-a' });
+    expect(result.getValue()).toEqual({ ...noRows, rows: [row], spaceId: 'space-a' });
   });
 
   it('passes on that the collection held more rows than were brought', async () => {
     const service = new PageSchemaService(
       createPageRepository(),
-      createSchemaRepository({ listRows: () => Promise.resolve({ hasMore: true, rows: [] }) }),
+      createSchemaRepository({ listRows: () => Promise.resolve({ ...noRows, hasMore: true }) }),
     );
 
     const result = await service.listRows('page-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
@@ -412,7 +474,8 @@ describe('page schema service — getView', () => {
       lifecycle: PageLifecycle.ACTIVE,
       order: 0,
       parentId: 'page-a',
-      propertyValues: { status: 'todo' },
+      ...rowFields,
+      propertyValues: { status: 'todo0001' },
       spaceId: 'space-a',
       title: 'Row A',
     };
@@ -425,7 +488,7 @@ describe('page schema service — getView', () => {
             properties: [titleProperty, statusProperty],
             views: [{ configuration: {}, isDefault: true, name: 'Table', type: DatabaseViewType.TABLE }],
           }),
-        listRows: () => Promise.resolve({ hasMore: false, rows: [row] }),
+        listRows: () => Promise.resolve({ ...noRows, rows: [row] }),
       }),
     );
 
@@ -433,8 +496,10 @@ describe('page schema service — getView', () => {
 
     expect(result.isOk()).toBe(true);
     expect(result.getValue()).toEqual({
+      attachedFiles: [],
       hasMore: false,
       outcome: { kind: 'FLAT_ROWS', rows: [row] },
+      relatedRows: [],
       rowCount: 1,
       spaceId: 'space-a',
       totalRowCount: 1,
@@ -447,7 +512,8 @@ describe('page schema service — getView', () => {
       lifecycle: PageLifecycle.ACTIVE,
       order: 0,
       parentId: 'page-a',
-      propertyValues: { status: 'todo' },
+      ...rowFields,
+      propertyValues: { status: 'todo0001' },
       spaceId: 'space-a',
       title: 'Row A',
     };
@@ -467,7 +533,7 @@ describe('page schema service — getView', () => {
               },
             ],
           }),
-        listRows: () => Promise.resolve({ hasMore: false, rows: [rowTodo] }),
+        listRows: () => Promise.resolve({ ...noRows, rows: [rowTodo] }),
       }),
     );
 
@@ -477,7 +543,7 @@ describe('page schema service — getView', () => {
     const outcome = result.getValue().outcome;
     expect(outcome.kind).toBe('GROUPED_ROWS');
     if (outcome.kind !== 'GROUPED_ROWS') throw new Error('unreachable');
-    expect(outcome.groups.map((group) => group.key)).toEqual(['todo', 'done', 'unassigned']);
+    expect(outcome.groups.map((group) => group.key)).toEqual(['todo0001', 'done0001', 'unassigned']);
   });
 
   it('signals a missing grouping property when the board view references a property no longer in the schema', async () => {
@@ -486,7 +552,8 @@ describe('page schema service — getView', () => {
       lifecycle: PageLifecycle.ACTIVE,
       order: 0,
       parentId: 'page-a',
-      propertyValues: { status: 'todo' },
+      ...rowFields,
+      propertyValues: { status: 'todo0001' },
       spaceId: 'space-a',
       title: 'Row A',
     };
@@ -506,7 +573,7 @@ describe('page schema service — getView', () => {
               },
             ],
           }),
-        listRows: () => Promise.resolve({ hasMore: false, rows: [rowTodo] }),
+        listRows: () => Promise.resolve({ ...noRows, rows: [rowTodo] }),
       }),
     );
 
@@ -519,6 +586,7 @@ describe('page schema service — getView', () => {
 
 describe('page schema service — queryRows', () => {
   const rowOf = (id: string, status: string, order: number) => ({
+    ...rowFields,
     id,
     lifecycle: PageLifecycle.ACTIVE,
     order,
@@ -527,8 +595,8 @@ describe('page schema service — queryRows', () => {
     spaceId: 'space-a',
     title: `Row ${id}`,
   });
-  const rows = [rowOf('a', 'todo', 0), rowOf('b', 'done', 1), rowOf('c', 'todo', 2)];
-  const todoFilter = { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo' };
+  const rows = [rowOf('a', 'todo0001', 0), rowOf('b', 'done0001', 1), rowOf('c', 'todo0001', 2)];
+  const todoFilter = { kind: 'CONDITION', operator: 'IS', propertyKey: 'status', value: 'todo0001' };
 
   const queryWith = (schemaOverrides: Partial<PageSchemaRepositoryContract> = {}) =>
     new PageSchemaService(
@@ -547,7 +615,7 @@ describe('page schema service — queryRows', () => {
               },
             ],
           }),
-        listRows: () => Promise.resolve({ hasMore: false, rows }),
+        listRows: () => Promise.resolve({ ...noRows, rows }),
         ...schemaOverrides,
       }),
     );
@@ -564,7 +632,7 @@ describe('page schema service — queryRows', () => {
 
     expect(result.isOk()).toBe(true);
     expect(result.getValue().rows.map((row) => row.id)).toEqual(['a', 'c']);
-    expect(result.getValue().rows[0]).toEqual(rowOf('a', 'todo', 0));
+    expect(result.getValue().rows[0]).toEqual(rowOf('a', 'todo0001', 0));
   });
 
   it('looks through far more rows than a listing does before filtering them', async () => {
@@ -572,7 +640,7 @@ describe('page schema service — queryRows', () => {
     await queryWith({
       listRows: (_pageId, _workspaceId, _userId, _role, limit) => {
         asked.push(limit);
-        return Promise.resolve({ hasMore: false, rows });
+        return Promise.resolve({ ...noRows, rows });
       },
     }).queryRows({ ...reader, configuration: null, pageId: 'page-a', viewName: 'Pendientes' });
 
@@ -623,5 +691,19 @@ describe('page schema service — queryRows', () => {
     }).queryRows({ ...reader, configuration: null, pageId: 'page-a', viewName: null });
 
     expect(result.getError().code).toBe('PAGE_SCHEMA_NOT_FOUND');
+  });
+});
+
+describe('page schema service — listCollections', () => {
+  it('lists only the pages of the space that carry a shape', async () => {
+    const other = { ...page, id: 'page-b', title: 'Notes' };
+    const service = new PageSchemaService(
+      createPageRepository({ listAccessible: () => Promise.resolve([page, other]) }),
+      createSchemaRepository({ findCollectionIds: () => Promise.resolve(new Set(['page-a'])) }),
+    );
+
+    const collections = await service.listCollections('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
+
+    expect(collections).toEqual([{ id: 'page-a', title: 'Collection' }]);
   });
 });

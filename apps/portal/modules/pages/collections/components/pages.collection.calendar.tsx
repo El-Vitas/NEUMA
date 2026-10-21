@@ -32,7 +32,7 @@ export const PagesCollectionCalendar = ({ canEdit, dateProperty, rows, schema, s
   const t = useTranslations('pages.collection');
   const locale = useLocale();
   const today = new Date().toISOString().slice(0, 'YYYY-MM-DD'.length);
-  const moving = usePagesCalendarMoving(dateProperty, spaceId);
+  const moving = usePagesCalendarMoving(dateProperty, spaceId, rows);
   const creation = usePagesRowCreation({
     collectionPageId: schema.pageId,
     placedByKey: dateProperty ?? '',

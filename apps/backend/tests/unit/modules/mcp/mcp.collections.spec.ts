@@ -3,11 +3,13 @@ import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import {
   ACCESS_TOKEN_PERMISSIONS,
   type AccessTokenPermission,
+  DEFAULT_PAGE_PROPERTY_CONFIG,
   PAGE_OPTION_COLOR,
   type PagePropertyValues,
   Result,
   USER_ROLE,
 } from '@neuma/shared';
+import { MAX_FILE_SIZE } from '../../../../src/common/domain/file.constants';
 import type { AccessTokenPlaceReader } from '../../../../src/common/types/access-token.types';
 import {
   MCP_INACCESSIBLE_MESSAGE,
@@ -25,9 +27,11 @@ import type {
 } from '../../../../src/modules/mcp/types/mcp.collections.types';
 import type {
   McpActionEntry,
+  McpFileUploader,
   McpPageSource,
   McpPrincipal,
   McpServerDependencies,
+  McpUploadedFile,
 } from '../../../../src/modules/mcp/types/mcp.types';
 import { createUnusedPageManager } from '../../../helpers/mcp.page-manager.helper';
 
@@ -38,6 +42,13 @@ const ROW = '22222222-2222-4222-8222-222222222222';
 const CLOSED_ROW = '33333333-3333-4333-8333-333333333333';
 const PLAIN_PAGE = '44444444-4444-4444-8444-444444444444';
 const NEW_ROW = '55555555-5555-4555-8555-555555555555';
+const LINKED = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const LINKED_ROW = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const PROJECTS = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const PROJECT_ALFA = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const PROJECT_BETA = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const PROJECT_BETA_TWIN = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+const PROJECT_CLOSED = '12121212-1212-4121-8121-121212121212';
 
 const everyCollectionPermission: readonly AccessTokenPermission[] = [
   ACCESS_TOKEN_PERMISSIONS.collectionsRead,
@@ -46,7 +57,14 @@ const everyCollectionPermission: readonly AccessTokenPermission[] = [
 ];
 
 const principalWith = (allSpaces: readonly AccessTokenPermission[]): McpPrincipal => ({
-  access: { allSpaces, pages: [{ pageId: CLOSED_ROW, permissions: [] }], spaces: [] },
+  access: {
+    allSpaces,
+    pages: [
+      { pageId: CLOSED_ROW, permissions: [] },
+      { pageId: PROJECT_CLOSED, permissions: [] },
+    ],
+    spaces: [],
+  },
   role: USER_ROLE.WORKER,
   tokenId: 'token-1',
   userId: 'user-1',
@@ -72,10 +90,21 @@ const pageSource = (id: string, title: string, parentId: string | null, values: 
 
 const pages: ReadonlyMap<string, McpPageSource> = new Map([
   [COLLECTION, pageSource(COLLECTION, 'Tareas', null, null)],
-  [ROW, pageSource(ROW, 'Escribir el informe', COLLECTION, { owner: 'u-1', status: 'Por hacer' })],
-  [CLOSED_ROW, pageSource(CLOSED_ROW, 'Sueldos', COLLECTION, { status: 'Hecho' })],
+  [ROW, pageSource(ROW, 'Escribir el informe', COLLECTION, { owner: ['u-1'], status: 'todo0001' })],
+  [CLOSED_ROW, pageSource(CLOSED_ROW, 'Sueldos', COLLECTION, { status: 'done0001' })],
   [PLAIN_PAGE, pageSource(PLAIN_PAGE, 'Notas', null, null)],
+  [LINKED, pageSource(LINKED, 'Entregas', null, null)],
+  [LINKED_ROW, pageSource(LINKED_ROW, 'Primera entrega', LINKED, { projects: [PROJECT_ALFA, PROJECT_CLOSED] })],
+  [PROJECTS, pageSource(PROJECTS, 'Proyectos', null, null)],
+  [PROJECT_ALFA, pageSource(PROJECT_ALFA, 'Alfa', PROJECTS, null)],
+  [PROJECT_BETA, pageSource(PROJECT_BETA, 'Beta', PROJECTS, null)],
+  [PROJECT_BETA_TWIN, pageSource(PROJECT_BETA_TWIN, 'Beta', PROJECTS, null)],
+  [PROJECT_CLOSED, pageSource(PROJECT_CLOSED, 'Secreto', PROJECTS, null)],
 ]);
+
+const UPLOADED_FILE = '99999999-9999-4999-8999-999999999999';
+
+const projectRows = [PROJECT_ALFA, PROJECT_BETA, PROJECT_BETA_TWIN, PROJECT_CLOSED];
 
 const placeOf = (pageId: string) => {
   const parentId = pages.get(pageId)?.parentId ?? null;
@@ -90,18 +119,109 @@ const placeReader: AccessTokenPlaceReader = {
 
 const initialShape: McpCollectionShape = {
   properties: [
-    { key: 'title', label: 'Título', options: null, required: true, type: 'TITLE' },
     {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: 'title',
+      label: 'Título',
+      options: null,
+      required: true,
+      type: 'TITLE',
+    },
+    {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
       key: 'status',
       label: 'Estado',
       options: [
-        { color: PAGE_OPTION_COLOR.GRAY, value: 'Por hacer' },
-        { color: PAGE_OPTION_COLOR.GREEN, value: 'Hecho' },
+        { color: PAGE_OPTION_COLOR.GRAY, group: null, id: 'todo0001', value: 'Por hacer' },
+        { color: PAGE_OPTION_COLOR.GREEN, group: null, id: 'done0001', value: 'Hecho' },
       ],
       required: false,
       type: 'SELECT',
     },
-    { key: 'owner', label: 'Responsable', options: null, required: false, type: 'PERSON' },
+    {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: 'owner',
+      label: 'Responsable',
+      options: null,
+      required: false,
+      type: 'PERSON',
+    },
+  ],
+  views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
+};
+
+const titleColumn = {
+  config: DEFAULT_PAGE_PROPERTY_CONFIG,
+  key: 'title',
+  label: 'Título',
+  options: null,
+  required: true,
+  type: 'TITLE',
+} as const;
+
+/** A collection with a relation to Proyectos, files, a status and a unique id: one column of each new kind. */
+const linkedShape: McpCollectionShape = {
+  properties: [
+    {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: 'title',
+      label: 'Título',
+      options: null,
+      required: true,
+      type: 'TITLE',
+    },
+    {
+      config: { ...DEFAULT_PAGE_PROPERTY_CONFIG, mirrorPropertyKey: 'deliveries', targetCollectionId: PROJECTS },
+      key: 'projects',
+      label: 'Proyectos',
+      options: null,
+      required: false,
+      type: 'RELATION',
+    },
+    {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: 'docs',
+      label: 'Archivos',
+      options: null,
+      required: false,
+      type: 'FILES',
+    },
+    {
+      config: { ...DEFAULT_PAGE_PROPERTY_CONFIG, prefix: 'ENT' },
+      key: 'code',
+      label: 'Código',
+      options: null,
+      required: false,
+      type: 'UNIQUE_ID',
+    },
+    {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: 'stage',
+      label: 'Etapa',
+      options: [
+        { color: PAGE_OPTION_COLOR.GRAY, group: 'TO_DO', id: 'stage001', value: 'Pendiente' },
+        { color: PAGE_OPTION_COLOR.BLUE, group: 'IN_PROGRESS', id: 'stage002', value: 'En curso' },
+        { color: PAGE_OPTION_COLOR.GREEN, group: 'COMPLETE', id: 'stage003', value: 'Entregada' },
+      ],
+      required: false,
+      type: 'STATUS',
+    },
+    {
+      config: { ...DEFAULT_PAGE_PROPERTY_CONFIG, allowsMultiple: true },
+      key: 'reviewers',
+      label: 'Revisores',
+      options: null,
+      required: false,
+      type: 'PERSON',
+    },
+    {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: 'window',
+      label: 'Ventana',
+      options: null,
+      required: false,
+      type: 'DATE',
+    },
   ],
   views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
 };
@@ -114,16 +234,28 @@ const createCollectionStore = (refusesTheShape = false) => {
       received.defineSchema?.push(input);
       if (refusesTheShape)
         return Promise.resolve(Result.fail({ code: 'SCHEMA_PROPERTY_DEFINITION_INVALID', details: undefined }));
-      shape = { properties: input.properties, views: input.views };
+      shape = {
+        properties: input.properties.map((column) => ({
+          ...column,
+          options:
+            column.options?.map((option, index) => ({ ...option, id: option.id ?? `new${String(index)}` })) ?? null,
+        })),
+        views: input.views,
+      };
       return Promise.resolve(Result.ok(shape));
     },
-    getSchema: (pageId) => Promise.resolve(Result.ok(pageId === COLLECTION ? shape : { properties: [], views: [] })),
+    getSchema: (pageId) => {
+      if (pageId === LINKED) return Promise.resolve(Result.ok(linkedShape));
+      if (pageId === PROJECTS) return Promise.resolve(Result.ok({ ...initialShape, properties: [titleColumn] }));
+      return Promise.resolve(Result.ok(pageId === COLLECTION ? shape : { properties: [], views: [] }));
+    },
     queryRows: (input) => {
       received.queryRows?.push(input);
-      const rows = [ROW, CLOSED_ROW].map((id) => ({
+      const rowIds = input.pageId === PROJECTS ? projectRows : [ROW, CLOSED_ROW];
+      const rows = rowIds.map((id) => ({
         ...pageSource(id, pages.get(id)?.title ?? '', COLLECTION, pages.get(id)?.propertyValues ?? null),
       }));
-      return Promise.resolve(Result.ok({ hasMore: false, rows }));
+      return Promise.resolve(Result.ok({ attachedFiles: [], hasMore: false, relatedRows: [], rows }));
     },
     rewriteOption: (input) => {
       received.rewriteOption?.push(input);
@@ -144,27 +276,61 @@ const written = (id: string, title: string, values: PagePropertyValues | null): 
   title,
 });
 
-const createRowStore = (refusal: McpRefusal | null = null) => {
-  const received: Record<string, unknown[]> = { create: [], rename: [], updateProperties: [] };
+const createRowStore = (
+  refusal: McpRefusal | null = null,
+  relationRefusal: McpRefusal | null = null,
+  uploadRefusal: McpRefusal | null = null,
+) => {
+  const received: Record<string, unknown[]> = {
+    changeRelations: [],
+    create: [],
+    rename: [],
+    trash: [],
+    updateProperties: [],
+    upload: [],
+  };
+  const files: McpFileUploader = {
+    upload: (input) => {
+      received.upload?.push({ ...input, buffer: input.buffer.toString('utf8') });
+      return Promise.resolve(
+        uploadRefusal === null
+          ? Result.ok<McpUploadedFile, McpRefusal>({
+              id: UPLOADED_FILE,
+              mimeType: input.mimeType,
+              originalFilename: input.originalFilename,
+              size: input.size,
+            })
+          : Result.fail<McpUploadedFile, McpRefusal>(uploadRefusal),
+      );
+    },
+  };
   const answer = (row: McpWrittenRow) =>
     Promise.resolve(
       refusal === null ? Result.ok<McpWrittenRow, McpRefusal>(row) : Result.fail<McpWrittenRow, McpRefusal>(refusal),
     );
   const writer: McpRowWriter = {
+    changeRelations: (input) => {
+      received.changeRelations?.push(input);
+      return Promise.resolve(
+        relationRefusal === null
+          ? Result.ok<boolean, McpRefusal>(true)
+          : Result.fail<boolean, McpRefusal>(relationRefusal),
+      );
+    },
     create: (input) => {
       received.create?.push(input);
       return answer(written(NEW_ROW, input.title, input.propertyValues));
     },
     rename: (pageId, title) => {
       received.rename?.push({ pageId, title });
-      return answer(written(pageId, title, { status: 'Hecho' }));
+      return answer(written(pageId, title, { status: 'done0001' }));
     },
     updateProperties: (input) => {
       received.updateProperties?.push(input);
-      return answer(written(input.pageId, 'Escribir el informe', { status: 'Hecho' }));
+      return answer(written(input.pageId, 'Escribir el informe', { status: 'done0001' }));
     },
   };
-  return { received, writer };
+  return { files, received, writer };
 };
 
 const notUsedHere = (): Promise<never> => Promise.reject(new Error('Not used in this test'));
@@ -212,7 +378,14 @@ const connect = async (
       reply: notUsedHere,
     },
     drawings: { checkDiagram: notUsedHere, checkFormula: () => Result.ok('') },
-    pages: createUnusedPageManager(),
+    files: rows.files,
+    pages: {
+      ...createUnusedPageManager(),
+      trash: (input) => {
+        rows.received.trash?.push(input);
+        return Promise.resolve(Result.ok(true));
+      },
+    },
     observer: { callFinished: () => undefined, unexpected: () => undefined },
     outline: { listAncestors: notUsedHere, listChildren: notUsedHere, listReadable: notUsedHere },
     pagesService: {
@@ -221,7 +394,13 @@ const connect = async (
         return Promise.resolve(found === undefined ? Result.fail(new Error('No page')) : Result.ok(found));
       },
     },
-    people: { listAssignableMembers: () => Promise.resolve([{ id: 'u-1', name: 'Ana Pérez' }]) },
+    people: {
+      listAssignableMembers: () =>
+        Promise.resolve([
+          { email: 'ana@example.com', id: 'u-1', name: 'Ana Pérez' },
+          { email: 'luis@example.com', id: 'u-2', name: 'Luis Soto' },
+        ]),
+    },
     placeReader,
     portalUrl: 'https://brain.example.com',
     principalResolver: { resolve: () => Promise.resolve(principal) },
@@ -317,7 +496,7 @@ describe('MCP collections — rows', () => {
     expect(result.isError).toBeUndefined();
     expect(rows.received.create?.[0]).toMatchObject({
       parentId: COLLECTION,
-      propertyValues: { owner: 'u-1', status: 'Hecho' },
+      propertyValues: { owner: ['u-1'], status: 'done0001' },
       title: 'Revisar contrato',
     });
     expect(summarizeActions(actions)).toEqual([{ outcome: 'DONE', pageId: COLLECTION, tool: 'create_row' }]);
@@ -354,7 +533,7 @@ describe('MCP collections — rows', () => {
     });
 
     expect(rows.received.updateProperties).toEqual([
-      expect.objectContaining({ pageId: ROW, propertyValues: { status: 'Hecho' }, title: 'Informe entregado' }),
+      expect.objectContaining({ pageId: ROW, propertyValues: { status: 'done0001' }, title: 'Informe entregado' }),
     ]);
     expect(rows.received.rename).toEqual([]);
   });
@@ -402,6 +581,370 @@ describe('MCP collections — rows', () => {
   });
 });
 
+describe('MCP collections — rows with the property types', () => {
+  test('gives a status by the name of its option or by its id, and a person by name, email or id', async () => {
+    const { client, rows } = await connect();
+
+    const byName = await client.callTool({
+      arguments: {
+        collection: LINKED,
+        properties: { Etapa: 'en curso', Revisores: ['ana pérez', 'luis@example.com'] },
+        title: 'Segunda',
+      },
+      name: 'create_row',
+    });
+    const byId = await client.callTool({
+      arguments: { collection: LINKED, properties: { Etapa: 'stage003', Revisores: ['u-1'] }, title: 'Tercera' },
+      name: 'create_row',
+    });
+
+    expect(byName.isError).toBeUndefined();
+    expect(byId.isError).toBeUndefined();
+    expect(rows.received.create?.[0]).toMatchObject({
+      propertyValues: { reviewers: ['u-1', 'u-2'], stage: 'stage002' },
+    });
+    expect(rows.received.create?.[1]).toMatchObject({ propertyValues: { reviewers: ['u-1'], stage: 'stage003' } });
+  });
+
+  test('writes a date range and files by their ids', async () => {
+    const { client, rows } = await connect();
+
+    await client.callTool({
+      arguments: {
+        collection: LINKED,
+        properties: { Archivos: ['file-1', 'file-2'], Ventana: '2026-10-20/2026-10-25' },
+        title: 'Con fechas',
+      },
+      name: 'create_row',
+    });
+
+    expect(rows.received.create?.[0]).toMatchObject({
+      propertyValues: { docs: ['file-1', 'file-2'], window: { end: '2026-10-25', start: '2026-10-20' } },
+    });
+  });
+
+  test('never writes what Neuma fills in, and says so', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({
+      arguments: { collection: LINKED, properties: { Código: 5 }, title: 'Con número' },
+      name: 'create_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('filled in by Neuma');
+    expect(rows.received.create).toEqual([]);
+  });
+
+  test('links the rows of a relation by title or id when the row is created, in one transaction after it exists', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({
+      arguments: {
+        collection: LINKED,
+        properties: { Proyectos: { add: ['alfa', PROJECT_BETA] } },
+        title: 'Con proyectos',
+      },
+      name: 'create_row',
+    });
+
+    expect(textOf(result)).toContain('Row created');
+    expect(rows.received.create?.[0]).toMatchObject({ propertyValues: {} });
+    expect(rows.received.changeRelations).toEqual([
+      expect.objectContaining({
+        changes: [
+          { kind: 'ADD', propertyKey: 'projects', targetId: PROJECT_ALFA },
+          { kind: 'ADD', propertyKey: 'projects', targetId: PROJECT_BETA },
+        ],
+        rowId: NEW_ROW,
+      }),
+    ]);
+    expect(textOf(result)).toContain(PROJECT_ALFA);
+  });
+
+  test('takes a list as the whole relation and links only what is new', async () => {
+    const { client, rows } = await connect();
+
+    await client.callTool({
+      arguments: { properties: { Proyectos: [PROJECT_BETA, 'Alfa'] }, row: LINKED_ROW },
+      name: 'update_row',
+    });
+
+    expect(rows.received.changeRelations).toEqual([
+      expect.objectContaining({ changes: [{ kind: 'ADD', propertyKey: 'projects', targetId: PROJECT_BETA }] }),
+    ]);
+    expect(rows.received.updateProperties).toEqual([]);
+  });
+
+  test('unlinks with remove and keeps links the token cannot read when it replaces the cell', async () => {
+    const { client, rows } = await connect();
+
+    await client.callTool({
+      arguments: { properties: { Proyectos: { remove: ['Alfa'] } }, row: LINKED_ROW },
+      name: 'update_row',
+    });
+    await client.callTool({ arguments: { properties: { Proyectos: [] }, row: LINKED_ROW }, name: 'update_row' });
+
+    expect(rows.received.changeRelations?.[0]).toMatchObject({
+      changes: [{ kind: 'REMOVE', propertyKey: 'projects', targetId: PROJECT_ALFA }],
+    });
+    expect(rows.received.changeRelations?.[1]).toMatchObject({
+      changes: [{ kind: 'REMOVE', propertyKey: 'projects', targetId: PROJECT_ALFA }],
+    });
+  });
+
+  test('asks for the page id when two rows share a title, and says which', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({
+      arguments: { properties: { Proyectos: { add: ['Beta'] } }, row: LINKED_ROW },
+      name: 'update_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain(PROJECT_BETA);
+    expect(textOf(result)).toContain(PROJECT_BETA_TWIN);
+    expect(rows.received.changeRelations).toEqual([]);
+  });
+
+  test('does not offer, link or name a row of the other collection that the token has closed', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({
+      arguments: { properties: { Proyectos: { add: ['Secreto'] } }, row: LINKED_ROW },
+      name: 'update_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).not.toContain(PROJECT_CLOSED);
+    expect(rows.received.changeRelations).toEqual([]);
+  });
+
+  test('refuses the whole update when the other side of a two-way relation cannot be edited', async () => {
+    const { client, rows } = await connect(
+      everyCollectionPermission,
+      createRowStore(null, { code: 'RELATION_MIRROR_FORBIDDEN', details: 'x' }),
+    );
+
+    const result = await client.callTool({
+      arguments: { properties: { Etapa: 'Entregada', Proyectos: { add: [PROJECT_BETA] } }, row: LINKED_ROW },
+      name: 'update_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('other side of this two-way relation');
+    expect(rows.received.updateProperties).toEqual([]);
+  });
+
+  test('takes back a row it created when its relations are refused, so nothing half made is left', async () => {
+    const { client, rows } = await connect(
+      everyCollectionPermission,
+      createRowStore(null, { code: 'RELATION_MIRROR_FORBIDDEN', details: 'x' }),
+    );
+
+    const result = await client.callTool({
+      arguments: { collection: LINKED, properties: { Proyectos: { add: ['Alfa'] } }, title: 'Nueva' },
+      name: 'create_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('other side of this two-way relation');
+    expect(rows.received.trash).toEqual([expect.objectContaining({ pageId: NEW_ROW })]);
+  });
+
+  test('says when a relation cell takes more than the limit of links', async () => {
+    const { client } = await connect(
+      everyCollectionPermission,
+      createRowStore(null, {
+        code: 'RELATION_LIMIT_EXCEEDED',
+        details: 'A relation cell cannot point to more rows than its limit',
+      }),
+    );
+
+    const result = await client.callTool({
+      arguments: { properties: { Proyectos: { add: [PROJECT_BETA] } }, row: LINKED_ROW },
+      name: 'update_row',
+    });
+
+    expect(textOf(result)).toContain('limit');
+  });
+
+  test('explains each property type in the description of the row tools', async () => {
+    const { client } = await connect();
+
+    const tools = (await client.listTools()).tools;
+    const create = JSON.stringify(tools.find((tool) => tool.name === 'create_row'));
+    const update = JSON.stringify(tools.find((tool) => tool.name === 'update_row'));
+
+    for (const description of [create, update]) {
+      expect(description).toContain('relation');
+      expect(description).toContain('files');
+      expect(description).toContain('status');
+    }
+    expect(create).toContain('unique id');
+  });
+});
+
+describe('MCP collections — uploading a file to attach', () => {
+  const content = Buffer.from('informe de ventas', 'utf8');
+  const uploadArguments = (page: string, overrides: Record<string, unknown> = {}) => ({
+    contentBase64: content.toString('base64'),
+    contentType: 'text/plain',
+    name: 'informe.txt',
+    page,
+    ...overrides,
+  });
+
+  test('stores the file on the row and answers the id to put in a files column', async () => {
+    const { actions, client, rows } = await connect();
+
+    const result = await client.callTool({ arguments: uploadArguments(ROW), name: 'upload_file' });
+
+    expect(result.structuredContent).toMatchObject({ id: UPLOADED_FILE, name: 'informe.txt', size: content.length });
+    expect(textOf(result)).toContain(UPLOADED_FILE);
+    expect(rows.received.upload).toEqual([
+      {
+        buffer: 'informe de ventas',
+        mimeType: 'text/plain',
+        originalFilename: 'informe.txt',
+        ownerId: 'user-1',
+        pageId: ROW,
+        role: 'WORKER',
+        size: content.length,
+        workspaceId: 'workspace-1',
+      },
+    ]);
+    expect(summarizeActions(actions)).toEqual([{ outcome: 'DONE', pageId: ROW, tool: 'upload_file' }]);
+  });
+
+  test('refuses a file that is not valid base64, and stores nothing', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({
+      arguments: uploadArguments(ROW, { contentBase64: 'esto no es base64!' }),
+      name: 'upload_file',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(rows.received.upload).toEqual([]);
+  });
+
+  test('refuses a file past the size the portal accepts, before it is decoded', async () => {
+    const { client, rows } = await connect();
+    const tooBig = 'A'.repeat(Math.ceil((MAX_FILE_SIZE + 1) / 3) * 4);
+
+    const result = await client.callTool({
+      arguments: uploadArguments(ROW, { contentBase64: tooBig }),
+      name: 'upload_file',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(rows.received.upload).toEqual([]);
+  });
+
+  test('refuses an empty file', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({
+      arguments: uploadArguments(ROW, { contentBase64: '' }),
+      name: 'upload_file',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(rows.received.upload).toEqual([]);
+  });
+
+  test('answers a page the token has closed as if it were not there', async () => {
+    const { client, rows } = await connect();
+
+    const result = await client.callTool({ arguments: uploadArguments(CLOSED_ROW), name: 'upload_file' });
+
+    expect(textOf(result)).toBe(MCP_INACCESSIBLE_MESSAGE);
+    expect(rows.received.upload).toEqual([]);
+  });
+
+  test('lets a token that writes pages, and not collections, attach a file to a page', async () => {
+    const { client, rows } = await connect([ACCESS_TOKEN_PERMISSIONS.pagesWrite]);
+
+    const result = await client.callTool({ arguments: uploadArguments(PLAIN_PAGE), name: 'upload_file' });
+
+    expect(result.isError).not.toBe(true);
+    expect(rows.received.upload).toHaveLength(1);
+  });
+
+  test('turns what the portal would refuse into a message the agent can act on', async () => {
+    const { client } = await connect(
+      everyCollectionPermission,
+      createRowStore(null, null, { code: 'FILE_VALIDATION_FAILED', details: 'File MIME type is invalid' }),
+    );
+
+    const result = await client.callTool({
+      arguments: uploadArguments(ROW, { contentType: 'application/x-msdownload' }),
+      name: 'upload_file',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('File MIME type is invalid');
+  });
+});
+
+describe('MCP collections — relation columns', () => {
+  test('adds a relation column that links another collection, with its way back when asked', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: {
+        addColumns: [{ name: 'Entregas', target: PROJECTS, twoWay: true, type: 'RELATION' }],
+        collection: COLLECTION,
+      },
+      name: 'update_collection_columns',
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect(collections.received.defineSchema?.[0]).toMatchObject({
+      properties: [
+        { key: 'title' },
+        { key: 'status' },
+        { key: 'owner' },
+        { config: { targetCollectionId: PROJECTS }, key: 'entregas', twoWay: true, type: 'RELATION' },
+      ],
+    });
+  });
+
+  test('asks which collection a relation links', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { addColumns: [{ name: 'Entregas', type: 'RELATION' }], collection: COLLECTION },
+      name: 'update_collection_columns',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('target');
+    expect(collections.received.defineSchema).toEqual([]);
+  });
+
+  test('will not link a collection the token cannot read', async () => {
+    const readsOnlyHere: McpPrincipal = {
+      ...principalWith(everyCollectionPermission),
+      access: {
+        allSpaces: [ACCESS_TOKEN_PERMISSIONS.pagesRead, ACCESS_TOKEN_PERMISSIONS.collectionsConfigure],
+        pages: [{ pageId: PROJECTS, permissions: [] }],
+        spaces: [],
+      },
+    };
+    const { client } = await connect([], createRowStore(), readsOnlyHere);
+
+    const result = await client.callTool({
+      arguments: { addColumns: [{ name: 'Entregas', target: PROJECTS, type: 'RELATION' }], collection: COLLECTION },
+      name: 'update_collection_columns',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toBe(MCP_INACCESSIBLE_MESSAGE);
+  });
+});
+
 describe('MCP collections — columns and views', () => {
   test('renames an option through the path that rewrites its rows, and adds a column with a key made from its name', async () => {
     const { client, collections } = await connect();
@@ -417,6 +960,7 @@ describe('MCP collections — columns and views', () => {
 
     expect(collections.received.rewriteOption?.[0]).toMatchObject({
       from: 'Hecho',
+      optionId: 'done0001',
       propertyKey: 'status',
       to: 'Listo',
     });

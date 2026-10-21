@@ -1,25 +1,23 @@
 import { describe, expect, test } from 'bun:test';
 import { PAGE_CONTENT_NODE_TYPES, type PageContent, pageContentSchema } from '../schemas/page-content.schema.js';
-import { blocksToDocument } from './block-document.to-document.lib.js';
-import { documentToBlocks } from './block-document.to-blocks.lib.js';
 import { parseBlockContent } from './block-content.lib.js';
 import {
   ANNOTATIONS,
-  FIXTURE_ASSET_ID,
-  FIXTURE_SPACE_ID,
-  FIXTURE_USER_ID,
-  type FixtureNode,
-  IMAGE_NODE,
-  REALISTIC_DOCUMENTS,
   bulletList,
   cell,
   document,
   documentWithIds,
+  FIXTURE_ASSET_ID,
+  FIXTURE_SPACE_ID,
+  FIXTURE_USER_ID,
+  type FixtureNode,
   heading,
+  IMAGE_NODE,
   listItem,
   nestedBlock,
   orderedList,
   paragraph,
+  REALISTIC_DOCUMENTS,
   row,
   table,
   taskItem,
@@ -29,6 +27,8 @@ import {
   unwrap,
   withoutNodeIds,
 } from './block-document.fixtures.js';
+import { documentToBlocks } from './block-document.to-blocks.lib.js';
+import { blocksToDocument } from './block-document.to-document.lib.js';
 
 const expectRoundTrip = (content: PageContent): void => {
   const { blocks, page } = unwrap(documentToBlocks(toInput(content)));

@@ -50,6 +50,39 @@ describe('blocksToDocument', () => {
     expect(unwrap(result).content.map((node) => node.type)).toEqual(['paragraph', 'bullet_list', 'task_list']);
   });
 
+  test('leaves the child pages of the page out of the body, since they are listed after the content', () => {
+    const { blocks, page } = build();
+    const row = {
+      children: [],
+      format: null,
+      id: 'row-page',
+      parentId: page.id,
+      properties: { title: [{ insert: 'Fila' }] },
+      type: BLOCK_TYPE.page,
+    };
+    const withRow = { ...page, children: [...page.children, row.id] };
+
+    const result = unwrap(blocksToDocument(withRow, [...blocks, row]));
+
+    expect(result.content.map((node) => node.type)).toEqual(['paragraph', 'bullet_list']);
+  });
+
+  test('still refuses a child page that says another parent', () => {
+    const { blocks, page } = build();
+    const stray = {
+      children: [],
+      format: null,
+      id: 'row-page',
+      parentId: 'someone-else',
+      properties: { title: [{ insert: 'Fila' }] },
+      type: BLOCK_TYPE.page,
+    };
+
+    const result = blocksToDocument({ ...page, children: [...page.children, stray.id] }, [...blocks, stray]);
+
+    expect(result.getError()).toMatchObject({ code: BLOCK_DOCUMENT_ERROR_CODE.brokenTree });
+  });
+
   test('refuses a page row that is not a page', () => {
     const { blocks } = build();
 

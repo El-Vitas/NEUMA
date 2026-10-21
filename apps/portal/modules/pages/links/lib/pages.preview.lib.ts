@@ -1,5 +1,9 @@
 import { extractPageContentSegments, isPagePropertyValueEmpty, joinPageContentSegmentsForSearch } from '@neuma/shared';
-import { formatPropertyValueForDisplay, getEditableSchemaProperties } from '../../collections/lib/pages.properties.lib';
+import {
+  formatPropertyValueForDisplay,
+  getEditableSchemaProperties,
+  isPropertyReadableWithoutLookups,
+} from '../../collections/lib/pages.properties.lib';
 import type { PagePropertyValues, PageSchema } from '../../collections/types/pages.schema.types';
 import { PAGE_PROPERTIES_VISIBLE_LIMIT } from '../../constants/pages.constants';
 import type { PageEditorSpot, PageEditorSurfaceRect } from '../../editor/menus/types/pages.editor.surface.types';
@@ -42,6 +46,7 @@ export const readPagePreviewProperties = (
 ): readonly PagePreviewProperty[] => {
   if (schema === null || values === null) return [];
   return getEditableSchemaProperties(schema)
+    .filter(isPropertyReadableWithoutLookups)
     .map((property) => ({ property, value: values[property.key] }))
     .filter(({ property, value }) => value !== undefined && !isPagePropertyValueEmpty(property.type, value))
     .slice(0, PAGE_PROPERTIES_VISIBLE_LIMIT)

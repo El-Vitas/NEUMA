@@ -6,6 +6,13 @@ import {
   PAGE_TABLE_MINIMUM_COLUMN_WIDTH,
   PAGE_TABLE_TITLE_COLUMN_WIDTH,
 } from '../constants/pages.collections.constants';
+import type { PageSchemaProperty } from '../types/pages.schema.types';
+
+/** A required column carries an asterisk, since the server refuses a row without it. */
+export const readColumnLabel = (property: PageSchemaProperty | undefined, columnKey: string): string => {
+  if (property === undefined) return columnKey;
+  return property.required ? `${property.label} *` : property.label;
+};
 
 /** The title column is always first; it is keyed like any other so width and freezing treat it uniformly. */
 export const listTableColumnKeys = (propertyKeys: readonly string[]): readonly string[] => [
