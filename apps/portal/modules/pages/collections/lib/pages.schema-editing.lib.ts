@@ -20,6 +20,7 @@ import {
   pageViewRequiresGrouping,
   pageViewSupportsGrouping,
   pickPageOptionColor,
+  readPageEffectivePropertyType,
   readPageViewConfiguration,
 } from '@neuma/shared';
 import {
@@ -27,7 +28,7 @@ import {
   PAGE_ADDABLE_PROPERTY_TYPES,
   PAGE_TYPE_CHANGE_LOCKED_TYPES,
 } from '../constants/pages.schema-editing.constants';
-import type { PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
+import type { PageComputedDraft, PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
 
 /**
  * The collection shape is sent whole, views included. Re-sending a configuration verbatim would fail when it
@@ -51,7 +52,9 @@ const describeANewView = (
     return dateProperty === undefined ? {} : { dateProperty };
   }
   if (!pageViewRequiresGrouping(type)) return {};
-  const groupBy = properties.find((property) => canPagePropertyGroupBoard(property.type))?.key;
+  const groupBy = properties.find((property) =>
+    canPagePropertyGroupBoard(readPageEffectivePropertyType(property)),
+  )?.key;
   return groupBy === undefined ? {} : { groupBy };
 };
 
@@ -192,6 +195,7 @@ export const addSchemaProperty = (
     label: added.label,
     options: startOptionsFor(added.type),
     required: false,
+    ...(added.type === PAGE_PROPERTY_TYPE.FORMULA ? { computedDraft: { formula: '', rollup: null } } : {}),
     ...(added.type === PAGE_PROPERTY_TYPE.RELATION ? { twoWay: added.twoWay === true } : {}),
     type: added.type,
   },
@@ -304,6 +308,14 @@ export const updateSchemaPropertyConfig = (
   properties.map((property) =>
     property.key === key ? { ...property, config: { ...property.config, ...changes } } : property,
   );
+
+/** What the person types for a formula or rollup travels with the property until it is saved. */
+export const updateSchemaPropertyComputed = (
+  properties: readonly PageSchemaProperty[],
+  key: string,
+  computedDraft: PageComputedDraft,
+): readonly PageSchemaProperty[] =>
+  properties.map((property) => (property.key === key ? { ...property, computedDraft } : property));
 
 const withOptions = (
   properties: readonly PageSchemaProperty[],

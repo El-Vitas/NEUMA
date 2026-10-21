@@ -535,6 +535,8 @@ describe('Querying a collection by reducers (Integration)', () => {
               { calculation: 'COUNT_FILLED', id: 'filled', propertyKey: 'points' },
               { calculation: 'COUNT_EMPTY', id: 'empty', propertyKey: 'points' },
               { calculation: 'PERCENT_CHECKED', id: 'checked', propertyKey: 'done' },
+              { calculation: 'PERCENT_FILLED', id: 'filledPortion', propertyKey: 'points' },
+              { calculation: 'PERCENT_EMPTY', id: 'emptyPortion', propertyKey: 'points' },
             ],
             kind: 'aggregations',
           },
@@ -547,6 +549,8 @@ describe('Querying a collection by reducers (Integration)', () => {
       expect(totals.totals.average).toBeCloseTo(58 / 8);
       expect(totals.totals.median).toBe(5);
       expect(totals.totals.checked).toBeCloseTo(0.1);
+      expect(totals.totals.filledPortion).toBeCloseTo(0.8);
+      expect(totals.totals.emptyPortion).toBeCloseTo(0.2);
     });
   });
 

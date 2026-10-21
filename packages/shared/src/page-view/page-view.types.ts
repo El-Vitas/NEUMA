@@ -104,7 +104,9 @@ export type PageViewCalculation =
   | 'MINIMUM'
   | 'MAXIMUM'
   | 'MEDIAN'
-  | 'PERCENT_CHECKED';
+  | 'PERCENT_CHECKED'
+  | 'PERCENT_EMPTY'
+  | 'PERCENT_FILLED';
 
 export const PAGE_VIEW_CALCULATION = {
   NONE: 'NONE',
@@ -117,6 +119,8 @@ export const PAGE_VIEW_CALCULATION = {
   MAXIMUM: 'MAXIMUM',
   MEDIAN: 'MEDIAN',
   PERCENT_CHECKED: 'PERCENT_CHECKED',
+  PERCENT_EMPTY: 'PERCENT_EMPTY',
+  PERCENT_FILLED: 'PERCENT_FILLED',
 } as const satisfies Record<PageViewCalculation, PageViewCalculation>;
 
 export const PAGE_VIEW_CALCULATION_VALUES = [
@@ -130,6 +134,8 @@ export const PAGE_VIEW_CALCULATION_VALUES = [
   PAGE_VIEW_CALCULATION.MAXIMUM,
   PAGE_VIEW_CALCULATION.MEDIAN,
   PAGE_VIEW_CALCULATION.PERCENT_CHECKED,
+  PAGE_VIEW_CALCULATION.PERCENT_EMPTY,
+  PAGE_VIEW_CALCULATION.PERCENT_FILLED,
 ] as const;
 
 /** Without a bucket, each distinct day is its own group: a year of work becomes hundreds of one-row groups. */

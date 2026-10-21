@@ -5,6 +5,7 @@ import {
   PAGE_PROPERTY_TYPE_VALUES,
   PAGE_STATUS_GROUP_VALUES,
   PAGE_VIEW_TYPE_VALUES,
+  readPageComputedConfig,
 } from '@neuma/shared';
 import { z } from 'zod';
 
@@ -39,7 +40,11 @@ export const pagePropertyConfigSchema = z.object({
   targetCollectionId: z.string().nullable(),
 });
 
+/** The formula or rollup of a computed property, read as the shared engine reads it (ADR 028). */
+export const pageComputedConfigSchema = z.unknown().transform(readPageComputedConfig);
+
 export const pageSchemaPropertySchema = z.object({
+  computed: pageComputedConfigSchema.optional(),
   config: pagePropertyConfigSchema,
   key: z.string(),
   label: z.string(),
@@ -66,7 +71,11 @@ export const pageSchemaSchema = z.object({
   views: z.array(pageSchemaViewSchema),
 });
 
+/** Why a formula or rollup could not be computed for a row. */
+export const pageComputedErrorsSchema = z.record(z.string(), z.object({ code: z.string(), message: z.string() }));
+
 export const pageRowSchema = z.object({
+  computedErrors: pageComputedErrorsSchema.optional(),
   id: z.string(),
   lifecycle: z.enum(PAGE_LIFECYCLE_VALUES),
   order: z.number(),
@@ -104,6 +113,7 @@ const pageQueryOutcomeSchema = z.discriminatedUnion('kind', [
         values: z.record(z.string(), pageQueryAggregateValueSchema),
       }),
     ),
+    errorCounts: z.record(z.string(), z.number().int()).optional(),
     kind: z.literal('aggregations'),
     totals: z.record(z.string(), pageQueryAggregateValueSchema),
   }),
@@ -112,11 +122,27 @@ const pageQueryOutcomeSchema = z.discriminatedUnion('kind', [
 /** What a view query answers (ADR 025): the outcome of each reducer by id, and one record per row they name. */
 export const pageQueryResponseSchema = z.object({
   attachedFiles: z.array(z.object({ id: z.string(), mimeType: z.string(), name: z.string(), size: z.number() })),
+  changesCursor: z.string(),
+  computedDependsOn: z.array(z.string()).default([]),
   reducers: z.record(z.string(), pageQueryOutcomeSchema),
   relatedRows: z.array(z.object({ id: z.string(), title: z.string() })),
   rows: z.record(z.string(), pageRowSchema),
   spaceId: z.string(),
   viewVersion: z.number().int().nullable(),
+});
+
+/** What changed in a collection since a cursor: the rows to read again, the ones trashed, and the next cursor. */
+export const pageCollectionChangesResponseSchema = z.object({
+  attachedFiles: z.array(z.object({ id: z.string(), mimeType: z.string(), name: z.string(), size: z.number() })),
+  cursor: z.string(),
+  hasMore: z.boolean(),
+  isReset: z.boolean(),
+  possiblyChanged: z.array(pageRowSchema).default([]),
+  possiblyChangedIsTruncated: z.boolean().default(false),
+  relatedRows: z.array(z.object({ id: z.string(), title: z.string() })),
+  rows: z.array(pageRowSchema),
+  total: z.number().int(),
+  trashedIds: z.array(z.string()),
 });
 
 export const pageChangedViewSchema = z.object({

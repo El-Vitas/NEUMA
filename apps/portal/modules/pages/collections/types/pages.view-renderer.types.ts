@@ -15,6 +15,8 @@ export interface PageViewRenderInput<TOutcome> {
   /** The counts and calculations, which arrive after the rows. */
   readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
+  /** Where to read what changed after these rows were read; null when the view cannot follow changes. */
+  readonly changesCursor: null | string;
   readonly outcome: TOutcome;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];

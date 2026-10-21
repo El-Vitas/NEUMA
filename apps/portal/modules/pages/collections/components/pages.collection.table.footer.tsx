@@ -1,7 +1,12 @@
 'use client';
 
 import type { PageViewCalculation } from '@neuma/shared';
-import { listPageCalculationsFor, PAGE_VIEW_CALCULATION, readPageViewConfiguration } from '@neuma/shared';
+import {
+  listPageCalculationsFor,
+  PAGE_VIEW_CALCULATION,
+  readPageEffectivePropertyType,
+  readPageViewConfiguration,
+} from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
@@ -80,7 +85,7 @@ export const PagesCollectionTableFooter = ({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {listPageCalculationsFor(property.type).map((calculation) => (
+                {listPageCalculationsFor(readPageEffectivePropertyType(property)).map((calculation) => (
                   <SelectItem key={calculation} value={calculation}>
                     {t(`calculations.${calculation}`)}
                   </SelectItem>

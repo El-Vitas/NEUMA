@@ -168,6 +168,32 @@ describe('formatPropertyValueForDisplay', () => {
     expect(formatPropertyValueForDisplay(statusProperty, 'in_progress')).toBe('In progress');
   });
 
+  it('writes a number a formula gives with up to two decimals, never as a raw float', () => {
+    const unit: PageSchemaProperty = {
+      ...countProperty,
+      computed: {
+        formula: {
+          ast: { from: 0, kind: 'LITERAL', to: 1, value: 1 },
+          isClockDependent: false,
+          references: [],
+          resultType: 'NUMBER',
+          source: '1',
+        },
+        rollup: null,
+      },
+      type: 'FORMULA',
+    };
+
+    expect(formatPropertyValueForDisplay(unit, 10 / 3)).toBe('3.33');
+    expect(formatPropertyValueForDisplay(unit, 30)).toBe('30');
+  });
+
+  it('keeps the decimals of the column when it sets them, formula or not', () => {
+    const exact: PageSchemaProperty = { ...countProperty, config: { ...defaultConfig, decimals: 3 } };
+
+    expect(formatPropertyValueForDisplay(exact, 2)).toBe('2.000');
+  });
+
   it('stringifies other values', () => {
     expect(formatPropertyValueForDisplay(countProperty, 3)).toBe('3');
   });

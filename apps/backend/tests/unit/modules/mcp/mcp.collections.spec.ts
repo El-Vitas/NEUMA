@@ -261,6 +261,7 @@ const createCollectionStore = (refusesTheShape = false) => {
   const received: Record<string, unknown[]> = {
     defineSchema: [],
     moveRow: [],
+    previewComputed: [],
     queryCollection: [],
     readChanges: [],
     rewriteOption: [],
@@ -288,6 +289,42 @@ const createCollectionStore = (refusesTheShape = false) => {
         views: input.views,
       };
       return Promise.resolve(Result.ok(shape));
+    },
+    previewComputed: (input) => {
+      received.previewComputed?.push(input);
+      if (input.computedDraft.formula === 'broken(') {
+        return Promise.resolve(
+          Result.fail({
+            code: 'PAGE_SCHEMA_DEFINITION_INVALID',
+            details: { code: 'FORMULA_SYNTAX', from: 7, message: 'The formula ends before it is complete', to: 7 },
+          }),
+        );
+      }
+      return Promise.resolve(
+        Result.ok({
+          reads: ['Precio'],
+          resultType: 'NUMBER',
+          rows: [
+            {
+              id: ROW,
+              outcome: { isOk: true as const, value: 30 },
+              title: 'Row',
+              trace: input.trace
+                ? [
+                    {
+                      outcome: {
+                        error: { code: 'FORMULA_DIVISION_BY_ZERO', message: 'Cannot divide by zero' },
+                        isOk: false as const,
+                      },
+                      text: '1 / 0',
+                    },
+                  ]
+                : undefined,
+            },
+          ],
+          spaceId: SPACE,
+        }),
+      );
     },
     getSchema: (pageId) => {
       if (pageId === LINKED) return Promise.resolve(Result.ok(linkedShape));
@@ -328,6 +365,8 @@ const createCollectionStore = (refusesTheShape = false) => {
             cursor: isEmpty ? 'cursor-now' : 'cursor-next',
             hasMore: false,
             isReset: false,
+            possiblyChanged: [],
+            possiblyChangedIsTruncated: false,
             rows: [],
             total: 1,
             trashedIds: [],
@@ -641,6 +680,8 @@ describe('MCP collections — changes', () => {
       cursor: 'cursor-2',
       hasMore: false,
       isReset: false,
+      possiblyChanged: [],
+      possiblyChangedIsTruncated: false,
       rows: [written(ROW, row?.title ?? '', row?.propertyValues ?? null)],
       total: 4,
       trashedIds: [NEW_ROW],
@@ -671,6 +712,8 @@ describe('MCP collections — changes', () => {
       cursor: 'cursor-fresh',
       hasMore: false,
       isReset: true,
+      possiblyChanged: [],
+      possiblyChangedIsTruncated: false,
       rows: [],
       total: 1,
       trashedIds: [],
@@ -693,6 +736,8 @@ describe('MCP collections — changes', () => {
       cursor: 'cursor-quiet',
       hasMore: false,
       isReset: false,
+      possiblyChanged: [],
+      possiblyChangedIsTruncated: false,
       rows: [],
       total: 1,
       trashedIds: [],
@@ -702,6 +747,8 @@ describe('MCP collections — changes', () => {
       cursor: 'cursor-busy',
       hasMore: false,
       isReset: false,
+      possiblyChanged: [],
+      possiblyChangedIsTruncated: false,
       rows: [written(ROW, row?.title ?? '', row?.propertyValues ?? null)],
       total: 1,
       trashedIds: [],
@@ -723,6 +770,145 @@ describe('MCP collections — changes', () => {
     const result = await client.callTool({ arguments: { collection: COLLECTION }, name: 'query_collection' });
 
     expect(result.structuredContent).toMatchObject({ changesCursor: 'cursor-of-query' });
+  });
+});
+
+describe('MCP collections — formulas and rollups', () => {
+  test('tries a formula on rows and says its type, what it reads and the value of each row', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, formula: 'prop("Precio") * 2' },
+      name: 'test_formula',
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      reads: ['Precio'],
+      resultType: 'NUMBER',
+      rows: [{ title: 'Row', value: 30 }],
+    });
+    expect(collections.received.previewComputed).toMatchObject([
+      { computedDraft: { formula: 'prop("Precio") * 2', rollup: null }, trace: false },
+    ]);
+  });
+
+  test('passes a rollup by the names of its relation and property', async () => {
+    const { client, collections } = await connect();
+
+    await client.callTool({
+      arguments: { collection: COLLECTION, rollup: { calculation: 'SUM', property: 'Monto', relation: 'Lineas' } },
+      name: 'test_formula',
+    });
+
+    expect(collections.received.previewComputed).toMatchObject([
+      {
+        computedDraft: {
+          formula: null,
+          rollup: { calculation: 'SUM', relationPropertyKey: 'Lineas', targetPropertyKey: 'Monto' },
+        },
+      },
+    ]);
+  });
+
+  test('gives the value of each part when asked to trace, with the error of the part that fails', async () => {
+    const { client } = await connect();
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, formula: '1 / 0', trace: true },
+      name: 'test_formula',
+    });
+
+    const [row] = (result.structuredContent as { rows: { trace: { error?: { code: string }; text: string }[] }[] })
+      .rows;
+    expect(row?.trace[0]).toMatchObject({ error: { code: 'FORMULA_DIVISION_BY_ZERO' }, text: '1 / 0', value: null });
+  });
+
+  test('explains why a formula is refused: the code, the message and the position', async () => {
+    const { client } = await connect();
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, formula: 'broken(' },
+      name: 'test_formula',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('FORMULA_SYNTAX');
+    expect(textOf(result)).toContain('The formula ends before it is complete');
+  });
+
+  test('asks for a formula or a rollup, one of them, before asking the server anything', async () => {
+    const { client, collections } = await connect();
+
+    const neither = await client.callTool({ arguments: { collection: COLLECTION }, name: 'test_formula' });
+    const both = await client.callTool({
+      arguments: {
+        collection: COLLECTION,
+        formula: '1',
+        rollup: { calculation: 'SUM', property: 'a', relation: 'b' },
+      },
+      name: 'test_formula',
+    });
+
+    expect(neither.isError).toBe(true);
+    expect(both.isError).toBe(true);
+    expect(collections.received.previewComputed).toEqual([]);
+  });
+
+  test('adds a formula column with its text and a rollup column with its three parts', async () => {
+    const { client, collections } = await connect();
+
+    await client.callTool({
+      arguments: {
+        addColumns: [
+          { formula: 'prop("Precio") * 2', name: 'Doble', type: 'FORMULA' },
+          { name: 'Suma', rollup: { calculation: 'SUM', property: 'Monto', relation: 'Lineas' }, type: 'ROLLUP' },
+        ],
+        collection: COLLECTION,
+      },
+      name: 'update_collection_columns',
+    });
+
+    const saved = collections.received.defineSchema?.[0] as {
+      properties: { computedDraft?: unknown; label: string }[];
+    };
+    expect(saved.properties.find((column) => column.label === 'Doble')?.computedDraft).toEqual({
+      formula: 'prop("Precio") * 2',
+      rollup: null,
+    });
+    expect(saved.properties.find((column) => column.label === 'Suma')?.computedDraft).toEqual({
+      formula: null,
+      rollup: { calculation: 'SUM', relationPropertyKey: 'Lineas', targetPropertyKey: 'Monto' },
+    });
+  });
+
+  test('refuses a formula column without its text', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { addColumns: [{ name: 'Doble', type: 'FORMULA' }], collection: COLLECTION },
+      name: 'update_collection_columns',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('formula');
+    expect(collections.received.defineSchema).toEqual([]);
+  });
+
+  test('refuses to write a value into a formula column', async () => {
+    const { client } = await connect();
+    await client.callTool({
+      arguments: { addColumns: [{ formula: '1', name: 'Uno', type: 'FORMULA' }], collection: COLLECTION },
+      name: 'update_collection_columns',
+    });
+
+    const result = await client.callTool({
+      arguments: { properties: { Uno: 5 }, row: ROW },
+      name: 'update_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('filled in by Neuma');
   });
 });
 

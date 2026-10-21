@@ -1,3 +1,5 @@
+import { MCP_COMPUTED_COLUMNS_NOTE } from './mcp.formula.constants';
+
 /** What an agent reads for rows that have no value in the column it groups by, and writes to ask for that group. */
 export const MCP_NO_VALUE_GROUP_NAME = '(no value)';
 
@@ -27,6 +29,9 @@ export const MCP_QUERY_DESCRIPTION = [
   'Mine: "@me" in a person, created-by or edited-by condition stands for the owner of your token, as for that person in the portal. Example: where [{ column: "Owner", operator: "CONTAINS", value: "@me" }].',
   'You can read the rows as one of its views shows them; where and sort given here replace its filter and order.',
   'The rows you are not allowed to read are never counted.',
+  'Formula and rollup columns come with their value for each row, or an error object (code and message) when that cell could not be computed.',
+  'A rollup counts and adds only the related rows you are allowed to read.',
+  MCP_COMPUTED_COLUMNS_NOTE,
 ].join(' ');
 
 export const MCP_CHANGES_DESCRIPTION = [
@@ -37,6 +42,7 @@ export const MCP_CHANGES_DESCRIPTION = [
   'If reset is true, the cursor is no longer valid: read again with query_collection.',
   'waitSeconds makes the call wait for a change (up to 25 seconds) instead of answering empty, so you can wait without polling.',
   'If hasMore is true, call again with the cursor you got until it is false.',
+  'possiblyChanged lists the rows whose rollup may have changed because a row it summarises changed while the row itself did not: compare them with what you hold. If possiblyChangedTruncated is true there were more, so read the rollup columns again with query_collection.',
   'Rows you are not allowed to read are never named or counted.',
 ].join(' ');
 

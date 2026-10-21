@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePropertyType } from '@neuma/db';
-import { Result, USER_ROLE, type UserRole } from '@neuma/shared';
+import {
+  DEFAULT_PAGE_PROPERTY_CONFIG,
+  isPageComputedPropertyType,
+  Result,
+  USER_ROLE,
+  type UserRole,
+} from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../common/domain/schema.domain.types';
 import { SchemaPropertyDefinitionError } from '../../common/domain/schema.error';
 import { findOptionReplacement, rewriteSchemaOption } from '../../common/domain/schema-option.domain';
@@ -8,10 +14,17 @@ import { generateOptionId } from '../../common/utils/option-id.utils';
 import {
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
+  PREVIEW_PROPERTY_KEY,
+  REACHABLE_COLLECTIONS_LIMIT,
   SCHEMA_CHANGED_MEANWHILE,
   SCHEMA_OPTION_ALREADY_MOVED,
 } from './constants/pages.constants';
 import { PageAccessDeniedError, PageSchemaChangedError, type PageSchemaDefinitionError } from './domain/page.error';
+import {
+  listForeignRollupTargetIds,
+  listOwnRollupTargetIds,
+  planComputedProperties,
+} from './domain/page-computed-schema.domain';
 import { planRelationChanges } from './domain/page-relation-schema.domain';
 import {
   pageCarriesSchema,
@@ -25,6 +38,8 @@ import type {
   DefinePageSchemaInput,
   PageSchemaRepositoryContract,
   PageSchemaSummary,
+  PreviewComputedInput,
+  PreviewedSchema,
   RewritePageOptionInput,
 } from './types/page-schema.types';
 
@@ -45,7 +60,9 @@ export class PageSchemaService {
     const resolved = resolveSchemaDrafts(input.properties, stored.properties, generateOptionId);
     const planned = await this.planRelations(input, page, stored.properties, resolved);
     if (planned.isFail()) return Result.fail(planned.getError());
-    const properties = validatePageSchemaDefinition(planned.getValue().definitions);
+    const computed = await this.planComputed(input, page, stored.properties, planned.getValue().definitions);
+    if (computed.isFail()) return Result.fail(computed.getError());
+    const properties = validatePageSchemaDefinition(computed.getValue());
     if (properties.isFail()) return Result.fail(properties.getError());
     const views = validatePageSchemaViews(input.views, properties.getValue());
     if (views.isFail()) return Result.fail(views.getError());
@@ -58,6 +75,43 @@ export class PageSchemaService {
     );
     if (schema === SCHEMA_CHANGED_MEANWHILE) return Result.fail(new PageSchemaChangedError());
     return Result.ok({ ...schema, spaceId: page.spaceId });
+  }
+
+  /**
+   * The schema as it would be with one more formula or rollup, planned by the same rules that save one but saving
+   * nothing: it tells what the computed column would produce, or why it would be refused.
+   */
+  async previewComputed(
+    input: PreviewComputedInput,
+  ): Promise<Result<PreviewedSchema, PageAccessDeniedError | PageSchemaDefinitionError>> {
+    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
+    const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
+    if (page === null) return Result.fail(new PageAccessDeniedError());
+    const stored = await this.pageSchemaRepository.getSchema(input.pageId);
+    const isFormula = input.computedDraft.formula !== null;
+    const previewed: SchemaPropertyDefinition = {
+      config: DEFAULT_PAGE_PROPERTY_CONFIG,
+      key: PREVIEW_PROPERTY_KEY,
+      label: PREVIEW_PROPERTY_KEY,
+      options: null,
+      required: false,
+      type: isFormula ? DatabasePropertyType.FORMULA : DatabasePropertyType.ROLLUP,
+    };
+    const definitions = [...stored.properties, previewed];
+    const drafts = definitions.map((property) => ({
+      ...property,
+      computedDraft: property.key === PREVIEW_PROPERTY_KEY ? input.computedDraft : null,
+      twoWay: false,
+    }));
+    const planned = await this.planComputed(
+      { ...input, properties: drafts, views: [] },
+      page,
+      stored.properties,
+      definitions,
+    );
+    return planned.isFail()
+      ? Result.fail(planned.getError())
+      : Result.ok({ properties: planned.getValue(), spaceId: page.spaceId });
   }
 
   /** A schema diff cannot tell a rename from remove-and-add, which would orphan row values. */
@@ -117,6 +171,56 @@ export class PageSchemaService {
     if (page === null) return Result.fail(new PageAccessDeniedError());
     const schema = await this.pageSchemaRepository.getSchema(pageId);
     return Result.ok({ ...schema, spaceId: page.spaceId });
+  }
+
+  /**
+   * Formulas and rollups are read against what they reach: the related collections of the rollups (the ones the
+   * caller names must be openable and in the same space) and, further on, the collections those rollups read.
+   */
+  private async planComputed(
+    input: DefinePageSchemaInput,
+    page: { readonly spaceId: string },
+    stored: readonly SchemaPropertyDefinition[],
+    definitions: readonly SchemaPropertyDefinition[],
+  ): Promise<Result<readonly SchemaPropertyDefinition[], PageSchemaDefinitionError>> {
+    const hasComputed = definitions.some((property) => isPageComputedPropertyType(property.type));
+    const collections = hasComputed ? await this.loadReachableCollections(input, page, stored, definitions) : new Map();
+    return planComputedProperties({
+      collectionId: input.pageId,
+      collections,
+      definitions,
+      dependents: await this.pageSchemaRepository.listRollupDependents(input.pageId),
+      drafts: input.properties,
+      stored,
+    });
+  }
+
+  private async loadReachableCollections(
+    input: DefinePageSchemaInput,
+    page: { readonly spaceId: string },
+    stored: readonly SchemaPropertyDefinition[],
+    definitions: readonly SchemaPropertyDefinition[],
+  ): Promise<ReadonlyMap<string, readonly SchemaPropertyDefinition[]>> {
+    const loaded = new Map<string, readonly SchemaPropertyDefinition[]>();
+    const pending = listOwnRollupTargetIds(definitions, stored, input.properties).map((id) => ({ id, isNamed: true }));
+    for (let entry = pending.shift(); entry !== undefined; entry = pending.shift()) {
+      if (entry.id === input.pageId || loaded.has(entry.id) || loaded.size >= REACHABLE_COLLECTIONS_LIMIT) continue;
+      if (entry.isNamed && !(await this.canRelate(input, page, entry.id))) continue;
+      const schema = (await this.pageSchemaRepository.getSchema(entry.id)).properties;
+      if (!pageCarriesSchema(schema)) continue;
+      loaded.set(entry.id, schema);
+      pending.push(...listForeignRollupTargetIds(schema).map((id) => ({ id, isNamed: false })));
+    }
+    return loaded;
+  }
+
+  private async canRelate(
+    input: DefinePageSchemaInput,
+    page: { readonly spaceId: string },
+    targetId: string,
+  ): Promise<boolean> {
+    const target = await this.pageRepository.getAccessible(targetId, input.workspaceId, input.userId, input.role);
+    return target !== null && target.spaceId === page.spaceId;
   }
 
   /** The targets of the relations the caller asks for must be collections the caller can open, in the same space. */

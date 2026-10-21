@@ -14,6 +14,7 @@ import type {
   McpColumnDraft,
   McpColumnStep,
   McpColumnsInHand,
+  McpComputedDraft,
   McpNameLister,
   McpNewColumn,
   McpOptionRewrite,
@@ -50,13 +51,40 @@ const toNewColumnOptions = (column: McpNewColumn) => {
   return withColors(column.options ?? [], 0);
 };
 
+/** A formula column needs its text and a rollup column its three parts; any other column takes neither. */
+const toNewComputedDraft = (column: McpNewColumn): Result<McpComputedDraft | null, string> => {
+  if (column.type === DatabasePropertyType.FORMULA) {
+    return column.formula === undefined
+      ? Result.fail(`${column.name} is a formula: give its text in formula.`)
+      : Result.ok({ formula: column.formula, rollup: null });
+  }
+  if (column.type === DatabasePropertyType.ROLLUP) {
+    return column.rollup === undefined
+      ? Result.fail(`${column.name} is a rollup: give relation, property and calculation in rollup.`)
+      : Result.ok({
+          formula: null,
+          rollup: {
+            calculation: column.rollup.calculation,
+            relationPropertyKey: column.rollup.relation,
+            targetPropertyKey: column.rollup.property,
+          },
+        });
+  }
+  return column.formula === undefined && column.rollup === undefined
+    ? Result.ok(null)
+    : Result.fail(`${column.name} is not a formula or a rollup: leave out formula and rollup.`);
+};
+
 const addColumns: McpColumnStep = (columns, changes) => {
   const added = [...columns];
   for (const column of changes.addColumns ?? []) {
     if (column.type === DatabasePropertyType.RELATION && column.target === undefined) {
       return Result.fail(`${column.name} is a relation: say which collection it links with target.`);
     }
+    const computedDraft = toNewComputedDraft(column);
+    if (computedDraft.isFail()) return Result.fail(computedDraft.getError());
     added.push({
+      computedDraft: computedDraft.getValue(),
       config: toNewColumnConfig(column),
       key: buildPagePropertyKey(column.name, added),
       label: column.name,
@@ -67,6 +95,22 @@ const addColumns: McpColumnStep = (columns, changes) => {
     });
   }
   return Result.ok(added);
+};
+
+const setFormulas: McpColumnStep = (columns, changes, listNames) => {
+  let changed = [...columns];
+  for (const change of changes.setFormulas ?? []) {
+    const column = requireMcpColumn(changed, change.column, listNames);
+    if (column.isFail()) return Result.fail(column.getError());
+    if (column.getValue().type !== DatabasePropertyType.FORMULA) {
+      return Result.fail(`${column.getValue().label} is not a formula column: only the text of a formula can be set.`);
+    }
+    const key = column.getValue().key;
+    changed = changed.map((candidate) =>
+      candidate.key === key ? { ...candidate, computedDraft: { formula: change.formula, rollup: null } } : candidate,
+    );
+  }
+  return Result.ok(changed);
 };
 
 const renameColumns: McpColumnStep = (columns, changes, listNames) => {
@@ -189,7 +233,7 @@ const applyColumnSteps = (
   changes: McpColumnChanges,
   listNames: McpNameLister,
 ): Result<McpColumnDraft[], string> =>
-  [addColumns, renameColumns, removeColumns, addOptions].reduce<Result<McpColumnDraft[], string>>(
+  [addColumns, renameColumns, setFormulas, removeColumns, addOptions].reduce<Result<McpColumnDraft[], string>>(
     (current, step) => (current.isFail() ? current : step(current.getValue(), changes, listNames)),
     Result.ok([...columns]),
   );
@@ -204,16 +248,20 @@ export const hasMcpColumnChanges = (changes: McpColumnChanges): boolean =>
     changes.removeOptions,
     changes.renameColumns,
     changes.renameOptions,
+    changes.setFormulas,
   ].some(isAsked);
 
 /** False when the request only rewrites options along with their rows. */
 export const hasMcpShapeChanges = (changes: McpColumnChanges): boolean =>
-  [changes.addColumns, changes.addOptions, changes.removeColumns, changes.renameColumns].some(isAsked);
+  [changes.addColumns, changes.addOptions, changes.removeColumns, changes.renameColumns, changes.setFormulas].some(
+    isAsked,
+  );
 
 export const describeMcpColumnChanges = (changes: McpColumnChanges): { readonly changes: readonly string[] } => ({
   changes: [
     ...(changes.addColumns ?? []).map((column) => `add column ${column.name}`),
     ...(changes.renameColumns ?? []).map((change) => `rename column ${change.column} → ${change.name}`),
+    ...(changes.setFormulas ?? []).map((change) => `set the formula of ${change.column}`),
     ...(changes.removeColumns ?? []).map((column) => `remove column ${column}`),
     ...(changes.addOptions ?? []).map((change) => `add options ${change.column}: ${change.options.join(', ')}`),
     ...(changes.renameOptions ?? []).map((change) => `rename option ${change.column}: ${change.from} → ${change.to}`),

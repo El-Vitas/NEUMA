@@ -9,15 +9,25 @@ import {
   formatPropertyValueForDisplay,
   getDatePropertyValue,
   getListPropertyValue,
+  isComputedListProperty,
   joinPropertyNames,
   readCheckboxLabelKey,
   readPagePersonDisplayName,
+  readShownProperty,
 } from '../lib/pages.properties.lib';
-import type { PagePersonOption, PagePropertyValue, PageSchemaProperty } from '../types/pages.schema.types';
+import type {
+  PageComputedError,
+  PagePersonOption,
+  PagePropertyValue,
+  PageSchemaProperty,
+} from '../types/pages.schema.types';
+import { PagesPropertiesComputedError } from './pages.properties.computed-error';
 import { PagesPropertiesLinkValue } from './pages.properties.link-value';
 import { PagesPropertiesOptionChip } from './pages.properties.option-chip';
 
 interface IProps {
+  /** Why a formula or rollup could not be computed for this row; absent when it could. */
+  readonly computedError?: PageComputedError;
   /** False inside a control that is itself clickable, where a link would nest one interactive element in another. */
   readonly isLinked?: boolean;
   readonly personOptions?: readonly PagePersonOption[];
@@ -26,14 +36,19 @@ interface IProps {
 }
 
 export const PagesPropertyValue = ({
+  computedError,
   isLinked = true,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
-  property,
+  property: declared,
   value,
 }: IProps) => {
   const t = useTranslations('pages');
   const locale = useLocale();
   const lookups = usePagesCollectionLookups();
+  const property = readShownProperty(declared);
+
+  if (computedError !== undefined) return <PagesPropertiesComputedError error={computedError} />;
+  if (isComputedListProperty(declared)) return joinPropertyNames(getListPropertyValue(value));
 
   switch (property.type) {
     case PAGE_PROPERTY_TYPE.CHECKBOX:

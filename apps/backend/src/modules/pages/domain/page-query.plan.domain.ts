@@ -9,6 +9,7 @@ import type {
 import { findInvalidPageFilterToken, PAGE_FILTER_GROUP_OPERATOR, Result, resolvePageFilter } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../common/domain/schema.domain.types';
 import { PageQueryInvalidError } from './page-query.error';
+import { MATCHES_EVERY_ROW } from './page-query.plan.domain.constants';
 
 /** The filter of the view with the temporary one on top: a row must pass both. */
 export const combineFilters = (
@@ -33,6 +34,19 @@ export const resolveQueryFilter = (
   const invalidToken = findInvalidPageFilterToken(filter, properties);
   if (invalidToken !== null) return Result.fail(new PageQueryInvalidError(invalidToken));
   return Result.ok(resolvePageFilter(filter, properties, viewer));
+};
+
+/**
+ * The filter with every condition on a computed property taken out (each becomes "any row"). It lets through at least
+ * the rows the whole filter does, which is what is needed to know which rows to compute (ADR 028).
+ */
+export const relaxFilter = (filter: PageFilter | null, isComputedKey: (key: string) => boolean): PageFilter | null => {
+  if (filter === null) return null;
+  if (filter.kind === 'CONDITION') return isComputedKey(filter.propertyKey) ? MATCHES_EVERY_ROW : filter;
+  return {
+    ...filter,
+    conditions: filter.conditions.map((condition) => relaxFilter(condition, isComputedKey) ?? MATCHES_EVERY_ROW),
+  };
 };
 
 const listFilterKeys = (filter: PageFilter | null): readonly string[] => {

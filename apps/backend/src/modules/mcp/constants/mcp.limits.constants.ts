@@ -59,6 +59,8 @@ export const MCP_AGGREGATE_CALCULATIONS = [
   'MAXIMUM',
   'MEDIAN',
   'PERCENT_CHECKED',
+  'PERCENT_EMPTY',
+  'PERCENT_FILLED',
 ] as const;
 
 export const MCP_WHERE_CONDITION_LIMIT = 20;

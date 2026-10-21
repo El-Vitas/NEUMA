@@ -6,6 +6,7 @@ import { Logger } from 'nestjs-pino';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { NeumaSqlRunner } from '../../../../prisma/types/prisma.types';
 import {
+  ISO_INSTANT_FORMAT,
   NULLABLE_TEXT,
   PLAIN_TEXT,
   POSTGRES_QUERY_CANCELED,
@@ -19,6 +20,7 @@ import type { GroupingPlan } from '../../domain/page-query.grouping.domain.types
 import type { PageViewer } from '../../types/page.block.types';
 import type {
   AggregateResult,
+  CandidateRow,
   CellContext,
   GroupAxis,
   GroupLine,
@@ -48,6 +50,7 @@ import {
   allOf,
   frag,
   isNotTemplateSql,
+  joinSql,
   negate,
   sqlParameter,
   sqlText,
@@ -136,7 +139,11 @@ export class PageQueryRepository {
 
   buildScope(input: QueryScopeInput): QueryScope {
     const properties = new Map(input.properties.map((property) => [property.key, property]));
-    const context: CellContext = { timeZone: input.timeZone, unreadableRelations: input.unreadableRelations };
+    const context: CellContext = {
+      computedValues: input.computedValues ?? new Map(),
+      timeZone: input.timeZone,
+      unreadableRelations: input.unreadableRelations,
+    };
     const conditions = [
       frag`${rowColumn('parentId')} = ${sqlParameter(input.collectionId, 'text')}`,
       frag`${rowColumn('type')} = 'page'`,
@@ -182,6 +189,52 @@ export class PageQueryRepository {
       LIMIT ${sqlText(String(options.limit + 1))}`;
     const rows = await this.run(scope, statement, { id: PLAIN_TEXT, ...keyColumns(columns) });
     return Result.ok(this.toPage(scope, rows, options.limit));
+  }
+
+  /**
+   * The rows the scope lets through with what a formula or a rollup reads from each, up to `limit` and one more, so the
+   * caller can tell the collection has more than it can compute.
+   */
+  async readCandidates(
+    scope: QueryScope,
+    limit: number,
+    valueKeys: readonly string[],
+  ): Promise<readonly CandidateRow[]> {
+    const instant = sqlText(`'${ISO_INSTANT_FORMAT}'`);
+    const needed = valueKeys.map(
+      (key) =>
+        frag`${sqlParameter(key, 'text')}, ${rowColumn('properties')} -> 'values' -> ${sqlParameter(key, 'text')}`,
+    );
+    const rows = await this.run(
+      scope,
+      frag`SELECT ${rowColumn('id')} AS "id", ${rowColumn('text')} AS "title",
+          jsonb_build_object(${joinSql(needed, ', ')})::text AS "valuesJson",
+          to_char(${rowColumn('createdAt')} AT TIME ZONE 'UTC', ${instant}) AS "createdAt",
+          ${rowColumn('createdById')} AS "createdById",
+          to_char(${rowColumn('editedAt')} AT TIME ZONE 'UTC', ${instant}) AS "editedAt",
+          ${rowColumn('editedById')} AS "editedById"
+        FROM "Block" AS "${sqlText(ROW)}"
+        WHERE ${scope.baseWhere}
+        LIMIT ${sqlText(String(limit + 1))}`,
+      {
+        createdAt: PLAIN_TEXT,
+        createdById: PLAIN_TEXT,
+        editedAt: PLAIN_TEXT,
+        editedById: PLAIN_TEXT,
+        id: PLAIN_TEXT,
+        title: PLAIN_TEXT,
+        valuesJson: NULLABLE_TEXT,
+      },
+    );
+    return rows.map((row) => ({
+      createdAt: String(row.createdAt),
+      createdById: String(row.createdById),
+      editedAt: String(row.editedAt),
+      editedById: String(row.editedById),
+      id: String(row.id),
+      title: String(row.title),
+      valuesJson: textOrNull(row.valuesJson),
+    }));
   }
 
   /** The keys a grouping takes on among the rows the scope lets through, in order, one more than asked for. */

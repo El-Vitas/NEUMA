@@ -18,6 +18,22 @@ const columns = [
 
 const nobody = new Map<string, string>();
 
+describe('describeMcpRowProperties — computed numbers', () => {
+  const unit = { key: 'unit', label: 'Unitario', type: 'FORMULA' };
+
+  it('keeps the raw number in value and adds the text a person reads', () => {
+    expect(describeMcpRowProperties([unit], { unit: 10 / 3 }, 'Fila', nobody)).toEqual([
+      { key: 'unit', label: 'Unitario', text: '3.33', type: 'FORMULA', value: 10 / 3 },
+    ]);
+  });
+
+  it('adds no text when the number already reads the same', () => {
+    expect(describeMcpRowProperties([unit], { unit: 30 }, 'Fila', nobody)).toEqual([
+      { key: 'unit', label: 'Unitario', type: 'FORMULA', value: 30 },
+    ]);
+  });
+});
+
 describe('describeMcpRowProperties', () => {
   it('names each value by its column, in the order the collection shows them, an option by its name', () => {
     expect(

@@ -156,11 +156,17 @@ export const readPageViewReading = async (
 ): Promise<PageViewReading | null> => {
   const aggregates = readAggregates(spaceId, pageId, view, request.search, request.quickFilter);
   if (view.type === PAGE_VIEW_TYPE.CHART) {
-    return { aggregates, attachedFiles: [], outcome: { groups: [], kind: 'GROUPED_ROWS' }, relatedRows: [] };
+    return {
+      aggregates,
+      attachedFiles: [],
+      changesCursor: null,
+      outcome: { groups: [], kind: 'GROUPED_ROWS' },
+      relatedRows: [],
+    };
   }
   if (view.type === PAGE_VIEW_TYPE.TIMELINE) {
     const timeline = await readTimelineReading(spaceId, pageId, view, request);
-    return timeline === null ? null : { aggregates, ...timeline };
+    return timeline === null ? null : { aggregates, changesCursor: null, ...timeline };
   }
   const readResult = await queryPageView(
     spaceId,
@@ -177,6 +183,7 @@ export const readPageViewReading = async (
   return {
     aggregates,
     attachedFiles: calendar?.attachedFiles ?? read.attachedFiles,
+    changesCursor: calendar === null ? read.changesCursor : null,
     outcome: calendar?.outcome ?? outcome,
     relatedRows: calendar?.relatedRows ?? read.relatedRows,
   };

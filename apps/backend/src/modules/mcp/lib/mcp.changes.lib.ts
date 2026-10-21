@@ -13,7 +13,7 @@ import { describeMcpRow } from './mcp.collections.lib';
 const sleep = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const isQuiet = (answer: McpChangesAnswer): boolean =>
-  answer.rows.length === 0 && answer.trashedIds.length === 0 && !answer.isReset;
+  answer.rows.length === 0 && answer.possiblyChanged.length === 0 && answer.trashedIds.length === 0 && !answer.isReset;
 
 /**
  * Reads what changed, and when nothing did and the agent asked to wait, reads again each second from the cursor of
@@ -49,6 +49,8 @@ export const describeMcpChanges = (
   return {
     cursor: answer.cursor,
     hasMore: answer.hasMore,
+    possiblyChanged: answer.possiblyChanged.map((row) => describeMcpRow(portalUrl, shape, row, people, lookups)),
+    possiblyChangedTruncated: answer.possiblyChangedIsTruncated,
     reset: answer.isReset,
     rows: answer.rows.map((row) => describeMcpRow(portalUrl, shape, row, people, lookups)),
     total: answer.total,

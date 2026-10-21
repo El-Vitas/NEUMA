@@ -1,0 +1,82 @@
+id: FEA-CCL
+name: Caché local en el navegador
+purpose: Que lo ya leído y lo recién escrito no se pierda ni se filtre, y que el tablero siga a los demás sin recargarse.
+scope: collections
+rules:
+  - id: BR-0322339
+    status: active
+    title: La copia local es de una sola persona y se borra al salir
+    rule: >-
+      El navegador guarda una copia local de lo que una persona leyó y escribió, y esa copia es solo de ella. Cerrar
+      sesión la borra. Si otra persona inicia sesión en el mismo navegador, la copia de la anterior se borra antes de
+      mostrar nada.
+    why: >-
+      Un navegador compartido no debe mostrar a una persona lo que leyó otra, aunque la sesión anterior haya terminado
+      sin salir.
+    context: >-
+      La copia no está cifrada, igual que las cookies de sesión del mismo navegador. Sin almacenamiento disponible, la
+      copia vive solo en la pestaña y la interfaz lo dice cuando hay cambios sin enviar.
+    scenarios:
+      - title: Otra persona entra al mismo navegador
+        given: Ana cerró la pestaña sin salir y su copia local sigue en el navegador
+        when: Beto inicia sesión y abre una página
+        then: La copia de Ana se borra y Beto solo ve la suya
+      - title: Salir borra la copia
+        given: Ana tiene una copia local
+        when: Ana cierra sesión
+        then: El navegador ya no guarda nada de Ana
+  - id: BR-4950377
+    status: active
+    title: La tarjeta que otra persona mueve se coloca sin recargar el tablero
+    rule: >-
+      Cuando otra persona cambia una tarjeta del tablero, el tablero de quien lo mira coloca esa tarjeta en su columna y
+      su lugar sin dibujarse de nuevo, con las mismas reglas de filtro y de orden que usa el servidor. Si el navegador
+      no puede saber dónde va la tarjeta (hay una búsqueda, el filtro o el orden dependen de otras filas, o la columna
+      no está dibujada), pide al servidor la vista otra vez. Cuando el orden es manual, solo se vuelven a leer las
+      columnas afectadas.
+    why: >-
+      Ver moverse una tarjeta no debe costar una consulta de toda la vista por cada persona que mira, ni hacer saltar lo
+      que la otra persona tiene en pantalla.
+    context: Los conteos de las columnas se vuelven a pedir al servidor cuando cambia el contenido de alguna columna.
+    scenarios:
+      - title: Mover una tarjeta de columna
+        given: Ana y Beto miran el mismo tablero ordenado por prioridad
+        when: Beto mueve una tarjeta de Pendiente a Hecho
+        then: >-
+          Ana ve la tarjeta en Hecho, en el lugar que le corresponde por prioridad, sin que el tablero se redibuje
+          entero
+      - title: Búsqueda activa
+        given: Ana busca una palabra en el tablero
+        when: Beto mueve una tarjeta
+        then: El tablero de Ana pide la vista al servidor otra vez
+  - id: BR-59740bf
+    status: active
+    title: Lo escrito y no respondido sobrevive a cerrar la pestaña
+    rule: >-
+      Todo cambio que una persona escribe se guarda en el navegador antes de enviarse y se borra solo cuando el servidor
+      responde. Si la conexión falla o la pestaña se cierra, al abrir la página otra vez con conexión el cambio se envía
+      tal como estaba. Al cerrar sesión con cambios sin enviar, la persona ve cuántos son y decide si los pierde.
+    why: Escribir sin conexión no puede costar texto, y perderlo debe ser siempre una decisión de la persona.
+    context: Se envía con el mismo identificador que ya tenía, así que enviarlo dos veces no lo aplica dos veces.
+    scenarios:
+      - title: Edición sin conexión
+        given: La conexión se cayó mientras Ana editaba una página
+        when: Ana cierra la pestaña y vuelve a abrir la página con conexión
+        then: El texto que escribió aparece en la página y no queda nada pendiente en el navegador
+      - title: Salir con cambios sin enviar
+        given: Ana tiene 3 cambios sin enviar
+        when: Ana elige cerrar sesión
+        then: Se le dice que son 3 y que se pierden, y no sale hasta que lo confirme
+  - id: BR-cf0c9df
+    status: active
+    title: Un cambio que el servidor rechaza no se descarta
+    rule: >-
+      Un cambio que el servidor rechaza (por permisos, por validación o porque lo que tocaba ya no existe) se guarda
+      aparte con el motivo y no se reenvía. Sigue ahí hasta que la persona decida qué hacer con él.
+    why: Que el servidor rechace un cambio no autoriza a tirar lo que la persona escribió.
+    context: Un cambio guardado que el navegador ya no puede leer tampoco se descarta; se aparta con el motivo y se avisa.
+    scenarios:
+      - title: Permiso quitado mientras no había conexión
+        given: Ana escribió sin conexión y mientras tanto perdió el permiso de editar la página
+        when: Su navegador vuelve a conectarse y envía el cambio
+        then: El servidor lo rechaza, el cambio queda apartado con el motivo y no se reenvía

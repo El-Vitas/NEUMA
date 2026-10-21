@@ -24,6 +24,7 @@ import type { McpFileUploader, McpPrincipalResolver, McpServerDependencies } fro
 import { PageContentService } from './modules/pages/page.content.service';
 import { PageOutlineService } from './modules/pages/page.outline.service';
 import { PageChangesService } from './modules/pages/page-changes.service';
+import { PageComputedPreviewService } from './modules/pages/page-computed-preview.service';
 import { PageQueryService } from './modules/pages/page-query.service';
 import { PageSchemaService } from './modules/pages/page-schema.service';
 import { PageTemplateService } from './modules/pages/page-template.service';
@@ -49,6 +50,7 @@ export class McpServerDependenciesAdapter {
     private readonly collections: PageSchemaService,
     private readonly queryService: PageQueryService,
     private readonly changesService: PageChangesService,
+    private readonly computedPreview: PageComputedPreviewService,
     private readonly viewOperations: PageViewOperationsService,
     private readonly templateService: PageTemplateService,
     private readonly commentsService: CommentsService,
@@ -130,6 +132,10 @@ export class McpServerDependenciesAdapter {
           properties: properties.map((column) => ({ ...column, twoWay: column.twoWay === true })),
         }),
       getSchema: (pageId, workspaceId, userId, role) => collections.getSchema(pageId, workspaceId, userId, role),
+      previewComputed: async (input) => {
+        const previewed = await this.computedPreview.run(input);
+        return previewed.isFail() ? Result.fail(previewed.getError()) : Result.ok(previewed.getValue());
+      },
       queryCollection: async (input) => {
         const answered = toMcpResult(await queryService.run(input));
         if (answered.isFail()) return Result.fail(answered.getError());

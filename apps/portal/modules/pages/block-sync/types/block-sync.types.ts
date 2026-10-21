@@ -2,6 +2,7 @@ import type { BlockRichText, PageContent } from '@neuma/shared';
 import type { Node as EditorNode } from 'prosemirror-model';
 import type { Selection } from 'prosemirror-state';
 import type { z } from 'zod';
+import type { Outbox, StoredTextPreview } from '../../local-cache/types/local-cache.types';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
 import type { CollaborationStatus, PageCollaborationParticipant } from '../../types/pages.collaboration.types';
 import type { BLOCK_SYNC_BAG, BLOCK_SYNC_COMMAND } from '../constants/block-sync.constants';
@@ -185,8 +186,50 @@ export interface BlockTransactionQueueHandlers {
 
 export type BlockQueueState = 'backOnline' | 'idle' | 'offline' | 'saving';
 
+/**
+ * Where a queue keeps what the server has not answered yet, so it survives closing the tab (ADR 029). Every call
+ * reports its own failures: a queue never waits on a disk that is broken.
+ */
+export interface BlockQueuePersistence {
+  /** The server answered it. */
+  readonly drop: (transactionId: string) => Promise<void>;
+  /** It is on disk before it is sent. */
+  readonly keep: (transaction: BlockTransaction) => Promise<void>;
+  /** The server refused it: it stays, apart, until the person decides. */
+  readonly setAside: (transaction: BlockTransaction, error: BlockTransactionError) => Promise<void>;
+}
+
+/** The queue of one page on disk: what to keep, and what an earlier visit left that has to be sent now. */
+export interface BlockSyncOutbox {
+  /** The server answered it. */
+  readonly drop: (transactionId: string) => Promise<void>;
+  /** On disk before it is sent, with the words it holds so a refusal can still show them. */
+  readonly keep: (transaction: BlockTransaction, previews: readonly StoredTextPreview[]) => Promise<void>;
+  /** Transactions of this page that were kept and never answered, in the order they were made. */
+  readonly restore: () => Promise<readonly BlockTransaction[]>;
+  /** The server refused it: it stays, apart, until the person decides. */
+  readonly setAside: (transaction: BlockTransaction, error: BlockTransactionError) => Promise<void>;
+}
+
+export interface BlockSyncOutboxOptions {
+  readonly outbox: Outbox;
+  /** Something was set aside: whoever shows the changes that were not applied should read them again. */
+  readonly onSetAside?: () => void;
+  /** The tab that sends what it keeps. */
+  readonly ownerId: string;
+  readonly pageId: string;
+  /** Every failure of the disk is reported here; a broken disk never stops a transaction from being sent. */
+  readonly report: (message: string, error?: unknown) => void;
+}
+
+export interface BlockSyncDeferredOutboxOptions extends Omit<BlockSyncOutboxOptions, 'outbox'> {
+  /** The local cache of the person, which takes a moment to open. */
+  readonly opening: Promise<Outbox>;
+}
+
 export interface BlockTransactionQueueOptions {
   readonly handlers: BlockTransactionQueueHandlers;
+  readonly persistence?: BlockQueuePersistence;
   readonly send: (transaction: BlockTransaction) => Promise<BlockTransactionOutcome>;
 }
 
@@ -195,6 +238,8 @@ export interface BlockTransactionQueue {
   readonly destroy: () => void;
   readonly enqueue: (transaction: BlockTransaction) => void;
   readonly list: () => readonly BlockTransaction[];
+  /** Puts transactions read back from disk in front of what was queued since; they are not kept again. */
+  readonly restore: (transactions: readonly BlockTransaction[]) => void;
   readonly resume: () => void;
   readonly size: () => number;
 }
@@ -221,6 +266,8 @@ export interface BlockSyncEngineOptions {
   /** A viewer receives what others do, and never sends a transaction or a cursor. */
   readonly isViewer?: boolean;
   readonly localUserId: string | null;
+  /** Where the queue keeps what is not answered yet; without it the queue lives only as long as the tab. */
+  readonly outbox?: BlockSyncOutbox;
   readonly pageId: string;
   readonly resolveParticipant: (userId: string) => PageCollaborationParticipantIdentity;
   readonly spaceId: string;

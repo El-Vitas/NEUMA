@@ -4,6 +4,7 @@ import { LogOut, User as UserIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { logout } from '@/modules/auth/server/lib/auth.logout.server';
+import { useLocalCacheSignOut } from '@/modules/pages/local-cache/hooks/use.local-cache.sign-out';
 import type { PortalLayoutUser } from '@/modules/portal/types/portal.types';
 import { LanguageMenu } from '@/shared/components/language/language.menu';
 import { ThemeMenu } from '@/shared/components/theme/theme.menu';
@@ -27,6 +28,7 @@ interface IProps {
 export const SidebarAccount = ({ collapsed, themeChoice, user }: IProps) => {
   const router = useRouter();
   const t = useTranslations('navigation');
+  const clearBeforeSignOut = useLocalCacheSignOut((count) => t('logoutPending', { count }));
 
   return (
     <div className="border-sidebar-border border-t p-2">
@@ -52,7 +54,7 @@ export const SidebarAccount = ({ collapsed, themeChoice, user }: IProps) => {
           <LanguageMenu />
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild variant="destructive">
-            <form action={logout} className="w-full">
+            <form action={logout} className="w-full" onSubmit={clearBeforeSignOut}>
               <button className="flex w-full items-center gap-2" type="submit">
                 <LogOut aria-hidden="true" className="size-4" />
                 {t('logout')}

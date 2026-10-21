@@ -9,7 +9,7 @@ import { Button } from '@/shared/components/ui/button';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import { usePagesBoardColumns } from '../hooks/use.pages.board-columns';
 import { usePagesBoardDrag } from '../hooks/use.pages.board-drag';
-import { usePagesBoardPaging } from '../hooks/use.pages.board-paging';
+import { usePagesBoardLive } from '../hooks/use.pages.board-live';
 import { usePagesEdgeScrolling } from '../hooks/use.pages.edge-scrolling';
 import { usePagesRowCreation } from '../hooks/use.pages.row-creation';
 import { readPageOptionDotClass } from '../lib/pages.option-color.lib';
@@ -19,6 +19,7 @@ import type {
   PagePersonOption,
   PageSchema,
   PageSchemaProperty,
+  PageSchemaView,
   PageViewAggregates,
   PageViewBand,
 } from '../types/pages.schema.types';
@@ -35,6 +36,8 @@ interface IProps {
   /** A single unnamed band when the board groups by one property. */
   readonly bands: readonly PageViewBand[];
   readonly canEdit: boolean;
+  /** Where to read what changed after the bands were read; null when the board cannot follow changes. */
+  readonly changesCursor: null | string;
   readonly groupByKey: string;
   /** False when the view sorts its cards: their place is then the sort's. */
   readonly isManualOrder: boolean;
@@ -45,6 +48,7 @@ interface IProps {
   readonly spaceId: string;
   /** Empty when the board has a single grouping dimension. */
   readonly subGroupByKey: string;
+  readonly view: PageSchemaView;
   readonly viewId: string;
 }
 
@@ -54,9 +58,10 @@ interface IProps {
  */
 export const PagesCollectionBoard = ({
   activeViewName,
-  aggregates,
+  aggregates: drawnAggregates,
   bands,
   canEdit,
+  changesCursor,
   groupByKey,
   isManualOrder,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
@@ -64,14 +69,25 @@ export const PagesCollectionBoard = ({
   schema,
   spaceId,
   subGroupByKey,
+  view,
   viewId,
 }: IProps) => {
   const t = useTranslations('pages');
   const isBanded = subGroupByKey !== '';
-  const paging = usePagesBoardPaging({ bands, pageId: schema.pageId, spaceId, viewId });
-  const groupByMode = readPageViewConfiguration(
-    schema.views.find((view) => view.id === viewId)?.configuration ?? {},
-  ).groupByMode;
+  const groupByMode = readPageViewConfiguration(view.configuration).groupByMode;
+  const paging = usePagesBoardLive({
+    aggregates: drawnAggregates,
+    bands,
+    changesCursor,
+    groupByKey,
+    groupByMode,
+    pageId: schema.pageId,
+    properties: schema.properties,
+    spaceId,
+    subGroupByKey,
+    view,
+  });
+  const { aggregates } = paging;
   const drag = usePagesBoardDrag({
     bands: paging.bands,
     groupByKey,

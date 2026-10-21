@@ -8,7 +8,7 @@ import type {
   PageStatusGroup,
   PageViewType,
 } from '@neuma/shared';
-import type { PageSchemaProperty, PageSchemaViewDraft } from './pages.schema.types';
+import type { PageComputedDraft, PageSchemaProperty, PageSchemaViewDraft } from './pages.schema.types';
 
 export interface PagesSchemaEditor {
   /** A status option goes in the group given; for any other type the group is ignored. */
@@ -16,6 +16,7 @@ export interface PagesSchemaEditor {
   readonly addProperty: (label: string, type: PagePropertyType) => void;
   readonly addView: (name: string, type: PageViewType) => void;
   readonly changeOptionColor: (key: string, optionId: string, color: PageOptionColor) => void;
+  readonly changePropertyComputed: (key: string, draft: PageComputedDraft) => void;
   readonly changePropertyConfig: (key: string, changes: Partial<PagePropertyConfig>) => void;
   readonly renameOption: (key: string, optionId: string, name: string) => void;
   readonly setPropertyRequired: (key: string, isRequired: boolean) => void;
@@ -37,6 +38,8 @@ export interface PagesSchemaEditor {
   readonly moveView: (viewName: string, direction: 'EARLIER' | 'LATER') => void;
   readonly isSaving: boolean;
   readonly properties: readonly PageSchemaProperty[];
+  /** The space of the collection: the collections it can relate to are in it. */
+  readonly spaceId: string;
   readonly removeOption: (key: string, optionId: string) => void;
   readonly removeProperty: (key: string) => void;
   readonly removeView: (name: string) => void;

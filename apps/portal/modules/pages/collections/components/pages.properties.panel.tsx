@@ -72,6 +72,7 @@ export const PagesPropertiesPanel = ({
         {visibleProperties.map((property) => (
           <PagesPropertiesRow
             attachments={attachments}
+            computedError={page?.computedErrors?.[property.key]}
             disabled={!canEdit}
             key={property.key}
             onChange={(value) => onPropertyValueChange(property.key, value)}

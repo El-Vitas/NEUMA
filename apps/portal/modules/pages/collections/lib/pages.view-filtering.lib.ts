@@ -25,6 +25,7 @@ import {
   PAGE_SORT_DIRECTION,
   PAGE_VIEW_CALCULATION,
   PAGE_VIEW_CALCULATION_VALUES,
+  readPageEffectivePropertyType,
   readPageViewConfiguration,
 } from '@neuma/shared';
 import {
@@ -40,7 +41,7 @@ export const filterOperatorNeedsValue = (operator: PageFilterOperator): boolean 
 
 /** A relation is filtered by whether it holds anything: naming one of its rows would need a row picker here. */
 export const listFilterOperatorsFor = (property: PageSchemaProperty): readonly PageFilterOperator[] => {
-  const logicalType = getPagePropertyLogicalType(property.type);
+  const logicalType = getPagePropertyLogicalType(readPageEffectivePropertyType(property));
   const operators = getPageFilterOperators(logicalType);
   return logicalType === PAGE_PROPERTY_LOGICAL_TYPE.RELATION
     ? operators.filter((operator) => !filterOperatorNeedsValue(operator))

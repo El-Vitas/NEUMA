@@ -11,6 +11,7 @@ import {
   pagePropertyRequiresOptions,
   pickDefaultStatusOption,
   Result,
+  validatePageComputedConfig,
   validatePagePropertyConfig,
 } from '@neuma/shared';
 import type {
@@ -20,7 +21,7 @@ import type {
   SchemaValuesCheck,
 } from './schema.domain.types';
 import { SchemaPropertyDefinitionError, SchemaPropertyValueError } from './schema.error';
-import { SCHEMA_PROPERTY_KEY_PATTERN } from './schema-property.constants';
+import { NO_COMPUTED_CONFIG, SCHEMA_PROPERTY_KEY_PATTERN } from './schema-property.constants';
 
 export const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -92,6 +93,7 @@ const validateRequirement = (property: SchemaPropertyDefinition): string | null 
 const validatePropertyDefinition = (property: SchemaPropertyDefinition): string | null =>
   validatePropertyOptions(property) ??
   validatePagePropertyConfig(property.type, property.config) ??
+  validatePageComputedConfig(property.type, property.computed ?? NO_COMPUTED_CONFIG) ??
   validateRequirement(property);
 
 /** What the server filled in a row stays with the row it was filled for; it is not carried into another collection. */

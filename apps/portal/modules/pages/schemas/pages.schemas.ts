@@ -2,11 +2,17 @@ import { PAGE_LIFECYCLE_VALUES, pageContentSchema as sharedPageContentSchema } f
 import { z } from 'zod';
 import { pageCoverValueSchema } from '../appearance/schemas/pages.cover.schemas';
 import { pageIconSchema } from '../appearance/schemas/pages.icon.schemas';
-import { pagePropertyValuesSchema } from '../collections/schemas/pages.schema.schemas';
+import { pageComputedErrorsSchema, pagePropertyValuesSchema } from '../collections/schemas/pages.schema.schemas';
 
 export const pageContentSchema = sharedPageContentSchema;
 
 export const pageLifecycleSchema = z.enum(PAGE_LIFECYCLE_VALUES);
+
+/** What a row opened on its own page adds to the list's answer: its formulas and rollups, computed for the reader. */
+export const pageComputedValuesSchema = z.object({
+  computedErrors: pageComputedErrorsSchema.optional(),
+  propertyValues: pagePropertyValuesSchema.nullable(),
+});
 
 export const pageAuthorSchema = z.object({ id: z.string(), name: z.string() });
 

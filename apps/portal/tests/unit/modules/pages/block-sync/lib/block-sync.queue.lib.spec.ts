@@ -245,3 +245,104 @@ describe('createTransactionQueue', () => {
     expect(sent).toHaveLength(1);
   });
 });
+
+const createPersistentHarness = () => {
+  const log: string[] = [];
+  const sent: PendingSend[] = [];
+  const queue = createTransactionQueue({
+    handlers: {
+      onApplied: () => undefined,
+      onRejected: () => undefined,
+      onStateChange: () => undefined,
+    },
+    persistence: {
+      drop: (id) => {
+        log.push(`drop ${id}`);
+        return Promise.resolve();
+      },
+      keep: (kept) => {
+        log.push(`keep ${kept.id}`);
+        return Promise.resolve();
+      },
+      setAside: (aside, error) => {
+        log.push(`aside ${aside.id} ${error.code}`);
+        return Promise.resolve();
+      },
+    },
+    send: (nextTransaction) =>
+      new Promise<BlockTransactionOutcome>((resolve, reject) => {
+        log.push(`send ${nextTransaction.id}`);
+        sent.push({ reject, resolve, transaction: nextTransaction });
+      }),
+  });
+  return { log, queue, sent };
+};
+
+describe('createTransactionQueue with persistence', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('keeps a transaction on disk before it is sent', async () => {
+    const { log, queue } = createPersistentHarness();
+
+    queue.enqueue(transaction('t1'));
+    await flush();
+
+    expect(log).toEqual(['keep t1', 'send t1']);
+  });
+
+  it('forgets a transaction once the server answered it', async () => {
+    const { log, queue, sent } = createPersistentHarness();
+    queue.enqueue(transaction('t1'));
+    await flush();
+
+    await succeed(sent[0]);
+
+    expect(log).toEqual(['keep t1', 'send t1', 'drop t1']);
+  });
+
+  it('keeps a transaction on disk while the network is down and sends it again with the same id', async () => {
+    const { log, queue, sent } = createPersistentHarness();
+    queue.enqueue(transaction('t1'));
+    await flush();
+
+    await failWith(sent[0], 'closed');
+    jest.advanceTimersByTime(computeCollaborationReconnectDelayMs(1));
+    await flush();
+
+    expect(log).toEqual(['keep t1', 'send t1', 'send t1']);
+  });
+
+  it('sets a refused transaction aside instead of dropping it', async () => {
+    const { log, queue, sent } = createPersistentHarness();
+    queue.enqueue(transaction('t1'));
+    await flush();
+
+    sent[0]?.resolve({ error: { code: 'FORBIDDEN', message: 'no' }, id: 't1' });
+    await flush();
+
+    expect(log).toEqual(['keep t1', 'send t1', 'aside t1 FORBIDDEN']);
+  });
+
+  it('sends what was left on disk before what was queued since, without keeping it again', async () => {
+    const { log, queue, sent } = createPersistentHarness();
+    queue.enqueue(transaction('new'));
+    queue.restore([transaction('old-1'), transaction('old-2')]);
+    await flush();
+
+    expect(sent.map((pending) => pending.transaction.id)).toEqual(['old-1']);
+    await succeed(sent[0]);
+    await succeed(sent[1]);
+    await succeed(sent[2]);
+
+    expect(sent.map((pending) => pending.transaction.id)).toEqual(['old-1', 'old-2', 'new']);
+    expect(log.filter((entry) => entry.startsWith('keep'))).toEqual(['keep new']);
+    expect(log.filter((entry) => entry.startsWith('drop'))).toEqual(['drop old-1', 'drop old-2', 'drop new']);
+  });
+});

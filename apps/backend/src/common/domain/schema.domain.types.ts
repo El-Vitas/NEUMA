@@ -1,5 +1,6 @@
 import type { DatabasePropertyType, DatabaseViewType, JsonObject } from '@neuma/db';
 import type {
+  PageComputedConfig,
   PageOptionColor,
   PagePropertyConfig,
   PagePropertyOption,
@@ -12,6 +13,8 @@ export type SchemaPropertyValues = PagePropertyValues;
 
 export interface SchemaPropertyDefinition {
   readonly config: PagePropertyConfig;
+  /** The formula or rollup of a computed property (ADR 028); absent on any other. */
+  readonly computed?: PageComputedConfig | undefined;
   readonly key: string;
   readonly label: string;
   readonly type: DatabasePropertyType;

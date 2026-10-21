@@ -25,6 +25,6 @@ export const loadMcpRowDescriber = async (
   const people = new Map(members.map((member) => [member.id, member.name]));
   return (row) =>
     canMcpAct(call, readMcpRowPlace({ place: collectionPlace }, row.id), ACCESS_TOKEN_PERMISSIONS.collectionsRead)
-      ? describeMcpRowProperties(columns, row.propertyValues, row.title, people)
+      ? describeMcpRowProperties(columns, row.propertyValues, row.title, people, undefined, row.computedErrors)
       : [];
 };

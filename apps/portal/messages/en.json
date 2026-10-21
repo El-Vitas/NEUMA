@@ -70,6 +70,7 @@
     "account": "Account",
     "profile": "Profile",
     "logout": "Log out",
+    "logoutPending": "You have {count, plural, one {# change} other {# changes}} that {count, plural, one {was} other {were}} not sent. They are lost if you log out. Log out anyway?",
     "mobileMenu": "Navigation menu",
     "administrator": "Administrator",
     "adminEmail": "admin@example.com"
@@ -487,6 +488,20 @@
     "contentHelp": "Text is saved as a versioned structured block.",
     "trashReadOnly": "This page is in the trash. Restore it to edit it.",
     "readOnly": "You only have read access in this space.",
+    "rejectedChanges": {
+      "title": "{count, plural, one {# change was not applied} other {# changes were not applied}}",
+      "help": "The server refused them. What you wrote is kept here until you decide.",
+      "copy": "Copy text",
+      "copied": "Copied",
+      "discard": "Discard",
+      "noText": "This change had no text to show.",
+      "causes": {
+        "forbidden": "You no longer have permission to edit this.",
+        "invalid": "It could not be read back from this browser.",
+        "missing": "What it changed no longer exists.",
+        "other": "The server did not accept it."
+      }
+    },
     "blockSyncUnavailable": "The page could not be loaded for live editing, so it is read-only. Reload to try again.",
     "spaceUnavailable": "Space unavailable",
     "saveChanges": "Save changes",
@@ -784,6 +799,7 @@
       "no": "No",
       "unknownPerson": "Unknown member",
       "editCell": "Edit {property}",
+      "computedError": "Error",
       "dateEnd": "End date (optional)",
       "relationAdd": "Add a row to {property}",
       "relationRemove": "Remove {title}",
@@ -870,7 +886,10 @@
         "MINIMUM": "Minimum",
         "MAXIMUM": "Maximum",
         "MEDIAN": "Median",
-        "PERCENT_CHECKED": "Checked"
+        "PERCENT_CHECKED": "Checked",
+        "PERCENT_FILLED": "Filled %",
+        "PERCENT_EMPTY": "Empty %",
+        "SHOW_ORIGINAL": "Show original"
       },
       "newTitle": "Untitled collection",
       "titleProperty": "Name",
@@ -1185,8 +1204,30 @@
         "EDITED_TIME": "Last edited time",
         "CREATED_BY": "Created by",
         "EDITED_BY": "Last edited by",
-        "UNIQUE_ID": "Unique ID"
+        "UNIQUE_ID": "Unique ID",
+        "FORMULA": "Formula",
+        "ROLLUP": "Rollup"
       },
+      "formulaText": "Formula",
+      "formulaPlaceholder": "prop(\"Price\") * prop(\"Quantity\")",
+      "formulaHint": "Read a property with prop(\"Name\"). Use + - * /, comparisons, if(condition, a, b), text and date functions.",
+      "formulaGives": "Gives {type}.",
+      "formulaSuggestions": "Did you mean: {names}?",
+      "formulaTypes": {
+        "NUMBER": "a number",
+        "TEXT": "text",
+        "BOOLEAN": "true or false",
+        "DATE": "a date",
+        "LIST": "a list"
+      },
+      "rollupRelation": "Relation",
+      "rollupRelationPlaceholder": "Choose a relation",
+      "rollupProperty": "Property",
+      "rollupPropertyPlaceholder": "Choose a property",
+      "rollupCalculation": "Calculation",
+      "rollupCalculationPlaceholder": "Choose a calculation",
+      "rollupSaved": "Saved with: {calculation}. Choose the relation again to change it.",
+      "rollupHint": "Summarises a property of the rows this row links. It counts only the rows you can open.",
       "colors": {
         "GRAY": "Gray",
         "BROWN": "Brown",

@@ -29,6 +29,8 @@ export const DatabasePropertyType = {
   CREATED_BY: 'CREATED_BY',
   EDITED_BY: 'EDITED_BY',
   UNIQUE_ID: 'UNIQUE_ID',
+  FORMULA: 'FORMULA',
+  ROLLUP: 'ROLLUP',
 } as const;
 export type DatabasePropertyType = ValueOf<typeof DatabasePropertyType>;
 

@@ -3390,7 +3390,9 @@
                 "EDITED_TIME",
                 "CREATED_BY",
                 "EDITED_BY",
-                "UNIQUE_ID"
+                "UNIQUE_ID",
+                "FORMULA",
+                "ROLLUP"
               ],
               "typeName": "DatabasePropertyType"
             },
@@ -6263,7 +6265,9 @@
                 "EDITED_TIME",
                 "CREATED_BY",
                 "EDITED_BY",
-                "UNIQUE_ID"
+                "UNIQUE_ID",
+                "FORMULA",
+                "ROLLUP"
               ]
             },
             "DatabaseViewType": {
@@ -6322,7 +6326,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9970e97ad3f0138b9e610ebfce7fe6c205245c7be7c30b3077673c092c48225a"
+    "storageHash": "bebe6bf2b37a2ece7a33f798ca44592f439fbd42f62697d8ac80ad6023567da4"
   },
   "execution": {
     "executionHash": "0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc",

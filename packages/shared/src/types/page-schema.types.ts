@@ -17,7 +17,9 @@ export type PagePropertyType =
   | 'EDITED_TIME'
   | 'CREATED_BY'
   | 'EDITED_BY'
-  | 'UNIQUE_ID';
+  | 'UNIQUE_ID'
+  | 'FORMULA'
+  | 'ROLLUP';
 
 export const PAGE_PROPERTY_TYPE = {
   TITLE: 'TITLE',
@@ -39,6 +41,8 @@ export const PAGE_PROPERTY_TYPE = {
   CREATED_BY: 'CREATED_BY',
   EDITED_BY: 'EDITED_BY',
   UNIQUE_ID: 'UNIQUE_ID',
+  FORMULA: 'FORMULA',
+  ROLLUP: 'ROLLUP',
 } as const satisfies Record<PagePropertyType, PagePropertyType>;
 
 export const PAGE_PROPERTY_TYPE_VALUES = [
@@ -61,6 +65,8 @@ export const PAGE_PROPERTY_TYPE_VALUES = [
   PAGE_PROPERTY_TYPE.CREATED_BY,
   PAGE_PROPERTY_TYPE.EDITED_BY,
   PAGE_PROPERTY_TYPE.UNIQUE_ID,
+  PAGE_PROPERTY_TYPE.FORMULA,
+  PAGE_PROPERTY_TYPE.ROLLUP,
 ] as const;
 
 export type PageViewType = 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';

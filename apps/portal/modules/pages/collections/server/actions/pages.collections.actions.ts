@@ -21,10 +21,14 @@ import {
   PAGE_RELATION_MIRROR_FORBIDDEN_CODE,
   PAGE_RELATION_PICKER_VISIBLE_LIMIT,
 } from '../../constants/pages.relations.constants';
+import { toViewAggregates } from '../../lib/pages.query-aggregates.lib';
 import { PageRelationRefusedError } from '../../lib/pages.relations.errors';
+import { readSchemaRejection } from '../../lib/pages.schema-rejection.lib';
 import { toRequestedProperty } from '../../lib/pages.schema-request.lib';
-import { toRefinementPart } from '../../lib/pages.view-query.lib';
+import { buildViewCountsQuery, toRefinementPart } from '../../lib/pages.view-query.lib';
 import {
+  pageAggregatesRefreshSchema,
+  pageCollectionChangesSchema,
   pageCollectionCreateSchema,
   pageCollectionReadSchema,
   pageCollectionRefreshSchema,
@@ -41,13 +45,24 @@ import {
 } from '../../schemas/pages.collections.schemas';
 import {
   pageChangedViewSchema,
+  pageCollectionChangesResponseSchema,
   pageQueryResponseSchema,
   pageSchemaSchema,
   pageTransactionsResponseSchema,
 } from '../../schemas/pages.schema.schemas';
-import type { PageChangedView, PageMatchingRows, PageRowsContinuation } from '../../types/pages.query.types';
+import type {
+  PageChangedView,
+  PageCollectionChanges,
+  PageMatchingRows,
+  PageRowsContinuation,
+} from '../../types/pages.query.types';
 import type { PageRelationChangeOutcome } from '../../types/pages.relations.types';
-import type { PageRelatedRow, PageSchema } from '../../types/pages.schema.types';
+import type {
+  PageRelatedRow,
+  PageSchema,
+  PageSchemaSaveOutcome,
+  PageViewAggregates,
+} from '../../types/pages.schema.types';
 import { readRowsInScope } from '../lib/pages.rows-reading.server';
 
 /** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
@@ -86,14 +101,20 @@ export const updatePageRowPropertiesAction = actionClient
 export const updatePageCollectionAction = actionClient
   .inputSchema(pageCollectionUpdateSchema)
   .action(async ({ parsedInput }) =>
-    withAction({ action: 'updatePageCollection' }, async (): Promise<PageSchema> => {
-      const updated = await authenticatedRequest(
-        PAGE_API_ROUTES.schema(parsedInput.spaceId, parsedInput.pageId),
-        'POST',
-        { properties: parsedInput.properties.map(toRequestedProperty), views: parsedInput.views },
-      );
-      updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
-      return pageSchemaSchema.parse(updated);
+    withAction({ action: 'updatePageCollection' }, async (): Promise<PageSchemaSaveOutcome> => {
+      try {
+        const updated = await authenticatedRequest(
+          PAGE_API_ROUTES.schema(parsedInput.spaceId, parsedInput.pageId),
+          'POST',
+          { properties: parsedInput.properties.map(toRequestedProperty), views: parsedInput.views },
+        );
+        updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));
+        return pageSchemaSchema.parse(updated);
+      } catch (error) {
+        const rejection = readSchemaRejection(error);
+        if (rejection === null) throw error;
+        return { rejection };
+      }
     }),
   );
 
@@ -293,6 +314,51 @@ export const listPageRelationCandidatesAction = actionClient
         const row = answered.rows[id];
         return row === undefined ? [] : [{ id: row.id, title: row.title }];
       });
+    }),
+  );
+
+/** Counted on demand, never from the cache: the point is to see what others just changed. */
+export const readPageViewAggregatesAction = actionClient
+  .inputSchema(pageAggregatesRefreshSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'readPageViewAggregates' }, async (): Promise<PageViewAggregates | null> => {
+      const accessToken = await requireAccessTokenCookie();
+      const timeZone = await readRequestTimeZone();
+      const request = buildViewCountsQuery(
+        {
+          configuration: parsedInput.configuration,
+          id: parsedInput.viewId,
+          isDefault: false,
+          name: '',
+          type: parsedInput.viewType,
+        },
+        parsedInput.search,
+        parsedInput.quickFilter,
+      );
+      const response = await apiRequest<unknown>(
+        PAGE_API_ROUTES.query(parsedInput.spaceId, parsedInput.pageId),
+        accessToken,
+        {
+          body: JSON.stringify({ ...request, ...(timeZone === null ? {} : { timeZone }) }),
+          method: 'POST',
+        },
+      );
+      return toViewAggregates(pageQueryResponseSchema.parse(response));
+    }),
+  );
+
+/** Read on demand, never cached: a cursor is only good for the moment it was taken. */
+export const readPageCollectionChangesAction = actionClient
+  .inputSchema(pageCollectionChangesSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'readPageCollectionChanges' }, async (): Promise<PageCollectionChanges> => {
+      const accessToken = await requireAccessTokenCookie();
+      const response = await apiRequest<unknown>(
+        PAGE_API_ROUTES.changes(parsedInput.spaceId, parsedInput.pageId),
+        accessToken,
+        { body: JSON.stringify({ cursor: parsedInput.cursor }), method: 'POST' },
+      );
+      return pageCollectionChangesResponseSchema.parse(response);
     }),
   );
 

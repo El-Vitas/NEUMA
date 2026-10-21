@@ -6,6 +6,7 @@ import { BlockLiveAccessService } from './block.live.access.service';
 import {
   BLOCK_LIVE_CLOSE_CODE,
   BLOCK_LIVE_EMPTY_ACCESS_CONTEXT,
+  BLOCK_LIVE_SETTINGS,
   BLOCK_PRESENCE_STORE,
 } from './constants/block.live.constants';
 import { planCollectionDeliveries, planCollectionResync } from './domain/block.live.collection.domain';
@@ -26,9 +27,11 @@ import type {
   BlockLiveBroadcaster,
   BlockLiveConnection,
   BlockLiveLogger,
+  BlockLiveSettings,
   BlockPresenceStore,
 } from './types/block.live.types';
 import type { BlockReader } from './types/blocks.types';
+import { runWithDeadline } from './utils/block.live.deadline.utils';
 import { parseCommentEvent, parseVersionNotification, serializeServerMessage } from './utils/block.live.message.utils';
 
 const toPageId = (subscription: LiveSubscription): string => subscription.pageId;
@@ -43,6 +46,7 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
     @Inject(BlockLiveAccessService) private readonly accessService: BlockLiveAccessService,
     @Inject(BLOCK_PRESENCE_STORE) private readonly presenceStore: BlockPresenceStore,
     @Inject(PinoLogger) private readonly logger: BlockLiveLogger,
+    @Inject(BLOCK_LIVE_SETTINGS) private readonly settings: BlockLiveSettings,
   ) {}
 
   /** Notifications are handled one after the other, so the versions of a page reach a socket in commit order. */
@@ -86,19 +90,24 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
 
   private async handleAfter(previous: Promise<void>, payload: string): Promise<void> {
     await previous;
-    try {
-      await this.handleNotification(payload);
-    } catch (error) {
-      this.logFailure(error);
-    }
+    await this.runStep(() => this.handleNotification(payload));
   }
 
   private async handleCommentEventAfter(previous: Promise<void>, payload: string): Promise<void> {
     await previous;
+    await this.runStep(() => this.handleCommentEvent(payload));
+  }
+
+  /**
+   * One step of the queue. A step that fails, or that has not finished at its deadline, is logged with its stack and
+   * every subscriber reads again, because what that step had to tell them is lost. The queue itself always moves on.
+   */
+  private async runStep(step: () => Promise<void>): Promise<void> {
     try {
-      await this.handleCommentEvent(payload);
+      await runWithDeadline(step, this.settings.deliveryTimeoutMs);
     } catch (error) {
       this.logFailure(error);
+      this.resyncEverySubscription();
     }
   }
 

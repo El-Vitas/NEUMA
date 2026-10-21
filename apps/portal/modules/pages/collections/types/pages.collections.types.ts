@@ -6,6 +6,7 @@ import type {
   PageStatusGroup,
   PageViewType,
 } from '@neuma/shared';
+import type { PageComputedDraft } from './pages.schema.types';
 
 export interface PageCollectionWording {
   readonly firstProperty: string;
@@ -23,6 +24,8 @@ export interface PageCollectionOption {
 
 /** What the collection is created or saved with. */
 export interface PageCollectionProperty {
+  /** A formula or rollup being given or changed; absent when the one the property has is kept. */
+  readonly computedDraft?: PageComputedDraft | undefined;
   readonly config?: PagePropertyConfig;
   readonly key: string;
   readonly label: string;

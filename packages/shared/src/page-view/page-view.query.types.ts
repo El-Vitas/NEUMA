@@ -1,3 +1,4 @@
+import type { PageFormulaCellError } from '../page-formula/page-formula.types.js';
 import type { PagePropertyValues } from '../page-property/page-property.types.js';
 import type { PageFilter, PageSort, PageViewCalculation } from './page-view.types.js';
 
@@ -112,6 +113,11 @@ export interface PageQueryAggregationGroupOutcome {
 export interface PageQueryAggregationsOutcome {
   /** Rows counted once even when a multi-value grouping repeats them in several groups. */
   readonly distinctRowCount: number;
+  /**
+   * By item id, for the items over a formula or rollup column whose cells failed: how many, among the rows evaluated.
+   * A cell that failed totals as empty.
+   */
+  readonly errorCounts?: Readonly<Record<string, number>>;
   readonly groups: readonly PageQueryAggregationGroupOutcome[];
   readonly kind: 'aggregations';
   readonly totals: Readonly<Record<string, PageQueryAggregateValue>>;
@@ -120,6 +126,8 @@ export interface PageQueryAggregationsOutcome {
 export type PageQueryOutcome = PageQueryAggregationsOutcome | PageQueryGroupsOutcome | PageQueryResultsOutcome;
 
 export interface PageQueryRow {
+  /** The formulas and rollups of the row that could not be computed, with why. Their values are not in the row. */
+  readonly computedErrors?: Readonly<Record<string, PageFormulaCellError>> | undefined;
   readonly createdAt: string;
   readonly createdById: string;
   readonly editedAt: string;
@@ -145,6 +153,8 @@ export interface PageQueryResponse {
   readonly rows: Readonly<Record<string, PageQueryRow>>;
   readonly spaceId: string;
   readonly viewVersion: number | null;
+  /** Collections the formulas and rollups read besides this one. A change in any can change a value here. */
+  readonly computedDependsOn: readonly string[];
 }
 
 export const PAGE_QUERY_LIMITS = {
@@ -160,6 +170,7 @@ export const PAGE_QUERY_LIMITS = {
 } as const;
 
 export const PAGE_QUERY_ERROR_CODE = {
+  computedTooLarge: 'VIEW_QUERY_COMPUTED_TOO_LARGE',
   cursorStale: 'VIEW_QUERY_CURSOR_STALE',
   invalid: 'VIEW_QUERY_INVALID',
   notFound: 'VIEW_NOT_FOUND',

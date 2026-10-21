@@ -209,6 +209,7 @@ export const describeMcpRow = (
     row.title,
     new Map(people.map((person) => [person.id, person.name])),
     lookups,
+    row.computedErrors,
   ),
   title: row.title,
   url: buildMcpPageUrl(portalUrl, row.spaceId, row.id, null),

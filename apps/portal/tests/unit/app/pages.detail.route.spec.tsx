@@ -69,6 +69,7 @@ mock.module('@/modules/pages/block-sync/server/lib/block-sync.reading.server', (
 }));
 const getPages = mock(async () => pagesResult);
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
+  getPageComputedValues: async () => ({ isFail: () => true, isOk: () => false }),
   getPages,
   getPagesHolding: async () => pagesResult,
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
@@ -98,7 +99,11 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   updatePageCollectionAction: async () => ({ data: null }),
   applyPageViewOperationsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
+  refreshPageCollectionAction: async () => ({ data: null }),
   refreshPageRowsAction: async () => ({ data: null }),
   movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
@@ -106,6 +111,9 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
 // The live follower opens a socket and loads server actions, which a test of the route does not need.
 mock.module('@/modules/pages/collections/components/pages.collection.live-follower', () => ({
   PagesCollectionLiveFollower: () => null,
+}));
+mock.module('@/modules/pages/collections/components/pages.collection.computed-sources-follower', () => ({
+  PagesCollectionComputedSourcesFollower: () => null,
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),

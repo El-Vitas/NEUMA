@@ -39,7 +39,14 @@ export interface PageMentionInsertCommandOptions {
   readonly spaceId: string;
 }
 
+export interface PageComputedValues {
+  readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>> | undefined;
+  readonly propertyValues: PagePropertyValues | null;
+}
+
 export interface PageSummary {
+  /** Why a formula or rollup of the row could not be computed; only set on a row opened on its own page. */
+  readonly computedErrors?: Readonly<Record<string, { readonly code: string; readonly message: string }>>;
   readonly content: PageContent;
   readonly cover?: PageCoverValue | null;
   readonly createdAt: Date;

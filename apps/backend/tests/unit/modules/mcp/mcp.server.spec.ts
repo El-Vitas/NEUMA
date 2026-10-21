@@ -254,6 +254,7 @@ const collectionWith = (properties: readonly McpColumn[]): McpCollectionService 
   applyViewOperations: notUsedHere,
   defineSchema: notUsedHere,
   moveRow: notUsedHere,
+  previewComputed: notUsedHere,
   getSchema: () => Promise.resolve(Result.ok({ properties, views: [] })),
   queryCollection: notUsedHere,
   readChanges: notUsedHere,
@@ -316,6 +317,7 @@ describe('MCP read contract', () => {
       'get_collection',
       'query_collection',
       'collection_changes',
+      'test_formula',
       'list_templates',
     ]);
   });

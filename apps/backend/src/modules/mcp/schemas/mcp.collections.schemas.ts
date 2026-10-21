@@ -3,6 +3,7 @@ import {
   PAGE_CARD_SIZE_VALUES,
   PAGE_DATE_SCALE_VALUES,
   PAGE_FILTER_OPERATOR_VALUES,
+  PAGE_FORMULA_SOURCE_MAX_LENGTH,
   PAGE_NUMBER_FORMAT_VALUES,
   PAGE_PROPERTY_TYPE,
   PAGE_PROPERTY_TYPE_VALUES,
@@ -11,6 +12,7 @@ import {
   PAGE_VIEW_TYPE_VALUES,
 } from '@neuma/shared';
 import { z } from 'zod';
+import { MCP_FORMULA_SHORT_HINT, MCP_ROLLUP_SHORT_HINT } from '../constants/mcp.formula.constants';
 import {
   MCP_AGGREGATE_CALCULATIONS,
   MCP_AGGREGATE_LIMIT,
@@ -107,6 +109,14 @@ const sortSchema = z
 
 const viewNameSchema = z.string().trim().min(1).max(MCP_TITLE_MAX_LENGTH);
 
+const formulaSourceSchema = z.string().trim().min(1).max(PAGE_FORMULA_SOURCE_MAX_LENGTH);
+
+const rollupSourceSchema = z.object({
+  calculation: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH),
+  property: columnSchema.describe('The column of the related collection to summarise, by its key or its name.'),
+  relation: columnSchema.describe('The relation column of this collection whose rows are summarised.'),
+});
+
 const addableColumnTypes = PAGE_PROPERTY_TYPE_VALUES.filter((type) => type !== PAGE_PROPERTY_TYPE.TITLE);
 
 /** A new collection has no other collection to point to yet: a relation is added to it afterwards. */
@@ -119,6 +129,7 @@ const newColumnSchema = z.object({
     .optional()
     .describe('A number shown as money: its ISO currency code, such as USD or CLP.'),
   decimals: z.number().int().min(0).max(8).optional().describe('A number: the most decimals a value may have.'),
+  formula: formulaSourceSchema.optional().describe(MCP_FORMULA_SHORT_HINT),
   multiple: z.boolean().optional().describe('A person column: whether a row may name more than one person.'),
   name: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH),
   numberFormat: z.enum(PAGE_NUMBER_FORMAT_VALUES).optional().describe('A number: plain, a percent or money.'),
@@ -132,6 +143,7 @@ const newColumnSchema = z.object({
     .max(PAGE_UNIQUE_ID_PREFIX_MAX_LENGTH)
     .optional()
     .describe('A unique id: the text shown before the number, such as TSK.'),
+  rollup: rollupSourceSchema.optional().describe(MCP_ROLLUP_SHORT_HINT),
   target: collectionSchema
     .optional()
     .describe(
@@ -330,6 +342,11 @@ export const updateCollectionColumnsInputSchema = z.object({
     .array(z.object({ column: columnSchema, name: z.string().trim().min(1).max(MCP_COLUMN_NAME_MAX_LENGTH) }))
     .max(MCP_COLLECTION_CHANGE_LIMIT)
     .optional(),
+  setFormulas: z
+    .array(z.object({ column: columnSchema, formula: formulaSourceSchema }))
+    .max(MCP_COLLECTION_CHANGE_LIMIT)
+    .optional()
+    .describe(`Change the text of formula columns that exist. ${MCP_FORMULA_SHORT_HINT}`),
   renameOptions: z
     .array(
       z.object({
@@ -395,10 +412,16 @@ export const updateViewInputSchema = z.object({
 export const deleteViewInputSchema = z.object({ collection: collectionSchema, view: viewNameSchema });
 
 const outputColumnSchema = z.object({
+  /** A formula column: its text. */
+  formula: z.string().optional(),
   key: z.string(),
   label: z.string(),
   options: z.array(z.string()).nullable(),
   required: z.boolean(),
+  /** A formula or rollup column: the type of what it gives (NUMBER, TEXT, BOOLEAN, DATE or LIST). */
+  resultType: z.string().optional(),
+  /** A rollup column: what it summarises, in words. */
+  rollup: z.string().optional(),
   type: z.string(),
 });
 
@@ -425,11 +448,15 @@ export const collectionOutputSchema = z.object({
 });
 
 export const outputPropertySchema = z.object({
+  /** A formula or rollup that could not be computed for this row: why. The value is then null. */
+  error: z.object({ code: z.string(), message: z.string() }).optional(),
   key: z.string(),
   label: z.string(),
   people: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
   /** On a relation: the rows it points to that the reader may open. */
   related: z.array(z.object({ id: z.string(), title: z.string() })).optional(),
+  /** On a computed number: how a person reads it. `value` keeps the raw number. */
+  text: z.string().optional(),
   type: z.string(),
   value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
 });
@@ -489,6 +516,13 @@ export const collectionChangesOutputSchema = z.object({
   hasMore: z.boolean(),
   /** The cursor was not valid: read the collection again with query_collection. */
   reset: z.boolean(),
+  /**
+   * Rows whose rollup may have changed because a row they summarise changed, though the row itself did not. They come
+   * as they are now: compare them with what you hold.
+   */
+  possiblyChanged: z.array(outputRowSchema),
+  /** There were more possibly changed rows than one answer carries: read the rollup columns again. */
+  possiblyChangedTruncated: z.boolean(),
   /** The rows that changed, as they are now. A row seen again with the same version has not changed. */
   rows: z.array(outputRowSchema),
   /** Every row the token can read: if it differs from the rows you hold, read again. */
@@ -499,6 +533,8 @@ export const collectionChangesOutputSchema = z.object({
 
 export const queryCollectionOutputSchema = z.object({
   aggregates: aggregatesSchema.optional(),
+  /** By the name of a total over a formula or rollup column: how many of its cells failed and so counted as empty. */
+  aggregateErrors: z.record(z.string(), z.number().int().positive()).optional(),
   /** Pass it to collection_changes as since to read what changes after this answer. */
   changesCursor: z.string().optional(),
   /** Present when the answer is grouped, or a single group was asked for. */
@@ -513,3 +549,44 @@ export const queryCollectionOutputSchema = z.object({
 });
 
 export const rowOutputSchema = outputRowSchema;
+
+export const testFormulaInputSchema = z.object({
+  collection: collectionSchema,
+  formula: formulaSourceSchema.optional().describe('The text of a formula to check. Give this or rollup.'),
+  rollup: rollupSourceSchema.optional().describe('A rollup to check, instead of a formula.'),
+  rows: z
+    .array(buildMcpAddressSchema('A row to try it on: a Neuma link to it, or its page id.'))
+    .max(5)
+    .optional()
+    .describe('Up to 5 rows to try it on. The first rows of the collection when left out.'),
+  trace: z
+    .boolean()
+    .optional()
+    .describe('A formula: also give the value of each part of its text, to find which part is unexpected.'),
+});
+
+const previewValueSchema = z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]);
+
+export const testFormulaOutputSchema = z.object({
+  /** The columns the formula reads. */
+  reads: z.array(z.string()),
+  /** NUMBER, TEXT, BOOLEAN, DATE or LIST: what the column would give. */
+  resultType: z.string(),
+  rows: z.array(
+    z.object({
+      error: z.object({ code: z.string(), message: z.string() }).optional(),
+      id: z.string(),
+      title: z.string(),
+      trace: z
+        .array(
+          z.object({
+            error: z.object({ code: z.string(), message: z.string() }).optional(),
+            text: z.string(),
+            value: previewValueSchema,
+          }),
+        )
+        .optional(),
+      value: previewValueSchema,
+    }),
+  ),
+});

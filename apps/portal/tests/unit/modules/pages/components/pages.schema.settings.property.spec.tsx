@@ -10,6 +10,7 @@ import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  readPageCollectionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
 }));
 mock.module('sonner', () => ({ toast: { error: () => undefined, success: () => undefined } }));

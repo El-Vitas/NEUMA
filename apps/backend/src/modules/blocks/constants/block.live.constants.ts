@@ -14,6 +14,11 @@ export const BLOCK_LIVE_SETTINGS = 'BLOCK_LIVE_SETTINGS';
 
 export const BLOCK_PRESENCE_STORE = 'BLOCK_PRESENCE_STORE';
 
+export const BLOCK_LISTEN_CLIENT_FACTORY = 'BLOCK_LISTEN_CLIENT_FACTORY';
+
+/** The listen connection sends itself a message here: if it does not come back, the connection is dead. */
+export const BLOCK_LIVE_HEARTBEAT_CHANNEL = 'block_live_heartbeat';
+
 export const BLOCK_LIVE_PATH = '/api/v1/blocks/live';
 
 export const BLOCK_LIVE_APPLICATION_NAME_SETTING = 'application_name';
@@ -79,7 +84,11 @@ export const BLOCK_LIVE_SOCKET_OPEN_STATE = 1;
 
 export const BLOCK_LIVE_DEFAULT_SETTINGS: BlockLiveSettings = {
   authTimeoutMs: 10_000,
+  deliveryTimeoutMs: 20_000,
+  heartbeatIntervalMs: 30_000,
+  heartbeatTimeoutMs: 10_000,
   idleTimeoutMs: 90_000,
+  keepAliveInitialDelayMs: 10_000,
   maxConnectionAgeMs: 3_600_000,
   presenceSweepIntervalMs: 5000,
   presenceTimeToLiveMs: 60_000,

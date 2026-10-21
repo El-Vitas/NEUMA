@@ -23,6 +23,7 @@ import { PageVersionRepository } from './infrastructure/persistence/page.version
 import { PageVersionRetentionRepository } from './infrastructure/persistence/page.version-retention.repository';
 import { PageAttachmentsCleanupRepository } from './infrastructure/persistence/page-attachments.cleanup.repository';
 import { PageChangesRepository } from './infrastructure/persistence/page-changes.repository';
+import { PageComputedRepository } from './infrastructure/persistence/page-computed.repository';
 import { PageOutlineRepository } from './infrastructure/persistence/page-outline.repository';
 import { PageQueryRepository } from './infrastructure/persistence/page-query.repository';
 import { PageSchemaRepository } from './infrastructure/persistence/page-schema.repository';
@@ -37,8 +38,11 @@ import { PageOutlineService } from './page.outline.service';
 import { PageTrashController } from './page.trash.controller';
 import { PageVersionsController } from './page.versions.controller';
 import { PageChangesService } from './page-changes.service';
+import { PageComputedService } from './page-computed.service';
+import { PageComputedPreviewService } from './page-computed-preview.service';
 import { PageQueryController } from './page-query.controller';
 import { PageQueryService } from './page-query.service';
+import { PageRowComputedService } from './page-row-computed.service';
 import { PageSchemaController } from './page-schema.controller';
 import { PageSchemaService } from './page-schema.service';
 import { PageTemplateController } from './page-template.controller';
@@ -70,6 +74,7 @@ import { PagesService } from './pages.service';
     PageSchemaService,
     PageQueryService,
     PageChangesService,
+    PageComputedPreviewService,
     PageViewOperationsService,
     PageOutlineService,
     PageRetentionScheduler,
@@ -94,6 +99,10 @@ import { PagesService } from './pages.service';
     { provide: PAGE_SCHEMA_REPOSITORY, useClass: PageSchemaRepository },
     PageQueryRepository,
     PageChangesRepository,
+    PageComputedRepository,
+    PageComputedService,
+    PageComputedPreviewService,
+    PageRowComputedService,
     PageTemplateRepository,
     PageTemplateService,
     { provide: PAGE_QUERY_CLOCK, useValue: systemPageQueryClock },

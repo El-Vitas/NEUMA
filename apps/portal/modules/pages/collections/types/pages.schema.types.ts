@@ -1,4 +1,5 @@
 import type {
+  PageComputedConfig,
   PageDateScale,
   PageDayRange,
   PageLifecycle,
@@ -13,7 +14,36 @@ import type { ReactNode } from 'react';
 
 export type { PagePropertyValue, PagePropertyValues } from '@neuma/shared';
 
+/** Why the server refused a shape, in its own words. */
+export interface PageSchemaRejection {
+  readonly code: string;
+  readonly message: string;
+}
+
+/** What saving a shape answers: the shape as stored, or the reason it was refused. */
+export type PageSchemaSaveOutcome = PageSchema | { readonly rejection: PageSchemaRejection };
+
+/** Why a formula or rollup could not be computed in one row. */
+export interface PageComputedError {
+  readonly code: string;
+  readonly message: string;
+}
+
+/** What a person is changing in a formula or rollup property before saving, in the names they read. */
+export interface PageComputedDraft {
+  readonly formula: string | null;
+  readonly rollup: {
+    readonly calculation: string;
+    readonly relationPropertyKey: string;
+    readonly targetPropertyKey: string;
+  } | null;
+}
+
 export interface PageSchemaProperty {
+  /** The formula or rollup a computed property was saved with. */
+  readonly computed?: PageComputedConfig | undefined;
+  /** What is being changed in it; absent while it is as saved. */
+  readonly computedDraft?: PageComputedDraft | undefined;
   readonly config: PagePropertyConfig;
   readonly key: string;
   readonly label: string;
@@ -56,6 +86,8 @@ export interface PageSchema {
 }
 
 export interface PageRow {
+  /** The formulas and rollups of the row that could not be computed, with why. */
+  readonly computedErrors?: Readonly<Record<string, PageComputedError>> | undefined;
   readonly id: string;
   readonly parentId: string | null;
   readonly spaceId: string;
@@ -150,6 +182,8 @@ export interface PageViewReading {
    * with `use` under a Suspense; null when it could not be computed.
    */
   readonly aggregates: Promise<PageViewAggregates | null>;
+  /** Where to read what changed after these rows were read; null for a reading that holds no such rows. */
+  readonly changesCursor: null | string;
   /** The rows the relation cells point to that the reader may open. */
   readonly relatedRows: readonly PageRelatedRow[];
   readonly outcome: PageViewOutcome;

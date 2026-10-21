@@ -48,7 +48,18 @@ export const PagesCollectionEmbed = async ({
       <span className="text-muted-foreground text-xs uppercase tracking-wide">{view.name}</span>
     </div>
     <PagesCollectionLookupsProvider lookups={lookups}>
-      {await PagesCollectionView({ aggregates, canEdit: false, outcome, properties, schema, spaceId, view })}
+      {
+        await PagesCollectionView({
+          aggregates,
+          canEdit: false,
+          changesCursor: null,
+          outcome,
+          properties,
+          schema,
+          spaceId,
+          view,
+        })
+      }
     </PagesCollectionLookupsProvider>
   </section>
 );

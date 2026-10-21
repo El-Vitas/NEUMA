@@ -51,6 +51,32 @@ export class PageChangesRepository {
     }));
   }
 
+  /**
+   * The active rows of the collection whose relation cell links any of `targetIds`: the rows a rollup over that
+   * relation may have changed for. One more than the limit is read to know if there are more.
+   */
+  async readRowsLinking(
+    runner: NeumaSqlRunner,
+    input: {
+      readonly collectionId: string;
+      readonly deniedIds: readonly string[];
+      readonly limit: number;
+      readonly relationKey: string;
+      readonly targetIds: readonly string[];
+    },
+  ): Promise<readonly string[]> {
+    const denied =
+      input.deniedIds.length === 0 ? sqlText('TRUE') : frag`NOT ("id" = ANY(${sqlTextList(input.deniedIds)}))`;
+    const statement = frag`SELECT "id" FROM "Block"
+      WHERE "parentId" = ${sqlParameter(input.collectionId, 'text')} AND "type" = 'page' AND ${isNotTemplateSql()}
+        AND "lifecycle" = 'ACTIVE' AND ${denied}
+        AND jsonb_exists_any("properties" -> 'values' -> ${sqlParameter(input.relationKey, 'text')}, ${sqlTextList(input.targetIds)})
+      ORDER BY "id"
+      LIMIT ${sqlText(String(input.limit + 1))}`;
+    const rows = await runner.query(toRawStatement(this.prisma.sql, statement).returnsRow({ id: PLAIN_TEXT }).build());
+    return rows.map((row) => row.id);
+  }
+
   /** The active rows of the collection that the reader may read. */
   async countReadableRows(runner: NeumaSqlRunner, collectionId: string, deniedIds: readonly string[]): Promise<number> {
     const denied = deniedIds.length === 0 ? sqlText('TRUE') : frag`NOT ("id" = ANY(${sqlTextList(deniedIds)}))`;

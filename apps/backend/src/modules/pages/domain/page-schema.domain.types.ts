@@ -1,8 +1,28 @@
 import type { PagePropertyOptionDraft } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../common/domain/schema.domain.types';
 
+/** What a caller sends for a formula or a rollup: the text of the formula, or the rollup in names of keys. */
+export interface ComputedDraft {
+  readonly formula: string | null;
+  readonly rollup: {
+    readonly calculation: string;
+    readonly relationPropertyKey: string;
+    readonly targetPropertyKey: string;
+  } | null;
+}
+
+/** A rollup of another collection that reads a property of the collection being saved. */
+export interface RollupDependent {
+  readonly calculation: string;
+  readonly collectionId: string;
+  readonly key: string;
+  readonly targetPropertyKey: string;
+}
+
 /** A property as a caller sends it: an option that is new has no id yet, and a relation may ask for its mirror. */
-export interface SchemaPropertyDraft extends Omit<SchemaPropertyDefinition, 'options'> {
+export interface SchemaPropertyDraft extends Omit<SchemaPropertyDefinition, 'computed' | 'options'> {
+  /** Only a formula or a rollup sends it. Without it, the one the property already has is kept. */
+  readonly computedDraft?: ComputedDraft | null | undefined;
   readonly options: readonly PagePropertyOptionDraft[] | null;
   /** On a relation that has no mirror yet: also create the property that points back from the other collection. */
   readonly twoWay: boolean;

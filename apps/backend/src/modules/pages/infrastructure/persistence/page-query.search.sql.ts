@@ -1,5 +1,5 @@
 import { DatabasePropertyType } from '@neuma/db';
-import { getPagePropertyLogicalType, PAGE_PROPERTY_LOGICAL_TYPE } from '@neuma/shared';
+import { getPagePropertyLogicalType, isPageComputedPropertyType, PAGE_PROPERTY_LOGICAL_TYPE } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
 import { ROW } from '../../constants/page-query.sql.constants';
 import type { SqlFragment } from '../../types/page-query.sql.types';
@@ -15,6 +15,7 @@ const containsWords = (haystack: SqlFragment, words: string): SqlFragment =>
 /** The answers that are text: the title is the block's own text, and the title property holds nothing else. */
 const isTextAnswer = (property: SchemaPropertyDefinition): boolean =>
   property.type !== DatabasePropertyType.TITLE &&
+  !isPageComputedPropertyType(property.type) &&
   getPagePropertyLogicalType(property.type) === PAGE_PROPERTY_LOGICAL_TYPE.TEXT;
 
 /**

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  PageFormulaContext,
   PageQueryAggregationsOutcome,
   PageQueryAggregationsReducer,
   PageQueryGroupOutcome,
@@ -7,19 +8,23 @@ import type {
   PageQueryGroupsOutcome,
   PageQueryGroupsReducer,
   PageQueryOutcome,
+  PageQueryRequest,
   PageQueryResultsOutcome,
   PageQueryResultsReducer,
   PageViewConfiguration,
 } from '@neuma/shared';
 import {
   EMPTY_PAGE_VIEW_CONFIGURATION,
+  isPageComputedPropertyType,
   PAGE_QUERY_LIMITS,
+  PAGE_ROLLUP_SHOW_ORIGINAL,
   Result,
   readPageViewConfiguration,
   UNASSIGNED_GROUP_KEY,
 } from '@neuma/shared';
 import type { DomainError } from '../../common/domain/domain.error';
 import type { SchemaPropertyDefinition, SchemaViewDefinition } from '../../common/domain/schema.domain.types';
+import { toEffectiveSchemaProperties } from '../../common/domain/schema-computed.domain';
 import {
   PAGE_QUERY_CLOCK,
   PAGE_QUERY_DEFAULT_TIME_ZONE,
@@ -35,6 +40,7 @@ import {
   listReferencedKeys,
   listRelationTargets,
   readAggregateNumber,
+  relaxFilter,
   resolveQueryFilter,
 } from './domain/page-query.plan.domain';
 import { pageCarriesSchema } from './domain/page-schema.domain';
@@ -42,8 +48,17 @@ import { PageChangesRepository } from './infrastructure/persistence/page-changes
 import { groupInclusionSql, groupJoinSql, groupMembershipSql } from './infrastructure/persistence/page-query.group.sql';
 import { PageQueryRepository } from './infrastructure/persistence/page-query.repository';
 import { allOf, frag, sqlText } from './infrastructure/persistence/page-query.sql.lib';
+import { PageComputedService } from './page-computed.service';
+import type { PageViewer } from './types/page.block.types';
 import type { PageRepositoryContract } from './types/page.types';
-import type { GroupAxis, GroupLine, QueryScope, UnreadableRelations } from './types/page-query.sql.types';
+import type { MaterializedValues, PageComputedSession } from './types/page-computed.types';
+import type {
+  GroupAxis,
+  GroupLine,
+  QueryScope,
+  QueryScopeInput,
+  UnreadableRelations,
+} from './types/page-query.sql.types';
 import type {
   Axis,
   PageQueryClock,
@@ -71,6 +86,7 @@ export class PageQueryService {
     @Inject(PAGE_QUERY_CLOCK) private readonly clock: PageQueryClock,
     private readonly queryRepository: PageQueryRepository,
     private readonly changesRepository: PageChangesRepository,
+    private readonly computedService: PageComputedService,
   ) {}
 
   /** Answers the reducers a request names, for the rows the reader may open and nobody else's. */
@@ -85,32 +101,41 @@ export class PageQueryService {
     const viewer = { role, userId, workspaceId };
     const configuration = this.readConfiguration(view.getValue());
     const timeZone = request.timeZone ?? PAGE_QUERY_DEFAULT_TIME_ZONE;
-    const filter = resolveQueryFilter(combineFilters(configuration.filter, request.quickFilter), schema.properties, {
-      now: this.clock.now().getTime(),
+    const effectiveProperties = toEffectiveSchemaProperties(schema.properties);
+    const formulaContext = { nowMilliseconds: this.clock.now().getTime(), timeZone };
+    const session = this.computedService.createSession();
+    const filter = resolveQueryFilter(combineFilters(configuration.filter, request.quickFilter), effectiveProperties, {
+      now: formulaContext.nowMilliseconds,
       timeZone,
       viewerId: userId,
     });
     if (filter.isFail()) return Result.fail(filter.getError());
     const sorts = request.sorts ?? configuration.sorts;
     const items = request.reducers.flatMap((reducer) => (reducer.kind === 'aggregations' ? reducer.items : []));
-    const referenced = listReferencedKeys(filter.getValue(), sorts, items, configuration);
+    const referenced = new Set([
+      ...listReferencedKeys(filter.getValue(), sorts, items, configuration),
+      ...listReducerGroupKeys(request.reducers),
+    ]);
+    const computedKeys = this.listComputedKeys(schema.properties, referenced);
+    const unsupported = this.findUnsupportedComputedKey(schema.properties, computedKeys);
+    if (unsupported !== null) return Result.fail(unsupported);
     const closed = await this.queryRepository.readClosedRowIds(pageId, viewer, { includeInactive: false });
     if (closed.isFail()) return Result.fail(closed.getError());
     const unreadable = await this.readUnreadableRelations(schema.properties, referenced, viewer);
     if (unreadable.isFail()) return Result.fail(unreadable.getError());
     const search = request.search?.trim() ?? '';
-    const properties = new Map(schema.properties.map((property) => [property.key, property]));
+    const properties = new Map(effectiveProperties.map((property) => [property.key, property]));
     const answered = await this.queryRepository.inSnapshot(async (runner) => {
       const changesCursor = encodeChangesCursor({
         after: null,
         fresh: null,
         since: await this.changesRepository.readWatermark(runner),
       });
-      const scope = this.queryRepository.buildScope({
+      const scopeInput = {
         collectionId: pageId,
         deniedIds: [...new Set([...closed.getValue(), ...(input.excludedRowIds ?? [])])],
         filter: filter.getValue(),
-        properties: schema.properties,
+        properties: effectiveProperties,
         runner,
         search: search === '' ? null : search,
         signature: signOrder(sorts, null),
@@ -118,10 +143,21 @@ export class PageQueryService {
         timeZone,
         unreadableRelations: unreadable.getValue(),
         viewId: view.getValue()?.id ?? null,
+      };
+      const computedValues = await this.materializeComputed(scopeInput, schema.properties, computedKeys, {
+        context: formulaContext,
+        session,
+        viewer,
       });
+      if (computedValues.isFail()) return { changesCursor, outcomes: Result.fail(computedValues.getError()) };
+      const { errorCounts, values } = computedValues.getValue();
+      const scope = this.queryRepository.buildScope({ ...scopeInput, computedValues: values });
+      const reduced = await this.runReducers(request.reducers, { configuration, properties, scope });
       return {
         changesCursor,
-        outcomes: await this.runReducers(request.reducers, { configuration, properties, scope }),
+        outcomes: reduced.isFail()
+          ? reduced
+          : Result.ok(withErrorCounts(request.reducers, reduced.getValue(), errorCounts)),
       };
     });
     const { changesCursor, outcomes } = answered;
@@ -131,14 +167,80 @@ export class PageQueryService {
       return Result.fail(new PageQueryInvalidError('The reducers ask for more rows than one response carries'));
     }
     const found = await this.pageSchemaRepository.readRowsById(pageId, ids, workspaceId, userId, role);
+    const computed = await this.computedService.attach(found.rows, {
+      collectionId: pageId,
+      context: formulaContext,
+      properties: schema.properties,
+      session,
+      viewer,
+    });
+    if (computed.isFail()) return Result.fail(computed.getError());
     return Result.ok({
       attachedFiles: found.attachedFiles,
       changesCursor,
       reducers: outcomes.getValue(),
       relatedRows: found.relatedRows,
-      rows: Object.fromEntries(found.rows.map((row) => [row.id, row])),
+      rows: Object.fromEntries(computed.getValue().map((row) => [row.id, row])),
       spaceId: page.spaceId,
       viewVersion: view.getValue()?.version ?? null,
+      computedDependsOn: await this.computedService.listDependencies(pageId, schema.properties, viewer, session),
+    });
+  }
+
+  /** The formulas and rollups the query reads to decide which rows come, in what order, and what to total. */
+  private listComputedKeys(
+    properties: readonly SchemaPropertyDefinition[],
+    referenced: ReadonlySet<string>,
+  ): readonly string[] {
+    return properties
+      .filter((property) => isPageComputedPropertyType(property.type) && referenced.has(property.key))
+      .map((property) => property.key);
+  }
+
+  /** The original values of a rollup are a list, which has no order, no groups and no total. */
+  private findUnsupportedComputedKey(
+    properties: readonly SchemaPropertyDefinition[],
+    computedKeys: readonly string[],
+  ): PageQueryInvalidError | null {
+    const shown = properties.find(
+      (property) =>
+        computedKeys.includes(property.key) && property.computed?.rollup?.calculation === PAGE_ROLLUP_SHOW_ORIGINAL,
+    );
+    return shown === undefined
+      ? null
+      : new PageQueryInvalidError(
+          `${shown.label} shows the original values of the related rows; they cannot be filtered, sorted, grouped or totalled`,
+        );
+  }
+
+  /**
+   * Evaluates the formulas and rollups the query reads over the rows its stored conditions let through, and hands the
+   * values to the SQL as if they were stored, so filter, order, groups, cursor and totals work on them unchanged.
+   */
+  private async materializeComputed(
+    scopeInput: QueryScopeInput,
+    properties: readonly SchemaPropertyDefinition[],
+    computedKeys: readonly string[],
+    options: {
+      readonly context: PageFormulaContext;
+      readonly session: PageComputedSession;
+      readonly viewer: PageViewer;
+    },
+  ): Promise<Result<MaterializedValues, DomainError>> {
+    if (computedKeys.length === 0) return Result.ok({ errorCounts: new Map(), values: new Map() });
+    const isComputed = (key: string): boolean => computedKeys.includes(key);
+    const candidates = this.queryRepository.buildScope({
+      ...scopeInput,
+      filter: relaxFilter(scopeInput.filter, isComputed),
+      sorts: [],
+    });
+    return this.computedService.materialize({
+      context: options.context,
+      keys: computedKeys,
+      properties,
+      scope: candidates,
+      session: options.session,
+      viewer: options.viewer,
     });
   }
 
@@ -380,6 +482,38 @@ export class PageQueryService {
     } satisfies PageQueryAggregationsOutcome);
   }
 }
+
+/**
+ * A cell that could not be computed matches nothing and totals as empty. The totals say how many such cells their
+ * column had among the rows evaluated (those the conditions on stored columns let through), so a total is not read as
+ * the whole truth when some cells failed.
+ */
+const withErrorCounts = (
+  reducers: PageQueryRequest['reducers'],
+  outcomes: Readonly<Record<string, PageQueryOutcome>>,
+  errorCounts: ReadonlyMap<string, number>,
+): Readonly<Record<string, PageQueryOutcome>> =>
+  Object.fromEntries(
+    Object.entries(outcomes).map(([id, outcome]) => {
+      const reducer = reducers.find((candidate) => candidate.id === id);
+      if (outcome.kind !== 'aggregations' || reducer?.kind !== 'aggregations') return [id, outcome];
+      const counts = Object.fromEntries(
+        reducer.items.flatMap((item) => {
+          const failed = item.propertyKey === null ? 0 : (errorCounts.get(item.propertyKey) ?? 0);
+          return failed === 0 ? [] : [[item.id, failed] as const];
+        }),
+      );
+      return [id, Object.keys(counts).length === 0 ? outcome : { ...outcome, errorCounts: counts }];
+    }),
+  );
+
+/** The properties a request groups by besides the ones its view groups by. */
+const listReducerGroupKeys = (reducers: PageQueryRequest['reducers']): readonly string[] =>
+  reducers.flatMap((reducer) =>
+    reducer.kind === 'results'
+      ? []
+      : [reducer.groupBy, reducer.subGroupBy].flatMap((key) => (key === undefined ? [] : [key])),
+  );
 
 const listOutcomeIds = (outcome: PageQueryOutcome): readonly string[] => {
   switch (outcome.kind) {

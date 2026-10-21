@@ -37,6 +37,7 @@ import { RenamePageDto } from './dto/page.rename.dto';
 import { ReorderPageDto } from './dto/page.reorder.dto';
 import { RestorePageDto } from './dto/page.restore.dto';
 import { SetPageVerificationDto } from './dto/page.verification.dto';
+import { PageRowComputedService } from './page-row-computed.service';
 import { PagesService } from './pages.service';
 import type { PageDescendantsPreview, PagePurgeSchedule, PageRestoreOutcome } from './types/page.types';
 
@@ -44,6 +45,7 @@ import type { PageDescendantsPreview, PagePurgeSchedule, PageRestoreOutcome } fr
 export class PagesController {
   constructor(
     private readonly pagesService: PagesService,
+    private readonly pageRowComputedService: PageRowComputedService,
     private readonly workspaceContextService: WorkspaceContextService,
   ) {}
 
@@ -70,7 +72,15 @@ export class PagesController {
     if (page.spaceId !== spaceId) {
       throw new PageAccessDeniedError();
     }
-    return page;
+    const withComputed = await this.pageRowComputedService.attach(page, {
+      role: payload.role,
+      userId: payload.sub,
+      workspaceId: workspace.id,
+    });
+    if (withComputed.isFail()) {
+      throw withComputed.getError();
+    }
+    return withComputed.getValue();
   }
 
   @Post()

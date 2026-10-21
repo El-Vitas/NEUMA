@@ -17,12 +17,14 @@ import { BlockTransactionsService } from './block.transactions.service';
 import { BlocksController } from './blocks.controller';
 import { BlocksService } from './blocks.service';
 import {
+  BLOCK_LISTEN_CLIENT_FACTORY,
   BLOCK_LIVE_DEFAULT_SETTINGS,
   BLOCK_LIVE_SETTINGS,
   BLOCK_PRESENCE_STORE,
 } from './constants/block.live.constants';
 import { BLOCK_TRANSACTION_REPOSITORY } from './constants/block.transaction.constants';
 import { BLOCK_REPOSITORY } from './constants/blocks.constants';
+import { createPgListenClient } from './infrastructure/listener/block.listen-client.factory';
 import { BlockVersionListener } from './infrastructure/listener/block.version.listener';
 import { BlockLiveRepository } from './infrastructure/persistence/block.live.repository';
 import { BlockRepository } from './infrastructure/persistence/block.repository';
@@ -51,6 +53,7 @@ import type { BlockLiveSettings } from './types/block.live.types';
     BlockSharingService,
     WorkspaceContextService,
     { provide: BLOCK_LIVE_SETTINGS, useValue: BLOCK_LIVE_DEFAULT_SETTINGS },
+    { provide: BLOCK_LISTEN_CLIENT_FACTORY, useValue: createPgListenClient },
     {
       inject: [BLOCK_LIVE_SETTINGS],
       provide: BLOCK_PRESENCE_STORE,

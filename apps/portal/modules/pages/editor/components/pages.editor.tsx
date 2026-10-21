@@ -53,6 +53,7 @@ import { usePagesAutosave } from '../../hooks/use.pages.autosave';
 import { resolveReadOnlyMessage } from '../../lib/pages.lib';
 import { PagesBacklinks } from '../../links/components/pages.backlinks';
 import type { PageBacklinksResult } from '../../links/types/pages.backlinks.types';
+import { LocalCacheRejectedChanges } from '../../local-cache/components/local-cache.rejected-changes';
 import { PagesOutline } from '../../navigation/components/pages.outline';
 import { usePagesReadingPosition } from '../../navigation/hooks/use.pages.reading-position';
 import { PagesSharingControls } from '../../sharing/components/pages.sharing.controls';
@@ -290,6 +291,7 @@ export const PagesEditor = forwardRef(
       <PagesDiscussionsProvider value={discussionsContext}>
         <section aria-label={t('editor')} className={sectionClassName} ref={pageRef}>
           {renderReadOnlyBanner()}
+          <LocalCacheRejectedChanges pageId={page.id} userId={currentUserId} />
           <div className={layoutStyleClasses.outlineLayout}>
             <div className={workspaceClassName} data-testid="page-editor-workspace">
               <PagesCover controller={cover} />

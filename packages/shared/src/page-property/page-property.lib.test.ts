@@ -112,7 +112,7 @@ describe('page property capabilities', () => {
     expect(titleTypes).toEqual([PAGE_PROPERTY_TYPE.TITLE]);
   });
 
-  test('the server fills creation, edition and the unique id', () => {
+  test('the server fills creation, edition, the unique id, formulas and rollups', () => {
     const systemTypes = PAGE_PROPERTY_TYPE_VALUES.filter(isPagePropertySystemManaged);
 
     expect(systemTypes).toEqual([
@@ -121,6 +121,8 @@ describe('page property capabilities', () => {
       PAGE_PROPERTY_TYPE.CREATED_BY,
       PAGE_PROPERTY_TYPE.EDITED_BY,
       PAGE_PROPERTY_TYPE.UNIQUE_ID,
+      PAGE_PROPERTY_TYPE.FORMULA,
+      PAGE_PROPERTY_TYPE.ROLLUP,
     ]);
   });
 
