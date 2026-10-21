@@ -8,13 +8,16 @@ import {
   BLOCK_LIVE_EMPTY_ACCESS_CONTEXT,
   BLOCK_PRESENCE_STORE,
 } from './constants/block.live.constants';
+import { planCollectionDeliveries, planCollectionResync } from './domain/block.live.collection.domain';
 import { planCommentNotificationDeliveries, planDiscussionDeliveries } from './domain/block.live.discussion.domain';
 import type {
+  CollectionSubscription,
   LiveAccessContext,
   LiveDelivery,
   LiveSubscription,
   NotificationConnection,
   PresenceEntry,
+  ReaderSubscription,
   VersionNotification,
 } from './domain/block.live.domain.types';
 import { planPresenceDeliveries, planResync, planVersionDeliveries } from './domain/block.live.routing.domain';
@@ -148,7 +151,10 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
   private async resyncAfter(previous: Promise<void>): Promise<void> {
     await previous;
     try {
-      await this.deliver(planResync(this.registry.listSubscriptions()));
+      await this.deliver([
+        ...planResync(this.registry.listSubscriptions()),
+        ...planCollectionResync(this.registry.listCollectionSubscriptions()),
+      ]);
     } catch (error) {
       this.logFailure(error);
     }
@@ -163,26 +169,51 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
     }
     const notification = parsed.getValue();
     const subscriptions = this.registry.listSubscriptionsInSpace(notification.spaceId);
-    if (subscriptions.length === 0) return;
+    const collectionSubscriptions = this.registry.listCollectionSubscriptionsInSpace(notification.spaceId);
+    if (subscriptions.length === 0 && collectionSubscriptions.length === 0) return;
     if (notification.kind === 'truncated') {
-      await this.deliver(planResync(subscriptions));
+      await this.deliver([...planResync(subscriptions), ...planCollectionResync(collectionSubscriptions)]);
       return;
     }
-    await this.deliver(await this.planVersions(notification, subscriptions));
+    await this.deliver(await this.planVersions(notification, subscriptions, collectionSubscriptions));
   }
 
+  /** One refresh of the accounts, one read of the chains and one role lookup serve pages and collections alike. */
   private async planVersions(
     notification: Extract<VersionNotification, { kind: 'versions' }>,
     subscriptions: readonly LiveSubscription[],
+    collectionSubscriptions: readonly CollectionSubscription[],
   ): Promise<LiveDelivery[]> {
     try {
-      const current = await this.applyCurrentAccounts(subscriptions);
-      const seedIds = [...new Set([...notification.blocks.map((block) => block.id), ...current.map(toPageId)])];
-      const context = await this.accessService.loadContext(seedIds, this.listReaders(current));
-      return planVersionDeliveries({ blocks: notification.blocks, context, subscriptions: current });
+      const available = await this.applyCurrentAccounts([...subscriptions, ...collectionSubscriptions]);
+      const availableUserIds = new Set(available.map((subscription) => subscription.userId));
+      const current = subscriptions.filter((subscription) => availableUserIds.has(subscription.userId));
+      const currentCollections = collectionSubscriptions.filter((subscription) =>
+        availableUserIds.has(subscription.userId),
+      );
+      const seedIds = [
+        ...new Set([
+          ...notification.blocks.map((block) => block.id),
+          ...current.map(toPageId),
+          ...currentCollections.map((subscription) => subscription.collectionId),
+        ]),
+      ];
+      const context = await this.accessService.loadContext(
+        seedIds,
+        this.listReaders([...current, ...currentCollections]),
+      );
+      return [
+        ...planVersionDeliveries({ blocks: notification.blocks, context, subscriptions: current }),
+        ...planCollectionDeliveries({
+          blocks: notification.blocks,
+          context,
+          subscriptions: currentCollections,
+          views: notification.views,
+        }),
+      ];
     } catch (error) {
       this.logger.error({ err: error }, 'live channel could not resolve who may read a notification');
-      return planResync(subscriptions);
+      return [...planResync(subscriptions), ...planCollectionResync(collectionSubscriptions)];
     }
   }
 
@@ -190,7 +221,9 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
    * The role in a token is the one the user had when the socket opened. Before routing, the sockets take the role
    * the account has now, and those of a user who is gone or inactive are closed and left out.
    */
-  private async applyCurrentAccounts(subscriptions: readonly LiveSubscription[]): Promise<LiveSubscription[]> {
+  private async applyCurrentAccounts<Subscription extends ReaderSubscription>(
+    subscriptions: readonly Subscription[],
+  ): Promise<Subscription[]> {
     const refreshed = await this.accessService.refreshReaders(this.listReaders(subscriptions));
     const rolesByUserId = new Map(refreshed.readers.map((reader) => [reader.userId, reader.role]));
     for (const connectionId of new Set(subscriptions.map((subscription) => subscription.connectionId))) {
@@ -245,7 +278,7 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
     }
   }
 
-  private listReaders(subscriptions: readonly LiveSubscription[]): BlockReader[] {
+  private listReaders(subscriptions: readonly ReaderSubscription[]): BlockReader[] {
     return subscriptions.flatMap((subscription) => {
       const reader = this.registry.find(subscription.connectionId)?.reader;
       return reader === null || reader === undefined ? [] : [reader];
@@ -262,6 +295,10 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
     const connection = this.registry.find(delivery.connectionId);
     if (connection === undefined || connection.isClosed) return [];
     connection.socket.send(serializeServerMessage(delivery.message));
+    if (delivery.message.type === 'collection-revoked') {
+      connection.collectionSubscriptions.delete(delivery.message.collectionId);
+      return [];
+    }
     return delivery.message.type === 'revoked' ? this.dropSubscription(connection, delivery.message.pageId) : [];
   }
 

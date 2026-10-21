@@ -45,7 +45,7 @@ const input = (band: PageViewBand) => ({ bands: [band], pageId: 'collection-1', 
 let searched = '';
 
 const Searching = ({ children }: { children: ReactNode }) => (
-  <PAGE_ROW_QUERY_CONTEXT value={{ search: searched }}>{children}</PAGE_ROW_QUERY_CONTEXT>
+  <PAGE_ROW_QUERY_CONTEXT value={{ quickFilter: null, search: searched }}>{children}</PAGE_ROW_QUERY_CONTEXT>
 );
 
 const idsOf = (band: PageViewBand | undefined): string[] => band?.groups[0]?.rows.map((row) => row.id) ?? [];
@@ -70,6 +70,7 @@ describe('usePagesBoardPaging', () => {
         cursor: 'after-a',
         group: { key: 'todo' },
         pageId: 'collection-1',
+        quickFilter: null,
         search: 'informe',
         spaceId: 'space-1',
         viewId: 'view-1',
@@ -94,6 +95,7 @@ describe('usePagesBoardPaging', () => {
       cursor: 'after-b',
       group: { key: 'todo' },
       pageId: 'collection-1',
+      quickFilter: null,
       search: '',
       spaceId: 'space-1',
       viewId: 'view-1',

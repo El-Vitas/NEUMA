@@ -45,7 +45,7 @@ export const parseVersionNotification = (
   return Result.ok(
     'truncated' in notification
       ? { kind: 'truncated', spaceId: notification.spaceId }
-      : { blocks: notification.blocks, kind: 'versions', spaceId: notification.spaceId },
+      : { blocks: notification.blocks, kind: 'versions', spaceId: notification.spaceId, views: notification.views },
   );
 };
 

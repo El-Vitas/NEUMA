@@ -20,8 +20,14 @@ export const PAGE_COLLECTION_VIEW_SEARCH_PARAM = 'view';
 /** The words typed to find rows travel in the URL too: the server reads the rows, so it needs them to read them. */
 export const PAGE_COLLECTION_ROW_SEARCH_PARAM = 'q';
 
-/** A view read as it was saved: no words searched and no month asked for. */
-export const UNSEARCHED_ROWS_REQUEST = { month: null, search: '' } as const;
+/** The quick filter (not saved in the view) travels in the URL as JSON, for the same reason as the words. */
+export const PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM = 'filter';
+
+/** Longer than this is not something the filter editor wrote. */
+export const PAGE_COLLECTION_QUICK_FILTER_MAXIMUM_LENGTH = 4000;
+
+/** A view read as it was saved: no words searched, no quick filter and no month asked for. */
+export const UNSEARCHED_ROWS_REQUEST = { month: null, quickFilter: null, search: '' } as const;
 
 /** The month a calendar shows, as `YYYY-MM`: the server reads the rows of its grid, so it must be told which. */
 export const PAGE_COLLECTION_MONTH_SEARCH_PARAM = 'month';

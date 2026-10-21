@@ -6,7 +6,7 @@ export interface ReadRowsInput {
   /** One column (or cell) of a grouped view; absent for the rows of the whole view. */
   readonly group?: { readonly key: string; readonly subKey?: string | undefined } | undefined;
   readonly pageId: string;
-  readonly quickFilter?: PageFilter | undefined;
+  readonly quickFilter?: null | PageFilter | undefined;
   readonly search: string;
   readonly spaceId: string;
   readonly startCursor?: string | undefined;
@@ -26,6 +26,7 @@ export interface CalendarWindowInput {
   readonly dateProperty: string;
   readonly maximumRows: number;
   readonly pageId: string;
+  readonly quickFilter: null | PageFilter;
   readonly range: PageCalendarRange;
   readonly search: string;
   readonly spaceId: string;

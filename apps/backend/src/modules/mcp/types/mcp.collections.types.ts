@@ -17,6 +17,8 @@ import type {
 } from '@neuma/shared';
 import type { z } from 'zod';
 import type {
+  collectionChangesInputSchema,
+  collectionChangesOutputSchema,
   collectionOutputSchema,
   createCollectionInputSchema,
   createRowInputSchema,
@@ -33,6 +35,8 @@ import type {
 
 export type McpCreateCollectionInput = z.infer<typeof createCollectionInputSchema>;
 export type McpQueryCollectionInput = z.infer<typeof queryCollectionInputSchema>;
+export type McpCollectionChangesInput = z.infer<typeof collectionChangesInputSchema>;
+export type McpCollectionChangesOutput = z.infer<typeof collectionChangesOutputSchema>;
 export type McpCreateRowInput = z.infer<typeof createRowInputSchema>;
 export type McpUpdateRowInput = z.infer<typeof updateRowInputSchema>;
 export type McpMoveRowInput = z.infer<typeof moveRowInputSchema>;
@@ -251,6 +255,15 @@ export interface McpCollectionService {
       readonly request: PageQueryRequest;
     },
   ) => Promise<Result<McpQueryAnswer, McpRefusal>>;
+  /** What `collection_changes` asks: the rows written since a cursor, for the rows this token may read. */
+  readonly readChanges: (
+    input: McpActor & {
+      readonly cursor: string | undefined;
+      readonly excludedRowIds: readonly string[];
+      readonly limit: number;
+      readonly pageId: string;
+    },
+  ) => Promise<Result<McpChangesAnswer, McpRefusal>>;
   readonly rewriteOption: (
     input: McpActor & {
       readonly optionId: string;
@@ -261,8 +274,19 @@ export interface McpCollectionService {
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
 }
 
+export interface McpChangesAnswer {
+  readonly attachedFiles: readonly { readonly id: string; readonly name: string }[];
+  readonly cursor: string;
+  readonly hasMore: boolean;
+  readonly isReset: boolean;
+  readonly rows: readonly McpWrittenRow[];
+  readonly total: number;
+  readonly trashedIds: readonly string[];
+}
+
 export interface McpQueryAnswer {
   readonly attachedFiles: readonly { readonly id: string; readonly name: string }[];
+  readonly changesCursor: string;
   readonly reducers: Readonly<Record<string, PageQueryOutcome>>;
   readonly rows: Readonly<Record<string, McpWrittenRow>>;
 }

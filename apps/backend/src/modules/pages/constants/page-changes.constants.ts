@@ -1,0 +1,3 @@
+export const PAGE_CHANGES_DEFAULT_LIMIT = 50;
+
+export const PAGE_CHANGES_MAX_LIMIT = 100;

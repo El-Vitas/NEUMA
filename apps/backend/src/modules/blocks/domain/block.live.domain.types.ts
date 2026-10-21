@@ -1,7 +1,7 @@
 import type { BlockPermissions } from '@neuma/shared';
 import type { RolesById } from '../../../common/domain/block-access.domain.types';
 import type { BLOCK_LIVE_ERROR_CODE } from './block.live.constants';
-import type { BlockVersion } from './block.transaction.domain.types';
+import type { BlockVersion, NotifiedBlock, NotifiedView } from './block.transaction.domain.types';
 
 /** What the roles of a block need: itself and every ancestor, without content. */
 export interface BlockChainRow {
@@ -38,8 +38,37 @@ export interface LiveSubscription {
 
 /** A committed transaction as the listener understands it: the touched blocks, or only that they were too many. */
 export type VersionNotification =
-  | { readonly blocks: readonly BlockVersion[]; readonly kind: 'versions'; readonly spaceId: string }
+  | {
+      readonly blocks: readonly NotifiedBlock[];
+      readonly kind: 'versions';
+      readonly spaceId: string;
+      readonly views: readonly NotifiedView[];
+    }
   | { readonly kind: 'truncated'; readonly spaceId: string };
+
+/** A socket that follows the rows, views and schema of one collection. */
+export interface CollectionSubscription {
+  readonly collectionId: string;
+  readonly connectionId: string;
+  readonly spaceId: string;
+  readonly userId: string;
+}
+
+/** What the channel needs to find the person behind a subscription. */
+export type ReaderSubscription = Pick<LiveSubscription, 'connectionId' | 'userId'>;
+
+/** The rows of a collection that one subscriber may read among the ones a transaction touched. */
+export interface CollectionRowSlice {
+  readonly isResyncNeeded: boolean;
+  readonly rows: readonly NotifiedBlock[];
+}
+
+export interface CollectionDeliveryInput {
+  readonly blocks: readonly NotifiedBlock[];
+  readonly context: LiveAccessContext;
+  readonly subscriptions: readonly CollectionSubscription[];
+  readonly views: readonly NotifiedView[];
+}
 
 export interface PresenceEntry {
   readonly blockId: string | null;
@@ -60,7 +89,22 @@ export type LiveServerMessage =
   | { readonly type: 'ready' }
   | { readonly type: 'pong' }
   | { readonly pageId: string; readonly type: 'subscribed' }
-  | { readonly code: LiveErrorCode; readonly pageId?: string; readonly type: 'error' }
+  | { readonly collectionId: string; readonly type: 'subscribed-collection' }
+  | {
+      readonly collectionId: string;
+      readonly rows: readonly BlockVersion[];
+      readonly schemaVersion?: number;
+      readonly type: 'collection-changes';
+      readonly views: readonly BlockVersion[];
+    }
+  | { readonly collectionId: string; readonly type: 'collection-resync' }
+  | { readonly collectionId: string; readonly type: 'collection-revoked' }
+  | {
+      readonly code: LiveErrorCode;
+      readonly collectionId?: string;
+      readonly pageId?: string;
+      readonly type: 'error';
+    }
   | { readonly blocks: readonly BlockVersion[]; readonly pageId: string; readonly type: 'versions' }
   | { readonly pageId: string; readonly type: 'resync' }
   | { readonly pageId: string; readonly type: 'revoked' }

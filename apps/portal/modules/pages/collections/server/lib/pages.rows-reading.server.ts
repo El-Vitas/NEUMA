@@ -9,7 +9,7 @@ import {
 } from '../../constants/pages.query.constants';
 import { buildCalendarRangeFilter, buildCalendarUndatedFilter } from '../../lib/pages.calendar.lib';
 import { collectRowPages } from '../../lib/pages.rows-collecting.lib';
-import { toSearchPart } from '../../lib/pages.view-query.lib';
+import { andQuickFilters, toRefinementPart } from '../../lib/pages.view-query.lib';
 import type { PageQueryResult } from '../../types/pages.query.types';
 import type {
   CalendarWindowInput,
@@ -47,9 +47,8 @@ export const readRowsInScope = async (input: ReadRowsInput): Promise<ScopeRowsRe
   const collected = await collectRowPages({
     readPage: async (cursor, remaining) => {
       const read = await queryPageView(input.spaceId, input.pageId, {
-        ...(input.quickFilter === undefined ? {} : { quickFilter: input.quickFilter }),
         reducers: [reducerOf(input, cursor, remaining)],
-        ...toSearchPart(input.search),
+        ...toRefinementPart(input.search, input.quickFilter),
         viewId: input.viewId,
       });
       const result = read.isOk() ? read.getValue() : null;
@@ -75,7 +74,6 @@ const countRows = async (
   quickFilter: PageFilter,
 ): Promise<number | null> => {
   const read = await queryPageView(input.spaceId, input.pageId, {
-    quickFilter,
     reducers: [
       {
         by: 'NONE',
@@ -84,7 +82,7 @@ const countRows = async (
         kind: 'aggregations',
       },
     ],
-    ...toSearchPart(input.search),
+    ...toRefinementPart(input.search, quickFilter),
     viewId: input.viewId,
   });
   const outcome = read.isOk() ? read.getValue()?.reducers[PAGE_VIEW_COUNTS_REDUCER] : undefined;
@@ -96,13 +94,13 @@ export const readCalendarWindow = async (input: CalendarWindowInput): Promise<Ca
   const [read, undated] = await Promise.all([
     readRowsInScope({
       pageId: input.pageId,
-      quickFilter: buildCalendarRangeFilter(input.dateProperty, input.range),
+      quickFilter: andQuickFilters(input.quickFilter, buildCalendarRangeFilter(input.dateProperty, input.range)),
       search: input.search,
       spaceId: input.spaceId,
       viewId: input.viewId,
       wanted: input.maximumRows,
     }),
-    countRows(input, buildCalendarUndatedFilter(input.dateProperty)),
+    countRows(input, andQuickFilters(input.quickFilter, buildCalendarUndatedFilter(input.dateProperty))),
   ]);
   if (read === null || undated === null) return null;
   return {

@@ -1,35 +1,46 @@
-import type { PageFilter, PageFilterCondition, PagePropertyValue } from '@neuma/shared';
+import type {
+  PageDateArgument,
+  PageFilter,
+  PageFilterCondition,
+  PageFilterOperator,
+  PagePropertyValue,
+} from '@neuma/shared';
 import {
   getPagePropertyLogicalType,
+  matchesMissingPageValue,
   PAGE_FILTER_GROUP_OPERATOR,
   PAGE_FILTER_OPERATOR,
   PAGE_PROPERTY_LOGICAL_TYPE,
+  readPageDateArgument,
 } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
-import { DAY_ONLY, MILLISECONDS_IN_A_DAY, SQL_FALSE, SQL_TRUE } from '../../constants/page-query.sql.constants';
+import { SQL_FALSE, SQL_TRUE } from '../../constants/page-query.sql.constants';
 import type {
   CellContext,
-  DaySpan,
   Predicate,
   PredicateInput,
   PredicateTable,
+  RangeEnds,
   SqlFragment,
 } from '../../types/page-query.sql.types';
-import { cellOf, dateEndOf, dateStartOf, isEmptyCell, numberOf, textOf } from './page-query.cell.sql';
+import {
+  cellOf,
+  dateEndOf,
+  dateStartOf,
+  dayEndOf,
+  dayStartOf,
+  isDateCell,
+  isDayCell,
+  isEmptyCell,
+  numberOf,
+  textOf,
+} from './page-query.cell.sql';
 import { allOf, anyOf, frag, negate, sqlParameter, sqlText, sqlTextList } from './page-query.sql.lib';
 
 /** The text a value compares as, which is what the shared engine's `toComparableText` reads. */
 const comparableText = (value: PagePropertyValue): string => {
   if (typeof value === 'string') return value;
   return typeof value === 'object' ? '' : String(value);
-};
-
-/** A day argument covers its whole day, so an instant of creation matches the day it fell on. */
-const readArgumentSpan = (argument: PagePropertyValue): DaySpan | null => {
-  const text = comparableText(argument);
-  const start = Date.parse(text);
-  if (Number.isNaN(start)) return null;
-  return { end: DAY_ONLY.test(text) ? start + MILLISECONDS_IN_A_DAY - 1 : start, start };
 };
 
 const instantParameter = (milliseconds: number): SqlFragment =>
@@ -95,25 +106,53 @@ const booleanPredicates: PredicateTable = {
     typeof argument === 'boolean' ? frag`(${cell} = to_jsonb(${sqlParameter(argument, 'boolean')}))` : SQL_FALSE,
 };
 
-const spanOverlap = (cell: SqlFragment, span: DaySpan): SqlFragment =>
-  frag`COALESCE(${dateStartOf(cell)} <= ${instantParameter(span.end)} AND ${instantParameter(span.start)} <= ${dateEndOf(cell)}, FALSE)`;
+/** Same meaning as `matchesPageDateOperator` in the shared engine, written once for days and once for instants. */
+const compareRanges = (operator: PageFilterOperator, ends: RangeEnds): SqlFragment => {
+  const { argumentEnd, argumentStart, valueEnd, valueStart } = ends;
+  switch (operator) {
+    case PAGE_FILTER_OPERATOR.IS_BEFORE:
+      return frag`(${valueEnd} < ${argumentStart})`;
+    case PAGE_FILTER_OPERATOR.IS_AFTER:
+      return frag`(${valueStart} > ${argumentEnd})`;
+    case PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE:
+      return frag`(${valueEnd} <= ${argumentEnd})`;
+    case PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER:
+      return frag`(${valueStart} >= ${argumentStart})`;
+    default:
+      return frag`(${valueStart} <= ${argumentEnd} AND ${argumentStart} <= ${valueEnd})`;
+  }
+};
+
+const dayParameter = (day: string): SqlFragment => frag`(${sqlParameter(day, 'text')})::date`;
+
+/** A date without a time is compared by days and one with a time by instants, as the shared engine does. */
+const compareDate = (operator: PageFilterOperator, cell: SqlFragment, argument: PageDateArgument): SqlFragment =>
+  frag`COALESCE(CASE WHEN ${isDateCell(cell)} THEN CASE WHEN ${isDayCell(cell)} THEN ${compareRanges(operator, {
+    argumentEnd: dayParameter(argument.endDay),
+    argumentStart: dayParameter(argument.startDay),
+    valueEnd: dayEndOf(cell),
+    valueStart: dayStartOf(cell),
+  })} ELSE ${compareRanges(operator, {
+    argumentEnd: instantParameter(argument.endTime),
+    argumentStart: instantParameter(argument.startTime),
+    valueEnd: dateEndOf(cell),
+    valueStart: dateStartOf(cell),
+  })} END END, FALSE)`;
 
 const dateCondition =
-  (build: (cell: SqlFragment, span: DaySpan) => SqlFragment): Predicate =>
-  ({ argument, cell }) => {
-    const span = readArgumentSpan(argument);
-    return span === null ? SQL_FALSE : build(cell, span);
+  (operator: PageFilterOperator): Predicate =>
+  ({ argument, cell, timeZone }) => {
+    const dateArgument = readPageDateArgument(argument, timeZone);
+    return dateArgument === null ? SQL_FALSE : compareDate(operator, cell, dateArgument);
   };
 
 /** A range matches a day when the two overlap; before and after read the end and the start of the range. */
 const datePredicates: PredicateTable = {
-  [PAGE_FILTER_OPERATOR.IS]: dateCondition(spanOverlap),
-  [PAGE_FILTER_OPERATOR.IS_BEFORE]: dateCondition(
-    (cell, span) => frag`COALESCE(${dateEndOf(cell)} < ${instantParameter(span.start)}, FALSE)`,
-  ),
-  [PAGE_FILTER_OPERATOR.IS_AFTER]: dateCondition(
-    (cell, span) => frag`COALESCE(${dateStartOf(cell)} > ${instantParameter(span.end)}, FALSE)`,
-  ),
+  [PAGE_FILTER_OPERATOR.IS]: dateCondition(PAGE_FILTER_OPERATOR.IS),
+  [PAGE_FILTER_OPERATOR.IS_BEFORE]: dateCondition(PAGE_FILTER_OPERATOR.IS_BEFORE),
+  [PAGE_FILTER_OPERATOR.IS_AFTER]: dateCondition(PAGE_FILTER_OPERATOR.IS_AFTER),
+  [PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE]: dateCondition(PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE),
+  [PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER]: dateCondition(PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER),
 };
 
 /** What a kind of property can be asked; the kinds that hold files, or that are not known, answer no question. */
@@ -152,9 +191,19 @@ const conditionSql = (
   if (condition.value === null) return SQL_TRUE;
   const predicate = predicatesFor(property)[condition.operator];
   if (predicate === undefined) return SQL_TRUE;
-  const compared = predicate({ argument: condition.value, cell, operator: condition.operator, property });
-  // A row with no value for the property is not held back by a condition on it, as in the shared engine.
-  return compared === null ? SQL_TRUE : anyOf([frag`(${cell} IS NULL)`, compared]);
+  const compared = predicate({
+    argument: condition.value,
+    cell,
+    operator: condition.operator,
+    property,
+    timeZone: context.timeZone,
+  });
+  if (compared === null) return SQL_TRUE;
+  const logicalType = getPagePropertyLogicalType(property.type);
+  // A row with no value is answered by `matchesMissingPageValue`, the same rule the shared engine applies.
+  return matchesMissingPageValue(logicalType, condition.operator, condition.value)
+    ? anyOf([frag`(${cell} IS NULL)`, compared])
+    : allOf([frag`(${cell} IS NOT NULL)`, compared]);
 };
 
 /** The filter as a condition on the rows, with the same meaning as `matchesPageFilter` in the shared engine. */

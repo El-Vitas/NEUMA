@@ -1,9 +1,12 @@
+import type { PageFilter } from '@neuma/shared';
 import { PAGE_VIEW_TYPE, readPageViewConfiguration } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
 import { EmptyState } from '@/shared/components/ui/empty-state';
+import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import { NO_PAGE_AGGREGATES } from '../constants/pages.aggregates.constants';
 import { EMPTY_PAGE_COLLECTION_LOOKUPS } from '../constants/pages.lookups.constants';
+import { readCollectionEmptiness } from '../lib/pages.collection.emptiness.lib';
 import { isOutcomeEmpty } from '../lib/pages.view-editing.lib';
 import { getSpaceCollections } from '../server/queries/pages.schema.queries';
 import type { PageCollectionLookups } from '../types/pages.lookups.types';
@@ -15,11 +18,14 @@ import type {
   PageViewReading,
 } from '../types/pages.schema.types';
 import { PagesCollectionFilterBar } from './pages.collection.filter-bar';
+import { PagesCollectionLiveFollower } from './pages.collection.live-follower';
 import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provider';
+import { PagesCollectionQuickFilter } from './pages.collection.quick-filter';
 import { PagesCollectionRowCount } from './pages.collection.row-count';
 import { PagesCollectionRowQueryProvider } from './pages.collection.row-query.provider';
 import { PagesCollectionSearchField } from './pages.collection.search-field';
 import { PagesCollectionTabs } from './pages.collection.tabs';
+import { PagesCollectionTimeZone } from './pages.collection.time-zone';
 import { PagesCollectionView } from './pages.collection.view';
 import { PagesSchemaSettingsButton } from './pages.schema.settings-button';
 
@@ -29,6 +35,8 @@ interface IProps {
   readonly personOptions?: readonly PagePersonOption[];
   readonly reading: PageViewReading | null;
   readonly properties: readonly PageSchemaProperty[];
+  /** The filter on top of the view the rows were read with; null when there is none. */
+  readonly quickFilter?: null | PageFilter;
   readonly schema: PageSchema;
   /** The words the rows were read with; empty when the view is not being searched. */
   readonly search?: string;
@@ -41,6 +49,7 @@ export const PagesCollectionSection = async ({
   canEdit,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   properties,
+  quickFilter = null,
   reading,
   schema,
   search = '',
@@ -48,13 +57,17 @@ export const PagesCollectionSection = async ({
   views,
 }: IProps) => {
   const t = await getTranslations('pages');
+  const knownTimeZone = await readRequestTimeZone();
   const collectionsResult = canEdit ? await getSpaceCollections(spaceId) : null;
   const collections = collectionsResult?.isOk() === true ? collectionsResult.getValue() : [];
   const aggregates = reading === null ? NO_PAGE_AGGREGATES : reading.aggregates;
-  const hasFilter = readPageViewConfiguration(activeView.configuration).filter !== null;
-  const hidesEverything = reading !== null && hasFilter && search === '' && isOutcomeEmpty(reading.outcome);
-  const matchesNothing =
-    reading !== null && search !== '' && activeView.type !== PAGE_VIEW_TYPE.CALENDAR && isOutcomeEmpty(reading.outcome);
+  const { hidesEverything, matchesNothing, quickFilterMatchesNothing } = readCollectionEmptiness({
+    hasViewFilter: readPageViewConfiguration(activeView.configuration).filter !== null,
+    isCalendar: activeView.type === PAGE_VIEW_TYPE.CALENDAR,
+    isOutcomeEmpty: reading !== null && isOutcomeEmpty(reading.outcome),
+    quickFilter,
+    search,
+  });
   const lookups: PageCollectionLookups =
     reading === null
       ? { ...EMPTY_PAGE_COLLECTION_LOOKUPS, people: personOptions }
@@ -62,20 +75,33 @@ export const PagesCollectionSection = async ({
 
   return (
     <PagesCollectionLookupsProvider lookups={lookups}>
-      <PagesCollectionRowQueryProvider search={search}>
+      <PagesCollectionRowQueryProvider quickFilter={quickFilter} search={search}>
+        <PagesCollectionTimeZone knownTimeZone={knownTimeZone} />
+        <PagesCollectionLiveFollower collectionId={schema.pageId} spaceId={spaceId} />
         <section aria-label={t('collection.sectionTitle')} className="space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-2 border-border border-b">
             <PagesCollectionTabs
               activeViewName={activeView.name}
               label={t('collection.viewsLabel')}
+              quickFilter={quickFilter}
               search={search}
               views={views}
             />
             <div className="flex items-center gap-1 pb-1">
               {reading !== null && <PagesCollectionRowCount aggregates={aggregates} />}
               {activeView.type !== PAGE_VIEW_TYPE.CHART && (
-                <PagesCollectionSearchField activeViewName={activeView.name} search={search} />
+                <PagesCollectionSearchField
+                  activeViewName={activeView.name}
+                  quickFilter={quickFilter}
+                  search={search}
+                />
               )}
+              <PagesCollectionQuickFilter
+                activeViewName={activeView.name}
+                quickFilter={quickFilter}
+                schema={schema}
+                search={search}
+              />
               {canEdit && (
                 <>
                   <PagesCollectionFilterBar activeViewName={activeView.name} schema={schema} spaceId={spaceId} />
@@ -90,8 +116,14 @@ export const PagesCollectionSection = async ({
               {t('collection.searchNoMatches', { query: search })}
             </p>
           )}
+          {quickFilterMatchesNothing && (
+            <p className="px-1 py-6 text-center text-muted-foreground text-sm" data-testid="quick-filter-no-matches">
+              {t('collection.quickFilterNoMatches')}
+            </p>
+          )}
           {!hidesEverything &&
             !matchesNothing &&
+            !quickFilterMatchesNothing &&
             (await PagesCollectionView({
               aggregates,
               canEdit,

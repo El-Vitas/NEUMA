@@ -6,11 +6,13 @@ import {
   PAGE_ATTACHMENTS_CLEANUP_REPOSITORY,
   PAGE_OUTLINE_REPOSITORY,
   PAGE_PURGE_REPOSITORY,
+  PAGE_QUERY_CLOCK,
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
   PAGE_VERSION_CLOCK,
   PAGE_VERSION_RETENTION_REPOSITORY,
 } from './constants/pages.constants';
+import { systemPageQueryClock } from './infrastructure/adapters/page-query.clock';
 import { PageBlockReader } from './infrastructure/persistence/page.block.reader';
 import { PageBlockWriter } from './infrastructure/persistence/page.block.writer';
 import { PagePurgeRepository } from './infrastructure/persistence/page.purge.repository';
@@ -19,6 +21,7 @@ import { PageSummaryReader } from './infrastructure/persistence/page.summary.rea
 import { PageVersionRepository } from './infrastructure/persistence/page.version.repository';
 import { PageVersionRetentionRepository } from './infrastructure/persistence/page.version-retention.repository';
 import { PageAttachmentsCleanupRepository } from './infrastructure/persistence/page-attachments.cleanup.repository';
+import { PageChangesRepository } from './infrastructure/persistence/page-changes.repository';
 import { PageOutlineRepository } from './infrastructure/persistence/page-outline.repository';
 import { PageQueryRepository } from './infrastructure/persistence/page-query.repository';
 import { PageSchemaRepository } from './infrastructure/persistence/page-schema.repository';
@@ -32,6 +35,7 @@ import { PageLocationController } from './page.location.controller';
 import { PageOutlineService } from './page.outline.service';
 import { PageTrashController } from './page.trash.controller';
 import { PageVersionsController } from './page.versions.controller';
+import { PageChangesService } from './page-changes.service';
 import { PageQueryController } from './page-query.controller';
 import { PageQueryService } from './page-query.service';
 import { PageSchemaController } from './page-schema.controller';
@@ -60,6 +64,7 @@ import { PagesService } from './pages.service';
     PagesService,
     PageSchemaService,
     PageQueryService,
+    PageChangesService,
     PageViewOperationsService,
     PageOutlineService,
     PageRetentionScheduler,
@@ -83,7 +88,10 @@ import { PagesService } from './pages.service';
     { provide: PAGE_REPOSITORY, useClass: PageRepository },
     { provide: PAGE_SCHEMA_REPOSITORY, useClass: PageSchemaRepository },
     PageQueryRepository,
+    PageChangesRepository,
+    { provide: PAGE_QUERY_CLOCK, useValue: systemPageQueryClock },
     PageQueryService,
+    PageChangesService,
     PageViewOperationsService,
     PagesService,
     PageSchemaService,

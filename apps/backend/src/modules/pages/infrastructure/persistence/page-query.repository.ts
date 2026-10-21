@@ -127,7 +127,7 @@ export class PageQueryRepository {
 
   buildScope(input: QueryScopeInput): QueryScope {
     const properties = new Map(input.properties.map((property) => [property.key, property]));
-    const context: CellContext = { unreadableRelations: input.unreadableRelations };
+    const context: CellContext = { timeZone: input.timeZone, unreadableRelations: input.unreadableRelations };
     const conditions = [
       frag`${rowColumn('parentId')} = ${sqlParameter(input.collectionId, 'text')}`,
       frag`${rowColumn('type')} = 'page'`,

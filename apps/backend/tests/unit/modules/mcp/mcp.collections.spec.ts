@@ -20,6 +20,7 @@ import {
 } from '../../../../src/modules/mcp/constants/mcp.constants';
 import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type {
+  McpChangesAnswer,
   McpCollectionService,
   McpCollectionShape,
   McpQueryAnswer,
@@ -246,6 +247,7 @@ const answerAboutProjects = (input: {
     });
   return {
     attachedFiles: [],
+    changesCursor: 'cursor-of-query',
     reducers: { rows: { ids: matching, kind: 'results', nextCursor: null } },
     rows: Object.fromEntries(
       matching.map((id) => [id, written(id, pages.get(id)?.title ?? '', pages.get(id)?.propertyValues ?? null)]),
@@ -255,10 +257,12 @@ const answerAboutProjects = (input: {
 
 const createCollectionStore = (refusesTheShape = false) => {
   let shape = initialShape;
+  const changesQueue: McpChangesAnswer[] = [];
   const received: Record<string, unknown[]> = {
     defineSchema: [],
     moveRow: [],
     queryCollection: [],
+    readChanges: [],
     rewriteOption: [],
     viewOperations: [],
   };
@@ -299,6 +303,7 @@ const createCollectionStore = (refusesTheShape = false) => {
       return Promise.resolve(
         Result.ok({
           attachedFiles: [],
+          changesCursor: 'cursor-of-query',
           reducers: {
             counts: {
               distinctRowCount: 1,
@@ -312,12 +317,30 @@ const createCollectionStore = (refusesTheShape = false) => {
         }),
       );
     },
+    readChanges: (input) => {
+      received.readChanges?.push(input);
+      const isEmpty = changesQueue.length === 0;
+      const next = changesQueue.shift();
+      return Promise.resolve(
+        Result.ok(
+          next ?? {
+            attachedFiles: [],
+            cursor: isEmpty ? 'cursor-now' : 'cursor-next',
+            hasMore: false,
+            isReset: false,
+            rows: [],
+            total: 1,
+            trashedIds: [],
+          },
+        ),
+      );
+    },
     rewriteOption: (input) => {
       received.rewriteOption?.push(input);
       return Promise.resolve(Result.ok(shape));
     },
   };
-  return { received, service };
+  return { changesQueue, received, service };
 };
 
 const written = (id: string, title: string, values: PagePropertyValues | null): McpWrittenRow => ({
@@ -596,6 +619,109 @@ describe('MCP collections — reading', () => {
     expect(result.isError).toBe(true);
     expect(textOf(result)).toContain('groupBy');
     expect(collections.received.queryCollection).toEqual([]);
+  });
+});
+
+describe('MCP collections — changes', () => {
+  test('hands out a cursor to start watching from now, without rows', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({ arguments: { collection: COLLECTION }, name: 'collection_changes' });
+
+    expect(collections.received.readChanges?.[0]).toMatchObject({ cursor: undefined, pageId: COLLECTION });
+    expect(result.structuredContent).toMatchObject({ cursor: 'cursor-now', hasMore: false, reset: false, rows: [] });
+  });
+
+  test('brings the rows that changed as the agent reads them, the ones that went to the trash and the count', async () => {
+    const { client, collections } = await connect();
+    const row = pages.get(ROW);
+    collections.changesQueue.push({
+      attachedFiles: [],
+      cursor: 'cursor-2',
+      hasMore: false,
+      isReset: false,
+      rows: [written(ROW, row?.title ?? '', row?.propertyValues ?? null)],
+      total: 4,
+      trashedIds: [NEW_ROW],
+    });
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, columns: ['Responsable'], since: 'cursor-1' },
+      name: 'collection_changes',
+    });
+
+    const asked = collections.received.readChanges?.[0];
+    expect(asked).toMatchObject({ cursor: 'cursor-1', pageId: COLLECTION });
+    expect((asked as { excludedRowIds: string[] }).excludedRowIds).toContain(CLOSED_ROW);
+    expect(result.structuredContent).toMatchObject({
+      cursor: 'cursor-2',
+      rows: [{ id: ROW }],
+      total: 4,
+      trashed: [NEW_ROW],
+    });
+    const [described] = (result.structuredContent as { rows: { properties: { key: string }[] }[] }).rows;
+    expect(described?.properties.map((property) => property.key)).toEqual(['owner']);
+  });
+
+  test('tells the agent to read the collection again when the cursor is not valid', async () => {
+    const { client, collections } = await connect();
+    collections.changesQueue.push({
+      attachedFiles: [],
+      cursor: 'cursor-fresh',
+      hasMore: false,
+      isReset: true,
+      rows: [],
+      total: 1,
+      trashedIds: [],
+    });
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, since: 'garbage' },
+      name: 'collection_changes',
+    });
+
+    expect(result.structuredContent).toMatchObject({ cursor: 'cursor-fresh', reset: true });
+    expect(textOf(result)).toContain('query_collection');
+  });
+
+  test('waits for a change instead of answering empty, up to the seconds asked for', async () => {
+    const { client, collections } = await connect();
+    const row = pages.get(ROW);
+    collections.changesQueue.push({
+      attachedFiles: [],
+      cursor: 'cursor-quiet',
+      hasMore: false,
+      isReset: false,
+      rows: [],
+      total: 1,
+      trashedIds: [],
+    });
+    collections.changesQueue.push({
+      attachedFiles: [],
+      cursor: 'cursor-busy',
+      hasMore: false,
+      isReset: false,
+      rows: [written(ROW, row?.title ?? '', row?.propertyValues ?? null)],
+      total: 1,
+      trashedIds: [],
+    });
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, since: 'cursor-1', waitSeconds: 5 },
+      name: 'collection_changes',
+    });
+
+    expect(collections.received.readChanges).toHaveLength(2);
+    expect(collections.received.readChanges?.[1]).toMatchObject({ cursor: 'cursor-quiet' });
+    expect(result.structuredContent).toMatchObject({ cursor: 'cursor-busy', rows: [{ id: ROW }] });
+  });
+
+  test('gives back the cursor to start watching with every query', async () => {
+    const { client } = await connect();
+
+    const result = await client.callTool({ arguments: { collection: COLLECTION }, name: 'query_collection' });
+
+    expect(result.structuredContent).toMatchObject({ changesCursor: 'cursor-of-query' });
   });
 });
 

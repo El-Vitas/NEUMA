@@ -14,6 +14,9 @@ import { bootstrapTestApp, type TestApp } from '../helpers/test-app.helper';
 
 const PASSWORD = 'plainPassword123';
 
+/** Any of the indexes that start with the parent: the planner picks the one with the cheapest plan for the case. */
+const PARENT_INDEX_PATTERN = /Block_parentId_idx|Block_rows_order_idx|Block_parentId_changeXid_idx/;
+
 /** What a table reads at first: ten thousand rows is a collection nobody can read whole. */
 const TABLE_ROWS = 10_000;
 
@@ -189,6 +192,7 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
         search: null,
         signature: 'perf',
         sorts: scopeInput.sorts ?? [],
+        timeZone: 'UTC',
         unreadableRelations: new Map(),
         viewId: null,
       });
@@ -255,6 +259,7 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
               search: null,
               signature: 'perf',
               sorts: [],
+              timeZone: 'UTC',
               unreadableRelations: new Map(),
               viewId: null,
             }),
@@ -337,7 +342,7 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
       );
 
       expect(plan).not.toContain('Seq Scan on "Block"');
-      expect(plan).toMatch(/Block_parentId_idx|Block_rows_order_idx/);
+      expect(plan).toMatch(PARENT_INDEX_PATTERN);
     });
 
     it('filters and sorts through the same index, with the order done by the database', async () => {
@@ -356,7 +361,7 @@ describe('Reading big collections stays fast and uses the indexes (Integration)'
       );
 
       expect(plan).not.toContain('Seq Scan on "Block"');
-      expect(plan).toMatch(/Block_parentId_idx|Block_rows_order_idx/);
+      expect(plan).toMatch(PARENT_INDEX_PATTERN);
     });
 
     it('counts and calculates through the index too', async () => {

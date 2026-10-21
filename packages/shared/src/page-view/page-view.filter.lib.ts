@@ -1,9 +1,4 @@
-import { MILLISECONDS_IN_A_DAY } from '../constants/time.constants.js';
-import {
-  getPageDateEndTime,
-  getPageDateStartTime,
-  readPageDateValue,
-} from '../page-property/page-property.date.lib.js';
+import { readPageDateValue } from '../page-property/page-property.date.lib.js';
 import {
   getPagePropertyLogicalType,
   isPagePropertyValueEmpty,
@@ -17,13 +12,22 @@ import type {
 } from '../page-property/page-property.types.js';
 import { PAGE_PROPERTY_LOGICAL_TYPE } from '../page-property/page-property.types.js';
 import { toValueList, toValueText } from '../page-property/page-property.value.lib.js';
+import { matchesPageDateOperator, readPageDateArgument } from './page-view.date-argument.lib.js';
 import type { PageFilter, PageFilterCondition, PageFilterOperator, PageViewProperty } from './page-view.types.js';
 import { PAGE_FILTER_GROUP_OPERATOR, PAGE_FILTER_OPERATOR } from './page-view.types.js';
+
+/** Where the filter is read: dates and times are told apart by days in this zone. */
+export interface PageFilterContext {
+  readonly timeZone: string;
+}
+
+const UTC_FILTER_CONTEXT: PageFilterContext = { timeZone: 'UTC' };
 
 type PageFilterPredicate = (
   value: PagePropertyValue,
   argument: PagePropertyValue,
   property: PageViewProperty,
+  context: PageFilterContext,
 ) => boolean;
 
 type PageFilterPredicates = Readonly<Partial<Record<PageFilterOperator, PageFilterPredicate>>>;
@@ -37,25 +41,14 @@ const areBothNumbers = (value: PagePropertyValue, argument: PagePropertyValue): 
 
 const toEntries = toValueList;
 
-const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-
-/** A day argument covers its whole day, so a creation instant matches the day it fell on. */
-const readArgumentSpan = (argument: PagePropertyValue): { end: number; start: number } | null => {
-  const start = Date.parse(toComparableText(argument));
-  if (Number.isNaN(start)) return null;
-  return { end: DAY_ONLY.test(toComparableText(argument)) ? start + MILLISECONDS_IN_A_DAY - 1 : start, start };
-};
-
-const compareDate = (
-  value: PagePropertyValue,
-  argument: PagePropertyValue,
-  isMatch: (valueSpan: { end: number; start: number }, argumentSpan: { end: number; start: number }) => boolean,
-): boolean => {
-  const date = readPageDateValue(value);
-  const argumentSpan = readArgumentSpan(argument);
-  if (date === null || argumentSpan === null) return false;
-  return isMatch({ end: getPageDateEndTime(date), start: getPageDateStartTime(date) }, argumentSpan);
-};
+const compareDate =
+  (operator: PageFilterOperator): PageFilterPredicate =>
+  (value, argument, _property, context) => {
+    const date = readPageDateValue(value);
+    const dateArgument = readPageDateArgument(argument, context.timeZone);
+    if (date === null || dateArgument === null) return false;
+    return matchesPageDateOperator(operator, date, dateArgument);
+  };
 
 const textPredicates: PageFilterPredicates = {
   [PAGE_FILTER_OPERATOR.IS]: (value, argument) => toComparableText(value) === toComparableText(argument),
@@ -94,18 +87,16 @@ const booleanPredicates: PageFilterPredicates = {
   [PAGE_FILTER_OPERATOR.IS]: (value, argument) => value === argument,
 };
 
-/** A range is a match for a day when the two overlap; before and after use the end and the start of the range. */
+/**
+ * A range is a match for a day when the two overlap; before uses where the range ends and after where it starts, and
+ * "on or before" and "on or after" keep the day itself.
+ */
 const datePredicates: PageFilterPredicates = {
-  [PAGE_FILTER_OPERATOR.IS]: (value, argument) =>
-    compareDate(
-      value,
-      argument,
-      (valueSpan, argumentSpan) => valueSpan.start <= argumentSpan.end && argumentSpan.start <= valueSpan.end,
-    ),
-  [PAGE_FILTER_OPERATOR.IS_BEFORE]: (value, argument) =>
-    compareDate(value, argument, (valueSpan, argumentSpan) => valueSpan.end < argumentSpan.start),
-  [PAGE_FILTER_OPERATOR.IS_AFTER]: (value, argument) =>
-    compareDate(value, argument, (valueSpan, argumentSpan) => valueSpan.start > argumentSpan.end),
+  [PAGE_FILTER_OPERATOR.IS]: compareDate(PAGE_FILTER_OPERATOR.IS),
+  [PAGE_FILTER_OPERATOR.IS_BEFORE]: compareDate(PAGE_FILTER_OPERATOR.IS_BEFORE),
+  [PAGE_FILTER_OPERATOR.IS_AFTER]: compareDate(PAGE_FILTER_OPERATOR.IS_AFTER),
+  [PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE]: compareDate(PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE),
+  [PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER]: compareDate(PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER),
 };
 
 const noPredicates: PageFilterPredicates = {};
@@ -142,6 +133,8 @@ const VALUE_OPERATORS_BY_LOGICAL_TYPE: Readonly<Record<PagePropertyLogicalType, 
     PAGE_FILTER_OPERATOR.IS,
     PAGE_FILTER_OPERATOR.IS_BEFORE,
     PAGE_FILTER_OPERATOR.IS_AFTER,
+    PAGE_FILTER_OPERATOR.IS_ON_OR_BEFORE,
+    PAGE_FILTER_OPERATOR.IS_ON_OR_AFTER,
   ],
   [PAGE_PROPERTY_LOGICAL_TYPE.TAG]: [PAGE_FILTER_OPERATOR.IS, PAGE_FILTER_OPERATOR.IS_NOT],
   [PAGE_PROPERTY_LOGICAL_TYPE.MULTI_TAG]: [PAGE_FILTER_OPERATOR.CONTAINS, PAGE_FILTER_OPERATOR.NOT_CONTAINS],
@@ -169,29 +162,60 @@ const matchesEmptinessOperator = (operator: PageFilterOperator, isEmpty: boolean
   return null;
 };
 
+const NEGATIVE_OPERATORS: readonly PageFilterOperator[] = [
+  PAGE_FILTER_OPERATOR.IS_NOT,
+  PAGE_FILTER_OPERATOR.NOT_CONTAINS,
+  PAGE_FILTER_OPERATOR.IS_NOT_IN_GROUP,
+];
+
+/**
+ * Whether a row with nothing in the property satisfies a condition on it. Such a row is not there to be compared, so a
+ * condition that asks for a value ("is", "contains", "before") does not match it and one that asks for its absence
+ * ("is not", "does not contain") does. A checkbox never touched reads as unchecked.
+ */
+export const matchesMissingPageValue = (
+  logicalType: PagePropertyLogicalType,
+  operator: PageFilterOperator,
+  argument: PagePropertyValue,
+): boolean => {
+  if (NEGATIVE_OPERATORS.includes(operator)) return true;
+  return (
+    logicalType === PAGE_PROPERTY_LOGICAL_TYPE.BOOLEAN && operator === PAGE_FILTER_OPERATOR.IS && argument === false
+  );
+};
+
 const matchesCondition = (
   condition: PageFilterCondition,
   propertyValues: PagePropertyValues,
   properties: readonly PageViewProperty[],
+  context: PageFilterContext,
 ): boolean => {
   const property = properties.find((candidate) => candidate.key === condition.propertyKey);
   if (property === undefined) return true;
   const value = readPagePropertyValue(propertyValues, condition.propertyKey);
   const emptinessResult = matchesEmptinessOperator(condition.operator, isPagePropertyValueEmpty(property.type, value));
   if (emptinessResult !== null) return emptinessResult;
-  if (value === undefined || condition.value === null) return true;
-  const predicate = PREDICATES_BY_LOGICAL_TYPE[getPagePropertyLogicalType(property.type)][condition.operator];
-  return predicate === undefined ? true : predicate(value, condition.value, property);
+  if (condition.value === null) return true;
+  const logicalType = getPagePropertyLogicalType(property.type);
+  const predicate = PREDICATES_BY_LOGICAL_TYPE[logicalType][condition.operator];
+  if (predicate === undefined) return true;
+  if (value === undefined) return matchesMissingPageValue(logicalType, condition.operator, condition.value);
+  return predicate(value, condition.value, property, context);
 };
 
+/**
+ * Whether a row passes the filter. A marker such as "me" or "this week" is not understood here: resolve the filter for
+ * the viewer first (`resolvePageFilter`).
+ */
 export const matchesPageFilter = (
   filter: PageFilter,
   propertyValues: PagePropertyValues,
   properties: readonly PageViewProperty[],
+  context: PageFilterContext = UTC_FILTER_CONTEXT,
 ): boolean => {
-  if (filter.kind === 'CONDITION') return matchesCondition(filter, propertyValues, properties);
+  if (filter.kind === 'CONDITION') return matchesCondition(filter, propertyValues, properties, context);
   if (filter.conditions.length === 0) return true;
   return filter.operator === PAGE_FILTER_GROUP_OPERATOR.AND
-    ? filter.conditions.every((condition) => matchesPageFilter(condition, propertyValues, properties))
-    : filter.conditions.some((condition) => matchesPageFilter(condition, propertyValues, properties));
+    ? filter.conditions.every((condition) => matchesPageFilter(condition, propertyValues, properties, context))
+    : filter.conditions.some((condition) => matchesPageFilter(condition, propertyValues, properties, context));
 };

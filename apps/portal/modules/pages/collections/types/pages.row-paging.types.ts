@@ -1,3 +1,4 @@
+import type { PageFilter } from '@neuma/shared';
 import type { PageRow } from './pages.schema.types';
 
 export interface PagesRowPagingInput {
@@ -24,6 +25,7 @@ export interface PagesRowPaging {
 export interface ScopeAddress {
   readonly group?: { readonly key: string; readonly subKey?: string };
   readonly pageId: string;
+  readonly quickFilter: null | PageFilter;
   readonly search: string;
   readonly spaceId: string;
   readonly viewId: string;
@@ -37,6 +39,6 @@ export interface PagesRowPagingState {
   readonly loaded: readonly PageRow[];
   /** Set when the server drew the scope again while rows were loaded: the window is read again from here. */
   readonly refreshFrom: null | string;
-  /** The words the loaded rows were read with. */
-  readonly search: string;
+  /** The words and the quick filter the loaded rows were read with, as one key. */
+  readonly queryKey: string;
 }

@@ -26,6 +26,8 @@ export interface FragmentBuilder {
 export type UnreadableRelations = ReadonlyMap<string, 'ALL' | readonly string[]>;
 
 export interface CellContext {
+  /** The zone of the viewer, which decides what day an instant belongs to. */
+  readonly timeZone: string;
   readonly unreadableRelations: UnreadableRelations;
 }
 
@@ -43,9 +45,12 @@ export interface SortKey {
   readonly type: SqlType;
 }
 
-export interface DaySpan {
-  readonly end: number;
-  readonly start: number;
+/** The two ends of what a date has and of what a condition compares with, in the same unit (days or instants). */
+export interface RangeEnds {
+  readonly argumentEnd: SqlFragment;
+  readonly argumentStart: SqlFragment;
+  readonly valueEnd: SqlFragment;
+  readonly valueStart: SqlFragment;
 }
 
 export interface PredicateInput {
@@ -53,6 +58,7 @@ export interface PredicateInput {
   readonly cell: SqlFragment;
   readonly operator: PageFilterCondition['operator'];
   readonly property: SchemaPropertyDefinition;
+  readonly timeZone: string;
 }
 
 export type Predicate = (input: PredicateInput) => SqlFragment | null;
@@ -86,6 +92,7 @@ export interface QueryScopeInput {
   readonly search: string | null;
   readonly signature: string;
   readonly sorts: readonly PageSort[];
+  readonly timeZone: string;
   readonly unreadableRelations: UnreadableRelations;
   readonly viewId: string | null;
 }

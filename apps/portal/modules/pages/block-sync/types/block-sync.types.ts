@@ -152,8 +152,17 @@ export interface BlockLiveSessionHandlers {
   readonly onVersions: (blocks: readonly BlockVersion[]) => void;
 }
 
+/** What the server says about a collection the session follows. */
+export type BlockCollectionMessage = Extract<
+  BlockLiveServerMessage,
+  { type: 'collection-changes' | 'collection-resync' | 'collection-revoked' }
+>;
+
 export interface BlockLiveSessionOptions {
+  /** The session follows this collection instead of the page: the rows and views that change, not the blocks. */
+  readonly collectionId?: string;
   readonly handlers: BlockLiveSessionHandlers;
+  readonly onCollectionMessage?: (message: BlockCollectionMessage) => void;
   /** A discussion of a block of this page changed; the page reads its discussions again. */
   readonly onDiscussionChanged?: () => void;
   readonly openSocket: (url: string) => BlockLiveSocket;

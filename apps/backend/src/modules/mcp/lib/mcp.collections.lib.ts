@@ -154,6 +154,12 @@ export const canMcpActOnRow = (
 ): boolean =>
   canAccessTokenAct(call.principal.access, call.principal.role, readMcpRowPlace(collection, rowId), permission);
 
+/** Rows the token has a rule against: they are left out of every count and change, not only hidden from the list. */
+export const listMcpClosedRowIds = (call: McpCall, collection: McpOpenCollection): readonly string[] =>
+  call.principal.access.pages
+    .map((grant) => grant.pageId)
+    .filter((pageId) => !canMcpActOnRow(call, collection, pageId, ACCESS_TOKEN_PERMISSIONS.collectionsRead));
+
 /** Cells need collection read, the title needs page read; writing a row does not grant reading it. */
 export const describeMcpRowAsSeen = (
   portalUrl: string,

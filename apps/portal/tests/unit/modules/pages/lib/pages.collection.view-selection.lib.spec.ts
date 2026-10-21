@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   buildCollectionViewHref,
   readCollectionMonth,
+  readCollectionQuickFilter,
   readCollectionSearch,
   resolveActiveCollectionView,
 } from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
@@ -67,6 +68,37 @@ describe('buildCollectionViewHref', () => {
     expect(buildCollectionViewHref('Calendar', { month: '2026-08', search: 'informe' })).toBe(
       '?view=Calendar&q=informe&month=2026-08',
     );
+  });
+});
+
+describe('el filtro rápido en la dirección', () => {
+  const quickFilter = {
+    conditions: [{ kind: 'CONDITION', operator: 'CONTAINS', propertyKey: 'owner', value: '@me' }],
+    kind: 'GROUP',
+    operator: 'AND',
+  } as const;
+
+  it('carries the quick filter as JSON, after the words searched', () => {
+    const href = buildCollectionViewHref('Board', { quickFilter, search: 'informe' });
+
+    expect(href).toBe(
+      `?view=Board&q=informe&filter=${encodeURIComponent(JSON.stringify(quickFilter)).replaceAll('%20', '+')}`,
+    );
+  });
+
+  it('leaves it out when there is none', () => {
+    expect(buildCollectionViewHref('Board', { quickFilter: null })).toBe('?view=Board');
+  });
+
+  it('reads back what it wrote', () => {
+    expect(readCollectionQuickFilter(JSON.stringify(quickFilter))).toEqual(quickFilter);
+  });
+
+  it('reads nothing from an address that is not a filter, instead of failing the page', () => {
+    expect(readCollectionQuickFilter(undefined)).toBeNull();
+    expect(readCollectionQuickFilter('{not json')).toBeNull();
+    expect(readCollectionQuickFilter('{"kind":"CONDITION","operator":"NOPE","propertyKey":"a","value":1}')).toBeNull();
+    expect(readCollectionQuickFilter('x'.repeat(5000))).toBeNull();
   });
 });
 

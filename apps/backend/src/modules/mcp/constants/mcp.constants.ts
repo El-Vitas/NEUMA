@@ -22,6 +22,7 @@ export const MCP_SERVER_INFO = { name: 'neuma', version: '0.1.0' } as const;
 /** Renaming one breaks the configuration of anyone already using it. */
 export const MCP_TOOL_NAMES = {
   commentOnBlock: 'comment_on_block',
+  collectionChanges: 'collection_changes',
   createCollection: 'create_collection',
   createPage: 'create_page',
   createRow: 'create_row',
@@ -279,6 +280,10 @@ export const MCP_REDACTED_REFERENCE_WORD = { text: MCP_REDACTED_REFERENCE_LABEL,
 
 export const MCP_VALUELESS_FILTER_OPERATORS: readonly string[] = ['IS_EMPTY', 'IS_NOT_EMPTY'];
 
+/** What a date condition understands besides a day, said the same way wherever it refuses a value. */
+export const MCP_RELATIVE_DATES_HINT =
+  'a relative date: @today, @yesterday, @tomorrow, @this_week, @last_week, @next_week, @this_month, @last_month, @next_month, @past_days:N or @next_days:N (N from 1 to 365)';
+
 /** These compare a status with the name of one of its three groups, not with an option. */
 export const MCP_STATUS_GROUP_OPERATORS: readonly string[] = ['IS_IN_GROUP', 'IS_NOT_IN_GROUP'];
 
@@ -333,7 +338,7 @@ export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
   'Diagrams are Mermaid, any kind, and can show product logos and icons (never emojis in their place): find their names with search_diagram_icons before drawing.',
   'Besides text, a page holds columns side by side, link cards, videos from YouTube, Vimeo, Loom or Figma, and blocks synced from another page: write them as blocks too.',
   'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Comments live in discussions: list_discussions shows the conversations of a page and reply_to_discussion answers one, so before commenting on something look whether it already has a discussion. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
-  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status. move_row also places the row in the order of a view, beside another row, in the same write. To ask little, query_collection can return only counts (limit 0), only the groups with their sizes (groupBy), only one group (group) or a page of rows with only the columns you need (columns).',
+  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status. move_row also places the row in the order of a view, beside another row, in the same write. To ask little, query_collection can return only counts (limit 0), only the groups with their sizes (groupBy), only one group (group) or a page of rows with only the columns you need (columns). To follow a collection without reading it again, keep the changesCursor of query_collection and call collection_changes with it as since: it returns only the rows that changed, with waitSeconds to wait for the next change. To find what is yours or what is due soon, put "@me" or a relative date such as @today, @this_week or @next_days:7 in where, and name your time zone in timeZone.',
   'When the person asks to add, note or change a task of the team or of "our board", do it on a Neuma collection, never in your own session\'s task list.',
   'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',
   'You act as the person who created your access token, limited to what the token allows: anything out of its reach answers as not accessible, the same as something that does not exist.',

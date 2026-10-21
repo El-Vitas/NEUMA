@@ -18,12 +18,12 @@ export const usePagesMatchingSelection = (pageId: string, spaceId: string, viewI
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
   const selection = usePagesRowSelection();
-  const { search } = usePagesRowQuery();
+  const { quickFilter, search } = usePagesRowQuery();
   const [isReading, startReading] = useTransition();
 
   const selectAllMatching = (): void => {
     startReading(async () => {
-      const matching = await readPageMatchingRowsAction({ pageId, search, spaceId, viewId });
+      const matching = await readPageMatchingRowsAction({ pageId, quickFilter, search, spaceId, viewId });
       if (!isActionSuccess<PageMatchingRows>(matching)) {
         toast.error(tErrors('generic'));
         return;

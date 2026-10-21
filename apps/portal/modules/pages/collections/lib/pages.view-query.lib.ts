@@ -1,4 +1,5 @@
 import type {
+  PageFilter,
   PageQueryAggregationItem,
   PageQueryReducer,
   PageQueryRequest,
@@ -29,6 +30,19 @@ export const toSearchPart = (search: string): { readonly search?: string } => {
   return words === '' ? {} : { search: words };
 };
 
+/** What narrows a view for whoever looks and is not saved in it: the words searched and the quick filter. */
+export const toRefinementPart = (
+  search: string,
+  quickFilter: null | PageFilter | undefined,
+): { readonly quickFilter?: PageFilter; readonly search?: string } => ({
+  ...toSearchPart(search),
+  ...(quickFilter === null || quickFilter === undefined ? {} : { quickFilter }),
+});
+
+/** A row must pass both: what the person filtered by and what the screen needs (the days of a calendar grid). */
+export const andQuickFilters = (own: null | PageFilter, other: PageFilter): PageFilter =>
+  own === null ? other : { conditions: [own, other], kind: 'GROUP', operator: 'AND' };
+
 const rowsReducerOf = (view: PageSchemaViewDraft, configuration: PageViewConfiguration): PageQueryReducer => {
   if (view.type === PAGE_VIEW_TYPE.CALENDAR) {
     return { id: PAGE_VIEW_ROWS_REDUCER, kind: 'results', limit: PAGE_VIEW_CALENDAR_ROWS };
@@ -43,11 +57,12 @@ const rowsReducerOf = (view: PageSchemaViewDraft, configuration: PageViewConfigu
 export const buildViewRowsQuery = (
   view: PageSchemaViewDraft & { readonly id: string },
   search = '',
+  quickFilter: null | PageFilter = null,
 ): PageQueryRequest => {
   const configuration = readPageViewConfiguration(view.configuration);
   return {
     reducers: view.type === PAGE_VIEW_TYPE.CHART ? [] : [rowsReducerOf(view, configuration)],
-    ...toSearchPart(search),
+    ...toRefinementPart(search, quickFilter),
     viewId: view.id,
   };
 };
@@ -81,6 +96,7 @@ const calculationItemsOf = (configuration: PageViewConfiguration): readonly Page
 export const buildViewCountsQuery = (
   view: PageSchemaViewDraft & { readonly id: string },
   search = '',
+  quickFilter: null | PageFilter = null,
 ): PageQueryRequest => {
   const configuration = readPageViewConfiguration(view.configuration);
   const items: readonly PageQueryAggregationItem[] = [
@@ -92,7 +108,7 @@ export const buildViewCountsQuery = (
     reducers: [
       { by: isGrouped ? 'GROUP' : 'NONE', id: PAGE_VIEW_COUNTS_REDUCER, items: [...items], kind: 'aggregations' },
     ],
-    ...toSearchPart(search),
+    ...toRefinementPart(search, quickFilter),
     viewId: view.id,
   };
 };

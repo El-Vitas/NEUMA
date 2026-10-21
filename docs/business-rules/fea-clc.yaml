@@ -3,6 +3,23 @@ name: Colecciones, propiedades y vistas
 purpose: Reúne las reglas de qué guarda una colección, cómo se define su forma y cómo se mira.
 scope: collections
 rules:
+  - id: BR-0017487
+    status: active
+    title: «Yo» en un filtro es quien mira, no quien guardó la vista
+    rule: >-
+      En un filtro de persona, de creada por o de editada por, «yo» se resuelve con la persona que consulta la vista, o
+      con el dueño del token cuando consulta un agente. Dos personas que abren la misma vista guardada con «yo» ven cada
+      una sus propias filas, y los conteos y los totales salen de las mismas filas. El portal ofrece «Yo» como primera
+      opción de la lista de personas, y el agente lo escribe como @me.
+    why: >-
+      Una vista «Mis tareas» guardada con el identificador de quien la creó solo sirve a esa persona. Con «yo» la misma
+      vista sirve a todo el equipo y nadie ve lo de otro por error.
+    context: «Yo» solo significa algo en esas tres propiedades. En cualquier otra, @me es texto como cualquier otro.
+    scenarios:
+      - title: Dos personas, una vista
+        given: Una vista filtrada por responsable igual a yo, y filas de Ana y de Bo
+        when: Ana y Bo la abren
+        then: Ana ve las filas de Ana y Bo las de Bo
   - id: BR-1f4ab0f
     status: active
     title: Quién creó una fila y cuándo lo dice la propia fila, y nadie lo escribe
@@ -36,6 +53,32 @@ rules:
         given: Una tarea con estado «Por hacer» y prioridad «Baja»
         when: Una la pasa a «Hecho» y otra, al mismo tiempo, sube la prioridad a «Alta»
         then: La tarea queda en «Hecho» y con prioridad «Alta»
+  - id: BR-3695f4e
+    status: active
+    title: Una vista abierta se entera de lo que otras personas cambian en su colección, solo de lo que puede leer
+    rule: >-
+      Quien tiene abierta la vista de una colección recibe un aviso cuando otra persona cambia una fila, una vista o la
+      forma de esa colección, y la vista se dibuja de nuevo sin recargar la página. El aviso lleva solo la identidad y
+      la versión de las filas que cambiaron, nunca su contenido. Cada persona recibe únicamente las filas que puede
+      leer, y una fila cerrada para ella no se nombra, no se cuenta y no aparece. Cuando cambian los permisos de una
+      fila o ésta sale de la colección, la persona recibe la orden de consultar de nuevo, sin que se diga qué fila fue.
+      Varios avisos seguidos se atienden con una sola lectura, y al volver una conexión caída se lee una vez. Los
+      cambios del cuerpo de una fila no se avisan por este canal.
+    why: >-
+      Sin aviso, dos personas sobre el mismo tablero se pisan sin saberlo hasta que una recarga. Y un aviso que nombrara
+      filas cerradas revelaría que existen.
+    context: >-
+      El canal en vivo admite hasta 20 colecciones por conexión. Las escrituras propias pendientes de la misma persona
+      van antes de la lectura, porque las acciones del servidor se ejecutan en el orden en que se enviaron.
+    scenarios:
+      - title: Una tarjeta se mueve para quien mira
+        given: Dos personas con el mismo tablero abierto
+        when: Una cambia el estado de una tarjeta
+        then: La otra la ve pasar a la columna nueva sin recargar
+      - title: Una fila cerrada
+        given: Una persona que no puede leer una fila de la colección
+        when: Otra persona edita esa fila
+        then: La primera no recibe ningún aviso que la nombre
   - id: BR-3dcf9e7
     status: active
     title: Una propiedad obligatoria se exige al crear la fila y al escribir esa propiedad
@@ -356,6 +399,33 @@ rules:
         given: Una fila que no se puede editar
         when: Se intenta moverla de columna
         then: Ni su valor ni su lugar cambian
+  - id: BR-991f4fd
+    status: active
+    title: Un filtro rápido se suma a la vista sin cambiarla
+    rule: >-
+      Quien mira una colección puede poner un filtro rápido encima del de la vista, con las mismas condiciones,
+      incluidas las fechas relativas y «yo». El filtro rápido viaja en la dirección de la página y se suma con «y» al de
+      la vista. Vale para las filas, los conteos, las páginas siguientes y la selección de todas las que coinciden, y se
+      mantiene al cambiar de vista. No se guarda, nadie más lo ve y la vista queda como estaba. Si no deja pasar ninguna
+      fila, la pantalla lo dice y ofrece quitarlo.
+    why: >-
+      Mirar «lo mío de esta semana» un momento no debería obligar a editar la vista del equipo ni a crear otra, ni dejar
+      un filtro que el siguiente en abrirla no sabe de dónde salió.
+    context: Lo pueden usar también quienes solo leen la colección.
+  - id: BR-aa08c26
+    status: active
+    title: Una fila sin valor no cumple lo que pide un valor
+    rule: >-
+      Una fila que no tiene nada en la propiedad no cumple una condición que pide un valor («es», «contiene», «es antes
+      de», «es mayor que», «está en el grupo»), y sí cumple una que pide su ausencia («no es», «no contiene», «no está
+      en el grupo»). Una casilla que nunca se tocó se lee como sin marcar. Las condiciones «está vacío» y «tiene valor»
+      siguen igual.
+    why: >-
+      Con «responsable contiene yo» o «vence antes de hoy», las filas sin responsable o sin fecha aparecían en la lista
+      como si fueran de la persona o estuvieran vencidas, y la vista dejaba de servir para lo que prometía.
+    context: >-
+      Antes, una fila sin valor pasaba cualquier condición sobre esa propiedad. El motor compartido y la consulta del
+      servidor aplican la misma regla.
   - id: BR-ae2730d
     status: active
     title: Una selección se ordena por la posición de sus opciones, no por su nombre
@@ -400,6 +470,32 @@ rules:
         given: Una vista con un filtro que deja tres mil filas
         when: Se pide el total
         then: El total es tres mil aunque solo se hayan traído cincuenta filas
+  - id: BR-c974803
+    status: active
+    title: Un agente lee solo lo que cambió en una colección desde su última lectura, sin perder ningún cambio
+    rule: >-
+      Una consulta de colección entrega un cursor, y la herramienta de cambios devuelve las filas escritas desde ese
+      cursor, con su estado actual, los identificadores de las que pasaron a la papelera, el total de filas que el
+      agente puede leer y un cursor nuevo. El cursor se apoya en el identificador de transacción que escribió cada fila,
+      así que una escritura que se confirma tarde nunca se pierde; a cambio, puede repetir filas, y cada fila lleva su
+      versión para reconocer la repetición. Las filas cerradas para el agente no se nombran ni se cuentan. Un cursor que
+      el servidor no escribió pide leer la colección de nuevo. El agente puede pedir que la llamada espere hasta 25
+      segundos a que algo cambie.
+    why: >-
+      Releer la colección entera para saber qué cambió gasta el contexto del agente y no dice qué cambió. Un cursor por
+      fecha perdería los cambios de transacciones que empezaron antes y se confirmaron después.
+    context: >-
+      Cada escritura de un bloque deja en él el identificador de su transacción mediante un disparador de la base. Esto
+      vuelve las actualizaciones de un bloque no HOT por el índice que lo sirve.
+    scenarios:
+      - title: Solo lo que cambió
+        given: Un agente con el cursor de su última lectura
+        when: Alguien renombra una fila
+        then: La herramienta devuelve esa fila y un cursor nuevo, y la siguiente llamada no devuelve nada
+      - title: Una transacción tardía
+        given: Una transacción que empezó antes de que se entregara el cursor y se confirma después
+        when: El agente pide los cambios desde ese cursor
+        then: La fila de esa transacción aparece
   - id: BR-d39ee9c
     status: active
     title: Lo que alguien no puede abrir no entra en sus conteos, y si no se puede calcular bien se dice
@@ -516,6 +612,31 @@ rules:
         given: Un filtro con una condición sobre una propiedad que se quitó
         when: Se mira la vista
         then: Esa condición no se aplica ni se dibuja, y el resto del filtro sigue valiendo
+  - id: BR-f7880be
+    status: active
+    title: Una fecha del filtro puede moverse con el día en que se mira
+    rule: >-
+      Un filtro de fecha (también sobre la fecha de creación y la de última edición) puede comparar con un día exacto o
+      con una fecha relativa que se resuelve cada vez que se consulta, en el calendario de quien mira. Las fechas
+      relativas son hoy, ayer, mañana, esta semana, la semana pasada, la próxima semana, este mes, el mes pasado, el
+      próximo mes, los últimos N días y los próximos N días. Las semanas van de lunes a domingo, y los últimos y los
+      próximos N días cuentan hoy. «Vencido» es «es antes de» hoy, y «es el día o antes de» y «es el día o después de»
+      conservan el día mismo. Una fecha con rango coincide cuando se cruza con los días pedidos, y «antes de» mira dónde
+      termina el rango y «después de» dónde empieza. Una fecha sin hora se compara por días y una con hora por
+      instantes, así que un bloque creado a última hora de la tarde cae en el día de quien mira y una fecha de
+      vencimiento se queda en su día calendario donde sea que esté la persona.
+    why: >-
+      Una vista de «lo que vence esta semana» guardada con días exactos queda vieja al día siguiente. Y el día de una
+      persona en Santiago no es el día en UTC, así que comparar siempre en UTC hace que a ciertas horas lo de hoy
+      parezca de mañana o de ayer.
+    context: >-
+      Quien mira dice su zona horaria y, si no la dice, se usa UTC. Un marcador de fecha que no existe se rechaza al
+      guardar la vista y al consultar, con un mensaje, y no se compara como texto.
+    scenarios:
+      - title: La semana cambia antes en un lugar que en otro
+        given: Es domingo por la noche en Santiago y ya lunes en UTC
+        when: Dos personas miran la misma vista de «esta semana»
+        then: Quien está en Santiago ve la semana que termina hoy y quien está en UTC ve la que empieza hoy
   - id: BR-f94b138
     status: active
     title: La forma de una colección se cambia después de crearla

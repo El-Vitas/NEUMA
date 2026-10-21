@@ -307,11 +307,39 @@ export {
 export { listPageChartMeasuresFor, readPageChartValue } from './page-view/page-view.chart.lib.js';
 export type { PageViewDefinition } from './page-view/page-view.definitions.js';
 export { makeSchemaViewDefault, removeSchemaView } from './page-view/page-view.editing.lib.js';
+export type { PageDateArgument } from './page-view/page-view.date-argument.lib.js';
+export { readPageDateArgument } from './page-view/page-view.date-argument.lib.js';
+export type { PageFilterContext } from './page-view/page-view.filter.lib.js';
 export {
   getPageFilterOperators,
   hasPageFilterPredicate,
+  matchesMissingPageValue,
   matchesPageFilter,
 } from './page-view/page-view.filter.lib.js';
+export {
+  PAGE_FILTER_ME,
+  PAGE_FILTER_ME_PROPERTY_TYPES,
+  PAGE_RELATIVE_DATE,
+  PAGE_RELATIVE_DATE_PROPERTY_TYPES,
+  PAGE_RELATIVE_DATE_VALUES,
+  PAGE_RELATIVE_MAXIMUM_DAYS,
+  PAGE_RELATIVE_NEXT_DAYS_PREFIX,
+  PAGE_RELATIVE_PAST_DAYS_PREFIX,
+} from './page-view/page-view.relative.constants.js';
+export {
+  findInvalidPageFilterToken,
+  readPageRelativeDate,
+  resolvePageFilter,
+  resolvePageRelativeRange,
+} from './page-view/page-view.relative.lib.js';
+export type { PageDayRange, PageFilterViewer, PageRelativeDate } from './page-view/page-view.relative.types.js';
+export {
+  addPageDays,
+  isValidPageTimeZone,
+  readPageLocalDay,
+  readPageWeekday,
+  readPageZonedDayStart,
+} from './page-view/page-view.zone.lib.js';
 export { readPageDateBucketKey } from './page-view/page-view.grouping.lib.js';
 export {
   getPageViewDefinition,
@@ -323,6 +351,7 @@ export {
 export {
   EMPTY_PAGE_VIEW_CONFIGURATION,
   pageViewConfigurationSchema,
+  rootFilterSchema as pageFilterSchema,
   readPageViewConfiguration,
 } from './page-view/page-view.schemas.js';
 export { diffPageViewConfigurations } from './page-view/page-view.operations.diff.lib.js';

@@ -40,6 +40,7 @@ export const blockLiveServerMessageSchema = z.discriminatedUnion('type', [
   z.object({ pageId: z.string(), type: z.literal('subscribed') }),
   z.object({
     code: z.string(),
+    collectionId: z.string().optional(),
     pageId: z.string().optional(),
     requestId: z.string().optional(),
     type: z.literal('error'),
@@ -47,6 +48,16 @@ export const blockLiveServerMessageSchema = z.discriminatedUnion('type', [
   z.object({ blocks: z.array(blockVersionSchema), pageId: z.string(), type: z.literal('versions') }),
   z.object({ pageId: z.string(), type: z.literal('resync') }),
   z.object({ pageId: z.string(), type: z.literal('revoked') }),
+  z.object({ collectionId: z.string(), type: z.literal('subscribed-collection') }),
+  z.object({
+    collectionId: z.string(),
+    rows: z.array(blockVersionSchema),
+    schemaVersion: z.number().int().optional(),
+    type: z.literal('collection-changes'),
+    views: z.array(blockVersionSchema),
+  }),
+  z.object({ collectionId: z.string(), type: z.literal('collection-resync') }),
+  z.object({ collectionId: z.string(), type: z.literal('collection-revoked') }),
   z.object({ blockId: z.string(), discussionId: z.string(), pageId: z.string(), type: z.literal('discussion') }),
   z.object({
     pageId: z.string(),

@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d8cd53b7c78910ad6f1f6b97372a97cce8610fc69aa588e12cbea574ab8bd9b0'>;
+  StorageHashBase<'89d5dc74953b2cee64368ffd005871d78f50ee4f6c191d2e9a2cd9f6baeea8af'>;
 export type ExecutionHash =
   ExecutionHashBase<'0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc'>;
 export type ProfileHash =
@@ -275,6 +275,7 @@ export type FieldOutputTypes = {
     };
     readonly Block: {
       readonly alive: CodecTypes['pg/bool@1']['output'];
+      readonly changeXid: CodecTypes['pg/int8@1']['output'];
       readonly children: ReadonlyArray<CodecTypes['pg/text@1']['output']>;
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
       readonly createdById: CodecTypes['pg/text@1']['output'];
@@ -530,6 +531,7 @@ export type FieldInputTypes = {
     };
     readonly Block: {
       readonly alive: CodecTypes['pg/bool@1']['input'];
+      readonly changeXid: CodecTypes['pg/int8@1']['input'];
       readonly children: ReadonlyArray<CodecTypes['pg/text@1']['input']>;
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['input'];
       readonly createdById: CodecTypes['pg/text@1']['input'];
@@ -785,6 +787,7 @@ export type StorageColumnTypes = {
     };
     readonly Block: {
       readonly alive: CodecTypes['pg/bool@1']['output'];
+      readonly changeXid: CodecTypes['pg/int8@1']['output'];
       readonly children: ReadonlyArray<CodecTypes['pg/text@1']['output']>;
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
       readonly createdById: CodecTypes['pg/text@1']['output'];
@@ -1040,6 +1043,7 @@ export type StorageColumnInputTypes = {
     };
     readonly Block: {
       readonly alive: CodecTypes['pg/bool@1']['input'];
+      readonly changeXid: CodecTypes['pg/int8@1']['input'];
       readonly children: ReadonlyArray<CodecTypes['pg/text@1']['input']>;
       readonly createdAt: CodecTypes['pg/timestamptz-date@1']['input'];
       readonly createdById: CodecTypes['pg/text@1']['input'];
@@ -1307,6 +1311,7 @@ export namespace Models {
   };
   export type public_Block = {
     alive: CodecTypes['pg/bool@1']['output'];
+    changeXid: CodecTypes['pg/int8@1']['output'];
     children: ReadonlyArray<CodecTypes['pg/text@1']['output']>;
     createdAt: CodecTypes['pg/timestamptz-date@1']['output'];
     createdById: CodecTypes['pg/text@1']['output'];
@@ -2057,6 +2062,16 @@ type ContractBase = Omit<
                   };
                   readonly many: false;
                 };
+                readonly changeXid: {
+                  readonly dataType: 'pg/int8';
+                  readonly codecId: 'pg/int8@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int8@1', '0'>;
+                  };
+                  readonly many: false;
+                };
                 readonly children: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -2230,6 +2245,11 @@ type ContractBase = Omit<
                 {
                   readonly name: 'Block_ownerId_idx';
                   readonly columns: readonly ['ownerId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Block_parentId_changeXid_idx';
+                  readonly columns: readonly ['parentId', 'changeXid'];
                   readonly unique: false;
                 },
                 {
@@ -4348,6 +4368,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
+              readonly changeXid: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int8@1' };
+              };
               readonly children: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -4652,6 +4676,7 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly alive: { readonly column: 'alive' };
+                readonly changeXid: { readonly column: 'changeXid' };
                 readonly children: { readonly column: 'children' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly createdById: { readonly column: 'createdById' };

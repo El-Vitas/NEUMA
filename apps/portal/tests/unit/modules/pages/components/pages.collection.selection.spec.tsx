@@ -164,7 +164,7 @@ describe('marcar todas las filas que coinciden, no solo las cargadas', () => {
   const drawLongTable = async (distinctRowCount: number, search = '') => {
     cleanup();
     return renderWithMessages(
-      <PAGE_ROW_QUERY_CONTEXT value={{ search }}>
+      <PAGE_ROW_QUERY_CONTEXT value={{ quickFilter: null, search }}>
         {
           await PagesCollectionTable({
             activeViewName: 'Table',
@@ -205,7 +205,9 @@ describe('marcar todas las filas que coinciden, no solo las cargadas', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Select all 5 matching rows' }));
 
     await waitFor(() => expect(screen.getByTestId('selection-bar').textContent).toContain('5 rows selected'));
-    expect(matchingAsked).toEqual([{ pageId: 'collection-1', search: 'informe', spaceId: 'space-1', viewId: view.id }]);
+    expect(matchingAsked).toEqual([
+      { pageId: 'collection-1', quickFilter: null, search: 'informe', spaceId: 'space-1', viewId: view.id },
+    ]);
   });
 
   it('acts on the rows it marked without loading them: the previous values travel for the undo', async () => {

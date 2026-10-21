@@ -13,7 +13,7 @@ export const PAGE_ROW_SELECTION_CONTEXT = createContext<null | PagesRowSelection
  * The words the rows were searched by. The server reads the rows with them, so everything that asks it for more rows
  * (the next page, a calendar month, all that match) must ask with the same words.
  */
-export const PAGE_ROW_QUERY_CONTEXT = createContext<PagesRowQuery>({ search: '' });
+export const PAGE_ROW_QUERY_CONTEXT = createContext<PagesRowQuery>({ quickFilter: null, search: '' });
 
 /**
  * The rows read after the first page are held by the groups that read them, but the selection, the bulk edit and the

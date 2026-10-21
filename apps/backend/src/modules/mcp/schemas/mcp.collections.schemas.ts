@@ -1,4 +1,5 @@
 import {
+  isValidPageTimeZone,
   PAGE_FILTER_OPERATOR_VALUES,
   PAGE_NUMBER_FORMAT_VALUES,
   PAGE_PROPERTY_TYPE,
@@ -11,6 +12,9 @@ import { z } from 'zod';
 import {
   MCP_AGGREGATE_CALCULATIONS,
   MCP_AGGREGATE_LIMIT,
+  MCP_CHANGES_ROWS_DEFAULT,
+  MCP_CHANGES_ROWS_MAX,
+  MCP_CHANGES_WAIT_MAX_SECONDS,
   MCP_COLLECTION_CHANGE_LIMIT,
   MCP_COLUMN_NAME_MAX_LENGTH,
   MCP_QUERY_COLUMN_LIMIT,
@@ -20,6 +24,7 @@ import {
   MCP_QUERY_SEARCH_MAX_LENGTH,
   MCP_ROW_TEXT_MAX_LENGTH,
   MCP_SORT_RULE_LIMIT,
+  MCP_TIME_ZONE_MAX_LENGTH,
   MCP_TITLE_MAX_LENGTH,
   MCP_VALUE_TEXT_MAX_LENGTH,
   MCP_WHERE_CONDITION_LIMIT,
@@ -82,7 +87,11 @@ const whereSchema = z
     z.object({
       column: columnSchema,
       operator: z.enum(PAGE_FILTER_OPERATOR_VALUES),
-      value: conditionValueSchema.optional(),
+      value: conditionValueSchema
+        .optional()
+        .describe(
+          'What to compare with. A date column also takes a relative date that moves with the day of the question (@today, @tomorrow, @this_week, @next_month, @past_days:7, @next_days:7 ...), and with IS_BEFORE it finds what is overdue. A person, creator or editor column takes "@me": the owner of your token.',
+        ),
     }),
   )
   .max(MCP_WHERE_CONDITION_LIMIT)
@@ -213,6 +222,16 @@ export const queryCollectionInputSchema = z.object({
     .optional()
     .describe('Only rows whose title or text cells contain this.'),
   sort: sortSchema.optional(),
+  timeZone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MCP_TIME_ZONE_MAX_LENGTH)
+    .refine(isValidPageTimeZone, { message: 'timeZone is not an IANA zone name, such as America/Santiago.' })
+    .optional()
+    .describe(
+      'The zone whose calendar decides what "today", "this week" or "yesterday" mean and which day a moment belongs to, as an IANA name such as America/Santiago. UTC when left out.',
+    ),
   view: viewNameSchema
     .optional()
     .describe('Read the rows as this view shows them, with its filter and order; where and sort replace its own.'),
@@ -370,8 +389,54 @@ const outputGroupSchema = z.object({
   rows: z.array(outputRowSchema),
 });
 
+export const collectionChangesInputSchema = z.object({
+  collection: collectionSchema,
+  columns: z
+    .array(columnSchema)
+    .max(MCP_QUERY_COLUMN_LIMIT)
+    .optional()
+    .describe('Return only these columns of each changed row (the title is always there).'),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(MCP_CHANGES_ROWS_MAX)
+    .default(MCP_CHANGES_ROWS_DEFAULT)
+    .describe('Changed rows to return. When there are more, hasMore is true: ask again with the cursor you got.'),
+  since: z
+    .string()
+    .max(MCP_QUERY_CURSOR_MAX_LENGTH)
+    .optional()
+    .describe(
+      'The cursor of your last read (changesCursor of query_collection, or cursor of this tool). Leave out to get the cursor to watch from now, with no rows.',
+    ),
+  waitSeconds: z
+    .number()
+    .int()
+    .min(0)
+    .max(MCP_CHANGES_WAIT_MAX_SECONDS)
+    .default(0)
+    .describe('Wait up to this many seconds for something to change instead of answering empty.'),
+});
+
+export const collectionChangesOutputSchema = z.object({
+  /** Pass it back as since. */
+  cursor: z.string(),
+  hasMore: z.boolean(),
+  /** The cursor was not valid: read the collection again with query_collection. */
+  reset: z.boolean(),
+  /** The rows that changed, as they are now. A row seen again with the same version has not changed. */
+  rows: z.array(outputRowSchema),
+  /** Every row the token can read: if it differs from the rows you hold, read again. */
+  total: z.number().int().nonnegative(),
+  /** Rows that went to the trash. */
+  trashed: z.array(z.string()),
+});
+
 export const queryCollectionOutputSchema = z.object({
   aggregates: aggregatesSchema.optional(),
+  /** Pass it to collection_changes as since to read what changes after this answer. */
+  changesCursor: z.string().optional(),
   /** Present when the answer is grouped, or a single group was asked for. */
   groups: z.array(outputGroupSchema).optional(),
   /** There are more groups than one answer carries. */

@@ -5,6 +5,7 @@ import { BlockLiveService } from '@/modules/blocks/block.live.service';
 import {
   BLOCK_LIVE_CLOSE_CODE,
   BLOCK_LIVE_DEFAULT_SETTINGS,
+  BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_MAX_CONNECTIONS_PER_USER,
   BLOCK_LIVE_MAX_MESSAGE_BYTES,
   BLOCK_LIVE_MAX_REQUEST_MESSAGE_BYTES,
@@ -335,6 +336,63 @@ describe('BlockLiveService', () => {
       await connection.receive({ pageId: 'page-new', type: 'subscribe' });
 
       expect(connection.sent().at(-1)).toEqual({ pageId: 'page-new', type: 'subscribed' });
+    });
+  });
+
+  describe('collection subscriptions', () => {
+    it('subscribes to a collection the user can read, without presence', async () => {
+      const harness = buildHarness();
+      const connection = await harness.open();
+
+      await connection.receive({ collectionId: 'collection-1', type: 'subscribe-collection' });
+
+      expect(connection.sent().at(-1)).toEqual({ collectionId: 'collection-1', type: 'subscribed-collection' });
+      expect(harness.broadcasts).toEqual([]);
+    });
+
+    it('refuses a collection the user cannot read', async () => {
+      const harness = buildHarness({ deniedPageIds: ['collection-hidden'] });
+      const connection = await harness.open();
+
+      await connection.receive({ collectionId: 'collection-hidden', type: 'subscribe-collection' });
+
+      expect(connection.sent().at(-1)).toEqual({
+        code: 'access-denied',
+        collectionId: 'collection-hidden',
+        type: 'error',
+      });
+    });
+
+    it('refuses the subscription that goes over the cap of collections and keeps the others', async () => {
+      const harness = buildHarness();
+      const connection = await harness.open();
+
+      for (let index = 0; index < BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION; index += 1) {
+        await connection.receive({ collectionId: `collection-${String(index)}`, type: 'subscribe-collection' });
+      }
+      await connection.receive({ collectionId: 'collection-over', type: 'subscribe-collection' });
+      await connection.receive({ collectionId: 'collection-0', type: 'subscribe-collection' });
+
+      const messages = connection.sent();
+      expect(messages.at(-2)).toEqual({
+        code: 'too-many-subscriptions',
+        collectionId: 'collection-over',
+        type: 'error',
+      });
+      expect(messages.at(-1)).toEqual({ collectionId: 'collection-0', type: 'subscribed-collection' });
+    });
+
+    it('makes room again after an unsubscribe', async () => {
+      const harness = buildHarness();
+      const connection = await harness.open();
+      for (let index = 0; index < BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION; index += 1) {
+        await connection.receive({ collectionId: `collection-${String(index)}`, type: 'subscribe-collection' });
+      }
+
+      await connection.receive({ collectionId: 'collection-0', type: 'unsubscribe-collection' });
+      await connection.receive({ collectionId: 'collection-new', type: 'subscribe-collection' });
+
+      expect(connection.sent().at(-1)).toEqual({ collectionId: 'collection-new', type: 'subscribed-collection' });
     });
   });
 

@@ -15,6 +15,8 @@ export type BlockLiveClientMessage =
   | { readonly token: string; readonly type: 'auth' }
   | { readonly pageId: string; readonly type: 'subscribe' }
   | { readonly pageId: string; readonly type: 'unsubscribe' }
+  | { readonly collectionId: string; readonly type: 'subscribe-collection' }
+  | { readonly collectionId: string; readonly type: 'unsubscribe-collection' }
   | { readonly blockId: string | null; readonly pageId: string; readonly type: 'presence' }
   | { readonly type: 'ping' }
   | {
@@ -112,6 +114,8 @@ export type BlockLiveConnectionOpener = (socket: BlockLiveSocket) => BlockLiveSo
 /** One open socket. Its subscriptions map each page to the space it lives in. */
 export interface BlockLiveConnection {
   ageTimer: ReturnType<typeof setTimeout> | null;
+  /** The collections the socket follows, each mapped to the space it lives in. */
+  readonly collectionSubscriptions: Map<string, string>;
   deadlineTimer: ReturnType<typeof setTimeout> | null;
   readonly id: string;
   isClosed: boolean;

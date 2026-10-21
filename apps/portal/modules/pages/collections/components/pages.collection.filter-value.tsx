@@ -1,7 +1,7 @@
 'use client';
 
 import type { PageFilterCondition } from '@neuma/shared';
-import { PAGE_STATUS_GROUP_VALUES } from '@neuma/shared';
+import { PAGE_FILTER_ME, PAGE_STATUS_GROUP_VALUES } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
@@ -10,11 +10,12 @@ import { readFilterValueKind } from '../lib/pages.filter-value.lib';
 import { listPropertyOptions } from '../lib/pages.option-groups.lib';
 import { getPagePersonOptionLabel } from '../lib/pages.properties.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
-import type { PageFilterPath, PagesViewFiltering } from '../types/pages.view-filtering.types';
+import type { PageFilterPath, PagesFilterEditing } from '../types/pages.view-filtering.types';
+import { PagesCollectionFilterValueDate } from './pages.collection.filter-value.date';
 
 interface IProps {
   readonly condition: PageFilterCondition;
-  readonly filtering: PagesViewFiltering;
+  readonly filtering: PagesFilterEditing;
   readonly path: PageFilterPath;
   readonly property: PageSchemaProperty;
 }
@@ -55,9 +56,10 @@ export const PagesCollectionFilterValue = ({ condition, filtering, path, propert
     case 'STATUS_GROUP':
       return chooseFrom(PAGE_STATUS_GROUP_VALUES.map((group) => ({ label: t(`statusGroups.${group}`), value: group })));
     case 'PERSON':
-      return chooseFrom(
-        people.map((person) => ({ label: getPagePersonOptionLabel(people, person), value: person.id })),
-      );
+      return chooseFrom([
+        { label: t('filterMe'), value: PAGE_FILTER_ME },
+        ...people.map((person) => ({ label: getPagePersonOptionLabel(people, person), value: person.id })),
+      ]);
     case 'BOOLEAN':
       return (
         <Select
@@ -76,13 +78,11 @@ export const PagesCollectionFilterValue = ({ condition, filtering, path, propert
       );
     case 'DATE':
       return (
-        <Input
-          aria-label={label}
-          className="w-40"
-          defaultValue={textValue}
-          disabled={filtering.isSaving}
-          onBlur={(event) => filtering.setConditionValue(path, event.target.value === '' ? null : event.target.value)}
-          type="date"
+        <PagesCollectionFilterValueDate
+          isDisabled={filtering.isSaving}
+          label={label}
+          onChange={(value) => filtering.setConditionValue(path, value)}
+          value={condition.value}
         />
       );
     case 'NUMBER':

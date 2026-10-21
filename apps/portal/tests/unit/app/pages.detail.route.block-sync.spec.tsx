@@ -70,6 +70,8 @@ mock.module('@/i18n/navigation', () => ({
   redirect: () => undefined,
   useRouter: () => ({ refresh: () => undefined }),
 }));
+mock.module('@/shared/server/lib/time-zone.server', () => ({ readRequestTimeZone: async () => null }));
+mock.module('@/shared/server/actions/time-zone.actions', () => ({ rememberTimeZoneAction: async () => undefined }));
 mock.module('@/shared/server/lib/current-user.server', () => ({
   getCurrentUser: async () => ({ id: 'user-1', name: 'Ana', role: 'ADMIN' }),
 }));
@@ -107,6 +109,10 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   refreshPageRowsAction: async () => ({ data: null }),
   movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
+// The live follower opens a socket and loads server actions, which a test of the route does not need.
+mock.module('@/modules/pages/collections/components/pages.collection.live-follower', () => ({
+  PagesCollectionLiveFollower: () => null,
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
   createPageAction: async () => ({ data: { id: 'row-new' } }),
