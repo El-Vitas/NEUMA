@@ -1,5 +1,7 @@
 import type { NeumaTransaction } from '@neuma/db';
 import { BLOCK_TYPE } from '@neuma/shared';
+import type { SchemaPropertyDefinition } from '../../../../common/domain/schema.domain.types';
+import { toSchemaPropertyDefinition } from '../../../../common/infrastructure/persistence/schema-json.adapter';
 import { requireRow } from '../../../../common/utils/required-row.utils';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../../prisma/prisma.sql.lib';
@@ -18,10 +20,18 @@ import type {
   LinkSourceRebind,
   SpaceRoots,
   StoredBlockLink,
+  StoredView,
+  ViewWrite,
   WorkingBlock,
 } from '../../domain/block.transaction.domain.types';
-import { blockStoredResultSchema } from '../../schemas/block.operation.schemas';
-import { blockChildrenSchema, blockJsonValueSchema, blockLinkKindSchema } from '../../schemas/block.row.schemas';
+import { blockFieldSchemas, blockStoredResultSchema } from '../../schemas/block.operation.schemas';
+import {
+  blockChildrenSchema,
+  blockJsonValueSchema,
+  blockLinkKindSchema,
+  viewConfigurationSchema,
+  viewTypeSchema,
+} from '../../schemas/block.row.schemas';
 import type {
   BlockTransactionClaim,
   BlockTransactionResult,
@@ -100,6 +110,115 @@ export class PostgresBlockTransactionSession implements BlockTransactionSession 
     const locked = await this.readLocked(lockedIds);
     const context = await this.readContext(contextIds);
     return { context, isDepthExceeded: ancestors.isDepthExceeded, locked, spaces };
+  }
+
+  async readViewPageIds(viewIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (viewIds.length === 0) return new Map();
+    const views = await this.transaction.orm.public.PageSchemaView.select('id', 'pageId')
+      .where((view) => view.id.in([...viewIds]))
+      .all();
+    return new Map(views.map((view) => [view.id, view.pageId]));
+  }
+
+  async lockViews(viewIds: readonly string[]): Promise<StoredView[]> {
+    if (viewIds.length === 0) return [];
+    const { columns } = this.prisma.tables.PageSchemaView;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      SELECT "id", "pageId", "name", "type"::text AS "type", "configuration", to_jsonb("manualOrder") AS "manualOrder",
+        "version"
+      FROM "PageSchemaView"
+      WHERE "id" = ANY(${buildSqlTextList(this.prisma.sql, viewIds)}) ORDER BY "id" FOR UPDATE
+    `
+        .returnsRow({
+          configuration: columns.configuration,
+          id: columns.id,
+          manualOrder: { codecId: 'pg/jsonb@1', nullable: true },
+          name: columns.name,
+          pageId: columns.pageId,
+          type: 'pg/text@1',
+          version: columns.version,
+        })
+        .build(),
+    );
+    const orders = await this.readCollectionRowOrders([...new Set(rows.map((row) => row.pageId))]);
+    return rows.map((row) => ({
+      collectionOrder: orders.get(row.pageId) ?? [],
+      configuration: viewConfigurationSchema.parse(row.configuration),
+      id: row.id,
+      manualOrder: row.manualOrder === null ? null : blockChildrenSchema.parse(row.manualOrder),
+      name: row.name,
+      pageId: row.pageId,
+      type: viewTypeSchema.parse(row.type),
+      version: row.version,
+    }));
+  }
+
+  /** The children of each collection that are pages, in the order the collection lists them. */
+  private async readCollectionRowOrders(collectionIds: readonly string[]): Promise<Map<string, string[]>> {
+    const orders = new Map<string, string[]>(collectionIds.map((id) => [id, []]));
+    if (collectionIds.length === 0) return orders;
+    const { columns } = this.prisma.tables.Block;
+    const rows = await this.transaction.query(
+      this.prisma.sql`
+      SELECT "collection"."id" AS "collectionId", "entry"."id" AS "id"
+      FROM "Block" AS "collection"
+      CROSS JOIN LATERAL unnest("collection"."children") WITH ORDINALITY AS "entry"("id", "position")
+      INNER JOIN "Block" AS "child" ON "child"."id" = "entry"."id" AND "child"."type" = ${BLOCK_TYPE.page}
+      WHERE "collection"."id" = ANY(${buildSqlTextList(this.prisma.sql, collectionIds)})
+      ORDER BY "collection"."id", "entry"."position"
+    `
+        .returnsRow({ collectionId: columns.id, id: columns.id })
+        .build(),
+    );
+    for (const row of rows) orders.get(row.collectionId)?.push(row.id);
+    return orders;
+  }
+
+  async readCollectionSchemas(
+    pageIds: readonly string[],
+  ): Promise<ReadonlyMap<string, readonly SchemaPropertyDefinition[]>> {
+    const schemas = new Map<string, SchemaPropertyDefinition[]>(pageIds.map((pageId) => [pageId, []]));
+    if (pageIds.length === 0) return schemas;
+    const properties = await this.transaction.orm.public.PageSchemaProperty.select(
+      'config',
+      'key',
+      'label',
+      'options',
+      'pageId',
+      'required',
+      'type',
+    )
+      .where((property) => property.pageId.in([...pageIds]))
+      .orderBy((property) => property.order.asc())
+      .all();
+    for (const property of properties) schemas.get(property.pageId)?.push(toSchemaPropertyDefinition(property));
+    return schemas;
+  }
+
+  async writeViews(writes: readonly ViewWrite[]): Promise<void> {
+    for (const write of writes) {
+      const updated = await this.transaction.orm.public.PageSchemaView.where({ id: write.id }).update({
+        configuration: blockFieldSchemas.properties.parse(write.configuration),
+        manualOrder: write.manualOrder === null ? null : [...write.manualOrder],
+        version: write.version,
+      });
+      requireRow(updated, `View ${write.id}`);
+    }
+  }
+
+  async appendRowsToViewOrders(rows: readonly { readonly pageId: string; readonly rowId: string }[]): Promise<void> {
+    for (const { pageId, rowId } of rows) {
+      await this.transaction.execute(
+        this.prisma.sql`
+        UPDATE "PageSchemaView"
+        SET "manualOrder" = array_append("manualOrder", ${rowId}::text), "version" = "version" + 1
+        WHERE "pageId" = ${pageId} AND "manualOrder" IS NOT NULL AND NOT (${rowId}::text = ANY("manualOrder"))
+      `
+          .affectedCount()
+          .build(),
+      );
+    }
   }
 
   async writeSpaces(spaces: readonly SpaceRoots[]): Promise<void> {

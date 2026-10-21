@@ -4,31 +4,36 @@ import { useTranslations } from 'next-intl';
 import { useOptimistic, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { hasActionError } from '@/shared/lib/action-result';
-import { reorderPageAction } from '../../server/actions/pages.actions';
 import { resolveBoardKeyboardTarget } from '../lib/pages.board-drag.lib';
 import { applyBoardMoveToBands, findBandHoldingRow, resolveBoardGridDrop } from '../lib/pages.board-grid.lib';
-import { toGroupPropertyValue } from '../lib/pages.group-values.lib';
-import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
+import { buildBoardMoveValues, resolveBoardAnchor } from '../lib/pages.board-move.lib';
+import { movePageRowAction } from '../server/actions/pages.collections.actions';
 import type {
   PageBoardDragController,
+  PageBoardDragInput,
   PageBoardDragState,
   PageBoardGridDropTarget,
   PageBoardGridMove,
   PageBoardMoveDirection,
 } from '../types/pages.board-drag.types';
-import type { PagePropertyValue, PageSchemaProperty, PageViewBand } from '../types/pages.schema.types';
+import type { PageViewBand } from '../types/pages.schema.types';
 
 /**
- * Column and band values are written together: a diagonal move sent as two writes would leave the card
- * half moved if the second failed. Order among siblings is a separate write.
+ * The value of the column and the place among the other cards are one write: a diagonal move sent as two writes would
+ * leave the card half moved if the second failed. In a view sorted by something, the place is the sort's, so only
+ * the value is written.
  */
-export const usePagesBoardDrag = (
-  bands: readonly PageViewBand[],
-  groupByKey: string,
-  spaceId: string,
-  properties: readonly PageSchemaProperty[],
+export const usePagesBoardDrag = ({
+  bands,
+  groupByKey,
+  groupByMode,
+  isManualOrder,
+  pageId,
+  properties,
+  spaceId,
   subGroupByKey = '',
-): PageBoardDragController => {
+  viewId,
+}: PageBoardDragInput): PageBoardDragController => {
   const t = useTranslations('pages.collection');
   const tErrors = useTranslations('errors');
   const [carried, setCarried] = useState<PageBoardDragState | null>(null);
@@ -41,34 +46,45 @@ export const usePagesBoardDrag = (
       applyBoardMoveToBands(current, moved.rowId, moved.move, groupByKey, subGroupByKey),
   );
 
-  const toWritten = (propertyKey: string, groupValue: null | string): null | PagePropertyValue =>
-    groupValue === null ? null : toGroupPropertyValue(properties, propertyKey, groupValue);
-
-  const landedPropertyValues = (move: PageBoardGridMove): Readonly<Record<string, null | PagePropertyValue>> => ({
-    ...(move.changesGroup ? { [groupByKey]: toWritten(groupByKey, move.propertyValue) } : {}),
-    ...(move.changesBand && subGroupByKey !== '' ? { [subGroupByKey]: toWritten(subGroupByKey, move.bandValue) } : {}),
-  });
-
-  const write = async (rowId: string, move: PageBoardGridMove): Promise<boolean> => {
-    const propertyValues = landedPropertyValues(move);
-    if (Object.keys(propertyValues).length > 0) {
-      const written = await updatePageRowPropertiesAction({ pageId: rowId, propertyValues, spaceId });
-      if (hasActionError(written)) return false;
-    }
-    if (!move.changesOrder) return true;
-    const reordered = await reorderPageAction({
-      pageId: rowId,
-      spaceId,
-      ...(move.beforeRowId === null ? {} : { beforePageId: move.beforeRowId }),
+  const write = async (
+    pickedUp: PageBoardDragState,
+    move: PageBoardGridMove,
+    aim: PageBoardGridDropTarget,
+  ): Promise<boolean> => {
+    const { listChanges, values } = buildBoardMoveValues({
+      fromBandKey: pickedUp.fromBandKey,
+      fromGroupKey: pickedUp.fromGroupKey,
+      groupByKey,
+      mode: groupByMode,
+      move,
+      properties,
+      subGroupByKey,
     });
-    return !hasActionError(reordered);
+    const anchor = move.changesOrder && isManualOrder ? resolveBoardAnchor(bands, pickedUp.rowId, aim) : {};
+    const hasWrite = Object.keys(values).length + Object.keys(listChanges).length + Object.keys(anchor).length > 0;
+    if (!hasWrite) return true;
+    const moved = await movePageRowAction({
+      ...anchor,
+      listChanges,
+      pageId,
+      rowId: pickedUp.rowId,
+      spaceId,
+      values,
+      viewId,
+    });
+    return !hasActionError(moved);
   };
 
-  const land = (rowId: string, move: PageBoardGridMove, columnLabel: string): void => {
+  const land = (
+    pickedUp: PageBoardDragState,
+    move: PageBoardGridMove,
+    aim: PageBoardGridDropTarget,
+    columnLabel: string,
+  ): void => {
     startMoving(async () => {
       // Shown before the write finishes: waiting leaves the card still under a hand that already dropped it.
-      showMoved({ move, rowId });
-      const written = await write(rowId, move);
+      showMoved({ move, rowId: pickedUp.rowId });
+      const written = await write(pickedUp, move, aim);
       if (!written) {
         toast.error(tErrors('generic'));
         return;
@@ -79,8 +95,8 @@ export const usePagesBoardDrag = (
 
   const columnsOf = (bandKey: string) => bands.find((band) => band.key === bandKey)?.groups ?? bands[0]?.groups ?? [];
 
-  const labelOf = (target: PageBoardGridDropTarget): string =>
-    columnsOf(target.bandKey).find((group) => group.key === target.groupKey)?.label ?? target.groupKey;
+  const labelOf = (aim: PageBoardGridDropTarget): string =>
+    columnsOf(aim.bandKey).find((group) => group.key === aim.groupKey)?.label ?? aim.groupKey;
 
   const drop = (): void => {
     const wasCarrying = carried;
@@ -90,7 +106,7 @@ export const usePagesBoardDrag = (
     if (wasCarrying === null || wasAiming === null) return;
     const move = resolveBoardGridDrop(bands, wasCarrying.rowId, wasAiming);
     if (move === null) return;
-    land(wasCarrying.rowId, move, labelOf(wasAiming));
+    land(wasCarrying, move, wasAiming, labelOf(wasAiming));
   };
 
   return {
@@ -105,7 +121,7 @@ export const usePagesBoardDrag = (
       const aiming = { bandKey, beforeRowId: null, groupKey: toGroupKey };
       const move = resolveBoardGridDrop(bands, rowId, aiming);
       if (move === null) return;
-      land(rowId, move, labelOf(aiming));
+      land({ fromBandKey: bandKey, fromGroupKey, rowId }, move, aiming, labelOf(aiming));
     },
     onDragEnd: () => {
       setCarried(null);

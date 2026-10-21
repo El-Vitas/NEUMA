@@ -1,7 +1,8 @@
 import { describe, expect, it, mock } from 'bun:test';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
 import type {
   PagePersonOption,
   PageSchemaProperty,
@@ -18,6 +19,35 @@ mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ refresh: () => undefined }),
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
+const asked: Record<string, unknown>[] = [];
+mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
+  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async (input: Record<string, unknown>) => {
+    asked.push(input);
+    return {
+      data: {
+        attachedFiles: [],
+        nextCursor: null,
+        relatedRows: [],
+        rows: [
+          {
+            id: 'row-3',
+            lifecycle: 'ACTIVE',
+            order: 2,
+            parentId: 'collection-1',
+            propertyValues: { status: 'todo' },
+            spaceId: 'space-1',
+            title: 'Third task',
+          },
+        ],
+      },
+    };
+  },
+  updatePageRowPropertiesAction: async () => ({ data: null }),
+}));
 
 const { PagesCollectionList } = await import('@/modules/pages/collections/components/pages.collection.list');
 
@@ -65,10 +95,20 @@ const renderWithMessages = (ui: ReactNode) =>
     </NextIntlClientProvider>,
   );
 
-const drawList = async (groups: PageViewGroup[], isGrouped: boolean) => {
+const drawList = async (groups: PageViewGroup[], isGrouped: boolean, nextCursor: null | string = null) => {
   cleanup();
   return renderWithMessages(
-    await PagesCollectionList({ groups, isGrouped, personOptions, properties, spaceId: 'space-1' }),
+    await PagesCollectionList({
+      aggregates: NO_PAGE_AGGREGATES,
+      groups,
+      isGrouped,
+      nextCursor,
+      pageId: 'collection-1',
+      personOptions,
+      properties,
+      spaceId: 'space-1',
+      viewId: 'view-list',
+    }),
   );
 };
 
@@ -99,5 +139,24 @@ describe('PagesCollectionList', () => {
     await drawList([{ color: null, key: '', label: '', rows: [] }], false);
 
     expect(screen.queryByTestId('collection-list')).toBeNull();
+  });
+
+  it('offers no way to load more when the rows drawn are all there are', async () => {
+    await drawList(ungrouped, false);
+
+    expect(screen.queryByTestId('collection-load-more')).toBeNull();
+  });
+
+  it('asks for the rows after the cursor and draws them below the first ones', async () => {
+    asked.length = 0;
+    await drawList(ungrouped, false, 'cursor-1');
+
+    fireEvent.click(screen.getByTestId('collection-load-more'));
+
+    expect(await screen.findByText('Third task')).toBeDefined();
+    expect(asked).toEqual([
+      { cursor: 'cursor-1', pageId: 'collection-1', search: '', spaceId: 'space-1', viewId: 'view-list' },
+    ]);
+    expect(screen.queryByTestId('collection-load-more')).toBeNull();
   });
 });

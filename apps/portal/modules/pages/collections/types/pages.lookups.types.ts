@@ -7,3 +7,6 @@ export interface PageCollectionLookups {
   readonly people: readonly PagePersonOption[];
   readonly relatedRows: readonly PageRelatedRow[];
 }
+
+/** What a later read of rows adds to the lookups. */
+export type PageCollectionLookupsUpdate = Pick<PageCollectionLookups, 'attachedFiles' | 'relatedRows'>;

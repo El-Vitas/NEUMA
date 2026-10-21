@@ -28,6 +28,12 @@ import type {
 } from './block.transaction.domain.types';
 import { BlockContentInvalidError, ServerAssignedPropertyError } from './block.transaction.error';
 import { checkTreeInvariants, findSourcePageId } from './block.tree.domain';
+import { planViewOperations } from './block.view-operation.domain';
+
+/** A transaction that changes views names the nodes it adds; reaching this one is a mistake of the caller. */
+const failToNameNodes = (): string => {
+  throw new Error('A transaction that changes views must say how its filter nodes are named');
+};
 
 const indexWorking = (blocks: readonly WorkingBlock[]): Map<string, WorkingBlock> =>
   new Map(blocks.map((block) => [block.id, block]));
@@ -202,6 +208,14 @@ export const planBlockTransaction = (
   const authorization = buildAuthorization(input, [...context, ...locked], before);
   const authorizedTargets = authorizeTargets(input.operations, authorization);
   if (authorizedTargets.isFail()) return Result.fail(authorizedTargets.getError());
+  const viewPlan = planViewOperations({
+    authorization,
+    createId: input.createNodeId ?? failToNameNodes,
+    operations: input.viewOperations ?? [],
+    schemas: input.viewSchemas ?? new Map(),
+    views: input.views ?? [],
+  });
+  if (viewPlan.isFail()) return Result.fail(viewPlan.getError());
   const related = expandRelationOperations(
     input.operations,
     before,
@@ -248,6 +262,8 @@ export const planBlockTransaction = (
     rebinds: listRebinds(blocks, before, recordsById, input.maxTreeDepth),
     spaceWrites: roots.getValue(),
     versions: blocks.map(({ block }) => ({ id: block.id, version: block.version })),
+    viewVersions: viewPlan.getValue().versions,
+    viewWrites: viewPlan.getValue().writes,
     writes: orderWrites(blocks, before),
   });
 };

@@ -20,27 +20,6 @@ rules:
         given: Una colección con la propiedad «Creada»
         when: Una petición intenta escribir ese valor en una fila
         then: Se rechaza, y la fila sigue mostrando su fecha real
-  - id: BR-22dc232
-    status: active
-    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
-    rule: >-
-      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
-      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
-      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar o quitar una opción de una
-      propiedad: la opción se nombra por su identificador, y si ya fue quitada por otra persona el cambio no se aplica y
-      se dice que la opción ya se movió, en lugar de escribir encima. Renombrar ya no puede chocar con otro renombre,
-      porque el nombre no es la dirección de la opción.
-    why: >-
-      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
-      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
-      algo que sí se había configurado.
-    context: Un estado no puede quedarse sin opción en uno de sus grupos, así que quitar la última de un grupo se rechaza.
-    supersedes: BR-699e037
-    scenarios:
-      - title: Quitar una opción ya quitada
-        given: Dos personas con la misma opción abierta
-        when: Las dos la quitan
-        then: La segunda recibe que la opción ya se movió y no se escribe nada
   - id: BR-2a96107
     status: active
     title: Una propiedad cambia sola, sobre lo que la fila tiene en ese momento
@@ -57,30 +36,6 @@ rules:
         given: Una tarea con estado «Por hacer» y prioridad «Baja»
         when: Una la pasa a «Hecho» y otra, al mismo tiempo, sube la prioridad a «Alta»
         then: La tarea queda en «Hecho» y con prioridad «Alta»
-  - id: BR-3c85c11
-    status: active
-    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
-    rule: >-
-      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Una consulta con filtro u orden recorre
-      la colección hasta un tope mucho mayor antes de filtrar, para no dejar fuera filas que cumplen y están más abajo.
-      Cuando la colección tenía más de las que se recorrieron, la respuesta lo declara y quien la lee ve que puede haber
-      más. Una colección cortada nunca se presenta como si fuera entera.
-    why: >-
-      Una colección que creció sola costaría al abrirse en proporción a todo lo que guardó. Pero callar el corte es peor
-      que el corte, y filtrar sobre una colección ya cortada es callarlo dos veces: la respuesta dice que nada cumple
-      cuando lo que cumple quedó afuera.
-    context: >-
-      Hoy se traen 500 filas al abrir una colección o una vista, y una consulta recorre hasta 5000 antes de filtrar y
-      ordenar. El agente recibe la misma advertencia que la pantalla.
-    supersedes: BR-e248700
-    superseded_reason: >-
-      Una consulta con filtro u orden cortaba la colección antes de filtrar, y callaba las filas que cumplían más abajo.
-      Ahora recorre mucho más antes de cortar.
-    scenarios:
-      - title: La tarea que cumple está más abajo
-        given: Una colección de 800 tareas donde solo la fila 700 está bloqueada
-        when: Un agente consulta las tareas bloqueadas
-        then: Recibe la fila 700
   - id: BR-3dcf9e7
     status: active
     title: Una propiedad obligatoria se exige al crear la fila y al escribir esa propiedad
@@ -122,6 +77,37 @@ rules:
         given: Una colección con tres filas
         when: Se agrega una propiedad de estado
         then: Las tres filas quedan en el estado inicial junto con la propiedad
+  - id: BR-4ddd139
+    status: active
+    title: Buscar y cambiar de mes piden las filas al servidor, y lo que no cabe se dice
+    rule: >-
+      Buscar en una colección envía las palabras al servidor, que filtra por el título de la fila y por sus respuestas
+      de texto (texto enriquecido, enlace, correo y teléfono), sin distinguir mayúsculas ni acentos. Las filas, los
+      conteos y las páginas siguientes de todas las vistas salen de esa misma búsqueda, y las palabras se conservan al
+      cambiar de vista, de modo que nada se oculta solo entre lo que ya se cargó. Un calendario lee todas las filas que
+      empiezan en los días de su cuadrícula del mes, con los días de las semanas incompletas, y cambiar de mes vuelve a
+      pedirlas. Si la cuadrícula tiene más de mil filas se dibujan las primeras mil y la pantalla lo dice. Las filas sin
+      fecha se cuentan aparte y no se pierden de vista.
+    why: >-
+      Filtrar en la pantalla solo lo cargado presenta un resultado incompleto como si fuera completo, y un calendario
+      que se queda con las primeras cien filas hace desaparecer en silencio las demás.
+    context: >-
+      No se buscan números, fechas ni los nombres de las opciones, porque escribir un 3 coincidiría con media colección.
+      Las palabras y el mes viajan en la dirección de la página para que se puedan compartir y recargar.
+    supersedes: BR-fbf632f
+    scenarios:
+      - title: Buscar con muchas filas
+        given: Una tabla de dos mil filas de la que solo se cargaron cincuenta
+        when: Se busca una palabra que dice una fila que no estaba cargada
+        then: La fila aparece y el conteo cuenta las filas que coinciden en toda la colección
+      - title: Buscar en una respuesta de texto
+        given: Una fila cuyo título no dice reunión pero cuyas notas sí
+        when: Se busca reunion sin acento
+        then: La fila aparece
+      - title: Un mes con más de cien filas
+        given: Un calendario con ciento treinta filas en un mismo mes
+        when: Se abre ese mes
+        then: Se dibujan las ciento treinta filas de la cuadrícula
   - id: BR-4fef023
     status: active
     title: Una colección se mira de varias formas, y cada una recuerda la suya
@@ -176,32 +162,6 @@ rules:
         given: Una fila con estado
         when: Alguien pide borrar el valor
         then: Se rechaza, y el estado queda como estaba
-  - id: BR-5a97271
-    status: active
-    title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
-    rule: >-
-      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta de una columna
-      a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
-      quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
-      asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
-      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas. En un tablero agrupado
-      por estado nunca hay columna de filas sin valor, porque un estado siempre tiene valor.
-    why: >-
-      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
-      uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
-      exclusión que se nota todos los días.
-    context: >-
-      Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
-      sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
-      el identificador de una de las opciones que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque
-      alguien lo pida por su cuenta. Si la columna es un día, la fila recibe esa fecha, y si tenía un rango de fechas,
-      el rango conserva su duración.
-    supersedes: BR-d7ada57
-    scenarios:
-      - title: Mover una tarjeta de estado
-        given: Un tablero agrupado por estado
-        when: Se arrastra una tarjeta de «Por hacer» a «Completado»
-        then: La fila guarda el identificador de la opción de esa columna y nada más
   - id: BR-5bd97c6
     status: active
     title: Cada opción de una propiedad lleva su nombre, su color y un identificador propio
@@ -232,6 +192,27 @@ rules:
         given: Un estado con dos opciones en el grupo «En curso» y una fila en la que se quitará
         when: Se quita esa opción
         then: La fila pasa a la otra opción del grupo «En curso»
+  - id: BR-5e4ab65
+    status: active
+    title: Seleccionar todo lo que coincide actúa sobre todas las filas, hasta mil, o dice que son demasiadas
+    rule: >-
+      Cuando las filas marcadas son menos que las que coinciden con la vista y la búsqueda, la barra ofrece marcar todas
+      las que coinciden, también las que no se cargaron. Se pueden marcar hasta mil filas de una vez; si coinciden más,
+      la barra lo dice y pide acotar con una búsqueda o un filtro, y no marca una parte. Lo que se hace con esas filas
+      se puede deshacer con los valores que tenían.
+    why: >-
+      Borrar o asignar sobre las filas cargadas mientras la pantalla da a entender que son todas deja filas sin tocar y
+      nadie lo nota.
+    context: El límite de mil es el de ids que devuelve una respuesta de consulta.
+    scenarios:
+      - title: Más filas que las cargadas
+        given: Una tabla de ciento treinta y ocho filas con cincuenta cargadas y marcadas
+        when: Se elige marcar todas las que coinciden
+        then: Quedan marcadas las ciento treinta y ocho
+      - title: Demasiadas
+        given: Una tabla en la que coinciden mil quinientas filas
+        when: Se marcan las cargadas
+        then: La barra dice que son demasiadas y no ofrece marcarlas todas
   - id: BR-61a1857
     status: active
     title: Una fecha puede ser un día o un rango, y una persona puede ser una o varias
@@ -317,6 +298,64 @@ rules:
         given: Una colección con un campo de quién creó la fila
         when: Una transacción crea una fila con otra persona en ese campo
         then: Se rechaza y la fila no se crea
+  - id: BR-81880e6
+    status: active
+    title: Cada cambio a una vista toca una sola cosa, y dos personas que tocan cosas distintas no se pisan
+    rule: >-
+      Una vista se cambia con operaciones pequeñas, cada una sobre una sola cosa, como poner un filtro, quitar un orden,
+      ensanchar una columna o plegar un grupo. El servidor las aplica sobre lo que la vista tiene en ese momento, todas
+      o ninguna, y sube la versión de la vista por cada operación. Si dos personas cambian cosas distintas de la misma
+      vista, ambos cambios quedan; si cambian la misma cosa, queda la última. Un filtro se cambia por sus condiciones,
+      cada una con su identificador, no reescribiendo el filtro entero. Solo puede cambiar una vista quien puede editar
+      su colección, y una colección bloqueada o en la papelera no cambia sus vistas.
+    why: >-
+      Mandar la configuración completa de la vista borra en silencio lo que otra persona cambió entretanto, y la
+      configuración se queda abierta mientras las filas siguen vivas al lado. Con operaciones pequeñas el cambio de una
+      persona nunca lleva copias viejas de lo que no tocó.
+    context: >-
+      Cambiar el nombre de una vista o la que se abre por defecto sigue siendo cambiar la forma de la colección. La
+      pantalla sigue editando una configuración completa; lo que viaja es solo la diferencia.
+    supersedes: BR-22dc232
+    scenarios:
+      - title: Dos personas en la misma vista
+        given: Dos personas con la misma vista abierta
+        when: Una agrupa por estado y la otra ensancha una columna
+        then: La vista queda agrupada por estado y con la columna ensanchada
+      - title: Una colección bloqueada
+        given: Una colección bloqueada
+        when: Alguien intenta poner un filtro a una de sus vistas
+        then: El cambio se rechaza y la vista queda como estaba
+  - id: BR-8e6b1f4
+    status: active
+    title: Una tarjeta arrastrada cambia el valor de la columna y queda donde se soltó, en una sola escritura
+    rule: >-
+      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta a otra columna
+      escribe ese valor en la fila y la deja en el lugar donde se soltó, entre las demás tarjetas de esa vista, y las
+      dos cosas ocurren juntas o no ocurre ninguna. Soltarla en la columna de las filas sin valor le quita el valor en
+      lugar de escribirle la palabra «sin asignar». Soltarla donde ya estaba no escribe nada. Cuando la propiedad guarda
+      varios valores, la tarjeta deja el valor de la columna de la que sale y toma el de la columna a la que llega, y
+      conserva los demás. Si la vista ordena por una propiedad, el lugar lo decide ese orden y solo se escribe el valor.
+      Lo mismo se hace desde el teclado, con Alt y las flechas, y el resultado se anuncia. Quien no puede editar la fila
+      no puede mover su tarjeta. En un tablero agrupado por estado nunca hay columna de filas sin valor, porque un
+      estado siempre tiene valor.
+    why: >-
+      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado es una lista en columnas. Y si el valor y el
+      lugar se escribieran por separado, un fallo a medias dejaría la tarjeta en la columna nueva y en el lugar viejo, o
+      al revés.
+    context: >-
+      Al mover una tarjeta solo viaja lo que cambió, no la página entera. El valor tiene que ser el identificador de una
+      opción que la propiedad ofrece; cualquier otro se rechaza en el servidor. Cada vista tiene su propio orden de
+      tarjetas.
+    supersedes: BR-5a97271
+    scenarios:
+      - title: Mover y ordenar
+        given: Un tablero con tres tarjetas en Por hacer y una en Hecho
+        when: Se arrastra la última de Por hacer al comienzo de Hecho
+        then: La tarjeta queda en Hecho, antes de la que ya estaba, y al recargar sigue ahí
+      - title: Un fallo a medias
+        given: Una fila que no se puede editar
+        when: Se intenta moverla de columna
+        then: Ni su valor ni su lugar cambian
   - id: BR-ae2730d
     status: active
     title: Una selección se ordena por la posición de sus opciones, no por su nombre
@@ -334,6 +373,84 @@ rules:
         given: Una selección con las opciones Alta, Media y Baja en ese orden
         when: Se ordenan las filas de menor a mayor por esa selección
         then: Salen las de Alta, luego Media, luego Baja, y las sin valor al final
+  - id: BR-c0f99c2
+    status: active
+    title: Una colección se lee por páginas, y nunca se presenta cortada como si fuera entera
+    rule: >-
+      Una vista no trae todas las filas de una colección. Trae una primera página de filas, o de cada columna si agrupa,
+      y cada página dice si hay más y desde dónde seguir. Quien lee pide la página siguiente con ese punto de
+      continuación, y el orden no cambia entre páginas aunque se agreguen o muevan filas. Cuántas filas hay en total,
+      cuántas hay en cada grupo y lo que suman o promedian las columnas se calculan sobre todas las filas que pasan el
+      filtro, no sobre las que ya se trajeron, y llegan aparte para que las filas se dibujen sin esperarlos. Una
+      colección cortada nunca se presenta como entera.
+    why: >-
+      Una colección que creció sola costaría al abrirse en proporción a todo lo que guardó, y filtrar sobre una
+      colección ya cortada responde que nada cumple cuando lo que cumple quedó afuera. Dar el total aparte permite ver
+      las filas enseguida y, aun así, no mentir sobre cuántas hay.
+    context: >-
+      Cada respuesta lleva como máximo mil filas y una página de filas lleva como máximo cien. El agente recibe lo mismo
+      que la pantalla y puede pedir solo los conteos, solo un grupo o solo las columnas que necesita.
+    supersedes: BR-3c85c11
+    scenarios:
+      - title: Una colección de miles de filas
+        given: Una colección con diez mil filas y una vista en tabla
+        when: Alguien abre la vista
+        then: Ve las primeras filas enseguida, el total llega después, y puede pedir más filas sin que el orden cambie
+      - title: Un conteo con filtro
+        given: Una vista con un filtro que deja tres mil filas
+        when: Se pide el total
+        then: El total es tres mil aunque solo se hayan traído cincuenta filas
+  - id: BR-d39ee9c
+    status: active
+    title: Lo que alguien no puede abrir no entra en sus conteos, y si no se puede calcular bien se dice
+    rule: >-
+      Los totales, los conteos por grupo y los cálculos de una vista se hacen solo sobre las filas que quien mira puede
+      abrir, y dos personas con los mismos permisos ven los mismos números en la pantalla y en el agente. Una relación
+      no cuenta ni muestra las filas de la otra colección que quien mira no puede abrir, y si no puede abrir esa
+      colección la relación se ve vacía. Si una colección tiene tantas filas cerradas para quien mira que no se pueden
+      dejar fuera con exactitud, la consulta se rechaza con un error que lo dice y queda registrado con la colección, en
+      lugar de contar mal en silencio.
+    why: >-
+      Un conteo que incluye filas que no se pueden ver delata que existen y su cantidad, y un conteo calculado de otra
+      manera para cada pantalla nunca coincide. Rechazar con un motivo es mejor que dar un número que puede ser falso.
+    context: >-
+      El límite son cinco mil filas cerradas en una misma colección. Las reglas propias de un token de agente sobre
+      páginas concretas cuentan igual que los permisos de la fila.
+    scenarios:
+      - title: Una fila cerrada
+        given: Una colección de diez filas, una cerrada para una persona
+        when: Esa persona pide el total y los conteos por grupo
+        then: Ve nueve filas, nueve en los grupos y nueve en el total
+      - title: Demasiadas cerradas
+        given: Una colección con más de cinco mil filas cerradas para una persona
+        when: Pide un conteo
+        then: Recibe un error que dice por qué no se puede calcular
+  - id: BR-d71ba80
+    status: active
+    title: Cada vista ordena las filas a mano a su manera, y mientras no lo haga sigue el orden de la colección
+    rule: >-
+      Una vista puede tener su propio orden manual de filas. Mientras no lo tenga, sigue el orden en que la colección
+      lista sus filas, de modo que la barra lateral y las vistas que nadie ordenó se ven como siempre. La primera vez
+      que alguien coloca una fila en una vista, esa vista toma el orden de la colección como punto de partida y desde
+      entonces lo lleva por su cuenta, sin tocar el de las demás. Una fila nueva se agrega al final de las vistas que ya
+      tienen orden propio, en la misma operación que la crea. Una fila que se borra para siempre desaparece de todos los
+      órdenes en la misma operación. Dos personas que colocan filas distintas a la vez conservan ambas colocaciones.
+    why: >-
+      Un solo orden para la colección obligaría a que mover una tarjeta en un tablero cambie el lugar de la fila en cada
+      tabla y lista, y una lista de ids por vista que no limpia lo que se borra acaba apuntando a filas que ya no
+      existen.
+    context: >-
+      Un orden manual guarda hasta veinte mil filas. Si la vista ordena por una propiedad, esa propiedad manda y el
+      orden manual solo desempata.
+    scenarios:
+      - title: Una vista sin orden propio
+        given: Una tabla y un tablero de la misma colección, y nadie ha colocado filas
+        when: Se mueve una tarjeta en el tablero
+        then: El tablero queda con el nuevo orden y la tabla sigue como estaba
+      - title: Una fila borrada
+        given: Una fila que figura en el orden de un tablero
+        when: Se borra para siempre
+        then: El tablero ya no la lleva en su orden ni la cuenta en ninguna relación
   - id: BR-f45f95c
     status: active
     title: Una relación enlaza filas de otra colección, y cada enlace se agrega o se quita de uno en uno
@@ -481,6 +598,28 @@ rules:
         given: Una opción guardada con un color que el producto no conoce
         when: Se lee
         then: La opción se muestra sin color, y la página se abre igual
+  - id: BR-22dc232
+    status: superseded
+    title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
+    rule: >-
+      Guardar la configuración de una vista manda lo que la colección dice en ese momento, no lo que decía cuando se
+      abrió la pantalla de configuración. Si entre una cosa y otra alguien cambió la agrupación, poner un filtro
+      conserva esa agrupación en vez de devolverla a como estaba. Lo mismo vale al renombrar o quitar una opción de una
+      propiedad: la opción se nombra por su identificador, y si ya fue quitada por otra persona el cambio no se aplica y
+      se dice que la opción ya se movió, en lugar de escribir encima. Renombrar ya no puede chocar con otro renombre,
+      porque el nombre no es la dirección de la opción.
+    why: >-
+      La configuración se abre al costado y se queda abierta mientras las filas siguen vivas al lado. Mandar lo leído al
+      abrirla borra en silencio el trabajo de quien tocó la misma vista entretanto, y nadie se entera hasta que falta
+      algo que sí se había configurado.
+    context: Un estado no puede quedarse sin opción en uno de sus grupos, así que quitar la última de un grupo se rechaza.
+    supersedes: BR-699e037
+    superseded_by: BR-81880e6
+    scenarios:
+      - title: Quitar una opción ya quitada
+        given: Dos personas con la misma opción abierta
+        when: Las dos la quitan
+        then: La segunda recibe que la opción ya se movió y no se escribe nada
   - id: BR-37f128e
     status: superseded
     title: La forma de una colección se cambia después de crearla
@@ -520,6 +659,55 @@ rules:
         given: Alguien sin permiso de escribir la página
         when: Abre la colección
         then: No se le dibuja la manera de entrar a la configuración
+  - id: BR-3c85c11
+    status: superseded
+    title: Una colección se trae hasta un tope de filas, y dice cuando quedó algo fuera
+    rule: >-
+      Leer una colección trae sus filas hasta un tope, no todas las que guarde. Una consulta con filtro u orden recorre
+      la colección hasta un tope mucho mayor antes de filtrar, para no dejar fuera filas que cumplen y están más abajo.
+      Cuando la colección tenía más de las que se recorrieron, la respuesta lo declara y quien la lee ve que puede haber
+      más. Una colección cortada nunca se presenta como si fuera entera.
+    why: >-
+      Una colección que creció sola costaría al abrirse en proporción a todo lo que guardó. Pero callar el corte es peor
+      que el corte, y filtrar sobre una colección ya cortada es callarlo dos veces: la respuesta dice que nada cumple
+      cuando lo que cumple quedó afuera.
+    context: >-
+      Hoy se traen 500 filas al abrir una colección o una vista, y una consulta recorre hasta 5000 antes de filtrar y
+      ordenar. El agente recibe la misma advertencia que la pantalla.
+    supersedes: BR-e248700
+    superseded_by: BR-c0f99c2
+    scenarios:
+      - title: La tarea que cumple está más abajo
+        given: Una colección de 800 tareas donde solo la fila 700 está bloqueada
+        when: Un agente consulta las tareas bloqueadas
+        then: Recibe la fila 700
+  - id: BR-5a97271
+    status: superseded
+    title: Una tarjeta arrastrada a otra columna cambia el valor que esa columna representa
+    rule: >-
+      En un tablero, cada columna es un valor de la propiedad por la que se agrupa. Arrastrar una tarjeta de una columna
+      a otra escribe ese valor en la fila, y eso es todo el acto: nadie tiene que abrir la fila después para decir dónde
+      quedó. Soltarla en la columna de las filas sin valor le quita el valor en lugar de escribirle la palabra «sin
+      asignar». Soltarla donde ya estaba no escribe nada. Lo mismo se hace desde el teclado, con Alt y las flechas, y el
+      resultado se anuncia. Quien no puede escribir la página tampoco puede mover sus tarjetas. En un tablero agrupado
+      por estado nunca hay columna de filas sin valor, porque un estado siempre tiene valor.
+    why: >-
+      Un tablero donde hay que abrir cada tarjeta para cambiarle el estado no es un tablero: es una lista en columnas. Y
+      uno que solo responde al ratón deja fuera a quien no puede usarlo, que en un producto de trabajo diario es una
+      exclusión que se nota todos los días.
+    context: >-
+      Al mover una tarjeta solo viaja la propiedad que cambió, no la página entera: devolver la página completa
+      sobrescribiría lo que otra persona escribió en ella mientras la tarjeta estaba en el aire. El valor tiene que ser
+      el identificador de una de las opciones que la propiedad ofrece; cualquier otro se rechaza en el servidor, aunque
+      alguien lo pida por su cuenta. Si la columna es un día, la fila recibe esa fecha, y si tenía un rango de fechas,
+      el rango conserva su duración.
+    supersedes: BR-d7ada57
+    superseded_by: BR-8e6b1f4
+    scenarios:
+      - title: Mover una tarjeta de estado
+        given: Un tablero agrupado por estado
+        when: Se arrastra una tarjeta de «Por hacer» a «Completado»
+        then: La fila guarda el identificador de la opción de esa columna y nada más
   - id: BR-699e037
     status: superseded
     title: Cambiar una vista no pisa lo que otra persona cambió mientras tanto
@@ -608,3 +796,28 @@ rules:
         given: Una colección con más filas que el tope
         when: Se abre
         then: Se ven las primeras hasta el tope y se avisa que hay más
+  - id: BR-fbf632f
+    status: superseded
+    title: Buscar y cambiar de mes piden las filas al servidor, y lo que no cabe se dice
+    rule: >-
+      Buscar en una colección envía las palabras al servidor, que filtra por el título de la fila, y las filas, los
+      conteos y las páginas siguientes de todas las vistas salen de esa misma búsqueda, de modo que nada se oculta solo
+      entre lo que ya se cargó. Un calendario lee todas las filas que empiezan en los días de su cuadrícula del mes, con
+      los días de las semanas incompletas, y cambiar de mes vuelve a pedirlas. Si la cuadrícula tiene más de mil filas
+      se dibujan las primeras mil y la pantalla lo dice. Las filas sin fecha se cuentan aparte y no se pierden de vista.
+    why: >-
+      Filtrar en la pantalla solo lo cargado presenta un resultado incompleto como si fuera completo, y un calendario
+      que se queda con las primeras cien filas hace desaparecer en silencio las demás.
+    context: >-
+      La búsqueda del servidor mira el título, no los textos de las demás propiedades. Las palabras y el mes viajan en
+      la dirección de la página para que se puedan compartir y recargar.
+    superseded_by: BR-4ddd139
+    scenarios:
+      - title: Buscar con muchas filas
+        given: Una tabla de dos mil filas de la que solo se cargaron cincuenta
+        when: Se busca una palabra que dice una fila que no estaba cargada
+        then: La fila aparece y el conteo cuenta las filas que coinciden en toda la colección
+      - title: Un mes con más de cien filas
+        given: Un calendario con ciento treinta filas en un mismo mes
+        when: Se abre ese mes
+        then: Se dibujan las ciento treinta filas de la cuadrícula

@@ -109,6 +109,13 @@ export const buildCoverOperation = (pageId: string, cover: PageCoverValue | null
 export const buildValuesOperation = (pageId: string, changes: PageValueChanges): PageBlockOperation =>
   operate(pageId, BLOCK_WRITE_COMMAND.mergePageValues, [], { values: changes });
 
+/** Takes entries out of a list of values and puts others in, relative to what the row holds when it is written. */
+export const buildValueListOperation = (
+  pageId: string,
+  property: string,
+  change: { readonly add: readonly string[]; readonly remove: readonly string[] },
+): PageBlockOperation => operate(pageId, BLOCK_WRITE_COMMAND.changeValueList, [], { property, ...change });
+
 /** For a change of the shape of the collection: it reaches rows a lock or the trash would keep from an edit. */
 export const buildValueRewriteOperations = (pageId: string, changes: PageValueChanges): PageBlockOperation[] =>
   Object.keys(changes).length === 0

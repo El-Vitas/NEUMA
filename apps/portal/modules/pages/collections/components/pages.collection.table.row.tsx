@@ -14,11 +14,12 @@ interface IProps {
   readonly canEdit: boolean;
   readonly collectionPageId: string;
   readonly frozenCells: readonly { readonly className?: string; readonly style?: { readonly left: number } }[];
+  /** Set when the row is one of a windowed list. */
+  readonly index?: number | undefined;
   readonly openFullPageLabel: string;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly row: PageRow;
-  readonly searchText: string;
   readonly selectLabel: string;
   readonly spaceId: string;
   readonly untitledLabel: string;
@@ -30,17 +31,17 @@ export const PagesCollectionTableRow = ({
   canEdit,
   collectionPageId,
   frozenCells,
+  index,
   openFullPageLabel,
   personOptions,
   properties,
   row,
-  searchText,
   selectLabel,
   spaceId,
   untitledLabel,
 }: IProps) => {
   return (
-    <PagesCollectionTableRowShell searchText={searchText}>
+    <PagesCollectionTableRowShell index={index}>
       <TableCell {...frozenCells[0]} className={cn(frozenCells[0]?.className, appearance.cellClass)}>
         {canEdit && (
           <span className="mr-2 inline-flex align-middle">

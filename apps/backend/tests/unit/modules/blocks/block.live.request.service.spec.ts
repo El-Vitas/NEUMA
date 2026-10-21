@@ -59,7 +59,7 @@ const buildHarness = (
     },
   };
   const applied: BlockTransactionsResponse = {
-    transactions: [{ blocks: [{ id: 'block-1', version: 3 }], id: 'transaction-1' }],
+    transactions: [{ blocks: [{ id: 'block-1', version: 3 }], id: 'transaction-1', views: [] }],
   };
   const service = new BlockLiveRequestService(
     refresher,
@@ -101,7 +101,7 @@ describe('BlockLiveRequestService', () => {
       expect(harness.appliedFor).toEqual([{ ...TOKEN_READER, role: USER_ROLE.CLIENT }]);
       expect(reply).toEqual({
         requestId: 'request-1',
-        transactions: [{ blocks: [{ id: 'block-1', version: 3 }], id: 'transaction-1' }],
+        transactions: [{ blocks: [{ id: 'block-1', version: 3 }], id: 'transaction-1', views: [] }],
         type: 'transactionsResult',
       });
     });

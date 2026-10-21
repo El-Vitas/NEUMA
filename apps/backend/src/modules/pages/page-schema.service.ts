@@ -1,33 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePropertyType } from '@neuma/db';
-import {
-  type PageViewConfiguration,
-  pageViewConfigurationSchema,
-  Result,
-  readPageViewConfiguration,
-  USER_ROLE,
-  type UserRole,
-} from '@neuma/shared';
+import { Result, USER_ROLE, type UserRole } from '@neuma/shared';
 import type { SchemaPropertyDefinition } from '../../common/domain/schema.domain.types';
-import { SchemaPropertyDefinitionError, SchemaViewValidationError } from '../../common/domain/schema.error';
+import { SchemaPropertyDefinitionError } from '../../common/domain/schema.error';
 import { findOptionReplacement, rewriteSchemaOption } from '../../common/domain/schema-option.domain';
-import { validateSchemaView } from '../../common/domain/schema-view.domain';
 import { generateOptionId } from '../../common/utils/option-id.utils';
 import {
-  COLLECTION_QUERY_ROW_LIMIT,
-  COLLECTION_ROW_LIMIT,
   PAGE_REPOSITORY,
   PAGE_SCHEMA_REPOSITORY,
   SCHEMA_CHANGED_MEANWHILE,
   SCHEMA_OPTION_ALREADY_MOVED,
 } from './constants/pages.constants';
-import {
-  PageAccessDeniedError,
-  PageSchemaChangedError,
-  type PageSchemaDefinitionError,
-  PageSchemaNotFoundError,
-  PageViewNotFoundError,
-} from './domain/page.error';
+import { PageAccessDeniedError, PageSchemaChangedError, type PageSchemaDefinitionError } from './domain/page.error';
 import { planRelationChanges } from './domain/page-relation-schema.domain';
 import {
   pageCarriesSchema,
@@ -36,47 +20,13 @@ import {
   validatePageSchemaViews,
 } from './domain/page-schema.domain';
 import type { RelationPlan } from './domain/page-schema.domain.types';
-import {
-  buildPageViewOutcome,
-  countPageViewRows,
-  findUnknownViewColumns,
-  listPageViewRowsInReadingOrder,
-} from './domain/page-view.domain';
 import type { PageRepositoryContract } from './types/page.types';
 import type {
   DefinePageSchemaInput,
-  PageRowsSummary,
-  PageSchemaDefinition,
   PageSchemaRepositoryContract,
   PageSchemaSummary,
-  QueryPageRowsInput,
   RewritePageOptionInput,
-  SetPageViewConfigurationInput,
 } from './types/page-schema.types';
-import type { PageViewSummary } from './types/page-view.types';
-
-/** Filter and sort of the named view, or the caller's own, validated against the collection. */
-const resolveQueryConfiguration = (
-  schema: PageSchemaDefinition,
-  input: QueryPageRowsInput,
-): Result<PageViewConfiguration, PageViewNotFoundError | SchemaViewValidationError> => {
-  if (input.viewName !== null) {
-    const view = schema.views.find((candidate) => candidate.name === input.viewName);
-    return view === undefined
-      ? Result.fail(new PageViewNotFoundError())
-      : Result.ok(readPageViewConfiguration(view.configuration));
-  }
-  const ownConfiguration = input.configuration ?? {};
-  if (!pageViewConfigurationSchema.safeParse(ownConfiguration).success)
-    return Result.fail(new SchemaViewValidationError('The filter or sort is not valid'));
-  const configuration = readPageViewConfiguration(ownConfiguration);
-  const unknown = findUnknownViewColumns(configuration, schema.properties);
-  if (unknown.length === 0) return Result.ok(configuration);
-  const known = schema.properties.map((property) => property.key).join(', ');
-  return Result.fail(
-    new SchemaViewValidationError(`The collection has no column ${unknown.join(', ')}. Its columns are: ${known}.`),
-  );
-};
 
 @Injectable()
 export class PageSchemaService {
@@ -145,26 +95,6 @@ export class PageSchemaService {
     return Result.ok({ ...written, spaceId: page.spaceId });
   }
 
-  /** Avoids rewriting the whole collection per view tweak, which is costly and can lose concurrent edits. */
-  async setViewConfiguration(
-    input: SetPageViewConfigurationInput,
-  ): Promise<Result<PageSchemaSummary, PageAccessDeniedError | PageViewNotFoundError | SchemaViewValidationError>> {
-    if (input.role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
-    const schema = await this.pageSchemaRepository.getSchema(input.pageId);
-    const view = schema.views.find((candidate) => candidate.name === input.viewName);
-    if (view === undefined) return Result.fail(new PageViewNotFoundError());
-    const validated = validateSchemaView({ ...view, configuration: input.configuration }, schema.properties);
-    if (validated.isFail()) return Result.fail(validated.getError());
-    const written = await this.pageSchemaRepository.setViewConfiguration(
-      input.pageId,
-      input.viewName,
-      input.configuration,
-    );
-    return Result.ok({ ...written, spaceId: page.spaceId });
-  }
-
   /** The collections of a space that the caller can open, which is what a relation may point to. */
   async listCollections(
     spaceId: string,
@@ -187,51 +117,6 @@ export class PageSchemaService {
     if (page === null) return Result.fail(new PageAccessDeniedError());
     const schema = await this.pageSchemaRepository.getSchema(pageId);
     return Result.ok({ ...schema, spaceId: page.spaceId });
-  }
-
-  async listRows(
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<Result<PageRowsSummary, PageAccessDeniedError | PageSchemaNotFoundError>> {
-    const page = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
-    const schemaProperties = await this.pageSchemaRepository.resolveSchemaProperties(pageId);
-    if (!pageCarriesSchema(schemaProperties)) return Result.fail(new PageSchemaNotFoundError());
-    const found = await this.pageSchemaRepository.listRows(pageId, workspaceId, userId, role, COLLECTION_ROW_LIMIT);
-    return Result.ok({ ...found, spaceId: page.spaceId });
-  }
-
-  /** A custom filter is validated like a view's and must name existing columns; missing ones are reported. */
-  async queryRows(
-    input: QueryPageRowsInput,
-  ): Promise<
-    Result<
-      PageRowsSummary,
-      PageAccessDeniedError | PageSchemaNotFoundError | PageViewNotFoundError | SchemaViewValidationError
-    >
-  > {
-    const page = await this.pageRepository.getAccessible(input.pageId, input.workspaceId, input.userId, input.role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
-    const schema = await this.pageSchemaRepository.getSchema(input.pageId);
-    if (!pageCarriesSchema(schema.properties)) return Result.fail(new PageSchemaNotFoundError());
-    const configuration = resolveQueryConfiguration(schema, input);
-    if (configuration.isFail()) return Result.fail(configuration.getError());
-    const found = await this.pageSchemaRepository.listRows(
-      input.pageId,
-      input.workspaceId,
-      input.userId,
-      input.role,
-      COLLECTION_QUERY_ROW_LIMIT,
-    );
-    return Result.ok({
-      attachedFiles: found.attachedFiles,
-      hasMore: found.hasMore,
-      relatedRows: found.relatedRows,
-      rows: listPageViewRowsInReadingOrder(configuration.getValue(), schema.properties, found.rows),
-      spaceId: page.spaceId,
-    });
   }
 
   /** The targets of the relations the caller asks for must be collections the caller can open, in the same space. */
@@ -264,38 +149,6 @@ export class PageSchemaService {
       stored,
       targetSchemas,
       twoWayKeys: new Set(input.properties.filter((property) => property.twoWay).map((property) => property.key)),
-    });
-  }
-
-  async getView(
-    pageId: string,
-    viewName: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<Result<PageViewSummary, PageAccessDeniedError | PageSchemaNotFoundError | PageViewNotFoundError>> {
-    const page = await this.pageRepository.getAccessible(pageId, workspaceId, userId, role);
-    if (page === null) return Result.fail(new PageAccessDeniedError());
-    const schema = await this.pageSchemaRepository.getSchema(pageId);
-    if (!pageCarriesSchema(schema.properties)) return Result.fail(new PageSchemaNotFoundError());
-    const view = schema.views.find((candidate) => candidate.name === viewName);
-    if (view === undefined) return Result.fail(new PageViewNotFoundError());
-    const { attachedFiles, hasMore, relatedRows, rows } = await this.pageSchemaRepository.listRows(
-      pageId,
-      workspaceId,
-      userId,
-      role,
-      COLLECTION_ROW_LIMIT,
-    );
-    const outcome = buildPageViewOutcome(view, schema.properties, rows);
-    return Result.ok({
-      attachedFiles,
-      hasMore,
-      relatedRows,
-      outcome,
-      rowCount: countPageViewRows(outcome),
-      spaceId: page.spaceId,
-      totalRowCount: rows.length,
     });
   }
 }

@@ -1,10 +1,14 @@
-import type { PagePropertyValue, PagePropertyValues } from '@neuma/shared';
+import type { PagePropertyValue, PagePropertyValues, PageQueryRequest } from '@neuma/shared';
 import { ACCESS_TOKEN_PERMISSIONS, Result, toValueList } from '@neuma/shared';
+import { UUID_PATTERN } from '../../../common/constants/validation.constants';
+import { MCP_RELATION_SEARCH_LIMIT } from '../constants/mcp.query.constants';
 import { McpToolError } from '../infrastructure/errors/mcp.tool.error';
 import type {
   McpColumnChanges,
   McpColumnDraft,
   McpNewColumn,
+  McpOpenCollection,
+  McpRelationCandidate,
   McpRelationChange,
   McpRelationRequest,
   McpRelationTarget,
@@ -15,35 +19,94 @@ import { canMcpActOnRow, openMcpCollection } from './mcp.collections.lib';
 import { foldMcpName, sayMcpRefusalWithNames } from './mcp.columns.lib';
 import { requireMcpSuccess } from './mcp.page-access.lib';
 
-/** The rows a relation may link: those of its collection that the token may read, and only those. */
+const readableRowOf = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  collection: McpOpenCollection,
+  rowId: string,
+): Promise<McpRelationCandidate | null> => {
+  const { principal, workspace } = call;
+  if (!canMcpActOnRow(call, collection, rowId, ACCESS_TOKEN_PERMISSIONS.collectionsRead)) return null;
+  const page = await dependencies.pagesService.getAccessible(rowId, workspace.id, principal.userId, principal.role);
+  if (page.isFail() || page.getValue().parentId !== collection.id) return null;
+  return { id: rowId, title: page.getValue().title };
+};
+
+const askRowsOf = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  collection: McpOpenCollection,
+  narrowing: Pick<PageQueryRequest, 'quickFilter' | 'search'>,
+): Promise<readonly McpRelationCandidate[]> => {
+  const { principal, workspace } = call;
+  const found = requireMcpSuccess(
+    await dependencies.collections.queryCollection({
+      excludedRowIds: call.principal.access.pages
+        .map((grant) => grant.pageId)
+        .filter((pageId) => !canMcpActOnRow(call, collection, pageId, ACCESS_TOKEN_PERMISSIONS.collectionsRead)),
+      pageId: collection.id,
+      request: { ...narrowing, reducers: [{ id: 'rows', kind: 'results', limit: MCP_RELATION_SEARCH_LIMIT }] },
+      role: principal.role,
+      userId: principal.userId,
+      workspaceId: workspace.id,
+    }),
+  );
+  const outcome = found.reducers.rows;
+  const ids = outcome?.kind === 'results' ? outcome.ids : [];
+  return ids.flatMap((id) => {
+    const row = found.rows[id];
+    return row === undefined ? [] : [{ id, title: row.title }];
+  });
+};
+
+/** The rows named exactly come first, so a common word cannot push the one that was meant out of the answer. */
+const searchRowsTitled = async (
+  dependencies: McpServerDependencies,
+  call: McpCall,
+  collection: McpOpenCollection,
+  words: string,
+): Promise<readonly McpRelationCandidate[]> => {
+  const titleKey = collection.shape.properties.find((column) => column.type === 'TITLE')?.key;
+  const exact =
+    titleKey === undefined
+      ? []
+      : await askRowsOf(dependencies, call, collection, {
+          quickFilter: { kind: 'CONDITION', operator: 'IS', propertyKey: titleKey, value: words },
+        });
+  const similar = await askRowsOf(dependencies, call, collection, { search: words });
+  return [...exact, ...similar];
+};
+
+/**
+ * The rows a relation may link among the ones the request names, and only those the token may read. A collection
+ * can hold thousands of rows, so each named row is looked up by its id or searched by its title, and the rows the
+ * cell already links are checked so a replacement never unlinks one the agent could not see.
+ */
 export const loadMcpRelationTarget = async (
   dependencies: McpServerDependencies,
   call: McpCall,
   column: McpColumnDraft,
+  references: readonly string[],
+  currentLinks: readonly string[],
 ): Promise<McpRelationTarget> => {
   const { targetCollectionId } = column.config;
   if (targetCollectionId === null) throw new McpToolError(`${column.label} does not point to any collection yet.`);
-  const { principal, workspace } = call;
   const collection = await openMcpCollection(
     dependencies,
     call,
     targetCollectionId,
     ACCESS_TOKEN_PERMISSIONS.collectionsRead,
   );
-  const found = requireMcpSuccess(
-    await dependencies.collections.queryRows({
-      configuration: null,
-      pageId: collection.id,
-      role: principal.role,
-      userId: principal.userId,
-      viewName: null,
-      workspaceId: workspace.id,
-    }),
+  const wanted = [...new Set(references.map((reference) => reference.trim()))];
+  const byId = wanted.filter((reference) => UUID_PATTERN.test(reference));
+  const byTitle = wanted.filter((reference) => !UUID_PATTERN.test(reference));
+  const looked = await Promise.all(
+    [...new Set([...byId, ...currentLinks])].map((rowId) => readableRowOf(dependencies, call, collection, rowId)),
   );
-  const rows = found.rows
-    .filter((row) => canMcpActOnRow(call, collection, row.id, ACCESS_TOKEN_PERMISSIONS.collectionsRead))
-    .map(({ id, title }) => ({ id, title }));
-  return { listNames: collection.listNames, rows, title: collection.title };
+  const searched = await Promise.all(byTitle.map((words) => searchRowsTitled(dependencies, call, collection, words)));
+  const rows = new Map<string, McpRelationCandidate>();
+  for (const row of [...looked.flatMap((found) => found ?? []), ...searched.flat()]) rows.set(row.id, row);
+  return { listNames: collection.listNames, rows: [...rows.values()], title: collection.title };
 };
 
 /** A row is named by its page id or by its title; a title two rows share must be told apart by id. */
@@ -135,7 +198,13 @@ export const planMcpRowRelations = async (
 ): Promise<McpRelationChange[]> => {
   const changes: McpRelationChange[] = [];
   for (const request of requests) {
-    const target = await loadMcpRelationTarget(dependencies, call, request.column);
+    const target = await loadMcpRelationTarget(
+      dependencies,
+      call,
+      request.column,
+      [...request.add, ...request.remove, ...(request.set ?? [])],
+      readCurrentLinks(request.column, current),
+    );
     const planned = planMcpRelationChanges(request, target, current);
     if (planned.isFail()) throw new McpToolError(planned.getError());
     changes.push(...planned.getValue());

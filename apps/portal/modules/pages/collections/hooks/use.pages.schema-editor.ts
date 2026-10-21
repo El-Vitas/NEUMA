@@ -42,14 +42,14 @@ import {
   toggleViewProperty,
 } from '../lib/pages.view-editing.lib';
 import { toggleViewHidesEmptyGroups } from '../lib/pages.view-filtering.lib';
-import type { PageSchema, PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchema, PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesSchemaEditor } from '../types/pages.schema-editor.types';
 import { usePagesShapeSaving } from './use.pages.shape-saving';
 
 /** Nothing is sent until saved: a multi-step change (add a property, then name its options) must not land half done. */
 export const usePagesSchemaEditor = (schema: PageSchema, spaceId: string): PagesSchemaEditor => {
   const [properties, setProperties] = useState<readonly PageSchemaProperty[]>(schema.properties);
-  const [views, setViews] = useState<readonly PageSchemaView[]>(schema.views);
+  const [views, setViews] = useState<readonly PageSchemaViewDraft[]>(schema.views);
   const shape = usePagesShapeSaving(schema, spaceId);
   // Compared by identity: each operation returns the same list when nothing changed.
   const [saved, setSaved] = useState({ properties: schema.properties, views: schema.views });

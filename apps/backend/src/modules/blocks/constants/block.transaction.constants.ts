@@ -86,6 +86,7 @@ export const BLOCK_COMMAND_VALUES = [
  * space a branch moves to).
  */
 export const BLOCK_PAGE_COMMAND = {
+  changeValueList: 'changeValueList',
   mergePageValues: 'mergePageValues',
   moveToSpaceRoot: 'moveToSpaceRoot',
   rewritePageValues: 'rewritePageValues',
@@ -101,6 +102,7 @@ export const BLOCK_PAGE_COMMAND_VALUES = [
   BLOCK_PAGE_COMMAND.setVerification,
   BLOCK_PAGE_COMMAND.setOwner,
   BLOCK_PAGE_COMMAND.mergePageValues,
+  BLOCK_PAGE_COMMAND.changeValueList,
   BLOCK_PAGE_COMMAND.rewritePageValues,
   BLOCK_PAGE_COMMAND.moveToSpaceRoot,
 ] as const;

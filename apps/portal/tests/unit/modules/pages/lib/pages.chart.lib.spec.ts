@@ -6,49 +6,57 @@ import {
   readChartSlices,
   readChartTopValue,
 } from '@/modules/pages/collections/lib/pages.chart.lib';
-import type { PageSchemaProperty, PageViewGroup } from '@/modules/pages/collections/types/pages.schema.types';
+import { toCalculationItemId } from '@/modules/pages/collections/lib/pages.query-aggregates.lib';
+import type { PageSchemaProperty, PageViewAggregates } from '@/modules/pages/collections/types/pages.schema.types';
 import { defaultConfig } from './pages.options.fixture';
 
-const amount: PageSchemaProperty = {
+const statusProperty: PageSchemaProperty = {
   config: defaultConfig,
-  key: 'amount',
-  label: 'Amount',
-  options: null,
+  key: 'status',
+  label: 'Status',
+  options: [
+    { color: 'BLUE', group: null, id: 'todo', value: 'Todo' },
+    { color: 'GREEN', group: null, id: 'done', value: 'Done' },
+  ],
   required: false,
-  type: 'NUMBER',
+  type: 'SELECT',
 };
 
-const rowWith = (id: string, value: number | undefined): PageViewGroup['rows'][number] => ({
-  id,
-  lifecycle: 'ACTIVE',
-  order: 0,
-  parentId: null,
-  propertyValues: value === undefined ? null : { amount: value },
-  spaceId: 'space',
-  title: id,
-});
+const aggregates: PageViewAggregates = {
+  calculations: {},
+  distinctRowCount: 3,
+  groupCalculations: {
+    done: { [toCalculationItemId('amount', 'SUM')]: 4 },
+    todo: { [toCalculationItemId('amount', 'SUM')]: 11 },
+  },
+  groupCounts: { done: 1, todo: 2, unassigned: 0 },
+};
 
-const groups: readonly PageViewGroup[] = [
-  { color: 'BLUE', key: 'todo', label: 'Todo', rows: [rowWith('a', 3), rowWith('b', 8)] },
-  { color: 'GREEN', key: 'done', label: 'Done', rows: [rowWith('c', 4)] },
-  { color: null, key: 'none', label: 'Sin asignar', rows: [] },
-];
+const seriesOf = (measure: 'AVERAGE' | 'COUNT' | 'SUM', valueProperty: null | string) =>
+  readChartSeries({
+    aggregates,
+    groupBy: statusProperty,
+    measure,
+    mode: 'OPTION',
+    statusGroupLabel: (group) => group,
+    valueProperty,
+  });
 
 describe('lo que dibuja un gráfico', () => {
-  it('counts the rows of each group when nothing else was asked', () => {
-    expect(readChartSeries(groups, 'COUNT', null, [amount])).toEqual([
+  it('counts the rows of each group the database counted when nothing else was asked', () => {
+    expect(seriesOf('COUNT', null)).toEqual([
       { color: 'BLUE', key: 'todo', label: 'Todo', value: 2 },
       { color: 'GREEN', key: 'done', label: 'Done', value: 1 },
-      { color: null, key: 'none', label: 'Sin asignar', value: 0 },
+      { color: null, key: 'unassigned', label: '', value: 0 },
     ]);
   });
 
-  it('adds up the chosen property instead of counting rows', () => {
-    expect(readChartSeries(groups, 'SUM', 'amount', [amount]).map((point) => point.value)).toEqual([11, 4, 0]);
+  it('adds up the property the database calculated instead of counting rows', () => {
+    expect(seriesOf('SUM', 'amount').map((point) => point.value)).toEqual([11, 4, 0]);
   });
 
-  it('falls back to counting when the chosen property is gone', () => {
-    expect(readChartSeries(groups, 'SUM', 'missing', [amount]).map((point) => point.value)).toEqual([2, 1, 0]);
+  it('falls back to counting when no property was chosen to measure', () => {
+    expect(seriesOf('SUM', null).map((point) => point.value)).toEqual([2, 1, 0]);
   });
 });
 

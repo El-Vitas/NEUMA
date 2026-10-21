@@ -1,5 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { type BlockAccessHolder, Result } from '@neuma/shared';
+import { BLOCK_TYPE, type BlockAccessHolder, Result } from '@neuma/shared';
 import type { DomainError } from '../../common/domain/domain.error';
 import type { BlockWriteWithin } from '../../common/types/block-writer.types';
 import { BlockCommitHub } from './block.commit.feed';
@@ -22,6 +23,7 @@ import type {
   BlockTransactionSession,
   BlockTransactionsResponse,
   BlockWriteChannel,
+  ParsedOperations,
 } from './types/block.transaction.types';
 import type { BlockReader, BlockRepositoryContract } from './types/blocks.types';
 import {
@@ -35,6 +37,18 @@ import {
   parseTrustedBlockOperations,
 } from './utils/block.operation.utils';
 import { blockTextEngine } from './utils/block.text.utils';
+import { listViewIds, parseViewOperations, partitionOperations } from './utils/block.view-operation.utils';
+
+/** Twelve characters name a node of a filter: enough to tell the few nodes of one view apart. */
+const createNodeId = (): string => randomUUID().replaceAll('-', '').slice(0, 12);
+
+/** A page created under another page may be a row of a collection: it joins the manual order of its views. */
+const listNewRows = (writes: BlockTransactionPlan['writes']): { pageId: string; rowId: string }[] =>
+  writes.flatMap(({ block, isNew }) =>
+    isNew && block.type === BLOCK_TYPE.page && block.parentId !== null
+      ? [{ pageId: block.parentId, rowId: block.id }]
+      : [],
+  );
 
 const toFailure = (id: string, error: DomainError): BlockTransactionOutcome => ({
   error: { code: error.code, details: error.details, message: error.message },
@@ -102,16 +116,20 @@ export class BlockTransactionsService {
     reader: BlockReader,
     channel: BlockWriteChannel,
   ): Promise<BlockTransactionOutcome> {
-    const parsed = channel.readOperations(request.operations);
+    const split = partitionOperations(request.operations);
+    const parsed = channel.readOperations(split.blocks);
     if (parsed.isFail()) return toFailure(request.id, parsed.getError());
+    const parsedViews = parseViewOperations(split.views);
+    if (parsedViews.isFail()) return toFailure(request.id, parsedViews.getError());
     const operations = parsed.getValue();
+    const viewOperations = parsedViews.getValue();
     const requiredSpaceIds = [request.spaceId, ...listDestinationSpaceIds(operations, request.spaceId)];
     const readableSpaceIds = await this.blockRepository.findReadableSpaceIds(requiredSpaceIds, reader);
     if (!requiredSpaceIds.every((spaceId) => readableSpaceIds.has(spaceId))) {
       return toFailure(request.id, new BlockAccessDeniedError());
     }
     const work = (session: BlockTransactionSession) =>
-      this.execute(session, request, operations, reader, channel.guardsServerAssigned);
+      this.execute(session, request, { operations, viewOperations }, reader, channel.guardsServerAssigned);
     const { within } = channel;
     const outcome =
       within === undefined
@@ -133,7 +151,7 @@ export class BlockTransactionsService {
   private async execute(
     session: BlockTransactionSession,
     request: BlockTransactionRequest,
-    operations: readonly BlockOperation[],
+    { operations, viewOperations }: ParsedOperations,
     reader: BlockReader,
     guardsServerAssigned: boolean,
   ): Promise<Result<BlockTransactionResult, DomainError>> {
@@ -142,15 +160,20 @@ export class BlockTransactionsService {
     if (claim.kind === 'replayed') return Result.ok(claim.result);
     if (hasParentWrite(operations)) await session.lockTreeMoves(request.spaceId);
     const branchIds = await session.listDescendantIds(listSpaceMoveRoots(operations));
+    const viewPageIds = await session.readViewPageIds(listViewIds(viewOperations));
+    const collectionIds = [...new Set(viewPageIds.values())];
     const load = await session.loadBlocks(
-      [...listOperationBlockIds(operations), ...branchIds],
+      [...listOperationBlockIds(operations), ...branchIds, ...collectionIds],
       listRootSpaceIds(operations, request.spaceId),
     );
+    const views = await session.lockViews(listViewIds(viewOperations));
+    const viewSchemas = await session.readCollectionSchemas(collectionIds);
     const facts = await session.readCollectionFacts(listCollectionIds(operations, load.locked));
     const stamped = await this.stampNewRows(session, operations, facts.rules);
     const planned = planBlockTransaction(
       {
         actor: { userId: reader.userId, workspaceRole: reader.role },
+        createNodeId,
         extraReadableSpaceIds: listDestinationSpaceIds(operations, request.spaceId),
         guardedRules: guardsServerAssigned ? facts.rules : undefined,
         isSpaceReadable: true,
@@ -161,6 +184,9 @@ export class BlockTransactionsService {
         operations: stamped,
         relationSchemas: facts.relations,
         spaceId: request.spaceId,
+        viewOperations,
+        viewSchemas,
+        views,
       },
       blockTextEngine,
     );
@@ -211,12 +237,14 @@ export class BlockTransactionsService {
     plan: BlockTransactionPlan,
   ): Promise<BlockTransactionResult> {
     await session.writeBlocks(plan.writes);
+    await session.writeViews(plan.viewWrites);
+    await session.appendRowsToViewOrders(listNewRows(plan.writes));
     await session.writeSpaces(plan.spaceWrites);
     await session.rebindLinkSources(plan.rebinds);
     const storedLinks = await session.readLinks(plan.linkSourceIds);
     const wanted = plan.linkDrafts;
     await session.writeLinks(diffBlockLinks(storedLinks, wanted));
-    const result = { blocks: plan.versions, id: request.id };
+    const result = { blocks: plan.versions, id: request.id, views: plan.viewVersions };
     await session.recordResult(result);
     await session.notify(buildVersionNotification(request.id, request.spaceId, plan.versions));
     return result;

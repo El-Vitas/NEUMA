@@ -1,9 +1,9 @@
 import { readPageViewConfiguration, readVisiblePropertyKeys } from '@neuma/shared';
-import type { PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
 
 /** Until the view chooses, the grouping property is hidden (the column header already shows it); a manual pick wins. */
 export const readShownCardProperties = (
-  view: PageSchemaView,
+  view: PageSchemaViewDraft,
   properties: readonly PageSchemaProperty[],
 ): readonly PageSchemaProperty[] => {
   const { groupBy, visibleProperties } = readPageViewConfiguration(view.configuration);
@@ -14,7 +14,7 @@ export const readShownCardProperties = (
 
 /** In the view's own order, not the collection's. */
 export const readShownProperties = (
-  view: PageSchemaView,
+  view: PageSchemaViewDraft,
   properties: readonly PageSchemaProperty[],
 ): readonly PageSchemaProperty[] => {
   const chosen = readVisiblePropertyKeys(

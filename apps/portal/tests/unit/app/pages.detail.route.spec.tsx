@@ -73,8 +73,10 @@ mock.module('@/modules/pages/server/queries/pages.queries', () => ({
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
-  getPageView: async () => ({ getValue: () => ({ kind: 'FLAT_ROWS', rows: [] }), isOk: () => true }),
   getSpaceCollections: async () => ({ getValue: () => [], isOk: () => true }),
+}));
+mock.module('@/modules/pages/collections/server/lib/pages.view-reading.server', () => ({
+  readPageViewReading: async () => null,
 }));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
@@ -82,7 +84,11 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
-  updatePageViewConfigurationAction: async () => ({ data: null }),
+  applyPageViewOperationsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({

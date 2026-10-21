@@ -30,6 +30,27 @@ export const MCP_LISTED_PAGE_PART_MAX = 200;
 
 export const MCP_COLLECTION_CHANGE_LIMIT = 50;
 
+/** Rows one query answers with; the server carries at most this many per reducer. */
+export const MCP_QUERY_ROWS_DEFAULT = 25;
+export const MCP_QUERY_ROWS_MAX = 100;
+/** The most a group of a grouped answer carries rows for. */
+export const MCP_QUERY_ROWS_PER_GROUP_MAX = 50;
+export const MCP_QUERY_COLUMN_LIMIT = 50;
+export const MCP_QUERY_CURSOR_MAX_LENGTH = 2000;
+export const MCP_QUERY_SEARCH_MAX_LENGTH = 200;
+export const MCP_AGGREGATE_LIMIT = 10;
+export const MCP_AGGREGATE_CALCULATIONS = [
+  'COUNT_ALL',
+  'COUNT_EMPTY',
+  'COUNT_FILLED',
+  'SUM',
+  'AVERAGE',
+  'MINIMUM',
+  'MAXIMUM',
+  'MEDIAN',
+  'PERCENT_CHECKED',
+] as const;
+
 export const MCP_WHERE_CONDITION_LIMIT = 20;
 export const MCP_SORT_RULE_LIMIT = 5;
 

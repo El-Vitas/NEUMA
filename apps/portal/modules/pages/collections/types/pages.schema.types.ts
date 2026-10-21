@@ -28,11 +28,22 @@ export interface PagePersonOption {
   readonly name: string;
 }
 
-export interface PageSchemaView {
+/** A view as the shape editor holds it: one that is new has no id yet, and the server gives it one. */
+export interface PageSchemaViewDraft {
+  readonly configuration: Readonly<Record<string, unknown>>;
+  /** Sent back so a renamed or moved tab stays the same view and keeps its manual order. */
+  readonly id?: string | undefined;
+  readonly isDefault: boolean;
   readonly name: string;
   readonly type: PageViewType;
-  readonly configuration: Readonly<Record<string, unknown>>;
-  readonly isDefault: boolean;
+  readonly version?: number | undefined;
+}
+
+export interface PageSchemaView extends PageSchemaViewDraft {
+  /** What queries and operations name the view by; the name can change, the id cannot. */
+  readonly id: string;
+  /** Rises with every operation on the view. */
+  readonly version: number;
 }
 
 export interface PageSchema {
@@ -56,6 +67,8 @@ export interface PageViewGroup {
   readonly color: PageOptionColor | null;
   readonly key: string;
   readonly label: string;
+  /** Where the next rows of this group start; null (or absent) when the group has been read to its end. */
+  readonly nextCursor?: string | null;
   readonly rows: readonly PageRow[];
 }
 
@@ -75,9 +88,23 @@ export interface PageViewBand {
   readonly label: string;
 }
 
+/** What a calendar was drawn from: the month it opens on, and what the rows of its grid leave out. */
+export interface PageCalendarReading {
+  /** The grid holds more rows than a calendar reads, so it shows the first ones. */
+  readonly isTruncated: boolean;
+  readonly month: string;
+  /** Rows with no date, which fall on no day. */
+  readonly undated: number;
+}
+
 export type PageViewOutcome =
   | { readonly bands: readonly PageViewBand[]; readonly kind: 'BANDED_ROWS' }
-  | { readonly kind: 'FLAT_ROWS'; readonly rows: readonly PageRow[] }
+  | {
+      readonly calendar?: PageCalendarReading;
+      readonly kind: 'FLAT_ROWS';
+      readonly nextCursor?: string | null;
+      readonly rows: readonly PageRow[];
+    }
   | { readonly groups: readonly PageViewGroup[]; readonly kind: 'GROUPED_ROWS' }
   | { readonly kind: 'MISSING_GROUPING_PROPERTY' };
 
@@ -96,15 +123,26 @@ export interface PageRelatedRow {
 export interface PageViewReading {
   /** The files the cells of the rows hold, so a cell can show their names. */
   readonly attachedFiles: readonly PageAttachedFile[];
+  /**
+   * The counts and calculations, which the database finishes after the rows are drawn (ADR 025). A client reads it
+   * with `use` under a Suspense; null when it could not be computed.
+   */
+  readonly aggregates: Promise<PageViewAggregates | null>;
   /** The rows the relation cells point to that the reader may open. */
   readonly relatedRows: readonly PageRelatedRow[];
-  /** True when the collection stores more rows than the server returned. */
-  readonly hasMore: boolean;
   readonly outcome: PageViewOutcome;
-  /** Rows that passed the view filter. */
-  readonly rowCount: number;
-  /** Every row received, whether or not the view filters it. */
-  readonly totalRowCount: number;
+}
+
+/** Counts and calculations over every row the view lets through, not only the ones drawn so far. */
+export interface PageViewAggregates {
+  /** Rows counted once, even when a grouping by several values repeats them. */
+  readonly distinctRowCount: number;
+  /** Rows in each group, by the group key and, in a board with bands, the band key (`key|subKey`). */
+  readonly groupCounts: Readonly<Record<string, number>>;
+  /** What the calculations of the columns say for each group, by group key and then property key. */
+  readonly groupCalculations: Readonly<Record<string, Readonly<Record<string, number | null>>>>;
+  /** What the calculations of the columns say for the whole view, by property key. */
+  readonly calculations: Readonly<Record<string, number | null>>;
 }
 
 export type PageViewFlatOutcome = Extract<PageViewOutcome, { readonly kind: 'FLAT_ROWS' }>;

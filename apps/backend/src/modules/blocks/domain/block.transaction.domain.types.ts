@@ -1,13 +1,18 @@
+import type { DatabaseViewType, JsonValue } from '@neuma/db';
 import type {
   BlockAccessHolder,
   BlockContent,
   BlockPermissions,
   BlockViewer,
   PageLifecycle,
+  PageViewConfiguration,
+  PageViewOperation,
+  PageViewState,
   Result,
 } from '@neuma/shared';
 import type { RolesById } from '../../../common/domain/block-access.domain.types';
 import type { DomainError } from '../../../common/domain/domain.error';
+import type { SchemaPropertyDefinition } from '../../../common/domain/schema.domain.types';
 import type { BlockRecord, RecordsById } from './block.domain.types';
 import type { BLOCK_BAG_VALUES, BLOCK_LINK_KIND, BLOCK_WRITABLE_FIELD_VALUES } from './block.operation.constants';
 
@@ -149,6 +154,14 @@ export type BlockPageOperation =
     }
   | { readonly blockId: string; readonly command: 'setOwner'; readonly ownerId: string | null }
   | { readonly blockId: string; readonly command: 'mergePageValues'; readonly values: BlockJsonObject }
+  /** Entries out and entries in of one list of the row, relative to what it holds at the moment it is written. */
+  | {
+      readonly add: readonly string[];
+      readonly blockId: string;
+      readonly command: 'changeValueList';
+      readonly property: string;
+      readonly remove: readonly string[];
+    }
   /** The same merge, for a change of the shape of the collection: a lock or the trash does not stop it. */
   | { readonly blockId: string; readonly command: 'rewritePageValues'; readonly values: BlockJsonObject }
   | {
@@ -207,6 +220,53 @@ export interface SpaceRoots {
 
 /** The lists of top-level pages while a transaction works on them, by space. */
 export type RootLists = Map<string, string[]>;
+
+/** A view of a collection as the transaction holds it: locked, with the two things operations change. */
+export interface StoredView {
+  /** The pages the collection lists as children, in its order: where a view starts when it is first ordered by hand. */
+  readonly collectionOrder: readonly string[];
+  readonly configuration: Readonly<Record<string, JsonValue>>;
+  readonly id: string;
+  /** Null follows the order of the collection. */
+  readonly manualOrder: readonly string[] | null;
+  readonly name: string;
+  readonly pageId: string;
+  readonly type: DatabaseViewType;
+  readonly version: number;
+}
+
+/** One operation of a client transaction that addresses a view instead of a block. */
+export interface ViewOperationEntry {
+  readonly operation: PageViewOperation;
+  readonly viewId: string;
+}
+
+export interface ViewPlanInput {
+  readonly authorization: AuthorizationInput;
+  readonly createId: () => string;
+  readonly operations: readonly ViewOperationEntry[];
+  readonly schemas: ReadonlyMap<string, readonly SchemaPropertyDefinition[]>;
+  readonly views: readonly StoredView[];
+}
+
+export interface ViewPlan {
+  readonly versions: readonly BlockVersion[];
+  readonly writes: readonly ViewWrite[];
+}
+
+/** A view while the operations of a transaction are applied one after another, with how many it has taken. */
+export interface WorkingView {
+  readonly operationCount: number;
+  readonly state: PageViewState;
+  readonly stored: StoredView;
+}
+
+export interface ViewWrite {
+  readonly configuration: PageViewConfiguration;
+  readonly id: string;
+  readonly manualOrder: readonly string[] | null;
+  readonly version: number;
+}
 
 export interface BlockLoad {
   /** Context rows (ancestors) carry no text state. */
@@ -283,6 +343,8 @@ export interface AuthorizationInput {
 
 export interface BlockTransactionInput {
   readonly actor: BlockViewer;
+  /** Names the nodes a filter operation adds to a view; given whenever the transaction changes views. */
+  readonly createNodeId?: (() => string) | undefined;
   /** Spaces other than `spaceId` that the transaction writes into and the actor was checked to read. */
   readonly extraReadableSpaceIds: readonly string[];
   readonly isSpaceReadable: boolean;
@@ -300,6 +362,11 @@ export interface BlockTransactionInput {
   /** The relation properties of the collections whose rows a relation operation names, by collection id. */
   readonly relationSchemas?: ReadonlyMap<string, readonly RelationProperty[]>;
   readonly spaceId: string;
+  /** The properties of the collections whose views the operations change, to validate the views they leave. */
+  readonly viewSchemas?: ReadonlyMap<string, readonly SchemaPropertyDefinition[]>;
+  readonly viewOperations?: readonly ViewOperationEntry[];
+  /** The views the operations address, locked. */
+  readonly views?: readonly StoredView[];
 }
 
 export interface PermissionsLockoutInput {
@@ -356,5 +423,7 @@ export interface BlockTransactionPlan {
   /** The lists of top-level pages that changed. */
   readonly spaceWrites: readonly SpaceRoots[];
   readonly versions: readonly BlockVersion[];
+  readonly viewVersions: readonly BlockVersion[];
+  readonly viewWrites: readonly ViewWrite[];
   readonly writes: readonly BlockWrite[];
 }

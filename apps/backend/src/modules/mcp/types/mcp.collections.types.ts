@@ -8,7 +8,10 @@ import type {
   PagePropertyOptionDraft,
   PagePropertyType,
   PagePropertyValues,
+  PageQueryOutcome,
+  PageQueryRequest,
   PageViewType,
+  PageViewWireOperation,
   Result,
   UserRole,
 } from '@neuma/shared';
@@ -19,6 +22,7 @@ import type {
   createRowInputSchema,
   createViewInputSchema,
   deleteViewInputSchema,
+  moveRowInputSchema,
   queryCollectionInputSchema,
   queryCollectionOutputSchema,
   rowOutputSchema,
@@ -31,6 +35,7 @@ export type McpCreateCollectionInput = z.infer<typeof createCollectionInputSchem
 export type McpQueryCollectionInput = z.infer<typeof queryCollectionInputSchema>;
 export type McpCreateRowInput = z.infer<typeof createRowInputSchema>;
 export type McpUpdateRowInput = z.infer<typeof updateRowInputSchema>;
+export type McpMoveRowInput = z.infer<typeof moveRowInputSchema>;
 export type McpUpdateCollectionColumnsInput = z.infer<typeof updateCollectionColumnsInputSchema>;
 export type McpCreateViewInput = z.infer<typeof createViewInputSchema>;
 export type McpUpdateViewInput = z.infer<typeof updateViewInputSchema>;
@@ -148,6 +153,8 @@ export interface McpColumn extends McpColumnDraft {
 
 export interface McpView {
   readonly configuration: JsonObject;
+  /** Absent in a view the agent is still drafting. */
+  readonly id?: string | undefined;
   readonly isDefault: boolean;
   readonly name: string;
   readonly type: PageViewType;
@@ -193,8 +200,23 @@ export interface McpActor {
   readonly workspaceId: string;
 }
 
+/** A view after an operation: what the next operation builds on. */
+export interface McpChangedView {
+  readonly configuration: JsonObject;
+  readonly id: string;
+  readonly version: number;
+}
+
 /** Same service as the portal: same validations, access rules and locks. */
 export interface McpCollectionService {
+  /** Each operation touches one key or one element of the view, so two editors never undo each other. */
+  readonly applyViewOperations: (
+    input: McpActor & {
+      readonly operations: readonly PageViewWireOperation[];
+      readonly pageId: string;
+      readonly viewId: string;
+    },
+  ) => Promise<Result<McpChangedView, McpRefusal>>;
   /** When the shape that was read is passed, saves only if it is still current. */
   readonly defineSchema: (
     input: McpActor & {
@@ -210,19 +232,25 @@ export interface McpCollectionService {
     userId: string,
     role: UserRole,
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
-  readonly queryRows: (
-    input: McpActor & { readonly configuration: unknown; readonly pageId: string; readonly viewName: string | null },
-  ) => Promise<
-    Result<
-      {
-        readonly attachedFiles: readonly { readonly id: string; readonly name: string }[];
-        readonly hasMore: boolean;
-        readonly relatedRows: readonly { readonly id: string; readonly title: string }[];
-        readonly rows: readonly McpRow[];
-      },
-      McpRefusal
-    >
-  >;
+  /** The new values of the row and its place in the view are written together: it never moves halfway. */
+  readonly moveRow: (
+    input: McpActor & {
+      readonly after?: string;
+      readonly before?: string;
+      readonly pageId: string;
+      readonly rowId: string;
+      readonly values: Readonly<Record<string, unknown>>;
+      readonly viewId: string;
+    },
+  ) => Promise<Result<McpChangedView, McpRefusal>>;
+  /** What `query_collection` asks: the reducers of the portal's query, over rows this token may read. */
+  readonly queryCollection: (
+    input: McpActor & {
+      readonly excludedRowIds: readonly string[];
+      readonly pageId: string;
+      readonly request: PageQueryRequest;
+    },
+  ) => Promise<Result<McpQueryAnswer, McpRefusal>>;
   readonly rewriteOption: (
     input: McpActor & {
       readonly optionId: string;
@@ -231,13 +259,12 @@ export interface McpCollectionService {
       readonly to: string | null;
     },
   ) => Promise<Result<McpCollectionShape, McpRefusal>>;
-  readonly setViewConfiguration: (
-    input: McpActor & {
-      readonly configuration: JsonObject;
-      readonly pageId: string;
-      readonly viewName: string;
-    },
-  ) => Promise<Result<McpCollectionShape, McpRefusal>>;
+}
+
+export interface McpQueryAnswer {
+  readonly attachedFiles: readonly { readonly id: string; readonly name: string }[];
+  readonly reducers: Readonly<Record<string, PageQueryOutcome>>;
+  readonly rows: Readonly<Record<string, McpWrittenRow>>;
 }
 
 export interface McpWrittenRow {

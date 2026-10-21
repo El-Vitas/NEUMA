@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { DatabasePropertyType, DatabaseViewType, SpaceVisibility } from '@neuma/db';
 import { DEFAULT_PAGE_PROPERTY_CONFIG, type PageContent, USER_ROLE } from '@neuma/shared';
 import request from 'supertest';
-import { COLLECTION_ROW_LIMIT } from '@/modules/pages/constants/pages.constants';
 import { PageSchemaService } from '@/modules/pages/page-schema.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { createAccount, loginUser } from '../helpers/auth.helper';
@@ -19,9 +18,9 @@ interface PageResponse {
   title: string;
 }
 
-interface PageRowsResponse {
-  hasMore: boolean;
-  rows: PageResponse[];
+interface QueryBody {
+  reducers: Record<string, { ids: string[]; nextCursor: null | string } | undefined>;
+  rows: Record<string, PageResponse | undefined>;
 }
 
 interface PageSchemaResponse {
@@ -95,15 +94,21 @@ const getSchema = (testApp: TestApp, token: string, spaceId: string, pageId: str
     .get(`/api/v1/spaces/${spaceId}/pages/${pageId}/schema`)
     .set('Authorization', `Bearer ${token}`);
 
-const listRows = (testApp: TestApp, token: string, spaceId: string, pageId: string) =>
+const queryRows = (testApp: TestApp, token: string, spaceId: string, pageId: string, limit = 100) =>
   request(testApp.getServer())
-    .get(`/api/v1/spaces/${spaceId}/pages/${pageId}/rows`)
-    .set('Authorization', `Bearer ${token}`);
+    .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/query`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ reducers: [{ id: 'rows', kind: 'results', limit }] });
 
-const getView = (testApp: TestApp, token: string, spaceId: string, pageId: string, viewName: string) =>
-  request(testApp.getServer())
-    .get(`/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`)
-    .set('Authorization', `Bearer ${token}`);
+/** The rows a query answered, in the order it gave them, and whether it said there are more. */
+const readQueriedRows = (body: unknown): { hasMore: boolean; rows: PageResponse[] } => {
+  const answered = body as QueryBody;
+  const outcome = answered.reducers.rows;
+  return {
+    hasMore: outcome?.nextCursor !== null && outcome?.nextCursor !== undefined,
+    rows: (outcome?.ids ?? []).flatMap((id) => answered.rows[id] ?? []),
+  };
+};
 
 const movePage = (testApp: TestApp, token: string, spaceId: string, pageId: string, parentId: string) =>
   request(testApp.getServer())
@@ -153,6 +158,21 @@ describe('Page Schema (Integration)', () => {
   let outsiderToken: string;
   let sharedSpaceId: string;
   let secretSpaceId: string;
+
+  const readViewId = async (pageId: string, name: string, spaceId = sharedSpaceId): Promise<string> => {
+    const schema = (await getSchema(testApp, adminToken, spaceId, pageId).expect(200)).body as {
+      views: { id: string; name: string }[];
+    };
+    const id = schema.views.find((view) => view.name === name)?.id;
+    if (id === undefined) throw new Error(`The schema has no view ${name}`);
+    return id;
+  };
+
+  const queryView = (token: string, spaceId: string, pageId: string, viewId: string, reducers: readonly unknown[]) =>
+    request(testApp.getServer())
+      .post(`/api/v1/spaces/${spaceId}/pages/${pageId}/query`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ reducers, viewId });
 
   beforeAll(async () => {
     testApp = await bootstrapTestApp();
@@ -414,18 +434,18 @@ describe('Page Schema (Integration)', () => {
         status: todo,
       });
 
-      const asAdmin = await listRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
-      const listed = asAdmin.body as PageRowsResponse;
+      const asAdmin = await queryRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
+      const listed = readQueriedRows(asAdmin.body);
       expect(listed.rows.map((item) => item.id)).toEqual([row.id]);
       expect(listed.hasMore).toBe(false);
     });
 
-    // Truncation must be reported: 500 of 600 rows without notice read as all 600.
-    it('brings at most the row limit, and says the collection held more', async () => {
+    // Truncation must be reported: a first page of 5 of 12 rows without a cursor reads as all 12.
+    it('brings at most the rows asked for, and gives the cursor that continues when the collection held more', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Overgrown Collection');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty]).expect(201);
       const prisma = testApp.get(PrismaService);
-      const rows = Array.from({ length: COLLECTION_ROW_LIMIT + 1 }, (_unused, position) => ({
+      const rows = Array.from({ length: 12 }, (_unused, position) => ({
         createdById: adminUserId,
         editedById: adminUserId,
         id: crypto.randomUUID(),
@@ -437,24 +457,24 @@ describe('Page Schema (Integration)', () => {
       await prisma.models.Block.createAndCount(rows);
       await prisma.models.Block.where({ id: collection.id }).update({ children: rows.map((row) => row.id) });
 
-      const listed = await listRows(testApp, adminToken, sharedSpaceId, collection.id).expect(200);
+      const listed = await queryRows(testApp, adminToken, sharedSpaceId, collection.id, 5).expect(200);
 
-      const body = listed.body as PageRowsResponse;
-      expect(body.rows).toHaveLength(COLLECTION_ROW_LIMIT);
+      const body = readQueriedRows(listed.body);
+      expect(body.rows).toHaveLength(5);
       expect(body.hasMore).toBe(true);
     });
 
     it('rejects listing rows of a page that does not carry a schema', async () => {
       const plainPage = await createPage(testApp, adminToken, sharedSpaceId, 'Not A Collection');
 
-      await listRows(testApp, adminToken, sharedSpaceId, plainPage.id).expect(404);
+      await queryRows(testApp, adminToken, sharedSpaceId, plainPage.id).expect(404);
     });
 
     it("hides a restricted space's rows from an outsider", async () => {
       const { collection, todo } = await defineBoard('Secret Collection', { spaceId: secretSpaceId });
       await createPage(testApp, adminToken, secretSpaceId, 'Secret Row', collection.id, { status: todo });
 
-      await listRows(testApp, outsiderToken, secretSpaceId, collection.id).expect(403);
+      await queryRows(testApp, outsiderToken, secretSpaceId, collection.id).expect(403);
     });
   });
 
@@ -472,8 +492,8 @@ describe('Page Schema (Integration)', () => {
 
       await movePage(testApp, adminToken, sharedSpaceId, row.id, destinationCollection.id).expect(409);
 
-      const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
-      const preserved = (rowsAfter.body as PageRowsResponse).rows.find((item) => item.id === row.id);
+      const rowsAfter = await queryRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
+      const preserved = readQueriedRows(rowsAfter.body).rows.find((item) => item.id === row.id);
       expect(preserved?.propertyValues).toEqual({ status: todo });
     });
 
@@ -486,8 +506,8 @@ describe('Page Schema (Integration)', () => {
 
       await movePage(testApp, adminToken, sharedSpaceId, row.id, plainDestination.id).expect(409);
 
-      const rowsAfter = await listRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
-      const preserved = (rowsAfter.body as PageRowsResponse).rows.find((item) => item.id === row.id);
+      const rowsAfter = await queryRows(testApp, adminToken, sharedSpaceId, sourceCollection.id).expect(200);
+      const preserved = readQueriedRows(rowsAfter.body).rows.find((item) => item.id === row.id);
       expect(preserved?.propertyValues).toEqual({ status: todo });
     });
 
@@ -523,16 +543,22 @@ describe('Page Schema (Integration)', () => {
         status: done,
       });
 
-      const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Table').expect(200);
+      const viewId = await readViewId(collection.id, 'Table');
+      const response = await queryView(adminToken, sharedSpaceId, collection.id, viewId, [
+        { id: 'rows', kind: 'results' },
+        {
+          by: 'NONE',
+          id: 'counts',
+          items: [{ calculation: 'COUNT_ALL', id: 'count', propertyKey: null }],
+          kind: 'aggregations',
+        },
+      ]).expect(200);
 
-      const body = response.body as {
-        outcome: { kind: string; rows: PageResponse[] };
-        rowCount: number;
-        totalRowCount: number;
+      const body = response.body as QueryBody & {
+        reducers: { counts?: { distinctRowCount: number } };
       };
-      expect(body.outcome.kind).toBe('FLAT_ROWS');
-      expect(body.outcome.rows.map((row) => row.id)).toEqual([first.id, second.id]);
-      expect(body).toMatchObject({ rowCount: 2, totalRowCount: 2 });
+      expect(readQueriedRows(body).rows.map((row) => row.id)).toEqual([first.id, second.id]);
+      expect(body.reducers.counts?.distinctRowCount).toBe(2);
     });
 
     it('groups the rows of a board view into columns by the configured select property', async () => {
@@ -543,17 +569,20 @@ describe('Page Schema (Integration)', () => {
         status: todo,
       });
 
-      const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
+      const viewId = await readViewId(collection.id, 'Board');
+      const response = await queryView(adminToken, sharedSpaceId, collection.id, viewId, [
+        { id: 'rows', kind: 'groups' },
+      ]).expect(200);
 
       const body = response.body as {
-        outcome: { kind: string; groups: { key: string; rows: PageResponse[] }[] };
+        reducers: { rows: { groups: { ids: string[]; key: string }[]; kind: string } };
       };
-      expect(body.outcome.kind).toBe('GROUPED_ROWS');
-      expect(body.outcome.groups.map((group) => group.key)).toEqual([todo, done, 'unassigned']);
-      expect(body.outcome.groups.find((group) => group.key === todo)?.rows.map((row) => row.id)).toEqual([todoRow.id]);
+      expect(body.reducers.rows.kind).toBe('groups');
+      expect(body.reducers.rows.groups.map((group) => group.key)).toEqual([todo, done, 'unassigned']);
+      expect(body.reducers.rows.groups.find((group) => group.key === todo)?.ids).toEqual([todoRow.id]);
     });
 
-    it('signals a missing grouping property instead of an empty board when the schema no longer has it', async () => {
+    it('says the view has no property to group by instead of answering an empty board when the schema no longer has it', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'Stale Board Collection');
       await defineSchema(
         testApp,
@@ -563,28 +592,27 @@ describe('Page Schema (Integration)', () => {
         [titleProperty, statusProperty],
         [{ name: 'Board', type: DatabaseViewType.BOARD, configuration: { groupBy: 'status' }, isDefault: true }],
       ).expect(201);
+      const viewId = await readViewId(collection.id, 'Board');
 
       const prisma = testApp.get(PrismaService);
       await prisma.models.PageSchemaProperty.where({ key: 'status', pageId: collection.id }).deleteAndCount();
 
-      const response = await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Board').expect(200);
-      expect(response.body).toEqual({
-        attachedFiles: [],
-        hasMore: false,
-        outcome: { kind: 'MISSING_GROUPING_PROPERTY' },
-        relatedRows: [],
-        rowCount: 0,
-        totalRowCount: 0,
-      });
+      const response = await queryView(adminToken, sharedSpaceId, collection.id, viewId, [
+        { id: 'rows', kind: 'groups' },
+      ]);
+      expect(response.status).toBe(400);
+      expect((response.body as { error: { code: string } }).error.code).toBe('VIEW_QUERY_INVALID');
     });
 
-    it('returns 404 for a view name that does not exist on the schema', async () => {
+    it('returns 404 for a view id that does not exist on the schema', async () => {
       const collection = await createPage(testApp, adminToken, sharedSpaceId, 'No Views Collection');
       await defineSchema(testApp, adminToken, sharedSpaceId, collection.id, [titleProperty, statusProperty]).expect(
         201,
       );
 
-      await getView(testApp, adminToken, sharedSpaceId, collection.id, 'Nonexistent').expect(404);
+      await queryView(adminToken, sharedSpaceId, collection.id, crypto.randomUUID(), [
+        { id: 'rows', kind: 'results' },
+      ]).expect(404);
     });
 
     it("hides a restricted space's view from an outsider", async () => {
@@ -598,7 +626,11 @@ describe('Page Schema (Integration)', () => {
         [{ name: 'Table', type: DatabaseViewType.TABLE, configuration: {}, isDefault: true }],
       ).expect(201);
 
-      await getView(testApp, outsiderToken, secretSpaceId, collection.id, 'Table').expect(403);
+      const viewId = await readViewId(collection.id, 'Table', secretSpaceId);
+
+      await queryView(outsiderToken, secretSpaceId, collection.id, viewId, [{ id: 'rows', kind: 'results' }]).expect(
+        403,
+      );
     });
   });
 

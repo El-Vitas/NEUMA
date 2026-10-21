@@ -325,6 +325,61 @@ export {
   pageViewConfigurationSchema,
   readPageViewConfiguration,
 } from './page-view/page-view.schemas.js';
+export { diffPageViewConfigurations } from './page-view/page-view.operations.diff.lib.js';
+export { applyPageViewOperation } from './page-view/page-view.operations.lib.js';
+export type {
+  PageFilterNodePatch,
+  PageViewListKey,
+  PageViewMapKey,
+  PageViewOperation,
+  PageViewOperationContext,
+  PageViewOperationError,
+  PageViewOperationErrorCode,
+  PageViewScalarKey,
+  PageViewState,
+} from './page-view/page-view.operations.types.js';
+export {
+  PAGE_VIEW_CONFIGURATION_LIST_KEYS,
+  PAGE_VIEW_LIST_KEYS,
+  PAGE_VIEW_MANUAL_ORDER_MAXIMUM,
+  PAGE_VIEW_MAP_KEYS,
+  PAGE_VIEW_SCALAR_KEYS,
+} from './page-view/page-view.operations.types.js';
+export type { PageViewWireOperation } from './page-view/page-view.operations.wire.js';
+export {
+  PAGE_VIEW_OPERATION_TABLE,
+  readPageViewOperation,
+  toPageViewEnvelope,
+} from './page-view/page-view.operations.wire.js';
+export { pageQueryRequestSchema } from './page-view/page-view.query.schemas.js';
+export type {
+  PageQueryAggregateValue,
+  PageQueryAggregationBy,
+  PageQueryAggregationGroupOutcome,
+  PageQueryAggregationItem,
+  PageQueryAggregationsOutcome,
+  PageQueryAggregationsReducer,
+  PageQueryErrorCode,
+  PageQueryFile,
+  PageQueryGroupAddress,
+  PageQueryGroupOutcome,
+  PageQueryGroupResultsReducer,
+  PageQueryGroupsOutcome,
+  PageQueryGroupsReducer,
+  PageQueryOutcome,
+  PageQueryReducer,
+  PageQueryReducerKind,
+  PageQueryRequest,
+  PageQueryResponse,
+  PageQueryResultsOutcome,
+  PageQueryResultsReducer,
+  PageQueryRow,
+} from './page-view/page-view.query.types.js';
+export {
+  PAGE_QUERY_ERROR_CODE,
+  PAGE_QUERY_LIMITS,
+  PAGE_QUERY_REDUCER_KIND,
+} from './page-view/page-view.query.types.js';
 export { comparePageRowsBySorts } from './page-view/page-view.sort.lib.js';
 export type {
   PageCalendarDay,
@@ -337,6 +392,7 @@ export type {
   PageFilterGroup,
   PageFilterGroupOperator,
   PageFilterOperator,
+  PageGroupByMode,
   PageRowHeight,
   PageSort,
   PageSortDirection,
@@ -357,6 +413,8 @@ export {
   PAGE_FILTER_MAXIMUM_DEPTH,
   PAGE_FILTER_OPERATOR,
   PAGE_FILTER_OPERATOR_VALUES,
+  PAGE_GROUP_BY_MODE,
+  PAGE_GROUP_BY_MODE_VALUES,
   PAGE_ROW_HEIGHT,
   PAGE_ROW_HEIGHT_VALUES,
   PAGE_SORT_DIRECTION,

@@ -15,12 +15,13 @@ import {
 } from '@neuma/shared';
 import type {
   PageSchemaProperty,
-  PageSchemaView,
+  PageSchemaViewDraft,
   PageViewBand,
   PageViewBandedOutcome,
   PageViewFlatOutcome,
   PageViewGroup,
   PageViewGroupedOutcome,
+  PageViewOutcome,
 } from '../types/pages.schema.types';
 
 /** Narrows a select's plain string by lookup instead of a cast. */
@@ -45,9 +46,9 @@ export const listGroupablePropertyKeys = (properties: readonly PageSchemaPropert
  * collection. Also matches a board grouped by a property that was removed or is no longer a select.
  */
 export const findBoardWithoutGrouping = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   properties: readonly PageSchemaProperty[],
-): PageSchemaView | undefined => {
+): PageSchemaViewDraft | undefined => {
   const groupable = listGroupablePropertyKeys(properties);
   return views.find(
     (view) =>
@@ -62,6 +63,20 @@ export const readBoardBands = (outcome: PageViewBandedOutcome | PageViewGroupedO
     ? outcome.bands
     : [{ color: null, groups: outcome.groups, key: '', label: '' }];
 
+/** No row at all was drawn: the view holds none, or its filter lets none through. */
+export const isOutcomeEmpty = (outcome: PageViewOutcome): boolean => {
+  switch (outcome.kind) {
+    case PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS:
+      return outcome.rows.length === 0;
+    case PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS:
+      return outcome.groups.every((group) => group.rows.length === 0);
+    case PAGE_VIEW_OUTCOME_KIND.BANDED_ROWS:
+      return outcome.bands.every((band) => band.groups.every((group) => group.rows.length === 0));
+    default:
+      return false;
+  }
+};
+
 /** Ungrouped rows become one unnamed group so table, list and gallery render through a single path. */
 export const readViewGroups = (outcome: PageViewFlatOutcome | PageViewGroupedOutcome): readonly PageViewGroup[] =>
   outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS
@@ -69,18 +84,18 @@ export const readViewGroups = (outcome: PageViewFlatOutcome | PageViewGroupedOut
     : [{ color: null, key: '', label: '', rows: outcome.rows }];
 
 const rewriteView = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
-  rewrite: (configuration: PageSchemaView['configuration']) => PageSchemaView['configuration'],
-): readonly PageSchemaView[] =>
+  rewrite: (configuration: PageSchemaViewDraft['configuration']) => PageSchemaViewDraft['configuration'],
+): readonly PageSchemaViewDraft[] =>
   views.map((view) => (view.name === viewName ? { ...view, configuration: rewrite(view.configuration) } : view));
 
 /** Removing the grouping also removes the bands: crossing an ungrouped view means nothing. */
 export const setViewGroupBy = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   groupBy: null | string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...readPageViewConfiguration(configuration),
     groupBy,
@@ -89,46 +104,46 @@ export const setViewGroupBy = (
 
 /** The grouping property cannot also be the band: each band would have a single filled cell. */
 export const setViewSubGroupBy = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   subGroupBy: null | string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const current = readPageViewConfiguration(configuration);
     return { ...current, subGroupBy: subGroupBy === current.groupBy ? null : subGroupBy };
   });
 
 export const setViewDateBucket = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   groupByDateBucket: PageDateBucket,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...readPageViewConfiguration(configuration),
     groupByDateBucket,
   }));
 
 export const setViewDateProperty = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   dateProperty: null | string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), dateProperty }));
 
 export const setViewChartKind = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   chartKind: PageChartKind,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), chartKind }));
 
 /** Set together: counting needs no property, summing needs one. Choosing count clears the stale property. */
 export const setViewChartMeasure = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   chartMeasure: PageChartMeasure,
   chartValueProperty: null | string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({
     ...readPageViewConfiguration(configuration),
     chartMeasure,
@@ -136,19 +151,19 @@ export const setViewChartMeasure = (
   }));
 
 export const setViewIcon = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   icon: null | string,
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => ({ ...readPageViewConfiguration(configuration), icon }));
 
 /** A view that never chose shows everything, so the first toggle must write all keys except the clicked one. */
 export const toggleViewProperty = (
-  views: readonly PageSchemaView[],
+  views: readonly PageSchemaViewDraft[],
   viewName: string,
   propertyKey: string,
   availableKeys: readonly string[],
-): readonly PageSchemaView[] =>
+): readonly PageSchemaViewDraft[] =>
   rewriteView(views, viewName, (configuration) => {
     const current = readPageViewConfiguration(configuration);
     const shown = readVisiblePropertyKeys(current.visibleProperties, availableKeys);

@@ -2,18 +2,20 @@ import { describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
+import { PAGE_ROW_QUERY_CONTEXT } from '@/modules/pages/collections/constants/pages.row-context.constants';
 import type { PageRow, PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { defaultConfig } from '../lib/pages.options.fixture';
 
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const created: { propertyValues: Record<string, unknown>; title: string }[] = [];
+const navigated: string[] = [];
 
 mock.module('@/i18n/navigation', () => ({
   Link: ({ children, scroll: _scroll, ...rest }: ComponentProps<'a'> & { scroll?: boolean }) => (
     <a {...rest}>{children}</a>
   ),
-  useRouter: () => ({ refresh: () => undefined }),
+  useRouter: () => ({ refresh: () => undefined, replace: (href: string) => navigated.push(href) }),
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
@@ -59,14 +61,30 @@ const rows: PageRow[] = [
   rowOn('row-3', 'Sin fecha', null),
 ];
 
-const drawCalendar = (dateProperty: null | string = 'dueDate', ui: readonly PageRow[] = rows): ReactNode => (
+const drawCalendar = (
+  dateProperty: null | string = 'dueDate',
+  ui: readonly PageRow[] = rows,
+  extra: { isTruncated?: boolean; month?: string; search?: string; undated?: number } = {},
+): ReactNode => (
   <NextIntlClientProvider locale="en" messages={en}>
-    <PagesCollectionCalendar canEdit dateProperty={dateProperty} rows={ui} schema={schema} spaceId="space-1" />
+    <PAGE_ROW_QUERY_CONTEXT value={{ search: extra.search ?? '' }}>
+      <PagesCollectionCalendar
+        activeViewName="Calendar"
+        canEdit
+        dateProperty={dateProperty}
+        isTruncated={extra.isTruncated ?? false}
+        month={extra.month ?? '2026-09'}
+        rows={ui}
+        schema={schema}
+        spaceId="space-1"
+        undated={extra.undated ?? 1}
+      />
+    </PAGE_ROW_QUERY_CONTEXT>
   </NextIntlClientProvider>
 );
 
 describe('PagesCollectionCalendar', () => {
-  it('opens on the month where the rows are, not on the month of today', () => {
+  it('opens on the month the server read, not on the month of today', () => {
     cleanup();
     render(drawCalendar());
 
@@ -96,16 +114,36 @@ describe('PagesCollectionCalendar', () => {
     expect(screen.getByText(/1 row with no date/)).toBeDefined();
   });
 
-  it('goes to the month before and to the month after', () => {
+  it('says how many rows have no date even when none of them is among the rows of the grid', () => {
+    cleanup();
+    render(drawCalendar('dueDate', rows.slice(0, 2), { undated: 7 }));
+
+    expect(screen.getByText(/7 rows with no date/)).toBeDefined();
+  });
+
+  it('asks the server for the month before and for the month after, keeping the words searched', () => {
+    cleanup();
+    navigated.length = 0;
+    render(drawCalendar('dueDate', rows, { search: 'informe' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
+
+    expect(navigated).toEqual(['?view=Calendar&q=informe&month=2026-08', '?view=Calendar&q=informe&month=2026-10']);
+  });
+
+  it('says when the grid holds more rows than a calendar reads, instead of passing the first ones off as all', () => {
+    cleanup();
+    render(drawCalendar('dueDate', rows, { isTruncated: true }));
+
+    expect(screen.getByRole('status').textContent).toContain('first 1,000');
+  });
+
+  it('says nothing about the limit when every row of the grid is drawn', () => {
     cleanup();
     render(drawCalendar());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
-    expect(screen.getByRole('heading', { name: /August 2026/i })).toBeDefined();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
-    expect(screen.getByRole('heading', { name: /October 2026/i })).toBeDefined();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('moves an entry to another day with the keyboard, writing only its date', async () => {

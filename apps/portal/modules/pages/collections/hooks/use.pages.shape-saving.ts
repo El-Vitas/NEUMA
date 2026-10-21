@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { toSavableView } from '../lib/pages.schema-editing.lib';
 import { updatePageCollectionAction } from '../server/actions/pages.collections.actions';
-import type { PageSchema, PageSchemaProperty, PageSchemaView } from '../types/pages.schema.types';
+import type { PageSchema, PageSchemaProperty, PageSchemaViewDraft } from '../types/pages.schema.types';
 import type { PagesShapeSaving } from '../types/pages.shape-saving.types';
 
 /**
@@ -23,7 +23,7 @@ export const usePagesShapeSaving = (schema: PageSchema, spaceId: string): PagesS
     isSaving,
     save: (
       properties: readonly PageSchemaProperty[],
-      views: readonly PageSchemaView[],
+      views: readonly PageSchemaViewDraft[],
       onSaved?: (saved: PageSchema) => void,
     ) => {
       startSaving(async () => {

@@ -3,7 +3,7 @@ import {
   readShownCardProperties,
   readShownProperties,
 } from '@/modules/pages/collections/lib/pages.view-visibility.lib';
-import type { PageSchemaProperty, PageSchemaView } from '@/modules/pages/collections/types/pages.schema.types';
+import type { PageSchemaProperty, PageSchemaViewDraft } from '@/modules/pages/collections/types/pages.schema.types';
 import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 
 const status: PageSchemaProperty = {
@@ -24,7 +24,7 @@ const dueDate: PageSchemaProperty = {
 };
 const properties = [status, dueDate];
 
-const viewShowing = (visibleProperties: readonly string[] | null): PageSchemaView => ({
+const viewShowing = (visibleProperties: readonly string[] | null): PageSchemaViewDraft => ({
   configuration: visibleProperties === null ? {} : { visibleProperties: [...visibleProperties] },
   isDefault: true,
   name: 'Board',
@@ -51,13 +51,18 @@ describe('readShownProperties', () => {
 
 describe('readShownCardProperties', () => {
   it('leaves out of the card what the column already says', () => {
-    const board: PageSchemaView = { configuration: { groupBy: 'status' }, isDefault: true, name: 'B', type: 'BOARD' };
+    const board: PageSchemaViewDraft = {
+      configuration: { groupBy: 'status' },
+      isDefault: true,
+      name: 'B',
+      type: 'BOARD',
+    };
 
     expect(readShownCardProperties(board, properties)).toEqual([dueDate]);
   });
 
   it('shows the grouping property on the card when somebody asked for it by name', () => {
-    const board: PageSchemaView = {
+    const board: PageSchemaViewDraft = {
       configuration: { groupBy: 'status', visibleProperties: ['status', 'dueDate'] },
       isDefault: true,
       name: 'B',
@@ -68,7 +73,7 @@ describe('readShownCardProperties', () => {
   });
 
   it('keeps everything else the view shows', () => {
-    const board: PageSchemaView = {
+    const board: PageSchemaViewDraft = {
       configuration: { groupBy: 'status', visibleProperties: ['dueDate'] },
       isDefault: true,
       name: 'B',

@@ -2,6 +2,7 @@ import type { JsonValue, PageLifecycle } from '@neuma/db';
 import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_DELETE_FOREVER_OUTCOMES, PAGE_RESTORE_VERSION_OUTCOME } from '../constants/pages.constants';
+import type { PageBlockOperation } from '../domain/page.block.domain.types';
 import type { PageParentReference } from '../domain/page.domain.types';
 import type {
   PageAccessDeniedError,
@@ -9,6 +10,7 @@ import type {
   PageLifecycleError,
   PageLockedError,
 } from '../domain/page.error';
+import type { PageValueListChanges } from '../domain/page-value-list.domain.types';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
 
@@ -60,6 +62,8 @@ export interface NewPageInput extends Omit<CreatePageInput, 'content'> {
 }
 
 export interface UpdatePagePropertyValuesInput {
+  /** Operations in the wire shape that land in the same transaction as the values, such as placing a card in a view. */
+  readonly extraOperations?: readonly PageBlockOperation[];
   readonly pageId: string;
   readonly role: UserRole;
   /** Saved in the same write; omitted leaves the title untouched. */
@@ -108,6 +112,10 @@ export interface PageContentWriter {
 }
 
 export interface UpdatePagePropertiesInput {
+  /** Operations in the wire shape that land in the same transaction as the values. */
+  readonly extraOperations?: readonly PageBlockOperation[];
+  /** Lists that change by what leaves and what enters, so two people never undo each other. */
+  readonly listChanges?: PageValueListChanges;
   readonly pageId: string;
   readonly propertyValues: Readonly<Record<string, unknown>>;
   readonly role: UserRole;

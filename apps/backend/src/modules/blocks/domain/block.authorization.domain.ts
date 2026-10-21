@@ -75,6 +75,7 @@ const authorizeExisting = (
 const listToleratedBlockers = (operation: BlockPageOperation): readonly WriteBlocker[] => {
   switch (operation.command) {
     case 'mergePageValues':
+    case 'changeValueList':
       return BLOCK_NO_TOLERATED_BLOCKERS;
     case 'rewritePageValues':
       return ['locked', 'trashed'];
@@ -133,6 +134,10 @@ const authorizeOperation = (
   const power: AuthorizationPower = operation.command === 'setPermissions' ? 'manage' : 'edit';
   return authorizeExisting(input.before.get(operation.blockId), power, input, BLOCK_NO_TOLERATED_BLOCKERS);
 };
+
+/** A view changes with its collection: the viewer needs edit on it, and it may not be locked or trashed. */
+export const authorizeCollectionEdit = (collectionId: string, input: AuthorizationInput): Result<void, DomainError> =>
+  authorizeExisting(input.recordsById.get(collectionId), 'edit', input, BLOCK_NO_TOLERATED_BLOCKERS);
 
 /**
  * Before anything is applied: every block an operation points at must exist, be readable and editable by the

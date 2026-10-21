@@ -250,11 +250,12 @@ const column = (
 });
 
 const collectionWith = (properties: readonly McpColumn[]): McpCollectionService => ({
+  applyViewOperations: notUsedHere,
   defineSchema: notUsedHere,
+  moveRow: notUsedHere,
   getSchema: () => Promise.resolve(Result.ok({ properties, views: [] })),
-  queryRows: notUsedHere,
+  queryCollection: notUsedHere,
   rewriteOption: notUsedHere,
-  setViewConfiguration: notUsedHere,
 });
 
 const servingPage = (served: PageSummary, overrides: Partial<McpServerDependencies> = {}): McpServerDependencies => ({

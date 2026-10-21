@@ -52,7 +52,9 @@ export const PAGE_FILTER_GROUP_OPERATOR = {
   OR: 'OR',
 } as const satisfies Record<PageFilterGroupOperator, PageFilterGroupOperator>;
 
+/** Every stored node has an id so it can be changed alone (ADR 025). A client may omit it; the server assigns. */
 export interface PageFilterCondition {
+  readonly id?: string;
   readonly kind: 'CONDITION';
   readonly propertyKey: string;
   readonly operator: PageFilterOperator;
@@ -60,6 +62,7 @@ export interface PageFilterCondition {
 }
 
 export interface PageFilterGroup {
+  readonly id?: string;
   readonly kind: 'GROUP';
   readonly operator: PageFilterGroupOperator;
   readonly conditions: readonly PageFilter[];
@@ -134,6 +137,16 @@ export const PAGE_DATE_BUCKET = {
 
 export const PAGE_DATE_BUCKET_VALUES = [PAGE_DATE_BUCKET.DAY, PAGE_DATE_BUCKET.WEEK, PAGE_DATE_BUCKET.MONTH] as const;
 
+/** A status groups by each option or by its three groups; any other property has one way to group. */
+export type PageGroupByMode = 'OPTION' | 'GROUP';
+
+export const PAGE_GROUP_BY_MODE = {
+  GROUP: 'GROUP',
+  OPTION: 'OPTION',
+} as const satisfies Record<PageGroupByMode, PageGroupByMode>;
+
+export const PAGE_GROUP_BY_MODE_VALUES = [PAGE_GROUP_BY_MODE.OPTION, PAGE_GROUP_BY_MODE.GROUP] as const;
+
 export type PageRowHeight = 'SHORT' | 'MEDIUM' | 'TALL';
 
 export const PAGE_ROW_HEIGHT = {
@@ -198,6 +211,10 @@ export interface PageViewConfiguration {
   /** Emoji shown on the view's tab; per view, not per collection. */
   readonly icon: string | null;
   readonly groupBy: string | null;
+  /** Only means something for a status. */
+  readonly groupByMode: PageGroupByMode;
+  /** Groups the view keeps out of sight; their rows are read only when asked for. */
+  readonly hiddenGroups: readonly string[];
   /** Crosses `groupBy`: with both set, rows form a grid where each crossing is a drop target. */
   readonly subGroupBy: string | null;
   /** Ignored when grouping by a non-date property. */

@@ -102,7 +102,7 @@ export const pickMcpOption = (
 };
 
 /** With two people of the same name the id is required: picking one would assign the row to the wrong person. */
-const pickPerson = (
+export const pickPerson = (
   column: McpColumnDraft,
   value: string,
   people: readonly McpAssignablePerson[],

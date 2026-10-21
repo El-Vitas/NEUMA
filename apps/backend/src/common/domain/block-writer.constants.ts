@@ -1,5 +1,6 @@
 /** The operation vocabulary of the blocks module, as a module that writes pages says it on the wire. */
 export const BLOCK_WRITE_COMMAND = {
+  changeValueList: 'changeValueList',
   listAfter: 'listAfter',
   listBefore: 'listBefore',
   listRemove: 'listRemove',

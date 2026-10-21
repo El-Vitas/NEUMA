@@ -6,6 +6,7 @@ import {
   DEFAULT_PAGE_PROPERTY_CONFIG,
   PAGE_OPTION_COLOR,
   type PagePropertyValues,
+  type PageQueryRequest,
   Result,
   USER_ROLE,
 } from '@neuma/shared';
@@ -21,6 +22,7 @@ import { createMcpServer } from '../../../../src/modules/mcp/mcp.server';
 import type {
   McpCollectionService,
   McpCollectionShape,
+  McpQueryAnswer,
   McpRefusal,
   McpRowWriter,
   McpWrittenRow,
@@ -147,7 +149,7 @@ const initialShape: McpCollectionShape = {
       type: 'PERSON',
     },
   ],
-  views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
+  views: [{ configuration: {}, id: 'view-tabla', isDefault: true, name: 'Tabla', type: 'TABLE' }],
 };
 
 const titleColumn = {
@@ -223,13 +225,52 @@ const linkedShape: McpCollectionShape = {
       type: 'DATE',
     },
   ],
-  views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
+  views: [{ configuration: {}, id: 'view-tabla', isDefault: true, name: 'Tabla', type: 'TABLE' }],
+};
+
+const foldedLower = (text: string): string => text.toLowerCase();
+
+/** What the server answers about the rows of Proyectos for an exact title or for words the title holds. */
+const answerAboutProjects = (input: {
+  readonly excludedRowIds: readonly string[];
+  readonly request: PageQueryRequest;
+}): McpQueryAnswer => {
+  const { quickFilter, search } = input.request;
+  const wanted = quickFilter?.kind === 'CONDITION' ? quickFilter.value : null;
+  const matching = projectRows
+    .filter((id) => !input.excludedRowIds.includes(id))
+    .filter((id) => {
+      const title = pages.get(id)?.title ?? '';
+      if (typeof wanted === 'string') return title === wanted;
+      return search === undefined || foldedLower(title).includes(foldedLower(search));
+    });
+  return {
+    attachedFiles: [],
+    reducers: { rows: { ids: matching, kind: 'results', nextCursor: null } },
+    rows: Object.fromEntries(
+      matching.map((id) => [id, written(id, pages.get(id)?.title ?? '', pages.get(id)?.propertyValues ?? null)]),
+    ),
+  };
 };
 
 const createCollectionStore = (refusesTheShape = false) => {
   let shape = initialShape;
-  const received: Record<string, unknown[]> = { defineSchema: [], queryRows: [], rewriteOption: [], setView: [] };
+  const received: Record<string, unknown[]> = {
+    defineSchema: [],
+    moveRow: [],
+    queryCollection: [],
+    rewriteOption: [],
+    viewOperations: [],
+  };
   const service: McpCollectionService = {
+    applyViewOperations: (input) => {
+      received.viewOperations?.push(input);
+      return Promise.resolve(Result.ok({ configuration: {}, id: input.viewId, version: 1 }));
+    },
+    moveRow: (input) => {
+      received.moveRow?.push(input);
+      return Promise.resolve(Result.ok({ configuration: {}, id: input.viewId, version: 1 }));
+    },
     defineSchema: (input) => {
       received.defineSchema?.push(input);
       if (refusesTheShape)
@@ -249,20 +290,30 @@ const createCollectionStore = (refusesTheShape = false) => {
       if (pageId === PROJECTS) return Promise.resolve(Result.ok({ ...initialShape, properties: [titleColumn] }));
       return Promise.resolve(Result.ok(pageId === COLLECTION ? shape : { properties: [], views: [] }));
     },
-    queryRows: (input) => {
-      received.queryRows?.push(input);
-      const rowIds = input.pageId === PROJECTS ? projectRows : [ROW, CLOSED_ROW];
-      const rows = rowIds.map((id) => ({
-        ...pageSource(id, pages.get(id)?.title ?? '', COLLECTION, pages.get(id)?.propertyValues ?? null),
-      }));
-      return Promise.resolve(Result.ok({ attachedFiles: [], hasMore: false, relatedRows: [], rows }));
+    queryCollection: (input) => {
+      received.queryCollection?.push(input);
+      if (input.pageId === PROJECTS) return Promise.resolve(Result.ok(answerAboutProjects(input)));
+      const row = pages.get(ROW);
+      const wantsRows = input.request.reducers.some((reducer) => reducer.id === 'rows');
+      const answered = row === undefined || !wantsRows ? [] : [written(ROW, row.title, row.propertyValues)];
+      return Promise.resolve(
+        Result.ok({
+          attachedFiles: [],
+          reducers: {
+            counts: {
+              distinctRowCount: 1,
+              groups: [{ key: 'todo0001', subKey: null, values: { total: 1 } }],
+              kind: 'aggregations' as const,
+              totals: { a0: 3, total: 1 },
+            },
+            rows: { ids: answered.map((entry) => entry.id), kind: 'results' as const, nextCursor: null },
+          },
+          rows: Object.fromEntries(answered.map((entry) => [entry.id, entry])),
+        }),
+      );
     },
     rewriteOption: (input) => {
       received.rewriteOption?.push(input);
-      return Promise.resolve(Result.ok(shape));
-    },
-    setViewConfiguration: (input) => {
-      received.setView?.push(input);
       return Promise.resolve(Result.ok(shape));
     },
   };
@@ -469,13 +520,82 @@ describe('MCP collections — reading', () => {
       name: 'query_collection',
     });
 
-    expect(collections.received.queryRows?.[0]).toMatchObject({
-      configuration: { filter: { conditions: [{ operator: 'IS', propertyKey: 'owner', value: 'u-1' }] } },
-      viewName: null,
+    const asked = collections.received.queryCollection?.[0];
+    expect((asked as { excludedRowIds: string[] }).excludedRowIds).toContain(CLOSED_ROW);
+    expect(asked).toMatchObject({
+      request: {
+        quickFilter: { conditions: [{ operator: 'IS', propertyKey: 'owner', value: 'u-1' }] },
+        reducers: [
+          { id: 'rows', kind: 'results', limit: 25 },
+          { by: 'NONE', id: 'counts', kind: 'aggregations' },
+        ],
+      },
     });
     expect(result.structuredContent).toMatchObject({ rows: [{ id: ROW }], total: 1 });
     expect(textOf(result)).toContain('Responsable: Ana Pérez (u-1)');
     expect(textOf(result)).not.toContain('Sueldos');
+  });
+
+  test('asks only for the count when the limit is 0, and brings no rows', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({ arguments: { collection: COLLECTION, limit: 0 }, name: 'query_collection' });
+
+    expect(collections.received.queryCollection?.[0]).toMatchObject({
+      request: { reducers: [{ id: 'counts', kind: 'aggregations' }] },
+    });
+    expect(result.structuredContent).toMatchObject({ rows: [], total: 1 });
+  });
+
+  test('asks for one group by the name of its option, with the rows of that group only', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, group: 'por hacer', groupBy: 'Estado', limit: 10 },
+      name: 'query_collection',
+    });
+
+    expect(collections.received.queryCollection?.[0]).toMatchObject({
+      request: {
+        reducers: [
+          { group: { key: 'todo0001' }, groupBy: 'status', id: 'rows', kind: 'groupResults', limit: 10 },
+          { by: 'GROUP', groupBy: 'status', id: 'counts', kind: 'aggregations' },
+        ],
+      },
+    });
+    expect(result.structuredContent).toMatchObject({
+      groups: [{ count: 1, name: 'Por hacer', rows: [{ id: ROW }] }],
+    });
+  });
+
+  test('brings only the columns it was asked for and names each total as people read it', async () => {
+    const { client } = await connect();
+
+    const result = await client.callTool({
+      arguments: {
+        aggregate: [{ calculation: 'SUM', column: 'Estado' }],
+        collection: COLLECTION,
+        columns: ['Responsable'],
+      },
+      name: 'query_collection',
+    });
+
+    const [row] = (result.structuredContent as { rows: { properties: { key: string }[] }[] }).rows;
+    expect(row?.properties.map((property) => property.key)).toEqual(['owner']);
+    expect(result.structuredContent).toMatchObject({ aggregates: { 'SUM Estado': 3 } });
+  });
+
+  test('refuses a group without a column to group by, before asking the server anything', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { collection: COLLECTION, group: 'Hecho' },
+      name: 'query_collection',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('groupBy');
+    expect(collections.received.queryCollection).toEqual([]);
   });
 });
 
@@ -1028,11 +1148,71 @@ describe('MCP collections — columns and views', () => {
       name: 'update_view',
     });
 
-    expect(collections.received.setView?.[0]).toMatchObject({
-      configuration: { sorts: [{ direction: 'ASCENDING', propertyKey: 'status' }] },
-      viewName: 'Tabla',
+    expect(collections.received.viewOperations?.[0]).toMatchObject({
+      operations: [{ args: { direction: 'ASCENDING', propertyKey: 'status' }, command: 'sortSet' }],
+      viewId: 'view-tabla',
     });
     expect(collections.received.defineSchema).toEqual([]);
+  });
+
+  test('sends nothing when a view already reads as asked', async () => {
+    const { client, collections } = await connect();
+
+    await client.callTool({
+      arguments: { collection: COLLECTION, view: 'tabla', where: [] },
+      name: 'update_view',
+    });
+
+    expect(collections.received.viewOperations).toEqual([]);
+  });
+
+  test('moves a row to the value of its column and beside another row in one write', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { before: CLOSED_ROW, properties: { Estado: 'hecho' }, row: ROW, view: 'tabla' },
+      name: 'move_row',
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect(collections.received.moveRow?.[0]).toMatchObject({
+      before: CLOSED_ROW,
+      pageId: COLLECTION,
+      rowId: ROW,
+      values: { status: 'done0001' },
+      viewId: 'view-tabla',
+    });
+    expect(result.structuredContent).toMatchObject({ id: ROW });
+  });
+
+  test('refuses to place a row before and after at once, and says nothing was written', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({
+      arguments: { after: CLOSED_ROW, before: CLOSED_ROW, row: ROW, view: 'Tabla' },
+      name: 'move_row',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('not both');
+    expect(collections.received.moveRow).toEqual([]);
+  });
+
+  test('asks where the row goes when neither values nor a neighbour were given', async () => {
+    const { client, collections } = await connect();
+
+    const result = await client.callTool({ arguments: { row: ROW, view: 'Tabla' }, name: 'move_row' });
+
+    expect(result.isError).toBe(true);
+    expect(collections.received.moveRow).toEqual([]);
+  });
+
+  test('does not offer move_row to a token that cannot write rows', async () => {
+    const { client } = await connect([ACCESS_TOKEN_PERMISSIONS.collectionsRead]);
+
+    const offered = (await client.listTools()).tools.map((tool) => tool.name);
+
+    expect(offered).not.toContain('move_row');
   });
 
   test('keeps the last view, saying why', async () => {

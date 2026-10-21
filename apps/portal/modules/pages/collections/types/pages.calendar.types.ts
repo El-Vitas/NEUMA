@@ -1,6 +1,12 @@
 import type { PageCalendarDay } from '@neuma/shared';
 import type { PageRow } from './pages.schema.types';
 
+/** The first and the last day a calendar grid draws, as `YYYY-MM-DD`. */
+export interface PageCalendarRange {
+  readonly from: string;
+  readonly to: string;
+}
+
 export interface PageCalendarCell extends PageCalendarDay {
   readonly rows: readonly PageRow[];
 }

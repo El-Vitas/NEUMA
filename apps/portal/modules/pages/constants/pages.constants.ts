@@ -67,13 +67,13 @@ export const PAGE_API_ROUTES = {
   schema: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/schema`,
   rewriteOption: (spaceId: string, pageId: string, propertyKey: string) =>
     `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/properties/${propertyKey}/rewrite-option`,
-  viewConfiguration: (spaceId: string, pageId: string, viewName: string) =>
-    `/api/v1/spaces/${spaceId}/pages/${pageId}/schema/views/${encodeURIComponent(viewName)}/configuration`,
-  rows: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/rows`,
   transactions: '/api/v1/transactions',
   collections: (spaceId: string) => `/api/v1/spaces/${spaceId}/collections`,
-  view: (spaceId: string, pageId: string, viewName: string) =>
-    `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewName)}`,
+  query: (spaceId: string, pageId: string) => `/api/v1/spaces/${spaceId}/pages/${pageId}/query`,
+  viewOperations: (spaceId: string, pageId: string, viewId: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewId)}/operations`,
+  moveRow: (spaceId: string, pageId: string, viewId: string) =>
+    `/api/v1/spaces/${spaceId}/pages/${pageId}/views/${encodeURIComponent(viewId)}/move-row`,
 } as const;
 
 export const PAGES_LIST_IS_NOT_A_LIST = 'The pages list arrived as something that is not a list';

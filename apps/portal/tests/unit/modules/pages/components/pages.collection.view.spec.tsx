@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps } from 'react';
+import { NO_PAGE_AGGREGATES } from '@/modules/pages/collections/constants/pages.aggregates.constants';
 import type {
   PageSchemaProperty,
   PageSchemaView,
@@ -9,6 +10,7 @@ import type {
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -24,7 +26,11 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
-  updatePageViewConfigurationAction: async () => ({ data: null }),
+  applyPageViewOperationsAction: async () => ({ data: null }),
+  loadMorePageRowsAction: async () => ({ data: null }),
+  readPageMatchingRowsAction: async () => ({ data: null }),
+  refreshPageRowsAction: async () => ({ data: null }),
+  movePageRowAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async () => ({ data: null }),
 }));
 mock.module('@/modules/pages/server/actions/pages.actions', () => ({
@@ -48,18 +54,13 @@ const properties: PageSchemaProperty[] = [
   },
 ];
 
-const boardView: PageSchemaView = {
-  configuration: { groupBy: 'status' },
-  isDefault: false,
-  name: 'Board',
-  type: 'BOARD',
-};
+const boardView = buildView('Board', 'BOARD', { configuration: { groupBy: 'status' } });
 
-const tableView: PageSchemaView = { configuration: {}, isDefault: true, name: 'Table', type: 'TABLE' };
+const tableView = buildView('Table', 'TABLE', { isDefault: true });
 
-const listView: PageSchemaView = { configuration: {}, isDefault: false, name: 'List', type: 'LIST' };
+const listView = buildView('List', 'LIST');
 
-const galleryView: PageSchemaView = { configuration: {}, isDefault: false, name: 'Gallery', type: 'GALLERY' };
+const galleryView = buildView('Gallery', 'GALLERY');
 
 const groupedOutcome: PageViewOutcome = {
   groups: [
@@ -88,6 +89,7 @@ const drawView = async (outcome: PageViewOutcome | null, view: PageSchemaView) =
     <NextIntlClientProvider locale="en" messages={en}>
       {
         await PagesCollectionView({
+          aggregates: NO_PAGE_AGGREGATES,
           canEdit: false,
           outcome,
           properties,

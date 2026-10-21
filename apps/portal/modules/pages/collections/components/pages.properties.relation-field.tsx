@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { PAGE_RELATION_PICKER_VISIBLE_LIMIT } from '../constants/pages.relations.constants';
 import { usePagesRelationEditing } from '../hooks/use.pages.relation-editing';
 import { listRelationCandidatesToShow } from '../lib/pages.relations.lib';
 import type { PageSchemaProperty } from '../types/pages.schema.types';
@@ -65,7 +66,7 @@ export const PagesPropertiesRelationField = ({
         </span>
       ))}
       {!disabled && (
-        <Popover onOpenChange={(isOpen) => isOpen && editing.loadCandidates()}>
+        <Popover onOpenChange={(isOpen) => isOpen && editing.loadCandidates(query)}>
           <PopoverTrigger asChild>
             <Button
               aria-label={t('properties.relationAdd', { property: property.label })}
@@ -80,7 +81,10 @@ export const PagesPropertiesRelationField = ({
           <PopoverContent align="start" className="w-72 space-y-2 p-2">
             <Input
               aria-label={t('properties.relationSearch')}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                editing.loadCandidates(event.target.value);
+              }}
               placeholder={t('properties.relationSearch')}
               value={query}
             />
@@ -103,6 +107,9 @@ export const PagesPropertiesRelationField = ({
                     </button>
                   </li>
                 ))}
+                {editing.candidates.length >= PAGE_RELATION_PICKER_VISIBLE_LIMIT && (
+                  <li className="px-1 pt-1 text-muted-foreground text-xs">{t('properties.relationMore')}</li>
+                )}
               </ul>
             )}
           </PopoverContent>

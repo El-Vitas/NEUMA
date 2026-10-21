@@ -1,4 +1,4 @@
-import type { JsonObject, PageLifecycle } from '@neuma/db';
+import type { PageLifecycle } from '@neuma/db';
 import type { UserRole } from '@neuma/shared';
 import type {
   SchemaPropertyDefinition,
@@ -69,30 +69,6 @@ export interface PageRowsPage {
   readonly rows: readonly PageRowSummary[];
 }
 
-/** With neither a view name nor a configuration, all rows are returned. */
-export interface QueryPageRowsInput {
-  /** Custom filter and sort, shaped like a view configuration. */
-  readonly configuration: unknown;
-  readonly pageId: string;
-  readonly role: UserRole;
-  readonly userId: string;
-  readonly viewName: string | null;
-  readonly workspaceId: string;
-}
-
-export interface PageRowsSummary extends PageRowsPage {
-  readonly spaceId: string;
-}
-
-export interface SetPageViewConfigurationInput {
-  readonly configuration: JsonObject;
-  readonly pageId: string;
-  readonly role: UserRole;
-  readonly userId: string;
-  readonly viewName: string;
-  readonly workspaceId: string;
-}
-
 /** A null `to` removes the option and clears it from the rows; a name only renames it, and no row moves. */
 export interface RewritePageOptionInput {
   readonly optionId: string;
@@ -125,20 +101,15 @@ export interface PageSchemaRepositoryContract {
     properties: readonly SchemaPropertyDefinition[],
     writer: PageViewer,
   ) => Promise<PageSchemaDefinition | typeof SCHEMA_OPTION_ALREADY_MOVED>;
-  readonly setViewConfiguration: (
-    pageId: string,
-    viewName: string,
-    configuration: JsonObject,
-  ) => Promise<PageSchemaDefinition>;
   readonly getSchema: (pageId: string) => Promise<PageSchemaDefinition>;
   readonly resolveSchemaProperties: (pageId: null | string) => Promise<readonly SchemaPropertyDefinition[]>;
   readonly listPersonPropertyKeys: (pageIds: readonly string[]) => Promise<ReadonlyMap<string, readonly string[]>>;
-  readonly listRows: (
+  readonly readRowsById: (
     pageId: string,
+    rowIds: readonly string[],
     workspaceId: string,
     userId: string,
     role: UserRole,
-    limit: number,
   ) => Promise<PageRowsPage>;
   readonly listWorkspaceMemberIds: (workspaceId: string) => Promise<readonly string[]>;
   /** The pages among `pageIds` that carry a shape, that is, the collections. */

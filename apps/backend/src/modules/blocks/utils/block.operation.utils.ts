@@ -18,6 +18,7 @@ import { BlockFieldNotWritableError, BlockOperationInvalidError } from '../domai
 import {
   blockAddRelationArgsSchema,
   blockApplyTextArgsSchema,
+  blockChangeValueListArgsSchema,
   blockCreateArgsSchema,
   blockEntriesSchema,
   blockEntryValueSchema,
@@ -244,6 +245,19 @@ const parseMergePageValues = (blockId: string, path: readonly string[], args: un
   return Result.ok({ blockId, command: 'mergePageValues', values: parsed.data.values });
 };
 
+const parseChangeValueList = (blockId: string, path: readonly string[], args: unknown): Parsed => {
+  if (path.length !== 0) return invalid('changeValueList addresses the block');
+  const parsed = blockChangeValueListArgsSchema.safeParse(args);
+  if (!parsed.success) return invalidArguments(parsed.error);
+  return Result.ok({
+    add: parsed.data.add ?? [],
+    blockId,
+    command: 'changeValueList',
+    property: parsed.data.property,
+    remove: parsed.data.remove ?? [],
+  });
+};
+
 const parseRewritePageValues = (blockId: string, path: readonly string[], args: unknown): Parsed => {
   if (path.length !== 0) return invalid('rewritePageValues addresses the block');
   const parsed = blockMergePageValuesArgsSchema.safeParse(args);
@@ -277,6 +291,8 @@ const parsePageCommand = ({ args, command, path, pointer }: ReadEnvelope): Parse
       return parseSetOwner(pointer.id, path, args);
     case BLOCK_PAGE_COMMAND.mergePageValues:
       return parseMergePageValues(pointer.id, path, args);
+    case BLOCK_PAGE_COMMAND.changeValueList:
+      return parseChangeValueList(pointer.id, path, args);
     case BLOCK_PAGE_COMMAND.rewritePageValues:
       return parseRewritePageValues(pointer.id, path, args);
     case BLOCK_PAGE_COMMAND.moveToSpaceRoot:

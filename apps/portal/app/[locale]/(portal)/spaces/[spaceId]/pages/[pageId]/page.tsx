@@ -12,14 +12,25 @@ import { resolveBlockEditorStart, withBlockEditorContent } from '@/modules/pages
 import { getPageBlocks } from '@/modules/pages/block-sync/server/lib/block-sync.reading.server';
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
-import { PAGE_COLLECTION_VIEW_SEARCH_PARAM } from '@/modules/pages/collections/constants/pages.collections.constants';
-import { resolveActiveCollectionView } from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
+import {
+  PAGE_COLLECTION_MONTH_SEARCH_PARAM,
+  PAGE_COLLECTION_ROW_SEARCH_PARAM,
+  PAGE_COLLECTION_VIEW_SEARCH_PARAM,
+  UNSEARCHED_ROWS_REQUEST,
+} from '@/modules/pages/collections/constants/pages.collections.constants';
+import {
+  readCollectionMonth,
+  readCollectionSearch,
+  resolveActiveCollectionView,
+} from '@/modules/pages/collections/lib/pages.collection.view-selection.lib';
 import { readEmbeddedCollectionKey } from '@/modules/pages/collections/lib/pages.collections.lib';
 import {
   getEditableSchemaProperties,
   schemaNeedsPersonOptions,
 } from '@/modules/pages/collections/lib/pages.properties.lib';
-import { getPageSchema, getPageView } from '@/modules/pages/collections/server/queries/pages.schema.queries';
+import { readPageViewReading } from '@/modules/pages/collections/server/lib/pages.view-reading.server';
+import { getPageSchema } from '@/modules/pages/collections/server/queries/pages.schema.queries';
+import type { CollectionRowsRequest } from '@/modules/pages/collections/types/pages.collections.types';
 import type { PagePersonOption, PageSchema } from '@/modules/pages/collections/types/pages.schema.types';
 import { PagesWorkspace } from '@/modules/pages/components/pages.workspace';
 import { EMPTY_PAGE_BACKLINKS } from '@/modules/pages/constants/pages.constants';
@@ -94,18 +105,22 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
   const schema = schemaResult.getValue();
   const view = schema.views.find((candidate) => candidate.name === reference.viewName) ?? schema.views[0];
   if (view === undefined) return null;
-  const readingResult = await getPageView(reference.spaceId, reference.pageId, view.name);
-  const reading = readingResult.isOk() ? readingResult.getValue() : null;
+  const t = await getTranslations('pages.collection');
+  const properties = getEditableSchemaProperties(schema);
+  const reading = await readPageViewReading(reference.spaceId, reference.pageId, view, properties, (group) =>
+    t(`statusGroups.${group}`),
+  );
 
   return (
     <PagesCollectionEmbed
+      aggregates={reading === null ? undefined : reading.aggregates}
       lookups={
         reading === null
           ? undefined
           : { attachedFiles: reading.attachedFiles, people: [], relatedRows: reading.relatedRows }
       }
       outcome={reading === null ? null : reading.outcome}
-      properties={getEditableSchemaProperties(schema)}
+      properties={properties}
       schema={schema}
       spaceId={reference.spaceId}
       title={title}
@@ -142,21 +157,33 @@ const buildCollectionSection = async (
   spaceId: string,
   pageId: string,
   requestedViewName: null | string,
+  rowsRequest: CollectionRowsRequest,
   canEdit: boolean,
   personOptions: readonly PagePersonOption[],
 ): Promise<ReactNode> => {
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
   const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
   if (activeView === null) return null;
-  const readingResult = await getPageView(spaceId, pageId, activeView.name);
+  const t = await getTranslations('pages.collection');
+  const properties = getEditableSchemaProperties(ownSchema);
+  const reading = await readPageViewReading(
+    spaceId,
+    pageId,
+    activeView,
+    properties,
+    (group) => t(`statusGroups.${group}`),
+    rowsRequest.search,
+    rowsRequest.month,
+  );
   return (
     <PagesCollectionSection
       activeView={activeView}
       canEdit={canEdit}
       personOptions={personOptions}
-      properties={getEditableSchemaProperties(ownSchema)}
-      reading={readingResult.isOk() ? readingResult.getValue() : null}
+      properties={properties}
+      reading={reading}
       schema={ownSchema}
+      search={rowsRequest.search}
       spaceId={spaceId}
       views={ownSchema.views}
     />
@@ -186,6 +213,7 @@ const buildPageEditorBundle = async (
   canEditRole: boolean,
   favoritesResult: Result<readonly FavoritePage[], Error>,
   requestedViewName: null | string,
+  rowsRequest: CollectionRowsRequest,
 ): Promise<PagesEditorBundle> => {
   const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
@@ -205,6 +233,7 @@ const buildPageEditorBundle = async (
       spaceId,
       targetPage.id,
       requestedViewName,
+      rowsRequest,
       canEditPage(canEditRole, targetPage.lifecycle),
       personOptions,
     ),
@@ -232,7 +261,7 @@ const buildPanelBundle = async (
   favoritesResult: Result<readonly FavoritePage[], Error>,
 ): Promise<PagesSidePanelBundle> => {
   const [bundle, blocksResult] = await Promise.all([
-    buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null),
+    buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null, UNSEARCHED_ROWS_REQUEST),
     getPageBlocks(panelPage.id),
   ]);
   const blockStart = resolveBlockEditorStart(blocksResult, panelPage.id);
@@ -272,7 +301,10 @@ export default async function Page({ params, searchParams }: IProps) {
 
   const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
   const [mainBundle, panelBundle] = await Promise.all([
-    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName),
+    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName, {
+      month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
+      search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
+    }),
     panelPage === undefined
       ? Promise.resolve(null)
       : buildPanelBundle(spaceId, panelPage, pages, canEditRole, favoritesResult),

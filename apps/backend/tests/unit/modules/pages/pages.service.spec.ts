@@ -114,9 +114,8 @@ const createSchemaRepository = (): PageSchemaRepositoryContract => ({
   rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),
   listPersonPropertyKeys: () => Promise.resolve(new Map()),
   resolveSchemaProperties: () => Promise.resolve([]),
-  setViewConfiguration: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
-  listRows: () => Promise.resolve({ attachedFiles: [], hasMore: false, relatedRows: [], rows: [] }),
   listWorkspaceMemberIds: () => Promise.resolve([]),
+  readRowsById: () => Promise.resolve({ attachedFiles: [], hasMore: false, relatedRows: [], rows: [] }),
 });
 
 const createAttachmentsCleanupRepository = (): PageAttachmentsCleanupRepositoryContract => ({

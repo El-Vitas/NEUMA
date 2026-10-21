@@ -1,4 +1,5 @@
 import { PAGE_VIEW_OUTCOME_KIND, PAGE_VIEW_SHAPE, PAGE_VIEW_TYPE, readPageViewConfiguration } from '@neuma/shared';
+import { PAGE_CALENDAR_MONTH_LENGTH } from '../constants/pages.calendar.constants';
 import { readBoardBands, readViewGroups } from '../lib/pages.view-editing.lib';
 import { readShownCardProperties, readShownProperties } from '../lib/pages.view-visibility.lib';
 import type { PageViewRendererRegistry } from '../types/pages.view-renderer.types';
@@ -11,78 +12,99 @@ import { PagesCollectionTable } from './pages.collection.table';
 
 export const PageViewRenderers: PageViewRendererRegistry = {
   [PAGE_VIEW_TYPE.TABLE]: {
-    render: ({ canEdit, outcome, personOptions, properties, schema, spaceId, view }) =>
+    render: ({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view }) =>
       PagesCollectionTable({
         activeViewName: view.name,
+        aggregates,
         canEdit,
         groups: readViewGroups(outcome),
         isGrouped: outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS,
+        nextCursor: outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS ? (outcome.nextCursor ?? null) : null,
         personOptions,
         properties: readShownProperties(view, properties),
         schema,
         spaceId,
+        viewId: view.id,
       }),
     shape: 'EITHER',
   },
   [PAGE_VIEW_TYPE.BOARD]: {
-    render: ({ canEdit, outcome, personOptions, properties, schema, spaceId, view }) => (
+    render: ({ aggregates, canEdit, outcome, personOptions, properties, schema, spaceId, view }) => (
       <PagesCollectionBoard
         activeViewName={view.name}
+        aggregates={aggregates}
         bands={readBoardBands(outcome)}
         canEdit={canEdit}
         groupByKey={readPageViewConfiguration(view.configuration).groupBy ?? ''}
+        isManualOrder={readPageViewConfiguration(view.configuration).sorts.length === 0}
         personOptions={personOptions}
         properties={readShownCardProperties(view, properties)}
         schema={schema}
         spaceId={spaceId}
         subGroupByKey={readPageViewConfiguration(view.configuration).subGroupBy ?? ''}
+        viewId={view.id}
       />
     ),
     shape: PAGE_VIEW_SHAPE.GROUPED,
   },
   [PAGE_VIEW_TYPE.LIST]: {
-    render: ({ outcome, personOptions, properties, spaceId, view }) =>
+    render: ({ aggregates, outcome, personOptions, properties, schema, spaceId, view }) =>
       PagesCollectionList({
+        aggregates,
         groups: readViewGroups(outcome),
         isGrouped: outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS,
+        nextCursor: outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS ? (outcome.nextCursor ?? null) : null,
+        pageId: schema.pageId,
         personOptions,
         properties: readShownCardProperties(view, properties),
         spaceId,
+        viewId: view.id,
       }),
     shape: 'EITHER',
   },
   [PAGE_VIEW_TYPE.CALENDAR]: {
     render: ({ canEdit, outcome, schema, spaceId, view }) => (
       <PagesCollectionCalendar
+        activeViewName={view.name}
         canEdit={canEdit}
         dateProperty={readPageViewConfiguration(view.configuration).dateProperty}
+        isTruncated={outcome.calendar?.isTruncated ?? false}
+        month={outcome.calendar?.month ?? new Date().toISOString().slice(0, PAGE_CALENDAR_MONTH_LENGTH)}
         rows={outcome.rows}
         schema={schema}
         spaceId={spaceId}
+        undated={outcome.calendar?.undated ?? 0}
       />
     ),
     shape: PAGE_VIEW_SHAPE.FLAT,
   },
   [PAGE_VIEW_TYPE.CHART]: {
-    render: ({ outcome, properties, view }) =>
-      PagesCollectionChart({
-        /* A chart draws one dimension: the grouping property is its axis, so it takes no bands. */
-        groups: readBoardBands(outcome)[0]?.groups ?? [],
-        kind: readPageViewConfiguration(view.configuration).chartKind,
-        measure: readPageViewConfiguration(view.configuration).chartMeasure,
+    render: ({ aggregates, properties, view }) => {
+      const configuration = readPageViewConfiguration(view.configuration);
+      return PagesCollectionChart({
+        aggregates,
+        groupBy: configuration.groupBy,
+        kind: configuration.chartKind,
+        measure: configuration.chartMeasure,
+        mode: configuration.groupByMode,
         properties,
-        valueProperty: readPageViewConfiguration(view.configuration).chartValueProperty,
-      }),
+        valueProperty: configuration.chartValueProperty,
+      });
+    },
     shape: PAGE_VIEW_SHAPE.GROUPED,
   },
   [PAGE_VIEW_TYPE.GALLERY]: {
-    render: ({ outcome, personOptions, properties, spaceId, view }) =>
+    render: ({ aggregates, outcome, personOptions, properties, schema, spaceId, view }) =>
       PagesCollectionGallery({
+        aggregates,
         groups: readViewGroups(outcome),
         isGrouped: outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS,
+        nextCursor: outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS ? (outcome.nextCursor ?? null) : null,
+        pageId: schema.pageId,
         personOptions,
         properties: readShownCardProperties(view, properties),
         spaceId,
+        viewId: view.id,
       }),
     shape: 'EITHER',
   },

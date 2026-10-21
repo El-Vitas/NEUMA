@@ -5,12 +5,15 @@ import type {
   PageSchema,
   PageSchemaProperty,
   PageSchemaView,
+  PageViewAggregates,
   PageViewBandedOutcome,
   PageViewFlatOutcome,
   PageViewGroupedOutcome,
 } from './pages.schema.types';
 
 export interface PageViewRenderInput<TOutcome> {
+  /** The counts and calculations, which arrive after the rows. */
+  readonly aggregates: Promise<PageViewAggregates | null>;
   readonly canEdit: boolean;
   readonly outcome: TOutcome;
   readonly personOptions: readonly PagePersonOption[];

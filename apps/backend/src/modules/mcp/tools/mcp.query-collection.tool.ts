@@ -1,60 +1,48 @@
-import type { JsonObject } from '@neuma/db';
 import { ACCESS_TOKEN_PERMISSIONS } from '@neuma/shared';
 import { MCP_TOOL_NAMES } from '../constants/mcp.constants';
-import { readMcpOffset } from '../lib/mcp.address.lib';
+import { MCP_QUERY_DESCRIPTION } from '../constants/mcp.query.constants';
 import { formatMcpRowText } from '../lib/mcp.collection-output.lib';
-import {
-  canMcpActOnRow,
-  describeMcpRow,
-  openMcpCollection,
-  readMcpColumnsInHand,
-  requireMcpView,
-} from '../lib/mcp.collections.lib';
+import { canMcpActOnRow, openMcpCollection } from '../lib/mcp.collections.lib';
 import { requireMcpInput, requireMcpSuccess } from '../lib/mcp.page-access.lib';
+import { describeMcpQueryAnswer, pickMcpQueryColumns, planMcpQuery } from '../lib/mcp.query.lib';
 import { openMcpCall, runMcpTool } from '../lib/mcp.tool.lib';
-import { buildMcpViewConfiguration } from '../lib/mcp.view-configuration.lib';
 import { queryCollectionInputSchema, queryCollectionOutputSchema } from '../schemas/mcp.collections.schemas';
-import type {
-  McpOpenCollection,
-  McpQueryCollectionInput,
-  McpQueryCollectionOutput,
-} from '../types/mcp.collections.types';
-import type { McpAssignablePerson, McpToolDefinition } from '../types/mcp.types';
+import type { McpOpenCollection, McpQueryCollectionOutput } from '../types/mcp.collections.types';
+import type { McpCall, McpToolDefinition } from '../types/mcp.types';
 
-const buildQueryConfiguration = (
-  collection: McpOpenCollection,
-  input: McpQueryCollectionInput,
-  people: readonly McpAssignablePerson[],
-): JsonObject => {
-  const base = input.view === undefined ? {} : requireMcpView(collection, input.view).configuration;
-  const shape = {
-    ...(input.sort === undefined ? {} : { sort: input.sort }),
-    ...(input.where === undefined ? {} : { where: input.where }),
-  };
-  return requireMcpInput(buildMcpViewConfiguration(readMcpColumnsInHand(collection), shape, people, base));
+const formatGroupLine = (group: NonNullable<McpQueryCollectionOutput['groups']>[number]): string => {
+  const aggregates = group.aggregates === undefined ? '' : ` ${JSON.stringify(group.aggregates)}`;
+  const more = group.nextCursor === undefined ? '' : `\n  more rows: cursor ${group.nextCursor}`;
+  const rows = group.rows.map(formatMcpRowText).join('\n');
+  return `## ${group.name}: ${String(group.count)} rows${aggregates}${rows === '' ? '' : `\n${rows}`}${more}`;
 };
 
 const formatQueryText = (output: McpQueryCollectionOutput): string => {
-  if (output.rows.length === 0) return 'No rows match.';
-  const more =
-    output.nextCursor === undefined
-      ? ''
-      : `\n${String(output.total)} rows match; read the rest with cursor ${output.nextCursor}.`;
-  const truncated = output.truncated
-    ? '\nThe collection is larger than one query looks through: only its first rows, in the collection’s order, were searched. Rows further down may also match.'
-    : '';
-  return `${output.rows.map(formatMcpRowText).join('\n')}${more}${truncated}`;
+  const totals = output.aggregates === undefined ? '' : `\nTotals: ${JSON.stringify(output.aggregates)}`;
+  const header = `${String(output.total)} rows match.${totals}`;
+  if (output.groups !== undefined) {
+    const more = output.hasMoreGroups === true ? '\nThere are more groups than this answer carries.' : '';
+    return [header, ...output.groups.map(formatGroupLine)].join('\n') + more;
+  }
+  const rows = output.rows.map(formatMcpRowText).join('\n');
+  const next = output.nextCursor === undefined ? '' : `\nRead the rest with cursor ${output.nextCursor}.`;
+  return `${header}${rows === '' ? '' : `\n${rows}`}${next}`;
 };
 
-/** Uses the portal's view code, so results match what a person sees. Counts only rows the token can read. */
+/** Rows the token has a rule against: they are left out of every count, not only hidden from the list. */
+const listClosedRowIds = (call: McpCall, collection: McpOpenCollection): readonly string[] =>
+  call.principal.access.pages
+    .map((grant) => grant.pageId)
+    .filter((pageId) => !canMcpActOnRow(call, collection, pageId, ACCESS_TOKEN_PERMISSIONS.collectionsRead));
+
+/** Uses the portal's query, so what an agent counts is what a person sees; counts only rows the token can read. */
 export const queryCollectionTool: McpToolDefinition = {
   name: MCP_TOOL_NAMES.queryCollection,
   register: (server, dependencies) => {
     server.registerTool(
       MCP_TOOL_NAMES.queryCollection,
       {
-        description:
-          'Find the rows of a collection that meet some conditions, in some order: the open tasks of a person, what is due this week, what is blocked. Name columns, options and people as they appear in get_collection. You can read the rows as one of its views shows them; where and sort given here replace that view’s own. Long results come in parts, with a cursor for the next one.',
+        description: MCP_QUERY_DESCRIPTION,
         inputSchema: queryCollectionInputSchema,
         outputSchema: queryCollectionOutputSchema,
       },
@@ -69,34 +57,21 @@ export const queryCollectionTool: McpToolDefinition = {
               openMcpCollection(dependencies, call, input.collection, ACCESS_TOKEN_PERMISSIONS.collectionsRead),
               dependencies.people.listAssignableMembers(workspace.id),
             ]);
-            const found = requireMcpSuccess(
-              await dependencies.collections.queryRows({
-                configuration: buildQueryConfiguration(collection, input, people),
+            const plan = requireMcpInput(planMcpQuery(collection, people, input));
+            const columns = requireMcpInput(pickMcpQueryColumns(collection, input));
+            const answer = requireMcpSuccess(
+              await dependencies.collections.queryCollection({
+                excludedRowIds: listClosedRowIds(call, collection),
                 pageId: collection.id,
+                request: plan.request,
                 role: principal.role,
                 userId: principal.userId,
-                viewName: null,
                 workspaceId: workspace.id,
               }),
             );
-            const readable = found.rows.filter((row) =>
-              canMcpActOnRow(call, collection, row.id, ACCESS_TOKEN_PERMISSIONS.collectionsRead),
+            return queryCollectionOutputSchema.parse(
+              describeMcpQueryAnswer(dependencies.portalUrl, collection, people, plan, answer, columns),
             );
-            const start = readMcpOffset(input.cursor);
-            const end = start + input.limit;
-            // The titles of related rows are left out: a row of another collection may be closed to this token.
-            const lookups = {
-              files: new Map(found.attachedFiles.map((file) => [file.id, file.name])),
-              rows: new Map<string, string>(),
-            };
-            return queryCollectionOutputSchema.parse({
-              ...(end < readable.length ? { nextCursor: String(end) } : {}),
-              rows: readable
-                .slice(start, end)
-                .map((row) => describeMcpRow(dependencies.portalUrl, collection.shape, row, people, lookups)),
-              total: readable.length,
-              truncated: found.hasMore,
-            });
           },
           formatQueryText,
         ),

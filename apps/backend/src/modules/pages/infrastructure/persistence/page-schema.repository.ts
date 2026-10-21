@@ -12,7 +12,11 @@ import {
   writePagePropertyConfig,
 } from '@neuma/shared';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
-import type { SchemaPropertyDefinition, SchemaPropertyValues } from '../../../../common/domain/schema.domain.types';
+import type {
+  SchemaPropertyDefinition,
+  SchemaPropertyValues,
+  SchemaViewDefinition,
+} from '../../../../common/domain/schema.domain.types';
 import { propertyValueMentions, rewritePropertyValues } from '../../../../common/domain/schema-option.domain';
 import {
   toSchemaPropertyDefinition,
@@ -22,6 +26,7 @@ import { WorkspaceMemberRepository } from '../../../../common/infrastructure/per
 import type { BlockWriteWithin } from '../../../../common/types/block-writer.types';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { NeumaModels } from '../../../../prisma/types/prisma.types';
+import { TAB_RENAME_PREFIX } from '../../constants/page-view.constants';
 import { SCHEMA_CHANGED_MEANWHILE, SCHEMA_OPTION_ALREADY_MOVED } from '../../constants/pages.constants';
 import { readPageValues } from '../../domain/page.block.domain';
 import { PageAccessDeniedError } from '../../domain/page.error';
@@ -50,6 +55,13 @@ const listCellIds = (rows: readonly StoredPageBlock[], keys: readonly string[]):
     }),
   ),
 ];
+
+/** What the shape says about a view: its tab. The configuration changes by operations and is not part of it. */
+const toViewTab = (view: SchemaViewDefinition) => ({
+  isDefault: view.isDefault,
+  name: view.name,
+  type: view.type,
+});
 
 const selectSchemaProperties = (properties: NeumaModels['PageSchemaProperty']) =>
   properties.select('config', 'key', 'label', 'options', 'required', 'type');
@@ -131,7 +143,6 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
       const rowCount = (await transaction.orm.public.Block.select('id').where({ parentId: pageId, type: 'page' }).all())
         .length;
       await transaction.orm.public.PageSchemaProperty.where({ pageId }).deleteAndCount();
-      await transaction.orm.public.PageSchemaView.where({ pageId }).deleteAndCount();
       await transaction.orm.public.PageSchemaProperty.createAndCount(
         properties.map((property, order) => ({
           config: writePagePropertyConfig(property.type, property.config) as JsonObject | null,
@@ -147,16 +158,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
           type: property.type,
         })),
       );
-      await transaction.orm.public.PageSchemaView.createAndCount(
-        views.map((view, order) => ({
-          configuration: view.configuration,
-          isDefault: view.isDefault,
-          name: view.name,
-          order,
-          pageId,
-          type: view.type,
-        })),
-      );
+      await this.reconcileViews(transaction.orm.public, pageId, views);
       await this.applySideEffects(transaction.orm.public, pageId, sideEffects);
       const summary = await this.loadSchemaSummary(transaction.orm.public, pageId);
       const beforeKeys = new Set(before.map((entry) => entry.key));
@@ -232,50 +234,39 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return rewrittenSchema;
   }
 
-  /** Updates one view only; redefining the whole schema would recreate everything and risk losing concurrent edits. */
-  async setViewConfiguration(
+  /**
+   * The records of rows a query already chose, in the order given. The query left out what the reader may not open,
+   * so this does not check access again; it only drops what is no longer an active row of the collection.
+   */
+  async readRowsById(
     pageId: string,
-    viewName: string,
-    configuration: JsonObject,
-  ): Promise<PageSchemaDefinition> {
-    await this.prisma.models.PageSchemaView.where({ name: viewName, pageId }).updateAndCount({ configuration });
-    return this.loadSchemaSummary(this.prisma.models, pageId);
-  }
-
-  /** The rows of a collection are the pages it holds, in the order it lists them. */
-  async listRows(
-    pageId: string,
+    rowIds: readonly string[],
     workspaceId: string,
     userId: string,
     role: UserRole,
-    limit: number,
   ): Promise<PageRowsPage> {
-    const [collection] = await this.blockReader.readPageBlocks([pageId]);
-    const positions = new Map((collection?.children ?? []).map((id, position) => [id, position]));
-    const positionOf = (row: StoredPageBlock): number => positions.get(row.id) ?? positions.size;
-    const held = await this.blockReader.readPagesUnder([pageId]);
-    const viewer = { role, userId, workspaceId };
-    const accessible = await this.blockReader.keepAccessible(held, viewer);
-    const ordered = accessible
-      .filter(({ access, block }) => !access.isInTrash && block.lifecycle === PageLifecycle.ACTIVE)
-      .map(({ block }) => block)
-      .toSorted((first, second) => positionOf(first) - positionOf(second));
-    const shown = ordered.slice(0, limit);
+    const blocks = await this.blockReader.readPageBlocks(rowIds);
+    const byId = new Map(blocks.map((block) => [block.id, block]));
+    const rows = rowIds.flatMap((id) => {
+      const block = byId.get(id);
+      return block !== undefined && block.parentId === pageId && block.lifecycle === PageLifecycle.ACTIVE
+        ? [block]
+        : [];
+    });
     const properties = await this.resolveSchemaProperties(pageId);
-    const related = await this.readRelatedRows(shown, properties, viewer);
-    // One extra row tells a collection that fits exactly from one that was truncated.
+    const related = await this.readRelatedRows(rows, properties, { role, userId, workspaceId });
     return {
-      attachedFiles: await this.readAttachedFiles(shown, properties, workspaceId),
-      hasMore: ordered.length > limit,
+      attachedFiles: await this.readAttachedFiles(rows, properties, workspaceId),
+      hasMore: false,
       relatedRows: related.rows,
-      rows: shown.map((row) => ({
+      rows: rows.map((row, order) => ({
         createdAt: row.createdAt,
         createdById: row.createdById,
         editedAt: row.editedAt,
         editedById: row.editedById,
         id: row.id,
         lifecycle: row.lifecycle,
-        order: positionOf(row),
+        order,
         parentId: row.parentId,
         propertyValues: this.toRowValues(row, properties, related.readableIds),
         spaceId: row.spaceId,
@@ -466,11 +457,62 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     if (!isApplied) throw new PageAccessDeniedError();
   }
 
+  /**
+   * A view that already exists keeps its row, its configuration and its manual order: its configuration changes by
+   * operations (ADR 025), and a shape saved from a stale screen must not write an old one back. Only the tab
+   * (name, type, default, place) is taken from the shape. A view matches by id, or by name when it names no id.
+   */
+  private async reconcileViews(
+    models: NeumaModels,
+    pageId: string,
+    views: readonly SchemaViewDefinition[],
+  ): Promise<void> {
+    const stored = await models.PageSchemaView.select('id', 'name').where({ pageId }).all();
+    const storedIds = new Set(stored.map((view) => view.id));
+    const idByName = new Map(stored.map((view) => [view.name, view.id]));
+    const taken = new Set<string>();
+    const matched = views.map((view) => {
+      const byId = view.id !== undefined && storedIds.has(view.id) && !taken.has(view.id) ? view.id : null;
+      const candidate = byId ?? idByName.get(view.name) ?? null;
+      const id = candidate !== null && !taken.has(candidate) ? candidate : null;
+      if (id !== null) taken.add(id);
+      return { id, view };
+    });
+    const removedIds = stored.map((view) => view.id).filter((id) => !taken.has(id));
+    if (removedIds.length > 0) {
+      await models.PageSchemaView.where((view) => view.id.in(removedIds)).deleteAndCount();
+    }
+    for (const { id } of matched) {
+      if (id !== null) await models.PageSchemaView.where({ id }).updateAndCount({ name: `${TAB_RENAME_PREFIX}${id}` });
+    }
+    for (const [order, { id, view }] of matched.entries()) {
+      if (id === null) {
+        await models.PageSchemaView.createAndCount([
+          {
+            configuration: view.configuration,
+            isDefault: view.isDefault,
+            name: view.name,
+            order,
+            pageId,
+            type: view.type,
+          },
+        ]);
+      } else {
+        await models.PageSchemaView.where({ id }).updateAndCount({
+          isDefault: view.isDefault,
+          name: view.name,
+          order,
+          type: view.type,
+        });
+      }
+    }
+  }
+
   private async isStillTheShape(models: NeumaModels, pageId: string, readShape: PageSchemaShape): Promise<boolean> {
     const current = await this.loadSchemaSummary(models, pageId);
     return isDeepStrictEqual(
-      { properties: current.properties, views: current.views },
-      { properties: readShape.properties, views: readShape.views },
+      { properties: current.properties, views: current.views.map(toViewTab) },
+      { properties: readShape.properties, views: readShape.views.map(toViewTab) },
     );
   }
 
@@ -481,7 +523,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         .orderBy((property) => property.order.asc())
         .all(),
       // Ordered by the configured tab order, not by name, so renaming a view does not move it.
-      models.PageSchemaView.select('configuration', 'isDefault', 'name', 'type')
+      models.PageSchemaView.select('configuration', 'id', 'isDefault', 'name', 'type', 'version')
         .where({ pageId })
         .orderBy((view) => view.order.asc())
         .all(),
