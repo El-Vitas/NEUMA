@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { and, type NeumaTransaction, PageLifecycle } from '@neuma/db';
-import { BLOCK_TYPE, blockPermissionsSchema } from '@neuma/shared';
+import { BLOCK_TYPE, blockPermissionsSchema, isPageTemplate } from '@neuma/shared';
 import { buildSpaceVisibilityFilter } from '../../../../common/infrastructure/persistence/space.visibility.filter';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { buildSqlTextList } from '../../../../prisma/prisma.sql.lib';
@@ -10,7 +10,7 @@ import type { PageAncestryLink } from '../../domain/page.access.domain.types';
 import type { PageContentBlock, ReadableContentBlocks } from '../../domain/page.block.domain.types';
 import { listReadableContentBlocks } from '../../domain/page.visibility.domain';
 import { pageChildrenSchema } from '../../schemas/page.block.schemas';
-import type { AccessiblePage, PageBlockRow, PageViewer } from '../../types/page.block.types';
+import type { AccessiblePage, PageBlockRow, PageListingOptions, PageViewer } from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
 
 const toStoredPageBlock = (row: PageBlockRow): StoredPageBlock => ({
@@ -18,6 +18,9 @@ const toStoredPageBlock = (row: PageBlockRow): StoredPageBlock => ({
   children: pageChildrenSchema.parse(row.children),
   permissions: blockPermissionsSchema.parse(row.permissions),
 });
+
+const keepListed = (rows: readonly PageBlockRow[], { includeTemplates = false }: PageListingOptions): PageBlockRow[] =>
+  includeTemplates ? [...rows] : rows.filter((row) => !isPageTemplate(row.properties));
 
 /** Reads page blocks and what a read of them needs: their content, the chain above them and who may see them. */
 @Injectable()
@@ -33,21 +36,22 @@ export class PageBlockReader {
     return rows.map(toStoredPageBlock);
   }
 
-  async readSpacePageBlocks(spaceId: string): Promise<StoredPageBlock[]> {
+  /** Templates are pages of the collection that are not part of any listing (ADR 027): ask for them to carry them. */
+  async readSpacePageBlocks(spaceId: string, options: PageListingOptions = {}): Promise<StoredPageBlock[]> {
     const rows = await this.prisma.models.Block.select(...PAGE_BLOCK_COLUMNS)
       .where({ spaceId, type: BLOCK_TYPE.page })
       .all();
-    return rows.map(toStoredPageBlock);
+    return keepListed(rows, options).map(toStoredPageBlock);
   }
 
   /** The pages that sit directly under any of the pages named. */
-  async readPagesUnder(parentIds: readonly string[]): Promise<StoredPageBlock[]> {
+  async readPagesUnder(parentIds: readonly string[], options: PageListingOptions = {}): Promise<StoredPageBlock[]> {
     if (parentIds.length === 0) return [];
     const rows = await this.prisma.models.Block.select(...PAGE_BLOCK_COLUMNS)
       .where({ type: BLOCK_TYPE.page })
       .where((block) => block.parentId.in([...parentIds]))
       .all();
-    return rows.map(toStoredPageBlock);
+    return keepListed(rows, options).map(toStoredPageBlock);
   }
 
   /** The pages a space holds at its top, or the ones a page holds: the sibling order is the caller's to apply. */
@@ -55,7 +59,18 @@ export class PageBlockReader {
     const rows = await this.prisma.models.Block.select(...PAGE_BLOCK_COLUMNS)
       .where({ parentId, spaceId, type: BLOCK_TYPE.page })
       .all();
-    return rows.map(toStoredPageBlock);
+    return keepListed(rows, {}).map(toStoredPageBlock);
+  }
+
+  /** The templates of a collection, in the order they were made. */
+  async readTemplatesUnder(collectionId: string): Promise<StoredPageBlock[]> {
+    const rows = await this.prisma.models.Block.select(...PAGE_BLOCK_COLUMNS)
+      .where({ parentId: collectionId, type: BLOCK_TYPE.page })
+      .all();
+    return rows
+      .filter((row) => isPageTemplate(row.properties))
+      .toSorted((first, second) => first.createdAt.getTime() - second.createdAt.getTime())
+      .map(toStoredPageBlock);
   }
 
   /**

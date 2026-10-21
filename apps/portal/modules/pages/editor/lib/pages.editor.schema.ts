@@ -207,7 +207,7 @@ const getPageEditorBackgroundColorAttrs = (element: HTMLElement): { readonly col
 };
 
 const getPageEditorButtonAttrs = (element: HTMLElement): Record<string, string | null> | false => {
-  const { collection, deed, label, place, spaceId } = element.dataset;
+  const { collection, deed, label, place, spaceId, templateId } = element.dataset;
   if (label === undefined || label.length === 0) return false;
   return {
     deed: PAGE_BUTTON_DEEDS.find((known) => known === deed) ?? null,
@@ -215,6 +215,7 @@ const getPageEditorButtonAttrs = (element: HTMLElement): Record<string, string |
     pageId: collection ?? null,
     place: PAGE_BUTTON_PLACES.find((known) => known === place) ?? null,
     spaceId: spaceId ?? null,
+    templateId: templateId ?? null,
   };
 };
 
@@ -398,6 +399,7 @@ const pageEditorNodeEntries: readonly (readonly [string, NodeSpec])[] = [
           ...(typeof node.attrs.place === 'string' ? { 'data-place': node.attrs.place } : {}),
           ...(typeof node.attrs.pageId === 'string' ? { 'data-collection': node.attrs.pageId } : {}),
           ...(typeof node.attrs.spaceId === 'string' ? { 'data-space-id': node.attrs.spaceId } : {}),
+          ...(typeof node.attrs.templateId === 'string' ? { 'data-template-id': node.attrs.templateId } : {}),
         },
         ['div', 0],
       ],

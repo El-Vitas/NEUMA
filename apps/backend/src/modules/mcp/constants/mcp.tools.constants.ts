@@ -6,6 +6,7 @@ import { createRowTool } from '../tools/mcp.create-row.tool';
 import { createViewTool } from '../tools/mcp.create-view.tool';
 import { deleteBlocksTool } from '../tools/mcp.delete-blocks.tool';
 import { deleteCommentTool } from '../tools/mcp.delete-comment.tool';
+import { deleteTemplateTool } from '../tools/mcp.delete-template.tool';
 import { deleteViewTool } from '../tools/mcp.delete-view.tool';
 import { duplicatePageTool } from '../tools/mcp.duplicate-page.tool';
 import { fetchTool } from '../tools/mcp.fetch.tool';
@@ -14,6 +15,7 @@ import { insertBlocksTool } from '../tools/mcp.insert-blocks.tool';
 import { listDiscussionsTool } from '../tools/mcp.list-discussions.tool';
 import { listPagesTool } from '../tools/mcp.list-pages.tool';
 import { listSpacesTool } from '../tools/mcp.list-spaces.tool';
+import { listTemplatesTool } from '../tools/mcp.list-templates.tool';
 import { listTrashTool } from '../tools/mcp.list-trash.tool';
 import { moveBlocksTool } from '../tools/mcp.move-blocks.tool';
 import { movePageTool } from '../tools/mcp.move-page.tool';
@@ -21,6 +23,7 @@ import { moveRowTool } from '../tools/mcp.move-row.tool';
 import { queryCollectionTool } from '../tools/mcp.query-collection.tool';
 import { replyToDiscussionTool } from '../tools/mcp.reply-to-discussion.tool';
 import { restorePageTool } from '../tools/mcp.restore-page.tool';
+import { saveTemplateTool } from '../tools/mcp.save-template.tool';
 import { searchTool } from '../tools/mcp.search.tool';
 import { searchDiagramIconsTool } from '../tools/mcp.search-diagram-icons.tool';
 import { trashPageTool } from '../tools/mcp.trash-page.tool';
@@ -61,6 +64,9 @@ export const MCP_TOOLS: readonly McpToolDefinition[] = [
   collectionChangesTool,
   createCollectionTool,
   createRowTool,
+  listTemplatesTool,
+  saveTemplateTool,
+  deleteTemplateTool,
   updateRowTool,
   moveRowTool,
   uploadFileTool,

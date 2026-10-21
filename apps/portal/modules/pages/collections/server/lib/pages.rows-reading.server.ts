@@ -9,6 +9,7 @@ import {
 } from '../../constants/pages.query.constants';
 import { buildCalendarRangeFilter, buildCalendarUndatedFilter } from '../../lib/pages.calendar.lib';
 import { collectRowPages } from '../../lib/pages.rows-collecting.lib';
+import { buildTimelineWindowFilters } from '../../lib/pages.timeline.lib';
 import { andQuickFilters, toRefinementPart } from '../../lib/pages.view-query.lib';
 import type { PageQueryResult } from '../../types/pages.query.types';
 import type {
@@ -16,6 +17,8 @@ import type {
   CalendarWindowRead,
   ReadRowsInput,
   ScopeRowsRead,
+  TimelineWindowInput,
+  TimelineWindowRead,
 } from '../../types/pages.rows-reading.types';
 import type { PageAttachedFile, PageRelatedRow, PageRow } from '../../types/pages.schema.types';
 import { queryPageView } from '../queries/pages.schema.queries';
@@ -87,6 +90,52 @@ const countRows = async (
   });
   const outcome = read.isOk() ? read.getValue()?.reducers[PAGE_VIEW_COUNTS_REDUCER] : undefined;
   return outcome?.kind === 'aggregations' ? outcome.distinctRowCount : null;
+};
+
+const mergeById = <TItem extends { readonly id: string }>(lists: readonly (readonly TItem[])[]): readonly TItem[] => [
+  ...new Map(lists.flat().map((item) => [item.id, item])).values(),
+];
+
+/**
+ * Every row that lasts into the window, up to a limit, and the first rows that have no start with how many there are.
+ * With the end in another property the window is read with more than one question; the answers are joined.
+ */
+export const readTimelineWindow = async (input: TimelineWindowInput): Promise<TimelineWindowRead | null> => {
+  const undatedFilter = andQuickFilters(input.quickFilter, buildCalendarUndatedFilter(input.startProperty));
+  const [reads, undatedRead, undated] = await Promise.all([
+    Promise.all(
+      buildTimelineWindowFilters(input.startProperty, input.endProperty, input.window).map((filter) =>
+        readRowsInScope({
+          pageId: input.pageId,
+          quickFilter: andQuickFilters(input.quickFilter, filter),
+          search: input.search,
+          spaceId: input.spaceId,
+          viewId: input.viewId,
+          wanted: input.maximumRows,
+        }),
+      ),
+    ),
+    readRowsInScope({
+      pageId: input.pageId,
+      quickFilter: undatedFilter,
+      search: input.search,
+      spaceId: input.spaceId,
+      viewId: input.viewId,
+      wanted: input.undatedRows,
+    }),
+    countRows(input, undatedFilter),
+  ]);
+  const complete = reads.flatMap((read) => (read === null ? [] : [read]));
+  if (complete.length !== reads.length || undatedRead === null || undated === null) return null;
+  const rows = mergeById(complete.map((read) => read.rows));
+  return {
+    attachedFiles: mergeById([...complete.map((read) => read.attachedFiles), undatedRead.attachedFiles]),
+    isTruncated: complete.some((read) => read.nextCursor !== null) || rows.length > input.maximumRows,
+    relatedRows: mergeById([...complete.map((read) => read.relatedRows), undatedRead.relatedRows]),
+    rows: rows.slice(0, input.maximumRows),
+    undated,
+    undatedRows: undatedRead.rows,
+  };
 };
 
 /** Every row that starts on a day of the grid, up to a limit, and how many rows have no date at all. */

@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePropertyType, type JsonValue, PageLifecycle } from '@neuma/db';
 import {
   givePageBlocksTheirIds,
+  isValidPageTimeZone,
   type PageContent,
   Result,
   USER_ROLE,
@@ -23,6 +24,7 @@ import {
   PAGE_PURGE_BATCH_SIZE,
   PAGE_PURGE_DELAY_DAYS,
   PAGE_PURGE_REPOSITORY,
+  PAGE_QUERY_DEFAULT_TIME_ZONE,
   PAGE_REPOSITORY,
   PAGE_RESTORE_VERSION_OUTCOME,
   PAGE_SCHEMA_REPOSITORY,
@@ -44,6 +46,7 @@ import {
   PageParentError,
   PagePropertyConformanceError,
   PagePropertyValidationError,
+  PageTemplateNotFoundError,
   PageVersionNotFoundError,
 } from './domain/page.error';
 import { buildValueListOperation } from './domain/page.operation.domain';
@@ -60,6 +63,7 @@ import {
   mergePagePropertyValues,
   validatePageProperties,
 } from './domain/page-schema.domain';
+import { applyRowTemplate } from './domain/page-template.domain';
 import { applyValueListChanges } from './domain/page-value-list.domain';
 import type {
   CarriedAttachment,
@@ -84,6 +88,7 @@ import type {
   UpdatePagePropertiesInput,
 } from './types/page.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
+import type { PageRowStart, PageRowStartFailure } from './types/page-template.types';
 
 @Injectable()
 export class PagesService {
@@ -173,7 +178,11 @@ export class PagesService {
   ): Promise<
     Result<
       PageSummary,
-      PageAccessDeniedError | PageContentValidationError | PagePropertyValidationError | PageParentError
+      | PageAccessDeniedError
+      | PageContentValidationError
+      | PagePropertyValidationError
+      | PageParentError
+      | PageTemplateNotFoundError
     >
   > {
     const content = this.validateWritableContent(role, input.content);
@@ -181,23 +190,28 @@ export class PagesService {
     if (input.parentId !== null && !(await this.pageRepository.parentBelongsToSpace(input.parentId, input.spaceId))) {
       return Result.fail(new PageParentError());
     }
+    const start = await this.startFromTemplate(input, content.getValue());
+    if (start.isFail()) return Result.fail(start.getError());
+    const { title } = start.getValue();
+    const startValues = start.getValue().propertyValues;
     const propertyValues = await this.resolvePropertyValuesForWrite(
       input.parentId,
       input.workspaceId,
-      input.title,
-      input.propertyValues,
+      title,
+      startValues,
       { pageId: null, userId: input.userId },
     );
     if (propertyValues.isFail()) return Result.fail(propertyValues.getError());
     const page = await this.pageRepository.create({
       ...input,
-      content: givePageBlocksTheirIds(content.getValue(), randomUUID),
+      content: givePageBlocksTheirIds(start.getValue().content, randomUUID),
       propertyValues: propertyValues.getValue(),
+      title,
     });
     if (page === null) return Result.fail(new PageAccessDeniedError());
     await this.pageSchemaRepository.attachFilesToPage(
       page.id,
-      listFileIds(await this.pageSchemaRepository.resolveSchemaProperties(input.parentId), input.propertyValues ?? {}),
+      listFileIds(await this.pageSchemaRepository.resolveSchemaProperties(input.parentId), startValues ?? {}),
     );
     return Result.ok(page);
   }
@@ -644,6 +658,37 @@ export class PagesService {
     return isPageMoveAllowed(pageId, parentId, targetSpaceId, pages)
       ? Result.ok(true)
       : Result.fail(new PageCycleError());
+  }
+
+  /** A row of a collection starts from its template: the one named, or the default one when none is named. */
+  private async startFromTemplate(
+    input: CreatePageInput,
+    content: PageContent,
+  ): Promise<Result<PageRowStart, PageRowStartFailure>> {
+    const start: PageRowStart = { content, propertyValues: input.propertyValues, title: input.title };
+    if (input.parentId === null) return Result.ok(start);
+    const started = await this.copyTemplate(input, input.parentId, start);
+    if (started.isFail() || input.defaultValues === undefined) return started;
+    const given = started.getValue();
+    return Result.ok({ ...given, propertyValues: { ...input.defaultValues, ...given.propertyValues } });
+  }
+
+  private async copyTemplate(
+    input: CreatePageInput,
+    collectionId: string,
+    start: PageRowStart,
+  ): Promise<Result<PageRowStart, PageRowStartFailure>> {
+    if (input.templateId === null) return Result.ok(start);
+    const timeZone = input.timeZone ?? PAGE_QUERY_DEFAULT_TIME_ZONE;
+    if (!isValidPageTimeZone(timeZone)) {
+      return Result.fail(new PagePropertyValidationError(`${timeZone} is not a time zone`));
+    }
+    const actor = { role: input.role, userId: input.userId, workspaceId: input.workspaceId };
+    const template = await this.pageRepository.readRowTemplate(collectionId, input.templateId, actor);
+    if (template === null) return Result.ok(start);
+    if (template === 'NOT_FOUND') return Result.fail(new PageTemplateNotFoundError());
+    const columns = await this.pageSchemaRepository.resolveSchemaProperties(collectionId);
+    return applyRowTemplate(start, template, columns, { now: Date.now(), timeZone, viewerId: input.userId });
   }
 
   private validateWritableContent(

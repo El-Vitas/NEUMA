@@ -481,6 +481,7 @@ const connect = async (
     rows: rows.writer,
     searchService: { locateBlock: notUsedHere, search: notUsedHere, searchBlocks: notUsedHere },
     spacesService: { listAccessible: notUsedHere },
+    templates: { create: notUsedHere, list: notUsedHere, remove: notUsedHere, update: notUsedHere },
     workspacesService: { resolveForUser: () => Promise.resolve({ id: 'workspace-1', name: 'Neuma' }) },
   };
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();

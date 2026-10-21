@@ -48,7 +48,7 @@ export const BLOCK_DOCUMENT_ATTRIBUTE_ROUTES: Readonly<Partial<Record<string, At
   audio: ASSET_ATTRIBUTES,
   blockquote: NO_ATTRIBUTES,
   bookmark: { format: [], properties: ['description', 'icon', 'title', 'url'] },
-  button: { format: [], properties: ['deed', 'label', 'pageId', 'place', 'spaceId'] },
+  button: { format: [], properties: ['deed', 'label', 'pageId', 'place', 'spaceId', 'templateId'] },
   callout: { format: ['icon'], properties: [] },
   code_block: { format: ['frameHeight', 'shown', 'wrapped'], properties: ['language'] },
   collection: { format: [], properties: ['pageId', 'spaceId', 'viewName'] },

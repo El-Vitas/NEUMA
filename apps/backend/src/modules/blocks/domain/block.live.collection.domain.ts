@@ -22,7 +22,7 @@ const toResync = (subscription: CollectionSubscription): LiveDelivery =>
 
 const isRowOf = (collectionId: string, block: NotifiedBlock, context: LiveAccessContext): boolean => {
   const row = context.rowsById.get(block.id);
-  return row?.type === BLOCK_TYPE.page && row.parentId === collectionId;
+  return row?.type === BLOCK_TYPE.page && row.parentId === collectionId && row.isTemplate !== true;
 };
 
 /** The reader may have held this row before: it left the collection, or its permissions changed. */

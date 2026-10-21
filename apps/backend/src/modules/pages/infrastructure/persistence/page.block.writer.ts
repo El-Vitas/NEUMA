@@ -8,6 +8,8 @@ import {
   type PageIcon,
   pageContentSchema,
   Result,
+  readPageDefaultTemplateId,
+  readPageTemplate,
 } from '@neuma/shared';
 import { BLOCK_WRITER } from '../../../../common/constants/block-writer.constants';
 import { readBlockTitle } from '../../../../common/domain/block-access.domain';
@@ -23,6 +25,7 @@ import { PageLifecycleError } from '../../domain/page.error';
 import {
   buildCoverOperation,
   buildCreatePageOperations,
+  buildDefaultTemplateOperation,
   buildIconOperation,
   buildLifecycleOperation,
   buildLockOperation,
@@ -85,6 +88,7 @@ export class PageBlockWriter {
       parentId: input.parentId,
       propertyValues: input.propertyValues,
       spaceId: input.spaceId,
+      template: input.template ?? null,
       title: input.title,
     });
     if (tree.isFail()) throw tree.getError();
@@ -159,6 +163,18 @@ export class PageBlockWriter {
   ): Promise<PageSummary | null> {
     return this.changePage(pageId, toViewer(workspaceId, userId, role), () => [
       buildVerificationOperation(pageId, isVerified, expiresAt),
+    ]);
+  }
+
+  async setDefaultTemplate(
+    collectionId: string,
+    templateId: null | string,
+    userId: string,
+    workspaceId: string,
+    role: PageViewer['role'],
+  ): Promise<PageSummary | null> {
+    return this.changePage(collectionId, toViewer(workspaceId, userId, role), () => [
+      buildDefaultTemplateOperation(collectionId, templateId),
     ]);
   }
 
@@ -370,7 +386,7 @@ export class PageBlockWriter {
   }
 
   private async listTrashedDescendantIds(page: AccessiblePage): Promise<string[]> {
-    const pages = await this.blockReader.readSpacePageBlocks(page.block.spaceId);
+    const pages = await this.blockReader.readSpacePageBlocks(page.block.spaceId, { includeTemplates: true });
     const lifecycleById = new Map(pages.map((entry) => [entry.id, entry.lifecycle]));
     return collectDescendantIds(page.block.id, pages).filter((id) => lifecycleById.get(id) === PageLifecycle.TRASHED);
   }
@@ -387,7 +403,7 @@ export class PageBlockWriter {
     viewer: PageViewer,
   ): Promise<AccessiblePage[]> {
     if (!includeChildren) return [original];
-    const pages = await this.blockReader.readSpacePageBlocks(original.block.spaceId);
+    const pages = await this.blockReader.readSpacePageBlocks(original.block.spaceId, { includeTemplates: true });
     const belowIds = new Set(collectDescendantIds(original.block.id, pages));
     const accessible = await this.blockReader.keepAccessible(
       pages.filter((entry) => belowIds.has(entry.id)),
@@ -423,11 +439,13 @@ export class PageBlockWriter {
       const tree = buildPageTree({
         content: rewritten.getValue(),
         cover: readPageCover(page.block.format),
+        defaultTemplateId: maps.pages.get(readPageDefaultTemplateId(page.block.properties) ?? '') ?? null,
         icon: readPageIcon(page.block.format),
         pageId: copyId,
         parentId: index === 0 ? page.block.parentId : (maps.pages.get(page.block.parentId ?? '') ?? null),
         propertyValues: readPageValues(page.block.properties),
         spaceId: page.block.spaceId,
+        template: readPageTemplate(page.block.properties),
         title:
           index === 0 ? (rootTitle ?? readBlockTitle(page.block.properties)) : readBlockTitle(page.block.properties),
       });

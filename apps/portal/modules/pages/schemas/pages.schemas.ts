@@ -40,8 +40,12 @@ const recordIdSchema = z.uuid();
 
 export const pageMutationSchema = z.object({
   content: pageContentSchema,
+  /** What each column starts with when nothing else says; the template of the collection goes over it. */
+  defaultValues: pagePropertyValuesSchema.optional(),
   propertyValues: pagePropertyValuesSchema.nullable().optional(),
   spaceId: recordIdSchema,
+  /** Omitted starts from the default template of the collection; null starts a blank row. */
+  templateId: recordIdSchema.nullable().optional(),
   title: z.string().trim().max(200),
 });
 

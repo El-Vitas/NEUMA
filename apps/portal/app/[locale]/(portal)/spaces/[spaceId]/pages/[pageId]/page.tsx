@@ -13,6 +13,7 @@ import { getPageBlocks } from '@/modules/pages/block-sync/server/lib/block-sync.
 import { PagesCollectionEmbed } from '@/modules/pages/collections/components/pages.collection.embed';
 import { PagesCollectionSection } from '@/modules/pages/collections/components/pages.collection.section';
 import {
+  PAGE_COLLECTION_DAY_SEARCH_PARAM,
   PAGE_COLLECTION_MONTH_SEARCH_PARAM,
   PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM,
   PAGE_COLLECTION_ROW_SEARCH_PARAM,
@@ -20,6 +21,7 @@ import {
   UNSEARCHED_ROWS_REQUEST,
 } from '@/modules/pages/collections/constants/pages.collections.constants';
 import {
+  readCollectionDay,
   readCollectionMonth,
   readCollectionQuickFilter,
   readCollectionSearch,
@@ -109,8 +111,13 @@ const renderEmbeddedCollection = async (reference: PageCollectionReference, titl
   if (view === undefined) return null;
   const t = await getTranslations('pages.collection');
   const properties = getEditableSchemaProperties(schema);
-  const reading = await readPageViewReading(reference.spaceId, reference.pageId, view, properties, (group) =>
-    t(`statusGroups.${group}`),
+  const reading = await readPageViewReading(
+    reference.spaceId,
+    reference.pageId,
+    view,
+    properties,
+    (group) => t(`statusGroups.${group}`),
+    UNSEARCHED_ROWS_REQUEST,
   );
 
   return (
@@ -174,9 +181,7 @@ const buildCollectionSection = async (
     activeView,
     properties,
     (group) => t(`statusGroups.${group}`),
-    rowsRequest.search,
-    rowsRequest.month,
-    rowsRequest.quickFilter,
+    rowsRequest,
   );
   return (
     <PagesCollectionSection
@@ -306,6 +311,7 @@ export default async function Page({ params, searchParams }: IProps) {
   const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
   const [mainBundle, panelBundle] = await Promise.all([
     buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName, {
+      day: readCollectionDay(resolvedSearchParams?.[PAGE_COLLECTION_DAY_SEARCH_PARAM]),
       month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
       quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
       search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),

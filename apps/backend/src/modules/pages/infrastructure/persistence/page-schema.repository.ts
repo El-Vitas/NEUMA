@@ -4,6 +4,7 @@ import type { JsonObject } from '@neuma/db';
 import { DatabasePropertyType, FileAssetLifecycle, PageLifecycle } from '@neuma/db';
 import type { PagePropertyOption, UserRole } from '@neuma/shared';
 import {
+  isPageTemplate,
   pickDefaultStatusOption,
   readPagePropertyConfig,
   readPagePropertyOptions,
@@ -140,8 +141,9 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         .where({ pageId })
         .all();
       const shapeBefore = (await this.loadSchemaSummary(transaction.orm.public, pageId)).properties;
-      const rowCount = (await transaction.orm.public.Block.select('id').where({ parentId: pageId, type: 'page' }).all())
-        .length;
+      const rowCount = (
+        await transaction.orm.public.Block.select('id', 'properties').where({ parentId: pageId, type: 'page' }).all()
+      ).filter((row) => !isPageTemplate(row.properties)).length;
       await transaction.orm.public.PageSchemaProperty.where({ pageId }).deleteAndCount();
       await transaction.orm.public.PageSchemaProperty.createAndCount(
         properties.map((property, order) => ({
@@ -445,7 +447,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
   ): Promise<void> {
     const [collection] = await this.blockReader.readPageBlocks([pageId]);
     if (collection === undefined) return;
-    const rows = await this.blockReader.readPagesUnder([pageId]);
+    const rows = await this.blockReader.readPagesUnder([pageId], { includeTemplates: true });
     const operations = rows.flatMap((row) => {
       const stored = readPageValues(row.properties);
       if (stored === null || !propertyValueMentions(stored[propertyKey], change.optionId)) return [];

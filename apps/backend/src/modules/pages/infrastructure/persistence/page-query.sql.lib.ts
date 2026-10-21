@@ -5,6 +5,10 @@ import type { FragmentBuilder, SqlFragment, SqlParameter, SqlType } from '../../
 /** Text that is part of the statement itself. Only ever a literal written in this code base. */
 export const sqlText = (text: string): SqlFragment => ({ parts: [text], values: [] });
 
+/** Rows are the pages of a collection that carry no template marker (ADR 027); `alias` names the table when joined. */
+export const isNotTemplateSql = (alias?: string): SqlFragment =>
+  sqlText(`${alias === undefined ? '' : `"${alias}".`}"properties" -> 'template' IS NULL`);
+
 /** A bound value with the type Postgres should read it as: an untyped parameter makes some operators ambiguous. */
 export const sqlParameter = (value: SqlParameter, type: SqlType): SqlFragment => ({
   parts: ['', `::${type}`],

@@ -71,6 +71,7 @@ describe('describeMcpCollection', () => {
     expect(described.views).toEqual([
       { filter: null, groupBy: null, isDefault: true, name: 'Tabla', type: 'TABLE' },
       {
+        cardSize: 'MEDIUM',
         filter: 'Estado IS "Hecho" AND Título IS_NOT_EMPTY',
         groupBy: 'Estado',
         isDefault: false,
@@ -78,6 +79,49 @@ describe('describeMcpCollection', () => {
         type: 'BOARD',
       },
     ]);
+  });
+});
+
+describe('describing the dates and the covers of a view', () => {
+  const dated = {
+    ...collection,
+    shape: {
+      properties: [
+        column('title', 'Título', 'TITLE'),
+        column('begin', 'Inicio', 'DATE'),
+        column('due', 'Fin', 'DATE'),
+        column('photos', 'Fotos', 'FILES'),
+      ],
+      views: [
+        {
+          configuration: { dateProperty: 'begin', dateScale: 'WEEK', endDateProperty: 'due' },
+          isDefault: true,
+          name: 'Cronograma',
+          type: 'TIMELINE' as const,
+        },
+        {
+          configuration: { cardSize: 'LARGE', coverProperty: 'photos' },
+          isDefault: false,
+          name: 'Galería',
+          type: 'GALLERY' as const,
+        },
+      ],
+    },
+  };
+
+  it('names the date columns and the scale of a timeline, and the cover and the size of a gallery', () => {
+    const described = describeMcpCollection('https://brain.example.com', dated);
+
+    expect(described.views[0]).toMatchObject({ dateColumn: 'Inicio', endDateColumn: 'Fin', scale: 'WEEK' });
+    expect(described.views[1]).toMatchObject({ cardSize: 'LARGE', coverColumn: 'Fotos' });
+    expect(described.views[1]).not.toHaveProperty('scale');
+  });
+
+  it('says it in the text an agent reads', () => {
+    const text = formatMcpCollectionText(describeMcpCollection('https://brain.example.com', dated));
+
+    expect(text).toContain('- Cronograma (TIMELINE, default): placed by Inicio; ending in Fin; by week');
+    expect(text).toContain('- Galería (GALLERY): covers from Fotos');
   });
 });
 

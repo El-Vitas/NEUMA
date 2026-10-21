@@ -44,7 +44,16 @@ import {
   positionsSql,
 } from './page-query.order.sql';
 import { searchSql } from './page-query.search.sql';
-import { allOf, frag, negate, sqlParameter, sqlText, sqlTextList, toRawStatement } from './page-query.sql.lib';
+import {
+  allOf,
+  frag,
+  isNotTemplateSql,
+  negate,
+  sqlParameter,
+  sqlText,
+  sqlTextList,
+  toRawStatement,
+} from './page-query.sql.lib';
 
 const isStatementTimeout = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && error.code === POSTGRES_QUERY_CANCELED;
@@ -131,6 +140,7 @@ export class PageQueryRepository {
     const conditions = [
       frag`${rowColumn('parentId')} = ${sqlParameter(input.collectionId, 'text')}`,
       frag`${rowColumn('type')} = 'page'`,
+      isNotTemplateSql(ROW),
       frag`${rowColumn('lifecycle')} = 'ACTIVE'`,
       input.deniedIds.length === 0
         ? SQL_TRUE

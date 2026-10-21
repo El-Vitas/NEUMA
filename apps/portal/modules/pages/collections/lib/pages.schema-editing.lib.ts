@@ -46,7 +46,7 @@ const describeANewView = (
   type: PageViewType,
   properties: readonly PageSchemaProperty[],
 ): PageSchemaViewDraft['configuration'] => {
-  if (type === PAGE_VIEW_TYPE.CALENDAR) {
+  if (type === PAGE_VIEW_TYPE.CALENDAR || type === PAGE_VIEW_TYPE.TIMELINE) {
     const dateProperty = properties.find((property) => property.type === PAGE_PROPERTY_TYPE.DATE)?.key;
     return dateProperty === undefined ? {} : { dateProperty };
   }
@@ -110,7 +110,8 @@ const regroupForConversion = (
   dropped: readonly string[],
 ): { readonly groupBy?: null | string } => {
   if (dropped.includes('GROUPING')) return { groupBy: null };
-  if (configuration.groupBy !== null) return {};
+  const isPlacedByDate = type === PAGE_VIEW_TYPE.CALENDAR || type === PAGE_VIEW_TYPE.TIMELINE;
+  if (configuration.groupBy !== null || (isPlacedByDate && configuration.dateProperty !== null)) return {};
   return describeANewView(type, properties);
 };
 

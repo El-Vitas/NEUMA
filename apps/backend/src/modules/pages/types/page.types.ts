@@ -1,5 +1,5 @@
 import type { JsonValue, PageLifecycle } from '@neuma/db';
-import type { PageContent, PageCoverValue, PageIcon, Result, UserRole } from '@neuma/shared';
+import type { PageContent, PageCoverValue, PageIcon, PageTemplateMarker, Result, UserRole } from '@neuma/shared';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 import { PAGE_DELETE_FOREVER_OUTCOMES, PAGE_RESTORE_VERSION_OUTCOME } from '../constants/pages.constants';
 import type { PageBlockOperation } from '../domain/page.block.domain.types';
@@ -11,6 +11,8 @@ import type {
   PageLockedError,
 } from '../domain/page.error';
 import type { PageValueListChanges } from '../domain/page-value-list.domain.types';
+import type { PageViewer } from './page.block.types';
+import type { PageRowTemplate } from './page-template.types';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
 
@@ -47,10 +49,16 @@ export interface StoredPageBlock {
 export interface CreatePageInput {
   readonly content: JsonValue | PageContent;
   readonly createdById: string;
+  /** What a column starts with when nothing else says: under the template and under `propertyValues`. */
+  readonly defaultValues?: SchemaPropertyValues;
   readonly parentId: null | string;
   readonly propertyValues: SchemaPropertyValues | null;
   readonly role: UserRole;
   readonly spaceId: string;
+  /** Undefined takes the default template of the collection; null asks for none. */
+  readonly templateId?: null | string;
+  /** The zone `@today` is read in when a template leaves a date to be filled; UTC when left out. */
+  readonly timeZone?: string;
   readonly title: string;
   readonly userId: string;
   readonly workspaceId: string;
@@ -59,6 +67,8 @@ export interface CreatePageInput {
 /** A page to write: the content is already a document, and every block of it has an id. */
 export interface NewPageInput extends Omit<CreatePageInput, 'content'> {
   readonly content: PageContent;
+  /** Set when the page is a template of its collection and not a row of it (ADR 027). */
+  readonly template?: PageTemplateMarker;
 }
 
 export interface UpdatePagePropertyValuesInput {
@@ -241,6 +251,8 @@ export interface TrashedPageSummary {
   readonly purgeAfter: Date | null;
   readonly deletedBy: null | { readonly id: string; readonly name: string };
   readonly id: string;
+  /** A template of its collection (its parent), not a row of it: restoring puts it back among the templates. */
+  readonly isTemplate: boolean;
   readonly parentId: null | string;
   readonly spaceId: string;
   readonly title: string;
@@ -287,6 +299,12 @@ export interface PageRepositoryContract {
     role: UserRole,
   ) => Promise<null | number>;
   readonly create: (input: NewPageInput) => Promise<PageSummary | null>;
+  /** What a new row of the collection copies: the template named, the default one when undefined, none when null. */
+  readonly readRowTemplate: (
+    collectionId: string,
+    templateId: null | string | undefined,
+    viewer: PageViewer,
+  ) => Promise<PageRowTemplate | 'NOT_FOUND' | null>;
   readonly duplicate: (input: DuplicatePageInput) => Promise<PageSummary | null>;
   readonly deleteForever: (
     pageId: string,
@@ -418,6 +436,13 @@ export interface PageRepositoryContract {
   readonly setLocked: (
     pageId: string,
     locked: boolean,
+    userId: string,
+    workspaceId: string,
+    role: UserRole,
+  ) => Promise<PageSummary | null>;
+  readonly setDefaultTemplate: (
+    collectionId: string,
+    templateId: null | string,
     userId: string,
     workspaceId: string,
     role: UserRole,

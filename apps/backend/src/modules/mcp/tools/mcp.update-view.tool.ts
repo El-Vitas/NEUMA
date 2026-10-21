@@ -35,9 +35,20 @@ import type {
 } from '../types/mcp.types';
 
 const asksForAnyChange = (input: McpUpdateViewInput): boolean =>
-  [input.groupBy, input.makeDefault, input.name, input.sort, input.visibleColumns, input.where].some(
-    (change) => change !== undefined,
-  );
+  [
+    input.cardSize,
+    input.coverColumn,
+    input.dateColumn,
+    input.endDateColumn,
+    input.groupBy,
+    input.makeDefault,
+    input.name,
+    input.scale,
+    input.sort,
+    input.subGroupBy,
+    input.visibleColumns,
+    input.where,
+  ].some((change) => change !== undefined);
 
 const changesOnlyWhatItShows = (input: McpUpdateViewInput): boolean =>
   input.name === undefined && input.makeDefault !== true;
@@ -128,7 +139,7 @@ export const updateViewTool: McpToolDefinition = {
       MCP_TOOL_NAMES.updateView,
       {
         description:
-          'Change a view of a collection: its name, what it filters, how it sorts, what it groups by, which columns it shows, or whether the collection opens with it. What you leave out stays as it was; where and sort given here replace the view’s own. Name the view, columns, options and people as get_collection shows them.',
+          'Change a view of a collection: its name, what it filters, how it sorts, what it groups by, which columns it shows, or whether the collection opens with it. For a calendar or a timeline also the date column that places each row (dateColumn), where a timeline row ends (endDateColumn) and the scale (day, week or month); for a gallery or a board the cover column and the card size; for a board the second grouping that makes bands (subGroupBy). What you leave out stays as it was; where and sort given here replace the view’s own. Name the view, columns, options and people as get_collection shows them.',
         inputSchema: updateViewInputSchema,
         outputSchema: collectionOutputSchema,
       },

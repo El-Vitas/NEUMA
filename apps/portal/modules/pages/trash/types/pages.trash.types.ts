@@ -4,6 +4,8 @@ export interface TrashedPage {
   readonly deletedAt: Date;
   readonly deletedBy: null | PageAuthor;
   readonly id: string;
+  /** A template of its collection (its parent): restoring it puts it back among the templates. */
+  readonly isTemplate: boolean;
   readonly parentId: null | string;
   /** Null until an administrator deletes it forever; then the day it goes. */
   readonly purgeAfter: Date | null;

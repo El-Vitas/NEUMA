@@ -29,6 +29,7 @@ export const MCP_TOOL_NAMES = {
   createView: 'create_view',
   deleteBlocks: 'delete_blocks',
   deleteComment: 'delete_comment',
+  deleteTemplate: 'delete_template',
   duplicatePage: 'duplicate_page',
   deleteView: 'delete_view',
   fetch: 'fetch',
@@ -37,6 +38,7 @@ export const MCP_TOOL_NAMES = {
   listDiscussions: 'list_discussions',
   listPages: 'list_pages',
   listSpaces: 'list_spaces',
+  listTemplates: 'list_templates',
   listTrash: 'list_trash',
   moveBlocks: 'move_blocks',
   movePage: 'move_page',
@@ -44,6 +46,7 @@ export const MCP_TOOL_NAMES = {
   queryCollection: 'query_collection',
   replyToDiscussion: 'reply_to_discussion',
   restorePage: 'restore_page',
+  saveTemplate: 'save_template',
   search: 'search',
   searchDiagramIcons: 'search_diagram_icons',
   trashPage: 'trash_page',
@@ -55,6 +58,9 @@ export const MCP_TOOL_NAMES = {
   updateView: 'update_view',
   uploadFile: 'upload_file',
 } as const;
+
+export const MCP_TEMPLATE_TITLE_NEEDED_MESSAGE =
+  'A new template needs a title: give title, or name the template to change in template.';
 
 export const MCP_HARD_BREAK_NODE = { type: 'hard_break' } as const;
 
@@ -220,6 +226,8 @@ export const MCP_DETAILED_REFUSAL_CODES: readonly string[] = [
   'PAGE_PROPERTY_CONFORMANCE',
   'PAGE_PROPERTY_INVALID',
   'PAGE_SCHEMA_DEFINITION_INVALID',
+  'PAGE_TEMPLATE_INVALID',
+  'PAGE_TEMPLATE_LIMIT',
   'RELATION_LIMIT_EXCEEDED',
   'SCHEMA_PROPERTY_DEFINITION_INVALID',
   'SCHEMA_PROPERTY_VALUE_INVALID',
@@ -338,7 +346,7 @@ export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
   'Diagrams are Mermaid, any kind, and can show product logos and icons (never emojis in their place): find their names with search_diagram_icons before drawing.',
   'Besides text, a page holds columns side by side, link cards, videos from YouTube, Vimeo, Loom or Figma, and blocks synced from another page: write them as blocks too.',
   'A remark or a question about a block is a comment (comment_on_block), not text written into the page. Comments live in discussions: list_discussions shows the conversations of a page and reply_to_discussion answers one, so before commenting on something look whether it already has a discussion. Words can be underlined, coloured or highlighted, and a whole block painted with update_block; a table is changed cell by cell with update_table. update_page, move_page, duplicate_page, trash_page and restore_page change a page as a whole; list_trash shows what is in the trash, which search does not find. fetch says whether a page is verified, locked and who owns it.',
-  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status. move_row also places the row in the order of a view, beside another row, in the same write. To ask little, query_collection can return only counts (limit 0), only the groups with their sizes (groupBy), only one group (group) or a page of rows with only the columns you need (columns). To follow a collection without reading it again, keep the changesCursor of query_collection and call collection_changes with it as since: it returns only the rows that changed, with waitSeconds to wait for the next change. To find what is yours or what is due soon, put "@me" or a relative date such as @today, @this_week or @next_days:7 in where, and name your time zone in timeZone.',
+  'To work with a collection, read its columns and views with get_collection and find rows with query_collection. If your token can write, create_row adds a row and update_row changes one: moving a task on a board is changing its status. move_row also places the row in the order of a view, beside another row, in the same write. To ask little, query_collection can return only counts (limit 0), only the groups with their sizes (groupBy), only one group (group) or a page of rows with only the columns you need (columns). To follow a collection without reading it again, keep the changesCursor of query_collection and call collection_changes with it as since: it returns only the rows that changed, with waitSeconds to wait for the next change. To find what is yours or what is due soon, put "@me" or a relative date such as @today, @this_week or @next_days:7 in where, and name your time zone in timeZone. A collection may have templates, the starting points of a row (text, values and, for a date or a person column, "today" or "you"): list_templates shows them, create_row copies one when you name it in template or the default one when you name none (template null starts blank), and save_template and delete_template manage them. Templates are never rows: queries, counts and search do not return them.',
   'When the person asks to add, note or change a task of the team or of "our board", do it on a Neuma collection, never in your own session\'s task list.',
   'A board may be named in another language than the request (a task board may be called Tasks). If searching by name finds no collection, list the spaces and the pages at their top: collections are marked as such.',
   'You act as the person who created your access token, limited to what the token allows: anything out of its reach answers as not accessible, the same as something that does not exist.',

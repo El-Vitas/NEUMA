@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { toCalculationItemId } from '@/modules/pages/collections/lib/pages.query-aggregates.lib';
-import { buildViewCountsQuery, buildViewRowsQuery } from '@/modules/pages/collections/lib/pages.view-query.lib';
+import {
+  andQuickFilters,
+  buildViewCountsQuery,
+  buildViewRowsQuery,
+} from '@/modules/pages/collections/lib/pages.view-query.lib';
 import { buildView } from './pages.views.fixture';
 
 describe('lo que se pide primero a una vista', () => {
@@ -47,6 +51,40 @@ describe('lo que se pide primero a una vista', () => {
     const request = buildViewRowsQuery(buildView('Calendar', 'CALENDAR'));
 
     expect(request.reducers).toEqual([{ id: 'rows', kind: 'results', limit: 100 }]);
+  });
+});
+
+describe('sumar lo que la pantalla necesita al filtro rápido de la persona', () => {
+  const window = {
+    kind: 'CONDITION',
+    operator: 'IS',
+    propertyKey: 'due',
+    value: { end: '2026-09-30', start: '2026-09-01' },
+  } as const;
+  const owner = { kind: 'CONDITION', operator: 'IS', propertyKey: 'owner', value: '@me' } as const;
+
+  it('is the screen filter alone when the person has none', () => {
+    expect(andQuickFilters(null, window)).toEqual(window);
+  });
+
+  it('puts the two in a group that needs both', () => {
+    expect(andQuickFilters(owner, window)).toEqual({ conditions: [owner, window], kind: 'GROUP', operator: 'AND' });
+  });
+
+  it('joins a group of the person that already needs everything instead of nesting it one level deeper', () => {
+    const own = { conditions: [owner, owner], kind: 'GROUP', operator: 'AND' } as const;
+
+    expect(andQuickFilters(own, window)).toEqual({
+      conditions: [owner, owner, window],
+      kind: 'GROUP',
+      operator: 'AND',
+    });
+  });
+
+  it('keeps a group that needs only one of its conditions apart from the screen filter', () => {
+    const own = { conditions: [owner, owner], kind: 'GROUP', operator: 'OR' } as const;
+
+    expect(andQuickFilters(own, window)).toEqual({ conditions: [own, window], kind: 'GROUP', operator: 'AND' });
   });
 });
 

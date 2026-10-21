@@ -1,5 +1,6 @@
 import { type PageFilter, readPageViewConfiguration } from '@neuma/shared';
 import { MCP_CONFIGURED_UNREADABLE_NOTE, MCP_VALUELESS_FILTER_OPERATORS } from '../constants/mcp.constants';
+import { MCP_CARD_VIEW_TYPES, MCP_SCALED_VIEW_TYPES } from '../constants/mcp.views.constants';
 import type {
   McpCollectionOutput,
   McpColumn,
@@ -49,6 +50,22 @@ const describeViewFilter = (columns: readonly McpColumn[], filter: PageFilter | 
   return described === '' ? null : described;
 };
 
+/** Only what the view uses, so a table is not described by settings it ignores. */
+const describeViewPlacement = (
+  columns: readonly McpColumn[],
+  view: McpView,
+  configuration: ReturnType<typeof readPageViewConfiguration>,
+): Partial<McpCollectionOutput['views'][number]> => ({
+  ...(configuration.dateProperty === null ? {} : { dateColumn: nameColumn(columns, configuration.dateProperty) }),
+  ...(configuration.endDateProperty === null
+    ? {}
+    : { endDateColumn: nameColumn(columns, configuration.endDateProperty) }),
+  ...(configuration.coverProperty === null ? {} : { coverColumn: nameColumn(columns, configuration.coverProperty) }),
+  ...(configuration.subGroupBy === null ? {} : { subGroupBy: nameColumn(columns, configuration.subGroupBy) }),
+  ...(MCP_SCALED_VIEW_TYPES.includes(view.type) ? { scale: configuration.dateScale } : {}),
+  ...(MCP_CARD_VIEW_TYPES.includes(view.type) ? { cardSize: configuration.cardSize } : {}),
+});
+
 const describeView = (columns: readonly McpColumn[], view: McpView): McpCollectionOutput['views'][number] => {
   const configuration = readPageViewConfiguration(view.configuration);
   return {
@@ -57,6 +74,7 @@ const describeView = (columns: readonly McpColumn[], view: McpView): McpCollecti
     isDefault: view.isDefault,
     name: view.name,
     type: view.type,
+    ...describeViewPlacement(columns, view, configuration),
   };
 };
 
@@ -86,6 +104,11 @@ const formatColumnLine = (column: McpCollectionOutput['columns'][number]): strin
 const formatViewLine = (view: McpCollectionOutput['views'][number]): string => {
   const traits = [
     ...(view.groupBy === null ? [] : [`grouped by ${view.groupBy}`]),
+    ...(view.subGroupBy === undefined ? [] : [`in bands by ${view.subGroupBy}`]),
+    ...(view.dateColumn === undefined ? [] : [`placed by ${view.dateColumn}`]),
+    ...(view.endDateColumn === undefined ? [] : [`ending in ${view.endDateColumn}`]),
+    ...(view.scale === undefined ? [] : [`by ${view.scale.toLowerCase()}`]),
+    ...(view.coverColumn === undefined ? [] : [`covers from ${view.coverColumn}`]),
     ...(view.filter === null ? [] : [`where ${view.filter}`]),
   ];
   const kind = view.isDefault ? `${view.type}, default` : view.type;

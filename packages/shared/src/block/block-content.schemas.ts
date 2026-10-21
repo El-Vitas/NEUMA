@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '../page-property/page-property.key.constants.js';
+import { PAGE_TEMPLATE_VARIABLE_VALUES } from '../page-template/page-template.constants.js';
 import type { PageContentUnknownNode } from '../schemas/page-content.schema.js';
 import {
   isAllowedPageEmbedUrl,
@@ -123,6 +124,16 @@ const pagePropertyValueSchema = z.union([
   pageDateValueSchema,
 ]);
 
+const PAGE_BLOCK_ID_MAX_LENGTH = 64;
+
+const pageTemplateMarkerSchema = z
+  .object({
+    variables: z
+      .record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), z.enum(PAGE_TEMPLATE_VARIABLE_VALUES))
+      .optional(),
+  })
+  .strict();
+
 const pageTitleIsShortEnough = (properties: { readonly title: z.infer<typeof blockPlainTextSchema> }): boolean =>
   extractPlainText(properties.title).length <= PAGE_TITLE_MAX_LENGTH;
 
@@ -162,6 +173,8 @@ export const BLOCK_CONTENT_SCHEMAS = {
     format: z.object({ cover: pageCoverValueSchema.optional(), icon: pageIconSchema.optional() }).strict(),
     properties: z
       .object({
+        defaultTemplateId: z.string().min(1).max(PAGE_BLOCK_ID_MAX_LENGTH).optional(),
+        template: pageTemplateMarkerSchema.optional(),
         title: blockPlainTextSchema,
         values: z.record(z.string().min(1).max(PAGE_PROPERTY_KEY_MAX_LENGTH), pagePropertyValueSchema).optional(),
       })
@@ -254,6 +267,7 @@ export const BLOCK_CONTENT_SCHEMAS = {
         pageId: pageButtonAttrsSchema.shape.pageId,
         place: z.enum(PAGE_BUTTON_PLACES).optional(),
         spaceId: pageButtonAttrsSchema.shape.spaceId,
+        templateId: pageButtonAttrsSchema.shape.templateId,
       })
       .strict(),
   },

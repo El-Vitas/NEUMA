@@ -46,6 +46,8 @@ export interface PageCollectionShape {
 
 /** What the address asks of the rows a view is read with: the words searched, and the month of a calendar. */
 export interface CollectionRowsRequest {
+  /** The day a week or a timeline is drawn around, as `YYYY-MM-DD`. */
+  readonly day: null | string;
   readonly month: null | string;
   /** A filter on top of the view that is not saved, so it is for whoever put it there. */
   readonly quickFilter: null | PageFilter;
@@ -54,6 +56,7 @@ export interface CollectionRowsRequest {
 
 /** What an address to a view can carry besides the view: the words searched, the quick filter and the month. */
 export interface CollectionHrefOptions {
+  readonly day?: string;
   readonly month?: string;
   readonly quickFilter?: null | PageFilter;
   readonly search?: string;

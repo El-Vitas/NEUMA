@@ -640,6 +640,7 @@ describe('MCP access (Integration)', () => {
         'get_collection',
         'query_collection',
         'collection_changes',
+        'list_templates',
       ]);
     });
   });

@@ -230,6 +230,7 @@ const createDependencies = (resolvedPrincipal: McpPrincipal | null = principal):
     searchBlocks: () => Promise.resolve(blockHits),
   },
   spacesService: { listAccessible: () => Promise.resolve(spaces) },
+  templates: { create: notUsedHere, list: notUsedHere, remove: notUsedHere, update: notUsedHere },
   workspacesService: { resolveForUser: () => Promise.resolve(workspace) },
 });
 
@@ -315,6 +316,7 @@ describe('MCP read contract', () => {
       'get_collection',
       'query_collection',
       'collection_changes',
+      'list_templates',
     ]);
   });
 

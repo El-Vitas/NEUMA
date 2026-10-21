@@ -100,7 +100,7 @@ describe('MCP collections (Integration)', () => {
       .set('Authorization', `Bearer ${session.token}`)
       .send({
         access: { allSpaces: [], pages: [], spaces: [], ...rules },
-        name: `Agente de colecciones ${String(tokenCount)}`,
+        name: `Agente de colecciones ${String(tokenCount)} ${String(Date.now())}`,
       })
       .expect(201);
     return (response.body as { secret: string }).secret;
@@ -704,6 +704,138 @@ describe('MCP collections (Integration)', () => {
 
       expect(answer.isError).toBe(true);
       expect(readMcpText(answer)).not.toContain(closedProject);
+    });
+  });
+
+  describe('líneas de tiempo, calendarios y ventanas de fechas', () => {
+    let planId = '';
+    let secret = '';
+
+    const storedView = async (name: string) =>
+      testApp
+        .get(PrismaService)
+        .models.PageSchemaView.select('configuration', 'type', 'version')
+        .where({ name, pageId: planId })
+        .all()
+        .firstOrThrow();
+
+    beforeAll(async () => {
+      planId = await createPage('Plan');
+      await api()
+        .post(`/api/v1/spaces/${spaceId}/pages/${planId}/schema`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({
+          properties: [
+            { key: 'title', label: 'Tarea', options: null, required: true, type: 'TITLE' },
+            { key: 'begin', label: 'Inicio', options: null, required: false, type: 'DATE' },
+            { key: 'due', label: 'Fin', options: null, required: false, type: 'DATE' },
+            { key: 'notes', label: 'Notas', options: null, required: false, type: 'RICH_TEXT' },
+            { key: 'photos', label: 'Fotos', options: null, required: false, type: 'FILES' },
+          ],
+          views: [{ configuration: {}, isDefault: true, name: 'Tabla', type: 'TABLE' }],
+        })
+        .expect(201);
+      await createPage('Septiembre', planId, { begin: { end: '2026-09-20', start: '2026-09-10' } });
+      await createPage('Cruza octubre', planId, { begin: { end: '2026-10-05', start: '2026-09-28' } });
+      await createPage('Dentro de octubre', planId, { begin: { start: '2026-10-12' } });
+      await createPage('Noviembre', planId, { begin: { start: '2026-11-03' } });
+      await createPage('Sin fecha', planId);
+      // An account of its own: the owner has already reached the most tokens one account may hold.
+      secret = await tokenFor({ allSpaces: [collectionsRead, collectionsConfigure] }, await signUp('timeline'));
+    });
+
+    it('creates a timeline whose dates, end and scale are named by people', async () => {
+      const answer = await call(secret, 'create_view', {
+        collection: planId,
+        dateColumn: 'inicio',
+        endDateColumn: 'FIN',
+        name: 'Cronograma',
+        scale: 'WEEK',
+        type: 'TIMELINE',
+      });
+
+      expect(answer.isError).toBeUndefined();
+      expect(await storedView('Cronograma')).toMatchObject({
+        configuration: { dateProperty: 'begin', dateScale: 'WEEK', endDateProperty: 'due' },
+        type: 'TIMELINE',
+      });
+    });
+
+    it('changes only the scale of a timeline and leaves its dates alone', async () => {
+      const before = await storedView('Cronograma');
+
+      const answer = await call(secret, 'update_view', { collection: planId, scale: 'DAY', view: 'Cronograma' });
+
+      expect(answer.isError).toBeUndefined();
+      const after = await storedView('Cronograma');
+      expect(after.configuration).toMatchObject({ dateProperty: 'begin', dateScale: 'DAY', endDateProperty: 'due' });
+      expect(after.version).toBeGreaterThan(before.version);
+    });
+
+    it('sets the size and the cover of the cards of a gallery', async () => {
+      await call(secret, 'create_view', { collection: planId, name: 'Galería', type: 'GALLERY' });
+
+      const answer = await call(secret, 'update_view', {
+        cardSize: 'LARGE',
+        collection: planId,
+        coverColumn: 'Fotos',
+        view: 'Galería',
+      });
+
+      expect(answer.isError).toBeUndefined();
+      expect((await storedView('Galería')).configuration).toMatchObject({ cardSize: 'LARGE', coverProperty: 'photos' });
+    });
+
+    it('refuses a date column that is not a date, and a cover that is not a files column', async () => {
+      const notDate = await call(secret, 'update_view', {
+        collection: planId,
+        dateColumn: 'Notas',
+        view: 'Cronograma',
+      });
+      const notFiles = await call(secret, 'update_view', { collection: planId, coverColumn: 'Notas', view: 'Galería' });
+
+      expect(notDate.isError).toBe(true);
+      expect(notFiles.isError).toBe(true);
+    });
+
+    it('answers with the rows whose dates overlap the window it was asked for, ranges that cross it included', async () => {
+      const answer = await call(secret, 'query_collection', {
+        collection: planId,
+        limit: 50,
+        window: { column: 'Inicio', from: '2026-10-01', to: '2026-10-31' },
+      });
+
+      expect(answer.isError).toBeUndefined();
+      const shape = queriedShape.parse(answer.structuredContent);
+      expect(shape.total).toBe(2);
+      expect(readMcpText(answer)).toContain('Cruza octubre');
+      expect(readMcpText(answer)).toContain('Dentro de octubre');
+      expect(readMcpText(answer)).not.toContain('Septiembre');
+      expect(readMcpText(answer)).not.toContain('Sin fecha');
+    });
+
+    it('narrows the window on top of a where, never instead of it', async () => {
+      const answer = await call(secret, 'query_collection', {
+        collection: planId,
+        where: [{ column: 'Tarea', operator: 'CONTAINS', value: 'Dentro' }],
+        window: { column: 'Inicio', from: '2026-10-01', to: '2026-10-31' },
+      });
+
+      expect(queriedShape.parse(answer.structuredContent).total).toBe(1);
+    });
+
+    it('refuses a window on a column that is not a date, and a window that ends before it starts', async () => {
+      const notDate = await call(secret, 'query_collection', {
+        collection: planId,
+        window: { column: 'Notas', from: '2026-10-01', to: '2026-10-31' },
+      });
+      const backwards = await call(secret, 'query_collection', {
+        collection: planId,
+        window: { column: 'Inicio', from: '2026-10-31', to: '2026-10-01' },
+      });
+
+      expect(notDate.isError).toBe(true);
+      expect(backwards.isError).toBe(true);
     });
   });
 });

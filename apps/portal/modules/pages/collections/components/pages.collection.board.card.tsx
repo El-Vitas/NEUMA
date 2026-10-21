@@ -7,6 +7,7 @@ import { Card } from '@/shared/components/ui/card';
 import { readDropSideFromPointer } from '../lib/pages.board-drag.lib';
 import type { PageBoardDragController } from '../types/pages.board-drag.types';
 import type { PagePersonOption, PageRow, PageSchemaProperty } from '../types/pages.schema.types';
+import { PagesCollectionCardCover } from './pages.collection.card-cover';
 import { PagesCollectionCardProperties } from './pages.collection.card-properties';
 import { PagesCollectionRowTitle } from './pages.collection.row-title';
 
@@ -74,6 +75,7 @@ export const PagesCollectionBoardCard = ({
       onKeyDown={moveOnArrow}
       tabIndex={canEdit ? 0 : undefined}
     >
+      <PagesCollectionCardCover row={row} />
       <PagesCollectionRowTitle
         className="w-full items-start justify-between gap-2 font-medium"
         openFullPageLabel={t('sidePanel.openFullPage')}

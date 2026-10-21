@@ -26,11 +26,14 @@ export const PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM = 'filter';
 /** Longer than this is not something the filter editor wrote. */
 export const PAGE_COLLECTION_QUICK_FILTER_MAXIMUM_LENGTH = 4000;
 
-/** A view read as it was saved: no words searched, no quick filter and no month asked for. */
-export const UNSEARCHED_ROWS_REQUEST = { month: null, quickFilter: null, search: '' } as const;
+/** A view read as it was saved: no words searched, no quick filter and no month or day asked for. */
+export const UNSEARCHED_ROWS_REQUEST = { day: null, month: null, quickFilter: null, search: '' } as const;
 
 /** The month a calendar shows, as `YYYY-MM`: the server reads the rows of its grid, so it must be told which. */
 export const PAGE_COLLECTION_MONTH_SEARCH_PARAM = 'month';
+
+/** The day a week of a calendar or a timeline is drawn around, as `YYYY-MM-DD`, for the same reason as the month. */
+export const PAGE_COLLECTION_DAY_SEARCH_PARAM = 'day';
 
 /** Select value for "no grouping": an empty value reads as nothing chosen, so it needs a key no property can have. */
 export const PAGE_VIEW_NO_GROUP = '__none__';

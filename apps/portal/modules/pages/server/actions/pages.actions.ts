@@ -10,6 +10,7 @@ import { apiRequest } from '@/shared/lib/api-server';
 import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
+import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { PAGE_API_ROUTES } from '../../constants/pages.constants';
 import type { PageDestination } from '../../editor/menus/types/pages.editor.destination.types';
 import type { PageMoveDestinations } from '../../navigation/types/pages.move.types';
@@ -36,10 +37,14 @@ export const createPageAction = actionClient
   .inputSchema(pageMutationSchema.extend({ parentId: pageMoveSchema.shape.parentId.optional() }))
   .action(async ({ parsedInput }) =>
     withAction({ action: 'createPage' }, async () => {
+      const timeZone = await readRequestTimeZone();
       const createdPage = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
         content: parsedInput.content,
+        defaultValues: parsedInput.defaultValues,
         parentId: parsedInput.parentId,
         propertyValues: parsedInput.propertyValues,
+        templateId: parsedInput.templateId,
+        ...(timeZone === null ? {} : { timeZone }),
         title: parsedInput.title,
       });
       updateTag(PAGES_CACHE_TAG(parsedInput.spaceId));

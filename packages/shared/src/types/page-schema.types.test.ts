@@ -40,6 +40,7 @@ describe('page schema contracts', () => {
       PAGE_VIEW_TYPE.GALLERY,
       PAGE_VIEW_TYPE.CALENDAR,
       PAGE_VIEW_TYPE.CHART,
+      PAGE_VIEW_TYPE.TIMELINE,
     ]);
   });
 

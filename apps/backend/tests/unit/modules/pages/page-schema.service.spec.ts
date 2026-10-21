@@ -80,6 +80,8 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   rename: () => Promise.resolve(page),
   reorderAmongSiblings: () => Promise.resolve([page]),
   setLocked: () => Promise.resolve(page),
+  readRowTemplate: () => Promise.resolve(null),
+  setDefaultTemplate: () => Promise.resolve(page),
   setOwner: () => Promise.resolve(page),
   setVerification: () => Promise.resolve(page),
   updateCover: () => Promise.resolve(page),

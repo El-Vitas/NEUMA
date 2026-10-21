@@ -164,7 +164,7 @@ const buildRuleOwner = (sql: NeumaSqlTag): SqlFragment =>
     ELSE coalesce("context"."chain"->0->>'id', '') END)`);
 
 const buildPageFilters = (sql: NeumaSqlTag, query: SearchCandidateQuery): SqlFragment => {
-  const filters: SqlFragment[] = [];
+  const filters: SqlFragment[] = [asBoolean(sql`"page"."properties" -> 'template' IS NULL`)];
   if (query.tokenScope !== undefined) {
     filters.push(buildTokenScopeFilter(sql, query.tokenScope, asText(sql`"page"."id"`), asText(sql`"page"."spaceId"`)));
   }

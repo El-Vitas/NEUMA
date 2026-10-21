@@ -4,10 +4,14 @@ import type { PageFilter, PageSortDirection, PageViewConfiguration } from './pag
 /** ADR 025. A view is changed by operations that each touch one key or one element, never the whole configuration. */
 
 export const PAGE_VIEW_SCALAR_KEYS = [
+  'cardSize',
   'chartKind',
   'chartMeasure',
   'chartValueProperty',
+  'coverProperty',
   'dateProperty',
+  'dateScale',
+  'endDateProperty',
   'frozenColumns',
   'groupBy',
   'groupByDateBucket',
@@ -23,7 +27,13 @@ export const PAGE_VIEW_SCALAR_KEYS = [
 
 export type PageViewScalarKey = (typeof PAGE_VIEW_SCALAR_KEYS)[number];
 
-export const PAGE_VIEW_MAP_KEYS = ['calculations', 'columnAlignments', 'columnLimits', 'columnWidths'] as const;
+export const PAGE_VIEW_MAP_KEYS = [
+  'calculations',
+  'columnAlignments',
+  'columnLimits',
+  'columnWidths',
+  'columnWraps',
+] as const;
 
 export type PageViewMapKey = (typeof PAGE_VIEW_MAP_KEYS)[number];
 

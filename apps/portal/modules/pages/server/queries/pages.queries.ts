@@ -4,6 +4,7 @@ import type { Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { cache } from 'react';
 import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
+import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_API_ROUTES, PAGE_LOCATION_CACHE_TAG, PAGES_ASSIGNED_CACHE_TAG } from '../../constants/pages.constants';
@@ -33,14 +34,28 @@ export const getPagesHolding = async (
   spaceId: string,
   pageId: string,
 ): Promise<Result<readonly PageSummary[], Error>> =>
-  withQuery({ op: 'getPagesHolding', params: { pageId, spaceId } }, (accessToken) =>
-    readPagesFresh(accessToken, spaceId),
-  );
+  withQuery({ op: 'getPagesHolding', params: { pageId, spaceId } }, async (accessToken) => {
+    const listed = await readPagesFresh(accessToken, spaceId);
+    return listed.some((page) => page.id === pageId)
+      ? listed
+      : [...listed, ...(await readPageApart(accessToken, spaceId, pageId))];
+  });
 
 const readPagesFresh = cache(async (accessToken: string, spaceId: string): Promise<readonly PageSummary[]> => {
   const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
   return readPagesThatCanBeRead(response, 'getPagesHolding');
 });
+
+/** A template is a page of its collection that no list holds (ADR 027), so it is asked for by its address. */
+const readPageApart = async (accessToken: string, spaceId: string, pageId: string): Promise<readonly PageSummary[]> => {
+  try {
+    const response = await apiRequest<unknown>(PAGE_API_ROUTES.item(spaceId, pageId), accessToken);
+    return readPagesThatCanBeRead([response], 'getPagesHolding');
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return [];
+    throw error;
+  }
+};
 
 /** Resolves links to a page that moved to another space after the link was written. */
 export const getPageSpaceId = async (pageId: string): Promise<Result<string, Error>> =>

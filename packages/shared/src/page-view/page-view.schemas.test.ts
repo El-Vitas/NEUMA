@@ -71,6 +71,39 @@ describe('reading a stored view configuration', () => {
     );
   });
 
+  test('reads what a timeline keeps: where a row ends, and how long a day is drawn', () => {
+    const stored = { dateProperty: 'begin', dateScale: 'WEEK', endDateProperty: 'due' } as const;
+
+    expect(readPageViewConfiguration(stored)).toEqual({ ...EMPTY_PAGE_VIEW_CONFIGURATION, ...stored });
+  });
+
+  test('a view that never chose a scale opens by month, with no end property and no cover', () => {
+    const configuration = readPageViewConfiguration({});
+
+    expect(configuration.dateScale).toBe('MONTH');
+    expect(configuration.endDateProperty).toBeNull();
+    expect(configuration.coverProperty).toBeNull();
+    expect(configuration.cardSize).toBe('MEDIUM');
+  });
+
+  test('reads what a gallery or a board keeps about its cards: the size and where the cover comes from', () => {
+    const stored = { cardSize: 'LARGE', coverProperty: 'photos' } as const;
+
+    expect(readPageViewConfiguration(stored)).toEqual({ ...EMPTY_PAGE_VIEW_CONFIGURATION, ...stored });
+  });
+
+  test('refuses a scale or a card size that does not exist', () => {
+    expect(pageViewConfigurationSchema.safeParse({ dateScale: 'YEAR' }).success).toBe(false);
+    expect(pageViewConfigurationSchema.safeParse({ cardSize: 'HUGE' }).success).toBe(false);
+  });
+
+  test('reads the columns whose text is wrapped one by one', () => {
+    const stored = { columnWraps: { notes: true } };
+
+    expect(readPageViewConfiguration(stored).columnWraps).toEqual({ notes: true });
+    expect(pageViewConfigurationSchema.safeParse({ columnWraps: { notes: false } }).success).toBe(false);
+  });
+
   test('keeps the rest of the configuration when it carries an unknown key', () => {
     expect(readPageViewConfiguration({ groupBy: 'status', unknownKey: 'ignored' }).groupBy).toBe('status');
   });
@@ -96,6 +129,29 @@ describe('validating a view configuration before it is stored', () => {
 
   test('rejects an unknown key', () => {
     expect(pageViewConfigurationSchema.safeParse({ groupBy: 'status', unknownKey: 1 }).success).toBe(false);
+  });
+
+  test('accepts a range of days as the value of a date condition, which matches what overlaps it', () => {
+    const window = {
+      conditions: [
+        {
+          kind: 'CONDITION',
+          operator: 'IS',
+          propertyKey: 'when',
+          value: { end: '2026-09-30', start: '2026-09-01' },
+        },
+      ],
+      kind: 'GROUP',
+      operator: 'AND',
+    };
+
+    expect(pageViewConfigurationSchema.safeParse({ filter: window }).success).toBe(true);
+  });
+
+  test('rejects a range of days that is not made of a start and an end', () => {
+    const odd = { kind: 'CONDITION', operator: 'IS', propertyKey: 'when', value: { from: '2026-09-01' } };
+
+    expect(pageViewConfigurationSchema.safeParse({ filter: odd }).success).toBe(false);
   });
 
   test('rejects an unknown operator', () => {

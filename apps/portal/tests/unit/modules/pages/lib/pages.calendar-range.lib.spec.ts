@@ -4,6 +4,7 @@ import {
   buildCalendarRangeFilter,
   buildCalendarUndatedFilter,
   readCalendarGridRange,
+  readCalendarWeekRange,
 } from '@/modules/pages/collections/lib/pages.calendar.lib';
 
 const properties = [{ key: 'due', options: null, type: 'DATE' as const }];
@@ -19,16 +20,22 @@ describe('el rango que pide un calendario', () => {
     expect(readCalendarGridRange('2026-03')).toEqual({ from: '2026-02-23', to: '2026-04-05' });
   });
 
-  it('keeps every row that starts on a day the grid draws, first and last day included', () => {
+  it('covers the seven days of the week that holds the day asked for', () => {
+    expect(readCalendarWeekRange('2026-09-16')).toEqual({ from: '2026-09-14', to: '2026-09-20' });
+    expect(readCalendarWeekRange('2026-09-20')).toEqual({ from: '2026-09-14', to: '2026-09-20' });
+  });
+
+  it('keeps every row that falls on a day the grid draws, first and last day included', () => {
     expect(matches('2026-02-23')).toBe(true);
     expect(matches('2026-03-15')).toBe(true);
     expect(matches('2026-04-05')).toBe(true);
     expect(matches('2026-04-05T23:30:00.000Z')).toBe(true);
   });
 
-  it('drops the rows that start before the grid or after it', () => {
+  it('drops the rows that lie wholly before the grid or after it', () => {
     expect(matches('2026-02-22')).toBe(false);
     expect(matches('2026-04-06')).toBe(false);
+    expect(matches('2026-01-10', '2026-02-22')).toBe(false);
   });
 
   it('keeps a range that starts inside the grid even when it ends beyond it', () => {
@@ -36,23 +43,19 @@ describe('el rango que pide un calendario', () => {
     expect(matches('2026-04-05', '2026-05-30')).toBe(true);
   });
 
-  it('is a filter no deeper than the server accepts', () => {
+  it('keeps a range that started before the grid and reaches into it, or covers all of it', () => {
+    expect(matches('2026-02-10', '2026-02-23')).toBe(true);
+    expect(matches('2026-01-01', '2026-12-31')).toBe(true);
+  });
+
+  it('is one condition, so it can be added to any filter without going past the depth the server accepts', () => {
     const filter = buildCalendarRangeFilter('due', readCalendarGridRange('2026-03'));
 
     expect(filter).toEqual({
-      conditions: [
-        { kind: 'CONDITION', operator: 'IS_AFTER', propertyKey: 'due', value: '2026-02-22' },
-        {
-          conditions: [
-            { kind: 'CONDITION', operator: 'IS_BEFORE', propertyKey: 'due', value: '2026-04-06' },
-            { kind: 'CONDITION', operator: 'IS', propertyKey: 'due', value: '2026-04-05' },
-          ],
-          kind: 'GROUP',
-          operator: 'OR',
-        },
-      ],
-      kind: 'GROUP',
-      operator: 'AND',
+      kind: 'CONDITION',
+      operator: 'IS',
+      propertyKey: 'due',
+      value: { end: '2026-04-05', start: '2026-02-23' },
     });
   });
 });

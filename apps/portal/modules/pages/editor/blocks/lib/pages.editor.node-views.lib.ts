@@ -21,6 +21,7 @@ import { createPageSyncedNodeView } from '../../structure/lib/pages.editor.synce
 import { PageTableView } from '../../structure/lib/pages.editor.table.view.lib';
 import { createPageTaskItemNodeView } from '../../structure/lib/pages.editor.task.node-view.lib';
 import { createPageToggleNodeView } from '../../structure/lib/pages.editor.toggle.node-view.lib';
+import type { PageButtonTemplatesReader } from '../../structure/types/pages.editor.button.types';
 import { createPageDateNodeView } from '../../text/lib/pages.editor.date.lib';
 import { createPageFormulaNodeView } from '../../text/lib/pages.editor.formula.lib';
 import { createPageMark } from '../../text/lib/pages.editor.marks.lib';
@@ -146,11 +147,12 @@ export const createPageEditorNodeViews = (
   readPersonForHover: (userId: string) => PagePersonOption | undefined = () => undefined,
   readPageIcon: (pageId: string) => PageIcon | null = () => null,
   readPageLifecycle: (pageId: string) => PageLifecycle | null = () => null,
+  readButtonTemplates: PageButtonTemplatesReader = () => Promise.resolve([]),
 ): Readonly<
   Record<string, (node: EditorNode, view: EditorView, getPosition: () => number | undefined) => NodeView>
 > => ({
   [PAGE_EDITOR_BUTTON_TYPE]: (node, view, getPosition) =>
-    createPageButtonNodeView(node, view, getPosition, labels.button, pressTheButton),
+    createPageButtonNodeView(node, view, getPosition, labels.button, pressTheButton, readButtonTemplates),
   [PAGE_EDITOR_CALLOUT_TYPE]: (node) => createPageCalloutNodeView(node),
   [PAGE_EDITOR_CODE_TYPE]: (node, view, getPosition) =>
     createPageCodeBlockNodeView(node, view, getPosition, labels.code),

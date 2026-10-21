@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
+import { PagesTemplatesSection } from '../../templates/components/pages.templates.section';
 import { NO_PAGE_AGGREGATES } from '../constants/pages.aggregates.constants';
 import { EMPTY_PAGE_COLLECTION_LOOKUPS } from '../constants/pages.lookups.constants';
 import { readCollectionEmptiness } from '../lib/pages.collection.emptiness.lib';
@@ -17,6 +18,7 @@ import type {
   PageSchemaView,
   PageViewReading,
 } from '../types/pages.schema.types';
+import { PagesCollectionCardAppearanceProvider } from './pages.collection.card-appearance.provider';
 import { PagesCollectionFilterBar } from './pages.collection.filter-bar';
 import { PagesCollectionLiveFollower } from './pages.collection.live-follower';
 import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provider';
@@ -61,9 +63,10 @@ export const PagesCollectionSection = async ({
   const collectionsResult = canEdit ? await getSpaceCollections(spaceId) : null;
   const collections = collectionsResult?.isOk() === true ? collectionsResult.getValue() : [];
   const aggregates = reading === null ? NO_PAGE_AGGREGATES : reading.aggregates;
+  const configuration = readPageViewConfiguration(activeView.configuration);
   const { hidesEverything, matchesNothing, quickFilterMatchesNothing } = readCollectionEmptiness({
-    hasViewFilter: readPageViewConfiguration(activeView.configuration).filter !== null,
-    isCalendar: activeView.type === PAGE_VIEW_TYPE.CALENDAR,
+    hasViewFilter: configuration.filter !== null,
+    isCalendar: activeView.type === PAGE_VIEW_TYPE.CALENDAR || activeView.type === PAGE_VIEW_TYPE.TIMELINE,
     isOutcomeEmpty: reading !== null && isOutcomeEmpty(reading.outcome),
     quickFilter,
     search,
@@ -76,65 +79,77 @@ export const PagesCollectionSection = async ({
   return (
     <PagesCollectionLookupsProvider lookups={lookups}>
       <PagesCollectionRowQueryProvider quickFilter={quickFilter} search={search}>
-        <PagesCollectionTimeZone knownTimeZone={knownTimeZone} />
-        <PagesCollectionLiveFollower collectionId={schema.pageId} spaceId={spaceId} />
-        <section aria-label={t('collection.sectionTitle')} className="space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-2 border-border border-b">
-            <PagesCollectionTabs
-              activeViewName={activeView.name}
-              label={t('collection.viewsLabel')}
-              quickFilter={quickFilter}
-              search={search}
-              views={views}
-            />
-            <div className="flex items-center gap-1 pb-1">
-              {reading !== null && <PagesCollectionRowCount aggregates={aggregates} />}
-              {activeView.type !== PAGE_VIEW_TYPE.CHART && (
-                <PagesCollectionSearchField
+        <PagesCollectionCardAppearanceProvider
+          coverProperty={configuration.coverProperty}
+          size={configuration.cardSize}
+        >
+          <PagesCollectionTimeZone knownTimeZone={knownTimeZone} />
+          <PagesCollectionLiveFollower collectionId={schema.pageId} spaceId={spaceId} />
+          <section aria-label={t('collection.sectionTitle')} className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-2 border-border border-b">
+              <PagesCollectionTabs
+                activeViewName={activeView.name}
+                label={t('collection.viewsLabel')}
+                quickFilter={quickFilter}
+                search={search}
+                views={views}
+              />
+              <div className="flex items-center gap-1 pb-1">
+                {reading !== null && <PagesCollectionRowCount aggregates={aggregates} />}
+                {activeView.type !== PAGE_VIEW_TYPE.CHART && (
+                  <PagesCollectionSearchField
+                    activeViewName={activeView.name}
+                    quickFilter={quickFilter}
+                    search={search}
+                  />
+                )}
+                <PagesCollectionQuickFilter
                   activeViewName={activeView.name}
                   quickFilter={quickFilter}
+                  schema={schema}
                   search={search}
                 />
-              )}
-              <PagesCollectionQuickFilter
-                activeViewName={activeView.name}
-                quickFilter={quickFilter}
-                schema={schema}
-                search={search}
-              />
-              {canEdit && (
-                <>
-                  <PagesCollectionFilterBar activeViewName={activeView.name} schema={schema} spaceId={spaceId} />
-                  <PagesSchemaSettingsButton collections={collections} schema={schema} spaceId={spaceId} />
-                </>
-              )}
+                {canEdit && (
+                  <>
+                    {
+                      await PagesTemplatesSection({
+                        collectionId: schema.pageId,
+                        properties: schema.properties,
+                        spaceId,
+                      })
+                    }
+                    <PagesCollectionFilterBar activeViewName={activeView.name} schema={schema} spaceId={spaceId} />
+                    <PagesSchemaSettingsButton collections={collections} schema={schema} spaceId={spaceId} />
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-          {hidesEverything && <EmptyState message={t('collection.everythingFiltered')} />}
-          {matchesNothing && (
-            <p className="px-1 py-6 text-center text-muted-foreground text-sm" data-testid="search-no-matches">
-              {t('collection.searchNoMatches', { query: search })}
-            </p>
-          )}
-          {quickFilterMatchesNothing && (
-            <p className="px-1 py-6 text-center text-muted-foreground text-sm" data-testid="quick-filter-no-matches">
-              {t('collection.quickFilterNoMatches')}
-            </p>
-          )}
-          {!hidesEverything &&
-            !matchesNothing &&
-            !quickFilterMatchesNothing &&
-            (await PagesCollectionView({
-              aggregates,
-              canEdit,
-              outcome: reading === null ? null : reading.outcome,
-              personOptions,
-              properties,
-              schema,
-              spaceId,
-              view: activeView,
-            }))}
-        </section>
+            {hidesEverything && <EmptyState message={t('collection.everythingFiltered')} />}
+            {matchesNothing && (
+              <p className="px-1 py-6 text-center text-muted-foreground text-sm" data-testid="search-no-matches">
+                {t('collection.searchNoMatches', { query: search })}
+              </p>
+            )}
+            {quickFilterMatchesNothing && (
+              <p className="px-1 py-6 text-center text-muted-foreground text-sm" data-testid="quick-filter-no-matches">
+                {t('collection.quickFilterNoMatches')}
+              </p>
+            )}
+            {!hidesEverything &&
+              !matchesNothing &&
+              !quickFilterMatchesNothing &&
+              (await PagesCollectionView({
+                aggregates,
+                canEdit,
+                outcome: reading === null ? null : reading.outcome,
+                personOptions,
+                properties,
+                schema,
+                spaceId,
+                view: activeView,
+              }))}
+          </section>
+        </PagesCollectionCardAppearanceProvider>
       </PagesCollectionRowQueryProvider>
     </PagesCollectionLookupsProvider>
   );

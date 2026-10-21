@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { type PageViewWireOperation, readPageViewOperation } from '@neuma/shared';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import {
@@ -20,6 +20,7 @@ import { buildView } from '../lib/pages.views.fixture';
 
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const saved: { operations: PageViewWireOperation[]; viewId: string }[] = [];
+const moves: Record<string, unknown>[] = [];
 
 const readWrittenOperation = () => {
   const [wire] = saved[0]?.operations ?? [];
@@ -61,7 +62,10 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   loadMorePageRowsAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
   refreshPageRowsAction: async () => ({ data: null }),
-  movePageRowAction: async () => ({ data: null }),
+  movePageRowAction: async (input: Record<string, unknown>) => {
+    moves.push(input);
+    return { data: { configuration: {}, id: 'view-table', version: 1 } };
+  },
 }));
 
 const { PagesCollectionTable } = await import('@/modules/pages/collections/components/pages.collection.table');
@@ -131,6 +135,21 @@ const drawTable = (canEdit: boolean, shownRows: readonly PageRow[] = rows) =>
     schema,
     spaceId: 'space-1',
     viewId: view.id,
+  });
+
+/** The same rows of the table, read through another stored view of it. */
+const drawTableOf = (stored: typeof view) =>
+  PagesCollectionTable({
+    activeViewName: stored.name,
+    aggregates: NO_PAGE_AGGREGATES,
+    canEdit: true,
+    groups: [{ color: null, key: '', label: '', nextCursor: null, rows }],
+    isGrouped: false,
+    nextCursor: null,
+    properties,
+    schema: { ...schema, views: [stored] },
+    spaceId: 'space-1',
+    viewId: stored.id,
   });
 
 describe('PagesCollectionTable', () => {
@@ -225,6 +244,87 @@ describe('PagesCollectionTable', () => {
 
     await waitFor(() => expect(saved).toHaveLength(1));
     expect(readWrittenOperation()).toEqual({ command: 'set', key: 'frozenColumns', value: 2 });
+  });
+
+  it('wraps the text of one column from its menu, as a change of that one entry of the view', async () => {
+    saved.length = 0;
+    renderWithMessages(await drawTable(true));
+
+    fireEvent.pointerDown(screen.getAllByTestId('table-column-menu')[1] as HTMLElement, {
+      button: 0,
+      ctrlKey: false,
+      pointerType: 'mouse',
+    });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Wrap the text of this column' }));
+
+    await waitFor(() => expect(saved.length).toBeGreaterThan(0));
+    const operations = (saved[0]?.operations ?? []).map((wire) => readPageViewOperation(wire).getValue());
+    expect(operations).toContainEqual({ command: 'setEntry', key: 'status', map: 'columnWraps', value: true });
+  });
+
+  it('wraps a column on its own, without wrapping the others', async () => {
+    const wrapping = { ...view, configuration: { columnWraps: { status: true }, rowHeight: 'MEDIUM' } };
+    renderWithMessages(await drawTableOf(wrapping));
+
+    const cells = screen.getAllByRole('cell');
+    expect(cells[1]?.className).toContain('whitespace-normal');
+    expect(cells[0]?.className).toContain('whitespace-nowrap');
+  });
+
+  it('puts a grip on each row of a table that follows its own order, only for whoever may edit', async () => {
+    renderWithMessages(await drawTable(true));
+    expect(screen.getAllByTestId('table-row-handle')).toHaveLength(2);
+
+    cleanup();
+    renderWithMessages(await drawTable(false));
+    expect(screen.queryByTestId('table-row-handle')).toBeNull();
+  });
+
+  it('offers no grip when the view sorts its rows, since their place is then the sort', async () => {
+    const sorted = { ...view, configuration: { sorts: [{ direction: 'ASCENDING', propertyKey: 'status' }] } };
+    renderWithMessages(await drawTableOf(sorted));
+
+    expect(screen.queryByTestId('table-row-handle')).toBeNull();
+  });
+
+  it('puts a row before the one it is dropped on, naming only that neighbour', async () => {
+    moves.length = 0;
+    renderWithMessages(await drawTable(true));
+
+    const [grip] = screen.getAllByTestId('table-row-handle');
+    // The first row is the header, the second is the row being carried, and the third is the one it lands beside.
+    const target = screen.getAllByRole('row')[2] as HTMLElement;
+    target.getBoundingClientRect = () => ({ height: 40, top: 100 }) as DOMRect;
+    fireEvent.dragStart(grip as HTMLElement);
+    for (const create of [createEvent.dragOver, createEvent.drop]) {
+      // The test environment does not put the pointer height on a drag event.
+      const event = create(target);
+      Object.defineProperty(event, 'clientY', { value: 105 });
+      fireEvent(target, event);
+    }
+
+    await waitFor(() => expect(moves).toHaveLength(1));
+    expect(moves[0]).toMatchObject({ before: 'row-1', rowId: 'row-2', values: {} });
+  });
+
+  it('puts a row one place down with the keyboard', async () => {
+    moves.length = 0;
+    renderWithMessages(await drawTable(true));
+
+    fireEvent.keyDown(screen.getAllByTestId('table-row-handle')[0] as HTMLElement, { altKey: true, key: 'ArrowDown' });
+
+    await waitFor(() => expect(moves).toHaveLength(1));
+    expect(moves[0]).toMatchObject({ after: 'row-1', rowId: 'row-2' });
+  });
+
+  it('does nothing when a row is moved up from the first place', async () => {
+    moves.length = 0;
+    renderWithMessages(await drawTable(true));
+
+    fireEvent.keyDown(screen.getAllByTestId('table-row-handle')[0] as HTMLElement, { altKey: true, key: 'ArrowUp' });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(moves).toHaveLength(0);
   });
 
   it('counts the rows the view let through, not the collection', async () => {

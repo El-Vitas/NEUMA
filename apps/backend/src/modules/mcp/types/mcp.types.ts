@@ -33,6 +33,7 @@ import type {
 import type { McpDiscussions } from './mcp.discussions.types';
 import type { McpPageManager } from './mcp.page-management.types';
 import type { McpContentEditor, McpDrawingValidator } from './mcp.pages.types';
+import type { McpTemplateService } from './mcp.templates.types';
 
 export type McpSearchInput = z.infer<typeof searchInputSchema>;
 export type McpSearchOutput = z.infer<typeof searchOutputSchema>;
@@ -324,6 +325,7 @@ export interface McpServerDependencies {
   readonly rows: McpRowWriter;
   readonly searchService: SearchReader & PageBlockSearchReader;
   readonly spacesService: McpSpaceReader;
+  readonly templates: McpTemplateService;
   readonly workspacesService: McpWorkspaceReader;
 }
 

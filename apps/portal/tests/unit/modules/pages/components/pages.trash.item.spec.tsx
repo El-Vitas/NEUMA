@@ -39,6 +39,7 @@ const page: TrashedPage = {
   deletedAt: new Date('2026-01-01T10:00:00.000Z'),
   deletedBy: { id: 'user-a', name: 'Ada Lovelace' },
   id: 'page-a',
+  isTemplate: false,
   parentId: null,
   purgeAfter: null,
   spaceId: 'space-a',
@@ -67,6 +68,15 @@ describe('PagesTrashItem', () => {
 
     expect(screen.getByText('Untitled')).toBeDefined();
     expect(screen.getByText(/Deleted by: Ada Lovelace/)).toBeDefined();
+  });
+
+  it('labels a trashed template as a template of its collection, and a page as nothing', () => {
+    const template = renderItem({ ...page, isTemplate: true, title: 'Weekly' });
+    expect(screen.getByTestId('trash-template-badge').textContent).toBe('Template of a collection');
+    template.unmount();
+
+    renderItem();
+    expect(screen.queryByTestId('trash-template-badge')).toBeNull();
   });
 
   it('restores a page right away when it has no trashed children', async () => {

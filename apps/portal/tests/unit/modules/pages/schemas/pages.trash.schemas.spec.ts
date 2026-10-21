@@ -23,6 +23,7 @@ describe('trashedPageSchema', () => {
 
     expect(result.success).toBe(true);
     expect(result.success && result.data.deletedAt).toBeInstanceOf(Date);
+    expect(result.success && result.data.isTemplate).toBe(false);
   });
 
   it('reads the day a page scheduled for deletion goes', () => {

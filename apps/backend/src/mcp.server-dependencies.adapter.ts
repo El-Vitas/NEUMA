@@ -19,12 +19,14 @@ import { createMcpObserver } from './modules/mcp/lib/mcp.observer.lib';
 import type { McpCollectionService, McpRefusal, McpRowWriter } from './modules/mcp/types/mcp.collections.types';
 import type { McpDiscussions } from './modules/mcp/types/mcp.discussions.types';
 import type { McpPageManager } from './modules/mcp/types/mcp.page-management.types';
+import type { McpTemplateService } from './modules/mcp/types/mcp.templates.types';
 import type { McpFileUploader, McpPrincipalResolver, McpServerDependencies } from './modules/mcp/types/mcp.types';
 import { PageContentService } from './modules/pages/page.content.service';
 import { PageOutlineService } from './modules/pages/page.outline.service';
 import { PageChangesService } from './modules/pages/page-changes.service';
 import { PageQueryService } from './modules/pages/page-query.service';
 import { PageSchemaService } from './modules/pages/page-schema.service';
+import { PageTemplateService } from './modules/pages/page-template.service';
 import { PageViewOperationsService } from './modules/pages/page-view-operations.service';
 import { PagesService } from './modules/pages/pages.service';
 import { SearchService } from './modules/search/search.service';
@@ -48,6 +50,7 @@ export class McpServerDependenciesAdapter {
     private readonly queryService: PageQueryService,
     private readonly changesService: PageChangesService,
     private readonly viewOperations: PageViewOperationsService,
+    private readonly templateService: PageTemplateService,
     private readonly commentsService: CommentsService,
     private readonly content: PageContentService,
     private readonly filesService: FilesService,
@@ -83,7 +86,22 @@ export class McpServerDependenciesAdapter {
       rows: this.buildRowWriter(),
       searchService: this.searchService,
       spacesService: this.spacesService,
+      templates: this.buildTemplates(),
       workspacesService: this.workspacesService,
+    };
+  }
+
+  /** A template is saved with the rights the person who owns the token has on the collection. */
+  private buildTemplates(): McpTemplateService {
+    const { templateService } = this;
+    return {
+      create: async ({ change, collectionId, ...actor }) =>
+        toMcpResult(await templateService.create(collectionId, change, actor)),
+      list: async ({ collectionId, ...actor }) => toMcpResult(await templateService.list(collectionId, actor)),
+      remove: async ({ collectionId, templateId, ...actor }) =>
+        toMcpResult(await templateService.delete(collectionId, templateId, actor)),
+      update: async ({ change, collectionId, templateId, ...actor }) =>
+        toMcpResult(await templateService.update(collectionId, templateId, change, actor)),
     };
   }
 

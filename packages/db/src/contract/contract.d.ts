@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'89d5dc74953b2cee64368ffd005871d78f50ee4f6c191d2e9a2cd9f6baeea8af'>;
+  StorageHashBase<'9970e97ad3f0138b9e610ebfce7fe6c205245c7be7c30b3077673c092c48225a'>;
 export type ExecutionHash =
   ExecutionHashBase<'0e952a3e34ad0ab56b436c76d636cec282933bf2540f25a4c447792c8c4b7dbc'>;
 export type ProfileHash =
@@ -421,7 +421,7 @@ export type FieldOutputTypes = {
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly order: CodecTypes['pg/int4@1']['output'];
       readonly pageId: CodecTypes['pg/text@1']['output'];
-      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
+      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
       readonly version: CodecTypes['pg/int4@1']['output'];
     };
@@ -677,7 +677,7 @@ export type FieldInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly order: CodecTypes['pg/int4@1']['input'];
       readonly pageId: CodecTypes['pg/text@1']['input'];
-      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
+      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['input'];
       readonly version: CodecTypes['pg/int4@1']['input'];
     };
@@ -933,7 +933,7 @@ export type StorageColumnTypes = {
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly order: CodecTypes['pg/int4@1']['output'];
       readonly pageId: CodecTypes['pg/text@1']['output'];
-      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
+      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
       readonly version: CodecTypes['pg/int4@1']['output'];
     };
@@ -1189,7 +1189,7 @@ export type StorageColumnInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly order: CodecTypes['pg/int4@1']['input'];
       readonly pageId: CodecTypes['pg/text@1']['input'];
-      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
+      readonly type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';
       readonly updatedAt: CodecTypes['pg/timestamptz-date@1']['input'];
       readonly version: CodecTypes['pg/int4@1']['input'];
     };
@@ -1516,7 +1516,7 @@ export namespace Models {
     name: CodecTypes['pg/text@1']['output'];
     order: CodecTypes['pg/int4@1']['output'];
     pageId: CodecTypes['pg/text@1']['output'];
-    type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART';
+    type: 'TABLE' | 'BOARD' | 'LIST' | 'GALLERY' | 'CALENDAR' | 'CHART' | 'TIMELINE';
     updatedAt: CodecTypes['pg/timestamptz-date@1']['output'];
     version: CodecTypes['pg/int4@1']['output'];
     page: public_Block;
@@ -3944,7 +3944,15 @@ type ContractBase = Omit<
             };
             readonly DatabaseViewType: {
               readonly kind: 'valueSet';
-              readonly values: readonly ['TABLE', 'BOARD', 'LIST', 'GALLERY', 'CALENDAR', 'CHART'];
+              readonly values: readonly [
+                'TABLE',
+                'BOARD',
+                'LIST',
+                'GALLERY',
+                'CALENDAR',
+                'CHART',
+                'TIMELINE',
+              ];
             };
             readonly FileAssetLifecycle: {
               readonly kind: 'valueSet';

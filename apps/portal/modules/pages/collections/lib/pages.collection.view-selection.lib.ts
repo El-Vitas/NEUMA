@@ -1,7 +1,8 @@
 import type { PageFilter } from '@neuma/shared';
-import { PAGE_QUERY_LIMITS, pageFilterSchema, readPageCalendarMonth } from '@neuma/shared';
+import { isValidPageDateValue, PAGE_QUERY_LIMITS, pageFilterSchema, readPageCalendarMonth } from '@neuma/shared';
 import type { RouteSearchParamValue } from '@/shared/types/route-search-params.types';
 import {
+  PAGE_COLLECTION_DAY_SEARCH_PARAM,
   PAGE_COLLECTION_MONTH_SEARCH_PARAM,
   PAGE_COLLECTION_QUICK_FILTER_MAXIMUM_LENGTH,
   PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM,
@@ -30,7 +31,18 @@ export const buildCollectionViewHref = (viewName: string, options: CollectionHre
     parameters.set(PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM, JSON.stringify(options.quickFilter));
   }
   if (options.month !== undefined) parameters.set(PAGE_COLLECTION_MONTH_SEARCH_PARAM, options.month);
+  if (options.day !== undefined) parameters.set(PAGE_COLLECTION_DAY_SEARCH_PARAM, options.day);
   return `?${parameters.toString()}`;
+};
+
+/** Something that is not a real day is read as nothing, so a mistyped address opens the view around today. */
+export const readCollectionDay = (raw: RouteSearchParamValue): null | string => {
+  const candidate = Array.isArray(raw) ? raw[0] : raw;
+  return candidate !== undefined &&
+    isValidPageDateValue({ start: candidate }) &&
+    candidate.length === 'YYYY-MM-DD'.length
+    ? candidate
+    : null;
 };
 
 /** Something that is not a month is read as nothing, so a mistyped address opens the calendar on its default month. */

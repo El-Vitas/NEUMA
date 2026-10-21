@@ -81,10 +81,13 @@ export class PagesController {
       {
         content: dto.content,
         createdById: payload.sub,
+        ...(dto.defaultValues === undefined ? {} : { defaultValues: dto.defaultValues }),
         parentId: dto.parentId ?? null,
         propertyValues: dto.propertyValues ?? null,
         role: payload.role,
         spaceId,
+        ...(dto.templateId === undefined ? {} : { templateId: dto.templateId }),
+        ...(dto.timeZone === undefined ? {} : { timeZone: dto.timeZone }),
         title: dto.title,
         userId: payload.sub,
         workspaceId: workspace.id,

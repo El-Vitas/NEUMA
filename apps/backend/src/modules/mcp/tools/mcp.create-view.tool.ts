@@ -63,7 +63,7 @@ export const createViewTool: McpToolDefinition = {
       MCP_TOOL_NAMES.createView,
       {
         description:
-          'Add a view to a collection: a new way to look at its rows, such as a board grouped by status or a table of what is due this week. A board or chart needs groupBy. Name columns, options and people as get_collection shows them.',
+          'Add a view to a collection: a new way to look at its rows, such as a board grouped by status or a table of what is due this week. A board or chart needs groupBy. A timeline needs dateColumn (and endDateColumn when rows end in another column); a calendar needs dateColumn; the scale is day, week or month. Name columns, options and people as get_collection shows them.',
         inputSchema: createViewInputSchema,
         outputSchema: collectionOutputSchema,
       },

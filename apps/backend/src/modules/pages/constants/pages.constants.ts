@@ -1,4 +1,11 @@
-import { PAGE_PROPERTY_KEY_MAX_LENGTH } from '@neuma/shared';
+import { PAGE_PROPERTY_KEY_MAX_LENGTH, type PageContent } from '@neuma/shared';
+
+/** What a page that was given no content starts with: one empty paragraph. */
+export const PAGE_EMPTY_CONTENT: PageContent = {
+  content: [{ content: [], type: 'paragraph' }],
+  schemaVersion: 1,
+  type: 'doc',
+};
 
 export const PAGE_ATTACHMENTS_CLEANUP_REPOSITORY = 'PAGE_ATTACHMENTS_CLEANUP_REPOSITORY';
 export const PAGE_REPOSITORY = 'PAGE_REPOSITORY';
