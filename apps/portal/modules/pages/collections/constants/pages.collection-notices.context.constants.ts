@@ -6,4 +6,5 @@ export const PAGE_COLLECTION_NOTICES_CONTEXT = createContext<PagesCollectionNoti
   dispatch: () => undefined,
   requestRefresh: () => undefined,
   subscribe: () => () => undefined,
+  subscribeStale: () => () => undefined,
 });

@@ -16,6 +16,7 @@ import {
   readPageEffectivePropertyType,
   toValueList,
 } from '@neuma/shared';
+import { ONLINE_ONLY_CELL_TYPES } from '../constants/pages.fields.constants';
 import type {
   PagePersonOption,
   PagePropertyValue,
@@ -62,6 +63,12 @@ export const buildRowPropertyValues = (properties: readonly PageSchemaProperty[]
 /** What the server fills cannot be written, and files are chosen among the ones uploaded to the row's own page. */
 export const isPropertyEditableInPlace = (property: PageSchemaProperty): boolean =>
   !isPagePropertySystemManaged(property.type) && property.type !== PAGE_PROPERTY_TYPE.FILES;
+
+/**
+ * Whether a change to a cell of this type may wait for the network. A value that is a list of people, options or rows
+ * is changed by what enters and leaves it, which the server alone can apply without undoing another person (ADR 025).
+ */
+export const canQueueCellWrite = (type: PagePropertyType): boolean => !ONLINE_ONLY_CELL_TYPES.includes(type);
 
 /** The address a value opens: a web link as it is, a mail or a phone number with its scheme. */
 export const readPropertyLinkHref = (type: PagePropertyType, text: string): string => {

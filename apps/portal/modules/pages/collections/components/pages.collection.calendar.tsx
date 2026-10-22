@@ -12,14 +12,21 @@ import {
   PAGE_CALENDAR_WEEKDAY_STARTS,
 } from '../constants/pages.calendar.constants';
 import { PAGE_VIEW_CALENDAR_MAXIMUM_ROWS } from '../constants/pages.query.constants';
+import { NO_WINDOW_ROWS } from '../constants/pages.window-rows.constants';
 import { usePagesCalendarMoving } from '../hooks/use.pages.calendar-moving';
 import { usePagesRowCreation } from '../hooks/use.pages.row-creation';
 import { usePagesRowQuery } from '../hooks/use.pages.row-query';
 import { usePagesViewSaving } from '../hooks/use.pages.view-saving';
-import { buildCalendarCells, listCalendarGridDays, readNeighbourMonth } from '../lib/pages.calendar.lib';
+import { usePagesWindowRows } from '../hooks/use.pages.window-rows';
+import {
+  buildCalendarCells,
+  listCalendarGridDays,
+  readCalendarWindowFilters,
+  readNeighbourMonth,
+} from '../lib/pages.calendar.lib';
 import { buildCollectionViewHref } from '../lib/pages.collection.view-selection.lib';
 import { setViewDateScale } from '../lib/pages.view-filtering.lib';
-import type { PageRow, PageSchema } from '../types/pages.schema.types';
+import type { PageRow, PageSchema, PageSchemaView } from '../types/pages.schema.types';
 import { PagesCollectionCalendarDay } from './pages.collection.calendar.day';
 import { PagesCollectionDateNavigation } from './pages.collection.date-navigation';
 import { PagesCollectionDateScale } from './pages.collection.date-scale';
@@ -28,6 +35,8 @@ import { PagesCollectionNewRow } from './pages.collection.new-row';
 interface IProps {
   readonly activeViewName: string;
   readonly canEdit: boolean;
+  /** Where to read what changed after those rows were read; null when the calendar cannot follow changes. */
+  readonly changesCursor?: null | string;
   /** Null until the view defines which property places each row. */
   readonly dateProperty: null | string;
   /** The day a week is drawn around; the grid of a month is drawn around `month`. */
@@ -43,21 +52,27 @@ interface IProps {
   readonly spaceId: string;
   /** Rows with no date, which fall on no day and are not among `rows`. */
   readonly undated: number;
+  readonly view: PageSchemaView;
+  /** Who looks; null when the browser does not know, and a filter that names the reader then goes to the server. */
+  readonly viewerId?: null | string;
 }
 
 /** The server reads the rows of the grid of a month or of a week, so moving through time asks it for the new grid. */
 export const PagesCollectionCalendar = ({
   activeViewName,
   canEdit,
+  changesCursor = null,
   dateProperty,
   day,
   isTruncated,
   month,
-  rows,
+  rows: drawnRows,
   scale,
   schema,
   spaceId,
-  undated,
+  undated: drawnUndated,
+  view,
+  viewerId = null,
 }: IProps) => {
   const t = useTranslations('pages.collection');
   const { quickFilter, search } = usePagesRowQuery();
@@ -65,6 +80,21 @@ export const PagesCollectionCalendar = ({
   const router = useRouter();
   const [isReading, startReading] = useTransition();
   const today = new Date().toISOString().slice(0, 'YYYY-MM-DD'.length);
+  const { rows, undated } = usePagesWindowRows({
+    changesCursor,
+    dateProperty,
+    isTruncated,
+    listsUndated: false,
+    pageId: schema.pageId,
+    properties: schema.properties,
+    rows: drawnRows,
+    spaceId,
+    undated: drawnUndated,
+    undatedRows: NO_WINDOW_ROWS,
+    view,
+    viewerId,
+    windowFilters: readCalendarWindowFilters(dateProperty, scale, day, month),
+  });
   const moving = usePagesCalendarMoving(dateProperty, spaceId, rows);
   const viewSaving = usePagesViewSaving(schema, activeViewName, spaceId);
   const creation = usePagesRowCreation({

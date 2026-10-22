@@ -9,6 +9,7 @@ import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 const rowOf = (id: string, propertyValues: PageRow['propertyValues'] = null): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues,
@@ -50,6 +51,8 @@ const changesOf = (overrides: Partial<PageCollectionChanges>): PageCollectionCha
   cursor: 'cursor-2',
   hasMore: false,
   isReset: false,
+  possiblyChanged: [],
+  possiblyChangedIsTruncated: false,
   relatedRows: [],
   rows: [],
   total: 0,

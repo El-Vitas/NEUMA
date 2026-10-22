@@ -156,9 +156,9 @@ export class PageSchemaService {
     userId: string,
     role: UserRole,
   ): Promise<readonly { readonly id: string; readonly title: string }[]> {
-    const pages = await this.pageRepository.listAccessible(spaceId, workspaceId, userId, role, false);
-    const collectionIds = await this.pageSchemaRepository.findCollectionIds(pages.map((page) => page.id));
-    return pages.filter((page) => collectionIds.has(page.id)).map((page) => ({ id: page.id, title: page.title }));
+    const collectionIds = await this.pageSchemaRepository.listCollectionIdsInSpace(spaceId);
+    const pages = await this.pageRepository.listAccessibleAmong(spaceId, collectionIds, workspaceId, userId, role);
+    return pages.map((page) => ({ id: page.id, title: page.title }));
   }
 
   async getSchema(

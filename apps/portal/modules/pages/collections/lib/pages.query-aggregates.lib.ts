@@ -1,4 +1,4 @@
-import type { PageQueryAggregateValue, PageViewCalculation } from '@neuma/shared';
+import type { PageQueryAggregateValue, PageQueryOutcome, PageViewCalculation } from '@neuma/shared';
 import {
   PAGE_VIEW_CALCULATION_ITEM_PREFIX,
   PAGE_VIEW_COUNT_ITEM,
@@ -40,9 +40,8 @@ export const sumGroupCountsOfBand = (counts: Readonly<Record<string, number>>, b
     .filter(([key]) => key.endsWith(`|${bandKey}`))
     .reduce((total, [, count]) => total + count, 0);
 
-/** What the second phase of a view answered, or null if the counts could not be read. */
-export const toViewAggregates = (result: PageQueryResult | null): PageViewAggregates | null => {
-  const outcome = result?.reducers[PAGE_VIEW_COUNTS_REDUCER];
+/** What the counts reducer answered, from the server or from the rows the browser holds. */
+export const toViewAggregatesFromOutcome = (outcome: PageQueryOutcome | undefined): PageViewAggregates | null => {
   if (outcome?.kind !== 'aggregations') return null;
   return {
     calculations: readCalculations(outcome.totals),
@@ -58,3 +57,7 @@ export const toViewAggregates = (result: PageQueryResult | null): PageViewAggreg
     ),
   };
 };
+
+/** What the second phase of a view answered, or null if the counts could not be read. */
+export const toViewAggregates = (result: PageQueryResult | null): PageViewAggregates | null =>
+  toViewAggregatesFromOutcome(result?.reducers[PAGE_VIEW_COUNTS_REDUCER]);

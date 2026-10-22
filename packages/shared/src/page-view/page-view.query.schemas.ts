@@ -15,7 +15,7 @@ const resultsReducerSchema = z
     cursor: cursorSchema.optional(),
     id: reducerIdSchema,
     kind: z.literal('results'),
-    limit: z.number().int().min(0).max(PAGE_QUERY_LIMITS.maximumResultsLimit).optional(),
+    limit: z.number().int().min(0).max(PAGE_QUERY_LIMITS.maximumFullResultsLimit).optional(),
   })
   .strict();
 

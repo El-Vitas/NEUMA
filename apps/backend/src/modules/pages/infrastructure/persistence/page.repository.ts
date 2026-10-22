@@ -79,6 +79,21 @@ export class PageRepository implements PageRepositoryContract {
     return summaries.toSorted(compareBySiblingPosition);
   }
 
+  async listAccessibleAmong(
+    spaceId: string,
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
+  ): Promise<readonly PageSummary[]> {
+    const blocks = (await this.blockReader.readPageBlocks(pageIds)).filter(
+      (block) => block.spaceId === spaceId && !isPageTemplate(block.properties),
+    );
+    const accessible = await this.blockReader.keepAccessible(blocks, toViewer(workspaceId, userId, role));
+    const summaries = await this.summaryReader.summarizeAll(accessible.filter(({ access }) => !access.isInTrash));
+    return summaries.toSorted(compareBySiblingPosition);
+  }
+
   async getAccessible(
     pageId: string,
     workspaceId: string,

@@ -8,6 +8,7 @@ import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 const rowOf = (id: string, propertyValues: PageRow['propertyValues'] = null): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues,

@@ -25,6 +25,18 @@ export const PAGE_VIEW_CONTINUATION_ROWS = 100;
 /** The pages a refreshed window of loaded rows is read in at most, so a very long scroll does not hold a request. */
 export const PAGE_VIEW_REFRESH_MAXIMUM_ROWS = 1000;
 
+/** The key of the only group of a view that does not group: the rows are one unnamed group. */
+export const PAGE_VIEW_FLAT_GROUP_KEY = '';
+
+/** The cursor of a group the browser pages by itself: there are more rows to show, and no server to ask. */
+export const PAGE_VIEW_LOCAL_CURSOR = 'local';
+
+/** The most rows the browser holds of a collection to filter and sort them itself (ADR 029). */
+export const PAGE_VIEW_CLIENT_MODE_PAGE_ROWS = PAGE_VIEW_MATCHING_MAXIMUM_ROWS;
+
+/** Pages of rows a browser reads of one collection: a few more than 10,000 rows take, in case it grew meanwhile. */
+export const PAGE_VIEW_CLIENT_MODE_MAXIMUM_PAGES = 12;
+
 /** The id of the reducer that reads rows, and of the one that counts them. */
 export const PAGE_VIEW_ROWS_REDUCER = 'rows';
 

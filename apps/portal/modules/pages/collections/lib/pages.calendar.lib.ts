@@ -161,6 +161,22 @@ export const buildCalendarRangeFilter = (dateProperty: string, range: PageCalend
   value: { end: range.to, start: range.from },
 });
 
+/** What the server read to draw the days on screen, as the filters whose answers it joined. */
+export const readCalendarWindowFilters = (
+  dateProperty: null | string,
+  scale: PageDateScale,
+  day: string,
+  month: string,
+): readonly PageFilter[] =>
+  dateProperty === null
+    ? []
+    : [
+        buildCalendarRangeFilter(
+          dateProperty,
+          scale === PAGE_DATE_SCALE.WEEK ? readCalendarWeekRange(day) : readCalendarGridRange(month),
+        ),
+      ];
+
 export const buildCalendarUndatedFilter = (dateProperty: string): PageFilter => ({
   kind: 'CONDITION',
   operator: 'IS_EMPTY',

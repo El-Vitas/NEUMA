@@ -3,11 +3,10 @@
 import type { PageDateValue, PageDayRange, PageTimelineChangeMode } from '@neuma/shared';
 import { buildPageTimelineChange, readPageTimelinePeriod } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useContext, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { hasActionError } from '@/shared/lib/action-result';
+import { PAGE_VIEW_WRITES_CONTEXT } from '../constants/pages.view-writes.context.constants';
 import { readRowDateValue } from '../lib/pages.calendar.lib';
-import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type { PageRow } from '../types/pages.schema.types';
 import type { PagesTimelineChanges, PagesTimelineMoving } from '../types/pages.timeline.types';
 
@@ -23,6 +22,7 @@ export const usePagesTimelineMoving = (
   rows: readonly PageRow[],
 ): PagesTimelineMoving => {
   const tErrors = useTranslations('errors');
+  const writes = useContext(PAGE_VIEW_WRITES_CONTEXT);
   const [changes, setChanges] = useState<PagesTimelineChanges>({});
   const [drawnRows, setDrawnRows] = useState(rows);
   const [, startWriting] = useTransition();
@@ -56,8 +56,11 @@ export const usePagesTimelineMoving = (
       });
       setChanges((previous) => ({ ...previous, [rowId]: { ...previous[rowId], ...change } }));
       startWriting(async () => {
-        const saved = await updatePageRowPropertiesAction({ pageId: rowId, propertyValues: change, spaceId });
-        if (!hasActionError(saved)) return;
+        const settled = await writes.write(
+          { kind: 'cell', pageId: rowId, propertyValues: change, spaceId },
+          Object.keys(change).join(', '),
+        );
+        if (settled.kind !== 'rejected') return;
         undo(rowId);
         toast.error(tErrors('generic'));
       });

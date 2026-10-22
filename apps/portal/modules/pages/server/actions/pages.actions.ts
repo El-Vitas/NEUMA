@@ -41,6 +41,7 @@ export const createPageAction = actionClient
       const createdPage = await authenticatedRequest(PAGE_API_ROUTES.list(parsedInput.spaceId), 'POST', {
         content: parsedInput.content,
         defaultValues: parsedInput.defaultValues,
+        id: parsedInput.id,
         parentId: parsedInput.parentId,
         propertyValues: parsedInput.propertyValues,
         templateId: parsedInput.templateId,

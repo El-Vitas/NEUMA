@@ -72,12 +72,17 @@ export interface StoredTextPreview {
   readonly text: string;
 }
 
+/** Whose queue sends a write kept on disk: the editor's blocks, or the views of a collection. */
+export type StoredTransactionKind = 'blocks' | 'view-write';
+
 /** A write kept on disk until the server has answered it. Its id is the one every resend carries. */
 export interface StoredTransaction {
   readonly attempts: number;
   /** Rises with every write, so the order they are read back in is the order they were made. */
   readonly createdAt: number;
   readonly id: string;
+  /** Absent in a write kept before views had a queue: those are the editor's. */
+  readonly kind?: StoredTransactionKind;
   readonly operations: readonly unknown[];
   /** The tab that is sending it; another tab may take it over once that tab is gone. */
   readonly ownerId: string;

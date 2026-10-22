@@ -11,6 +11,7 @@ import type {
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { defaultConfig } from '../lib/pages.options.fixture';
+import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const operations: unknown[] = [];
@@ -24,12 +25,16 @@ mock.module('@/i18n/navigation', () => ({
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   applyPageViewOperationsAction: async (input: unknown) => {
     operations.push(input);
     return { data: { configuration: {}, id: 'view-plan', version: 1 } };
   },
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageUndatedCountAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async (input: {
     pageId: string;
     propertyValues: Record<string, unknown>;
@@ -50,16 +55,21 @@ const properties: PageSchemaProperty[] = [
   { config: defaultConfig, key: 'due', label: 'Due', options: null, required: false, type: 'DATE' },
 ];
 
-const schema: PageSchema = {
-  pageId: 'collection-1',
-  properties,
-  spaceId: 'space-1',
-  views: [{ configuration: {}, id: 'view-plan', isDefault: true, name: 'Plan', type: 'TIMELINE', version: 0 }],
-};
+const planView = {
+  configuration: {},
+  id: 'view-plan',
+  isDefault: true,
+  name: 'Plan',
+  type: 'TIMELINE',
+  version: 0,
+} as const;
+
+const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [planView] };
 
 const rowOf = (id: string, title: string, when: null | { end?: string; start: string }): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: when === null ? {} : { when },
@@ -103,6 +113,7 @@ const drawTimeline = (
         schema={schema}
         spaceId="space-1"
         timeline={extra.reading ?? reading()}
+        view={planView}
       />
     </PAGE_ROW_QUERY_CONTEXT>
   </NextIntlClientProvider>

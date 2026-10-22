@@ -84,7 +84,9 @@ export const createBlockSyncOutbox = ({
       }),
     restore: async () => {
       try {
-        const pending = (await outbox.listPending()).filter((stored) => stored.pageId === pageId);
+        const pending = (await outbox.listPending()).filter(
+          (stored) => stored.pageId === pageId && (stored.kind ?? 'blocks') === 'blocks',
+        );
         const restored = await Promise.all(pending.map(restoreOne));
         return restored.filter((transaction): transaction is BlockTransaction => transaction !== null);
       } catch (error) {

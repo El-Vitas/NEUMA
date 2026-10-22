@@ -15,6 +15,7 @@ import type {
 import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/shared/server/lib/time-zone.server', () => ({ readRequestTimeZone: async () => null }));
@@ -34,12 +35,14 @@ mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', (
   getSpaceCollections: async () => ({ getValue: () => [{ id: 'collection-2', title: 'Projects' }], isOk: () => true }),
 }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
   applyPageViewOperationsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
   readPageCollectionAction: async () => ({ data: null }),
   readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),

@@ -5,6 +5,10 @@ import type { CollectionRefreshCoalescer } from '../types/pages.collection-live.
 export const routeCollectionMessage = (message: BlockCollectionMessage, hasFollowers: boolean): 'follow' | 'refresh' =>
   message.type === 'collection-changes' && hasFollowers ? 'follow' : 'refresh';
 
+/** Whether a notice means the rows a browser holds may no longer be the ones the reader can see. */
+export const readStaleRowsCause = (message: BlockCollectionMessage): null | string =>
+  message.type === 'collection-resync' || message.type === 'collection-revoked' ? message.type : null;
+
 /**
  * Turns a burst of change notices into one refresh. A notice that arrives while a refresh is running is kept and
  * answered by one more refresh after it, so the view never reads twice at the same time.

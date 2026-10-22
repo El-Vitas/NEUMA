@@ -95,6 +95,8 @@ export interface PageRow {
   readonly propertyValues: PagePropertyValues | null;
   readonly order: number;
   readonly lifecycle: PageLifecycle;
+  /** The version of the row's block as the server last sent it; 0 for a row the server has not confirmed yet. */
+  readonly version: number;
 }
 
 export interface PageViewGroup {

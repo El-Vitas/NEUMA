@@ -12,6 +12,7 @@ import type {
   PageRow,
   PageSchema,
   PageSchemaProperty,
+  PageViewBand,
   PageViewGroup,
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
@@ -60,7 +61,11 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     return { data: { configuration: {}, id: input.viewId, version: 1 } };
   },
   loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
   refreshPageRowsAction: async () => ({ data: null }),
   movePageRowAction: async (input: Record<string, unknown>) => {
     moves.push(input);
@@ -100,6 +105,7 @@ const rows: PageRow[] = [
   {
     id: 'row-2',
     lifecycle: 'ACTIVE',
+    version: 1,
     order: 1,
     parentId: 'collection-1',
     propertyValues: { status: 'done' },
@@ -109,6 +115,7 @@ const rows: PageRow[] = [
   {
     id: 'row-1',
     lifecycle: 'ACTIVE',
+    version: 1,
     order: 0,
     parentId: 'collection-1',
     propertyValues: { status: 'todo' },
@@ -123,34 +130,40 @@ const countStatus = toCalculationItemId('status', 'COUNT_ALL');
 
 const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space-1', views: [view] };
 
-const drawTable = (canEdit: boolean, shownRows: readonly PageRow[] = rows) =>
-  PagesCollectionTable({
-    activeViewName: view.name,
-    aggregates: NO_PAGE_AGGREGATES,
-    canEdit,
-    groups: [{ color: null, key: '', label: '', nextCursor: null, rows: shownRows }],
-    isGrouped: false,
-    nextCursor: null,
-    properties,
-    schema,
-    spaceId: 'space-1',
-    viewId: view.id,
-  });
+const flatBands = (shownRows: readonly PageRow[]): readonly PageViewBand[] => [
+  { color: null, groups: [{ color: null, key: '', label: '', nextCursor: null, rows: shownRows }], key: '', label: '' },
+];
+
+const drawTable = (canEdit: boolean, shownRows: readonly PageRow[] = rows) => (
+  <PagesCollectionTable
+    activeViewName={view.name}
+    aggregates={NO_PAGE_AGGREGATES}
+    bands={flatBands(shownRows)}
+    canEdit={canEdit}
+    changesCursor={null}
+    properties={properties}
+    schema={schema}
+    spaceId="space-1"
+    view={view}
+    viewId={view.id}
+  />
+);
 
 /** The same rows of the table, read through another stored view of it. */
-const drawTableOf = (stored: typeof view) =>
-  PagesCollectionTable({
-    activeViewName: stored.name,
-    aggregates: NO_PAGE_AGGREGATES,
-    canEdit: true,
-    groups: [{ color: null, key: '', label: '', nextCursor: null, rows }],
-    isGrouped: false,
-    nextCursor: null,
-    properties,
-    schema: { ...schema, views: [stored] },
-    spaceId: 'space-1',
-    viewId: stored.id,
-  });
+const drawTableOf = (stored: typeof view) => (
+  <PagesCollectionTable
+    activeViewName={stored.name}
+    aggregates={NO_PAGE_AGGREGATES}
+    bands={flatBands(rows)}
+    canEdit
+    changesCursor={null}
+    properties={properties}
+    schema={{ ...schema, views: [stored] }}
+    spaceId="space-1"
+    view={stored}
+    viewId={stored.id}
+  />
+);
 
 describe('PagesCollectionTable', () => {
   it('renders rows in the order provided by the view outcome', async () => {
@@ -180,7 +193,7 @@ describe('PagesCollectionTable', () => {
     renderWithMessages(await drawTable(false, []));
 
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.getByText('collection.emptyTable')).toBeDefined();
+    expect(screen.getByText('No rows yet')).toBeDefined();
   });
 
   it('offers each cell as something to answer, but only to whoever may write', async () => {
@@ -330,19 +343,20 @@ describe('PagesCollectionTable', () => {
   it('counts the rows the view let through, not the collection', async () => {
     const counting = { ...view, configuration: { calculations: { status: 'COUNT_ALL' } } };
     const counted = Promise.resolve({ ...EMPTY_PAGE_VIEW_AGGREGATES, calculations: { [countStatus]: 1 } });
-    const table = await PagesCollectionTable({
-      activeViewName: counting.name,
-      aggregates: counted,
-      canEdit: true,
-      groups: [{ color: null, key: '', label: '', nextCursor: null, rows: [rows[0] as PageRow] }],
-      isGrouped: false,
-      nextCursor: null,
-      properties,
-      schema: { ...schema, views: [counting] },
-      spaceId: 'space-1',
-      viewId: counting.id,
-    });
-    await renderResolved(table);
+    await renderResolved(
+      <PagesCollectionTable
+        activeViewName={counting.name}
+        aggregates={counted}
+        bands={flatBands([rows[0] as PageRow])}
+        canEdit
+        changesCursor={null}
+        properties={properties}
+        schema={{ ...schema, views: [counting] }}
+        spaceId="space-1"
+        view={counting}
+        viewId={counting.id}
+      />,
+    );
 
     expect(screen.getByRole('combobox', { name: 'What to calculate in Status' }).textContent).toBe('Rows 1');
   });
@@ -360,26 +374,34 @@ describe('PagesCollectionTable — agrupada', () => {
     collapsedGroups: readonly string[] = [],
     extra: Readonly<Record<string, unknown>> = {},
     emptyGroups: readonly PageViewGroup[] = [],
-  ) =>
-    PagesCollectionTable({
-      activeViewName: grouped.name,
-      aggregates: groupedAggregates,
-      canEdit: true,
-      groups: [
-        { color: 'GREEN', key: 'done', label: 'done', nextCursor: null, rows: [rows[0] as PageRow] },
-        { color: null, key: 'todo', label: 'todo', nextCursor: null, rows: [rows[1] as PageRow] },
-        ...emptyGroups,
-      ],
-      isGrouped: true,
-      nextCursor: null,
-      properties,
-      schema: {
-        ...schema,
-        views: [{ ...grouped, configuration: { ...grouped.configuration, collapsedGroups, ...extra } }],
-      },
-      spaceId: 'space-1',
-      viewId: grouped.id,
-    });
+  ) => {
+    const shown = { ...grouped, configuration: { ...grouped.configuration, collapsedGroups, ...extra } };
+    return (
+      <PagesCollectionTable
+        activeViewName={grouped.name}
+        aggregates={groupedAggregates}
+        bands={[
+          {
+            color: null,
+            groups: [
+              { color: 'GREEN', key: 'done', label: 'done', nextCursor: null, rows: [rows[0] as PageRow] },
+              { color: null, key: 'todo', label: 'todo', nextCursor: null, rows: [rows[1] as PageRow] },
+              ...emptyGroups,
+            ],
+            key: '',
+            label: '',
+          },
+        ]}
+        canEdit
+        changesCursor={null}
+        properties={properties}
+        schema={{ ...schema, views: [shown] }}
+        spaceId="space-1"
+        view={shown}
+        viewId={grouped.id}
+      />
+    );
+  };
 
   it('opens each group with a band saying what it is and how many it holds', async () => {
     await renderResolved(await drawGrouped());

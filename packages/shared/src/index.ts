@@ -404,6 +404,15 @@ export {
   pageViewSupportsGrouping,
   readPageViewShape,
 } from './page-view/page-view.lib.js';
+export type {
+  LocalPageCell,
+  LocalPageCells,
+  LocalPageGrouping,
+  LocalPageQueryInput,
+  LocalPageQueryRefusal,
+  LocalPageQueryRow,
+} from './page-view/page-view.local-query.lib.js';
+export { listLocalPageCells, listLocalPageRows, runLocalPageQuery } from './page-view/page-view.local-query.lib.js';
 export { diffPageViewConfigurations } from './page-view/page-view.operations.diff.lib.js';
 export { applyPageViewOperation } from './page-view/page-view.operations.lib.js';
 export type {

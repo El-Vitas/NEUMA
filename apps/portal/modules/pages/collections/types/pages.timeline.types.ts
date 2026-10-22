@@ -1,6 +1,14 @@
-import type { PageDateValue, PageDayRange, PageTimelineBar, PageTimelineChangeMode } from '@neuma/shared';
+import type { PageDateValue, PageDayRange, PageFilter, PageTimelineBar, PageTimelineChangeMode } from '@neuma/shared';
 import type { PointerEvent } from 'react';
 import type { PageRow } from './pages.schema.types';
+
+/** What a timeline the server drew hands to the part that keeps it in step with changes. */
+export interface TimelineLiveSeed {
+  readonly isTruncated: boolean;
+  readonly undated: number;
+  readonly undatedRows: readonly PageRow[];
+  readonly windowFilters: readonly PageFilter[];
+}
 
 /** The dates written to each row by property that the server has not drawn back yet. */
 export type PagesTimelineChanges = Readonly<Record<string, Readonly<Record<string, PageDateValue>>>>;

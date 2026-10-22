@@ -3,12 +3,11 @@
 import type { PageDateValue } from '@neuma/shared';
 import { shiftPageCalendarDate } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useContext, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { hasActionError } from '@/shared/lib/action-result';
+import { PAGE_VIEW_WRITES_CONTEXT } from '../constants/pages.view-writes.context.constants';
 import { readRowDateValue } from '../lib/pages.calendar.lib';
 import { moveDateValueTo } from '../lib/pages.dates.lib';
-import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
 import type { PagesCalendarMoving } from '../types/pages.calendar.types';
 import type { PageRow } from '../types/pages.schema.types';
 
@@ -23,6 +22,7 @@ export const usePagesCalendarMoving = (
   rows: readonly PageRow[],
 ): PagesCalendarMoving => {
   const tErrors = useTranslations('errors');
+  const writes = useContext(PAGE_VIEW_WRITES_CONTEXT);
   const [moved, setMoved] = useState<Readonly<Record<string, PageDateValue>>>({});
   const [carried, setCarried] = useState<null | string>(null);
   const [daysIntoEntry, setDaysIntoEntry] = useState(0);
@@ -48,12 +48,11 @@ export const usePagesCalendarMoving = (
       setDaysIntoEntry(0);
       setMoved((previous) => ({ ...previous, [rowId]: next }));
       startMoving(async () => {
-        const saved = await updatePageRowPropertiesAction({
-          pageId: rowId,
-          propertyValues: { [dateProperty]: next },
-          spaceId,
-        });
-        if (!hasActionError(saved)) return;
+        const settled = await writes.write(
+          { kind: 'cell', pageId: rowId, propertyValues: { [dateProperty]: next }, spaceId },
+          `${dateProperty}: ${next.start}`,
+        );
+        if (settled.kind !== 'rejected') return;
         undo(rowId);
         toast.error(tErrors('generic'));
       });

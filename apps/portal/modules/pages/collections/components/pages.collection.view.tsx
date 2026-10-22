@@ -25,6 +25,8 @@ interface IProps {
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly view: PageSchemaView;
+  /** Who looks; null when it is not known, and a filter that names the reader then goes to the server. */
+  readonly viewerId?: null | string;
 }
 
 /** A shape mismatch is shown explicitly: a view drawn from rows it cannot read would look empty, not broken. */
@@ -38,6 +40,7 @@ export const PagesCollectionView = async ({
   schema,
   spaceId,
   view,
+  viewerId = null,
 }: IProps) => {
   const t = await getTranslations('pages');
   if (outcome === null) return <FormErrorBanner message={t('collection.loadError')} />;
@@ -46,50 +49,21 @@ export const PagesCollectionView = async ({
   }
 
   const renderer = PageViewRenderers[view.type];
+  const input = { aggregates, canEdit, changesCursor, personOptions, properties, schema, spaceId, view, viewerId };
   if (renderer.shape === PAGE_VIEW_SHAPE.FLAT && outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS) {
-    return renderer.render({
-      aggregates,
-      canEdit,
-      changesCursor,
-      outcome,
-      personOptions,
-      properties,
-      schema,
-      spaceId,
-      view,
-    });
+    return renderer.render({ ...input, outcome });
   }
   if (
     renderer.shape === 'EITHER' &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.FLAT_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS)
   ) {
-    return renderer.render({
-      aggregates,
-      canEdit,
-      changesCursor,
-      outcome,
-      personOptions,
-      properties,
-      schema,
-      spaceId,
-      view,
-    });
+    return renderer.render({ ...input, outcome });
   }
   if (
     renderer.shape === PAGE_VIEW_SHAPE.GROUPED &&
     (outcome.kind === PAGE_VIEW_OUTCOME_KIND.GROUPED_ROWS || outcome.kind === PAGE_VIEW_OUTCOME_KIND.BANDED_ROWS)
   ) {
-    return renderer.render({
-      aggregates,
-      canEdit,
-      changesCursor,
-      outcome,
-      personOptions,
-      properties,
-      schema,
-      spaceId,
-      view,
-    });
+    return renderer.render({ ...input, outcome });
   }
   return <FormErrorBanner message={t('collection.shapeMismatch')} />;
 };

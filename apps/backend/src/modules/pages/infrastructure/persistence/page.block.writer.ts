@@ -78,7 +78,11 @@ export class PageBlockWriter {
 
   async create(input: NewPageInput): Promise<PageSummary | null> {
     const viewer = toViewer(input.workspaceId, input.userId, input.role);
-    const pageId = randomUUID();
+    const pageId = input.pageId ?? randomUUID();
+    if (input.pageId !== undefined) {
+      const existing = await this.readSummary(pageId, viewer);
+      if (existing !== null) return existing;
+    }
     const content = await this.makeIdsFresh(input.content, new Set());
     const tree = buildPageTree({
       content,

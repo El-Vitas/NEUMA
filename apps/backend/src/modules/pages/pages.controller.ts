@@ -92,6 +92,7 @@ export class PagesController {
         content: dto.content,
         createdById: payload.sub,
         ...(dto.defaultValues === undefined ? {} : { defaultValues: dto.defaultValues }),
+        ...(dto.id === undefined ? {} : { pageId: dto.id }),
         parentId: dto.parentId ?? null,
         propertyValues: dto.propertyValues ?? null,
         role: payload.role,

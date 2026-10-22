@@ -79,6 +79,8 @@ export interface PageRowSummary extends PageRowAuthorshipSummary {
   readonly propertyValues: SchemaPropertyValues | null;
   readonly order: number;
   readonly lifecycle: PageLifecycle;
+  /** The version of the row's block, which grows with every change to it; a copy older than this is stale. */
+  readonly version: number;
 }
 
 /** `hasMore` travels with the rows so a truncated list is not read as the whole collection. */
@@ -136,8 +138,8 @@ export interface PageSchemaRepositoryContract {
     role: UserRole,
   ) => Promise<PageRowsPage>;
   readonly listWorkspaceMemberIds: (workspaceId: string) => Promise<readonly string[]>;
-  /** The pages among `pageIds` that carry a shape, that is, the collections. */
-  readonly findCollectionIds: (pageIds: readonly string[]) => Promise<ReadonlySet<string>>;
+  /** The pages of the space that carry a shape, that is, its collections, without reading any other page. */
+  readonly listCollectionIdsInSpace: (spaceId: string) => Promise<readonly string[]>;
   /** The files among `fileIds` the writer may attach: active, in the workspace, and theirs or already the page's. */
   readonly findAttachableFileIds: (
     fileIds: readonly string[],

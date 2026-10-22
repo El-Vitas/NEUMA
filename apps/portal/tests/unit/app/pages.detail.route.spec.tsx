@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import type { UserRole } from '@neuma/shared';
 import { render, screen } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
+import { COLLECTION_ACTION_STUBS } from '../modules/pages/stubs/pages.actions.stubs';
 
 const currentUser = mock(async (): Promise<{ readonly role: UserRole }> => ({ role: 'ADMIN' }));
 const getPageAttachments = mock(async () => ({
@@ -93,12 +94,14 @@ mock.module('@/modules/pages/templates/server/actions/pages.templates.actions', 
 }));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
   applyPageViewOperationsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
   readPageCollectionAction: async () => ({ data: null }),
   readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),

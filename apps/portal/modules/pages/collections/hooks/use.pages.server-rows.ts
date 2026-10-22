@@ -6,28 +6,29 @@ import { callAction, isActionSuccess } from '@/shared/lib/action-result';
 import { PAGE_COLLECTION_LIVE_COALESCE_MS } from '../constants/pages.collection-live.constants';
 import { PAGE_COLLECTION_NOTICES_CONTEXT } from '../constants/pages.collection-notices.context.constants';
 import { PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT } from '../constants/pages.lookups.context.constants';
-import { PAGE_VIEW_REFRESH_MAXIMUM_ROWS } from '../constants/pages.query.constants';
+import { PAGE_VIEW_FLAT_GROUP_KEY, PAGE_VIEW_REFRESH_MAXIMUM_ROWS } from '../constants/pages.query.constants';
 import { createBoardLiveController } from '../lib/pages.board-live.lib';
 import { andQuickFilters } from '../lib/pages.view-query.lib';
 import {
-  readPageCollectionAction,
   readPageCollectionChangesAction,
   readPageViewAggregatesAction,
   refreshPageRowsAction,
 } from '../server/actions/pages.collections.actions';
-import type { BoardColumnRead, PagesBoardLive, PagesBoardLiveInput } from '../types/pages.board-live.types';
+import type { BoardColumnRead } from '../types/pages.board-live.types';
 import type { BoardColumnAddress, BoardPlacementContext } from '../types/pages.board-placement.types';
 import type { PageCollectionChanges, PageRowsContinuation } from '../types/pages.query.types';
-import type { PageSchema, PageViewAggregates } from '../types/pages.schema.types';
+import type { PageViewAggregates } from '../types/pages.schema.types';
+import type { PagesViewLive, PagesViewLiveInput } from '../types/pages.view-live.types';
 import { usePagesBoardPaging } from './use.pages.board-paging';
+import { usePagesCollectionFollowing } from './use.pages.collection-following';
 import { usePagesRowQuery } from './use.pages.row-query';
 
 /**
- * The bands of a board, kept in step with what others change. The server draws them once; from then on the cards
- * that others move are placed here with the engine the server is tested against, and only what the browser cannot
- * place sends the page back to the server (ADR 026, ADR 029).
+ * The bands of a view, kept in step with what others change. The server draws them once; from then on the rows that
+ * others change are placed here with the engine the server is tested against, and only what the browser cannot place
+ * sends the page back to the server (ADR 026, ADR 029).
  */
-export const usePagesBoardLive = (input: PagesBoardLiveInput): PagesBoardLive => {
+export const usePagesServerRows = (input: PagesViewLiveInput, isEnabled: boolean): Omit<PagesViewLive, 'mode'> => {
   const { aggregates, bands, changesCursor, pageId, spaceId, view } = input;
   const notices = useContext(PAGE_COLLECTION_NOTICES_CONTEXT);
   const addLookups = useContext(PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT);
@@ -63,14 +64,8 @@ export const usePagesBoardLive = (input: PagesBoardLiveInput): PagesBoardLive =>
       search,
     };
   });
-  const heldViewVersion = useRef(view.version);
-  useEffect(() => {
-    heldViewVersion.current = view.version;
-  }, [view.version]);
 
-  useEffect(() => {
-    if (changesCursor === null) return;
-
+  const createController = () => {
     const readContext = (): BoardPlacementContext => {
       const current = latest.current;
       const configuration = readPageViewConfiguration(current.view.configuration);
@@ -88,7 +83,7 @@ export const usePagesBoardLive = (input: PagesBoardLiveInput): PagesBoardLive =>
         sorts: configuration.sorts,
         subGroupByKey: current.subGroupByKey,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        viewerId: null,
+        viewerId: current.viewerId,
       };
     };
 
@@ -101,7 +96,9 @@ export const usePagesBoardLive = (input: PagesBoardLiveInput): PagesBoardLive =>
       const current = latest.current;
       const result = await callAction(() =>
         refreshPageRowsAction({
-          group: { key: address.groupKey, ...(address.bandKey === '' ? {} : { subKey: address.bandKey }) },
+          ...(address.groupKey === PAGE_VIEW_FLAT_GROUP_KEY
+            ? {}
+            : { group: { key: address.groupKey, ...(address.bandKey === '' ? {} : { subKey: address.bandKey }) } }),
           pageId,
           quickFilter: current.quickFilter,
           search: current.search,
@@ -131,13 +128,13 @@ export const usePagesBoardLive = (input: PagesBoardLiveInput): PagesBoardLive =>
       return isActionSuccess<PageViewAggregates | null>(result) ? result.data : null;
     };
 
-    const controller = createBoardLiveController({
+    return createBoardLiveController({
       applyBands: (next) => {
         setDrawn(next);
         latest.current.resetLoaded();
       },
       coalesceMs: PAGE_COLLECTION_LIVE_COALESCE_MS,
-      initialCursor: changesCursor,
+      initialCursor: latest.current.changesCursor ?? '',
       onCountChanged: () => setCounted(readCounts()),
       onLookups: (changes) =>
         latest.current.addLookups({ attachedFiles: changes.attachedFiles, relatedRows: changes.relatedRows }),
@@ -147,38 +144,16 @@ export const usePagesBoardLive = (input: PagesBoardLiveInput): PagesBoardLive =>
       readContext,
       requestRefresh: (reason) => notices.requestRefresh(reason),
     });
+  };
 
-    const checkView = async (): Promise<void> => {
-      const result = await callAction(() => readPageCollectionAction({ pageId, spaceId }));
-      const schema = isActionSuccess<null | PageSchema>(result) ? result.data : null;
-      const saved = schema?.views.find((candidate) => candidate.id === latest.current.view.id);
-      const held = latest.current.view;
-      const isSame =
-        saved !== undefined &&
-        saved.type === held.type &&
-        JSON.stringify(saved.configuration) === JSON.stringify(held.configuration);
-      if (!isSame) notices.requestRefresh('view');
-    };
-
-    const unsubscribe = notices.subscribe((message) => {
-      if (message.schemaVersion !== undefined) {
-        notices.requestRefresh('schema');
-        return;
-      }
-      controller.notify(message.rows);
-      const changed = message.views.find(
-        (candidate) => candidate.id === latest.current.view.id && candidate.version > heldViewVersion.current,
-      );
-      if (changed === undefined) return;
-      heldViewVersion.current = changed.version;
-      void checkView();
-    });
-
-    return () => {
-      unsubscribe();
-      controller.destroy();
-    };
-  }, [changesCursor, notices, pageId, spaceId]);
+  usePagesCollectionFollowing({
+    changesCursor,
+    createController,
+    enabled: isEnabled,
+    pageId,
+    spaceId,
+    view,
+  });
 
   return { ...paging, aggregates: counted ?? aggregates };
 };

@@ -315,7 +315,11 @@ export class PageQueryService {
   }
 
   private async runResults(reducer: PageQueryResultsReducer, context: QueryContext): Promise<ReducerRun> {
-    const limit = clamp(reducer.limit, PAGE_QUERY_LIMITS.defaultResultsLimit, PAGE_QUERY_LIMITS.maximumResultsLimit);
+    const limit = clamp(
+      reducer.limit,
+      PAGE_QUERY_LIMITS.defaultResultsLimit,
+      PAGE_QUERY_LIMITS.maximumFullResultsLimit,
+    );
     if (limit === 0) return Result.ok({ ids: [], kind: 'results', nextCursor: null } satisfies PageQueryResultsOutcome);
     const page = await this.queryRepository.readPage(context.scope, { cursor: reducer.cursor ?? null, limit });
     if (page.isFail()) return Result.fail(page.getError());

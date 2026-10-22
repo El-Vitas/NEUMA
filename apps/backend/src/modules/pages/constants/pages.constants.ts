@@ -37,6 +37,7 @@ export const PAGE_BLOCK_COLUMNS = [
   'verificationExpiresAt',
   'verifiedAt',
   'verifiedById',
+  'version',
 ] as const;
 export const MAX_APPENDED_PAGE_BLOCKS = 200;
 export const PAGE_VERSION_LIST_DEFAULT_LIMIT = 20;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { BlockCollectionMessage } from '@/modules/pages/block-sync/types/block-sync.types';
-import { routeCollectionMessage } from '@/modules/pages/collections/lib/pages.collection-live.lib';
+import { readStaleRowsCause, routeCollectionMessage } from '@/modules/pages/collections/lib/pages.collection-live.lib';
 
 const changes: BlockCollectionMessage = {
   collectionId: 'c1',
@@ -24,5 +24,19 @@ describe('routeCollectionMessage', () => {
 
   it('draws the page again when the reader lost the collection', () => {
     expect(routeCollectionMessage({ collectionId: 'c1', type: 'collection-revoked' }, true)).toBe('refresh');
+  });
+});
+
+describe('readStaleRowsCause', () => {
+  it('says the rows held may be wrong when the server could not describe a change', () => {
+    expect(readStaleRowsCause({ collectionId: 'c1', type: 'collection-resync' })).toBe('collection-resync');
+  });
+
+  it('says the rows held may be wrong when the reader lost the collection', () => {
+    expect(readStaleRowsCause({ collectionId: 'c1', type: 'collection-revoked' })).toBe('collection-revoked');
+  });
+
+  it('says nothing of a list of changed rows, which the view follows by itself', () => {
+    expect(readStaleRowsCause(changes)).toBeNull();
   });
 });

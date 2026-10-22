@@ -83,3 +83,9 @@ export interface PageBoardDragController {
   readonly onDrop: () => void;
   readonly target: null | PageBoardGridDropTarget;
 }
+
+/** A move the network has not carried yet, kept on screen where the person dropped the card. */
+export interface QueuedBoardMove {
+  readonly move: PageBoardGridMove;
+  readonly rowId: string;
+}
