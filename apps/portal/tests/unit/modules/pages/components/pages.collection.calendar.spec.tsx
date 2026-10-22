@@ -6,6 +6,8 @@ import { PAGE_ROW_QUERY_CONTEXT } from '@/modules/pages/collections/constants/pa
 import type { PageRow, PageSchema, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 const written: { pageId: string; propertyValues: Record<string, unknown>; spaceId: string }[] = [];
 const created: { propertyValues: Record<string, unknown>; title: string }[] = [];
@@ -19,9 +21,13 @@ mock.module('@/i18n/navigation', () => ({
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   applyPageViewOperationsAction: async () => ({ data: { configuration: {}, id: 'view-calendar', version: 1 } }),
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageUndatedCountAction: async () => ({ data: null }),
   updatePageRowPropertiesAction: async (input: {
     pageId: string;
     propertyValues: Record<string, unknown>;
@@ -49,6 +55,7 @@ const schema: PageSchema = { pageId: 'collection-1', properties, spaceId: 'space
 const rowOn = (id: string, title: string, dueDate: null | string): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: dueDate === null ? {} : { dueDate: { start: dueDate } },
@@ -88,6 +95,7 @@ const drawCalendar = (
         schema={schema}
         spaceId="space-1"
         undated={extra.undated ?? 1}
+        view={buildView('Calendar', 'CALENDAR')}
       />
     </PAGE_ROW_QUERY_CONTEXT>
   </NextIntlClientProvider>

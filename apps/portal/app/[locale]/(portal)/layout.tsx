@@ -3,6 +3,7 @@ import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
+import { PagesCollectionCacheProvider } from '@/modules/pages/collections/components/pages.collection.cache.provider';
 import { getPages } from '@/modules/pages/server/queries/pages.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
@@ -49,9 +50,11 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
   const theme = await readRequestTheme();
 
   return (
-    <PortalLayout favorites={favorites} role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
-      {children}
-    </PortalLayout>
+    <PagesCollectionCacheProvider userId={user.id}>
+      <PortalLayout favorites={favorites} role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
+        {children}
+      </PortalLayout>
+    </PagesCollectionCacheProvider>
   );
 };
 

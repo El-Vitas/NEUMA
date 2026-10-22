@@ -65,6 +65,7 @@ const createPageRepository = (overrides: Partial<PageRepositoryContract> = {}): 
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
+  listAccessibleAmong: () => Promise.resolve([page]),
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
@@ -97,7 +98,7 @@ const createSchemaRepository = (
   attachFilesToPage: () => Promise.resolve(),
   defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
   findAttachableFileIds: () => Promise.resolve(new Set<string>()),
-  findCollectionIds: () => Promise.resolve(new Set<string>()),
+  listCollectionIdsInSpace: () => Promise.resolve([]),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [titleProperty], views: [] }),
   listRollupDependents: () => Promise.resolve([]),
   rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),
@@ -361,15 +362,22 @@ describe('page schema service — getSchema', () => {
 });
 
 describe('page schema service — listCollections', () => {
-  it('lists only the pages of the space that carry a shape', async () => {
-    const other = { ...page, id: 'page-b', title: 'Notes' };
+  it('asks only for the pages of the space that carry a shape, and never lists every page of the space', async () => {
+    const asked: (readonly string[])[] = [];
     const service = new PageSchemaService(
-      createPageRepository({ listAccessible: () => Promise.resolve([page, other]) }),
-      createSchemaRepository({ findCollectionIds: () => Promise.resolve(new Set(['page-a'])) }),
+      createPageRepository({
+        listAccessible: () => Promise.reject(new Error('the whole space must not be listed')),
+        listAccessibleAmong: (_spaceId, pageIds) => {
+          asked.push(pageIds);
+          return Promise.resolve([page]);
+        },
+      }),
+      createSchemaRepository({ listCollectionIdsInSpace: () => Promise.resolve(['page-a']) }),
     );
 
     const collections = await service.listCollections('space-a', 'workspace-a', 'user-a', USER_ROLE.WORKER);
 
     expect(collections).toEqual([{ id: 'page-a', title: 'Collection' }]);
+    expect(asked).toEqual([['page-a']]);
   });
 });

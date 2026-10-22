@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { documentOf, paragraph, syncedBlocksOf, text } from '../modules/pages/block-sync/block-sync.fixtures';
+import { COLLECTION_ACTION_STUBS } from '../modules/pages/stubs/pages.actions.stubs';
 
 const pageId = '44444444-4444-4444-8444-444444444444';
 const spaceId = '22222222-2222-4222-8222-222222222222';
@@ -110,12 +111,14 @@ mock.module('@/modules/pages/collections/server/lib/pages.view-reading.server', 
   readPageViewReading: async () => null,
 }));
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
   applyPageViewOperationsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
   readPageCollectionAction: async () => ({ data: null }),
   readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),

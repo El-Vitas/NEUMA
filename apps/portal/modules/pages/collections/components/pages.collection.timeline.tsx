@@ -20,10 +20,11 @@ import { usePagesRowQuery } from '../hooks/use.pages.row-query';
 import { usePagesTimelineDragging } from '../hooks/use.pages.timeline-dragging';
 import { usePagesTimelineMoving } from '../hooks/use.pages.timeline-moving';
 import { usePagesViewSaving } from '../hooks/use.pages.view-saving';
+import { usePagesWindowRows } from '../hooks/use.pages.window-rows';
 import { buildCollectionViewHref } from '../lib/pages.collection.view-selection.lib';
-import { buildTimelineEntries } from '../lib/pages.timeline.lib';
+import { buildTimelineEntries, readTimelineLiveSeed } from '../lib/pages.timeline.lib';
 import { setViewDateScale } from '../lib/pages.view-filtering.lib';
-import type { PageRow, PageSchema, PageTimelineReading } from '../types/pages.schema.types';
+import type { PageRow, PageSchema, PageSchemaView, PageTimelineReading } from '../types/pages.schema.types';
 import { PagesCollectionDateNavigation } from './pages.collection.date-navigation';
 import { PagesCollectionDateScale } from './pages.collection.date-scale';
 import { PagesCollectionNewRow } from './pages.collection.new-row';
@@ -35,6 +36,8 @@ import { PagesCollectionTimelineUndated } from './pages.collection.timeline.unda
 interface IProps {
   readonly activeViewName: string;
   readonly canEdit: boolean;
+  /** Where to read what changed after those rows were read; null when the timeline cannot follow changes. */
+  readonly changesCursor?: null | string;
   /** Null until the view says which property holds where each row starts. */
   readonly dateProperty: null | string;
   /** Null when the end is read from the range of the start property. */
@@ -44,6 +47,9 @@ interface IProps {
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly timeline: PageTimelineReading | undefined;
+  readonly view: PageSchemaView;
+  /** Who looks; null when the browser does not know, and a filter that names the reader then goes to the server. */
+  readonly viewerId?: null | string;
 }
 
 /**
@@ -53,17 +59,32 @@ interface IProps {
 export const PagesCollectionTimeline = ({
   activeViewName,
   canEdit,
+  changesCursor = null,
   dateProperty,
   endDateProperty,
-  rows,
+  rows: drawnRows,
   schema,
   spaceId,
   timeline,
+  view,
+  viewerId = null,
 }: IProps) => {
   const t = useTranslations('pages.collection');
   const locale = useLocale();
   const router = useRouter();
   const { quickFilter, search } = usePagesRowQuery();
+  const { rows, undated, undatedRows } = usePagesWindowRows({
+    changesCursor,
+    dateProperty,
+    listsUndated: true,
+    pageId: schema.pageId,
+    properties: schema.properties,
+    rows: drawnRows,
+    spaceId,
+    view,
+    viewerId,
+    ...readTimelineLiveSeed(timeline, dateProperty, endDateProperty),
+  });
   const [isReading, startReading] = useTransition();
   const [isNaming, setIsNaming] = useState(false);
   const viewSaving = usePagesViewSaving(schema, activeViewName, spaceId);
@@ -199,7 +220,7 @@ export const PagesCollectionTimeline = ({
           )}
         </div>
       </section>
-      <PagesCollectionTimelineUndated rows={timeline.undatedRows} total={timeline.undated} />
+      <PagesCollectionTimelineUndated rows={undatedRows} total={undated} />
     </div>
   );
 };

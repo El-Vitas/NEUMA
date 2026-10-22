@@ -2,6 +2,9 @@ export const CLIENT_MODE_MAXIMUM_ROWS = 10_000;
 
 export const CLIENT_MODE_MAXIMUM_BYTES = 6_000_000;
 
+/** What a row weighs on the wire, as ADR 029 measured it; the size of a collection is told from its row count. */
+export const PAGE_CLIENT_MODE_ROW_BYTES = 400;
+
 /** Properties whose value depends on rows or rules the browser does not hold. */
 export const CLIENT_MODE_SERVER_ONLY_PROPERTY_TYPES: readonly string[] = ['FORMULA', 'RELATION', 'ROLLUP'];
 

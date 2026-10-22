@@ -84,6 +84,7 @@ const createRepository = (): PageRepositoryContract => ({
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
   listAccessible: () => Promise.resolve([page]),
+  listAccessibleAmong: () => Promise.resolve([page]),
   restoreCascade: () =>
     Promise.resolve({ parentTitle: null, restoredChildCount: 0, restoredToRoot: false, spaceName: null }),
   trashCascade: () => Promise.resolve(true),
@@ -111,7 +112,7 @@ const createSchemaRepository = (): PageSchemaRepositoryContract => ({
   attachFilesToPage: () => Promise.resolve(),
   defineSchema: (pageId, shape) => Promise.resolve({ pageId, ...shape }),
   findAttachableFileIds: () => Promise.resolve(new Set<string>()),
-  findCollectionIds: () => Promise.resolve(new Set<string>()),
+  listCollectionIdsInSpace: () => Promise.resolve([]),
   getSchema: (pageId) => Promise.resolve({ pageId, properties: [], views: [] }),
   listRollupDependents: () => Promise.resolve([]),
   rewriteOption: (pageId, _propertyKey, _change, properties) => Promise.resolve({ pageId, properties, views: [] }),

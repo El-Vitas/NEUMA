@@ -5,6 +5,7 @@ import { useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { isActionSuccess } from '@/shared/lib/action-result';
 import { PAGE_COLLECTION_LOOKUPS_UPDATER_CONTEXT } from '../constants/pages.lookups.context.constants';
+import { PAGE_VIEW_FLAT_GROUP_KEY } from '../constants/pages.query.constants';
 import { listColumnsToRefresh, mergeLoadedCards } from '../lib/pages.board-paging.lib';
 import { readRowQueryKey } from '../lib/pages.row-query.lib';
 import { loadMorePageRowsAction, refreshPageRowsAction } from '../server/actions/pages.collections.actions';
@@ -19,9 +20,11 @@ import { usePagesRowQuery } from './use.pages.row-query';
 
 const cellKey = (bandKey: string, groupKey: string): string => `${bandKey}|${groupKey}`;
 
-const addressOf = (bandKey: string, groupKey: string) => ({
-  group: { key: groupKey, ...(bandKey === '' ? {} : { subKey: bandKey }) },
-});
+/** A view that does not group asks for its rows as a whole, with no group to name. */
+const addressOf = (bandKey: string, groupKey: string) =>
+  groupKey === PAGE_VIEW_FLAT_GROUP_KEY
+    ? {}
+    : { group: { key: groupKey, ...(bandKey === '' ? {} : { subKey: bandKey }) } };
 
 /**
  * Each column asks for its own next cards, from the cursor its last page ended on. What a column loaded is kept when

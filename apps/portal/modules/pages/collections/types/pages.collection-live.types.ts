@@ -18,4 +18,9 @@ export interface PagesCollectionNotices {
   /** The view could not place a change and the page has to be drawn again; `reason` is logged. */
   readonly requestRefresh: (reason: string) => void;
   readonly subscribe: (listener: (message: CollectionChangesMessage) => void) => () => void;
+  /**
+   * The rows held of the collection may not be the ones the reader can see now (a change the server could not
+   * describe, a lost connection, a lost access): a view that holds rows reads them again. `cause` is logged.
+   */
+  readonly subscribeStale: (listener: (cause: string) => void) => () => void;
 }

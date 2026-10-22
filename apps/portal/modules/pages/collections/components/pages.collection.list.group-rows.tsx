@@ -2,24 +2,31 @@
 
 import { useTranslations } from 'next-intl';
 import { PAGE_VIRTUAL_LIST_ITEM_HEIGHT } from '../constants/pages.virtualization.constants';
-import { usePagesRowPaging } from '../hooks/use.pages.row-paging';
 import { usePagesWindowVirtualizer } from '../hooks/use.pages.window-virtualizer';
-import type { PagesRowPagingInput } from '../types/pages.row-paging.types';
-import type { PagePersonOption, PageSchemaProperty } from '../types/pages.schema.types';
+import type { PagePersonOption, PageSchemaProperty, PageViewGroup } from '../types/pages.schema.types';
 import { PagesCollectionListRow } from './pages.collection.list.row';
 import { PagesCollectionLoadMoreButton } from './pages.collection.load-more.button';
 
 interface IProps {
-  readonly paging: PagesRowPagingInput;
+  readonly group: PageViewGroup;
+  readonly isLoadingMore: boolean;
+  readonly onLoadMore: () => void;
   readonly personOptions: readonly PagePersonOption[];
   readonly properties: readonly PageSchemaProperty[];
   readonly spaceId: string;
 }
 
-/** The rows of a list after the first page, windowed once they are many, and the way to ask for the next ones. */
-export const PagesCollectionListMoreRows = ({ paging, personOptions, properties, spaceId }: IProps) => {
+/** The rows of a list or of one group: only those in view once they are many, and the way to ask for more. */
+export const PagesCollectionListGroupRows = ({
+  group,
+  isLoadingMore,
+  onLoadMore,
+  personOptions,
+  properties,
+  spaceId,
+}: IProps) => {
   const t = useTranslations('pages');
-  const { hasMore, isLoading, loadMore, rows } = usePagesRowPaging(paging);
+  const { rows } = group;
   const [window, attachContainer] = usePagesWindowVirtualizer<HTMLLIElement>({
     count: rows.length,
     estimateSize: PAGE_VIRTUAL_LIST_ITEM_HEIGHT,
@@ -47,9 +54,9 @@ export const PagesCollectionListMoreRows = ({ paging, personOptions, properties,
         );
       })}
       {window.after > 0 && <li aria-hidden="true" className="list-none" style={{ height: window.after }} />}
-      {hasMore && (
+      {group.nextCursor !== null && group.nextCursor !== undefined && (
         <li className="list-none p-2">
-          <PagesCollectionLoadMoreButton isLoading={isLoading} onLoad={loadMore} />
+          <PagesCollectionLoadMoreButton isLoading={isLoadingMore} onLoad={onLoadMore} />
         </li>
       )}
     </>

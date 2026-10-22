@@ -10,6 +10,8 @@ import type {
 } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
+import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS, PAGE_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -20,10 +22,16 @@ mock.module('@/i18n/navigation', () => ({
 }));
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 const asked: Record<string, unknown>[] = [];
+mock.module('@/modules/pages/server/actions/pages.actions', () => PAGE_ACTION_STUBS);
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
   refreshPageRowsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async (input: Record<string, unknown>) => {
     asked.push(input);
@@ -67,6 +75,7 @@ const personOptions: readonly PagePersonOption[] = [];
 const rowIn = (id: string, title: string, status: string) => ({
   id,
   lifecycle: 'ACTIVE' as const,
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: { status },
@@ -97,18 +106,25 @@ const renderWithMessages = (ui: ReactNode) =>
 
 const drawList = async (groups: PageViewGroup[], isGrouped: boolean, nextCursor: null | string = null) => {
   cleanup();
+  const view = buildView('List', 'LIST', { configuration: isGrouped ? { groupBy: 'status' } : {} });
   return renderWithMessages(
-    await PagesCollectionList({
-      aggregates: NO_PAGE_AGGREGATES,
-      groups,
-      isGrouped,
-      nextCursor,
-      pageId: 'collection-1',
-      personOptions,
-      properties,
-      spaceId: 'space-1',
-      viewId: 'view-list',
-    }),
+    <PagesCollectionList
+      aggregates={NO_PAGE_AGGREGATES}
+      bands={[
+        {
+          color: null,
+          groups: isGrouped ? groups : groups.map((group) => ({ ...group, nextCursor })),
+          key: '',
+          label: '',
+        },
+      ]}
+      changesCursor={null}
+      personOptions={personOptions}
+      properties={properties}
+      schema={{ pageId: 'collection-1', properties, spaceId: 'space-1', views: [view] }}
+      spaceId="space-1"
+      view={view}
+    />,
   );
 };
 

@@ -10,6 +10,7 @@ import {
 } from '@neuma/shared';
 import { z } from 'zod';
 import { PAGE_VIEW_REFRESH_MAXIMUM_ROWS } from '../constants/pages.query.constants';
+import { PAGE_REVOCATION_CHECK_BATCH_ROWS } from '../constants/pages.view-cache.constants';
 import { pagePropertyConfigSchema, pagePropertyValueSchema } from './pages.schema.schemas';
 
 const pageCollectionOptionSchema = z.object({
@@ -151,6 +152,32 @@ export const pageRowsRefreshSchema = pageRowsContinuationSchema.extend({
   /** Absent to read the scope from its first row, as a column does when a card moved into it. */
   cursor: z.string().min(1).optional(),
   wanted: z.number().int().min(1).max(PAGE_VIEW_REFRESH_MAXIMUM_ROWS),
+});
+
+/** One page of every row the view lets through, in the manual order and without anything on top of the view. */
+export const pageEveryRowSchema = z.object({
+  cursor: z.string().min(1).optional(),
+  pageId: z.string().min(1),
+  spaceId: z.string().min(1),
+  viewId: z.string().min(1),
+});
+
+/** The rows a cache holds and the versions it holds them at, to learn which the reader may no longer open. */
+export const pageRevokedRowsSchema = z.object({
+  rows: z
+    .array(z.object({ id: z.string().min(1), version: z.number().int().min(0) }))
+    .min(1)
+    .max(PAGE_REVOCATION_CHECK_BATCH_ROWS),
+});
+
+/** How many rows have no date in a property, to keep the count of a calendar or a timeline true after changes. */
+export const pageUndatedCountSchema = z.object({
+  dateProperty: z.string().min(1),
+  pageId: z.string().min(1),
+  quickFilter: pageFilterSchema.nullable().default(null),
+  search: z.string().max(PAGE_QUERY_LIMITS.maximumSearchLength).default(''),
+  spaceId: z.string().min(1),
+  viewId: z.string().min(1),
 });
 
 /** Every row the view lets through with the search applied, to act on all of them. */

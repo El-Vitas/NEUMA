@@ -4,9 +4,13 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { callAction } from '@/shared/lib/action-result';
 import { browserLogger } from '../../lib/pages.browser-logger.lib';
-import { PAGE_COLLECTION_LIVE_COALESCE_MS } from '../constants/pages.collection-live.constants';
+import { PAGE_COLLECTION_LIVE_COALESCE_MS, STALE_REFRESH_REASONS } from '../constants/pages.collection-live.constants';
 import { PAGE_COLLECTION_NOTICES_CONTEXT } from '../constants/pages.collection-notices.context.constants';
-import { createCollectionRefreshCoalescer, routeCollectionMessage } from '../lib/pages.collection-live.lib';
+import {
+  createCollectionRefreshCoalescer,
+  readStaleRowsCause,
+  routeCollectionMessage,
+} from '../lib/pages.collection-live.lib';
 import { refreshPageCollectionAction } from '../server/actions/pages.collections.actions';
 import type { CollectionChangesMessage, PagesCollectionNotices } from '../types/pages.collection-live.types';
 
@@ -21,6 +25,7 @@ interface IProps {
  */
 export const PagesCollectionNoticesProvider = ({ children, spaceId }: IProps) => {
   const followers = useRef(new Set<(message: CollectionChangesMessage) => void>());
+  const staleReaders = useRef(new Set<(cause: string) => void>());
   const coalescer = useMemo(
     () =>
       createCollectionRefreshCoalescer(async () => {
@@ -30,9 +35,14 @@ export const PagesCollectionNoticesProvider = ({ children, spaceId }: IProps) =>
   );
   useEffect(() => () => coalescer.cancel(), [coalescer]);
 
-  const notices = useMemo<PagesCollectionNotices>(
-    () => ({
+  const notices = useMemo<PagesCollectionNotices>(() => {
+    const tellStale = (cause: string): void => {
+      for (const reader of staleReaders.current) reader(cause);
+    };
+    return {
       dispatch: (message) => {
+        const staleCause = readStaleRowsCause(message);
+        if (staleCause !== null) tellStale(staleCause);
         if (routeCollectionMessage(message, followers.current.size > 0) === 'refresh') {
           coalescer.request();
           return;
@@ -42,6 +52,7 @@ export const PagesCollectionNoticesProvider = ({ children, spaceId }: IProps) =>
       },
       requestRefresh: (reason) => {
         browserLogger.warn({ reason }, 'A view went to the server for what it could not place');
+        if (STALE_REFRESH_REASONS.includes(reason)) tellStale(reason);
         coalescer.request();
       },
       subscribe: (listener) => {
@@ -50,9 +61,14 @@ export const PagesCollectionNoticesProvider = ({ children, spaceId }: IProps) =>
           followers.current.delete(listener);
         };
       },
-    }),
-    [coalescer],
-  );
+      subscribeStale: (listener) => {
+        staleReaders.current.add(listener);
+        return () => {
+          staleReaders.current.delete(listener);
+        };
+      },
+    };
+  }, [coalescer]);
 
   return <PAGE_COLLECTION_NOTICES_CONTEXT value={notices}>{children}</PAGE_COLLECTION_NOTICES_CONTEXT>;
 };

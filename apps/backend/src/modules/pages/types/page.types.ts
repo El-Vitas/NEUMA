@@ -44,6 +44,8 @@ export interface StoredPageBlock {
   readonly verificationExpiresAt: Date | null;
   readonly verifiedAt: Date | null;
   readonly verifiedById: null | string;
+  /** The version the database keeps on the block itself, which grows with every change to it. */
+  readonly version: number;
 }
 
 export interface CreatePageInput {
@@ -51,6 +53,8 @@ export interface CreatePageInput {
   readonly createdById: string;
   /** What a column starts with when nothing else says: under the template and under `propertyValues`. */
   readonly defaultValues?: SchemaPropertyValues;
+  /** The id the page takes; a page already made under it is returned and no other is made. */
+  readonly pageId?: string;
   readonly parentId: null | string;
   readonly propertyValues: SchemaPropertyValues | null;
   readonly role: UserRole;
@@ -377,6 +381,14 @@ export interface PageRepositoryContract {
     userId: string,
     role: UserRole,
     includeTrashed: boolean,
+  ) => Promise<readonly PageSummary[]>;
+  /** Only the named pages of the space that the reader may open and that are not in the trash, in sibling order. */
+  readonly listAccessibleAmong: (
+    spaceId: string,
+    pageIds: readonly string[],
+    workspaceId: string,
+    userId: string,
+    role: UserRole,
   ) => Promise<readonly PageSummary[]>;
   readonly restoreCascade: (
     pageId: string,

@@ -8,6 +8,7 @@ import { asPropertyOptions, defaultConfig } from './pages.options.fixture';
 const rowOf = (id: string, propertyValues: PageRow['propertyValues'] = null, title = id): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues,
@@ -260,6 +261,42 @@ describe('placeChangedBoardRows with a manual order', () => {
     const outcome = place(start, [rowOf('n', { status: 'todo' })], manual);
     if (outcome.kind !== 'placed') throw new Error('expected a placement');
     expect(outcome.refreshColumns).toEqual([{ bandKey: '', groupKey: 'todo' }]);
+  });
+});
+
+describe('placeChangedBoardRows with a view that does not group', () => {
+  const flat = { groupByKey: '' } as const;
+  const start = board(column('', [rowOf('a', { points: 1 }), rowOf('b', { points: 5 }), rowOf('c', { points: 8 })]));
+
+  it('puts a changed row at the place its sort says inside the only group', () => {
+    const outcome = place(start, [rowOf('a', { points: 6 })], flat);
+    if (outcome.kind !== 'placed') throw new Error('expected a placement');
+    expect(idsOf(outcome.bands, '')).toEqual(['b', 'a', 'c']);
+    expect(outcome.refreshColumns).toEqual([]);
+  });
+
+  it('adds a new row where it sorts and counts it', () => {
+    const outcome = place(start, [rowOf('n', { points: 2 })], flat);
+    if (outcome.kind !== 'placed') throw new Error('expected a placement');
+    expect(idsOf(outcome.bands, '')).toEqual(['a', 'n', 'b', 'c']);
+    expect(outcome.isCountChanged).toBe(true);
+  });
+
+  it('removes a row that no longer passes the filter', () => {
+    const filter = {
+      conditions: [{ kind: 'CONDITION', operator: 'IS_LESS_THAN', propertyKey: 'points', value: 7 } as const],
+      kind: 'GROUP',
+      operator: 'AND',
+    } as const;
+    const outcome = place(start, [rowOf('b', { points: 9 })], { ...flat, filter });
+    if (outcome.kind !== 'placed') throw new Error('expected a placement');
+    expect(idsOf(outcome.bands, '')).toEqual(['a', 'c']);
+  });
+
+  it('asks for the group to be read again when the view follows a manual order and a row is new', () => {
+    const outcome = place(start, [rowOf('n', { points: 2 })], { ...flat, sorts: [] });
+    if (outcome.kind !== 'placed') throw new Error('expected a placement');
+    expect(outcome.refreshColumns).toEqual([{ bandKey: '', groupKey: '' }]);
   });
 });
 

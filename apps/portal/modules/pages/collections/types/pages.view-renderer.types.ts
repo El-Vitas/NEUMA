@@ -24,6 +24,8 @@ export interface PageViewRenderInput<TOutcome> {
   readonly schema: PageSchema;
   readonly spaceId: string;
   readonly view: PageSchemaView;
+  /** Who looks; null when not known (a read-only embed), and a filter that names the reader goes to the server. */
+  readonly viewerId: null | string;
 }
 
 /**

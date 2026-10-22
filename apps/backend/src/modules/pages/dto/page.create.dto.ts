@@ -1,10 +1,15 @@
 import { PAGE_TITLE_MAX_LENGTH, type PageContent } from '@neuma/shared';
-import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsObject, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import type { SchemaPropertyValues } from '../../../common/domain/schema.domain.types';
 
 export class CreatePageDto {
   @IsObject()
   content!: PageContent;
+
+  /** The id the page takes. A request repeated with the same id answers the page already made and makes no other. */
+  @IsOptional()
+  @IsUUID()
+  id?: string;
 
   @IsOptional()
   @IsString()

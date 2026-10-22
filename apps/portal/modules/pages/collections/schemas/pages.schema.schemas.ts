@@ -83,6 +83,7 @@ export const pageRowSchema = z.object({
   propertyValues: pagePropertyValuesSchema.nullable(),
   spaceId: z.string(),
   title: z.string(),
+  version: z.number(),
 });
 
 export const pageRowsSchema = z.array(pageRowSchema);

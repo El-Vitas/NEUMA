@@ -5,6 +5,7 @@ import type { PageAttachedFile, PageRow } from '@/modules/pages/collections/type
 const rowWith = (photos: unknown): PageRow => ({
   id: 'row-1',
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: photos === undefined ? {} : { photos: photos as string[] },

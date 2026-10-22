@@ -137,12 +137,18 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
     return keysByPage;
   }
 
-  async findCollectionIds(pageIds: readonly string[]): Promise<ReadonlySet<string>> {
-    if (pageIds.length === 0) return new Set();
-    const properties = await this.prisma.models.PageSchemaProperty.select('pageId')
-      .where((property) => property.pageId.in([...pageIds]))
-      .all();
-    return new Set(properties.map((property) => property.pageId));
+  async listCollectionIdsInSpace(spaceId: string): Promise<readonly string[]> {
+    const rows = await this.prisma.runner.query(
+      this.prisma.sql`
+      SELECT DISTINCT "PageSchemaProperty"."pageId" AS "pageId"
+      FROM "PageSchemaProperty"
+      INNER JOIN "Block" ON "Block"."id" = "PageSchemaProperty"."pageId"
+      WHERE "Block"."spaceId" = ${spaceId}
+    `
+        .returnsRow({ pageId: this.prisma.tables.PageSchemaProperty.columns.pageId })
+        .build(),
+    );
+    return rows.map((row) => row.pageId);
   }
 
   async getSchema(pageId: string): Promise<PageSchemaDefinition> {
@@ -302,6 +308,7 @@ export class PageSchemaRepository implements PageSchemaRepositoryContract {
         propertyValues: this.toRowValues(row, properties, related.readableIds),
         spaceId: row.spaceId,
         title: readBlockTitle(row.properties),
+        version: row.version,
       })),
     };
   }

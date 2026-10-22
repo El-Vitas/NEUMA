@@ -180,6 +180,7 @@ const buildCollectionSection = async (
   rowsRequest: CollectionRowsRequest,
   canEdit: boolean,
   personOptions: readonly PagePersonOption[],
+  viewerId: null | string,
 ): Promise<ReactNode> => {
   if (ownSchema === null || ownSchema.properties.length === 0) return null;
   const activeView = resolveActiveCollectionView(ownSchema.views, requestedViewName);
@@ -205,6 +206,7 @@ const buildCollectionSection = async (
       schema={ownSchema}
       search={rowsRequest.search}
       spaceId={spaceId}
+      viewerId={viewerId}
       views={ownSchema.views}
     />
   );
@@ -234,6 +236,7 @@ const buildPageEditorBundle = async (
   favoritesResult: Result<readonly FavoritePage[], Error>,
   requestedViewName: null | string,
   rowsRequest: CollectionRowsRequest,
+  viewerId: null | string,
 ): Promise<PagesEditorBundle> => {
   const [attachmentsResult, backlinksResult, ownSchemaResult, parentSchema] = await Promise.all([
     getPageAttachments(targetPage.id),
@@ -257,6 +260,7 @@ const buildPageEditorBundle = async (
       rowsRequest,
       canEditPage(canEditRole, targetPage.lifecycle),
       personOptions,
+      viewerId,
     ),
     buildEmbeddedCollections(targetPage, pages),
   ]);
@@ -294,9 +298,19 @@ const buildPanelBundle = async (
   pages: readonly PageSummary[],
   canEditRole: boolean,
   favoritesResult: Result<readonly FavoritePage[], Error>,
+  viewerId: null | string,
 ): Promise<PagesSidePanelBundle> => {
   const [bundle, blocksResult] = await Promise.all([
-    buildPageEditorBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, null, UNSEARCHED_ROWS_REQUEST),
+    buildPageEditorBundle(
+      spaceId,
+      panelPage,
+      pages,
+      canEditRole,
+      favoritesResult,
+      null,
+      UNSEARCHED_ROWS_REQUEST,
+      viewerId,
+    ),
     getPageBlocks(panelPage.id),
   ]);
   const blockStart = resolveBlockEditorStart(blocksResult, panelPage.id);
@@ -335,16 +349,26 @@ export default async function Page({ params, searchParams }: IProps) {
   const panelPage = panelPageId === null ? undefined : pages.find((page) => page.id === panelPageId);
 
   const requestedViewName = resolveRequestedViewName(resolvedSearchParams?.[PAGE_COLLECTION_VIEW_SEARCH_PARAM]);
+  const viewerId = user?.id ?? null;
   const [mainBundle, panelBundle] = await Promise.all([
-    buildPageEditorBundle(spaceId, selectedPage, pages, canEditRole, favoritesResult, requestedViewName, {
-      day: readCollectionDay(resolvedSearchParams?.[PAGE_COLLECTION_DAY_SEARCH_PARAM]),
-      month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
-      quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
-      search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
-    }),
+    buildPageEditorBundle(
+      spaceId,
+      selectedPage,
+      pages,
+      canEditRole,
+      favoritesResult,
+      requestedViewName,
+      {
+        day: readCollectionDay(resolvedSearchParams?.[PAGE_COLLECTION_DAY_SEARCH_PARAM]),
+        month: readCollectionMonth(resolvedSearchParams?.[PAGE_COLLECTION_MONTH_SEARCH_PARAM]),
+        quickFilter: readCollectionQuickFilter(resolvedSearchParams?.[PAGE_COLLECTION_QUICK_FILTER_SEARCH_PARAM]),
+        search: readCollectionSearch(resolvedSearchParams?.[PAGE_COLLECTION_ROW_SEARCH_PARAM]),
+      },
+      viewerId,
+    ),
     panelPage === undefined
       ? Promise.resolve(null)
-      : buildPanelBundle(spaceId, panelPage, pages, canEditRole, favoritesResult),
+      : buildPanelBundle(spaceId, panelPage, pages, canEditRole, favoritesResult, viewerId),
   ]);
 
   return (

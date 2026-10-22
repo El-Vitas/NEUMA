@@ -39,6 +39,24 @@ export interface PageRowsContinuation {
   readonly rows: readonly PageRow[];
 }
 
+/** One page of the whole collection read for the browser to filter, sort and group by itself (ADR 029). */
+export interface PageEveryRowRead {
+  readonly attachedFiles: readonly PageAttachedFile[];
+  /** Taken before the rows were read, so no change falls between them and what is read after it. */
+  readonly changesCursor: string;
+  readonly nextCursor: string | null;
+  readonly relatedRows: readonly PageRelatedRow[];
+  readonly rows: readonly PageRow[];
+}
+
+/** Every row of the collection the view lets through, joined from its pages. */
+export interface EveryRowRead {
+  readonly attachedFiles: readonly PageAttachedFile[];
+  readonly changesCursor: string;
+  readonly relatedRows: readonly PageRelatedRow[];
+  readonly rows: readonly PageRow[];
+}
+
 /** What changed in a collection since a cursor, for the rows the reader may open and nobody else's. */
 export interface PageCollectionChanges {
   readonly attachedFiles: readonly PageAttachedFile[];
@@ -47,6 +65,9 @@ export interface PageCollectionChanges {
   readonly hasMore: boolean;
   /** True when the cursor was not one the server wrote: the view has to be read again. */
   readonly isReset: boolean;
+  /** Rows whose rollups read a row that changed: their own values are as they were, their computed ones may not be. */
+  readonly possiblyChanged: readonly PageRow[];
+  readonly possiblyChangedIsTruncated: boolean;
   readonly relatedRows: readonly PageRelatedRow[];
   readonly rows: readonly PageRow[];
   /** The rows the reader can open and are active, to notice one that was hidden. */

@@ -92,6 +92,12 @@ const countRows = async (
   return outcome?.kind === 'aggregations' ? outcome.distinctRowCount : null;
 };
 
+/** How many rows have no date in the property, among those the view and the words searched let through. */
+export const countRowsWithoutDate = async (
+  input: Pick<CalendarWindowInput, 'dateProperty' | 'pageId' | 'quickFilter' | 'search' | 'spaceId' | 'viewId'>,
+): Promise<number | null> =>
+  countRows(input, andQuickFilters(input.quickFilter, buildCalendarUndatedFilter(input.dateProperty)));
+
 const mergeById = <TItem extends { readonly id: string }>(lists: readonly (readonly TItem[])[]): readonly TItem[] => [
   ...new Map(lists.flat().map((item) => [item.id, item])).values(),
 ];

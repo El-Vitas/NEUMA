@@ -4,17 +4,18 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { PagePropertyValue, PageSchemaProperty } from '@/modules/pages/collections/types/pages.schema.types';
 import en from '../../../../../messages/en.json';
 import { defaultConfig } from '../lib/pages.options.fixture';
+import { COLLECTION_ACTION_STUBS, PAGE_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 const written: { propertyValues: Record<string, unknown> }[] = [];
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
-  changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
-  listPageRelationCandidatesAction: async () => ({ data: [] }),
+  ...COLLECTION_ACTION_STUBS,
   updatePageRowPropertiesAction: async (input: { propertyValues: Record<string, unknown> }) => {
     written.push(input);
     return { data: null };
   },
 }));
+mock.module('@/modules/pages/server/actions/pages.actions', () => PAGE_ACTION_STUBS);
 mock.module('sonner', () => ({ toast: { error: () => undefined, success: () => undefined } }));
 
 const { PagesCollectionTableCell } = await import('@/modules/pages/collections/components/pages.collection.table.cell');

@@ -1,8 +1,6 @@
-import type { PageFilter, PageViewProperty } from '@neuma/shared';
 import {
   comparePageRowsBySorts,
   matchesPageFilter,
-  PAGE_FILTER_ME,
   PAGE_GROUP_BY_MODE,
   PAGE_PROPERTY_TYPE,
   Result,
@@ -10,6 +8,7 @@ import {
   UNASSIGNED_GROUP_KEY,
 } from '@neuma/shared';
 import { BOARD_PLACEMENT_SERVER_ONLY_PROPERTY_TYPES } from '../constants/pages.board-placement.constants';
+import { PAGE_VIEW_FLAT_GROUP_KEY } from '../constants/pages.query.constants';
 import type {
   BoardColumn,
   BoardColumnAddress,
@@ -20,26 +19,10 @@ import type {
   BoardRequeryReason,
 } from '../types/pages.board-placement.types';
 import type { PagePropertyValues, PageRow, PageSchemaProperty, PageViewBand } from '../types/pages.schema.types';
+import { listFilterPropertyKeys, namesViewer } from './pages.filter-keys.lib';
+import { toViewProperties } from './pages.view-properties.lib';
 
 const addressKey = (address: BoardColumnAddress): string => `${address.bandKey}|${address.groupKey}`;
-
-const toViewProperty = (property: PageSchemaProperty): PageViewProperty => ({
-  key: property.key,
-  options: property.options,
-  type: property.type,
-});
-
-const listFilterKeys = (filter: null | PageFilter): readonly string[] => {
-  if (filter === null) return [];
-  return filter.kind === 'CONDITION' ? [filter.propertyKey] : filter.conditions.flatMap(listFilterKeys);
-};
-
-const namesViewer = (filter: null | PageFilter): boolean => {
-  if (filter === null) return false;
-  if (filter.kind === 'GROUP') return filter.conditions.some(namesViewer);
-  const { value } = filter;
-  return value === PAGE_FILTER_ME || (Array.isArray(value) && value.includes(PAGE_FILTER_ME));
-};
 
 /** The filter with its markers replaced for the reader; the same step the server takes before it compiles. */
 const resolveContext = (context: BoardPlacementContext): BoardPlacementContext =>
@@ -47,7 +30,7 @@ const resolveContext = (context: BoardPlacementContext): BoardPlacementContext =
     ? context
     : {
         ...context,
-        filter: resolvePageFilter(context.filter, context.properties.map(toViewProperty), {
+        filter: resolvePageFilter(context.filter, toViewProperties(context.properties), {
           now: context.now,
           timeZone: context.timeZone,
           viewerId: context.viewerId ?? '',
@@ -58,7 +41,7 @@ const findUndecidableReason = (context: BoardPlacementContext): BoardRequeryReas
   if (context.hasSearch) return 'search';
   if (context.viewerId === null && namesViewer(context.filter)) return 'viewer-marker';
   const keys = [
-    ...listFilterKeys(context.filter),
+    ...listFilterPropertyKeys(context.filter),
     ...context.sorts.map((sort) => sort.propertyKey),
     context.groupByKey,
     context.subGroupByKey,
@@ -77,7 +60,7 @@ const valuesOf = (row: PageRow, context: BoardPlacementContext): PagePropertyVal
 
 const passesFilter = (row: PageRow, context: BoardPlacementContext): boolean =>
   context.filter === null ||
-  matchesPageFilter(context.filter, valuesOf(row, context), context.properties.map(toViewProperty), {
+  matchesPageFilter(context.filter, valuesOf(row, context), toViewProperties(context.properties), {
     timeZone: context.timeZone,
   });
 
@@ -86,7 +69,7 @@ const compareRows = (left: PageRow, right: PageRow, context: BoardPlacementConte
     context.sorts,
     valuesOf(left, context),
     valuesOf(right, context),
-    context.properties.map(toViewProperty),
+    toViewProperties(context.properties),
   ) || left.id.localeCompare(right.id);
 
 const toStringList = (value: unknown): readonly string[] | null => {
@@ -160,6 +143,9 @@ const toDesiredAddresses = (
   bands: readonly PageViewBand[],
   context: BoardPlacementContext,
 ): Result<readonly BoardColumnAddress[], BoardRequeryReason> => {
+  if (context.groupByKey === PAGE_VIEW_FLAT_GROUP_KEY) {
+    return Result.ok([{ bandKey: '', groupKey: PAGE_VIEW_FLAT_GROUP_KEY }]);
+  }
   const isBanded = context.subGroupByKey !== '';
   const isUnchanged =
     previous !== undefined &&

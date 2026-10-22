@@ -11,10 +11,16 @@ import { requireAccessTokenCookie } from '@/shared/lib/auth.token.lib';
 import { withAction } from '@/shared/lib/with-action.lib';
 import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.server';
 import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
+import { BLOCK_SYNC_API_ROUTES } from '../../../block-sync/constants/block-sync.constants';
+import { blockSyncResponseSchema } from '../../../block-sync/schemas/block-sync.schemas';
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageSummarySchema } from '../../../schemas/pages.schemas';
 import type { PageSummary } from '../../../types/pages.types';
-import { PAGE_VIEW_MATCHING_MAXIMUM_ROWS, PAGE_VIEW_ROWS_REDUCER } from '../../constants/pages.query.constants';
+import {
+  PAGE_VIEW_CLIENT_MODE_PAGE_ROWS,
+  PAGE_VIEW_MATCHING_MAXIMUM_ROWS,
+  PAGE_VIEW_ROWS_REDUCER,
+} from '../../constants/pages.query.constants';
 import {
   PAGE_BLOCK_TABLE,
   PAGE_RELATION_COMMAND,
@@ -33,14 +39,17 @@ import {
   pageCollectionReadSchema,
   pageCollectionRefreshSchema,
   pageCollectionUpdateSchema,
+  pageEveryRowSchema,
   pageMatchingRowsSchema,
   pageOptionRewriteSchema,
   pageRelationCandidatesSchema,
+  pageRevokedRowsSchema,
   pageRowMoveSchema,
   pageRowPropertiesSchema,
   pageRowRelationChangeSchema,
   pageRowsContinuationSchema,
   pageRowsRefreshSchema,
+  pageUndatedCountSchema,
   pageViewOperationsSchema,
 } from '../../schemas/pages.collections.schemas';
 import {
@@ -53,6 +62,7 @@ import {
 import type {
   PageChangedView,
   PageCollectionChanges,
+  PageEveryRowRead,
   PageMatchingRows,
   PageRowsContinuation,
 } from '../../types/pages.query.types';
@@ -63,7 +73,7 @@ import type {
   PageSchemaSaveOutcome,
   PageViewAggregates,
 } from '../../types/pages.schema.types';
-import { readRowsInScope } from '../lib/pages.rows-reading.server';
+import { countRowsWithoutDate, readRowsInScope } from '../lib/pages.rows-reading.server';
 
 /** Page and shape are created together: a page without a shape is indistinguishable from an ordinary one. */
 export const createPageCollectionAction = actionClient
@@ -200,6 +210,47 @@ export const loadMorePageRowsAction = actionClient
     }),
   );
 
+/**
+ * A page of every row the view lets through, in the manual order (ADR 029). The sorts are cleared on purpose: the
+ * browser sorts, and needs the manual order to break ties as the server does. Read on demand, never cached.
+ */
+export const readEveryPageRowAction = actionClient.inputSchema(pageEveryRowSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'readEveryPageRow' }, async (): Promise<PageEveryRowRead> => {
+    const accessToken = await requireAccessTokenCookie();
+    const timeZone = await readRequestTimeZone();
+    const response = await apiRequest<unknown>(
+      PAGE_API_ROUTES.query(parsedInput.spaceId, parsedInput.pageId),
+      accessToken,
+      {
+        body: JSON.stringify({
+          reducers: [
+            {
+              ...(parsedInput.cursor === undefined ? {} : { cursor: parsedInput.cursor }),
+              id: PAGE_VIEW_ROWS_REDUCER,
+              kind: 'results',
+              limit: PAGE_VIEW_CLIENT_MODE_PAGE_ROWS,
+            },
+          ],
+          sorts: [],
+          ...(timeZone === null ? {} : { timeZone }),
+          viewId: parsedInput.viewId,
+        }),
+        method: 'POST',
+      },
+    );
+    const result = pageQueryResponseSchema.parse(response);
+    const outcome = result.reducers[PAGE_VIEW_ROWS_REDUCER];
+    if (outcome?.kind !== 'results') throw new Error('The rows of a collection arrived as something else');
+    return {
+      attachedFiles: result.attachedFiles,
+      changesCursor: result.changesCursor,
+      nextCursor: outcome.nextCursor,
+      relatedRows: result.relatedRows,
+      rows: outcome.ids.flatMap((id) => result.rows[id] ?? []),
+    };
+  }),
+);
+
 /** A scope read again from where the server's rows end, as far as the reader had scrolled: a redraw loses nothing. */
 export const refreshPageRowsAction = actionClient.inputSchema(pageRowsRefreshSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'refreshPageRows' }, async (): Promise<PageRowsContinuation> => {
@@ -222,6 +273,34 @@ export const refreshPageRowsAction = actionClient.inputSchema(pageRowsRefreshSch
     };
   }),
 );
+
+/** Which of the rows a cache holds the reader may no longer open: the same catch-up the editor uses for a page. */
+export const readRevokedRowsAction = actionClient.inputSchema(pageRevokedRowsSchema).action(async ({ parsedInput }) =>
+  withAction({ action: 'readRevokedRows' }, async (): Promise<readonly string[]> => {
+    const response = await authenticatedRequest<unknown>(BLOCK_SYNC_API_ROUTES.sync, 'POST', {
+      blocks: parsedInput.rows,
+    });
+    return blockSyncResponseSchema.parse(response).revoked ?? [];
+  }),
+);
+
+/** Read on demand, never cached: it answers after rows were placed in the browser, which the cache has not seen. */
+export const readPageUndatedCountAction = actionClient
+  .inputSchema(pageUndatedCountSchema)
+  .action(async ({ parsedInput }) =>
+    withAction(
+      { action: 'readPageUndatedCount' },
+      async (): Promise<null | number> =>
+        countRowsWithoutDate({
+          dateProperty: parsedInput.dateProperty,
+          pageId: parsedInput.pageId,
+          quickFilter: parsedInput.quickFilter,
+          search: parsedInput.search,
+          spaceId: parsedInput.spaceId,
+          viewId: parsedInput.viewId,
+        }),
+    ),
+  );
 
 /** Every row that matches, to act on all of them; refused beyond the limit rather than acting on part. */
 export const readPageMatchingRowsAction = actionClient

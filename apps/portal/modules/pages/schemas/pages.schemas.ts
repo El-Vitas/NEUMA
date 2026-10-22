@@ -48,6 +48,8 @@ export const pageMutationSchema = z.object({
   content: pageContentSchema,
   /** What each column starts with when nothing else says; the template of the collection goes over it. */
   defaultValues: pagePropertyValuesSchema.optional(),
+  /** The id the page takes, so a write kept and sent again makes the page once. */
+  id: z.uuid().optional(),
   propertyValues: pagePropertyValuesSchema.nullable().optional(),
   spaceId: recordIdSchema,
   /** Omitted starts from the default template of the collection; null starts a blank row. */

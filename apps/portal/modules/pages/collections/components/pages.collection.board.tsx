@@ -9,9 +9,9 @@ import { Button } from '@/shared/components/ui/button';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import { usePagesBoardColumns } from '../hooks/use.pages.board-columns';
 import { usePagesBoardDrag } from '../hooks/use.pages.board-drag';
-import { usePagesBoardLive } from '../hooks/use.pages.board-live';
 import { usePagesEdgeScrolling } from '../hooks/use.pages.edge-scrolling';
 import { usePagesRowCreation } from '../hooks/use.pages.row-creation';
+import { usePagesViewLive } from '../hooks/use.pages.view-live';
 import { readPageOptionDotClass } from '../lib/pages.option-color.lib';
 import type { PagesBoardColumns } from '../types/pages.board-columns.types';
 import type { PageBoardColumnDrag, PageBoardNamingCell } from '../types/pages.board-drag.types';
@@ -50,6 +50,8 @@ interface IProps {
   readonly subGroupByKey: string;
   readonly view: PageSchemaView;
   readonly viewId: string;
+  /** Who looks; null when the browser does not know, and a filter that names the reader then goes to the server. */
+  readonly viewerId?: null | string;
 }
 
 /**
@@ -71,11 +73,12 @@ export const PagesCollectionBoard = ({
   subGroupByKey,
   view,
   viewId,
+  viewerId = null,
 }: IProps) => {
   const t = useTranslations('pages');
   const isBanded = subGroupByKey !== '';
   const groupByMode = readPageViewConfiguration(view.configuration).groupByMode;
-  const paging = usePagesBoardLive({
+  const paging = usePagesViewLive({
     aggregates: drawnAggregates,
     bands,
     changesCursor,
@@ -86,6 +89,7 @@ export const PagesCollectionBoard = ({
     spaceId,
     subGroupByKey,
     view,
+    viewerId,
   });
   const { aggregates } = paging;
   const drag = usePagesBoardDrag({

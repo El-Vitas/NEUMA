@@ -2,9 +2,9 @@
 
 import { PAGE_COLLECTION_TITLE_PROPERTY_KEY } from '@neuma/shared';
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Table, TableHeader, TableRow } from '@/shared/components/ui/table';
-import { PAGE_LOADED_ROWS_CONTEXT, PAGE_ROW_ORDERING_CONTEXT } from '../constants/pages.row-context.constants';
+import { PAGE_ROW_ORDERING_CONTEXT } from '../constants/pages.row-context.constants';
 import { usePagesRowOrdering } from '../hooks/use.pages.row-ordering';
 import { usePagesTableColumns } from '../hooks/use.pages.table-columns';
 import {
@@ -15,11 +15,9 @@ import {
   readTableColumnWidth,
   readTableFrozenCellProps,
 } from '../lib/pages.table-columns.lib';
-import type { PagesLoadedRows } from '../types/pages.loaded-rows.types';
 import type {
   PagePersonOption,
   PagePropertyValues,
-  PageRow,
   PageSchema,
   PageSchemaProperty,
   PageViewAggregates,
@@ -71,17 +69,6 @@ export const PagesCollectionTableHeader = ({
   const ordering = usePagesRowOrdering(schema.pageId, spaceId, viewId);
   const [stretching, setStretching] = useState<null | { readonly columnKey: string; readonly width: number }>(null);
   const [carried, setCarried] = useState<null | string>(null);
-  const [loadedByScope, setLoadedByScope] = useState<Readonly<Record<string, readonly PageRow[]>>>({});
-  const loadedRows = useMemo<PagesLoadedRows>(
-    () => ({ report: (scope, rows) => setLoadedByScope((current) => ({ ...current, [scope]: rows })) }),
-    [],
-  );
-  const loaded = Object.values(loadedByScope).flat();
-  const allRowIds = [...rowIds, ...loaded.map((row) => row.id)];
-  const allValuesByRow = {
-    ...valuesByRow,
-    ...Object.fromEntries(loaded.map((row) => [row.id, row.propertyValues ?? {}])),
-  };
 
   /** The width being dragged wins over the saved one so the edge follows the pointer. */
   const widthOf = (columnKey: string): number =>
@@ -100,67 +87,65 @@ export const PagesCollectionTableHeader = ({
 
   return (
     <PagesCollectionSelectionProvider>
-      <PAGE_LOADED_ROWS_CONTEXT value={loadedRows}>
-        <PAGE_ROW_ORDERING_CONTEXT value={isOrderable ? ordering : null}>
-          <div className="mb-1 flex items-center justify-end gap-2">
-            {canEdit && <PagesCollectionTableAppearance columns={columns} />}
-          </div>
-          {canEdit && (
-            <PagesCollectionSelectionBar
-              aggregates={aggregates}
-              pageId={schema.pageId}
-              personOptions={personOptions}
-              properties={properties}
-              spaceId={spaceId}
-              valuesByRow={allValuesByRow}
-              viewId={viewId}
-            />
-          )}
-          <Table className="table-fixed" data-testid="collection-table" style={{ width: total }}>
-            <colgroup>
-              {columnKeys.map((columnKey) => (
-                <col key={columnKey} style={{ width: widthOf(columnKey) }} />
+      <PAGE_ROW_ORDERING_CONTEXT value={isOrderable ? ordering : null}>
+        <div className="mb-1 flex items-center justify-end gap-2">
+          {canEdit && <PagesCollectionTableAppearance columns={columns} />}
+        </div>
+        {canEdit && (
+          <PagesCollectionSelectionBar
+            aggregates={aggregates}
+            pageId={schema.pageId}
+            personOptions={personOptions}
+            properties={properties}
+            spaceId={spaceId}
+            valuesByRow={valuesByRow}
+            viewId={viewId}
+          />
+        )}
+        <Table className="table-fixed" data-testid="collection-table" style={{ width: total }}>
+          <colgroup>
+            {columnKeys.map((columnKey) => (
+              <col key={columnKey} style={{ width: widthOf(columnKey) }} />
+            ))}
+          </colgroup>
+          <TableHeader>
+            <TableRow>
+              {columnKeys.map((columnKey, position) => (
+                <PagesCollectionTableHeaderCell
+                  columnKey={columnKey}
+                  columns={canEdit ? columns : null}
+                  frozen={readTableFrozenCellProps(position, columns.frozenColumns, offsets)}
+                  headerId={readTableColumnLabelId(schema.pageId, columnKey)}
+                  key={columnKey}
+                  label={
+                    columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY
+                      ? titleLabel
+                      : readColumnLabel(properties[position - 1], columnKey)
+                  }
+                  leading={
+                    canEdit && columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY ? (
+                      <PagesCollectionTableSelectAll rowIds={rowIds} />
+                    ) : null
+                  }
+                  movable={columnKey !== PAGE_COLLECTION_TITLE_PROPERTY_KEY}
+                  onDragEnd={() => setCarried(null)}
+                  onDragOver={() => undefined}
+                  onDragStart={() => setCarried(columnKey)}
+                  onDrop={() => dropOn(columnKey)}
+                  onResize={(width) => setStretching({ columnKey, width })}
+                  onResizeEnd={(width) => {
+                    setStretching(null);
+                    columns.setWidth(columnKey, width);
+                  }}
+                  position={position}
+                  width={widthOf(columnKey)}
+                />
               ))}
-            </colgroup>
-            <TableHeader>
-              <TableRow>
-                {columnKeys.map((columnKey, position) => (
-                  <PagesCollectionTableHeaderCell
-                    columnKey={columnKey}
-                    columns={canEdit ? columns : null}
-                    frozen={readTableFrozenCellProps(position, columns.frozenColumns, offsets)}
-                    headerId={readTableColumnLabelId(schema.pageId, columnKey)}
-                    key={columnKey}
-                    label={
-                      columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY
-                        ? titleLabel
-                        : readColumnLabel(properties[position - 1], columnKey)
-                    }
-                    leading={
-                      canEdit && columnKey === PAGE_COLLECTION_TITLE_PROPERTY_KEY ? (
-                        <PagesCollectionTableSelectAll rowIds={allRowIds} />
-                      ) : null
-                    }
-                    movable={columnKey !== PAGE_COLLECTION_TITLE_PROPERTY_KEY}
-                    onDragEnd={() => setCarried(null)}
-                    onDragOver={() => undefined}
-                    onDragStart={() => setCarried(columnKey)}
-                    onDrop={() => dropOn(columnKey)}
-                    onResize={(width) => setStretching({ columnKey, width })}
-                    onResizeEnd={(width) => {
-                      setStretching(null);
-                      columns.setWidth(columnKey, width);
-                    }}
-                    position={position}
-                    width={widthOf(columnKey)}
-                  />
-                ))}
-              </TableRow>
-            </TableHeader>
-            {children}
-          </Table>
-        </PAGE_ROW_ORDERING_CONTEXT>
-      </PAGE_LOADED_ROWS_CONTEXT>
+            </TableRow>
+          </TableHeader>
+          {children}
+        </Table>
+      </PAGE_ROW_ORDERING_CONTEXT>
     </PagesCollectionSelectionProvider>
   );
 };

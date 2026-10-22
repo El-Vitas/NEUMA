@@ -1,7 +1,6 @@
 import type { PageFilter } from '@neuma/shared';
-import { PAGE_VIEW_TYPE, readPageViewConfiguration } from '@neuma/shared';
+import { PAGE_VIEW_OUTCOME_KIND, PAGE_VIEW_TYPE, readPageViewConfiguration } from '@neuma/shared';
 import { getTranslations } from 'next-intl/server';
-import { EmptyState } from '@/shared/components/ui/empty-state';
 import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
 import { PagesTemplatesSection } from '../../templates/components/pages.templates.section';
@@ -19,12 +18,15 @@ import type {
   PageSchemaView,
   PageViewReading,
 } from '../types/pages.schema.types';
+import { PagesCollectionCacheSeeder } from './pages.collection.cache-seeder';
 import { PagesCollectionCardAppearanceProvider } from './pages.collection.card-appearance.provider';
 import { PagesCollectionComputedSourcesFollower } from './pages.collection.computed-sources-follower';
+import { PagesCollectionEmptyNotices } from './pages.collection.empty-notices';
 import { PagesCollectionFilterBar } from './pages.collection.filter-bar';
 import { PagesCollectionLiveFollower } from './pages.collection.live-follower';
 import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provider';
 import { PagesCollectionNoticesProvider } from './pages.collection.notices.provider';
+import { PagesCollectionPendingWrites } from './pages.collection.pending-writes';
 import { PagesCollectionQuickFilter } from './pages.collection.quick-filter';
 import { PagesCollectionRowCount } from './pages.collection.row-count';
 import { PagesCollectionRowQueryProvider } from './pages.collection.row-query.provider';
@@ -32,6 +34,7 @@ import { PagesCollectionSearchField } from './pages.collection.search-field';
 import { PagesCollectionTabs } from './pages.collection.tabs';
 import { PagesCollectionTimeZone } from './pages.collection.time-zone';
 import { PagesCollectionView } from './pages.collection.view';
+import { PagesCollectionWritesProvider } from './pages.collection.writes.provider';
 import { PagesSchemaSettingsButton } from './pages.schema.settings-button';
 
 interface IProps {
@@ -47,6 +50,8 @@ interface IProps {
   readonly search?: string;
   readonly spaceId: string;
   readonly views: readonly PageSchemaView[];
+  /** Who looks, so the browser can tell what "me" means in a filter without asking the server. */
+  readonly viewerId?: null | string;
 }
 
 export const PagesCollectionSection = async ({
@@ -59,6 +64,7 @@ export const PagesCollectionSection = async ({
   schema,
   search = '',
   spaceId,
+  viewerId = null,
   views,
 }: IProps) => {
   const t = await getTranslations('pages');
@@ -89,77 +95,88 @@ export const PagesCollectionSection = async ({
           <PagesCollectionTimeZone knownTimeZone={knownTimeZone} />
           <PagesCollectionNoticesProvider spaceId={spaceId}>
             <PagesCollectionLiveFollower collectionId={schema.pageId} />
+            {reading !== null &&
+              reading.changesCursor !== null &&
+              reading.outcome.kind !== PAGE_VIEW_OUTCOME_KIND.MISSING_GROUPING_PROPERTY && (
+                <PagesCollectionCacheSeeder
+                  aggregates={aggregates}
+                  changesCursor={reading.changesCursor}
+                  lookups={lookups}
+                  outcome={reading.outcome}
+                  pageId={schema.pageId}
+                  personOptions={personOptions}
+                  schema={schema}
+                  view={activeView}
+                  viewerId={viewerId}
+                />
+              )}
             <PagesCollectionComputedSourcesFollower
               collectionIds={listComputedSourceCollectionIds(schema.properties)}
             />
-            <section aria-label={t('collection.sectionTitle')} className="space-y-3">
-              <div className="flex flex-wrap items-end justify-between gap-2 border-border border-b">
-                <PagesCollectionTabs
-                  activeViewName={activeView.name}
-                  label={t('collection.viewsLabel')}
-                  quickFilter={quickFilter}
-                  search={search}
-                  views={views}
-                />
-                <div className="flex items-center gap-1 pb-1">
-                  {reading !== null && <PagesCollectionRowCount aggregates={aggregates} />}
-                  {activeView.type !== PAGE_VIEW_TYPE.CHART && (
-                    <PagesCollectionSearchField
+            <PagesCollectionWritesProvider collectionId={schema.pageId}>
+              <section aria-label={t('collection.sectionTitle')} className="space-y-3">
+                <div className="flex flex-wrap items-end justify-between gap-2 border-border border-b">
+                  <PagesCollectionTabs
+                    activeViewName={activeView.name}
+                    label={t('collection.viewsLabel')}
+                    quickFilter={quickFilter}
+                    search={search}
+                    views={views}
+                  />
+                  <div className="flex items-center gap-1 pb-1">
+                    {reading !== null && <PagesCollectionRowCount aggregates={aggregates} />}
+                    {activeView.type !== PAGE_VIEW_TYPE.CHART && (
+                      <PagesCollectionSearchField
+                        activeViewName={activeView.name}
+                        quickFilter={quickFilter}
+                        search={search}
+                      />
+                    )}
+                    <PagesCollectionQuickFilter
                       activeViewName={activeView.name}
                       quickFilter={quickFilter}
+                      schema={schema}
                       search={search}
                     />
-                  )}
-                  <PagesCollectionQuickFilter
-                    activeViewName={activeView.name}
-                    quickFilter={quickFilter}
-                    schema={schema}
-                    search={search}
-                  />
-                  {canEdit && (
-                    <>
-                      {
-                        await PagesTemplatesSection({
-                          collectionId: schema.pageId,
-                          properties: schema.properties,
-                          spaceId,
-                        })
-                      }
-                      <PagesCollectionFilterBar activeViewName={activeView.name} schema={schema} spaceId={spaceId} />
-                      <PagesSchemaSettingsButton collections={collections} schema={schema} spaceId={spaceId} />
-                    </>
-                  )}
+                    {canEdit && (
+                      <>
+                        {
+                          await PagesTemplatesSection({
+                            collectionId: schema.pageId,
+                            properties: schema.properties,
+                            spaceId,
+                          })
+                        }
+                        <PagesCollectionFilterBar activeViewName={activeView.name} schema={schema} spaceId={spaceId} />
+                        <PagesSchemaSettingsButton collections={collections} schema={schema} spaceId={spaceId} />
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {hidesEverything && <EmptyState message={t('collection.everythingFiltered')} />}
-              {matchesNothing && (
-                <p className="px-1 py-6 text-center text-muted-foreground text-sm" data-testid="search-no-matches">
-                  {t('collection.searchNoMatches', { query: search })}
-                </p>
-              )}
-              {quickFilterMatchesNothing && (
-                <p
-                  className="px-1 py-6 text-center text-muted-foreground text-sm"
-                  data-testid="quick-filter-no-matches"
-                >
-                  {t('collection.quickFilterNoMatches')}
-                </p>
-              )}
-              {!hidesEverything &&
-                !matchesNothing &&
-                !quickFilterMatchesNothing &&
-                (await PagesCollectionView({
-                  aggregates,
-                  canEdit,
-                  changesCursor: reading === null ? null : reading.changesCursor,
-                  outcome: reading === null ? null : reading.outcome,
-                  personOptions,
-                  properties,
-                  schema,
-                  spaceId,
-                  view: activeView,
-                }))}
-            </section>
+                <PagesCollectionPendingWrites />
+                {
+                  await PagesCollectionEmptyNotices({
+                    emptiness: { hidesEverything, matchesNothing, quickFilterMatchesNothing },
+                    search,
+                  })
+                }
+                {!hidesEverything &&
+                  !matchesNothing &&
+                  !quickFilterMatchesNothing &&
+                  (await PagesCollectionView({
+                    aggregates,
+                    canEdit,
+                    changesCursor: reading === null ? null : reading.changesCursor,
+                    outcome: reading === null ? null : reading.outcome,
+                    personOptions,
+                    properties,
+                    schema,
+                    spaceId,
+                    view: activeView,
+                    viewerId,
+                  }))}
+              </section>
+            </PagesCollectionWritesProvider>
           </PagesCollectionNoticesProvider>
         </PagesCollectionCardAppearanceProvider>
       </PagesCollectionRowQueryProvider>

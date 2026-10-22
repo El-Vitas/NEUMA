@@ -7,6 +7,7 @@ import type { PageRow, PageViewBand, PageViewGroup } from '@/modules/pages/colle
 const rowOf = (id: string): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: null,

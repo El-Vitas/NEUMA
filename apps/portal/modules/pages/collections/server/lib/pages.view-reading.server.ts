@@ -11,6 +11,7 @@ import {
 import { readRequestTimeZone } from '@/shared/server/lib/time-zone.server';
 import {
   PAGE_VIEW_CALENDAR_MAXIMUM_ROWS,
+  PAGE_VIEW_ROWS_REDUCER,
   PAGE_VIEW_TIMELINE_MAXIMUM_ROWS,
   PAGE_VIEW_TIMELINE_UNDATED_ROWS,
 } from '../../constants/pages.query.constants';
@@ -40,6 +41,18 @@ const readAggregates = async (
 ): Promise<PageViewAggregates | null> => {
   const counted = await queryPageView(spaceId, pageId, buildViewCountsQuery(view, search, quickFilter));
   return toViewAggregates(counted.isOk() ? counted.getValue() : null);
+};
+
+/**
+ * Where to read what changes from, taken before the rows of a screen are read, so a change made while they are read is
+ * applied again on top of them and not lost. A view that reads by windows has no first read of its own to take it from.
+ */
+const readChangesCursor = async (spaceId: string, pageId: string, view: PageSchemaView): Promise<null | string> => {
+  const read = await queryPageView(spaceId, pageId, {
+    reducers: [{ id: PAGE_VIEW_ROWS_REDUCER, kind: 'results', limit: 0 }],
+    viewId: view.id,
+  });
+  return read.isOk() ? (read.getValue()?.changesCursor ?? null) : null;
 };
 
 const readToday = async (): Promise<string> => readPageLocalDay(Date.now(), (await readRequestTimeZone()) ?? 'UTC');
@@ -165,8 +178,9 @@ export const readPageViewReading = async (
     };
   }
   if (view.type === PAGE_VIEW_TYPE.TIMELINE) {
+    const changesCursor = await readChangesCursor(spaceId, pageId, view);
     const timeline = await readTimelineReading(spaceId, pageId, view, request);
-    return timeline === null ? null : { aggregates, changesCursor: null, ...timeline };
+    return timeline === null ? null : { aggregates, changesCursor, ...timeline };
   }
   const readResult = await queryPageView(
     spaceId,
@@ -183,7 +197,7 @@ export const readPageViewReading = async (
   return {
     aggregates,
     attachedFiles: calendar?.attachedFiles ?? read.attachedFiles,
-    changesCursor: calendar === null ? read.changesCursor : null,
+    changesCursor: read.changesCursor,
     outcome: calendar?.outcome ?? outcome,
     relatedRows: calendar?.relatedRows ?? read.relatedRows,
   };

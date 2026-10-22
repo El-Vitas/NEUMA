@@ -58,6 +58,7 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
     return { data: { configuration: {}, id: view.id, version: 1 } };
   },
   loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
   readPageCollectionAction: async () => ({ data: null }),
   readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
@@ -93,6 +94,7 @@ const { PagesCollectionBoardMissingGrouping } = await import(
 const firstRow = {
   id: 'row-1',
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: {},

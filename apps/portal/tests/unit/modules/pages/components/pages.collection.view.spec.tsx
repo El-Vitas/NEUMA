@@ -11,6 +11,7 @@ import type {
 import en from '../../../../../messages/en.json';
 import { asPropertyOptions, defaultConfig } from '../lib/pages.options.fixture';
 import { buildView } from '../lib/pages.views.fixture';
+import { COLLECTION_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 mock.module('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 mock.module('@/i18n/navigation', () => ({
@@ -22,12 +23,14 @@ mock.module('@/i18n/navigation', () => ({
 mock.module('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 // Server actions cannot be loaded in a browser-shaped test.
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   changePageRowRelationAction: async () => ({ data: 'CHANGED' }),
   listPageRelationCandidatesAction: async () => ({ data: [] }),
   rewritePageCollectionOptionAction: async () => ({ data: null }),
   updatePageCollectionAction: async () => ({ data: null }),
   applyPageViewOperationsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
   readPageCollectionAction: async () => ({ data: null }),
   readPageCollectionChangesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async () => ({ data: null }),
@@ -78,6 +81,7 @@ const rows = [
   {
     id: 'row-1',
     lifecycle: 'ACTIVE' as const,
+    version: 1,
     order: 0,
     parentId: 'collection-1',
     propertyValues: {},

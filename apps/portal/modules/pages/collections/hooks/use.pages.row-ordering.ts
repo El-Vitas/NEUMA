@@ -1,11 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useContext, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { hasActionError } from '@/shared/lib/action-result';
+import { PAGE_VIEW_WRITES_CONTEXT } from '../constants/pages.view-writes.context.constants';
 import { resolveRowDropAnchor } from '../lib/pages.row-ordering.lib';
-import { movePageRowAction } from '../server/actions/pages.collections.actions';
 import type { PageBoardAnchor } from '../types/pages.board-move.types';
 import type { PageRowDropSide, PagesRowOrdering } from '../types/pages.row-ordering.types';
 
@@ -15,13 +14,17 @@ import type { PageRowDropSide, PagesRowOrdering } from '../types/pages.row-order
  */
 export const usePagesRowOrdering = (pageId: string, spaceId: string, viewId: string): PagesRowOrdering => {
   const tErrors = useTranslations('errors');
+  const writes = useContext(PAGE_VIEW_WRITES_CONTEXT);
   const [carried, setCarried] = useState<PagesRowOrdering['carried']>(null);
   const [isBusy, startMoving] = useTransition();
 
   const move = (rowId: string, anchor: PageBoardAnchor): void =>
     startMoving(async () => {
-      const moved = await movePageRowAction({ ...anchor, listChanges: {}, pageId, rowId, spaceId, values: {}, viewId });
-      if (hasActionError(moved)) toast.error(tErrors('generic'));
+      const settled = await writes.write(
+        { ...anchor, kind: 'move', listChanges: {}, pageId, rowId, spaceId, values: {}, viewId },
+        rowId,
+      );
+      if (settled.kind === 'rejected') toast.error(tErrors('generic'));
     });
 
   return {

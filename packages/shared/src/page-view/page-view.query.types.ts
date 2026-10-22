@@ -137,6 +137,8 @@ export interface PageQueryRow {
   readonly propertyValues: PagePropertyValues | null;
   readonly spaceId: string;
   readonly title: string;
+  /** The version of the row's block; a copy with a lower one is stale. */
+  readonly version: number;
 }
 
 export interface PageQueryFile {
@@ -161,6 +163,8 @@ export const PAGE_QUERY_LIMITS = {
   defaultGroupLimit: 100,
   defaultResultsLimit: 50,
   defaultRowsPerGroup: 25,
+  /** A `results` page may carry as many ids as a response does: the browser reads a small collection whole. */
+  maximumFullResultsLimit: 1000,
   maximumGroupLimit: 100,
   maximumIdsPerResponse: 1000,
   maximumReducers: 12,

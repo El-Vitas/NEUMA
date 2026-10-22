@@ -37,6 +37,10 @@ mock.module('@/modules/pages/collections/server/actions/pages.collections.action
   applyPageViewOperationsAction: async () => ({ data: null }),
   loadMorePageRowsAction: async () => ({ data: null }),
   movePageRowAction: async () => ({ data: null }),
+  readEveryPageRowAction: async () => ({ data: null }),
+  readPageCollectionAction: async () => ({ data: null }),
+  readPageCollectionChangesAction: async () => ({ data: null }),
+  readPageViewAggregatesAction: async () => ({ data: null }),
   readPageMatchingRowsAction: async (input: Record<string, unknown>) => {
     matchingAsked.push(input);
     const rowIds = ['row-1', 'row-2', 'far-3', 'far-4', 'far-5'];
@@ -83,6 +87,7 @@ const properties: PageSchemaProperty[] = [
 const rowOf = (id: string, title: string, status: string): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues: { status },
@@ -104,18 +109,20 @@ const renderWithMessages = (ui: ReactNode) =>
 const drawTable = async (canEdit = true) => {
   cleanup();
   return renderWithMessages(
-    await PagesCollectionTable({
-      activeViewName: 'Table',
-      aggregates: NO_PAGE_AGGREGATES,
-      canEdit,
-      groups: [{ color: null, key: '', label: '', nextCursor: null, rows }],
-      isGrouped: false,
-      nextCursor: null,
-      properties,
-      schema,
-      spaceId: 'space-1',
-      viewId: view.id,
-    }),
+    <PagesCollectionTable
+      activeViewName="Table"
+      aggregates={NO_PAGE_AGGREGATES}
+      bands={[
+        { color: null, groups: [{ color: null, key: '', label: '', nextCursor: null, rows }], key: '', label: '' },
+      ]}
+      canEdit={canEdit}
+      changesCursor={null}
+      properties={properties}
+      schema={schema}
+      spaceId="space-1"
+      view={view}
+      viewId={view.id}
+    />,
   );
 };
 
@@ -165,20 +172,25 @@ describe('marcar todas las filas que coinciden, no solo las cargadas', () => {
     cleanup();
     return renderWithMessages(
       <PAGE_ROW_QUERY_CONTEXT value={{ quickFilter: null, search }}>
-        {
-          await PagesCollectionTable({
-            activeViewName: 'Table',
-            aggregates: countedAs(distinctRowCount),
-            canEdit: true,
-            groups: [{ color: null, key: '', label: '', nextCursor: 'after-2', rows }],
-            isGrouped: false,
-            nextCursor: 'after-2',
-            properties,
-            schema,
-            spaceId: 'space-1',
-            viewId: view.id,
-          })
-        }
+        <PagesCollectionTable
+          activeViewName="Table"
+          aggregates={countedAs(distinctRowCount)}
+          bands={[
+            {
+              color: null,
+              groups: [{ color: null, key: '', label: '', nextCursor: 'after-2', rows }],
+              key: '',
+              label: '',
+            },
+          ]}
+          canEdit
+          changesCursor={null}
+          properties={properties}
+          schema={schema}
+          spaceId="space-1"
+          view={view}
+          viewId={view.id}
+        />
       </PAGE_ROW_QUERY_CONTEXT>,
     );
   };

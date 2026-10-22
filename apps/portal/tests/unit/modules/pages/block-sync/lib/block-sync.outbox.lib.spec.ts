@@ -62,6 +62,26 @@ describe('createBlockSyncOutbox', () => {
     expect((await first.blockOutbox.restore()).map((restored) => restored.id)).toEqual(['mine']);
   });
 
+  it('leaves alone the writes a view kept for its own queue, though they belong to the same page', async () => {
+    const { blockOutbox, outbox, reported } = createFixture('page-1');
+    await outbox.append({
+      attempts: 0,
+      createdAt: 1,
+      id: 'view-write',
+      kind: 'view-write',
+      operations: [{ kind: 'cell' }],
+      ownerId: 'tab-1',
+      pageId: 'page-1',
+      previews: [],
+      spaceId: 'space-1',
+    });
+    await blockOutbox.keep(transaction('t1'), []);
+
+    expect((await blockOutbox.restore()).map((restored) => restored.id)).toEqual(['t1']);
+    expect(reported).toEqual([]);
+    expect(await outbox.listRejected()).toEqual([]);
+  });
+
   it('forgets a transaction the server answered', async () => {
     const { blockOutbox } = createFixture();
     await blockOutbox.keep(transaction('t1'), []);

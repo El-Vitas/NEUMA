@@ -167,6 +167,19 @@ rules:
         given: Una página que se encuentra por una palabra
         when: Alguien la tira a la papelera
         then: La siguiente búsqueda de esa palabra ya no la muestra
+  - id: BR-6201333
+    status: active
+    title: Una página creada con un identificador dado se crea una sola vez
+    rule: >-
+      Al crear una página se puede indicar el identificador que tendrá. Si se repite la misma petición con ese
+      identificador, el sistema responde con la página que ya creó y no crea otra.
+    why: Quien guarda lo escrito sin conexión envía de nuevo lo mismo al volver, y eso no debe duplicar las filas nuevas.
+    context: El identificador debe ser un UUID; cualquier otro valor se rechaza.
+    scenarios:
+      - title: Petición repetida
+        given: Se creó una fila con un identificador dado
+        when: Se repite la creación con el mismo identificador
+        then: La respuesta es la misma fila y no existe una segunda
   - id: BR-6f7f8a7
     status: active
     title: Lo privado responde a su dueña, y a nadie por encima de ella

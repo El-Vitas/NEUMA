@@ -3,13 +3,14 @@
 import { isPagePropertyValueEmpty, PAGE_PROPERTY_TYPE } from '@neuma/shared';
 import { useTranslations } from 'next-intl';
 import type { KeyboardEvent } from 'react';
-import { useOptimistic, useState, useTransition } from 'react';
+import { useContext, useOptimistic, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { hasActionError } from '@/shared/lib/action-result';
 import { EMPTY_PAGE_PERSON_OPTIONS } from '../../constants/pages.constants';
-import { isPropertyEditableInPlace, pagePropertyAnswersOnPick } from '../lib/pages.properties.lib';
-import { updatePageRowPropertiesAction } from '../server/actions/pages.collections.actions';
+import { PAGE_VIEW_WRITES_CONTEXT } from '../constants/pages.view-writes.context.constants';
+import { canQueueCellWrite, isPropertyEditableInPlace, pagePropertyAnswersOnPick } from '../lib/pages.properties.lib';
+import { isOfflineRefusal } from '../lib/pages.view-writes.direct.lib';
+import { describeWrittenValue } from '../lib/pages.view-writes.optimistic.lib';
 import type {
   PageComputedError,
   PagePersonOption,
@@ -56,27 +57,28 @@ export const PagesCollectionTableCell = ({
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<PagePropertyValue | undefined>(value);
   const [, startWriting] = useTransition();
-  const [shown, showWritten] = useOptimistic(
+  const writes = useContext(PAGE_VIEW_WRITES_CONTEXT);
+  const [answered, showWritten] = useOptimistic(
     value,
     (_current: PagePropertyValue | undefined, written: PagePropertyValue | undefined) => written,
   );
+  const pending = writes.readPendingValue(rowId, property.key);
+  const shown = pending === undefined ? answered : (pending ?? undefined);
 
   const write = (written: PagePropertyValue): void => {
     setIsEditing(false);
     if (written === value) return;
     const sent = isPagePropertyValueEmpty(property.type, written) ? null : written;
+    const change = { kind: 'cell', pageId: rowId, propertyValues: { [property.key]: sent }, spaceId } as const;
     startWriting(async () => {
       showWritten(sent ?? undefined);
       onWriting?.(property.key, sent ?? undefined);
-      const saved = await updatePageRowPropertiesAction({
-        pageId: rowId,
-        propertyValues: { [property.key]: sent },
-        spaceId,
-      });
-      if (hasActionError(saved)) {
-        setDraft(value);
-        toast.error(tErrors('generic'));
-      }
+      const settled = canQueueCellWrite(property.type)
+        ? await writes.write(change, `${property.label}: ${describeWrittenValue(sent)}`)
+        : await writes.writeNow(change);
+      if (settled.kind !== 'rejected') return;
+      setDraft(value);
+      toast.error(isOfflineRefusal(settled) ? t('collection.needsConnection') : tErrors('generic'));
     });
   };
 

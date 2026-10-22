@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { PageRow } from '@/modules/pages/collections/types/pages.schema.types';
+import { COLLECTION_ACTION_STUBS, PAGE_ACTION_STUBS } from '../stubs/pages.actions.stubs';
 
 const updatePageRowPropertiesAction = mock(
   (_input: unknown): Promise<unknown> => Promise.resolve({ data: { id: 'row-a' } }),
@@ -8,8 +9,10 @@ const updatePageRowPropertiesAction = mock(
 const errors: string[] = [];
 
 mock.module('@/modules/pages/collections/server/actions/pages.collections.actions', () => ({
+  ...COLLECTION_ACTION_STUBS,
   updatePageRowPropertiesAction,
 }));
+mock.module('@/modules/pages/server/actions/pages.actions', () => PAGE_ACTION_STUBS);
 
 mock.module('sonner', () => ({ toast: { error: (label: string) => errors.push(label) } }));
 
@@ -20,6 +23,7 @@ const { usePagesTimelineMoving } = await import('@/modules/pages/collections/hoo
 const rangeRow: PageRow = {
   id: 'row-a',
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: null,
   propertyValues: { when: { end: '2026-09-18', start: '2026-09-14' } },

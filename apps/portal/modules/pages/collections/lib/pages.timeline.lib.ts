@@ -5,8 +5,9 @@ import {
   readPageTimelinePeriod,
   shiftPageCalendarDate,
 } from '@neuma/shared';
-import type { PageRow } from '../types/pages.schema.types';
-import type { PageTimelineEntry } from '../types/pages.timeline.types';
+import { NO_WINDOW_ROWS } from '../constants/pages.window-rows.constants';
+import type { PageRow, PageTimelineReading } from '../types/pages.schema.types';
+import type { PageTimelineEntry, TimelineLiveSeed } from '../types/pages.timeline.types';
 import { readRowDateValue } from './pages.calendar.lib';
 
 /** The days a row lasts, read from its start property and, when the view names one, its end property. */
@@ -99,6 +100,21 @@ export const readTimelineDragDays = (startX: number, currentX: number, pixelsPer
   const days = Math.round((currentX - startX) / pixelsPerDay);
   return days === 0 ? 0 : days;
 };
+
+/** What the browser needs of a timeline the server drew to keep it in step with changes: its window and counts. */
+export const readTimelineLiveSeed = (
+  timeline: PageTimelineReading | undefined,
+  dateProperty: null | string,
+  endDateProperty: null | string,
+): TimelineLiveSeed => ({
+  isTruncated: timeline?.isTruncated ?? false,
+  undated: timeline?.undated ?? 0,
+  undatedRows: timeline?.undatedRows ?? NO_WINDOW_ROWS,
+  windowFilters:
+    dateProperty === null || timeline === undefined
+      ? []
+      : buildTimelineWindowFilters(dateProperty, endDateProperty, timeline.window),
+});
 
 /** A mistyped address opens the timeline on today instead of failing. */
 export const resolveTimelineDay = (requested: null | string, today: string): string =>

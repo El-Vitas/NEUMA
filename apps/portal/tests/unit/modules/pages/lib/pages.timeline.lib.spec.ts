@@ -21,6 +21,7 @@ const window = { end: '2026-09-30', start: '2026-09-01' };
 const rowOf = (id: string, propertyValues: PagePropertyValues): PageRow => ({
   id,
   lifecycle: 'ACTIVE',
+  version: 1,
   order: 0,
   parentId: 'collection-1',
   propertyValues,
