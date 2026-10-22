@@ -10,11 +10,11 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
-import type { PageSummary } from '../../types/pages.types';
+import type { PageBreadcrumbParent } from '../../tree/types/pages.tree.types';
 import { resolveBreadcrumbLabel, splitBreadcrumbParentPages } from '../lib/pages.breadcrumb.lib';
 
 interface IProps {
-  readonly parentPages: readonly PageSummary[];
+  readonly parentPages: readonly PageBreadcrumbParent[];
   readonly spaceId: string;
   readonly spaceName?: string;
   readonly title: string;

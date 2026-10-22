@@ -17,6 +17,7 @@ interface IdResponse {
 }
 
 interface PlanNode {
+  'Actual Loops'?: number;
   'Index Name'?: string;
   'Node Type': string;
   Plans?: PlanNode[];
@@ -52,6 +53,13 @@ const PLAN_TRIGRAM_INDEX = 'Block_text_unaccent_trgm_idx';
  */
 const SELECTIVE_QUERY_BOUND_MS = 150;
 const COMMON_TERM_QUERY_BOUND_MS = 400;
+
+/** Pages that hold one word in their title and body, so that the word is in every page of the space. */
+const EVERYWHERE_PAGE_COUNT = 1500;
+const EVERYWHERE_QUERY_BOUND_MS = 200;
+/** Each ancestor walk is one run of the recursive step; the walks must stay near the page asked for. */
+const EVERYWHERE_WALK_BOUND = 600;
+const RECURSIVE_NODE_TYPE = 'Recursive Union';
 
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -100,6 +108,7 @@ describe('Search over blocks: indexes and speed (Integration)', () => {
   const viewerEmail = `search-perf-${String(Date.now())}@test.com`;
   const selectiveTerm = 'quillmarsh';
   const commonTerm = 'proyecto';
+  const everywhereTerm = 'omnipresente';
 
   const query = (term: string, extra: Partial<PageBlockSearchQuery> = {}): PageBlockSearchQuery => ({
     limit: PAGE_SIZE,
@@ -121,14 +130,14 @@ describe('Search over blocks: indexes and speed (Integration)', () => {
     return durations;
   };
 
-  const explain = async (candidate: SearchCandidateRequest): Promise<PlanNode[]> => {
+  const explain = async (candidate: SearchCandidateRequest, isExecuted = false): Promise<PlanNode[]> => {
     const statement = testApp.get(SearchRepository).buildStatement(candidate);
     const rendered = renderStatement(statement.ast);
     const client = new Client({ connectionString: testApp.get(ConfigService).getOrThrow<string>(DATABASE_URL_KEY) });
     await client.connect();
     try {
       const result = await client.query<ExplainRow>({
-        text: `EXPLAIN (FORMAT JSON) ${rendered.text}`,
+        text: `EXPLAIN (${isExecuted ? 'ANALYZE, ' : ''}FORMAT JSON) ${rendered.text}`,
         values: rendered.values,
       });
       const plan = result.rows[0]?.['QUERY PLAN'][0]?.Plan;
@@ -195,6 +204,27 @@ describe('Search over blocks: indexes and speed (Integration)', () => {
         });
       }
     }
+    for (let pageIndex = 0; pageIndex < EVERYWHERE_PAGE_COUNT; pageIndex += 1) {
+      const pageId = crypto.randomUUID();
+      const blockId = crypto.randomUUID();
+      const title = `${everywhereTerm} ${String(pageIndex)}`;
+      rows.push({
+        ...author,
+        children: [blockId],
+        id: pageId,
+        properties: { title: [{ insert: title }] },
+        text: title,
+        type: 'page',
+      });
+      rows.push({
+        ...author,
+        id: blockId,
+        parentId: pageId,
+        properties: { title: [{ insert: `${everywhereTerm} en el cuerpo` }] },
+        text: `${everywhereTerm} en el cuerpo`,
+        type: 'paragraph',
+      });
+    }
     for (let start = 0; start < rows.length; start += INSERT_BATCH_SIZE) {
       await prisma.models.Block.createAndCount(rows.slice(start, start + INSERT_BATCH_SIZE));
     }
@@ -255,6 +285,48 @@ describe('Search over blocks: indexes and speed (Integration)', () => {
         `selective page search: median ${median(durations).toFixed(1)} ms, max ${Math.max(...durations).toFixed(1)} ms`,
       );
       expect(median(durations)).toBeLessThan(SELECTIVE_QUERY_BOUND_MS);
+    });
+  });
+
+  describe('a word in every page', () => {
+    const planRequest = (granularity: 'block' | 'page'): SearchCandidateRequest => ({
+      cursor: null,
+      fetchSize: PAGE_SIZE * 2 + 1,
+      granularity,
+      matching: 'words',
+      query: query(everywhereTerm),
+    });
+
+    const countAncestorWalks = (nodes: readonly PlanNode[]): number =>
+      nodes
+        .filter((node) => node['Node Type'] === RECURSIVE_NODE_TYPE)
+        .reduce((total, node) => total + (node['Actual Loops'] ?? 1), 0);
+
+    it('walks the ancestors of the best matches only, when a block stands for itself', async () => {
+      const nodes = await explain(planRequest('block'), true);
+
+      expect(countAncestorWalks(nodes)).toBeLessThan(EVERYWHERE_WALK_BOUND);
+    });
+
+    it('walks the ancestors of the best matches only, when a page stands for its blocks', async () => {
+      const nodes = await explain(planRequest('page'), true);
+
+      expect(countAncestorWalks(nodes)).toBeLessThan(EVERYWHERE_WALK_BOUND);
+    });
+
+    it('answers one page of pages within the bound', async () => {
+      const service = testApp.get(SearchService);
+      const pageQuery = { ...query(everywhereTerm), contentType: 'PAGE' };
+
+      const durations = await timeRuns(() => service.search({ ...pageQuery, sourceType: 'PAGE' }));
+      const found = await service.search({ ...pageQuery, sourceType: 'PAGE' });
+
+      expect(found.items).toHaveLength(PAGE_SIZE);
+      expect(found.nextCursor).toBeDefined();
+      console.info(
+        `everywhere page search: median ${median(durations).toFixed(1)} ms, max ${Math.max(...durations).toFixed(1)} ms`,
+      );
+      expect(median(durations)).toBeLessThan(EVERYWHERE_QUERY_BOUND_MS);
     });
   });
 

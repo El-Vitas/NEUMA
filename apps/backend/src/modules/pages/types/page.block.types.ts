@@ -1,3 +1,4 @@
+import type { PageLifecycle } from '@neuma/db';
 import type { BlockViewer, UserRole } from '@neuma/shared';
 import type { PageAccessProfile } from '../domain/page.access.domain.types';
 import type { PageContentBlock } from '../domain/page.block.domain.types';
@@ -12,6 +13,21 @@ export interface PageBlockRow extends Omit<StoredPageBlock, 'children' | 'permis
 /** Templates are pages of the collection that are not part of any listing (ADR 027): ask for them to carry them. */
 export interface PageListingOptions {
   readonly includeTemplates?: boolean;
+}
+
+/** The few columns that tell whether a page can be listed under its parent, read without the rest of the block. */
+export interface PageHead {
+  readonly id: string;
+  readonly lifecycle: PageLifecycle;
+  readonly parentId: null | string;
+  readonly permissions: unknown;
+  readonly properties: unknown;
+}
+
+export interface RecentlyEditedPage {
+  readonly editedAt: Date;
+  readonly editedById: string;
+  readonly id: string;
 }
 
 /** A page whose deadline passed, and the page that holds it. */

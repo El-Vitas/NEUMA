@@ -44,14 +44,19 @@ export class BlockLiveAccessService implements BlockLivePageAccess {
     const rows = await this.chainReader.readChains(seedIds);
     const rowsById = indexById(rows);
     const spaceIds = [...new Set(rows.map((row) => row.spaceId))];
-    const rolesEntries = await Promise.all(
+    const entries = await Promise.all(
       listDistinctReaders(readers).map(async (reader) => {
         const readableSpaceIds = await this.blockRepository.findReadableSpaceIds(spaceIds, reader);
         const viewer = { userId: reader.userId, workspaceRole: reader.role };
-        return [reader.userId, resolveRoles({ readableSpaceIds, viewer }, rowsById)] as const;
+        return { readableSpaceIds, roles: resolveRoles({ readableSpaceIds, viewer }, rowsById), userId: reader.userId };
       }),
     );
-    return { maxDepth: BLOCK_TREE_MAX_DEPTH, rolesByUserId: new Map(rolesEntries), rowsById };
+    return {
+      maxDepth: BLOCK_TREE_MAX_DEPTH,
+      readableSpaceIdsByUserId: new Map(entries.map((entry) => [entry.userId, entry.readableSpaceIds])),
+      rolesByUserId: new Map(entries.map((entry) => [entry.userId, entry.roles])),
+      rowsById,
+    };
   }
 
   async resolvePageAccess(reader: BlockReader, pageId: string): Promise<Result<BlockLivePage, BlockAccessDeniedError>> {
@@ -62,6 +67,15 @@ export class BlockLiveAccessService implements BlockLivePageAccess {
       return Result.fail(new BlockAccessDeniedError());
     }
     return Result.ok({ spaceId: page.spaceId });
+  }
+
+  async canReadSpace(reader: BlockReader, spaceId: string): Promise<boolean> {
+    const readable = await this.blockRepository.findReadableSpaceIds([spaceId], reader);
+    return readable.has(spaceId);
+  }
+
+  hasPageChangesSince(spaceId: string, since: string): Promise<boolean> {
+    return this.chainReader.hasPageChangesSince(spaceId, since);
   }
 
   async canReadBlockInPage(reader: BlockReader, pageId: string, blockId: string): Promise<boolean> {

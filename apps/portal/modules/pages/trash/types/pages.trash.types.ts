@@ -14,6 +14,12 @@ export interface TrashedPage {
   readonly trashedChildCount: number;
 }
 
+export interface TrashedPagesListing {
+  readonly items: readonly TrashedPage[];
+  /** Everything in the trash for the search, whatever the window shows. */
+  readonly total: number;
+}
+
 export interface TrashDescendantsPreview {
   readonly childPageCount: number;
 }

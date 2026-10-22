@@ -75,7 +75,6 @@ import type {
   PageContentWriter,
   PageDescendantsPreview,
   PageLogger,
-  PageMoveDestinations,
   PagePurgeRepositoryContract,
   PagePurgeSchedule,
   PageRepositoryContract,
@@ -84,9 +83,10 @@ import type {
   PageVersionListing,
   PageVersionRetentionRepositoryContract,
   PageVersionSnapshot,
-  TrashedPageSummary,
+  TrashedPageListing,
   UpdatePagePropertiesInput,
 } from './types/page.types';
+import type { PageOutlineWindow } from './types/page-outline.types';
 import type { PageSchemaRepositoryContract } from './types/page-schema.types';
 import type { PageRowStart, PageRowStartFailure } from './types/page-template.types';
 
@@ -485,17 +485,6 @@ export class PagesService {
     });
   }
 
-  async listMoveDestinations(
-    pageId: string,
-    workspaceId: string,
-    userId: string,
-    role: UserRole,
-  ): Promise<Result<PageMoveDestinations, PageAccessDeniedError>> {
-    if (role === USER_ROLE.CLIENT) return Result.fail(new PageAccessDeniedError());
-    const destinations = await this.pageRepository.listMoveDestinations(pageId, workspaceId, userId, role);
-    return destinations === null ? Result.fail(new PageAccessDeniedError()) : Result.ok(destinations);
-  }
-
   async reorderAmongSiblings(
     pageId: string,
     beforePageId: null | string,
@@ -600,8 +589,9 @@ export class PagesService {
     role: UserRole,
     spaceId: null | string,
     search: null | string,
-  ): Promise<readonly TrashedPageSummary[]> {
-    return this.pageRepository.listTrashed(workspaceId, userId, role, spaceId, search);
+    window: PageOutlineWindow | null,
+  ): Promise<TrashedPageListing> {
+    return this.pageRepository.listTrashed(workspaceId, userId, role, spaceId, search, window);
   }
 
   /** Schedules the deletion; the page and its attachments stay until the delay passes (ADR 017). */

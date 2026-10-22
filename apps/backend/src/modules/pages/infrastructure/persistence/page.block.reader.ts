@@ -10,7 +10,14 @@ import type { PageAncestryLink } from '../../domain/page.access.domain.types';
 import type { PageContentBlock, ReadableContentBlocks } from '../../domain/page.block.domain.types';
 import { listReadableContentBlocks } from '../../domain/page.visibility.domain';
 import { pageChildrenSchema } from '../../schemas/page.block.schemas';
-import type { AccessiblePage, PageBlockRow, PageListingOptions, PageViewer } from '../../types/page.block.types';
+import type {
+  AccessiblePage,
+  PageBlockRow,
+  PageHead,
+  PageListingOptions,
+  PageViewer,
+  RecentlyEditedPage,
+} from '../../types/page.block.types';
 import type { StoredPageBlock } from '../../types/page.types';
 
 const toStoredPageBlock = (row: PageBlockRow): StoredPageBlock => ({
@@ -60,6 +67,106 @@ export class PageBlockReader {
       .where({ parentId, spaceId, type: BLOCK_TYPE.page })
       .all();
     return keepListed(rows, {}).map(toStoredPageBlock);
+  }
+
+  /** Just enough of the pages under each parent to tell whether the reader can open one: no content, no children. */
+  async readChildPageHeads(parentIds: readonly string[]): Promise<PageHead[]> {
+    if (parentIds.length === 0) return [];
+    const rows = await this.prisma.models.Block.select('id', 'lifecycle', 'parentId', 'permissions', 'properties')
+      .where({ type: BLOCK_TYPE.page })
+      .where((block) => block.parentId.in([...parentIds]))
+      .all();
+    return rows.filter((row) => !isPageTemplate(row.properties));
+  }
+
+  /**
+   * Which of the parents have a page under them that the reader can open, without reading the children: the ones
+   * that follow their parent's rule need no check once one of them is known, and only the ones that declare their
+   * own are judged. `isListed` narrows the children, for a token that only reaches some pages.
+   */
+  async findParentsWithReadableChildren(
+    parentIds: readonly string[],
+    viewer: PageViewer,
+    isListed: (pageId: string) => boolean = () => true,
+  ): Promise<ReadonlySet<string>> {
+    const heads = (await this.readChildPageHeads(parentIds)).filter(
+      (head) => head.lifecycle === PageLifecycle.ACTIVE && head.parentId !== null && isListed(head.id),
+    );
+    const parents = new Set(heads.filter((head) => head.permissions === null).map((head) => head.parentId ?? ''));
+    const declaring = heads.filter((head) => head.permissions !== null && !parents.has(head.parentId ?? ''));
+    const accessible = await this.keepAccessible(await this.readPageBlocks(declaring.map((head) => head.id)), viewer);
+    for (const page of accessible) {
+      if (!page.access.isInTrash && page.block.parentId !== null) parents.add(page.block.parentId);
+    }
+    return parents;
+  }
+
+  /**
+   * The pages whose blocks, or the blocks below them, changed last in a space, the latest first. It reads the most
+   * recently edited blocks and goes up from each to the page that holds it.
+   */
+  async readRecentlyEditedPages(spaceId: string, blockLimit: number): Promise<RecentlyEditedPage[]> {
+    const { columns } = this.prisma.tables.Block;
+    return this.prisma.runner.query(
+      this.prisma.sql`
+      WITH RECURSIVE "recent" AS (
+        SELECT "id", "parentId", "type", "editedAt", "editedById" FROM "Block"
+        WHERE "spaceId" = ${spaceId} ORDER BY "editedAt" DESC LIMIT ${blockLimit}
+      ), "above" AS (
+        SELECT "id", "parentId", "type", "editedAt", "editedById", 0 AS "depth" FROM "recent"
+        UNION ALL
+        SELECT "parent"."id", "parent"."parentId", "parent"."type", "above"."editedAt", "above"."editedById",
+          "above"."depth" + 1
+        FROM "Block" AS "parent"
+        INNER JOIN "above" ON "parent"."id" = "above"."parentId"
+        WHERE "above"."type" <> ${BLOCK_TYPE.page} AND "above"."depth" < ${PAGE_TREE_MAX_DEPTH}
+      )
+      SELECT "id", max("editedAt") AS "editedAt", (array_agg("editedById" ORDER BY "editedAt" DESC))[1] AS "editedById"
+      FROM "above"
+      WHERE "type" = ${BLOCK_TYPE.page}
+      GROUP BY "id" ORDER BY max("editedAt") DESC
+    `
+        .returnsRow({ editedAt: columns.editedAt, editedById: columns.editedById, id: columns.id })
+        .build(),
+    );
+  }
+
+  /** The pages in the trash of these spaces, templates included; the pages that went along with one are not read. */
+  async readTrashedPageBlocks(spaceIds: readonly string[]): Promise<StoredPageBlock[]> {
+    if (spaceIds.length === 0) return [];
+    const rows = await this.prisma.models.Block.select(...PAGE_BLOCK_COLUMNS)
+      .where({ lifecycle: PageLifecycle.TRASHED, type: BLOCK_TYPE.page })
+      .where((block) => block.spaceId.in([...spaceIds]))
+      .all();
+    return rows.map(toStoredPageBlock);
+  }
+
+  /** How many pages below each one are in the trash on their own, at any depth. */
+  async countTrashedDescendants(pageIds: readonly string[]): Promise<ReadonlyMap<string, number>> {
+    const counts = new Map<string, number>();
+    if (pageIds.length === 0) return counts;
+    const { columns } = this.prisma.tables.Block;
+    const rows = await this.prisma.runner.query(
+      this.prisma.sql`
+      WITH RECURSIVE "below" AS (
+        SELECT "id" AS "rootId", "id", 0 AS "depth" FROM "Block" WHERE "id" = ANY(${buildSqlTextList(this.prisma.sql, pageIds)})
+        UNION ALL
+        SELECT "below"."rootId", "child"."id", "below"."depth" + 1
+        FROM "Block" AS "child"
+        INNER JOIN "below" ON "child"."parentId" = "below"."id"
+        WHERE "child"."type" = ${BLOCK_TYPE.page} AND "below"."depth" < ${PAGE_TREE_MAX_DEPTH}
+      )
+      SELECT "below"."rootId" AS "pageId", count(*)::int AS "trashedCount"
+      FROM "below"
+      INNER JOIN "Block" AS "block" ON "block"."id" = "below"."id"
+      WHERE "below"."depth" > 0 AND "block"."lifecycle"::text = ${PageLifecycle.TRASHED}
+      GROUP BY "below"."rootId"
+    `
+        .returnsRow({ pageId: columns.id, trashedCount: columns.version })
+        .build(),
+    );
+    for (const row of rows) counts.set(row.pageId, row.trashedCount);
+    return counts;
   }
 
   /** The templates of a collection, in the order they were made. */

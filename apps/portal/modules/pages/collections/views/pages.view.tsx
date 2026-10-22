@@ -1,33 +1,14 @@
 import { getTranslations } from 'next-intl/server';
 import { FormErrorBanner } from '@/shared/components/ui/form-error-banner';
-import { PagesWorkspace } from '../../components/pages.workspace';
-import type { PageSummary } from '../../types/pages.types';
 
-interface IProps {
-  readonly canEditContent: boolean;
-  readonly currentUserDisplayName?: string;
-  readonly pages: readonly PageSummary[] | null;
-  readonly spaceId: string;
-  readonly spaceName: string;
-}
-
-export const PagesView = async ({ canEditContent, currentUserDisplayName, pages, spaceId, spaceName }: IProps) => {
+/** The place of a space that could not be read: the sidebar still works, and this says what failed. */
+export const PagesView = async () => {
   const t = await getTranslations('pages');
   return (
     <main className="min-h-full">
-      {pages === null ? (
-        <div className="p-4 sm:p-6">
-          <FormErrorBanner message={t('loadError')} />
-        </div>
-      ) : (
-        <PagesWorkspace
-          canEditContent={canEditContent}
-          currentUserDisplayName={currentUserDisplayName}
-          pages={pages}
-          spaceId={spaceId}
-          spaceName={spaceName}
-        />
-      )}
+      <div className="p-4 sm:p-6">
+        <FormErrorBanner message={t('loadError')} />
+      </div>
     </main>
   );
 };

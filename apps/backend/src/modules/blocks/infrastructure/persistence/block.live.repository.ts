@@ -19,6 +19,20 @@ export class BlockLiveRepository implements BlockChainReader {
     return users.map((user) => ({ id: user.id, isActive: user.isActive, role: user.role }));
   }
 
+  async hasPageChangesSince(spaceId: string, since: string): Promise<boolean> {
+    const { columns } = this.prisma.tables.Block;
+    const rows = await this.prisma.runner.query(
+      this.prisma.sql`
+      SELECT "id" FROM "Block"
+      WHERE "spaceId" = ${spaceId}::text AND "type" = 'page' AND "changeXid" >= ${since}::bigint
+      LIMIT 1
+    `
+        .returnsRow({ id: columns.id })
+        .build(),
+    );
+    return rows.length > 0;
+  }
+
   /** One statement for any number of seeds. A chain deeper than the limit is cut there, as the page reads are. */
   async readChains(seedIds: readonly string[]): Promise<readonly BlockChainRow[]> {
     if (seedIds.length === 0) return [];

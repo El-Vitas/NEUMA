@@ -418,7 +418,8 @@ export interface BlockLinkDiff {
 /** A touched block; it says when the transaction moved it to another parent or changed who may read it. */
 export interface NotifiedBlock extends BlockVersion {
   readonly hasAccessChange?: true | undefined;
-  readonly previousParentId?: string | undefined;
+  /** The parent it left; null when it was at the top of its space. */
+  readonly previousParentId?: string | null | undefined;
 }
 
 /** What a notice needs of a block: its version, where it hangs and who may read it. */

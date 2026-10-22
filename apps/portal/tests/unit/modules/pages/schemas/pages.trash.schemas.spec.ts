@@ -72,7 +72,17 @@ describe('trashedPageSchema', () => {
 
 describe('trashedPagesListSchema', () => {
   it('parses an empty trash', () => {
-    expect(trashedPagesListSchema.safeParse([]).success).toBe(true);
+    expect(trashedPagesListSchema.safeParse({ items: [], total: 0 }).success).toBe(true);
+  });
+
+  it('carries how many pages the trash holds beyond the window shown', () => {
+    const result = trashedPagesListSchema.safeParse({ items: [], total: 130 });
+
+    expect(result.success && result.data.total).toBe(130);
+  });
+
+  it('refuses a list that is not a window', () => {
+    expect(trashedPagesListSchema.safeParse([]).success).toBe(false);
   });
 });
 

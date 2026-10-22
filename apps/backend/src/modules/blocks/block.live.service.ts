@@ -11,6 +11,7 @@ import {
   BLOCK_LIVE_MAX_CONNECTIONS_PER_USER,
   BLOCK_LIVE_MAX_MESSAGE_BYTES,
   BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION,
+  BLOCK_LIVE_MAX_TREE_SUBSCRIPTIONS_PER_CONNECTION,
   BLOCK_LIVE_RATE_LIMIT,
   BLOCK_LIVE_SETTINGS,
   BLOCK_PRESENCE_STORE,
@@ -196,6 +197,14 @@ export class BlockLiveService {
       connection.collectionSubscriptions.delete(message.collectionId);
       return;
     }
+    if (message.type === 'subscribe-tree') {
+      await this.subscribeTree(connection, reader, message.spaceId, message.since);
+      return;
+    }
+    if (message.type === 'unsubscribe-tree') {
+      connection.treeSubscriptions.delete(message.spaceId);
+      return;
+    }
     if (message.type === 'transactions' || message.type === 'sync') {
       await this.answerRequest(connection, reader, message);
       return;
@@ -259,6 +268,38 @@ export class BlockLiveService {
     }
     connection.collectionSubscriptions.set(collectionId, access.getValue().spaceId);
     this.send(connection, { collectionId, type: 'subscribed-collection' });
+  }
+
+  /** The sidebar follows the tree of a space it can read; the changes it is told never name a page. */
+  private async subscribeTree(
+    connection: BlockLiveConnection,
+    reader: BlockReader,
+    spaceId: string,
+    since: string | undefined,
+  ): Promise<void> {
+    if (connection.treeSubscriptions.has(spaceId)) {
+      this.send(connection, { spaceId, type: 'subscribed-tree' });
+      return;
+    }
+    if (connection.treeSubscriptions.size >= BLOCK_LIVE_MAX_TREE_SUBSCRIPTIONS_PER_CONNECTION) {
+      this.sendTreeError(connection, BLOCK_LIVE_ERROR_CODE.tooManySubscriptions, spaceId);
+      return;
+    }
+    const canRead = await this.pageAccess.canReadSpace(reader, spaceId);
+    if (connection.isClosed) return;
+    if (!canRead) {
+      this.sendTreeError(connection, BLOCK_LIVE_ERROR_CODE.accessDenied, spaceId);
+      return;
+    }
+    connection.treeSubscriptions.add(spaceId);
+    this.send(connection, { spaceId, type: 'subscribed-tree' });
+    if (since !== undefined) await this.tellWhatChangedSince(connection, spaceId, since);
+  }
+
+  /** The client holds a render older than its subscription; anything written since is read again, never guessed. */
+  private async tellWhatChangedSince(connection: BlockLiveConnection, spaceId: string, since: string): Promise<void> {
+    const hasChanged = await this.pageAccess.hasPageChangesSince(spaceId, since);
+    if (hasChanged && !connection.isClosed) this.send(connection, { spaceId, type: 'tree-resync' });
   }
 
   private async unsubscribe(connection: BlockLiveConnection, pageId: string): Promise<void> {
@@ -325,6 +366,10 @@ export class BlockLiveService {
 
   private sendCollectionError(connection: BlockLiveConnection, code: LiveErrorCode, collectionId: string): void {
     this.send(connection, { code, collectionId, type: 'error' });
+  }
+
+  private sendTreeError(connection: BlockLiveConnection, code: LiveErrorCode, spaceId: string): void {
+    this.send(connection, { code, spaceId, type: 'error' });
   }
 
   private sendError(connection: BlockLiveConnection, code: LiveErrorCode, pageId?: string): void {

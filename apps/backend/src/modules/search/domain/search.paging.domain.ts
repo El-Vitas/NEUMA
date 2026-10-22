@@ -30,7 +30,7 @@ export const takeReadable = (
 };
 
 /** Results the statement returned: a page counts once however many of its matches came with it. */
-const countResults = (rows: readonly SearchCandidate[], granularity: SearchGranularity): number =>
+export const countResults = (rows: readonly SearchCandidate[], granularity: SearchGranularity): number =>
   granularity === 'page' ? new Set(rows.map((row) => row.pageId)).size : rows.length;
 
 /** A full batch says rows may exist past the ones fetched; a short one says they are all here. */

@@ -50,9 +50,9 @@ describe('what a row page says about itself', () => {
 describe('what a row page already knows by name', () => {
   const properties = [property('related', 'RELATION'), property('notes', 'RICH_TEXT')];
   const pages = [
-    page({ id: 'a', title: 'Alpha' }),
-    page({ id: 'b', title: 'Beta' }),
-    page({ id: 'c', title: 'Gamma' }),
+    { id: 'a', title: 'Alpha' },
+    { id: 'b', title: 'Beta' },
+    { id: 'c', title: 'Gamma' },
   ];
 
   it('names only the rows its relations point to', () => {

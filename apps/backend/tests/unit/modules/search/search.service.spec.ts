@@ -16,6 +16,7 @@ const candidate = (blockId: string, rank: number): SearchCandidate => ({
   headings: [{ level: 1, text: 'Setup' }],
   icon: null,
   isPageVerified: false,
+  pageBestId: blockId,
   pageChain: [],
   pageId: `page-of-${blockId}`,
   pageParentId: null,

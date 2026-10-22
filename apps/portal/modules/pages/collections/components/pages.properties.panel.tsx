@@ -8,14 +8,20 @@ import { PagesMetadataRow } from '../../components/pages.metadata.row';
 import {
   EMPTY_PAGE_ATTACHMENTS,
   EMPTY_PAGE_PERSON_OPTIONS,
-  EMPTY_PAGE_SUMMARIES,
+  EMPTY_PAGE_RELATED_ROWS,
   PAGE_PROPERTIES_VISIBLE_LIMIT,
 } from '../../constants/pages.constants';
 import { PagesMoveForm } from '../../navigation/components/pages.move.form';
 import type { PageSummary } from '../../types/pages.types';
 import { buildPanelLookups, withPanelDerivedValues } from '../lib/pages.panel-lookups.lib';
 import { getEditableSchemaProperties } from '../lib/pages.properties.lib';
-import type { PagePersonOption, PagePropertyValue, PagePropertyValues, PageSchema } from '../types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PagePropertyValue,
+  PagePropertyValues,
+  PageRelatedRow,
+  PageSchema,
+} from '../types/pages.schema.types';
 import { PagesCollectionLookupsProvider } from './pages.collection.lookups.provider';
 import { PagesPropertiesRow } from './pages.properties.row';
 
@@ -27,11 +33,11 @@ interface IProps {
   readonly onPropertyValueChange: (key: string, value: PagePropertyValue) => void;
   readonly page?: PageSummary | null;
   readonly pageId?: string | null;
-  /** The pages of the space: the rows a relation points to are some of them. */
-  readonly pages?: readonly PageSummary[];
   readonly parentSchema: PageSchema | null;
   readonly personOptions?: readonly PagePersonOption[];
   readonly propertyValues: PagePropertyValues;
+  /** The rows the relations of the page point to, with their names. */
+  readonly relatedRows?: readonly PageRelatedRow[];
   readonly spaceId?: string;
 }
 
@@ -43,10 +49,10 @@ export const PagesPropertiesPanel = ({
   onPropertyValueChange,
   page = null,
   pageId = null,
-  pages = EMPTY_PAGE_SUMMARIES,
   parentSchema,
   personOptions = EMPTY_PAGE_PERSON_OPTIONS,
   propertyValues,
+  relatedRows = EMPTY_PAGE_RELATED_ROWS,
   spaceId = '',
 }: IProps) => {
   const t = useTranslations('pages');
@@ -63,7 +69,7 @@ export const PagesPropertiesPanel = ({
   const hiddenItemsCount = hiddenPropertiesCount + hiddenSectionsCount;
   const hasHiddenContent = hiddenItemsCount > 0;
   const shownValues = withPanelDerivedValues(properties, propertyValues, page);
-  const lookups = buildPanelLookups(properties, shownValues, pages, attachments, personOptions);
+  const lookups = buildPanelLookups(properties, shownValues, relatedRows, attachments, personOptions);
 
   return (
     <section aria-label={t('properties.title')} className="max-w-336 border-border border-b pb-2">

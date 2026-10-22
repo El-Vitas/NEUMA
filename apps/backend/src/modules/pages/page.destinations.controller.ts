@@ -1,24 +1,29 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { User } from '../../common/infrastructure/decorators/user.decorator';
 import { JwtAuthGuard } from '../../common/infrastructure/guards/jwt.auth.guard';
-import { WorkspaceContextService } from '../../common/infrastructure/persistence/workspace-context.service';
 import type { TokenPayload } from '../../common/types/auth.types';
-import { PagesService } from './pages.service';
+import { PageMoveDestinationsQueryDto } from './dto/page.move-destinations.query.dto';
+import { PageMoveDestinationsService } from './page.move-destinations.service';
+import { PageTreeService } from './page-tree.service';
 import type { PageMoveDestinations } from './types/page.types';
 
 /** Move destinations across every space the reader can reach, not only the page's own space. */
 @Controller('pages/move-destinations')
 export class PageDestinationsController {
   constructor(
-    private readonly pagesService: PagesService,
-    private readonly workspaceContextService: WorkspaceContextService,
+    private readonly moveDestinationsService: PageMoveDestinationsService,
+    private readonly treeService: PageTreeService,
   ) {}
 
   @Get(':pageId')
   @UseGuards(JwtAuthGuard)
-  async list(@Param('pageId') pageId: string, @User('payload') payload: TokenPayload): Promise<PageMoveDestinations> {
-    const workspace = await this.workspaceContextService.resolveForUser(payload.sub, payload.role);
-    const result = await this.pagesService.listMoveDestinations(pageId, workspace.id, payload.sub, payload.role);
+  async list(
+    @Param('pageId') pageId: string,
+    @Query() dto: PageMoveDestinationsQueryDto,
+    @User('payload') payload: TokenPayload,
+  ): Promise<PageMoveDestinations> {
+    const reader = await this.treeService.openReader(payload);
+    const result = await this.moveDestinationsService.list(pageId, dto.query.trim(), reader);
     if (result.isFail()) {
       throw result.getError();
     }

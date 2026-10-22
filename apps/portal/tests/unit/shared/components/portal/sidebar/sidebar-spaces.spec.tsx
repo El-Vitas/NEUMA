@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
-import type { PortalLayoutSpace } from '@/modules/portal/types/portal.types';
+import type { PageTreeStore } from '@/modules/pages/tree/types/pages.tree.types';
+import type { PortalLayoutSpace, PortalSidebarPage } from '@/modules/portal/types/portal.types';
 import en from '../../../../../../messages/en.json';
 
 let pathname = '/spaces/engineering/pages/architecture';
@@ -72,30 +73,14 @@ mock.module('@/modules/pages/trash/components/pages.trash.confirm.dialog', () =>
 }));
 
 const { SidebarSpaces } = await import('@/shared/components/portal/sidebar/sidebar-spaces');
+const { createPageTreeStore } = await import('@/modules/pages/tree/lib/pages.tree.store.lib');
+const { PagesTreeStoreStub, seedPageTreeSpace } = await import('../../../../modules/pages/stubs/pages.tree.stubs');
 
 const space: PortalLayoutSpace = {
   icon: null,
   id: 'engineering',
   kind: 'own',
   name: 'Engineering',
-  pages: [
-    {
-      id: 'handbook',
-      icon: null,
-      lifecycle: 'ACTIVE' as const,
-      order: 0,
-      parentId: null,
-      title: 'Handbook',
-    },
-    {
-      id: 'architecture',
-      icon: null,
-      lifecycle: 'ACTIVE' as const,
-      order: 0,
-      parentId: 'handbook',
-      title: 'Architecture',
-    },
-  ],
 };
 
 const trashedOnlySpace: PortalLayoutSpace = {
@@ -103,16 +88,6 @@ const trashedOnlySpace: PortalLayoutSpace = {
   id: 'archive',
   kind: 'own',
   name: 'Archive',
-  pages: [
-    {
-      id: 'old-handbook',
-      icon: null,
-      lifecycle: 'TRASHED' as const,
-      order: 0,
-      parentId: null,
-      title: 'Old handbook',
-    },
-  ],
 };
 
 const emptySpace: PortalLayoutSpace = {
@@ -120,13 +95,29 @@ const emptySpace: PortalLayoutSpace = {
   id: 'empty-space',
   kind: 'own',
   name: 'Empty space',
-  pages: [],
+};
+
+/** What each space holds once the sidebar has loaded it. A space in the trash only holds nothing the sidebar shows. */
+const pagesBySpace: Readonly<Record<string, readonly PortalSidebarPage[]>> = {
+  archive: [{ id: 'old-handbook', icon: null, lifecycle: 'TRASHED', order: 0, parentId: null, title: 'Old handbook' }],
+  engineering: [
+    { id: 'handbook', icon: null, lifecycle: 'ACTIVE', order: 0, parentId: null, title: 'Handbook' },
+    { id: 'architecture', icon: null, lifecycle: 'ACTIVE', order: 0, parentId: 'handbook', title: 'Architecture' },
+  ],
+};
+
+const buildStoreFor = (spaces: readonly PortalLayoutSpace[]): PageTreeStore => {
+  const store = createPageTreeStore({ readWindows: () => Promise.resolve(null) });
+  for (const { id } of spaces) seedPageTreeSpace(store, id, pagesBySpace[id] ?? []);
+  return store;
 };
 
 const renderSidebarSpaces = (role: 'ADMIN' | 'CLIENT' = 'ADMIN', spaces: readonly PortalLayoutSpace[] = [space]) =>
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <SidebarSpaces collapsed={false} role={role} spaces={spaces} />
+      <PagesTreeStoreStub store={buildStoreFor(spaces)}>
+        <SidebarSpaces collapsed={false} role={role} spaces={spaces} />
+      </PagesTreeStoreStub>
     </NextIntlClientProvider>,
   );
 

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { SIDEBAR_TREE_MAX_INDENTED_DEPTH } from '@/modules/portal/constants/sidebar.constants';
 import { resolveSpaceToStartPageIn } from '@/modules/portal/lib/portal.keyboard.lib';
-import { buildSidebarTreeIndent, resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
+import {
+  buildPortalSidebarPageTree,
+  buildSidebarTreeIndent,
+  hasPortalSidebarPageChildren,
+  resolvePortalSpaceKind,
+  shouldLoadPortalSidebarChildren,
+  shouldOfferPortalSidebarNextWindow,
+} from '@/modules/portal/lib/portal.sidebar.lib';
+import type { PortalSidebarPage } from '@/modules/portal/types/portal.types';
 
 describe('resolveSpaceToStartPageIn', () => {
   const spaces = [{ id: 'alpha' }, { id: 'beta' }];
@@ -53,5 +61,76 @@ describe('buildSidebarTreeIndent', () => {
     const deeper = buildSidebarTreeIndent(SIDEBAR_TREE_MAX_INDENTED_DEPTH + 4);
 
     expect(deeper).toBe(last);
+  });
+});
+
+const sidebarPage = (id: string, parentId: string | null, hasChildren?: boolean): PortalSidebarPage => ({
+  hasChildren,
+  icon: null,
+  id,
+  lifecycle: 'ACTIVE',
+  order: 0,
+  parentId,
+  title: id,
+});
+
+describe('buildPortalSidebarPageTree', () => {
+  const trashed: PortalSidebarPage = { ...sidebarPage('gone', null), lifecycle: 'TRASHED' };
+
+  it('leaves out the pages in the trash, which have their own screen', () => {
+    const tree = buildPortalSidebarPageTree([sidebarPage('kept', null), trashed]);
+
+    expect(tree.map((item) => item.page.id)).toEqual(['kept']);
+  });
+
+  it('keeps the page in the trash that is open, so the person sees where they are', () => {
+    const tree = buildPortalSidebarPageTree([sidebarPage('kept', null), trashed], 'gone');
+
+    expect(tree.map((item) => item.page.id)).toEqual(['kept', 'gone']);
+  });
+});
+
+describe('hasPortalSidebarPageChildren', () => {
+  it('shows the chevron from the flag, before any child is loaded', () => {
+    expect(hasPortalSidebarPageChildren(sidebarPage('a', null, true), 0)).toBe(true);
+  });
+
+  it('shows the chevron once a child is loaded, whatever the flag says', () => {
+    expect(hasPortalSidebarPageChildren(sidebarPage('a', null, false), 2)).toBe(true);
+  });
+
+  it('shows no chevron for a page with no children at all', () => {
+    expect(hasPortalSidebarPageChildren(sidebarPage('a', null), 0)).toBe(false);
+  });
+});
+
+describe('shouldOfferPortalSidebarNextWindow', () => {
+  it('offers more while the loaded children do not reach the end', () => {
+    expect(shouldOfferPortalSidebarNextWindow(true, 100, false)).toBe(true);
+  });
+
+  it('shows the arriving state when none has arrived yet', () => {
+    expect(shouldOfferPortalSidebarNextWindow(false, 0, true)).toBe(true);
+  });
+
+  it('offers nothing when the children are complete', () => {
+    expect(shouldOfferPortalSidebarNextWindow(false, 12, false)).toBe(false);
+    expect(shouldOfferPortalSidebarNextWindow(false, 12, true)).toBe(false);
+  });
+});
+
+describe('shouldLoadPortalSidebarChildren', () => {
+  const pages = [sidebarPage('a', null, true), sidebarPage('a1', 'a'), sidebarPage('b', null, true)];
+
+  it('asks for the children of a page that was never opened', () => {
+    expect(shouldLoadPortalSidebarChildren(pages, new Set(), 'b')).toBe(true);
+  });
+
+  it('does not ask again for children already read', () => {
+    expect(shouldLoadPortalSidebarChildren(pages, new Set(), 'a')).toBe(false);
+  });
+
+  it('does not ask when the page is being closed', () => {
+    expect(shouldLoadPortalSidebarChildren(pages, new Set(['b']), 'b')).toBe(false);
   });
 });

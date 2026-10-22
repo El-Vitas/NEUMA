@@ -31,6 +31,7 @@ const buildContext = (rows: readonly BlockChainRow[], userIds: readonly string[]
   const readableSpaceIds = new Set([SPACE_ID]);
   return {
     maxDepth: MAX_DEPTH,
+    readableSpaceIdsByUserId: new Map(userIds.map((userId) => [userId, readableSpaceIds])),
     rolesByUserId: new Map(
       userIds.map((userId) => [
         userId,

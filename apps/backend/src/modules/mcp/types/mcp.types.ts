@@ -144,7 +144,7 @@ export interface McpOutlineViewer {
 }
 
 export interface McpOutlineEntry {
-  readonly childCount: number;
+  readonly hasChildren: boolean;
   readonly id: string;
   readonly isCollection: boolean;
   readonly propertyValues: PagePropertyValues | null;

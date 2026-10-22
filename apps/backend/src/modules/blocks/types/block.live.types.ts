@@ -17,6 +17,8 @@ export type BlockLiveClientMessage =
   | { readonly pageId: string; readonly type: 'unsubscribe' }
   | { readonly collectionId: string; readonly type: 'subscribe-collection' }
   | { readonly collectionId: string; readonly type: 'unsubscribe-collection' }
+  | { readonly since?: string | undefined; readonly spaceId: string; readonly type: 'subscribe-tree' }
+  | { readonly spaceId: string; readonly type: 'unsubscribe-tree' }
   | { readonly blockId: string | null; readonly pageId: string; readonly type: 'presence' }
   | { readonly type: 'ping' }
   | {
@@ -132,6 +134,8 @@ export interface BlockLiveConnection {
   reader: BlockReader | null;
   readonly socket: BlockLiveSocket;
   readonly subscriptions: Map<string, string>;
+  /** The spaces whose page tree the socket follows. */
+  readonly treeSubscriptions: Set<string>;
 }
 
 export interface BlockLivePage {
@@ -143,6 +147,9 @@ export interface BlockLiveTokenVerifier {
 }
 
 export interface BlockLivePageAccess {
+  readonly canReadSpace: (reader: BlockReader, spaceId: string) => Promise<boolean>;
+  /** Whether a page of the space was written by a transaction from `since` on (a snapshot watermark). */
+  readonly hasPageChangesSince: (spaceId: string, since: string) => Promise<boolean>;
   readonly canReadBlockInPage: (reader: BlockReader, pageId: string, blockId: string) => Promise<boolean>;
   readonly resolvePageAccess: (
     reader: BlockReader,
@@ -188,6 +195,7 @@ export interface BlockChainReader {
   readonly readAccounts: (userIds: readonly string[]) => Promise<readonly LiveAccount[]>;
   /** The rows of the seeds and of every ancestor above them, with no content. */
   readonly readChains: (seedIds: readonly string[]) => Promise<readonly BlockChainRow[]>;
+  readonly hasPageChangesSince: (spaceId: string, since: string) => Promise<boolean>;
 }
 
 /** The part of a `pg` client the listener uses, so a test can make one that goes silent. */

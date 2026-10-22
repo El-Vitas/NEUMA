@@ -3,19 +3,26 @@ import { PageLifecycle } from '@neuma/db';
 import { BLOCK_TYPE } from '@neuma/shared';
 import { PinoLogger } from 'nestjs-pino';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import type { NeumaSqlRunner } from '../../../../prisma/types/prisma.types';
 import {
   SEARCH_ANCESTOR_DEPTH_LIMIT,
   SEARCH_STRICT_WORD_SIMILARITY_SETTING,
   SEARCH_TYPO_WORD_SIMILARITY_THRESHOLD,
 } from '../../constants/search.constants';
+import { countResults } from '../../domain/search.paging.domain';
 import { declaringAncestorsSchema, headingEntriesSchema } from '../../schemas/search.candidate.schemas';
 import type {
   SearchCandidate,
   SearchCandidateRequest,
   SearchCandidateRow,
+  SearchMatching,
   SearchRepositoryContract,
 } from '../../types/search.types';
-import { buildCandidateStatement } from './search.statement';
+import { toInitialWindowSize, toWiderWindowSize } from '../../utils/search.window.utils';
+import { buildCandidateStatement, buildProbeStatement } from './search.statement';
+
+const toWindowSize = (request: SearchCandidateRequest): number =>
+  request.windowSize ?? toInitialWindowSize(request.fetchSize);
 
 @Injectable()
 export class SearchRepository implements SearchRepositoryContract {
@@ -25,10 +32,10 @@ export class SearchRepository implements SearchRepositoryContract {
   ) {}
 
   /** The statement behind one page of results, for callers that need to look at its plan. */
-  buildStatement(request: SearchCandidateRequest) {
+  buildStatement(request: SearchCandidateRequest, windowSize = toWindowSize(request)) {
     const { sql, tables } = this.prisma;
     const { Block, Space } = tables;
-    return buildCandidateStatement(sql, request)
+    return buildCandidateStatement(sql, request, windowSize)
       .returnsRow({
         blockId: Block.columns.id,
         blockType: Block.columns.type,
@@ -37,6 +44,7 @@ export class SearchRepository implements SearchRepositoryContract {
         headings: 'pg/jsonb@1',
         icon: { codecId: 'pg/jsonb@1', nullable: true },
         isPageVerified: 'pg/bool@1',
+        pageBestId: Block.columns.id,
         pageChain: 'pg/jsonb@1',
         pageId: Block.columns.id,
         pageRank: 'pg/float8@1',
@@ -51,9 +59,22 @@ export class SearchRepository implements SearchRepositoryContract {
       .build();
   }
 
+  /**
+   * Looks at the best matches first and widens the window while it holds too few results and left matches out, so
+   * the common case walks the ancestors of a few matches however many there are.
+   */
   async findCandidates(request: SearchCandidateRequest): Promise<readonly SearchCandidate[]> {
-    const rows = await this.runStatement(request);
-    return rows.flatMap((row) => this.toCandidate(row));
+    let windowSize = toWindowSize(request);
+    for (;;) {
+      const rows = await this.runStatement(request, windowSize);
+      const candidates = rows.flatMap((row) => this.toCandidate(row));
+      const found = countResults(candidates, request.granularity);
+      if (found >= request.fetchSize) return candidates;
+      const wider = toWiderWindowSize(windowSize, found, request.fetchSize);
+      const matched = await this.countMatches(request, wider);
+      if (matched <= windowSize) return candidates;
+      windowSize = Math.min(wider, matched);
+    }
   }
 
   /** The page holding the block, or the block itself when it is a page. Visibility is the caller's to check. */
@@ -85,9 +106,27 @@ export class SearchRepository implements SearchRepositoryContract {
     return rows.map((row) => row.pageId);
   }
 
-  private async runStatement(request: SearchCandidateRequest): Promise<readonly SearchCandidateRow[]> {
-    const statement = this.buildStatement(request);
-    if (request.matching === 'words') return this.prisma.runner.query(statement);
+  private runStatement(request: SearchCandidateRequest, windowSize: number): Promise<readonly SearchCandidateRow[]> {
+    const statement = this.buildStatement(request, windowSize);
+    return this.inMatchingMode(request.matching, async (runner) => runner.query(statement));
+  }
+
+  /** Matches there are for the request, counted up to one more than the window holds. */
+  private async countMatches(request: SearchCandidateRequest, windowSize: number): Promise<number> {
+    const { sql, tables } = this.prisma;
+    const statement = buildProbeStatement(sql, request, windowSize)
+      .returnsRow({ matched: tables.Block.columns.version })
+      .build();
+    const rows = await this.inMatchingMode(request.matching, async (runner) => runner.query(statement));
+    return rows[0]?.matched ?? 0;
+  }
+
+  /** The typo operator reads a transaction-local threshold, so it runs inside one; words need no setup. */
+  private inMatchingMode<Rows>(
+    matching: SearchMatching,
+    run: (runner: NeumaSqlRunner) => Promise<Rows>,
+  ): Promise<Rows> {
+    if (matching === 'words') return run(this.prisma.runner);
     return this.prisma.transaction(async (transaction) => {
       const { sql } = this.prisma;
       await transaction.execute(
@@ -95,7 +134,7 @@ export class SearchRepository implements SearchRepositoryContract {
           .affectedCount()
           .build(),
       );
-      return transaction.query(statement);
+      return run(transaction);
     });
   }
 

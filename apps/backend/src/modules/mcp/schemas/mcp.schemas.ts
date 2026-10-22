@@ -73,7 +73,7 @@ const mcpRowPropertiesSchema = z
   .optional();
 
 const mcpOutlinePageSchema = z.object({
-  childCount: z.number().int().nonnegative(),
+  hasChildren: z.boolean(),
   id: idSchema,
   isCollection: z.boolean(),
   properties: mcpRowPropertiesSchema,

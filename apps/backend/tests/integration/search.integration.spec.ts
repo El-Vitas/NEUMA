@@ -501,6 +501,100 @@ describe('Search over blocks (Integration)', () => {
     });
   });
 
+  describe('a page whose best matches the reader may not read', () => {
+    const FILLER_PAGES = 400;
+    const FILLER_PAGE_SIZE = 20;
+    const mixedTerm = uniqueWord();
+    const mixedPageId = crypto.randomUUID();
+    const hiddenSectionId = crypto.randomUUID();
+    const hiddenBlockId = crypto.randomUUID();
+    const readableBlockId = crypto.randomUUID();
+    const fillerPageIds = Array.from({ length: FILLER_PAGES }, () => crypto.randomUUID());
+
+    beforeAll(async () => {
+      const open = { createdById: admin.userId, editedById: admin.userId, spaceId: openSpaceId };
+      const rows: Parameters<PrismaService['models']['Block']['createAndCount']>[0][number][] = [];
+      rows.push({
+        ...open,
+        children: [hiddenSectionId, readableBlockId],
+        id: mixedPageId,
+        properties: richTitle('Mixta'),
+        text: 'Mixta',
+        type: 'page',
+      });
+      rows.push({
+        ...open,
+        children: [hiddenBlockId],
+        id: hiddenSectionId,
+        parentId: mixedPageId,
+        permissions: [{ principal: { kind: 'user', userId: admin.userId }, role: BLOCK_ROLE.full }],
+        properties: richTitle('Reservada'),
+        text: 'Reservada',
+        type: 'toggle',
+      });
+      rows.push({
+        ...open,
+        id: hiddenBlockId,
+        parentId: hiddenSectionId,
+        properties: richTitle(mixedTerm),
+        text: mixedTerm,
+        type: 'paragraph',
+      });
+      const readableText = `una nota larga sobre ${mixedTerm} con muchas palabras de relleno que bajan el puesto de esta coincidencia`;
+      rows.push({
+        ...open,
+        id: readableBlockId,
+        parentId: mixedPageId,
+        properties: richTitle(readableText),
+        text: readableText,
+        type: 'paragraph',
+      });
+      for (const pageId of fillerPageIds) {
+        const blockId = crypto.randomUUID();
+        const text = `${mixedTerm} relleno`;
+        rows.push({
+          ...open,
+          children: [blockId],
+          id: pageId,
+          properties: richTitle('Relleno'),
+          text: 'Relleno',
+          type: 'page',
+        });
+        rows.push({ ...open, id: blockId, parentId: pageId, properties: richTitle(text), text, type: 'paragraph' });
+      }
+      await prisma.models.Block.createAndCount(rows);
+    });
+
+    const collectPages = async (viewer: Viewer): Promise<string[]> => {
+      const seen: string[] = [];
+      let cursor: string | undefined;
+      do {
+        const next = await searchPages(
+          viewer,
+          mixedTerm,
+          `&limit=${String(FILLER_PAGE_SIZE)}${cursor === undefined ? '' : `&cursor=${cursor}`}`,
+        );
+        seen.push(...pageIdsOf(next));
+        cursor = next.nextCursor;
+      } while (cursor !== undefined);
+      return seen;
+    };
+
+    it('still finds the page through the match the reader may read, ranked far below the hidden one', async () => {
+      const seen = await collectPages(worker);
+
+      expect(new Set(seen).size).toBe(seen.length);
+      expect(seen.toSorted()).toEqual([mixedPageId, ...fillerPageIds].toSorted());
+    });
+
+    it('gives a full page of results even when the best matches are all hidden from the reader', async () => {
+      const first = await searchPages(worker, mixedTerm, `&limit=${String(FILLER_PAGE_SIZE)}`);
+
+      expect(first.items).toHaveLength(FILLER_PAGE_SIZE);
+      expect(first.nextCursor).toBeDefined();
+    });
+  });
+
   describe('freshness', () => {
     it('finds a change as soon as its transaction commits, with nothing in between', async () => {
       const blockId = crypto.randomUUID();

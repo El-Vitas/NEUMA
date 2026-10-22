@@ -12,16 +12,19 @@ import {
 import { planCollectionDeliveries, planCollectionResync } from './domain/block.live.collection.domain';
 import { planCommentNotificationDeliveries, planDiscussionDeliveries } from './domain/block.live.discussion.domain';
 import type {
-  CollectionSubscription,
   LiveAccessContext,
   LiveDelivery,
   LiveSubscription,
   NotificationConnection,
   PresenceEntry,
   ReaderSubscription,
+  SpaceFollowers,
+  TreeSubscription,
   VersionNotification,
 } from './domain/block.live.domain.types';
 import { planPresenceDeliveries, planResync, planVersionDeliveries } from './domain/block.live.routing.domain';
+import { listLostTreeSubscriptions, planTreeDeliveries, planTreeResync } from './domain/block.live.tree.domain';
+import type { NotifiedBlock } from './domain/block.transaction.domain.types';
 import { BlockLiveRegistry } from './infrastructure/registry/block.live.registry';
 import type {
   BlockLiveBroadcaster,
@@ -35,6 +38,12 @@ import { runWithDeadline } from './utils/block.live.deadline.utils';
 import { parseCommentEvent, parseVersionNotification, serializeServerMessage } from './utils/block.live.message.utils';
 
 const toPageId = (subscription: LiveSubscription): string => subscription.pageId;
+
+/** A page that moved says where it was; that parent is read too, so the old list can be told to change. */
+const listPreviousParentIds = (blocks: readonly NotifiedBlock[]): string[] =>
+  blocks.flatMap((block) =>
+    block.previousParentId === undefined || block.previousParentId === null ? [] : [block.previousParentId],
+  );
 
 /** Turns a committed transaction or a presence change into the messages each subscribed socket may receive. */
 @Injectable()
@@ -163,6 +172,7 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
       await this.deliver([
         ...planResync(this.registry.listSubscriptions()),
         ...planCollectionResync(this.registry.listCollectionSubscriptions()),
+        ...planTreeResync(this.registry.listTreeSubscriptions()),
       ]);
     } catch (error) {
       this.logFailure(error);
@@ -179,38 +189,54 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
     const notification = parsed.getValue();
     const subscriptions = this.registry.listSubscriptionsInSpace(notification.spaceId);
     const collectionSubscriptions = this.registry.listCollectionSubscriptionsInSpace(notification.spaceId);
-    if (subscriptions.length === 0 && collectionSubscriptions.length === 0) return;
+    const treeSubscriptions = this.registry.listTreeSubscriptionsInSpace(notification.spaceId);
+    if (subscriptions.length === 0 && collectionSubscriptions.length === 0 && treeSubscriptions.length === 0) return;
     if (notification.kind === 'truncated') {
-      await this.deliver([...planResync(subscriptions), ...planCollectionResync(collectionSubscriptions)]);
+      await this.deliver([
+        ...planResync(subscriptions),
+        ...planCollectionResync(collectionSubscriptions),
+        ...planTreeResync(treeSubscriptions),
+      ]);
       return;
     }
-    await this.deliver(await this.planVersions(notification, subscriptions, collectionSubscriptions));
+    await this.deliver(
+      await this.planVersions(notification, {
+        collections: collectionSubscriptions,
+        pages: subscriptions,
+        trees: treeSubscriptions,
+      }),
+    );
   }
 
   /** One refresh of the accounts, one read of the chains and one role lookup serve pages and collections alike. */
   private async planVersions(
     notification: Extract<VersionNotification, { kind: 'versions' }>,
-    subscriptions: readonly LiveSubscription[],
-    collectionSubscriptions: readonly CollectionSubscription[],
+    followers: SpaceFollowers,
   ): Promise<LiveDelivery[]> {
     try {
-      const available = await this.applyCurrentAccounts([...subscriptions, ...collectionSubscriptions]);
+      const available = await this.applyCurrentAccounts([
+        ...followers.pages,
+        ...followers.collections,
+        ...followers.trees,
+      ]);
       const availableUserIds = new Set(available.map((subscription) => subscription.userId));
-      const current = subscriptions.filter((subscription) => availableUserIds.has(subscription.userId));
-      const currentCollections = collectionSubscriptions.filter((subscription) =>
-        availableUserIds.has(subscription.userId),
-      );
+      const isAvailable = (subscription: ReaderSubscription): boolean => availableUserIds.has(subscription.userId);
+      const current = followers.pages.filter(isAvailable);
+      const currentCollections = followers.collections.filter(isAvailable);
+      const currentTrees = followers.trees.filter(isAvailable);
       const seedIds = [
         ...new Set([
           ...notification.blocks.map((block) => block.id),
+          ...(currentTrees.length === 0 ? [] : listPreviousParentIds(notification.blocks)),
           ...current.map(toPageId),
           ...currentCollections.map((subscription) => subscription.collectionId),
         ]),
       ];
       const context = await this.accessService.loadContext(
         seedIds,
-        this.listReaders([...current, ...currentCollections]),
+        this.listReaders([...current, ...currentCollections, ...currentTrees]),
       );
+      this.stopFollowingLostSpaces(listLostTreeSubscriptions(context, currentTrees));
       return [
         ...planVersionDeliveries({ blocks: notification.blocks, context, subscriptions: current }),
         ...planCollectionDeliveries({
@@ -219,10 +245,22 @@ export class BlockLiveFanoutService implements BlockLiveBroadcaster {
           subscriptions: currentCollections,
           views: notification.views,
         }),
+        ...planTreeDeliveries({ blocks: notification.blocks, context, subscriptions: currentTrees }),
       ];
     } catch (error) {
       this.logger.error({ err: error }, 'live channel could not resolve who may read a notification');
-      return [...planResync(subscriptions), ...planCollectionResync(collectionSubscriptions)];
+      return [
+        ...planResync(followers.pages),
+        ...planCollectionResync(followers.collections),
+        ...planTreeResync(followers.trees),
+      ];
+    }
+  }
+
+  /** They are still told once, in this notification's deliveries, to read again; after that they hear nothing. */
+  private stopFollowingLostSpaces(lost: readonly TreeSubscription[]): void {
+    for (const subscription of lost) {
+      this.registry.find(subscription.connectionId)?.treeSubscriptions.delete(subscription.spaceId);
     }
   }
 

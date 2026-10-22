@@ -13,8 +13,30 @@ export const PAGE_PURGE_REPOSITORY = 'PAGE_PURGE_REPOSITORY';
 export const PAGE_VERSION_RETENTION_REPOSITORY = 'PAGE_VERSION_RETENTION_REPOSITORY';
 export const PAGE_SCHEMA_REPOSITORY = 'PAGE_SCHEMA_REPOSITORY';
 export const PAGE_OUTLINE_REPOSITORY = 'PAGE_OUTLINE_REPOSITORY';
+export const PAGE_TREE_REPOSITORY = 'PAGE_TREE_REPOSITORY';
 /** Deeper than any real tree; bounds every walk up or down it, should a cycle appear. */
 export const PAGE_TREE_MAX_DEPTH = 64;
+
+/** The sidebar asks for the children of a page in windows (ADR 030). */
+export const PAGE_TREE_DEFAULT_WINDOW = 100;
+export const PAGE_TREE_MAX_WINDOW = 200;
+export const PAGE_LOOKUP_MAX_IDS = 100;
+/** Documents are heavy, so a lookup of content is a smaller batch. */
+export const PAGE_LOOKUP_CONTENT_MAX_IDS = 20;
+/** Pages offered per space while nothing is typed; what is not among them is reached by searching. */
+export const PAGE_MOVE_DESTINATIONS_PER_SPACE = 20;
+/** Pages a search offers as a place to move to. */
+export const PAGE_MOVE_DESTINATIONS_SEARCH_LIMIT = 30;
+
+export const PAGE_RECENT_DEFAULT_TAKE = 20;
+export const PAGE_RECENT_MAX_TAKE = 50;
+/** Blocks read per page asked for before they are resolved to the pages that hold them. */
+export const PAGE_RECENT_BLOCKS_PER_PAGE = 4;
+export const PAGE_RECENT_MAX_ROUNDS = 5;
+/** What a collection has in the tree: nothing, because its rows are not listed there. */
+export const PAGE_TREE_EMPTY_CHILDREN = { entries: [], total: 0 } as const;
+export const PAGE_TRASH_DEFAULT_WINDOW = 50;
+export const PAGE_TRASH_MAX_WINDOW = 100;
 
 /** The columns of a block that make a page. */
 export const PAGE_BLOCK_COLUMNS = [
