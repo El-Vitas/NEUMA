@@ -13,6 +13,7 @@ const candidate = (blockId: string, overrides: Partial<SearchCandidate> = {}): S
   headings: [],
   icon: null,
   isPageVerified: false,
+  pageBestId: blockId,
   pageChain: [],
   pageId: 'page-1',
   pageParentId: null,

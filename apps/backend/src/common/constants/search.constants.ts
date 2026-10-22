@@ -1,3 +1,5 @@
+/** How other modules ask for a search without reaching into the search module (see `SearchReader`). */
+export const SEARCH_READER = Symbol('SEARCH_READER');
 export const SEARCH_SOURCE_TYPE_VALUES = ['PAGE'] as const;
 export const SEARCH_DEFAULT_LIMIT = 20;
 export const SEARCH_MAX_LIMIT = 50;

@@ -5,17 +5,16 @@ import type { BlockVersion, NoticeSource, NotifiedBlock, NotifiedView } from './
 const hasChangedPermissions = (block: NoticeSource, previous: NoticeSource | undefined): boolean =>
   previous === undefined ? block.permissions !== null : !isSameJson(previous.permissions, block.permissions);
 
-const findLeftParentId = (block: NoticeSource, previous: NoticeSource | undefined): string | null => {
-  const previousParentId = previous?.parentId ?? null;
-  return previousParentId !== null && previousParentId !== block.parentId ? previousParentId : null;
-};
+/** Undefined when the block did not move; null when it left the top of its space. */
+const findLeftParentId = (block: NoticeSource, previous: NoticeSource | undefined): string | null | undefined =>
+  previous === undefined || previous.parentId === block.parentId ? undefined : previous.parentId;
 
 const toNotice = (block: NoticeSource, previous: NoticeSource | undefined): NotifiedBlock => {
   const leftParentId = findLeftParentId(block, previous);
   return {
     ...(hasChangedPermissions(block, previous) ? { hasAccessChange: true as const } : {}),
     id: block.id,
-    ...(leftParentId === null ? {} : { previousParentId: leftParentId }),
+    ...(leftParentId === undefined ? {} : { previousParentId: leftParentId }),
     version: block.version,
   };
 };

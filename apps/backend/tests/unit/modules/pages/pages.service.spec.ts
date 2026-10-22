@@ -78,8 +78,8 @@ const createRepository = (): PageRepositoryContract => ({
       spaceId: 'space-a',
       title: 'Page A',
     }),
-  listMoveDestinations: () => Promise.resolve({ pages: [], spaces: [] }),
-  listTrashed: () => Promise.resolve([]),
+  readMoveOrigin: () => Promise.resolve({ parentId: null, spaces: [] }),
+  listTrashed: () => Promise.resolve({ items: [], total: 0 }),
   listWithProperties: () => Promise.resolve([]),
   move: () => Promise.resolve(page),
   parentBelongsToSpace: () => Promise.resolve(true),
@@ -636,7 +636,10 @@ describe('pages service', () => {
       title: 'Page A',
       trashedChildCount: 0,
     };
-    const repository = { ...createRepository(), listTrashed: () => Promise.resolve([trashedSummary]) };
+    const repository = {
+      ...createRepository(),
+      listTrashed: () => Promise.resolve({ items: [trashedSummary], total: 1 }),
+    };
     const service = new PagesService(
       repository,
       createSchemaRepository(),
@@ -647,9 +650,9 @@ describe('pages service', () => {
       createVersionRetentionRepository(),
     );
 
-    const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null);
+    const result = await service.listTrashed('workspace-a', 'user-a', USER_ROLE.WORKER, null, null, null);
 
-    expect(result).toEqual([trashedSummary]);
+    expect(result).toEqual({ items: [trashedSummary], total: 1 });
   });
 
   it('schedules a trashed page for deletion in 30 days and leaves its attachments alone for now', async () => {

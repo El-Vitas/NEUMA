@@ -26,6 +26,22 @@ rules:
         given: Una página que menciona otra que quien exporta no puede leer
         when: Se exporta esa página
         then: El archivo muestra la mención con la etiqueta tapada, no con el título real
+  - id: BR-058dcbc
+    status: active
+    title: El menú lateral se pone al día con lo que hacen los demás
+    rule: >-
+      Cuando otra persona crea, mueve, renombra, reordena o envía a la papelera una página que el menú muestra, el menú
+      lo refleja sin recargar y sin volver a pedir todo el espacio. Una página que la persona no puede abrir no se
+      nombra ni se cuenta.
+    why: >-
+      Dos personas que trabajan en el mismo espacio no deben ver árboles distintos ni enterarse de un cambio al chocar
+      con él.
+    context: El aviso solo indica qué listas cambiaron; lo que cada persona ve se vuelve a pedir con sus propios permisos.
+    scenarios:
+      - title: Un cambio ajeno
+        given: Dos personas con el mismo espacio abierto
+        when: Una renombra una página
+        then: La otra ve el nuevo nombre en su menú en menos de un segundo
   - id: BR-0d64742
     status: active
     title: La vista previa se puede alcanzar y se puede entrar en ella
@@ -132,6 +148,23 @@ rules:
         given: Una página con la palabra "safe" y otra con "ÜSAFE"
         when: Alguien busca "safe"
         then: Aparecen las dos, y la que tiene la palabra entera va primero
+  - id: BR-4139398
+    status: active
+    title: Abrir una página no espera al resto del espacio
+    rule: >-
+      Abrir una página trae esa página y lo que ella nombra, no las demás páginas del espacio. Tardar lo mismo en un
+      espacio de doce mil páginas que en uno de diez es parte de lo que la persona espera.
+    why: >-
+      Un espacio crece sin aviso, y una página que tarda segundos porque el espacio es grande le dice a la persona que
+      crecer es castigado.
+    context: >-
+      Lo que una página nombra (menciones, subpáginas, relaciones y bloques sincronizados) se pide junto al abrirla. El
+      menú lateral y el resto del espacio llegan por separado y solo hasta donde la persona los abre.
+    scenarios:
+      - title: Un espacio grande
+        given: Un espacio con doce mil páginas
+        when: Alguien abre una de ellas
+        then: La página se dibuja con su contenido y sus nombres sin cargar las otras once mil novecientas noventa y nueve
   - id: BR-43e3ddc
     status: active
     title: Quien ve la lista de personas con acceso es solo quien puede cambiarla
@@ -167,6 +200,22 @@ rules:
         given: Una página que se encuentra por una palabra
         when: Alguien la tira a la papelera
         then: La siguiente búsqueda de esa palabra ya no la muestra
+  - id: BR-517fcae
+    status: active
+    title: El menú lateral muestra lo que se abre y no las filas de una colección
+    rule: >-
+      El menú lateral lista las páginas de arriba, el camino hasta la página abierta y los hijos de cada página que se
+      expande, de a cien. Las filas de una colección no aparecen en el menú, y una página en la papelera tampoco, salvo
+      la que está abierta.
+    why: Un menú que lista todo se vuelve inmanejable con las filas de una tabla, y la papelera ya tiene su propio lugar.
+    context: >-
+      A las filas se llega desde la colección, la búsqueda, las menciones y los enlaces. Cuando hay más de cien páginas
+      bajo una, el menú ofrece ver más.
+    scenarios:
+      - title: Una colección con miles de filas
+        given: Una colección con cuatro mil filas dentro de un espacio
+        when: Se mira el menú lateral
+        then: La colección aparece como una página sin flecha y ninguna de sus filas se lista
   - id: BR-6201333
     status: active
     title: Una página creada con un identificador dado se crea una sola vez

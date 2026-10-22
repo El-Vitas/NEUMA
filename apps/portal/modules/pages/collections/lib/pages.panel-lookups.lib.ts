@@ -2,7 +2,12 @@ import { PAGE_PROPERTY_TYPE, toValueList, withPageDerivedValues } from '@neuma/s
 import type { AttachmentSummary } from '../../attachments/types/pages.attachments.types';
 import type { PageSummary } from '../../types/pages.types';
 import type { PageCollectionLookups } from '../types/pages.lookups.types';
-import type { PagePersonOption, PagePropertyValues, PageSchemaProperty } from '../types/pages.schema.types';
+import type {
+  PagePersonOption,
+  PagePropertyValues,
+  PageRelatedRow,
+  PageSchemaProperty,
+} from '../types/pages.schema.types';
 
 /** The values of a row as its page shows them: what it stores, plus what the page itself says about who made it. */
 export const withPanelDerivedValues = (
@@ -20,13 +25,13 @@ export const withPanelDerivedValues = (
       });
 
 /**
- * The names a row's own page already knows: the rows its relations point to are pages of the same space, and its
- * files are the ones uploaded to it. Nothing is asked of the server.
+ * The names a row's own page already knows: the rows its relations point to come with the page when it opens, and
+ * its files are the ones uploaded to it. Nothing is asked of the server.
  */
 export const buildPanelLookups = (
   properties: readonly PageSchemaProperty[],
   propertyValues: PagePropertyValues,
-  pages: readonly PageSummary[],
+  relatedRows: readonly PageRelatedRow[],
   attachments: readonly AttachmentSummary[],
   people: readonly PagePersonOption[],
 ): PageCollectionLookups => {
@@ -43,6 +48,6 @@ export const buildPanelLookups = (
       size: attachment.size,
     })),
     people,
-    relatedRows: pages.filter((page) => relatedIds.has(page.id)).map(({ id, title }) => ({ id, title })),
+    relatedRows: relatedRows.filter((row) => relatedIds.has(row.id)),
   };
 };

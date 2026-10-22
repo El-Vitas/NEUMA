@@ -9,17 +9,18 @@ import { formatMcpPageState } from './mcp.page-state.lib';
 
 const describePath = (page: FetchedPage): string => [...page.path.map((step) => step.title), page.title].join(' › ');
 
-/** A collection reports its row count, not "N below": that read as a board with four columns instead of four tasks. */
+/** A collection says it has rows, not "pages under it": that read as a board with columns instead of tasks. */
 export const describeMcpOutlinePage = (page: {
-  readonly childCount: number;
+  readonly hasChildren: boolean;
   readonly id: string;
   readonly isCollection: boolean;
   readonly title: string;
   readonly url: string;
 }): string => {
   const kind = page.isCollection ? 'collection' : 'page';
-  const holds = page.isCollection ? 'rows' : 'pages under it';
-  return `- ${page.title} (${kind} ${page.id}, ${String(page.childCount)} ${holds}) ${page.url}`;
+  const holds = page.isCollection ? 'has rows' : 'has pages under it';
+  const state = page.hasChildren ? `, ${holds}` : '';
+  return `- ${page.title} (${kind} ${page.id}${state}) ${page.url}`;
 };
 
 const describeChildren = (page: FetchedPage): string => {

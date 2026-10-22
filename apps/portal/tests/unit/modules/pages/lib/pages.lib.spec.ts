@@ -2,7 +2,6 @@ import { describe, expect, it } from 'bun:test';
 import { PAGE_API_ROUTES } from '@/modules/pages/constants/pages.constants';
 import {
   buildPageDocumentTitle,
-  buildPageTree,
   canEditPage,
   extractPageText,
   resolveReadOnlyMessage,
@@ -39,13 +38,6 @@ describe('pages.lib', () => {
     expect(canEditPage(true, 'ACTIVE')).toBe(true);
     expect(canEditPage(true, 'TRASHED')).toBe(false);
     expect(canEditPage(false, 'ACTIVE')).toBe(false);
-  });
-
-  it('builds an ordered hierarchy from flat page summaries', () => {
-    const tree = buildPageTree([page('child', 'root', 1), page('root', null, 2), page('first', null, 1)]);
-
-    expect(tree.map((item) => item.page.id)).toEqual(['first', 'root']);
-    expect(tree[1]?.children.map((item) => item.page.id)).toEqual(['child']);
   });
 
   it('extracts searchable text from structured page content', () => {

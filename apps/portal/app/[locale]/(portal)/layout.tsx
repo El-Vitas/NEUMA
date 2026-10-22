@@ -4,7 +4,11 @@ import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { getFavoritePages } from '@/modules/favorites/server/queries/favorites.queries';
 import { PagesCollectionCacheProvider } from '@/modules/pages/collections/components/pages.collection.cache.provider';
-import { getPages } from '@/modules/pages/server/queries/pages.queries';
+import { PagesTreeLive } from '@/modules/pages/tree/components/pages.tree.live';
+import { PagesTreeProvider } from '@/modules/pages/tree/components/pages.tree.provider';
+import { EMPTY_TREE_ROOTS } from '@/modules/pages/tree/constants/pages.tree.constants';
+import { listPageTreeWatermarks } from '@/modules/pages/tree/lib/pages.tree.lib';
+import { getTreeRoots } from '@/modules/pages/tree/server/queries/pages.tree.queries';
 import { PortalSkeleton } from '@/modules/portal/components/portal.skeleton';
 import { PortalLayout } from '@/modules/portal/layout/portal.layout';
 import { resolvePortalSpaceKind } from '@/modules/portal/lib/portal.sidebar.lib';
@@ -24,36 +28,35 @@ const AuthGuard = async ({ children }: { readonly children: React.ReactNode }) =
   const [spacesResult, favoritesResult] = await Promise.all([getSpaces(), getFavoritePages()]);
   const spaceSummaries = spacesResult.isOk() ? spacesResult.getValue() : [];
   const favorites = favoritesResult.isOk() ? favoritesResult.getValue() : [];
-  const spaces = await Promise.all(
+  const spaceRoots = await Promise.all(
     spaceSummaries.map(async (space) => {
-      const pagesResult = await getPages(space.id);
-      return {
-        icon: space.icon,
-        id: space.id,
-        kind: resolvePortalSpaceKind(space.visibility, space.ownerId, user.id),
-        name: space.name,
-        pages: pagesResult.isOk()
-          ? pagesResult.getValue().map((page) => ({
-              hasOwnPermissions: page.hasOwnPermissions,
-              icon: page.icon ?? null,
-              id: page.id,
-              lifecycle: page.lifecycle,
-              order: page.order,
-              parentId: page.parentId,
-              title: page.title,
-            }))
-          : [],
-      };
+      const rootsResult = await getTreeRoots(space.id);
+      return { id: space.id, roots: rootsResult.isOk() ? rootsResult.getValue() : EMPTY_TREE_ROOTS };
     }),
   );
+  const spaces = spaceSummaries.map((space) => ({
+    icon: space.icon,
+    id: space.id,
+    kind: resolvePortalSpaceKind(space.visibility, space.ownerId, user.id),
+    name: space.name,
+  }));
   const portalUser = { email: user.email, name: user.name };
   const theme = await readRequestTheme();
 
   return (
     <PagesCollectionCacheProvider userId={user.id}>
-      <PortalLayout favorites={favorites} role={user.role} spaces={spaces} themeChoice={theme.choice} user={portalUser}>
-        {children}
-      </PortalLayout>
+      <PagesTreeProvider spaces={spaceRoots}>
+        <PagesTreeLive spaceIds={spaces.map((space) => space.id)} watermarks={listPageTreeWatermarks(spaceRoots)} />
+        <PortalLayout
+          favorites={favorites}
+          role={user.role}
+          spaces={spaces}
+          themeChoice={theme.choice}
+          user={portalUser}
+        >
+          {children}
+        </PortalLayout>
+      </PagesTreeProvider>
     </PagesCollectionCacheProvider>
   );
 };

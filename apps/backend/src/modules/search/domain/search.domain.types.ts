@@ -28,6 +28,8 @@ export interface SearchCandidate {
   readonly isPageVerified: boolean;
   /** Declaring ancestors from the page upward: what decides whether the viewer may see the page at all. */
   readonly pageChain: readonly DeclaringAncestor[];
+  /** The match that places the page in the order, whoever reads it; it breaks ties between pages of equal rank. */
+  readonly pageBestId: string;
   readonly pageId: string;
   readonly pageParentId: string | null;
   /** Rank of the best match of the page, whoever reads it: where the page sits in the order. */

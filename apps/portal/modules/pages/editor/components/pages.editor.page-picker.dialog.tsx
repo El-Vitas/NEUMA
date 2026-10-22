@@ -21,7 +21,7 @@ interface IProps {
 export const PagesEditorPagePickerDialog = ({ exceptPageId, isOpen, onCancel, onChoose, spaceId, wording }: IProps) => {
   const t = useTranslations('pages');
   const [query, setQuery] = useState('');
-  const destinations = usePagesEditorDestinations(isOpen, spaceId, exceptPageId);
+  const destinations = usePagesEditorDestinations(isOpen, spaceId, exceptPageId, query);
   const matches = findPageDestinations(destinations, query);
 
   const leave = (): void => {

@@ -95,6 +95,8 @@ const buildHarness = (
 ): Harness => {
   const broadcasts: string[] = [];
   const pageAccess: BlockLivePageAccess = {
+    canReadSpace: () => Promise.resolve(true),
+    hasPageChangesSince: () => Promise.resolve(false),
     canReadBlockInPage: (_reader, _pageId, blockId) => Promise.resolve(blockId !== 'hidden-block'),
     resolvePageAccess: (_reader, pageId) =>
       Promise.resolve(

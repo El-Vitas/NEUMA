@@ -1,6 +1,6 @@
-import type { PageSummary } from '../../types/pages.types';
+import type { PageBreadcrumbParent } from '../../tree/types/pages.tree.types';
 
 export interface PagesBreadcrumbSegments {
-  readonly collapsedParentPages: readonly PageSummary[];
-  readonly visibleParentPages: readonly PageSummary[];
+  readonly collapsedParentPages: readonly PageBreadcrumbParent[];
+  readonly visibleParentPages: readonly PageBreadcrumbParent[];
 }

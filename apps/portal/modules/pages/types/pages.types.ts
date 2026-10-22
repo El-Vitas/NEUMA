@@ -73,7 +73,17 @@ export interface PageSummary {
   readonly version: number;
 }
 
-export interface PageTreeItem {
-  readonly children: readonly PageTreeItem[];
-  readonly page: PageSummary;
+/** What a mention, a link, a subpage or a relation shows of another page: no content and no list of pages. */
+export interface PageReference {
+  readonly icon?: PageIcon | null;
+  readonly id: string;
+  readonly lifecycle: PageLifecycle;
+  readonly spaceId: string;
+  readonly title: string;
+}
+
+/** The content of a page another page borrows a block from. */
+export interface PageSyncedSource {
+  readonly content: PageContent;
+  readonly id: string;
 }

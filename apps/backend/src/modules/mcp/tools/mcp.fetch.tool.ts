@@ -145,7 +145,7 @@ const describeChildren = async (
     take: MCP_FETCH_CHILD_LIMIT,
   });
   const shown = children.entries.map((child) => ({
-    childCount: child.childCount,
+    hasChildren: child.hasChildren,
     id: child.id,
     isCollection: child.isCollection,
     title: child.title,

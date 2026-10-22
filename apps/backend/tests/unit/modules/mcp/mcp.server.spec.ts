@@ -175,7 +175,7 @@ const childrenOf =
 const outline: McpOutlineReader = {
   listAncestors: () => Promise.resolve([]),
   listChildren: childrenOf([
-    { childCount: 2, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' },
+    { hasChildren: true, id: MISSING, isCollection: true, propertyValues: null, title: 'Incidents' },
   ]),
   listReadable: (pageIds) =>
     Promise.resolve(pageIds.filter((id) => id === PAGE).map((id) => ({ id, spaceId: SPACE, title: 'Runbook' }))),
@@ -554,7 +554,7 @@ describe('MCP fetch', () => {
         backlinks: [],
         children: [
           {
-            childCount: 2,
+            hasChildren: true,
             id: MISSING,
             isCollection: true,
             title: 'Incidents',
@@ -771,7 +771,7 @@ describe('MCP fetch — rows, comments and long pages', () => {
 
   test('names only the first pages under a page and says how many more there are', async () => {
     const many = Array.from({ length: MCP_FETCH_CHILD_LIMIT + 5 }, (_unused, index) => ({
-      childCount: 0,
+      hasChildren: false,
       id: `child-${String(index)}`,
       isCollection: false,
       propertyValues: null,
@@ -946,7 +946,7 @@ describe('MCP list_pages', () => {
     expect(result.structuredContent).toEqual({
       pages: [
         {
-          childCount: 2,
+          hasChildren: true,
           id: MISSING,
           isCollection: true,
           title: 'Incidents',
@@ -959,7 +959,7 @@ describe('MCP list_pages', () => {
 
   test('gives each row of a collection its properties, people by name', async () => {
     const task = (at: number, status: string) => ({
-      childCount: 0,
+      hasChildren: false,
       id: `task-${String(at)}`,
       isCollection: false,
       propertyValues: { assignee: ['u-1'], status },
@@ -984,7 +984,7 @@ describe('MCP list_pages', () => {
 
   test('lists a long level in parts, and the cursor leads to the rest', async () => {
     const many = Array.from({ length: 7 }, (_unused, at) => ({
-      childCount: 0,
+      hasChildren: false,
       id: `p-${String(at)}`,
       isCollection: false,
       propertyValues: null,

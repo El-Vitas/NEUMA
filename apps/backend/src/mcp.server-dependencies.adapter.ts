@@ -153,8 +153,8 @@ export class McpServerDependenciesAdapter {
     return {
       duplicate: ({ includeChildren, pageId, role, title, userId, workspaceId }) =>
         pagesService.duplicate(pageId, includeChildren, title, userId, workspaceId, role),
-      listTrashed: ({ role, search, spaceId, userId, workspaceId }) =>
-        pagesService.listTrashed(workspaceId, userId, role, spaceId, search),
+      listTrashed: async ({ role, search, spaceId, userId, workspaceId }) =>
+        (await pagesService.listTrashed(workspaceId, userId, role, spaceId, search, null)).items,
       move: ({ pageId, parentId, role, spaceId, userId, workspaceId }) =>
         pagesService.move(pageId, parentId, spaceId, userId, workspaceId, randomUUID(), role),
       previewTrashCascade: ({ pageId, role, userId, workspaceId }) =>

@@ -42,7 +42,8 @@ import { readPageCollectionAction } from '../collections/server/actions/pages.co
 import type { PagePersonOption, PageSchema } from '../collections/types/pages.schema.types';
 import {
   EMPTY_PAGE_PERSON_OPTIONS,
-  EMPTY_PAGE_SUMMARIES,
+  EMPTY_PAGE_REFERENCES,
+  EMPTY_PAGE_SYNCED_SOURCES,
   EMPTY_RESTRICTED_BLOCK_IDS,
 } from '../constants/pages.constants';
 import { PagesDiscussionsDialog } from '../discussions/components/pages.discussions.dialog';
@@ -129,7 +130,7 @@ import { createPageAction } from '../server/actions/pages.actions';
 import type { SharingChange } from '../sharing/types/pages.sharing.types';
 import { readButtonRowTitle } from '../templates/lib/pages.templates.lib';
 import { readButtonTemplates, readPageTemplatesFromBrowser } from '../templates/lib/pages.templates.reading.lib';
-import type { PageContent, PageSummary } from '../types/pages.types';
+import type { PageContent, PageReference, PageSummary, PageSyncedSource } from '../types/pages.types';
 
 interface IProps {
   /** What the block channel reports (connection and other people on the page); null while no channel is open. */
@@ -148,11 +149,14 @@ interface IProps {
   /** Called after every change of the document or of where the cursor is. */
   readonly onSelectionChange?: (selection: Selection) => void;
   readonly pageId: string | null;
-  readonly pages?: readonly PageSummary[];
+  /** The pages this one draws something from, and the ones offered when a mention or a link is being written. */
+  readonly pages?: readonly PageReference[];
   readonly personOptions?: readonly PagePersonOption[];
   /** The blocks of this page that declare their own access, which get a lock. */
   readonly restrictedBlockIds?: ReadonlySet<string>;
   readonly spaceId: string;
+  /** The content of the pages this one borrows blocks from, read when it opened. */
+  readonly syncedSources?: readonly PageSyncedSource[];
   readonly textSize?: PageAppearanceTextSize;
   readonly typography?: PageAppearanceTypography;
 }
@@ -171,10 +175,11 @@ export const PagesProseMirrorEditor = forwardRef(
       onNavigateToPage,
       onSelectionChange,
       pageId,
-      pages = EMPTY_PAGE_SUMMARIES,
+      pages = EMPTY_PAGE_REFERENCES,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
       restrictedBlockIds = EMPTY_RESTRICTED_BLOCK_IDS,
       spaceId,
+      syncedSources = EMPTY_PAGE_SYNCED_SOURCES,
       textSize = PAGE_APPEARANCE_DEFAULT_PREFERENCES.textSize,
       typography = PAGE_APPEARANCE_DEFAULT_PREFERENCES.typography,
     }: IProps,
@@ -208,6 +213,7 @@ export const PagesProseMirrorEditor = forwardRef(
     const [labels] = useState(() => buildPageEditorLabels(t, locale));
     const collectionSpotRef = useRef(0);
     const pagesRef = useRef(pages);
+    const syncedSourcesRef = useRef(syncedSources);
     const readPageTitleRef = useRef((childId: string): string | null => readPageTitleFrom(pagesRef.current, childId));
     const readPageIconRef = useRef((childId: string): PageIcon | null => readPageIconFrom(pagesRef.current, childId));
     const readPageLifecycleRef = useRef((childId: string): PageLifecycle | null =>
@@ -372,6 +378,10 @@ export const PagesProseMirrorEditor = forwardRef(
     }, [pages]);
 
     useEffect(() => {
+      syncedSourcesRef.current = syncedSources;
+    }, [syncedSources]);
+
+    useEffect(() => {
       personOptionsRef.current = personOptions;
     }, [personOptions]);
 
@@ -462,7 +472,7 @@ export const PagesProseMirrorEditor = forwardRef(
         nodeViews: createPageEditorNodeViews(
           labels.nodeViews,
           (childId) => readPageTitleRef.current(childId),
-          (borrowedPageId, blockId) => readBorrowedBlock(pagesRef.current, borrowedPageId, blockId),
+          (borrowedPageId, blockId) => readBorrowedBlock(syncedSourcesRef.current, borrowedPageId, blockId),
           (at) => pressTheButtonRef.current(at),
           (userId) => findPersonForHoverRef.current(userId),
           (mentionedPageId) => readPageIconRef.current(mentionedPageId),
@@ -639,7 +649,7 @@ export const PagesProseMirrorEditor = forwardRef(
       const editorView = editorViewRef.current;
       const target = surface.syncedTarget;
       if (editorView === null || target === null) return;
-      const borrowed = readBorrowedBlock(pagesRef.current, target.pageId, target.blockId);
+      const borrowed = readBorrowedBlock(syncedSourcesRef.current, target.pageId, target.blockId);
       createPageUnsyncCommand(pageEditorSchema, target, borrowed)(editorView.state, editorView.dispatch);
       editorView.focus();
     };

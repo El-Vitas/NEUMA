@@ -48,7 +48,7 @@ export const listPagesTool: McpToolDefinition = {
       MCP_TOOL_NAMES.listPages,
       {
         description:
-          'Browse the page tree one level at a time: the pages at the top of a space, or the pages right under a page, each with how many pages are under it. Under a collection (a table or board of tasks), each row comes with its properties, such as status, assignee and due date. Long lists come in parts, with a cursor for the next one.',
+          'Browse the page tree one level at a time: the pages at the top of a space, or the pages right under a page, each marked when it has pages under it (hasChildren). Under a collection (a table or board of tasks), each row comes with its properties, such as status, assignee and due date. Long lists come in parts, with a cursor for the next one.',
         inputSchema: listPagesInputSchema,
         outputSchema: listPagesOutputSchema,
       },
@@ -73,7 +73,7 @@ export const listPagesTool: McpToolDefinition = {
               pages: children.entries.map((child) => {
                 const properties = describeRow(child);
                 return {
-                  childCount: child.childCount,
+                  hasChildren: child.hasChildren,
                   id: child.id,
                   isCollection: child.isCollection,
                   ...(properties.length === 0 ? {} : { properties }),

@@ -1,22 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { PagesMoveSpaceGroup } from '@/modules/pages/navigation/components/pages.move.space-group';
 import { usePagesMoveDestinations } from '@/modules/pages/navigation/hooks/use.pages.move.destinations';
 import { buildPageMoveDestinations } from '@/modules/pages/navigation/lib/pages.move.lib';
 import type { PageMoveDestination } from '@/modules/pages/navigation/types/pages.move.types';
 import { batchMovePagesAction } from '@/modules/portal/server/actions/portal.sidebar.selection.actions';
 import type { PortalPageBatchOutcome } from '@/modules/portal/types/portal.sidebar.selection.types';
 import { Button } from '@/shared/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/shared/components/ui/command';
+import { Command, CommandEmpty, CommandInput, CommandList } from '@/shared/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -42,10 +36,16 @@ export const SidebarPageBatchMoveDialog = ({ anchorPageId, onClose, onMoved, ope
   const tPages = useTranslations('pages');
   const tCommon = useTranslations('common');
   const [isPending, startTransition] = useTransition();
-  const destinations = usePagesMoveDestinations(open, anchorPageId, spaceId);
-  const choices = buildPageMoveDestinations(destinations, tPages('spaceRoot'), tPages('untitled'));
+  const [query, setQuery] = useState('');
+  const destinations = usePagesMoveDestinations(open, anchorPageId, spaceId, query.trim());
+  const choices = buildPageMoveDestinations(destinations, query.trim(), tPages('spaceRoot'), tPages('untitled'));
 
   if (!open) return null;
+
+  const close = (): void => {
+    setQuery('');
+    onClose();
+  };
 
   const selectDestination = (destination: PageMoveDestination): void => {
     startTransition(async () => {
@@ -59,6 +59,7 @@ export const SidebarPageBatchMoveDialog = ({ anchorPageId, onClose, onMoved, ope
         toast.error(t('moveError'));
         return;
       }
+      setQuery('');
       onMoved(result.data);
     });
   };
@@ -66,7 +67,7 @@ export const SidebarPageBatchMoveDialog = ({ anchorPageId, onClose, onMoved, ope
   return (
     <Dialog
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
+        if (!nextOpen) close();
       }}
       open
     >
@@ -75,30 +76,23 @@ export const SidebarPageBatchMoveDialog = ({ anchorPageId, onClose, onMoved, ope
           <DialogTitle>{t('moveTitle', { count: pageIds.length })}</DialogTitle>
           <DialogDescription>{t('moveDescription')}</DialogDescription>
         </DialogHeader>
-        <Command>
-          <CommandInput placeholder={tPages('moveSearch')} />
+        <Command shouldFilter={false}>
+          <CommandInput onValueChange={setQuery} placeholder={tPages('moveSearch')} value={query} />
           <CommandList>
             <CommandEmpty>{tPages('noMentionCandidates')}</CommandEmpty>
             {destinations.spaces.map((space) => (
-              <CommandGroup heading={space.name} key={space.id}>
-                {choices
-                  .filter((choice) => choice.spaceId === space.id)
-                  .map((choice) => (
-                    <CommandItem
-                      disabled={isPending}
-                      key={choice.id}
-                      onSelect={() => selectDestination(choice)}
-                      value={`${space.name} ${choice.title}`}
-                    >
-                      {choice.title}
-                    </CommandItem>
-                  ))}
-              </CommandGroup>
+              <PagesMoveSpaceGroup
+                choices={choices.filter((choice) => choice.spaceId === space.id)}
+                isDisabled={isPending}
+                key={space.id}
+                onSelect={selectDestination}
+                space={space}
+              />
             ))}
           </CommandList>
         </Command>
         <DialogFooter className="p-4 pt-0">
-          <Button className="min-h-11" disabled={isPending} onClick={onClose} type="button" variant="outline">
+          <Button className="min-h-11" disabled={isPending} onClick={close} type="button" variant="outline">
             {tCommon('cancel')}
           </Button>
         </DialogFooter>

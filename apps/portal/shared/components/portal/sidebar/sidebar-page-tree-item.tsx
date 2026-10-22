@@ -18,7 +18,12 @@ import type { KeyboardEvent, MouseEvent } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { PagesSharingBadge } from '@/modules/pages/sharing/components/pages.sharing.badge';
-import { buildSidebarTreeIndent, isPortalSidebarPageMoveShortcut } from '@/modules/portal/lib/portal.sidebar.lib';
+import type { PagesTreeSpaceView } from '@/modules/pages/tree/types/pages.tree.types';
+import {
+  buildSidebarTreeIndent,
+  hasPortalSidebarPageChildren,
+  isPortalSidebarPageMoveShortcut,
+} from '@/modules/portal/lib/portal.sidebar.lib';
 import type { PortalSidebarPageDragController } from '@/modules/portal/types/portal.sidebar.drag.types';
 import type { PortalSidebarPage, PortalSidebarPageTreeItem } from '@/modules/portal/types/portal.types';
 import {
@@ -31,6 +36,7 @@ import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { useCopyPageLink } from '@/shared/hooks/use.copy-page-link.hook';
 import { ROUTES } from '@/shared/routes/constants/routes.constants';
 import { SidebarPageTreeItemCheckbox } from './sidebar-page-tree-item-checkbox';
+import { SidebarPageTreeMore } from './sidebar-page-tree-more';
 import { SidebarTreeIcon } from './sidebar-tree-icon';
 
 interface IProps {
@@ -55,6 +61,7 @@ interface IProps {
   readonly selectionMode: boolean;
   readonly spaceId: string;
   readonly treeItem: PortalSidebarPageTreeItem;
+  readonly treeView: PagesTreeSpaceView;
 }
 
 export const SidebarPageTreeItem = ({
@@ -79,6 +86,7 @@ export const SidebarPageTreeItem = ({
   selectionMode,
   spaceId,
   treeItem,
+  treeView,
 }: IProps) => {
   const t = useTranslations('pages');
   const tDuplicate = useTranslations('pages.duplicate');
@@ -86,7 +94,9 @@ export const SidebarPageTreeItem = ({
   const copyPageLink = useCopyPageLink();
   const { children, page } = treeItem;
   const pageTitle = page.title.length > 0 ? page.title : t('untitled');
-  const hasChildren = children.length > 0;
+  const hasChildren = hasPortalSidebarPageChildren(page, children.length);
+  const bounds = treeView.readBounds(page.id);
+  const isLoadingChildren = treeView.isLoading(page.id);
   const isExpanded = expandedPageIds.has(page.id);
   const isSelected = selectedPageId === page.id;
   const isActive = page.lifecycle === 'ACTIVE';
@@ -235,6 +245,14 @@ export const SidebarPageTreeItem = ({
       </div>
       {hasChildren && isExpanded && (
         <ul id={childrenId}>
+          <SidebarPageTreeMore
+            bounds={bounds}
+            depth={depth + 1}
+            direction="previous"
+            isLoading={isLoadingChildren}
+            loadedCount={children.length}
+            onLoad={() => treeView.loadMore(page.id, 'previous')}
+          />
           {children.map((child) => (
             <SidebarPageTreeItem
               canEdit={canEdit}
@@ -259,8 +277,17 @@ export const SidebarPageTreeItem = ({
               selectionMode={selectionMode}
               spaceId={spaceId}
               treeItem={child}
+              treeView={treeView}
             />
           ))}
+          <SidebarPageTreeMore
+            bounds={bounds}
+            depth={depth + 1}
+            direction="next"
+            isLoading={isLoadingChildren}
+            loadedCount={children.length}
+            onLoad={() => treeView.loadMore(page.id, 'next')}
+          />
         </ul>
       )}
     </li>

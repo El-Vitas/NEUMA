@@ -111,7 +111,7 @@ describe('a file inserted directly in the page content', () => {
   it('also shows up in the attachments panel, without asking to upload it twice', async () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage()} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage()} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -129,7 +129,7 @@ describe('a file inserted directly in the page content', () => {
   it('also shows up when the file arrives by dragging it onto the writing surface', async () => {
     const { container } = render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage()} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage()} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 

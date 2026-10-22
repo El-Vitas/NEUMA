@@ -1,5 +1,6 @@
 import { PAGE_LIFECYCLE_VALUES, pageContentSchema as sharedPageContentSchema } from '@neuma/shared';
 import { z } from 'zod';
+import { SEARCH_MAX_QUERY_LENGTH } from '@/shared/constants/search.constants';
 import { pageCoverValueSchema } from '../appearance/schemas/pages.cover.schemas';
 import { pageIconSchema } from '../appearance/schemas/pages.icon.schemas';
 import { pageComputedErrorsSchema, pagePropertyValuesSchema } from '../collections/schemas/pages.schema.schemas';
@@ -74,6 +75,7 @@ export const pageLocationSchema = z.object({ spaceId: recordIdSchema });
 
 export const pageMoveDestinationsSchema = z.object({
   pages: z.array(z.object({ id: z.string(), spaceId: z.string(), title: z.string() })),
+  parentTitle: z.string().nullable(),
   spaces: z.array(z.object({ id: z.string(), name: z.string() })),
 });
 
@@ -86,6 +88,11 @@ export const pageBlocksHandoverSchema = z.object({
 export const pageLocatorSchema = z.object({
   pageId: recordIdSchema,
   spaceId: recordIdSchema,
+});
+
+export const pageMoveDestinationsInputSchema = pageLocatorSchema.extend({
+  /** What is being looked for; empty lists the top of each space. */
+  query: z.string().trim().max(SEARCH_MAX_QUERY_LENGTH),
 });
 
 export const pageRenameSchema = pageLocatorSchema.extend({
@@ -112,5 +119,7 @@ export const pageRestoreMutationSchema = pageLocatorSchema.extend({
 
 export const pageDestinationsSchema = z.object({
   exceptPageId: z.string().min(1).nullable(),
+  /** What is being looked for; empty lists the top of the space. */
+  query: z.string().trim().max(SEARCH_MAX_QUERY_LENGTH),
   spaceId: z.string().min(1),
 });

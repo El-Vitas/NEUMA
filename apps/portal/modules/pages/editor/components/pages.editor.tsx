@@ -36,6 +36,7 @@ import type {
   PagePersonOption,
   PagePropertyValue,
   PagePropertyValues,
+  PageRelatedRow,
   PageSchema,
 } from '../../collections/types/pages.schema.types';
 import { PagesProseMirrorEditor } from '../../components/pages.prose-mirror.editor';
@@ -45,6 +46,8 @@ import {
   EMPTY_PAGE_EMBEDDED_COLLECTIONS,
   EMPTY_PAGE_HEADINGS,
   EMPTY_PAGE_PERSON_OPTIONS,
+  EMPTY_PAGE_RELATED_ROWS,
+  EMPTY_PAGE_SYNCED_SOURCES,
 } from '../../constants/pages.constants';
 import { PagesDiscussionsProvider } from '../../discussions/components/pages.discussions.provider';
 import { DISCUSSION_QUERY_PARAMETER } from '../../discussions/constants/pages.discussions.constants';
@@ -60,11 +63,12 @@ import { PagesSharingControls } from '../../sharing/components/pages.sharing.con
 import { listRestrictedBlockIds, updateRestrictedBlockIds } from '../../sharing/lib/pages.sharing.lib';
 import type { SharingChange } from '../../sharing/types/pages.sharing.types';
 import { PagesTrashButton } from '../../trash/components/pages.trash.button';
+import type { PageBreadcrumbParent } from '../../tree/types/pages.tree.types';
 import { PagesUsagePanel } from '../../trust/components/pages.usage.panel';
 import { PagesVerificationPanel } from '../../trust/components/pages.verification.panel';
 import { toPageInfoMetadata } from '../../trust/lib/pages.info.lib';
 import type { PagesAutosaveDisplayState } from '../../types/pages.autosave.types';
-import type { PageAuthor, PageContent, PageSummary } from '../../types/pages.types';
+import type { PageAuthor, PageContent, PageReference, PageSummary, PageSyncedSource } from '../../types/pages.types';
 import { createPageEditorOpenDiscussionsCommand } from '../blocks/lib/pages.editor.block-comment.lib';
 import { usePagesEditorBlockBinding } from '../hooks/use.pages.editor.block-binding';
 import { usePagesEditorSaves } from '../hooks/use.pages.editor.saves';
@@ -88,21 +92,28 @@ interface IProps {
   /** The page's blocks could not be read, so the page is read-only and says so. */
   readonly isBlockSyncUnavailable?: boolean;
   readonly isFavorite?: boolean;
+  /** Who is above the page, topmost first, for the breadcrumb. */
+  readonly ancestors: readonly PageBreadcrumbParent[];
   readonly onNavigateToPage?: (spaceId: string, pageId: string) => void;
   /** Called once a save by this editor has reached the server, so other views of the page can refresh. */
   readonly onSaved?: () => void;
   readonly page: PageSummary;
-  readonly pages: readonly PageSummary[];
-  readonly parentBreadcrumbPages: readonly PageSummary[];
   readonly parentSchema?: PageSchema | null;
   readonly personOptions?: readonly PagePersonOption[];
+  /** The pages this one draws something from: titles, icons and places, never their content. */
+  readonly references: readonly PageReference[];
+  /** The rows the relations of this page point to. */
+  readonly relatedRows?: readonly PageRelatedRow[];
   readonly spaceId: string;
   readonly spaceName?: string;
+  /** The content of the pages this one borrows blocks from. */
+  readonly syncedSources?: readonly PageSyncedSource[];
 }
 
 export const PagesEditor = forwardRef(
   (
     {
+      ancestors,
       attachments = EMPTY_PAGE_ATTACHMENTS,
       backlinks = EMPTY_PAGE_BACKLINKS,
       blockSync,
@@ -117,12 +128,13 @@ export const PagesEditor = forwardRef(
       onNavigateToPage,
       onSaved,
       page,
-      pages,
-      parentBreadcrumbPages,
       parentSchema = null,
       personOptions = EMPTY_PAGE_PERSON_OPTIONS,
+      references,
+      relatedRows = EMPTY_PAGE_RELATED_ROWS,
       spaceId,
       spaceName,
+      syncedSources = EMPTY_PAGE_SYNCED_SOURCES,
     }: IProps,
     handleRef: ForwardedRef<PagesEditorHandle>,
   ) => {
@@ -321,7 +333,7 @@ export const PagesEditor = forwardRef(
                 onTitleChange={handleTitleChange}
                 onTitleLeft={handleTitleLeft}
                 pageId={page.id}
-                parentPages={parentBreadcrumbPages}
+                parentPages={ancestors}
                 savedAt={autosave.savedAt}
                 spaceId={spaceId}
                 spaceName={spaceName}
@@ -361,10 +373,10 @@ export const PagesEditor = forwardRef(
                 onPropertyValueChange={handlePropertyValueChange}
                 page={page}
                 pageId={page.id}
-                pages={pages}
                 parentSchema={parentSchema}
                 personOptions={personOptions}
                 propertyValues={propertyValues}
+                relatedRows={relatedRows}
                 spaceId={spaceId}
               />
               {/* Rendered before the body: a page with a collection is mostly that collection. */}
@@ -382,11 +394,12 @@ export const PagesEditor = forwardRef(
                 onNavigateToPage={onNavigateToPage}
                 onSelectionChange={blockBinding.reportSelection}
                 pageId={page.id}
-                pages={pages}
+                pages={references}
                 personOptions={personOptions}
                 ref={editorHandleRef}
                 restrictedBlockIds={restrictedBlockIds}
                 spaceId={spaceId}
+                syncedSources={syncedSources}
                 textSize={appearance.preferences.textSize}
                 typography={appearance.preferences.typography}
               />

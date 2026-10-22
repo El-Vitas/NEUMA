@@ -12,6 +12,7 @@ import type {
 } from '../domain/page.error';
 import type { PageValueListChanges } from '../domain/page-value-list.domain.types';
 import type { PageViewer } from './page.block.types';
+import type { PageOutlineWindow } from './page-outline.types';
 import type { PageRowTemplate } from './page-template.types';
 
 export type PageDeleteForeverOutcome = (typeof PAGE_DELETE_FOREVER_OUTCOMES)[number];
@@ -175,10 +176,23 @@ export interface PageMoveContext {
   readonly title: string;
 }
 
+export interface PageMoveCandidate {
+  readonly id: string;
+  readonly spaceId: string;
+  readonly title: string;
+}
+
 /** Excludes the page's own branch, since a page cannot be moved under its descendants. */
 export interface PageMoveDestinations {
-  readonly pages: readonly { readonly id: string; readonly spaceId: string; readonly title: string }[];
+  readonly pages: readonly PageMoveCandidate[];
+  /** Title of the page it hangs from now, to name where it is; null at the top of a space or when unreadable. */
+  readonly parentTitle: string | null;
   readonly spaces: readonly { readonly id: string; readonly name: string }[];
+}
+
+export interface PageMoveOrigin {
+  readonly parentId: string | null;
+  readonly spaces: PageMoveDestinations['spaces'];
 }
 
 export interface DuplicatePageInput {
@@ -247,6 +261,12 @@ export interface PageVersionRetentionRepositoryContract {
 export interface PagePurgeSchedule {
   readonly purgeAfter: Date;
   readonly scheduledCount: number;
+}
+
+export interface TrashedPageListing {
+  readonly items: readonly TrashedPageSummary[];
+  /** Everything the reader can see in the trash for the search, whatever the window shows. */
+  readonly total: number;
 }
 
 export interface TrashedPageSummary {
@@ -344,19 +364,21 @@ export interface PageRepositoryContract {
     role: UserRole,
   ) => Promise<PageMoveContext | null>;
   readonly listWithProperties: (workspaceId: string, userId: string, role: UserRole) => Promise<readonly PageSummary[]>;
-  readonly listMoveDestinations: (
+  readonly readMoveOrigin: (
     pageId: string,
     workspaceId: string,
     userId: string,
     role: UserRole,
-  ) => Promise<PageMoveDestinations | null>;
+  ) => Promise<PageMoveOrigin | null>;
+  /** The latest trashed first; a null window lists them all. */
   readonly listTrashed: (
     workspaceId: string,
     userId: string,
     role: UserRole,
     spaceId: null | string,
     search: null | string,
-  ) => Promise<readonly TrashedPageSummary[]>;
+    window: PageOutlineWindow | null,
+  ) => Promise<TrashedPageListing>;
   readonly move: (
     pageId: string,
     parentId: null | string,

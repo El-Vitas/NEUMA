@@ -1,18 +1,11 @@
 'use client';
 
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/shared/components/ui/command';
+import { Command, CommandEmpty, CommandInput, CommandList } from '@/shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { FOCUS_RING_CLASS } from '@/shared/constants/ui.constants';
 import { hasActionError, isActionSuccess, isLockedActionFailure } from '@/shared/lib/action-result';
@@ -23,11 +16,12 @@ import type { PageSummary } from '../../types/pages.types';
 import { usePagesMoveDestinations } from '../hooks/use.pages.move.destinations';
 import {
   buildPageMoveDestinations,
-  findCurrentPageMoveDestination,
+  describeCurrentPageMoveDestination,
   isSamePageMoveDestination,
 } from '../lib/pages.move.lib';
 import type { PageMoveDestination, PendingAccessLossPageMove } from '../types/pages.move.types';
 import { PagesMoveAccessWarningDialog } from './pages.move.access-warning.dialog';
+import { PagesMoveSpaceGroup } from './pages.move.space-group';
 
 interface IProps {
   readonly ariaLabelledBy: string;
@@ -41,9 +35,20 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [pendingAccessLossMove, setPendingAccessLossMove] = useState<PendingAccessLossPageMove | null>(null);
-  const destinations = usePagesMoveDestinations(isOpen, page.id, spaceId);
-  const choices = buildPageMoveDestinations(destinations, t('spaceRoot'), t('untitled'));
-  const current = findCurrentPageMoveDestination(choices, page.spaceId, page.parentId);
+  const [query, setQuery] = useState('');
+  const destinations = usePagesMoveDestinations(true, page.id, spaceId, query.trim());
+  const choices = buildPageMoveDestinations(destinations, query.trim(), t('spaceRoot'), t('untitled'));
+  const current = describeCurrentPageMoveDestination(
+    destinations,
+    page.spaceId,
+    page.parentId,
+    t('spaceRoot'),
+    t('untitled'),
+  );
+  const changeOpen = (nextOpen: boolean): void => {
+    setIsOpen(nextOpen);
+    if (!nextOpen) setQuery('');
+  };
 
   const executeMove = (destination: PageMoveDestination): void => {
     startTransition(async () => {
@@ -62,7 +67,7 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
   };
 
   const selectDestination = (destination: PageMoveDestination): void => {
-    setIsOpen(false);
+    changeOpen(false);
     if (isSamePageMoveDestination(destination, page.spaceId, page.parentId)) return;
     if (destination.spaceId === page.spaceId) {
       executeMove(destination);
@@ -93,7 +98,7 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
 
   return (
     <>
-      <Popover onOpenChange={setIsOpen} open={isOpen}>
+      <Popover onOpenChange={changeOpen} open={isOpen}>
         <PopoverTrigger
           aria-labelledby={ariaLabelledBy}
           className={cn(
@@ -109,25 +114,18 @@ export const PagesMoveForm = ({ ariaLabelledBy, page, spaceId }: IProps) => {
           <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] p-0">
-          <Command>
-            <CommandInput placeholder={t('moveSearch')} />
+          <Command shouldFilter={false}>
+            <CommandInput onValueChange={setQuery} placeholder={t('moveSearch')} value={query} />
             <CommandList>
               <CommandEmpty>{t('noMentionCandidates')}</CommandEmpty>
               {destinations.spaces.map((space) => (
-                <CommandGroup heading={space.name} key={space.id}>
-                  {choices
-                    .filter((choice) => choice.spaceId === space.id)
-                    .map((choice) => (
-                      <CommandItem
-                        key={choice.id}
-                        onSelect={() => selectDestination(choice)}
-                        value={`${space.name} ${choice.title}`}
-                      >
-                        <Check aria-hidden="true" className={cn('size-4', choice.id !== current?.id && 'opacity-0')} />
-                        {choice.title}
-                      </CommandItem>
-                    ))}
-                </CommandGroup>
+                <PagesMoveSpaceGroup
+                  choices={choices.filter((choice) => choice.spaceId === space.id)}
+                  currentId={current?.id ?? null}
+                  key={space.id}
+                  onSelect={selectDestination}
+                  space={space}
+                />
               ))}
             </CommandList>
           </Command>

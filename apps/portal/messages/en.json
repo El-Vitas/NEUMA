@@ -551,7 +551,10 @@
       "dropInside": "Will drop inside {name}",
       "dropBefore": "Will drop just before {name}",
       "dropAfter": "Will drop just after {name}",
-      "dropInvalid": "Can't drop here"
+      "dropInvalid": "Can't drop here",
+      "showMore": "Show more",
+      "showPrevious": "Show previous",
+      "loading": "Loading pages"
     },
     "sidePanel": {
       "title": "Page side panel",
@@ -582,6 +585,7 @@
       "searchLabel": "Search the trash",
       "searchPlaceholder": "Search by page title",
       "noSearchResults": "No results for “{query}”",
+      "loadMore": "Load more",
       "deletedAt": "Deleted at",
       "deletedBy": "Deleted by",
       "deleteForever": "Delete forever",

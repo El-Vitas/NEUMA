@@ -3,59 +3,34 @@ import 'server-only';
 import type { Result } from '@neuma/shared';
 import { cacheLife, cacheTag } from 'next/cache';
 import { cache } from 'react';
-import { PAGES_CACHE_TAG } from '@/shared/constants/pages-cache.constants';
 import { ApiError } from '@/shared/lib/api';
 import { apiRequest } from '@/shared/lib/api-server';
 import { withQuery } from '@/shared/lib/with-query.lib';
 import { PAGE_API_ROUTES, PAGE_LOCATION_CACHE_TAG, PAGES_ASSIGNED_CACHE_TAG } from '../../constants/pages.constants';
-import { pageComputedValuesSchema, pageLocationSchema } from '../../schemas/pages.schemas';
+import { pageComputedValuesSchema, pageLocationSchema, pageSummarySchema } from '../../schemas/pages.schemas';
 import type { PageComputedValues, PageSummary } from '../../types/pages.types';
 import { readPagesThatCanBeRead } from '../lib/pages.reading.server';
 
-export const getPages = async (spaceId: string): Promise<Result<readonly PageSummary[], Error>> =>
-  withQuery({ op: 'getPages', params: { includeTrashed: true, spaceId } }, (accessToken) =>
-    getPagesCached(accessToken, spaceId),
+/**
+ * One page with its document, as the reader sees it. It is asked for by its address, which also reaches a template
+ * (ADR 027) or a page written through the MCP a moment ago, and it is read once per request however many parts of the
+ * page ask. Null when the page does not exist or the reader cannot open it.
+ */
+export const getPage = async (spaceId: string, pageId: string): Promise<Result<PageSummary | null, Error>> =>
+  withQuery({ op: 'getPage', params: { pageId, spaceId } }, (accessToken) =>
+    readPageFresh(accessToken, spaceId, pageId),
   );
 
-const getPagesCached = async (accessToken: string, spaceId: string): Promise<readonly PageSummary[]> => {
-  'use cache';
-  cacheLife('seconds');
-  cacheTag(PAGES_CACHE_TAG(spaceId));
-
-  const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
-  return readPagesThatCanBeRead(response, 'getPages');
-};
-
-/**
- * Uncached read for a page the cached list does not have yet, e.g. one written through the MCP.
- * Deduplicated per request only, so unknown addresses leave nothing behind.
- */
-export const getPagesHolding = async (
-  spaceId: string,
-  pageId: string,
-): Promise<Result<readonly PageSummary[], Error>> =>
-  withQuery({ op: 'getPagesHolding', params: { pageId, spaceId } }, async (accessToken) => {
-    const listed = await readPagesFresh(accessToken, spaceId);
-    return listed.some((page) => page.id === pageId)
-      ? listed
-      : [...listed, ...(await readPageApart(accessToken, spaceId, pageId))];
-  });
-
-const readPagesFresh = cache(async (accessToken: string, spaceId: string): Promise<readonly PageSummary[]> => {
-  const response = await apiRequest<unknown>(PAGE_API_ROUTES.list(spaceId, true), accessToken);
-  return readPagesThatCanBeRead(response, 'getPagesHolding');
-});
-
-/** A template is a page of its collection that no list holds (ADR 027), so it is asked for by its address. */
-const readPageApart = async (accessToken: string, spaceId: string, pageId: string): Promise<readonly PageSummary[]> => {
-  try {
-    const response = await apiRequest<unknown>(PAGE_API_ROUTES.item(spaceId, pageId), accessToken);
-    return readPagesThatCanBeRead([response], 'getPagesHolding');
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return [];
-    throw error;
-  }
-};
+const readPageFresh = cache(
+  async (accessToken: string, spaceId: string, pageId: string): Promise<PageSummary | null> => {
+    try {
+      return pageSummarySchema.parse(await apiRequest<unknown>(PAGE_API_ROUTES.item(spaceId, pageId), accessToken));
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 404 || error.status === 403)) return null;
+      throw error;
+    }
+  },
+);
 
 /** Resolves links to a page that moved to another space after the link was written. */
 export const getPageSpaceId = async (pageId: string): Promise<Result<string, Error>> =>

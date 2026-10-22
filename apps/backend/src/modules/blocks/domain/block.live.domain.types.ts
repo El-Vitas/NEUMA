@@ -27,6 +27,8 @@ export interface ViewerAccess {
 /** The rows loaded once for a notification, and the roles of each user subscribed over them. */
 export interface LiveAccessContext {
   readonly maxDepth: number;
+  /** The spaces among the ones loaded that each user may read at all, whatever the pages in them say. */
+  readonly readableSpaceIdsByUserId: ReadonlyMap<string, ReadonlySet<string>>;
   readonly rolesByUserId: ReadonlyMap<string, RolesById>;
   readonly rowsById: ChainRowsById;
 }
@@ -54,6 +56,26 @@ export interface CollectionSubscription {
   readonly connectionId: string;
   readonly spaceId: string;
   readonly userId: string;
+}
+
+/** A socket that follows the page tree of one space (ADR 030). */
+export interface TreeSubscription {
+  readonly connectionId: string;
+  readonly spaceId: string;
+  readonly userId: string;
+}
+
+/** Who follows something in the space a notification came from. */
+export interface SpaceFollowers {
+  readonly collections: readonly CollectionSubscription[];
+  readonly pages: readonly LiveSubscription[];
+  readonly trees: readonly TreeSubscription[];
+}
+
+export interface TreeDeliveryInput {
+  readonly blocks: readonly NotifiedBlock[];
+  readonly context: LiveAccessContext;
+  readonly subscriptions: readonly TreeSubscription[];
 }
 
 /** What the channel needs to find the person behind a subscription. */
@@ -101,10 +123,14 @@ export type LiveServerMessage =
     }
   | { readonly collectionId: string; readonly type: 'collection-resync' }
   | { readonly collectionId: string; readonly type: 'collection-revoked' }
+  | { readonly spaceId: string; readonly type: 'subscribed-tree' }
+  | { readonly parentIds: readonly (string | null)[]; readonly spaceId: string; readonly type: 'tree-changed' }
+  | { readonly spaceId: string; readonly type: 'tree-resync' }
   | {
       readonly code: LiveErrorCode;
       readonly collectionId?: string;
       readonly pageId?: string;
+      readonly spaceId?: string;
       readonly type: 'error';
     }
   | { readonly blocks: readonly BlockVersion[]; readonly pageId: string; readonly type: 'versions' }

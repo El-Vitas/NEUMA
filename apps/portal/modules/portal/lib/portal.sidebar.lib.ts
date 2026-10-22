@@ -24,12 +24,18 @@ export const resolvePortalSpaceKind = (
   return ownerId === currentUserId ? 'private' : 'shared';
 };
 
-/** Trashed pages are reachable from `/trash`, so the tree shows only active ones. */
-export const getVisiblePortalSidebarPages = (pages: readonly PortalSidebarPage[]): readonly PortalSidebarPage[] =>
-  pages.filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE);
+/** Trashed pages are reachable from `/trash`, so the tree shows only active ones, and the page that is open. */
+export const getVisiblePortalSidebarPages = (
+  pages: readonly PortalSidebarPage[],
+  openPageId: string | null = null,
+): readonly PortalSidebarPage[] =>
+  pages.filter((page) => page.lifecycle === PAGE_LIFECYCLE.ACTIVE || page.id === openPageId);
 
-export const buildPortalSidebarPageTree = (pages: readonly PortalSidebarPage[]): readonly PortalSidebarPageTreeItem[] =>
-  buildTree(getVisiblePortalSidebarPages(pages), (page, children) => ({ children, page }));
+export const buildPortalSidebarPageTree = (
+  pages: readonly PortalSidebarPage[],
+  openPageId: string | null = null,
+): readonly PortalSidebarPageTreeItem[] =>
+  buildTree(getVisiblePortalSidebarPages(pages, openPageId), (page, children) => ({ children, page }));
 
 export const getPortalSidebarExpandedPageIds = (
   tree: readonly PortalSidebarPageTreeItem[],
@@ -41,6 +47,24 @@ export const getPortalSidebarExpandedPageIds = (
     (treeItem) => treeItem.page.id,
     (treeItem) => treeItem.children,
   );
+
+/** The chevron shows from the flag the backend sent, before any child is loaded (ADR 030). */
+export const hasPortalSidebarPageChildren = (page: PortalSidebarPage, loadedChildCount: number): boolean =>
+  page.hasChildren === true || loadedChildCount > 0;
+
+/** The end of the loaded children offers the next window, or says they are on their way when none has arrived. */
+export const shouldOfferPortalSidebarNextWindow = (
+  hasNext: boolean,
+  loadedChildCount: number,
+  isLoading: boolean,
+): boolean => hasNext || (loadedChildCount === 0 && isLoading);
+
+/** Opening a page whose children were never read asks for them; one already read just opens. */
+export const shouldLoadPortalSidebarChildren = (
+  pages: readonly PortalSidebarPage[],
+  expandedPageIds: ReadonlySet<string>,
+  pageId: string,
+): boolean => !expandedPageIds.has(pageId) && !pages.some((page) => page.parentId === pageId);
 
 export const getPortalSidebarSelectedPageId = (
   pathname: string,

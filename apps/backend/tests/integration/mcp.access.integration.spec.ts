@@ -327,7 +327,7 @@ describe('MCP access (Integration)', () => {
 
     const listedUnder = async (parentPageId: string) =>
       z
-        .object({ pages: z.array(z.object({ childCount: z.number(), id: z.string() })) })
+        .object({ pages: z.array(z.object({ hasChildren: z.boolean(), id: z.string() })) })
         .parse((await call(secret, 'list_pages', { parentPageId })).structuredContent).pages;
 
     beforeAll(async () => {
@@ -387,11 +387,24 @@ describe('MCP access (Integration)', () => {
     it('neither lists nor counts a closed page under one it can read', async () => {
       const underHr = await listedUnder(pages.hr);
       const atTheTop = z
-        .object({ pages: z.array(z.object({ childCount: z.number(), id: z.string() })) })
+        .object({ pages: z.array(z.object({ hasChildren: z.boolean(), id: z.string() })) })
         .parse((await call(secret, 'list_pages', { spaceId: spaces.open })).structuredContent).pages;
 
       expect(underHr.map((page) => page.id)).toEqual([pages.holidays]);
-      expect(atTheTop.find((page) => page.id === pages.hr)?.childCount).toBe(1);
+      expect(atTheTop.find((page) => page.id === pages.hr)?.hasChildren).toBe(true);
+    });
+
+    it('says a page has nothing under it when every page under it is closed to the token', async () => {
+      const closedBelow = await tokenFor(
+        worker,
+        access({ allSpaces: [read], pages: [{ pageId: pages.bonus, permissions: nothing }] }),
+      );
+      const listed = z
+        .object({ pages: z.array(z.object({ hasChildren: z.boolean(), id: z.string() })) })
+        .parse((await call(closedBelow, 'list_pages', { parentPageId: pages.hr })).structuredContent).pages;
+
+      expect(listed.find((page) => page.id === pages.salaries)?.hasChildren).toBe(false);
+      expect(listed.find((page) => page.id === pages.holidays)?.hasChildren).toBe(true);
     });
 
     it('does not name a closed ancestor in the path of a page reopened under it', async () => {

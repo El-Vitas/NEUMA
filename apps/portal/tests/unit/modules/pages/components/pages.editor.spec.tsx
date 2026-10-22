@@ -87,7 +87,7 @@ describe('PagesEditor layout', () => {
   it('holds the whole width it has to fill, applying the same reading width as its own header rather than none at all', () => {
     const { container } = render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage('Handbook')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage('Handbook')} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -104,7 +104,7 @@ describe('a page that nobody has named yet', () => {
   it('opens on its own name, which is where writing it begins', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage('')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage('')} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -115,7 +115,7 @@ describe('a page that nobody has named yet', () => {
     renamePageAction.mockClear();
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage('')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage('')} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -134,7 +134,7 @@ describe('a page whose title the server changed', () => {
   it('shows the new title without a reload, as when a version is restored', () => {
     const view = (title: string) => (
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage(title)} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage(title)} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>
     );
     const { rerender } = render(view('Before'));
@@ -151,10 +151,9 @@ describe('a page hanging from a collection', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor
+          ancestors={[]}
           canEdit
           page={buildPage('')}
-          pages={[]}
-          parentBreadcrumbPages={[]}
           parentSchema={{
             pageId: 'collection-1',
             properties: [
@@ -179,6 +178,7 @@ describe('a page hanging from a collection', () => {
             spaceId: SPACE_ID,
             views: [],
           }}
+          references={[]}
           spaceId={SPACE_ID}
         />
       </NextIntlClientProvider>,
@@ -199,10 +199,9 @@ describe('a page hanging from a collection', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor
+          ancestors={[]}
           canEdit
           page={{ ...buildPage('Kept row'), propertyValues: { blocked: false, status: 'in_progress' } }}
-          pages={[]}
-          parentBreadcrumbPages={[]}
           parentSchema={{
             pageId: 'collection-1',
             properties: [
@@ -227,6 +226,7 @@ describe('a page hanging from a collection', () => {
             spaceId: SPACE_ID,
             views: [],
           }}
+          references={[]}
           spaceId={SPACE_ID}
         />
       </NextIntlClientProvider>,
@@ -251,7 +251,7 @@ describe('sending the page open in the editor to the trash', () => {
   it('offers the control to whoever can write the page while it is active', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage('Handbook')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage('Handbook')} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -261,13 +261,7 @@ describe('sending the page open in the editor to the trash', () => {
   it('stays away from a reader with no write access', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor
-          canEdit={false}
-          page={buildPage('Handbook')}
-          pages={[]}
-          parentBreadcrumbPages={[]}
-          spaceId={SPACE_ID}
-        />
+        <PagesEditor ancestors={[]} canEdit={false} page={buildPage('Handbook')} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 
@@ -278,10 +272,10 @@ describe('sending the page open in the editor to the trash', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <PagesEditor
+          ancestors={[]}
           canEdit
           page={buildPage('Handbook', 'TRASHED')}
-          pages={[]}
-          parentBreadcrumbPages={[]}
+          references={[]}
           spaceId={SPACE_ID}
         />
       </NextIntlClientProvider>,
@@ -295,7 +289,7 @@ describe('sending the page open in the editor to the trash', () => {
     trashPageAction.mockClear();
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <PagesEditor canEdit page={buildPage('Handbook')} pages={[]} parentBreadcrumbPages={[]} spaceId={SPACE_ID} />
+        <PagesEditor ancestors={[]} canEdit page={buildPage('Handbook')} references={[]} spaceId={SPACE_ID} />
       </NextIntlClientProvider>,
     );
 

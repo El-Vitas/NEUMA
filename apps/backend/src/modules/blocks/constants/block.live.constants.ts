@@ -6,6 +6,7 @@ import { BLOCK_TREE_MAX_DEPTH } from './blocks.constants';
 /** With no block ids to check there is nothing to read, and every block id is hidden. */
 export const BLOCK_LIVE_EMPTY_ACCESS_CONTEXT: LiveAccessContext = {
   maxDepth: BLOCK_TREE_MAX_DEPTH,
+  readableSpaceIdsByUserId: new Map(),
   rolesByUserId: new Map(),
   rowsById: new Map(),
 };
@@ -47,6 +48,9 @@ export const BLOCK_LIVE_MAX_SUBSCRIPTIONS_PER_CONNECTION = 50;
 
 /** Views of many collections can be open on one page, each one following its collection. */
 export const BLOCK_LIVE_MAX_COLLECTION_SUBSCRIPTIONS_PER_CONNECTION = 20;
+
+/** A sidebar follows the tree of each space the person has open (ADR 030). */
+export const BLOCK_LIVE_MAX_TREE_SUBSCRIPTIONS_PER_CONNECTION = 20;
 
 export const BLOCK_LIVE_MAX_CONNECTIONS_PER_USER = 10;
 

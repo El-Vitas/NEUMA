@@ -12,8 +12,13 @@ import { authenticatedRequest } from '@/shared/server/lib/authenticated-request.
 import { PAGE_API_ROUTES } from '../../../constants/pages.constants';
 import { pageLocatorSchema } from '../../../schemas/pages.schemas';
 import { PAGE_TRASH_API_ROUTES, PAGE_TRASH_CACHE_TAG } from '../../constants/pages.trash.constants';
-import { trashDescendantsPreviewSchema, trashEmptySchema } from '../../schemas/pages.trash.schemas';
-import type { TrashDescendantsPreview } from '../../types/pages.trash.types';
+import {
+  trashDescendantsPreviewSchema,
+  trashEmptySchema,
+  trashedPagesListSchema,
+  trashWindowInputSchema,
+} from '../../schemas/pages.trash.schemas';
+import type { TrashDescendantsPreview, TrashedPagesListing } from '../../types/pages.trash.types';
 
 export const getPageTrashPreviewAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'getPageTrashPreview' }, async (): Promise<TrashDescendantsPreview> => {
@@ -36,6 +41,20 @@ export const getPageRestorePreviewAction = actionClient.inputSchema(pageLocatorS
     return trashDescendantsPreviewSchema.parse(response);
   }),
 );
+
+/** A later window of the trash, read fresh: the first one came with the page. */
+export const readTrashedPagesWindowAction = actionClient
+  .inputSchema(trashWindowInputSchema)
+  .action(async ({ parsedInput }) =>
+    withAction({ action: 'readTrashedPagesWindow', skip: parsedInput.skip }, async (): Promise<TrashedPagesListing> => {
+      const accessToken = await requireAccessTokenCookie();
+      const response = await apiRequest<unknown>(
+        PAGE_TRASH_API_ROUTES.list(undefined, parsedInput.search, parsedInput.skip),
+        accessToken,
+      );
+      return trashedPagesListSchema.parse(response);
+    }),
+  );
 
 export const deletePageForeverAction = actionClient.inputSchema(pageLocatorSchema).action(async ({ parsedInput }) =>
   withAction({ action: 'deletePageForever' }, async () => {

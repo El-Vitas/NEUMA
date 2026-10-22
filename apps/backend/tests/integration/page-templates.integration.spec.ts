@@ -192,8 +192,10 @@ describe('Templates of a collection (Integration)', () => {
       await api().delete(`${templatesUrl()}/${template.id}`).set(as(adminToken)).expect(200);
 
       const trash = (await api().get(`/api/v1/pages/trash?spaceId=${spaceId}`).set(as(adminToken)).expect(200))
-        .body as { id: string; isTemplate: boolean; parentId: string | null; purgeAfter: string | null }[];
-      const trashed = trash.find((entry) => entry.id === template.id);
+        .body as {
+        items: { id: string; isTemplate: boolean; parentId: string | null; purgeAfter: string | null }[];
+      };
+      const trashed = trash.items.find((entry) => entry.id === template.id);
       const whileTrashed = await listTemplates();
       await api()
         .post(`${pagesUrl()}/${template.id}/restore`)
@@ -221,9 +223,11 @@ describe('Templates of a collection (Integration)', () => {
         .expect(201);
 
       const trash = (await api().get(`/api/v1/pages/trash?spaceId=${spaceId}`).set(as(adminToken)).expect(200))
-        .body as { id: string; isTemplate: boolean }[];
+        .body as {
+        items: { id: string; isTemplate: boolean }[];
+      };
 
-      expect(trash.find((entry) => entry.id === row.id)?.isTemplate).toBe(false);
+      expect(trash.items.find((entry) => entry.id === row.id)?.isTemplate).toBe(false);
     });
 
     it('refuses someone who cannot edit the collection', async () => {

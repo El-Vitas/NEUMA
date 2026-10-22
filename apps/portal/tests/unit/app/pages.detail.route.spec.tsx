@@ -19,25 +19,39 @@ const getPageBacklinks = mock(async () => ({
 }));
 const pageId = '44444444-4444-4444-8444-444444444444';
 const spaceId = '22222222-2222-4222-8222-222222222222';
-const pagesResult = {
-  getValue: () => [
-    {
-      content: { content: [], schemaVersion: 1, type: 'doc' },
-      id: pageId,
-      lifecycle: 'ACTIVE',
-      order: 0,
-      parentId: null,
-      title: 'Getting Started',
-    },
+const storedPage = {
+  content: { content: [], schemaVersion: 1, type: 'doc' },
+  id: pageId,
+  lifecycle: 'ACTIVE',
+  order: 0,
+  parentId: null,
+  title: 'Getting Started',
+};
+const pageResult = { getValue: () => storedPage, isOk: () => true };
+const tree = {
+  ancestors: [
+    { icon: null, id: 'top', isReadable: true, lifecycle: 'ACTIVE', title: 'Top' },
+    { icon: null, id: null, isReadable: false, lifecycle: null, title: null },
   ],
-  isOk: () => true,
+  levels: [{ entries: [], parentId: null, skip: 0, total: 0 }],
+  page: { id: pageId, lifecycle: 'ACTIVE' },
 };
 const spacesResult = {
   getValue: () => [{ id: spaceId, name: 'Engineering' }],
   isOk: () => true,
 };
-const workspace = mock((props: { readonly attachments: readonly { readonly id: string }[] }) =>
-  createElement('div', { 'data-attachment-count': props.attachments.length, 'data-testid': 'page-workspace' }),
+const workspace = mock(
+  (props: {
+    readonly ancestors: readonly { readonly id: string }[];
+    readonly attachments: readonly { readonly id: string }[];
+    readonly treeLevels?: readonly unknown[];
+  }) =>
+    createElement('div', {
+      'data-ancestor-ids': props.ancestors.map((ancestor) => ancestor.id).join(','),
+      'data-attachment-count': props.attachments.length,
+      'data-testid': 'page-workspace',
+      'data-tree-level-count': props.treeLevels?.length ?? 'none',
+    }),
 );
 
 mock.module('next/navigation', () => ({
@@ -68,12 +82,19 @@ mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () =
 mock.module('@/modules/pages/block-sync/server/lib/block-sync.reading.server', () => ({
   getPageBlocks: async () => ({ getValue: () => [], isFail: () => false, isOk: () => true }),
 }));
-const getPages = mock(async () => pagesResult);
+const getPage = mock(async () => pageResult);
+const getPagePath = mock(async () => ({ getValue: () => tree, isOk: () => true }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
+  getPage,
   getPageComputedValues: async () => ({ isFail: () => true, isOk: () => false }),
-  getPages,
-  getPagesHolding: async () => pagesResult,
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
+}));
+mock.module('@/modules/pages/tree/server/queries/pages.tree.queries', () => ({
+  getPageAncestors: async () => ({ getValue: () => [], isOk: () => true }),
+  getPagePath,
+}));
+mock.module('@/modules/pages/tree/server/lib/pages.references.server', () => ({
+  getPageReferences: async () => ({ isOk: () => false }),
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),
@@ -142,15 +163,29 @@ describe('page detail route attachments', () => {
   });
 });
 
-describe('page detail route freshness', () => {
-  /** A page written from outside the portal, by an agent, is not in the kept list until it refreshes. */
-  it('opens a page the kept list does not have yet, instead of saying it does not exist', async () => {
-    getPages.mockImplementationOnce(async () => ({ ...pagesResult, getValue: () => [] }));
+describe('page detail route reads one page, not the space', () => {
+  it('hands the page the names of the pages above it that the reader can open, and the windows of the sidebar', async () => {
+    render(await Page({ params: Promise.resolve({ pageId, spaceId }) }));
 
-    const result = await Page({ params: Promise.resolve({ pageId, spaceId }) });
+    const rendered = screen.getByTestId('page-workspace');
+    expect(rendered.getAttribute('data-ancestor-ids')).toBe('top');
+    expect(rendered.getAttribute('data-tree-level-count')).toBe('1');
+  });
 
-    render(result);
+  /** A page written from outside the portal, by an agent, is found by its address and not by a list. */
+  it('opens a page the sidebar does not know yet, instead of saying it does not exist', async () => {
+    getPagePath.mockImplementationOnce(async () => ({ getValue: () => null as never, isOk: () => true }));
 
-    expect(screen.getAllByTestId('page-workspace').length).toBeGreaterThan(0);
+    render(await Page({ params: Promise.resolve({ pageId, spaceId }) }));
+
+    const rendered = screen.getByTestId('page-workspace');
+    expect(rendered.getAttribute('data-ancestor-ids')).toBe('');
+    expect(rendered.getAttribute('data-tree-level-count')).toBe('none');
+  });
+
+  it('says the page does not exist when the reader cannot open it', async () => {
+    getPage.mockImplementationOnce(async () => ({ getValue: () => null as never, isOk: () => true }));
+
+    await expect(Page({ params: Promise.resolve({ pageId, spaceId }) })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 });

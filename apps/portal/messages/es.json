@@ -551,7 +551,10 @@
       "dropInside": "Se soltará dentro de {name}",
       "dropBefore": "Se soltará justo antes de {name}",
       "dropAfter": "Se soltará justo después de {name}",
-      "dropInvalid": "No se puede soltar aquí"
+      "dropInvalid": "No se puede soltar aquí",
+      "showMore": "Ver más",
+      "showPrevious": "Ver anteriores",
+      "loading": "Cargando páginas"
     },
     "sidePanel": {
       "title": "Página al costado",
@@ -582,6 +585,7 @@
       "searchLabel": "Buscar en la papelera",
       "searchPlaceholder": "Busca por título de página",
       "noSearchResults": "No hay resultados para «{query}»",
+      "loadMore": "Cargar más",
       "deletedAt": "Eliminada el",
       "deletedBy": "Eliminada por",
       "deleteForever": "Eliminar para siempre",

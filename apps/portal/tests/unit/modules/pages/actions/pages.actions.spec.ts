@@ -34,6 +34,8 @@ const updateTagMock = mock(() => undefined);
 
 mock.module('server-only', () => ({}));
 mock.module('next/cache', () => ({ updateTag: updateTagMock }));
+/** Listing destinations reaches the search, which caches reads with an API this module replaces. */
+mock.module('@/modules/pages/server/lib/pages.destinations.server', () => ({ readPageDestinations: async () => [] }));
 mock.module('next/headers', () => ({
   cookies: async () => ({ get: () => (cookieValue === undefined ? undefined : { value: cookieValue }) }),
   headers: async () => new Headers(),

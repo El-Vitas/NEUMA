@@ -16,10 +16,15 @@ const storedPage = (id: string, order: number) => ({
   parentId: null,
   title: 'Getting Started',
 });
-const pagesResult = {
-  getValue: () => [storedPage(pageId, 0), storedPage(panelPageId, 1)],
+const storedPages = new Map([
+  [pageId, storedPage(pageId, 0)],
+  [panelPageId, storedPage(panelPageId, 1)],
+]);
+const getPage = async (_spaceId: string, readPageId: string) => ({
+  getValue: () => storedPages.get(readPageId) ?? null,
   isOk: () => true,
-};
+});
+const nothingKnownAbout = { getValue: () => null, isOk: () => true };
 const writtenInBlocks = documentOf(paragraph('p1', text('From the blocks')));
 const blockRows = syncedBlocksOf(writtenInBlocks, 1, pageId);
 const panelBlockRows = syncedBlocksOf(documentOf(paragraph('q1', text('Panel from the blocks'))), 1, panelPageId);
@@ -35,7 +40,7 @@ interface IWorkspaceProps {
   readonly blockSync?: readonly unknown[] | null;
   readonly blockSyncFailed?: boolean;
   readonly currentUserId?: string;
-  readonly pages: readonly { readonly content: unknown; readonly id: string }[];
+  readonly page: { readonly content: unknown; readonly id: string };
   readonly panelBundle?: {
     readonly blockSync: readonly unknown[] | null;
     readonly blockSyncFailed: boolean;
@@ -45,7 +50,7 @@ interface IWorkspaceProps {
 const workspace = mock((props: IWorkspaceProps) =>
   createElement('div', {
     'data-block-count': props.blockSync?.length ?? 'none',
-    'data-content': JSON.stringify(props.pages.find((page) => page.id === pageId)?.content),
+    'data-content': JSON.stringify(props.page.content),
     'data-block-failed': String(props.blockSyncFailed ?? false),
     'data-panel-block-count': props.panelBundle?.blockSync?.length ?? 'none',
     'data-panel-block-failed': String(props.panelBundle?.blockSyncFailed ?? false),
@@ -89,9 +94,15 @@ mock.module('@/modules/pages/links/server/queries/pages.backlinks.queries', () =
 mock.module('@/modules/pages/block-sync/server/lib/block-sync.reading.server', () => ({ getPageBlocks }));
 mock.module('@/modules/pages/server/queries/pages.queries', () => ({
   getPageComputedValues: async () => ({ isFail: () => true, isOk: () => false }),
-  getPages: async () => pagesResult,
-  getPagesHolding: async () => pagesResult,
+  getPage,
   getPageSpaceId: async () => ({ isFail: () => true, isOk: () => false }),
+}));
+mock.module('@/modules/pages/tree/server/queries/pages.tree.queries', () => ({
+  getPageAncestors: async () => ({ getValue: () => [], isOk: () => true }),
+  getPagePath: async () => nothingKnownAbout,
+}));
+mock.module('@/modules/pages/tree/server/lib/pages.references.server', () => ({
+  getPageReferences: async () => ({ isOk: () => false }),
 }));
 mock.module('@/modules/pages/collections/server/queries/pages.schema.queries', () => ({
   getPageSchema: async () => ({ getValue: () => ({ pageId, properties: [], spaceId, views: [] }), isOk: () => true }),

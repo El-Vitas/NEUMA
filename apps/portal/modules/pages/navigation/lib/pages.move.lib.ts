@@ -6,8 +6,9 @@ import type {
   PageMoveSpace,
 } from '../types/pages.move.types';
 
-const namePage = (page: PageMoveCandidatePage, untitledLabel: string): string =>
-  page.title.trim().length > 0 ? page.title : untitledLabel;
+const nameTitle = (title: string, untitledLabel: string): string => (title.trim().length > 0 ? title : untitledLabel);
+
+const namePage = (page: PageMoveCandidatePage, untitledLabel: string): string => nameTitle(page.title, untitledLabel);
 
 const toSpaceRootDestination = (space: PageMoveSpace, rootLabel: string): PageMoveDestination => ({
   id: `${PAGE_MOVE_SPACE_ROOT_PREFIX}${space.id}`,
@@ -17,14 +18,18 @@ const toSpaceRootDestination = (space: PageMoveSpace, rootLabel: string): PageMo
   title: rootLabel,
 });
 
-/** Each space's root precedes its pages, matching tree order. */
+/**
+ * While nothing is typed each space's root precedes its pages, matching tree order. Once something is, the server
+ * has already chosen what matches, so only those pages are offered.
+ */
 export const buildPageMoveDestinations = (
   destinations: PageMoveDestinations,
+  query: string,
   rootLabel: string,
   untitledLabel: string,
 ): readonly PageMoveDestination[] =>
   destinations.spaces.flatMap((space) => [
-    toSpaceRootDestination(space, rootLabel),
+    ...(query === '' ? [toSpaceRootDestination(space, rootLabel)] : []),
     ...destinations.pages
       .filter((page) => page.spaceId === space.id)
       .map((page) => ({
@@ -36,12 +41,25 @@ export const buildPageMoveDestinations = (
       })),
   ]);
 
-export const findCurrentPageMoveDestination = (
-  destinations: readonly PageMoveDestination[],
+/** Where the page is now; unknown until the spaces are, and the parent is only known by the title the server gave. */
+export const describeCurrentPageMoveDestination = (
+  destinations: PageMoveDestinations,
   spaceId: string,
   parentId: string | null,
-): PageMoveDestination | null =>
-  destinations.find((destination) => destination.spaceId === spaceId && destination.pageId === parentId) ?? null;
+  rootLabel: string,
+  untitledLabel: string,
+): PageMoveDestination | null => {
+  const space = destinations.spaces.find((candidate) => candidate.id === spaceId);
+  if (space === undefined) return null;
+  if (parentId === null) return toSpaceRootDestination(space, rootLabel);
+  return {
+    id: parentId,
+    pageId: parentId,
+    spaceId,
+    spaceName: space.name,
+    title: nameTitle(destinations.parentTitle ?? '', untitledLabel),
+  };
+};
 
 export const isSamePageMoveDestination = (
   destination: PageMoveDestination,
