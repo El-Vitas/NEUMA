@@ -337,7 +337,7 @@ export const MCP_UNEXPECTED_MESSAGE = 'Something went wrong on the Neuma side. T
  * It names tasks explicitly: a coding agent otherwise thinks of its own task list.
  */
 export const MCP_SERVER_INSTRUCTION_LINES: readonly string[] = [
-  "Neuma is the team's knowledge base: its documentation, notes, processes, projects, and its tasks and boards.",
+  "Neuma (Neural Enterprise Unified Memory Architecture) is the company's memory, built for agents first: its documentation, notes, processes, projects, and its tasks and boards. Everything in it is a block with a stable id you can cite.",
   'When the person asks about the company, the team, its work or its tasks, look in Neuma before saying there is nothing.',
   'When the person names a page, manual, gallery or document without a link, search for it by name here before asking them for more.',
   'Content lives in spaces; a space holds a tree of pages, and a page is made of blocks.',
