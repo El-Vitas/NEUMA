@@ -16,7 +16,8 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('debug'),
 });
 
-const PRODUCTION_REQUIRED_VARIABLES = ['BACKEND_URL', 'MCP_PUBLIC_URL', 'NEXT_PUBLIC_LIVE_WS_URL'] as const;
+/** NEXT_PUBLIC_LIVE_WS_URL is left out: Next bakes it into the build, so the running server never has it. */
+const PRODUCTION_REQUIRED_VARIABLES = ['BACKEND_URL', 'MCP_PUBLIC_URL'] as const;
 
 /** The local defaults are for development only: a production server pointing at localhost would fail on every page. */
 export const findMissingProductionVariables = (raw: Readonly<Record<string, string | undefined>>): string[] => {

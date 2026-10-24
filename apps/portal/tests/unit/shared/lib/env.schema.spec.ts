@@ -22,11 +22,13 @@ describe('findMissingProductionVariables', () => {
   };
 
   it('names every address a production server is missing', () => {
-    expect(findMissingProductionVariables({ NODE_ENV: 'production' })).toEqual([
-      'BACKEND_URL',
-      'MCP_PUBLIC_URL',
-      'NEXT_PUBLIC_LIVE_WS_URL',
-    ]);
+    expect(findMissingProductionVariables({ NODE_ENV: 'production' })).toEqual(['BACKEND_URL', 'MCP_PUBLIC_URL']);
+  });
+
+  it('does not ask a running server for the socket address the build already fixed', () => {
+    const { NEXT_PUBLIC_LIVE_WS_URL: _builtIn, ...running } = complete;
+
+    expect(findMissingProductionVariables(running)).toEqual([]);
   });
 
   it('accepts a production server that has them all', () => {
