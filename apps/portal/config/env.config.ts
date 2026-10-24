@@ -7,15 +7,13 @@ const rawEnvironment = {
   NEXT_PUBLIC_LIVE_WS_URL: process.env.NEXT_PUBLIC_LIVE_WS_URL,
 };
 
-const assertProductionVariables = (): void => {
-  if (typeof window !== 'undefined') return;
+/** Called when the server starts, not on import: `next build` loads this file without the runtime variables. */
+export const assertProductionVariables = (): void => {
   const missing = findMissingProductionVariables(rawEnvironment);
   if (missing.length > 0) {
     throw new Error(`Missing environment variables for production: ${missing.join(', ')}`);
   }
 };
-
-assertProductionVariables();
 
 export const env = envSchema.parse(rawEnvironment);
 

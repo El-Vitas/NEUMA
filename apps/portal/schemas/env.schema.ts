@@ -18,10 +18,8 @@ export const envSchema = z.object({
 
 const PRODUCTION_REQUIRED_VARIABLES = ['BACKEND_URL', 'MCP_PUBLIC_URL', 'NEXT_PUBLIC_LIVE_WS_URL'] as const;
 
-const PRODUCTION_BUILD_PHASE = 'phase-production-build';
-
 /** The local defaults are for development only: a production server pointing at localhost would fail on every page. */
 export const findMissingProductionVariables = (raw: Readonly<Record<string, string | undefined>>): string[] => {
-  if (raw.NODE_ENV !== 'production' || raw.NEXT_PHASE === PRODUCTION_BUILD_PHASE) return [];
+  if (raw.NODE_ENV !== 'production') return [];
   return PRODUCTION_REQUIRED_VARIABLES.filter((name) => !raw[name]);
 };
