@@ -137,4 +137,5 @@ El cambio entra por etapas, en el orden de `docs/superpowers/plans/2026-10-19-to
 - Created: 2026-10-19
 - Approved by: El-Vitas, 2026-10-19
 - Modified: 2026-10-19. El editor manda sus transacciones y sus lecturas `sync` por el canal en vivo, con el mismo servicio que los endpoints HTTP. Pasar cada tecla por el servidor de Next sumaba un salto, y el WebSocket directo al backend ya está permitido (ADR 014). El MCP y las acciones del servidor siguen usando HTTP.
+- Modified: 2026-10-24. Una `expectedVersion` que no coincide ya no solo queda registrada. En las celdas de una fila y al mover una fila (`PATCH …/properties` y `PATCH …/move`), el servidor la compara dentro del bloqueo de la fila y responde 409 `PAGE_VERSION_CONFLICT` sin escribir nada. El portal muestra el conflicto en el panel de rechazados, con «Reintentar» para que gane el valor de la persona (ADR 029).
 - Referencia: `docs/architecture/references/notion-block-sync.md`; `docs/architecture/references/block-and-database-engines.md`
